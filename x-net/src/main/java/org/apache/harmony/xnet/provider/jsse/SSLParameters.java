@@ -70,12 +70,9 @@ public class SSLParameters {
     private SecureRandom secureRandom;
 
     // cipher suites available for SSL connection
-    // BEGIN android-removed
-    // protected CipherSuite[] enabledCipherSuites;
-    // END android-removed
-    // BEGIN android-added
+    // BEGIN android-changed
     private CipherSuite[] enabledCipherSuites;
-    // END android-added
+    // END android-changed
     // string representations of available cipher suites
     private String[] enabledCipherSuiteNames = null;
 
@@ -224,7 +221,7 @@ public class SSLParameters {
         // We simply use the SecureRandom passed in by the caller. If it's
         // null, we don't replace it by a new instance. The native code below
         // then directly accesses /dev/urandom. Not the most elegant solution,
-        // but faster that going through the SecureRandom object. 
+        // but faster than going through the SecureRandom object. 
             secureRandom = sr;
         // END android-added
     }
@@ -279,8 +276,8 @@ public class SSLParameters {
             defaultSecureRandom = new SecureRandom();
         }
         secureRandom = defaultSecureRandom;
-        return secureRandom;
         // END android-added
+        return secureRandom;
     }
 
     // BEGIN android-added

@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Alexander Y. Kleymenov
-* @version $Revision$
-*/
-
 package javax.crypto;
 
 import java.io.FilterInputStream;
@@ -29,7 +24,17 @@ import javax.crypto.NullCipher;
 import java.security.GeneralSecurityException;
 
 /**
- * @com.intel.drl.spec_ref
+ * This class wraps an {@code InputStream} and a cipher so that {@code read()}
+ * methods return data that are read from the underlying {@code InputStream} and
+ * processed by the cipher.
+ * <p>
+ * The cipher must be initialized for the requested operation before being used
+ * by a {@code CipherInputStream}. For example, if a cipher initialized for
+ * decryption is used with a {@code CipherInputStream}, the {@code
+ * CipherInputStream} tries to read the data an decrypt them before returning.
+ * </p>
+ * 
+ * @since Android 1.0
  */
 public class CipherInputStream extends FilterInputStream {
 
@@ -41,7 +46,14 @@ public class CipherInputStream extends FilterInputStream {
     private boolean finished;
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new {@code CipherInputStream} instance for an {@code
+     * InputStream} and a cipher.
+     * 
+     * @param is
+     *            the input stream to read data from.
+     * @param c
+     *            the cipher to process the data with.
+     * @since Android 1.0
      */
     public CipherInputStream(InputStream is, Cipher c) {
         super(is);
@@ -49,14 +61,27 @@ public class CipherInputStream extends FilterInputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new {@code CipherInputStream} instance for an {@code
+     * InputStream} without a cipher.
+     * <p>
+     * A {@code NullCipher} is created and used to process the data.
+     * </p>
+     * 
+     * @param is
+     *            the input stream to read data from.
+     * @since Android 1.0
      */
     protected CipherInputStream(InputStream is) {
         this(is, new NullCipher());
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Reads the next byte from this cipher input stream.
+     * 
+     * @return the next byte, or {@code -1} if the end of the stream is reached.
+     * @throws IOException
+     *             if an error occurs.
+     * @since Android 1.0
      */
     @Override
     public int read() throws IOException {
@@ -87,7 +112,16 @@ public class CipherInputStream extends FilterInputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Reads the next {@code b.length} bytes from this input stream into buffer
+     * {@code b}.
+     * 
+     * @param b
+     *            the buffer to be filled with data.
+     * @return the number of bytes filled into buffer {@code b}, or {@code -1}
+     *         if the end of the stream is reached.
+     * @throws IOException
+     *             if an error occurs.
+     * @since Android 1.0
      */
     @Override
     public int read(byte[] b) throws IOException {
@@ -95,7 +129,26 @@ public class CipherInputStream extends FilterInputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Reads the next {@code len} bytes from this input stream into buffer
+     * {@code b} starting at offset {@code off}.
+     * <p>
+     * if {@code b} is {@code null}, the next {@code len} bytes are read and
+     * discarded.
+     * </p>
+     * 
+     * @param b
+     *            the buffer to be filled with data.
+     * @param off
+     *            the offset to start in the buffer.
+     * @param len
+     *            the maximum number of bytes to read.
+     * @return the number of bytes filled into buffer {@code b}, or {@code -1}
+     *         of the of the stream is reached.
+     * @throws IOException
+     *             if an error occurs.
+     * @throws NullPointerException
+     *             if the underlying input stream is {@code null}.
+     * @since Android 1.0
      */
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
@@ -117,7 +170,20 @@ public class CipherInputStream extends FilterInputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Skips up to n bytes from this input stream.
+     * <p>
+     * The number of bytes skipped depends on the result of a call to
+     * {@link CipherInputStream#available() available}. The smaller of n and the
+     * result are the number of bytes being skipped.
+     * </p>
+     * Skipping is (currently) not supported in Android.
+     * 
+     * @param n
+     *            the number of bytes that should be skipped.
+     * @return the number of bytes actually skipped.
+     * @throws IOException
+     *             if an error occurs
+     * @since Android 1.0
      */
     @Override
     public long skip(long n) throws IOException {
@@ -133,7 +199,13 @@ public class CipherInputStream extends FilterInputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the number of bytes available without blocking. It (currently)
+     * always returns {@code 0} in Android.
+     * 
+     * @return the number of bytes available, currently zero.
+     * @throws IOException
+     *             if an error occurs
+     * @since Android 1.0
      */
     @Override
     public int available() throws IOException {
@@ -141,7 +213,12 @@ public class CipherInputStream extends FilterInputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Closes this {@code CipherInputStream}, also closes the underlying input
+     * stream and call {@code doFinal} on the cipher object.
+     * 
+     * @throws IOException
+     *             if an error occurs.
+     * @since Android 1.0
      */
     @Override
     public void close() throws IOException {
@@ -155,11 +232,15 @@ public class CipherInputStream extends FilterInputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns whether this input stream supports {@code mark} and {@code reset}
+     * , which it does not.
+     * 
+     * @return false, since this input stream does not support {@code mark} and
+     *         {@code reset}.
+     * @since Android 1.0
      */
     @Override
     public boolean markSupported() {
         return false;
     }
 }
-

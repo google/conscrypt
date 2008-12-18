@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Vera Y. Petrashkova
-* @version $Revision$
-*/
-
 package javax.crypto;
 
 import java.nio.ByteBuffer;
@@ -37,10 +32,11 @@ import org.apache.harmony.security.fortress.Engine;
 
 
 /**
- * @com.intel.drl.spec_ref
+ * This class provides the public API for <i>Message Authentication Code</i>
+ * (MAC) algorithms.
  * 
+ * @since Android 1.0
  */
-
 public class Mac implements Cloneable {
 
     //Used to access common engine functionality
@@ -59,8 +55,15 @@ public class Mac implements Cloneable {
     private boolean isInitMac;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Creates a new {@code Mac} instance.
+     * 
+     * @param macSpi
+     *            the implementation delegate.
+     * @param provider
+     *            the implementation provider.
+     * @param algorithm
+     *            the name of the MAC algorithm.
+     * @since Android 1.0
      */
     protected Mac(MacSpi macSpi, Provider provider, String algorithm) {
         this.provider = provider;
@@ -70,26 +73,37 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Returns the name of the MAC algorithm.
+     * 
+     * @return the name of the MAC algorithm.
+     * @since Android 1.0
      */
     public final String getAlgorithm() {
         return algorithm;
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Returns the provider of this {@code Mac} instance.
+     * 
+     * @return the provider of this {@code Mac} instance.
+     * @since Android 1.0
      */
     public final Provider getProvider() {
         return provider;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new {@code Mac} instance that provides the specified MAC
+     * algorithm.
      * 
-     * throws NullPointerException if algorithm is null (instead of
-     * NoSuchAlgorithmException as in 1.4 release)
+     * @param algorithm
+     *            the name of the requested MAC algorithm.
+     * @return the new {@code Mac} instance.
+     * @throws NoSuchAlgorithmException
+     *             if the specified algorithm is not available by any provider.
+     * @throws NullPointerException
+     *             if {@code algorithm} is {@code null}.
+     * @since Android 1.0
      */
     public static final Mac getInstance(String algorithm)
             throws NoSuchAlgorithmException {
@@ -103,10 +117,24 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new {@code Mac} instance that provides the specified MAC
+     * algorithm from the specified provider.
      * 
-     * throws NullPointerException if algorithm is null (instead of
-     * NoSuchAlgorithmException as in 1.4 release)
+     * @param algorithm
+     *            the name of the requested MAC algorithm.
+     * @param provider
+     *            the name of the provider that is providing the algorithm.
+     * @return the new {@code Mac} instance.
+     * @throws NoSuchAlgorithmException
+     *             if the specified algorithm is not provided by the specified
+     *             provider.
+     * @throws NoSuchProviderException
+     *             if the specified provider is not available.
+     * @throws IllegalArgumentException
+     *             if the specified provider name is {@code null} or empty.
+     * @throws NullPointerException
+     *             if {@code algorithm} is {@code null}
+     * @since Android 1.0.
      */
     public static final Mac getInstance(String algorithm, String provider)
             throws NoSuchAlgorithmException, NoSuchProviderException {
@@ -121,10 +149,22 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new {@code Mac} instance that provides the specified MAC
+     * algorithm from the specified provider.
      * 
-     * throws NullPointerException if algorithm is null (instead of
-     * NoSuchAlgorithmException as in 1.4 release)
+     * @param algorithm
+     *            the name of the requested MAC algorithm.
+     * @param provider
+     *            the provider that is providing the algorithm.
+     * @return the new {@code Mac} instance.
+     * @throws NoSuchAlgorithmException
+     *             if the specified algorithm is not provided by the specified
+     *             provider.
+     * @throws IllegalArgumentException
+     *             if {@code provider} is {@code null}.
+     * @throws NullPointerException
+     *             if {@code algorithm} is {@code null}.
+     * @since Android 1.0
      */
     public static final Mac getInstance(String algorithm, Provider provider)
             throws NoSuchAlgorithmException {
@@ -141,16 +181,29 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Returns the length of this MAC (in bytes).
+     * 
+     * @return the length of this MAC (in bytes).
      */
     public final int getMacLength() {
         return spiImpl.engineGetMacLength();
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Initializes this {@code Mac} instance with the specified key and
+     * algorithm parameters.
+     * 
+     * @param key
+     *            the key to initialize this algorithm.
+     * @param params
+     *            the parameters for this algorithm.
+     * @throws InvalidKeyException
+     *             if the specified key cannot be used to initialize this
+     *             algorithm, or it is null.
+     * @throws InvalidAlgorithmParameterException
+     *             if the specified parameters cannot be used to initialize this
+     *             algorithm.
+     * @since Android 1.0
      */
     public final void init(Key key, AlgorithmParameterSpec params)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
@@ -162,8 +215,17 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Initializes this {@code Mac} instance with the specified key.
+     * 
+     * @param key
+     *            the key to initialize this algorithm.
+     * @throws InvalidKeyException
+     *             if initialization fails because the provided key is {@code
+     *             null}.
+     * @throws RuntimeException
+     *             if the specified key cannot be used to initialize this
+     *             algorithm.
+     * @since Android 1.0
      */
     public final void init(Key key) throws InvalidKeyException {
         if (key == null) {
@@ -178,8 +240,13 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Updates this {@code Mac} instance with the specified byte.
+     * 
+     * @param input
+     *            the byte
+     * @throws IllegalStateException
+     *             if this MAC is not initialized.
+     * @since Android 1.0
      */
     public final void update(byte input) throws IllegalStateException {
         if (!isInitMac) {
@@ -189,8 +256,21 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Updates this {@code Mac} instance with the data from the specified buffer
+     * {@code input} from the specified {@code offset} and length {@code len}.
+     * 
+     * @param input
+     *            the buffer.
+     * @param offset
+     *            the offset in the buffer.
+     * @param len
+     *            the length of the data in the buffer.
+     * @throws IllegalStateException
+     *             if this MAC is not initialized.
+     * @throws IllegalArgumentException
+     *             if {@code offset} and {@code len} do not specified a valid
+     *             chunk in {@code input} buffer.
+     * @since Android 1.0
      */
     public final void update(byte[] input, int offset, int len)
             throws IllegalStateException {
@@ -207,8 +287,13 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Copies the buffer provided as input for further processing.
+     * 
+     * @param input
+     *            the buffer.
+     * @throws IllegalStateException
+     *             if this MAC is not initialized.
+     * @since Android 1.0
      */
     public final void update(byte[] input) throws IllegalStateException {
         if (!isInitMac) {
@@ -220,8 +305,15 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Updates this {@code Mac} instance with the data from the specified
+     * buffer, starting at {@link ByteBuffer#position()}, including the next
+     * {@link ByteBuffer#remaining()} bytes.
+     * 
+     * @param input
+     *            the buffer.
+     * @throws IllegalStateException
+     *             if this MAC is not initialized.
+     * @since Android 1.0
      */
     public final void update(ByteBuffer input) {
         if (!isInitMac) {
@@ -235,8 +327,18 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Computes the digest of this MAC based on the data previously specified in
+     * {@link #update} calls.
+     * <p>
+     * This {@code Mac} instance is reverted to its initial state and can be
+     * used to start the next MAC computation with the same parameters or
+     * initialized with different parameters.
+     * </p>
+     * 
+     * @return the generated digest.
+     * @throws IllegalStateException
+     *             if this MAC is not initialized.
+     * @since Android 1.0
      */
     public final byte[] doFinal() throws IllegalStateException {
         if (!isInitMac) {
@@ -246,8 +348,27 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Computes the digest of this MAC based on the data previously specified in
+     * {@link #update} calls and stores the digest in the specified {@code
+     * output} buffer at offset {@code outOffset}.
+     * <p>
+     * This {@code Mac} instance is reverted to its initial state and can be
+     * used to start the next MAC computation with the same parameters or
+     * initialized with different parameters.
+     * </p>
+     * 
+     * @param output
+     *            the output buffer
+     * @param outOffset
+     *            the offset in the output buffer
+     * @throws ShortBufferException
+     *             if the specified output buffer is either too small for the
+     *             digest to be stored, the specified output buffer is {@code
+     *             null}, or the specified offset is negative or past the length
+     *             of the output buffer.
+     * @throws IllegalStateException
+     *             if this MAC is not initialized.
+     * @since Android 1.0
      */
     public final void doFinal(byte[] output, int outOffset)
             throws ShortBufferException, IllegalStateException {
@@ -273,8 +394,21 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Computes the digest of this MAC based on the data previously specified on
+     * {@link #update} calls and on the final bytes specified by {@code input}
+     * (or based on those bytes only).
+     * <p>
+     * This {@code Mac} instance is reverted to its initial state and can be
+     * used to start the next MAC computation with the same parameters or
+     * initialized with different parameters.
+     * </p>
+     * 
+     * @param input
+     *            the final bytes.
+     * @return the generated digest.
+     * @throws IllegalStateException
+     *             if this MAC is not initialized.
+     * @since Android 1.0
      */
     public final byte[] doFinal(byte[] input) throws IllegalStateException {
         if (!isInitMac) {
@@ -287,16 +421,26 @@ public class Mac implements Cloneable {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Resets this {@code Mac} instance to its initial state.
+     * <p>
+     * This {@code Mac} instance is reverted to its initial state and can be
+     * used to start the next MAC computation with the same parameters or
+     * initialized with different parameters.
+     * </p>
+     * 
+     * @since Android 1.0
      */
     public final void reset() {
         spiImpl.engineReset();
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Clones this {@code Mac} instance and the underlying implementation.
+     * 
+     * @return the cloned instance.
+     * @throws CloneNotSupportedException
+     *             if the underlying implementation does not support cloning.
+     * @since Android 1.0
      */
     @Override
     public final Object clone() throws CloneNotSupportedException {

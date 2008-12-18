@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Alexander Y. Kleymenov
-* @version $Revision$
-*/
-
 package javax.crypto;
 
 import java.io.FilterOutputStream;
@@ -28,7 +23,17 @@ import java.io.OutputStream;
 import javax.crypto.NullCipher;
 
 /**
- * @com.intel.drl.spec_ref
+ * This class wraps an output stream and a cipher so that {@code write} methods
+ * send the data through the cipher before writing them to the underlying output
+ * stream.
+ * <p>
+ * The cipher must be initialized for the requested operation before being used
+ * by a {@code CipherOutputStream}. For example, if a cipher initialized for
+ * encryption is used with a {@code CipherOutputStream}, the {@code
+ * CipherOutputStream} tries to encrypt the data writing it out.
+ * </p>
+ * 
+ * @since Android 1.0
  */
 public class CipherOutputStream extends FilterOutputStream {
 
@@ -36,7 +41,14 @@ public class CipherOutputStream extends FilterOutputStream {
     private final byte[] arr = new byte[1];
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new {@code CipherOutputStream} instance for an {@code
+     * OutputStream} and a {@code Cipher}.
+     * 
+     * @param os
+     *            the output stream to write data to.
+     * @param c
+     *            the cipher to process the data with.
+     * @since Android 1.0
      */
     public CipherOutputStream(OutputStream os, Cipher c) {
         super(os);
@@ -44,14 +56,28 @@ public class CipherOutputStream extends FilterOutputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new {@code CipherOutputStream} instance for an {@code
+     * OutputStream} without a cipher.
+     * <p>
+     * A {@code NullCipher} is created to process the data.
+     * </p>
+     * 
+     * @param os
+     *            the output stream to write the data to.
+     * @since Android 1.0
      */
     protected CipherOutputStream(OutputStream os) {
         this(os, new NullCipher());
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Writes the single byte to this cipher output stream.
+     * 
+     * @param b
+     *            the byte to write.
+     * @throws IOException
+     *             if an error occurs.
+     * @since Android 1.0
      */
     @Override
     public void write(int b) throws IOException {
@@ -64,7 +90,13 @@ public class CipherOutputStream extends FilterOutputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Writes the buffer of bytes to this cipher output stream.
+     * 
+     * @param b
+     *            the buffer of bytes.
+     * @throws IOException
+     *             if an error occurs.
+     * @since Android 1.0
      */
     @Override
     public void write(byte[] b) throws IOException {
@@ -72,7 +104,18 @@ public class CipherOutputStream extends FilterOutputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Writes the {@code len} bytes from buffer {@code b} starting at offset
+     * {@code off} to this cipher output stream.
+     * 
+     * @param b
+     *            the buffer.
+     * @param off
+     *            the offset to start at.
+     * @param len
+     *            the number of bytes.
+     * @throws IOException
+     *             if an error occurs.
+     * @since Android 1.0
      */
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
@@ -86,7 +129,10 @@ public class CipherOutputStream extends FilterOutputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Flushes this cipher output stream.
+     * 
+     * @throws IOException
+     *             if an error occurs
      */
     @Override
     public void flush() throws IOException {
@@ -94,7 +140,14 @@ public class CipherOutputStream extends FilterOutputStream {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Close this cipher output stream.
+     * <p>
+     * On the underlying cipher {@code doFinal} will be invoked, and any
+     * buffered bytes from the cipher are also written out, and the cipher is
+     * reset to its initial state. The underlying output stream is also closed.
+     * 
+     * @throws IOException
+     *             if an error occurs.
      */
     @Override
     public void close() throws IOException {
@@ -120,4 +173,3 @@ public class CipherOutputStream extends FilterOutputStream {
         }
     }
 }
-

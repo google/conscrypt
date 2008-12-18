@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Alexander Y. Kleymenov
-* @version $Revision$
-*/
-
 package javax.crypto.spec;
 
 import java.security.spec.MGF1ParameterSpec;
@@ -27,7 +22,12 @@ import java.security.spec.AlgorithmParameterSpec;
 import javax.crypto.spec.PSource;
 
 /**
- * @com.intel.drl.spec_ref
+ * The algorithm parameter specification for the <i>OAEP Padding</i> algorithm.
+ * <p>
+ * This padding algorithm is defined in the <a
+ * href="http://www.ietf.org/rfc/rfc3447.txt">PKCS #1</a> standard.
+ * 
+ * @since Android 1.0
  */
 public class OAEPParameterSpec implements AlgorithmParameterSpec {
 
@@ -37,7 +37,14 @@ public class OAEPParameterSpec implements AlgorithmParameterSpec {
     private final PSource pSrc;
 
     /**
-     * @com.intel.drl.spec_ref
+     * The algorithm parameter instance with default values.
+     * <p>
+     * It uses the following parameters:
+     * <ul><li>message digest : <code>"SHA-1"</code></li>
+     * <li>mask generation function (<i>mgf</i>) : <code>"MGF1"</code></li>
+     * <li>parameters for the <i>mgf</i> : "SHA-1" {@link MGF1ParameterSpec#SHA1}</li>
+     * <li>the source of the label <code>L</code>: {@link PSource.PSpecified#DEFAULT}</li>
+     * </ul>
      */
     public static final OAEPParameterSpec DEFAULT = new OAEPParameterSpec();
 
@@ -49,7 +56,23 @@ public class OAEPParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>OAEPParameterSpec</code> instance with the specified
+     * <i>message digest</i> algorithm name, <i>mask generation function</i>
+     * (<i>mgf</i>) algorithm name, <i>parameters</i> for the <i>mgf</i>
+     * algorithm and the <i>source of the label <code>L</code></i>.
+     * 
+     * @param mdName
+     *            the message digest algorithm name.
+     * @param mgfName
+     *            the mask generation function algorithm name.
+     * @param mgfSpec
+     *            the algorithm parameter specification for the mask generation
+     *            function algorithm.
+     * @param pSrc
+     *            the source of the label <code>L</code>.
+     * @throws NullPointerException
+     *             if one of <code>mdName</code>, <code>mgfName</code> or
+     *             <code>pSrc</code> is null.
      */
     public OAEPParameterSpec(String mdName, String mgfName,
                                 AlgorithmParameterSpec mgfSpec, PSource pSrc) {
@@ -63,28 +86,38 @@ public class OAEPParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the algorithm name of the <i>message digest</i>.
+     * 
+     * @return the algorithm name of the message digest.
      */
     public String getDigestAlgorithm() {
         return mdName;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the algorithm name of the <i>mask generation function</i>.
+     * 
+     * @return the algorithm name of the mask generation function.
      */
     public String getMGFAlgorithm() {
         return mgfName;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the algorithm parameter specification for the mask generation
+     * function algorithm.
+     * 
+     * @return the algorithm parameter specification for the mask generation
+     *         function algorithm.
      */
     public AlgorithmParameterSpec getMGFParameters() {
         return mgfSpec;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the source of the label <code>L</code>.
+     * 
+     * @return the source of the label <code>L</code>.
      */
     public PSource getPSource() {
         return pSrc;

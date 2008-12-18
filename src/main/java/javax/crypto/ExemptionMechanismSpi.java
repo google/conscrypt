@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Vera Y. Petrashkova
-* @version $Revision$
-*/
-
 package javax.crypto;
 
 import java.security.AlgorithmParameters;
@@ -29,56 +24,114 @@ import java.security.Key;
 import java.security.spec.AlgorithmParameterSpec;
 
 /**
- * @com.intel.drl.spec_ref
+ * The <i>Service Provider Interface</i> (<b>SPI</b>) definition for the {@code
+ * ExemptionMechanism} class.
  * 
+ * @since Android 1.0
  */
 public abstract class ExemptionMechanismSpi {
+
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Creates a new {@code ExemptionMechanismSpi} instance.
+     * 
+     * @since Android 1.0
      */
     public ExemptionMechanismSpi() {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Generates the result key blob for this exemption mechanism.
+     * 
+     * @return the result key blob for this exemption mechanism.
+     * @throws ExemptionMechanismException
+     *             if error(s) occur during generation.
+     * @since Android 1.0
      */
     protected abstract byte[] engineGenExemptionBlob()
             throws ExemptionMechanismException;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Generates the result key blob for this exemption mechanism and stores it
+     * into the {@code output} buffer at offset {@code outputOffset}.
+     * 
+     * @param output
+     *            the output buffer for the result key blob.
+     * @param outputOffset
+     *            the offset in the output buffer to start.
+     * @return the number of bytes written to the {@code output} buffer.
+     * @throws ShortBufferException
+     *             if the provided buffer is too small for the result key blob.
+     * @throws ExemptionMechanismException
+     *             if error(s) occur during generation.
+     * @since Android 1.0
      */
     protected abstract int engineGenExemptionBlob(byte[] output,
             int outputOffset) throws ShortBufferException,
             ExemptionMechanismException;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Returns the size in bytes for the output buffer needed to hold the output
+     * of the next {@link #engineGenExemptionBlob} call, given the specified
+     * {@code inputLen} (in bytes).
+     * 
+     * @param inputLen
+     *            the specified input length (in bytes).
+     * @return the size in bytes for the output buffer.
      */
     protected abstract int engineGetOutputSize(int inputLen);
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Initializes this {@code ExemptionMechanism} instance with the specified
+     * key.
+     * 
+     * @param key
+     *            the key to initialize this instance with.
+     * @throws InvalidKeyException
+     *             if the key cannot be used to initialize this mechanism.
+     * @throws ExemptionMechanismException
+     *             if error(s) occur during initialization.
+     * @since Android 1.0
      */
     protected abstract void engineInit(Key key) throws InvalidKeyException,
             ExemptionMechanismException;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Initializes this {@code ExemptionMechanism} instance with the specified
+     * key and algorithm parameters.
+     * 
+     * @param key
+     *            the key to initialize this instance with.
+     * @param params
+     *            the parameters for this exemption mechanism algorithm.
+     * @throws InvalidKeyException
+     *             if the key cannot be used to initialize this mechanism.
+     * @throws InvalidAlgorithmParameterException
+     *             if the parameters cannot be used to initialize this
+     *             mechanism.
+     * @throws ExemptionMechanismException
+     *             if error(s) occur during initialization.
+     * @since Android 1.0
      */
     protected abstract void engineInit(Key key, AlgorithmParameters params)
             throws InvalidKeyException, InvalidAlgorithmParameterException,
             ExemptionMechanismException;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Initializes this {@code ExemptionMechanism} instance with the specified
+     * key and algorithm parameters.
+     * 
+     * @param key
+     *            the key to initialize this instance with.
+     * @param params
+     *            the parameters for this exemption mechanism algorithm.
+     * @throws InvalidKeyException
+     *             if the key cannot be used to initialize this mechanism.
+     * @throws InvalidAlgorithmParameterException
+     *             the the parameters cannot be used to initialize this
+     *             mechanism.
+     * @throws ExemptionMechanismException
+     *             if error(s) occur during initialization.
+     * @since Android 1.0
      */
     protected abstract void engineInit(Key key, AlgorithmParameterSpec params)
             throws InvalidKeyException, InvalidAlgorithmParameterException,

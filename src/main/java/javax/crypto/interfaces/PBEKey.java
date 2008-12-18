@@ -15,42 +15,40 @@
  *  limitations under the License.
  */
 
-/**
-* @author Vera Y. Petrashkova
-* @version $Revision$
-*/
-
 package javax.crypto.interfaces;
 
 import javax.crypto.SecretKey;
 
 /**
- * @com.intel.drl.spec_ref
+ * The interface to a <i>password-based-encryption</i>  key.
  * 
+ * @since Android 1.0
  */
 public interface PBEKey extends SecretKey {
 
     /**
-     * @com.intel.drl.spec_ref
-     * @serial
+     * The serial version identifier.
      */
     public static final long serialVersionUID = -1430015993304333921L;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Returns the iteration count, 0 if not specified.
+     * 
+     * @return the iteration count, 0 if not specified.
      */
     public int getIterationCount();
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Returns a copy of the salt data or null if not specified.
+     * 
+     * @return a copy of the salt data or null if not specified.
      */
     public byte[] getSalt();
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Returns a copy to the password.
+     * 
+     * @return a copy to the password.
      */
     public char[] getPassword();
 

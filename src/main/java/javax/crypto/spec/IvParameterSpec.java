@@ -26,14 +26,20 @@ import java.security.spec.AlgorithmParameterSpec;
 import org.apache.harmony.crypto.internal.nls.Messages;
 
 /**
- * @com.intel.drl.spec_ref
+ * The algorithm parameter specification for an <i>initialization vector</i>.
  */
 public class IvParameterSpec implements AlgorithmParameterSpec {
 
     private final byte[] iv;
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>IvParameterSpec</code> instance with the bytes from
+     * the specified buffer <i>iv</i> used as <i>initialization vector</i>.
+     * 
+     * @param iv
+     *            the buffer used as initialization vector.
+     * @throws NullPointerException
+     *             if the specified buffer is null.
      */
     public IvParameterSpec(byte[] iv) {
         if (iv == null) {
@@ -44,7 +50,22 @@ public class IvParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>IvParameterSpec</code> instance with <code>len</code>
+     * bytes from the specified buffer <code>iv</code> starting at
+     * <code>offset</code>.
+     * 
+     * @param iv
+     *            the buffer used as initialization vector.
+     * @param offset
+     *            the offset to start in the buffer.
+     * @param len
+     *            the length of the data.
+     * @throws IllegalArgumentException
+     *             if the specified buffer is null or <code>offset</code> and
+     *             <code>len</code> do not specify a valid chunk in the
+     *             specified buffer.
+     * @throws ArrayIndexOutOfBoundsException
+     *             if <code>offset</code> or <code>len</code> are negative.
      */
     public IvParameterSpec(byte[] iv, int offset, int len) {
         if ((iv == null) || (iv.length - offset < len)) {
@@ -59,7 +80,9 @@ public class IvParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns a copy of the <i>initialization vector</i> data.
+     * 
+     * @return a copy of the initialization vector data.
      */
     public byte[] getIV() {
         byte[] res = new byte[iv.length];

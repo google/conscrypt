@@ -15,31 +15,26 @@
  *  limitations under the License.
  */
 
-/**
-* @author Vera Y. Petrashkova
-* @version $Revision$
-*/
-
 package javax.crypto.interfaces;
 
 import java.math.BigInteger;
 import java.security.PrivateKey;
 
 /**
- * @com.intel.drl.spec_ref
+ * The interface for a private key in the Diffie-Hellman key exchange protocol.
  * 
+ * @since Android 1.0
  */
 public interface DHPrivateKey extends DHKey, PrivateKey {
 
     /**
-     * @com.intel.drl.spec_ref
-     * @serial
+     * The serialization version identifier.
      */
     public static final long serialVersionUID = 2211791113380396553L;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Returns this key's private value x.
+     * @return this key's private value x.
      */
     public BigInteger getX();
 

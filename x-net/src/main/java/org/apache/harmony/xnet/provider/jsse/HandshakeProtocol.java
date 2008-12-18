@@ -170,16 +170,14 @@ public abstract class HandshakeProtocol {
             engineOwner = (SSLEngineImpl) owner;
             nonBlocking = true;
             this.parameters = (SSLParameters) engineOwner.sslParameters;
+        }
         // BEGIN android-removed
-        // } else if (owner instanceof SSLSocketImpl) {
+        // else if (owner instanceof SSLSocketImpl) {
         //     socketOwner = (SSLSocketImpl) owner;
         //     nonBlocking = false;
         //     this.parameters = (SSLParameters) socketOwner.sslParameters;
         // }
         // END android-removed
-        // BEGIN android-added
-        }
-        // END android-added
     }
 
     /**

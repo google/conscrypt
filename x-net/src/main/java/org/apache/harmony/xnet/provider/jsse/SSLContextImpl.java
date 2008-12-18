@@ -72,14 +72,18 @@ public class SSLContextImpl extends SSLContextSpi {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initiallized.");
         }
+        // BEGIN android-changed
         return new OpenSSLSocketFactoryImpl(sslParameters);
+        // END android-changed
     }
 
     public SSLServerSocketFactory engineGetServerSocketFactory() {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initiallized.");
         }
+        // BEGIN android-changed
         return new OpenSSLServerSocketFactoryImpl(sslParameters);
+        // END android-changed
     }
 
     public SSLEngine engineCreateSSLEngine(String host, int port) {

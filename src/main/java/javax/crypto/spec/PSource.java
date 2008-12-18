@@ -15,17 +15,15 @@
  *  limitations under the License.
  */
 
-/**
-* @author Alexander Y. Kleymenov
-* @version $Revision$
-*/
-
 package javax.crypto.spec;
 
 import org.apache.harmony.crypto.internal.nls.Messages;
 
 /**
- * @com.intel.drl.spec_ref
+ * The source of the label <code>L</code> as specified in <a
+ * href="http://www.ietf.org/rfc/rfc3447.txt"> PKCS #1</a>.
+ * 
+ * @since Android 1.0
  */
 public class PSource {
 
@@ -34,7 +32,13 @@ public class PSource {
     private PSource() {}
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>PSource</code> instance with the specified source
+     * algorithm identifier.
+     * 
+     * @param pSrcName
+     *            the source algorithm identifier.
+     * @throws NullPointerException
+     *             if pSrcName is null.
      */
     protected PSource(String pSrcName) {
         if (pSrcName == null) {
@@ -44,21 +48,26 @@ public class PSource {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the source algorithm identifier.
+     * 
+     * @return the source algorithm identifier.
      */
     public String getAlgorithm() {
         return pSrcName;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * The explicit specification of the parameter <code>P</code> used in the
+     * source algorithm.
+     * 
+     * @since Android 1.0
      */
     public static final class PSpecified extends PSource {
 
         private final byte[] p;
 
         /**
-         * @com.intel.drl.spec_ref
+         * The instance of <code>PSpecified</code> with the default value <code>byte[0]</code> for <code>P</code>
          */
         public static final PSpecified DEFAULT = new PSpecified();
 
@@ -68,7 +77,13 @@ public class PSource {
         }
 
         /**
-         * @com.intel.drl.spec_ref
+         * Creates a new instance of <code>PSpecified</code> with the specified
+         * parameter <code>P</code>.
+         * 
+         * @param p
+         *            the parameter <code>P</code>.
+         * @throws NullPointerException
+         *             if <code>p</code> is null.
          */
         public PSpecified(byte[] p) {
             super("PSpecified"); //$NON-NLS-1$
@@ -82,7 +97,9 @@ public class PSource {
         }
 
         /**
-         * @com.intel.drl.spec_ref
+         * Returns a copy of the value of the parameter <code>P</code>.
+         * 
+         * @return a copy of the value of the parameter <code>P</code>
          */
         public byte[] getValue() {
             byte[] result = new byte[p.length];

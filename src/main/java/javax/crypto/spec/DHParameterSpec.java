@@ -15,18 +15,15 @@
  *  limitations under the License.
  */
 
-/**
-* @author Alexander Y. Kleymenov
-* @version $Revision$
-*/
-
 package javax.crypto.spec;
 
 import java.math.BigInteger;
 import java.security.spec.AlgorithmParameterSpec;
 
 /**
- * @com.intel.drl.spec_ref
+ * The algorithm parameter specification for the Diffie-Hellman algorithm.
+ * 
+ * @since Android 1.0
  */
 public class DHParameterSpec implements AlgorithmParameterSpec {
 
@@ -35,7 +32,13 @@ public class DHParameterSpec implements AlgorithmParameterSpec {
     private final int l;
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>DHParameterSpec</code> instance with the specified
+     * <i>prime modulus</i> and <i>base generator</i>.
+     * 
+     * @param p
+     *            the prime modulus.
+     * @param g
+     *            the base generator.
      */
     public DHParameterSpec(BigInteger p, BigInteger g) {
         this.p = p;
@@ -44,7 +47,16 @@ public class DHParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>DHParameterSpec</code> instance with the specified
+     * <i>prime modulus</i>, <i>base generator</i> and size (in bits) of the
+     * <i>random exponent</i>.
+     * 
+     * @param p
+     *            the prime modulus.
+     * @param g
+     *            the base generator.
+     * @param l
+     *            the size of the random exponent (in bits).
      */
     public DHParameterSpec(BigInteger p, BigInteger g, int l) {
         this.p = p;
@@ -53,21 +65,27 @@ public class DHParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the <i>prime modulus</i> of this parameter specification.
+     * 
+     * @return the prime modulus.
      */
     public BigInteger getP() {
         return p;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the <i>base generator</i> of this parameter specification.
+     * 
+     * @return the base generator.
      */
     public BigInteger getG() {
         return g;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the size (in bits) of the <i>random exponent</i>.
+     * 
+     * @return the size (in bits) of the random exponent.
      */
     public int getL() {
         return l;

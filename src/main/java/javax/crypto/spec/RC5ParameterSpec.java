@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Alexander Y. Kleymenov
-* @version $Revision$
-*/
-
 package javax.crypto.spec;
 
 import java.security.spec.AlgorithmParameterSpec;
@@ -28,7 +23,10 @@ import java.util.Arrays;
 import org.apache.harmony.crypto.internal.nls.Messages;
 
 /**
- * @com.intel.drl.spec_ref
+ * The algorithm parameter specification for the <a
+ * href="http://www.ietf.org/rfc/rfc2040.txt">RC5</a> algorithm.
+ * 
+ * @since Android 1.0
  */
 public class RC5ParameterSpec implements AlgorithmParameterSpec {
 
@@ -38,7 +36,15 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
     private final byte[] iv;
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>RC5ParameterSpec</code> instance with the specified
+     * version, round count an word size (in bits).
+     * 
+     * @param version
+     *            the version.
+     * @param rounds
+     *            the round count.
+     * @param wordSize
+     *            the word size (in bits).
      */
     public RC5ParameterSpec(int version, int rounds, int wordSize) {
         this.version = version;
@@ -48,7 +54,25 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>RC5ParameterSpec</code> instance with the specified
+     * version, round count, word size (in bits) and an <i>initialization
+     * vector</i>.
+     * <p>
+     * The size of the <i>initialization vector</i> must be at least
+     * <code>2 * (wordSize / 8)</code> bytes which are copied to protect them
+     * against modification.
+     * 
+     * @param version
+     *            the version.
+     * @param rounds
+     *            the round count.
+     * @param wordSize
+     *            the word size (in bits).
+     * @param iv
+     *            the initialization vector.
+     * @throws IllegalArgumentException
+     *             if the initialization vector is null or shorter than <code>2
+     *             * (wordSize / 8)</code>.
      */
     public RC5ParameterSpec(int version, int rounds, int wordSize, byte[] iv) {
         if (iv == null) {
@@ -66,7 +90,29 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>RC5ParameterSpec</code> instance with the specified
+     * version, round count, wordSize (in bits), an <i>initialization vector</i>
+     * and an offset.
+     * <p>
+     * The size of the <i>initialization vector</i> must be at least
+     * <code>offset + (2 * (wordSize / 8))</code> bytes. The bytes starting at
+     * <code>offset</code> are copied to protect them against modification.
+     * 
+     * @param version
+     *            the version.
+     * @param rounds
+     *            the round count.
+     * @param wordSize
+     *            the word size (in bits).
+     * @param iv
+     *            the initialization vector.
+     * @param offset
+     *            the offset in the initialization vector.
+     * @throws IllegalArgumentException
+     *             if the initialization vector is null of shorter than
+     *             <code>offset + (2 * (wordSize / 8))</code>.
+     * @throws ArrayIndexOutOfBoundsException
+     *             if <code>offset</code> is negative.
      */
     public RC5ParameterSpec(int version, int rounds,
                                 int wordSize, byte[] iv, int offset) {
@@ -88,28 +134,36 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the version.
+     * 
+     * @return the version.
      */
     public int getVersion() {
         return version;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the round count.
+     * 
+     * @return the round count.
      */
     public int getRounds() {
         return rounds;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the word size (in bits).
+     * 
+     * @return the word size (in bits).
      */
     public int getWordSize() {
         return wordSize;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns a copy of the initialization vector.
+     * 
+     * @return a copy of the initialization vector, or null if none specified.
      */
     public byte[] getIV() {
         if (iv == null) {
@@ -121,7 +175,13 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Compares the specified object with this <code>RC5ParameterSpec</code>
+     * instance.
+     * 
+     * @param obj
+     *            the object to compare.
+     * @return true if version, round count, word size and initializaion vector
+     *         of both objects are equal, otherwise false.
      */
     @Override
     public boolean equals(Object obj) {
@@ -139,7 +199,9 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the hash code of this <code>RC5ParameterSpec</code> instance.
+     * 
+     * @return the hash code.
      */
     @Override
     public int hashCode() {

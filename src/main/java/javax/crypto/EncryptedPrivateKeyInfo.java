@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Vladimir N. Molotkov, Stepan M. Mishura
-* @version $Revision$
-*/
-
 package javax.crypto;
 
 import java.io.IOException;
@@ -46,7 +41,24 @@ import org.apache.harmony.security.x509.AlgorithmIdentifier;
 
 
 /**
- * @com.intel.drl.spec_ref
+ * This class implements the {@code EncryptedPrivateKeyInfo} ASN.1 type as
+ * specified in <a href="http://www.ietf.org/rfc/rfc5208.txt">PKCS
+ * #8 - Private-Key Information Syntax Standard</a>.
+ * <p>
+ * The definition of ASN.1 is as follows:
+ * </p>
+ * <dl>
+ * EncryptedPrivateKeyInfo ::= SEQUENCE {
+ * <dd>encryptionAlgorithm AlgorithmIdentifier,</dd>
+ * <dd>encryptedData OCTET STRING }</dd>
+ * </dl>
+ * <dl>
+ * AlgorithmIdentifier ::= SEQUENCE {
+ * <dd>algorithm OBJECT IDENTIFIER,</dd>
+ * <dd>parameters ANY DEFINED BY algorithm OPTIONAL }</dd>
+ * </dl>
+ * 
+ * @since Android 1.0
  */
 public class EncryptedPrivateKeyInfo {
     // Encryption algorithm name
@@ -61,7 +73,16 @@ public class EncryptedPrivateKeyInfo {
     private volatile byte[] encoded;
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates an {@code EncryptedPrivateKeyInfo} instance from its encoded
+     * representation by parsing it.
+     * 
+     * @param encoded
+     *            the encoded representation of this object
+     * @throws IOException
+     *             if parsing the encoded representation fails.
+     * @throws NullPointerException
+     *             if {@code encoded} is {@code null}.
+     * @since Android 1.0
      */
     public EncryptedPrivateKeyInfo(byte[] encoded)
             throws IOException {
@@ -104,7 +125,21 @@ public class EncryptedPrivateKeyInfo {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates an {@code EncryptedPrivateKeyInfo} instance from an algorithm
+     * name and its encrypted data.
+     * 
+     * @param encrAlgName
+     *            the name of an algorithm.
+     * @param encryptedData
+     *            the encrypted data.
+     * @throws NoSuchAlgorithmException
+     *             if the {@code encrAlgName} is not a supported algorithm.
+     * @throws NullPointerException
+     *             if {@code encrAlgName} or {@code encryptedData} is {@code
+     *             null}.
+     * @throws IllegalArgumentException
+     *             if {@code encryptedData} is empty.
+     * @since Android 1.0
      */
     public EncryptedPrivateKeyInfo(String encrAlgName, byte[] encryptedData)
         throws NoSuchAlgorithmException {
@@ -129,7 +164,20 @@ public class EncryptedPrivateKeyInfo {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates an {@code EncryptedPrivateKeyInfo} instance from the
+     * encryption algorithm parameters an its encrypted data.
+     * 
+     * @param algParams
+     *            the encryption algorithm parameters.
+     * @param encryptedData
+     *            the encrypted data.
+     * @throws NoSuchAlgorithmException
+     *             if the algorithm name of the specified {@code algParams}
+     *             parameter is not supported.
+     * @throws NullPointerException
+     *             if {@code algParams} or {@code encryptedData} is
+     *             {@code null}.
+     * @since Android 1.0
      */
     public EncryptedPrivateKeyInfo(AlgorithmParameters algParams,
             byte[] encryptedData)
@@ -155,21 +203,31 @@ public class EncryptedPrivateKeyInfo {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the name of the encryption algorithm.
+     * 
+     * @return the name of the encryption algorithm.
+     * @since Android 1.0
      */
     public String getAlgName() {
         return algName;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the parameters used by the encryption algorithm.
+     * 
+     * @return the parameters used by the encryption algorithm.
+     * @since Android 1.0
      */
     public AlgorithmParameters getAlgParameters() {
         return algParameters;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the encrypted data of this key.
+     * 
+     * @return the encrypted data of this key, each time this method is called a
+     *         new array is returned.
+     * @since Android 1.0
      */
     public byte[] getEncryptedData() {
         byte[] ret = new byte[encryptedData.length];
@@ -178,7 +236,23 @@ public class EncryptedPrivateKeyInfo {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the {@code PKCS8EncodedKeySpec} object extracted from the
+     * encrypted data.
+     * <p>
+     * The cipher must be initialize in either {@code Cipher.DECRYPT_MODE} or
+     * {@code Cipher.UNWRAP_MODE} with the same parameters and key used for
+     * encrypting this.
+     * </p>
+     * 
+     * @param cipher
+     *            the cipher initialized for decrypting the encrypted data.
+     * @return the extracted {@code PKCS8EncodedKeySpec}.
+     * @throws InvalidKeySpecException
+     *             if the specified cipher is not suited to decrypt the
+     *             encrypted data.
+     * @throws NullPointerException
+     *             if {@code cipher} is {@code null}.
+     * @since Android 1.0
      */
     public PKCS8EncodedKeySpec getKeySpec(Cipher cipher)
         throws InvalidKeySpecException {
@@ -204,7 +278,21 @@ public class EncryptedPrivateKeyInfo {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the {@code PKCS8EncodedKeySpec} object extracted from the
+     * encrypted data.
+     * 
+     * @param decryptKey
+     *            the key to decrypt the encrypted data with.
+     * @return the extracted {@code PKCS8EncodedKeySpec}.
+     * @throws NoSuchAlgorithmException
+     *             if no usable cipher can be found to decrypt the encrypted
+     *             data.
+     * @throws InvalidKeyException
+     *             if {@code decryptKey} is not usable to decrypt the encrypted
+     *             data.
+     * @throws NullPointerException
+     *             if {@code decryptKey} is {@code null}.
+     * @since Android 1.0
      */
     public PKCS8EncodedKeySpec getKeySpec(Key decryptKey)
         throws NoSuchAlgorithmException,
@@ -241,7 +329,27 @@ public class EncryptedPrivateKeyInfo {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the {@code PKCS8EncodedKeySpec} object extracted from the
+     * encrypted data.
+     * 
+     * @param decryptKey
+     *            the key to decrypt the encrypted data with.
+     * @param providerName
+     *            the name of a provider whose cipher implementation should be
+     *            used.
+     * @return the extracted {@code PKCS8EncodedKeySpec}.
+     * @throws NoSuchProviderException
+     *             if no provider with {@code providerName} can be found.
+     * @throws NoSuchAlgorithmException
+     *             if no usable cipher can be found to decrypt the encrypted
+     *             data.
+     * @throws InvalidKeyException
+     *             if {@code decryptKey} is not usable to decrypt the encrypted
+     *             data.
+     * @throws NullPointerException
+     *             if {@code decryptKey} or {@code providerName} is {@code null}
+     *             .
+     * @since Android 1.0
      */
     public PKCS8EncodedKeySpec getKeySpec(Key decryptKey, String providerName)
         throws NoSuchProviderException, 
@@ -283,7 +391,23 @@ public class EncryptedPrivateKeyInfo {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the {@code PKCS8EncodedKeySpec} object extracted from the
+     * encrypted data.
+     * 
+     * @param decryptKey
+     *            the key to decrypt the encrypted data with.
+     * @param provider
+     *            the provider whose cipher implementation should be used.
+     * @return the extracted {@code PKCS8EncodedKeySpec}.
+     * @throws NoSuchAlgorithmException
+     *             if no usable cipher can be found to decrypt the encrypted
+     *             data.
+     * @throws InvalidKeyException
+     *             if {@code decryptKey} is not usable to decrypt the encrypted
+     *             data.
+     * @throws NullPointerException
+     *             if {@code decryptKey} or {@code provider} is {@code null}.
+     * @since Android 1.0
      */
     public PKCS8EncodedKeySpec getKeySpec(Key decryptKey, Provider provider)
         throws NoSuchAlgorithmException,
@@ -323,7 +447,12 @@ public class EncryptedPrivateKeyInfo {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the ASN.1 encoded representation of this object.
+     * 
+     * @return the ASN.1 encoded representation of this object.
+     * @throws IOException
+     *             if encoding this object fails.
+     * @since Android 1.0
      */
     public byte[] getEncoded() throws IOException {
         if (encoded == null) {

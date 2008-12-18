@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Vera Y. Petrashkova
-* @version $Revision$
-*/
-
 package javax.crypto;
 
 import java.security.InvalidAlgorithmParameterException;
@@ -30,57 +25,125 @@ import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 
 /**
- * @com.intel.drl.spec_ref
+ * The <i>Service Provider Interface</i> (<b>SPI</b>) definition for the
+ * {@code KeyAgreement} class.
  * 
+ * @since Android 1.0
  */
 public abstract class KeyAgreementSpi {
+ 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Creates a new {@code KeyAgreementSpi} instance.
+     * 
+     * @since Android 1.0
      */
-
     public KeyAgreementSpi() {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Does the next (or the last) phase of the key agreement, using the
+     * specified key.
+     * 
+     * @param key
+     *            the key received from the other party for this phase.
+     * @param lastPhase
+     *            set to {@code true} if this is the last phase of this key
+     *            agreement.
+     * @return the intermediate key from this phase or null if there is no
+     *         intermediate key for this phase.
+     * @throws InvalidKeyException
+     *             if the specified key cannot be used in this key agreement or
+     *             this phase,
+     * @throws IllegalStateException
+     *             if this instance has not been initialized.
+     * @since Android 1.0
      */
     protected abstract Key engineDoPhase(Key key, boolean lastPhase)
             throws InvalidKeyException, IllegalStateException;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Generates the shared secret.
+     * 
+     * @return the generated shared secret.
+     * @throws IllegalStateException
+     *             if this key agreement is not complete.
+     * @since Android 1.0
      */
     protected abstract byte[] engineGenerateSecret()
             throws IllegalStateException;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Generates the shared secret and stores it into the buffer {@code
+     * sharedSecred} at {@code offset}.
+     * 
+     * @param sharedSecret
+     *            the buffer to store the shared secret.
+     * @param offset
+     *            the offset in the buffer.
+     * @return the number of bytes stored in the buffer.
+     * @throws IllegalStateException
+     *             if this key agreement is not complete.
+     * @throws ShortBufferException
+     *             if the specified buffer is too small for the shared secret.
+     * @since Android 1.0
      */
     protected abstract int engineGenerateSecret(byte[] sharedSecret, int offset)
             throws IllegalStateException, ShortBufferException;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Generates the shared secret.
+     * 
+     * @param algorithm
+     *            the algorithm to for the {@code SecretKey}
+     * @return the shared secret as a {@code SecretKey} of the specified
+     *         algorithm.
+     * @throws IllegalStateException
+     *             if this key agreement is not complete.
+     * @throws NoSuchAlgorithmException
+     *             if the specified algorithm for the secret key does not
+     *             exists.
+     * @throws InvalidKeyException
+     *             if a {@code SecretKey} with the specified algorithm cannot be
+     *             created using the generated shared secret.
+     * @since Android 1.0
      */
     protected abstract SecretKey engineGenerateSecret(String algorithm)
             throws IllegalStateException, NoSuchAlgorithmException,
             InvalidKeyException;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Initializes this {@code KeyAgreementSpi} with the specified key and the
+     * specified randomness source.
+     * 
+     * @param key
+     *            the key to initialize this key agreement.
+     * @param random
+     *            the source for any randomness needed.
+     * @throws InvalidKeyException
+     *             if the specified key cannot be used to initialize this key
+     *             agreement.
+     * @since Android 1.0
      */
     protected abstract void engineInit(Key key, SecureRandom random)
             throws InvalidKeyException;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Initializes this {@code KeyAgreementSpi} with the specified key,
+     * algorithm parameters and randomness source.
+     * 
+     * @param key
+     *            the key to initialize this key agreement.
+     * @param params
+     *            the parameters for this key agreement algorithm.
+     * @param random
+     *            the source for any randomness needed.
+     * @throws InvalidKeyException
+     *             if the specified key cannot be used to initialize this key
+     *             agreement.
+     * @throws InvalidAlgorithmParameterException
+     *             if the specified parameters are invalid for this key
+     *             agreement algorithm.
+     * @since Android 1.0
      */
     protected abstract void engineInit(Key key, AlgorithmParameterSpec params,
             SecureRandom random) throws InvalidKeyException,

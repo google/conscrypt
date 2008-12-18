@@ -23,12 +23,14 @@ import java.security.spec.KeySpec;
 import org.apache.harmony.crypto.internal.nls.Messages;
 
 /**
- * @com.intel.drl.spec_ref
+ * The key specification for a DES key.
+ * 
+ * @since Android 1.0
  */
 public class DESKeySpec implements KeySpec {
 
     /**
-     * @com.intel.drl.spec_ref
+     * The length of a DES key in bytes.
      */
     public static final int DES_KEY_LEN = 8;
 
@@ -92,14 +94,29 @@ public class DESKeySpec implements KeySpec {
                 };
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>DESKeySpec</code> from the first 8 bytes of the
+     * specified key data.
+     * 
+     * @param key
+     *            the key data.
+     * @throws InvalidKeyException
+     *             if the length of the specified key data is less than 8.
      */
     public DESKeySpec(byte[] key) throws InvalidKeyException {
         this(key, 0);
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>DESKeySpec</code> from the first 8 bytes of the
+     * specified key data starting at <code>offset</code>.
+     * 
+     * @param key
+     *            the key data
+     * @param offset
+     *            the offset to start at.
+     * @throws InvalidKeyException
+     *             if the length of the specified key data starting at offset is
+     *             less than 8.
      */
     public DESKeySpec(byte[] key, int offset)
                 throws InvalidKeyException {
@@ -115,7 +132,9 @@ public class DESKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns a copy of the key.
+     * 
+     * @return a copy of the key.
      */
     public byte[] getKey() {
         byte[] result = new byte[DES_KEY_LEN];
@@ -124,7 +143,18 @@ public class DESKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns whether the specified key data starting at <code>offset</code> is
+     * <i>parity-adjusted</i>.
+     * 
+     * @param key
+     *            the key data.
+     * @param offset
+     *            the offset to start checking at.
+     * @return {@code true} if the specified key data is parity-adjusted,
+     *            {@code false} otherwise.
+     * @throws InvalidKeyException
+     *             if the length of the key data starting at offset is less than
+     *             8, or the key is null.
      */
     public static boolean isParityAdjusted(byte[] key, int offset)
             throws InvalidKeyException {
@@ -153,7 +183,17 @@ public class DESKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns whether the specified key data starting at <code>offset</code> is
+     * weak or semi-weak.
+     * 
+     * @param key
+     *            the key data.
+     * @param offset
+     *            the offset to start checking at.
+     * @return {@code true} if the specified key data is weak or semi-weak.
+     * @throws InvalidKeyException
+     *             if the length of the key data starting at offset is less than
+     *             8, or it is null.
      */
     public static boolean isWeak(byte[] key, int offset)
               throws InvalidKeyException {

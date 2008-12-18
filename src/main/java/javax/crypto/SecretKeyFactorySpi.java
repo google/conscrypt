@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Vera Y. Petrashkova
-* @version $Revision$
-*/
-
 package javax.crypto;
 
 import java.security.InvalidKeyException;
@@ -27,36 +22,62 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 
 /**
- * @com.intel.drl.spec_ref
+ * The <i>Service Provider Interface</i> (<b>SPI</b>) definition for the {@code
+ * SecretKeyFactory} class.
  * 
+ * @since Android 1.0
  */
 public abstract class SecretKeyFactorySpi {
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Creates a new {@code SecretKeyFactorySpi} instance.
+     * @since Android 1.0
      */
     public SecretKeyFactorySpi() {
     }
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Generate a secret key from the specified key specification.
+     * 
+     * @param keySpec
+     *            the key specification.
+     * @return a secret key.
+     * @throws InvalidKeySpecException
+     *             if the specified key specification cannot be used to generate
+     *             a secret key.
+     * @since Android 1.0
      */
     protected abstract SecretKey engineGenerateSecret(KeySpec keySpec)
             throws InvalidKeySpecException;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Returns the key specification of the specified secret key.
+     * 
+     * @param key
+     *            the secret key to get the specification from.
+     * @param keySpec
+     *            the target key specification class.
+     * @return an instance of the specified key specification class.
+     * @throws InvalidKeySpecException
+     *             if the specified secret key cannot be transformed into the
+     *             requested key specification.
+     * @since Android 1.0
      */
     @SuppressWarnings("unchecked")
     protected abstract KeySpec engineGetKeySpec(SecretKey key, Class keySpec)
             throws InvalidKeySpecException;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Translates the specified secret key into an instance of the corresponding
+     * key from the provider of this key factory.
+     * 
+     * @param key
+     *            the secret key to translate.
+     * @return the corresponding translated key.
+     * @throws InvalidKeyException
+     *             if the specified key cannot be translated using this key
+     *             factory.
+     * @since Android 1.0
      */
     protected abstract SecretKey engineTranslateKey(SecretKey key)
             throws InvalidKeyException;

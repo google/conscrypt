@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Alexander Y. Kleymenov
-* @version $Revision$
-*/
-
 package javax.crypto.spec;
 
 import java.security.spec.KeySpec;
@@ -28,7 +23,12 @@ import java.util.Arrays;
 import org.apache.harmony.crypto.internal.nls.Messages;
 
 /**
- * @com.intel.drl.spec_ref
+ * The key specification for a <i>password based encryption</i> key.
+ * <p>
+ * Password based encryption is described in <a
+ * href="http://www.ietf.org/rfc/rfc2898.txt">PKCS #5</a>.
+ * 
+ * @since Android 1.0
  */
 public class PBEKeySpec implements KeySpec {
 
@@ -38,7 +38,10 @@ public class PBEKeySpec implements KeySpec {
     private final int keyLength;
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>PBEKeySpec</code> with the specified password.
+     * 
+     * @param password
+     *            the password.
      */
     public PBEKeySpec(char[] password) {
         if (password == null) {
@@ -53,7 +56,22 @@ public class PBEKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>PBEKeySpec</code> with the specified password, salt,
+     * iteration count and the desired length of the derived key.
+     * 
+     * @param password
+     *            the password.
+     * @param salt
+     *            the salt.
+     * @param iterationCount
+     *            the iteration count.
+     * @param keyLength
+     *            the desired key length of the derived key,
+     * @throws NullPointerException
+     *             if the salt is null.
+     * @throws IllegalArgumentException
+     *             if the salt is empty, iteration count is zero or negative or
+     *             the key length is zero or negative.
      */
     public PBEKeySpec(char[] password, byte[] salt, int iterationCount,
                       int keyLength) {
@@ -84,7 +102,19 @@ public class PBEKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>PBEKeySpec</code> with the specified password, salt
+     * and iteration count.
+     * 
+     * @param password
+     *            the password.
+     * @param salt
+     *            the salt.
+     * @param iterationCount
+     *            the iteration count.
+     * @throws NullPointerException
+     *             if salt is null.
+     * @throws IllegalArgumentException
+     *             if the salt is empty or iteration count is zero or negative.
      */
     public PBEKeySpec(char[] password, byte[] salt, int iterationCount) {
         if (salt == null) {
@@ -111,7 +141,7 @@ public class PBEKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Clears the password by overwriting it.
      */
     public final void clearPassword() {
         Arrays.fill(password, '?');
@@ -119,7 +149,11 @@ public class PBEKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns a copy of the password of this key specification.
+     * 
+     * @return a copy of the password of this key specification.
+     * @throws IllegalStateException
+     *             if the password has been cleared before.
      */
     public final char[] getPassword() {
         if (password == null) {
@@ -131,7 +165,10 @@ public class PBEKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns a copy of the salt of this key specification.
+     * 
+     * @return a copy of the salt of this key specification or null if none is
+     *         specified.
      */
     public final byte[] getSalt() {
         if (salt == null) {
@@ -143,14 +180,18 @@ public class PBEKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the iteration count of this key specification.
+     * 
+     * @return the iteration count of this key specification.
      */
     public final int getIterationCount() {
         return iterationCount;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the desired key length of the derived key.
+     * 
+     * @return the desired key length of the derived key.
      */
     public final int getKeyLength() {
         return keyLength;

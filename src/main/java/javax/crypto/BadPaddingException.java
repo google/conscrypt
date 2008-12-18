@@ -15,18 +15,15 @@
  *  limitations under the License.
  */
 
-/**
-* @author Vera Y. Petrashkova
-* @version $Revision$
-*/
-
 package javax.crypto;
 
 import java.security.GeneralSecurityException;
 
 /**
- * @com.intel.drl.spec_ref
+ * The exception that is thrown when a padding mechanism is expected for the
+ * input data, but the input data does not have the proper padding bytes.
  * 
+ * @since Android 1.0
  */
 public class BadPaddingException extends GeneralSecurityException {
 
@@ -36,16 +33,20 @@ public class BadPaddingException extends GeneralSecurityException {
     private static final long serialVersionUID = -5315033893984728443L;
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new instance of {@code BadPaddingException} with a message.
      * 
+     * @param msg
+     *            the message
+     * @since Android 1.0
      */
     public BadPaddingException(String msg) {
         super(msg);
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new instance of {@code BadPaddingException} with no message.
      * 
+     * @since Android 1.0
      */
     public BadPaddingException() {
     }

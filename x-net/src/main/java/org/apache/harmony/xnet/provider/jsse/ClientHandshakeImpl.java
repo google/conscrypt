@@ -127,12 +127,9 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         if (isResuming) {
             cipher_suites = new CipherSuite[] { session.cipherSuite };
         } else {
-            // BEGIN android-removed
-            // cipher_suites = parameters.enabledCipherSuites;
-            // END android-removed
-            // BEGIN android-added
+            // BEGIN android-changed
             cipher_suites = parameters.getEnabledCipherSuitesMember();
-            // END android-added
+            // END android-changed
         }
         clientHello = new ClientHello(parameters.getSecureRandom(),
                 session.protocol.version, session.id, cipher_suites);
@@ -213,12 +210,9 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                     }
                     
                     //check cipher_suite
-                    // BEGIN android-removed
-                    // CipherSuite[] enabledSuites = parameters.enabledCipherSuites;
-                    // END android-removed
-                    // BEGIN android-added
+                    // BEGIN android-changed
                     CipherSuite[] enabledSuites = parameters.getEnabledCipherSuitesMember();
-                    // END android-added
+                    // END android-changed
                     find: {
                         for (int i = 0; i < enabledSuites.length; i++) {
                             if (serverHello.cipher_suite
@@ -612,23 +606,14 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
 
     // Find session to resume in client session context
     private SSLSessionImpl findSessionToResume() {
-        // BEGIN android-removed
-        // String host;
-        // int port;
-        // END android-removed
-        // BEGIN android-added
+        // BEGIN android-changed
         String host = null;
         int port = -1;
-        // END android-added
         if (engineOwner != null) {
             host = engineOwner.getPeerHost();
             port = engineOwner.getPeerPort();
-        // BEGIN android-removed
-        // } else {
-        //     host = socketOwner.getInetAddress().getHostName();
-        //     port = socketOwner.getPort();
-        // END android-removed
         }
+        // END android-changed
         if (host == null || port == -1) {
             return null; // starts new session
         }

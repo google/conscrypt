@@ -15,25 +15,30 @@
  *  limitations under the License.
  */
 
-/**
-* @author Vera Y. Petrashkova
-* @version $Revision$
-*/
-
 package javax.crypto;
 
 import java.security.Key;
 
 /**
- * @com.intel.drl.spec_ref
+ * A cryptographic secret (symmetric) key.
+ * <p>
+ * This interface is a <i>marker interface</i> to group secret keys and to
+ * provide type safety for.
+ * </p>
+ * Implementations of this interface have to overwrite the
+ * {@link Object#equals(Object) equals} and {@link Object#hashCode() hashCode}
+ * from {@link java.lang.Object} so comparison is done using the actual key data
+ * and not the object reference.
  * 
+ * @since Android 1.0
  */
 public interface SecretKey extends Key {
 
     /**
-     * @com.intel.drl.spec_ref
+     * The serialization version identifier.
+     * 
      * @serial
-     *  
+     * @since Android 1.0
      */
     public static final long serialVersionUID = -4795878709595146952L;
 }

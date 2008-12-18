@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Alexander Y. Kleymenov
-* @version $Revision$
-*/
-
 package javax.crypto.spec;
 
 import java.security.spec.AlgorithmParameterSpec;
@@ -27,7 +22,14 @@ import java.security.spec.AlgorithmParameterSpec;
 import org.apache.harmony.crypto.internal.nls.Messages;
 
 /**
- * @com.intel.drl.spec_ref
+ * The algorithm parameter specification for a <i>password based encryption</i>
+ * algorithm. 
+ * <p>
+ * Password based encryption is described in <a
+ * href="http://www.ietf.org/rfc/rfc2898.txt">PKCS #5</a>.
+ * 
+ * @since Android 1.0
+ *
  */
 public class PBEParameterSpec implements AlgorithmParameterSpec {
 
@@ -35,7 +37,15 @@ public class PBEParameterSpec implements AlgorithmParameterSpec {
     private final int iterationCount;
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>PBEParameterSpec</code> with the specified salt and
+     * iteration count.
+     * 
+     * @param salt
+     *            the salt.
+     * @param iterationCount
+     *            the iteration count.
+     * @throws NullPointerException
+     *             if salt is null.
      */
     public PBEParameterSpec(byte[] salt, int iterationCount) {
         if (salt == null) {
@@ -47,7 +57,9 @@ public class PBEParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns a copy to the salt.
+     * 
+     * @return a copy to the salt.
      */
     public byte[] getSalt() {
         byte[] result = new byte[salt.length];
@@ -56,7 +68,9 @@ public class PBEParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the iteration count.
+     * 
+     * @return the iteration count.
      */
     public int getIterationCount() {
         return iterationCount;

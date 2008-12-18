@@ -15,17 +15,15 @@
  *  limitations under the License.
  */
 
-/**
-* @author Alexander Y. Kleymenov
-* @version $Revision$
-*/
-
 package javax.crypto.spec;
 
 import java.security.spec.AlgorithmParameterSpec;
 
 /**
- * @com.intel.drl.spec_ref
+ * The algorithm parameter specification for generating Diffie-Hellman
+ * parameters used in Diffie-Hellman key agreement.
+ * 
+ * @since Android 1.0
  */
 public class DHGenParameterSpec implements AlgorithmParameterSpec {
 
@@ -33,7 +31,13 @@ public class DHGenParameterSpec implements AlgorithmParameterSpec {
     private final int exponentSize;
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>DHGenParameterSpec</code> instance with the specified
+     * parameters.
+     * 
+     * @param primeSize
+     *            the size of the <i>prime modulus</i> in bits.
+     * @param exponentSize
+     *            the size of the <i>random exponent</i> in bits.
      */
     public DHGenParameterSpec(int primeSize, int exponentSize) {
         this.primeSize = primeSize;
@@ -41,14 +45,18 @@ public class DHGenParameterSpec implements AlgorithmParameterSpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the size of the <i>prime modulus</i> in bits.
+     * 
+     * @return the size of the prime modulus in bits.
      */
     public int getPrimeSize() {
         return primeSize;
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns the size of the <i>random exponent</i> in bits.
+     * 
+     * @return the size of the random exponent in bits.
      */
     public int getExponentSize() {
         return exponentSize;

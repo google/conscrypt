@@ -25,8 +25,10 @@ package javax.crypto;
 import java.security.GeneralSecurityException;
 
 /**
- * @com.intel.drl.spec_ref
+ * The exception that is thrown when the result of an operation is attempted to
+ * store in a user provided buffer that is too small.
  * 
+ * @since Android 1.0
  */
 public class ShortBufferException extends GeneralSecurityException {
 
@@ -36,16 +38,21 @@ public class ShortBufferException extends GeneralSecurityException {
     private static final long serialVersionUID = 8427718640832943747L;
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new instance of {@code ShortBufferException} with the
+     * specified message
      * 
+     * @param msg
+     *            the exception message.
+     * @since Android 1.0
      */
     public ShortBufferException(String msg) {
         super(msg);
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new instance of {@code ShortBufferException}.
      * 
+     * @since Android 1.0
      */
     public ShortBufferException() {
     }

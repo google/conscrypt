@@ -21,6 +21,10 @@
  * if this tool runs again. Better make changes in the template file.
  */
 
+// BEGIN android-note
+// Redundant code has been removed and is now called from MsgHelp.
+// END android-note
+
 package org.apache.harmony.crypto.internal.nls;
 
 
@@ -30,8 +34,9 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
-import org.apache.harmony.kernel.vm.VM;
+// BEGIN android-changed
 import org.apache.harmony.luni.util.MsgHelp;
+// END android-changed
 
 /**
  * This class retrieves strings from a resource bundle and returns them,
@@ -49,8 +54,10 @@ import org.apache.harmony.luni.util.MsgHelp;
  */
 public class Messages {
 
+    // BEGIN android-changed
     private static final String sResource =
         "org.apache.harmony.crypto.internal.nls.messages"; //$NON-NLS-1$
+    // END android-changed
 
     /**
      * Retrieves a message which has no arguments.
@@ -60,7 +67,9 @@ public class Messages {
      * @return String the message for that key in the system message bundle.
      */
     static public String getString(String msg) {
+        // BEGIN android-changed
         return MsgHelp.getString(sResource, msg);
+        // END android-changed
     }
 
     /**
@@ -127,6 +136,12 @@ public class Messages {
      * @return String the message for that key in the system message bundle.
      */
     static public String getString(String msg, Object[] args) {
+        // BEGIN android-changed
         return MsgHelp.getString(sResource, msg, args);
+        // END android-changed
     }
+
+    // BEGIN android-note
+    // Duplicate code was dropped in favor of using MsgHelp.
+    // END android-note
 }

@@ -691,20 +691,13 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             if (!client_suites[i].supported) {
                 continue;
             }
-            // BEGIN android-removed
-            // for (int j = 0; j < parameters.enabledCipherSuites.length; j++) {
-            //     if (client_suites[i].equals(parameters.enabledCipherSuites[j])) {
-            //         return client_suites[i];
-            //     }
-            // }
-            // END android-removed
-            // BEGIN android-added
+            // BEGIN android-changed
             for (int j = 0; j < parameters.getEnabledCipherSuitesMember().length; j++) {
                 if (client_suites[i].equals(parameters.getEnabledCipherSuitesMember()[j])) {
                     return client_suites[i];
                 }
             }
-            // END android-added
+            // END android-changed
         }
         return null;
     }

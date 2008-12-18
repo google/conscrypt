@@ -14,10 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-/**
-* @author Alexander Y. Kleymenov
-* @version $Revision$
-*/
 
 package javax.crypto.spec;
 
@@ -27,19 +23,29 @@ import java.security.spec.KeySpec;
 import org.apache.harmony.crypto.internal.nls.Messages;
 
 /**
- * @com.intel.drl.spec_ref
+ * The key specification for a triple-DES (DES-EDE) key.
+ * 
+ * @since Android 1.0
  */
 public class DESedeKeySpec implements KeySpec {
 
     /**
-     * @com.intel.drl.spec_ref
+     * The length of a DES-EDE key in bytes.
      */
     public static final int DES_EDE_KEY_LEN = 24;
 
     private final byte[] key;
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>DESedeKeySpec</code> instance from the first 24 (
+     * {@link #DES_EDE_KEY_LEN}) bytes of the specified key data.
+     * 
+     * @param key
+     *            the key data.
+     * @throws InvalidKeyException
+     *             if the length of the key data is less than 24.
+     * @throws NullPointerException
+     *             if the key data is null.
      */
     public DESedeKeySpec(byte[] key)
                 throws InvalidKeyException {
@@ -55,7 +61,19 @@ public class DESedeKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Creates a new <code>DESedeKeySpec</code> instance from the first 24 (
+     * {@link #DES_EDE_KEY_LEN} ) bytes of the specified key data starting at
+     * <code>offset</code>.
+     * 
+     * @param key
+     *            the key data
+     * @param offset
+     *            the offset to start at.
+     * @throws InvalidKeyException
+     *             if the length of the key data starting at offset is less than
+     *             24.
+     * @throws NullPointerException
+     *             if the key data is null.
      */
     public DESedeKeySpec(byte[] key, int offset)
                 throws InvalidKeyException {
@@ -71,7 +89,9 @@ public class DESedeKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns a copy of the key.
+     * 
+     * @return a copy of the key.
      */
     public byte[] getKey() {
         byte[] result = new byte [DES_EDE_KEY_LEN];
@@ -80,7 +100,18 @@ public class DESedeKeySpec implements KeySpec {
     }
 
     /**
-     * @com.intel.drl.spec_ref
+     * Returns whether the specified key data starting at <code>offset</code> is
+     * <i>parity-adjusted</i>.
+     * 
+     * @param key
+     *            the key data.
+     * @param offset
+     *            the offset to start checking at.
+     * @return {@code true} if the specified key data is parity-adjusted,
+     *            {@code false} otherwise.
+     * @throws InvalidKeyException
+     *             if the length of the key data starting at offset is less than
+     *             24.
      */
     public static boolean isParityAdjusted(byte[] key, int offset)
                 throws InvalidKeyException {

@@ -15,31 +15,26 @@
  *  limitations under the License.
  */
 
-/**
-* @author Vera Y. Petrashkova
-* @version $Revision$
-*/
-
 package javax.crypto.interfaces;
 
 import java.math.BigInteger;
 import java.security.PublicKey;
 
 /**
- * @com.intel.drl.spec_ref
+ * The interface for a public key in the Diffie-Hellman key exchange protocol. 
  * 
+ * @since Android 1.0
  */
 public interface DHPublicKey extends DHKey, PublicKey {
 
     /**
-     * @com.intel.drl.spec_ref
-     * @serial
+     * The serial version identifier.
      */
     public static final long serialVersionUID = -6628103563352519193L;
 
     /**
-     * @com.intel.drl.spec_ref
-     *  
+     * Returns this key's public value Y.
+     * @return this key's public value Y.
      */
     public BigInteger getY();
 }
