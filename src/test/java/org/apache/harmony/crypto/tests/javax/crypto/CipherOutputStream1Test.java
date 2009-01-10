@@ -23,14 +23,22 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Arrays;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.NullCipher;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.Cipher;
@@ -60,15 +68,12 @@ public class CipherOutputStream1Test extends TestCase {
      * CipherOutputStream uses NullCipher if Cipher is not specified
      * in the constructor.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "CipherOutputStream",
-          methodArgs = {java.io.OutputStream.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "CipherOutputStream",
+        args = {java.io.OutputStream.class}
+    )
     public void testCipherOutputStream() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestOutputStream tos = new TestOutputStream();
@@ -85,15 +90,12 @@ public class CipherOutputStream1Test extends TestCase {
      * write(int b) method testing. Tests that method writes correct values to
      * the underlying output stream.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "write",
-          methodArgs = {int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "write",
+        args = {int.class}
+    )
     public void testWrite1() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestOutputStream tos = new TestOutputStream();
@@ -112,15 +114,12 @@ public class CipherOutputStream1Test extends TestCase {
      * write(byte[] b) method testing. Tests that method writes correct values
      * to the underlying output stream.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "NullPointerException & IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "write",
-          methodArgs = {byte[].class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "write",
+        args = {byte[].class}
+    )
     public void testWrite2() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestOutputStream tos = new TestOutputStream();
@@ -131,20 +130,24 @@ public class CipherOutputStream1Test extends TestCase {
         if (!Arrays.equals(result, data)) {
             fail("CipherOutputStream wrote incorrect data.");
         }
+        
+        try {
+            cos.write(null);
+            fail("NullPointerException expected");
+        } catch (NullPointerException e) {
+            //expected
+        }
     }
 
     /**
      * write(byte[] b, int off, int len) method testing.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "write",
-          methodArgs = {byte[].class, int.class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "write",
+        args = {byte[].class, int.class, int.class}
+    )
     public void testWrite3() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestOutputStream tos = new TestOutputStream();
@@ -162,15 +165,12 @@ public class CipherOutputStream1Test extends TestCase {
     /**
      * @tests write(byte[] b, int off, int len)
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Regression test. IllegalArgumentException checked.",
-      targets = {
-        @TestTarget(
-          methodName = "write",
-          methodArgs = {byte[].class, int.class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL,
+        notes = "Regression test. IllegalArgumentException checked.",
+        method = "write",
+        args = {byte[].class, int.class, int.class}
+    )
     public void testWrite4() throws Exception {
         //Regression for HARMONY-758
         try {
@@ -182,15 +182,12 @@ public class CipherOutputStream1Test extends TestCase {
     /**
      * @tests write(byte[] b, int off, int len)
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Regression test. Functional.",
-      targets = {
-        @TestTarget(
-          methodName = "write",
-          methodArgs = {byte[].class, int.class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "write",
+        args = {byte[].class, int.class, int.class}
+    )
     public void testWrite5() throws Exception {
         //Regression for HARMONY-758
         Cipher cf = Cipher.getInstance("DES/CBC/PKCS5Padding");
@@ -206,15 +203,12 @@ public class CipherOutputStream1Test extends TestCase {
      * flush() method testing. Tests that method flushes the data to the
      * underlying output stream.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "flush",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "flush",
+        args = {}
+    )
     public void testFlush() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestOutputStream tos = new TestOutputStream();
@@ -231,15 +225,12 @@ public class CipherOutputStream1Test extends TestCase {
      * close() method testing. Tests that the method calls the close() method of
      * the underlying input stream.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "close",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "close",
+        args = {}
+    )
     public void testClose() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestOutputStream tos = new TestOutputStream();
@@ -252,6 +243,28 @@ public class CipherOutputStream1Test extends TestCase {
         }
         assertTrue("The close() method should call the close() method "
                 + "of its underlying output stream.", tos.wasClosed());
+    }
+
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "CipherOutputStream",
+        args = {java.io.OutputStream.class, javax.crypto.Cipher.class}
+    )
+    public void test_ConstructorLjava_io_OutputStreamLjavax_crypto_Cipher() throws
+    NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        KeyGenerator kg = KeyGenerator.getInstance("DES");
+        kg.init(56, new SecureRandom());
+        Key key = kg.generateKey();
+        
+        Cipher c = Cipher.getInstance("DES/CBC/NoPadding");
+        c.init(Cipher.ENCRYPT_MODE, key);
+        
+        CipherOutputStream cos = new CipherOutputStream(baos, c);
+        
+        assertNotNull(cos);
     }
 }
 

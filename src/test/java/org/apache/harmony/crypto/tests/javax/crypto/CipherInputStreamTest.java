@@ -18,9 +18,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -38,15 +38,12 @@ public class CipherInputStreamTest extends TestCase {
     /**
      * @tests javax.crypto.CipherInputStream#read(byte[] b, int off, int len)
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Regression test. Checks NullPointerException",
-      targets = {
-        @TestTarget(
-          methodName = "read",
-          methodArgs = {byte[].class, int.class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL,
+        notes = "Regression test. Checks NullPointerException",
+        method = "read",
+        args = {byte[].class, int.class, int.class}
+    )
     public void testReadBII() throws Exception {
         // Regression for HARMONY-1080
         CipherInputStream stream = new CipherInputStream(null, new NullCipher());
@@ -61,15 +58,12 @@ public class CipherInputStreamTest extends TestCase {
     /**
      * @tests javax.crypto.CipherInputStream#close()
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Regression test. Checks IllegalStateException",
-      targets = {
-        @TestTarget(
-          methodName = "close",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL,
+        notes = "Regression test. Checks IllegalStateException",
+        method = "close",
+        args = {}
+    )
     public void testClose() throws Exception {
         // Regression for HARMONY-1087
         try {

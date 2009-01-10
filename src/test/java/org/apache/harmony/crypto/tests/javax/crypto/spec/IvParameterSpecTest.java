@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.lang.NullPointerException;
 import java.lang.IllegalArgumentException;
@@ -48,15 +48,12 @@ public class IvParameterSpecTest extends TestCase {
      * NullPointerException is thrown in the case of null input
      * array and that input array is copied during initialization.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "IvParameterSpec",
-          methodArgs = {byte[].class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "IvParameterSpec",
+        args = {byte[].class}
+    )
     public void testIvParameterSpec1() {
         try {
             new IvParameterSpec(null);
@@ -77,15 +74,12 @@ public class IvParameterSpecTest extends TestCase {
      * NullPointerException is thrown in the case of null input
      * array and that input array is copied during initialization.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "IvParameterSpec",
-          methodArgs = {byte[].class, int.class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "IvParameterSpec",
+        args = {byte[].class, int.class, int.class}
+    )
     public void testIvParameterSpec2() {
         try {
             new IvParameterSpec(null, 1, 1);
@@ -148,15 +142,12 @@ public class IvParameterSpecTest extends TestCase {
         }
     }
 
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getIV",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getIV",
+        args = {}
+    )
     public void testGetIV() {
         byte[] iv = new byte[] {1, 2, 3, 4, 5};
         IvParameterSpec ivps = new IvParameterSpec(iv);

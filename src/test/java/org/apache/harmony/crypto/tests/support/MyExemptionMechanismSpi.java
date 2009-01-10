@@ -83,6 +83,9 @@ public class MyExemptionMechanismSpi  extends ExemptionMechanismSpi {
         if (!(key instanceof tmpKey)) {
             throw new ExemptionMechanismException("Incorrect key");
         }
+        if (params == null) {
+            throw new InvalidAlgorithmParameterException("params is null");
+        }
     }
 
     @Override
@@ -94,6 +97,9 @@ public class MyExemptionMechanismSpi  extends ExemptionMechanismSpi {
         }
         if (!(key instanceof tmpKey)) {
             throw new ExemptionMechanismException("Incorrect key");
+        }
+        if (params == null) {
+            throw new InvalidAlgorithmParameterException("params is null");
         }
     }
     

@@ -23,18 +23,20 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.io.IOException;
 import java.security.AlgorithmParameters;
+import java.security.AlgorithmParametersSpi;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.Provider;
 import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
@@ -74,7 +76,7 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      */
     private static final String[][] algName = {
     // AES
-            { "AES", null },
+            { "AES", null},
             //            {"AES", "AES/ECB/PKCS5Padding"},
             //            {"AES", "AES/CBC/PKCS5Padding"},
             //            {"AES", "AES/OFB/PKCS5Padding"},
@@ -135,8 +137,8 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
             { "PBEWithMD5AndTripleDES", null },
             // {iso(1) member-body(2) us(840) rsadsi(113549) pkcs(1) pkcs-5(5)
             // pbeWithMD5AndDES-CBC(3)}
-            { "PBEWithMD5AndDES", "PBEWithMD5AndDES/CBC/PKCS5Padding" },
-            { "PBEWithMD5AndDES", null }, { "PBEWithHmacSHA1AndDESede", null },
+            { "PBEWithMD5AndDES", "PBEWithMD5AndDES/CBC/PKCS5Padding", "PBEWithMD5AndDES"},
+            { "PBEWithMD5AndDES", null, "PBEWithMD5AndDES"}, { "PBEWithHmacSHA1AndDESede", null },
             // more oids:
             // {iso(1) member-body(2) us(840) nortelnetworks(113533) entrust(7)
             // algorithms(66) pbeWithMD5AndCAST5-CBC(12)}
@@ -166,8 +168,8 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
 
             //            {"1.2.840.113549.1.12.1.1",null},
             //            {"1.2.840.113549.1.12.1.2",null},
-            { "1.2.840.113549.1.12.1.3", null },
-            { "PBEWithSHA1AndDESede", null },
+            { "1.2.840.113549.1.12.1.3", null, "PBEWithSHA1AndDESede"},
+            { "PBEWithSHA1AndDESede", null, "PBEWithSHA1AndDESede"},
     //            {"1.2.840.113549.1.12.1.4",null},
     //            {"1.2.840.113549.1.12.1.5",null},
     //            {"1.2.840.113549.1.12.1.6",null},
@@ -193,6 +195,41 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
     //            {"RSA",null}, // 1.2.840.113549.1.1.1
     //            {"1.2.840.113549.1.1.1", null},
     };
+    
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getAlgName",
+        args = {}
+    )
+    public void test_getAlgName () {
+        boolean performed = false;
+        for (int i = 0; i < algName.length; i++) {
+            try {
+                // generate test data
+                TestDataGenerator g = new TestDataGenerator(algName[i][0],
+                        algName[i][1], privateKeyInfoDamaged, null);
+
+                // create test object
+                EncryptedPrivateKeyInfo epki;
+                if (g.ap() == null) {
+                    epki = new EncryptedPrivateKeyInfo(algName[i][0], g.ct());
+                } else {
+                    epki = new EncryptedPrivateKeyInfo(g.ap(), g.ct());
+                }
+
+                // call methods under test
+                if (algName[i].length == 3) {
+                    assertTrue(epki.getAlgName().compareTo(algName[i][2]) == 0);
+                }
+
+                performed = true;
+            } catch (TestDataGenerator.AllowedFailure allowedFailure) {
+            } catch (NoSuchAlgorithmException allowedFailure) {
+            }
+        }
+        assertTrue("Test not performed", performed);
+    }
 
     /**
      * Test #1 for <code>EncryptedPrivateKeyInfo(byte[])</code> constructor
@@ -204,15 +241,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * @throws IOException
      * @throws NoSuchAlgorithmException
      */
-@TestInfo(
-      level = TestLevel.PARTIAL_OK,
-      purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
-      targets = {
-        @TestTarget(
-          methodName = "EncryptedPrivateKeyInfo",
-          methodArgs = {byte[].class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfobyteArray1() throws Exception {
         new EncryptedPrivateKeyInfo(EncryptedPrivateKeyInfoData
                 .getValidEncryptedPrivateKeyInfoEncoding("DH"));
@@ -228,15 +262,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
-          targets = {
-            @TestTarget(
-              methodName = "EncryptedPrivateKeyInfo",
-              methodArgs = {byte[].class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfobyteArray2()
             throws IOException {
         try {
@@ -253,15 +284,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * Test preconditions: wrong encoding passed as a parameter <br>
      * Expected: <code>IOException</code>
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
-          targets = {
-            @TestTarget(
-              methodName = "EncryptedPrivateKeyInfo",
-              methodArgs = {byte[].class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfobyteArray3() {
         try {
             new EncryptedPrivateKeyInfo(new byte[0]);
@@ -277,15 +305,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * Test preconditions: wrong encoding passed as a parameter <br>
      * Expected: <code>IOException</code>
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
-          targets = {
-            @TestTarget(
-              methodName = "EncryptedPrivateKeyInfo",
-              methodArgs = {byte[].class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfobyteArray4() {
         try {
             new EncryptedPrivateKeyInfo(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -302,15 +327,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * Test preconditions: wrong encoding passed as a parameter <br>
      * Expected: <code>IOException</code>
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
-          targets = {
-            @TestTarget(
-              methodName = "EncryptedPrivateKeyInfo",
-              methodArgs = {byte[].class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfobyteArray5() throws Exception {
         byte[] enc = null;
         try {
@@ -402,15 +424,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
-          targets = {
-            @TestTarget(
-              methodName = "EncryptedPrivateKeyInfo",
-              methodArgs = {byte[].class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfobyteArray6() throws Exception {
         byte[] encoded = EncryptedPrivateKeyInfoData
                 .getValidEncryptedPrivateKeyInfoEncoding("DSA");
@@ -430,15 +449,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * Test preconditions: valid parameters passed <br>
      * Expected: must pass without any exceptions
      */
-@TestInfo(
-      level = TestLevel.PARTIAL_OK,
-      purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
-      targets = {
-        @TestTarget(
-          methodName = "EncryptedPrivateKeyInfo",
-          methodArgs = {java.lang.String.class, byte[].class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {java.lang.String.class, byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfoStringbyteArray1() {
         boolean performed = false;
 
@@ -463,15 +479,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * Test preconditions: pass nonexistent algorithm name <br>
      * Expected: <code>NoSuchAlgorithmException</code>
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
-          targets = {
-            @TestTarget(
-              methodName = "EncryptedPrivateKeyInfo",
-              methodArgs = {java.lang.String.class, byte[].class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {java.lang.String.class, byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfoStringbyteArray2() {
         try {
             new EncryptedPrivateKeyInfo("bla-bla",
@@ -499,15 +512,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws NoSuchAlgorithmException
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
-          targets = {
-            @TestTarget(
-              methodName = "EncryptedPrivateKeyInfo",
-              methodArgs = {java.lang.String.class, byte[].class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {java.lang.String.class, byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfoStringbyteArray3()
             throws NoSuchAlgorithmException {
         // pass null as name
@@ -534,15 +544,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * Test preconditions: pass empty encrypted data <br>
      * Expected: <code>IllegalArgumentException</code>
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
-          targets = {
-            @TestTarget(
-              methodName = "EncryptedPrivateKeyInfo",
-              methodArgs = {java.lang.String.class, byte[].class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {java.lang.String.class, byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfoStringbyteArray4()
             throws Exception {
         try {
@@ -562,15 +569,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
-          targets = {
-            @TestTarget(
-              methodName = "EncryptedPrivateKeyInfo",
-              methodArgs = {java.lang.String.class, byte[].class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {java.lang.String.class, byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfoStringbyteArray5()
             throws Exception {
         byte[] encryptedDataCopy = EncryptedPrivateKeyInfoData.encryptedData
@@ -589,15 +593,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * @tests javax/crypto/EncryptedPrivateKeyInfo(String, byte[])
      * Checks exception order
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
-          targets = {
-            @TestTarget(
-              methodName = "EncryptedPrivateKeyInfo",
-              methodArgs = {java.lang.String.class, byte[].class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for EncryptedPrivateKeyInfo(String, byte[]) constructor.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {java.lang.String.class, byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfoStringbyteArray6() {
         //Regression for HARMONY-768
         try {
@@ -608,7 +609,13 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
         }    
     }
 
-    /**
+    class Mock_AlgorithmParameters extends AlgorithmParameters {
+        protected Mock_AlgorithmParameters(AlgorithmParametersSpi paramSpi, Provider provider, String algorithm) {
+            super(paramSpi, provider, algorithm);
+        }
+    }
+
+/**
      * Test #1 for
      * <code>EncryptedPrivateKeyInfo(java.security.AlgorithmParameters, byte[])
      * </code>
@@ -618,23 +625,22 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * Expected: must pass without any exceptions
      * 
      * @throws IOException
+     * @throws NoSuchAlgorithmException 
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Functionality checked. NoSuchAlgorithmException should be tested for complete tests subset.",
-      targets = {
-        @TestTarget(
-          methodName = "EncryptedPrivateKeyInfo",
-          methodArgs = {java.security.AlgorithmParameters.class, byte[].class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Functionality checked. NoSuchAlgorithmException should be tested for complete tests subset.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {java.security.AlgorithmParameters.class, byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfoAlgorithmParametersbyteArray1()
-            throws IOException {
+            throws IOException, NoSuchAlgorithmException {
+        AlgorithmParameters ap = null;
 
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
             try {
-                AlgorithmParameters ap = AlgorithmParameters
+                ap = AlgorithmParameters
                         .getInstance(EncryptedPrivateKeyInfoData.algName0[i][0]);
                 // use pregenerated AlgorithmParameters encodings
                 ap.init(EncryptedPrivateKeyInfoData.getParametersEncoding(
@@ -648,6 +654,16 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
             }
         }
         assertTrue("Test not performed", performed);
+        
+        ap = new Mock_AlgorithmParameters(null, null, "Wrong alg name");
+            
+        try {
+            new EncryptedPrivateKeyInfo(ap,
+                EncryptedPrivateKeyInfoData.encryptedData);
+            fail("NoSuchAlgorithmException expected");
+        } catch (NoSuchAlgorithmException e) {
+            //expected
+        }
     }
 
     /**
@@ -664,15 +680,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * @throws NoSuchAlgorithmException
      * @throws IOException
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "NullPointerException checked.",
-      targets = {
-        @TestTarget(
-          methodName = "EncryptedPrivateKeyInfo",
-          methodArgs = {java.security.AlgorithmParameters.class, byte[].class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "NullPointerException checked.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {java.security.AlgorithmParameters.class, byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfoAlgorithmParametersbyteArray2()
             throws NoSuchAlgorithmException, IOException {
         // 1: pass null as AlgorithmParameters
@@ -707,15 +720,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * @throws NoSuchAlgorithmException
      * @throws IOException
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IllegalArgumentException checked.",
-      targets = {
-        @TestTarget(
-          methodName = "EncryptedPrivateKeyInfo",
-          methodArgs = {java.security.AlgorithmParameters.class, byte[].class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "IllegalArgumentException checked.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {java.security.AlgorithmParameters.class, byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfoAlgorithmParametersbyteArray3()
             throws Exception {
         try {
@@ -742,15 +752,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Functionality checked.",
-      targets = {
-        @TestTarget(
-          methodName = "EncryptedPrivateKeyInfo",
-          methodArgs = {java.security.AlgorithmParameters.class, byte[].class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Functionality checked.",
+        method = "EncryptedPrivateKeyInfo",
+        args = {java.security.AlgorithmParameters.class, byte[].class}
+    )
     public final void testEncryptedPrivateKeyInfoAlgorithmParametersbyteArray4()
             throws Exception {
         AlgorithmParameters ap = AlgorithmParameters.getInstance("DSA");
@@ -780,15 +787,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-      level = TestLevel.PARTIAL_OK,
-      purpose = "This is a complete subset of tests for getAlgParameters method.",
-      targets = {
-        @TestTarget(
-          methodName = "getAlgParameters",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getAlgParameters method.",
+        method = "getAlgParameters",
+        args = {}
+    )
     public final void testGetAlgParameters01() throws IOException {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -817,15 +821,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
         assertTrue("Test not performed", performed);
     }
 
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for getAlgParameters method.",
-          targets = {
-            @TestTarget(
-              methodName = "getAlgParameters",
-              methodArgs = {}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getAlgParameters method.",
+        method = "getAlgParameters",
+        args = {}
+    )
     public final void testGetAlgParameters01_01() throws Exception {
         byte[] validEncodingWithUnknownAlgOID = EncryptedPrivateKeyInfoData
                 .getValidEncryptedPrivateKeyInfoEncoding("DH");
@@ -847,15 +848,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for getAlgParameters method.",
-          targets = {
-            @TestTarget(
-              methodName = "getAlgParameters",
-              methodArgs = {}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getAlgParameters method.",
+        method = "getAlgParameters",
+        args = {}
+    )
     public final void testGetAlgParameters02() throws IOException {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -889,15 +887,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for getAlgParameters method.",
-          targets = {
-            @TestTarget(
-              methodName = "getAlgParameters",
-              methodArgs = {}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getAlgParameters method.",
+        method = "getAlgParameters",
+        args = {}
+    )
     public final void testGetAlgParameters03() throws IOException {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -927,15 +922,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for getAlgParameters method.",
-          targets = {
-            @TestTarget(
-              methodName = "getAlgParameters",
-              methodArgs = {}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getAlgParameters method.",
+        method = "getAlgParameters",
+        args = {}
+    )
     public final void testGetAlgParameters04() throws IOException {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -972,15 +964,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-      level = TestLevel.PARTIAL_OK,
-      purpose = "This is a complete subset of tests for getEncryptedData method.",
-      targets = {
-        @TestTarget(
-          methodName = "getEncryptedData",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getEncryptedData method.",
+        method = "getEncryptedData",
+        args = {}
+    )
     public final void testGetEncryptedData01() throws IOException {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -1010,15 +999,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * name and encrypted data as a parameters <br>
      * Expected: the equivalent encrypted data must be returned
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for getEncryptedData method.",
-          targets = {
-            @TestTarget(
-              methodName = "getEncryptedData",
-              methodArgs = {}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getEncryptedData method.",
+        method = "getEncryptedData",
+        args = {}
+    )
     public final void testGetEncryptedData02() {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -1049,15 +1035,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for getEncryptedData method.",
-          targets = {
-            @TestTarget(
-              methodName = "getEncryptedData",
-              methodArgs = {}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getEncryptedData method.",
+        method = "getEncryptedData",
+        args = {}
+    )
     public final void testGetEncryptedData03() throws IOException {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -1092,15 +1075,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * Expected: refs to encrypted data byte array passed to the ctor and
      * returned by the method under test must be different
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for getEncryptedData method.",
-          targets = {
-            @TestTarget(
-              methodName = "getEncryptedData",
-              methodArgs = {}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getEncryptedData method.",
+        method = "getEncryptedData",
+        args = {}
+    )
     public final void testGetEncryptedData04() {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -1133,15 +1113,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "getEncoded",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Can not check IOException",
+        method = "getEncoded",
+        args = {}
+    )
     public final void testGetEncoded01() throws IOException {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -1171,15 +1148,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-          level = TestLevel.PARTIAL,
-          purpose = "IOException checking missed.",
-          targets = {
-            @TestTarget(
-              methodName = "getEncoded",
-              methodArgs = {}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Can not check IOException",
+        method = "getEncoded",
+        args = {}
+    )
     public final void testGetEncoded02() throws IOException {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -1215,15 +1189,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-          level = TestLevel.PARTIAL,
-          purpose = "IOException checking missed.",
-          targets = {
-            @TestTarget(
-              methodName = "getEncoded",
-              methodArgs = {}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Can not check IOException",
+        method = "getEncoded",
+        args = {}
+    )
     public final void testGetEncoded03() throws IOException {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -1262,15 +1233,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
      * 
      * @throws IOException
      */
-@TestInfo(
-          level = TestLevel.PARTIAL,
-          purpose = "IOException checking missed.",
-          targets = {
-            @TestTarget(
-              methodName = "getEncoded",
-              methodArgs = {}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Can not check IOException",
+        method = "getEncoded",
+        args = {}
+    )
     public final void testGetEncoded04() throws IOException {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -1295,15 +1263,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
         assertTrue("Test not performed", performed);
     }
 
-@TestInfo(
-      level = TestLevel.PARTIAL_OK,
-      purpose = "This is a complete subset of tests for getKeySpec method.",
-      targets = {
-        @TestTarget(
-          methodName = "getKeySpec",
-          methodArgs = {javax.crypto.Cipher.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getKeySpec method.",
+        method = "getKeySpec",
+        args = {javax.crypto.Cipher.class}
+    )
     public final void testGetKeySpecCipher01() {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -1333,15 +1298,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
     /**
      * Encrypted data contains valid PKCS8 key info encoding
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for getKeySpec method.",
-          targets = {
-            @TestTarget(
-              methodName = "getKeySpec",
-              methodArgs = {javax.crypto.Cipher.class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getKeySpec method.",
+        method = "getKeySpec",
+        args = {javax.crypto.Cipher.class}
+    )
     public final void test_ROUNDTRIP_GetKeySpecCipher01() {
         boolean performed = false;
 
@@ -1382,15 +1344,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
     /**
      * Encrypted data contains invalid PKCS8 key info encoding
      */
-@TestInfo(
-          level = TestLevel.PARTIAL_OK,
-          purpose = "This is a complete subset of tests for getKeySpec method.",
-          targets = {
-            @TestTarget(
-              methodName = "getKeySpec",
-              methodArgs = {javax.crypto.Cipher.class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "This is a complete subset of tests for getKeySpec method.",
+        method = "getKeySpec",
+        args = {javax.crypto.Cipher.class}
+    )
     public final void test_ROUNDTRIP_GetKeySpecCipher02() {
         boolean performed = false;
         for (int i = 0; i < algName.length; i++) {
@@ -1425,15 +1384,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
         assertTrue("Test not performed", performed);
     }
 
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Subset does not checks NoSuchAlgorithmException",
-      targets = {
-        @TestTarget(
-          methodName = "getKeySpec",
-          methodArgs = {java.security.Key.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Can not check NoSuchAlgorithmException",
+        method = "getKeySpec",
+        args = {java.security.Key.class}
+    )
     public final void testGetKeySpecKey01() {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -1463,15 +1419,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
     /**
      * Encrypted data contains valid PKCS8 key info encoding
      */
-@TestInfo(
-          level = TestLevel.PARTIAL,
-          purpose = "Subset does not checks NoSuchAlgorithmException",
-          targets = {
-            @TestTarget(
-              methodName = "getKeySpec",
-              methodArgs = {java.security.Key.class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Can not check NoSuchAlgorithmException",
+        method = "getKeySpec",
+        args = {java.security.Key.class}
+    )
     public final void test_ROUNDTRIP_GetKeySpecKey01() {
         boolean performed = false;
         for (int i = 0; i < algName.length; i++) {
@@ -1510,15 +1463,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
     /**
      * Encrypted data contains invalid PKCS8 key info encoding
      */
-@TestInfo(
-          level = TestLevel.PARTIAL,
-          purpose = "Subset does not checks NoSuchAlgorithmException",
-          targets = {
-            @TestTarget(
-              methodName = "getKeySpec",
-              methodArgs = {java.security.Key.class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Can not check NoSuchAlgorithmException",
+        method = "getKeySpec",
+        args = {java.security.Key.class}
+    )
     public final void test_ROUNDTRIP_GetKeySpecKey02() {
         boolean performed = false;
         for (int i = 0; i < algName.length; i++) {
@@ -1549,15 +1499,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
         assertTrue("Test not performed", performed);
     }
 
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "In subset missed NoSuchProviderException & NoSuchAlgorithmException checking",
-      targets = {
-        @TestTarget(
-          methodName = "getKeySpec",
-          methodArgs = {java.security.Key.class, java.lang.String.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "NoSuchAlgorithmException can not be checking",
+        method = "getKeySpec",
+        args = {java.security.Key.class, java.lang.String.class}
+    )
     public final void testGetKeySpecKeyString01() throws Exception {
         boolean performed = false;
         for (int i = 0; i < EncryptedPrivateKeyInfoData.algName0.length; i++) {
@@ -1567,12 +1514,30 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
                         EncryptedPrivateKeyInfoData.encryptedData);
 
                 try {
-
                     // check that method under test throws NPE
                     epki.getKeySpec((Key) null, "SomeProviderName");
                     fail(getName() + "NullPointerException has not been thrown");
 
                 } catch (NullPointerException ok) {
+                }
+
+                try {
+                    epki.getKeySpec(new Key() {
+                        public String getAlgorithm() {
+                            return "alg";
+                        }
+
+                        public String getFormat() {
+                            return "fmt";
+                        }
+
+                        public byte[] getEncoded() {
+                            return new byte[] {};
+                        }
+                    }, "StrangeProviderName");
+                    fail(getName() + "NoSuchProviderException has not been thrown");
+                } catch (NoSuchProviderException ok) {
+                    //expected
                 }
 
                 try {
@@ -1607,15 +1572,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
     /**
      * Encrypted data contains valid PKCS8 key info encoding
      */
-@TestInfo(
-          level = TestLevel.PARTIAL,
-          purpose = "In subset missed NoSuchProviderException & NoSuchAlgorithmException checking",
-          targets = {
-            @TestTarget(
-              methodName = "getKeySpec",
-              methodArgs = {java.security.Key.class, java.lang.String.class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "In subset missed NoSuchProviderException & NoSuchAlgorithmException checking",
+        method = "getKeySpec",
+        args = {java.security.Key.class, java.lang.String.class}
+    )
     public final void test_ROUNDTRIP_GetKeySpecKeyString01() throws Exception {
         boolean performed = false;
         for (int i = 0; i < algName.length; i++) {
@@ -1665,15 +1627,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
     /**
      * Encrypted data contains invalid PKCS8 key info encoding
      */
-@TestInfo(
-          level = TestLevel.PARTIAL,
-          purpose = "In subset missed NoSuchProviderException & NoSuchAlgorithmException checking",
-          targets = {
-            @TestTarget(
-              methodName = "getKeySpec",
-              methodArgs = {java.security.Key.class, java.lang.String.class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "In subset missed NoSuchProviderException & NoSuchAlgorithmException checking",
+        method = "getKeySpec",
+        args = {java.security.Key.class, java.lang.String.class}
+    )
     public final void test_ROUNDTRIP_GetKeySpecKeyString02() throws Exception {
         boolean performed = false;
         for (int i = 0; i < algName.length; i++) {
@@ -1718,15 +1677,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
         assertTrue("Test not performed", performed);
     }
 
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "In subset missed NoSuchAlgorithmException checking",
-      targets = {
-        @TestTarget(
-          methodName = "getKeySpec",
-          methodArgs = {java.security.Key.class, java.security.Provider.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Can not check NoSuchAlgorithmException",
+        method = "getKeySpec",
+        args = {java.security.Key.class, java.security.Provider.class}
+    )
     public final void testGetKeySpecKeyProvider01() throws Exception {
         boolean performed = false;
 
@@ -1775,15 +1731,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
     /**
      * Encrypted data contains valid PKCS8 key info encoding
      */
-@TestInfo(
-          level = TestLevel.PARTIAL,
-          purpose = "In subset missed NoSuchAlgorithmException checking",
-          targets = {
-            @TestTarget(
-              methodName = "getKeySpec",
-              methodArgs = {java.security.Key.class, java.security.Provider.class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Can not check NoSuchAlgorithmException",
+        method = "getKeySpec",
+        args = {java.security.Key.class, java.security.Provider.class}
+    )
     public final void test_ROUNDTRIP_GetKeySpecKeyProvider01() {
         boolean performed = false;
 
@@ -1833,15 +1786,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
     /**
      * Encrypted data contains invalid PKCS8 key info encoding
      */
-@TestInfo(
-          level = TestLevel.PARTIAL,
-          purpose = "In subset missed NoSuchAlgorithmException checking",
-          targets = {
-            @TestTarget(
-              methodName = "getKeySpec",
-              methodArgs = {java.security.Key.class, java.security.Provider.class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "Can not check NoSuchAlgorithmException",
+        method = "getKeySpec",
+        args = {java.security.Key.class, java.security.Provider.class}
+    )
     public final void test_ROUNDTRIP_GetKeySpecKeyProvider02() {
         boolean performed = false;
 

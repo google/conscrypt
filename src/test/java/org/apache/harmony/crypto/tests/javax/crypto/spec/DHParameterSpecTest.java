@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.lang.Integer;
 import java.math.BigInteger;
@@ -47,25 +47,36 @@ public class DHParameterSpecTest extends TestCase {
      * specified in the constructor with the values returned by getters.
      * The tested object is created by different constructors.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "All functionality tested in one method. Probably it should be divided into several tests.",
-      targets = {
-        @TestTarget(
-          methodName = "DHParameterSpec",
-          methodArgs = {java.math.BigInteger.class, java.math.BigInteger.class}
-        ), @TestTarget(
-          methodName = "DHParameterSpec",
-          methodArgs = {java.math.BigInteger.class, java.math.BigInteger.class, int.class}
-        ), @TestTarget(
-          methodName = "getG",
-          methodArgs = {}
-        ), @TestTarget(
-          methodName = "getL",
-          methodArgs = {}
-        ), @TestTarget(
-          methodName = "getP",
-          methodArgs = {}
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "DHParameterSpec",
+            args = {java.math.BigInteger.class, java.math.BigInteger.class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "DHParameterSpec",
+            args = {java.math.BigInteger.class, java.math.BigInteger.class, int.class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "getG",
+            args = {}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "getL",
+            args = {}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "getP",
+            args = {}
         )
     })
     public void testDHParameterSpec() {

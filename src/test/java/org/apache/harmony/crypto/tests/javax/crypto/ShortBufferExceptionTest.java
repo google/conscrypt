@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import javax.crypto.ShortBufferException;
 
@@ -61,15 +61,12 @@ public class ShortBufferExceptionTest extends TestCase {
      * Test for <code>ShortBufferException()</code> constructor Assertion:
      * constructs ShortBufferException with no detail message
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "ShortBufferException",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "ShortBufferException",
+        args = {}
+    )
     public void testShortBufferException01() {
         ShortBufferException tE = new ShortBufferException();
         assertNull("getMessage() must return null.", tE.getMessage());
@@ -81,15 +78,12 @@ public class ShortBufferExceptionTest extends TestCase {
      * Assertion: constructs ShortBufferException with detail message msg.
      * Parameter <code>msg</code> is not null.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "ShortBufferException",
-          methodArgs = {java.lang.String.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "ShortBufferException",
+        args = {java.lang.String.class}
+    )
     public void testShortBufferException02() {
         ShortBufferException tE;
         for (int i = 0; i < msgs.length; i++) {
@@ -105,15 +99,12 @@ public class ShortBufferExceptionTest extends TestCase {
      * Assertion: constructs ShortBufferException when <code>msg</code> is
      * null
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "ShortBufferException",
-          methodArgs = {java.lang.String.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "ShortBufferException",
+        args = {java.lang.String.class}
+    )
     public void testShortBufferException03() {
         String msg = null;
         ShortBufferException tE = new ShortBufferException(msg);

@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.AlgorithmParameterSpec;
@@ -49,15 +49,12 @@ public class OAEPParameterSpecTest extends TestCase {
      * is thrown in the case of inappropriate constructor parameters and checks
      * the value of DEFAULT field.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "OAEPParameterSpec",
-          methodArgs = {java.lang.String.class, java.lang.String.class, java.security.spec.AlgorithmParameterSpec.class, javax.crypto.spec.PSource.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "OAEPParameterSpec",
+        args = {java.lang.String.class, java.lang.String.class, java.security.spec.AlgorithmParameterSpec.class, javax.crypto.spec.PSource.class}
+    )
     public void testOAEPParameterSpec() {
         // using init values for OAEPParameterSpec.DEFAULT
         String mdName = "SHA-1";
@@ -109,15 +106,12 @@ public class OAEPParameterSpecTest extends TestCase {
     /**
      * getDigestAlgorithm() method testing.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getDigestAlgorithm",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getDigestAlgorithm",
+        args = {}
+    )
     public void testGetDigestAlgorithm() {
         String mdName = "SHA-1";
         String mgfName = "MGF1";
@@ -134,15 +128,12 @@ public class OAEPParameterSpecTest extends TestCase {
     /**
      * getMGFAlgorithm() method testing.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getMGFAlgorithm",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getMGFAlgorithm",
+        args = {}
+    )
     public void testGetMGFAlgorithm() {
         String mdName = "SHA-1";
         String mgfName = "MGF1";
@@ -159,15 +150,12 @@ public class OAEPParameterSpecTest extends TestCase {
     /**
      * getMGFParameters() method testing.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getMGFParameters",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getMGFParameters",
+        args = {}
+    )
     public void testGetMGFParameters() {
         String mdName = "SHA-1";
         String mgfName = "MGF1";
@@ -184,15 +172,12 @@ public class OAEPParameterSpecTest extends TestCase {
     /**
      * getPSource() method testing.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getPSource",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getPSource",
+        args = {}
+    )
     public void testGetPSource() {
         String mdName = "SHA-1";
         String mgfName = "MGF1";

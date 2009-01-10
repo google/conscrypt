@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.util.Arrays;
 
@@ -46,15 +46,12 @@ public class PBEKeySpecTest extends TestCase {
      * the method in the case of null input char array and tests that input
      * array is copied during the object initialization.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "PBEKeySpec",
-          methodArgs = {char[].class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "PBEKeySpec",
+        args = {char[].class}
+    )
     public void testPBEKeySpec1() {
         try {
             PBEKeySpec pbeks = new PBEKeySpec(null);
@@ -78,15 +75,12 @@ public class PBEKeySpecTest extends TestCase {
      * of inappropriate parameters and checks that array objects specified as
      * a parameters are copied during the object initialization.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "PBEKeySpec",
-          methodArgs = {char[].class, byte[].class, int.class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "PBEKeySpec",
+        args = {char[].class, byte[].class, int.class, int.class}
+    )
     public void testPBEKeySpec2() {
         char[] password = new char[] {'1', '2', '3', '4', '5'};
         byte[] salt = new byte[] {1, 2, 3, 4, 5};
@@ -166,15 +160,12 @@ public class PBEKeySpecTest extends TestCase {
      * of inappropriate parameters and checks that array objects specified as
      * a parameters are copied during the object initialization.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "PBEKeySpec",
-          methodArgs = {char[].class, byte[].class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "PBEKeySpec",
+        args = {char[].class, byte[].class, int.class}
+    )
     public void testPBEKeySpec3() {
         char[] password = new char[] {'1', '2', '3', '4', '5'};
         byte[] salt = new byte[] {1, 2, 3, 4, 5};
@@ -236,15 +227,12 @@ public class PBEKeySpecTest extends TestCase {
      * clearPassword() method testing. Tests that internal copy of password
      * is cleared after the method call.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "clearPassword",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "clearPassword",
+        args = {}
+    )
     public void testClearPassword() {
         char[] password = new char[] {'1', '2', '3', '4', '5'};
         PBEKeySpec pbeks = new PBEKeySpec(password);
@@ -262,15 +250,12 @@ public class PBEKeySpecTest extends TestCase {
      * to the password specified in the constructor and that the change of
      * returned array does not cause the change of internal array.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "Exception was checked in testClearPassword() method.",
-      targets = {
-        @TestTarget(
-          methodName = "getPassword",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Exception was checked in testClearPassword() method.",
+        method = "getPassword",
+        args = {}
+    )
     public void testGetPassword() {
         char[] password = new char[] {'1', '2', '3', '4', '5'};
         PBEKeySpec pbeks = new PBEKeySpec(password);
@@ -292,15 +277,12 @@ public class PBEKeySpecTest extends TestCase {
      * Also it checks that the method returns null if salt is not
      * specified.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getSalt",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getSalt",
+        args = {}
+    )
     public void testGetSalt() {
         char[] password = new char[] {'1', '2', '3', '4', '5'};
         byte[] salt = new byte[] {1, 2, 3, 4, 5};
@@ -326,15 +308,12 @@ public class PBEKeySpecTest extends TestCase {
      * Also it checks that the method returns 0 if iterationCount is not
      * specified.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getIterationCount",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getIterationCount",
+        args = {}
+    )
     public void testGetIterationCount() {
         char[] password = new char[] {'1', '2', '3', '4', '5'};
         byte[] salt = new byte[] {1, 2, 3, 4, 5};
@@ -352,15 +331,12 @@ public class PBEKeySpecTest extends TestCase {
     /**
      * getKeyLength() method testing.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getKeyLength",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getKeyLength",
+        args = {}
+    )
     public void testGetKeyLength() {
         char[] password = new char[] {'1', '2', '3', '4', '5'};
         byte[] salt = new byte[] {1, 2, 3, 4, 5};

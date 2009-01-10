@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.util.Arrays;
 
@@ -46,15 +46,12 @@ public class PBEParameterSpecTest extends TestCase {
      * Tests the behavior of the method in the case of null input array
      * and tests that input array is copied during the object initialization.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "PBEParameterSpec",
-          methodArgs = {byte[].class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "PBEParameterSpec",
+        args = {byte[].class, int.class}
+    )
     public void testPBEParameterSpec() {
         byte[] salt = {1, 2, 3, 4, 5};
         int iterationCount = 10;
@@ -78,15 +75,12 @@ public class PBEParameterSpecTest extends TestCase {
      * to the salt specified in the constructor and that the change of
      * returned array does not cause the change of internal array.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getSalt",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getSalt",
+        args = {}
+    )
     public void testGetSalt() {
         byte[] salt = new byte[] {1, 2, 3, 4, 5};
         int iterationCount = 10;
@@ -106,15 +100,12 @@ public class PBEParameterSpecTest extends TestCase {
      * getIterationCount() method testing. Tests that returned value is equal
      * to the value specified in the constructor.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getIterationCount",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getIterationCount",
+        args = {}
+    )
     public void testGetIterationCount() {
         byte[] salt = new byte[] {1, 2, 3, 4, 5};
         int iterationCount = 10;

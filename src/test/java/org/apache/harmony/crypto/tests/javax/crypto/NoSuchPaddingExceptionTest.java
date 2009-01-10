@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import javax.crypto.NoSuchPaddingException;
 
@@ -63,15 +63,12 @@ public class NoSuchPaddingExceptionTest extends TestCase {
      * Test for <code>NoSuchPaddingException()</code> constructor Assertion:
      * constructs NoSuchPaddingException with no detail message
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "NoSuchPaddingException",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "NoSuchPaddingException",
+        args = {}
+    )
     public void testNoSuchPaddingException01() {
         NoSuchPaddingException tE = new NoSuchPaddingException();
         assertNull("getMessage() must return null.", tE.getMessage());
@@ -83,15 +80,12 @@ public class NoSuchPaddingExceptionTest extends TestCase {
      * Assertion: constructs NoSuchPaddingException with detail message msg.
      * Parameter <code>msg</code> is not null.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "NoSuchPaddingException",
-          methodArgs = {java.lang.String.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "NoSuchPaddingException",
+        args = {java.lang.String.class}
+    )
     public void testNoSuchPaddingException02() {
         NoSuchPaddingException tE;
         for (int i = 0; i < msgs.length; i++) {
@@ -107,15 +101,12 @@ public class NoSuchPaddingExceptionTest extends TestCase {
      * Assertion: constructs NoSuchPaddingException when <code>msg</code> is
      * null
      */
-@TestInfo(
-          level = TestLevel.COMPLETE,
-          purpose = "",
-          targets = {
-            @TestTarget(
-              methodName = "NoSuchPaddingException",
-              methodArgs = {java.lang.String.class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "NoSuchPaddingException",
+        args = {java.lang.String.class}
+    )
     public void testNoSuchPaddingException03() {
         String msg = null;
         NoSuchPaddingException tE = new NoSuchPaddingException(msg);

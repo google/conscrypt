@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.lang.Integer;
 
@@ -46,19 +46,24 @@ public class DHGenParameterSpecTest extends TestCase {
      * parameters specified in the constructor with the values returned
      * by getters.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "All functionality tested in one method. Probably it should be divided into several tests.",
-      targets = {
-        @TestTarget(
-          methodName = "DHGenParameterSpec",
-          methodArgs = {int.class, int.class}
-        ), @TestTarget(
-          methodName = "getExponentSize",
-          methodArgs = {}
-        ), @TestTarget(
-          methodName = "getPrimeSize",
-          methodArgs = {}
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "DHGenParameterSpec",
+            args = {int.class, int.class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "getExponentSize",
+            args = {}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "getPrimeSize",
+            args = {}
         )
     })
     public void testDHGenParameterSpec() {

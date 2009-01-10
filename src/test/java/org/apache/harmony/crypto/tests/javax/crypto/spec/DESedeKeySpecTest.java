@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.lang.NullPointerException;
 import java.security.InvalidKeyException;
@@ -47,16 +47,18 @@ public class DESedeKeySpecTest extends TestCase {
      * Constructors testing. Tests behavior of each of two constructors
      * in the cases of: null array, short array, normal array.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "Checks both constructors.",
-      targets = {
-        @TestTarget(
-          methodName = "DESedeKeySpec",
-          methodArgs = {byte[].class}
-        ), @TestTarget(
-          methodName = "DESedeKeySpec",
-          methodArgs = {byte[].class, int.class}
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "Checks both constructors.",
+            method = "DESedeKeySpec",
+            args = {byte[].class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "Checks both constructors.",
+            method = "DESedeKeySpec",
+            args = {byte[].class, int.class}
         )
     })
     public void testDESedeKeySpec() {
@@ -120,15 +122,12 @@ public class DESedeKeySpecTest extends TestCase {
      * the key with the key specified in the constructor. The object under 
      * the test is created by different constructors.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getKey",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getKey",
+        args = {}
+    )
     public void testGetKey() {
         byte[] key = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2,
                       1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2};
@@ -169,15 +168,12 @@ public class DESedeKeySpecTest extends TestCase {
      * it returns false on the key which is not parity adjusted, and if
      * it returns true on parity adjusted key.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "isParityAdjusted",
-          methodArgs = {byte[].class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "isParityAdjusted",
+        args = {byte[].class, int.class}
+    )
     public void testIsParityAdjusted() {
         try {
             DESedeKeySpec.isParityAdjusted(null, 1);

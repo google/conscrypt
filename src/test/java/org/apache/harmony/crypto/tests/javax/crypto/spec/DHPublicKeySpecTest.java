@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.math.BigInteger;
 
@@ -45,22 +45,30 @@ public class DHPublicKeySpecTest extends TestCase {
      * DHPublicKeySpec class testing. Tests the equivalence of parameters
      * specified in the constructor with the values returned by getters.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "All functionality tested in one method. Probably it should be divided into several tests.",
-      targets = {
-        @TestTarget(
-          methodName = "DHPublicKeySpec",
-          methodArgs = {java.math.BigInteger.class, java.math.BigInteger.class, java.math.BigInteger.class}
-        ), @TestTarget(
-          methodName = "getG",
-          methodArgs = {}
-        ), @TestTarget(
-          methodName = "getP",
-          methodArgs = {}
-        ), @TestTarget(
-          methodName = "getY",
-          methodArgs = {}
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "DHPublicKeySpec",
+            args = {java.math.BigInteger.class, java.math.BigInteger.class, java.math.BigInteger.class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "getG",
+            args = {}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "getP",
+            args = {}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All functionality tested in one method. Probably it should be divided into several tests.",
+            method = "getY",
+            args = {}
         )
     })
     public void testDHPrivateKeySpec() {

@@ -18,17 +18,28 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
+import java.math.BigInteger;
+import java.security.AlgorithmParameters;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Provider;
+import java.security.SecureRandom;
+import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.RSAKeyGenParameterSpec;
+import java.util.Vector;
 
 import javax.crypto.ExemptionMechanism;
+import javax.crypto.ExemptionMechanismException;
 import javax.crypto.ExemptionMechanismSpi;
+import javax.crypto.KeyGenerator;
+import javax.crypto.ShortBufferException;
 
 import org.apache.harmony.crypto.tests.support.MyExemptionMechanismSpi;
 import org.apache.harmony.crypto.tests.support.MyExemptionMechanismSpi.tmpKey;
@@ -54,15 +65,12 @@ public class ExemptionMechanismTest extends TestCase {
      * Test for <code>ExemptionMechanism</code> constructor 
      * Assertion: creates new object using provider and mechanism name
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "ExemptionMechanism",
-          methodArgs = {javax.crypto.ExemptionMechanismSpi.class, java.security.Provider.class, java.lang.String.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "ExemptionMechanism",
+        args = {javax.crypto.ExemptionMechanismSpi.class, java.security.Provider.class, java.lang.String.class}
+    )
     public void testExemptionMechanism() throws Exception {
         Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
                 "Provider for ExemptionMechanism testing",
@@ -102,15 +110,12 @@ public class ExemptionMechanismTest extends TestCase {
      * @tests javax/crypto/ExemptionMechanism#getInstance(String algorithm, String provider)
      * Checks exception order
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Regression test.",
-      targets = {
-        @TestTarget(
-          methodName = "getInstance",
-          methodArgs = {java.lang.String.class, java.lang.String.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getInstance",
+        args = {java.lang.String.class, java.lang.String.class}
+    )
     public void testGetInstance() throws Exception {
         //Regression for HARMONY-762
         try {
@@ -119,20 +124,23 @@ public class ExemptionMechanismTest extends TestCase {
         } catch (NoSuchProviderException pe) {
             //expected
         }
+        try {
+            ExemptionMechanism.getInstance("AlgName", (String)null);
+            fail("IllegalArgumentException expected");
+        } catch (IllegalArgumentException e) {
+            //expected
+        }
     }
     
     /**
      * Test for <code>isCryptoAllowed(Key key)</code> method 
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Regression test.",
-      targets = {
-        @TestTarget(
-          methodName = "isCryptoAllowed",
-          methodArgs = {java.security.Key.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "isCryptoAllowed",
+        args = {java.security.Key.class}
+    )
     public void testIsCryptoAllowed() throws Exception {
 
         //Regression for HARMONY-1029
@@ -166,17 +174,13 @@ public class ExemptionMechanismTest extends TestCase {
     /**
      * Test for <code>genExemptionBlob((byte[] output, int outputOffset)</code> method
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Regression test",
-      targets = {
-        @TestTarget(
-          methodName = "genExemptionBlob",
-          methodArgs = {byte[].class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL,
+        notes = "Regression test",
+        method = "genExemptionBlob",
+        args = {byte[].class, int.class}
+    )
     public void testGenExemptionBlob() throws Exception {
-
         //Regression for HARMONY-1029
         Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
                 "Provider for ExemptionMechanism testing",
@@ -195,7 +199,536 @@ public class ExemptionMechanismTest extends TestCase {
         em.genExemptionBlob(null, 0);
         em.genExemptionBlob(new byte[0], 0);
         em.genExemptionBlob(new byte[10], -5);
-
     }
 
+    static boolean flag = false;
+
+    class Mock_ExemptionMechanism extends  ExemptionMechanism  {
+        protected Mock_ExemptionMechanism(ExemptionMechanismSpi exmechSpi, Provider provider, String mechanism) {
+            super(exmechSpi, provider, mechanism);
+        }
+
+        @Override
+        protected void finalize() {
+            flag = true;
+            super.finalize();
+        }
+    }
+    
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "finalize",
+        args = {}
+    )
+    public void test_finalize () {
+        Mock_ExemptionMechanism mem = new Mock_ExemptionMechanism(null, null, "Name");
+        assertNotNull(mem);
+        mem = null;
+        assertFalse(flag);
+        Vector v = new Vector();
+        int capacity;
+        try {
+            while(true) {
+                v.add(this);
+            }
+        } catch (OutOfMemoryError e) {
+            capacity = v.size();
+            v = null;
+        }
+
+        v = new Vector();
+        for (int i = 0; i < capacity/2; i++) {
+            v.add(this);
+        }
+        v = null;
+        assertTrue(flag);
+    }
+
+    class Mock_ExemptionMechanismSpi extends MyExemptionMechanismSpi {
+        @Override
+        protected byte[] engineGenExemptionBlob()
+        throws ExemptionMechanismException {
+            throw new ExemptionMechanismException();
+        }
+
+        @Override
+        protected int engineGenExemptionBlob(byte[] output, int outputOffset)
+        throws ShortBufferException, ExemptionMechanismException {
+            if (output.length - outputOffset < 
+                    super.engineGenExemptionBlob(output, outputOffset)) {
+                throw new ShortBufferException();
+            }
+            if (output[outputOffset + 3] == 33) {
+                throw new ExemptionMechanismException();
+            }
+            return super.engineGenExemptionBlob(output, outputOffset);
+        }
+    }
+
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            method = "genExemptionBlob",
+            args = {}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            clazz = ExemptionMechanismSpi.class,
+            method = "engineGenExemptionBlob",
+            args = {}
+        )
+    })
+    public void test_genExemptionBlob() throws InvalidKeyException, 
+    ExemptionMechanismException {
+        Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
+                "Provider for ExemptionMechanism testing",
+                srvExemptionMechanism.concat(".").concat(defaultAlg),
+                ExemptionMechanismProviderClass);
+
+        ExemptionMechanism em = new ExemptionMechanism(
+                new MyExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+
+        Key key = new MyExemptionMechanismSpi().new tmpKey("Proba", new byte[0]);
+        
+        try {
+            em.genExemptionBlob();
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            //failed
+        }
+
+        em.init(key);
+        
+        assertNotNull(em.genExemptionBlob());
+        
+        em = new ExemptionMechanism(
+                new Mock_ExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+        key = new Mock_ExemptionMechanismSpi().new tmpKey("Proba", new byte[0]);
+        em.init(key);
+        
+        try {
+            em.genExemptionBlob();
+            fail("ExemptionMechanismException expected");
+        } catch (ExemptionMechanismException e) {
+            //failed
+        }
+    }
+
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "genExemptionBlob",
+        args = {byte[].class}
+    )
+    public void test_genExemptionBlob$B() throws InvalidKeyException, 
+    ExemptionMechanismException, ShortBufferException {
+        Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
+                "Provider for ExemptionMechanism testing",
+                srvExemptionMechanism.concat(".").concat(defaultAlg),
+                ExemptionMechanismProviderClass);
+    
+        ExemptionMechanism em = new ExemptionMechanism(
+                new Mock_ExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+    
+        Key key = new Mock_ExemptionMechanismSpi().new tmpKey("Proba", new byte[0]);
+        
+        try {
+            em.genExemptionBlob(new byte[10]);
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            //failed
+        }
+    
+        em.init(key);
+        
+        assertEquals(5, (em.genExemptionBlob(new byte[10])));
+        
+        try {
+            em.genExemptionBlob(new byte[2]);
+            fail("ShortBufferException expected");
+        } catch (ShortBufferException e) {
+            //failed
+        }
+        byte[] b = new byte[] {0,0,0,33,0};
+        
+        try {
+            em.genExemptionBlob(b);
+            fail("ExemptionMechanismException expected");
+        } catch (ExemptionMechanismException e) {
+            //failed
+        }
+    }
+
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            method = "genExemptionBlob",
+            args = {byte[].class, int.class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            clazz = ExemptionMechanismSpi.class,
+            method = "engineGenExemptionBlob",
+            args = {byte[].class, int.class}
+        )
+    })
+    public void test_genExemptionBlob$BI() throws InvalidKeyException, 
+    ExemptionMechanismException, ShortBufferException {
+        Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
+                "Provider for ExemptionMechanism testing",
+                srvExemptionMechanism.concat(".").concat(defaultAlg),
+                ExemptionMechanismProviderClass);
+    
+        ExemptionMechanism em = new ExemptionMechanism(
+                new Mock_ExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+    
+        Key key = new Mock_ExemptionMechanismSpi().new tmpKey("Proba", new byte[0]);
+        
+        try {
+            em.genExemptionBlob(new byte[10], 2);
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            //failed
+        }
+    
+        em.init(key);
+        
+        assertEquals(5, (em.genExemptionBlob(new byte[10], 5)));
+        
+        try {
+            em.genExemptionBlob(new byte[7], 3);
+            fail("ShortBufferException expected");
+        } catch (ShortBufferException e) {
+            //failed
+        }
+        byte[] b = new byte[] {0, 0, 0, 1, 2, 3, 33, 0};
+        
+        try {
+            em.genExemptionBlob(b, 3);
+            fail("ExemptionMechanismException expected");
+        } catch (ExemptionMechanismException e) {
+            //failed
+        }
+    }
+
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Tests Exceptions",
+        method = "getInstance",
+        args = {java.lang.String.class}
+    )
+    public void test_getInstanceLjava_lang_String() throws Exception {
+        try {
+            ExemptionMechanism.getInstance((String) null);
+            fail("NullPointerException expected");
+        } catch (NullPointerException e) {
+            //expected
+        }
+
+        Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
+                "Provider for ExemptionMechanism testing",
+                srvExemptionMechanism.concat(".").concat(defaultAlg),
+                ExemptionMechanismProviderClass);
+    
+        ExemptionMechanism em = new ExemptionMechanism(
+                new Mock_ExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+
+        try {
+            em.getInstance("WrongAlgName");
+            fail("NoSuchAlgorithmException expected");
+        } catch (NoSuchAlgorithmException e) {
+            //expected
+        }
+    }
+
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Tests Exceptions",
+        method = "getInstance",
+        args = {java.lang.String.class, java.security.Provider.class}
+    )
+    public void test_getInstanceLjava_lang_StringLjava_security_Provider()
+    throws Exception {
+        Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
+                "Provider for ExemptionMechanism testing",
+                srvExemptionMechanism.concat(".").concat(defaultAlg),
+                ExemptionMechanismProviderClass);
+
+        try {
+            ExemptionMechanism.getInstance((String) null, mProv);
+            fail("NullPointerException expected");
+        } catch (NullPointerException e) {
+            //expected
+        }
+    
+        ExemptionMechanism em = new ExemptionMechanism(
+                new Mock_ExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+
+        try {
+            em.getInstance("WrongAlgName", mProv);
+            fail("NoSuchAlgorithmException expected");
+        } catch (NoSuchAlgorithmException e) {
+            //expected
+        }
+
+        try {
+            em.getInstance("WrongAlgName", (Provider)null);
+            fail("IllegalArgumentException expected");
+        } catch (IllegalArgumentException e) {
+            //expected
+        }
+    }
+
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getName",
+        args = {}
+    )
+    public void test_getName() throws Exception {
+        Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
+                "Provider for ExemptionMechanism testing",
+                srvExemptionMechanism.concat(".").concat(defaultAlg),
+                ExemptionMechanismProviderClass);
+
+        ExemptionMechanism em = new ExemptionMechanism(
+                new MyExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+
+        Key key = new MyExemptionMechanismSpi().new tmpKey("Proba", new byte[0]);
+
+        assertEquals(defaultAlg, em.getName());
+    }
+
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            method = "getOutputSize",
+            args = {int.class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            clazz = ExemptionMechanismSpi.class,
+            method = "engineGetOutputSize",
+            args = {int.class}
+        )
+    })
+    public void test_getOutputSizeI() throws Exception {
+        Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
+                "Provider for ExemptionMechanism testing",
+                srvExemptionMechanism.concat(".").concat(defaultAlg),
+                ExemptionMechanismProviderClass);
+
+        ExemptionMechanism em = new ExemptionMechanism(
+                new MyExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+
+        Key key = new MyExemptionMechanismSpi().new tmpKey("Proba", new byte[0]);
+        
+        try {
+            em.getOutputSize(10);
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            //failed
+        }
+
+        em.init(key);
+        assertEquals(10, em.getOutputSize(10));
+    }
+
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getProvider",
+        args = {}
+    )
+    public void test_getProvider() throws Exception {
+        Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
+                "Provider for ExemptionMechanism testing",
+                srvExemptionMechanism.concat(".").concat(defaultAlg),
+                ExemptionMechanismProviderClass);
+
+        ExemptionMechanism em = new ExemptionMechanism(
+                new MyExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+
+        Key key = new MyExemptionMechanismSpi().new tmpKey("Proba", new byte[0]);
+
+        assertEquals(mProv, em.getProvider());
+    }
+
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            method = "init",
+            args = {java.security.Key.class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            clazz = ExemptionMechanismSpi.class,
+            method = "engineInit",
+            args = {java.security.Key.class}
+        )
+    })
+    public void test_initLjava_security_Key() throws Exception {
+        Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
+                "Provider for ExemptionMechanism testing",
+                srvExemptionMechanism.concat(".").concat(defaultAlg),
+                ExemptionMechanismProviderClass);
+    
+        ExemptionMechanism em = new ExemptionMechanism(
+                new MyExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+    
+        Key key = new MyExemptionMechanismSpi().new tmpKey("Proba", new byte[0]);
+    
+        em.init(key);
+
+        KeyGenerator kg = KeyGenerator.getInstance("DES");
+        kg.init(56, new SecureRandom());
+        key = kg.generateKey();
+
+        try {
+            em.init(null);
+            fail("InvalidKeyException expected");
+        } catch (InvalidKeyException e) {
+            //expected
+        }
+
+        try {
+            em.init(key);
+            fail("ExemptionMechanismException expected");
+        } catch (ExemptionMechanismException e) {
+            //expected
+        }
+    }
+
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            method = "init",
+            args = {java.security.Key.class, java.security.AlgorithmParameters.class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            clazz = ExemptionMechanismSpi.class,
+            method = "engineInit",
+            args = {java.security.Key.class, java.security.AlgorithmParameters.class}
+        )
+    })
+    public void test_initLjava_security_KeyLjava_security_AlgorithmParameters()
+            throws Exception {
+        Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
+                "Provider for ExemptionMechanism testing",
+                srvExemptionMechanism.concat(".").concat(defaultAlg),
+                ExemptionMechanismProviderClass);
+    
+        ExemptionMechanism em = new ExemptionMechanism(
+                new MyExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+    
+        Key key = new MyExemptionMechanismSpi().new tmpKey("Proba", new byte[0]);
+    
+        em.init(key, AlgorithmParameters.getInstance("DES"));
+
+        try {
+            em.init(key, (AlgorithmParameters)null);
+            fail("InvalidAlgorithmParameterException expected");
+        } catch (InvalidAlgorithmParameterException e) {
+            //expected
+        }
+
+        KeyGenerator kg = KeyGenerator.getInstance("DES");
+        kg.init(56, new SecureRandom());
+        key = kg.generateKey();
+
+        try {
+            em.init(null, AlgorithmParameters.getInstance("DES"));
+            fail("InvalidKeyException expected");
+        } catch (InvalidKeyException e) {
+            //expected
+        }
+
+        try {
+            em.init(key, AlgorithmParameters.getInstance("DES"));
+            fail("ExemptionMechanismException expected");
+        } catch (ExemptionMechanismException e) {
+            //expected
+        }
+    }
+
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            method = "init",
+            args = {java.security.Key.class, java.security.spec.AlgorithmParameterSpec.class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            clazz = ExemptionMechanismSpi.class,
+            method = "engineInit",
+            args = {java.security.Key.class, java.security.spec.AlgorithmParameterSpec.class}
+        )
+    })
+    public void test_initLjava_security_KeyLjava_security_spec_AlgorithmParameterSpec()
+            throws Exception{
+        Provider mProv = (new SpiEngUtils()).new MyProvider("MyExMechProvider",
+                "Provider for ExemptionMechanism testing",
+                srvExemptionMechanism.concat(".").concat(defaultAlg),
+                ExemptionMechanismProviderClass);
+    
+        ExemptionMechanism em = new ExemptionMechanism(
+                new MyExemptionMechanismSpi(), mProv, defaultAlg) {
+        };
+    
+        Key key = new MyExemptionMechanismSpi().new tmpKey("Proba", new byte[0]);
+    
+        em.init(key, new RSAKeyGenParameterSpec(10, new BigInteger("10")));
+
+        try {
+            em.init(key, (AlgorithmParameterSpec)null);
+            fail("InvalidAlgorithmParameterException expected");
+        } catch (InvalidAlgorithmParameterException e) {
+            //expected
+        }
+
+        KeyGenerator kg = KeyGenerator.getInstance("DES");
+        kg.init(56, new SecureRandom());
+        key = kg.generateKey();
+
+        try {
+            em.init(null, new RSAKeyGenParameterSpec(10, new BigInteger("10")));
+            fail("InvalidKeyException expected");
+        } catch (InvalidKeyException e) {
+            //expected
+        }
+
+        try {
+            em.init(key, new RSAKeyGenParameterSpec(10, new BigInteger("10")));
+            fail("ExemptionMechanismException expected");
+        } catch (ExemptionMechanismException e) {
+            //expected
+        }
+    }
 }
+
+

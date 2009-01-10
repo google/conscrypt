@@ -22,10 +22,11 @@
 
 package org.apache.harmony.crypto.tests.javax.crypto;
 
-import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetClass;
+import dalvik.annotation.TestTargetNew;
+
+import junit.framework.TestCase;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,8 +34,11 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.NoSuchProviderException;
 import java.util.Arrays;
+
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
@@ -42,8 +46,6 @@ import javax.crypto.NullCipher;
 import javax.crypto.SealedObject;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-
-import junit.framework.TestCase;
 
 @TestTargetClass(SealedObject.class)
 /**
@@ -67,15 +69,12 @@ public class SealedObjectTest extends TestCase {
      * deserialized, the content od deserialized object equals to the content of
      * initial object.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "!Serialization",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "!Serialization",
+        args = {}
+    )
     public void testReadObject() throws Exception {
         String secret = "secret string";
         SealedObject so = new SealedObject(secret, new NullCipher());
@@ -100,15 +99,11 @@ public class SealedObjectTest extends TestCase {
      * SealedObject(Serializable object, Cipher c) method testing. Tests if the
      * NullPointerException is thrown in the case of null cipher.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Functionality checked in testSealedObject2, missed IOException & IllegalBlockSizeException checking",
-      targets = {
-        @TestTarget(
-          methodName = "SealedObject",
-          methodArgs = {java.io.Serializable.class, javax.crypto.Cipher.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        method = "SealedObject",
+        args = {java.io.Serializable.class, javax.crypto.Cipher.class}
+    )
     public void testSealedObject1() throws Exception {
         String secret = "secret string";
         try {
@@ -117,21 +112,39 @@ public class SealedObjectTest extends TestCase {
                     + "of null cipher.");
         } catch (NullPointerException e) {
         }
+
+        KeyGenerator kg = KeyGenerator.getInstance("DES");
+        Key key = kg.generateKey();
+
+        IvParameterSpec ips = new IvParameterSpec(new byte[] {
+                1, 2, 3, 4, 5, 6, 7, 8});
+
+        Cipher cipher = Cipher.getInstance("DES/CBC/PKCS5Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, key, ips);
+
+        SealedObject so = new SealedObject(secret, cipher);
+
+        cipher = Cipher.getInstance("DES/CBC/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, key, ips);
+        
+        try {
+            new SealedObject(secret, cipher);
+            fail("IllegalBlockSizeException expected");
+        } catch (IllegalBlockSizeException e) {
+            //expected
+        }
     }
 
     /**
      * SealedObject(SealedObject so) method testing. Tests if the
      * NullPointerException is thrown in the case of null SealedObject.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "SealedObject",
-          methodArgs = {javax.crypto.SealedObject.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "SealedObject",
+        args = {javax.crypto.SealedObject.class}
+    )
     public void testSealedObject2() throws Exception {
         try {
             new SealedObject(null) {};
@@ -157,15 +170,12 @@ public class SealedObjectTest extends TestCase {
      * getAlgorithm() method testing. Tests if the returned value equals to the
      * corresponding value of Cipher object.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getAlgorithm",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getAlgorithm",
+        args = {}
+    )
     public void testGetAlgorithm() throws Exception {
         String secret = "secret string";
         String algorithm = "DES";
@@ -185,15 +195,12 @@ public class SealedObjectTest extends TestCase {
      * encryption algorithm and specified parameters can be retrieved by
      * specifying the cryptographic key.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Exceptions checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "getObject",
-          methodArgs = {java.security.Key.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Not all exceptions can be checked.",
+        method = "getObject",
+        args = {java.security.Key.class}
+    )
     public void testGetObject1() throws Exception {
         KeyGenerator kg = KeyGenerator.getInstance("DES");
         Key key = kg.generateKey();
@@ -214,6 +221,14 @@ public class SealedObjectTest extends TestCase {
                 + "should contain the encoded algorithm parameters.", Arrays
                 .equals(so.get_encodedParams(), cipher.getParameters()
                         .getEncoded()));
+        try {
+            so.getObject((Key)null);
+            fail("InvalidKeyException expected");
+        } catch (InvalidKeyException e) {
+            //expected
+        } catch (NullPointerException e) {
+            //also ok
+        }
     }
 
     /**
@@ -222,15 +237,12 @@ public class SealedObjectTest extends TestCase {
      * with encryption algorithm and specified parameters can be retrieved by
      * specifying the initialized Cipher object.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Exceptions checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "getObject",
-          methodArgs = {javax.crypto.Cipher.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Not all exceptions can be checked.",
+        method = "getObject",
+        args = {javax.crypto.Cipher.class}
+    )
     public void testGetObject2() throws Exception {
         try {
             new SealedObject("secret string", new NullCipher())
@@ -255,6 +267,13 @@ public class SealedObjectTest extends TestCase {
         cipher.init(Cipher.DECRYPT_MODE, key, ips);
         assertEquals("The returned object does not equals to the "
                 + "original object.", secret, so.getObject(cipher));
+        
+        try {
+            so.getObject((Cipher)null);
+            fail("NullPointerException expected");
+        } catch (NullPointerException e) {
+            //expected
+        }
     }
 
     /**
@@ -263,15 +282,12 @@ public class SealedObjectTest extends TestCase {
      * object sealed with encryption algorithm can be retrieved by specifying
      * the cryptographic key and provider name.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Exceptions checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "getObject",
-          methodArgs = {java.security.Key.class, java.lang.String.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Not all exceptions can be checked.",
+        method = "getObject",
+        args = {java.security.Key.class, java.lang.String.class}
+    )
     public void testGetObject3() throws Exception {
         try {
             new SealedObject("secret string", new NullCipher()).getObject(
@@ -302,6 +318,23 @@ public class SealedObjectTest extends TestCase {
         cipher.init(Cipher.DECRYPT_MODE, key);
         assertEquals("The returned object does not equals to the "
                 + "original object.", secret, so.getObject(key, provider));
+
+        kg = KeyGenerator.getInstance("DESede");
+        key = kg.generateKey();
+        
+        try {
+            so.getObject(key, provider);
+            fail("InvalidKeyException expected");
+        } catch (InvalidKeyException e) {
+            //expected
+        }
+        
+        try {
+            so.getObject(key, "Wrong provider name");
+            fail("NoSuchProviderException expected");
+        } catch (NoSuchProviderException e) {
+            //expected
+        }
     }
 
 }

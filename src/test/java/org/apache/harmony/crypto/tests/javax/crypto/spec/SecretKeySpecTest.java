@@ -22,18 +22,18 @@
 
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
-import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.KnownFailure;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
-
-import java.util.Arrays;
-
-import javax.crypto.spec.SecretKeySpec;
+import dalvik.annotation.TestTargetClass;
+import dalvik.annotation.TestTargetNew;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+
+import java.util.Arrays;
+
+import javax.crypto.spec.SecretKeySpec;
 
 @TestTargetClass(SecretKeySpec.class)
 /**
@@ -47,15 +47,12 @@ public class SecretKeySpecTest extends TestCase {
      * constructor parameters and that input iv array is
      * copied to protect against subsequent modification.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "SecretKeySpec",
-          methodArgs = {byte[].class, java.lang.String.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "SecretKeySpec",
+        args = {byte[].class, java.lang.String.class}
+    )
     public void testSecretKeySpec1() {
         byte[] key = new byte[] {1, 2, 3, 4, 5};
         String algorithm = "Algorithm";
@@ -94,16 +91,13 @@ public class SecretKeySpecTest extends TestCase {
      * the case of inappropriate constructor parameters and that input iv array
      * is copied to protect against subsequent modification.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "SecretKeySpec",
-          methodArgs = {byte[].class, int.class, int.class, java.lang.String.class}
-        )
-    })
-    public void _testSecretKeySpec2() {
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "SecretKeySpec",
+        args = {byte[].class, int.class, int.class, java.lang.String.class}
+    )
+    public void testSecretKeySpec2() {
         byte[] key = new byte[] {1, 2, 3, 4, 5};
         int offset = 1;
         int len = 4;
@@ -138,19 +132,12 @@ public class SecretKeySpecTest extends TestCase {
         }
 
         try {
-            new SecretKeySpec(key, -1, key.length, algorithm);
-            fail("An IllegalArgumentException should be thrown "
-                    + "in the case of null key.");
+            new SecretKeySpec(key, 0, -1, algorithm);
+            fail("An ArrayIndexOutOfBoundsException should be thrown "
+                    + "in the case of illegal length.");
         } catch (IllegalArgumentException e) {
             fail("Not expected IllegalArgumentException was thrown.");
         } catch (ArrayIndexOutOfBoundsException e) {
-        }
-
-        try {
-            new SecretKeySpec(key, offset, len, null);
-            fail("An IllegalArgumentException should be thrown "
-                    + "in the case of null algorithm.");
-        } catch (IllegalArgumentException e) {
         }
 
         SecretKeySpec ks = new SecretKeySpec(key, algorithm);
@@ -167,20 +154,40 @@ public class SecretKeySpecTest extends TestCase {
             //expected
         }
     }
+    
+    @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            method = "SecretKeySpec",
+            args = {byte[].class, int.class, int.class, java.lang.String.class}
+        )
+    @KnownFailure("Constructor does not check if offset is negative")
+    public void testSecretKeySpec3() {
+        byte[] key = new byte[] {1, 2, 3, 4, 5};
+        int offset = 1;
+        int len = 4;
+        String algorithm = "Algorithm";
+        
+        try {
+            new SecretKeySpec(key, -1, key.length, algorithm);
+            fail("An ArrayIndexOutOfBoundsException should be thrown "
+                    + "in the case of illegal offset.");
+        } catch (IllegalArgumentException e) {
+            fail("Not expected IllegalArgumentException was thrown.");
+        } catch (ArrayIndexOutOfBoundsException e) {
+        }        
+    }
 
     /**
      * getAlgorithm() method testing. Tests that returned value is
      * equal to the value specified in the constructor.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getAlgorithm",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getAlgorithm",
+        args = {}
+    )
     public void testGetAlgorithm() {
         byte[] key = new byte[] {1, 2, 3, 4, 5};
         String algorithm = "Algorithm";
@@ -194,15 +201,12 @@ public class SecretKeySpecTest extends TestCase {
     /**
      * getFormat() method testing. Tests that returned value is "RAW".
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getFormat",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getFormat",
+        args = {}
+    )
     public void testGetFormat() {
         byte[] key = new byte[] {1, 2, 3, 4, 5};
         String algorithm = "Algorithm";
@@ -217,15 +221,12 @@ public class SecretKeySpecTest extends TestCase {
      * array specified in the constructor. Checks that modification
      * of returned array does not affect the internal array.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getEncoded",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getEncoded",
+        args = {}
+    )
     public void testGetEncoded() {
         byte[] key = new byte[] {1, 2, 3, 4, 5};
         String algorithm = "Algorithm";
@@ -252,15 +253,12 @@ public class SecretKeySpecTest extends TestCase {
      * hashCode() method testing. Tests that for equal objects hash codes
      * are equal.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "hashCode",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "hashCode",
+        args = {}
+    )
     public void testHashCode() {
         byte[] key = new byte[] {1, 2, 3, 4, 5};
         String algorithm = "Algorithm";
@@ -276,15 +274,12 @@ public class SecretKeySpecTest extends TestCase {
      * operation: it should be reflexive, symmetric, transitive, consistent
      * and should be false on null object.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "equals",
-          methodArgs = {java.lang.Object.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "equals",
+        args = {java.lang.Object.class}
+    )
     public void testEquals() {
         byte[] key = new byte[] {1, 2, 3, 4, 5};
         String algorithm = "Algorithm";

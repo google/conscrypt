@@ -23,11 +23,19 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.io.ByteArrayInputStream;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.NullCipher;
 import javax.crypto.CipherInputStream;
 
@@ -60,15 +68,12 @@ public class CipherInputStream1Test extends TestCase {
      * CipherInputStream uses NullCipher if Cipher is not specified
      * in the constructor.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "CipherInputStream",
-          methodArgs = {java.io.InputStream.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "CipherInputStream",
+        args = {java.io.InputStream.class}
+    )
     public void testCipherInputStream() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestInputStream tis = new TestInputStream(data);
@@ -89,15 +94,12 @@ public class CipherInputStream1Test extends TestCase {
      * read() method testing. Tests that method returns the correct value
      * (related to the InputStream) and that it returns -1 at the end of stream.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "read",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "read",
+        args = {}
+    )
     public void testRead1() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestInputStream tis = new TestInputStream(data);
@@ -119,15 +121,12 @@ public class CipherInputStream1Test extends TestCase {
      * value (related to the InputStream) and that it returns -1 at the end of
      * stream.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "read",
-          methodArgs = {byte[].class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "read",
+        args = {byte[].class}
+    )
     public void testRead2() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestInputStream tis = new TestInputStream(data);
@@ -166,15 +165,12 @@ public class CipherInputStream1Test extends TestCase {
      * bytes in the case of null buffer, and that it returns -1 at the end of
      * stream.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "read",
-          methodArgs = {byte[].class, int.class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "read",
+        args = {byte[].class, int.class, int.class}
+    )
     public void testRead3() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestInputStream tis = new TestInputStream(data);
@@ -213,15 +209,12 @@ public class CipherInputStream1Test extends TestCase {
      * skip(long n) method testing. Tests that the method correctly skips the
      * bytes.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "skip",
-          methodArgs = {long.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "skip",
+        args = {long.class}
+    )
     public void testSkip() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestInputStream tis = new TestInputStream(data);
@@ -260,15 +253,12 @@ public class CipherInputStream1Test extends TestCase {
     /**
      * available() method testing. Tests that the method always return 0.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "available",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "available",
+        args = {}
+    )
     public void testAvailable() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestInputStream tis = new TestInputStream(data);
@@ -281,15 +271,12 @@ public class CipherInputStream1Test extends TestCase {
      * close() method testing. Tests that the method calls the close()
      * method of the underlying input stream.
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "IOException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "close",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "Can not check IOException.",
+        method = "close",
+        args = {}
+    )
     public void testClose() throws Exception {
         byte[] data = new byte[] { -127, -100, -50, -10, -1, 0, 1, 10, 50, 127 };
         TestInputStream tis = new TestInputStream(data);
@@ -302,21 +289,40 @@ public class CipherInputStream1Test extends TestCase {
     /**
      * markSupported() method testing. Tests that mark is not supported.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "available",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "markSupported",
+        args = {}
+    )
     public void testMarkSupported() {
         byte[] data = new byte[] {-127, -100, -50, -10, -1, 0, 1, 10, 50, 127};
         TestInputStream tis = new TestInputStream(data);
         CipherInputStream cis = new CipherInputStream(tis, new NullCipher());
         assertFalse("The returned by markSupported() method value "
                 + "should be false.", cis.markSupported());
+    }
+
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "CipherInputStream",
+        args = {java.io.InputStream.class, javax.crypto.Cipher.class}
+    )
+    public void test_ConstructorLjava_io_InputStreamLjavax_crypto_Cipher () throws 
+    NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
+        ByteArrayInputStream bais = new ByteArrayInputStream(new byte[100]);
+
+        KeyGenerator kg = KeyGenerator.getInstance("DES");
+        kg.init(56, new SecureRandom());
+        Key key = kg.generateKey();
+        
+        Cipher c = Cipher.getInstance("DES/CBC/NoPadding");
+        c.init(Cipher.ENCRYPT_MODE, key);
+        
+        CipherInputStream cis = new CipherInputStream(bais, c);
+        
+        assertNotNull(cis);
     }
 
 }

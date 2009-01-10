@@ -22,9 +22,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.lang.NullPointerException;
 import java.security.InvalidKeyException;
@@ -110,16 +110,18 @@ public class DESKeySpecTest extends TestCase {
      * Constructors testing. Tests behavior of each of two constructors
      * in the cases of: null array, short array, normal array.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "Checks both constructors.",
-      targets = {
-        @TestTarget(
-          methodName = "DESKeySpec",
-          methodArgs = {byte[].class}
-        ), @TestTarget(
-          methodName = "DESKeySpec",
-          methodArgs = {byte[].class, int.class}
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "Checks both constructors.",
+            method = "DESKeySpec",
+            args = {byte[].class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "Checks both constructors.",
+            method = "DESKeySpec",
+            args = {byte[].class, int.class}
         )
     })
     public void testDESKeySpec() {
@@ -177,15 +179,12 @@ public class DESKeySpecTest extends TestCase {
      * the key with the key specified in the constructor. The object under 
      * the test is created by different constructors.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getKey",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getKey",
+        args = {}
+    )
     public void testGetKey() {
         byte[] key = {1, 2, 3, 4, 5, 6, 7, 8};
         DESKeySpec ks;
@@ -224,15 +223,12 @@ public class DESKeySpecTest extends TestCase {
      * it returns false on the key which is not parity adjusted, and if
      * it returns true on parity adjusted key.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "isParityAdjusted",
-          methodArgs = {byte[].class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "isParityAdjusted",
+        args = {byte[].class, int.class}
+    )
     public void testIsParityAdjusted() {
         try {
             DESKeySpec.isParityAdjusted(null, 1);
@@ -281,15 +277,12 @@ public class DESKeySpecTest extends TestCase {
      * it returns true on weak or semi-weak keys, and if it returns 
      * false on other keys.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "isWeak",
-          methodArgs = {byte[].class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "isWeak",
+        args = {byte[].class, int.class}
+    )
     public void testIsWeak() {
         try {
             DESKeySpec.isWeak(null, 1);

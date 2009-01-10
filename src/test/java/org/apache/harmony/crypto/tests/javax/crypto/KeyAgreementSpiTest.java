@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -95,15 +95,12 @@ public class KeyAgreementSpiTest extends TestCase {
      * Test for <code>KeyAgreementSpi</code> constructor Assertion: constructs
      * KeyAgreementSpi
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "KeyAgreementSpi",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "KeyAgreementSpi",
+        args = {}
+    )
     public void testKeyAgreementSpi01() throws InvalidKeyException,
             ShortBufferException, NoSuchAlgorithmException, 
             InvalidAlgorithmParameterException {

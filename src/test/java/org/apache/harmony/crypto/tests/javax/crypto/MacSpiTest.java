@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
@@ -173,19 +173,24 @@ class Mock_MacSpi2 extends MyMacSpi2 {
      * Test for <code>MacSpi</code> constructor 
      * Assertion: constructs MacSpi
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "All others methods are abstract.",
-      targets = {
-        @TestTarget(
-          methodName = "MacSpi",
-          methodArgs = {}
-        ), @TestTarget(
-          methodName = "engineUpdate",
-          methodArgs = {java.nio.ByteBuffer.class}
-        ), @TestTarget(
-          methodName = "clone",
-          methodArgs = {}
+    @TestTargets({
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All others methods are abstract.",
+            method = "MacSpi",
+            args = {}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All others methods are abstract.",
+            method = "engineUpdate",
+            args = {java.nio.ByteBuffer.class}
+        ),
+        @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "All others methods are abstract.",
+            method = "clone",
+            args = {}
         )
     })
     public void testMacSpiTests01() throws Exception {

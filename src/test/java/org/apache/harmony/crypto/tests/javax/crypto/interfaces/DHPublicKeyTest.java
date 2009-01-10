@@ -22,22 +22,28 @@
 
 package org.apache.harmony.crypto.tests.javax.crypto.interfaces;
 
-import java.math.BigInteger;
-
-import javax.crypto.interfaces.DHPublicKey;
-import javax.crypto.spec.DHParameterSpec;
+import dalvik.annotation.TestLevel;
+import dalvik.annotation.TestTargetClass;
+import dalvik.annotation.TestTargetNew;
+import dalvik.annotation.TestTargets;
 
 import junit.framework.TestCase;
+
+import java.math.BigInteger;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+
+import javax.crypto.interfaces.DHKey;
+import javax.crypto.interfaces.DHPublicKey;
+import javax.crypto.spec.DHParameterSpec;
 
 
 /**
  * Tests for <code>DHPublicKey</code> class field
  * 
  */
+@TestTargetClass(DHPublicKey.class)
 public class DHPublicKeyTest extends TestCase {
-
-    public static void main(String[] args) {
-    }
 
     /**
      * Constructor for DHPublicKey.
@@ -51,12 +57,45 @@ public class DHPublicKeyTest extends TestCase {
     /**
      * Test for <code>serialVersionUID</code> field
      */
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "tests serialVersionUID for a fixed value",
+        method = "!field:serialVersionUID"
+    )    
     public void testField() {
         checkDHPublicKey key = new checkDHPublicKey();
         assertEquals("Incorrect serialVersionUID",
                 key.getSerVerUID(), //DHPublicKey.serialVersionUID
                 -6628103563352519193L);
     }
+    
+@TestTargets({
+    @TestTargetNew(
+          level = TestLevel.COMPLETE,
+          method = "getY",
+          args = {}
+        ),
+    @TestTargetNew(
+          level = TestLevel.COMPLETE,
+          clazz = DHKey.class,
+          method = "getParams",
+          args = {}
+        )
+    })
+    public void test_getParams() throws Exception {
+        KeyPairGenerator kg = KeyPairGenerator.getInstance("DH");
+        kg.initialize(512);
+        KeyPair kp1 = kg.genKeyPair();
+        KeyPair kp2 = kg.genKeyPair();
+        DHPublicKey pk1 = (DHPublicKey) kp1.getPublic();
+        DHPublicKey pk2 = (DHPublicKey) kp2.getPublic();
+        
+        assertTrue(pk1.getY().getClass().getCanonicalName().equals("java.math.BigInteger"));
+        assertTrue(pk2.getParams().getClass().getCanonicalName().equals("javax.crypto.spec.DHParameterSpec"));
+        assertFalse(pk1.getY().equals(pk2.getY()));
+        assertTrue(pk1.getY().equals(pk1.getY()));
+    }
+    
     public class checkDHPublicKey implements DHPublicKey {
         public String getAlgorithm() {
             return "SecretKey";

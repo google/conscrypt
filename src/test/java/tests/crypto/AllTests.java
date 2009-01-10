@@ -30,11 +30,12 @@ public class AllTests {
     }
 
     public static Test suite() {
-        TestSuite suite = new TestSuite("All crypto test suites");
+        TestSuite suite = tests.TestSuiteFactory.createTestSuite("All crypto test suites");
         // $JUnit-BEGIN$
         suite.addTest(org.apache.harmony.crypto.tests.javax.crypto.interfaces.AllTests.suite());
         suite.addTest(org.apache.harmony.crypto.tests.javax.crypto.serialization.AllTests.suite());
         suite.addTest(org.apache.harmony.crypto.tests.javax.crypto.spec.AllTests.suite());
+        suite.addTest(org.apache.harmony.crypto.tests.javax.crypto.func.AllTests.suite());
         suite.addTest(org.apache.harmony.crypto.tests.javax.crypto.AllTests.suite());
         // $JUnit-END$
         return suite;

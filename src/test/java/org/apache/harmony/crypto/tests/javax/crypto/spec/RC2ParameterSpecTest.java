@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.lang.IllegalArgumentException;
 import java.util.Arrays;
@@ -48,15 +48,12 @@ public class RC2ParameterSpecTest extends TestCase {
      * inappropriate constructor parameters and that input iv array is
      * copied to protect against subsequent modification.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "RC2ParameterSpec",
-          methodArgs = {int.class, byte[].class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "RC2ParameterSpec",
+        args = {int.class, byte[].class}
+    )
     public void testRC2ParameterSpec1() {
         int effectiveKeyBits = 10;
         byte[] iv = {1, 2, 3, 4, 5, 6, 7, 8};
@@ -88,15 +85,12 @@ public class RC2ParameterSpecTest extends TestCase {
      * inappropriate constructor parameters and that input iv array is
      * copied to protect against subsequent modification.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "RC2ParameterSpec",
-          methodArgs = {int.class, byte[].class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "RC2ParameterSpec",
+        args = {int.class, byte[].class, int.class}
+    )
     public void testRC2ParameterSpec2() {
         int effectiveKeyBits = 10;
         byte[] iv = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
@@ -127,15 +121,12 @@ public class RC2ParameterSpecTest extends TestCase {
      * getEffectiveKeyBits() method testing. Tests that returned value is
      * equal to the value specified in the constructor.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getEffectiveKeyBits",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getEffectiveKeyBits",
+        args = {}
+    )
     public void testGetEffectiveKeyBits() {
         int effectiveKeyBits = 10;
         byte[] iv = {1, 2, 3, 4, 5, 6, 7, 8};
@@ -152,15 +143,12 @@ public class RC2ParameterSpecTest extends TestCase {
      * of returned array does not affect the internal array. Also it checks
      * that getIV() method returns null if iv is not specified.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "getIV",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "getIV",
+        args = {}
+    )
     public void testGetIV() {
         int effectiveKeyBits = 10;
         byte[] iv = new byte[] {1, 2, 3, 4, 5, 6, 7, 8};
@@ -185,15 +173,12 @@ public class RC2ParameterSpecTest extends TestCase {
      * operation: it should be reflexive, symmetric, transitive, consistent
      * and should be false on null object.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "equals",
-          methodArgs = {java.lang.Object.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "equals",
+        args = {java.lang.Object.class}
+    )
     public void testEquals() {
         int effectiveKeyBits = 10;
         byte[] iv = new byte[] {1, 2, 3, 4, 5, 6, 7, 8};
@@ -234,15 +219,12 @@ public class RC2ParameterSpecTest extends TestCase {
      * hashCode() method testing. Tests that for equal objects hash codes
      * are equal.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "hashCode",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "hashCode",
+        args = {}
+    )
     public void testHashCode() {
         int effectiveKeyBits = 0;
         byte[] iv = new byte[] {1, 2, 3, 4, 5, 6, 7, 8};
@@ -252,6 +234,21 @@ public class RC2ParameterSpecTest extends TestCase {
 
         assertTrue("Equal objects should have the same hash codes.",
                                             ps1.hashCode() == ps2.hashCode());
+    }
+    
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "RC2ParameterSpec",
+        args = {int.class}
+    )
+    public void test_constructorI() {
+        int effectiveKeyBits = 0;
+
+        RC2ParameterSpec ps1 = new RC2ParameterSpec(effectiveKeyBits);
+        RC2ParameterSpec ps2 = new RC2ParameterSpec(effectiveKeyBits);
+        
+        assertTrue(ps1.equals(ps2));
     }
 
     public static Test suite() {

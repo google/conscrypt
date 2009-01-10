@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import javax.crypto.IllegalBlockSizeException;
 
@@ -63,15 +63,12 @@ public class IllegalBlockSizeExceptionTest extends TestCase {
      * Test for <code>IllegalBlockSizeException()</code> constructor
      * Assertion: constructs IllegalBlockSizeException with no detail message
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "IllegalBlockSizeException",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "IllegalBlockSizeException",
+        args = {}
+    )
     public void testIllegalBlockSizeException01() {
         IllegalBlockSizeException tE = new IllegalBlockSizeException();
         assertNull("getMessage() must return null.", tE.getMessage());
@@ -83,15 +80,12 @@ public class IllegalBlockSizeExceptionTest extends TestCase {
      * Assertion: constructs IllegalBlockSizeException with detail message msg.
      * Parameter <code>msg</code> is not null.
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "IllegalBlockSizeException",
-          methodArgs = {java.lang.String.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "IllegalBlockSizeException",
+        args = {java.lang.String.class}
+    )
     public void testIllegalBlockSizeException02() {
         IllegalBlockSizeException tE;
         for (int i = 0; i < msgs.length; i++) {
@@ -107,15 +101,12 @@ public class IllegalBlockSizeExceptionTest extends TestCase {
      * Assertion: constructs IllegalBlockSizeException when <code>msg</code>
      * is null
      */
-@TestInfo(
-          level = TestLevel.COMPLETE,
-          purpose = "",
-          targets = {
-            @TestTarget(
-              methodName = "IllegalBlockSizeException",
-              methodArgs = {java.lang.String.class}
-            )
-        })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "IllegalBlockSizeException",
+        args = {java.lang.String.class}
+    )
     public void testIllegalBlockSizeException03() {
         String msg = null;
         IllegalBlockSizeException tE = new IllegalBlockSizeException(msg);

@@ -23,9 +23,9 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.InvalidAlgorithmParameterException;
@@ -146,15 +146,12 @@ public class CipherSpiTest extends TestCase {
      * Test for <code>CipherSpi</code> constructor 
      * Assertion: constructs CipherSpi
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "CipherSpi",
-          methodArgs = {}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "CipherSpi",
+        args = {}
+    )
     public void testCipherSpiTests01() throws IllegalBlockSizeException,
             BadPaddingException, ShortBufferException {
         
@@ -184,15 +181,11 @@ public class CipherSpiTest extends TestCase {
      * Test for <code>engineGetKeySize(Key)</code> method 
      * Assertion: It throws UnsupportedOperationException if it is not overridden
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Functionality not tested.",
-      targets = {
-        @TestTarget(
-          methodName = "engineGetKeySize",
-          methodArgs = {java.security.Key.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        method = "engineGetKeySize",
+        args = {java.security.Key.class}
+    )
     public void testCipherSpi02() throws Exception {
         Mock_CipherSpi cSpi = new Mock_CipherSpi();
         try {
@@ -206,15 +199,12 @@ public class CipherSpiTest extends TestCase {
      * Test for <code>engineWrap(Key)</code> method 
      * Assertion: It throws UnsupportedOperationException if it is not overridden
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Functionality not tested.",
-      targets = {
-        @TestTarget(
-          methodName = "engineWrap",
-          methodArgs = {java.security.Key.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL,
+        notes = "Functionality not tested.",
+        method = "engineWrap",
+        args = {java.security.Key.class}
+    )
     public void testCipherSpi03() throws Exception {
         Mock_CipherSpi cSpi = new Mock_CipherSpi();
         try {
@@ -228,15 +218,12 @@ public class CipherSpiTest extends TestCase {
      * Test for <code>engineUnwrap(byte[], String, int)</code> method
      * Assertion: It throws UnsupportedOperationException if it is not overridden
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "Functionality not tested.",
-      targets = {
-        @TestTarget(
-          methodName = "engineUnwrap",
-          methodArgs = {byte[].class, java.lang.String.class, int.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL,
+        notes = "Functionality not tested.",
+        method = "engineUnwrap",
+        args = {byte[].class, java.lang.String.class, int.class}
+    )
     public void testCipherSpi04() throws Exception {
         Mock_CipherSpi cSpi = new Mock_CipherSpi();
         try {
@@ -252,15 +239,12 @@ public class CipherSpiTest extends TestCase {
      * throws NullPointerException if one of these buffers is null;
      * throws ShortBufferException is there is no space in output to hold result
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "engineUpdate",
-          methodArgs = {java.nio.ByteBuffer.class, java.nio.ByteBuffer.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "engineUpdate",
+        args = {java.nio.ByteBuffer.class, java.nio.ByteBuffer.class}
+    )
     public void testCipherSpi05() throws ShortBufferException {
         Mock_CipherSpi cSpi = new Mock_CipherSpi();
         byte[] bb = { (byte) 0, (byte) 1, (byte) 2, (byte) 3, (byte) 4,
@@ -313,15 +297,12 @@ public class CipherSpiTest extends TestCase {
      * throws NullPointerException if one of these buffers is null;
      * throws ShortBufferException is there is no space in output to hold result
      */
-@TestInfo(
-      level = TestLevel.PARTIAL,
-      purpose = "BadPaddingException & IllegalBlockSizeException checking missed.",
-      targets = {
-        @TestTarget(
-          methodName = "engineDoFinal",
-          methodArgs = {java.nio.ByteBuffer.class, java.nio.ByteBuffer.class}
-        )
-    })
+    @TestTargetNew(
+        level = TestLevel.PARTIAL,
+        notes = "BadPaddingException & IllegalBlockSizeException checking missed.",
+        method = "engineDoFinal",
+        args = {java.nio.ByteBuffer.class, java.nio.ByteBuffer.class}
+    )
     public void testCipherSpi06() throws BadPaddingException,
             ShortBufferException, IllegalBlockSizeException {
         Mock_CipherSpi cSpi = new Mock_CipherSpi();

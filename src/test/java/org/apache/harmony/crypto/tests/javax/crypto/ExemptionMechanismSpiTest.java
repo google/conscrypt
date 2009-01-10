@@ -23,15 +23,19 @@
 package org.apache.harmony.crypto.tests.javax.crypto;
 
 import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestInfo;
+import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTarget;
+import dalvik.annotation.TestTargetNew;
 
+import java.math.BigInteger;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.RSAKeyGenParameterSpec;
+
 import javax.crypto.ExemptionMechanismException;
 import javax.crypto.ShortBufferException;
 import javax.crypto.ExemptionMechanismSpi;
@@ -96,20 +100,15 @@ class Mock_ExemptionMechanismSpi extends MyExemptionMechanismSpi{
     /**
      * Test for <code>ExemptionMechanismSpi</code> constructor Assertion:
      * constructs ExemptionMechanismSpi
+     * @throws Exception 
      */
-@TestInfo(
-      level = TestLevel.COMPLETE,
-      purpose = "",
-      targets = {
-        @TestTarget(
-          methodName = "ExemptionMechanismSpi",
-          methodArgs = {}
-        )
-    })
-    public void testExemptionMechanismSpi01() 
-            throws  ExemptionMechanismException,
-            ShortBufferException, InvalidKeyException,
-            InvalidAlgorithmParameterException {
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "ExemptionMechanismSpi",
+        args = {}
+    )
+    public void testExemptionMechanismSpi01() throws Exception {
         Mock_ExemptionMechanismSpi emSpi = new Mock_ExemptionMechanismSpi(){};
         int len = MyExemptionMechanismSpi.getLength();
         byte [] bbRes = emSpi.engineGenExemptionBlob();
@@ -153,8 +152,8 @@ class Mock_ExemptionMechanismSpi extends MyExemptionMechanismSpi{
         }
         key = ((MyExemptionMechanismSpi)emSpi).new tmpKey("Proba", new byte[0]);
         emSpi.engineInit(key);
-        emSpi.engineInit(key, params);
-        emSpi.engineInit(key, parSpec);
+        emSpi.engineInit(key, AlgorithmParameters.getInstance("DH"));
+        emSpi.engineInit(key, new RSAKeyGenParameterSpec(10, new BigInteger ("10")));
         
         assertEquals("Incorrect result", 10, emSpi.engineGetOutputSize(100));
     }

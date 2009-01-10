@@ -22,20 +22,29 @@
 
 package org.apache.harmony.crypto.tests.javax.crypto.interfaces;
 
+import dalvik.annotation.TestLevel;
+import dalvik.annotation.TestTargetClass;
+import dalvik.annotation.TestTargetNew;
+import dalvik.annotation.TestTargets;
+
+import javax.crypto.interfaces.DHKey;
 import javax.crypto.interfaces.DHPrivateKey;
 import javax.crypto.spec.DHParameterSpec;
 
 import junit.framework.TestCase;
 
 import java.math.BigInteger;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 
 
 /**
  * Tests for <code>DHPrivateKey</code> class field
  * 
  */
+@TestTargetClass(DHPrivateKey.class)
 public class DHPrivateKeyTest extends TestCase {
-
+    
     /**
      * Constructor for DHPrivateKey.
      * 
@@ -47,12 +56,44 @@ public class DHPrivateKeyTest extends TestCase {
 
     /**
      * Test for <code>serialVersionUID</code> field
-     */
+     */  
+    @TestTargetNew(
+        level = TestLevel.COMPLETE,
+        notes = "tests serialVersionUID for a fixed value",
+        method = "!field:serialVersionUID"
+    )
     public void testField() {
         checkDHPrivateKey key = new checkDHPrivateKey();
         assertEquals("Incorrect serialVersionUID",
                 key.getSerVerUID(), //DHPrivateKey.serialVersionUID
                 2211791113380396553L);
+    }
+    
+@TestTargets({
+    @TestTargetNew(
+          level = TestLevel.COMPLETE,
+          method = "getX",
+          args = {}
+        ),
+    @TestTargetNew(
+          level = TestLevel.COMPLETE,
+          clazz = DHKey.class,
+          method = "getParams",
+          args = {}
+        )
+    })
+    public void test_getParams() throws Exception { 
+        KeyPairGenerator kg = KeyPairGenerator.getInstance("DH");
+        kg.initialize(512);
+        KeyPair kp1 = kg.genKeyPair();
+        KeyPair kp2 = kg.genKeyPair();
+        DHPrivateKey pk1 = (DHPrivateKey) kp1.getPrivate();
+        DHPrivateKey pk2 = (DHPrivateKey) kp2.getPrivate();
+        
+        assertTrue(pk1.getX().getClass().getCanonicalName().equals("java.math.BigInteger"));
+        assertTrue(pk1.getParams().getClass().getCanonicalName().equals("javax.crypto.spec.DHParameterSpec"));
+        assertFalse(pk1.getX().equals(pk2.getX()));
+        assertTrue(pk1.getX().equals(pk1.getX()));
     }
     
     public class checkDHPrivateKey implements DHPrivateKey {

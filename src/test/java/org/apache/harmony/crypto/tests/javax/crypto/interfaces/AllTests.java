@@ -30,7 +30,7 @@ public class AllTests {
     }
 
     public static Test suite() {
-        TestSuite suite = new TestSuite("All tests for package org.apache.harmony.crypto.tests.javax.crypto.interfaces;");
+        TestSuite suite = tests.TestSuiteFactory.createTestSuite("All tests for package org.apache.harmony.crypto.tests.javax.crypto.interfaces;");
         // $JUnit-BEGIN$
 
         suite.addTestSuite(DHPrivateKeyTest.class);
