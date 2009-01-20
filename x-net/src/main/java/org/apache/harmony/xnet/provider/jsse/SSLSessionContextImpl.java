@@ -36,6 +36,7 @@
  */
 package org.apache.harmony.xnet.provider.jsse;
 
+import java.nio.ByteBuffer;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -54,25 +55,28 @@ public class SSLSessionContextImpl implements SSLSessionContext {
 
     private int cacheSize = 20;
     private long timeout = 0;
-    private final LinkedHashMap<byte[], SSLSession> sessions =
-        new LinkedHashMap<byte[],SSLSession>(cacheSize, 0.75f, true) {
-        public boolean removeEldestEntry(Map.Entry eldest) {
+    private final LinkedHashMap<ByteBuffer, SSLSession> sessions =
+        new LinkedHashMap<ByteBuffer, SSLSession>(cacheSize, 0.75f, true) {
+        @Override
+        public boolean removeEldestEntry(
+                Map.Entry<ByteBuffer, SSLSession> eldest) {
             return cacheSize > 0 && this.size() > cacheSize;
         }
     };
-    private volatile LinkedHashMap<byte[], SSLSession> clone = new LinkedHashMap<byte[], SSLSession>();
+    private volatile LinkedHashMap<ByteBuffer, SSLSession> clone =
+            new LinkedHashMap<ByteBuffer, SSLSession>();
 
     /**
      * @see javax.net.ssl.SSLSessionContext#getIds()
      */
     public Enumeration<byte[]> getIds() {
         return new Enumeration<byte[]>() {
-            Iterator<byte[]> iterator = clone.keySet().iterator();
+            Iterator<ByteBuffer> iterator = clone.keySet().iterator();
             public boolean hasMoreElements() {
                 return iterator.hasNext();
             }
             public byte[] nextElement() {
-                return iterator.next();
+                return iterator.next().array();
             }
         };
     }
@@ -82,7 +86,7 @@ public class SSLSessionContextImpl implements SSLSessionContext {
      */
     public SSLSession getSession(byte[] sessionId) {
         synchronized (sessions) {
-            return (SSLSession) sessions.get(sessionId);
+            return sessions.get(ByteBuffer.wrap(sessionId));
         }
     }
 
@@ -90,14 +94,18 @@ public class SSLSessionContextImpl implements SSLSessionContext {
      * @see javax.net.ssl.SSLSessionContext#getSessionCacheSize()
      */
     public int getSessionCacheSize() {
-        return cacheSize;
+        synchronized (sessions) {
+            return cacheSize;
+        }
     }
 
     /**
      * @see javax.net.ssl.SSLSessionContext#getSessionTimeout()
      */
     public int getSessionTimeout() {
-        return (int) (timeout/1000);
+        synchronized (sessions) {
+            return (int) (timeout/1000);
+        }
     }
 
     /**
@@ -109,18 +117,16 @@ public class SSLSessionContextImpl implements SSLSessionContext {
         }
         synchronized (sessions) {
             cacheSize = size;
-            Set<byte[]> set = sessions.keySet();
-            if (cacheSize > 0 && cacheSize < set.size()) {
-                // Resize the cache to the maximum
-                Iterator<byte[]> iterator = set.iterator();
-                for (int i = 0; iterator.hasNext(); i++) {
+            if (cacheSize > 0 && cacheSize < sessions.size()) {
+                int removals = sessions.size() - cacheSize;
+                Iterator<ByteBuffer> iterator = sessions.keySet().iterator();
+                while (removals-- > 0) {
                     iterator.next();
-                    if (i >= cacheSize) {
-                        iterator.remove();
-                    }
+                    iterator.remove();
                 }
+                clone = (LinkedHashMap<ByteBuffer, SSLSession>)
+                        sessions.clone();
             }
-            clone = (LinkedHashMap<byte[], SSLSession>) sessions.clone();
         }
     }
 
@@ -131,18 +137,21 @@ public class SSLSessionContextImpl implements SSLSessionContext {
         if (seconds < 0) {
             throw new IllegalArgumentException("seconds < 0");
         }
-
         synchronized (sessions) {
             timeout = seconds*1000;
             // Check timeouts and remove expired sessions
             SSLSession ses;
-            for (Iterator<byte[]> iterator = sessions.keySet().iterator(); iterator.hasNext();) {
-                ses = (SSLSession)(sessions.get(iterator.next()));
-                if (!ses.isValid()) {
+            Iterator<Map.Entry<ByteBuffer, SSLSession>> iterator =
+                    sessions.entrySet().iterator();
+            while (iterator.hasNext()) {
+                SSLSession session = iterator.next().getValue();
+                if (!session.isValid()) {
+                    // safe to remove with this special method since it doesn't
+                    // make the iterator throw a ConcurrentModificationException
                     iterator.remove();
                 }
             }
-            clone = (LinkedHashMap<byte[], SSLSession>) sessions.clone();
+            clone = (LinkedHashMap<ByteBuffer, SSLSession>) sessions.clone();
         }
     }
 
@@ -152,8 +161,8 @@ public class SSLSessionContextImpl implements SSLSessionContext {
      */
     void putSession(SSLSession ses) {
         synchronized (sessions) {
-            sessions.put(ses.getId(), ses);
-            clone = (LinkedHashMap<byte[], SSLSession>) sessions.clone();
+            sessions.put(ByteBuffer.wrap(ses.getId()), ses);
+            clone = (LinkedHashMap<ByteBuffer, SSLSession>) sessions.clone();
         }
     }
 }
