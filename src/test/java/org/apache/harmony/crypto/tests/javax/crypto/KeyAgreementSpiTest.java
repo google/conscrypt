@@ -22,11 +22,6 @@
 
 package org.apache.harmony.crypto.tests.javax.crypto;
 
-import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestTargets;
-import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTargetNew;
-
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -34,13 +29,17 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 
+import javax.crypto.KeyAgreementSpi;
 import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
-import javax.crypto.KeyAgreementSpi;
+
+import junit.framework.TestCase;
 
 import org.apache.harmony.crypto.tests.support.MyKeyAgreementSpi;
 
-import junit.framework.TestCase;
+import dalvik.annotation.TestLevel;
+import dalvik.annotation.TestTargetClass;
+import dalvik.annotation.TestTargetNew;
 
 @TestTargetClass(KeyAgreementSpi.class)
 /**
@@ -52,7 +51,8 @@ public class KeyAgreementSpiTest extends TestCase {
     class Mock_KeyAgreementSpi extends MyKeyAgreementSpi {
 
         @Override
-        protected Key engineDoPhase(Key key, boolean lastPhase) throws InvalidKeyException, IllegalStateException {
+        protected Key engineDoPhase(Key key, boolean lastPhase) throws InvalidKeyException,
+                IllegalStateException {
             return super.engineDoPhase(key, lastPhase);
         }
 
@@ -62,12 +62,14 @@ public class KeyAgreementSpiTest extends TestCase {
         }
 
         @Override
-        protected SecretKey engineGenerateSecret(String algorithm) throws IllegalStateException, NoSuchAlgorithmException, InvalidKeyException {
+        protected SecretKey engineGenerateSecret(String algorithm) throws IllegalStateException,
+                NoSuchAlgorithmException, InvalidKeyException {
             return super.engineGenerateSecret(algorithm);
         }
 
         @Override
-        protected int engineGenerateSecret(byte[] sharedSecret, int offset) throws IllegalStateException, ShortBufferException {
+        protected int engineGenerateSecret(byte[] sharedSecret, int offset)
+                throws IllegalStateException, ShortBufferException {
             return super.engineGenerateSecret(sharedSecret, offset);
         }
 
@@ -77,18 +79,11 @@ public class KeyAgreementSpiTest extends TestCase {
         }
 
         @Override
-        protected void engineInit(Key key, AlgorithmParameterSpec params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+        protected void engineInit(Key key, AlgorithmParameterSpec params, SecureRandom random)
+                throws InvalidKeyException, InvalidAlgorithmParameterException {
             super.engineInit(key, params, random);
         }
-        
-    }
-    /**
-     * Constructor for KeyAgreementSpiTests.
-     * 
-     * @param arg0
-     */
-    public KeyAgreementSpiTest(String arg0) {
-        super(arg0);
+
     }
 
     /**
@@ -113,10 +108,8 @@ public class KeyAgreementSpiTest extends TestCase {
         } catch (IllegalStateException e) {
         }
         byte[] bb = kaSpi.engineGenerateSecret();
-        assertEquals("Length is not 0", bb.length, 0);        
-        assertEquals("Returned integer is not 0", 
-                kaSpi.engineGenerateSecret(new byte[1], 10), 
-                -1);
+        assertEquals("Length is not 0", bb.length, 0);
+        assertEquals("Returned integer is not 0", kaSpi.engineGenerateSecret(new byte[1], 10), -1);
         assertNull("Not null result", kaSpi.engineGenerateSecret("aaa"));
         try {
             kaSpi.engineGenerateSecret("");
@@ -134,6 +127,6 @@ public class KeyAgreementSpiTest extends TestCase {
             kaSpi.engineInit(key, params, new SecureRandom());
             fail("IllegalArgumentException must be thrown");
         } catch (IllegalArgumentException e) {
-        }        
+        }
     }
 }

@@ -89,15 +89,6 @@ class Mock_ExemptionMechanismSpi extends MyExemptionMechanismSpi{
 }
     
     /**
-     * Constructor for ExemptionMechanismSpiTests.
-     * 
-     * @param arg0
-     */
-    public ExemptionMechanismSpiTest(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Test for <code>ExemptionMechanismSpi</code> constructor Assertion:
      * constructs ExemptionMechanismSpi
      * @throws Exception 

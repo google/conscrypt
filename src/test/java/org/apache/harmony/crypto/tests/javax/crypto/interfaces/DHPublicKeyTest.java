@@ -46,15 +46,6 @@ import javax.crypto.spec.DHParameterSpec;
 public class DHPublicKeyTest extends TestCase {
 
     /**
-     * Constructor for DHPublicKey.
-     * 
-     * @param arg0
-     */
-    public DHPublicKeyTest(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Test for <code>serialVersionUID</code> field
      */
     @TestTargetNew(

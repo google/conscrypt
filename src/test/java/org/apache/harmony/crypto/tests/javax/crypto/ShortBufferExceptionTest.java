@@ -38,18 +38,6 @@ import junit.framework.TestCase;
  */
 public class ShortBufferExceptionTest extends TestCase {
 
-    public static void main(String[] args) {
-    }
-
-    /**
-     * Constructor for ShortBufferExceptionTests.
-     * 
-     * @param arg0
-     */
-    public ShortBufferExceptionTest(String arg0) {
-        super(arg0);
-    }
-
     static String[] msgs = {
             "",
             "Check new message",

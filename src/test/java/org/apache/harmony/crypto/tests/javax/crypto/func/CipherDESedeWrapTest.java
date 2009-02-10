@@ -21,7 +21,6 @@ import dalvik.annotation.TestTargetClass;
 
 import junit.framework.TestCase;
 
-
 import targets.Cipher;
 
 @TestTargetClass(Cipher.DESedeWrap.class)
@@ -33,19 +32,8 @@ public class CipherDESedeWrapTest extends TestCase {
             method = "method",
             args = {}
         )
-    public void _test_DESedeWrap() {
+    public void test_DESedeWrap() {
         CipherWrapThread DESedeWrap = new CipherWrapThread("DESedeWrap",
-                new int[]{112, 168},
-                new String[] {"CBC"},
-                new String[]{"NoPadding"});
-
-        DESedeWrap.launcher();
-        
-        assertEquals(DESedeWrap.getFailureMessages(), 0, DESedeWrap.getTotalFailuresNumber());
-    }
-
-    public void test_DESede() {
-        CipherWrapThread DESedeWrap = new CipherWrapThread("DESede",
                 new int[]{112, 168},
                 new String[] {"CBC"},
                 new String[]{"NoPadding"});

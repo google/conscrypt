@@ -42,15 +42,6 @@ public class PBEKeyTest extends TestCase {
 
 
     /**
-     * Constructor for PBEKey.
-     * 
-     * @param arg0
-     */
-    public PBEKeyTest(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Test for <code>serialVersionUID</code> field
      */
     @TestTargetNew(

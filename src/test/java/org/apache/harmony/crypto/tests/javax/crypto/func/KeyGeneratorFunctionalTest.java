@@ -22,12 +22,7 @@ import dalvik.annotation.TestTargets;
 
 import junit.framework.TestCase;
 
-
 import targets.KeyGenerator;
-
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 
 @TestTargetClass(KeyGenerator.AES.class)
 public class KeyGeneratorFunctionalTest extends TestCase {

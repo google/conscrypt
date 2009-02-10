@@ -21,7 +21,6 @@ import dalvik.annotation.TestTargetNew;
 
 import junit.framework.TestCase;
 
-
 import targets.Cipher;
 
 @TestTargetClass(Cipher.RSA.class)

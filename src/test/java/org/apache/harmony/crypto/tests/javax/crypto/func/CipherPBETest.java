@@ -21,12 +21,7 @@ import dalvik.annotation.TestTargetNew;
 
 import junit.framework.TestCase;
 
-
 import targets.Cipher;
-
-import java.security.NoSuchAlgorithmException;
-
-import javax.crypto.SecretKeyFactory;
 
 @TestTargetClass(Cipher.PBE.class)
 public class CipherPBETest extends TestCase {

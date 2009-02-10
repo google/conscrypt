@@ -119,6 +119,20 @@ public final class JSSEProvider extends Provider {
                         "org.apache.harmony.xnet.provider.jsse.KeyManagerFactoryImpl");
                 put("TrustManagerFactory.X509",
                         "org.apache.harmony.xnet.provider.jsse.TrustManagerFactoryImpl");
+                // BEGIN android-added
+                put("MessageDigest.SHA-1", "org.apache.harmony.xnet.provider.jsse.OpenSSLMessageDigestJDK$SHA1");
+                put("Alg.Alias.MessageDigest.SHA1", "SHA-1");
+                put("Alg.Alias.MessageDigest.SHA", "SHA-1");
+                put("Alg.Alias.MessageDigest.1.3.14.3.2.26", "SHA-1");
+                put("MessageDigest.SHA-224", "org.apache.harmony.xnet.provider.jsse.OpenSSLMessageDigestJDK$SHA224");
+                put("Alg.Alias.MessageDigest.SHA224", "SHA-224");
+                put("Alg.Alias.MessageDigest.2.16.840.1.101.3.4.2.4", "SHA-224");
+                put("MessageDigest.SHA-256", "org.apache.harmony.xnet.provider.jsse.OpenSSLMessageDigestJDK$SHA256");
+                put("Alg.Alias.MessageDigest.SHA256", "SHA-256");
+                put("Alg.Alias.MessageDigest.2.16.840.1.101.3.4.2.1", "SHA-256");
+                put("MessageDigest.MD5", "org.apache.harmony.xnet.provider.jsse.OpenSSLMessageDigestJDK$MD5");
+                put("Alg.Alias.MessageDigest.1.2.840.113549.2.5", "MD5");
+                // END android-added
                 return null;
             }
         });

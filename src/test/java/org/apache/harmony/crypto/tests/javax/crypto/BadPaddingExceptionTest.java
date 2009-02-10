@@ -39,18 +39,6 @@ import junit.framework.TestCase;
 @TestTargetClass(BadPaddingException.class)
 public class BadPaddingExceptionTest extends TestCase {
 
-    public static void main(String[] args) {
-    }
-
-    /**
-     * Constructor for BadPaddingExceptionTests.
-     * 
-     * @param arg0
-     */
-    public BadPaddingExceptionTest(String arg0) {
-        super(arg0);
-    }
-
     static String[] msgs = {
             "",
             "Check new message",

@@ -38,7 +38,6 @@ public class AllTests {
         suite.addTestSuite(CipherAesWrapTest.class);
         suite.addTestSuite(CipherDESedeTest.class);
         suite.addTestSuite(CipherDESedeWrapTest.class);
-        suite.addTestSuite(CipherSymmetricKeyThread.class);
         suite.addTestSuite(CipherPBETest.class);
         suite.addTestSuite(CipherRSATest.class);
         suite.addTestSuite(KeyGeneratorFunctionalTest.class);

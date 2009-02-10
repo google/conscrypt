@@ -44,48 +44,36 @@ import junit.framework.TestCase;
  */
 
 public class KeyGeneratorSpiTest extends TestCase {
-class Mock_KeyGeneratorSpi extends MyKeyGeneratorSpi {
+    class Mock_KeyGeneratorSpi extends MyKeyGeneratorSpi {
 
-    @Override
-    protected SecretKey engineGenerateKey() {
-        return super.engineGenerateKey();
-    }
+        @Override
+        protected SecretKey engineGenerateKey() {
+            return super.engineGenerateKey();
+        }
 
-    @Override
-    protected void engineInit(SecureRandom random) {
-        super.engineInit(random);
-    }
+        @Override
+        protected void engineInit(SecureRandom random) {
+            super.engineInit(random);
+        }
 
-    @Override
-    protected void engineInit(AlgorithmParameterSpec params, SecureRandom random) throws InvalidAlgorithmParameterException {
-        super.engineInit(params, random);
-    }
+        @Override
+        protected void engineInit(AlgorithmParameterSpec params, SecureRandom random)
+                throws InvalidAlgorithmParameterException {
+            super.engineInit(params, random);
+        }
 
-    @Override
-    protected void engineInit(int keysize, SecureRandom random) {
-        super.engineInit(keysize, random);
-    }
-    
-}
-    /**
-     * Constructor for KeyGeneratorSpiTests.
-     * 
-     * @param arg0
-     */
-    public KeyGeneratorSpiTest(String arg0) {
-        super(arg0);
+        @Override
+        protected void engineInit(int keysize, SecureRandom random) {
+            super.engineInit(keysize, random);
+        }
+
     }
 
     /**
      * Test for <code>KeyGeneratorSpi</code> constructor Assertion: constructs
      * KeyGeneratorSpi
      */
-    @TestTargetNew(
-        level = TestLevel.COMPLETE,
-        notes = "",
-        method = "KeyGeneratorSpi",
-        args = {}
-    )
+    @TestTargetNew(level = TestLevel.COMPLETE, notes = "", method = "KeyGeneratorSpi", args = {})
     public void testKeyGeneratorSpi01() throws InvalidAlgorithmParameterException {
         Mock_KeyGeneratorSpi kgSpi = new Mock_KeyGeneratorSpi();
         assertNull("Not null result", kgSpi.engineGenerateKey());
@@ -99,17 +87,18 @@ class Mock_KeyGeneratorSpi extends MyKeyGeneratorSpi {
             fail("IllegalArgumentException must be thrown");
         } catch (IllegalArgumentException e) {
         }
-        AlgorithmParameterSpec aps = null;        
+        AlgorithmParameterSpec aps = null;
         try {
             kgSpi.engineInit(aps, new SecureRandom());
-            fail("InvalidAlgorithmParameterException must be thrown when parameter is null");            
-       } catch (InvalidAlgorithmParameterException e) {
-       }
-       aps = new APSpecSpi();
-       kgSpi.engineInit(aps, new SecureRandom());
+            fail("InvalidAlgorithmParameterException must be thrown when parameter is null");
+        } catch (InvalidAlgorithmParameterException e) {
+        }
+        aps = new APSpecSpi();
+        kgSpi.engineInit(aps, new SecureRandom());
     }
 
 }
+
 class APSpecSpi implements AlgorithmParameterSpec {
-    
+
 }

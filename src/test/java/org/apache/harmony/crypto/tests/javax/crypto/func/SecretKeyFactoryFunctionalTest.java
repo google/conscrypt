@@ -15,20 +15,39 @@
  */
 package org.apache.harmony.crypto.tests.javax.crypto.func;
 
+import dalvik.annotation.TestLevel;
+import dalvik.annotation.TestTargetClass;
+import dalvik.annotation.TestTargetNew;
+import dalvik.annotation.TestTargets;
+
 import junit.framework.TestCase;
 
+import targets.SecretKeyFactory;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.KeySpec;
-
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.DESKeySpec;
-import javax.crypto.spec.DESedeKeySpec;
-import javax.crypto.spec.PBEKeySpec;
-
+@TestTargetClass(SecretKeyFactory.DES.class)
 public class SecretKeyFactoryFunctionalTest extends TestCase {
-    
+@TestTargets({
+    @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            method = "method",
+            args = {}
+        ),
+    @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            clazz = SecretKeyFactory.DESede.class,
+            method = "method",
+            args = {}
+        ),
+    @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            clazz = SecretKeyFactory.PBEWITHMD5ANDDES.class,
+            method = "method",
+            args = {}
+        )
+})
     public void test_() throws Exception {
         String[] algArray = {"DES", "DESede", "PBEWITHMD5ANDDES",
                 "PBEWithSHA1AndDESede", "PBEWithSHA1AndRC2_40"};

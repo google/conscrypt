@@ -40,18 +40,6 @@ import junit.framework.TestCase;
  */
 public class IllegalBlockSizeExceptionTest extends TestCase {
 
-    public static void main(String[] args) {
-    }
-
-    /**
-     * Constructor for IllegalBlockSizeExceptionTests.
-     * 
-     * @param arg0
-     */
-    public IllegalBlockSizeExceptionTest(String arg0) {
-        super(arg0);
-    }
-
     static String[] msgs = {
             "",
             "Check new message",

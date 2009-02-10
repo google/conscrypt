@@ -22,20 +22,19 @@
 
 package org.apache.harmony.crypto.tests.javax.crypto.interfaces;
 
-import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTargetClass;
-import dalvik.annotation.TestTargetNew;
-import dalvik.annotation.TestTargets;
+import java.math.BigInteger;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 
 import javax.crypto.interfaces.DHKey;
 import javax.crypto.interfaces.DHPrivateKey;
 import javax.crypto.spec.DHParameterSpec;
 
 import junit.framework.TestCase;
-
-import java.math.BigInteger;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
+import dalvik.annotation.TestLevel;
+import dalvik.annotation.TestTargetClass;
+import dalvik.annotation.TestTargetNew;
+import dalvik.annotation.TestTargets;
 
 
 /**
@@ -45,15 +44,6 @@ import java.security.KeyPairGenerator;
 @TestTargetClass(DHPrivateKey.class)
 public class DHPrivateKeyTest extends TestCase {
     
-    /**
-     * Constructor for DHPrivateKey.
-     * 
-     * @param arg0
-     */
-    public DHPrivateKeyTest(String arg0) {
-        super(arg0);
-    }
-
     /**
      * Test for <code>serialVersionUID</code> field
      */  

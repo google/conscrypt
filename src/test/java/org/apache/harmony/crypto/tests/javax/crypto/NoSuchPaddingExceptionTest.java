@@ -40,18 +40,6 @@ import junit.framework.TestCase;
  */
 public class NoSuchPaddingExceptionTest extends TestCase {
 
-    public static void main(String[] args) {
-    }
-
-    /**
-     * Constructor for NoSuchPaddingExceptionTests.
-     * 
-     * @param arg0
-     */
-    public NoSuchPaddingExceptionTest(String arg0) {
-        super(arg0);
-    }
-
     static String[] msgs = {
             "",
             "Check new message",

@@ -53,12 +53,15 @@ public class CipherSpiTest extends TestCase {
     class Mock_CipherSpi extends myCipherSpi {
 
         @Override
-        protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen) throws IllegalBlockSizeException, BadPaddingException {
-            return  super.engineDoFinal(input, inputOffset, inputLen);
+        protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
+                throws IllegalBlockSizeException, BadPaddingException {
+            return super.engineDoFinal(input, inputOffset, inputLen);
         }
 
         @Override
-        protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+        protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
+                int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
+                BadPaddingException {
             return super.engineDoFinal(input, inputOffset, inputLen, output, outputOffset);
         }
 
@@ -83,17 +86,20 @@ public class CipherSpiTest extends TestCase {
         }
 
         @Override
-        protected void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
+        protected void engineInit(int opmode, Key key, SecureRandom random)
+                throws InvalidKeyException {
             super.engineInit(opmode, key, random);
         }
 
         @Override
-        protected void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+        protected void engineInit(int opmode, Key key, AlgorithmParameterSpec params,
+                SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
             super.engineInit(opmode, key, params, random);
         }
 
         @Override
-        protected void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+        protected void engineInit(int opmode, Key key, AlgorithmParameters params,
+                SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
             super.engineInit(opmode, key, params, random);
         }
 
@@ -113,7 +119,8 @@ public class CipherSpiTest extends TestCase {
         }
 
         @Override
-        protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) throws ShortBufferException {
+        protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output,
+                int outputOffset) throws ShortBufferException {
             return super.engineUpdate(input, inputOffset, inputLen, output, outputOffset);
         }
 
@@ -121,25 +128,17 @@ public class CipherSpiTest extends TestCase {
         protected int engineGetKeySize(Key key) throws InvalidKeyException {
             return super.engineGetKeySize(key);
         }
-        
+
         @Override
         protected byte[] engineWrap(Key key) throws InvalidKeyException, IllegalBlockSizeException {
             return super.engineWrap(key);
         }
-        
+
         @Override
-        protected Key engineUnwrap(byte[] wrappedKey, String wrappedKeyAlgorithm, int wrappedKeyType) throws InvalidKeyException, NoSuchAlgorithmException {
+        protected Key engineUnwrap(byte[] wrappedKey, String wrappedKeyAlgorithm, int wrappedKeyType)
+                throws InvalidKeyException, NoSuchAlgorithmException {
             return super.engineUnwrap(wrappedKey, wrappedKeyAlgorithm, wrappedKeyType);
         }
-    }
-
-    /**
-     * Constructor for CipherSpiTests.
-     * 
-     * @param arg0
-     */
-    public CipherSpiTest(String arg0) {
-        super(arg0);
     }
 
     /**

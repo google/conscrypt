@@ -160,15 +160,6 @@ class Mock_MacSpi2 extends MyMacSpi2 {
 }
 
 
-/**
-     * Constructor for MacSpiTests.
-     * 
-     * @param arg0
-     */
-    public MacSpiTest(String arg0) {
-        super(arg0);
-    }
-
     /** 
      * Test for <code>MacSpi</code> constructor 
      * Assertion: constructs MacSpi

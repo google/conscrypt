@@ -16,9 +16,9 @@
  */
 
 /**
-* @author Vera Y. Petrashkova
-* @version $Revision$
-*/
+ * @author Vera Y. Petrashkova
+ * @version $Revision$
+ */
 
 package org.apache.harmony.crypto.tests.javax.crypto;
 
@@ -36,10 +36,8 @@ import org.apache.harmony.crypto.tests.support.MySecretKeyFactorySpi;
 
 import junit.framework.TestCase;
 
-
 /**
  * Tests for <code>SecretKeyFactorySpi</code> class constructors and methods.
- * 
  */
 
 @TestTargetClass(SecretKeyFactorySpi.class)
@@ -52,7 +50,8 @@ public class SecretKeyFactorySpiTest extends TestCase {
         }
 
         @Override
-        protected KeySpec engineGetKeySpec(SecretKey key, Class keySpec) throws InvalidKeySpecException {
+        protected KeySpec engineGetKeySpec(SecretKey key, Class keySpec)
+                throws InvalidKeySpecException {
             return super.engineGetKeySpec(key, keySpec);
         }
 
@@ -60,31 +59,15 @@ public class SecretKeyFactorySpiTest extends TestCase {
         protected SecretKey engineTranslateKey(SecretKey key) throws InvalidKeyException {
             return super.engineTranslateKey(key);
         }
-        
+
     }
 
     /**
-     * Constructor for SecretKeyfactorySpiTests.
-     * 
-     * @param arg0
-     */
-    public SecretKeyFactorySpiTest(String arg0) {
-        super(arg0);
-    }
-
-    /**
-     * 
      * Test for <code>SecretKeyFactorySpi</code> constructor Assertion:
      * constructs SecretKeyFactorySpi
      */
-    @TestTargetNew(
-        level = TestLevel.COMPLETE,
-        notes = "",
-        method = "SecretKeyFactorySpi",
-        args = {}
-    )
-    public void testSecretKeyFactorySpi01() throws InvalidKeyException,
-            InvalidKeySpecException {
+    @TestTargetNew(level = TestLevel.COMPLETE, notes = "", method = "SecretKeyFactorySpi", args = {})
+    public void testSecretKeyFactorySpi01() throws InvalidKeyException, InvalidKeySpecException {
         Mock_SecretKeyFactorySpi skfSpi = new Mock_SecretKeyFactorySpi();
         SecretKey sk = null;
         assertNull("Not null result", skfSpi.engineTranslateKey(sk));

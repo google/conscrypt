@@ -63,6 +63,11 @@ public class OpenSSLMessageDigestJDK extends MessageDigest {
     }
 
     @Override
+    protected int engineGetDigestLength() {
+        return NativeCrypto.EVP_DigestSize(ctx);
+    }
+
+    @Override
     protected void engineUpdate(byte input) {
         singleByte[0] = input;
         engineUpdate(singleByte, 0, 1);
@@ -79,4 +84,27 @@ public class OpenSSLMessageDigestJDK extends MessageDigest {
         NativeCrypto.EVP_free(ctx);
     }
     
+    static public class MD5 extends OpenSSLMessageDigestJDK {
+        public MD5() throws NoSuchAlgorithmException {
+            super("MD5");
+        }
+    }
+    
+    static public class SHA1 extends OpenSSLMessageDigestJDK {
+        public SHA1() throws NoSuchAlgorithmException {
+            super("SHA-1");
+        }
+    }
+    
+    static public class SHA224 extends OpenSSLMessageDigestJDK {
+        public SHA224() throws NoSuchAlgorithmException {
+            super("SHA-224");
+        }
+    }
+    
+    static public class SHA256 extends OpenSSLMessageDigestJDK {
+        public SHA256() throws NoSuchAlgorithmException {
+            super("SHA-256");
+        }
+    }
 }

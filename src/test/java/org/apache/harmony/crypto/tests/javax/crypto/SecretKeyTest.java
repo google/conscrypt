@@ -40,15 +40,6 @@ import junit.framework.TestCase;
 public class SecretKeyTest extends TestCase {
 
     /**
-     * Constructor for SecretKeyTest.
-     * 
-     * @param arg0
-     */
-    public SecretKeyTest(String arg0) {
-        super(arg0);
-    }
-
-    /**
      * Test for <code>serialVersionUID</code> field
      */
     @TestTargetNew(

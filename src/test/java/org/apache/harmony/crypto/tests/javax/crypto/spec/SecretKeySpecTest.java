@@ -22,7 +22,6 @@
 
 package org.apache.harmony.crypto.tests.javax.crypto.spec;
 
-import dalvik.annotation.KnownFailure;
 import dalvik.annotation.TestLevel;
 import dalvik.annotation.TestTargetClass;
 import dalvik.annotation.TestTargetNew;
@@ -161,7 +160,6 @@ public class SecretKeySpecTest extends TestCase {
             method = "SecretKeySpec",
             args = {byte[].class, int.class, int.class, java.lang.String.class}
         )
-    @KnownFailure("Constructor does not check if offset is negative")
     public void testSecretKeySpec3() {
         byte[] key = new byte[] {1, 2, 3, 4, 5};
         int offset = 1;

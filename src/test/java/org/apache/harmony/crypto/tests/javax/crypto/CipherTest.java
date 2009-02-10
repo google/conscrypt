@@ -17,7 +17,6 @@
 
 package org.apache.harmony.crypto.tests.javax.crypto;
 
-import dalvik.annotation.KnownFailure;
 import dalvik.annotation.TestLevel;
 import dalvik.annotation.TestTargetClass;
 import dalvik.annotation.TestTargetNew;
@@ -787,7 +786,6 @@ public class CipherTest extends junit.framework.TestCase {
             args = {byte[].class, int.class, int.class, byte[].class, int.class}
         )
     })
-    @KnownFailure("Fixed in ToT")
     public void testDoFinalbyteArrayintintbyteArrayint() throws Exception {
         byte[] b = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
         byte[] b1 = new byte[30];
@@ -1190,7 +1188,6 @@ public class CipherTest extends junit.framework.TestCase {
                 args = {byte[].class, java.lang.String.class, int.class}
         )
     })
-    @KnownFailure("Fixed in ToT")
     public void test_unwrap$BLjava_lang_StringI () throws NoSuchAlgorithmException,
     NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException,
     IllegalBlockSizeException {
@@ -1408,7 +1405,6 @@ public class CipherTest extends junit.framework.TestCase {
         method = "doFinal",
         args = {byte[].class, int.class}
     )
-    @KnownFailure("Fixed in ToT")
     public void test_doFinal$BI() throws Exception {
         byte[] b = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
         byte[] b1 = new byte[30];
@@ -1580,7 +1576,6 @@ public class CipherTest extends junit.framework.TestCase {
         method = "doFinal",
         args = {byte[].class, int.class, int.class, byte[].class}
     )
-    @KnownFailure("Fixed in ToT")
     public void test_doFinal$BII$B() throws Exception {
         byte[] b = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
         byte[] b1 = new byte[30];

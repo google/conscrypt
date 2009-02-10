@@ -15,28 +15,23 @@
  */
 package org.apache.harmony.crypto.tests.javax.crypto.func;
 
+import dalvik.annotation.TestLevel;
+import dalvik.annotation.TestTargetClass;
+import dalvik.annotation.TestTargetNew;
+
 import junit.framework.TestCase;
 
+import targets.KeyAgreement;
 
-import java.math.BigInteger;
-import java.security.AlgorithmParameterGenerator;
-import java.security.AlgorithmParameters;
-import java.security.Key;
-import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Formatter;
-
-import javax.crypto.KeyAgreement;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.DHParameterSpec;
-
+@TestTargetClass(KeyAgreement.DH.class)
 public class KeyAgreementFunctionalTest extends TestCase {
-    public void test_() throws Exception {
+    @TestTargetNew(
+            level = TestLevel.COMPLETE,
+            notes = "",
+            method = "method",
+            args = {}
+        )
+    public void test_KeyAgreement() throws Exception {
         String[] algArray = {"DES", "DESede"};
 
         KeyAgreementThread kat = new KeyAgreementThread(algArray);
