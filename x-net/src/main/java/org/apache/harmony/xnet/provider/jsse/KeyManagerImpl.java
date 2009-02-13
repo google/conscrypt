@@ -122,6 +122,11 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
      *      alias)
      */
     public X509Certificate[] getCertificateChain(String alias) {
+        // BEGIN android-changed
+        if (alias == null) {
+            return null;
+        }
+        // END android-changed
         if (hash.containsKey(alias)) {
             Certificate[] certs = ((KeyStore.PrivateKeyEntry) hash.get(alias))
                     .getCertificateChain();
@@ -157,6 +162,11 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
      * @see javax.net.ssl.X509ExtendedKeyManager#getPrivateKey(String alias)
      */
     public PrivateKey getPrivateKey(String alias) {
+        // BEGIN android-changed
+        if (alias == null) {
+            return null;
+        }
+        // END android-changed
         if (hash.containsKey(alias)) {
             return ((KeyStore.PrivateKeyEntry) hash.get(alias)).getPrivateKey();
         }
