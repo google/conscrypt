@@ -40,7 +40,6 @@ import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 
 import org.apache.harmony.luni.util.TwoKeyHashMap;
-import org.apache.harmony.xnet.provider.jsse.SSLSessionContextImpl;
 
 /**
  * 
@@ -83,8 +82,9 @@ public class SSLSessionImpl implements SSLSession {
     /**
      * Context of the session
      */
-    SSLSessionContextImpl context;
-
+// BEGIN android-changed
+    SSLSessionContext context;
+// END android-changed
 
     /**
      * certificates were sent to the peer 

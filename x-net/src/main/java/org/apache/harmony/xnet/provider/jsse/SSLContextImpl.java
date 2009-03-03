@@ -22,9 +22,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-// BEGIN android-removed
-// import org.apache.harmony.xnet.provider.jsse.SSLSocketFactoryImpl;
-// END android-removed
 import org.apache.harmony.xnet.provider.jsse.SSLEngineImpl;
 import org.apache.harmony.xnet.provider.jsse.SSLParameters;
 // BEGIN android-removed
@@ -42,19 +39,21 @@ import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 
+// BEGIN android-note
+//  Modified heavily during SSLSessionContext refactoring. Added support for
+//  persistent session caches.
+// END android-note
+
 /**
  * Implementation of SSLContext service provider interface.
  */
 public class SSLContextImpl extends SSLContextSpi {
 
-    // client session context contains the set of reusable
-    // client-side SSL sessions
-    private SSLSessionContextImpl clientSessionContext =
-        new SSLSessionContextImpl();
-    // server session context contains the set of reusable
-    // server-side SSL sessions
-    private SSLSessionContextImpl serverSessionContext =
-        new SSLSessionContextImpl();
+    /** Client session cache. */
+    private ClientSessionContext clientSessionContext;
+
+    /** Server session cache. */
+    private ServerSessionContext serverSessionContext;
 
     protected SSLParameters sslParameters;
 
@@ -64,26 +63,44 @@ public class SSLContextImpl extends SSLContextSpi {
 
     public void engineInit(KeyManager[] kms, TrustManager[] tms,
             SecureRandom sr) throws KeyManagementException {
-        sslParameters = new SSLParameters(kms, tms, sr, clientSessionContext,
-                serverSessionContext);
+        engineInit(kms, tms, sr, null, null);
+    }
+
+    /**
+     * Initializes this {@code SSLContext} instance. All of the arguments are
+     * optional, and the security providers will be searched for the required
+     * implementations of the needed algorithms.
+     *
+     * @param kms the key sources or {@code null}
+     * @param tms the trust decision sources or {@code null}
+     * @param sr the randomness source or {@code null}
+     * @param clientCache persistent client session cache or {@code null}
+     * @param serverCache persistent server session cache or {@code null}
+     * @throws KeyManagementException if initializing this instance fails
+     * 
+     * @since Android 1.1
+     */
+    public void engineInit(KeyManager[] kms, TrustManager[] tms,
+            SecureRandom sr, SSLClientSessionCache clientCache,
+            SSLServerSessionCache serverCache) throws KeyManagementException {
+        sslParameters = new SSLParameters(kms, tms, sr,
+                clientCache, serverCache);
+        clientSessionContext = sslParameters.getClientSessionContext();
+        serverSessionContext = sslParameters.getServerSessionContext();
     }
 
     public SSLSocketFactory engineGetSocketFactory() {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initiallized.");
         }
-        // BEGIN android-changed
         return new OpenSSLSocketFactoryImpl(sslParameters);
-        // END android-changed
     }
 
     public SSLServerSocketFactory engineGetServerSocketFactory() {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initiallized.");
         }
-        // BEGIN android-changed
         return new OpenSSLServerSocketFactoryImpl(sslParameters);
-        // END android-changed
     }
 
     public SSLEngine engineCreateSSLEngine(String host, int port) {
@@ -101,12 +118,11 @@ public class SSLContextImpl extends SSLContextSpi {
         return new SSLEngineImpl((SSLParameters) sslParameters.clone());
     }
 
-    public SSLSessionContext engineGetServerSessionContext() {
+    public ServerSessionContext engineGetServerSessionContext() {
         return serverSessionContext;
     }
 
-    public SSLSessionContext engineGetClientSessionContext() {
+    public ClientSessionContext engineGetClientSessionContext() {
         return clientSessionContext;
     }
 }
-

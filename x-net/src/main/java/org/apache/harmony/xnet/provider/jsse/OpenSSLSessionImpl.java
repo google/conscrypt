@@ -23,6 +23,7 @@ import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Iterator;
+import java.util.UnknownFormatConversionException;
 import java.util.Vector;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -55,20 +56,40 @@ public class OpenSSLSessionImpl implements SSLSession {
     private SSLParameters sslParameters;
     private String peerHost;
     private int peerPort;
+    private final SSLSessionContext sessionContext;
 
     /**
      * Class constructor creates an SSL session context given the appropriate
      * SSL parameters.
+     *
+     * @param session the Identifier for SSL session
      * @param sslParameters the SSL parameters like ciphers' suites etc.
-     * @param ssl the Identifier for SSL session
      */
-    protected OpenSSLSessionImpl(int session, SSLParameters sslParameters, String peerHost, int peerPort) {
+    protected OpenSSLSessionImpl(int session, SSLParameters sslParameters,
+            String peerHost, int peerPort, SSLSessionContext sessionContext) {
         this.session = session;
         this.sslParameters = sslParameters;
         this.peerHost = peerHost;
         this.peerPort = peerPort;
+        this.sessionContext = sessionContext;
     }
 
+    /**
+     * Constructs a session from a byte[].
+     */
+    OpenSSLSessionImpl(byte[] derData, SSLParameters sslParameters,
+            String peerHost, int peerPort,
+            javax.security.cert.X509Certificate[] peerCertificateChain,
+            SSLSessionContext sessionContext)
+            throws IOException {
+        this.sslParameters = sslParameters;
+        this.peerHost = peerHost;
+        this.peerPort = peerPort;
+        this.peerCertificateChain = peerCertificateChain;
+        this.sessionContext = sessionContext;
+        initializeNative(derData);
+    }
+  
     /**
      * Returns the identifier of the actual OpenSSL session.
      */
@@ -89,6 +110,40 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     private native long nativegetcreationtime();
 
+    /**
+     * Serialize the native state of the session ( ID, cypher, keys - but 
+     * not certs ), using openSSL i2d_SSL_SESSION()
+     * 
+     * @return the DER encoding of the session. 
+     */
+    private native byte[] nativeserialize();
+    
+    /**
+     * Create a SSL_SESSION object using d2i_SSL_SESSION.
+     */
+    private native int nativedeserialize(byte[] data, int size);
+
+    /**
+     * Get the session object in DER format. This allows saving the session
+     * data or sharing it with other processes.  
+     */
+    byte[] getEncoded() {
+      return nativeserialize();
+    }
+
+    /**
+     * Init the underlying native object from DER data. This 
+     * allows loading the saved session.
+     * @throws IOException 
+     */
+    private void initializeNative(byte[] derData) throws IOException {
+      this.session = nativedeserialize(derData, derData.length);
+      if (this.session == 0) { 
+        throw new IOException("Invalid session data");
+      }
+    }
+    
+    
     /**
      * Gets the creation time of the SSL session.
      * @return the session's creation time in milli seconds since 12.00 PM,
@@ -337,7 +392,7 @@ public class OpenSSLSessionImpl implements SSLSession {
         if (sm != null) {
             sm.checkPermission(new SSLPermission("getSSLSessionContext"));
         }
-        return sslParameters.getClientSessionContext();
+        return sessionContext;
     }
 
     /**
@@ -347,7 +402,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @return true if this session may be resumed.
      */
     public boolean isValid() {
-        SSLSessionContextImpl context = sslParameters.getClientSessionContext();
+        SSLSessionContext context = sessionContext;
         if (isValid
                 && context != null
                 && context.getSessionTimeout() != 0
@@ -372,7 +427,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * of security, by the full machinery of the <code>AccessController</code>
      * class.
      *
-     * @param <code>String name</code> the name of the binding to find.
+     * @param name the name of the binding to find.
      * @return the value bound to that name, or null if the binding does not
      *         exist.
      * @throws <code>IllegalArgumentException</code> if the argument is null.
@@ -416,9 +471,9 @@ public class OpenSSLSessionImpl implements SSLSession {
      * -data bounds are monitored, as a matter of security, by the full
      * machinery of the <code>AccessController</code> class.
      *
-     * @param <code>String name</code> the name of the link (no null are
+     * @param name the name of the link (no null are
      *            accepted!)
-     * @param <code>Object value</code> data object that shall be bound to
+     * @param value data object that shall be bound to
      *            name.
      * @throws <code>IllegalArgumentException</code> if one or both
      *             argument(s) is null.
@@ -444,7 +499,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * monitored, as a matter of security, by the full machinery of the
      * <code>AccessController</code> class.
      *
-     * @param <code>String name</code> the name of the link (no null are
+     * @param name the name of the link (no null are
      *            accepted!)
      * @throws <code>IllegalArgumentException</code> if the argument is null.
      */

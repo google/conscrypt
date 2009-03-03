@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -31,7 +30,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,7 +56,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     private int ssl;
     private InputStream is;
     private OutputStream os;
-    private Object handshakeLock = new Object();
+    private final Object handshakeLock = new Object();
     private Object readLock = new Object();
     private Object writeLock = new Object();
     private SSLParameters sslParameters;
@@ -66,7 +64,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     private Socket socket;
     private boolean autoClose;
     private boolean handshakeStarted = false;
-    private ArrayList listeners;
+    private ArrayList<HandshakeCompletedListener> listeners;
     private long ssl_op_no = 0x00000000L;
     private int timeout = 0;
     private InetSocketAddress address;
@@ -137,11 +135,11 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     /**
      * Class constructor with 2 parameters
      *
-     * @param <code>SSLParameters sslParameters</code> Parameters for the SSL
+     * @param sslParameters Parameters for the SSL
      *            context
-     * @param <code>long ssl_op_no</code> Parameter to set the enabled
+     * @param ssl_op_no Parameter to set the enabled
      *            protocols
-     * @throws <code>IOException</code> if network fails
+     * @throws IOException if network fails
      */
     protected OpenSSLSocketImpl(SSLParameters sslParameters, long ssl_op_no) throws IOException {
         super();
@@ -153,9 +151,9 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     /**
      * Class constructor with 1 parameter
      *
-     * @param <code>SSLParameters sslParameters</code> Parameters for the SSL
+     * @param sslParameters Parameters for the SSL
      *            context
-     * @throws <code>IOException</code> if network fails
+     * @throws IOException if network fails
      */
     protected OpenSSLSocketImpl(SSLParameters sslParameters) throws IOException {
         super();
@@ -167,11 +165,8 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     /**
      * Class constructor with 3 parameters
      *
-     * @param <code> String host</code>
-     * @param <code>int port</code>
-     * @param <code>SSLParameters sslParameters</code>
-     * @throws <code>IOException</code> if network fails
-     * @throws <code>UnknownHostException</code> host not defined
+     * @throws IOException if network fails
+     * @throws java.net.UnknownHostException host not defined
      */
     protected OpenSSLSocketImpl(String host, int port,
             SSLParameters sslParameters)
@@ -186,11 +181,8 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     /**
      * Class constructor with 3 parameters: 1st is InetAddress
      *
-     * @param <code>InetAddress address</code>
-     * @param <code>int port</code>
-     * @param <code>SSLParameters sslParameters</code>
-     * @throws <code>IOException</code> if network fails
-     * @throws <code>UnknownHostException</code> host not defined
+     * @throws IOException if network fails
+     * @throws java.net.UnknownHostException host not defined
      */
     protected OpenSSLSocketImpl(InetAddress address, int port,
             SSLParameters sslParameters)
@@ -205,13 +197,8 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     /**
      * Class constructor with 5 parameters: 1st is host
      *
-     * @param <code>String host</code>
-     * @param <code>int port</code>
-     * @param <code>InetAddress localHost</code>
-     * @param <code>int localPort</code>
-     * @param <code>SSLParameters sslParameters</code>
-     * @throws <code>IOException</code> if network fails
-     * @throws <code>UnknownHostException</code> host not defined
+     * @throws IOException if network fails
+     * @throws java.net.UnknownHostException host not defined
      */
     protected OpenSSLSocketImpl(String host, int port, InetAddress clientAddress,
             int clientPort, SSLParameters sslParameters)
@@ -225,13 +212,8 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     /**
      * Class constructor with 5 parameters: 1st is InetAddress
      *
-     * @param <code>InetAddress address</code>
-     * @param <code>int port</code>
-     * @param <code>InetAddress localAddress</code>
-     * @param <code>int localPort</code>
-     * @param <code>SSLParameters sslParameters</code>
-     * @throws <code>IOException</code> if network fails
-     * @throws <code>UnknownHostException</code> host not defined
+     * @throws IOException if network fails
+     * @throws java.net.UnknownHostException host not defined
      */
     protected OpenSSLSocketImpl(InetAddress address, int port,
             InetAddress clientAddress, int clientPort, SSLParameters sslParameters)
@@ -246,12 +228,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * Constructor with 5 parameters: 1st is socket. Enhances an existing socket
      * with SSL functionality.
      *
-     * @param <code>Socket socket</code>
-     * @param <code>String host</code>
-     * @param <code>int port</code>
-     * @param <code>boolean autoClose</code>
-     * @param <code>SSLParameters sslParameters</code>
-     * @throws <code>IOException</code> if network fails
+     * @throws IOException if network fails
      */
     protected OpenSSLSocketImpl(Socket socket, String host, int port,
             boolean autoClose, SSLParameters sslParameters) throws IOException {
@@ -278,26 +255,26 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      *
      * @return OpenSSLSessionImpl
      */
-    private OpenSSLSessionImpl getOpenSSLSessionImpl() {
-        try {
-            byte[] id;
-            SSLSession ses;
-            for (Enumeration<byte[]> en = sslParameters.getClientSessionContext().getIds(); en.hasMoreElements();) {
-                id = en.nextElement();
-                ses = sslParameters.getClientSessionContext().getSession(id);
-                if (ses instanceof OpenSSLSessionImpl && ses.isValid() &&
-                        super.getInetAddress() != null &&
-                        super.getInetAddress().getHostAddress() != null &&
-                        super.getInetAddress().getHostName().equals(ses.getPeerHost()) &&
-                        super.getPort() == ses.getPeerPort()) {
-                        return (OpenSSLSessionImpl) ses;
-                }
-            }
-        } catch (Exception ex) {
-            // It's not clear to me under what circumstances the above code
-            // might fail. I also can't reproduce it.
+    private OpenSSLSessionImpl getCachedClientSession() {
+        if (super.getInetAddress() == null ||
+                super.getInetAddress().getHostAddress() == null ||
+                super.getInetAddress().getHostName() == null) {
+            return null;
         }
-        return null;
+        ClientSessionContext sessionContext
+                = sslParameters.getClientSessionContext();
+        return (OpenSSLSessionImpl) sessionContext.getSession(
+                super.getInetAddress().getHostName(),
+                super.getPort());
+    }
+
+    /**
+     * Ensures that logger is lazily loaded. The outer class seems to load
+     * before logging is ready.
+     */
+    static class LoggerHolder {
+        static final Logger logger = Logger.getLogger(
+                OpenSSLSocketImpl.class.getName());
     }
 
     /**
@@ -317,38 +294,60 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
                 return;
             }
         }
-        
-        {
-            // Debug
-            int size = 0;
-            for (Enumeration<byte[]> en = sslParameters.getClientSessionContext().getIds();
-                    en.hasMoreElements(); en.nextElement()) { size++; };
-        }
-        OpenSSLSessionImpl session = getOpenSSLSessionImpl();
+
+        OpenSSLSessionImpl session = getCachedClientSession();
 
         // Check if it's allowed to create a new session (default is true)
-        if (!sslParameters.getEnableSessionCreation() && session == null) {
+        if (session == null && !sslParameters.getEnableSessionCreation()) {
             throw new SSLHandshakeException("SSL Session may not be created");
         } else {
-            if (nativeconnect(ssl_ctx, this.socket != null ?
-                    this.socket : this, sslParameters.getUseClientMode(), session != null ? session.session : 0)) {
+            Socket socket = this.socket != null ? this.socket : this;
+            int sessionId = session != null ? session.session : 0;
+            if (nativeconnect(ssl_ctx, socket, sslParameters.getUseClientMode(),
+                    sessionId)) {
+                // nativeconnect shouldn't return true if the session is not
+                // done
                 session.lastAccessedTime = System.currentTimeMillis();
                 sslSession = session;
-            } else {
-                if (address == null) sslSession = new OpenSSLSessionImpl(nativegetsslsession(ssl),
-                        sslParameters, super.getInetAddress().getHostName(), super.getPort());
-                else sslSession = new OpenSSLSessionImpl(nativegetsslsession(ssl),
-                        sslParameters, address.getHostName(), address.getPort());
-                try {
-                    X509Certificate[] peerCertificates = (X509Certificate[]) sslSession.getPeerCertificates();
 
-                    if (peerCertificates == null || peerCertificates.length == 0) {
+                LoggerHolder.logger.fine("Reused cached session for "
+                        + getInetAddress().getHostName() + ".");
+            } else {
+                if (session != null) {
+                    LoggerHolder.logger.fine("Reuse of cached session for "
+                            + getInetAddress().getHostName() + " failed.");
+                } else {
+                    LoggerHolder.logger.fine("Created new session for "
+                            + getInetAddress().getHostName() + ".");
+                }
+
+                ClientSessionContext sessionContext
+                        = sslParameters.getClientSessionContext();
+                if (address == null) {
+                    sslSession = new OpenSSLSessionImpl(
+                            nativegetsslsession(ssl), sslParameters,
+                            super.getInetAddress().getHostName(),
+                            super.getPort(), sessionContext);
+                } else  {
+                    sslSession = new OpenSSLSessionImpl(
+                            nativegetsslsession(ssl), sslParameters,
+                            address.getHostName(), address.getPort(),
+                            sessionContext);
+                }
+
+                try {
+                    X509Certificate[] peerCertificates = (X509Certificate[])
+                            sslSession.getPeerCertificates();
+
+                    if (peerCertificates == null
+                            || peerCertificates.length == 0) {
                         throw new SSLException("Server sends no certificate");
                     }
 
-                    sslParameters.getTrustManager().checkServerTrusted(peerCertificates,
-                                                                       nativecipherauthenticationmethod());
-                    sslParameters.getClientSessionContext().putSession(sslSession);
+                    sslParameters.getTrustManager().checkServerTrusted(
+                            peerCertificates,
+                            nativecipherauthenticationmethod());
+                    sessionContext.putSession(sslSession);
                 } catch (CertificateException e) {
                     throw new SSLException("Not trusted server certificate", e);
                 }
@@ -360,9 +359,8 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
             HandshakeCompletedEvent event =
                 new HandshakeCompletedEvent(this, sslSession);
             int size = listeners.size();
-            for (int i=0; i<size; i++) {
-                ((HandshakeCompletedListener)listeners.get(i))
-                    .handshakeCompleted(event);
+            for (int i = 0; i < size; i++) {
+                listeners.get(i).handshakeCompleted(event);
             }
         }
     }
@@ -381,22 +379,27 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
 
         nativeaccept(this, m_ctx, client_mode);
 
+        ServerSessionContext sessionContext
+                = sslParameters.getServerSessionContext();
         sslSession = new OpenSSLSessionImpl(nativegetsslsession(ssl),
-                sslParameters, super.getInetAddress().getHostName(), super.getPort());
+                sslParameters, super.getInetAddress().getHostName(),
+                super.getPort(), sessionContext);
         sslSession.lastAccessedTime = System.currentTimeMillis();
+        sessionContext.putSession(sslSession);
     }
 
     /**
      * Callback methode for the OpenSSL native certificate verification process.
      *
-     * @param <code>byte[][] bytes</code> Byte array containing the cert's
+     * @param bytes Byte array containing the cert's
      *            information.
      * @return 0 if the certificate verification fails or 1 if OK
      */
     @SuppressWarnings("unused")
     private int verify_callback(byte[][] bytes) {
         try {
-            X509Certificate[] peerCertificateChain = new X509Certificate[bytes.length];
+            X509Certificate[] peerCertificateChain
+                    = new X509Certificate[bytes.length];
             for(int i = 0; i < bytes.length; i++) {
                 peerCertificateChain[i] =
                     new X509CertImpl(javax.security.cert.X509Certificate.getInstance(bytes[i]).getEncoded());
@@ -582,7 +585,6 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     /**
      * Registers a listener to be notified that a SSL handshake
      * was successfully completed on this connection.
-     * @param <code>HandShakeCompletedListener listener</code>
      * @throws <code>IllegalArgumentException</code> if listener is null.
      */
     public void addHandshakeCompletedListener(
@@ -598,7 +600,6 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
 
     /**
      * The method removes a registered listener.
-     * @param <code>HandShakeCompletedListener listener</code>
      * @throws IllegalArgumentException if listener is null or not registered
      */
     public void removeHandshakeCompletedListener(
@@ -631,7 +632,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * SSL sessions. If the flag is set to false, and there are no actual
      * sessions to resume, then there will be no successful handshaking.
      *
-     * @param <code>boolean flag</code> true if session may be created; false
+     * @param flag true if session may be created; false
      *            if a session already exists and must be resumed.
      */
     public void setEnableSessionCreation(boolean flag) {
@@ -683,9 +684,9 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * This method enables the cipher suites listed by
      * getSupportedCipherSuites().
      *
-     * @param <code> String[] suites</code> names of all the cipher suites to
+     * @param suites names of all the cipher suites to
      *            put on use
-     * @throws <code>IllegalArgumentException</code> when one or more of the
+     * @throws IllegalArgumentException when one or more of the
      *             ciphers in array suites are not supported, or when the array
      *             is null.
      */
@@ -781,9 +782,9 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     /**
      * This method set the actual SSL socket to client mode.
      *
-     * @param <code>boolean mode</code> true if the socket starts in client
+     * @param mode true if the socket starts in client
      *            mode
-     * @throws <code>IllegalArgumentException</code> if mode changes during
+     * @throws IllegalArgumentException if mode changes during
      *             handshake.
      */
     public synchronized void setUseClientMode(boolean mode) {
@@ -818,7 +819,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * Sets the SSL socket to use client's authentication. Relevant only for
      * server sockets!
      *
-     * @param <code>boolean need</code> true if client authentication is
+     * @param need true if client authentication is
      *            desired, false if not.
      */
     public void setNeedClientAuth(boolean need) {
@@ -831,7 +832,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * method will continue the negotiation if the client decide not to send
      * authentication credentials.
      *
-     * @param <code>boolean want</code> true if client authentication is
+     * @param want true if client authentication is
      *            desired, false if not.
      */
     public void setWantClientAuth(boolean want) {
@@ -878,6 +879,9 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      *             socket's closure.
      */
     public void close() throws IOException {
+        // TODO: Close SSL sockets using a background thread so they close
+        // gracefully.
+
         synchronized (handshakeLock) {
             if (!handshakeStarted) {
                 handshakeStarted = true;
@@ -987,10 +991,11 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     }
 
     /**
-     * Helper class for a thread that knows how to call {@link #close} on behalf
-     * of instances being finalized, since that call can take arbitrarily long
-     * (e.g., due to a slow network), and an overly long-running finalizer will
-     * cause the process to be totally aborted.
+     * Helper class for a thread that knows how to call
+     * {@link OpenSSLSocketImpl#close} on behalf of instances being finalized,
+     * since that call can take arbitrarily long (e.g., due to a slow network),
+     * and an overly long-running finalizer will cause the process to be
+     * totally aborted.
      */
     private class Finalizer extends Thread {
         public void run() {

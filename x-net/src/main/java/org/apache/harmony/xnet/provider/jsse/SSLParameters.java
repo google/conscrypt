@@ -22,8 +22,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.SSLSessionContextImpl;
-
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -45,7 +43,9 @@ import javax.net.ssl.X509TrustManager;
  * and controls whether new SSL sessions may be established by this
  * socket or not.
  */
-public class SSLParameters {
+// BEGIN android-changed
+public class SSLParameters implements Cloneable {
+// END android-changed
 
     // default source of authentication keys
     private static X509KeyManager defaultKeyManager;
@@ -58,10 +58,12 @@ public class SSLParameters {
 
     // client session context contains the set of reusable
     // client-side SSL sessions
-    private SSLSessionContextImpl clientSessionContext;
+// BEGIN android-changed
+    private final ClientSessionContext clientSessionContext;
     // server session context contains the set of reusable
     // server-side SSL sessions
-    private SSLSessionContextImpl serverSessionContext;
+    private final ServerSessionContext serverSessionContext;
+// END android-changed
     // source of authentication keys
     private X509KeyManager keyManager;
     // source of authentication trust decisions
@@ -88,16 +90,7 @@ public class SSLParameters {
     // if the peer with this parameters allowed to cteate new SSL session
     private boolean enable_session_creation = true;
 
-    /**
-     * Creates an instance of SSLParameters.
-     */
-    private SSLParameters() {
-        // BEGIN android-removed
-        // this.enabledCipherSuites = CipherSuite.defaultCipherSuites;
-        // END android-removed
-    }
-
-    // BEGIN android-added
+// BEGIN android-changed
     protected CipherSuite[] getEnabledCipherSuitesMember() {
         if (enabledCipherSuites == null) this.enabledCipherSuites = CipherSuite.defaultCipherSuites;
         return enabledCipherSuites;
@@ -120,23 +113,26 @@ public class SSLParameters {
         if (ssl_ctx == 0) ssl_ctx = nativeinitsslctx();
         return ssl_ctx;
     }
-    // END android-added
+// END android-changed
 
     /**
      * Initializes the parameters. Naturally this constructor is used
      * in SSLContextImpl.engineInit method which dirrectly passes its 
      * parameters. In other words this constructor holds all
      * the functionality provided by SSLContext.init method.
-     * See {@link javax.net.ssl.SSLContext#init(KeyManager[],TrustManager[],SecureRandom)}
-     * for more information
+     * See {@link javax.net.ssl.SSLContext#init(KeyManager[],TrustManager[],
+     * SecureRandom)} for more information
      */
     protected SSLParameters(KeyManager[] kms, TrustManager[] tms,
-            SecureRandom sr, SSLSessionContextImpl clientSessionContext,
-            SSLSessionContextImpl serverSessionContext)
+// BEGIN android-changed
+            SecureRandom sr, SSLClientSessionCache clientCache,
+            SSLServerSessionCache serverCache)
             throws KeyManagementException {
-        this();
-        this.serverSessionContext = serverSessionContext;
-        this.clientSessionContext = clientSessionContext;
+        this.serverSessionContext
+                = new ServerSessionContext(this, serverCache);
+        this.clientSessionContext
+                = new ClientSessionContext(this, clientCache);
+// END android-changed
         try {
             // initialize key manager
             boolean initialize_default = false;
@@ -228,8 +224,9 @@ public class SSLParameters {
 
     protected static SSLParameters getDefault() throws KeyManagementException {
         if (defaultParameters == null) {
-            defaultParameters = new SSLParameters(null, null, null,
-                    new SSLSessionContextImpl(), new SSLSessionContextImpl());
+// BEGIN android-changed
+            defaultParameters = new SSLParameters(null, null, null, null, null);
+// END android-changed
         }
         return (SSLParameters) defaultParameters.clone();
     }
@@ -237,14 +234,18 @@ public class SSLParameters {
     /**
      * @return server session context
      */
-    protected SSLSessionContextImpl getServerSessionContext() {
+// BEGIN android-changed
+    protected ServerSessionContext getServerSessionContext() {
+// END android-changed
         return serverSessionContext;
     }
 
     /**
      * @return client session context
      */
-    protected SSLSessionContextImpl getClientSessionContext() {
+// BEGIN android-changed
+    protected ClientSessionContext getClientSessionContext() {
+// END android-changed
         return clientSessionContext;
     }
 
@@ -335,7 +336,7 @@ public class SSLParameters {
 
     /**
      * Sets the set of available protocols for use in SSL connection.
-     * @param   suites: String[]
+     * @param protocols String[]
      */
     protected void setEnabledProtocols(String[] protocols) {
         if (protocols == null) {
@@ -422,23 +423,13 @@ public class SSLParameters {
      * @return the clone.
      */
     protected Object clone() {
-        SSLParameters parameters = new SSLParameters();
-
-        parameters.clientSessionContext = clientSessionContext;
-        parameters.serverSessionContext = serverSessionContext;
-        parameters.keyManager = keyManager;
-        parameters.trustManager = trustManager;
-        parameters.secureRandom = secureRandom;
-
-        parameters.enabledCipherSuites = enabledCipherSuites;
-        parameters.enabledProtocols = enabledProtocols;
-
-        parameters.client_mode = client_mode;
-        parameters.need_client_auth = need_client_auth;
-        parameters.want_client_auth = want_client_auth;
-        parameters.enable_session_creation = enable_session_creation;
-
-        return parameters;
+// BEGIN android-changed
+        try {
+            return super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError(e);
+        }
+// END android-changed
     }
 }
 
