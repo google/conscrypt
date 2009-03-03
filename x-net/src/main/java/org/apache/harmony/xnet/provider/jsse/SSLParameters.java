@@ -22,6 +22,8 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import org.apache.harmony.xnet.provider.jsse.SSLSessionContextImpl;
+
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -43,9 +45,7 @@ import javax.net.ssl.X509TrustManager;
  * and controls whether new SSL sessions may be established by this
  * socket or not.
  */
-// BEGIN android-changed
-public class SSLParameters implements Cloneable {
-// END android-changed
+public class SSLParameters {
 
     // default source of authentication keys
     private static X509KeyManager defaultKeyManager;
@@ -58,12 +58,10 @@ public class SSLParameters implements Cloneable {
 
     // client session context contains the set of reusable
     // client-side SSL sessions
-// BEGIN android-changed
-    private final ClientSessionContext clientSessionContext;
+    private SSLSessionContextImpl clientSessionContext;
     // server session context contains the set of reusable
     // server-side SSL sessions
-    private final ServerSessionContext serverSessionContext;
-// END android-changed
+    private SSLSessionContextImpl serverSessionContext;
     // source of authentication keys
     private X509KeyManager keyManager;
     // source of authentication trust decisions
@@ -90,7 +88,16 @@ public class SSLParameters implements Cloneable {
     // if the peer with this parameters allowed to cteate new SSL session
     private boolean enable_session_creation = true;
 
-// BEGIN android-changed
+    /**
+     * Creates an instance of SSLParameters.
+     */
+    private SSLParameters() {
+        // BEGIN android-removed
+        // this.enabledCipherSuites = CipherSuite.defaultCipherSuites;
+        // END android-removed
+    }
+
+    // BEGIN android-added
     protected CipherSuite[] getEnabledCipherSuitesMember() {
         if (enabledCipherSuites == null) this.enabledCipherSuites = CipherSuite.defaultCipherSuites;
         return enabledCipherSuites;
@@ -113,26 +120,23 @@ public class SSLParameters implements Cloneable {
         if (ssl_ctx == 0) ssl_ctx = nativeinitsslctx();
         return ssl_ctx;
     }
-// END android-changed
+    // END android-added
 
     /**
      * Initializes the parameters. Naturally this constructor is used
      * in SSLContextImpl.engineInit method which dirrectly passes its 
      * parameters. In other words this constructor holds all
      * the functionality provided by SSLContext.init method.
-     * See {@link javax.net.ssl.SSLContext#init(KeyManager[],TrustManager[],
-     * SecureRandom)} for more information
+     * See {@link javax.net.ssl.SSLContext#init(KeyManager[],TrustManager[],SecureRandom)}
+     * for more information
      */
     protected SSLParameters(KeyManager[] kms, TrustManager[] tms,
-// BEGIN android-changed
-            SecureRandom sr, SSLClientSessionCache clientCache,
-            SSLServerSessionCache serverCache)
+            SecureRandom sr, SSLSessionContextImpl clientSessionContext,
+            SSLSessionContextImpl serverSessionContext)
             throws KeyManagementException {
-        this.serverSessionContext
-                = new ServerSessionContext(this, serverCache);
-        this.clientSessionContext
-                = new ClientSessionContext(this, clientCache);
-// END android-changed
+        this();
+        this.serverSessionContext = serverSessionContext;
+        this.clientSessionContext = clientSessionContext;
         try {
             // initialize key manager
             boolean initialize_default = false;
@@ -224,9 +228,8 @@ public class SSLParameters implements Cloneable {
 
     protected static SSLParameters getDefault() throws KeyManagementException {
         if (defaultParameters == null) {
-// BEGIN android-changed
-            defaultParameters = new SSLParameters(null, null, null, null, null);
-// END android-changed
+            defaultParameters = new SSLParameters(null, null, null,
+                    new SSLSessionContextImpl(), new SSLSessionContextImpl());
         }
         return (SSLParameters) defaultParameters.clone();
     }
@@ -234,18 +237,14 @@ public class SSLParameters implements Cloneable {
     /**
      * @return server session context
      */
-// BEGIN android-changed
-    protected ServerSessionContext getServerSessionContext() {
-// END android-changed
+    protected SSLSessionContextImpl getServerSessionContext() {
         return serverSessionContext;
     }
 
     /**
      * @return client session context
      */
-// BEGIN android-changed
-    protected ClientSessionContext getClientSessionContext() {
-// END android-changed
+    protected SSLSessionContextImpl getClientSessionContext() {
         return clientSessionContext;
     }
 
@@ -336,7 +335,7 @@ public class SSLParameters implements Cloneable {
 
     /**
      * Sets the set of available protocols for use in SSL connection.
-     * @param protocols String[]
+     * @param   suites: String[]
      */
     protected void setEnabledProtocols(String[] protocols) {
         if (protocols == null) {
@@ -423,13 +422,23 @@ public class SSLParameters implements Cloneable {
      * @return the clone.
      */
     protected Object clone() {
-// BEGIN android-changed
-        try {
-            return super.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new AssertionError(e);
-        }
-// END android-changed
+        SSLParameters parameters = new SSLParameters();
+
+        parameters.clientSessionContext = clientSessionContext;
+        parameters.serverSessionContext = serverSessionContext;
+        parameters.keyManager = keyManager;
+        parameters.trustManager = trustManager;
+        parameters.secureRandom = secureRandom;
+
+        parameters.enabledCipherSuites = enabledCipherSuites;
+        parameters.enabledProtocols = enabledProtocols;
+
+        parameters.client_mode = client_mode;
+        parameters.need_client_auth = need_client_auth;
+        parameters.want_client_auth = want_client_auth;
+        parameters.enable_session_creation = enable_session_creation;
+
+        return parameters;
     }
 }
 

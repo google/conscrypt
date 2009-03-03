@@ -613,18 +613,22 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             host = engineOwner.getPeerHost();
             port = engineOwner.getPeerPort();
         }
+        // END android-changed
         if (host == null || port == -1) {
             return null; // starts new session
         }
         
-        ClientSessionContext context = parameters.getClientSessionContext();
-        SSLSessionImpl session
-                = (SSLSessionImpl) context.getSession(host, port);
-        if (session != null) {
-            session = (SSLSessionImpl) session.clone();
+        byte[] id;
+        SSLSession ses;
+        SSLSessionContext context = parameters.getClientSessionContext();
+        for (Enumeration en = context.getIds(); en.hasMoreElements();) {
+            id = (byte[])en.nextElement();
+            ses = context.getSession(id);
+            if (host.equals(ses.getPeerHost()) && port == ses.getPeerPort()) {
+                return (SSLSessionImpl)((SSLSessionImpl)ses).clone(); // resume
+            }            
         }
-        return session;
-        // END android-changed
+        return null; // starts new session
     }
 
 }

@@ -81,6 +81,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
 
     /**
      * Start session negotiation
+     * @param session
      */
     public void start() {
         if (session == null) { // initial handshake
@@ -298,7 +299,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     clientFinished = new Finished(io_stream, length);
                     verifyFinished(clientFinished.getData());
                     // BEGIN android-added
-                    session.context = parameters.getServerSessionContext();
+                    session.context = parameters.getClientSessionContext();
                     // END android-added
                     parameters.getServerSessionContext().putSession(session);
                     if (!isResuming) {

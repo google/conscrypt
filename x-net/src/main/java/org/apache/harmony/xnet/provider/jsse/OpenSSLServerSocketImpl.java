@@ -302,8 +302,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
-        OpenSSLSocketImpl socket
-                = new OpenSSLSocketImpl(sslParameters, ssl_op_no);
+        OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters, ssl_op_no);
         implAccept(socket);
         socket.accept(ssl_ctx, client_mode);
 
