@@ -146,10 +146,10 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
         ArrayList<String> array = new ArrayList<String>();
 
         if ((ssl_op_no & SSL_OP_NO_SSLv3) == 0x00000000L) {
-            array.add(supportedProtocols[1]);
+            array.add(supportedProtocols[0]);
         }
         if ((ssl_op_no & SSL_OP_NO_TLSv1) == 0x00000000L) {
-            array.add(supportedProtocols[2]);
+            array.add(supportedProtocols[1]);
         }
         return array.toArray(new String[array.size()]);
     }
