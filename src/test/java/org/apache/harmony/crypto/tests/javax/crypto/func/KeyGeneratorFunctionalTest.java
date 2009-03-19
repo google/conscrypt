@@ -16,7 +16,6 @@
 package org.apache.harmony.crypto.tests.javax.crypto.func;
 
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTargetClass;
 import dalvik.annotation.TestTargetNew;
 import dalvik.annotation.TestTargets;
 
@@ -24,66 +23,67 @@ import junit.framework.TestCase;
 
 import targets.KeyGenerator;
 
-@TestTargetClass(KeyGenerator.AES.class)
 public class KeyGeneratorFunctionalTest extends TestCase {
-@TestTargets({
-    @TestTargetNew(
+    @TestTargets({
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
+            clazz = KeyGenerator.AES.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = KeyGenerator.DES.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = KeyGenerator.DESede.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = KeyGenerator.HMACMD5.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = KeyGenerator.HMACSHA1.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = KeyGenerator.HMACSHA256.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = KeyGenerator.HMACSHA384.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = KeyGenerator.HMACSHA512.class,
             method = "method",
             args = {}
-        )})
+        )
+    })
     public void test_() throws Exception {
-        String[] algArray = {/*"DH",*/ "AES", "DES", "DESEDE", "DESede", 
+        String[] algArray = {"AES", "DES", "DESEDE", "DESede", 
                 "HMACMD5", "HmacMD5", "HMACSHA1", "HmacSHA1", "HMACSHA256",
                 "HmacSHA256", "HMACSHA384", "HmacSHA384", "HMACSHA512",
                 "HmacSHA512"};

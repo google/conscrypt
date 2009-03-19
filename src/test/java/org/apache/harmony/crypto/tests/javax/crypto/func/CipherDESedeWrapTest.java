@@ -25,21 +25,21 @@ import targets.Cipher;
 
 @TestTargetClass(Cipher.DESedeWrap.class)
 public class CipherDESedeWrapTest extends TestCase {
-//  2 cases checked. Mode "CBC" not supported.
+//  2 cases checked.
     @TestTargetNew(
-            level = TestLevel.COMPLETE,
-            notes = "",
-            method = "method",
-            args = {}
-        )
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "method",
+        args = {}
+    )
     public void test_DESedeWrap() {
         CipherWrapThread DESedeWrap = new CipherWrapThread("DESedeWrap",
-                new int[]{112, 168},
-                new String[] {"CBC"},
-                new String[]{"NoPadding"});
+                new int[] {112, 168}, // Keysize must be 112 or 168.
+                new String[] {"CBC"}, new String[] {"NoPadding"});
 
         DESedeWrap.launcher();
-        
-        assertEquals(DESedeWrap.getFailureMessages(), 0, DESedeWrap.getTotalFailuresNumber());
+
+        assertEquals(DESedeWrap.getFailureMessages(), 0, DESedeWrap
+                .getTotalFailuresNumber());
     }
 }

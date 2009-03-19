@@ -33,15 +33,15 @@ public class AllTests {
         TestSuite suite = new TestSuite("All tests for package org.apache.harmony.crypto.tests.javax.crypto.func;");
         // $JUnit-BEGIN$
 
-        suite.addTestSuite(CipherDesTest.class);
         suite.addTestSuite(CipherAesTest.class);
         suite.addTestSuite(CipherAesWrapTest.class);
         suite.addTestSuite(CipherDESedeTest.class);
         suite.addTestSuite(CipherDESedeWrapTest.class);
+        suite.addTestSuite(CipherDesTest.class);
         suite.addTestSuite(CipherPBETest.class);
         suite.addTestSuite(CipherRSATest.class);
-        suite.addTestSuite(KeyGeneratorFunctionalTest.class);
         suite.addTestSuite(KeyAgreementFunctionalTest.class);
+        suite.addTestSuite(KeyGeneratorFunctionalTest.class);
         suite.addTestSuite(MacFunctionalTest.class);
         suite.addTestSuite(SecretKeyFactoryFunctionalTest.class);
 

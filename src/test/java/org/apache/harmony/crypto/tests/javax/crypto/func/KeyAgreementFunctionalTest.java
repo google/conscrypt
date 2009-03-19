@@ -16,21 +16,23 @@
 package org.apache.harmony.crypto.tests.javax.crypto.func;
 
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTargetClass;
 import dalvik.annotation.TestTargetNew;
+import dalvik.annotation.TestTargets;
 
 import junit.framework.TestCase;
 
 import targets.KeyAgreement;
 
-@TestTargetClass(KeyAgreement.DH.class)
 public class KeyAgreementFunctionalTest extends TestCase {
-    @TestTargetNew(
+    @TestTargets({
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
+            clazz = KeyAgreement.DH.class,
             method = "method",
             args = {}
         )
+    })
     public void test_KeyAgreement() throws Exception {
         String[] algArray = {"DES", "DESede"};
 

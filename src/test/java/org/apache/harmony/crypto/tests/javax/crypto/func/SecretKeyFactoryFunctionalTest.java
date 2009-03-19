@@ -15,8 +15,8 @@
  */
 package org.apache.harmony.crypto.tests.javax.crypto.func;
 
+import dalvik.annotation.KnownFailure;
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTargetClass;
 import dalvik.annotation.TestTargetNew;
 import dalvik.annotation.TestTargets;
 
@@ -24,33 +24,32 @@ import junit.framework.TestCase;
 
 import targets.SecretKeyFactory;
 
-@TestTargetClass(SecretKeyFactory.DES.class)
 public class SecretKeyFactoryFunctionalTest extends TestCase {
-@TestTargets({
-    @TestTargetNew(
+    @TestTargets({
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
+            clazz = SecretKeyFactory.DES.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = SecretKeyFactory.DESede.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = SecretKeyFactory.PBEWITHMD5ANDDES.class,
             method = "method",
             args = {}
         )
-})
+    })
     public void test_() throws Exception {
-        String[] algArray = {"DES", "DESede", "PBEWITHMD5ANDDES",
-                "PBEWithSHA1AndDESede", "PBEWithSHA1AndRC2_40"};
+        String[] algArray = {"DES", "DESede", "PBEWITHMD5ANDDES"};
 
         SecretKeyFactoryThread skft = new SecretKeyFactoryThread(algArray);
         skft.launcher();

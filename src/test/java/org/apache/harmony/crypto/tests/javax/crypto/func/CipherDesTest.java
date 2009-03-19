@@ -25,45 +25,47 @@ import targets.Cipher;
 
 @TestTargetClass(Cipher.DES.class)
 public class CipherDesTest extends TestCase {
-//  44 cases checked
+// 40 cases checked
     @TestTargetNew(
-            level = TestLevel.COMPLETE,
-            notes = "",
-            method = "method",
-            args = {}
-        )
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "method",
+        args = {}
+    )
     public void test_DesNoISO() {
         CipherSymmetricKeyThread desNoISO = new CipherSymmetricKeyThread("DES",
-                new int[]{56},//Keysize must be equal to 56.
-                new String[] {"ECB", "CBC", "CTR", "CTS", "CFB", "CFB8",
-                        "CFB16", "CFB24", "CFB32", "CFB40", "CFB48", "CFB56",
-                        "CFB64", "OFB", "OFB8", "OFB16", "OFB24", "OFB32",
-                        "OFB40", "OFB48", "OFB56", "OFB64"},
-                new String[]{"NoPadding", "PKCS5Padding"});
+                new int[] {56},// Keysize must be 56.
+                new String[] {
+                        "ECB", "CBC", "CFB", "CFB8", "CFB16", "CFB24", "CFB32",
+                        "CFB40", "CFB48", "CFB56", "CFB64", "OFB", "OFB8",
+                        "OFB16", "OFB24", "OFB32", "OFB40", "OFB48", "OFB56",
+                        "OFB64"}, new String[] {"NoPadding", "PKCS5Padding"});
 
         desNoISO.launcher();
-        
-        assertEquals(desNoISO.getFailureMessages(), 0, desNoISO.getTotalFailuresNumber());
+
+        assertEquals(desNoISO.getFailureMessages(), 0, desNoISO
+                .getTotalFailuresNumber());
     }
 
 // 20 cases checked
     @TestTargetNew(
-            level = TestLevel.COMPLETE,
-            notes = "",
-            method = "method",
-            args = {}
-        )
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "method",
+        args = {}
+    )
     public void test_DesISO() {
         CipherSymmetricKeyThread desISO = new CipherSymmetricKeyThread("DES",
-                new int[]{56},//Keysize must be equal to 56.
-                new String[] {"ECB", "CBC", "CFB", "CFB8",
-                "CFB16", "CFB24", "CFB32", "CFB40", "CFB48", "CFB56",
-                "CFB64", "OFB", "OFB8", "OFB16", "OFB24", "OFB32",
-                "OFB40", "OFB48", "OFB56", "OFB64"},
-                new String[]{"ISO10126PADDING"});
-        
+                new int[] {56},// Keysize must be 56.
+                new String[] {
+                        "ECB", "CBC", "CFB", "CFB8", "CFB16", "CFB24", "CFB32",
+                        "CFB40", "CFB48", "CFB56", "CFB64", "OFB", "OFB8",
+                        "OFB16", "OFB24", "OFB32", "OFB40", "OFB48", "OFB56",
+                        "OFB64"}, new String[] {"ISO10126PADDING"});
+
         desISO.launcher();
-        
-        assertEquals(desISO.getFailureMessages(), 0, desISO.getTotalFailuresNumber());
+
+        assertEquals(desISO.getFailureMessages(), 0, desISO
+                .getTotalFailuresNumber());
     }
 }

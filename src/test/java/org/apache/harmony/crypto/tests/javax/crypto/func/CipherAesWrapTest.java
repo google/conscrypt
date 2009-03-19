@@ -25,32 +25,21 @@ import targets.Cipher;
 
 @TestTargetClass(Cipher.AESWrap.class)
 public class CipherAesWrapTest extends TestCase {
-//  one case checked. Mode "ECB" not supported.
+// 3 cases checked
     @TestTargetNew(
-            level = TestLevel.COMPLETE,
-            notes = "",
-            method = "method",
-            args = {}
-        )
-    public void _test_AesWrap() {
-        CipherWrapThread aesWrap = new CipherWrapThread("AESWrap",
-                new int[]{128},
-                new String[] {"ECB"},
-                new String[] {"NoPadding"});
+        level = TestLevel.COMPLETE,
+        notes = "",
+        method = "method",
+        args = {}
+    )
+    public void test_AesWrap() {
+        CipherWrapThread aesWrap = new CipherWrapThread("AESWrap", new int[] {
+                128, 192, 256}, // Keysize must be 128, 192, 256.
+                new String[] {"ECB"}, new String[] {"NoPadding"});
 
         aesWrap.launcher();
-        
-        assertEquals(aesWrap.getFailureMessages(), 0, aesWrap.getTotalFailuresNumber());
-    }
 
-    public void test_AesWrap1() {
-        CipherWrapThread aesWrap = new CipherWrapThread("AES",
-                new int[]{128},
-                new String[] {"ECB"},
-                new String[] {"NoPadding"});
-
-        aesWrap.launcher();
-        
-        assertEquals(aesWrap.getFailureMessages(), 0, aesWrap.getTotalFailuresNumber());
+        assertEquals(aesWrap.getFailureMessages(), 0, aesWrap
+                .getTotalFailuresNumber());
     }
 }

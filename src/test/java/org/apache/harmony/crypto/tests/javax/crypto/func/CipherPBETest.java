@@ -15,6 +15,7 @@
  */
 package org.apache.harmony.crypto.tests.javax.crypto.func;
 
+import dalvik.annotation.AndroidOnly;
 import dalvik.annotation.TestLevel;
 import dalvik.annotation.TestTargetClass;
 import dalvik.annotation.TestTargetNew;
@@ -25,75 +26,88 @@ import targets.Cipher;
 
 @TestTargetClass(Cipher.PBE.class)
 public class CipherPBETest extends TestCase {
-// 2 cases checked
+
     @TestTargetNew(
-            level = TestLevel.COMPLETE,
-            notes = "",
-            method = "method",
-            args = {}
-        )
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "",
+        method = "method",
+        args = {}
+    )
     public void test_PBEWithMD5AndDES() throws Exception {
-        CipherPBEThread PBEWithMD5AndDES = new CipherPBEThread("PBEWithMD5AndDES",
-                new int[]{40, 128},
-                new String[] {"CBC"},
-                new String[]{"PKCS5Padding"});
+        CipherPBEThread PBEWithMD5AndDES = new CipherPBEThread(
+                "PBEWithMD5AndDES", new int[] {56}, new String[] {"CBC"},
+                new String[] {"PKCS5Padding"});
 
         PBEWithMD5AndDES.launcher();
 
-        assertEquals(PBEWithMD5AndDES.getFailureMessages(), 0, PBEWithMD5AndDES.getTotalFailuresNumber());
+        assertEquals(PBEWithMD5AndDES.getFailureMessages(), 0, PBEWithMD5AndDES
+                .getTotalFailuresNumber());
     }
 
-//  2 cases checked. Not supported on Android.
     @TestTargetNew(
-            level = TestLevel.COMPLETE,
-            notes = "",
-            method = "method",
-            args = {}
-        )
-    public void _test_PBEWithSHA1AndDESede() throws Exception {
-        CipherPBEThread PBEWithSHA1AndDESede = new CipherPBEThread("PBEWithSHA1AndDESede",
-                new int[]{40, 128},
-                new String[] {"CBC"},
-                new String[]{"PKCS5Padding"});
+        level = TestLevel.PARTIAL_COMPLETE,
+        notes = "",
+        method = "method",
+        args = {}
+    )
+    @AndroidOnly("Not supported by RI (maybe with a different name)")
+    public void test_PBEWithSHAand3KeyTripleDES() throws Exception {
+        CipherPBEThread PBEWITHSHAAND3KEYTRIPLEDESCBC = new CipherPBEThread(
+                "PBEWITHSHAAND3-KEYTRIPLEDES-CBC", new int[] {112, 168},
+                new String[] {"CBC"}, new String[] {"PKCS5Padding"});
+
+        PBEWITHSHAAND3KEYTRIPLEDESCBC.launcher();
+
+        assertEquals(PBEWITHSHAAND3KEYTRIPLEDESCBC.getFailureMessages(), 0,
+                PBEWITHSHAAND3KEYTRIPLEDESCBC.getTotalFailuresNumber());
+    }
+
+    // Supported, but not part of mandatory components for Android 
+    public void disabled_test_PBEWithSHA1And40BitRC2() throws Exception {
+        CipherPBEThread PBEWithSHA1AndRC2_40 = new CipherPBEThread(
+                "PBEWITHSHAAND40BITRC2-CBC", new int[] {40},
+                new String[] {"CBC"}, new String[] {"PKCS5Padding"});
+
+        PBEWithSHA1AndRC2_40.launcher();
+
+        assertEquals(PBEWithSHA1AndRC2_40.getFailureMessages(), 0,
+                PBEWithSHA1AndRC2_40.getTotalFailuresNumber());
+    }
+
+
+    // Not supported by Android
+    public void disabled_test_PBEWithMD5AndTripleDES() throws Exception {
+        CipherPBEThread PBEWithMD5AndTripleDES = new CipherPBEThread(
+                "PBEWithMD5AndTripleDES", new int[] {112, 168},
+                new String[] {"CBC"}, new String[] {"PKCS5Padding"});
+
+        PBEWithMD5AndTripleDES.launcher();
+
+        assertEquals(PBEWithMD5AndTripleDES.getFailureMessages(), 0,
+                PBEWithMD5AndTripleDES.getTotalFailuresNumber());
+    }
+
+    // Not supported by Android
+    public void disabled_test_PBEWithSHA1AndDESede() throws Exception {
+        CipherPBEThread PBEWithSHA1AndDESede = new CipherPBEThread(
+                "PBEWithSHA1AndDESede", new int[] {112, 168},
+                new String[] {"CBC"}, new String[] {"PKCS5Padding"});
 
         PBEWithSHA1AndDESede.launcher();
 
-        assertEquals(PBEWithSHA1AndDESede.getFailureMessages(), 0, PBEWithSHA1AndDESede.getTotalFailuresNumber());
+        assertEquals(PBEWithSHA1AndDESede.getFailureMessages(), 0,
+                PBEWithSHA1AndDESede.getTotalFailuresNumber());
     }
 
-//  2 cases checked. Not supported on Android.
-    @TestTargetNew(
-            level = TestLevel.COMPLETE,
-            notes = "",
-            method = "method",
-            args = {}
-        )
-    public void _test_PBEWithSHA1AndRC2_40() throws Exception {
-        CipherPBEThread PBEWithSHA1AndRC2_40 = new CipherPBEThread("PBEWithSHA1AndRC2_40",
-                new int[]{40, 128},
-                new String[] {"CBC"},
-                new String[]{"PKCS5Padding"});
+    // Not supported by Android
+    public void disabled_test_PBEWithSHA1AndRC2_40() throws Exception {
+        CipherPBEThread PBEWithSHA1AndRC2_40 = new CipherPBEThread(
+                "PBEWithSHA1AndRC2_40", new int[] {40}, new String[] {"CBC"},
+                new String[] {"PKCS5Padding"});
 
         PBEWithSHA1AndRC2_40.launcher();
 
-        assertEquals(PBEWithSHA1AndRC2_40.getFailureMessages(), 0, PBEWithSHA1AndRC2_40.getTotalFailuresNumber());
-    }
-
-// Key factory does not supported.    
-    @TestTargetNew(
-            level = TestLevel.COMPLETE,
-            notes = "",
-            method = "method",
-            args = {}
-        )
-    public void _test_PBEWITHSHAAND3() throws Exception {
-        CipherPBEThread PBEWithSHA1AndRC2_40 = new CipherPBEThread("PBEWITHSHAAND3",
-                new int[]{40, 128},
-                new String[] {"CBC"},
-                new String[]{"NoPadding", "PKCS5Padding", "ISO10126PADDING"});
-
-        PBEWithSHA1AndRC2_40.launcher();
-
-        assertEquals(PBEWithSHA1AndRC2_40.getFailureMessages(), 0, PBEWithSHA1AndRC2_40.getTotalFailuresNumber());
+        assertEquals(PBEWithSHA1AndRC2_40.getFailureMessages(), 0,
+                PBEWithSHA1AndRC2_40.getTotalFailuresNumber());
     }
 }

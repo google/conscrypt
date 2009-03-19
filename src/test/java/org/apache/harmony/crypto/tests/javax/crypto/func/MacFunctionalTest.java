@@ -16,7 +16,6 @@
 package org.apache.harmony.crypto.tests.javax.crypto.func;
 
 import dalvik.annotation.TestLevel;
-import dalvik.annotation.TestTargetClass;
 import dalvik.annotation.TestTargetNew;
 import dalvik.annotation.TestTargets;
 
@@ -24,44 +23,44 @@ import junit.framework.TestCase;
 
 import targets.Mac;
 
-@TestTargetClass(Mac.HMACMD5.class)
 public class MacFunctionalTest extends TestCase {
-@TestTargets({
-    @TestTargetNew(
+    @TestTargets({
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
+            clazz = Mac.HMACMD5.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = Mac.HMACSHA1.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = Mac.HMACSHA256.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = Mac.HMACSHA384.class,
             method = "method",
             args = {}
         ),
-    @TestTargetNew(
+        @TestTargetNew(
             level = TestLevel.COMPLETE,
             notes = "",
             clazz = Mac.HMACSHA512.class,
             method = "method",
             args = {}
         )
-})
+    })
     public void test_Mac() throws Exception {
         String[] algArray = {"HMACSHA1", "HMACSHA256", "HMACSHA384",
                 "HMACSHA512", "HMACMD5"};

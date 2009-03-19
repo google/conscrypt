@@ -33,8 +33,8 @@ public class CipherWrapThread extends CipherThread {
         kg.init(getKeyLength(), new SecureRandom());
         Key key = kg.generateKey();
 
-        Cipher cip = Cipher.getInstance(getAlgName() + "/" + getMode() + "/" +
-                    getPadding());
+        // ignore mode and padding
+        Cipher cip = Cipher.getInstance(getAlgName());
 
         cip.init(Cipher.WRAP_MODE, key);
         byte[] output = cip.wrap(key);
