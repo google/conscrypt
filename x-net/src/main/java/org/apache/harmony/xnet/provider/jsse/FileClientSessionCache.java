@@ -38,7 +38,7 @@ import java.io.IOException;
  */
 public class FileClientSessionCache {
 
-    static final int MAX_SIZE = 20;
+    static final int MAX_SIZE = 12; // ~72k
 
     static final java.util.logging.Logger logger
             = java.util.logging.Logger.getLogger(
