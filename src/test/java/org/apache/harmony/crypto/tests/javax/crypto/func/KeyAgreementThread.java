@@ -26,8 +26,9 @@ import java.security.SecureRandom;
 import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.KeyAgreement;
-import javax.crypto.SecretKey;
 import javax.crypto.spec.DHParameterSpec;
+
+import org.bouncycastle.util.Arrays;
 
 public class KeyAgreementThread extends TestThread {
     class KeyAgreementGen {
@@ -48,7 +49,7 @@ public class KeyAgreementThread extends TestThread {
             return publicKeyBytes;
         }
         
-        public SecretKey getSecretKey(String alg, byte[] publicKey) throws Exception {
+        public byte[] getSecretKey(String alg, byte[] publicKey) throws Exception {
             X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(publicKey);
             KeyFactory keyFact = KeyFactory.getInstance("DH");
             PublicKey pubKey = keyFact.generatePublic(x509KeySpec);
@@ -57,7 +58,7 @@ public class KeyAgreementThread extends TestThread {
             ka.init(privateKey);
             ka.doPhase(pubKey, true);
         
-            return ka.generateSecret(alg);
+            return ka.generateSecret();
         }
     }
 
@@ -78,10 +79,10 @@ public class KeyAgreementThread extends TestThread {
         byte[] bArray1 = kag1.getPublicKeyBytes();
         byte[] bArray2 = kag2.getPublicKeyBytes();
         
-        SecretKey sk1 = kag1.getSecretKey(algName, bArray2);
-        SecretKey sk2 = kag2.getSecretKey(algName, bArray1);
+        byte[] sk1 = kag1.getSecretKey(algName, bArray2);
+        byte[] sk2 = kag2.getSecretKey(algName, bArray1);
         
-        if (sk1.equals(sk2) == false) {
+        if (Arrays.areEqual(sk1, sk2) == false) {
             throw new Exception ("Generated keys are not the same");
         }
     }
