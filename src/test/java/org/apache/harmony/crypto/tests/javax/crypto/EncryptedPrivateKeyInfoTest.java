@@ -168,8 +168,8 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
 
             //            {"1.2.840.113549.1.12.1.1",null},
             //            {"1.2.840.113549.1.12.1.2",null},
-            { "1.2.840.113549.1.12.1.3", null, "PBEWithSHA1AndDESede"},
-            { "PBEWithSHA1AndDESede", null, "PBEWithSHA1AndDESede"},
+            //{ "1.2.840.113549.1.12.1.3", null, "PBEWithSHA1AndDESede"},
+            //{ "PBEWithSHA1AndDESede", null, "PBEWithSHA1AndDESede"},
     //            {"1.2.840.113549.1.12.1.4",null},
     //            {"1.2.840.113549.1.12.1.5",null},
     //            {"1.2.840.113549.1.12.1.6",null},
@@ -220,7 +220,7 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
 
                 // call methods under test
                 if (algName[i].length == 3) {
-                    assertTrue(epki.getAlgName().compareTo(algName[i][2]) == 0);
+                    assertEquals(algName[i][2], epki.getAlgName());
                 }
 
                 performed = true;

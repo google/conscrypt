@@ -15,6 +15,7 @@
  */
 package org.apache.harmony.crypto.tests.javax.crypto.func;
 
+import dalvik.annotation.BrokenTest;
 import dalvik.annotation.TestLevel;
 import dalvik.annotation.TestTargetNew;
 import dalvik.annotation.TestTargets;
@@ -33,6 +34,7 @@ public class KeyAgreementFunctionalTest extends TestCase {
             args = {}
         )
     })
+    @BrokenTest("Too slow - disabling for now")
     public void test_KeyAgreement() throws Exception {
         String[] algArray = {"DES", "DESede"};
 
