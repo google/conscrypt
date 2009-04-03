@@ -516,6 +516,8 @@ public class OpenSSLSessionImpl implements SSLSession {
      * Frees the OpenSSL session in the memory.
      */
     protected void finalize() {
-        nativefree(session);
+        synchronized (OpenSSLSocketImpl.class) {
+            nativefree(session);
+        }
     }
 }

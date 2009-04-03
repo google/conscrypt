@@ -303,8 +303,12 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         } else {
             Socket socket = this.socket != null ? this.socket : this;
             int sessionId = session != null ? session.session : 0;
-            if (nativeconnect(ssl_ctx, socket, sslParameters.getUseClientMode(),
-                    sessionId)) {
+            boolean reusedSession;
+            synchronized (OpenSSLSocketImpl.class) {
+                reusedSession = nativeconnect(ssl_ctx, socket,
+                        sslParameters.getUseClientMode(), sessionId);
+            }
+            if (reusedSession) {
                 // nativeconnect shouldn't return true if the session is not
                 // done
                 session.lastAccessedTime = System.currentTimeMillis();
@@ -323,14 +327,17 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
 
                 ClientSessionContext sessionContext
                         = sslParameters.getClientSessionContext();
+                synchronized (OpenSSLSocketImpl.class) {
+                    sessionId = nativegetsslsession(ssl);
+                }
                 if (address == null) {
                     sslSession = new OpenSSLSessionImpl(
-                            nativegetsslsession(ssl), sslParameters,
+                            sessionId, sslParameters,
                             super.getInetAddress().getHostName(),
                             super.getPort(), sessionContext);
                 } else  {
                     sslSession = new OpenSSLSessionImpl(
-                            nativegetsslsession(ssl), sslParameters,
+                            sessionId, sslParameters,
                             address.getHostName(), address.getPort(),
                             sessionContext);
                 }
@@ -344,9 +351,13 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
                         throw new SSLException("Server sends no certificate");
                     }
 
+                    String authMethod;
+                    synchronized (OpenSSLSocketImpl.class) {
+                        authMethod = nativecipherauthenticationmethod();
+                    }
                     sslParameters.getTrustManager().checkServerTrusted(
                             peerCertificates,
-                            nativecipherauthenticationmethod());
+                            authMethod);
                     sessionContext.putSession(sslSession);
                 } catch (CertificateException e) {
                     throw new SSLException("Not trusted server certificate", e);
