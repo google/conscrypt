@@ -30,6 +30,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -74,18 +75,14 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         "TLSv1"
         };
 
-    private static int instanceCount = 0;
+    private static final AtomicInteger instanceCount = new AtomicInteger(0);
 
     public static int getInstanceCount() {
-        synchronized (OpenSSLSocketImpl.class) {
-            return instanceCount;
-        }
+        return instanceCount.get();
     }
 
     private static void updateInstanceCount(int amount) {
-        synchronized (OpenSSLSocketImpl.class) {
-            instanceCount += amount;
-        }
+        instanceCount.addAndGet(amount);
     }
 
     /**
