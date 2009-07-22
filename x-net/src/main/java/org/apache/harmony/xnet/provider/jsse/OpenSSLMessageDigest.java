@@ -18,6 +18,8 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import org.bouncycastle.crypto.ExtendedDigest;
 
+import java.security.NoSuchAlgorithmException;
+
 /**
  * Implements the BouncyCastle Digest interface using OpenSSL's EVP API.
  */
@@ -60,6 +62,14 @@ public class OpenSSLMessageDigest implements ExtendedDigest {
      */
     private OpenSSLMessageDigest(String algorithm) {
         this.algorithm = algorithm;
+
+        // We don't support MD2 anymore. This needs to also check for aliases
+        // and OIDs.
+        if ("MD2".equalsIgnoreCase(algorithm) || "1.2.840.113549.2.2"
+                .equalsIgnoreCase(algorithm)) {
+            throw new RuntimeException(algorithm + " not supported");
+        }
+
         ctx = NativeCrypto.EVP_new();
         try {
             NativeCrypto.EVP_DigestInit(ctx, algorithm.replace("-", "").toLowerCase());

@@ -40,7 +40,14 @@ public class OpenSSLMessageDigestJDK extends MessageDigest {
      */
     private OpenSSLMessageDigestJDK(String algorithm) throws NoSuchAlgorithmException {
         super(algorithm);
-        
+
+        // We don't support MD2 anymore. This needs to also check for aliases
+        // and OIDs.
+        if ("MD2".equalsIgnoreCase(algorithm) || "1.2.840.113549.2.2"
+                .equalsIgnoreCase(algorithm)) {
+            throw new NoSuchAlgorithmException(algorithm);
+        }
+
         ctx = NativeCrypto.EVP_new();
         try {
             NativeCrypto.EVP_DigestInit(ctx, getAlgorithm().replace("-", "").toLowerCase());

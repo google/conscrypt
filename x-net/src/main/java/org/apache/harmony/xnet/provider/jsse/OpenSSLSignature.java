@@ -16,7 +16,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.lang.reflect.Method;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
 import java.security.NoSuchAlgorithmException;
@@ -83,6 +82,15 @@ public class OpenSSLSignature extends Signature {
         int i = algorithm.indexOf("with"); 
         if (i == -1) {
             throw new NoSuchAlgorithmException(algorithm);
+        }
+
+        // We don't support MD2 anymore. This needs to also check for aliases
+        // and OIDs.
+        if ("MD2withRSA".equalsIgnoreCase(algorithm) ||
+                "MD2withRSAEncryption".equalsIgnoreCase(algorithm) ||
+                "1.2.840.113549.1.1.2".equalsIgnoreCase(algorithm) ||
+                "MD2/RSA".equalsIgnoreCase(algorithm)) {
+            throw new NoSuchAlgorithmException("MD2withRSA");
         }
 
         // For the special combination of DSA and SHA1, we need to pass the
@@ -204,20 +212,4 @@ public class OpenSSLSignature extends Signature {
             NativeCrypto.EVP_free(ctx);
         }
     }
-
-    // TODO Just for debugging purposes, remove later.
-    private static void log(String tag, String msg) {
-        try {
-            Class clazz = Class.forName("android.util.Log");
-            Method method = clazz.getMethod("d", new Class[] {
-                    String.class, String.class
-            });
-            method.invoke(null, new Object[] {
-                    tag, msg
-            });
-        } catch (Exception ex) {
-            // Silently ignore.
-        }
-    }
-
 }
