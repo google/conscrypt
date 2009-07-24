@@ -21,6 +21,7 @@ import dalvik.annotation.TestTargetClass;
 import dalvik.annotation.TestTargets;
 import dalvik.annotation.TestLevel;
 import dalvik.annotation.TestTargetNew;
+import dalvik.annotation.SideEffect;
 
 import java.math.BigInteger;
 import java.security.AlgorithmParameters;
@@ -221,6 +222,7 @@ public class ExemptionMechanismTest extends TestCase {
         method = "finalize",
         args = {}
     )
+    @SideEffect("Causes OutOfMemoryError to test finalization")
     public void test_finalize () {
         Mock_ExemptionMechanism mem = new Mock_ExemptionMechanism(null, null, "Name");
         assertNotNull(mem);
