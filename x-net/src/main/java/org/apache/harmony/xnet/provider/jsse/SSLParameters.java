@@ -431,5 +431,13 @@ public class SSLParameters implements Cloneable {
         }
 // END android-changed
     }
-}
 
+    /**
+     * Gets the default trust manager.
+     *
+     * TODO: Move this to a published API under dalvik.system.
+     */
+    public static X509TrustManager getDefaultTrustManager() {
+        return defaultTrustManager;
+    }
+}
