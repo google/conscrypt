@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Boris Kuznetsov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.Message;
@@ -110,7 +105,7 @@ public class CertificateRequest extends Message {
         certificate_authorities = new X500Principal[size];
         int totalPrincipalsLength = 0;
         int principalLength = 0;
-        Vector principals = new Vector();
+        Vector<X500Principal> principals = new Vector<X500Principal>();
         while (totalPrincipalsLength < size) {            
             principalLength = in.readUint16(); // encoded X500Principal size
             principals.add(new X500Principal(in));
@@ -119,7 +114,7 @@ public class CertificateRequest extends Message {
         }
         certificate_authorities = new X500Principal[principals.size()];
         for (int i = 0; i < certificate_authorities.length; i++) {
-            certificate_authorities[i] = (X500Principal) principals.elementAt(i);
+            certificate_authorities[i] = principals.elementAt(i);
         }
         this.length = 3 + certificate_types.length + totalPrincipalsLength;
         if (this.length != length) {
@@ -134,6 +129,7 @@ public class CertificateRequest extends Message {
      * 
      * @param out
      */
+    @Override
     public void send(HandshakeIODataStream out) {
 
         out.writeUint8(certificate_types.length);
@@ -156,6 +152,7 @@ public class CertificateRequest extends Message {
      * 
      * @return
      */
+    @Override
     public int getType() {
         return Handshake.CERTIFICATE_REQUEST;
     }

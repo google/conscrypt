@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.SSLInputStream;
@@ -57,6 +52,7 @@ public class SSLBufferedInput extends SSLInputStream {
     /**
      * Returns the number of bytes available for reading.
      */
+    @Override
     public int available() throws IOException {
         // in assumption that the buffer has been set
         return in.remaining();
@@ -73,6 +69,7 @@ public class SSLBufferedInput extends SSLInputStream {
      * Reads the following byte value. If there are no bytes in the source 
      * buffer, method throws java.nio.BufferUnderflowException.
      */
+    @Override
     public int read() throws IOException {
         // TODO: implement optimized read(int) 
         // and read(byte[], int, int) methods

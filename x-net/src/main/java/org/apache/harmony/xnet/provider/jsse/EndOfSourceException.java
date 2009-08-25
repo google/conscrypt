@@ -15,28 +15,20 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
 
 /**
- * This class represents the exception signalizing that
- * data could not be read from the buffered stream because
- * underlying data buffer was exhausted.
+ * This exception indicates that data could not be read from the buffered stream because underlying
+ * data buffer was exhausted.
  */
 public class EndOfSourceException extends IOException {
 
-    /**
-     * Constructor
-     */
+    private static final long serialVersionUID = -4673611435974054413L;
+
     public EndOfSourceException() {
         super();
     }
 
 }
-

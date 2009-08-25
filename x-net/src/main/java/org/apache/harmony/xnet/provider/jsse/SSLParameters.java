@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.security.KeyManagementException;
@@ -317,7 +312,7 @@ public class SSLParameters implements Cloneable {
                 enabledCipherSuiteNames[i] = enabledCipherSuites[i].getName();
             }
         }
-        return (String[]) enabledCipherSuiteNames.clone();
+        return enabledCipherSuiteNames.clone();
     }
 
     /**
@@ -345,7 +340,7 @@ public class SSLParameters implements Cloneable {
      * @return the set of enabled protocols
      */
     protected String[] getEnabledProtocols() {
-        return (String[]) enabledProtocols.clone();
+        return enabledProtocols.clone();
     }
 
     /**
@@ -436,6 +431,7 @@ public class SSLParameters implements Cloneable {
      * Returns the clone of this object.
      * @return the clone.
      */
+    @Override
     protected Object clone() {
 // BEGIN android-changed
         try {

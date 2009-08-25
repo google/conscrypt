@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.AlertException;
@@ -36,7 +31,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLProtocolException;
 
 /**
- * This class incapsulates the operating environment of the TLS v1
+ * This class encapsulates the operating environment of the TLS v1
  * (http://www.ietf.org/rfc/rfc2246.txt) Record Protocol and provides 
  * relating encryption/decryption functionality. 
  * The work functionality is based on the security
@@ -44,7 +39,7 @@ import javax.net.ssl.SSLProtocolException;
  */
 public class ConnectionStateTLS extends ConnectionState {
 
-    // Precomputed prf label values:
+    // Pre-calculated prf label values:
     // "key expansion".getBytes()
     private static byte[] KEY_EXPANSION_LABEL = {
         (byte) 0x6B, (byte) 0x65, (byte) 0x79, (byte) 0x20, (byte) 0x65, 
@@ -235,8 +230,9 @@ public class ConnectionStateTLS extends ConnectionState {
     /**
      * Creates the GenericStreamCipher or GenericBlockCipher
      * data structure for specified data of specified type.
-     * @throws org.apache.harmony.xnet.provider.jsse.AlertException if alert was occured.
+     * @throws AlertException if alert was occurred.
      */
+    @Override
     protected byte[] encrypt(byte type, byte[] fragment, int offset, int len) {
         try {
             int content_mac_length = len + hash_size;
@@ -298,8 +294,9 @@ public class ConnectionStateTLS extends ConnectionState {
      * Retrieves the fragment of the Plaintext structure of
      * the specified type from the provided data representing
      * the Generic[Stream|Block]Cipher structure.
-     * @throws org.apache.harmony.xnet.provider.jsse.AlertException if alert was occured.
+     * @throws AlertException if alert was occurred.
      */
+    @Override
     protected byte[] decrypt(byte type, byte[] fragment,
             int offset, int len) {
         // plain data of the Generic[Stream|Block]Cipher structure

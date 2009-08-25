@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.AlertException;
@@ -33,7 +28,7 @@ import javax.net.ssl.SSLProtocolException;
  * This class performs functionality dedicated to SSL record layer.
  * It unpacks and routes income data to the appropriate
  * client protocol (handshake, alert, application data protocols)
- * and paketizes outcome data into SSL/TLS records.
+ * and packages outcome data into SSL/TLS records.
  * Initially created object has null connection state and does not
  * perform any cryptography computations over the income/outcome data.
  * After handshake protocol agreed upon security parameters they are placed
@@ -179,14 +174,13 @@ public class SSLRecordProtocol {
         }
         if (activeReadState == null) {
             return record_size;
-        } else {
-            return activeReadState.getContentSize(record_size);
         }
+        return activeReadState.getContentSize(record_size);
     }
 
     /**
      * Depending on the Connection State (Session) encrypts and compress
-     * the provided data, and packs it into TLSCiphertext structute.
+     * the provided data, and packs it into TLSCiphertext structure.
      * @param   content_type: int
      * @param   fragment: byte[]
      * @return  ssl packet created over the current connection state
@@ -198,7 +192,7 @@ public class SSLRecordProtocol {
 
     /**
      * Depending on the Connection State (Session) encrypts and compress
-     * the provided data, and packs it into TLSCiphertext structute.
+     * the provided data, and packs it into TLSCiphertext structure.
      * @param   content_type: int
      * @param   fragment: byte[]
      * @return  ssl packet created over the current connection state
@@ -374,7 +368,7 @@ public class SSLRecordProtocol {
                             type));
             }
         } else {
-            in.skip((long) 2); // just skip the version number
+            in.skip(2); // just skip the version number
         }
         int length = in.readUint16();
         if (logger != null) {

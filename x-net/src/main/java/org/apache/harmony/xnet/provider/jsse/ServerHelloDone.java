@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Boris Kuznetsov
-* @version $Revision$
-*/
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.Message;
@@ -59,6 +54,7 @@ public class ServerHelloDone extends Message {
      * Sends message
      * @param out
      */
+    @Override
     public void send(HandshakeIODataStream out) {
     }
     
@@ -66,6 +62,7 @@ public class ServerHelloDone extends Message {
      * Returns message length
      * @return
      */
+    @Override
     public int length() {
         return 0;
     }
@@ -74,6 +71,7 @@ public class ServerHelloDone extends Message {
      * Returns message type 
      * @return
      */
+    @Override
     public int getType() {
         return Handshake.SERVER_HELLO_DONE;
     }

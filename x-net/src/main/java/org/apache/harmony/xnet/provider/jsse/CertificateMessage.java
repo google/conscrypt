@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Boris Kuznetsov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.Message;
@@ -28,6 +23,7 @@ import org.apache.harmony.xnet.provider.jsse.HandshakeIODataStream;
 import org.apache.harmony.xnet.provider.jsse.AlertProtocol;
 
 import java.io.IOException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -35,7 +31,6 @@ import java.security.cert.X509Certificate;
 import java.util.Vector;
 
 /**
- * 
  * Represents server/client certificate message
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS
  * 1.0 spec., 7.4.2. Server certificate; 7.4.6. Client certificate</a>
@@ -80,7 +75,7 @@ public class CertificateMessage extends Message {
             fatalAlert(AlertProtocol.INTERNAL_ERROR, "INTERNAL ERROR", e);
             return;
         }
-        Vector certs_vector = new Vector();
+        Vector<Certificate> certs_vector = new Vector<Certificate>();
         int size = 0;
         int enc_size = 0;
         while (l > 0) {
@@ -141,6 +136,7 @@ public class CertificateMessage extends Message {
      * 
      * @param out
      */
+    @Override
     public void send(HandshakeIODataStream out) {
 
         int total_length = 0;
@@ -172,6 +168,7 @@ public class CertificateMessage extends Message {
      * 
      * @return
      */
+    @Override
     public int getType() {
         return Handshake.CERTIFICATE;
     }

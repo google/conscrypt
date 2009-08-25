@@ -14,26 +14,26 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
-/**
- * @author Boris Kuznetsov
- * @version $Revision$
- */
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.AlertException;
-
+import java.security.DigestException;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Signature;
+import java.security.SignatureException;
 import java.security.cert.Certificate;
 import java.util.Arrays;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.net.ssl.SSLException;
 
 /**
- * This class represents Signature type, as descrybed in TLS v 1.0 Protocol
+ * This class represents Signature type, as described in TLS v 1.0 Protocol
  * specification, 7.4.3. It allow to init, update and sign hash. Hash algorithm
  * depends on SignatureAlgorithm.
  * 
@@ -56,10 +56,10 @@ import javax.net.ssl.SSLException;
  */
 public class DigitalSignature {
 
-    private MessageDigest md5 = null;
-    private MessageDigest sha = null;
-    private Signature signature = null;
-    private Cipher cipher = null;
+    private final MessageDigest md5;
+    private final MessageDigest sha;
+    private final Signature signature;
+    private final Cipher cipher;
     
     private byte[] md5_hash;
     private byte[] sha_hash;
@@ -69,33 +69,35 @@ public class DigitalSignature {
      * @param keyExchange
      */
     public DigitalSignature(int keyExchange) {
-        try { 
+        try {
+            sha = MessageDigest.getInstance("SHA-1");
+            
             if (keyExchange == CipherSuite.KeyExchange_RSA_EXPORT ||
                     keyExchange == CipherSuite.KeyExchange_RSA ||
                     keyExchange == CipherSuite.KeyExchange_DHE_RSA ||
                     keyExchange == CipherSuite.KeyExchange_DHE_RSA_EXPORT) {
                 // SignatureAlgorithm is rsa
                 md5 = MessageDigest.getInstance("MD5");
-                sha = MessageDigest.getInstance("SHA-1");
                 cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+                signature = null;
             } else if (keyExchange == CipherSuite.KeyExchange_DHE_DSS ||
                     keyExchange == CipherSuite.KeyExchange_DHE_DSS_EXPORT ) {
                 // SignatureAlgorithm is dsa
-                sha = MessageDigest.getInstance("SHA-1");
                 signature = Signature.getInstance("NONEwithDSA");
-// The Signature should be empty in case of anonimous signature algorithm:
-//            } else if (keyExchange == CipherSuite.KeyExchange_DH_anon ||
-//                    keyExchange == CipherSuite.KeyExchange_DH_anon_EXPORT) {            
-//
+                cipher = null;
+                md5 = null;
+            } else {
+                cipher = null;
+                signature = null;
+                md5 = null;
             }
-        } catch (Exception e) {
-            throw new AlertException(
-                    AlertProtocol.INTERNAL_ERROR,
-                    new SSLException(
-                            "INTERNAL ERROR: Unexpected exception on digital signature",
-                            e));
-        }    
-            
+        } catch (NoSuchAlgorithmException e) {
+            // this should never happen
+            throw new AssertionError(e);
+        } catch (NoSuchPaddingException e) {
+            // this should never happen
+            throw new AssertionError(e);
+        }
     }
     
     /**
@@ -109,8 +111,9 @@ public class DigitalSignature {
             } else if (cipher != null) {
                 cipher.init(Cipher.ENCRYPT_MODE, key);
             }
-        } catch (Exception e){
-            e.printStackTrace();
+        } catch (InvalidKeyException e){
+            throw new AlertException(AlertProtocol.BAD_CERTIFICATE,
+                    new SSLException("init - invalid private key", e));
         }
     }
     
@@ -125,8 +128,9 @@ public class DigitalSignature {
             } else if (cipher != null) {
                 cipher.init(Cipher.DECRYPT_MODE, cert);
             }
-        } catch (Exception e){
-            e.printStackTrace();
+        } catch (InvalidKeyException e){
+            throw new AlertException(AlertProtocol.BAD_CERTIFICATE,
+                    new SSLException("init - invalid certificate", e));
         }
     }
     
@@ -135,16 +139,12 @@ public class DigitalSignature {
      * @param data
      */
     public void update(byte[] data) {
-        try {
-            if (sha != null) {
-                sha.update(data);
-            }
-            if (md5 != null) {
-                md5.update(data);
-            }
-        } catch (Exception e){
-            e.printStackTrace();
-        }        
+        if (sha != null) {
+            sha.update(data);
+        }
+        if (md5 != null) {
+            md5.update(data);
+        }
     }
     
     /**
@@ -197,10 +197,15 @@ public class DigitalSignature {
                 return cipher.doFinal();
             } 
             return new byte[0];
-        } catch (Exception e){
-            e.printStackTrace();
+        } catch (DigestException e){
             return new byte[0];
-        }    
+        } catch (SignatureException e){
+            return new byte[0];
+        } catch (BadPaddingException e){
+            return new byte[0];
+        } catch (IllegalBlockSizeException e){
+            return new byte[0];
+        }
     }
 
     /**
@@ -209,34 +214,40 @@ public class DigitalSignature {
      * @return true if verified
      */
     public boolean verifySignature(byte[] data) {
-        try {
-            if (signature != null) {
+        if (signature != null) {
+            try {
                 return signature.verify(data);
-            } else if (cipher != null) {
-                byte[] decrypt = cipher.doFinal(data);
-                byte[] md5_sha;
-                if (md5_hash != null && sha_hash != null) {
-                    md5_sha = new byte[md5_hash.length + sha_hash.length];
-                    System.arraycopy(md5_hash, 0, md5_sha, 0, md5_hash.length);
-                    System.arraycopy(sha_hash, 0, md5_sha, md5_hash.length, sha_hash.length);
-                } else if (md5_hash != null) {
-                    md5_sha = md5_hash;
-                } else {
-                    md5_sha = sha_hash;
-                }
-                if (Arrays.equals(decrypt, md5_sha)) {
-                    return true;
-                } else {
-                    return false;
-                }
-            } else if (data == null || data.length == 0) {
-                return true;
-            } else {
+            } catch (SignatureException e) {
                 return false;
             }
-        } catch (Exception e){
-                e.printStackTrace();
+        }
+        
+        if (cipher != null) {
+            final byte[] decrypt;
+            try {
+                decrypt = cipher.doFinal(data);
+            } catch (IllegalBlockSizeException e) {
                 return false;
+            } catch (BadPaddingException e) {
+                return false;
+            }
+            
+            final byte[] md5_sha;
+            if (md5_hash != null && sha_hash != null) {
+                md5_sha = new byte[md5_hash.length + sha_hash.length];
+                System.arraycopy(md5_hash, 0, md5_sha, 0, md5_hash.length);
+                System.arraycopy(sha_hash, 0, md5_sha, md5_hash.length, sha_hash.length);
+            } else if (md5_hash != null) {
+                md5_sha = md5_hash;
+            } else {
+                md5_sha = sha_hash;
+            }
+            
+            return Arrays.equals(decrypt, md5_sha);
+        } else if (data == null || data.length == 0) {
+            return true;
+        } else {
+            return false;
         }
     }
 

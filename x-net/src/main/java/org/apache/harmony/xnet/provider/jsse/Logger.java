@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.PrintStream;
@@ -41,6 +36,7 @@ public class Logger {
             prefix = name + "["+Thread.currentThread().getName()+"] ";
         }
 
+        @Override
         public void print(String msg) {
             for (int i=0; i<indent; i++) {
                 super.print("  ");
@@ -56,6 +52,7 @@ public class Logger {
             indent --;
         }
 
+        @Override
         public void println(String msg) {
             print(prefix);
             super.println(msg);
