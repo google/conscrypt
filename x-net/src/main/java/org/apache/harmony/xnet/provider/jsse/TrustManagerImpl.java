@@ -22,8 +22,11 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import org.bouncycastle.jce.provider.IndexedPKIXParameters;
+
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.cert.CertPathValidator;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateException;
@@ -89,6 +92,17 @@ public class TrustManagerImpl implements X509TrustManager {
             err = e;
         }
     }
+
+// BEGIN android-added
+    /**
+     * Indexes trust anchors so they can be found in O(1) instead of O(N) time.
+     */
+    public void indexTrustAnchors() throws CertificateEncodingException,
+            InvalidAlgorithmParameterException, KeyStoreException {
+        params = new IndexedPKIXParameters(params.getTrustAnchors());
+        params.setRevocationEnabled(false);
+    }
+// END android-added
 
     /**
      * @see javax.net.ssl.X509TrustManager#checkClientTrusted(X509Certificate[],

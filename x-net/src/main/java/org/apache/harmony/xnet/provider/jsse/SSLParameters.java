@@ -28,6 +28,9 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.cert.CertificateEncodingException;
+
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManager;
@@ -193,6 +196,11 @@ public class SSLParameters implements Cloneable {
                 if (initialize_default) {
                     // found trustManager is default trust manager
                     defaultTrustManager = trustManager;
+// BEGIN android-added
+                    if (trustManager instanceof TrustManagerImpl) {
+                        ((TrustManagerImpl) trustManager).indexTrustAnchors();
+                    }
+// END android-added
                 }
             }
         } catch (NoSuchAlgorithmException e) {
@@ -201,6 +209,12 @@ public class SSLParameters implements Cloneable {
             throw new KeyManagementException(e);
         } catch (UnrecoverableKeyException e) {
             throw new KeyManagementException(e);            
+// BEGIN android-added
+        } catch (CertificateEncodingException e) {
+            throw new KeyManagementException(e);
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new KeyManagementException(e);
+// END android-added
         }
         // initialize secure random
         // BEGIN android-removed
