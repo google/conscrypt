@@ -26,8 +26,6 @@ import javax.crypto.spec.PSource;
  * <p>
  * This padding algorithm is defined in the <a
  * href="http://www.ietf.org/rfc/rfc3447.txt">PKCS #1</a> standard.
- * 
- * @since Android 1.0
  */
 public class OAEPParameterSpec implements AlgorithmParameterSpec {
 
@@ -60,7 +58,7 @@ public class OAEPParameterSpec implements AlgorithmParameterSpec {
      * <i>message digest</i> algorithm name, <i>mask generation function</i>
      * (<i>mgf</i>) algorithm name, <i>parameters</i> for the <i>mgf</i>
      * algorithm and the <i>source of the label <code>L</code></i>.
-     * 
+     *
      * @param mdName
      *            the message digest algorithm name.
      * @param mgfName
@@ -87,7 +85,7 @@ public class OAEPParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the algorithm name of the <i>message digest</i>.
-     * 
+     *
      * @return the algorithm name of the message digest.
      */
     public String getDigestAlgorithm() {
@@ -96,7 +94,7 @@ public class OAEPParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the algorithm name of the <i>mask generation function</i>.
-     * 
+     *
      * @return the algorithm name of the mask generation function.
      */
     public String getMGFAlgorithm() {
@@ -106,7 +104,7 @@ public class OAEPParameterSpec implements AlgorithmParameterSpec {
     /**
      * Returns the algorithm parameter specification for the mask generation
      * function algorithm.
-     * 
+     *
      * @return the algorithm parameter specification for the mask generation
      *         function algorithm.
      */
@@ -116,7 +114,7 @@ public class OAEPParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the source of the label <code>L</code>.
-     * 
+     *
      * @return the source of the label <code>L</code>.
      */
     public PSource getPSource() {

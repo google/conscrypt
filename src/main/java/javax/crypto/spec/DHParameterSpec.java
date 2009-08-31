@@ -22,8 +22,6 @@ import java.security.spec.AlgorithmParameterSpec;
 
 /**
  * The algorithm parameter specification for the Diffie-Hellman algorithm.
- * 
- * @since Android 1.0
  */
 public class DHParameterSpec implements AlgorithmParameterSpec {
 
@@ -34,7 +32,7 @@ public class DHParameterSpec implements AlgorithmParameterSpec {
     /**
      * Creates a new <code>DHParameterSpec</code> instance with the specified
      * <i>prime modulus</i> and <i>base generator</i>.
-     * 
+     *
      * @param p
      *            the prime modulus.
      * @param g
@@ -50,7 +48,7 @@ public class DHParameterSpec implements AlgorithmParameterSpec {
      * Creates a new <code>DHParameterSpec</code> instance with the specified
      * <i>prime modulus</i>, <i>base generator</i> and size (in bits) of the
      * <i>random exponent</i>.
-     * 
+     *
      * @param p
      *            the prime modulus.
      * @param g
@@ -66,7 +64,7 @@ public class DHParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the <i>prime modulus</i> of this parameter specification.
-     * 
+     *
      * @return the prime modulus.
      */
     public BigInteger getP() {
@@ -75,7 +73,7 @@ public class DHParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the <i>base generator</i> of this parameter specification.
-     * 
+     *
      * @return the base generator.
      */
     public BigInteger getG() {
@@ -84,7 +82,7 @@ public class DHParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the size (in bits) of the <i>random exponent</i>.
-     * 
+     *
      * @return the size (in bits) of the random exponent.
      */
     public int getL() {

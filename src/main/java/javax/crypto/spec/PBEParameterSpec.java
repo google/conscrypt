@@ -23,12 +23,10 @@ import org.apache.harmony.crypto.internal.nls.Messages;
 
 /**
  * The algorithm parameter specification for a <i>password based encryption</i>
- * algorithm. 
+ * algorithm.
  * <p>
  * Password based encryption is described in <a
  * href="http://www.ietf.org/rfc/rfc2898.txt">PKCS #5</a>.
- * 
- * @since Android 1.0
  *
  */
 public class PBEParameterSpec implements AlgorithmParameterSpec {
@@ -39,7 +37,7 @@ public class PBEParameterSpec implements AlgorithmParameterSpec {
     /**
      * Creates a new <code>PBEParameterSpec</code> with the specified salt and
      * iteration count.
-     * 
+     *
      * @param salt
      *            the salt.
      * @param iterationCount
@@ -58,7 +56,7 @@ public class PBEParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns a copy to the salt.
-     * 
+     *
      * @return a copy to the salt.
      */
     public byte[] getSalt() {
@@ -69,7 +67,7 @@ public class PBEParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the iteration count.
-     * 
+     *
      * @return the iteration count.
      */
     public int getIterationCount() {

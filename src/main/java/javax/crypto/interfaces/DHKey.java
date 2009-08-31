@@ -21,14 +21,12 @@ import javax.crypto.spec.DHParameterSpec;
 
 /**
  * The interface for a Diffie-Hellman key.
- * 
- * @since Android 1.0
  */
 public interface DHKey {
 
     /**
      * Returns the parameters for this key.
-     * 
+     *
      * @return the parameters for this key.
      */
     public DHParameterSpec getParams();

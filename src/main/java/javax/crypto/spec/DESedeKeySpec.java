@@ -24,8 +24,6 @@ import org.apache.harmony.crypto.internal.nls.Messages;
 
 /**
  * The key specification for a triple-DES (DES-EDE) key.
- * 
- * @since Android 1.0
  */
 public class DESedeKeySpec implements KeySpec {
 
@@ -39,7 +37,7 @@ public class DESedeKeySpec implements KeySpec {
     /**
      * Creates a new <code>DESedeKeySpec</code> instance from the first 24 (
      * {@link #DES_EDE_KEY_LEN}) bytes of the specified key data.
-     * 
+     *
      * @param key
      *            the key data.
      * @throws InvalidKeyException
@@ -64,7 +62,7 @@ public class DESedeKeySpec implements KeySpec {
      * Creates a new <code>DESedeKeySpec</code> instance from the first 24 (
      * {@link #DES_EDE_KEY_LEN} ) bytes of the specified key data starting at
      * <code>offset</code>.
-     * 
+     *
      * @param key
      *            the key data
      * @param offset
@@ -90,7 +88,7 @@ public class DESedeKeySpec implements KeySpec {
 
     /**
      * Returns a copy of the key.
-     * 
+     *
      * @return a copy of the key.
      */
     public byte[] getKey() {
@@ -102,7 +100,7 @@ public class DESedeKeySpec implements KeySpec {
     /**
      * Returns whether the specified key data starting at <code>offset</code> is
      * <i>parity-adjusted</i>.
-     * 
+     *
      * @param key
      *            the key data.
      * @param offset

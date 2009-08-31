@@ -22,8 +22,6 @@ import java.security.GeneralSecurityException;
 /**
  * The exception that is thrown when a padding mechanism is expected for the
  * input data, but the input data does not have the proper padding bytes.
- * 
- * @since Android 1.0
  */
 public class BadPaddingException extends GeneralSecurityException {
 
@@ -37,7 +35,6 @@ public class BadPaddingException extends GeneralSecurityException {
      * 
      * @param msg
      *            the message
-     * @since Android 1.0
      */
     public BadPaddingException(String msg) {
         super(msg);
@@ -45,8 +42,6 @@ public class BadPaddingException extends GeneralSecurityException {
 
     /**
      * Creates a new instance of {@code BadPaddingException} with no message.
-     * 
-     * @since Android 1.0
      */
     public BadPaddingException() {
     }

@@ -33,8 +33,6 @@ import org.apache.harmony.crypto.internal.nls.Messages;
  * A key specification for a <code>SecretKey</code> and also a secret key
  * implementation that is provider-independent. It can be used for raw secret
  * keys that can be specified as <code>byte[]</code>.
- * 
- * @since Android 1.0
  */
 public class SecretKeySpec implements SecretKey, KeySpec, Serializable {
 
@@ -50,7 +48,7 @@ public class SecretKeySpec implements SecretKey, KeySpec, Serializable {
     /**
      * Creates a new <code>SecretKeySpec</code> for the specified key data and
      * algorithm name.
-     * 
+     *
      * @param key
      *            the key data.
      * @param algorithm
@@ -79,7 +77,7 @@ public class SecretKeySpec implements SecretKey, KeySpec, Serializable {
      * Creates a new <code>SecretKeySpec</code> for the key data from the
      * specified buffer <code>key</code> starting at <code>offset</code> with
      * length <code>len</code> and the specified <code>algorithm</code> name.
-     * 
+     *
      * @param key
      *            the key data.
      * @param offset
@@ -120,7 +118,7 @@ public class SecretKeySpec implements SecretKey, KeySpec, Serializable {
 
     /**
      * Returns the algorithm name.
-     * 
+     *
      * @return the algorithm name.
      */
     public String getAlgorithm() {
@@ -129,7 +127,7 @@ public class SecretKeySpec implements SecretKey, KeySpec, Serializable {
 
     /**
      * Returns the name of the format used to encode the key.
-     * 
+     *
      * @return the format name "RAW".
      */
     public String getFormat() {
@@ -138,7 +136,7 @@ public class SecretKeySpec implements SecretKey, KeySpec, Serializable {
 
     /**
      * Returns the encoded form of this secret key.
-     * 
+     *
      * @return the encoded form of this secret key.
      */
     public byte[] getEncoded() {
@@ -149,7 +147,7 @@ public class SecretKeySpec implements SecretKey, KeySpec, Serializable {
 
     /**
      * Returns the hash code of this <code>SecretKeySpec</code> object.
-     * 
+     *
      * @return the hash code.
      */
     @Override
@@ -164,7 +162,7 @@ public class SecretKeySpec implements SecretKey, KeySpec, Serializable {
     /**
      * Compares the specified object with this <code>SecretKeySpec</code>
      * instance.
-     * 
+     *
      * @param obj
      *            the object to compare.
      * @return true if the algorithm name and key of both object are equal,

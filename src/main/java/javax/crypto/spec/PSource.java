@@ -22,8 +22,6 @@ import org.apache.harmony.crypto.internal.nls.Messages;
 /**
  * The source of the label <code>L</code> as specified in <a
  * href="http://www.ietf.org/rfc/rfc3447.txt"> PKCS #1</a>.
- * 
- * @since Android 1.0
  */
 public class PSource {
 
@@ -34,7 +32,7 @@ public class PSource {
     /**
      * Creates a new <code>PSource</code> instance with the specified source
      * algorithm identifier.
-     * 
+     *
      * @param pSrcName
      *            the source algorithm identifier.
      * @throws NullPointerException
@@ -49,7 +47,7 @@ public class PSource {
 
     /**
      * Returns the source algorithm identifier.
-     * 
+     *
      * @return the source algorithm identifier.
      */
     public String getAlgorithm() {
@@ -59,15 +57,14 @@ public class PSource {
     /**
      * The explicit specification of the parameter <code>P</code> used in the
      * source algorithm.
-     * 
-     * @since Android 1.0
      */
     public static final class PSpecified extends PSource {
 
         private final byte[] p;
 
         /**
-         * The instance of <code>PSpecified</code> with the default value <code>byte[0]</code> for <code>P</code>
+         * The instance of <code>PSpecified</code> with the default value
+         * <code>byte[0]</code> for <code>P</code>
          */
         public static final PSpecified DEFAULT = new PSpecified();
 
@@ -79,7 +76,7 @@ public class PSource {
         /**
          * Creates a new instance of <code>PSpecified</code> with the specified
          * parameter <code>P</code>.
-         * 
+         *
          * @param p
          *            the parameter <code>P</code>.
          * @throws NullPointerException
@@ -98,7 +95,7 @@ public class PSource {
 
         /**
          * Returns a copy of the value of the parameter <code>P</code>.
-         * 
+         *
          * @return a copy of the value of the parameter <code>P</code>
          */
         public byte[] getValue() {

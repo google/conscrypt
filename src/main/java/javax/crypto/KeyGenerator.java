@@ -32,8 +32,6 @@ import org.apache.harmony.security.fortress.Engine;
 /**
  * This class provides the public API for generating symmetric cryptographic
  * keys.
- * 
- * @since Android 1.0
  */
 public class KeyGenerator {
 
@@ -54,14 +52,13 @@ public class KeyGenerator {
 
     /**
      * Creates a new {@code KeyGenerator} instance.
-     * 
+     *
      * @param keyGenSpi
      *            the implementation delegate.
      * @param provider
      *            the implementation provider.
      * @param algorithm
      *            the name of the algorithm.
-     * @since Android 1.0
      */
     protected KeyGenerator(KeyGeneratorSpi keyGenSpi, Provider provider,
             String algorithm) {
@@ -72,9 +69,8 @@ public class KeyGenerator {
 
     /**
      * Returns the name of the key generation algorithm.
-     * 
+     *
      * @return the name of the key generation algorithm.
-     * @since Android 1.0
      */
     public final String getAlgorithm() {
         return algorithm;
@@ -82,9 +78,8 @@ public class KeyGenerator {
 
     /**
      * Returns the provider of this {@code KeyGenerator} instance.
-     * 
+     *
      * @return the provider of this {@code KeyGenerator} instance.
-     * @since Android 1.0
      */
     public final Provider getProvider() {
         return provider;
@@ -93,7 +88,7 @@ public class KeyGenerator {
     /**
      * Creates a new {@code KeyGenerator} instance that provides the specified
      * key algorithm,
-     * 
+     *
      * @param algorithm
      *            the name of the requested key algorithm
      * @return the new {@code KeyGenerator} instance.
@@ -101,7 +96,6 @@ public class KeyGenerator {
      *             if the specified algorithm is not available by any provider.
      * @throws NullPointerException
      *             if {@code algorithm} is {@code null}.
-     * @since Android 1.0
      */
     public static final KeyGenerator getInstance(String algorithm)
             throws NoSuchAlgorithmException {
@@ -118,7 +112,7 @@ public class KeyGenerator {
     /**
      * Creates a new {@code KeyGenerator} instance that provides the specified
      * key algorithm from the specified provider.
-     * 
+     *
      * @param algorithm
      *            the name of the requested key algorithm.
      * @param provider
@@ -133,7 +127,6 @@ public class KeyGenerator {
      *             if the specified provider is name is {@code null} or empty.
      * @throws NullPointerException
      *             if the specified algorithm name is {@code null}.
-     * @since Android 1.0
      */
     public static final KeyGenerator getInstance(String algorithm,
             String provider) throws NoSuchAlgorithmException,
@@ -151,7 +144,7 @@ public class KeyGenerator {
     /**
      * Creates a new {@code KeyGenerator} instance that provides the specified
      * key algorithm from the specified provider.
-     * 
+     *
      * @param algorithm
      *            the name of the requested key algorithm.
      * @param provider
@@ -164,7 +157,6 @@ public class KeyGenerator {
      *             if the specified provider is {@code null}.
      * @throws NullPointerException
      *             if the specified algorithm name is {@code null}.
-     * @since Android 1.0
      */
     public static final KeyGenerator getInstance(String algorithm,
             Provider provider) throws NoSuchAlgorithmException {
@@ -183,9 +175,8 @@ public class KeyGenerator {
 
     /**
      * Generates a secret key.
-     * 
+     *
      * @return the generated secret key.
-     * @since Android 1.0
      */
     public final SecretKey generateKey() {
         return spiImpl.engineGenerateKey();
@@ -194,13 +185,12 @@ public class KeyGenerator {
     /**
      * Initializes this {@code KeyGenerator} instance with the specified
      * algorithm parameters.
-     * 
+     *
      * @param params
      *            the parameters for the key generation algorithm.
      * @throws InvalidAlgorithmParameterException
      *             if the parameters cannot be used to initialize this key
      *             generator algorithm.
-     * @since Android 1.0
      */
     public final void init(AlgorithmParameterSpec params)
             throws InvalidAlgorithmParameterException {
@@ -210,7 +200,7 @@ public class KeyGenerator {
     /**
      * Initializes this {@code KeyGenerator} instance with the specified
      * algorithm parameters and randomness source.
-     * 
+     *
      * @param params
      *            the parameters for the key generation algorithm.
      * @param random
@@ -218,7 +208,6 @@ public class KeyGenerator {
      * @throws InvalidAlgorithmParameterException
      *             if the parameters cannot be uses to initialize this key
      *             generator algorithm.
-     * @since Android 1.0
      */
     public final void init(AlgorithmParameterSpec params, SecureRandom random)
             throws InvalidAlgorithmParameterException {
@@ -228,10 +217,9 @@ public class KeyGenerator {
     /**
      * Initializes this {@code KeyGenerator} instance for the specified key size
      * (in bits).
-     * 
+     *
      * @param keysize
      *            the size of the key (in bits).
-     * @since Android 1.0
      */
     public final void init(int keysize) {
         spiImpl.engineInit(keysize, rndm);//new SecureRandom());
@@ -240,12 +228,11 @@ public class KeyGenerator {
     /**
      * Initializes this {@code KeyGenerator} instance for the specified key size
      * (in bits) using the specified randomness source.
-     * 
+     *
      * @param keysize
      *            the size of the key (in bits).
      * @param random
      *            the randomness source for any random bytes.
-     * @since Android 1.0
      */
     public final void init(int keysize, SecureRandom random) {
         spiImpl.engineInit(keysize, random);
@@ -254,10 +241,9 @@ public class KeyGenerator {
     /**
      * Initializes this {@code KeyGenerator} with the specified randomness
      * source.
-     * 
+     *
      * @param random
      *            the randomness source for any random bytes.
-     * @since Android 1.0
      */
     public final void init(SecureRandom random) {
         spiImpl.engineInit(random);

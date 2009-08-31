@@ -28,30 +28,26 @@ import java.nio.ByteBuffer;
  * Mac} class.
  * 
  * @see Mac
- * @since Android 1.0
  */
 public abstract class MacSpi {
-    
+
     /**
      * Creates a new {@code MacSpi} instance.
-     * 
-     * @since Android 1.0
      */
     public MacSpi() {
     }
 
     /**
      * Returns the length of this MAC (in bytes).
-     * 
+     *
      * @return the length of this MAC (in bytes).
-     * @since Android 1.0
      */
     protected abstract int engineGetMacLength();
 
     /**
      * Initializes this {@code MacSpi} instance with the specified key and
      * algorithm parameters.
-     * 
+     *
      * @param key
      *            the key to initialize this algorithm.
      * @param params
@@ -62,17 +58,15 @@ public abstract class MacSpi {
      * @throws InvalidAlgorithmParameterException
      *             if the specified parameters cannot be used to initialize this
      *             algorithm.
-     * @since Android 1.0
      */
     protected abstract void engineInit(Key key, AlgorithmParameterSpec params)
             throws InvalidKeyException, InvalidAlgorithmParameterException;
 
     /**
      * Updates this {@code MacSpi} instance with the specified byte.
-     * 
+     *
      * @param input
      *            the byte.
-     * @since Android 1.0
      */
     protected abstract void engineUpdate(byte input);
 
@@ -80,14 +74,13 @@ public abstract class MacSpi {
      * Updates this {@code MacSpi} instance with the data from the specified
      * buffer {@code input} from the specified {@code offset} and length {@code
      * len}.
-     * 
+     *
      * @param input
      *            the buffer.
      * @param offset
      *            the offset in the buffer.
      * @param len
      *            the length of the data in the buffer.
-     * @since Android 1.0
      */
     protected abstract void engineUpdate(byte[] input, int offset, int len);
 
@@ -95,10 +88,9 @@ public abstract class MacSpi {
      * Updates this {@code MacSpi} instance with the data from the specified
      * buffer, starting at {@link ByteBuffer#position()}, including the next
      * {@link ByteBuffer#remaining()} bytes.
-     * 
+     *
      * @param input
      *            the buffer.
-     * @since Android 1.0
      */
     protected void engineUpdate(ByteBuffer input) {
         if (!input.hasRemaining()) {
@@ -126,10 +118,8 @@ public abstract class MacSpi {
      * This {@code MacSpi} instance is reverted to its initial state and
      * can be used to start the next MAC computation with the same parameters or
      * initialized with different parameters.
-     * </p>
-     * 
+     *
      * @return the generated digest.
-     * @since Android 1.0
      */
     protected abstract byte[] engineDoFinal();
 
@@ -139,19 +129,15 @@ public abstract class MacSpi {
      * This {@code MacSpi} instance is reverted to its initial state and can be
      * used to start the next MAC computation with the same parameters or
      * initialized with different parameters.
-     * </p>
-     * 
-     * @since Android 1.0
      */
     protected abstract void engineReset();
 
     /**
      * Clones this {@code MacSpi} instance.
-     * 
+     *
      * @return the cloned instance.
      * @throws CloneNotSupportedException
      *             if cloning is not supported.
-     * @since Android 1.0
      */
     @Override
     public Object clone() throws CloneNotSupportedException {

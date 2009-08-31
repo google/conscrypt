@@ -21,8 +21,6 @@ import javax.crypto.SecretKey;
 
 /**
  * The interface to a <i>password-based-encryption</i>  key.
- * 
- * @since Android 1.0
  */
 public interface PBEKey extends SecretKey {
 
@@ -33,21 +31,21 @@ public interface PBEKey extends SecretKey {
 
     /**
      * Returns the iteration count, 0 if not specified.
-     * 
+     *
      * @return the iteration count, 0 if not specified.
      */
     public int getIterationCount();
 
     /**
      * Returns a copy of the salt data or null if not specified.
-     * 
+     *
      * @return a copy of the salt data or null if not specified.
      */
     public byte[] getSalt();
 
     /**
      * Returns a copy to the password.
-     * 
+     *
      * @return a copy to the password.
      */
     public char[] getPassword();

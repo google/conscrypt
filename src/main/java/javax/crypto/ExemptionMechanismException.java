@@ -21,8 +21,6 @@ import java.security.GeneralSecurityException;
 
 /**
  * This is the base class for {@code ExemptionMechanismException}.
- * 
- * @since Android 1.0
  */
 public class ExemptionMechanismException extends GeneralSecurityException {
 
@@ -37,7 +35,6 @@ public class ExemptionMechanismException extends GeneralSecurityException {
      * 
      * @param msg
      *            the exception message.
-     * @since Android 1.0
      */
     public ExemptionMechanismException(String msg) {
         super(msg);
@@ -45,8 +42,6 @@ public class ExemptionMechanismException extends GeneralSecurityException {
 
     /**
      * Creates a new {@code ExemptionMechanismException} with no message.
-     * 
-     * @since Android 1.0
      */
     public ExemptionMechanismException() {
     }

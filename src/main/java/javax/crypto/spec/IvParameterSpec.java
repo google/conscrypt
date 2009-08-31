@@ -35,7 +35,7 @@ public class IvParameterSpec implements AlgorithmParameterSpec {
     /**
      * Creates a new <code>IvParameterSpec</code> instance with the bytes from
      * the specified buffer <i>iv</i> used as <i>initialization vector</i>.
-     * 
+     *
      * @param iv
      *            the buffer used as initialization vector.
      * @throws NullPointerException
@@ -53,7 +53,7 @@ public class IvParameterSpec implements AlgorithmParameterSpec {
      * Creates a new <code>IvParameterSpec</code> instance with <code>len</code>
      * bytes from the specified buffer <code>iv</code> starting at
      * <code>offset</code>.
-     * 
+     *
      * @param iv
      *            the buffer used as initialization vector.
      * @param offset
@@ -81,7 +81,7 @@ public class IvParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns a copy of the <i>initialization vector</i> data.
-     * 
+     *
      * @return a copy of the initialization vector data.
      */
     public byte[] getIV() {

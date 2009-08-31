@@ -21,9 +21,7 @@ import java.math.BigInteger;
 import java.security.PublicKey;
 
 /**
- * The interface for a public key in the Diffie-Hellman key exchange protocol. 
- * 
- * @since Android 1.0
+ * The interface for a public key in the Diffie-Hellman key exchange protocol.
  */
 public interface DHPublicKey extends DHKey, PublicKey {
 

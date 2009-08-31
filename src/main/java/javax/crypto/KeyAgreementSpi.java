@@ -27,15 +27,11 @@ import java.security.spec.AlgorithmParameterSpec;
 /**
  * The <i>Service Provider Interface</i> (<b>SPI</b>) definition for the
  * {@code KeyAgreement} class.
- * 
- * @since Android 1.0
  */
 public abstract class KeyAgreementSpi {
- 
+
     /**
      * Creates a new {@code KeyAgreementSpi} instance.
-     * 
-     * @since Android 1.0
      */
     public KeyAgreementSpi() {
     }
@@ -43,7 +39,7 @@ public abstract class KeyAgreementSpi {
     /**
      * Does the next (or the last) phase of the key agreement, using the
      * specified key.
-     * 
+     *
      * @param key
      *            the key received from the other party for this phase.
      * @param lastPhase
@@ -56,18 +52,16 @@ public abstract class KeyAgreementSpi {
      *             this phase,
      * @throws IllegalStateException
      *             if this instance has not been initialized.
-     * @since Android 1.0
      */
     protected abstract Key engineDoPhase(Key key, boolean lastPhase)
             throws InvalidKeyException, IllegalStateException;
 
     /**
      * Generates the shared secret.
-     * 
+     *
      * @return the generated shared secret.
      * @throws IllegalStateException
      *             if this key agreement is not complete.
-     * @since Android 1.0
      */
     protected abstract byte[] engineGenerateSecret()
             throws IllegalStateException;
@@ -75,7 +69,7 @@ public abstract class KeyAgreementSpi {
     /**
      * Generates the shared secret and stores it into the buffer {@code
      * sharedSecred} at {@code offset}.
-     * 
+     *
      * @param sharedSecret
      *            the buffer to store the shared secret.
      * @param offset
@@ -85,14 +79,13 @@ public abstract class KeyAgreementSpi {
      *             if this key agreement is not complete.
      * @throws ShortBufferException
      *             if the specified buffer is too small for the shared secret.
-     * @since Android 1.0
      */
     protected abstract int engineGenerateSecret(byte[] sharedSecret, int offset)
             throws IllegalStateException, ShortBufferException;
 
     /**
      * Generates the shared secret.
-     * 
+     *
      * @param algorithm
      *            the algorithm to for the {@code SecretKey}
      * @return the shared secret as a {@code SecretKey} of the specified
@@ -105,7 +98,6 @@ public abstract class KeyAgreementSpi {
      * @throws InvalidKeyException
      *             if a {@code SecretKey} with the specified algorithm cannot be
      *             created using the generated shared secret.
-     * @since Android 1.0
      */
     protected abstract SecretKey engineGenerateSecret(String algorithm)
             throws IllegalStateException, NoSuchAlgorithmException,
@@ -114,7 +106,7 @@ public abstract class KeyAgreementSpi {
     /**
      * Initializes this {@code KeyAgreementSpi} with the specified key and the
      * specified randomness source.
-     * 
+     *
      * @param key
      *            the key to initialize this key agreement.
      * @param random
@@ -122,7 +114,6 @@ public abstract class KeyAgreementSpi {
      * @throws InvalidKeyException
      *             if the specified key cannot be used to initialize this key
      *             agreement.
-     * @since Android 1.0
      */
     protected abstract void engineInit(Key key, SecureRandom random)
             throws InvalidKeyException;
@@ -130,7 +121,7 @@ public abstract class KeyAgreementSpi {
     /**
      * Initializes this {@code KeyAgreementSpi} with the specified key,
      * algorithm parameters and randomness source.
-     * 
+     *
      * @param key
      *            the key to initialize this key agreement.
      * @param params
@@ -143,7 +134,6 @@ public abstract class KeyAgreementSpi {
      * @throws InvalidAlgorithmParameterException
      *             if the specified parameters are invalid for this key
      *             agreement algorithm.
-     * @since Android 1.0
      */
     protected abstract void engineInit(Key key, AlgorithmParameterSpec params,
             SecureRandom random) throws InvalidKeyException,
