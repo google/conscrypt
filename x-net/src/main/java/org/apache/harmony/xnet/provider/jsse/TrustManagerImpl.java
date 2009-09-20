@@ -44,11 +44,11 @@ import java.security.cert.CertificateEncodingException;
 // END android-added
 
 /**
- * 
+ *
  * TrustManager implementation. The implementation is based on CertPathValidator
  * PKIX and CertificateFactory X509 implementations. This implementations should
  * be provided by some certification provider.
- * 
+ *
  * @see javax.net.ssl.X509TrustManager
  */
 public class TrustManagerImpl implements X509TrustManager {
@@ -63,7 +63,7 @@ public class TrustManagerImpl implements X509TrustManager {
 
     /**
      * Creates trust manager implementation
-     * 
+     *
      * @param ks
      */
     public TrustManagerImpl(KeyStore ks) {
@@ -144,70 +144,77 @@ public class TrustManagerImpl implements X509TrustManager {
             throws CertificateException {
         if (chain == null || chain.length == 0 || authType == null
                 || authType.length() == 0) {
-            throw new IllegalArgumentException("null or zero-length parameter");
+            throw new IllegalArgumentException(
+                    "null or zero-length parameter");
         }
         if (err != null) {
             throw new CertificateException(err);
         }
-        // BEGIN android-added
-        // Cater for degenerate special case where we can't
-        // establish an actual certificate chain the usual way,
-        // but have the peer certificate in our trust store.
-        if (isDirectlyTrustedCert(chain)) {
-            return;
-        }
-        // END android-added
+// BEGIN android-changed
+        CertificateException ce = null;
         try {
-            // BEGIN android-changed
-            CertPath certPath = factory.generateCertPath(Arrays.asList(chain));
+            CertPath certPath = factory.generateCertPath(
+                    Arrays.asList(chain));
             if (!Arrays.equals(chain[0].getEncoded(),
-                    ((X509Certificate)certPath.getCertificates().get(0))
-                    .getEncoded())) {
-                // sanity check failed (shouldn't ever happen, but we are using pretty remote code)
+                    certPath.getCertificates().get(0).getEncoded())) {
+                // Sanity check failed (shouldn't ever happen, but we are
+                // using pretty remote code)
                 throw new CertificateException("Certificate chain error");
             }
             validator.validate(certPath, params);
-            // END android-changed
         } catch (InvalidAlgorithmParameterException e) {
-            throw new CertificateException(e);
+            ce = new CertificateException(e);
         } catch (CertPathValidatorException e) {
-            throw new CertificateException(e);
+            ce = new CertificateException(e);
+        }
+        if (ce != null) {
+            // Caters to degenerate special case where we can't
+            // establish an actual certificate chain the usual way
+            // but have the peer certificate in our trust store.
+            if (!isDirectlyTrustedCert(chain)) {
+                throw ce;
+            }
         }
     }
 
-    // BEGIN android-added
     /**
      * Checks whether the given chain is just a certificate
      * that we have in our trust store.
-     * 
+     *
      * @param chain The certificate chain.
-     * 
-     * @return True if the certificate is in our trust store, false otherwise. 
+     *
+     * @return True if the certificate is in our trust store, false otherwise.
      */
     private boolean isDirectlyTrustedCert(X509Certificate[] chain) {
         byte[] questionable;
 
         if (chain.length == 1) {
-          try {
-            questionable = chain[0].getEncoded();
-            Set<TrustAnchor> anchors = params.getTrustAnchors();
+            if (params instanceof IndexedPKIXParameters) {
+                IndexedPKIXParameters index = (IndexedPKIXParameters) params;
+                return index.isDirectlyTrusted(chain[0]);
+            } else {
+                try {
+                    questionable = chain[0].getEncoded();
+                    Set<TrustAnchor> anchors = params.getTrustAnchors();
 
-            for (TrustAnchor trustAnchor : anchors) {
-              byte[] trusted = trustAnchor.getTrustedCert().getEncoded();
-
-              if (Arrays.equals(questionable, trusted)) {
-                return true;
-              }
+                    for (TrustAnchor trustAnchor : anchors) {
+                        byte[] trusted = trustAnchor.getTrustedCert()
+                                .getEncoded();
+                        if (Arrays.equals(questionable, trusted)) {
+                            return true;
+                        }
+                    }
+                } catch (CertificateEncodingException e) {
+                    // Ignore.
+                }
             }
-          } catch (CertificateEncodingException e) {
-            // Ignore.
-          }
+
         }
 
         return false;
     }
-    // END android-added
-    
+// END android-changed
+
     /**
      * @see javax.net.ssl.X509TrustManager#getAcceptedIssuers()
      */
