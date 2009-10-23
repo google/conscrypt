@@ -22,10 +22,17 @@ import dalvik.annotation.TestTargetNew;
 import junit.framework.TestCase;
 
 import targets.Cipher;
+import tests.util.TestEnvironment;
 
 @TestTargetClass(Cipher.AESWrap.class)
 public class CipherAesWrapTest extends TestCase {
-// 3 cases checked
+
+    @Override protected void setUp() throws Exception {
+        super.setUp();
+        TestEnvironment.reset();
+    }
+
+    // 3 cases checked
     @TestTargetNew(
         level = TestLevel.COMPLETE,
         notes = "",

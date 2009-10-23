@@ -57,6 +57,7 @@ import javax.crypto.spec.PBEParameterSpec;
 import org.apache.harmony.crypto.tests.support.EncryptedPrivateKeyInfoData;
 
 import junit.framework.TestCase;
+import tests.util.TestEnvironment;
 
 @TestTargetClass(EncryptedPrivateKeyInfo.class)
 /**
@@ -195,7 +196,12 @@ public class EncryptedPrivateKeyInfoTest extends TestCase {
     //            {"RSA",null}, // 1.2.840.113549.1.1.1
     //            {"1.2.840.113549.1.1.1", null},
     };
-    
+
+    @Override protected void setUp() throws Exception {
+        super.setUp();
+        TestEnvironment.reset();
+    }
+
     @TestTargetNew(
         level = TestLevel.COMPLETE,
         notes = "",
