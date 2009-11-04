@@ -662,7 +662,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         return nativegetsupportedciphersuites();
     }
 
-    private native String[] nativegetenabledciphersuites();
+    static native String[] nativeGetEnabledCipherSuites(int ssl_ctx);
 
     /**
      * The names of the cipher suites that are in use in the actual the SSL
@@ -671,21 +671,23 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * @return an array of cipher suite names
      */
     public String[] getEnabledCipherSuites() {
-        return nativegetenabledciphersuites();
+        return nativeGetEnabledCipherSuites(ssl_ctx);
     }
 
     /**
      * Calls the SSL_CTX_set_cipher_list(...) OpenSSL function with the passed
      * char array.
      */
-    private native void nativesetenabledciphersuites(String controlString);
+    static native void nativeSetEnabledCipherSuites(int ssl_ctx, String controlString);
 
-    private boolean findSuite(String suite) {
+    private static boolean findSuite(String suite) {
         String[] supportedCipherSuites = nativegetsupportedciphersuites();
-        for(int i = 0; i < supportedCipherSuites.length; i++)
-            if (supportedCipherSuites[i].equals(suite)) return true;
-        throw new IllegalArgumentException("Protocol " + suite +
-        " is not supported.");
+        for(int i = 0; i < supportedCipherSuites.length; i++) {
+            if (supportedCipherSuites[i].equals(suite)) {
+                return true;
+            }
+        }
+        throw new IllegalArgumentException("Protocol " + suite + " is not supported.");
     }
 
     /**
@@ -699,16 +701,20 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      *             is null.
      */
     public void setEnabledCipherSuites(String[] suites) {
+        setEnabledCipherSuites(ssl_ctx, suites);
+    }
+    
+    static void setEnabledCipherSuites(int ssl_ctx, String[] suites) {
         if (suites == null) {
             throw new IllegalArgumentException("Provided parameter is null");
         }
         String controlString = "";
-        for(int i = 0; i < suites.length; i++) {
+        for (int i = 0; i < suites.length; i++) {
             findSuite(suites[i]);
             if (i == 0) controlString = suites[i];
             else controlString += ":" + suites[i];
         }
-        nativesetenabledciphersuites(controlString);
+        nativeSetEnabledCipherSuites(ssl_ctx, controlString);
     }
 
     /**

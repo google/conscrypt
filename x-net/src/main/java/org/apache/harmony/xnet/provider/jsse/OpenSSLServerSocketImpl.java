@@ -196,28 +196,9 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
         return nativegetsupportedciphersuites();
     }
 
-    /**
-     * Calls native OpenSSL functions to get the enabled ciphers.
-     */
-    private native String[] nativegetenabledciphersuites();
-
     @Override
     public String[] getEnabledCipherSuites() {
-        return nativegetenabledciphersuites();
-    }
-
-    /**
-     * Calls the SSL_CTX_set_cipher_list(...) OpenSSL function with the passed
-     * char array.
-     */
-    private native void nativesetenabledciphersuites(String controlString);
-
-    private boolean findSuite(String suite) {
-        String[] supportedCipherSuites = nativegetsupportedciphersuites();
-        for(int i = 0; i < supportedCipherSuites.length; i++)
-            if (supportedCipherSuites[i].equals(suite)) return true;
-        throw new IllegalArgumentException("Protocol " + suite +
-        " is not supported.");
+        return OpenSSLSocketImpl.nativeGetEnabledCipherSuites(ssl_ctx);
     }
 
     /**
@@ -230,16 +211,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
      */
     @Override
     public void setEnabledCipherSuites(String[] suites) {
-        if (suites == null) {
-            throw new IllegalArgumentException("Provided parameter is null");
-        }
-        String controlString = "";
-        for (int i = 0; i < suites.length; i++) {
-            findSuite(suites[i]);
-            if (i == 0) controlString = suites[i];
-            else controlString += ":" + suites[i];
-        }
-        nativesetenabledciphersuites(controlString);
+        OpenSSLSocketImpl.setEnabledCipherSuites(ssl_ctx, suites);
     }
 
     /**
