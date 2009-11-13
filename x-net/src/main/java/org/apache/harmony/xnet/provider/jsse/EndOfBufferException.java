@@ -15,25 +15,18 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
 
 /**
- * This class represents the exception signalizing that
- * data could not be read from the stream because
- * underlying input stream reached its end.
+ * This exception indicates that data could not be read from the stream because the underlying input
+ * stream reached its end.
  */
 public class EndOfBufferException extends IOException {
 
-    /**
-     * Constructor
-     */
+    private static final long serialVersionUID = 1838636631255369519L;
+
     public EndOfBufferException() {
         super();
     }

@@ -22,8 +22,6 @@ import java.security.PrivateKey;
 
 /**
  * The interface for a private key in the Diffie-Hellman key exchange protocol.
- * 
- * @since Android 1.0
  */
 public interface DHPrivateKey extends DHKey, PrivateKey {
 

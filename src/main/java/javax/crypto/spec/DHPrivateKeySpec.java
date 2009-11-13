@@ -22,8 +22,6 @@ import java.security.spec.KeySpec;
 
 /**
  * The key specification for a Diffie-Hellman private key.
- * 
- * @since Android 1.0
  */
 public class DHPrivateKeySpec implements KeySpec {
 
@@ -35,7 +33,7 @@ public class DHPrivateKeySpec implements KeySpec {
      * Creates a new <code>DHPrivateKeySpec</code> with the specified <i>private
      * value</i> <code>x</code>. <i>prime modulus</i> <code>p</code> and <i>base
      * generator</i> <code>g</code>.
-     * 
+     *
      * @param x
      *            the private value.
      * @param p
@@ -51,7 +49,7 @@ public class DHPrivateKeySpec implements KeySpec {
 
     /**
      * Returns the <i>private value</i> <code>x</code>.
-     * 
+     *
      * @return the private value <code>x</code>.
      */
     public BigInteger getX() {
@@ -60,7 +58,7 @@ public class DHPrivateKeySpec implements KeySpec {
 
     /**
      * Returns the <i>prime modulus</i> <code>p</code>.
-     * 
+     *
      * @return the prime modulus <code>p</code>.
      */
     public BigInteger getP() {
@@ -69,10 +67,11 @@ public class DHPrivateKeySpec implements KeySpec {
 
     /**
      * Returns the <i>base generator</i> <code>g</code>.
-     * 
+     *
      * @return the base generator <code>g</code>.
      */
     public BigInteger getG() {
         return g;
     }
 }
+

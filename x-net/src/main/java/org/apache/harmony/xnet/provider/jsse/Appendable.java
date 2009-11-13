@@ -15,24 +15,19 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 /**
- * This interface represents the ability of the input stream related
- * classes to provide additianal data to be read.
+ * This interface represents the ability of the input stream related classes to provide additional
+ * data to be read.
  */
 public interface Appendable {
 
     /**
      * Provides the additional data to be read.
-     * @param   src:  the source data to be appended.
+     * 
+     * @param src the source data to be appended.
      */
     public void append(byte[] src);
 
 }
-

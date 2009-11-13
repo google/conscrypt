@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.SSLRecordProtocol;
@@ -136,8 +131,6 @@ public class AlertProtocol {
      * Defines the description code of the no_renegotiation alert
      */
     protected static final byte NO_RENEGOTIATION = 100;
-
-
     // holds level and description codes
     private final byte[] alert = new byte[2];
     // record protocol to be used to wrap the alerts
@@ -271,7 +264,7 @@ public class AlertProtocol {
     /**
      * Returns the record with reported alert message.
      * The returned array of bytes is ready to be sent to another peer.
-     * Note, that this method does not automatically set the state of allert
+     * Note, that this method does not automatically set the state of alert
      * protocol in "no alert" state, so after wrapping the method setProcessed
      * should be called.
      */
@@ -281,7 +274,7 @@ public class AlertProtocol {
     }
 
     /**
-     * Shutdownes the protocol. It will be impossiblke to use the instance
+     * Shutdown the protocol. It will be impossible to use the instance
      * after the calling of this method.
      */
     protected void shutdown() {

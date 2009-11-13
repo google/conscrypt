@@ -40,19 +40,13 @@ import org.apache.harmony.crypto.internal.nls.Messages;
  * <p>
  * Since a {@code SealedObject} instance is a serializable object itself it can
  * either be stored or transmitted over an insecure channel.
- * </p>
+ * <p>
  * The wrapped object can later be decrypted (unsealed) using the corresponding
  * key and then be deserialized to retrieve the original object.The sealed
  * object itself keeps track of the cipher and corresponding parameters.
- * 
- * @since Android 1.0
  */
 public class SealedObject implements Serializable {
 
-    // the value of this field was derived by using serialver utility
-    /**
-     * @com.intel.drl.spec_ref
-     */
     private static final long serialVersionUID = 4482838265551344752L;
 
     /**
@@ -76,8 +70,7 @@ public class SealedObject implements Serializable {
      * and sealing it using the specified cipher.
      * <p>
      * The cipher must be fully initialized.
-     * </p>
-     * 
+     *
      * @param object
      *            the object to seal, can be {@code null}.
      * @param c
@@ -90,7 +83,6 @@ public class SealedObject implements Serializable {
      *             size.
      * @throws NullPointerException
      *             if the cipher is {@code null}.
-     * @since Android 1.0
      */
     public SealedObject(Serializable object, Cipher c)
                 throws IOException, IllegalBlockSizeException {
@@ -117,10 +109,9 @@ public class SealedObject implements Serializable {
     /**
      * Creates a new {@code SealedObject} instance by copying the data from
      * the specified object.
-     * 
+     *
      * @param so
      *            the object to copy.
-     * @since Android 1.0
      */
     protected SealedObject(SealedObject so) {
         if (so == null) {
@@ -134,9 +125,8 @@ public class SealedObject implements Serializable {
 
     /**
      * Returns the algorithm this object was sealed with.
-     * 
+     *
      * @return the algorithm this object was sealed with.
-     * @since Android 1.0
      */
     public final String getAlgorithm() {
         return sealAlg;
@@ -144,7 +134,7 @@ public class SealedObject implements Serializable {
 
     /**
      * Returns the wrapped object, decrypting it using the specified key.
-     * 
+     *
      * @param key
      *            the key to decrypt the data with.
      * @return the encapsulated object.
@@ -156,7 +146,6 @@ public class SealedObject implements Serializable {
      *             if the algorithm to decrypt the data is not available.
      * @throws InvalidKeyException
      *             if the specified key cannot be used to decrypt the data.
-     * @since Android 1.0
      */
     public final Object getObject(Key key)
                 throws IOException, ClassNotFoundException,
@@ -207,7 +196,7 @@ public class SealedObject implements Serializable {
     /**
      * Returns the wrapped object, decrypting it using the specified
      * cipher.
-     * 
+     *
      * @param c
      *            the cipher to decrypt the data.
      * @return the encapsulated object.
@@ -221,7 +210,6 @@ public class SealedObject implements Serializable {
      *             size.
      * @throws BadPaddingException
      *             if the padding of the data does not match the padding scheme.
-     * @since Android 1.0
      */
     public final Object getObject(Cipher c)
                 throws IOException, ClassNotFoundException,
@@ -239,7 +227,7 @@ public class SealedObject implements Serializable {
     /**
      * Returns the wrapped object, decrypting it using the specified key. The
      * specified provider is used to retrieve the cipher algorithm.
-     * 
+     *
      * @param key
      *            the key to decrypt the data.
      * @param provider
@@ -255,7 +243,6 @@ public class SealedObject implements Serializable {
      *             if the specified provider is not available.
      * @throws InvalidKeyException
      *             if the specified key cannot be used to decrypt the data.
-     * @since Android 1.0
      */
     public final Object getObject(Key key, String provider)
                 throws IOException, ClassNotFoundException,

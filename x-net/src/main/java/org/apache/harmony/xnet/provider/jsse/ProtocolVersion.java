@@ -14,11 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
-/**
- * @author Boris Kuznetsov
- * @version $Revision$
- */
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.util.Hashtable;
@@ -28,41 +23,13 @@ import java.util.Hashtable;
  * Represents Protocol Version
  */
 public class ProtocolVersion {
-
     /**
-     * Protocol name
-     */
-    public final String name;
-
-    /**
-     * Protocol version as byte array
-     */
-    public final byte[] version;
-
-    /**
-     * Protocols supported by this provider implementaton
+     * Protocols supported by this provider implementation
      */
     public static final String[] supportedProtocols = new String[] { "TLSv1",
             "SSLv3" };
 
-    private static Hashtable protocolsByName = new Hashtable(4);
-
-    private ProtocolVersion(String name, byte[] version) {
-        this.name = name;
-        this.version = version;
-    }
-
-    /**
-     * Compares this ProtocolVersion to the specified object.
-     */
-    public boolean equals(Object o) {
-        if (o instanceof ProtocolVersion
-                && this.version[0] == ((ProtocolVersion) o).version[0]
-                && this.version[1] == ((ProtocolVersion) o).version[1]) {
-            return true;
-        }
-        return false;
-    }
+    private static Hashtable<String, ProtocolVersion> protocolsByName = new Hashtable<String, ProtocolVersion>(4);
 
     /**
      * 
@@ -112,7 +79,7 @@ public class ProtocolVersion {
      * @return
      */
     public static ProtocolVersion getByName(String name) {
-        return (ProtocolVersion) protocolsByName.get(name);
+        return protocolsByName.get(name);
     }
 
     /**
@@ -161,4 +128,31 @@ public class ProtocolVersion {
         protocolsByName.put("TLS", TLSv1);
     }
 
+    /**
+     * Protocol name
+     */
+    public final String name;
+
+    /**
+     * Protocol version as byte array
+     */
+    public final byte[] version;
+
+    private ProtocolVersion(String name, byte[] version) {
+        this.name = name;
+        this.version = version;
+    }
+
+    /**
+     * Compares this ProtocolVersion to the specified object.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof ProtocolVersion
+                && this.version[0] == ((ProtocolVersion) o).version[0]
+                && this.version[1] == ((ProtocolVersion) o).version[1]) {
+            return true;
+        }
+        return false;
+    }
 }

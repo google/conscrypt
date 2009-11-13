@@ -27,8 +27,6 @@ import org.apache.harmony.crypto.internal.nls.Messages;
  * <p>
  * Password based encryption is described in <a
  * href="http://www.ietf.org/rfc/rfc2898.txt">PKCS #5</a>.
- * 
- * @since Android 1.0
  */
 public class PBEKeySpec implements KeySpec {
 
@@ -39,7 +37,7 @@ public class PBEKeySpec implements KeySpec {
 
     /**
      * Creates a new <code>PBEKeySpec</code> with the specified password.
-     * 
+     *
      * @param password
      *            the password.
      */
@@ -58,7 +56,7 @@ public class PBEKeySpec implements KeySpec {
     /**
      * Creates a new <code>PBEKeySpec</code> with the specified password, salt,
      * iteration count and the desired length of the derived key.
-     * 
+     *
      * @param password
      *            the password.
      * @param salt
@@ -104,7 +102,7 @@ public class PBEKeySpec implements KeySpec {
     /**
      * Creates a new <code>PBEKeySpec</code> with the specified password, salt
      * and iteration count.
-     * 
+     *
      * @param password
      *            the password.
      * @param salt
@@ -150,7 +148,7 @@ public class PBEKeySpec implements KeySpec {
 
     /**
      * Returns a copy of the password of this key specification.
-     * 
+     *
      * @return a copy of the password of this key specification.
      * @throws IllegalStateException
      *             if the password has been cleared before.
@@ -166,7 +164,7 @@ public class PBEKeySpec implements KeySpec {
 
     /**
      * Returns a copy of the salt of this key specification.
-     * 
+     *
      * @return a copy of the salt of this key specification or null if none is
      *         specified.
      */
@@ -181,7 +179,7 @@ public class PBEKeySpec implements KeySpec {
 
     /**
      * Returns the iteration count of this key specification.
-     * 
+     *
      * @return the iteration count of this key specification.
      */
     public final int getIterationCount() {
@@ -190,7 +188,7 @@ public class PBEKeySpec implements KeySpec {
 
     /**
      * Returns the desired key length of the derived key.
-     * 
+     *
      * @return the desired key length of the derived key.
      */
     public final int getKeyLength() {

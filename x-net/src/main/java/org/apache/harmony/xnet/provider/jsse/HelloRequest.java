@@ -15,10 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Boris Kuznetsov
-* @version $Revision$
-*/
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.Message;
@@ -60,9 +56,11 @@ public class HelloRequest extends Message {
      * Sends message
      * @param out
      */
+    @Override
     public void send(HandshakeIODataStream out) {
     }
 
+    @Override
     public int length() {
         return 0;
     } 
@@ -71,6 +69,7 @@ public class HelloRequest extends Message {
      * Returns message type 
      * @return
      */
+    @Override
     public int getType() {
         return Handshake.HELLO_REQUEST;
     }

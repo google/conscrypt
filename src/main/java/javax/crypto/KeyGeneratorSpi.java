@@ -26,30 +26,26 @@ import java.security.spec.AlgorithmParameterSpec;
  * {@code KeyGenerator} class.
  * 
  * @see KeyGenerator
- * @since Android 1.0
  */
 public abstract class KeyGeneratorSpi {
 
     /**
      * Creates a new {@code KeyGeneratorSpi} instance.
-     * 
-     * @since Android 1.0
      */
     public KeyGeneratorSpi() {
     }
 
     /**
      * Generates a secret key.
-     * 
+     *
      * @return the generated secret key.
-     * @since Android 1.0
      */
     protected abstract SecretKey engineGenerateKey();
 
     /**
      * Initializes this {@code KeyGeneratorSpi} instance with the specified
      * algorithm parameters and randomness source.
-     * 
+     *
      * @param params
      *            the parameters for the key generation algorithm.
      * @param random
@@ -57,7 +53,6 @@ public abstract class KeyGeneratorSpi {
      * @throws InvalidAlgorithmParameterException
      *             if the parameters cannot be uses to initialize this key
      *             generator algorithm.
-     * @since Android 1.0
      */
     protected abstract void engineInit(AlgorithmParameterSpec params,
             SecureRandom random) throws InvalidAlgorithmParameterException;
@@ -65,22 +60,20 @@ public abstract class KeyGeneratorSpi {
     /**
      * Initializes this {@code KeyGenerator} instance for the specified key
      * size (in bits) using the specified randomness source.
-     * 
+     *
      * @param keysize
      *            the size of the key (in bits).
      * @param random
      *            the randomness source for any random bytes.
-     * @since Android 1.0
      */
     protected abstract void engineInit(int keysize, SecureRandom random);
 
     /**
      * Initializes this {@code KeyGenerator} with the specified randomness
      * source.
-     * 
+     *
      * @param random
      *            the randomness source for any random bytes.
-     * @since Android 1.0
      */
     protected abstract void engineInit(SecureRandom random);
 }

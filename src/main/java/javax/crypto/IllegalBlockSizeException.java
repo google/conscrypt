@@ -22,8 +22,6 @@ import java.security.GeneralSecurityException;
 /**
  * The exception, that is thrown when the data length provided to a block cipher
  * does not match the block size of the cipher.
- * 
- * @since Android 1.0
  */
 public class IllegalBlockSizeException extends GeneralSecurityException {
 
@@ -38,7 +36,6 @@ public class IllegalBlockSizeException extends GeneralSecurityException {
      * 
      * @param msg
      *            the message
-     * @since Android 1.0
      */
     public IllegalBlockSizeException(String msg) {
         super(msg);
@@ -46,8 +43,6 @@ public class IllegalBlockSizeException extends GeneralSecurityException {
 
     /**
      * Creates a new {@code IllegalBlockSizeException}.
-     * 
-     * @since Android 1.0
      */
     public IllegalBlockSizeException() {
     }

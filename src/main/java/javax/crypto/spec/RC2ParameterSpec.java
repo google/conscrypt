@@ -25,8 +25,6 @@ import org.apache.harmony.crypto.internal.nls.Messages;
 /**
  * The algorithm parameter specification for the <a
  * href="http://www.ietf.org/rfc/rfc2268.txt">RC2</a> algorithm.
- * 
- * @since Android 1.0
  */
 public class RC2ParameterSpec implements AlgorithmParameterSpec {
 
@@ -36,7 +34,7 @@ public class RC2ParameterSpec implements AlgorithmParameterSpec {
     /**
      * Creates a new <code>RC2ParameterSpec</code> instance with the specified
      * effective key length (in bits),
-     * 
+     *
      * @param effectiveKeyBits
      *            the effective key length (in bits).
      */
@@ -51,7 +49,7 @@ public class RC2ParameterSpec implements AlgorithmParameterSpec {
      * <p>
      * The size of the <i>initialization vector</i> must be at least 8 bytes
      * which are copied to protect them against modification.
-     * 
+     *
      * @param effectiveKeyBits
      *            the effective key length (in bits).
      * @param iv
@@ -78,7 +76,7 @@ public class RC2ParameterSpec implements AlgorithmParameterSpec {
      * The size of the <i>initialization vector</i> starting at
      * <code>offset</code> must be at least 8 bytes which are copied to protect
      * them against modification.
-     * 
+     *
      * @param effectiveKeyBits
      *            the effective key length (in bits).
      * @param iv
@@ -103,7 +101,7 @@ public class RC2ParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the effective key length (in bits).
-     * 
+     *
      * @return the effective key length (in bits).
      */
     public int getEffectiveKeyBits() {
@@ -112,7 +110,7 @@ public class RC2ParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns a copy of the initialization vector.
-     * 
+     *
      * @return a copy of the initialization vector, or null if none specified.
      */
     public byte[] getIV() {
@@ -127,7 +125,7 @@ public class RC2ParameterSpec implements AlgorithmParameterSpec {
     /**
      * Compares the specified object to this <code>RC2ParameterSpec</code>
      * instance.
-     * 
+     *
      * @param obj
      *            the object to compare.
      * @return true if the effective key length and the initialization vector of
@@ -148,7 +146,7 @@ public class RC2ParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the hash code of this <code>RC2ParameterSpec</code> instance.
-     * 
+     *
      * @return the hash code.
      */
     @Override

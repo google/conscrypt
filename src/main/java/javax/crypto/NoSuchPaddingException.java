@@ -22,8 +22,6 @@ import java.security.GeneralSecurityException;
 /**
  * The exception that is thrown when the requested padding mechanism is not
  * supported.
- * 
- * @since Android 1.0
  */
 public class NoSuchPaddingException extends GeneralSecurityException {
 
@@ -38,7 +36,6 @@ public class NoSuchPaddingException extends GeneralSecurityException {
      * 
      * @param msg
      *            the message.
-     * @since Android 1.0
      */
     public NoSuchPaddingException(String msg) {
         super(msg);
@@ -46,8 +43,6 @@ public class NoSuchPaddingException extends GeneralSecurityException {
 
     /**
      * Creates a new {@code NoSuchPaddingException}.
-     * 
-     * @since Android 1.0
      */
     public NoSuchPaddingException() {
     }

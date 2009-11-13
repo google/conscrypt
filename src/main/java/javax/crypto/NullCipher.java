@@ -32,8 +32,6 @@ import org.apache.harmony.crypto.internal.NullCipherSpi;
 /**
  * This class provides an identity cipher that does not transform the input data
  * in any way. The <i>encrypted</i> data is identical to the <i>plain text</i>.
- * 
- * @since Android 1.0
  */
 public class NullCipher extends Cipher {
 

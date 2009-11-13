@@ -46,7 +46,6 @@ import org.apache.harmony.security.x509.AlgorithmIdentifier;
  * #8 - Private-Key Information Syntax Standard</a>.
  * <p>
  * The definition of ASN.1 is as follows:
- * </p>
  * <dl>
  * EncryptedPrivateKeyInfo ::= SEQUENCE {
  * <dd>encryptionAlgorithm AlgorithmIdentifier,</dd>
@@ -57,8 +56,6 @@ import org.apache.harmony.security.x509.AlgorithmIdentifier;
  * <dd>algorithm OBJECT IDENTIFIER,</dd>
  * <dd>parameters ANY DEFINED BY algorithm OPTIONAL }</dd>
  * </dl>
- * 
- * @since Android 1.0
  */
 public class EncryptedPrivateKeyInfo {
     // Encryption algorithm name
@@ -75,14 +72,13 @@ public class EncryptedPrivateKeyInfo {
     /**
      * Creates an {@code EncryptedPrivateKeyInfo} instance from its encoded
      * representation by parsing it.
-     * 
+     *
      * @param encoded
      *            the encoded representation of this object
      * @throws IOException
      *             if parsing the encoded representation fails.
      * @throws NullPointerException
      *             if {@code encoded} is {@code null}.
-     * @since Android 1.0
      */
     public EncryptedPrivateKeyInfo(byte[] encoded)
             throws IOException {
@@ -127,7 +123,7 @@ public class EncryptedPrivateKeyInfo {
     /**
      * Creates an {@code EncryptedPrivateKeyInfo} instance from an algorithm
      * name and its encrypted data.
-     * 
+     *
      * @param encrAlgName
      *            the name of an algorithm.
      * @param encryptedData
@@ -139,7 +135,6 @@ public class EncryptedPrivateKeyInfo {
      *             null}.
      * @throws IllegalArgumentException
      *             if {@code encryptedData} is empty.
-     * @since Android 1.0
      */
     public EncryptedPrivateKeyInfo(String encrAlgName, byte[] encryptedData)
         throws NoSuchAlgorithmException {
@@ -166,7 +161,7 @@ public class EncryptedPrivateKeyInfo {
     /**
      * Creates an {@code EncryptedPrivateKeyInfo} instance from the
      * encryption algorithm parameters an its encrypted data.
-     * 
+     *
      * @param algParams
      *            the encryption algorithm parameters.
      * @param encryptedData
@@ -177,7 +172,6 @@ public class EncryptedPrivateKeyInfo {
      * @throws NullPointerException
      *             if {@code algParams} or {@code encryptedData} is
      *             {@code null}.
-     * @since Android 1.0
      */
     public EncryptedPrivateKeyInfo(AlgorithmParameters algParams,
             byte[] encryptedData)
@@ -204,9 +198,8 @@ public class EncryptedPrivateKeyInfo {
 
     /**
      * Returns the name of the encryption algorithm.
-     * 
+     *
      * @return the name of the encryption algorithm.
-     * @since Android 1.0
      */
     public String getAlgName() {
         return algName;
@@ -214,9 +207,8 @@ public class EncryptedPrivateKeyInfo {
 
     /**
      * Returns the parameters used by the encryption algorithm.
-     * 
+     *
      * @return the parameters used by the encryption algorithm.
-     * @since Android 1.0
      */
     public AlgorithmParameters getAlgParameters() {
         return algParameters;
@@ -224,10 +216,9 @@ public class EncryptedPrivateKeyInfo {
 
     /**
      * Returns the encrypted data of this key.
-     * 
+     *
      * @return the encrypted data of this key, each time this method is called a
      *         new array is returned.
-     * @since Android 1.0
      */
     public byte[] getEncryptedData() {
         byte[] ret = new byte[encryptedData.length];
@@ -242,8 +233,7 @@ public class EncryptedPrivateKeyInfo {
      * The cipher must be initialize in either {@code Cipher.DECRYPT_MODE} or
      * {@code Cipher.UNWRAP_MODE} with the same parameters and key used for
      * encrypting this.
-     * </p>
-     * 
+     *
      * @param cipher
      *            the cipher initialized for decrypting the encrypted data.
      * @return the extracted {@code PKCS8EncodedKeySpec}.
@@ -252,7 +242,6 @@ public class EncryptedPrivateKeyInfo {
      *             encrypted data.
      * @throws NullPointerException
      *             if {@code cipher} is {@code null}.
-     * @since Android 1.0
      */
     public PKCS8EncodedKeySpec getKeySpec(Cipher cipher)
         throws InvalidKeySpecException {
@@ -280,7 +269,7 @@ public class EncryptedPrivateKeyInfo {
     /**
      * Returns the {@code PKCS8EncodedKeySpec} object extracted from the
      * encrypted data.
-     * 
+     *
      * @param decryptKey
      *            the key to decrypt the encrypted data with.
      * @return the extracted {@code PKCS8EncodedKeySpec}.
@@ -292,7 +281,6 @@ public class EncryptedPrivateKeyInfo {
      *             data.
      * @throws NullPointerException
      *             if {@code decryptKey} is {@code null}.
-     * @since Android 1.0
      */
     public PKCS8EncodedKeySpec getKeySpec(Key decryptKey)
         throws NoSuchAlgorithmException,
@@ -331,7 +319,7 @@ public class EncryptedPrivateKeyInfo {
     /**
      * Returns the {@code PKCS8EncodedKeySpec} object extracted from the
      * encrypted data.
-     * 
+     *
      * @param decryptKey
      *            the key to decrypt the encrypted data with.
      * @param providerName
@@ -349,7 +337,6 @@ public class EncryptedPrivateKeyInfo {
      * @throws NullPointerException
      *             if {@code decryptKey} or {@code providerName} is {@code null}
      *             .
-     * @since Android 1.0
      */
     public PKCS8EncodedKeySpec getKeySpec(Key decryptKey, String providerName)
         throws NoSuchProviderException, 
@@ -393,7 +380,7 @@ public class EncryptedPrivateKeyInfo {
     /**
      * Returns the {@code PKCS8EncodedKeySpec} object extracted from the
      * encrypted data.
-     * 
+     *
      * @param decryptKey
      *            the key to decrypt the encrypted data with.
      * @param provider
@@ -407,7 +394,6 @@ public class EncryptedPrivateKeyInfo {
      *             data.
      * @throws NullPointerException
      *             if {@code decryptKey} or {@code provider} is {@code null}.
-     * @since Android 1.0
      */
     public PKCS8EncodedKeySpec getKeySpec(Key decryptKey, Provider provider)
         throws NoSuchAlgorithmException,
@@ -448,11 +434,10 @@ public class EncryptedPrivateKeyInfo {
 
     /**
      * Returns the ASN.1 encoded representation of this object.
-     * 
+     *
      * @return the ASN.1 encoded representation of this object.
      * @throws IOException
      *             if encoding this object fails.
-     * @since Android 1.0
      */
     public byte[] getEncoded() throws IOException {
         if (encoded == null) {

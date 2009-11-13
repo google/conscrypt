@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Boris Kuznetsov
-* @version $Revision$
-*/
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
@@ -27,7 +22,6 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 
 /**
- * 
  * Represents Client Hello message
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS 1.0 spec., 7.4.1.2.
  * Client hello</a>
@@ -176,6 +170,7 @@ public class ClientHello extends Message {
      * Sends message
      * @param out
      */
+    @Override
     public void send(HandshakeIODataStream out) {
         out.write(client_version);
         out.write(random);
@@ -204,6 +199,7 @@ public class ClientHello extends Message {
      * Returns message type 
      * @return
      */
+    @Override
     public int getType() {
         return Handshake.CLIENT_HELLO;
     }

@@ -34,8 +34,6 @@ import org.apache.harmony.security.fortress.Engine;
 /**
  * This class provides the public API for <i>Message Authentication Code</i>
  * (MAC) algorithms.
- * 
- * @since Android 1.0
  */
 public class Mac implements Cloneable {
 
@@ -56,14 +54,13 @@ public class Mac implements Cloneable {
 
     /**
      * Creates a new {@code Mac} instance.
-     * 
+     *
      * @param macSpi
      *            the implementation delegate.
      * @param provider
      *            the implementation provider.
      * @param algorithm
      *            the name of the MAC algorithm.
-     * @since Android 1.0
      */
     protected Mac(MacSpi macSpi, Provider provider, String algorithm) {
         this.provider = provider;
@@ -76,7 +73,6 @@ public class Mac implements Cloneable {
      * Returns the name of the MAC algorithm.
      * 
      * @return the name of the MAC algorithm.
-     * @since Android 1.0
      */
     public final String getAlgorithm() {
         return algorithm;
@@ -84,9 +80,8 @@ public class Mac implements Cloneable {
 
     /**
      * Returns the provider of this {@code Mac} instance.
-     * 
+     *
      * @return the provider of this {@code Mac} instance.
-     * @since Android 1.0
      */
     public final Provider getProvider() {
         return provider;
@@ -102,8 +97,8 @@ public class Mac implements Cloneable {
      * @throws NoSuchAlgorithmException
      *             if the specified algorithm is not available by any provider.
      * @throws NullPointerException
-     *             if {@code algorithm} is {@code null}.
-     * @since Android 1.0
+     *             if {@code algorithm} is {@code null} (instead of
+     *             NoSuchAlgorithmException as in 1.4 release).
      */
     public static final Mac getInstance(String algorithm)
             throws NoSuchAlgorithmException {
@@ -133,8 +128,8 @@ public class Mac implements Cloneable {
      * @throws IllegalArgumentException
      *             if the specified provider name is {@code null} or empty.
      * @throws NullPointerException
-     *             if {@code algorithm} is {@code null}
-     * @since Android 1.0.
+     *             if {@code algorithm} is {@code null} (instead of
+     *             NoSuchAlgorithmException as in 1.4 release).
      */
     public static final Mac getInstance(String algorithm, String provider)
             throws NoSuchAlgorithmException, NoSuchProviderException {
@@ -163,8 +158,8 @@ public class Mac implements Cloneable {
      * @throws IllegalArgumentException
      *             if {@code provider} is {@code null}.
      * @throws NullPointerException
-     *             if {@code algorithm} is {@code null}.
-     * @since Android 1.0
+     *             if {@code algorithm} is {@code null} (instead of
+     *             NoSuchAlgorithmException as in 1.4 release).
      */
     public static final Mac getInstance(String algorithm, Provider provider)
             throws NoSuchAlgorithmException {
@@ -182,7 +177,7 @@ public class Mac implements Cloneable {
 
     /**
      * Returns the length of this MAC (in bytes).
-     * 
+     *
      * @return the length of this MAC (in bytes).
      */
     public final int getMacLength() {
@@ -192,7 +187,7 @@ public class Mac implements Cloneable {
     /**
      * Initializes this {@code Mac} instance with the specified key and
      * algorithm parameters.
-     * 
+     *
      * @param key
      *            the key to initialize this algorithm.
      * @param params
@@ -203,7 +198,6 @@ public class Mac implements Cloneable {
      * @throws InvalidAlgorithmParameterException
      *             if the specified parameters cannot be used to initialize this
      *             algorithm.
-     * @since Android 1.0
      */
     public final void init(Key key, AlgorithmParameterSpec params)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
@@ -216,7 +210,7 @@ public class Mac implements Cloneable {
 
     /**
      * Initializes this {@code Mac} instance with the specified key.
-     * 
+     *
      * @param key
      *            the key to initialize this algorithm.
      * @throws InvalidKeyException
@@ -225,7 +219,6 @@ public class Mac implements Cloneable {
      * @throws RuntimeException
      *             if the specified key cannot be used to initialize this
      *             algorithm.
-     * @since Android 1.0
      */
     public final void init(Key key) throws InvalidKeyException {
         if (key == null) {
@@ -241,12 +234,11 @@ public class Mac implements Cloneable {
 
     /**
      * Updates this {@code Mac} instance with the specified byte.
-     * 
+     *
      * @param input
      *            the byte
      * @throws IllegalStateException
      *             if this MAC is not initialized.
-     * @since Android 1.0
      */
     public final void update(byte input) throws IllegalStateException {
         if (!isInitMac) {
@@ -258,7 +250,7 @@ public class Mac implements Cloneable {
     /**
      * Updates this {@code Mac} instance with the data from the specified buffer
      * {@code input} from the specified {@code offset} and length {@code len}.
-     * 
+     *
      * @param input
      *            the buffer.
      * @param offset
@@ -270,7 +262,6 @@ public class Mac implements Cloneable {
      * @throws IllegalArgumentException
      *             if {@code offset} and {@code len} do not specified a valid
      *             chunk in {@code input} buffer.
-     * @since Android 1.0
      */
     public final void update(byte[] input, int offset, int len)
             throws IllegalStateException {
@@ -288,12 +279,11 @@ public class Mac implements Cloneable {
 
     /**
      * Copies the buffer provided as input for further processing.
-     * 
+     *
      * @param input
      *            the buffer.
      * @throws IllegalStateException
      *             if this MAC is not initialized.
-     * @since Android 1.0
      */
     public final void update(byte[] input) throws IllegalStateException {
         if (!isInitMac) {
@@ -308,12 +298,11 @@ public class Mac implements Cloneable {
      * Updates this {@code Mac} instance with the data from the specified
      * buffer, starting at {@link ByteBuffer#position()}, including the next
      * {@link ByteBuffer#remaining()} bytes.
-     * 
+     *
      * @param input
      *            the buffer.
      * @throws IllegalStateException
      *             if this MAC is not initialized.
-     * @since Android 1.0
      */
     public final void update(ByteBuffer input) {
         if (!isInitMac) {
@@ -333,12 +322,10 @@ public class Mac implements Cloneable {
      * This {@code Mac} instance is reverted to its initial state and can be
      * used to start the next MAC computation with the same parameters or
      * initialized with different parameters.
-     * </p>
-     * 
+     *
      * @return the generated digest.
      * @throws IllegalStateException
      *             if this MAC is not initialized.
-     * @since Android 1.0
      */
     public final byte[] doFinal() throws IllegalStateException {
         if (!isInitMac) {
@@ -355,8 +342,7 @@ public class Mac implements Cloneable {
      * This {@code Mac} instance is reverted to its initial state and can be
      * used to start the next MAC computation with the same parameters or
      * initialized with different parameters.
-     * </p>
-     * 
+     *
      * @param output
      *            the output buffer
      * @param outOffset
@@ -368,7 +354,6 @@ public class Mac implements Cloneable {
      *             of the output buffer.
      * @throws IllegalStateException
      *             if this MAC is not initialized.
-     * @since Android 1.0
      */
     public final void doFinal(byte[] output, int outOffset)
             throws ShortBufferException, IllegalStateException {
@@ -401,14 +386,12 @@ public class Mac implements Cloneable {
      * This {@code Mac} instance is reverted to its initial state and can be
      * used to start the next MAC computation with the same parameters or
      * initialized with different parameters.
-     * </p>
-     * 
+     *
      * @param input
      *            the final bytes.
      * @return the generated digest.
      * @throws IllegalStateException
      *             if this MAC is not initialized.
-     * @since Android 1.0
      */
     public final byte[] doFinal(byte[] input) throws IllegalStateException {
         if (!isInitMac) {
@@ -426,9 +409,6 @@ public class Mac implements Cloneable {
      * This {@code Mac} instance is reverted to its initial state and can be
      * used to start the next MAC computation with the same parameters or
      * initialized with different parameters.
-     * </p>
-     * 
-     * @since Android 1.0
      */
     public final void reset() {
         spiImpl.engineReset();
@@ -436,11 +416,10 @@ public class Mac implements Cloneable {
 
     /**
      * Clones this {@code Mac} instance and the underlying implementation.
-     * 
+     *
      * @return the cloned instance.
      * @throws CloneNotSupportedException
      *             if the underlying implementation does not support cloning.
-     * @since Android 1.0
      */
     @Override
     public final Object clone() throws CloneNotSupportedException {

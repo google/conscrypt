@@ -44,7 +44,7 @@ import org.apache.harmony.crypto.internal.nls.Messages;
  * </ul>
  * The following behavior should be implemented for obtaining {@code Cipher}
  * instances.
- * </p>
+ * <p>
  * When one of the {@link Cipher#getInstance} factory methods is called with a
  * <i>transformation</i> that is only an <i>algorithm</i>, check if the provider
  * defines a {@code CipherSpi} for "algorithm", if so: return it, otherwise
@@ -76,53 +76,46 @@ import org.apache.harmony.crypto.internal.nls.Messages;
  * padding name and return it, otherwise throw a
  * {@link NoSuchAlgorithmException}.
  * </ul>
- * </p>
- * 
+ *
  * @see Cipher
- * @since Android 1.0
  */
 public abstract class CipherSpi {
 
     /**
      * Creates a new {@code CipherSpi} instance.
-     * 
-     * @since Android 1.0
      */
     public CipherSpi() {
     }
 
     /**
      * Sets the mode for this cipher.
-     * 
+     *
      * @param mode
      *            the name of the cipher mode.
      * @throws NoSuchAlgorithmException
      *             if the specified cipher mode is not supported by this
      *             provider.
-     * @since Android 1.0
      */
     protected abstract void engineSetMode(String mode)
             throws NoSuchAlgorithmException;
 
     /**
      * Sets the padding method for this cipher.
-     * 
+     *
      * @param padding
      *            the name of the padding method.
      * @throws NoSuchPaddingException
      *             if the specified padding method is not supported by this
      *             cipher.
-     * @since Android 1.0
      */
     protected abstract void engineSetPadding(String padding)
             throws NoSuchPaddingException;
 
     /**
      * Returns the block size of this cipher (in bytes)
-     * 
+     *
      * @return the block size of this cipher, or zero if this cipher is not a
      *         block cipher.
-     * @since Android 1.0
      */
     protected abstract int engineGetBlockSize();
 
@@ -133,21 +126,18 @@ public abstract class CipherSpi {
      * <p>
      * The actual output length of the next call to {@code update} or {@code
      * doFinal} may be smaller than the length returned by this method.
-     * </p>
-     * 
+     *
      * @param inputLen
      *            the length of the input (in bytes).
      * @return the size for a buffer (in bytes).
-     * @since Android 1.0
      */
     protected abstract int engineGetOutputSize(int inputLen);
 
     /**
      * Returns the Initialization Vector (IV) that was used to initialize this
      * cipher or {@code null} if none was used.
-     * 
+     *
      * @return the Initialization Vector (IV), or {@code null} if none was used.
-     * @since Android 1.0
      */
     protected abstract byte[] engineGetIV();
 
@@ -157,12 +147,10 @@ public abstract class CipherSpi {
      * These may be a the same parameters that were used to create this cipher
      * instance, or may be a combination of default and random parameters,
      * depending on the underlying cipher implementation.
-     * </p>
-     * 
+     *
      * @return the parameters that where used to create this cipher instance, or
      *         {@code null} if this cipher instance does not have any parameters
      *         at all.
-     * @since Android 1.0
      */
     protected abstract AlgorithmParameters engineGetParameters();
 
@@ -173,7 +161,7 @@ public abstract class CipherSpi {
      * The cipher will be initialized for the specified operation (one of:
      * encryption, decryption, key wrapping or key unwrapping) depending on
      * {@code opmode}.
-     * </p>
+     * <p>
      * If this cipher instance needs any algorithm parameters or random values
      * that the specified key cannot provide, the underlying implementation of
      * this cipher is supposed to generate the required parameters (using its
@@ -183,8 +171,7 @@ public abstract class CipherSpi {
      * When a cipher instance is initialized by a call to any of the {@code
      * init} methods, the state of the instance is overridden, means it is
      * equivalent to creating a new instance and calling it {@code init} method.
-     * </p>
-     * 
+     *
      * @param opmode
      *            the operation this cipher instance should be initialized for
      *            (one of: {@code ENCRYPT_MODE}, {@code DECRYPT_MODE}, {@code
@@ -196,7 +183,6 @@ public abstract class CipherSpi {
      * @throws InvalidKeyException
      *             if the specified key cannot be used to initialize this cipher
      *             instance.
-     * @since Android 1.0
      */
     protected abstract void engineInit(int opmode, Key key, SecureRandom random)
             throws InvalidKeyException;
@@ -208,7 +194,7 @@ public abstract class CipherSpi {
      * The cipher will be initialized for the specified operation (one of:
      * encryption, decryption, key wrapping or key unwrapping) depending on
      * {@code opmode}.
-     * </p>
+     * <p>
      * If this cipher instance needs any algorithm parameters and {@code params}
      * is {@code null}, the underlying implementation of this cipher is supposed
      * to generate the required parameters (using its provider or random
@@ -217,8 +203,7 @@ public abstract class CipherSpi {
      * When a cipher instance is initialized by a call to any of the {@code
      * init} methods, the state of the instance is overridden, means it is
      * equivalent to creating a new instance and calling it {@code init} method.
-     * </p>
-     * 
+     *
      * @param opmode
      *            the operation this cipher instance should be initialized for
      *            (one of: {@code ENCRYPT_MODE}, {@code DECRYPT_MODE}, {@code
@@ -235,7 +220,6 @@ public abstract class CipherSpi {
      * @throws InvalidAlgorithmParameterException
      *             it the specified parameters are inappropriate for this
      *             cipher.
-     * @since Android 1.0
      */
     protected abstract void engineInit(int opmode, Key key,
             AlgorithmParameterSpec params, SecureRandom random)
@@ -248,7 +232,7 @@ public abstract class CipherSpi {
      * The cipher will be initialized for the specified operation (one of:
      * encryption, decryption, key wrapping or key unwrapping) depending on
      * {@code opmode}.
-     * </p>
+     * <p>
      * If this cipher instance needs any algorithm parameters and {@code params}
      * is {@code null}, the underlying implementation of this cipher is supposed
      * to generate the required parameters (using its provider or random
@@ -257,8 +241,7 @@ public abstract class CipherSpi {
      * When a cipher instance is initialized by a call to any of the {@code
      * init} methods, the state of the instance is overridden, means it is
      * equivalent to creating a new instance and calling it {@code init} method.
-     * </p>
-     * 
+     *
      * @param opmode
      *            the operation this cipher instance should be initialized for
      *            (one of: {@code ENCRYPT_MODE}, {@code DECRYPT_MODE}, {@code
@@ -275,7 +258,6 @@ public abstract class CipherSpi {
      * @throws InvalidAlgorithmParameterException
      *             if the specified parameters are inappropriate for this
      *             cipher.
-     * @since Android 1.0
      */
     protected abstract void engineInit(int opmode, Key key,
             AlgorithmParameters params, SecureRandom random)
@@ -284,7 +266,7 @@ public abstract class CipherSpi {
     /**
      * Continues a multi-part transformation (encryption or decryption). The
      * transformed bytes are returned.
-     * 
+     *
      * @param input
      *            the input bytes to transform.
      * @param inputOffset
@@ -299,7 +281,6 @@ public abstract class CipherSpi {
      * @throws IllegalArgumentException
      *             if the input is null, or if {@code inputOffset} and {@code
      *             inputLen} do not specify a valid chunk in the input buffer.
-     * @since Android 1.0
      */
     protected abstract byte[] engineUpdate(byte[] input, int inputOffset,
             int inputLen);
@@ -312,8 +293,7 @@ public abstract class CipherSpi {
      * a {@code ShortBufferException} is thrown. Use
      * {@link Cipher#getOutputSize getOutputSize} to check for the size of the
      * output buffer.
-     * </p>
-     * 
+     *
      * @param input
      *            the input bytes to transform.
      * @param inputOffset
@@ -327,7 +307,6 @@ public abstract class CipherSpi {
      * @return the number of bytes placed in output.
      * @throws ShortBufferException
      *             if the size of the {@code output} buffer is too small.
-     * @since Android 1.0
      */
     protected abstract int engineUpdate(byte[] input, int inputOffset,
             int inputLen, byte[] output, int outputOffset)
@@ -342,8 +321,7 @@ public abstract class CipherSpi {
      * bytes a {@code ShortBufferException} is thrown. Use
      * {@link Cipher#getOutputSize getOutputSize} to check for the size of the
      * output buffer.
-     * </p>
-     * 
+     *
      * @param input
      *            the input buffer to transform.
      * @param output
@@ -351,7 +329,6 @@ public abstract class CipherSpi {
      * @return the number of bytes stored in the output buffer.
      * @throws ShortBufferException
      *             if the size of the {@code output} buffer is too small.
-     * @since Android 1.0
      */
     protected int engineUpdate(ByteBuffer input, ByteBuffer output)
             throws ShortBufferException {
@@ -395,8 +372,7 @@ public abstract class CipherSpi {
      * Processes the {@code inputLen} bytes in {@code input} buffer at {@code
      * inputOffset}, and any bytes that have been buffered in previous {@code
      * update} calls.
-     * </p>
-     * 
+     *
      * @param input
      *            the input buffer.
      * @param inputOffset
@@ -409,7 +385,6 @@ public abstract class CipherSpi {
      *             cipher block size.
      * @throws BadPaddingException
      *             if the padding of the data does not match the padding scheme.
-     * @since Android 1.0
      */
     protected abstract byte[] engineDoFinal(byte[] input, int inputOffset,
             int inputLen) throws IllegalBlockSizeException, BadPaddingException;
@@ -418,10 +393,9 @@ public abstract class CipherSpi {
      * Finishes a multi-part transformation (encryption or decryption).
      * <p>
      * Processes the {@code inputLen} bytes in {@code input} buffer at
-     * {@code inputOffset}, and any bytes that have been buffered in previous 
+     * {@code inputOffset}, and any bytes that have been buffered in previous
      * {@code update} calls.
-     * </p>
-     * 
+     *
      * @param input
      *            the input buffer.
      * @param inputOffset
@@ -440,7 +414,6 @@ public abstract class CipherSpi {
      *             cipher block size.
      * @throws BadPaddingException
      *             if the padding of the data does not match the padding scheme.
-     * @since Android 1.0
      */
     protected abstract int engineDoFinal(byte[] input, int inputOffset,
             int inputLen, byte[] output, int outputOffset)
@@ -454,8 +427,7 @@ public abstract class CipherSpi {
      * {@code input.position()}, and any bytes that have been buffered in
      * previous {@code update} calls. The transformed bytes are placed into
      * {@code output} buffer.
-     * </p>
-     * 
+     *
      * @param input
      *            the input buffer.
      * @param output
@@ -519,7 +491,7 @@ public abstract class CipherSpi {
      * this class (for backwards compatibility, it cannot be abstract). If this
      * method is not overridden, it throws an {@code
      * UnsupportedOperationException}.
-     * 
+     *
      * @param key
      *            the key to wrap.
      * @return the wrapped key
@@ -528,7 +500,6 @@ public abstract class CipherSpi {
      *             cipher block size.
      * @throws InvalidKeyException
      *             if this cipher instance cannot wrap this key.
-     * @since Android 1.0
      */
     protected byte[] engineWrap(Key key) throws IllegalBlockSizeException,
             InvalidKeyException {
@@ -542,8 +513,7 @@ public abstract class CipherSpi {
      * This method has been added to this class (for backwards compatibility, it
      * cannot be abstract). If this method is not overridden, it throws an
      * {@code UnsupportedOperationException}.
-     * </p>
-     * 
+     *
      * @param wrappedKey
      *            the wrapped key to unwrap.
      * @param wrappedKeyAlgorithm
@@ -559,7 +529,6 @@ public abstract class CipherSpi {
      * @throws NoSuchAlgorithmException
      *             if no provider can be found that can create a key of type
      *             {@code wrappedKeyType} for the {@code wrappedKeyAlgorithm}.
-     * @since Android 1.0
      */
     protected Key engineUnwrap(byte[] wrappedKey, String wrappedKeyAlgorithm,
             int wrappedKeyType) throws InvalidKeyException,
@@ -573,14 +542,13 @@ public abstract class CipherSpi {
      * added to this class (for backwards compatibility, it cannot be abstract).
      * If this method is not overridden, it throws an {@code
      * UnsupportedOperationException}.
-     * 
+     *
      * @param key
      *            the key to get the size for.
      * @return the size of a specified key object in bits.
      * @throws InvalidKeyException
      *             if the size of the key cannot be determined by this
      *             implementation.
-     * @since Android 1.0
      */
     protected int engineGetKeySize(Key key) throws InvalidKeyException {
         throw new UnsupportedOperationException(

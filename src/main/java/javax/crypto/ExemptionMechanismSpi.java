@@ -26,26 +26,21 @@ import java.security.spec.AlgorithmParameterSpec;
 /**
  * The <i>Service Provider Interface</i> (<b>SPI</b>) definition for the {@code
  * ExemptionMechanism} class.
- * 
- * @since Android 1.0
  */
 public abstract class ExemptionMechanismSpi {
 
     /**
      * Creates a new {@code ExemptionMechanismSpi} instance.
-     * 
-     * @since Android 1.0
      */
     public ExemptionMechanismSpi() {
     }
 
     /**
      * Generates the result key blob for this exemption mechanism.
-     * 
+     *
      * @return the result key blob for this exemption mechanism.
      * @throws ExemptionMechanismException
      *             if error(s) occur during generation.
-     * @since Android 1.0
      */
     protected abstract byte[] engineGenExemptionBlob()
             throws ExemptionMechanismException;
@@ -53,7 +48,7 @@ public abstract class ExemptionMechanismSpi {
     /**
      * Generates the result key blob for this exemption mechanism and stores it
      * into the {@code output} buffer at offset {@code outputOffset}.
-     * 
+     *
      * @param output
      *            the output buffer for the result key blob.
      * @param outputOffset
@@ -63,7 +58,6 @@ public abstract class ExemptionMechanismSpi {
      *             if the provided buffer is too small for the result key blob.
      * @throws ExemptionMechanismException
      *             if error(s) occur during generation.
-     * @since Android 1.0
      */
     protected abstract int engineGenExemptionBlob(byte[] output,
             int outputOffset) throws ShortBufferException,
@@ -73,7 +67,7 @@ public abstract class ExemptionMechanismSpi {
      * Returns the size in bytes for the output buffer needed to hold the output
      * of the next {@link #engineGenExemptionBlob} call, given the specified
      * {@code inputLen} (in bytes).
-     * 
+     *
      * @param inputLen
      *            the specified input length (in bytes).
      * @return the size in bytes for the output buffer.
@@ -83,14 +77,13 @@ public abstract class ExemptionMechanismSpi {
     /**
      * Initializes this {@code ExemptionMechanism} instance with the specified
      * key.
-     * 
+     *
      * @param key
      *            the key to initialize this instance with.
      * @throws InvalidKeyException
      *             if the key cannot be used to initialize this mechanism.
      * @throws ExemptionMechanismException
      *             if error(s) occur during initialization.
-     * @since Android 1.0
      */
     protected abstract void engineInit(Key key) throws InvalidKeyException,
             ExemptionMechanismException;
@@ -98,7 +91,7 @@ public abstract class ExemptionMechanismSpi {
     /**
      * Initializes this {@code ExemptionMechanism} instance with the specified
      * key and algorithm parameters.
-     * 
+     *
      * @param key
      *            the key to initialize this instance with.
      * @param params
@@ -110,7 +103,6 @@ public abstract class ExemptionMechanismSpi {
      *             mechanism.
      * @throws ExemptionMechanismException
      *             if error(s) occur during initialization.
-     * @since Android 1.0
      */
     protected abstract void engineInit(Key key, AlgorithmParameters params)
             throws InvalidKeyException, InvalidAlgorithmParameterException,
@@ -119,7 +111,7 @@ public abstract class ExemptionMechanismSpi {
     /**
      * Initializes this {@code ExemptionMechanism} instance with the specified
      * key and algorithm parameters.
-     * 
+     *
      * @param key
      *            the key to initialize this instance with.
      * @param params
@@ -131,7 +123,6 @@ public abstract class ExemptionMechanismSpi {
      *             mechanism.
      * @throws ExemptionMechanismException
      *             if error(s) occur during initialization.
-     * @since Android 1.0
      */
     protected abstract void engineInit(Key key, AlgorithmParameterSpec params)
             throws InvalidKeyException, InvalidAlgorithmParameterException,

@@ -27,8 +27,6 @@ import java.security.GeneralSecurityException;
 /**
  * The exception that is thrown when the result of an operation is attempted to
  * store in a user provided buffer that is too small.
- * 
- * @since Android 1.0
  */
 public class ShortBufferException extends GeneralSecurityException {
 
@@ -43,7 +41,6 @@ public class ShortBufferException extends GeneralSecurityException {
      * 
      * @param msg
      *            the exception message.
-     * @since Android 1.0
      */
     public ShortBufferException(String msg) {
         super(msg);
@@ -51,8 +48,6 @@ public class ShortBufferException extends GeneralSecurityException {
 
     /**
      * Creates a new instance of {@code ShortBufferException}.
-     * 
-     * @since Android 1.0
      */
     public ShortBufferException() {
     }

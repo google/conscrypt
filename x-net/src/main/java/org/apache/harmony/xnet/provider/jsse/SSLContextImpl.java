@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.SSLEngineImpl;
@@ -61,6 +56,7 @@ public class SSLContextImpl extends SSLContextSpi {
         super();
     }
 
+    @Override
     public void engineInit(KeyManager[] kms, TrustManager[] tms,
             SecureRandom sr) throws KeyManagementException {
         engineInit(kms, tms, sr, null, null);
@@ -96,6 +92,7 @@ public class SSLContextImpl extends SSLContextSpi {
         return new OpenSSLSocketFactoryImpl(sslParameters);
     }
 
+    @Override
     public SSLServerSocketFactory engineGetServerSocketFactory() {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initiallized.");
@@ -103,6 +100,7 @@ public class SSLContextImpl extends SSLContextSpi {
         return new OpenSSLServerSocketFactoryImpl(sslParameters);
     }
 
+    @Override
     public SSLEngine engineCreateSSLEngine(String host, int port) {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initiallized.");
@@ -111,6 +109,7 @@ public class SSLContextImpl extends SSLContextSpi {
                 (SSLParameters) sslParameters.clone());
     }
 
+    @Override
     public SSLEngine engineCreateSSLEngine() {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initiallized.");
@@ -118,10 +117,12 @@ public class SSLContextImpl extends SSLContextSpi {
         return new SSLEngineImpl((SSLParameters) sslParameters.clone());
     }
 
+    @Override
     public ServerSessionContext engineGetServerSessionContext() {
         return serverSessionContext;
     }
 
+    @Override
     public ClientSessionContext engineGetClientSessionContext() {
         return clientSessionContext;
     }

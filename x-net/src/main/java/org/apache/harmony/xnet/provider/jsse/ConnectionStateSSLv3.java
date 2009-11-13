@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.security.GeneralSecurityException;
@@ -31,7 +26,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLProtocolException;
 
 /**
- * This class incapsulates the operating environment of the SSL v3
+ * This class encapsulates the operating environment of the SSL v3
  * (http://wp.netscape.com/eng/ssl3) Record Protocol and provides 
  * relating encryption/decryption functionality. 
  * The work functionality is based on the security
@@ -218,8 +213,9 @@ public class ConnectionStateSSLv3 extends ConnectionState {
     /**
      * Creates the GenericStreamCipher or GenericBlockCipher
      * data structure for specified data of specified type.
-     * @throws org.apache.harmony.xnet.provider.jsse.AlertException if alert was occured.
+     * @throws AlertException if alert was occurred.
      */
+    @Override
     protected byte[] encrypt(byte type, byte[] fragment, int offset, int len) {
         try {
             int content_mac_length = len + hash_size;
@@ -282,6 +278,7 @@ public class ConnectionStateSSLv3 extends ConnectionState {
      * the specified type from the provided data.
      * @throws AlertException if alert was occured.
      */
+    @Override
     protected byte[] decrypt(byte type, byte[] fragment,
             int offset, int len) {
         // plain data of the Generic[Stream|Block]Cipher structure
@@ -344,9 +341,10 @@ public class ConnectionStateSSLv3 extends ConnectionState {
     }
 
     /**
-     * Shutdownes the protocol. It will be impossiblke to use the instance
+     * Shutdown the protocol. It will be impossible to use the instance
      * after the calling of this method.
      */
+    @Override
     protected void shutdown() {
         Arrays.fill(mac_write_secret, (byte) 0);
         Arrays.fill(mac_read_secret, (byte) 0);

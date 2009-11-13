@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Boris Kuznetsov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.Message;
@@ -30,7 +25,6 @@ import org.apache.harmony.xnet.provider.jsse.AlertProtocol;
 import java.io.IOException;
 
 /**
- * 
  * Represents certificate verify message
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS 1.0 spec., 7.4.8.
  * Certificate verify</a>
@@ -83,6 +77,7 @@ public class CertificateVerify extends Message {
      * 
      * @param out
      */
+    @Override
     public void send(HandshakeIODataStream out) {
         if (signedHash.length != 0) {
             out.writeUint16(signedHash.length);
@@ -95,6 +90,7 @@ public class CertificateVerify extends Message {
      * 
      * @return
      */
+    @Override
     public int getType() {
         return Handshake.CERTIFICATE_VERIFY;
     }

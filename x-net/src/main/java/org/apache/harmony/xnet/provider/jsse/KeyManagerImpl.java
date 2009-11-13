@@ -14,11 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
-/**
- * @author Boris Kuznetsov
- * @version $Revision$
- */
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.net.Socket;
@@ -28,6 +23,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.UnrecoverableEntryException;
+import java.security.KeyStore.PrivateKeyEntry;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
@@ -40,11 +36,11 @@ import javax.security.auth.x500.X500Principal;
 
 /**
  * KeyManager implementation.
- * This implementation uses hashed key store information.
- * It works faster than retrieving all of the data from the key store.
- * Any key store changes, that happen after key manager was created, have no effect.
- * The implementation does not use peer information (host, port)
- * that may be obtained from socket or engine.
+ * 
+ * This implementation uses hashed key store information. It works faster than retrieving all of the
+ * data from the key store. Any key store changes, that happen after key manager was created, have
+ * no effect. The implementation does not use peer information (host, port) that may be obtained
+ * from socket or engine.
  * 
  * @see javax.net.ssl.KeyManager
  * 
@@ -52,7 +48,7 @@ import javax.security.auth.x500.X500Principal;
 public class KeyManagerImpl extends X509ExtendedKeyManager {
 
     // hashed key store information
-    private final Hashtable hash = new Hashtable();
+    private final Hashtable<String, PrivateKeyEntry> hash;
 
     /**
      * Creates Key manager
@@ -61,21 +57,20 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
      * @param pwd
      */
     public KeyManagerImpl(KeyStore keyStore, char[] pwd) {
-        String alias;
-        KeyStore.PrivateKeyEntry entry;
-        Enumeration aliases;
+        super();
+        this.hash = new Hashtable<String, PrivateKeyEntry>();
+        final Enumeration<String> aliases;
         try {
             aliases = keyStore.aliases();
         } catch (KeyStoreException e) {
             return;
         }
         for (; aliases.hasMoreElements();) {
-            alias = (String) aliases.nextElement();          
+            final String alias = aliases.nextElement();
             try {
-                if (keyStore.entryInstanceOf(alias,
-                        KeyStore.PrivateKeyEntry.class)) {
-                    entry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(alias,
-                            new KeyStore.PasswordProtection(pwd));
+                if (keyStore.entryInstanceOf(alias, KeyStore.PrivateKeyEntry.class)) {
+                    final KeyStore.PrivateKeyEntry entry = (KeyStore.PrivateKeyEntry) keyStore
+                            .getEntry(alias, new KeyStore.PasswordProtection(pwd));
                     hash.put(alias, entry);
                 }
             } catch (KeyStoreException e) {
@@ -86,41 +81,18 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
                 continue;
             }
         }
-
     }
 
-    /**
-     * @see javax.net.ssl.X509ExtendedKeyManager#chooseClientAlias(String[]
-     *      keyType, Principal[] issuers, Socket socket)
-     */
-    public String chooseClientAlias(String[] keyType, Principal[] issuers,
-            Socket socket) {
-        String[] al = chooseAlias(keyType, issuers);
-        if (al != null) {
-            return al[0];
-        } else {
-            return null;
-        }
+    public String chooseClientAlias(String[] keyType, Principal[] issuers, Socket socket) {
+        final String[] al = chooseAlias(keyType, issuers);
+        return (al == null ? null : al[0]);
     }
 
-    /**
-     * @see javax.net.ssl.X509ExtendedKeyManager#chooseServerAlias(String
-     *      keyType, Principal[] issuers, Socket socket)
-     */
-    public String chooseServerAlias(String keyType, Principal[] issuers,
-            Socket socket) {
-        String[] al = chooseAlias(new String[] { keyType }, issuers);
-        if (al != null) {
-            return al[0];
-        } else {
-            return null;
-        }
+    public String chooseServerAlias(String keyType, Principal[] issuers, Socket socket) {
+        final String[] al = chooseAlias(new String[] { keyType }, issuers);
+        return (al == null ? null : al[0]);
     }
 
-    /**
-     * @see javax.net.ssl.X509ExtendedKeyManager#getCertificateChain(String
-     *      alias)
-     */
     public X509Certificate[] getCertificateChain(String alias) {
         // BEGIN android-changed
         if (alias == null) {
@@ -128,8 +100,7 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
         }
         // END android-changed
         if (hash.containsKey(alias)) {
-            Certificate[] certs = ((KeyStore.PrivateKeyEntry) hash.get(alias))
-                    .getCertificateChain();
+            Certificate[] certs = hash.get(alias).getCertificateChain();
             if (certs[0] instanceof X509Certificate) {
                 X509Certificate[] xcerts = new X509Certificate[certs.length];
                 for (int i = 0; i < certs.length; i++) {
@@ -142,25 +113,14 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
 
     }
 
-    /**
-     * @see javax.net.ssl.X509ExtendedKeyManager#getClientAliases(String
-     *      keyType, Principal[] issuers)
-     */
     public String[] getClientAliases(String keyType, Principal[] issuers) {
         return chooseAlias(new String[] { keyType }, issuers);
     }
 
-    /**
-     * @see javax.net.ssl.X509ExtendedKeyManager#getServerAliases(String
-     *      keyType, Principal[] issuers)
-     */
     public String[] getServerAliases(String keyType, Principal[] issuers) {
         return chooseAlias(new String[] { keyType }, issuers);
     }
 
-    /**
-     * @see javax.net.ssl.X509ExtendedKeyManager#getPrivateKey(String alias)
-     */
     public PrivateKey getPrivateKey(String alias) {
         // BEGIN android-changed
         if (alias == null) {
@@ -168,53 +128,33 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
         }
         // END android-changed
         if (hash.containsKey(alias)) {
-            return ((KeyStore.PrivateKeyEntry) hash.get(alias)).getPrivateKey();
+            return hash.get(alias).getPrivateKey();
         }
         return null;
     }
 
-    /**
-     * @see javax.net.ssl.X509ExtendedKeyManager#chooseEngineClientAlias(String[]
-     *      keyType, Principal[] issuers, SSLEngine engine)
-     */
-    public String chooseEngineClientAlias(String[] keyType,
-            Principal[] issuers, SSLEngine engine) {
-        String[] al = chooseAlias(keyType, issuers);
-        if (al != null) {
-            return al[0];
-        } else {
-            return null;
-        }
+    @Override
+    public String chooseEngineClientAlias(String[] keyType, Principal[] issuers, SSLEngine engine) {
+        final String[] al = chooseAlias(keyType, issuers);
+        return (al == null ? null : al[0]);
     }
 
-    /**
-     * @see javax.net.ssl.X509ExtendedKeyManager#chooseEngineServerAlias(String
-     *      keyType, Principal[] issuers, SSLEngine engine)
-     */
-    public String chooseEngineServerAlias(String keyType, Principal[] issuers,
-            SSLEngine engine) {
-        String[] al = chooseAlias(new String[] { keyType }, issuers);
-        if (al != null) {
-            return al[0];
-        } else {
-            return null;
-        }
+    @Override
+    public String chooseEngineServerAlias(String keyType, Principal[] issuers, SSLEngine engine) {
+        final String[] al = chooseAlias(new String[] { keyType }, issuers);
+        return (al == null ? null : al[0]);
     }
 
     private String[] chooseAlias(String[] keyType, Principal[] issuers) {
-        String alias;
-        KeyStore.PrivateKeyEntry entry;
-        
         if (keyType == null || keyType.length == 0) {
             return null;
         }
-        Vector found = new Vector();
-        int count = 0;
-        for (Enumeration aliases = hash.keys(); aliases.hasMoreElements();) {
-            alias = (String) aliases.nextElement();
-            entry = (KeyStore.PrivateKeyEntry) hash.get(alias);
-            Certificate[] certs = entry.getCertificateChain();
-            String alg = certs[0].getPublicKey().getAlgorithm();
+        Vector<String> found = new Vector<String>();
+        for (Enumeration<String> aliases = hash.keys(); aliases.hasMoreElements();) {
+            final String alias = aliases.nextElement();
+            final KeyStore.PrivateKeyEntry entry = hash.get(alias);
+            final Certificate[] certs = entry.getCertificateChain();
+            final String alg = certs[0].getPublicKey().getAlgorithm();
             for (int i = 0; i < keyType.length; i++) {
                 if (alg.equals(keyType[i])) {
                     if (issuers != null && issuers.length != 0) {
@@ -226,7 +166,6 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
                                 for (int iii = 0; iii < issuers.length; iii++) {
                                     if (issuer.equals(issuers[iii])) {
                                         found.add(alias);
-                                        count++;
                                         break loop;
                                     }
                                 }
@@ -235,18 +174,13 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
                         }
                     } else {
                         found.add(alias);
-                        count++;
                     }
                 }
             }
         }
-        if (count > 0) {
-            String[] result = new String[count];
-            found.toArray(result);
-            return result;
-        } else {
-            return null;
+        if (!found.isEmpty()) {
+            return found.toArray(new String[found.size()]);
         }
+        return null;
     }
-
 }

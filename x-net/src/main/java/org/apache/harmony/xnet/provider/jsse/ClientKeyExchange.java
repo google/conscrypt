@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
-* @author Boris Kuznetsov
-* @version $Revision$
-*/
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.Message;
@@ -30,7 +25,6 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 /**
- * 
  * Represents client key exchange message
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS 1.0 spec., 7.4.7.
  * Client key exchange message</a>
@@ -129,6 +123,7 @@ public class ClientKeyExchange extends Message {
      * Sends message
      * @param out
      */
+    @Override
     public void send(HandshakeIODataStream out) {
         if (exchange_keys.length != 0) {    
             if (!isRSA || isTLS) {// DH or TLSv1 RSA
@@ -142,6 +137,7 @@ public class ClientKeyExchange extends Message {
      * Returns message type 
      * @return
      */
+    @Override
     public int getType() {
         return Handshake.CLIENT_KEY_EXCHANGE;
     }

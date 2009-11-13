@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Boris Kuznetsov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.security.GeneralSecurityException;
@@ -277,29 +272,29 @@ public class CipherSuite {
             };
 
     // hash for quick access to cipher suite by name 
-    private static Hashtable cuitesByName;
+    private static Hashtable<String, CipherSuite> cuitesByName;
 
     /**
-     * array of supported sipher suites.
+     * array of supported cipher suites.
      * Set of supported suites is defined at the moment provider's start 
      */
-//  TODO Dinamical supported suites: new providers may be dynamically 
-//  added/removed and the set of supportes suites may be changed
+//  TODO Dynamically supported suites: new providers may be dynamically 
+//  added/removed and the set of supported suites may be changed
     static CipherSuite[] supportedCipherSuites;
 
     /**
-     * array of supported sipher suites names
+     * array of supported cipher suites names
      */
     static String[] supportedCipherSuiteNames;
 
     /**
-     * default sipher suites
+     * default cipher suites
      */
     static CipherSuite[] defaultCipherSuites;
     
     static {
         int count = 0;
-        cuitesByName = new Hashtable();
+        cuitesByName = new Hashtable<String, CipherSuite>();
         for (int i = 0; i < cuitesByCode.length; i++) {
             cuitesByName.put(cuitesByCode[i].getName(), cuitesByCode[i]);
             if (cuitesByCode[i].supported) {
@@ -353,7 +348,7 @@ public class CipherSuite {
      * @return
      */
     public static CipherSuite getByName(String name) {
-        return (CipherSuite) cuitesByName.get(name);
+        return cuitesByName.get(name);
     }
 
     /**
@@ -364,8 +359,8 @@ public class CipherSuite {
      * @return
      */
     public static CipherSuite getByCode(byte b1, byte b2) {
-        if (b1 != 0 || b2 > cuitesByCode.length) {
-            // Unknoun
+        if (b1 != 0 || (b2 & 0xFF) > cuitesByCode.length) {
+            // Unknown
             return new CipherSuite("UNKNOUN_" + b1 + "_" + b2, false, 0, "",
                     "", new byte[] { b1, b2 });
         }
@@ -383,7 +378,7 @@ public class CipherSuite {
      */
     public static CipherSuite getByCode(byte b1, byte b2, byte b3) {
         if (b1 == 0 && b2 == 0) {
-            if (b3 <= cuitesByCode.length) {
+            if ((b3 & 0xFF) <= cuitesByCode.length) {
                 return cuitesByCode[b3];
             }
         }
@@ -523,7 +518,7 @@ public class CipherSuite {
      * @return
      */
     public static String[] getSupportedCipherSuiteNames() {
-        return (String[]) supportedCipherSuiteNames.clone();
+        return supportedCipherSuiteNames.clone();
     }
 
     /**
@@ -545,6 +540,7 @@ public class CipherSuite {
     /**
      * Returns cipher suite description
      */
+    @Override
     public String toString() {
         return name + ": " + cipherSuiteCode[0] + " " + cipherSuiteCode[1];
     }
@@ -552,6 +548,7 @@ public class CipherSuite {
     /**
      * Compares this cipher suite to the specified object.
      */
+    @Override
     public boolean equals(Object obj) {
         if (obj instanceof CipherSuite
                 && this.cipherSuiteCode[0] == ((CipherSuite) obj).cipherSuiteCode[0]
@@ -610,3 +607,4 @@ public class CipherSuite {
     }
 
 }
+

@@ -34,8 +34,6 @@ import org.apache.harmony.security.fortress.Engine;
  * This class provides the functionality for a key exchange protocol. This
  * enables two or more parties to agree on a secret key for symmetric
  * cryptography.
- * 
- * @since Android 1.0
  */
 public class KeyAgreement {
 
@@ -56,14 +54,13 @@ public class KeyAgreement {
 
     /**
      * Creates a new {@code KeyAgreement} instance.
-     * 
+     *
      * @param keyAgreeSpi
      *            the <b>SPI</b> delegate.
      * @param provider
      *            the provider providing this KeyAgreement.
      * @param algorithm
      *            the name of the key agreement algorithm.
-     * @since Android 1.0
      */
     protected KeyAgreement(KeyAgreementSpi keyAgreeSpi, Provider provider,
             String algorithm) {
@@ -74,9 +71,8 @@ public class KeyAgreement {
 
     /**
      * Returns the name of the key agreement algorithm.
-     * 
+     *
      * @return the name of the key agreement algorithm.
-     * @since Android 1.0
      */
     public final String getAlgorithm() {
         return algorithm;
@@ -84,9 +80,8 @@ public class KeyAgreement {
 
     /**
      * Returns the provider for this {@code KeyAgreement} instance.
-     * 
+     *
      * @return the provider for this {@code KeyAgreement} instance.
-     * @since Android 1.0
      */
     public final Provider getProvider() {
         return provider;
@@ -94,7 +89,7 @@ public class KeyAgreement {
 
     /**
      * Creates a new {@code KeyAgreement} for the specified algorithm.
-     * 
+     *
      * @param algorithm
      *            the name of the key agreement algorithm to create.
      * @return a key agreement for the specified algorithm.
@@ -102,7 +97,6 @@ public class KeyAgreement {
      *             if no installed provider can provide the requested algorithm.
      * @throws NullPointerException
      *             if the specified algorithm is {@code null}.
-     * @since Android 1.0
      */
     public static final KeyAgreement getInstance(String algorithm)
             throws NoSuchAlgorithmException {
@@ -119,7 +113,7 @@ public class KeyAgreement {
     /**
      * Creates a new {@code KeyAgreement} for the specified algorithm from the
      * specified provider.
-     * 
+     *
      * @param algorithm
      *            the name of the key agreement algorithm to create.
      * @param provider
@@ -134,7 +128,6 @@ public class KeyAgreement {
      *             if the specified provider does not exist.
      * @throws IllegalArgumentException
      *             if the specified provider name is {@code null} or empty.
-     * @since Android 1.0
      */
     public static final KeyAgreement getInstance(String algorithm,
             String provider) throws NoSuchAlgorithmException,
@@ -152,7 +145,7 @@ public class KeyAgreement {
     /**
      * Create a new {@code KeyAgreement} for the specified algorithm from the
      * specified provider.
-     * 
+     *
      * @param algorithm
      *            the name of the key agreement algorithm to create.
      * @param provider
@@ -184,13 +177,12 @@ public class KeyAgreement {
 
     /**
      * Initializes this {@code KeyAgreement} with the specified key.
-     * 
+     *
      * @param key
      *            the key to initialize this key agreement.
      * @throws InvalidKeyException
      *             if the specified key cannot be used to initialize this key
      *             agreement.
-     * @since Android 1.0
      */
     public final void init(Key key) throws InvalidKeyException {
         spiImpl.engineInit(key, rndm);//new SecureRandom());
@@ -199,7 +191,7 @@ public class KeyAgreement {
     /**
      * Initializes this {@code KeyAgreement} with the specified key and the
      * specified randomness source.
-     * 
+     *
      * @param key
      *            the key to initialize this key agreement.
      * @param random
@@ -207,7 +199,6 @@ public class KeyAgreement {
      * @throws InvalidKeyException
      *             if the specified key cannot be used to initialize this key
      *             agreement.
-     * @since Android 1.0
      */
     public final void init(Key key, SecureRandom random)
             throws InvalidKeyException {
@@ -217,7 +208,7 @@ public class KeyAgreement {
     /**
      * Initializes this {@code KeyAgreement} with the specified key and the
      * algorithm parameters.
-     * 
+     *
      * @param key
      *            the key to initialize this key agreement.
      * @param params
@@ -228,7 +219,6 @@ public class KeyAgreement {
      * @throws InvalidAlgorithmParameterException
      *             if the specified parameters are invalid for this key
      *             agreement algorithm.
-     * @since Android 1.0
      */
     public final void init(Key key, AlgorithmParameterSpec params)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
@@ -238,7 +228,7 @@ public class KeyAgreement {
     /**
      * Initializes this {@code KeyAgreement} with the specified key, algorithm
      * parameters and randomness source.
-     * 
+     *
      * @param key
      *            the key to initialize this key agreement.
      * @param params
@@ -251,7 +241,6 @@ public class KeyAgreement {
      * @throws InvalidAlgorithmParameterException
      *             if the specified parameters are invalid for this key
      *             agreement algorithm.
-     * @since Android 1.0
      */
     public final void init(Key key, AlgorithmParameterSpec params,
             SecureRandom random) throws InvalidKeyException,
@@ -262,7 +251,7 @@ public class KeyAgreement {
     /**
      * Does the next (or the last) phase of the key agreement, using the
      * specified key.
-     * 
+     *
      * @param key
      *            the key received from the other party for this phase.
      * @param lastPhase
@@ -275,7 +264,6 @@ public class KeyAgreement {
      *             this phase,
      * @throws IllegalStateException
      *             if this instance has not been initialized.
-     * @since Android 1.0
      */
     public final Key doPhase(Key key, boolean lastPhase)
             throws InvalidKeyException, IllegalStateException {
@@ -284,11 +272,10 @@ public class KeyAgreement {
 
     /**
      * Generates the shared secret.
-     * 
+     *
      * @return the generated shared secret.
      * @throws IllegalStateException
      *             if this key agreement is not complete.
-     * @since Android 1.0
      */
     public final byte[] generateSecret() throws IllegalStateException {
         return spiImpl.engineGenerateSecret();
@@ -297,7 +284,7 @@ public class KeyAgreement {
     /**
      * Generates the shared secret and stores it into the buffer {@code
      * sharedSecred} at {@code offset}.
-     * 
+     *
      * @param sharedSecret
      *            the buffer to store the shared secret.
      * @param offset
@@ -307,7 +294,6 @@ public class KeyAgreement {
      *             if this key agreement is not complete.
      * @throws ShortBufferException
      *             if the specified buffer is too small for the shared secret.
-     * @since Android 1.0
      */
     public final int generateSecret(byte[] sharedSecret, int offset)
             throws IllegalStateException, ShortBufferException {
@@ -316,7 +302,7 @@ public class KeyAgreement {
 
     /**
      * Generates the shared secret.
-     * 
+     *
      * @param algorithm
      *            the algorithm to for the {@code SecretKey}
      * @return the shared secret as a {@code SecretKey} of the specified
@@ -329,7 +315,6 @@ public class KeyAgreement {
      * @throws InvalidKeyException
      *             if a {@code SecretKey} with the specified algorithm cannot be
      *             created using the generated shared secret.
-     * @since Android 1.0
      */
     public final SecretKey generateSecret(String algorithm)
             throws IllegalStateException, NoSuchAlgorithmException,

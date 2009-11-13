@@ -61,58 +61,41 @@ import org.apache.harmony.security.fortress.Engine;
  * to be processed at a time can be optionally specified by appending it to the
  * mode name. e.g. <i>"AES/CFB8/NoPadding"</i>. If no number is specified, a
  * provider specific default value is used.
- * </p>
- * 
- * @since Android 1.0
  */
 public class Cipher {
 
     /**
      * Constant for decryption operation mode.
-     * 
-     * @since Android 1.0
      */
     public static final int DECRYPT_MODE = 2;
 
     /**
      * Constant for encryption operation mode.
-     * 
-     * @since Android 1.0
      */
     public static final int ENCRYPT_MODE = 1;
 
     /**
      * Constant indicating that the key to be unwrapped is a private key.
-     * 
-     * @since Android 1.0
      */
     public static final int PRIVATE_KEY = 2;
 
     /**
      * Constant indicating that the key to be unwrapped is a public key.
-     * 
-     * @since Android 1.0
      */
     public static final int PUBLIC_KEY = 1;
 
     /**
      * Constant indicating that the key to be unwrapped is a secret key.
-     * 
-     * @since Android 1.0
      */
     public static final int SECRET_KEY = 3;
 
     /**
      * Constant for key unwrapping operation mode.
-     * 
-     * @since Android 1.0
      */
     public static final int UNWRAP_MODE = 4;
 
     /**
      * Constant for key wrapping operation mode.
-     * 
-     * @since Android 1.0
      */
     public static final int WRAP_MODE = 3;
 
@@ -147,7 +130,7 @@ public class Cipher {
 
     /**
      * Creates a new Cipher instance.
-     * 
+     *
      * @param cipherSpi
      *            the implementation delegate of the cipher.
      * @param provider
@@ -157,7 +140,6 @@ public class Cipher {
      * @throws NullPointerException
      *             if either cipherSpi is {@code null} or provider is {@code
      *             null} and {@code cipherSpi} is a {@code NullCipherSpi}.
-     * @since Android 1.0
      */
     protected Cipher(CipherSpi cipherSpi, Provider provider,
             String transformation) {
@@ -178,7 +160,7 @@ public class Cipher {
      * transformation. The first found provider providing the transformation is
      * used to create the cipher. If no provider is found an exception is
      * thrown.
-     * 
+     *
      * @param transformation
      *            the name of the transformation to create a cipher for.
      * @return a cipher for the requested transformation.
@@ -189,7 +171,6 @@ public class Cipher {
      * @throws NoSuchPaddingException
      *             if no installed provider can provide the padding scheme in
      *             the <i>transformation</i>.
-     * @since Android 1.0
      */
     public static final Cipher getInstance(String transformation)
             throws NoSuchAlgorithmException, NoSuchPaddingException {
@@ -199,7 +180,7 @@ public class Cipher {
     /**
      * Creates a new cipher for the specified transformation provided by the
      * specified provider.
-     * 
+     *
      * @param transformation
      *            the name of the transformation to create a cipher for.
      * @param provider
@@ -216,7 +197,6 @@ public class Cipher {
      *             is not available.
      * @throws IllegalArgumentException
      *             if the specified provider is {@code null}.
-     * @since Android 1.0
      */
     public static final Cipher getInstance(String transformation,
             String provider) throws NoSuchAlgorithmException,
@@ -235,7 +215,7 @@ public class Cipher {
 
     /**
      * Creates a new cipher for the specified transformation.
-     * 
+     *
      * @param transformation
      *            the name of the transformation to create a cipher for.
      * @param provider
@@ -250,7 +230,6 @@ public class Cipher {
      *             is not available.
      * @throws IllegalArgumentException
      *             if the provider is {@code null}.
-     * @since Android 1.0
      */
     public static final Cipher getInstance(String transformation,
             Provider provider) throws NoSuchAlgorithmException,
@@ -373,9 +352,8 @@ public class Cipher {
 
     /**
      * Returns the provider of this cipher instance.
-     * 
+     *
      * @return the provider of this cipher instance.
-     * @since Android 1.0
      */
     public final Provider getProvider() {
         return provider;
@@ -386,10 +364,8 @@ public class Cipher {
      * <p>
      * This is the name of the <i>transformation</i> argument used in the
      * {@code getInstance} call creating this object.
-     * </p>
-     * 
+     *
      * @return the name of the algorithm of this cipher instance.
-     * @since Android 1.0.
      */
     public final String getAlgorithm() {
         return transformation;
@@ -397,9 +373,8 @@ public class Cipher {
 
     /**
      * Returns this ciphers block size (in bytes).
-     * 
+     *
      * @return this ciphers block size.
-     * @since Android 1.0
      */
     public final int getBlockSize() {
         return spiImpl.engineGetBlockSize();
@@ -408,13 +383,12 @@ public class Cipher {
     /**
      * Returns the length in bytes an output buffer needs to be when this cipher
      * is updated with {@code inputLen} bytes.
-     * 
+     *
      * @param inputLen
      *            the number of bytes of the input.
      * @return the output buffer length for the input length.
      * @throws IllegalStateException
      *             if this cipher instance is in an invalid state.
-     * @since Android 1.0
      */
     public final int getOutputSize(int inputLen) {
         if (mode == 0) {
@@ -426,9 +400,8 @@ public class Cipher {
 
     /**
      * Returns the <i>initialization vector</i> for this cipher instance.
-     * 
+     *
      * @return the <i>initialization vector</i> for this cipher instance.
-     * @since Android 1.0
      */
     public final byte[] getIV() {
         return spiImpl.engineGetIV();
@@ -440,11 +413,10 @@ public class Cipher {
      * These may be a the same parameters that were used to create this cipher
      * instance, or may be a combination of default and random parameters,
      * depending on the underlying cipher implementation.
-     * 
+     *
      * @return the parameters that where used to create this cipher instance, or
      *         {@code null} if this cipher instance does not have any
      *         parameters.
-     * @since Android 1.0
      */
     public final AlgorithmParameters getParameters() {
         return spiImpl.engineGetParameters();
@@ -452,9 +424,8 @@ public class Cipher {
 
     /**
      * Returns the exemption mechanism associated with this cipher.
-     * 
+     *
      * @return currently {@code null}
-     * @since Android 1.0
      */
     public final ExemptionMechanism getExemptionMechanism() {
         //FIXME implement getExemptionMechanism
@@ -473,7 +444,7 @@ public class Cipher {
      * The cipher is initialized for the specified operational mode (one of:
      * encryption, decryption, key wrapping or key unwrapping) depending on
      * {@code opmode}.
-     * </p>
+     * <p>
      * If this cipher instance needs any algorithm parameters or random values
      * that the specified key can not provide, the underlying implementation of
      * this cipher is supposed to generate the required parameters (using its
@@ -483,8 +454,7 @@ public class Cipher {
      * init} methods, the state of the instance is overridden, meaning that it
      * is equivalent to creating a new instance and calling its {@code init}
      * method.
-     * </p>
-     * 
+     *
      * @param opmode
      *            the operation this cipher instance should be initialized for
      *            (one of: {@code ENCRYPT_MODE}, {@code DECRYPT_MODE}, {@code
@@ -494,7 +464,6 @@ public class Cipher {
      * @throws InvalidKeyException
      *             if the specified key can not be used to initialize this
      *             cipher instance.
-     * @since Android 1.0
      */
     public final void init(int opmode, Key key) throws InvalidKeyException {
         if (sec_rand == null) {
@@ -513,7 +482,7 @@ public class Cipher {
      * The cipher is initialized for the specified operational mode (one of:
      * encryption, decryption, key wrapping or key unwrapping) depending on
      * {@code opmode}.
-     * </p>
+     * <p>
      * If this cipher instance needs any algorithm parameters or random values
      * that the specified key can not provide, the underlying implementation of
      * this cipher is supposed to generate the required parameters (using its
@@ -523,8 +492,7 @@ public class Cipher {
      * When a cipher instance is initialized by a call to any of the {@code
      * init} methods, the state of the instance is overridden, means it is
      * equivalent to creating a new instance and calling it {@code init} method.
-     * </p>
-     * 
+     *
      * @param opmode
      *            the operation this cipher instance should be initialized for
      *            (one of: {@code ENCRYPT_MODE}, {@code DECRYPT_MODE}, {@code
@@ -538,7 +506,6 @@ public class Cipher {
      *             cipher instance.
      * @throws InvalidParameterException
      *             if the specified opmode is invalid.
-     * @since Android 1.0
      */
     public final void init(int opmode, Key key, SecureRandom random)
             throws InvalidKeyException {
@@ -559,7 +526,7 @@ public class Cipher {
      * <p>
      * The cipher is initialized for the specified operational mode (one of:
      * encryption, decryption, key wrapping or key unwrapping).
-     * </p>
+     * <p>
      * If this cipher instance needs any algorithm parameters and {@code params}
      * is {@code null}, the underlying implementation of this cipher is supposed
      * to generate the required parameters (using its provider or random
@@ -568,8 +535,7 @@ public class Cipher {
      * When a cipher instance is initialized by a call to any of the {@code
      * init} methods, the state of the instance is overridden, means it is
      * equivalent to creating a new instance and calling it {@code init} method.
-     * </p>
-     * 
+     *
      * @param opmode
      *            the operation this cipher instance should be initialized for
      *            (one of: {@code ENCRYPT_MODE}, {@code DECRYPT_MODE}, {@code
@@ -584,7 +550,6 @@ public class Cipher {
      * @throws InvalidAlgorithmParameterException
      *             it the specified parameters are inappropriate for this
      *             cipher.
-     * @since Android 1.0
      */
     public final void init(int opmode, Key key, AlgorithmParameterSpec params)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
@@ -611,7 +576,7 @@ public class Cipher {
      * init} methods, the state of the instance is overridden, meaning that it
      * is equivalent to creating a new instance and calling it {@code init}
      * method.
-     * 
+     *
      * @param opmode
      *            the operation this cipher instance should be initialized for
      *            (one of: {@code ENCRYPT_MODE}, {@code DECRYPT_MODE}, {@code
@@ -630,7 +595,6 @@ public class Cipher {
      *             cipher.
      * @throws InvalidParameterException
      *             if the specified {@code opmode} is invalid.
-     * @since Android 1.0
      */
     public final void init(int opmode, Key key, AlgorithmParameterSpec params,
             SecureRandom random) throws InvalidKeyException,
@@ -656,7 +620,7 @@ public class Cipher {
      * The cipher is initialized for the specified operation (one of:
      * encryption, decryption, key wrapping or key unwrapping) depending on
      * {@code opmode}.
-     * </p>
+     * <p>
      * If this cipher instance needs any algorithm parameters and {@code params}
      * is {@code null}, the underlying implementation of this cipher is supposed
      * to generate the required parameters (using its provider or random
@@ -666,8 +630,7 @@ public class Cipher {
      * init} methods, the state of the instance is overridden, meaning that it
      * is equivalent to creating a new instance and calling it {@code init}
      * method.
-     * </p>
-     * 
+     *
      * @param opmode
      *            the operation this cipher instance should be initialized for
      *            (one of: {@code ENCRYPT_MODE}, {@code DECRYPT_MODE}, {@code
@@ -682,7 +645,6 @@ public class Cipher {
      * @throws InvalidAlgorithmParameterException
      *             it the specified parameters are inappropriate for this
      *             cipher.
-     * @since Android 1.0
      */
     public final void init(int opmode, Key key, AlgorithmParameters params)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
@@ -699,7 +661,7 @@ public class Cipher {
      * The cipher will be initialized for the specified operation (one of:
      * encryption, decryption, key wrapping or key unwrapping) depending on
      * {@code opmode}.
-     * </p>
+     * <p>
      * If this cipher instance needs any algorithm parameters and {@code params}
      * is {@code null}, the underlying implementation of this cipher is supposed
      * to generate the required parameters (using its provider or random
@@ -708,8 +670,7 @@ public class Cipher {
      * When a cipher instance is initialized by a call to any of the {@code
      * init} methods, the state of the instance is overridden, means it is
      * equivalent to creating a new instance and calling it {@code init} method.
-     * </p>
-     * 
+     *
      * @param opmode
      *            the operation this cipher instance should be initialized for
      *            (one of: {@code ENCRYPT_MODE}, {@code DECRYPT_MODE}, {@code
@@ -728,7 +689,6 @@ public class Cipher {
      *             cipher.
      * @throws InvalidParameterException
      *             if the specified {@code opmode} is invalid.
-     * @since Android 1.0
      */
     public final void init(int opmode, Key key, AlgorithmParameters params,
             SecureRandom random) throws InvalidKeyException,
@@ -768,7 +728,7 @@ public class Cipher {
      * When a cipher instance is initialized by a call to any of the {@code
      * init} methods, the state of the instance is overridden, means it is
      * equivalent to creating a new instance and calling it {@code init} method.
-     * 
+     *
      * @param opmode
      *            the operation this cipher instance should be initialized for
      *            (one of: {@code ENCRYPT_MODE}, {@code DECRYPT_MODE}, {@code
@@ -778,7 +738,6 @@ public class Cipher {
      * @throws InvalidKeyException
      *             if the public key in the certificate can not be used to
      *             initialize this cipher instance.
-     * @since Android 1.0
      */
     public final void init(int opmode, Certificate certificate)
             throws InvalidKeyException {
@@ -795,7 +754,7 @@ public class Cipher {
      * The cipher will be initialized for the specified operation (one of:
      * encryption, decryption, key wrapping or key unwrapping) depending on
      * {@code opmode}.
-     * </p>
+     * <p>
      * It the type of the certificate is X.509 and the certificate has a <i>key
      * usage</i> extension field marked as critical, the specified {@code
      * opmode} has the be enabled for this key, otherwise an {@code
@@ -806,11 +765,11 @@ public class Cipher {
      * cipher is supposed to generate the required parameters (using its
      * provider or random values). Random values are generated using {@code
      * random}.
-     * </p>
+     * <p>
      * When a cipher instance is initialized by a call to any of the {@code
      * init} methods, the state of the instance is overridden, means it is
      * equivalent to creating a new instance and calling it {@code init} method.
-     * 
+     *
      * @param opmode
      *            the operation this cipher instance should be initialized for
      *            (one of: {@code ENCRYPT_MODE}, {@code DECRYPT_MODE}, {@code
@@ -822,7 +781,6 @@ public class Cipher {
      * @throws InvalidKeyException
      *             if the public key in the certificate can not be used to
      *             initialize this cipher instance.
-     * @since Android 1.0
      */
     public final void init(int opmode, Certificate certificate,
             SecureRandom random) throws InvalidKeyException {
@@ -874,7 +832,7 @@ public class Cipher {
     /**
      * Continues a multi-part transformation (encryption or decryption). The
      * transformed bytes are returned.
-     * 
+     *
      * @param input
      *            the input bytes to transform.
      * @return the transformed bytes in a new buffer, or {@code null} if the
@@ -884,7 +842,6 @@ public class Cipher {
      *             decryption.
      * @throws IllegalArgumentException
      *             if the input is {@code null}.
-     * @since Android 1.0
      */
     public final byte[] update(byte[] input) {
         if (mode != ENCRYPT_MODE && mode != DECRYPT_MODE) {
@@ -903,7 +860,7 @@ public class Cipher {
     /**
      * Continues a multi-part transformation (encryption or decryption). The
      * transformed bytes are returned.
-     * 
+     *
      * @param input
      *            the input bytes to transform.
      * @param inputOffset
@@ -919,7 +876,6 @@ public class Cipher {
      *             if the input is {@code null}, or if {@code inputOffset} and
      *             {@code inputLen} do not specify a valid chunk in the input
      *             buffer.
-     * @since Android 1.0
      */
     public final byte[] update(byte[] input, int inputOffset, int inputLen) {
         if (mode != ENCRYPT_MODE && mode != DECRYPT_MODE) {
@@ -949,8 +905,7 @@ public class Cipher {
      * a {@code ShortBufferException} is thrown. Use
      * {@link Cipher#getOutputSize getOutputSize} to check for the size of the
      * output buffer.
-     * </p>
-     * 
+     *
      * @param input
      *            the input bytes to transform.
      * @param inputOffset
@@ -969,7 +924,6 @@ public class Cipher {
      *             if the input is {@code null}, the output is {@code null}, or
      *             if {@code inputOffset} and {@code inputLen} do not specify a
      *             valid chunk in the input buffer.
-     * @since Android 1.0
      */
     public final int update(byte[] input, int inputOffset, int inputLen,
             byte[] output) throws ShortBufferException {
@@ -984,8 +938,7 @@ public class Cipher {
      * a {@code ShortBufferException} is thrown. Use
      * {@link Cipher#getOutputSize getOutputSize} to check for the size of the
      * output buffer.
-     * </p>
-     * 
+     *
      * @param input
      *            the input bytes to transform.
      * @param inputOffset
@@ -1006,7 +959,6 @@ public class Cipher {
      *             if the input is {@code null}, the output is {@code null}, or
      *             if {@code inputOffset} and {@code inputLen} do not specify a
      *             valid chunk in the input buffer.
-     * @since Android 1.0
      */
     public final int update(byte[] input, int inputOffset, int inputLen,
             byte[] output, int outputOffset) throws ShortBufferException {
@@ -1046,8 +998,7 @@ public class Cipher {
      * bytes a {@code ShortBufferException} is thrown. Use
      * {@link Cipher#getOutputSize getOutputSize} to check for the size of the
      * output buffer.
-     * </p>
-     * 
+     *
      * @param input
      *            the input buffer to transform.
      * @param output
@@ -1061,7 +1012,6 @@ public class Cipher {
      * @throws IllegalArgumentException
      *             if the input buffer and the output buffer are the identical
      *             object.
-     * @since Android 1.0
      */
     public final int update(ByteBuffer input, ByteBuffer output)
             throws ShortBufferException {
@@ -1081,8 +1031,7 @@ public class Cipher {
      * <p>
      * Processes any bytes that may have been buffered in previous {@code
      * update} calls.
-     * </p>
-     * 
+     *
      * @return the final bytes from the transformation.
      * @throws IllegalBlockSizeException
      *             if the size of the resulting bytes is not a multiple of the
@@ -1092,7 +1041,6 @@ public class Cipher {
      * @throws IllegalStateException
      *             if this cipher instance is not initialized for encryption or
      *             decryption.
-     * @since Android 1.0
      */
     public final byte[] doFinal() throws IllegalBlockSizeException,
             BadPaddingException {
@@ -1108,9 +1056,9 @@ public class Cipher {
      * <p>
      * Processes any bytes that may have been buffered in previous {@code
      * update} calls.
-     * </p>
+     * <p>
      * The final transformed bytes are stored in the {@code output} buffer.
-     * 
+     *
      * @param output
      *            the output buffer.
      * @param outputOffset
@@ -1126,7 +1074,6 @@ public class Cipher {
      * @throws IllegalStateException
      *             if this cipher instance is not initialized for encryption or
      *             decryption.
-     * @since Android 1.0
      */
     public final int doFinal(byte[] output, int outputOffset)
             throws IllegalBlockSizeException, ShortBufferException,
@@ -1147,8 +1094,7 @@ public class Cipher {
      * <p>
      * Processes the bytes in {@code input} buffer, and any bytes that have been
      * buffered in previous {@code update} calls.
-     * </p>
-     * 
+     *
      * @param input
      *            the input buffer.
      * @return the final bytes from the transformation.
@@ -1160,7 +1106,6 @@ public class Cipher {
      * @throws IllegalStateException
      *             if this cipher instance is not initialized for encryption or
      *             decryption.
-     * @since Android 1.0
      */
     public final byte[] doFinal(byte[] input) throws IllegalBlockSizeException,
             BadPaddingException {
@@ -1177,7 +1122,7 @@ public class Cipher {
      * Processes the {@code inputLen} bytes in {@code input} buffer at {@code
      * inputOffset}, and any bytes that have been buffered in previous {@code
      * update} calls.
-     * 
+     *
      * @param input
      *            the input buffer.
      * @param inputOffset
@@ -1196,7 +1141,6 @@ public class Cipher {
      * @throws IllegalArgumentException
      *             if {@code inputOffset} and {@code inputLen} do not specify an
      *             valid chunk in the input buffer.
-     * @since Android 1.0
      */
     public final byte[] doFinal(byte[] input, int inputOffset, int inputLen)
             throws IllegalBlockSizeException, BadPaddingException {
@@ -1218,7 +1162,7 @@ public class Cipher {
      * Processes the {@code inputLen} bytes in {@code input} buffer at {@code
      * inputOffset}, and any bytes that have been buffered in previous {@code
      * update} calls.
-     * 
+     *
      * @param input
      *            the input buffer.
      * @param inputOffset
@@ -1241,7 +1185,6 @@ public class Cipher {
      * @throws IllegalArgumentException
      *             if {@code inputOffset} and {@code inputLen} do not specify an
      *             valid chunk in the input buffer.
-     * @since Android 1.0
      */
     public final int doFinal(byte[] input, int inputOffset, int inputLen,
             byte[] output) throws ShortBufferException,
@@ -1255,8 +1198,7 @@ public class Cipher {
      * Processes the {@code inputLen} bytes in {@code input} buffer at {@code
      * inputOffset}, and any bytes that have been buffered in previous {@code
      * update} calls.
-     * </p>
-     * 
+     *
      * @param input
      *            the input buffer.
      * @param inputOffset
@@ -1281,7 +1223,6 @@ public class Cipher {
      * @throws IllegalArgumentException
      *             if {@code inputOffset} and {@code inputLen} do not specify an
      *             valid chunk in the input buffer.
-     * @since Android 1.0
      */
     public final int doFinal(byte[] input, int inputOffset, int inputLen,
             byte[] output, int outputOffset) throws ShortBufferException,
@@ -1306,8 +1247,7 @@ public class Cipher {
      * {@code input.position()}, and any bytes that have been buffered in
      * previous {@code update} calls. The transformed bytes are placed into
      * {@code output} buffer.
-     * </p>
-     * 
+     *
      * @param input
      *            the input buffer.
      * @param output
@@ -1326,7 +1266,6 @@ public class Cipher {
      * @throws IllegalStateException
      *             if this cipher instance is not initialized for encryption or
      *             decryption.
-     * @since Android 1.0
      */
     public final int doFinal(ByteBuffer input, ByteBuffer output)
             throws ShortBufferException, IllegalBlockSizeException,
@@ -1344,7 +1283,7 @@ public class Cipher {
 
     /**
      * Wraps a key using this cipher instance.
-     * 
+     *
      * @param key
      *            the key to wrap.
      * @return the wrapped key.
@@ -1355,7 +1294,6 @@ public class Cipher {
      *             if this cipher instance can not wrap this key.
      * @throws IllegalStateException
      *             if this cipher instance is not initialized for wrapping.
-     * @since Android 1.0
      */
     public final byte[] wrap(Key key) throws IllegalBlockSizeException,
             InvalidKeyException {
@@ -1368,7 +1306,7 @@ public class Cipher {
 
     /**
      * Unwraps a key using this cipher instance.
-     * 
+     *
      * @param wrappedKey
      *            the wrapped key to unwrap.
      * @param wrappedKeyAlgorithm
@@ -1386,7 +1324,6 @@ public class Cipher {
      *             {@code wrappedKeyType} for the {@code wrappedKeyAlgorithm}.
      * @throws IllegalStateException
      *             if this cipher instance is not initialized for unwrapping.
-     * @since Android 1.0
      */
     public final Key unwrap(byte[] wrappedKey, String wrappedKeyAlgorithm,
             int wrappedKeyType) throws InvalidKeyException,
@@ -1401,7 +1338,7 @@ public class Cipher {
 
     /**
      * Returns the maximum key length for the specified transformation.
-     * 
+     *
      * @param transformation
      *            the transformation name.
      * @return the maximum key length, currently {@code Integer.MAX_VALUE}.
@@ -1410,7 +1347,6 @@ public class Cipher {
      *             be found.
      * @throws NullPointerException
      *             if {@code transformation} is {@code null}.
-     * @since Android 1.0
      */
     public static final int getMaxAllowedKeyLength(String transformation)
             throws NoSuchAlgorithmException {
@@ -1425,7 +1361,7 @@ public class Cipher {
     /**
      * Returns the maximum cipher parameter value for the specified
      * transformation. If there is no maximum limit, {@code null} is returned.
-     * 
+     *
      * @param transformation
      *            the transformation name.
      * @return a parameter spec holding the maximum value or {@code null}.
@@ -1435,7 +1371,6 @@ public class Cipher {
      *             be found.
      * @throws NullPointerException
      *             if {@code transformation} is {@code null}.
-     * @since Android 1.0
      */
     public static final AlgorithmParameterSpec getMaxAllowedParameterSpec(
             String transformation) throws NoSuchAlgorithmException {

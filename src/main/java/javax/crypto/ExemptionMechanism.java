@@ -34,8 +34,6 @@ import org.apache.harmony.security.fortress.Engine;
 /**
  * This class implements the functionality of an exemption mechanism such as
  * <i>key recovery</i>, <i>key weakening</i>, or <i>key escrow</i>.
- * 
- * @since Android 1.0
  */
 public class ExemptionMechanism {
 
@@ -62,14 +60,13 @@ public class ExemptionMechanism {
 
     /**
      * Creates a {@code ExemptionMechanism} instance.
-     * 
+     *
      * @param exmechSpi
      *            the implementation delegate.
      * @param provider
      *            the associated provider.
      * @param mechanism
      *            the name of the mechanism.
-     * @since Android 1.0
      */
     protected ExemptionMechanism(ExemptionMechanismSpi exmechSpi,
             Provider provider, String mechanism) {
@@ -81,9 +78,8 @@ public class ExemptionMechanism {
 
     /**
      * Returns the name of this {@code ExemptionMechanism}.
-     * 
+     *
      * @return the name of this {@code ExemptionMechanism}.
-     * @since Android 1.0
      */
     public final String getName() {
         return mechanism;
@@ -92,7 +88,7 @@ public class ExemptionMechanism {
     /**
      * Returns a new {@code ExemptionMechanism} instance that provides the
      * specified exemption mechanism algorithm.
-     * 
+     *
      * @param algorithm
      *            the name of the requested exemption mechanism.
      * @return the new {@code ExemptionMechanism} instance.
@@ -100,7 +96,6 @@ public class ExemptionMechanism {
      *             if the specified algorithm is not available by any provider.
      * @throws NullPointerException
      *             if the algorithm parameter is {@code null}.
-     * @since Android 1.0
      */
     public static final ExemptionMechanism getInstance(String algorithm)
             throws NoSuchAlgorithmException {
@@ -117,7 +112,7 @@ public class ExemptionMechanism {
     /**
      * Returns a new {@code ExemptionMechansm} instance that provides the
      * specified exemption mechanism algorithm from the specified provider.
-     * 
+     *
      * @param algorithm
      *            the name of the requested exemption mechanism.
      * @param provider
@@ -132,7 +127,6 @@ public class ExemptionMechanism {
      *             if the algorithm parameter is {@code null}.
      * @throws IllegalArgumentException
      *             if the provider parameter is {@code null}.
-     * @since Android 1.0
      */
     public static final ExemptionMechanism getInstance(String algorithm,
             String provider) throws NoSuchAlgorithmException,
@@ -153,7 +147,7 @@ public class ExemptionMechanism {
     /**
      * Returns a new {@code ExemptionMechanism} instance that provides the
      * specified exemption mechanism algorithm from the specified provider.
-     * 
+     *
      * @param algorithm
      *            the name of the requested exemption mechanism.
      * @param provider
@@ -166,7 +160,6 @@ public class ExemptionMechanism {
      *             if the algorithm parameter is {@code null}.
      * @throws IllegalArgumentException
      *             if the provider parameter is {@code null}.
-     * @since Android 1.0
      */
     public static final ExemptionMechanism getInstance(String algorithm,
             Provider provider) throws NoSuchAlgorithmException {
@@ -185,9 +178,8 @@ public class ExemptionMechanism {
 
     /**
      * Returns the provider of this {@code ExemptionMechanism} instance.
-     * 
+     *
      * @return the provider of this {@code ExemptionMechanism} instance.
-     * @since Android 1.0
      */
     public final Provider getProvider() {
         return provider;
@@ -197,7 +189,7 @@ public class ExemptionMechanism {
      * Returns whether the result blob for this {@code ExemptionMechanism}
      * instance has been generated successfully and that the specified key is
      * the same as the one that was used to initialize and generate.
-     * 
+     *
      * @param key
      *            the key to verify.
      * @return whether the result blob for this {@code ExemptionMechanism}
@@ -205,7 +197,6 @@ public class ExemptionMechanism {
      * @throws ExemptionMechanismException
      *             if an error occurs while determining whether the result blob
      *             has been generated successfully.
-     * @since Android 1.0
      */
     public final boolean isCryptoAllowed(Key key)
             throws ExemptionMechanismException {
@@ -222,14 +213,13 @@ public class ExemptionMechanism {
      * Returns the size in bytes for the output buffer needed to hold the output
      * of the next {@link #genExemptionBlob} call, given the specified {@code
      * inputLen} (in bytes).
-     * 
+     *
      * @param inputLen
      *            the specified input length (in bytes).
      * @return the size in bytes for the output buffer.
      * @throws IllegalStateException
      *             if this {@code ExemptionMechanism} instance is not
      *             initialized.
-     * @since Android 1.0
      */
     public final int getOutputSize(int inputLen) throws IllegalStateException {
         if (!isInit) {
@@ -241,14 +231,13 @@ public class ExemptionMechanism {
     /**
      * Initializes this {@code ExemptionMechanism} instance with the
      * specified key.
-     * 
+     *
      * @param key
      *            the key to initialize this instance with.
      * @throws InvalidKeyException
      *             if the key cannot be used to initialize this mechanism.
      * @throws ExemptionMechanismException
      *             if error(s) occur during initialization.
-     * @since Android 1.0
      */
     public final void init(Key key) throws InvalidKeyException,
             ExemptionMechanismException {
@@ -261,7 +250,7 @@ public class ExemptionMechanism {
     /**
      * Initializes this {@code ExemptionMechanism} instance with the
      * specified key and algorithm parameters.
-     * 
+     *
      * @param key
      *            the key to initialize this instance with.
      * @param param
@@ -273,7 +262,6 @@ public class ExemptionMechanism {
      *             mechanism.
      * @throws ExemptionMechanismException
      *             if error(s) occur during initialization.
-     * @since Android 1.0
      */
     public final void init(Key key, AlgorithmParameters param)
             throws InvalidKeyException, InvalidAlgorithmParameterException,
@@ -287,7 +275,7 @@ public class ExemptionMechanism {
     /**
      * Initializes this {@code ExemptionMechanism} instance with the
      * specified key and algorithm parameters.
-     * 
+     *
      * @param key
      *            the key to initialize this instance with.
      * @param param
@@ -299,7 +287,6 @@ public class ExemptionMechanism {
      *             mechanism.
      * @throws ExemptionMechanismException
      *             if error(s) occur during initialization.
-     * @since Android 1.0
      */
     public final void init(Key key, AlgorithmParameterSpec param)
             throws InvalidKeyException, InvalidAlgorithmParameterException,
@@ -312,14 +299,13 @@ public class ExemptionMechanism {
 
     /**
      * Generates the result key blob for this exemption mechanism.
-     * 
+     *
      * @return the result key blob for this exemption mechanism.
      * @throws IllegalStateException
      *             if this {@code ExemptionMechanism} instance is not
      *             initialized.
      * @throws ExemptionMechanismException
      *             if error(s) occur during generation.
-     * @since Android 1.0
      */
     public final byte[] genExemptionBlob() throws IllegalStateException,
             ExemptionMechanismException {
@@ -335,7 +321,7 @@ public class ExemptionMechanism {
     /**
      * Generates the result key blob for this exemption mechanism and stores it
      * into the {@code output} buffer.
-     * 
+     *
      * @param output
      *            the output buffer for the result key blob.
      * @return the number of bytes written to the {@code output} buffer.
@@ -346,7 +332,6 @@ public class ExemptionMechanism {
      *             if the provided buffer is too small for the result key blob.
      * @throws ExemptionMechanismException
      *             if error(s) occur during generation.
-     * @since Android 1.0
      */
     public final int genExemptionBlob(byte[] output)
             throws IllegalStateException, ShortBufferException,
@@ -357,7 +342,7 @@ public class ExemptionMechanism {
     /**
      * Generates the result key blob for this exemption mechanism and stores it
      * into the {@code output} buffer at offset {@code outputOffset}.
-     * 
+     *
      * @param output
      *            the output buffer for the result key blob.
      * @param outputOffset
@@ -370,7 +355,6 @@ public class ExemptionMechanism {
      *             if the provided buffer is too small for the result key blob.
      * @throws ExemptionMechanismException
      *             if error(s) occur during generation.
-     * @since Android 1.0
      */
     public final int genExemptionBlob(byte[] output, int outputOffset)
             throws IllegalStateException, ShortBufferException,
@@ -386,8 +370,6 @@ public class ExemptionMechanism {
 
     /**
      * Frees the references to the key used to initialize this instance.
-     * 
-     * @since Android 1.0
      */
     @Override
     protected void finalize() {

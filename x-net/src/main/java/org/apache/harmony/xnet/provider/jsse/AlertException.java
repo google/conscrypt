@@ -15,21 +15,17 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import javax.net.ssl.SSLException;
 
 /**
- * This exception is used to signalize the fatal alert
- * occured during the work of protocol.
+ * This exception is used to signal that a fatal alert has occurred while working through the
+ * protocol.
  */
 public class AlertException extends RuntimeException {
 
+    private static final long serialVersionUID = -4448327177165687581L;
     // SSLException to be thrown to application side
     private final SSLException reason;
     // alert description code
@@ -37,11 +33,11 @@ public class AlertException extends RuntimeException {
 
     /**
      * Constructs the instance.
-     * @param   description:    The alert description code.
-     * @see org.apache.harmony.xnet.provider.jsse.AlertProtocol
-     * @param   reason:  The SSLException to be thrown to application
-     * side after alert processing (sending the record with alert,
-     * shoutdown work, etc).
+     * 
+     * @param description The alert description code from {@link AlertProtocol}
+     * @param reason The SSLException to be thrown to application side after alert processing
+     *            (sending the record with alert, shutdown work, etc).
+     * @see AlertProtocol
      */
     protected AlertException(byte description, SSLException reason) {
         super(reason);
@@ -50,8 +46,8 @@ public class AlertException extends RuntimeException {
     }
 
     /**
-     * Returns the reason of alert. This reason should be rethrown
-     * after alert protcessin.
+     * Returns the reason of alert. This reason should be rethrown after alert processing.
+     * 
      * @return the reason of alert.
      */
     protected SSLException getReason() {
@@ -60,9 +56,9 @@ public class AlertException extends RuntimeException {
 
     /**
      * Returns alert's description code.
-     * @return byte value describing the occured alert.
-     * @see org.apache.harmony.xnet.provider.jsse.AlertProtocol for more information about possible
-     * reason codes.
+     * 
+     * @return alert description code from {@link AlertProtocol}
+     * @see AlertProtocol for more information about possible reason codes.
      */
     protected byte getDescriptionCode() {
         return description;

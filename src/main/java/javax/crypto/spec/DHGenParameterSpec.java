@@ -22,8 +22,6 @@ import java.security.spec.AlgorithmParameterSpec;
 /**
  * The algorithm parameter specification for generating Diffie-Hellman
  * parameters used in Diffie-Hellman key agreement.
- * 
- * @since Android 1.0
  */
 public class DHGenParameterSpec implements AlgorithmParameterSpec {
 
@@ -33,7 +31,7 @@ public class DHGenParameterSpec implements AlgorithmParameterSpec {
     /**
      * Creates a new <code>DHGenParameterSpec</code> instance with the specified
      * parameters.
-     * 
+     *
      * @param primeSize
      *            the size of the <i>prime modulus</i> in bits.
      * @param exponentSize
@@ -46,7 +44,7 @@ public class DHGenParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the size of the <i>prime modulus</i> in bits.
-     * 
+     *
      * @return the size of the prime modulus in bits.
      */
     public int getPrimeSize() {
@@ -55,7 +53,7 @@ public class DHGenParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the size of the <i>random exponent</i> in bits.
-     * 
+     *
      * @return the size of the random exponent in bits.
      */
     public int getExponentSize() {

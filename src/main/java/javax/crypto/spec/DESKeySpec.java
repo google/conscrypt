@@ -24,8 +24,6 @@ import org.apache.harmony.crypto.internal.nls.Messages;
 
 /**
  * The key specification for a DES key.
- * 
- * @since Android 1.0
  */
 public class DESKeySpec implements KeySpec {
 
@@ -96,7 +94,7 @@ public class DESKeySpec implements KeySpec {
     /**
      * Creates a new <code>DESKeySpec</code> from the first 8 bytes of the
      * specified key data.
-     * 
+     *
      * @param key
      *            the key data.
      * @throws InvalidKeyException
@@ -109,7 +107,7 @@ public class DESKeySpec implements KeySpec {
     /**
      * Creates a new <code>DESKeySpec</code> from the first 8 bytes of the
      * specified key data starting at <code>offset</code>.
-     * 
+     *
      * @param key
      *            the key data
      * @param offset
@@ -133,7 +131,7 @@ public class DESKeySpec implements KeySpec {
 
     /**
      * Returns a copy of the key.
-     * 
+     *
      * @return a copy of the key.
      */
     public byte[] getKey() {
@@ -145,7 +143,7 @@ public class DESKeySpec implements KeySpec {
     /**
      * Returns whether the specified key data starting at <code>offset</code> is
      * <i>parity-adjusted</i>.
-     * 
+     *
      * @param key
      *            the key data.
      * @param offset
@@ -185,7 +183,7 @@ public class DESKeySpec implements KeySpec {
     /**
      * Returns whether the specified key data starting at <code>offset</code> is
      * weak or semi-weak.
-     * 
+     *
      * @param key
      *            the key data.
      * @param offset

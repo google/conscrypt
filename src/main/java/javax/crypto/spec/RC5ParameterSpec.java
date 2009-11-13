@@ -25,8 +25,6 @@ import org.apache.harmony.crypto.internal.nls.Messages;
 /**
  * The algorithm parameter specification for the <a
  * href="http://www.ietf.org/rfc/rfc2040.txt">RC5</a> algorithm.
- * 
- * @since Android 1.0
  */
 public class RC5ParameterSpec implements AlgorithmParameterSpec {
 
@@ -38,7 +36,7 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
     /**
      * Creates a new <code>RC5ParameterSpec</code> instance with the specified
      * version, round count an word size (in bits).
-     * 
+     *
      * @param version
      *            the version.
      * @param rounds
@@ -61,7 +59,7 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
      * The size of the <i>initialization vector</i> must be at least
      * <code>2 * (wordSize / 8)</code> bytes which are copied to protect them
      * against modification.
-     * 
+     *
      * @param version
      *            the version.
      * @param rounds
@@ -97,7 +95,7 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
      * The size of the <i>initialization vector</i> must be at least
      * <code>offset + (2 * (wordSize / 8))</code> bytes. The bytes starting at
      * <code>offset</code> are copied to protect them against modification.
-     * 
+     *
      * @param version
      *            the version.
      * @param rounds
@@ -135,7 +133,7 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the version.
-     * 
+     *
      * @return the version.
      */
     public int getVersion() {
@@ -144,7 +142,7 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the round count.
-     * 
+     *
      * @return the round count.
      */
     public int getRounds() {
@@ -153,7 +151,7 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the word size (in bits).
-     * 
+     *
      * @return the word size (in bits).
      */
     public int getWordSize() {
@@ -162,7 +160,7 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns a copy of the initialization vector.
-     * 
+     *
      * @return a copy of the initialization vector, or null if none specified.
      */
     public byte[] getIV() {
@@ -177,7 +175,7 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
     /**
      * Compares the specified object with this <code>RC5ParameterSpec</code>
      * instance.
-     * 
+     *
      * @param obj
      *            the object to compare.
      * @return true if version, round count, word size and initializaion vector
@@ -200,7 +198,7 @@ public class RC5ParameterSpec implements AlgorithmParameterSpec {
 
     /**
      * Returns the hash code of this <code>RC5ParameterSpec</code> instance.
-     * 
+     *
      * @return the hash code.
      */
     @Override

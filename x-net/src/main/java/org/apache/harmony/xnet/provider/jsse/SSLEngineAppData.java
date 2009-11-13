@@ -15,11 +15,6 @@
  *  limitations under the License.
  */
 
-/**
- * @author Alexander Y. Kleymenov
- * @version $Revision$
- */
-
 package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.AlertException;
@@ -77,11 +72,10 @@ public class SSLEngineAppData implements org.apache.harmony.xnet.provider.jsse.A
                 pos = len;
                 // data was written, exit
                 break;
-            } else {
-                // write chunk of data
-                dsts[i].put(buffer, pos, rem);
-                pos += rem;
             }
+            // write chunk of data
+            dsts[i].put(buffer, pos, rem);
+            pos += rem;
         }
         if (pos != len) {
             // The data did not feet into the buffers,

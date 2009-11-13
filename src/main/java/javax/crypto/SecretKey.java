@@ -24,21 +24,18 @@ import java.security.Key;
  * <p>
  * This interface is a <i>marker interface</i> to group secret keys and to
  * provide type safety for.
- * </p>
+ * <p>
  * Implementations of this interface have to overwrite the
  * {@link Object#equals(Object) equals} and {@link Object#hashCode() hashCode}
  * from {@link java.lang.Object} so comparison is done using the actual key data
  * and not the object reference.
- * 
- * @since Android 1.0
  */
 public interface SecretKey extends Key {
 
     /**
      * The serialization version identifier.
-     * 
+     *
      * @serial
-     * @since Android 1.0
      */
     public static final long serialVersionUID = -4795878709595146952L;
 }
