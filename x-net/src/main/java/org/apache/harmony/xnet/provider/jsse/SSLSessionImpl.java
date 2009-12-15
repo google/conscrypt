@@ -325,7 +325,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
         if (value instanceof SSLSessionBindingListener) {
             ((SSLSessionBindingListener) value).valueBound(new SSLSessionBindingEvent(this, name));
         }
-        if (old != null && old instanceof SSLSessionBindingListener) {
+        if (old instanceof SSLSessionBindingListener) {
             ((SSLSessionBindingListener) old).valueUnbound(new SSLSessionBindingEvent(this, name));
         }
 
@@ -335,8 +335,11 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
         if (name == null) {
             throw new IllegalArgumentException("Parameter is null");
         }
-        values.remove(new ValueKey(name));
-
+        Object old = values.remove(new ValueKey(name));
+        if (old instanceof SSLSessionBindingListener) {
+            SSLSessionBindingListener listener = (SSLSessionBindingListener) old;
+            listener.valueUnbound(new SSLSessionBindingEvent(this, name));
+        }
     }
 
     @Override

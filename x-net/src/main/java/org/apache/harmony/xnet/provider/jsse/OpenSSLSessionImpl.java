@@ -424,7 +424,7 @@ public class OpenSSLSessionImpl implements SSLSession {
             ((SSLSessionBindingListener) value)
                     .valueBound(new SSLSessionBindingEvent(this, name));
         }
-        if (old != null && old instanceof SSLSessionBindingListener) {
+        if (old instanceof SSLSessionBindingListener) {
             ((SSLSessionBindingListener) old)
                     .valueUnbound(new SSLSessionBindingEvent(this, name));
         }
@@ -432,7 +432,12 @@ public class OpenSSLSessionImpl implements SSLSession {
 
     /**
      * Removes a link (name) with the specified value object of the SSL
-     * session's application layer data. These links-to -data bounds are
+     * session's application layer data.
+     *
+     * <p>If the value object implements the <code>SSLSessionBindingListener</code>
+     * interface, the object will receive a <code>valueUnbound</code> notification.
+     *
+     * <p>These links-to -data bounds are
      * monitored, as a matter of security, by the full machinery of the
      * <code>AccessController</code> class.
      *
@@ -444,7 +449,11 @@ public class OpenSSLSessionImpl implements SSLSession {
         if (name == null) {
             throw new IllegalArgumentException("Parameter is null");
         }
-        values.remove(name, AccessController.getContext());
+        Object old = values.remove(name, AccessController.getContext());
+        if (old instanceof SSLSessionBindingListener) {
+            SSLSessionBindingListener listener = (SSLSessionBindingListener) old;
+            listener.valueUnbound(new SSLSessionBindingEvent(this, name));
+        }
     }
 
     protected void finalize() {
