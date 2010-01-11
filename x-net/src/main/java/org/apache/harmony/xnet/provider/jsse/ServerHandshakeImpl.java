@@ -428,8 +428,8 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                 fatalAlert(AlertProtocol.HANDSHAKE_FAILURE,
                         "SSL Session may not be created");
             }
-            session = new SSLSessionImpl(cipher_suite, parameters
-                    .getSecureRandom());
+            session = new SSLSessionImpl(cipher_suite, parameters.getSecureRandom());
+            session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
         }
 
         recordProtocol.setVersion(clientHello.client_version);

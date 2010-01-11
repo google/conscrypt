@@ -88,6 +88,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         } else if (parameters.getEnableSessionCreation()){    
             isResuming = false;
             session = new SSLSessionImpl(parameters.getSecureRandom());
+            session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
             session.protocol = ProtocolVersion.getLatestVersion(parameters
                     .getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
@@ -105,6 +106,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         if (parameters.getEnableSessionCreation()){    
             isResuming = false;
             session = new SSLSessionImpl(parameters.getSecureRandom());
+            session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
             session.protocol = ProtocolVersion.getLatestVersion(parameters
                     .getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
@@ -625,4 +627,3 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
     }
 
 }
-
