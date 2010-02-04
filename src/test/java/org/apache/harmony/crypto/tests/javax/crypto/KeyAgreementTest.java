@@ -922,7 +922,6 @@ public class KeyAgreementTest extends TestCase {
         method = "engineGenerateSecret",
         args = {java.lang.String.class}
     )})
-    @KnownFailure("Does not throw expected exception")
     public void test_generateSecretLjava_lang_String() throws Exception {
         if (!DEFSupported) {
             fail(NotSupportMsg);
