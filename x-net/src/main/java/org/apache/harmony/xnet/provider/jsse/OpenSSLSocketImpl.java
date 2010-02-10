@@ -68,6 +68,9 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     private ArrayList<HandshakeCompletedListener> listeners;
     private long ssl_op_no = 0x00000000L;
     private int timeout = 0;
+    // BEGIN android-added
+    private int handshakeTimeout = -1;  // -1 = same as timeout; 0 = infinite
+    // END android-added
     private InetSocketAddress address;
 
     private static final String[] supportedProtocols = new String[] {
@@ -298,6 +301,14 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         if (session == null && !sslParameters.getEnableSessionCreation()) {
             throw new SSLHandshakeException("SSL Session may not be created");
         } else {
+            // BEGIN android-added
+            // Temporarily use a different timeout for the handshake process
+            int savedTimeout = timeout;
+            if (handshakeTimeout >= 0) {
+                setSoTimeout(handshakeTimeout);
+            }
+            // END android-added
+
             Socket socket = this.socket != null ? this.socket : this;
             int sessionId = session != null ? session.session : 0;
             boolean reusedSession;
@@ -360,6 +371,13 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
                     throw new SSLException("Not trusted server certificate", e);
                 }
             }
+
+            // BEGIN android-added
+            // Restore the original timeout now that the handshake is complete
+            if (handshakeTimeout >= 0) {
+                setSoTimeout(savedTimeout);
+            }
+            // END android-added
         }
 
         if (listeners != null) {
@@ -881,6 +899,18 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         super.setSoTimeout(timeout);
         this.timeout = timeout;
     }
+
+    // BEGIN android-added
+    /**
+     * Set the handshake timeout on this socket.  This timeout is specified in
+     * milliseconds and will be used only during the handshake process.
+     *
+     * @param timeout the handshake timeout value
+     */
+    public synchronized void setHandshakeTimeout(int timeout) throws SocketException {
+        this.handshakeTimeout = timeout;
+    }
+    // END android-added
 
     private native void nativeinterrupt() throws IOException;
     private native void nativeclose() throws IOException;
