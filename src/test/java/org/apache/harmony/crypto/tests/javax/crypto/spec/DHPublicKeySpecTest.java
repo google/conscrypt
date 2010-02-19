@@ -95,9 +95,5 @@ public class DHPublicKeySpecTest extends TestCase {
     public static Test suite() {
         return new TestSuite(DHPublicKeySpecTest.class);
     }
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
-    }
 }
 

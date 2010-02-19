@@ -350,9 +350,5 @@ public class RC5ParameterSpecTest extends TestCase {
     public static Test suite() {
         return new TestSuite(RC5ParameterSpecTest.class);
     }
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
-    }
 }
 

@@ -315,9 +315,5 @@ public class SecretKeySpecTest extends TestCase {
     public static Test suite() {
         return new TestSuite(SecretKeySpecTest.class);
     }
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
-    }
 }
 

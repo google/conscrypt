@@ -111,9 +111,5 @@ public class DHParameterSpecTest extends TestCase {
     public static Test suite() {
         return new TestSuite(DHParameterSpecTest.class);
     }
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
-    }
 }
 

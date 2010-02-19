@@ -23,14 +23,8 @@ import junit.framework.TestSuite;
  * Test suite that includes all tests for the regex project.
  */
 public class AllTests {
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(AllTests.suite());
-//AllTests.java 
-    }
-
     public static Test suite() {
-        TestSuite suite = tests.TestSuiteFactory.createTestSuite("All crypto test suites");
+        TestSuite suite = new TestSuite("All crypto test suites");
         // $JUnit-BEGIN$
         suite.addTest(org.apache.harmony.crypto.tests.javax.crypto.interfaces.AllTests.suite());
         suite.addTest(org.apache.harmony.crypto.tests.javax.crypto.serialization.AllTests.suite());

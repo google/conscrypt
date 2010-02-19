@@ -42,8 +42,4 @@ public class BadPaddingExceptionTest extends SerializationTest {
         return new Object[] { new BadPaddingException(),
                 new BadPaddingException(null), new BadPaddingException(msgs[1]) };
     }
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(BadPaddingExceptionTest.class);
-    }
 }

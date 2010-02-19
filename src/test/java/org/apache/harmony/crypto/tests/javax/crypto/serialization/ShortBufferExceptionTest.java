@@ -42,8 +42,4 @@ public class ShortBufferExceptionTest extends SerializationTest {
         return new Object[] { new ShortBufferException(),
                 new ShortBufferException(null), new ShortBufferException(msgs[1]) };
     }
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(ShortBufferExceptionTest.class);
-    }
 }

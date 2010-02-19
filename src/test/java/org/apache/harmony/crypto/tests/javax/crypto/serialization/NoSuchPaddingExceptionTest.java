@@ -42,8 +42,4 @@ public class NoSuchPaddingExceptionTest extends SerializationTest {
         return new Object[] { new NoSuchPaddingException(),
                 new NoSuchPaddingException(null), new NoSuchPaddingException(msgs[1]) };
     }
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(NoSuchPaddingExceptionTest.class);
-    }
 }

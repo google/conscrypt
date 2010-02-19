@@ -1171,11 +1171,6 @@ public class MacTest extends TestCase {
     public static Test suite() {
         return new TestSuite(MacTest.class);
     }
-
-    public static void main(String args[]) {        
-        junit.textui.TestRunner.run(suite());
-        
-    }        
 }
 /**
  * Additional class for Mac constructor verification

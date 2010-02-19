@@ -42,8 +42,4 @@ public class IllegalBlockSizeExceptionTest extends SerializationTest {
         return new Object[] { new IllegalBlockSizeException(),
                 new IllegalBlockSizeException(null), new IllegalBlockSizeException(msgs[1]) };
     }
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(IllegalBlockSizeExceptionTest.class);
-    }
 }

@@ -84,9 +84,5 @@ public class DHGenParameterSpecTest extends TestCase {
     public static Test suite() {
         return new TestSuite(DHGenParameterSpecTest.class);
     }
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
-    }
 }
 

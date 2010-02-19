@@ -226,9 +226,5 @@ public class DESedeKeySpecTest extends TestCase {
     public static Test suite() {
         return new TestSuite(DESedeKeySpecTest.class);
     }
-
-    public static void main(String args[]) {
-        junit.textui.TestRunner.run(suite());
-    }
 }
 

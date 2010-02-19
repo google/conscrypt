@@ -160,9 +160,5 @@ public class IvParameterSpecTest extends TestCase {
     public static Test suite() {
         return new TestSuite(IvParameterSpecTest.class);
     }
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
-    }
 }
 

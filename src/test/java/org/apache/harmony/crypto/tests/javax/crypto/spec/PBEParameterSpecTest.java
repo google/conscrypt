@@ -118,9 +118,5 @@ public class PBEParameterSpecTest extends TestCase {
     public static Test suite() {
         return new TestSuite(PBEParameterSpecTest.class);
     }
-
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
-    }
 }
 
