@@ -38,30 +38,6 @@ public class NativeCrypto {
     
     public static native void EVP_PKEY_free(int pkey);
   
-  // --- RSA public/private key handling functions ---------------------------
-  
-//  public static native int rsaCreatePublicKey(byte[] n, byte[] e);
-//  
-//  public static native int rsaCreatePrivateKey(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q);
-//
-//  public static native void rsaDestroyKey(int rsa);
-    
-    // --- DSA public/private key handling functions ---------------------------
-    
-//    public static native int dsaCreatePublicKey(byte[] p, byte[] q, byte[] g, byte[] pub_key);
-//    
-//    public static native int dsaCreatePrivateKey(byte[] p, byte[] q, byte[] g, byte[] priv_key, byte[] pub_key);
-//
-//    public static native void dsaDestroyKey(int dsa);
-    
-    // --- RSA public/private key handling functions ---------------------------
-    
-//    public static native int rsaCreatePublicKey(byte[] n, byte[] e);
-//    
-//    public static native int rsaCreatePrivateKey(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q);
-//
-//    public static native void rsaDestroyKey(int rsa);
-    
     // --- General context handling functions (despite the names) --------------
     
     public static native int EVP_new();
