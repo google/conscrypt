@@ -65,22 +65,9 @@ public class ServerKeyExchange extends Message {
         this.par3 = par3;
         this.hash = hash;
 
-        byte[] bb = this.par1.toByteArray();
-        if (bb[0] == 0) {
-// XXX check for par1 == 0 or bb.length > 1
-            bytes1 = new byte[bb.length - 1];
-            System.arraycopy(bb, 1, bytes1, 0, bytes1.length);
-        } else {
-            bytes1 = bb;
-        }
-
-        bb = this.par2.toByteArray();
-        if (bb[0] == 0) {
-            bytes2 = new byte[bb.length - 1];
-            System.arraycopy(bb, 1, bytes2, 0, bytes2.length);
-        } else {
-            bytes2 = bb;
-        }
+        bytes1 = toUnsignedByteArray(this.par1);
+   
+        bytes2 = toUnsignedByteArray(this.par2);
 
         length = 4 + bytes1.length + bytes2.length;
         if (hash != null) {
@@ -90,14 +77,27 @@ public class ServerKeyExchange extends Message {
             bytes3 = null;
             return;
         }
-        bb = this.par3.toByteArray();
-        if (bb[0] == 0) {
-            bytes3 = new byte[bb.length - 1];
-            System.arraycopy(bb, 1, bytes3, 0, bytes3.length);
-        } else {
-            bytes3 = bb;
-        }
+        bytes3 = toUnsignedByteArray(this.par3);
         length += 2 + bytes3.length;
+    }
+    
+    /**
+     * Remove first byte if 0. Needed because BigInteger.toByteArray() sometimes
+     * returns a zero prefix.
+     */
+    public static byte[] toUnsignedByteArray(BigInteger bi) {
+        if (bi == null) {
+            return null;
+        }
+        byte[] bb = bi.toByteArray();
+        // bb is not null, and has at least 1 byte - ZERO is represented as [0]
+        if (bb[0] == 0) {
+            byte[] noZero = new byte[bb.length - 1];
+            System.arraycopy(bb, 1, noZero, 0, noZero.length);
+            return noZero;
+        } else {
+            return bb;
+        }
     }
 
     /**

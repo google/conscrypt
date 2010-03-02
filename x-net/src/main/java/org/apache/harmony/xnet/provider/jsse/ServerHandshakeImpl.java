@@ -575,27 +575,31 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     byte[] tmpLength = new byte[2];
 //FIXME 1_byte==0x00                    
                     if (cipher_suite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT) {
-                        tmp = rsakey.getModulus().toByteArray();
+                        tmp = ServerKeyExchange.toUnsignedByteArray(rsakey.getModulus());
                         tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
                         tmpLength[1] = (byte) (tmp.length & 0xFF);
                         ds.update(tmpLength);
                         ds.update(tmp);
-                        tmp = rsakey.getPublicExponent().toByteArray();
+                        tmp = ServerKeyExchange.toUnsignedByteArray(rsakey.getPublicExponent());
                         tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
                         tmpLength[1] = (byte) (tmp.length & 0xFF);
+                        ds.update(tmpLength);
                         ds.update(tmp);
                     } else {
-                        tmp = dhkeySpec.getP().toByteArray();
+                        tmp = ServerKeyExchange.toUnsignedByteArray(dhkeySpec.getP());
                         tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
                         tmpLength[1] = (byte) (tmp.length & 0xFF);
+                        ds.update(tmpLength);
                         ds.update(tmp);
-                        tmp = dhkeySpec.getG().toByteArray();
+                        tmp = ServerKeyExchange.toUnsignedByteArray(dhkeySpec.getG());
                         tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
                         tmpLength[1] = (byte) (tmp.length & 0xFF);
+                        ds.update(tmpLength);
                         ds.update(tmp);
-                        tmp = dhkeySpec.getY().toByteArray();
+                        tmp = ServerKeyExchange.toUnsignedByteArray(dhkeySpec.getY());
                         tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
                         tmpLength[1] = (byte) (tmp.length & 0xFF);
+                        ds.update(tmpLength);
                         ds.update(tmp);
                     }
                     hash = ds.sign();
