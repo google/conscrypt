@@ -35,6 +35,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     volatile int timeout;
 
     final SSLParameters parameters;
+    final int sslCtxNativePointer;
 
     /** Identifies OpenSSL sessions. */
     static final int OPEN_SSL = 1;
@@ -46,9 +47,10 @@ abstract class AbstractSessionContext implements SSLSessionContext {
      * @param maximumSize of cache
      * @param timeout for cache entries
      */
-    AbstractSessionContext(SSLParameters parameters, int maximumSize,
-            int timeout) {
+    AbstractSessionContext(SSLParameters parameters, int sslCtxNativePointer,
+            int maximumSize, int timeout) {
         this.parameters = parameters;
+        this.sslCtxNativePointer = sslCtxNativePointer;
         this.maximumSize = maximumSize;
         this.timeout = timeout;
     }
@@ -181,9 +183,18 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
+    /**
+     * Puts an SSLSession in the AbstractSessionContext cache
+     */
+    abstract void putSession(SSLSession session);
+
     static void log(Throwable t) {
         java.util.logging.Logger.global.log(Level.WARNING,
                 "Error converting session.", t);
+    }
+
+    protected void finalize() throws IOException {
+        NativeCrypto.SSL_CTX_free(sslCtxNativePointer);
     }
 
     /**

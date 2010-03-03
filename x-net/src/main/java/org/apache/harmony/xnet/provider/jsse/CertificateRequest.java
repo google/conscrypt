@@ -55,7 +55,7 @@ public class CertificateRequest extends Message {
      */
     X500Principal[] certificate_authorities;
 
-    //Requested certificate types as Strings
+    // Requested certificate types as Strings
     // ("RSA", "DSA", "DH_RSA" or "DH_DSA")
     private String[] types;
 

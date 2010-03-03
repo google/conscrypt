@@ -41,7 +41,7 @@ import org.apache.harmony.security.provider.cert.X509CertImpl;
  * Implementation of the class OpenSSLSessionImpl
  * based on OpenSSL. The JNI native interface for some methods
  * of this this class are defined in the file:
- * org_apache_harmony_xnet_provider_jsse_OpenSSLSessionImpl.cpp
+ * org_apache_harmony_xnet_provider_jsse_NativeCrypto.cpp
  */
 public class OpenSSLSessionImpl implements SSLSession {
 
@@ -52,11 +52,11 @@ public class OpenSSLSessionImpl implements SSLSession {
     private boolean isValid = true;
     private TwoKeyHashMap values = new TwoKeyHashMap();
     private javax.security.cert.X509Certificate[] peerCertificateChain;
-    protected int session;
+    protected int sslSessionNativePointer;
     private SSLParameters sslParameters;
     private String peerHost;
     private int peerPort;
-    private final SSLSessionContext sessionContext;
+    private final AbstractSessionContext sessionContext;
 
     /**
      * Class constructor creates an SSL session context given the appropriate
@@ -65,9 +65,9 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @param session the Identifier for SSL session
      * @param sslParameters the SSL parameters like ciphers' suites etc.
      */
-    protected OpenSSLSessionImpl(int session, SSLParameters sslParameters,
-            String peerHost, int peerPort, SSLSessionContext sessionContext) {
-        this.session = session;
+    protected OpenSSLSessionImpl(int sslSessionNativePointer, SSLParameters sslParameters,
+            String peerHost, int peerPort, AbstractSessionContext sessionContext) {
+        this.sslSessionNativePointer = sslSessionNativePointer;
         this.sslParameters = sslParameters;
         this.peerHost = peerHost;
         this.peerPort = peerPort;
@@ -75,51 +75,58 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Constructs a session from a byte[].
+     * Constructs a session from a byte[] containing DER data. This
+     * allows loading the saved session.
+     * @throws IOException
      */
     OpenSSLSessionImpl(byte[] derData, SSLParameters sslParameters,
             String peerHost, int peerPort,
             javax.security.cert.X509Certificate[] peerCertificateChain,
-            SSLSessionContext sessionContext)
+            AbstractSessionContext sessionContext)
             throws IOException {
-        this.sslParameters = sslParameters;
-        this.peerHost = peerHost;
-        this.peerPort = peerPort;
+        this(initializeNativeImpl(derData, derData.length),
+             sslParameters,
+             peerHost,
+             peerPort,
+             sessionContext);
         this.peerCertificateChain = peerCertificateChain;
-        this.sessionContext = sessionContext;
-        initializeNative(derData);
+        // TODO move this check into native code so we can throw an error with more information
+        if (this.sslSessionNativePointer == 0) {
+            throw new IOException("Invalid session data");
+        }
     }
+
+    private static native int initializeNativeImpl(byte[] data, int size);
 
     /**
      * Gets the identifier of the actual SSL session
      * @return array of sessions' identifiers.
      */
-    public native byte[] getId();
+    public byte[] getId() {
+        return getId(sslSessionNativePointer);
+    }
+
+    private static native byte[] getId(int sslSessionNativePointer);
 
     /**
      * Get the session object in DER format. This allows saving the session
      * data or sharing it with other processes.  
      */
-    native byte[] getEncoded();
-
-    /**
-     * Init the underlying native object from DER data. This 
-     * allows loading the saved session.
-     * @throws IOException 
-     */
-    private void initializeNative(byte[] derData) throws IOException {
-        this.session = initializeNativeImpl(derData, derData.length);
-        if (this.session == 0) {
-            throw new IOException("Invalid session data");
-        }
+    byte[] getEncoded() {
+        return getEncoded(sslSessionNativePointer);
     }
-    private native int initializeNativeImpl(byte[] data, int size);
-    
+
+    private native static byte[] getEncoded(int sslSessionNativePointer);
+
     /**
      * Gets the creation time of the SSL session.
      * @return the session's creation time in milliseconds since the epoch
      */
-    public native long getCreationTime();
+    public long getCreationTime() {
+        return getCreationTime(sslSessionNativePointer);
+    }
+
+    private static native long getCreationTime(int sslSessionNativePointer);
 
     /**
      * Gives the last time this concrete SSL session was accessed. Accessing
@@ -184,7 +191,8 @@ public class OpenSSLSessionImpl implements SSLSession {
     /**
      * Returns the X509 certificates of the peer in the PEM format.
      */
-    private native byte[][] getPeerCertificatesImpl();
+    private static native byte[][] getPeerCertificatesImpl(int sslCtxNativePointer,
+                                                           int sslSessionNativePointer);
 
     /**
      * Gives the certificate(s) of the peer in this SSL session
@@ -201,7 +209,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     public javax.security.cert.X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
         if (peerCertificateChain == null) {
             try {
-                byte[][] bytes = getPeerCertificatesImpl();
+                byte[][] bytes = getPeerCertificatesImpl(sessionContext.sslCtxNativePointer, sslSessionNativePointer);
                 if (bytes == null) throw new SSLPeerUnverifiedException("No certificate available");
 
                 peerCertificateChain = new javax.security.cert.X509Certificate[bytes.length];
@@ -303,7 +311,11 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @return an identifier for all the cryptographic algorithms used in the
      *         actual SSL session.
      */
-    public native String getCipherSuite();
+    public String getCipherSuite() {
+        return getCipherSuite(sslSessionNativePointer);
+    }
+
+    private static native String getCipherSuite(int sslSessionNativePointer);
 
     /**
      * Gives back the standard version name of the SSL protocol used in all
@@ -313,7 +325,11 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         connections pertaining to this SSL session.
      *
      */
-    public native String getProtocol();
+    public String getProtocol() {
+        return getProtocol(sslSessionNativePointer);
+    }
+
+    private static native String getProtocol(int sslSessionNativePointer);
 
     /**
      * Gives back the context to which the actual SSL session is bound. A SSL
@@ -457,10 +473,8 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     protected void finalize() {
-        synchronized (OpenSSLSocketImpl.class) {
-            freeImpl(session);
-        }
+        freeImpl(sslSessionNativePointer);
     }
 
-    private native void freeImpl(int session);
+    private static native void freeImpl(int session);
 }

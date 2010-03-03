@@ -46,8 +46,9 @@ public class ServerSessionContext extends AbstractSessionContext {
     private final SSLServerSessionCache persistentCache;
 
     public ServerSessionContext(SSLParameters parameters,
+            int sslCtxNativePointer,
             SSLServerSessionCache persistentCache) {
-        super(parameters, 100, 0);
+        super(parameters, sslCtxNativePointer, 100, 0);
         this.persistentCache = persistentCache;
     }
 
@@ -107,8 +108,13 @@ public class ServerSessionContext extends AbstractSessionContext {
         return null;
     }
 
+    @Override
     void putSession(SSLSession session) {
-        ByteArray key = new ByteArray(session.getId());
+        byte[] id = session.getId();
+        if (id.length == 0) {
+            return;
+        }
+        ByteArray key = new ByteArray(id);
         synchronized (sessions) {
             sessions.put(key, session);
         }

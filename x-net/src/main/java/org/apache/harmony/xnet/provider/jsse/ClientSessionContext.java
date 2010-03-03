@@ -64,8 +64,9 @@ public class ClientSessionContext extends AbstractSessionContext {
     final SSLClientSessionCache persistentCache;
 
     public ClientSessionContext(SSLParameters parameters,
+            int sslCtxNativePointer,
             SSLClientSessionCache persistentCache) {
-        super(parameters, 10, 0);
+        super(parameters, sslCtxNativePointer, 10, 0);
         this.persistentCache = persistentCache;
     }
 
@@ -144,9 +145,9 @@ public class ClientSessionContext extends AbstractSessionContext {
      * Adds the given session to the ID-based index if the index has already
      * been initialized.
      */
-    private void indexById(SSLSession session) {
+    private void indexById(byte[] id, SSLSession session) {
         if (sessionsById != null) {
-            sessionsById.put(new ByteArray(session.getId()), session);
+            sessionsById.put(new ByteArray(id), session);
         }
     }
 
@@ -173,7 +174,7 @@ public class ClientSessionContext extends AbstractSessionContext {
                 if (session != null) {
                     synchronized (sessions) {
                         sessions.put(new HostAndPort(host, port), session);
-                        indexById(session);
+                        indexById(session.getId(), session);
                     }
                     return session;
                 }
@@ -183,12 +184,17 @@ public class ClientSessionContext extends AbstractSessionContext {
         return null;
     }
 
+    @Override
     void putSession(SSLSession session) {
+        byte[] id = session.getId();
+        if (id.length == 0) {
+            return;
+        }
         HostAndPort key = new HostAndPort(session.getPeerHost(),
                 session.getPeerPort());
         synchronized (sessions) {
             sessions.put(key, session);
-            indexById(session);
+            indexById(id, session);
         }
 
         // TODO: This in a background thread.

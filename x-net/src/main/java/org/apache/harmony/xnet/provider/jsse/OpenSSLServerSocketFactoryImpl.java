@@ -39,16 +39,16 @@ public class OpenSSLServerSocketFactoryImpl extends javax.net.ssl.SSLServerSocke
     }
 
     public OpenSSLServerSocketFactoryImpl(SSLParameters sslParameters) {
-        this.sslParameters = sslParameters;
+        this.sslParameters = (SSLParameters) sslParameters.clone();
+        this.sslParameters.setUseClientMode(false);
     }
 
     public String[] getDefaultCipherSuites() {
-        // TODO There might be a better way to implement this...
-        return OpenSSLServerSocketImpl.nativegetsupportedciphersuites();
+        return NativeCrypto.getDefaultCipherSuites();
     }
 
     public String[] getSupportedCipherSuites() {
-        return OpenSSLServerSocketImpl.nativegetsupportedciphersuites();
+        return NativeCrypto.getSupportedCipherSuites();
     }
 
     public ServerSocket createServerSocket() throws IOException {

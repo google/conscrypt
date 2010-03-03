@@ -93,29 +93,11 @@ public class SSLParameters implements Cloneable {
         if (enabledCipherSuites == null) this.enabledCipherSuites = CipherSuite.defaultCipherSuites;
         return enabledCipherSuites;
     }
-
-    /**
-     * Holds a pointer to our native SSL context.
-     */
-    private int ssl_ctx = 0;
-    
-    /**
-     * Initializes our native SSL context.
-     */
-    private native int nativeinitsslctx();
-
-    /**
-     * Returns the native SSL context, creating it on-the-fly, if necessary.
-     */
-    protected synchronized int getSSLCTX() {
-        if (ssl_ctx == 0) ssl_ctx = nativeinitsslctx();
-        return ssl_ctx;
-    }
 // END android-changed
 
     /**
      * Initializes the parameters. Naturally this constructor is used
-     * in SSLContextImpl.engineInit method which dirrectly passes its 
+     * in SSLContextImpl.engineInit method which dirrectly passes its
      * parameters. In other words this constructor holds all
      * the functionality provided by SSLContext.init method.
      * See {@link javax.net.ssl.SSLContext#init(KeyManager[],TrustManager[],
@@ -127,21 +109,21 @@ public class SSLParameters implements Cloneable {
             SSLServerSessionCache serverCache)
             throws KeyManagementException {
         this.serverSessionContext
-                = new ServerSessionContext(this, serverCache);
+                = new ServerSessionContext(this, NativeCrypto.SSL_CTX_new(), serverCache);
         this.clientSessionContext
-                = new ClientSessionContext(this, clientCache);
+                = new ClientSessionContext(this, NativeCrypto.SSL_CTX_new(), clientCache);
 // END android-changed
         try {
             // initialize key manager
             boolean initialize_default = false;
-            // It's not described by the spec of SSLContext what should happen 
+            // It's not described by the spec of SSLContext what should happen
             // if the arrays of length 0 are specified. This implementation
             // behave as for null arrays (i.e. use installed security providers)
             if ((kms == null) || (kms.length == 0)) {
                 if (defaultKeyManager == null) {
                     KeyManagerFactory kmf = KeyManagerFactory.getInstance(
                             KeyManagerFactory.getDefaultAlgorithm());
-                    kmf.init(null, null);                
+                    kmf.init(null, null);
                     kms = kmf.getKeyManagers();
                     // tell that we are trying to initialize defaultKeyManager
                     initialize_default = true;

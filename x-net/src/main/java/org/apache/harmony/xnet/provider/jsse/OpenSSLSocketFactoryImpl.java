@@ -46,12 +46,11 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
     }
 
     public String[] getDefaultCipherSuites() {
-        // TODO There might be a better implementation for this...
-        return OpenSSLSocketImpl.nativegetsupportedciphersuites();
+        return NativeCrypto.getDefaultCipherSuites();
     }
 
     public String[] getSupportedCipherSuites() {
-        return OpenSSLSocketImpl.nativegetsupportedciphersuites();
+        return NativeCrypto.getSupportedCipherSuites();
     }
 
     public Socket createSocket() throws IOException {

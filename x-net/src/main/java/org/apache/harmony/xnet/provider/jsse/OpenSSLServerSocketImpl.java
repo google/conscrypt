@@ -16,98 +16,46 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-
-import org.bouncycastle.openssl.PEMWriter;
 
 /**
  * OpenSSL-based implementation of server sockets.
- *  
+ *
  * This class only supports SSLv3 and TLSv1. This should be documented elsewhere
  * later, for example in the package.html or a separate reference document.
- */ 
+ */
 public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
-    private int ssl_ctx;
-    private boolean client_mode = true;
-    private long ssl_op_no = 0x00000000L;
-    private SSLParameters sslParameters;
-    private static final String[] supportedProtocols = new String[] {
-        "SSLv3",
-        "TLSv1"
-        };
-
-    private native static void nativeinitstatic();
-
-    static {
-        nativeinitstatic();
-    }
-
-    private native void nativeinit(String privatekey, String certificate, byte[] seed);
-
-    /**
-     * Initialize the SSL server socket and set the certificates for the
-     * future handshaking.
-     */
-    private void init() throws IOException {
-        String alias = sslParameters.getKeyManager().chooseServerAlias("RSA", null, null);
-        if (alias == null) {
-            throw new IOException("No suitable certificates found");
-        }
-
-        PrivateKey privateKey = sslParameters.getKeyManager().getPrivateKey(alias);
-        X509Certificate[] certificates = sslParameters.getKeyManager().getCertificateChain(alias);
-
-        ByteArrayOutputStream privateKeyOS = new ByteArrayOutputStream();
-        PEMWriter privateKeyPEMWriter = new PEMWriter(new OutputStreamWriter(privateKeyOS));
-        privateKeyPEMWriter.writeObject(privateKey);
-        privateKeyPEMWriter.close();
-
-        ByteArrayOutputStream certificateOS = new ByteArrayOutputStream();
-        PEMWriter certificateWriter = new PEMWriter(new OutputStreamWriter(certificateOS));
-
-        for (int i = 0; i < certificates.length; i++) {
-            certificateWriter.writeObject(certificates[i]);
-        }
-        certificateWriter.close();
-
-        nativeinit(privateKeyOS.toString(), certificateOS.toString(),
-                sslParameters.getSecureRandomMember() != null ?
-                sslParameters.getSecureRandomMember().generateSeed(1024) : null);
-    }
+    private final SSLParameters sslParameters;
+    private int sslNativePointer;
 
     protected OpenSSLServerSocketImpl(SSLParameters sslParameters)
         throws IOException {
         super();
         this.sslParameters = sslParameters;
-        init();
+        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
     }
 
     protected OpenSSLServerSocketImpl(int port, SSLParameters sslParameters)
         throws IOException {
         super(port);
         this.sslParameters = sslParameters;
-        init();
+        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
     }
 
     protected OpenSSLServerSocketImpl(int port, int backlog, SSLParameters sslParameters)
         throws IOException {
         super(port, backlog);
         this.sslParameters = sslParameters;
-        init();
+        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
     }
 
     protected OpenSSLServerSocketImpl(int port, int backlog, InetAddress iAddress, SSLParameters sslParameters)
         throws IOException {
         super(port, backlog, iAddress);
         this.sslParameters = sslParameters;
-        init();
+        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
     }
 
     @Override
@@ -127,78 +75,41 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
      */
     @Override
     public String[] getSupportedProtocols() {
-        return supportedProtocols.clone();
+        return NativeCrypto.getSupportedProtocols();
     }
 
     /**
-     * See the OpenSSL ssl.h header file for more information.
-     */
-    static private long SSL_OP_NO_SSLv3 = 0x02000000L;
-    static private long SSL_OP_NO_TLSv1 = 0x04000000L;
-
-    /**
      * The names of the protocols' versions that in use on this SSL connection.
-     * 
+     *
      * @return an array of protocols names
      */
     @Override
     public String[] getEnabledProtocols() {
-        ArrayList<String> array = new ArrayList<String>();
-
-        if ((ssl_op_no & SSL_OP_NO_SSLv3) == 0x00000000L) {
-            array.add(supportedProtocols[0]);
-        }
-        if ((ssl_op_no & SSL_OP_NO_TLSv1) == 0x00000000L) {
-            array.add(supportedProtocols[1]);
-        }
-        return array.toArray(new String[array.size()]);
+        return NativeCrypto.getEnabledProtocols(sslNativePointer);
     }
-
-    private native void nativesetenabledprotocols(long l);
 
     /**
      * This method enables the protocols' versions listed by
      * getSupportedProtocols().
-     * 
+     *
      * @param protocols names of all the protocols to enable.
-     * 
+     *
      * @throws IllegalArgumentException when one or more of the names in the
      *             array are not supported, or when the array is null.
      */
     @Override
     public void setEnabledProtocols(String[] protocols) {
-        if (protocols == null) {
-            throw new IllegalArgumentException("Provided parameter is null");
-        }
-
-        ssl_op_no  = SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1;
-
-        for (int i = 0; i < protocols.length; i++) {
-            if (protocols[i].equals("SSLv3"))
-                ssl_op_no ^= SSL_OP_NO_SSLv3;
-            else if (protocols[i].equals("TLSv1"))
-                ssl_op_no ^= SSL_OP_NO_TLSv1;
-            else throw new IllegalArgumentException("Protocol " + protocols[i] +
-            " is not supported.");
-        }
-
-        nativesetenabledprotocols(ssl_op_no);
+        NativeCrypto.setEnabledProtocols(sslNativePointer, protocols);
     }
-
-    /**
-     * Gets all available ciphers from the current OpenSSL library.
-     * Needed by OpenSSLServerSocketFactory too.
-     */
-    static native String[] nativegetsupportedciphersuites();
 
     @Override
     public String[] getSupportedCipherSuites() {
-        return nativegetsupportedciphersuites();
+        return NativeCrypto.getSupportedCipherSuites();
     }
 
     @Override
     public String[] getEnabledCipherSuites() {
-        return OpenSSLSocketImpl.nativeGetEnabledCipherSuites(ssl_ctx);
+        return NativeCrypto.SSL_get_ciphers(sslNativePointer);
     }
 
     /**
@@ -211,7 +122,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
      */
     @Override
     public void setEnabledCipherSuites(String[] suites) {
-        OpenSSLSocketImpl.setEnabledCipherSuites(ssl_ctx, suites);
+        NativeCrypto.setEnabledCipherSuites(sslNativePointer, suites);
     }
 
     /**
@@ -223,10 +134,10 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     static private int SSL_VERIFY_CLIENT_ONCE =          0x04;
 
     /**
-     * Calls the SSL_CTX_set_verify(...) OpenSSL function with the passed int
+     * Calls the SSL_set_verify(...) OpenSSL function with the passed int
      * value.
      */
-    private native void nativesetclientauth(int value);
+    private static native void nativesetclientauth(int sslNativePointer, int value);
 
     private void setClientAuth() {
         int value = SSL_VERIFY_NONE;
@@ -237,7 +148,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
             value |= SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE;
         }
 
-        nativesetclientauth(value);
+        nativesetclientauth(sslNativePointer, value);
     }
 
     @Override
@@ -274,18 +185,11 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
-        OpenSSLSocketImpl socket
-                = new OpenSSLSocketImpl(sslParameters, ssl_op_no);
+        OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters, null);
         implAccept(socket);
-        socket.accept(ssl_ctx, client_mode);
-
+        socket.accept(sslNativePointer);
         return socket;
     }
-
-    /**
-     * Removes OpenSSL objects from memory.
-     */
-    private native void nativefree();
 
     /**
      * Unbinds the port if the socket is open.
@@ -297,7 +201,10 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public synchronized void close() throws IOException {
-        nativefree();
+        if (sslNativePointer != 0) {
+            NativeCrypto.SSL_free(sslNativePointer);
+            sslNativePointer = 0;
+        }
         super.close();
     }
 }

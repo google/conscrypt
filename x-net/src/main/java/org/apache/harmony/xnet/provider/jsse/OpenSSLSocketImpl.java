@@ -16,7 +16,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,7 +24,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
-import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
@@ -41,42 +39,36 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
 
 import org.apache.harmony.security.provider.cert.X509CertImpl;
-import org.bouncycastle.openssl.PEMWriter;
 
 /**
  * Implementation of the class OpenSSLSocketImpl
  * based on OpenSSL. The JNI native interface for some methods
  * of this this class are defined in the file:
- * org_apache_harmony_xnet_provider_jsse_OpenSSLSocketImpl.cpp
- * 
+ * org_apache_harmony_xnet_provider_jsse_NativeCrypto.cpp
+ *
  * This class only supports SSLv3 and TLSv1. This should be documented elsewhere
- * later, for example in the package.html or a separate reference document. 
+ * later, for example in the package.html or a separate reference document.
  */
-public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
-    private int ssl_ctx;
-    private int ssl;
+public class OpenSSLSocketImpl
+        extends javax.net.ssl.SSLSocket
+        implements NativeCrypto.CertificateChainVerifier {
+    private int sslNativePointer;
     private InputStream is;
     private OutputStream os;
     private final Object handshakeLock = new Object();
-    private Object readLock = new Object();
-    private Object writeLock = new Object();
+    private final Object readLock = new Object();
+    private final Object writeLock = new Object();
     private SSLParameters sslParameters;
     private OpenSSLSessionImpl sslSession;
     private Socket socket;
     private boolean autoClose;
     private boolean handshakeStarted = false;
     private ArrayList<HandshakeCompletedListener> listeners;
-    private long ssl_op_no = 0x00000000L;
     private int timeout = 0;
     // BEGIN android-added
     private int handshakeTimeout = -1;  // -1 = same as timeout; 0 = infinite
     // END android-added
     private InetSocketAddress address;
-
-    private static final String[] supportedProtocols = new String[] {
-        "SSLv3",
-        "TLSv1"
-        };
 
     private static final AtomicInteger instanceCount = new AtomicInteger(0);
 
@@ -89,66 +81,6 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     }
 
     /**
-     * Initialize OpenSSL library.
-     */
-    private native static void nativeinitstatic();
-
-    static {
-        nativeinitstatic();
-    }
-
-    private native void nativeinit(String privatekey, String certificate, byte[] seed);
-
-    /**
-     * Initialize the SSL socket and set the certificates for the
-     * future handshaking.
-     */
-    private void init() throws IOException {
-        String alias = sslParameters.getKeyManager().chooseClientAlias(new String[] { "RSA" }, null, null);
-        if (alias != null) {
-            PrivateKey privateKey = sslParameters.getKeyManager().getPrivateKey(alias);
-            X509Certificate[] certificates = sslParameters.getKeyManager().getCertificateChain(alias);
-
-            ByteArrayOutputStream privateKeyOS = new ByteArrayOutputStream();
-            PEMWriter privateKeyPEMWriter = new PEMWriter(new OutputStreamWriter(privateKeyOS));
-            privateKeyPEMWriter.writeObject(privateKey);
-            privateKeyPEMWriter.close();
-
-            ByteArrayOutputStream certificateOS = new ByteArrayOutputStream();
-            PEMWriter certificateWriter = new PEMWriter(new OutputStreamWriter(certificateOS));
-
-            for (int i = 0; i < certificates.length; i++) {
-                certificateWriter.writeObject(certificates[i]);
-            }
-            certificateWriter.close();
-
-            nativeinit(privateKeyOS.toString(), certificateOS.toString(),
-                    sslParameters.getSecureRandomMember() != null ?
-                    sslParameters.getSecureRandomMember().generateSeed(1024) : null);
-        } else {
-            nativeinit(null, null,
-                    sslParameters.getSecureRandomMember() != null ?
-                    sslParameters.getSecureRandomMember().generateSeed(1024) : null);
-        }
-    }
-
-    /**
-     * Class constructor with 2 parameters
-     *
-     * @param sslParameters Parameters for the SSL
-     *            context
-     * @param ssl_op_no Parameter to set the enabled
-     *            protocols
-     * @throws IOException if network fails
-     */
-    protected OpenSSLSocketImpl(SSLParameters sslParameters, long ssl_op_no) throws IOException {
-        super();
-        this.sslParameters = sslParameters;
-        this.ssl_op_no = ssl_op_no;
-        updateInstanceCount(1);
-    }
-
-    /**
      * Class constructor with 1 parameter
      *
      * @param sslParameters Parameters for the SSL
@@ -157,9 +89,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      */
     protected OpenSSLSocketImpl(SSLParameters sslParameters) throws IOException {
         super();
-        this.sslParameters = sslParameters;
-        init();
-        updateInstanceCount(1);
+        init(sslParameters);
     }
 
     /**
@@ -172,11 +102,8 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
             SSLParameters sslParameters)
         throws IOException {
         super(host, port);
-        this.sslParameters = sslParameters;
-        init();
-        updateInstanceCount(1);
+        init(sslParameters);
     }
-
 
     /**
      * Class constructor with 3 parameters: 1st is InetAddress
@@ -188,9 +115,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
             SSLParameters sslParameters)
         throws IOException {
         super(address, port);
-        this.sslParameters = sslParameters;
-        init();
-        updateInstanceCount(1);
+        init(sslParameters);
     }
 
 
@@ -204,9 +129,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
             int clientPort, SSLParameters sslParameters)
         throws IOException {
         super(host, port, clientAddress, clientPort);
-        this.sslParameters = sslParameters;
-        init();
-        updateInstanceCount(1);
+        init(sslParameters);
     }
 
     /**
@@ -219,9 +142,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
             InetAddress clientAddress, int clientPort, SSLParameters sslParameters)
         throws IOException {
         super(address, port, clientAddress, clientPort);
-        this.sslParameters = sslParameters;
-        init();
-        updateInstanceCount(1);
+        init(sslParameters);
     }
 
     /**
@@ -237,8 +158,28 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         this.timeout = socket.getSoTimeout();
         this.address = new InetSocketAddress(host, port);
         this.autoClose = autoClose;
+        init(sslParameters);
+    }
+
+    /**
+     * Initialize the SSL socket and set the certificates for the
+     * future handshaking.
+     */
+    private void init(SSLParameters sslParameters) throws IOException {
         this.sslParameters = sslParameters;
-        init();
+        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
+        updateInstanceCount(1);
+    }
+
+    /**
+     * Construct a OpenSSLSocketImpl from an SSLParameters and an
+     * existing SSL native pointer. Used for transitioning accepting
+     * the OpenSSLSocketImpl within OpenSSLServerSocketImpl.
+     */
+    protected OpenSSLSocketImpl(SSLParameters sslParameters,
+                                OpenSSLServerSocketImpl dummy) {
+        super();
+        this.sslParameters = (SSLParameters) sslParameters.clone();
         updateInstanceCount(1);
     }
 
@@ -246,9 +187,9 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * Adds OpenSSL functionality to the existing socket and starts the SSL
      * handshaking.
      */
-    private native boolean nativeconnect(int ctx, Socket sock, boolean client_mode, int sslsession) throws IOException;
-    private native int nativegetsslsession(int ssl);
-    private native String nativecipherauthenticationmethod();
+    private native boolean nativeconnect(int sslNativePointer, Socket sock, int timeout, boolean client_mode, int sslSessionNativePointer) throws IOException;
+    private native int nativegetsslsession(int sslNativePointer);
+    private native String nativecipherauthenticationmethod(int sslNativePointer);
 
     /**
      * Gets the suitable session reference from the session cache container.
@@ -256,6 +197,9 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * @return OpenSSLSessionImpl
      */
     private OpenSSLSessionImpl getCachedClientSession() {
+        if (!sslParameters.getUseClientMode()) {
+            return null;
+        }
         if (super.getInetAddress() == null ||
                 super.getInetAddress().getHostAddress() == null ||
                 super.getInetAddress().getHostName() == null) {
@@ -273,8 +217,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * before logging is ready.
      */
     static class LoggerHolder {
-        static final Logger logger = Logger.getLogger(
-                OpenSSLSocketImpl.class.getName());
+        static final Logger logger = Logger.getLogger(OpenSSLSocketImpl.class.getName());
     }
 
     /**
@@ -282,7 +225,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * from the OpenSSL library. It can negotiate new encryption keys, change
      * cipher suites, or initiate a new session. The certificate chain is
      * verified if the correspondent property in java.Security is set. All
-     * listensers are notified at the end of the TLS/SSL handshake.
+     * listeners are notified at the end of the TLS/SSL handshake.
      *
      * @throws <code>IOException</code> if network fails
      */
@@ -300,85 +243,76 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         // Check if it's allowed to create a new session (default is true)
         if (session == null && !sslParameters.getEnableSessionCreation()) {
             throw new SSLHandshakeException("SSL Session may not be created");
-        } else {
-            // BEGIN android-added
-            // Temporarily use a different timeout for the handshake process
-            int savedTimeout = timeout;
-            if (handshakeTimeout >= 0) {
-                setSoTimeout(handshakeTimeout);
-            }
-            // END android-added
-
-            Socket socket = this.socket != null ? this.socket : this;
-            int sessionId = session != null ? session.session : 0;
-            boolean reusedSession;
-            synchronized (OpenSSLSocketImpl.class) {
-                reusedSession = nativeconnect(ssl_ctx, socket,
-                        sslParameters.getUseClientMode(), sessionId);
-            }
-            if (reusedSession) {
-                // nativeconnect shouldn't return true if the session is not
-                // done
-                session.lastAccessedTime = System.currentTimeMillis();
-                sslSession = session;
-
-                LoggerHolder.logger.fine("Reused cached session for "
-                        + getInetAddress().getHostName() + ".");
-            } else {
-                if (session != null) {
-                    LoggerHolder.logger.fine("Reuse of cached session for "
-                            + getInetAddress().getHostName() + " failed.");
-                } else {
-                    LoggerHolder.logger.fine("Created new session for "
-                            + getInetAddress().getHostName() + ".");
-                }
-
-                ClientSessionContext sessionContext
-                        = sslParameters.getClientSessionContext();
-                synchronized (OpenSSLSocketImpl.class) {
-                    sessionId = nativegetsslsession(ssl);
-                }
-                if (address == null) {
-                    sslSession = new OpenSSLSessionImpl(
-                            sessionId, sslParameters,
-                            super.getInetAddress().getHostName(),
-                            super.getPort(), sessionContext);
-                } else  {
-                    sslSession = new OpenSSLSessionImpl(
-                            sessionId, sslParameters,
-                            address.getHostName(), address.getPort(),
-                            sessionContext);
-                }
-
-                try {
-                    X509Certificate[] peerCertificates = (X509Certificate[])
-                            sslSession.getPeerCertificates();
-
-                    if (peerCertificates == null
-                            || peerCertificates.length == 0) {
-                        throw new SSLException("Server sends no certificate");
-                    }
-
-                    String authMethod;
-                    synchronized (OpenSSLSocketImpl.class) {
-                        authMethod = nativecipherauthenticationmethod();
-                    }
-                    sslParameters.getTrustManager().checkServerTrusted(
-                            peerCertificates,
-                            authMethod);
-                    sessionContext.putSession(sslSession);
-                } catch (CertificateException e) {
-                    throw new SSLException("Not trusted server certificate", e);
-                }
-            }
-
-            // BEGIN android-added
-            // Restore the original timeout now that the handshake is complete
-            if (handshakeTimeout >= 0) {
-                setSoTimeout(savedTimeout);
-            }
-            // END android-added
         }
+
+        // BEGIN android-added
+        // Temporarily use a different timeout for the handshake process
+        int savedTimeout = timeout;
+        if (handshakeTimeout >= 0) {
+            setSoTimeout(handshakeTimeout);
+        }
+        // END android-added
+
+        Socket socket = this.socket != null ? this.socket : this;
+        int sslSessionNativePointer = session != null ? session.sslSessionNativePointer : 0;
+        boolean reusedSession = nativeconnect(sslNativePointer, socket, timeout,
+                                              sslParameters.getUseClientMode(), sslSessionNativePointer);
+        if (reusedSession) {
+            // nativeconnect shouldn't return true if the session is not
+            // done
+            session.lastAccessedTime = System.currentTimeMillis();
+            sslSession = session;
+
+            LoggerHolder.logger.fine("Reused cached session for "
+                                     + getInetAddress().getHostName() + ".");
+        } else {
+            if (session != null) {
+                LoggerHolder.logger.fine("Reuse of cached session for "
+                                         + getInetAddress().getHostName() + " failed.");
+            } else {
+                LoggerHolder.logger.fine("Created new session for "
+                                         + getInetAddress().getHostName() + ".");
+            }
+
+            AbstractSessionContext sessionContext =
+                (sslParameters.getUseClientMode()) ?
+                sslParameters.getClientSessionContext() :
+                sslParameters.getServerSessionContext();
+            sslSessionNativePointer = nativegetsslsession(sslNativePointer);
+            if (address == null) {
+                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, sslParameters,
+                                                    super.getInetAddress().getHostName(),
+                                                    super.getPort(), sessionContext);
+            } else  {
+                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, sslParameters,
+                                                    address.getHostName(), address.getPort(),
+                                                    sessionContext);
+            }
+
+            try {
+                X509Certificate[] peerCertificates = (X509Certificate[])
+                    sslSession.getPeerCertificates();
+
+                if (peerCertificates == null
+                    || peerCertificates.length == 0) {
+                    throw new SSLException("Server sends no certificate");
+                }
+
+                String authMethod = nativecipherauthenticationmethod(sslNativePointer);
+                sslParameters.getTrustManager().checkServerTrusted(peerCertificates,
+                                                                   authMethod);
+                sessionContext.putSession(sslSession);
+            } catch (CertificateException e) {
+                throw new SSLException("Not trusted server certificate", e);
+            }
+        }
+
+        // BEGIN android-added
+        // Restore the original timeout now that the handshake is complete
+        if (handshakeTimeout >= 0) {
+            setSoTimeout(savedTimeout);
+        }
+        // END android-added
 
         if (listeners != null) {
             // notify the listeners
@@ -392,22 +326,22 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     }
 
     // To be synchronized because of the verify_callback
-    native synchronized void nativeaccept(Socket socketObject, int m_ctx, boolean client_mode);
+    native synchronized int nativeaccept(int sslNativePointer, Socket socketObject);
 
     /**
      * Performs the first part of a SSL/TLS handshaking process with a given
      * 'host' connection and initializes the SSLSession.
      */
-    protected void accept(int m_ctx, boolean client_mode) throws IOException {
+    protected void accept(int serverSslNativePointer) throws IOException {
         // Must be set because no handshaking is necessary
         // in this situation
         handshakeStarted = true;
 
-        nativeaccept(this, m_ctx, client_mode);
+        sslNativePointer = nativeaccept(serverSslNativePointer, this);
 
         ServerSessionContext sessionContext
                 = sslParameters.getServerSessionContext();
-        sslSession = new OpenSSLSessionImpl(nativegetsslsession(ssl),
+        sslSession = new OpenSSLSessionImpl(nativegetsslsession(sslNativePointer),
                 sslParameters, super.getInetAddress().getHostName(),
                 super.getPort(), sessionContext);
         sslSession.lastAccessedTime = System.currentTimeMillis();
@@ -415,14 +349,16 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     }
 
     /**
-     * Callback methode for the OpenSSL native certificate verification process.
+     * Implementation of NativeCrypto.CertificateChainVerifier.
+     *
+     * Callback method for the OpenSSL native certificate verification process.
      *
      * @param bytes Byte array containing the cert's
      *            information.
-     * @return 0 if the certificate verification fails or 1 if OK
+     * @return false if the certificate verification fails or true if OK
      */
     @SuppressWarnings("unused")
-    private int verify_callback(byte[][] bytes) {
+    public boolean verifyCertificateChain(byte[][] bytes) {
         try {
             X509Certificate[] peerCertificateChain
                     = new X509Certificate[bytes.length];
@@ -439,11 +375,13 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
                         new SSLException("Not trusted server certificate", e));
             }
         } catch (javax.security.cert.CertificateException e) {
-            return 0;
+            // TODO throw in all cases for consistency
+            return false;
         } catch (IOException e) {
-            return 0;
+            // TODO throw in all cases for consistency
+            return false;
         }
-        return 1;
+        return true;
     }
 
     /**
@@ -483,28 +421,28 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         }
     }
 
-    /**
-     * This method is not supported for this SSLSocket implementation.
-     */
     public void shutdownInput() throws IOException {
-        throw new UnsupportedOperationException(
-        "Method shutdownInput() is not supported.");
+        if (socket == null) {
+            super.shutdownInput();
+            return;
+        }
+        socket.shutdownInput();
     }
 
-    /**
-     * This method is not supported for this SSLSocket implementation.
-     */
     public void shutdownOutput() throws IOException {
-        throw new UnsupportedOperationException(
-        "Method shutdownOutput() is not supported.");
+        if (socket == null) {
+            super.shutdownOutput();
+            return;
+        }
+        socket.shutdownOutput();
     }
 
     /**
      * Reads with the native SSL_read function from the encrypted data stream
      * @return -1 if error or the end of the stream is reached.
      */
-    private native int nativeread(int timeout) throws IOException;
-    private native int nativeread(byte[] b, int off, int len, int timeout) throws IOException;
+    private native int nativeread(int sslNativePointer, int timeout) throws IOException;
+    private native int nativeread(int sslNativePointer, byte[] b, int off, int len, int timeout) throws IOException;
 
     /**
      * This inner class provides input data stream functionality
@@ -529,7 +467,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
          */
         public int read() throws IOException {
             synchronized(readLock) {
-                return OpenSSLSocketImpl.this.nativeread(timeout);
+                return OpenSSLSocketImpl.this.nativeread(sslNativePointer, timeout);
             }
         }
 
@@ -539,7 +477,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
          */
         public int read(byte[] b, int off, int len) throws IOException {
             synchronized(readLock) {
-                return OpenSSLSocketImpl.this.nativeread(b, off, len, timeout);
+                return OpenSSLSocketImpl.this.nativeread(sslNativePointer, b, off, len, timeout);
             }
         }
     }
@@ -547,8 +485,8 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     /**
      * Writes with the native SSL_write function to the encrypted data stream.
      */
-    private native void nativewrite(int b) throws IOException;
-    private native void nativewrite(byte[] b, int off, int len) throws IOException;
+    private native void nativewrite(int sslNativePointer, int b) throws IOException;
+    private native void nativewrite(int sslNativePointer, byte[] b, int off, int len) throws IOException;
 
     /**
      * This inner class provides output data stream functionality
@@ -559,7 +497,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         SSLOutputStream() throws IOException {
             /**
             /* Note: When startHandshake() throws an exception, no
-             * SSLInputStream object will be created.
+             * SSLOutputStream object will be created.
              */
             OpenSSLSocketImpl.this.startHandshake();
         }
@@ -570,7 +508,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
          */
         public void write(int b) throws IOException {
             synchronized(writeLock) {
-                OpenSSLSocketImpl.this.nativewrite(b);
+                OpenSSLSocketImpl.this.nativewrite(sslNativePointer, b);
             }
         }
 
@@ -580,7 +518,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
          */
         public void write(byte[] b, int start, int len) throws IOException {
             synchronized(writeLock) {
-                OpenSSLSocketImpl.this.nativewrite(b, start, len);
+                OpenSSLSocketImpl.this.nativewrite(sslNativePointer, b, start, len);
             }
         }
     }
@@ -598,9 +536,6 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         try {
             startHandshake();
         } catch (IOException e) {
-            Logger.getLogger(getClass().getName()).log(Level.WARNING,
-                    "Error negotiating SSL connection.", e);
-
             // return an invalid session with
             // invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
             return SSLSessionImpl.NULL_SESSION;
@@ -666,21 +601,13 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     }
 
     /**
-     * Gets all available ciphers from the current OpenSSL library.
-     * Needed by OpenSSLSocketFactory too.
-     */
-    static native String[] nativegetsupportedciphersuites();
-
-    /**
      * The names of the cipher suites which could be used by the SSL connection
      * are returned.
      * @return an array of cipher suite names
      */
     public String[] getSupportedCipherSuites() {
-        return nativegetsupportedciphersuites();
+        return NativeCrypto.getSupportedCipherSuites();
     }
-
-    static native String[] nativeGetEnabledCipherSuites(int ssl_ctx);
 
     /**
      * The names of the cipher suites that are in use in the actual the SSL
@@ -689,23 +616,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * @return an array of cipher suite names
      */
     public String[] getEnabledCipherSuites() {
-        return nativeGetEnabledCipherSuites(ssl_ctx);
-    }
-
-    /**
-     * Calls the SSL_CTX_set_cipher_list(...) OpenSSL function with the passed
-     * char array.
-     */
-    static native void nativeSetEnabledCipherSuites(int ssl_ctx, String controlString);
-
-    private static boolean findSuite(String suite) {
-        String[] supportedCipherSuites = nativegetsupportedciphersuites();
-        for(int i = 0; i < supportedCipherSuites.length; i++) {
-            if (supportedCipherSuites[i].equals(suite)) {
-                return true;
-            }
-        }
-        throw new IllegalArgumentException("Protocol " + suite + " is not supported.");
+        return NativeCrypto.SSL_get_ciphers(sslNativePointer);
     }
 
     /**
@@ -719,20 +630,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      *             is null.
      */
     public void setEnabledCipherSuites(String[] suites) {
-        setEnabledCipherSuites(ssl_ctx, suites);
-    }
-    
-    static void setEnabledCipherSuites(int ssl_ctx, String[] suites) {
-        if (suites == null) {
-            throw new IllegalArgumentException("Provided parameter is null");
-        }
-        String controlString = "";
-        for (int i = 0; i < suites.length; i++) {
-            findSuite(suites[i]);
-            if (i == 0) controlString = suites[i];
-            else controlString += ":" + suites[i];
-        }
-        nativeSetEnabledCipherSuites(ssl_ctx, controlString);
+        NativeCrypto.setEnabledCipherSuites(sslNativePointer, suites);
     }
 
     /**
@@ -741,65 +639,32 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
      * @return an array of protocols names
      */
     public String[] getSupportedProtocols() {
-        return supportedProtocols.clone();
+        return NativeCrypto.getSupportedProtocols();
     }
-
-    /**
-     * SSL mode of operation with or without back compatibility. See the OpenSSL
-     * ssl.h header file for more information.
-     */
-    static private long SSL_OP_NO_SSLv3 = 0x02000000L;
-    static private long SSL_OP_NO_TLSv1 = 0x04000000L;
 
     /**
      * The names of the protocols' versions that are in use on this SSL
      * connection.
-     * 
+     *
      * @return an array of protocols names
      */
     @Override
     public String[] getEnabledProtocols() {
-        ArrayList<String> array = new ArrayList<String>();
-
-        if ((ssl_op_no & SSL_OP_NO_SSLv3) == 0x00000000L) {
-            array.add(supportedProtocols[1]);
-        }
-        if ((ssl_op_no & SSL_OP_NO_TLSv1) == 0x00000000L) {
-            array.add(supportedProtocols[2]);
-        }
-        return array.toArray(new String[array.size()]);
+        return NativeCrypto.getEnabledProtocols(sslNativePointer);
     }
-
-    private native void nativesetenabledprotocols(long l);
 
     /**
      * This method enables the protocols' versions listed by
      * getSupportedProtocols().
-     * 
+     *
      * @param protocols The names of all the protocols to put on use
-     * 
+     *
      * @throws IllegalArgumentException when one or more of the names in the
      *             array are not supported, or when the array is null.
      */
     @Override
     public synchronized void setEnabledProtocols(String[] protocols) {
-
-        if (protocols == null) {
-            throw new IllegalArgumentException("Provided parameter is null");
-        }
-
-        ssl_op_no  = SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1;
-
-        for(int i = 0; i < protocols.length; i++) {
-            if (protocols[i].equals("SSLv3"))
-                ssl_op_no ^= SSL_OP_NO_SSLv3;
-            else if (protocols[i].equals("TLSv1"))
-                ssl_op_no ^= SSL_OP_NO_TLSv1;
-            else throw new IllegalArgumentException("Protocol " + protocols[i] +
-            " is not supported.");
-        }
-
-        nativesetenabledprotocols(ssl_op_no);
+        NativeCrypto.setEnabledProtocols(sslNativePointer, protocols);
     }
 
     /**
@@ -912,8 +777,8 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     }
     // END android-added
 
-    private native void nativeinterrupt() throws IOException;
-    private native void nativeclose() throws IOException;
+    private native void nativeinterrupt(int sslNativePointer) throws IOException;
+    private native void nativeclose(int sslNativePointer) throws IOException;
 
     /**
      * Closes the SSL socket. Once closed, a socket is not available for further
@@ -929,9 +794,9 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         synchronized (handshakeLock) {
             if (!handshakeStarted) {
                 handshakeStarted = true;
-                
+
                 synchronized (this) {
-                    nativefree();
+                    free();
 
                     if (socket != null) {
                         if (autoClose && !socket.isClosed()) socket.close();
@@ -939,12 +804,12 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
                         if (!super.isClosed()) super.close();
                     }
                 }
-                
+
                 return;
             }
         }
 
-        nativeinterrupt();
+        nativeinterrupt(sslNativePointer);
 
         synchronized (this) {
             synchronized (writeLock) {
@@ -955,7 +820,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
                     // Shut down the SSL connection, per se.
                     try {
                         if (handshakeStarted) {
-                            nativeclose();
+                            nativeclose(sslNativePointer);
                         }
                     } catch (IOException ex) {
                         /*
@@ -970,7 +835,7 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
                      * the native structs, and we need to do so lest we leak
                      * memory.
                      */
-                    nativefree();
+                    free();
 
                     if (socket != null) {
                         if (autoClose && !socket.isClosed())
@@ -988,12 +853,18 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
         }
     }
 
-    private native void nativefree();
+    private void free() {
+        if (sslNativePointer == 0) {
+            return;
+        }
+        NativeCrypto.SSL_free(sslNativePointer);
+        sslNativePointer = 0;
+    }
 
     protected void finalize() throws IOException {
         updateInstanceCount(-1);
 
-        if (ssl == 0) {
+        if (sslNativePointer == 0) {
             /*
              * It's already been closed, so there's no need to do anything
              * more at this point.
