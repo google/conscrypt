@@ -73,8 +73,6 @@ public class SSLContextImpl extends SSLContextSpi {
      * @param clientCache persistent client session cache or {@code null}
      * @param serverCache persistent server session cache or {@code null}
      * @throws KeyManagementException if initializing this instance fails
-     * 
-     * @since Android 1.1
      */
     public void engineInit(KeyManager[] kms, TrustManager[] tms,
             SecureRandom sr, SSLClientSessionCache clientCache,
