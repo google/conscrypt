@@ -49,9 +49,6 @@ public class SSLBufferedInput extends SSLInputStream {
         this.in = in;
     }
 
-    /**
-     * Returns the number of bytes available for reading.
-     */
     @Override
     public int available() throws IOException {
         // in assumption that the buffer has been set
@@ -78,4 +75,3 @@ public class SSLBufferedInput extends SSLInputStream {
         return bytik;
     }
 }
-
