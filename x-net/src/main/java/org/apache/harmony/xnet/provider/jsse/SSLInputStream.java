@@ -29,9 +29,6 @@ import java.io.InputStream;
  */
 public abstract class SSLInputStream extends InputStream {
 
-    /**
-     * @see java.io.InputStream#available()
-     */
     @Override
     public abstract int available() throws IOException;
 
@@ -48,9 +45,6 @@ public abstract class SSLInputStream extends InputStream {
     @Override
     public abstract int read() throws IOException;
 
-    /**
-     * @see java.io.InputStream#skip(long)
-     */
     @Override
     public long skip(long n) throws IOException {
         long skept = n;
@@ -115,9 +109,6 @@ public abstract class SSLInputStream extends InputStream {
         return res;
     }
 
-    /**
-     * @see java.io.InputStream#read(byte[],int,int)
-     */
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
         int read_b;

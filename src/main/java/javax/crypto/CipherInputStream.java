@@ -185,13 +185,6 @@ public class CipherInputStream extends FilterInputStream {
         return i;
     }
 
-    /**
-     * Returns the number of bytes available without blocking.
-     *
-     * @return the number of bytes available, currently zero.
-     * @throws IOException
-     *             if an error occurs
-     */
     @Override
     public int available() throws IOException {
         return 0;
@@ -227,4 +220,3 @@ public class CipherInputStream extends FilterInputStream {
         return false;
     }
 }
-
