@@ -177,6 +177,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
             this.cipherSuite = CipherSuite.TLS_NULL_WITH_NULL_NULL;
             id = new byte[0];
             isServer = false;
+            isValid = false;
         } else {
             this.cipherSuite = cipher_suite;
             id = new byte[32];
@@ -275,7 +276,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
     }
 
     public String getProtocol() {
-        return protocol.name;
+        return (protocol == null) ? "NONE" : protocol.name;
     }
 
     public SSLSessionContext getSessionContext() {
@@ -307,6 +308,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
 
     public void invalidate() {
         isValid = false;
+        context = null;
     }
 
     public boolean isValid() {

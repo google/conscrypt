@@ -36,6 +36,7 @@ import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 
 import org.apache.harmony.security.provider.cert.X509CertImpl;
@@ -51,7 +52,7 @@ import org.apache.harmony.security.provider.cert.X509CertImpl;
  */
 public class OpenSSLSocketImpl
         extends javax.net.ssl.SSLSocket
-        implements NativeCrypto.CertificateChainVerifier {
+        implements NativeCrypto.CertificateChainVerifier, NativeCrypto.HandshakeCompletedCallback {
     private int sslNativePointer;
     private InputStream is;
     private OutputStream os;
@@ -59,10 +60,21 @@ public class OpenSSLSocketImpl
     private final Object readLock = new Object();
     private final Object writeLock = new Object();
     private SSLParameters sslParameters;
+    private String[] enabledProtocols;
+    private String[] enabledCipherSuites;
     private OpenSSLSessionImpl sslSession;
     private Socket socket;
     private boolean autoClose;
     private boolean handshakeStarted = false;
+
+    /**
+     * Not set to true until the update from native that tells us the
+     * full handshake is complete, since SSL_do_handshake can return
+     * before the handshake is completely done due to
+     * handshake_cutthrough support.
+     */
+    private boolean handshakeCompleted = false;
+
     private ArrayList<HandshakeCompletedListener> listeners;
     private int timeout = 0;
     // BEGIN android-added
@@ -90,6 +102,20 @@ public class OpenSSLSocketImpl
     protected OpenSSLSocketImpl(SSLParameters sslParameters) throws IOException {
         super();
         init(sslParameters);
+    }
+
+    /**
+     * Create an OpenSSLSocketImpl from an OpenSSLServerSocketImpl
+     *
+     * @param sslParameters Parameters for the SSL
+     *            context
+     * @throws IOException if network fails
+     */
+    protected OpenSSLSocketImpl(SSLParameters sslParameters,
+                                String[] enabledProtocols,
+                                String[] enabledCipherSuites) throws IOException {
+        super();
+        init(sslParameters, enabledProtocols, enabledCipherSuites);
     }
 
     /**
@@ -166,47 +192,35 @@ public class OpenSSLSocketImpl
      * future handshaking.
      */
     private void init(SSLParameters sslParameters) throws IOException {
+        init(sslParameters,
+             NativeCrypto.getSupportedProtocols(),
+             NativeCrypto.getDefaultCipherSuites());
+    }
+
+    /**
+     * Initialize the SSL socket and set the certificates for the
+     * future handshaking.
+     */
+    private void init(SSLParameters sslParameters,
+                      String[] enabledProtocols,
+                      String[] enabledCipherSuites) throws IOException {
         this.sslParameters = sslParameters;
-        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
+        this.enabledProtocols = enabledProtocols;
+        this.enabledCipherSuites = enabledCipherSuites;
         updateInstanceCount(1);
     }
-
-    /**
-     * Construct a OpenSSLSocketImpl from an SSLParameters and an
-     * existing SSL native pointer. Used for transitioning accepting
-     * the OpenSSLSocketImpl within OpenSSLServerSocketImpl.
-     */
-    protected OpenSSLSocketImpl(SSLParameters sslParameters,
-                                OpenSSLServerSocketImpl dummy) {
-        super();
-        this.sslParameters = (SSLParameters) sslParameters.clone();
-        updateInstanceCount(1);
-    }
-
-    /**
-     * Adds OpenSSL functionality to the existing socket and starts the SSL
-     * handshaking.
-     */
-    private native boolean nativeconnect(int sslNativePointer, Socket sock, int timeout, boolean client_mode, int sslSessionNativePointer) throws IOException;
-    private native int nativegetsslsession(int sslNativePointer);
-    private native String nativecipherauthenticationmethod(int sslNativePointer);
 
     /**
      * Gets the suitable session reference from the session cache container.
      *
      * @return OpenSSLSessionImpl
      */
-    private OpenSSLSessionImpl getCachedClientSession() {
-        if (!sslParameters.getUseClientMode()) {
-            return null;
-        }
+    private OpenSSLSessionImpl getCachedClientSession(ClientSessionContext sessionContext) {
         if (super.getInetAddress() == null ||
                 super.getInetAddress().getHostAddress() == null ||
                 super.getInetAddress().getHostName() == null) {
             return null;
         }
-        ClientSessionContext sessionContext
-                = sslParameters.getClientSessionContext();
         return (OpenSSLSessionImpl) sessionContext.getSession(
                 super.getInetAddress().getHostName(),
                 super.getPort());
@@ -229,7 +243,15 @@ public class OpenSSLSocketImpl
      *
      * @throws <code>IOException</code> if network fails
      */
-    public synchronized void startHandshake() throws IOException {
+    public void startHandshake() throws IOException {
+        startHandshake(true);
+    }
+
+    /**
+     * Perform the handshake
+     * @param full If true, disable handshake cutthrough for a fully synchronous handshake
+     */
+    public synchronized void startHandshake(boolean full) throws IOException {
         synchronized (handshakeLock) {
             if (!handshakeStarted) {
                 handshakeStarted = true;
@@ -238,11 +260,56 @@ public class OpenSSLSocketImpl
             }
         }
 
-        OpenSSLSessionImpl session = getCachedClientSession();
+        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
+        // TODO move more code out of NativeCrypto.SSL_new
+        NativeCrypto.setEnabledProtocols(sslNativePointer, enabledProtocols);
+        NativeCrypto.setEnabledCipherSuites(sslNativePointer, enabledCipherSuites);
 
-        // Check if it's allowed to create a new session (default is true)
-        if (session == null && !sslParameters.getEnableSessionCreation()) {
-            throw new SSLHandshakeException("SSL Session may not be created");
+        boolean enableSessionCreation = sslParameters.getEnableSessionCreation();
+        if (!enableSessionCreation) {
+            NativeCrypto.SSL_set_session_creation_enabled(sslNativePointer,
+                                                          enableSessionCreation);
+        }
+
+        boolean client = sslParameters.getUseClientMode();
+
+        AbstractSessionContext sessionContext;
+        OpenSSLSessionImpl session;
+        if (client) {
+            // look for client session to reuse
+            ClientSessionContext clientSessionContext = sslParameters.getClientSessionContext();
+            sessionContext = clientSessionContext;
+            session = getCachedClientSession(clientSessionContext);
+            if (session != null) {
+                NativeCrypto.SSL_set_session(sslNativePointer,  session.sslSessionNativePointer);
+            }
+        } else {
+            sessionContext = sslParameters.getServerSessionContext();
+            session = null;
+        }
+
+        // setup peer certificate verification
+        if (client) {
+            // TODO support for anonymous cipher would require us to conditionally use SSL_VERIFY_NONE
+        } else {
+            // needing client auth takes priority...
+            if (sslParameters.getNeedClientAuth()) {
+                NativeCrypto.SSL_set_verify(sslNativePointer,
+                                            NativeCrypto.SSL_VERIFY_PEER|
+                                            NativeCrypto.SSL_VERIFY_FAIL_IF_NO_PEER_CERT|
+                                            NativeCrypto.SSL_VERIFY_CLIENT_ONCE);
+            // ... over just wanting it...
+            } else if (sslParameters.getWantClientAuth()) {
+                NativeCrypto.SSL_set_verify(sslNativePointer,
+                                            NativeCrypto.SSL_VERIFY_PEER|
+                                            NativeCrypto.SSL_VERIFY_CLIENT_ONCE);
+            }
+            // ... and it defaults properly so we don't need call SSL_set_verify in the common case.
+        }
+
+        if (client && full) {
+            // we want to do a full synchronous handshake, so turn off cutthrough
+            NativeCrypto.SSL_clear_mode(sslNativePointer, NativeCrypto.SSL_MODE_HANDSHAKE_CUTTHROUGH);
         }
 
         // BEGIN android-added
@@ -253,58 +320,60 @@ public class OpenSSLSocketImpl
         }
         // END android-added
 
-        Socket socket = this.socket != null ? this.socket : this;
-        int sslSessionNativePointer = session != null ? session.sslSessionNativePointer : 0;
-        boolean reusedSession = nativeconnect(sslNativePointer, socket, timeout,
-                                              sslParameters.getUseClientMode(), sslSessionNativePointer);
-        if (reusedSession) {
-            // nativeconnect shouldn't return true if the session is not
-            // done
-            session.lastAccessedTime = System.currentTimeMillis();
-            sslSession = session;
 
+        Socket socket = this.socket != null ? this.socket : this;
+        int sslSessionNativePointer;
+        try {
+            sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer, socket, this, this, timeout, client);
+        } catch (CertificateException e) {
+            throw new SSLPeerUnverifiedException(e.getMessage());
+        }
+        byte[] sessionId = OpenSSLSessionImpl.getId(sslSessionNativePointer);
+        sslSession = (OpenSSLSessionImpl) sessionContext.getSession(sessionId);
+        if (sslSession != null) {
+            session.lastAccessedTime = System.currentTimeMillis();
             LoggerHolder.logger.fine("Reused cached session for "
-                                     + getInetAddress().getHostName() + ".");
+                                     + getInetAddress() + ".");
+            OpenSSLSessionImpl.freeImpl(sslSessionNativePointer);
         } else {
-            if (session != null) {
-                LoggerHolder.logger.fine("Reuse of cached session for "
-                                         + getInetAddress().getHostName() + " failed.");
+            if (!enableSessionCreation) {
+                // Should have been prevented by NativeCrypto.SSL_set_session_creation_enabled
+                throw new IllegalStateException("SSL Session may not be created");
+            }
+            byte[][] localCertificatesBytes = NativeCrypto.SSL_get_certificate(sslNativePointer);
+            X509Certificate[] localCertificates;
+            if (localCertificatesBytes == null) {
+                localCertificates = null;
             } else {
-                LoggerHolder.logger.fine("Created new session for "
-                                         + getInetAddress().getHostName() + ".");
+                localCertificates = new X509Certificate[localCertificatesBytes.length];
+                for (int i = 0; i < localCertificatesBytes.length; i++) {
+                    try {
+                        // TODO do not go through PEM decode, DER encode, DER decode
+                        localCertificates[i]
+                            = new X509CertImpl(
+                                javax.security.cert.X509Certificate.getInstance(
+                                    localCertificatesBytes[i]).getEncoded());
+                    } catch (javax.security.cert.CertificateException e) {
+                        throw new IOException("Problem decoding local certificate", e);
+                    }
+                }
             }
 
-            AbstractSessionContext sessionContext =
-                (sslParameters.getUseClientMode()) ?
-                sslParameters.getClientSessionContext() :
-                sslParameters.getServerSessionContext();
-            sslSessionNativePointer = nativegetsslsession(sslNativePointer);
             if (address == null) {
-                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, sslParameters,
+                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
                                                     super.getInetAddress().getHostName(),
                                                     super.getPort(), sessionContext);
             } else  {
-                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, sslParameters,
+                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
                                                     address.getHostName(), address.getPort(),
                                                     sessionContext);
             }
-
-            try {
-                X509Certificate[] peerCertificates = (X509Certificate[])
-                    sslSession.getPeerCertificates();
-
-                if (peerCertificates == null
-                    || peerCertificates.length == 0) {
-                    throw new SSLException("Server sends no certificate");
-                }
-
-                String authMethod = nativecipherauthenticationmethod(sslNativePointer);
-                sslParameters.getTrustManager().checkServerTrusted(peerCertificates,
-                                                                   authMethod);
+            // putSession will be done later in handshakeCompleted() callback
+            if (handshakeCompleted) {
                 sessionContext.putSession(sslSession);
-            } catch (CertificateException e) {
-                throw new SSLException("Not trusted server certificate", e);
             }
+            LoggerHolder.logger.fine("Created new session for "
+                                     + getInetAddress().getHostName() + ".");
         }
 
         // BEGIN android-added
@@ -314,74 +383,91 @@ public class OpenSSLSocketImpl
         }
         // END android-added
 
-        if (listeners != null) {
+        // notifyHandshakeCompletedListeners will be done later in handshakeCompleted() callback
+        if (handshakeCompleted) {
+            notifyHandshakeCompletedListeners();
+        }
+
+    }
+
+    /**
+     * Implementation of NativeCrypto.HandshakeCompletedCallback
+     * invoked via JNI from info_callback
+     */
+    public void handshakeCompleted() {
+        handshakeCompleted = true;
+
+        // If sslSession is null, the handshake was completed during
+        // the call to NativeCrypto.SSL_do_handshake and not during a
+        // later read operation. That means we do not need to fixup
+        // the SSLSession and session cache or notify
+        // HandshakeCompletedListeners, it will be done in
+        // startHandshake.
+        if (sslSession == null) {
+            return;
+        }
+
+        // reset session id from the native pointer and update the
+        // appropriate cache.
+        sslSession.resetId();
+        AbstractSessionContext sessionContext =
+            (sslParameters.getUseClientMode())
+            ? sslParameters.getClientSessionContext()
+                : sslParameters.getServerSessionContext();
+        sessionContext.putSession(sslSession);
+
+        // let listeners know we are finally done
+        notifyHandshakeCompletedListeners();
+    }
+
+    private void notifyHandshakeCompletedListeners() {
+        if (listeners != null && !listeners.isEmpty()) {
             // notify the listeners
             HandshakeCompletedEvent event =
                 new HandshakeCompletedEvent(this, sslSession);
-            int size = listeners.size();
-            for (int i = 0; i < size; i++) {
-                listeners.get(i).handshakeCompleted(event);
+            for (HandshakeCompletedListener listener : listeners) {
+                try {
+                    listener.handshakeCompleted(event);
+                } catch (RuntimeException e) {
+                    // TODO log?
+                }
             }
         }
-    }
-
-    // To be synchronized because of the verify_callback
-    native synchronized int nativeaccept(int sslNativePointer, Socket socketObject);
-
-    /**
-     * Performs the first part of a SSL/TLS handshaking process with a given
-     * 'host' connection and initializes the SSLSession.
-     */
-    protected void accept(int serverSslNativePointer) throws IOException {
-        // Must be set because no handshaking is necessary
-        // in this situation
-        handshakeStarted = true;
-
-        sslNativePointer = nativeaccept(serverSslNativePointer, this);
-
-        ServerSessionContext sessionContext
-                = sslParameters.getServerSessionContext();
-        sslSession = new OpenSSLSessionImpl(nativegetsslsession(sslNativePointer),
-                sslParameters, super.getInetAddress().getHostName(),
-                super.getPort(), sessionContext);
-        sslSession.lastAccessedTime = System.currentTimeMillis();
-        sessionContext.putSession(sslSession);
     }
 
     /**
      * Implementation of NativeCrypto.CertificateChainVerifier.
      *
-     * Callback method for the OpenSSL native certificate verification process.
+     * @param bytes An array of certficates in PEM encode bytes
+     * @param authMethod auth algorithm name
      *
-     * @param bytes Byte array containing the cert's
-     *            information.
-     * @return false if the certificate verification fails or true if OK
+     * @throws CertificateException if the certificate is untrusted
      */
     @SuppressWarnings("unused")
-    public boolean verifyCertificateChain(byte[][] bytes) {
+    public void verifyCertificateChain(byte[][] bytes, String authMethod) throws CertificateException {
         try {
-            X509Certificate[] peerCertificateChain
-                    = new X509Certificate[bytes.length];
-            for(int i = 0; i < bytes.length; i++) {
+            X509Certificate[] peerCertificateChain = new X509Certificate[bytes.length];
+            for (int i = 0; i < bytes.length; i++) {
                 peerCertificateChain[i] =
                     new X509CertImpl(javax.security.cert.X509Certificate.getInstance(bytes[i]).getEncoded());
             }
 
-            try {
-                // TODO "null" String
-                sslParameters.getTrustManager().checkClientTrusted(peerCertificateChain, "null");
-            } catch (CertificateException e) {
-                throw new AlertException(AlertProtocol.BAD_CERTIFICATE,
-                        new SSLException("Not trusted server certificate", e));
+            boolean client = sslParameters.getUseClientMode();
+            if (client) {
+                if (peerCertificateChain == null
+                    || peerCertificateChain.length == 0) {
+                    throw new SSLException("Server sends no certificate");
+                }
+                sslParameters.getTrustManager().checkServerTrusted(peerCertificateChain, authMethod);
+            } else {
+                sslParameters.getTrustManager().checkClientTrusted(peerCertificateChain, authMethod);
             }
-        } catch (javax.security.cert.CertificateException e) {
-            // TODO throw in all cases for consistency
-            return false;
-        } catch (IOException e) {
-            // TODO throw in all cases for consistency
-            return false;
+
+        } catch (CertificateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return true;
     }
 
     /**
@@ -421,20 +507,22 @@ public class OpenSSLSocketImpl
         }
     }
 
+    /**
+     * This method is not supported for this SSLSocket implementation
+     * because reading from an SSLSocket may involve writing to the
+     * network.
+     */
     public void shutdownInput() throws IOException {
-        if (socket == null) {
-            super.shutdownInput();
-            return;
-        }
-        socket.shutdownInput();
+        throw new UnsupportedOperationException();
     }
 
+    /**
+     * This method is not supported for this SSLSocket implementation
+     * because writing to an SSLSocket may involve reading from the
+     * network.
+     */
     public void shutdownOutput() throws IOException {
-        if (socket == null) {
-            super.shutdownOutput();
-            return;
-        }
-        socket.shutdownOutput();
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -455,7 +543,7 @@ public class OpenSSLSocketImpl
             /* Note: When startHandshake() throws an exception, no
              * SSLInputStream object will be created.
              */
-            OpenSSLSocketImpl.this.startHandshake();
+            OpenSSLSocketImpl.this.startHandshake(false);
         }
 
         /**
@@ -499,7 +587,7 @@ public class OpenSSLSocketImpl
             /* Note: When startHandshake() throws an exception, no
              * SSLOutputStream object will be created.
              */
-            OpenSSLSocketImpl.this.startHandshake();
+            OpenSSLSocketImpl.this.startHandshake(false);
         }
 
         /**
@@ -534,7 +622,7 @@ public class OpenSSLSocketImpl
      */
     public SSLSession getSession() {
         try {
-            startHandshake();
+            startHandshake(true);
         } catch (IOException e) {
             // return an invalid session with
             // invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
@@ -616,7 +704,7 @@ public class OpenSSLSocketImpl
      * @return an array of cipher suite names
      */
     public String[] getEnabledCipherSuites() {
-        return NativeCrypto.SSL_get_ciphers(sslNativePointer);
+        return enabledCipherSuites.clone();
     }
 
     /**
@@ -630,7 +718,7 @@ public class OpenSSLSocketImpl
      *             is null.
      */
     public void setEnabledCipherSuites(String[] suites) {
-        NativeCrypto.setEnabledCipherSuites(sslNativePointer, suites);
+        enabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(suites);
     }
 
     /**
@@ -650,7 +738,7 @@ public class OpenSSLSocketImpl
      */
     @Override
     public String[] getEnabledProtocols() {
-        return NativeCrypto.getEnabledProtocols(sslNativePointer);
+        return enabledProtocols.clone();
     }
 
     /**
@@ -664,7 +752,7 @@ public class OpenSSLSocketImpl
      */
     @Override
     public synchronized void setEnabledProtocols(String[] protocols) {
-        NativeCrypto.setEnabledProtocols(sslNativePointer, protocols);
+        enabledProtocols = NativeCrypto.checkEnabledProtocols(protocols);
     }
 
     /**
@@ -793,6 +881,7 @@ public class OpenSSLSocketImpl
 
         synchronized (handshakeLock) {
             if (!handshakeStarted) {
+                // prevent further attemps to start handshake
                 handshakeStarted = true;
 
                 synchronized (this) {
@@ -862,75 +951,24 @@ public class OpenSSLSocketImpl
     }
 
     protected void finalize() throws IOException {
-        updateInstanceCount(-1);
-
-        if (sslNativePointer == 0) {
-            /*
-             * It's already been closed, so there's no need to do anything
-             * more at this point.
-             */
-            return;
-        }
-
-        // Note the underlying socket up-front, for possible later use.
-        Socket underlyingSocket = socket;
-
-        // Fire up a thread to (hopefully) do all the real work.
-        Finalizer f = new Finalizer();
-        f.setDaemon(true);
-        f.start();
-
         /*
-         * Give the finalizer thread one second to run. If it fails to
-         * terminate in that time, interrupt it (which may help if it
-         * is blocked on an interruptible I/O operation), make a note
-         * in the log, and go ahead and close the underlying socket if
-         * possible.
+         * Just worry about our own state. Notably we do not try and
+         * close anything. The SocketImpl, either our own
+         * PlainSocketImpl, or the Socket we are wrapping, will do
+         * that. This might mean we do not properly SSL_shutdown, but
+         * if you want to do that, properly close the socket yourself.
+         *
+         * The reason why we don't try to SSL_shutdown, is that there
+         * can be a race between finalizers where the PlainSocketImpl
+         * finalizer runs first and closes the socket. However, in the
+         * meanwhile, the underlying file descriptor could be reused
+         * for another purpose. If we call SSL_shutdown, the
+         * underlying socket BIOs still have the old file descriptor
+         * and will write the close notify to some unsuspecting
+         * reader.
          */
-        try {
-            f.join(1000);
-        } catch (InterruptedException ex) {
-            // Reassert interrupted status.
-            Thread.currentThread().interrupt();
-        }
-
-        if (f.isAlive()) {
-            f.interrupt();
-            Logger.global.log(Level.SEVERE,
-                    "Slow finalization of SSL socket (" + this + ", for " +
-                    underlyingSocket + ")");
-            if ((underlyingSocket != null) && !underlyingSocket.isClosed()) {
-                underlyingSocket.close();
-            }
-        }
-    }
-
-    /**
-     * Helper class for a thread that knows how to call
-     * {@link OpenSSLSocketImpl#close} on behalf of instances being finalized,
-     * since that call can take arbitrarily long (e.g., due to a slow network),
-     * and an overly long-running finalizer will cause the process to be
-     * totally aborted.
-     */
-    private class Finalizer extends Thread {
-        public void run() {
-            Socket underlyingSocket = socket; // for error reporting
-            try {
-                close();
-            } catch (IOException ex) {
-                /*
-                 * Clear interrupted status, so that the Logger call
-                 * immediately below won't get spuriously interrupted.
-                 */
-                Thread.interrupted();
-
-                Logger.global.log(Level.SEVERE,
-                        "Trouble finalizing SSL socket (" +
-                        OpenSSLSocketImpl.this + ", for " + underlyingSocket +
-                        ")",
-                        ex);
-            }
-        }
+        updateInstanceCount(-1);
+        free();
     }
 
     /**

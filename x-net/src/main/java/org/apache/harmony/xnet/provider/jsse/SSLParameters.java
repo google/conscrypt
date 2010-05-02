@@ -17,21 +17,26 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
+
+import org.apache.harmony.security.provider.cert.X509CertImpl;
 
 /**
  * The instances of this class incapsulate all the info
@@ -109,9 +114,9 @@ public class SSLParameters implements Cloneable {
             SSLServerSessionCache serverCache)
             throws KeyManagementException {
         this.serverSessionContext
-                = new ServerSessionContext(this, NativeCrypto.SSL_CTX_new(), serverCache);
+                = new ServerSessionContext(NativeCrypto.SSL_CTX_new(), serverCache);
         this.clientSessionContext
-                = new ClientSessionContext(this, NativeCrypto.SSL_CTX_new(), clientCache);
+                = new ClientSessionContext(NativeCrypto.SSL_CTX_new(), clientCache);
 // END android-changed
         try {
             // initialize key manager

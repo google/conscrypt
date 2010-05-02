@@ -53,10 +53,10 @@ public class OpenSSLSessionImpl implements SSLSession {
     private TwoKeyHashMap values = new TwoKeyHashMap();
     private javax.security.cert.X509Certificate[] peerCertificateChain;
     protected int sslSessionNativePointer;
-    private SSLParameters sslParameters;
     private String peerHost;
     private int peerPort;
-    private final AbstractSessionContext sessionContext;
+    private AbstractSessionContext sessionContext;
+    private byte[] id;
 
     /**
      * Class constructor creates an SSL session context given the appropriate
@@ -65,10 +65,10 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @param session the Identifier for SSL session
      * @param sslParameters the SSL parameters like ciphers' suites etc.
      */
-    protected OpenSSLSessionImpl(int sslSessionNativePointer, SSLParameters sslParameters,
+    protected OpenSSLSessionImpl(int sslSessionNativePointer, X509Certificate[] localCertificates,
             String peerHost, int peerPort, AbstractSessionContext sessionContext) {
         this.sslSessionNativePointer = sslSessionNativePointer;
-        this.sslParameters = sslParameters;
+        this.localCertificates = localCertificates;
         this.peerHost = peerHost;
         this.peerPort = peerPort;
         this.sessionContext = sessionContext;
@@ -79,13 +79,13 @@ public class OpenSSLSessionImpl implements SSLSession {
      * allows loading the saved session.
      * @throws IOException
      */
-    OpenSSLSessionImpl(byte[] derData, SSLParameters sslParameters,
+    OpenSSLSessionImpl(byte[] derData,
             String peerHost, int peerPort,
             javax.security.cert.X509Certificate[] peerCertificateChain,
             AbstractSessionContext sessionContext)
             throws IOException {
         this(initializeNativeImpl(derData, derData.length),
-             sslParameters,
+             null,
              peerHost,
              peerPort,
              sessionContext);
@@ -103,10 +103,17 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @return array of sessions' identifiers.
      */
     public byte[] getId() {
-        return getId(sslSessionNativePointer);
+        if (id == null) {
+            resetId();
+        }
+        return id;
     }
 
-    private static native byte[] getId(int sslSessionNativePointer);
+    public static native byte[] getId(int sslSessionNativePointer);
+
+    void resetId() {
+        id = getId(sslSessionNativePointer);
+    }
 
     /**
      * Get the session object in DER format. This allows saving the session
@@ -179,12 +186,6 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         were used during the handshaking phase.
      */
     public Certificate[] getLocalCertificates() {
-        X509Certificate[] localCertificates = null;
-        // This implementation only supports RSA certificates.
-        String alias = sslParameters.getKeyManager().chooseClientAlias(new String[] { "RSA" }, null, null);
-        if (alias != null) {
-            localCertificates = sslParameters.getKeyManager().getCertificateChain(alias);
-        }
         return localCertificates;
     }
 
@@ -271,6 +272,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *
      */
     public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
+        getPeerCertificates();
         if (peerCertificates == null) {
             throw new SSLPeerUnverifiedException("No peer certificate");
         }
@@ -371,6 +373,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     public void invalidate() {
         isValid = false;
+        sessionContext = null;
     }
 
     /**
@@ -476,5 +479,5 @@ public class OpenSSLSessionImpl implements SSLSession {
         freeImpl(sslSessionNativePointer);
     }
 
-    private static native void freeImpl(int session);
+    public static native void freeImpl(int session);
 }

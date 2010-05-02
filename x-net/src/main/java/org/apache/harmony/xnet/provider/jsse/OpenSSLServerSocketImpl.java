@@ -28,34 +28,31 @@ import java.net.Socket;
  */
 public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     private final SSLParameters sslParameters;
-    private int sslNativePointer;
+    private String[] enabledProtocols = NativeCrypto.getSupportedProtocols();
+    private String[] enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
 
     protected OpenSSLServerSocketImpl(SSLParameters sslParameters)
         throws IOException {
         super();
         this.sslParameters = sslParameters;
-        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
     }
 
     protected OpenSSLServerSocketImpl(int port, SSLParameters sslParameters)
         throws IOException {
         super(port);
         this.sslParameters = sslParameters;
-        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
     }
 
     protected OpenSSLServerSocketImpl(int port, int backlog, SSLParameters sslParameters)
         throws IOException {
         super(port, backlog);
         this.sslParameters = sslParameters;
-        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
     }
 
     protected OpenSSLServerSocketImpl(int port, int backlog, InetAddress iAddress, SSLParameters sslParameters)
         throws IOException {
         super(port, backlog, iAddress);
         this.sslParameters = sslParameters;
-        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
     }
 
     @Override
@@ -85,7 +82,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
      */
     @Override
     public String[] getEnabledProtocols() {
-        return NativeCrypto.getEnabledProtocols(sslNativePointer);
+        return enabledProtocols.clone();
     }
 
     /**
@@ -99,7 +96,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
      */
     @Override
     public void setEnabledProtocols(String[] protocols) {
-        NativeCrypto.setEnabledProtocols(sslNativePointer, protocols);
+        enabledProtocols = NativeCrypto.checkEnabledProtocols(protocols);
     }
 
     @Override
@@ -109,7 +106,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public String[] getEnabledCipherSuites() {
-        return NativeCrypto.SSL_get_ciphers(sslNativePointer);
+        return enabledCipherSuites.clone();
     }
 
     /**
@@ -122,33 +119,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
      */
     @Override
     public void setEnabledCipherSuites(String[] suites) {
-        NativeCrypto.setEnabledCipherSuites(sslNativePointer, suites);
-    }
-
-    /**
-     * See the OpenSSL ssl.h header file for more information.
-     */
-    static private int SSL_VERIFY_NONE =                 0x00;
-    static private int SSL_VERIFY_PEER =                 0x01;
-    static private int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = 0x02;
-    static private int SSL_VERIFY_CLIENT_ONCE =          0x04;
-
-    /**
-     * Calls the SSL_set_verify(...) OpenSSL function with the passed int
-     * value.
-     */
-    private static native void nativesetclientauth(int sslNativePointer, int value);
-
-    private void setClientAuth() {
-        int value = SSL_VERIFY_NONE;
-
-        if (sslParameters.getNeedClientAuth()) {
-            value |= SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT|SSL_VERIFY_CLIENT_ONCE;
-        } else if (sslParameters.getWantClientAuth()) {
-            value |= SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE;
-        }
-
-        nativesetclientauth(sslNativePointer, value);
+        enabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(suites);
     }
 
     @Override
@@ -159,7 +130,6 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     @Override
     public void setWantClientAuth(boolean want) {
         sslParameters.setWantClientAuth(want);
-        setClientAuth();
     }
 
     @Override
@@ -170,7 +140,6 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     @Override
     public void setNeedClientAuth(boolean need) {
         sslParameters.setNeedClientAuth(need);
-        setClientAuth();
     }
 
     @Override
@@ -185,26 +154,10 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
-        OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters, null);
+        OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters,
+                                                         enabledProtocols.clone(),
+                                                         enabledCipherSuites.clone());
         implAccept(socket);
-        socket.accept(sslNativePointer);
         return socket;
-    }
-
-    /**
-     * Unbinds the port if the socket is open.
-     */
-    @Override
-    protected void finalize() throws Throwable {
-        if (!isClosed()) close();
-    }
-
-    @Override
-    public synchronized void close() throws IOException {
-        if (sslNativePointer != 0) {
-            NativeCrypto.SSL_free(sslNativePointer);
-            sslNativePointer = 0;
-        }
-        super.close();
     }
 }

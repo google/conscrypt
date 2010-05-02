@@ -63,10 +63,9 @@ public class ClientSessionContext extends AbstractSessionContext {
 
     final SSLClientSessionCache persistentCache;
 
-    public ClientSessionContext(SSLParameters parameters,
-            int sslCtxNativePointer,
-            SSLClientSessionCache persistentCache) {
-        super(parameters, sslCtxNativePointer, 10, 0);
+    public ClientSessionContext(int sslCtxNativePointer,
+                                SSLClientSessionCache persistentCache) {
+        super(sslCtxNativePointer, 10, 0);
         this.persistentCache = persistentCache;
     }
 

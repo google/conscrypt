@@ -17,11 +17,13 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.ByteArrayOutputStream;
-import java.io.OutputStreamWriter;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.io.OutputStreamWriter;
+import java.net.Socket;
 import java.security.PrivateKey;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 
 import org.bouncycastle.openssl.PEMWriter;
 
@@ -78,6 +80,10 @@ public class NativeCrypto {
     private static final String SUPPORTED_PROTOCOL_SSLV3 = "SSLv3";
     private static final String SUPPORTED_PROTOCOL_TLSV1 = "TLSv1";
 
+    // SSL mode
+    public static long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000040L;
+
+    // SSL options
     public static long SSL_OP_NO_SSLv3 = 0x02000000L;
     public static long SSL_OP_NO_TLSv1 = 0x04000000L;
 
@@ -115,7 +121,7 @@ public class NativeCrypto {
         // TODO support more than RSA certificates?  non-openssl
         // SSLEngine implementation did these callbacks during
         // handshake after selecting cipher suite, not before
-        // handshake.
+        // handshake. Should do the same via SSL_CTX_set_client_cert_cb
         final String alias = (client) ?
             sslParameters.getKeyManager().chooseClientAlias(new String[] { "RSA" }, null, null) :
             sslParameters.getKeyManager().chooseServerAlias("RSA", null, null);
@@ -156,9 +162,17 @@ public class NativeCrypto {
     }
 
 
+    public static native long SSL_get_mode(int ssl);
+
+    public static native long SSL_set_mode(int ssl, long options);
+
+    public static native long SSL_clear_mode(int ssl, long options);
+
     public static native long SSL_get_options(int ssl);
 
     public static native long SSL_set_options(int ssl, long options);
+
+    public static native long SSL_clear_options(int ssl, long options);
 
     public static String[] getSupportedProtocols() {
         return new String[] { SUPPORTED_PROTOCOL_SSLV3, SUPPORTED_PROTOCOL_TLSV1 };
@@ -178,72 +192,139 @@ public class NativeCrypto {
 
     public static void setEnabledProtocols(int ssl, String[] protocols) {
         if (protocols == null) {
-            throw new IllegalArgumentException("Provided parameter is null");
+            throw new IllegalArgumentException("protocols == null");
         }
+
         // openssl uses negative logic letting you disable protocols.
-        // so first, lets turn them all off, and in the loop selectively enable
-        long options = SSL_get_options(ssl);
-        options |= (SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
+        // so first, assume we need to set all (disable all ) and clear none (enable none).
+        // in the loop, selectively move bits from set to clear (from disable to enable)
+        long optionsToSet = (SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
+        long optionsToClear = 0;
         for (int i = 0; i < protocols.length; i++) {
-            if (protocols[i].equals(SUPPORTED_PROTOCOL_SSLV3)) {
-                options ^= SSL_OP_NO_SSLv3;
-            } else if (protocols[i].equals(SUPPORTED_PROTOCOL_TLSV1)) {
-                options ^= SSL_OP_NO_TLSv1;
+            String protocol = protocols[i];
+            if (protocol == null) {
+                throw new IllegalArgumentException("protocols[" + i + "] == null");
+            }
+            if (protocol.equals(SUPPORTED_PROTOCOL_SSLV3)) {
+                optionsToSet &= ~SSL_OP_NO_SSLv3;
+                optionsToClear |= SSL_OP_NO_SSLv3;
+            } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1)) {
+                optionsToSet &= ~SSL_OP_NO_TLSv1;
+                optionsToClear |= SSL_OP_NO_TLSv1;
             } else {
-                throw new IllegalArgumentException("Protocol " + protocols[i] +
+                throw new IllegalArgumentException("Protocol " + protocol +
                                                    " is not supported");
             }
         }
-        SSL_set_options(ssl, options);
+
+        SSL_set_options(ssl, optionsToSet);
+        SSL_clear_options(ssl, optionsToClear);
+    }
+
+    public static String[] checkEnabledProtocols(String[] protocols) {
+        if (protocols == null) {
+            throw new IllegalArgumentException("protocols parameter is null");
+        }
+        for (int i = 0; i < protocols.length; i++) {
+            String protocol = protocols[i];
+            if (protocol == null) {
+                throw new IllegalArgumentException("protocols[" + i + "] == null");
+            }
+            if ((!protocol.equals(SUPPORTED_PROTOCOL_SSLV3))
+                && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1))) {
+                throw new IllegalArgumentException("Protocol " + protocol +
+                                                   " is not supported");
+            }
+        }
+        return protocols;
     }
 
     public static native String[] SSL_get_ciphers(int ssl);
 
     public static native void SSL_set_cipher_list(int ssl, String ciphers);
 
-    public static void setEnabledCipherSuites(int ssl, String[] suites) {
-        if (suites == null) {
-            throw new IllegalArgumentException("Provided parameter is null");
-        }
-
-        // makes sure all suites are valid, throwing on error
-        String[] supportedCipherSuites = getSupportedCipherSuites();
-        for (String suite : suites) {
-            findSuite(supportedCipherSuites, suite);
-        }
-
+    public static void setEnabledCipherSuites(int ssl, String[] cipherSuites) {
+        checkEnabledCipherSuites(cipherSuites);
         String controlString = "";
-        for (int i = 0; i < suites.length; i++) {
+        for (int i = 0; i < cipherSuites.length; i++) {
+            String cipherSuite = cipherSuites[i];
             if (i == 0) {
-                controlString = suites[i];
+                controlString = cipherSuite;
             } else {
-                controlString += ":" + suites[i];
+                controlString += ":" + cipherSuite;
             }
         }
         SSL_set_cipher_list(ssl, controlString);
     }
 
+    public static String[] checkEnabledCipherSuites(String[] cipherSuites) {
+        if (cipherSuites == null) {
+            throw new IllegalArgumentException("cipherSuites == null");
+        }
+        // makes sure all suites are valid, throwing on error
+        String[] supportedCipherSuites = getSupportedCipherSuites();
+        for (int i = 0; i < cipherSuites.length; i++) {
+            String cipherSuite = cipherSuites[i];
+            if (cipherSuite == null) {
+                throw new IllegalArgumentException("cipherSuites[" + i + "] == null");
+            }
+            findSuite(supportedCipherSuites, cipherSuite);
+        }
+        return cipherSuites;
+    }
+
     private static void findSuite(String[] supportedCipherSuites, String suite) {
-        for(int i = 0; i < supportedCipherSuites.length; i++) {
-            if (supportedCipherSuites[i].equals(suite)) {
+        for (String supportedCipherSuite : supportedCipherSuites) {
+            if (supportedCipherSuite.equals(suite)) {
                 return;
             }
         }
         throw new IllegalArgumentException("Protocol " + suite + " is not supported.");
     }
 
-    public static native void SSL_free(int ssl);
+    /*
+     * See the OpenSSL ssl.h header file for more information.
+     */
+    public static final int SSL_VERIFY_NONE =                 0x00;
+    public static final int SSL_VERIFY_PEER =                 0x01;
+    public static final int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = 0x02;
+    public static final int SSL_VERIFY_CLIENT_ONCE =          0x04;
+
+    public static native void SSL_set_verify(int sslNativePointer, int mode) throws IOException;
+
+    public static native void SSL_set_session(int sslNativePointer, int sslSessionNativePointer) throws IOException;
+
+    public static native void SSL_set_session_creation_enabled(int sslNativePointer, boolean creationEnabled) throws IOException;
+
+    /**
+     * Returns the sslSessionNativePointer of the negotiated session
+     */
+    public static native int SSL_do_handshake(int sslNativePointer, Socket sock,
+                                              CertificateChainVerifier ccv, HandshakeCompletedCallback hcc,
+                                              int timeout, boolean client_mode) throws IOException, CertificateException;
+
+    public static native byte[][] SSL_get_certificate(int sslNativePointer);
+
+    public static native void SSL_free(int sslNativePointer);
 
     public interface CertificateChainVerifier {
         /**
          * Verify that we trust the certificate chain is trusted.
          *
-         * @param bytes An array of certficates in byte form
+         * @param bytes An array of certficates in PEM encode bytes
+         * @param authMethod auth algorithm name
          *
-         * @throws AlertException if the certificate is untrusted
-         * @return false if there are other problems verifying the certificate chain
+         * @throws CertificateException if the certificate is untrusted
          */
-        // TODO throw on error in all cases instead of returning false
-        public boolean verifyCertificateChain(byte[][] bytes);
+        public void verifyCertificateChain(byte[][] bytes, String authMethod) throws CertificateException;
+    }
+
+    public interface HandshakeCompletedCallback {
+        /**
+         * Called when SSL handshake is completed. Note that this can
+         * be after SSL_do_handshake returns when handshake cutthrough
+         * is enabled.
+         */
+        public void handshakeCompleted();
     }
 }

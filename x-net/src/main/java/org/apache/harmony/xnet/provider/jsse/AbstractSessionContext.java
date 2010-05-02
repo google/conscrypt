@@ -34,7 +34,6 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     volatile int maximumSize;
     volatile int timeout;
 
-    final SSLParameters parameters;
     final int sslCtxNativePointer;
 
     /** Identifies OpenSSL sessions. */
@@ -43,13 +42,12 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     /**
      * Constructs a new session context.
      *
-     * @param parameters
+     * @param sslCtxNativePointer Associated native SSL_CTX
      * @param maximumSize of cache
      * @param timeout for cache entries
      */
-    AbstractSessionContext(SSLParameters parameters, int sslCtxNativePointer,
+    AbstractSessionContext(int sslCtxNativePointer,
             int maximumSize, int timeout) {
-        this.parameters = parameters;
         this.sslCtxNativePointer = sslCtxNativePointer;
         this.maximumSize = maximumSize;
         this.timeout = timeout;
@@ -133,6 +131,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
                 daos.writeInt(data.length);
                 daos.write(data);
             }
+            // TODO: local certificates?
 
             return baos.toByteArray();
         } catch (IOException e) {
@@ -172,8 +171,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
                 certs[i] = X509Certificate.getInstance(certData);
             }
 
-            return new OpenSSLSessionImpl(sessionData, parameters, host, port,
-                    certs, this);
+            return new OpenSSLSessionImpl(sessionData, host, port, certs, this);
         } catch (IOException e) {
             log(e);
             return null;
