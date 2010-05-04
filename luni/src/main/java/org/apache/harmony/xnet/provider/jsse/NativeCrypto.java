@@ -164,9 +164,9 @@ public class NativeCrypto {
 
     public static native long SSL_get_mode(int ssl);
 
-    public static native long SSL_set_mode(int ssl, long options);
+    public static native long SSL_set_mode(int ssl, long mode);
 
-    public static native long SSL_clear_mode(int ssl, long options);
+    public static native long SSL_clear_mode(int ssl, long mode);
 
     public static native long SSL_get_options(int ssl);
 

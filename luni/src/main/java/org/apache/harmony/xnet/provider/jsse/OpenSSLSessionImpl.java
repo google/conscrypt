@@ -111,6 +111,14 @@ public class OpenSSLSessionImpl implements SSLSession {
 
     public static native byte[] getId(int sslSessionNativePointer);
 
+    /**
+     * Reset the id field to the current value found in the native
+     * SSL_SESSION. It can change during the lifetime of the session
+     * because while a session is created during initial handshake,
+     * with handshake_cutthrough, the SSL_do_handshake may return
+     * before we have read the session ticket from the server side and
+     * therefore have computed no id based on the SHA of the ticket.
+     */
     void resetId() {
         id = getId(sslSessionNativePointer);
     }

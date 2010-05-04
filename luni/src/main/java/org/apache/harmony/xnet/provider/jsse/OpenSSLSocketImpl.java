@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
@@ -429,7 +430,13 @@ public class OpenSSLSocketImpl
                 try {
                     listener.handshakeCompleted(event);
                 } catch (RuntimeException e) {
-                    // TODO log?
+                    // The RI runs the handlers in a separate thread,
+                    // which we do not. But we try to preserve their
+                    // behavior of logging a problem and not killing
+                    // the handshaking thread just because a listener
+                    // has a problem.
+                    Thread thread = Thread.currentThread();
+                    thread.getUncaughtExceptionHandler().uncaughtException(thread, e);
                 }
             }
         }
@@ -446,18 +453,16 @@ public class OpenSSLSocketImpl
     @SuppressWarnings("unused")
     public void verifyCertificateChain(byte[][] bytes, String authMethod) throws CertificateException {
         try {
+            if (bytes == null || bytes.length == 0) {
+                throw new SSLException("Peer sent no certificate");
+            }
             X509Certificate[] peerCertificateChain = new X509Certificate[bytes.length];
             for (int i = 0; i < bytes.length; i++) {
                 peerCertificateChain[i] =
                     new X509CertImpl(javax.security.cert.X509Certificate.getInstance(bytes[i]).getEncoded());
             }
-
             boolean client = sslParameters.getUseClientMode();
             if (client) {
-                if (peerCertificateChain == null
-                    || peerCertificateChain.length == 0) {
-                    throw new SSLException("Server sends no certificate");
-                }
                 sslParameters.getTrustManager().checkServerTrusted(peerCertificateChain, authMethod);
             } else {
                 sslParameters.getTrustManager().checkClientTrusted(peerCertificateChain, authMethod);
