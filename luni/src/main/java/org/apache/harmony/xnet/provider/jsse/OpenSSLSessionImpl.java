@@ -39,9 +39,7 @@ import org.apache.harmony.security.provider.cert.X509CertImpl;
 
 /**
  * Implementation of the class OpenSSLSessionImpl
- * based on OpenSSL. The JNI native interface for some methods
- * of this this class are defined in the file:
- * org_apache_harmony_xnet_provider_jsse_NativeCrypto.cpp
+ * based on OpenSSL.
  */
 public class OpenSSLSessionImpl implements SSLSession {
 
@@ -84,7 +82,7 @@ public class OpenSSLSessionImpl implements SSLSession {
             javax.security.cert.X509Certificate[] peerCertificateChain,
             AbstractSessionContext sessionContext)
             throws IOException {
-        this(initializeNativeImpl(derData, derData.length),
+        this(NativeCrypto.d2i_SSL_SESSION(derData, derData.length),
              null,
              peerHost,
              peerPort,
@@ -95,8 +93,6 @@ public class OpenSSLSessionImpl implements SSLSession {
             throw new IOException("Invalid session data");
         }
     }
-
-    private static native int initializeNativeImpl(byte[] data, int size);
 
     /**
      * Gets the identifier of the actual SSL session
@@ -109,8 +105,6 @@ public class OpenSSLSessionImpl implements SSLSession {
         return id;
     }
 
-    public static native byte[] getId(int sslSessionNativePointer);
-
     /**
      * Reset the id field to the current value found in the native
      * SSL_SESSION. It can change during the lifetime of the session
@@ -120,28 +114,24 @@ public class OpenSSLSessionImpl implements SSLSession {
      * therefore have computed no id based on the SHA of the ticket.
      */
     void resetId() {
-        id = getId(sslSessionNativePointer);
+        id = NativeCrypto.SSL_SESSION_session_id(sslSessionNativePointer);
     }
 
     /**
      * Get the session object in DER format. This allows saving the session
-     * data or sharing it with other processes.  
+     * data or sharing it with other processes.
      */
     byte[] getEncoded() {
-        return getEncoded(sslSessionNativePointer);
+        return NativeCrypto.i2d_SSL_SESSION(sslSessionNativePointer);
     }
-
-    private native static byte[] getEncoded(int sslSessionNativePointer);
 
     /**
      * Gets the creation time of the SSL session.
      * @return the session's creation time in milliseconds since the epoch
      */
     public long getCreationTime() {
-        return getCreationTime(sslSessionNativePointer);
+        return NativeCrypto.SSL_SESSION_get_time(sslSessionNativePointer);
     }
-
-    private static native long getCreationTime(int sslSessionNativePointer);
 
     /**
      * Gives the last time this concrete SSL session was accessed. Accessing
@@ -198,12 +188,6 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Returns the X509 certificates of the peer in the PEM format.
-     */
-    private static native byte[][] getPeerCertificatesImpl(int sslCtxNativePointer,
-                                                           int sslSessionNativePointer);
-
-    /**
      * Gives the certificate(s) of the peer in this SSL session
      * used in the handshaking phase of the connection.
      * Please notice hat this method is superseded by
@@ -218,7 +202,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     public javax.security.cert.X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
         if (peerCertificateChain == null) {
             try {
-                byte[][] bytes = getPeerCertificatesImpl(sessionContext.sslCtxNativePointer, sslSessionNativePointer);
+                byte[][] bytes = NativeCrypto.SSL_SESSION_get_peer_cert_chain(sessionContext.sslCtxNativePointer, sslSessionNativePointer);
                 if (bytes == null) throw new SSLPeerUnverifiedException("No certificate available");
 
                 peerCertificateChain = new javax.security.cert.X509Certificate[bytes.length];
@@ -322,10 +306,8 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         actual SSL session.
      */
     public String getCipherSuite() {
-        return getCipherSuite(sslSessionNativePointer);
+        return NativeCrypto.SSL_SESSION_cipher(sslSessionNativePointer);
     }
-
-    private static native String getCipherSuite(int sslSessionNativePointer);
 
     /**
      * Gives back the standard version name of the SSL protocol used in all
@@ -336,10 +318,8 @@ public class OpenSSLSessionImpl implements SSLSession {
      *
      */
     public String getProtocol() {
-        return getProtocol(sslSessionNativePointer);
+        return NativeCrypto.SSL_SESSION_get_version(sslSessionNativePointer);
     }
-
-    private static native String getProtocol(int sslSessionNativePointer);
 
     /**
      * Gives back the context to which the actual SSL session is bound. A SSL
@@ -484,8 +464,6 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     protected void finalize() {
-        freeImpl(sslSessionNativePointer);
+        NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
     }
-
-    public static native void freeImpl(int session);
 }

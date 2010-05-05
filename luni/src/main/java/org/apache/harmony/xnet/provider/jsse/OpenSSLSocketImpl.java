@@ -329,13 +329,13 @@ public class OpenSSLSocketImpl
         } catch (CertificateException e) {
             throw new SSLPeerUnverifiedException(e.getMessage());
         }
-        byte[] sessionId = OpenSSLSessionImpl.getId(sslSessionNativePointer);
+        byte[] sessionId = NativeCrypto.SSL_SESSION_session_id(sslSessionNativePointer);
         sslSession = (OpenSSLSessionImpl) sessionContext.getSession(sessionId);
         if (sslSession != null) {
             session.lastAccessedTime = System.currentTimeMillis();
             LoggerHolder.logger.fine("Reused cached session for "
                                      + getInetAddress() + ".");
-            OpenSSLSessionImpl.freeImpl(sslSessionNativePointer);
+            NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
         } else {
             if (!enableSessionCreation) {
                 // Should have been prevented by NativeCrypto.SSL_set_session_creation_enabled

@@ -307,6 +307,26 @@ public class NativeCrypto {
 
     public static native void SSL_free(int sslNativePointer);
 
+    public static native byte[] SSL_SESSION_session_id(int sslSessionNativePointer);
+
+    /**
+     * Returns the X509 certificates of the peer in the PEM format.
+     */
+    public static native byte[][] SSL_SESSION_get_peer_cert_chain(int sslCtxNativePointer,
+                                                                  int sslSessionNativePointer);
+
+    public static native long SSL_SESSION_get_time(int sslSessionNativePointer);
+
+    public static native String SSL_SESSION_get_version(int sslSessionNativePointer);
+
+    public static native String SSL_SESSION_cipher(int sslSessionNativePointer);
+
+    public static native void SSL_SESSION_free(int sslSessionNativePointer);
+
+    public static native byte[] i2d_SSL_SESSION(int sslSessionNativePointer);
+
+    public static native int d2i_SSL_SESSION(byte[] data, int size);
+
     public interface CertificateChainVerifier {
         /**
          * Verify that we trust the certificate chain is trusted.
