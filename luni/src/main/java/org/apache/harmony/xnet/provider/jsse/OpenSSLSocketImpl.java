@@ -19,34 +19,25 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
-
 import org.apache.harmony.security.provider.cert.X509CertImpl;
 
 /**
  * Implementation of the class OpenSSLSocketImpl
- * based on OpenSSL. The JNI native interface for some methods
- * of this this class are defined in the file:
- * org_apache_harmony_xnet_provider_jsse_NativeCrypto.cpp
+ * based on OpenSSL.
  *
  * This class only supports SSLv3 and TLSv1. This should be documented elsewhere
  * later, for example in the package.html or a separate reference document.
@@ -531,13 +522,6 @@ public class OpenSSLSocketImpl
     }
 
     /**
-     * Reads with the native SSL_read function from the encrypted data stream
-     * @return -1 if error or the end of the stream is reached.
-     */
-    private native int nativeread(int sslNativePointer, int timeout) throws IOException;
-    private native int nativeread(int sslNativePointer, byte[] b, int off, int len, int timeout) throws IOException;
-
-    /**
      * This inner class provides input data stream functionality
      * for the OpenSSL native implementation. It is used to
      * read data received via SSL protocol.
@@ -560,7 +544,7 @@ public class OpenSSLSocketImpl
          */
         public int read() throws IOException {
             synchronized(readLock) {
-                return OpenSSLSocketImpl.this.nativeread(sslNativePointer, timeout);
+                return NativeCrypto.SSL_read_byte(sslNativePointer, timeout);
             }
         }
 
@@ -570,16 +554,10 @@ public class OpenSSLSocketImpl
          */
         public int read(byte[] b, int off, int len) throws IOException {
             synchronized(readLock) {
-                return OpenSSLSocketImpl.this.nativeread(sslNativePointer, b, off, len, timeout);
+                return NativeCrypto.SSL_read(sslNativePointer, b, off, len, timeout);
             }
         }
     }
-
-    /**
-     * Writes with the native SSL_write function to the encrypted data stream.
-     */
-    private native void nativewrite(int sslNativePointer, int b) throws IOException;
-    private native void nativewrite(int sslNativePointer, byte[] b, int off, int len) throws IOException;
 
     /**
      * This inner class provides output data stream functionality
@@ -601,7 +579,7 @@ public class OpenSSLSocketImpl
          */
         public void write(int b) throws IOException {
             synchronized(writeLock) {
-                OpenSSLSocketImpl.this.nativewrite(sslNativePointer, b);
+                NativeCrypto.SSL_write_byte(sslNativePointer, b);
             }
         }
 
@@ -611,7 +589,7 @@ public class OpenSSLSocketImpl
          */
         public void write(byte[] b, int start, int len) throws IOException {
             synchronized(writeLock) {
-                OpenSSLSocketImpl.this.nativewrite(sslNativePointer, b, start, len);
+                NativeCrypto.SSL_write(sslNativePointer, b, start, len);
             }
         }
     }
@@ -870,9 +848,6 @@ public class OpenSSLSocketImpl
     }
     // END android-added
 
-    private native void nativeinterrupt(int sslNativePointer) throws IOException;
-    private native void nativeclose(int sslNativePointer) throws IOException;
-
     /**
      * Closes the SSL socket. Once closed, a socket is not available for further
      * use anymore under any circumstance. A new socket must be created.
@@ -903,7 +878,7 @@ public class OpenSSLSocketImpl
             }
         }
 
-        nativeinterrupt(sslNativePointer);
+        NativeCrypto.SSL_interrupt(sslNativePointer);
 
         synchronized (this) {
             synchronized (writeLock) {
@@ -914,7 +889,7 @@ public class OpenSSLSocketImpl
                     // Shut down the SSL connection, per se.
                     try {
                         if (handshakeStarted) {
-                            nativeclose(sslNativePointer);
+                            NativeCrypto.SSL_shutdown(sslNativePointer);
                         }
                     } catch (IOException ex) {
                         /*
@@ -975,26 +950,4 @@ public class OpenSSLSocketImpl
         updateInstanceCount(-1);
         free();
     }
-
-    /**
-     * Verifies an RSA signature. Conceptually, this method doesn't really
-     * belong here, but due to its native code being closely tied to OpenSSL
-     * (just like the rest of this class), we put it here for the time being.
-     * This also solves potential problems with native library initialization.
-     *
-     * @param message The message to verify
-     * @param signature The signature to verify
-     * @param algorithm The hash/sign algorithm to use, i.e. "RSA-SHA1"
-     * @param key The RSA public key to use
-     * @return true if the verification succeeds, false otherwise
-     */
-    public static boolean verifySignature(byte[] message, byte[] signature, String algorithm, RSAPublicKey key) {
-        byte[] modulus = key.getModulus().toByteArray();
-        byte[] exponent = key.getPublicExponent().toByteArray();
-
-        return nativeverifysignature(message, signature, algorithm, modulus, exponent) == 1;
-    }
-
-    private static native int nativeverifysignature(byte[] message, byte[] signature,
-            String algorithm, byte[] modulus, byte[] exponent);
 }

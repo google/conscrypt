@@ -23,14 +23,14 @@ import java.net.Socket;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
-
 import org.bouncycastle.openssl.PEMWriter;
 
 /**
- * Provides the Java side of our JNI glue for OpenSSL. Currently only hashing
- * and verifying are covered. Is expected to grow over time. Also needs to move
- * into libcore/openssl at some point.
+ * Provides the Java side of our JNI glue for OpenSSL. Currently only
+ * hashing and verifying are covered. Is expected to grow over
+ * time. Also needs to move into libcore/openssl at some point.
  */
 public class NativeCrypto {
 
@@ -74,6 +74,30 @@ public class NativeCrypto {
     public static native void EVP_VerifyUpdate(int ctx, byte[] buffer, int offset, int length);
 
     public static native int EVP_VerifyFinal(int ctx, byte[] signature, int offset, int length, int key);
+
+    // --- Legacy Signature handling -------------------------------------------
+    // TODO rewrite/replace with EVP_Verify*
+    /**
+     * Verifies an RSA signature. Conceptually, this method doesn't really
+     * belong here, but due to its native code being closely tied to OpenSSL
+     * (just like the rest of this class), we put it here for the time being.
+     * This also solves potential problems with native library initialization.
+     *
+     * @param message The message to verify
+     * @param signature The signature to verify
+     * @param algorithm The hash/sign algorithm to use, i.e. "RSA-SHA1"
+     * @param key The RSA public key to use
+     * @return true if the verification succeeds, false otherwise
+     */
+    public static boolean verifySignature(byte[] message, byte[] signature, String algorithm, RSAPublicKey key) {
+        byte[] modulus = key.getModulus().toByteArray();
+        byte[] exponent = key.getPublicExponent().toByteArray();
+
+        return verifySignature(message, signature, algorithm, modulus, exponent) == 1;
+    }
+
+    private static native int verifySignature(byte[] message, byte[] signature,
+            String algorithm, byte[] modulus, byte[] exponent);
 
     // --- SSL handling --------------------------------------------------------
 
@@ -304,6 +328,22 @@ public class NativeCrypto {
                                               int timeout, boolean client_mode) throws IOException, CertificateException;
 
     public static native byte[][] SSL_get_certificate(int sslNativePointer);
+
+    /**
+     * Reads with the native SSL_read function from the encrypted data stream
+     * @return -1 if error or the end of the stream is reached.
+     */
+    public static native int SSL_read_byte(int sslNativePointer, int timeout) throws IOException;
+    public static native int SSL_read(int sslNativePointer, byte[] b, int off, int len, int timeout) throws IOException;
+
+    /**
+     * Writes with the native SSL_write function to the encrypted data stream.
+     */
+    public static native void SSL_write_byte(int sslNativePointer, int b) throws IOException;
+    public static native void SSL_write(int sslNativePointer, byte[] b, int off, int len) throws IOException;
+
+    public static native void SSL_interrupt(int sslNativePointer) throws IOException;
+    public static native void SSL_shutdown(int sslNativePointer) throws IOException;
 
     public static native void SSL_free(int sslNativePointer);
 
