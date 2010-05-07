@@ -991,75 +991,27 @@ public class OpenSSLSocketImpl extends javax.net.ssl.SSLSocket {
     private native void nativefree();
 
     protected void finalize() throws IOException {
+        /*
+         * Just worry about our own state. Notably we do not try and
+         * close anything. The SocketImpl, either our own
+         * PlainSocketImpl, or the Socket we are wrapping, will do
+         * that. This might mean we do not properly SSL_shutdown, but
+         * if you want to do that, properly close the socket yourself.
+         *
+         * The reason why we don't try to SSL_shutdown is that there
+         * can be a race between finalizers where the PlainSocketImpl
+         * finalizer runs first and closes the socket. However, in the
+         * meanwhile, the underlying file descriptor could be reused
+         * for another purpose. If we call SSL_shutdown after that, the
+         * underlying socket BIOs still have the older file descriptor
+         * and will write the close notify to some unsuspecting
+         * reader.
+         */
         updateInstanceCount(-1);
-
         if (ssl == 0) {
-            /*
-             * It's already been closed, so there's no need to do anything
-             * more at this point.
-             */
             return;
         }
-
-        // Note the underlying socket up-front, for possible later use.
-        Socket underlyingSocket = socket;
-
-        // Fire up a thread to (hopefully) do all the real work.
-        Finalizer f = new Finalizer();
-        f.setDaemon(true);
-        f.start();
-
-        /*
-         * Give the finalizer thread one second to run. If it fails to
-         * terminate in that time, interrupt it (which may help if it
-         * is blocked on an interruptible I/O operation), make a note
-         * in the log, and go ahead and close the underlying socket if
-         * possible.
-         */
-        try {
-            f.join(1000);
-        } catch (InterruptedException ex) {
-            // Reassert interrupted status.
-            Thread.currentThread().interrupt();
-        }
-
-        if (f.isAlive()) {
-            f.interrupt();
-            Logger.global.log(Level.SEVERE,
-                    "Slow finalization of SSL socket (" + this + ", for " +
-                    underlyingSocket + ")");
-            if ((underlyingSocket != null) && !underlyingSocket.isClosed()) {
-                underlyingSocket.close();
-            }
-        }
-    }
-
-    /**
-     * Helper class for a thread that knows how to call
-     * {@link OpenSSLSocketImpl#close} on behalf of instances being finalized,
-     * since that call can take arbitrarily long (e.g., due to a slow network),
-     * and an overly long-running finalizer will cause the process to be
-     * totally aborted.
-     */
-    private class Finalizer extends Thread {
-        public void run() {
-            Socket underlyingSocket = socket; // for error reporting
-            try {
-                close();
-            } catch (IOException ex) {
-                /*
-                 * Clear interrupted status, so that the Logger call
-                 * immediately below won't get spuriously interrupted.
-                 */
-                Thread.interrupted();
-
-                Logger.global.log(Level.SEVERE,
-                        "Trouble finalizing SSL socket (" +
-                        OpenSSLSocketImpl.this + ", for " + underlyingSocket +
-                        ")",
-                        ex);
-            }
-        }
+        nativefree();
     }
 
     /**
