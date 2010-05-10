@@ -114,6 +114,9 @@ public class ClientSessionContext extends AbstractSessionContext {
      *  efficient approach
      */
     public SSLSession getSession(byte[] sessionId) {
+        if (sessionId == null) {
+            throw new NullPointerException("sessionId == null");
+        }
         /*
          * This method is typically used in conjunction with getIds() to
          * iterate over the sessions linearly, so it doesn't make sense for

@@ -92,6 +92,9 @@ public class ServerSessionContext extends AbstractSessionContext {
     }
 
     public SSLSession getSession(byte[] sessionId) {
+        if (sessionId == null) {
+            throw new NullPointerException("sessionId == null");
+        }
         ByteArray key = new ByteArray(sessionId);
         synchronized (sessions) {
             SSLSession session = sessions.get(key);
