@@ -110,13 +110,11 @@ public class SSLParameters implements Cloneable {
      */
     protected SSLParameters(KeyManager[] kms, TrustManager[] tms,
 // BEGIN android-changed
-            SecureRandom sr, SSLClientSessionCache clientCache,
-            SSLServerSessionCache serverCache)
+            SecureRandom sr, ClientSessionContext clientSessionContext,
+            ServerSessionContext serverSessionContext)
             throws KeyManagementException {
-        this.serverSessionContext
-                = new ServerSessionContext(NativeCrypto.SSL_CTX_new(), serverCache);
-        this.clientSessionContext
-                = new ClientSessionContext(NativeCrypto.SSL_CTX_new(), clientCache);
+        this.serverSessionContext = serverSessionContext;
+        this.clientSessionContext = clientSessionContext;
 // END android-changed
         try {
             // initialize key manager
@@ -221,7 +219,8 @@ public class SSLParameters implements Cloneable {
     protected static SSLParameters getDefault() throws KeyManagementException {
         if (defaultParameters == null) {
 // BEGIN android-changed
-            defaultParameters = new SSLParameters(null, null, null, null, null);
+            defaultParameters = new SSLParameters(null, null, null,
+                new ClientSessionContext(), new ServerSessionContext());
 // END android-changed
         }
         return (SSLParameters) defaultParameters.clone();

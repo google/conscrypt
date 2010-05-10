@@ -43,12 +43,10 @@ public class ServerSessionContext extends AbstractSessionContext {
         }
     };
 
-    private final SSLServerSessionCache persistentCache;
+    private SSLServerSessionCache persistentCache;
 
-    public ServerSessionContext(int sslCtxNativePointer,
-                                SSLServerSessionCache persistentCache) {
-        super(sslCtxNativePointer, 100, 0);
-        this.persistentCache = persistentCache;
+    public ServerSessionContext() {
+        super(100, 0);
 
         // TODO make sure SSL_CTX does not automaticaly clear sessions we want it to cache
         // SSL_CTX_set_session_cache_mode(sslCtxNativePointer, SSL_SESS_CACHE_NO_AUTO_CLEAR);
@@ -57,6 +55,10 @@ public class ServerSessionContext extends AbstractSessionContext {
         // SSL_CTX_sess_set_cache_size(sslCtxNativePointer, 0);
 
         // TODO override trimToSize to use SSL_CTX_sessions to remove from native cache
+    }
+
+    public void setPersistentCache(SSLServerSessionCache persistentCache) {
+        this.persistentCache = persistentCache;
     }
 
     Iterator<SSLSession> sessionIterator() {

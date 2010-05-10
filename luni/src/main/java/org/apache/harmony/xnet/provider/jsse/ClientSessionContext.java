@@ -61,11 +61,13 @@ public class ClientSessionContext extends AbstractSessionContext {
      */
     Map<ByteArray, SSLSession> sessionsById;
 
-    final SSLClientSessionCache persistentCache;
+    private SSLClientSessionCache persistentCache;
 
-    public ClientSessionContext(int sslCtxNativePointer,
-                                SSLClientSessionCache persistentCache) {
-        super(sslCtxNativePointer, 10, 0);
+    public ClientSessionContext() {
+        super(10, 0);
+    }
+
+    public void setPersistentCache(SSLClientSessionCache persistentCache) {
         this.persistentCache = persistentCache;
     }
 

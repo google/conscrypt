@@ -34,7 +34,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     volatile int maximumSize;
     volatile int timeout;
 
-    final int sslCtxNativePointer;
+    final int sslCtxNativePointer = NativeCrypto.SSL_CTX_new();
 
     /** Identifies OpenSSL sessions. */
     static final int OPEN_SSL = 1;
@@ -42,13 +42,10 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     /**
      * Constructs a new session context.
      *
-     * @param sslCtxNativePointer Associated native SSL_CTX
      * @param maximumSize of cache
      * @param timeout for cache entries
      */
-    AbstractSessionContext(int sslCtxNativePointer,
-            int maximumSize, int timeout) {
-        this.sslCtxNativePointer = sslCtxNativePointer;
+    AbstractSessionContext(int maximumSize, int timeout) {
         this.maximumSize = maximumSize;
         this.timeout = timeout;
     }

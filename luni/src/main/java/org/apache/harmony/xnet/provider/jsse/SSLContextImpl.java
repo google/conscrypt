@@ -45,21 +45,15 @@ import javax.net.ssl.TrustManager;
 public class SSLContextImpl extends SSLContextSpi {
 
     /** Client session cache. */
-    private ClientSessionContext clientSessionContext;
+    private final ClientSessionContext clientSessionContext = new ClientSessionContext();
 
     /** Server session cache. */
-    private ServerSessionContext serverSessionContext;
+    private final ServerSessionContext serverSessionContext = new ServerSessionContext();
 
     protected SSLParameters sslParameters;
 
     public SSLContextImpl() {
         super();
-    }
-
-    @Override
-    public void engineInit(KeyManager[] kms, TrustManager[] tms,
-            SecureRandom sr) throws KeyManagementException {
-        engineInit(kms, tms, sr, null, null);
     }
 
     /**
@@ -70,17 +64,26 @@ public class SSLContextImpl extends SSLContextSpi {
      * @param kms the key sources or {@code null}
      * @param tms the trust decision sources or {@code null}
      * @param sr the randomness source or {@code null}
-     * @param clientCache persistent client session cache or {@code null}
-     * @param serverCache persistent server session cache or {@code null}
      * @throws KeyManagementException if initializing this instance fails
+     */
+    @Override
+    public void engineInit(KeyManager[] kms, TrustManager[] tms,
+            SecureRandom sr) throws KeyManagementException {
+        sslParameters = new SSLParameters(kms, tms, sr,
+                                          clientSessionContext, serverSessionContext);
+    }
+
+    /** 
+     * @deprecated call setPersistentCache directly on the result of
+     * engineGetClientSessionContext() or
+     * engineGetServerSessionContext
      */
     public void engineInit(KeyManager[] kms, TrustManager[] tms,
             SecureRandom sr, SSLClientSessionCache clientCache,
             SSLServerSessionCache serverCache) throws KeyManagementException {
-        sslParameters = new SSLParameters(kms, tms, sr,
-                clientCache, serverCache);
-        clientSessionContext = sslParameters.getClientSessionContext();
-        serverSessionContext = sslParameters.getServerSessionContext();
+        engineInit(kms, tms, sr);
+        engineGetClientSessionContext().setPersistentCache(clientCache);
+        engineGetServerSessionContext().setPersistentCache(serverCache);
     }
 
     public SSLSocketFactory engineGetSocketFactory() {
