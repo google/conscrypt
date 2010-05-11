@@ -16,15 +16,21 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.util.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.logging.Level;
-import java.io.*;
-
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
-import javax.security.cert.X509Certificate;
 import javax.security.cert.CertificateEncodingException;
 import javax.security.cert.CertificateException;
+import javax.security.cert.X509Certificate;
 
 /**
  * Supports SSL session caches.
@@ -56,13 +62,30 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     abstract Iterator<SSLSession> sessionIterator();
 
     public final Enumeration getIds() {
-        final Iterator<SSLSession> iterator = sessionIterator();
+        final Iterator<SSLSession> i = sessionIterator();
         return new Enumeration<byte[]>() {
+            private SSLSession next;
             public boolean hasMoreElements() {
-                return iterator.hasNext();
+                if (next != null) {
+                    return true;
+                }
+                while (i.hasNext()) {
+                    SSLSession session = i.next();
+                    if (session.isValid()) {
+                        next = session;
+                        return true;
+                    }
+                }
+                next = null;
+                return false;
             }
             public byte[] nextElement() {
-                return iterator.next().getId();
+                if (hasMoreElements()) {
+                    byte[] id = next.getId();
+                    next = null;
+                    return id;
+                }
+                throw new NoSuchElementException();
             }
         };
     }

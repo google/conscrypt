@@ -16,12 +16,10 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Iterator;
-import java.util.ArrayList;
-import java.util.Arrays;
-
 import javax.net.ssl.SSLSession;
 
 /**
@@ -29,10 +27,6 @@ import javax.net.ssl.SSLSession;
  * sessions using the ID provided by an SSL client.
  */
 public class ServerSessionContext extends AbstractSessionContext {
-
-    /*
-     * TODO: Expire timed-out sessions more pro-actively.
-     */
 
     private final Map<ByteArray, SSLSession> sessions
             = new LinkedHashMap<ByteArray, SSLSession>() {
@@ -54,7 +48,8 @@ public class ServerSessionContext extends AbstractSessionContext {
         // TODO remove SSL_CTX session cache limit so we can manage it
         // SSL_CTX_sess_set_cache_size(sslCtxNativePointer, 0);
 
-        // TODO override trimToSize to use SSL_CTX_sessions to remove from native cache
+        // TODO override trimToSize and removeEldestEntry to use
+        // SSL_CTX_sessions to remove from native cache
     }
 
     public void setPersistentCache(SSLServerSessionCache persistentCache) {
@@ -89,6 +84,18 @@ public class ServerSessionContext extends AbstractSessionContext {
             throw new IllegalArgumentException("seconds < 0");
         }
         timeout = seconds;
+
+        synchronized (sessions) {
+            Iterator<SSLSession> i = sessions.values().iterator();
+            while (i.hasNext()) {
+                SSLSession session = i.next();
+                // SSLSession's know their context and consult the
+                // timeout as part of their validity condition.
+                if (!session.isValid()) {
+                    i.remove();
+                }
+            }
+        }
     }
 
     public SSLSession getSession(byte[] sessionId) {
@@ -96,19 +103,20 @@ public class ServerSessionContext extends AbstractSessionContext {
             throw new NullPointerException("sessionId == null");
         }
         ByteArray key = new ByteArray(sessionId);
+        SSLSession session;
         synchronized (sessions) {
-            SSLSession session = sessions.get(key);
-            if (session != null) {
-                return session;
-            }
+            session = sessions.get(key);
+        }
+        if (session != null && session.isValid()) {
+            return session;
         }
 
         // Check persistent cache.
         if (persistentCache != null) {
             byte[] data = persistentCache.getSessionData(sessionId);
             if (data != null) {
-                SSLSession session = toSession(data, null, -1);
-                if (session != null) {
+                session = toSession(data, null, -1);
+                if (session != null && session.isValid()) {
                     synchronized (sessions) {
                         sessions.put(key, session);
                     }

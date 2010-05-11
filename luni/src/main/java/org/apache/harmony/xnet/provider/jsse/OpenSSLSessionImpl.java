@@ -43,6 +43,7 @@ import org.apache.harmony.security.provider.cert.X509CertImpl;
  */
 public class OpenSSLSessionImpl implements SSLSession {
 
+    private long creationTime = 0;
     long lastAccessedTime = 0;
     X509Certificate[] localCertificates;
     X509Certificate[] peerCertificates;
@@ -130,7 +131,10 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @return the session's creation time in milliseconds since the epoch
      */
     public long getCreationTime() {
-        return NativeCrypto.SSL_SESSION_get_time(sslSessionNativePointer);
+        if (creationTime == 0) {
+            creationTime = NativeCrypto.SSL_SESSION_get_time(sslSessionNativePointer);
+        }
+        return creationTime;
     }
 
     /**
@@ -350,7 +354,8 @@ public class OpenSSLSessionImpl implements SSLSession {
         if (isValid
                 && context != null
                 && context.getSessionTimeout() != 0
-                && lastAccessedTime + context.getSessionTimeout() > System.currentTimeMillis()) {
+                && getCreationTime() + (context.getSessionTimeout() * 1000)
+                    < System.currentTimeMillis()) {
             isValid = false;
         }
         return isValid;
