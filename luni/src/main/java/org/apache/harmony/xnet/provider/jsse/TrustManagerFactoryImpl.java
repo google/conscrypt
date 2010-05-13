@@ -33,9 +33,9 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactorySpi;
 
 /**
- * 
+ *
  * TrustManagerFactory service provider interface implementation.
- * 
+ *
  * @see javax.net.ssl.TrustManagerFactorySpi
  */
 public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {

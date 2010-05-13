@@ -21,11 +21,11 @@ public class OpenSSLMessageDigestJDK extends MessageDigest {
     /**
      * Creates a new OpenSSLMessageDigestJDK instance for the given algorithm
      * name.
-     *  
+     *
      * @param algorithm The name of the algorithm, e.g. "SHA1".
-     * 
+     *
      * @return The new OpenSSLMessageDigestJDK instance.
-     * 
+     *
      * @throws RuntimeException In case of problems.
      */
     public static OpenSSLMessageDigestJDK getInstance(String algorithm) throws NoSuchAlgorithmException{
@@ -35,7 +35,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest {
     /**
      * Creates a new OpenSSLMessageDigest instance for the given algorithm
      * name.
-     *  
+     *
      * @param algorithm The name of the algorithm, e.g. "SHA1".
      */
     private OpenSSLMessageDigestJDK(String algorithm) throws NoSuchAlgorithmException {
@@ -55,7 +55,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest {
             throw new NoSuchAlgorithmException(ex.getMessage() + " (" + algorithm + ")");
         }
     }
-    
+
     @Override
     protected byte[] engineDigest() {
         byte[] result = new byte[NativeCrypto.EVP_DigestSize(ctx)];
@@ -90,25 +90,25 @@ public class OpenSSLMessageDigestJDK extends MessageDigest {
         super.finalize();
         NativeCrypto.EVP_free(ctx);
     }
-    
+
     static public class MD5 extends OpenSSLMessageDigestJDK {
         public MD5() throws NoSuchAlgorithmException {
             super("MD5");
         }
     }
-    
+
     static public class SHA1 extends OpenSSLMessageDigestJDK {
         public SHA1() throws NoSuchAlgorithmException {
             super("SHA-1");
         }
     }
-    
+
     static public class SHA224 extends OpenSSLMessageDigestJDK {
         public SHA224() throws NoSuchAlgorithmException {
             super("SHA-224");
         }
     }
-    
+
     static public class SHA256 extends OpenSSLMessageDigestJDK {
         public SHA256() throws NoSuchAlgorithmException {
             super("SHA-256");

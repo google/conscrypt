@@ -34,7 +34,7 @@ import java.util.Vector;
  * Represents server/client certificate message
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS
  * 1.0 spec., 7.4.2. Server certificate; 7.4.6. Client certificate</a>
- * 
+ *
  */
 public class CertificateMessage extends Message {
 
@@ -50,7 +50,7 @@ public class CertificateMessage extends Message {
 
     /**
      * Creates inbound message
-     * 
+     *
      * @param in
      * @param length
      * @throws IOException
@@ -103,7 +103,7 @@ public class CertificateMessage extends Message {
 
     /**
      * Creates outbound message
-     * 
+     *
      * @param certs
      */
     public CertificateMessage(X509Certificate[] certs) {
@@ -133,7 +133,7 @@ public class CertificateMessage extends Message {
 
     /**
      * Sends message
-     * 
+     *
      * @param out
      */
     @Override
@@ -165,7 +165,7 @@ public class CertificateMessage extends Message {
 
     /**
      * Returns message type
-     * 
+     *
      * @return
      */
     @Override

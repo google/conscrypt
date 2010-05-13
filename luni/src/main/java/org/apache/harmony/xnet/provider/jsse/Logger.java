@@ -96,7 +96,7 @@ public class Logger {
     }
 
     private static String[] names;
-    
+
     static {
         try {
             names = AccessController

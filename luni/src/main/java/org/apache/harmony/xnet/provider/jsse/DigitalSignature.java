@@ -36,7 +36,7 @@ import javax.net.ssl.SSLException;
  * This class represents Signature type, as described in TLS v 1.0 Protocol
  * specification, 7.4.3. It allow to init, update and sign hash. Hash algorithm
  * depends on SignatureAlgorithm.
- * 
+ *
  * select (SignatureAlgorithm)
  *       {   case anonymous: struct { };
  *           case rsa:
@@ -49,10 +49,10 @@ import javax.net.ssl.SSLException;
  *                   opaque sha_hash[20];
  *               };
  *       } Signature;
- * 
+ *
  * Digital signing description see in TLS spec., 4.7.
  * (http://www.ietf.org/rfc/rfc2246.txt)
- *  
+ *
  */
 public class DigitalSignature {
 
@@ -60,10 +60,10 @@ public class DigitalSignature {
     private final MessageDigest sha;
     private final Signature signature;
     private final Cipher cipher;
-    
+
     private byte[] md5_hash;
     private byte[] sha_hash;
-     
+
     /**
      * Create Signature type
      * @param keyExchange
@@ -71,7 +71,7 @@ public class DigitalSignature {
     public DigitalSignature(int keyExchange) {
         try {
             sha = MessageDigest.getInstance("SHA-1");
-            
+
             if (keyExchange == CipherSuite.KeyExchange_RSA_EXPORT ||
                     keyExchange == CipherSuite.KeyExchange_RSA ||
                     keyExchange == CipherSuite.KeyExchange_DHE_RSA ||
@@ -99,7 +99,7 @@ public class DigitalSignature {
             throw new AssertionError(e);
         }
     }
-    
+
     /**
      * Initiate Signature type by private key
      * @param key
@@ -116,7 +116,7 @@ public class DigitalSignature {
                     new SSLException("init - invalid private key", e));
         }
     }
-    
+
     /**
      * Initiate Signature type by certificate
      * @param cert
@@ -133,7 +133,7 @@ public class DigitalSignature {
                     new SSLException("init - invalid certificate", e));
         }
     }
-    
+
     /**
      * Update Signature hash
      * @param data
@@ -146,23 +146,23 @@ public class DigitalSignature {
             md5.update(data);
         }
     }
-    
+
     /**
      * Sets MD5 hash
      * @param data
      */
     public void setMD5(byte[] data) {
-        md5_hash = data;    
+        md5_hash = data;
     }
-    
+
     /**
      * Sets SHA hash
      * @param data
      */
     public void setSHA(byte[] data) {
-        sha_hash = data;    
+        sha_hash = data;
     }
-    
+
     /**
      * Sign hash
      * @return Signature bytes
@@ -172,7 +172,7 @@ public class DigitalSignature {
             if (md5 != null && md5_hash == null) {
                 md5_hash = new byte[16];
                 md5.digest(md5_hash, 0, md5_hash.length);
-            }    
+            }
             if (md5_hash != null) {
                 if (signature != null) {
                     signature.update(md5_hash);
@@ -195,7 +195,7 @@ public class DigitalSignature {
                 return signature.sign();
             } else if (cipher != null) {
                 return cipher.doFinal();
-            } 
+            }
             return new byte[0];
         } catch (DigestException e){
             return new byte[0];
@@ -209,8 +209,8 @@ public class DigitalSignature {
     }
 
     /**
-     * Verifies the signature data. 
-     * @param data - the signature bytes 
+     * Verifies the signature data.
+     * @param data - the signature bytes
      * @return true if verified
      */
     public boolean verifySignature(byte[] data) {
@@ -221,7 +221,7 @@ public class DigitalSignature {
                 return false;
             }
         }
-        
+
         if (cipher != null) {
             final byte[] decrypt;
             try {
@@ -231,7 +231,7 @@ public class DigitalSignature {
             } catch (BadPaddingException e) {
                 return false;
             }
-            
+
             final byte[] md5_sha;
             if (md5_hash != null && sha_hash != null) {
                 md5_sha = new byte[md5_hash.length + sha_hash.length];
@@ -242,7 +242,7 @@ public class DigitalSignature {
             } else {
                 md5_sha = sha_hash;
             }
-            
+
             return Arrays.equals(decrypt, md5_sha);
         } else if (data == null || data.length == 0) {
             return true;

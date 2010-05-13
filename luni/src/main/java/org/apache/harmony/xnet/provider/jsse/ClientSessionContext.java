@@ -102,7 +102,7 @@ public class ClientSessionContext extends AbstractSessionContext {
                 do {
                     removeById(i.next());
                     i.remove();
-                } while (--removals > 0);                
+                } while (--removals > 0);
             }
         }
     }

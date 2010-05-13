@@ -36,9 +36,9 @@ import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 
 /**
- * 
+ *
  * SSLSession implementation
- * 
+ *
  * @see javax.net.ssl.SSLSession
  */
 public class SSLSessionImpl implements SSLSession, Cloneable  {
@@ -166,7 +166,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
 
     /**
      * Creates SSLSession implementation
-     * 
+     *
      * @param cipher_suite
      * @param sr
      */
@@ -194,7 +194,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
 
     /**
      * Creates SSLSession implementation
-     * 
+     *
      * @param sr
      */
     public SSLSessionImpl(SecureRandom sr) {
@@ -355,7 +355,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
 
     /**
      * Sets the address of the peer
-     * 
+     *
      * @param peerHost
      * @param peerPort
      */

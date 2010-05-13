@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.security.SecureRandom;
 
 /**
- * 
+ *
  * Represents server hello message.
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS 1.0 spec., 7.4.1.3.
  * Server hello.</a>
@@ -85,7 +85,7 @@ public class ServerHello extends Message {
      * @throws IOException
      */
     public ServerHello(HandshakeIODataStream in, int length) throws IOException {
-        
+
         server_version[0] = (byte) in.read();
         server_version[1] = (byte) in.read();
         in.read(random, 0, 32);
@@ -127,7 +127,7 @@ public class ServerHello extends Message {
     }
 
     /**
-     * Returns message type 
+     * Returns message type
      * @return
      */
     @Override

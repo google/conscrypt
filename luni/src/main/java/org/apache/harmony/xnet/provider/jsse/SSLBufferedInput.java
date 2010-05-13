@@ -63,12 +63,12 @@ public class SSLBufferedInput extends SSLInputStream {
     }
 
     /**
-     * Reads the following byte value. If there are no bytes in the source 
+     * Reads the following byte value. If there are no bytes in the source
      * buffer, method throws java.nio.BufferUnderflowException.
      */
     @Override
     public int read() throws IOException {
-        // TODO: implement optimized read(int) 
+        // TODO: implement optimized read(int)
         // and read(byte[], int, int) methods
         bytik = in.get() & 0x00FF;
         consumed ++;

@@ -30,7 +30,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 /**
  * This class provides functionality for computation
- * of PRF values for TLS (http://www.ietf.org/rfc/rfc2246.txt) 
+ * of PRF values for TLS (http://www.ietf.org/rfc/rfc2246.txt)
  * and SSL v3 (http://wp.netscape.com/eng/ssl3) protocols.
  */
 public class PRF {
@@ -42,7 +42,7 @@ public class PRF {
     protected static MessageDigest sha;
     private static int md5_mac_length;
     private static int sha_mac_length;
-    
+
     static private void init() {
         try {
             md5_mac = Mac.getInstance("HmacMD5");

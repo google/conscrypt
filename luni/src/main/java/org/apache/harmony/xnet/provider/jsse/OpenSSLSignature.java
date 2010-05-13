@@ -46,12 +46,12 @@ public class OpenSSLSignature extends Signature {
      * Holds a pointer to the native RSA key.
      */
     private int rsa;
-    
+
     /**
-     * Holds the OpenSSL name of the algorithm (lower case, no dashes). 
+     * Holds the OpenSSL name of the algorithm (lower case, no dashes).
      */
     private String evpAlgorithm;
-    
+
     /**
      * Holds a dummy buffer for writing single bytes to the digest.
      */
@@ -59,11 +59,11 @@ public class OpenSSLSignature extends Signature {
 
     /**
      * Creates a new OpenSSLSignature instance for the given algorithm name.
-     *  
+     *
      * @param algorithm The name of the algorithm, e.g. "SHA1".
-     * 
+     *
      * @return The new OpenSSLSignature instance.
-     * 
+     *
      * @throws RuntimeException In case of problems.
      */
     public static OpenSSLSignature getInstance(String algorithm) throws NoSuchAlgorithmException {
@@ -73,13 +73,13 @@ public class OpenSSLSignature extends Signature {
 
     /**
      * Creates a new OpenSSLSignature instance for the given algorithm name.
-     *  
+     *
      * @param algorithm The name of the algorithm, e.g. "SHA1".
      */
     private OpenSSLSignature(String algorithm) throws NoSuchAlgorithmException {
         super(algorithm);
-        
-        int i = algorithm.indexOf("with"); 
+
+        int i = algorithm.indexOf("with");
         if (i == -1) {
             throw new NoSuchAlgorithmException(algorithm);
         }
@@ -108,7 +108,7 @@ public class OpenSSLSignature extends Signature {
 
         ctx = NativeCrypto.EVP_new();
     }
-    
+
     @Override
     protected void engineUpdate(byte input) {
         singleByte[0] = input;
@@ -137,12 +137,12 @@ public class OpenSSLSignature extends Signature {
     @Override
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
         //log("OpenSSLSignature", "engineInitVerify() invoked with " + publicKey.getClass().getCanonicalName());
-        
+
         if (publicKey instanceof DSAPublicKey) {
             try {
                 DSAPublicKey dsaPublicKey = (DSAPublicKey)publicKey;
                 DSAParams dsaParams = dsaPublicKey.getParams();
-                dsa = NativeCrypto.EVP_PKEY_new_DSA(dsaParams.getP().toByteArray(), 
+                dsa = NativeCrypto.EVP_PKEY_new_DSA(dsaParams.getP().toByteArray(),
                         dsaParams.getQ().toByteArray(), dsaParams.getG().toByteArray(),
                         dsaPublicKey.getY().toByteArray(), null);
 
@@ -161,7 +161,7 @@ public class OpenSSLSignature extends Signature {
         } else {
             throw new InvalidKeyException("Need DSA or RSA public key");
         }
-        
+
         try {
             NativeCrypto.EVP_VerifyInit(ctx, evpAlgorithm);
         } catch (Exception ex) {
@@ -181,25 +181,25 @@ public class OpenSSLSignature extends Signature {
     @Override
     protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
         int handle = (rsa != 0) ? rsa : dsa;
-        
+
         if (handle == 0) {
             // This can't actually happen, but you never know...
             throw new SignatureException("Need DSA or RSA public key");
         }
-        
+
         try {
             int result = NativeCrypto.EVP_VerifyFinal(ctx, sigBytes, 0, sigBytes.length, handle);
             return result == 1;
         } catch (Exception ex) {
             throw new SignatureException(ex);
         }
-        
+
     }
 
     @Override
     protected void finalize() throws Throwable {
         super.finalize();
-        
+
         if (dsa != 0) {
             NativeCrypto.EVP_PKEY_free(dsa);
         }
@@ -207,7 +207,7 @@ public class OpenSSLSignature extends Signature {
         if (rsa != 0) {
             NativeCrypto.EVP_PKEY_free(rsa);
         }
-        
+
         if (ctx != 0) {
             NativeCrypto.EVP_free(ctx);
         }

@@ -24,34 +24,34 @@ import org.apache.harmony.xnet.provider.jsse.HandshakeIODataStream;
 import java.io.IOException;
 
 /**
- * 
+ *
  * Represents Hello Request message
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS 1.0 spec., 7.4.1.1.
  * Hello request</a>
- * 
+ *
  */
 public class HelloRequest extends Message {
-    
+
     /**
      * Creates outbound message
      *
      */
     public HelloRequest() {
     }
-    
+
     /**
      * Creates inbound message
      * @param in
      * @param length
      * @throws IOException
      */
-    public HelloRequest(HandshakeIODataStream in, int length)  
+    public HelloRequest(HandshakeIODataStream in, int length)
             throws IOException {
         if (length != 0) {
             fatalAlert(AlertProtocol.DECODE_ERROR, "DECODE ERROR: incorrect HelloRequest");
         }
     }
-    
+
     /**
      * Sends message
      * @param out
@@ -63,10 +63,10 @@ public class HelloRequest extends Message {
     @Override
     public int length() {
         return 0;
-    } 
-    
+    }
+
     /**
-     * Returns message type 
+     * Returns message type
      * @return
      */
     @Override

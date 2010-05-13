@@ -18,8 +18,8 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 /**
- * 
- * Contains SSL 3.0 constants 
+ *
+ * Contains SSL 3.0 constants
  * @see <a href="http://wp.netscape.com/eng/ssl3">SSL 3.0 Spec.</a>
  */
 public class SSLv3Constants {

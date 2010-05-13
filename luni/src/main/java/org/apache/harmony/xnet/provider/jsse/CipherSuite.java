@@ -23,17 +23,17 @@ import java.util.Hashtable;
 import javax.crypto.Cipher;
 
 /**
- * Represents Cipher Suite as defined in TLS 1.0 spec., 
+ * Represents Cipher Suite as defined in TLS 1.0 spec.,
  * A.5. The CipherSuite;
  * C. CipherSuite definitions.
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS 1.0 spec.</a>
- * 
+ *
  */
 public class CipherSuite {
 
     /**
      * true if this cipher suite is supported
-     */ 
+     */
     boolean supported = true;
 
     /**
@@ -45,7 +45,7 @@ public class CipherSuite {
      * cipher
      */
     final String cipherName;
-    
+
     /**
      * Cipher information
      */
@@ -54,22 +54,22 @@ public class CipherSuite {
     final int effectiveKeyBytes;
     final int IVSize;
     final private int blockSize;
-    
+
     // cipher suite code
     private final byte[] cipherSuiteCode;
 
     // cipher suite name
     private final String name;
-    
+
     // true if cipher suite is exportable
     private final boolean isExportable;
 
     // Hash algorithm
     final private String hashName;
-    
+
     // MAC algorithm
     final private String hmacName;
-    
+
     // Hash size
     final private int hashSize;
 
@@ -240,7 +240,7 @@ public class CipherSuite {
             "3DES_EDE_CBC", "SHA", code_TLS_DH_anon_WITH_3DES_EDE_CBC_SHA);
 
     // array for quick access to cipher suite by code
-    private static CipherSuite[] cuitesByCode = { 
+    private static CipherSuite[] cuitesByCode = {
             TLS_NULL_WITH_NULL_NULL,
             TLS_RSA_WITH_NULL_MD5,
             TLS_RSA_WITH_NULL_SHA,
@@ -271,14 +271,14 @@ public class CipherSuite {
             TLS_DH_anon_WITH_3DES_EDE_CBC_SHA
             };
 
-    // hash for quick access to cipher suite by name 
+    // hash for quick access to cipher suite by name
     private static Hashtable<String, CipherSuite> cuitesByName;
 
     /**
      * array of supported cipher suites.
-     * Set of supported suites is defined at the moment provider's start 
+     * Set of supported suites is defined at the moment provider's start
      */
-//  TODO Dynamically supported suites: new providers may be dynamically 
+//  TODO Dynamically supported suites: new providers may be dynamically
 //  added/removed and the set of supported suites may be changed
     static CipherSuite[] supportedCipherSuites;
 
@@ -291,7 +291,7 @@ public class CipherSuite {
      * default cipher suites
      */
     static CipherSuite[] defaultCipherSuites;
-    
+
     static {
         int count = 0;
         cuitesByName = new Hashtable<String, CipherSuite>();
@@ -312,7 +312,7 @@ public class CipherSuite {
             }
         }
 
-        CipherSuite[] defaultPretendent = { 
+        CipherSuite[] defaultPretendent = {
                 TLS_RSA_WITH_RC4_128_MD5,
                 TLS_RSA_WITH_RC4_128_SHA,
                 // TLS_RSA_WITH_AES_128_CBC_SHA,
@@ -325,7 +325,7 @@ public class CipherSuite {
                 TLS_RSA_EXPORT_WITH_RC4_40_MD5,
                 TLS_RSA_EXPORT_WITH_DES40_CBC_SHA,
                 TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA,
-                TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA 
+                TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA
                 };
         count = 0;
         for (int i = 0; i < defaultPretendent.length; i++) {
@@ -370,7 +370,7 @@ public class CipherSuite {
     /**
      * Returns CipherSuite based on V2CipherSpec code
      * as described in TLS 1.0 spec., E. Backward Compatibility With SSL
-     * 
+     *
      * @param b1
      * @param b2
      * @param b3

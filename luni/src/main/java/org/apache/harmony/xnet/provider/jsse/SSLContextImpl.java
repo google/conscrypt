@@ -73,7 +73,7 @@ public class SSLContextImpl extends SSLContextSpi {
                                           clientSessionContext, serverSessionContext);
     }
 
-    /** 
+    /**
      * @deprecated call setPersistentCache directly on the result of
      * engineGetClientSessionContext() or
      * engineGetServerSessionContext

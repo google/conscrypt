@@ -36,14 +36,14 @@ import javax.security.auth.x500.X500Principal;
 
 /**
  * KeyManager implementation.
- * 
+ *
  * This implementation uses hashed key store information. It works faster than retrieving all of the
  * data from the key store. Any key store changes, that happen after key manager was created, have
  * no effect. The implementation does not use peer information (host, port) that may be obtained
  * from socket or engine.
- * 
+ *
  * @see javax.net.ssl.KeyManager
- * 
+ *
  */
 public class KeyManagerImpl extends X509ExtendedKeyManager {
 
@@ -52,7 +52,7 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
 
     /**
      * Creates Key manager
-     * 
+     *
      * @param keyStore
      * @param pwd
      */

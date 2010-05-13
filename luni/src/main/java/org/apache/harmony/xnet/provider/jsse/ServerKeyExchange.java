@@ -26,11 +26,11 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPublicKeySpec;
 
 /**
- * 
+ *
  * Represents server key exchange message.
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS 1.0 spec., 7.4.3.
  * Server key exchange message.</a>
- * 
+ *
  */
 public class ServerKeyExchange extends Message {
 
@@ -66,7 +66,7 @@ public class ServerKeyExchange extends Message {
         this.hash = hash;
 
         bytes1 = toUnsignedByteArray(this.par1);
-   
+
         bytes2 = toUnsignedByteArray(this.par2);
 
         length = 4 + bytes1.length + bytes2.length;
@@ -80,7 +80,7 @@ public class ServerKeyExchange extends Message {
         bytes3 = toUnsignedByteArray(this.par3);
         length += 2 + bytes3.length;
     }
-    
+
     /**
      * Remove first byte if 0. Needed because BigInteger.toByteArray() sometimes
      * returns a zero prefix.
@@ -162,9 +162,9 @@ public class ServerKeyExchange extends Message {
     }
 
     /**
-     * Returns RSAPublicKey generated using ServerRSAParams 
+     * Returns RSAPublicKey generated using ServerRSAParams
      * (rsa_modulus and rsa_exponent).
-     * 
+     *
      * @return
      */
     public RSAPublicKey getRSAPublicKey() {
@@ -182,7 +182,7 @@ public class ServerKeyExchange extends Message {
     }
 
     /**
-     * Returns message type 
+     * Returns message type
      * @return
      */
     @Override

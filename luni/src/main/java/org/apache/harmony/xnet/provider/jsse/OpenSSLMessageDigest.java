@@ -43,11 +43,11 @@ public class OpenSSLMessageDigest implements ExtendedDigest {
     /**
      * Creates a new OpenSSLMessageDigest instance for the given algorithm
      * name.
-     *  
+     *
      * @param algorithm The name of the algorithm, e.g. "SHA1".
-     * 
+     *
      * @return The new OpenSSLMessageDigest instance.
-     * 
+     *
      * @throws RuntimeException In case of problems.
      */
     public static OpenSSLMessageDigest getInstance(String algorithm) {
@@ -57,7 +57,7 @@ public class OpenSSLMessageDigest implements ExtendedDigest {
     /**
      * Creates a new OpenSSLMessageDigest instance for the given algorithm
      * name.
-     *  
+     *
      * @param algorithm The name of the algorithm, e.g. "SHA1".
      */
     private OpenSSLMessageDigest(String algorithm) {
@@ -77,7 +77,7 @@ public class OpenSSLMessageDigest implements ExtendedDigest {
             throw new RuntimeException(ex.getMessage() + " (" + algorithm + ")");
         }
     }
-    
+
     public int doFinal(byte[] out, int outOff) {
         int i = NativeCrypto.EVP_DigestFinal(ctx, out, outOff);
         reset();
@@ -114,5 +114,5 @@ public class OpenSSLMessageDigest implements ExtendedDigest {
         super.finalize();
         NativeCrypto.EVP_free(ctx);
     }
-    
+
 }

@@ -25,7 +25,7 @@ import java.util.Arrays;
  * Represents Client Hello message
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS 1.0 spec., 7.4.1.2.
  * Client hello</a>
- * 
+ *
  */
 public class ClientHello extends Message {
 
@@ -150,12 +150,12 @@ public class ClientHello extends Message {
             cipher_suites[i] = CipherSuite.getByCode(b0, b1, b2);
         }
         compression_methods = new byte[] { 0 }; // CompressionMethod.null
-        
+
         if (challenge_length < 32) {
             Arrays.fill(random, 0, 32 - challenge_length, (byte)0);
-            System.arraycopy(in.read(challenge_length), 0, random, 32 - challenge_length, challenge_length);            
+            System.arraycopy(in.read(challenge_length), 0, random, 32 - challenge_length, challenge_length);
         } else if (challenge_length == 32) {
-            System.arraycopy(in.read(32), 0, random, 0, 32);            
+            System.arraycopy(in.read(32), 0, random, 0, 32);
         } else {
             System.arraycopy(in.read(challenge_length), challenge_length - 32, random, 0, 32);
         }
@@ -163,7 +163,7 @@ public class ClientHello extends Message {
             fatalAlert(AlertProtocol.DECODE_ERROR, "DECODE ERROR: incorrect V2ClientHello, extra data");
         }
         this.length = 38 + session_id.length + (cipher_suites.length << 1)
-                + compression_methods.length;    
+                + compression_methods.length;
     }
 
     /**
@@ -196,7 +196,7 @@ public class ClientHello extends Message {
     }
 
     /**
-     * Returns message type 
+     * Returns message type
      * @return
      */
     @Override

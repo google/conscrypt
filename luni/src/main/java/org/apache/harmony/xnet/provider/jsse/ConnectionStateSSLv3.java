@@ -27,8 +27,8 @@ import javax.net.ssl.SSLProtocolException;
 
 /**
  * This class encapsulates the operating environment of the SSL v3
- * (http://wp.netscape.com/eng/ssl3) Record Protocol and provides 
- * relating encryption/decryption functionality. 
+ * (http://wp.netscape.com/eng/ssl3) Record Protocol and provides
+ * relating encryption/decryption functionality.
  * The work functionality is based on the security
  * parameters negotiated during the handshake.
  */

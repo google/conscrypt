@@ -29,7 +29,7 @@ import java.util.Vector;
 import javax.security.auth.x500.X500Principal;
 
 /**
- * 
+ *
  * Represents certificate request message
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS 1.0 spec., 7.4.4.
  * Certificate request</a>
@@ -37,7 +37,7 @@ import javax.security.auth.x500.X500Principal;
 public class CertificateRequest extends Message {
 
     /**
-     * Client certificate types as defined in 
+     * Client certificate types as defined in
      * TLS 1.0 spec., 7.4.4. Certificate request
      */
     public static final byte RSA_SIGN = 1;
@@ -64,7 +64,7 @@ public class CertificateRequest extends Message {
 
     /**
      * Creates outbound message
-     * 
+     *
      * @param certificate_types
      * @param accepted - array of certificate authority certificates
      */
@@ -76,7 +76,7 @@ public class CertificateRequest extends Message {
                     "CertificateRequest: array of certificate authority certificates is null");
         }
         this.certificate_types = certificate_types;
-        
+
         int totalPrincipalsLength = 0;
         certificate_authorities = new X500Principal[accepted.length];
         encoded_principals = new byte[accepted.length][];
@@ -91,7 +91,7 @@ public class CertificateRequest extends Message {
 
     /**
      * Creates inbound message
-     * 
+     *
      * @param in
      * @param length
      * @throws IOException
@@ -106,7 +106,7 @@ public class CertificateRequest extends Message {
         int totalPrincipalsLength = 0;
         int principalLength = 0;
         Vector<X500Principal> principals = new Vector<X500Principal>();
-        while (totalPrincipalsLength < size) {            
+        while (totalPrincipalsLength < size) {
             principalLength = in.readUint16(); // encoded X500Principal size
             principals.add(new X500Principal(in));
             totalPrincipalsLength += 2;
@@ -126,7 +126,7 @@ public class CertificateRequest extends Message {
 
     /**
      * Sends message
-     * 
+     *
      * @param out
      */
     @Override
@@ -149,7 +149,7 @@ public class CertificateRequest extends Message {
 
     /**
      * Returns message type
-     * 
+     *
      * @return
      */
     @Override

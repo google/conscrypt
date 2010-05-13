@@ -517,7 +517,7 @@ public class SSLEngineImpl extends SSLEngine {
                             case AlertProtocol.NO_RENEGOTIATION:
                                 alertProtocol.setProcessed();
                                 if (session == null) {
-                                    // message received during the initial 
+                                    // message received during the initial
                                     // handshake
                                     throw new AlertException(
                                         AlertProtocol.HANDSHAKE_FAILURE,
@@ -536,8 +536,8 @@ public class SSLEngineImpl extends SSLEngine {
                     break;
             }
             return new SSLEngineResult(getEngineStatus(), getHandshakeStatus(),
-                    recProtIS.consumed(), 
-                    // place the app. data (if any) into the dest. buffers 
+                    recProtIS.consumed(),
+                    // place the app. data (if any) into the dest. buffers
                     // and get the number of produced bytes:
                     appData.placeTo(dsts, offset, length));
         } catch (BufferUnderflowException e) {
@@ -700,7 +700,7 @@ public class SSLEngineImpl extends SSLEngine {
                     dst.put(remaining_wrapped_data);
                     produced = remaining_wrapped_data.length;
                     remaining_wrapped_data = null;
-                    return new SSLEngineResult(getEngineStatus(), 
+                    return new SSLEngineResult(getEngineStatus(),
                             handshakeStatus, dataStream.consumed(), produced);
                 }
             } else {

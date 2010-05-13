@@ -47,13 +47,13 @@ import javax.net.ssl.SSLProtocolException;
  * constrains on the data length, and information about correspondance
  * of plain and encrypted data lengths.
  * For more information on TLS v1 see http://www.ietf.org/rfc/rfc2246.txt,
- * on SSL v3 see http://wp.netscape.com/eng/ssl3, 
+ * on SSL v3 see http://wp.netscape.com/eng/ssl3,
  * on SSL v2 see http://wp.netscape.com/eng/security/SSL_2.html.
  */
 public class SSLRecordProtocol {
 
     /**
-     * Maximum length of allowed plain data fragment 
+     * Maximum length of allowed plain data fragment
      * as specified by TLS specification.
      */
     protected static int MAX_DATA_LENGTH = 16384; // 2^14
@@ -69,7 +69,7 @@ public class SSLRecordProtocol {
      */
     protected static int MAX_CIPHERED_DATA_LENGTH
                                     = MAX_COMPRESSED_DATA_LENGTH + 1024;
-    /** 
+    /**
      * Maximum length of ssl record. It is counted as:
      * type(1) + version(2) + length(2) + MAX_CIPHERED_DATA_LENGTH
      */
@@ -88,7 +88,7 @@ public class SSLRecordProtocol {
     // application data object to which application data will be transmitted
     private org.apache.harmony.xnet.provider.jsse.Appendable appData;
     // connection state holding object
-    private ConnectionState 
+    private ConnectionState
         activeReadState, activeWriteState, pendingConnectionState;
 
     // logger
@@ -160,8 +160,8 @@ public class SSLRecordProtocol {
     /**
      * Returns the upper bound of length of data containing in the record with
      * specified length.
-     * If the provided record_size is greater or equal to 
-     * MAX_CIPHERED_DATA_LENGTH the returned value will be 
+     * If the provided record_size is greater or equal to
+     * MAX_CIPHERED_DATA_LENGTH the returned value will be
      * MAX_DATA_LENGTH
      * counted as for data with
      * MAX_CIPHERED_DATA_LENGTH length.
@@ -271,8 +271,8 @@ public class SSLRecordProtocol {
 
     /**
      * Returns the change cipher spec message to be sent to another peer.
-     * The pending connection state will be built on the base of provided 
-     * session object 
+     * The pending connection state will be built on the base of provided
+     * session object
      * The calling of this method triggers pending write connection state to
      * be active.
      * @return ssl record containing the "change cipher spec" message.
@@ -318,10 +318,10 @@ public class SSLRecordProtocol {
      *  } TLSCiphertext;
      *
      * (as specified by RFC 2246, TLS v1 Protocol specification)
-     * 
+     *
      * In addition this method can recognize SSLv2 hello message which
      * are often used to establish the SSL/TLS session.
-     * 
+     *
      * @throws IOException if some io errors have been occured
      * @throws EndOfSourceException if underlying input stream
      *                              has ran out of data.

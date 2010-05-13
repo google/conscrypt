@@ -126,7 +126,7 @@ public class HandshakeIODataStream
      * to delete one message from the internal buffer.
      */
     protected void removeFromMarkedPosition() {
-        System.arraycopy(buffer, read_pos, 
+        System.arraycopy(buffer, read_pos,
                 buffer, marked_pos, read_pos_end - read_pos);
         read_pos_end -= (read_pos - marked_pos);
         read_pos = marked_pos;
@@ -179,7 +179,7 @@ public class HandshakeIODataStream
      * The attempts to overflow the buffer by means of this methods
      * seem to be futile because of:
      * 1. The SSL protocol specifies the maximum size of the record
-     * and record protocol does not pass huge messages. 
+     * and record protocol does not pass huge messages.
      * (see TLS v1 specification http://www.ietf.org/rfc/rfc2246.txt ,
      * p 6.2)
      * 2. After each call of this method, handshake protocol should
@@ -223,7 +223,7 @@ public class HandshakeIODataStream
         System.arraycopy(buffer, 0, new_buff, 0, buffer.length);
         buffer = new_buff;
     }
-    
+
     protected void clearBuffer() {
         read_pos = 0;
         marked_pos = 0;

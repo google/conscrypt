@@ -50,14 +50,14 @@ import javax.net.ssl.X509TrustManager;
  * Server side handshake protocol implementation.
  * Handshake protocol operates on top of the Record Protocol.
  * It responsible for negotiating a session.
- * 
+ *
  * The implementation processes inbound client handshake messages,
- * creates and sends respond messages. Outbound messages are supplied 
+ * creates and sends respond messages. Outbound messages are supplied
  * to Record Protocol. Detected errors are reported to the Alert protocol.
- * 
+ *
  * @see <a href="http://www.ietf.org/rfc/rfc2246.txt">TLS 1.0 spec., 7.4.
  * Handshake protocol.</a>
- *  
+ *
  */
 public class ServerHandshakeImpl extends HandshakeProtocol {
 
@@ -66,7 +66,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
 
     /**
      * Creates Server Handshake Implementation
-     * 
+     *
      * @param owner
      */
     public ServerHandshakeImpl(Object owner) {
@@ -87,7 +87,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             // current negotiation has not completed
             return; // ignore
         }
-        
+
         // renegotiation
         sendHelloRequest();
         status = NEED_UNWRAP;
@@ -177,7 +177,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     certificateVerify = new CertificateVerify(io_stream, length);
 
                     DigitalSignature ds = new DigitalSignature(session.cipherSuite.keyExchange);
-                    ds.init(serverCert.certs[0]);                 
+                    ds.init(serverCert.certs[0]);
                     byte[] md5_hash = null;
                     byte[] sha_hash = null;
 
@@ -242,7 +242,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                             // TODO check that client cert. DH params
                             // matched server cert. DH params
 
-                            // client cert. contains fixed DH parameters 
+                            // client cert. contains fixed DH parameters
                             preMasterSecret = ((DHPublicKey) clientCert.certs[0]
                                     .getPublicKey()).getY().toByteArray();
                         } else {
@@ -342,9 +342,9 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
     }
 
     /**
-     * 
-     * Processes Client Hello message. 
-     * Server responds to client hello message with server hello 
+     *
+     * Processes Client Hello message.
+     * Server responds to client hello message with server hello
      * and (if necessary) server certificate, server key exchange,
      * certificate request, and server hello done messages.
      */
@@ -361,12 +361,12 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             fatalAlert(AlertProtocol.HANDSHAKE_FAILURE,
                     "HANDSHAKE FAILURE. Incorrect client hello message");
         }
-        
+
         if (!ProtocolVersion.isSupported(clientHello.client_version)) {
-            fatalAlert(AlertProtocol.PROTOCOL_VERSION, 
+            fatalAlert(AlertProtocol.PROTOCOL_VERSION,
                     "PROTOCOL VERSION. Unsupported client version "
                     + clientHello.client_version[0]
-                    + clientHello.client_version[1]);        
+                    + clientHello.client_version[1]);
         }
 
         isResuming = false;
@@ -385,7 +385,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                 }
                 reuseCurrent = true;
             }
-            
+
             // find session in cash
             sessionToResume = findSessionToResume(clientHello.session_id);
             if (sessionToResume == null || !sessionToResume.isValid()) {
@@ -435,9 +435,9 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
         recordProtocol.setVersion(clientHello.client_version);
         session.protocol = ProtocolVersion.getByVersion(clientHello.client_version);
         session.clientRandom = clientHello.random;
-        
+
         // create server hello message
-        serverHello = new ServerHello(parameters.getSecureRandom(), 
+        serverHello = new ServerHello(parameters.getSecureRandom(),
                 clientHello.client_version,
                 session.getId(), cipher_suite, (byte) 0); //CompressionMethod.null
         session.serverRandom = serverHello.random;
@@ -446,7 +446,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             sendChangeCipherSpec();
             return;
         }
-        
+
         //    create and send server certificate message if needed
         if (!cipher_suite.isAnonymous()) { // need to send server certificate
             X509Certificate[] certs = null;
@@ -515,7 +515,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
 
         try {
             if (cipher_suite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT) {
-                PublicKey pk = serverCert.certs[0].getPublicKey();                
+                PublicKey pk = serverCert.certs[0].getPublicKey();
                 if (getRSAKeyLength(pk) > 512) {
                     // key is longer than 512 bits
                     kpg = KeyPairGenerator.getInstance("RSA");
@@ -561,11 +561,11 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                             DHPublicKeySpec.class);
                 }
                 if (!cipher_suite.isAnonymous()) { // calculate signed_params
-            
+
                     // init by private key which correspond to
                     // server certificate
                     ds.init(privKey);
-                    
+
                     // use emphemeral key for key exchange
                     privKey = kp.getPrivate();
                     ds.update(clientHello.getRandom());
@@ -573,7 +573,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
 
                     byte[] tmp;
                     byte[] tmpLength = new byte[2];
-//FIXME 1_byte==0x00                    
+//FIXME 1_byte==0x00
                     if (cipher_suite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT) {
                         tmp = ServerKeyExchange.toUnsignedByteArray(rsakey.getModulus());
                         tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
@@ -642,7 +642,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
         send(serverHelloDone);
         status = NEED_UNWRAP;
     }
-    
+
     /**
      * Creates and sends finished message
      */
@@ -663,7 +663,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             if (isTLS) {
                 computerReferenceVerifyDataTLS("client finished");
             } else {
-                computerReferenceVerifyDataSSLv3(SSLv3Constants.client);                
+                computerReferenceVerifyDataSSLv3(SSLv3Constants.client);
             }
             status = NEED_UNWRAP;
         } else {
@@ -676,7 +676,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
     private SSLSessionImpl findSessionToResume(byte[] session_id) {
         return (SSLSessionImpl)parameters.getServerSessionContext().getSession(session_id);
     }
-    
+
     // find appropriate cipher_suite in the client suites
     private CipherSuite selectSuite(CipherSuite[] client_suites) {
         for (int i = 0; i < client_suites.length; i++) {
@@ -698,7 +698,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
      * Processes inbound ChangeCipherSpec message
      */
     @Override
-    public void receiveChangeCipherSpec() {    
+    public void receiveChangeCipherSpec() {
         if (isResuming) {
             if (serverFinished == null) {
                 unexpectedMessage();

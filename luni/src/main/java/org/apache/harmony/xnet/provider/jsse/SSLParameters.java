@@ -83,7 +83,7 @@ public class SSLParameters implements Cloneable {
 
     // protocols available for SSL connection
     private String[] enabledProtocols = ProtocolVersion.supportedProtocols;
-    
+
     // if the peer with this parameters tuned to work in client mode
     private boolean client_mode = true;
     // if the peer with this parameters tuned to require client authentication
@@ -149,7 +149,7 @@ public class SSLParameters implements Cloneable {
                     defaultKeyManager = keyManager;
                 }
             }
-            
+
             // initialize trust manager
             initialize_default = false;
             if ((tms == null) || (tms.length == 0)) {
@@ -188,7 +188,7 @@ public class SSLParameters implements Cloneable {
         } catch (KeyStoreException e) {
             throw new KeyManagementException(e);
         } catch (UnrecoverableKeyException e) {
-            throw new KeyManagementException(e);            
+            throw new KeyManagementException(e);
 // BEGIN android-added
         } catch (CertificateEncodingException e) {
             throw new KeyManagementException(e);
@@ -211,7 +211,7 @@ public class SSLParameters implements Cloneable {
         // We simply use the SecureRandom passed in by the caller. If it's
         // null, we don't replace it by a new instance. The native code below
         // then directly accesses /dev/urandom. Not the most elegant solution,
-        // but faster than going through the SecureRandom object. 
+        // but faster than going through the SecureRandom object.
             secureRandom = sr;
         // END android-added
     }
@@ -225,7 +225,7 @@ public class SSLParameters implements Cloneable {
         }
         return (SSLParameters) defaultParameters.clone();
     }
-    
+
     /**
      * @return server session context
      */
@@ -284,7 +284,7 @@ public class SSLParameters implements Cloneable {
         return secureRandom;
     }
     // END android-added
-    
+
     /**
      * @return the names of enabled cipher suites
      */

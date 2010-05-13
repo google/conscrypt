@@ -32,8 +32,8 @@ import javax.net.ssl.SSLProtocolException;
 
 /**
  * This class encapsulates the operating environment of the TLS v1
- * (http://www.ietf.org/rfc/rfc2246.txt) Record Protocol and provides 
- * relating encryption/decryption functionality. 
+ * (http://www.ietf.org/rfc/rfc2246.txt) Record Protocol and provides
+ * relating encryption/decryption functionality.
  * The work functionality is based on the security
  * parameters negotiated during the handshake.
  */
@@ -42,29 +42,29 @@ public class ConnectionStateTLS extends ConnectionState {
     // Pre-calculated prf label values:
     // "key expansion".getBytes()
     private static byte[] KEY_EXPANSION_LABEL = {
-        (byte) 0x6B, (byte) 0x65, (byte) 0x79, (byte) 0x20, (byte) 0x65, 
-        (byte) 0x78, (byte) 0x70, (byte) 0x61, (byte) 0x6E, (byte) 0x73, 
+        (byte) 0x6B, (byte) 0x65, (byte) 0x79, (byte) 0x20, (byte) 0x65,
+        (byte) 0x78, (byte) 0x70, (byte) 0x61, (byte) 0x6E, (byte) 0x73,
         (byte) 0x69, (byte) 0x6F, (byte) 0x6E };
 
     // "client write key".getBytes()
     private static byte[] CLIENT_WRITE_KEY_LABEL = {
-        (byte) 0x63, (byte) 0x6C, (byte) 0x69, (byte) 0x65, (byte) 0x6E, 
-        (byte) 0x74, (byte) 0x20, (byte) 0x77, (byte) 0x72, (byte) 0x69, 
-        (byte) 0x74, (byte) 0x65, (byte) 0x20, (byte) 0x6B, (byte) 0x65, 
+        (byte) 0x63, (byte) 0x6C, (byte) 0x69, (byte) 0x65, (byte) 0x6E,
+        (byte) 0x74, (byte) 0x20, (byte) 0x77, (byte) 0x72, (byte) 0x69,
+        (byte) 0x74, (byte) 0x65, (byte) 0x20, (byte) 0x6B, (byte) 0x65,
         (byte) 0x79 };
 
     // "server write key".getBytes()
     private static byte[] SERVER_WRITE_KEY_LABEL = {
-        (byte) 0x73, (byte) 0x65, (byte) 0x72, (byte) 0x76, (byte) 0x65, 
-        (byte) 0x72, (byte) 0x20, (byte) 0x77, (byte) 0x72, (byte) 0x69, 
-        (byte) 0x74, (byte) 0x65, (byte) 0x20, (byte) 0x6B, (byte) 0x65, 
+        (byte) 0x73, (byte) 0x65, (byte) 0x72, (byte) 0x76, (byte) 0x65,
+        (byte) 0x72, (byte) 0x20, (byte) 0x77, (byte) 0x72, (byte) 0x69,
+        (byte) 0x74, (byte) 0x65, (byte) 0x20, (byte) 0x6B, (byte) 0x65,
         (byte) 0x79 };
 
     // "IV block".getBytes()
     private static byte[] IV_BLOCK_LABEL = {
-        (byte) 0x49, (byte) 0x56, (byte) 0x20, (byte) 0x62, (byte) 0x6C, 
+        (byte) 0x49, (byte) 0x56, (byte) 0x20, (byte) 0x62, (byte) 0x6C,
         (byte) 0x6F, (byte) 0x63, (byte) 0x6B };
-    
+
     // MACs to create and check the message integrity info
     private final Mac encMac;
     private final Mac decMac;

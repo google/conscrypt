@@ -38,7 +38,7 @@ public class CertificateVerify extends Message {
 
     /**
      * Creates outbound message
-     * 
+     *
      * @param hash
      */
     public CertificateVerify(byte[] hash) {
@@ -52,7 +52,7 @@ public class CertificateVerify extends Message {
 
     /**
      * Creates inbound message
-     * 
+     *
      * @param in
      * @param length
      * @throws IOException
@@ -74,7 +74,7 @@ public class CertificateVerify extends Message {
 
     /**
      * Sends message
-     * 
+     *
      * @param out
      */
     @Override
@@ -87,7 +87,7 @@ public class CertificateVerify extends Message {
 
     /**
      * Returns message type
-     * 
+     *
      * @return
      */
     @Override
