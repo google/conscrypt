@@ -16,42 +16,22 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.net.ssl.SSLSession;
 
 /**
  * Caches client sessions. Indexes by host and port. Users are typically
- * looking to reuse any session for a given host and port. Users of the
- * standard API are forced to iterate over the sessions semi-linearly as
- * opposed to in constant time.
+ * looking to reuse any session for a given host and port.
  */
 public class ClientSessionContext extends AbstractSessionContext {
 
-    /** Sessions indexed by host and port in access order. */
-    final Map<HostAndPort, SSLSession> sessions
-            = new LinkedHashMap<HostAndPort, SSLSession>() {
-        @Override
-        protected boolean removeEldestEntry(
-                Map.Entry<HostAndPort, SSLSession> eldest) {
-            // Called while lock is held on sessions.
-            boolean remove = maximumSize > 0 && size() > maximumSize;
-            if (remove) {
-                // don't just update sessions, but also sessionsById
-                removeById(eldest.getValue());
-            }
-            return remove;
-        }
-    };
-
     /**
-     * Sessions indexed by ID. Initialized on demand. Protected from concurrent
-     * access by holding a lock on sessions.
+     * Sessions indexed by host and port. Protect from concurrent
+     * access by holding a lock on sessionsByHostAndPort.
      */
-    Map<ByteArray, SSLSession> sessionsById;
+    final Map<HostAndPort, SSLSession> sessionsByHostAndPort
+        = new HashMap<HostAndPort, SSLSession>();
 
     private SSLClientSessionCache persistentCache;
 
@@ -63,106 +43,10 @@ public class ClientSessionContext extends AbstractSessionContext {
         this.persistentCache = persistentCache;
     }
 
-    public final void setSessionTimeout(int seconds)
-            throws IllegalArgumentException {
-        if (seconds < 0) {
-            throw new IllegalArgumentException("seconds < 0");
-        }
-        timeout = seconds;
-
-        synchronized (sessions) {
-            Iterator<SSLSession> i = sessions.values().iterator();
-            while (i.hasNext()) {
-                SSLSession session = i.next();
-                // SSLSession's know their context and consult the
-                // timeout as part of their validity condition.
-                if (!session.isValid()) {
-                    i.remove();
-                    // don't just update sessions, but also sessionsById
-                    removeById(session);
-                }
-            }
-        }
-    }
-
-    Iterator<SSLSession> sessionIterator() {
-        synchronized (sessions) {
-            SSLSession[] array = sessions.values().toArray(
-                    new SSLSession[sessions.size()]);
-            return Arrays.asList(array).iterator();
-        }
-    }
-
-    void trimToSize() {
-        synchronized (sessions) {
-            int size = sessions.size();
-            if (size > maximumSize) {
-                int removals = size - maximumSize;
-                Iterator<SSLSession> i = sessions.values().iterator();
-                do {
-                    removeById(i.next());
-                    i.remove();
-                } while (--removals > 0);
-            }
-        }
-    }
-
-    void removeById(SSLSession session) {
-        if (sessionsById != null) {
-            sessionsById.remove(new ByteArray(session.getId()));
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * @see #getSession(String, int) for an implementation-specific but more
-     *  efficient approach
-     */
-    public SSLSession getSession(byte[] sessionId) {
-        if (sessionId == null) {
-            throw new NullPointerException("sessionId == null");
-        }
-        /*
-         * This method is typically used in conjunction with getIds() to
-         * iterate over the sessions linearly, so it doesn't make sense for
-         * it to impact access order.
-         *
-         * It also doesn't load sessions from the persistent cache as doing
-         * so would likely force every session to load.
-         */
-
-        ByteArray id = new ByteArray(sessionId);
-        SSLSession session;
-        synchronized (sessions) {
-            indexById();
-            session = sessionsById.get(id);
-        }
-        if (session != null && session.isValid()) {
-            return session;
-        }
-        return null;
-    }
-
-    /**
-     * Ensures that the ID-based index is initialized.
-     */
-    private void indexById() {
-        if (sessionsById == null) {
-            sessionsById = new HashMap<ByteArray, SSLSession>();
-            for (SSLSession session : sessions.values()) {
-                sessionsById.put(new ByteArray(session.getId()), session);
-            }
-        }
-    }
-
-    /**
-     * Adds the given session to the ID-based index if the index has already
-     * been initialized.
-     */
-    private void indexById(byte[] id, SSLSession session) {
-        if (sessionsById != null) {
-            sessionsById.put(new ByteArray(id), session);
+    protected void sessionRemoved(SSLSession session) {
+        HostAndPort hostAndPortKey = new HostAndPort(session);
+        synchronized (sessionsByHostAndPort) {
+            sessionsByHostAndPort.remove(hostAndPortKey);
         }
     }
 
@@ -175,8 +59,9 @@ public class ClientSessionContext extends AbstractSessionContext {
      */
     public SSLSession getSession(String host, int port) {
         SSLSession session;
-        synchronized (sessions) {
-            session = sessions.get(new HostAndPort(host, port));
+        HostAndPort hostAndPortKey = new HostAndPort(host, port);
+        synchronized (sessionsByHostAndPort) {
+            session = sessionsByHostAndPort.get(hostAndPortKey);
         }
         if (session != null && session.isValid()) {
             return session;
@@ -188,9 +73,9 @@ public class ClientSessionContext extends AbstractSessionContext {
             if (data != null) {
                 session = toSession(data, host, port);
                 if (session != null && session.isValid()) {
-                    synchronized (sessions) {
-                        sessions.put(new HostAndPort(host, port), session);
-                        indexById(session.getId(), session);
+                    super.putSession(session);
+                    synchronized (sessionsByHostAndPort) {
+                        sessionsByHostAndPort.put(hostAndPortKey, session);
                     }
                     return session;
                 }
@@ -202,15 +87,11 @@ public class ClientSessionContext extends AbstractSessionContext {
 
     @Override
     void putSession(SSLSession session) {
-        byte[] id = session.getId();
-        if (id.length == 0) {
-            return;
-        }
-        HostAndPort key = new HostAndPort(session.getPeerHost(),
-                session.getPeerPort());
-        synchronized (sessions) {
-            sessions.put(key, session);
-            indexById(id, session);
+        super.putSession(session);
+
+        HostAndPort hostAndPortKey = new HostAndPort(session);
+        synchronized (sessionsByHostAndPort) {
+            sessionsByHostAndPort.put(hostAndPortKey, session);
         }
 
         // TODO: This in a background thread.
@@ -225,6 +106,10 @@ public class ClientSessionContext extends AbstractSessionContext {
     static class HostAndPort {
         final String host;
         final int port;
+
+        HostAndPort(SSLSession session) {
+            this(session.getPeerHost(), session.getPeerPort());
+        }
 
         HostAndPort(String host, int port) {
             this.host = host;

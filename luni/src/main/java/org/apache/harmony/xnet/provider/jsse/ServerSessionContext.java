@@ -16,10 +16,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import javax.net.ssl.SSLSession;
 
 /**
@@ -27,15 +23,6 @@ import javax.net.ssl.SSLSession;
  * sessions using the ID provided by an SSL client.
  */
 public class ServerSessionContext extends AbstractSessionContext {
-
-    private final Map<ByteArray, SSLSession> sessions
-            = new LinkedHashMap<ByteArray, SSLSession>() {
-        @Override
-        protected boolean removeEldestEntry(
-                Map.Entry<ByteArray, SSLSession> eldest) {
-            return maximumSize > 0 && size() > maximumSize;
-        }
-    };
 
     private SSLServerSessionCache persistentCache;
 
@@ -56,58 +43,13 @@ public class ServerSessionContext extends AbstractSessionContext {
         this.persistentCache = persistentCache;
     }
 
-    Iterator<SSLSession> sessionIterator() {
-        synchronized (sessions) {
-            SSLSession[] array = sessions.values().toArray(
-                    new SSLSession[sessions.size()]);
-            return Arrays.asList(array).iterator();
-        }
-    }
+    protected void sessionRemoved(SSLSession session) {}
 
-    void trimToSize() {
-        synchronized (sessions) {
-            int size = sessions.size();
-            if (size > maximumSize) {
-                int removals = size - maximumSize;
-                Iterator<SSLSession> i = sessions.values().iterator();
-                do {
-                    i.next();
-                    i.remove();
-                } while (--removals > 0);
-            }
-        }
-    }
-
-    public void setSessionTimeout(int seconds)
-            throws IllegalArgumentException {
-        if (seconds < 0) {
-            throw new IllegalArgumentException("seconds < 0");
-        }
-        timeout = seconds;
-
-        synchronized (sessions) {
-            Iterator<SSLSession> i = sessions.values().iterator();
-            while (i.hasNext()) {
-                SSLSession session = i.next();
-                // SSLSession's know their context and consult the
-                // timeout as part of their validity condition.
-                if (!session.isValid()) {
-                    i.remove();
-                }
-            }
-        }
-    }
-
-    public SSLSession getSession(byte[] sessionId) {
-        if (sessionId == null) {
-            throw new NullPointerException("sessionId == null");
-        }
-        ByteArray key = new ByteArray(sessionId);
-        SSLSession session;
-        synchronized (sessions) {
-            session = sessions.get(key);
-        }
-        if (session != null && session.isValid()) {
+    @Override
+    public SSLSession getSession(byte[] sessionId) 
+    {
+        SSLSession session = super.getSession(sessionId);
+        if (session != null) {
             return session;
         }
 
@@ -117,9 +59,7 @@ public class ServerSessionContext extends AbstractSessionContext {
             if (data != null) {
                 session = toSession(data, null, -1);
                 if (session != null && session.isValid()) {
-                    synchronized (sessions) {
-                        sessions.put(key, session);
-                    }
+                    super.putSession(session);
                     return session;
                 }
             }
@@ -130,14 +70,7 @@ public class ServerSessionContext extends AbstractSessionContext {
 
     @Override
     void putSession(SSLSession session) {
-        byte[] id = session.getId();
-        if (id.length == 0) {
-            return;
-        }
-        ByteArray key = new ByteArray(id);
-        synchronized (sessions) {
-            sessions.put(key, session);
-        }
+        super.putSession(session);
 
         // TODO: In background thread.
         if (persistentCache != null) {

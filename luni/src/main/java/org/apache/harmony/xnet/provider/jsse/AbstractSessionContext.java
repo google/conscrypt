@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.logging.Level;
 import javax.net.ssl.SSLSession;
@@ -45,6 +47,15 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     /** Identifies OpenSSL sessions. */
     static final int OPEN_SSL = 1;
 
+    private final Map<ByteArray, SSLSession> sessions
+            = new LinkedHashMap<ByteArray, SSLSession>() {
+        @Override
+        protected boolean removeEldestEntry(
+                Map.Entry<ByteArray, SSLSession> eldest) {
+            return maximumSize > 0 && size() > maximumSize;
+        }
+    };
+
     /**
      * Constructs a new session context.
      *
@@ -57,9 +68,15 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     }
 
     /**
-     * Returns the collection of sessions ordered by least-recently-used first.
+     * Returns the collection of sessions ordered from oldest to newest
      */
-    abstract Iterator<SSLSession> sessionIterator();
+    private Iterator<SSLSession> sessionIterator() {
+        synchronized (sessions) {
+            SSLSession[] array = sessions.values().toArray(
+                    new SSLSession[sessions.size()]);
+            return Arrays.asList(array).iterator();
+        }
+    }
 
     public final Enumeration getIds() {
         final Iterator<SSLSession> i = sessionIterator();
@@ -101,7 +118,47 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     /**
      * Makes sure cache size is < maximumSize.
      */
-    abstract void trimToSize();
+    protected void trimToSize() {
+        synchronized (sessions) {
+            int size = sessions.size();
+            if (size > maximumSize) {
+                int removals = size - maximumSize;
+                Iterator<SSLSession> i = sessions.values().iterator();
+                do {
+                    SSLSession session = i.next();
+                    i.remove();
+                    sessionRemoved(session);
+                } while (--removals > 0);
+            }
+        }
+    }
+
+    public void setSessionTimeout(int seconds)
+            throws IllegalArgumentException {
+        if (seconds < 0) {
+            throw new IllegalArgumentException("seconds < 0");
+        }
+        timeout = seconds;
+
+        synchronized (sessions) {
+            Iterator<SSLSession> i = sessions.values().iterator();
+            while (i.hasNext()) {
+                SSLSession session = i.next();
+                // SSLSession's know their context and consult the
+                // timeout as part of their validity condition.
+                if (!session.isValid()) {
+                    i.remove();
+                    sessionRemoved(session);
+                }
+            }
+        }
+    }
+
+    /** 
+     * Called when a session is removed. Used by ClientSessionContext
+     * to update its host-and-port based cache.
+     */
+    abstract protected void sessionRemoved(SSLSession session);
 
     public final void setSessionCacheSize(int size)
             throws IllegalArgumentException {
@@ -201,10 +258,31 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
-    /**
-     * Puts an SSLSession in the AbstractSessionContext cache
-     */
-    abstract void putSession(SSLSession session);
+    public SSLSession getSession(byte[] sessionId) {
+        if (sessionId == null) {
+            throw new NullPointerException("sessionId == null");
+        }
+        ByteArray key = new ByteArray(sessionId);
+        SSLSession session;
+        synchronized (sessions) {
+            session = sessions.get(key);
+        }
+        if (session != null && session.isValid()) {
+            return session;
+        }
+        return null;
+    }
+
+    void putSession(SSLSession session) {
+        byte[] id = session.getId();
+        if (id.length == 0) {
+            return;
+        }
+        ByteArray key = new ByteArray(id);
+        synchronized (sessions) {
+            sessions.put(key, session);
+        }
+    }
 
     static void log(Throwable t) {
         java.util.logging.Logger.global.log(Level.WARNING,

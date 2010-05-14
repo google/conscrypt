@@ -23,9 +23,8 @@ import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Iterator;
-import java.util.UnknownFormatConversionException;
+import java.util.Map;
 import java.util.Vector;
-
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLPermission;
 import javax.net.ssl.SSLSession;
@@ -33,7 +32,6 @@ import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 import javax.security.cert.CertificateEncodingException;
-
 import org.apache.harmony.luni.util.TwoKeyHashMap;
 import org.apache.harmony.security.provider.cert.X509CertImpl;
 
@@ -54,6 +52,8 @@ public class OpenSSLSessionImpl implements SSLSession {
     protected int sslSessionNativePointer;
     private String peerHost;
     private int peerPort;
+    private String cipherSuite;
+    private String protocol;
     private AbstractSessionContext sessionContext;
     private byte[] id;
 
@@ -310,7 +310,14 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         actual SSL session.
      */
     public String getCipherSuite() {
-        return NativeCrypto.SSL_SESSION_cipher(sslSessionNativePointer);
+        if (cipherSuite == null) {
+            String name = NativeCrypto.SSL_SESSION_cipher(sslSessionNativePointer);
+            cipherSuite = NativeCrypto.OPENSSL_TO_STANDARD.get(name);
+            if (cipherSuite == null) {
+                cipherSuite = name;
+            }
+        }
+        return cipherSuite;
     }
 
     /**
@@ -322,7 +329,10 @@ public class OpenSSLSessionImpl implements SSLSession {
      *
      */
     public String getProtocol() {
-        return NativeCrypto.SSL_SESSION_get_version(sslSessionNativePointer);
+        if (protocol == null) {
+            protocol = NativeCrypto.SSL_SESSION_get_version(sslSessionNativePointer);
+        }
+        return protocol;
     }
 
     /**

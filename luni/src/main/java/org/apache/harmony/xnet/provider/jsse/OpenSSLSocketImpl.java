@@ -213,9 +213,38 @@ public class OpenSSLSocketImpl
                 super.getInetAddress().getHostName() == null) {
             return null;
         }
-        return (OpenSSLSessionImpl) sessionContext.getSession(
+        OpenSSLSessionImpl session = (OpenSSLSessionImpl) sessionContext.getSession(
                 super.getInetAddress().getHostName(),
                 super.getPort());
+        if (session == null) {
+            return null;
+        }
+
+        String protocol = session.getProtocol();
+        boolean protocolFound = false;
+        for (String enabledProtocol : enabledProtocols) {
+            if (protocol.equals(enabledProtocol)) {
+                protocolFound = true;
+                break;
+            }
+        }
+        if (!protocolFound) {
+            return null;
+        }
+
+        String cipherSuite = session.getCipherSuite();
+        boolean cipherSuiteFound = false;
+        for (String enabledCipherSuite : enabledCipherSuites) {
+            if (cipherSuite.equals(enabledCipherSuite)) {
+                cipherSuiteFound = true;
+                break;
+            }
+        }
+        if (!cipherSuiteFound) {
+            return null;
+        }
+        
+        return session;
     }
 
     /**
@@ -323,7 +352,7 @@ public class OpenSSLSocketImpl
         byte[] sessionId = NativeCrypto.SSL_SESSION_session_id(sslSessionNativePointer);
         sslSession = (OpenSSLSessionImpl) sessionContext.getSession(sessionId);
         if (sslSession != null) {
-            session.lastAccessedTime = System.currentTimeMillis();
+            sslSession.lastAccessedTime = System.currentTimeMillis();
             LoggerHolder.logger.fine("Reused cached session for "
                                      + getInetAddress() + ".");
             NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
