@@ -122,31 +122,31 @@ public class CipherSuite {
     static byte[] code_TLS_DH_anon_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x1B };
 
     static CipherSuite TLS_NULL_WITH_NULL_NULL = new CipherSuite(
-            "TLS_NULL_WITH_NULL_NULL", true, 0, null, null,
+            "SSL_NULL_WITH_NULL_NULL", true, 0, null, null,
             code_TLS_NULL_WITH_NULL_NULL);
 
     static CipherSuite TLS_RSA_WITH_NULL_MD5 = new CipherSuite(
-            "TLS_RSA_WITH_NULL_MD5", true, KeyExchange_RSA, null, "MD5",
+            "SSL_RSA_WITH_NULL_MD5", true, KeyExchange_RSA, null, "MD5",
             code_TLS_RSA_WITH_NULL_MD5);
 
     static CipherSuite TLS_RSA_WITH_NULL_SHA = new CipherSuite(
-            "TLS_RSA_WITH_NULL_SHA", true, KeyExchange_RSA, null, "SHA",
+            "SSL_RSA_WITH_NULL_SHA", true, KeyExchange_RSA, null, "SHA",
             code_TLS_RSA_WITH_NULL_SHA);
 
     static CipherSuite TLS_RSA_EXPORT_WITH_RC4_40_MD5 = new CipherSuite(
-            "TLS_RSA_EXPORT_WITH_RC4_40_MD5", true, KeyExchange_RSA_EXPORT,
+            "SSL_RSA_EXPORT_WITH_RC4_40_MD5", true, KeyExchange_RSA_EXPORT,
             "RC4_40", "MD5", code_TLS_RSA_EXPORT_WITH_RC4_40_MD5);
 
     static CipherSuite TLS_RSA_WITH_RC4_128_MD5 = new CipherSuite(
-            "TLS_RSA_WITH_RC4_128_MD5", false, KeyExchange_RSA, "RC4_128",
+            "SSL_RSA_WITH_RC4_128_MD5", false, KeyExchange_RSA, "RC4_128",
             "MD5", code_TLS_RSA_WITH_RC4_128_MD5);
 
     static CipherSuite TLS_RSA_WITH_RC4_128_SHA = new CipherSuite(
-            "TLS_RSA_WITH_RC4_128_SHA", false, KeyExchange_RSA, "RC4_128",
+            "SSL_RSA_WITH_RC4_128_SHA", false, KeyExchange_RSA, "RC4_128",
             "SHA", code_TLS_RSA_WITH_RC4_128_SHA);
 
     static CipherSuite TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5 = new CipherSuite(
-            "TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5", true, KeyExchange_RSA_EXPORT,
+            "SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5", true, KeyExchange_RSA_EXPORT,
             "RC2_CBC_40", "MD5", code_TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5);
 
     static CipherSuite TLS_RSA_WITH_IDEA_CBC_SHA = new CipherSuite(
@@ -154,19 +154,19 @@ public class CipherSuite {
             "SHA", code_TLS_RSA_WITH_IDEA_CBC_SHA);
 
     static CipherSuite TLS_RSA_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
-            "TLS_RSA_EXPORT_WITH_DES40_CBC_SHA", true, KeyExchange_RSA_EXPORT,
+            "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA", true, KeyExchange_RSA_EXPORT,
             "DES40_CBC", "SHA", code_TLS_RSA_EXPORT_WITH_DES40_CBC_SHA);
 
     static CipherSuite TLS_RSA_WITH_DES_CBC_SHA = new CipherSuite(
-            "TLS_RSA_WITH_DES_CBC_SHA", false, KeyExchange_RSA, "DES_CBC",
+            "SSL_RSA_WITH_DES_CBC_SHA", false, KeyExchange_RSA, "DES_CBC",
             "SHA", code_TLS_RSA_WITH_DES_CBC_SHA);
 
     static CipherSuite TLS_RSA_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
-            "TLS_RSA_WITH_3DES_EDE_CBC_SHA", false, KeyExchange_RSA,
+            "SSL_RSA_WITH_3DES_EDE_CBC_SHA", false, KeyExchange_RSA,
             "3DES_EDE_CBC", "SHA", code_TLS_RSA_WITH_3DES_EDE_CBC_SHA);
 
     static CipherSuite TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
-            "TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA", true,
+            "SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA", true,
             KeyExchange_DH_DSS_EXPORT, "DES40_CBC", "SHA",
             code_TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA);
 
@@ -179,7 +179,7 @@ public class CipherSuite {
             "3DES_EDE_CBC", "SHA", code_TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA);
 
     static CipherSuite TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
-            "TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA", true,
+            "SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA", true,
             KeyExchange_DH_RSA_EXPORT, "DES40_CBC", "SHA",
             code_TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA);
 
@@ -192,51 +192,51 @@ public class CipherSuite {
             "3DES_EDE_CBC", "SHA", code_TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA);
 
     static CipherSuite TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
-            "TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", true,
+            "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", true,
             KeyExchange_DHE_DSS_EXPORT, "DES40_CBC", "SHA",
             code_TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA);
 
     static CipherSuite TLS_DHE_DSS_WITH_DES_CBC_SHA = new CipherSuite(
-            "TLS_DHE_DSS_WITH_DES_CBC_SHA", false, KeyExchange_DHE_DSS,
+            "SSL_DHE_DSS_WITH_DES_CBC_SHA", false, KeyExchange_DHE_DSS,
             "DES_CBC", "SHA", code_TLS_DHE_DSS_WITH_DES_CBC_SHA);
 
     static CipherSuite TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
-            "TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA", false, KeyExchange_DHE_DSS,
+            "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA", false, KeyExchange_DHE_DSS,
             "3DES_EDE_CBC", "SHA", code_TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA);
 
     static CipherSuite TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
-            "TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA", true,
+            "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA", true,
             KeyExchange_DHE_RSA_EXPORT, "DES40_CBC", "SHA",
             code_TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA);
 
     static CipherSuite TLS_DHE_RSA_WITH_DES_CBC_SHA = new CipherSuite(
-            "TLS_DHE_RSA_WITH_DES_CBC_SHA", false, KeyExchange_DHE_RSA,
+            "SSL_DHE_RSA_WITH_DES_CBC_SHA", false, KeyExchange_DHE_RSA,
             "DES_CBC", "SHA", code_TLS_DHE_RSA_WITH_DES_CBC_SHA);
 
     static CipherSuite TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
-            "TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA", false, KeyExchange_DHE_RSA,
+            "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA", false, KeyExchange_DHE_RSA,
             "3DES_EDE_CBC", "SHA", code_TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA);
 
     static CipherSuite TLS_DH_anon_EXPORT_WITH_RC4_40_MD5 = new CipherSuite(
-            "TLS_DH_anon_EXPORT_WITH_RC4_40_MD5", true,
+            "SSL_DH_anon_EXPORT_WITH_RC4_40_MD5", true,
             KeyExchange_DH_anon_EXPORT, "RC4_40", "MD5",
             code_TLS_DH_anon_EXPORT_WITH_RC4_40_MD5);
 
     static CipherSuite TLS_DH_anon_WITH_RC4_128_MD5 = new CipherSuite(
-            "TLS_DH_anon_WITH_RC4_128_MD5", false, KeyExchange_DH_anon,
+            "SSL_DH_anon_WITH_RC4_128_MD5", false, KeyExchange_DH_anon,
             "RC4_128", "MD5", code_TLS_DH_anon_WITH_RC4_128_MD5);
 
     static CipherSuite TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
-            "TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA", true,
+            "SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA", true,
             KeyExchange_DH_anon_EXPORT, "DES40_CBC", "SHA",
             code_TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA);
 
     static CipherSuite TLS_DH_anon_WITH_DES_CBC_SHA = new CipherSuite(
-            "TLS_DH_anon_WITH_DES_CBC_SHA", false, KeyExchange_DH_anon,
+            "SSL_DH_anon_WITH_DES_CBC_SHA", false, KeyExchange_DH_anon,
             "DES_CBC", "SHA", code_TLS_DH_anon_WITH_DES_CBC_SHA);
 
     static CipherSuite TLS_DH_anon_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
-            "TLS_DH_anon_WITH_3DES_EDE_CBC_SHA", false, KeyExchange_DH_anon,
+            "SSL_DH_anon_WITH_3DES_EDE_CBC_SHA", false, KeyExchange_DH_anon,
             "3DES_EDE_CBC", "SHA", code_TLS_DH_anon_WITH_3DES_EDE_CBC_SHA);
 
     // array for quick access to cipher suite by code
