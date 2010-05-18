@@ -16,13 +16,17 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -34,6 +38,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import org.apache.harmony.security.provider.cert.X509CertImpl;
+import org.bouncycastle.openssl.PEMWriter;
 
 /**
  * Implementation of the class OpenSSLSocketImpl
@@ -44,7 +49,7 @@ import org.apache.harmony.security.provider.cert.X509CertImpl;
  */
 public class OpenSSLSocketImpl
         extends javax.net.ssl.SSLSocket
-        implements NativeCrypto.CertificateChainVerifier, NativeCrypto.HandshakeCompletedCallback {
+        implements NativeCrypto.SSLHandshakeCallbacks {
     private int sslNativePointer;
     private InputStream is;
     private OutputStream os;
@@ -243,7 +248,7 @@ public class OpenSSLSocketImpl
         if (!cipherSuiteFound) {
             return null;
         }
-        
+
         return session;
     }
 
@@ -281,8 +286,33 @@ public class OpenSSLSocketImpl
             }
         }
 
-        this.sslNativePointer = NativeCrypto.SSL_new(sslParameters);
-        // TODO move more code out of NativeCrypto.SSL_new
+        // note that this modifies the global seed, not something specific to the connection
+        final int seedLengthInBytes = NativeCrypto.RAND_SEED_LENGTH_IN_BYTES;
+        final SecureRandom secureRandom = sslParameters.getSecureRandomMember();
+        if (secureRandom == null) {
+            NativeCrypto.RAND_load_file("/dev/urandom", seedLengthInBytes);
+        } else {
+            NativeCrypto.RAND_seed(secureRandom.generateSeed(seedLengthInBytes));
+        }
+
+        final boolean client = sslParameters.getUseClientMode();
+
+        final int sslCtxNativePointer = (client) ?
+            sslParameters.getClientSessionContext().sslCtxNativePointer :
+            sslParameters.getServerSessionContext().sslCtxNativePointer;
+
+        this.sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
+
+        // setup server certificates and private keys.
+        // clients will receive a call back to request certificates.
+        if (!client) {
+            for (String keyType : NativeCrypto.KEY_TYPES) {
+                setCertificate(sslParameters.getKeyManager().chooseServerAlias(keyType,
+                                                                               null,
+                                                                               null));
+            }
+        }
+
         NativeCrypto.setEnabledProtocols(sslNativePointer, enabledProtocols);
         NativeCrypto.setEnabledCipherSuites(sslNativePointer, enabledCipherSuites);
 
@@ -291,8 +321,6 @@ public class OpenSSLSocketImpl
             NativeCrypto.SSL_set_session_creation_enabled(sslNativePointer,
                                                           enableSessionCreation);
         }
-
-        boolean client = sslParameters.getUseClientMode();
 
         AbstractSessionContext sessionContext;
         OpenSSLSessionImpl session;
@@ -311,7 +339,8 @@ public class OpenSSLSocketImpl
 
         // setup peer certificate verification
         if (client) {
-            // TODO support for anonymous cipher would require us to conditionally use SSL_VERIFY_NONE
+            // TODO support for anonymous cipher would require us to
+            // conditionally use SSL_VERIFY_NONE
         } else {
             // needing client auth takes priority...
             if (sslParameters.getNeedClientAuth()) {
@@ -330,7 +359,8 @@ public class OpenSSLSocketImpl
 
         if (client && full) {
             // we want to do a full synchronous handshake, so turn off cutthrough
-            NativeCrypto.SSL_clear_mode(sslNativePointer, NativeCrypto.SSL_MODE_HANDSHAKE_CUTTHROUGH);
+            NativeCrypto.SSL_clear_mode(sslNativePointer,
+                                        NativeCrypto.SSL_MODE_HANDSHAKE_CUTTHROUGH);
         }
 
         // BEGIN android-added
@@ -345,7 +375,8 @@ public class OpenSSLSocketImpl
         Socket socket = this.socket != null ? this.socket : this;
         int sslSessionNativePointer;
         try {
-            sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer, socket, this, this, timeout, client);
+            sslSessionNativePointer
+                = NativeCrypto.SSL_do_handshake(sslNativePointer, socket, this, timeout, client);
         } catch (CertificateException e) {
             throw new SSLPeerUnverifiedException(e.getMessage());
         }
@@ -411,8 +442,49 @@ public class OpenSSLSocketImpl
 
     }
 
+    private void setCertificate (String alias) throws IOException {
+        if (alias == null) {
+            return;
+        }
+
+        PrivateKey privateKey = sslParameters.getKeyManager().getPrivateKey(alias);
+        ByteArrayOutputStream privateKeyOS = new ByteArrayOutputStream();
+        PEMWriter privateKeyPEMWriter = new PEMWriter(new OutputStreamWriter(privateKeyOS));
+        privateKeyPEMWriter.writeObject(privateKey);
+        privateKeyPEMWriter.close();
+        byte[] privateKeyBytes = privateKeyOS.toByteArray();
+        NativeCrypto.SSL_use_PrivateKey(sslNativePointer, privateKeyBytes);
+
+        X509Certificate[] certificates = sslParameters.getKeyManager().getCertificateChain(alias);
+        ByteArrayOutputStream certificateOS = new ByteArrayOutputStream();
+        PEMWriter certificateWriter = new PEMWriter(new OutputStreamWriter(certificateOS));
+        for (X509Certificate certificate : certificates) {
+            certificateWriter.writeObject(certificate);
+        }
+        certificateWriter.close();
+        byte[] certificateBytes = certificateOS.toByteArray();
+        // TODO SSL_use_certificate only looks at the first certificate in the chain.
+        // It would be better to use a custom version of SSL_CTX_use_certificate_chain_file
+        // to set the whole chain. Note there is no SSL_ equivalent of this SSL_CTX_ function.
+        NativeCrypto.SSL_use_certificate(sslNativePointer, certificateBytes);
+
+        // checks the last installed private key and certificate,
+        // so need to do this once per loop iteration
+        NativeCrypto.SSL_check_private_key(sslNativePointer);
+    }
+
     /**
-     * Implementation of NativeCrypto.HandshakeCompletedCallback
+     * Implementation of NativeCrypto.SSLHandshakeCallbacks
+     * invoked via JNI from client_cert_cb
+     */
+    public void clientCertificateRequested(String keyType) throws IOException {
+        setCertificate(sslParameters.getKeyManager().chooseClientAlias(new String[] { keyType },
+                                                                       null,
+                                                                       null));
+    }
+
+    /**
+     * Implementation of NativeCrypto.SSLHandshakeCallbacks
      * invoked via JNI from info_callback
      */
     public void handshakeCompleted() {
@@ -463,7 +535,7 @@ public class OpenSSLSocketImpl
     }
 
     /**
-     * Implementation of NativeCrypto.CertificateChainVerifier.
+     * Implementation of NativeCrypto.SSLHandshakeCallbacks
      *
      * @param bytes An array of certficates in PEM encode bytes
      * @param authMethod auth algorithm name
@@ -471,7 +543,8 @@ public class OpenSSLSocketImpl
      * @throws CertificateException if the certificate is untrusted
      */
     @SuppressWarnings("unused")
-    public void verifyCertificateChain(byte[][] bytes, String authMethod) throws CertificateException {
+    public void verifyCertificateChain(byte[][] bytes, String authMethod)
+            throws CertificateException {
         try {
             if (bytes == null || bytes.length == 0) {
                 throw new SSLException("Peer sent no certificate");
@@ -479,13 +552,16 @@ public class OpenSSLSocketImpl
             X509Certificate[] peerCertificateChain = new X509Certificate[bytes.length];
             for (int i = 0; i < bytes.length; i++) {
                 peerCertificateChain[i] =
-                    new X509CertImpl(javax.security.cert.X509Certificate.getInstance(bytes[i]).getEncoded());
+                    new X509CertImpl(
+                        javax.security.cert.X509Certificate.getInstance(bytes[i]).getEncoded());
             }
             boolean client = sslParameters.getUseClientMode();
             if (client) {
-                sslParameters.getTrustManager().checkServerTrusted(peerCertificateChain, authMethod);
+                sslParameters.getTrustManager().checkServerTrusted(peerCertificateChain,
+                                                                   authMethod);
             } else {
-                sslParameters.getTrustManager().checkClientTrusted(peerCertificateChain, authMethod);
+                sslParameters.getTrustManager().checkClientTrusted(peerCertificateChain,
+                                                                   authMethod);
             }
 
         } catch (CertificateException e) {

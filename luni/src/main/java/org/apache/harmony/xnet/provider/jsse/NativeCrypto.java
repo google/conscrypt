@@ -16,20 +16,16 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.bouncycastle.openssl.PEMWriter;
 
 /**
  * Provides the Java side of our JNI glue for OpenSSL. Currently only
@@ -47,7 +43,8 @@ public class NativeCrypto {
 
     // --- DSA/RSA public/private key handling functions -----------------------
 
-    public static native int EVP_PKEY_new_DSA(byte[] p, byte[] q, byte[] g, byte[] priv_key, byte[] pub_key);
+    public static native int EVP_PKEY_new_DSA(byte[] p, byte[] q, byte[] g,
+                                              byte[] priv_key, byte[] pub_key);
 
     public static native int EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q);
 
@@ -75,9 +72,11 @@ public class NativeCrypto {
 
     public static native void EVP_VerifyInit(int ctx, String algorithm);
 
-    public static native void EVP_VerifyUpdate(int ctx, byte[] buffer, int offset, int length);
+    public static native void EVP_VerifyUpdate(int ctx, byte[] buffer,
+                                               int offset, int length);
 
-    public static native int EVP_VerifyFinal(int ctx, byte[] signature, int offset, int length, int key);
+    public static native int EVP_VerifyFinal(int ctx, byte[] signature,
+                                             int offset, int length, int key);
 
     // --- Legacy Signature handling -------------------------------------------
     // TODO rewrite/replace with EVP_Verify*
@@ -93,7 +92,8 @@ public class NativeCrypto {
      * @param key The RSA public key to use
      * @return true if the verification succeeds, false otherwise
      */
-    public static boolean verifySignature(byte[] message, byte[] signature, String algorithm, RSAPublicKey key) {
+    public static boolean verifySignature(
+            byte[] message, byte[] signature, String algorithm, RSAPublicKey key) {
         byte[] modulus = key.getModulus().toByteArray();
         byte[] exponent = key.getPublicExponent().toByteArray();
 
@@ -103,13 +103,23 @@ public class NativeCrypto {
     private static native int verifySignature(byte[] message, byte[] signature,
             String algorithm, byte[] modulus, byte[] exponent);
 
+    // --- RAND seeding --------------------------------------------------------
+
+    public static final int RAND_SEED_LENGTH_IN_BYTES = 1024;
+
+    public static native void RAND_seed(byte[] seed);
+
+    public static native int RAND_load_file(String filename, long max_bytes);
+
     // --- SSL handling --------------------------------------------------------
 
     private static final String SUPPORTED_PROTOCOL_SSLV3 = "SSLv3";
     private static final String SUPPORTED_PROTOCOL_TLSV1 = "TLSv1";
 
-    public static final Map<String, String> OPENSSL_TO_STANDARD = new HashMap<String, String>();
-    public static final Map<String, String> STANDARD_TO_OPENSSL = new LinkedHashMap<String, String>();
+    public static final Map<String, String> OPENSSL_TO_STANDARD
+        = new HashMap<String, String>();
+    public static final Map<String, String> STANDARD_TO_OPENSSL
+        = new LinkedHashMap<String, String>();
 
     private static void add(String standard, String openssl) {
         OPENSSL_TO_STANDARD.put(openssl, standard);
@@ -245,62 +255,15 @@ public class NativeCrypto {
 
     public static native void SSL_CTX_free(int ssl_ctx);
 
-    public static native int SSL_new(int ssl_ctx, String privatekey, String certificate, byte[] seed) throws IOException;
+    public static native int SSL_new(int ssl_ctx) throws IOException;
 
-    /**
-     * Initialize the SSL socket and set the certificates for the
-     * future handshaking.
-     */
-    public static int SSL_new(SSLParameters sslParameters) throws IOException {
-        boolean client = sslParameters.getUseClientMode();
+    public static final String[] KEY_TYPES = new String[] { "RSA", "DSA", "DH" };
 
-        final int ssl_ctx = (client) ?
-            sslParameters.getClientSessionContext().sslCtxNativePointer :
-            sslParameters.getServerSessionContext().sslCtxNativePointer;
+    public static native void SSL_use_certificate(int ssl, byte[] pemEncodedCertificate);
 
-        // TODO support more than RSA certificates?  non-openssl
-        // SSLEngine implementation did these callbacks during
-        // handshake after selecting cipher suite, not before
-        // handshake. Should do the same via SSL_CTX_set_client_cert_cb
-        final String alias = (client) ?
-            sslParameters.getKeyManager().chooseClientAlias(new String[] { "RSA" }, null, null) :
-            sslParameters.getKeyManager().chooseServerAlias("RSA", null, null);
+    public static native void SSL_use_PrivateKey(int ssl, byte[] pemEncodedPrivateKey);
 
-        final String privateKeyString;
-        final String certificateString;
-        if (alias == null) {
-            privateKeyString = null;
-            certificateString = null;
-        } else {
-            PrivateKey privateKey = sslParameters.getKeyManager().getPrivateKey(alias);
-            X509Certificate[] certificates = sslParameters.getKeyManager().getCertificateChain(alias);
-
-            ByteArrayOutputStream privateKeyOS = new ByteArrayOutputStream();
-            PEMWriter privateKeyPEMWriter = new PEMWriter(new OutputStreamWriter(privateKeyOS));
-            privateKeyPEMWriter.writeObject(privateKey);
-            privateKeyPEMWriter.close();
-            privateKeyString = privateKeyOS.toString();
-
-            ByteArrayOutputStream certificateOS = new ByteArrayOutputStream();
-            PEMWriter certificateWriter = new PEMWriter(new OutputStreamWriter(certificateOS));
-
-            for (X509Certificate certificate : certificates) {
-                certificateWriter.writeObject(certificate);
-            }
-            certificateWriter.close();
-            certificateString = certificateOS.toString();
-        }
-
-        final byte[] seed = (sslParameters.getSecureRandomMember() != null) ?
-            sslParameters.getSecureRandomMember().generateSeed(1024) :
-            null;
-
-        return SSL_new(ssl_ctx,
-                       privateKeyString,
-                       certificateString,
-                       seed);
-    }
-
+    public static native void SSL_check_private_key(int ssl);
 
     public static native long SSL_get_mode(int ssl);
 
@@ -425,16 +388,21 @@ public class NativeCrypto {
 
     public static native void SSL_set_verify(int sslNativePointer, int mode) throws IOException;
 
-    public static native void SSL_set_session(int sslNativePointer, int sslSessionNativePointer) throws IOException;
+    public static native void SSL_set_session(int sslNativePointer, int sslSessionNativePointer)
+        throws IOException;
 
-    public static native void SSL_set_session_creation_enabled(int sslNativePointer, boolean creationEnabled) throws IOException;
+    public static native void SSL_set_session_creation_enabled(
+            int sslNativePointer, boolean creationEnabled) throws IOException;
 
     /**
      * Returns the sslSessionNativePointer of the negotiated session
      */
-    public static native int SSL_do_handshake(int sslNativePointer, Socket sock,
-                                              CertificateChainVerifier ccv, HandshakeCompletedCallback hcc,
-                                              int timeout, boolean client_mode) throws IOException, CertificateException;
+    public static native int SSL_do_handshake(int sslNativePointer,
+                                              Socket sock,
+                                              SSLHandshakeCallbacks shc,
+                                              int timeout,
+                                              boolean client_mode)
+        throws IOException, CertificateException;
 
     public static native byte[][] SSL_get_certificate(int sslNativePointer);
 
@@ -443,13 +411,15 @@ public class NativeCrypto {
      * @return -1 if error or the end of the stream is reached.
      */
     public static native int SSL_read_byte(int sslNativePointer, int timeout) throws IOException;
-    public static native int SSL_read(int sslNativePointer, byte[] b, int off, int len, int timeout) throws IOException;
+    public static native int SSL_read(int sslNativePointer, byte[] b, int off, int len, int timeout)
+        throws IOException;
 
     /**
      * Writes with the native SSL_write function to the encrypted data stream.
      */
     public static native void SSL_write_byte(int sslNativePointer, int b) throws IOException;
-    public static native void SSL_write(int sslNativePointer, byte[] b, int off, int len) throws IOException;
+    public static native void SSL_write(int sslNativePointer, byte[] b, int off, int len)
+        throws IOException;
 
     public static native void SSL_interrupt(int sslNativePointer) throws IOException;
     public static native void SSL_shutdown(int sslNativePointer) throws IOException;
@@ -476,7 +446,11 @@ public class NativeCrypto {
 
     public static native int d2i_SSL_SESSION(byte[] data, int size);
 
-    public interface CertificateChainVerifier {
+    /**
+     * A collection of callbacks from the native OpenSSL code that are
+     * related to the SSL handshake initiated by SSL_do_handshake.
+     */
+    public interface SSLHandshakeCallbacks {
         /**
          * Verify that we trust the certificate chain is trusted.
          *
@@ -485,10 +459,21 @@ public class NativeCrypto {
          *
          * @throws CertificateException if the certificate is untrusted
          */
-        public void verifyCertificateChain(byte[][] bytes, String authMethod) throws CertificateException;
-    }
+        public void verifyCertificateChain(byte[][] bytes, String authMethod)
+            throws CertificateException;
 
-    public interface HandshakeCompletedCallback {
+        /**
+         * Called on an SSL client when the server requests (or
+         * requires a certificate). The client can respond by using
+         * SSL_use_certificate and SSL_use_PrivateKey to set a
+         * certificate if has an appropriate one available, similar to
+         * how the server provides its certificate.
+         *
+         * @param keyType One of KEY_TYPES such as RSA or DSA
+         */
+        public void clientCertificateRequested(String keyType)
+            throws IOException;
+
         /**
          * Called when SSL handshake is completed. Note that this can
          * be after SSL_do_handshake returns when handshake cutthrough
