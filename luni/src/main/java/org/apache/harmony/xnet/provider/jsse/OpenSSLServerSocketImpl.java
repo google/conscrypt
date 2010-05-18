@@ -19,6 +19,10 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.security.PrivateKey;
+import java.security.interfaces.DSAPrivateKey;
+import java.security.interfaces.RSAPrivateKey;
+import javax.net.ssl.SSLException;
 
 /**
  * OpenSSL-based implementation of server sockets.
@@ -49,7 +53,10 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
         this.sslParameters = sslParameters;
     }
 
-    protected OpenSSLServerSocketImpl(int port, int backlog, InetAddress iAddress, SSLParameters sslParameters)
+    protected OpenSSLServerSocketImpl(int port,
+                                      int backlog,
+                                      InetAddress iAddress,
+                                      SSLParameters sslParameters)
         throws IOException {
         super(port, backlog, iAddress);
         this.sslParameters = sslParameters;
@@ -154,6 +161,55 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
+        for (String enabledCipherSuite : enabledCipherSuites) {
+            CipherSuite cipherSuite = CipherSuite.getByName(enabledCipherSuite);
+            if (cipherSuite == null) {
+                continue;
+            }
+            switch (cipherSuite.keyExchange) {
+                case CipherSuite.KeyExchange_DHE_RSA:
+                case CipherSuite.KeyExchange_DHE_RSA_EXPORT:
+                case CipherSuite.KeyExchange_DH_RSA:
+                case CipherSuite.KeyExchange_DH_RSA_EXPORT:
+                case CipherSuite.KeyExchange_RSA:
+                case CipherSuite.KeyExchange_RSA_EXPORT:
+                    String rsaAlias = sslParameters.getKeyManager().chooseServerAlias("RSA",
+                                                                                      null,
+                                                                                      null);
+                    if (rsaAlias == null) {
+                        break;
+                    }
+                    PrivateKey rsa = sslParameters.getKeyManager().getPrivateKey(rsaAlias);
+                    if ((rsa == null) || !(rsa instanceof RSAPrivateKey)) {
+                        break;
+                    }
+                    continue;
+
+                case CipherSuite.KeyExchange_DHE_DSS:
+                case CipherSuite.KeyExchange_DHE_DSS_EXPORT:
+                case CipherSuite.KeyExchange_DH_DSS:
+                case CipherSuite.KeyExchange_DH_DSS_EXPORT:
+                    String dsaAlias = sslParameters.getKeyManager().chooseServerAlias("DSA",
+                                                                                      null,
+                                                                                      null);
+                    if (dsaAlias == null) {
+                        break;
+                    }
+                    PrivateKey dsa = sslParameters.getKeyManager().getPrivateKey(dsaAlias);
+                    if ((dsa == null) || !(dsa instanceof DSAPrivateKey)) {
+                        break;
+                    }
+                    continue;
+
+                case CipherSuite.KeyExchange_DH_anon:
+                case CipherSuite.KeyExchange_DH_anon_EXPORT:
+                default:
+                    continue;
+            }
+            throw new SSLException("Could not find key store entry to support cipher suite "
+                                   + cipherSuite);
+        }
+
         OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters,
                                                          enabledProtocols.clone(),
                                                          enabledCipherSuites.clone());
