@@ -77,7 +77,8 @@ public class OpenSSLSocketImpl
     // BEGIN android-added
     private int handshakeTimeout = -1;  // -1 = same as timeout; 0 = infinite
     // END android-added
-    private InetSocketAddress address;
+    private String wrappedHost;
+    private int wrappedPort;
 
     private static final AtomicInteger instanceCount = new AtomicInteger(0);
 
@@ -170,7 +171,7 @@ public class OpenSSLSocketImpl
 
     /**
      * Constructor with 5 parameters: 1st is socket. Enhances an existing socket
-     * with SSL functionality.
+     * with SSL functionality. Invoked via OpenSSLSocketImplWrapper constructor.
      *
      * @throws IOException if network fails
      */
@@ -179,7 +180,8 @@ public class OpenSSLSocketImpl
         super();
         this.socket = socket;
         this.timeout = socket.getSoTimeout();
-        this.address = new InetSocketAddress(host, port);
+        this.wrappedHost = host;
+        this.wrappedPort = port;
         this.autoClose = autoClose;
         init(sslParameters);
     }
@@ -411,13 +413,13 @@ public class OpenSSLSocketImpl
                 }
             }
 
-            if (address == null) {
+            if (wrappedHost == null) {
                 sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
                                                     super.getInetAddress().getHostName(),
                                                     super.getPort(), sessionContext);
             } else  {
                 sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
-                                                    address.getHostName(), address.getPort(),
+                                                    wrappedHost, wrappedPort,
                                                     sessionContext);
             }
             // putSession will be done later in handshakeCompleted() callback

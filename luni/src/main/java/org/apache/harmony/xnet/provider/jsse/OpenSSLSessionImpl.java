@@ -51,7 +51,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     private javax.security.cert.X509Certificate[] peerCertificateChain;
     protected int sslSessionNativePointer;
     private String peerHost;
-    private int peerPort;
+    private int peerPort = -1;
     private String cipherSuite;
     private String protocol;
     private AbstractSessionContext sessionContext;
@@ -203,16 +203,22 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         not X509 certificate was used (i.e. Kerberos certificates) or the
      *         peer could not be verified.
      */
-    public javax.security.cert.X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
+    public javax.security.cert.X509Certificate[] getPeerCertificateChain()
+            throws SSLPeerUnverifiedException {
         if (peerCertificateChain == null) {
             try {
-                byte[][] bytes = NativeCrypto.SSL_SESSION_get_peer_cert_chain(sessionContext.sslCtxNativePointer, sslSessionNativePointer);
-                if (bytes == null) throw new SSLPeerUnverifiedException("No certificate available");
+                byte[][] bytes
+                        = NativeCrypto.SSL_SESSION_get_peer_cert_chain(
+                                sessionContext.sslCtxNativePointer, sslSessionNativePointer);
+                if (bytes == null) {
+                    throw new SSLPeerUnverifiedException("No certificate available");
+                }
 
                 peerCertificateChain = new javax.security.cert.X509Certificate[bytes.length];
 
                 for(int i = 0; i < bytes.length; i++) {
-                    peerCertificateChain[i] = javax.security.cert.X509Certificate.getInstance(bytes[i]);
+                    peerCertificateChain[i]
+                        = javax.security.cert.X509Certificate.getInstance(bytes[i]);
                 }
 
                 return peerCertificateChain;
