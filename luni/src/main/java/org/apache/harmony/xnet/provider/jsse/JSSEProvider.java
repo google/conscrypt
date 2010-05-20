@@ -115,6 +115,7 @@ public final class JSSEProvider extends Provider {
                 put("KeyManagerFactory.X509", KeyManagerFactoryImpl.class.getName());
                 put("TrustManagerFactory.X509", TrustManagerFactoryImpl.class.getName());
                 // BEGIN android-added
+                put("SSLContext.Default", DefaultSSLContextImpl.class.getName());
                 put("SSLContext.SSL", SSLContextImpl.class.getName());
                 put("Alg.Alias.SSLContext.SSLv3", "SSL");
                 put("MessageDigest.SHA-1", "org.apache.harmony.xnet.provider.jsse.OpenSSLMessageDigestJDK$SHA1");

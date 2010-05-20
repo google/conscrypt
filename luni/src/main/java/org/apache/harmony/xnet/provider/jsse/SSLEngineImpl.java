@@ -17,19 +17,19 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.AlertException;
-import org.apache.harmony.xnet.provider.jsse.SSLSessionImpl;
-import org.apache.harmony.xnet.provider.jsse.SSLEngineDataStream;
 
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
 import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
+import org.apache.harmony.xnet.provider.jsse.AlertException;
+import org.apache.harmony.xnet.provider.jsse.SSLEngineDataStream;
+import org.apache.harmony.xnet.provider.jsse.SSLSessionImpl;
 
 /**
  * Implementation of SSLEngine.
@@ -83,21 +83,11 @@ public class SSLEngineImpl extends SSLEngine {
     // logger
     private Logger.Stream logger = Logger.getStream("engine");
 
-    /**
-     * Ctor
-     * @param   sslParameters:  SSLParameters
-     */
     protected SSLEngineImpl(SSLParameters sslParameters) {
         super();
         this.sslParameters = sslParameters;
     }
 
-    /**
-     * Ctor
-     * @param   host:   String
-     * @param   port:   int
-     * @param   sslParameters:  SSLParameters
-     */
     protected SSLEngineImpl(String host, int port, SSLParameters sslParameters) {
         super(host, port);
         this.sslParameters = sslParameters;

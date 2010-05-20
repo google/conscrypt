@@ -46,8 +46,7 @@ public class ServerSessionContext extends AbstractSessionContext {
     protected void sessionRemoved(SSLSession session) {}
 
     @Override
-    public SSLSession getSession(byte[] sessionId) 
-    {
+    public SSLSession getSession(byte[] sessionId) {
         SSLSession session = super.getSession(sessionId);
         if (session != null) {
             return session;

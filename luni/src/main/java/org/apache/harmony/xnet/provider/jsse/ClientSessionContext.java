@@ -44,7 +44,12 @@ public class ClientSessionContext extends AbstractSessionContext {
     }
 
     protected void sessionRemoved(SSLSession session) {
-        HostAndPort hostAndPortKey = new HostAndPort(session);
+        String host = session.getPeerHost();
+        int port = session.getPeerPort();
+        if (host == null) {
+            return;
+        }
+        HostAndPort hostAndPortKey = new HostAndPort(host, port);
         synchronized (sessionsByHostAndPort) {
             sessionsByHostAndPort.remove(hostAndPortKey);
         }
@@ -58,6 +63,9 @@ public class ClientSessionContext extends AbstractSessionContext {
      * @return cached session or null if none found
      */
     public SSLSession getSession(String host, int port) {
+        if (host == null) {
+            return null;
+        }
         SSLSession session;
         HostAndPort hostAndPortKey = new HostAndPort(host, port);
         synchronized (sessionsByHostAndPort) {
@@ -89,7 +97,13 @@ public class ClientSessionContext extends AbstractSessionContext {
     void putSession(SSLSession session) {
         super.putSession(session);
 
-        HostAndPort hostAndPortKey = new HostAndPort(session);
+        String host = session.getPeerHost();
+        int port = session.getPeerPort();
+        if (host == null) {
+            return;
+        }
+
+        HostAndPort hostAndPortKey = new HostAndPort(host, port);
         synchronized (sessionsByHostAndPort) {
             sessionsByHostAndPort.put(hostAndPortKey, session);
         }
@@ -106,10 +120,6 @@ public class ClientSessionContext extends AbstractSessionContext {
     static class HostAndPort {
         final String host;
         final int port;
-
-        HostAndPort(SSLSession session) {
-            this(session.getPeerHost(), session.getPeerPort());
-        }
 
         HostAndPort(String host, int port) {
             this.host = host;

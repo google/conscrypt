@@ -25,18 +25,12 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
-
-import org.apache.harmony.security.provider.cert.X509CertImpl;
 
 /**
  * The instances of this class incapsulate all the info
@@ -46,9 +40,7 @@ import org.apache.harmony.security.provider.cert.X509CertImpl;
  * and controls whether new SSL sessions may be established by this
  * socket or not.
  */
-// BEGIN android-changed
 public class SSLParameters implements Cloneable {
-// END android-changed
 
     // default source of authentication keys
     private static X509KeyManager defaultKeyManager;
@@ -221,8 +213,11 @@ public class SSLParameters implements Cloneable {
     protected static SSLParameters getDefault() throws KeyManagementException {
         if (defaultParameters == null) {
 // BEGIN android-changed
-            defaultParameters = new SSLParameters(null, null, null,
-                new ClientSessionContext(), new ServerSessionContext());
+            defaultParameters = new SSLParameters(null,
+                                                  null,
+                                                  null,
+                                                  new ClientSessionContext(),
+                                                  new ServerSessionContext());
 // END android-changed
         }
         return (SSLParameters) defaultParameters.clone();
@@ -310,14 +305,17 @@ public class SSLParameters implements Cloneable {
      */
     protected void setEnabledCipherSuites(String[] suites) {
         if (suites == null) {
-            throw new IllegalArgumentException("Provided parameter is null");
+            throw new IllegalArgumentException("suites == null");
         }
         CipherSuite[] cipherSuites = new CipherSuite[suites.length];
         for (int i=0; i<suites.length; i++) {
-            cipherSuites[i] = CipherSuite.getByName(suites[i]);
+            String suite = suites[i];
+            if (suite == null) {
+                throw new IllegalArgumentException("suites[" + i + "] == null");
+            }
+            cipherSuites[i] = CipherSuite.getByName(suite);
             if (cipherSuites[i] == null || !cipherSuites[i].supported) {
-                throw new IllegalArgumentException(suites[i] +
-                        " is not supported.");
+                throw new IllegalArgumentException(suite + " is not supported.");
             }
         }
         enabledCipherSuites = cipherSuites;
@@ -337,12 +335,15 @@ public class SSLParameters implements Cloneable {
      */
     protected void setEnabledProtocols(String[] protocols) {
         if (protocols == null) {
-            throw new IllegalArgumentException("Provided parameter is null");
+            throw new IllegalArgumentException("protocols == null");
         }
         for (int i=0; i<protocols.length; i++) {
-            if (!ProtocolVersion.isSupported(protocols[i])) {
-                throw new IllegalArgumentException("Protocol " + protocols[i] +
-                        " is not supported.");
+            String protocol = protocols[i];
+            if (protocol == null) {
+                throw new IllegalArgumentException("protocols[" + i + "] == null");
+            }
+            if (!ProtocolVersion.isSupported(protocol)) {
+                throw new IllegalArgumentException("Protocol " + protocol + " is not supported.");
             }
         }
         enabledProtocols = protocols;

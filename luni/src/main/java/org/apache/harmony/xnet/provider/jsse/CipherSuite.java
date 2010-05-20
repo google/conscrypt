@@ -171,11 +171,11 @@ public class CipherSuite {
             CODE_TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA);
 
     static final CipherSuite TLS_DH_DSS_WITH_DES_CBC_SHA = new CipherSuite(
-            "TLS_DH_DSS_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_DH_DSS,
+            "SSL_DH_DSS_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_DH_DSS,
             "DES_CBC", "SHA", CODE_TLS_DH_DSS_WITH_DES_CBC_SHA);
 
     static final CipherSuite TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
-            "TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_DH_DSS,
+            "SSL_DH_DSS_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_DH_DSS,
             "3DES_EDE_CBC", "SHA", CODE_TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA);
 
     static final CipherSuite TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
@@ -184,11 +184,11 @@ public class CipherSuite {
             CODE_TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA);
 
     static final CipherSuite TLS_DH_RSA_WITH_DES_CBC_SHA = new CipherSuite(
-            "TLS_DH_RSA_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_DH_RSA,
+            "SSL_DH_RSA_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_DH_RSA,
             "DES_CBC", "SHA", CODE_TLS_DH_RSA_WITH_DES_CBC_SHA);
 
     static final CipherSuite TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
-            "TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_DH_RSA,
+            "SSL_DH_RSA_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_DH_RSA,
             "3DES_EDE_CBC", "SHA", CODE_TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA);
 
     static final CipherSuite TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
@@ -296,6 +296,9 @@ public class CipherSuite {
         int count = 0;
         SUITES_BY_NAME = new Hashtable<String, CipherSuite>();
         for (int i = 0; i < SUITES_BY_CODE.length; i++) {
+            if (SUITES_BY_CODE[i] == TLS_NULL_WITH_NULL_NULL) {
+                continue;
+            }
             SUITES_BY_NAME.put(SUITES_BY_CODE[i].getName(), SUITES_BY_CODE[i]);
             if (SUITES_BY_CODE[i].supported) {
                 count++;
@@ -305,6 +308,9 @@ public class CipherSuite {
         SUPPORTED_CIPHER_SUITE_NAMES = new String[count];
         count = 0;
         for (int i = 0; i < SUITES_BY_CODE.length; i++) {
+            if (SUITES_BY_CODE[i] == TLS_NULL_WITH_NULL_NULL) {
+                continue;
+            }
             if (SUITES_BY_CODE[i].supported) {
                 SUPPORTED_CIPHER_SUITES[count] = SUITES_BY_CODE[i];
                 SUPPORTED_CIPHER_SUITE_NAMES[count] = SUPPORTED_CIPHER_SUITES[count].getName();

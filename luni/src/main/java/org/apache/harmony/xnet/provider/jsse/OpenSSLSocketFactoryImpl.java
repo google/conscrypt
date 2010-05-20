@@ -66,19 +66,35 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
 
     public Socket createSocket(String host, int port, InetAddress localHost, int localPort)
             throws IOException, UnknownHostException {
-        return new OpenSSLSocketImpl(host, port, localHost, localPort, (SSLParameters) sslParameters.clone());
+        return new OpenSSLSocketImpl(host,
+                                     port,
+                                     localHost,
+                                     localPort,
+                                     (SSLParameters) sslParameters.clone());
     }
 
     public Socket createSocket(InetAddress host, int port) throws IOException {
         return new OpenSSLSocketImpl(host, port, (SSLParameters) sslParameters.clone());
     }
 
-    public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort)
+    public Socket createSocket(InetAddress address,
+                               int port,
+                               InetAddress localAddress,
+                               int localPort)
             throws IOException {
-        return new OpenSSLSocketImpl(address, port, localAddress, localPort, (SSLParameters) sslParameters.clone());
+        return new OpenSSLSocketImpl(address,
+                                     port,
+                                     localAddress,
+                                     localPort,
+                                     (SSLParameters) sslParameters.clone());
     }
 
-    public Socket createSocket(Socket s, String host, int port, boolean autoClose) throws IOException {
-        return new OpenSSLSocketImplWrapper(s, host, port, autoClose, (SSLParameters) sslParameters.clone());
+    public Socket createSocket(Socket s, String host, int port, boolean autoClose)
+            throws IOException {
+        return new OpenSSLSocketImplWrapper(s,
+                                            host,
+                                            port,
+                                            autoClose,
+                                            (SSLParameters) sslParameters.clone());
     }
 }

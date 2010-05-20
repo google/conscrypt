@@ -388,7 +388,9 @@ public abstract class HandshakeProtocol {
             md5 = MessageDigest.getInstance("MD5");
             sha = MessageDigest.getInstance("SHA-1");
         } catch (Exception e) {
-            fatalAlert(AlertProtocol.INTERNAL_ERROR, "Could not initialize the Digest Algorithms.", e);
+            fatalAlert(AlertProtocol.INTERNAL_ERROR,
+                       "Could not initialize the Digest Algorithms.",
+                       e);
             return;
         }
         try {

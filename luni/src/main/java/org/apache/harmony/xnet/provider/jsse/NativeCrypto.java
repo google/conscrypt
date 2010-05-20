@@ -256,7 +256,7 @@ public class NativeCrypto {
 
     public static native int SSL_new(int ssl_ctx) throws IOException;
 
-    public static final String[] KEY_TYPES = new String[] { "RSA", "DSA", "DH" };
+    public static final String[] KEY_TYPES = new String[] { "RSA", "DSA", "DH_RSA" , "DH_DSA" };
 
     public static native void SSL_use_certificate(int ssl, byte[] pemEncodedCertificate);
 
@@ -280,25 +280,13 @@ public class NativeCrypto {
         return new String[] { SUPPORTED_PROTOCOL_SSLV3, SUPPORTED_PROTOCOL_TLSV1 };
     }
 
-    public static String[] getEnabledProtocols(int ssl) {
-        long options = SSL_get_options(ssl);
-        ArrayList<String> array = new ArrayList<String>();
-        if ((options & NativeCrypto.SSL_OP_NO_SSLv3) == 0) {
-            array.add(SUPPORTED_PROTOCOL_SSLV3);
-        }
-        if ((options & NativeCrypto.SSL_OP_NO_TLSv1) == 0) {
-            array.add(SUPPORTED_PROTOCOL_TLSV1);
-        }
-        return array.toArray(new String[array.size()]);
-    }
-
     public static void setEnabledProtocols(int ssl, String[] protocols) {
         if (protocols == null) {
             throw new IllegalArgumentException("protocols == null");
         }
 
         // openssl uses negative logic letting you disable protocols.
-        // so first, assume we need to set all (disable all ) and clear none (enable none).
+        // so first, assume we need to set all (disable all) and clear none (enable none).
         // in the loop, selectively move bits from set to clear (from disable to enable)
         long optionsToSet = (SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
         long optionsToClear = 0;
@@ -325,7 +313,7 @@ public class NativeCrypto {
 
     public static String[] checkEnabledProtocols(String[] protocols) {
         if (protocols == null) {
-            throw new IllegalArgumentException("protocols parameter is null");
+            throw new IllegalArgumentException("protocols == null");
         }
         for (int i = 0; i < protocols.length; i++) {
             String protocol = protocols[i];
@@ -333,7 +321,7 @@ public class NativeCrypto {
                 throw new IllegalArgumentException("protocols[" + i + "] == null");
             }
             if ((!protocol.equals(SUPPORTED_PROTOCOL_SSLV3))
-                && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1))) {
+                    && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1))) {
                 throw new IllegalArgumentException("protocol " + protocol +
                                                    " is not supported");
             }

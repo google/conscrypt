@@ -61,11 +61,17 @@ public class OpenSSLServerSocketFactoryImpl extends javax.net.ssl.SSLServerSocke
 
     public ServerSocket createServerSocket(int port, int backlog)
             throws IOException {
-        return new OpenSSLServerSocketImpl(port, backlog, (SSLParameters) sslParameters.clone());
+        return new OpenSSLServerSocketImpl(port,
+                                           backlog,
+                                           (SSLParameters) sslParameters.clone());
     }
 
-    public ServerSocket createServerSocket(int port, int backlog,
-            InetAddress iAddress) throws IOException {
-        return new OpenSSLServerSocketImpl(port, backlog, iAddress, (SSLParameters) sslParameters.clone());
+    public ServerSocket createServerSocket(int port,
+                                           int backlog,
+                                           InetAddress iAddress) throws IOException {
+        return new OpenSSLServerSocketImpl(port,
+                                           backlog,
+                                           iAddress,
+                                           (SSLParameters) sslParameters.clone());
     }
 }

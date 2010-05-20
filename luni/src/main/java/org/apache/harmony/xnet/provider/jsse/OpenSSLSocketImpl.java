@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.PrivateKey;
@@ -122,8 +121,7 @@ public class OpenSSLSocketImpl
      * @throws IOException if network fails
      * @throws java.net.UnknownHostException host not defined
      */
-    protected OpenSSLSocketImpl(String host, int port,
-            SSLParameters sslParameters)
+    protected OpenSSLSocketImpl(String host, int port, SSLParameters sslParameters)
         throws IOException {
         super(host, port);
         init(sslParameters);
@@ -135,8 +133,7 @@ public class OpenSSLSocketImpl
      * @throws IOException if network fails
      * @throws java.net.UnknownHostException host not defined
      */
-    protected OpenSSLSocketImpl(InetAddress address, int port,
-            SSLParameters sslParameters)
+    protected OpenSSLSocketImpl(InetAddress address, int port, SSLParameters sslParameters)
         throws IOException {
         super(address, port);
         init(sslParameters);
@@ -149,8 +146,9 @@ public class OpenSSLSocketImpl
      * @throws IOException if network fails
      * @throws java.net.UnknownHostException host not defined
      */
-    protected OpenSSLSocketImpl(String host, int port, InetAddress clientAddress,
-            int clientPort, SSLParameters sslParameters)
+    protected OpenSSLSocketImpl(String host, int port,
+                                InetAddress clientAddress, int clientPort,
+                                SSLParameters sslParameters)
         throws IOException {
         super(host, port, clientAddress, clientPort);
         init(sslParameters);
@@ -163,7 +161,8 @@ public class OpenSSLSocketImpl
      * @throws java.net.UnknownHostException host not defined
      */
     protected OpenSSLSocketImpl(InetAddress address, int port,
-            InetAddress clientAddress, int clientPort, SSLParameters sslParameters)
+                                InetAddress clientAddress, int clientPort,
+                                SSLParameters sslParameters)
         throws IOException {
         super(address, port, clientAddress, clientPort);
         init(sslParameters);
@@ -422,7 +421,7 @@ public class OpenSSLSocketImpl
                                                     wrappedHost, wrappedPort,
                                                     sessionContext);
             }
-            // putSession will be done later in handshakeCompleted() callback
+            // if not, putSession later in handshakeCompleted() callback
             if (handshakeCompleted) {
                 sessionContext.putSession(sslSession);
             }
@@ -437,7 +436,7 @@ public class OpenSSLSocketImpl
         }
         // END android-added
 
-        // notifyHandshakeCompletedListeners will be done later in handshakeCompleted() callback
+        // if not, notifyHandshakeCompletedListeners later in handshakeCompleted() callback
         if (handshakeCompleted) {
             notifyHandshakeCompletedListeners();
         }
