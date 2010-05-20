@@ -95,7 +95,9 @@ public class SSLParameters implements Cloneable {
 
 // BEGIN android-changed
     protected CipherSuite[] getEnabledCipherSuitesMember() {
-        if (enabledCipherSuites == null) this.enabledCipherSuites = CipherSuite.defaultCipherSuites;
+        if (enabledCipherSuites == null) {
+            this.enabledCipherSuites = CipherSuite.DEFAULT_CIPHER_SUITES;
+        }
         return enabledCipherSuites;
     }
 // END android-changed

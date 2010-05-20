@@ -181,17 +181,17 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     byte[] md5_hash = null;
                     byte[] sha_hash = null;
 
-                    if (session.cipherSuite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT
-                            || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_RSA
-                            || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DHE_RSA
-                            || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DHE_RSA_EXPORT) {
+                    if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT
+                            || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA
+                            || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA
+                            || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT) {
                         md5_hash = io_stream.getDigestMD5withoutLast();
                         sha_hash = io_stream.getDigestSHAwithoutLast();
-                    } else if (session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DHE_DSS
-                            || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DHE_DSS_EXPORT) {
+                    } else if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS
+                            || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT) {
                         sha_hash = io_stream.getDigestSHAwithoutLast();
-                    } else if (session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DH_anon
-                            || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DH_anon_EXPORT) {
+                    } else if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon
+                            || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT) {
                     }
                     ds.setMD5(md5_hash);
                     ds.setSHA(sha_hash);
@@ -209,8 +209,8 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                         unexpectedMessage();
                         return;
                     }
-                    if (session.cipherSuite.keyExchange == CipherSuite.KeyExchange_RSA
-                            || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT) {
+                    if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA
+                            || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT) {
                         clientKeyExchange = new ClientKeyExchange(io_stream,
                                 length, serverHello.server_version[1] == 1,
                                 true);
@@ -451,17 +451,17 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
         if (!cipher_suite.isAnonymous()) { // need to send server certificate
             X509Certificate[] certs = null;
             String certType = null;
-            if (cipher_suite.keyExchange == CipherSuite.KeyExchange_RSA
-                    || cipher_suite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT
-                    || cipher_suite.keyExchange == CipherSuite.KeyExchange_DHE_RSA
-                    || cipher_suite.keyExchange == CipherSuite.KeyExchange_DHE_RSA_EXPORT) {
+            if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA
+                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT
+                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA
+                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT) {
                 certType = "RSA";
-            } else if (cipher_suite.keyExchange == CipherSuite.KeyExchange_DHE_DSS
-                    || cipher_suite.keyExchange == CipherSuite.KeyExchange_DHE_DSS_EXPORT) {
+            } else if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS
+                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT) {
                 certType = "DSA";
-            } else if (cipher_suite.keyExchange == CipherSuite.KeyExchange_DH_DSS) {
+            } else if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_DSS) {
                 certType = "DH_DSA";
-            } else if (cipher_suite.keyExchange == CipherSuite.KeyExchange_DH_RSA) {
+            } else if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_RSA) {
                 certType = "DH_RSA";
             }
             // obtain certificates from key manager
@@ -514,19 +514,19 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
         KeyPairGenerator kpg = null;
 
         try {
-            if (cipher_suite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT) {
+            if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT) {
                 PublicKey pk = serverCert.certs[0].getPublicKey();
                 if (getRSAKeyLength(pk) > 512) {
                     // key is longer than 512 bits
                     kpg = KeyPairGenerator.getInstance("RSA");
                     kpg.initialize(512);
                 }
-            } else if (cipher_suite.keyExchange == CipherSuite.KeyExchange_DHE_DSS
-                    || cipher_suite.keyExchange == CipherSuite.KeyExchange_DHE_DSS_EXPORT
-                    || cipher_suite.keyExchange == CipherSuite.KeyExchange_DHE_RSA
-                    || cipher_suite.keyExchange == CipherSuite.KeyExchange_DHE_RSA_EXPORT
-                    || cipher_suite.keyExchange == CipherSuite.KeyExchange_DH_anon
-                    || cipher_suite.keyExchange == CipherSuite.KeyExchange_DH_anon_EXPORT) {
+            } else if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS
+                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT
+                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA
+                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT
+                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon
+                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT) {
                 try {
                     kpg = KeyPairGenerator.getInstance("DH");
                 } catch (NoSuchAlgorithmException ee) {
@@ -547,7 +547,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             KeyPair kp = null;
             try {
                 kp = kpg.genKeyPair();
-                if (cipher_suite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT) {
+                if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT) {
                     rsakey = (RSAPublicKey) kp.getPublic();
                 } else {
                     DHPublicKey dhkey = (DHPublicKey) kp.getPublic();
@@ -574,7 +574,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     byte[] tmp;
                     byte[] tmpLength = new byte[2];
 //FIXME 1_byte==0x00
-                    if (cipher_suite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT) {
+                    if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT) {
                         tmp = ServerKeyExchange.toUnsignedByteArray(rsakey.getModulus());
                         tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
                         tmpLength[1] = (byte) (tmp.length & 0xFF);
@@ -610,7 +610,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                 fatalAlert(AlertProtocol.INTERNAL_ERROR, "INTERNAL ERROR", e);
             }
 
-            if (cipher_suite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT) {
+            if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT) {
                 serverKeyExchange = new ServerKeyExchange(rsakey.getModulus(),
                         rsakey.getPublicExponent(), null, hash);
             } else {

@@ -118,7 +118,7 @@ public class ServerKeyExchange extends Message {
         bytes2 = in.read(size);
         par2 = new BigInteger(1, bytes2);
         this.length += 2 + bytes2.length;
-        if (keyExchange != CipherSuite.KeyExchange_RSA_EXPORT) {
+        if (keyExchange != CipherSuite.KEY_EXCHANGE_RSA_EXPORT) {
             size = in.readUint16();
             bytes3 = in.read(size);
             par3 = new BigInteger(1, bytes3);
@@ -127,8 +127,8 @@ public class ServerKeyExchange extends Message {
             par3 = null;
             bytes3 = null;
         }
-        if (keyExchange != CipherSuite.KeyExchange_DH_anon_EXPORT
-                && keyExchange != CipherSuite.KeyExchange_DH_anon) {
+        if (keyExchange != CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT
+                && keyExchange != CipherSuite.KEY_EXCHANGE_DH_anon) {
             size = in.readUint16();
             hash = in.read(size);
             this.length += 2 + hash.length;

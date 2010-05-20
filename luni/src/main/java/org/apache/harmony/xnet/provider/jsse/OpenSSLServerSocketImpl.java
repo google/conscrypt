@@ -161,53 +161,9 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
-        for (String enabledCipherSuite : enabledCipherSuites) {
-            CipherSuite cipherSuite = CipherSuite.getByName(enabledCipherSuite);
-            if (cipherSuite == null) {
-                continue;
-            }
-            switch (cipherSuite.keyExchange) {
-                case CipherSuite.KeyExchange_DHE_RSA:
-                case CipherSuite.KeyExchange_DHE_RSA_EXPORT:
-                case CipherSuite.KeyExchange_DH_RSA:
-                case CipherSuite.KeyExchange_DH_RSA_EXPORT:
-                case CipherSuite.KeyExchange_RSA:
-                case CipherSuite.KeyExchange_RSA_EXPORT:
-                    String rsaAlias = sslParameters.getKeyManager().chooseServerAlias("RSA",
-                                                                                      null,
-                                                                                      null);
-                    if (rsaAlias == null) {
-                        break;
-                    }
-                    PrivateKey rsa = sslParameters.getKeyManager().getPrivateKey(rsaAlias);
-                    if ((rsa == null) || !(rsa instanceof RSAPrivateKey)) {
-                        break;
-                    }
-                    continue;
 
-                case CipherSuite.KeyExchange_DHE_DSS:
-                case CipherSuite.KeyExchange_DHE_DSS_EXPORT:
-                case CipherSuite.KeyExchange_DH_DSS:
-                case CipherSuite.KeyExchange_DH_DSS_EXPORT:
-                    String dsaAlias = sslParameters.getKeyManager().chooseServerAlias("DSA",
-                                                                                      null,
-                                                                                      null);
-                    if (dsaAlias == null) {
-                        break;
-                    }
-                    PrivateKey dsa = sslParameters.getKeyManager().getPrivateKey(dsaAlias);
-                    if ((dsa == null) || !(dsa instanceof DSAPrivateKey)) {
-                        break;
-                    }
-                    continue;
-
-                case CipherSuite.KeyExchange_DH_anon:
-                case CipherSuite.KeyExchange_DH_anon_EXPORT:
-                default:
-                    continue;
-            }
-            throw new SSLException("Could not find key store entry to support cipher suite "
-                                   + cipherSuite);
+        if (!sslParameters.getUseClientMode()) {
+            checkEnabledCipherSuites();
         }
 
         OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters,
@@ -215,5 +171,79 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
                                                          enabledCipherSuites.clone());
         implAccept(socket);
         return socket;
+    }
+
+    /**
+     * Check if any of the enabled cipher suites has a chance to work.
+     * Not 100% accurate, just a useful diagnostic that the RI does.
+     */
+    private void checkEnabledCipherSuites() throws SSLException {
+        /* Loop over all enabled cipher suites. If we find a problem,
+         * we just continue to the next one. If we find one that could
+         * work, we return. This basically makes sure the caller has
+         * configured some appropriate certificate/key unless
+         * an anonymous cipher is picked.
+         */
+        for (String enabledCipherSuite : enabledCipherSuites) {
+            CipherSuite cipherSuite = CipherSuite.getByName(enabledCipherSuite);
+
+            int keyExchange;
+            if (cipherSuite == null) {
+                // An NativeCrypto cipher suite unknown to the Java
+                // implementation, use some safe heuristics
+                if (enabledCipherSuite.contains("_RSA_")) {
+                    keyExchange = CipherSuite.KEY_EXCHANGE_RSA;
+                } else if (enabledCipherSuite.contains("_DSS_")) {
+                    keyExchange = CipherSuite.KEY_EXCHANGE_DH_DSS;
+                } else if (enabledCipherSuite.contains("_anon_")) {
+                    keyExchange = CipherSuite.KEY_EXCHANGE_DH_anon;
+                } else {
+                    keyExchange = -1;
+                }
+            } else {
+                keyExchange = cipherSuite.keyExchange;
+            }
+
+            switch (keyExchange) {
+                case CipherSuite.KEY_EXCHANGE_DHE_RSA:
+                case CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT:
+                case CipherSuite.KEY_EXCHANGE_DH_RSA:
+                case CipherSuite.KEY_EXCHANGE_DH_RSA_EXPORT:
+                case CipherSuite.KEY_EXCHANGE_RSA:
+                case CipherSuite.KEY_EXCHANGE_RSA_EXPORT:
+                    if (checkForPrivateKey("RSA", RSAPrivateKey.class)) {
+                        return;
+                    }
+                    continue;
+
+                case CipherSuite.KEY_EXCHANGE_DHE_DSS:
+                case CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT:
+                case CipherSuite.KEY_EXCHANGE_DH_DSS:
+                case CipherSuite.KEY_EXCHANGE_DH_DSS_EXPORT:
+                    if (checkForPrivateKey("DSA", DSAPrivateKey.class)) {
+                        return;
+                    }
+                    continue;
+
+                case CipherSuite.KEY_EXCHANGE_DH_anon:
+                case CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT:
+                    // anonymous always works
+                    return;
+                default:
+                    // unknown, just assume it will work
+                    return;
+            }
+        }
+        throw new SSLException("Could not find any key store entries "
+                               + "to support the enabled cipher suites.");
+    }
+
+    private boolean checkForPrivateKey(String keyType, Class keyClass) {
+        String alias = sslParameters.getKeyManager().chooseServerAlias(keyType, null, null);
+        if (alias == null) {
+            return false;
+        }
+        PrivateKey key = sslParameters.getKeyManager().getPrivateKey(alias);
+        return (key != null && keyClass.isAssignableFrom(key.getClass()));
     }
 }

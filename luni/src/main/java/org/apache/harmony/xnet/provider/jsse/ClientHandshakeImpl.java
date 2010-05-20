@@ -375,15 +375,15 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         PrivateKey clientKey = null;
 
         if (serverCert != null) {
-            if (session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DH_anon
-                    || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DH_anon_EXPORT) {
+            if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon
+                    || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT) {
                 unexpectedMessage();
                 return;
             }
             verifyServerCert();
         } else {
-            if (session.cipherSuite.keyExchange != CipherSuite.KeyExchange_DH_anon
-                    && session.cipherSuite.keyExchange != CipherSuite.KeyExchange_DH_anon_EXPORT) {
+            if (session.cipherSuite.keyExchange != CipherSuite.KEY_EXCHANGE_DH_anon
+                    && session.cipherSuite.keyExchange != CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT) {
                 unexpectedMessage();
                 return;
             }
@@ -407,8 +407,8 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             send(clientCert);
         }
         // Client key exchange
-        if (session.cipherSuite.keyExchange == CipherSuite.KeyExchange_RSA
-                || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT) {
+        if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA
+                || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT) {
             // RSA encrypted premaster secret message
             Cipher c;
             try {
@@ -477,8 +477,8 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                 Key key = kp.getPublic();
                 if (clientCert != null
                         && serverCert != null
-                        && (session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DHE_RSA
-                                || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DHE_DSS)) {
+                        && (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA
+                                || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS)) {
                     PublicKey client_pk = clientCert.certs[0].getPublicKey();
                     PublicKey server_pk = serverCert.certs[0].getPublicKey();
                     if (client_pk instanceof DHKey
@@ -521,18 +521,18 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                     session.cipherSuite.keyExchange);
             ds.init(clientKey);
 
-            if (session.cipherSuite.keyExchange == CipherSuite.KeyExchange_RSA_EXPORT
-                    || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_RSA
-                    || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DHE_RSA
-                    || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DHE_RSA_EXPORT) {
+            if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT
+                    || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA
+                    || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA
+                    || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT) {
                 ds.setMD5(io_stream.getDigestMD5());
                 ds.setSHA(io_stream.getDigestSHA());
-            } else if (session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DHE_DSS
-                    || session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DHE_DSS_EXPORT) {
+            } else if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS
+                    || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT) {
                 ds.setSHA(io_stream.getDigestSHA());
             // The Signature should be empty in case of anonimous signature algorithm:
-            // } else if (session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DH_anon ||
-            //         session.cipherSuite.keyExchange == CipherSuite.KeyExchange_DH_anon_EXPORT) {
+            // } else if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon ||
+            //         session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT) {
             }
             certificateVerify = new CertificateVerify(ds.sign());
             send(certificateVerify);

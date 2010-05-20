@@ -72,16 +72,16 @@ public class DigitalSignature {
         try {
             sha = MessageDigest.getInstance("SHA-1");
 
-            if (keyExchange == CipherSuite.KeyExchange_RSA_EXPORT ||
-                    keyExchange == CipherSuite.KeyExchange_RSA ||
-                    keyExchange == CipherSuite.KeyExchange_DHE_RSA ||
-                    keyExchange == CipherSuite.KeyExchange_DHE_RSA_EXPORT) {
+            if (keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT ||
+                    keyExchange == CipherSuite.KEY_EXCHANGE_RSA ||
+                    keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA ||
+                    keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT) {
                 // SignatureAlgorithm is rsa
                 md5 = MessageDigest.getInstance("MD5");
                 cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
                 signature = null;
-            } else if (keyExchange == CipherSuite.KeyExchange_DHE_DSS ||
-                    keyExchange == CipherSuite.KeyExchange_DHE_DSS_EXPORT ) {
+            } else if (keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS ||
+                    keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT ) {
                 // SignatureAlgorithm is dsa
                 signature = Signature.getInstance("NONEwithDSA");
                 cipher = null;
