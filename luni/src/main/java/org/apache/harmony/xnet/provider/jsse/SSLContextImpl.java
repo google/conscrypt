@@ -168,7 +168,7 @@ public class SSLContextImpl extends SSLContextSpi {
         return createSSLParameters(true);
     }
 
-    private SSLParameters createSSLParameters (boolean supported) {
+    private javax.net.ssl.SSLParameters createSSLParameters (boolean supported) {
         try {
             SSLSocket s = (SSLSocket) engineGetSocketFactory().createSocket();
             javax.net.ssl.SSLParameters p = new javax.net.ssl.SSLParameters();
