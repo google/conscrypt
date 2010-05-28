@@ -18,18 +18,15 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.SecureRandom;
-import java.security.GeneralSecurityException;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContextSpi;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLServerSocketFactory;
-import javax.net.ssl.SSLSessionContext;
-import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
-import org.apache.harmony.xnet.provider.jsse.SSLEngineImpl;
 
 // BEGIN android-note
 //  Modified heavily during SSLSessionContext refactoring. Added support for
@@ -156,43 +153,5 @@ public class SSLContextImpl extends SSLContextSpi {
     @Override
     public ClientSessionContext engineGetClientSessionContext() {
         return clientSessionContext;
-    }
-
-    @Override
-    public javax.net.ssl.SSLParameters engineGetDefaultSSLParameters() {
-        return createSSLParameters(false);
-    }
-
-    @Override
-    public javax.net.ssl.SSLParameters engineGetSupportedSSLParameters() {
-        return createSSLParameters(true);
-    }
-
-    private javax.net.ssl.SSLParameters createSSLParameters (boolean supported) {
-        try {
-            SSLSocket s = (SSLSocket) engineGetSocketFactory().createSocket();
-            javax.net.ssl.SSLParameters p = new javax.net.ssl.SSLParameters();
-            String[] cipherSuites;
-            String[] protocols;
-            if (supported) {
-                cipherSuites = s.getSupportedCipherSuites();
-                protocols    = s.getSupportedProtocols();
-            } else {
-                cipherSuites = s.getEnabledCipherSuites();
-                protocols    = s.getEnabledProtocols();
-            }
-            p.setCipherSuites(cipherSuites);
-            p.setProtocols(protocols);
-            p.setNeedClientAuth(s.getNeedClientAuth());
-            p.setWantClientAuth(s.getWantClientAuth());
-            return p;
-        } catch (IOException e) {
-            /*
-             * SSLContext.getDefaultSSLParameters specifies to throw
-             * UnsupportedOperationException if there is a problem getting the
-             * parameters
-             */
-            throw new UnsupportedOperationException("Could not access supported SSL parameters");
-        }
     }
 }
