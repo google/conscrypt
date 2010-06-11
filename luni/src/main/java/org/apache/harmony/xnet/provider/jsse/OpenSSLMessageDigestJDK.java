@@ -44,7 +44,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest {
         // We don't support MD2 anymore. This needs to also check for aliases
         // and OIDs.
         if ("MD2".equalsIgnoreCase(algorithm) || "1.2.840.113549.2.2"
-                .equalsIgnoreCase(algorithm)) {
+                .equals(algorithm)) {
             throw new NoSuchAlgorithmException(algorithm);
         }
 
