@@ -34,6 +34,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
+import libcore.base.Objects;
 
 /**
  *
@@ -298,8 +299,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
         final Vector<String> v = new Vector<String>();
         final AccessControlContext currAcc = AccessController.getContext();
         for (ValueKey key : values.keySet()) {
-            if ((currAcc == null && key.acc == null)
-                    || (currAcc != null && currAcc.equals(key.acc))) {
+            if (Objects.equal(currAcc, key.acc)) {
                 v.add(key.name);
             }
         }

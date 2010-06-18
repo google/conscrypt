@@ -22,8 +22,6 @@ import java.security.AccessController;
 import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Vector;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLPermission;
@@ -32,6 +30,7 @@ import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 import javax.security.cert.CertificateEncodingException;
+import libcore.base.Objects;
 import org.apache.harmony.luni.util.TwoKeyHashMap;
 import org.apache.harmony.security.provider.cert.X509CertImpl;
 
@@ -417,11 +416,10 @@ public class OpenSSLSessionImpl implements SSLSession {
         Vector v = new Vector();
         AccessControlContext current = AccessController.getContext();
         AccessControlContext cont;
-        for (Iterator it = values.entrySet().iterator(); it.hasNext();) {
-            TwoKeyHashMap.Entry entry = (TwoKeyHashMap.Entry) it.next();
+        for (Object o : values.entrySet()) {
+            TwoKeyHashMap.Entry entry = (TwoKeyHashMap.Entry) o;
             cont = (AccessControlContext) entry.getKey2();
-            if ((current == null && cont == null)
-                    || (current != null && current.equals(cont))) {
+            if (Objects.equal(current, cont == null)) {
                 v.add(entry.getKey1());
             }
         }
