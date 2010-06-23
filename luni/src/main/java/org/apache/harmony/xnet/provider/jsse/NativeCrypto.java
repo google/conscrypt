@@ -28,11 +28,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Provides the Java side of our JNI glue for OpenSSL. Currently only
- * hashing and verifying are covered. Is expected to grow over
- * time. Also needs to move into libcore/openssl at some point.
+ * Provides the Java side of our JNI glue for OpenSSL.
  */
-public class NativeCrypto {
+public final class NativeCrypto {
 
     // --- OpenSSL library initialization --------------------------------------
     static {
@@ -258,9 +256,9 @@ public class NativeCrypto {
 
     public static final String[] KEY_TYPES = new String[] { "RSA", "DSA", "DH_RSA" , "DH_DSA" };
 
-    public static native void SSL_use_certificate(int ssl, byte[] pemEncodedCertificate);
+    public static native void SSL_use_certificate(int ssl, byte[][] asn1DerEncodedCertificate);
 
-    public static native void SSL_use_PrivateKey(int ssl, byte[] pemEncodedPrivateKey);
+    public static native void SSL_use_PrivateKey(int ssl, byte[] pkcs8EncodedPrivateKey);
 
     public static native void SSL_check_private_key(int ssl);
 
@@ -302,8 +300,8 @@ public class NativeCrypto {
                 optionsToSet &= ~SSL_OP_NO_TLSv1;
                 optionsToClear |= SSL_OP_NO_TLSv1;
             } else {
-                throw new IllegalArgumentException("protocol " + protocol +
-                                                   " is not supported");
+                throw new IllegalArgumentException("protocol " + protocol
+                                                   + " is not supported");
             }
         }
 
@@ -322,8 +320,8 @@ public class NativeCrypto {
             }
             if ((!protocol.equals(SUPPORTED_PROTOCOL_SSLV3))
                     && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1))) {
-                throw new IllegalArgumentException("protocol " + protocol +
-                                                   " is not supported");
+                throw new IllegalArgumentException("protocol " + protocol
+                                                   + " is not supported");
             }
         }
         return protocols;

@@ -154,7 +154,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
-    /** 
+    /**
      * Called when a session is removed. Used by ClientSessionContext
      * to update its host-and-port based cache.
      */

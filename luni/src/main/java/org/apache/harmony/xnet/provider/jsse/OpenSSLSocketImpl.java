@@ -16,16 +16,15 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -37,7 +36,6 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import org.apache.harmony.security.provider.cert.X509CertImpl;
-import org.bouncycastle.openssl.PEMWriter;
 
 /**
  * Implementation of the class OpenSSLSocketImpl
@@ -449,21 +447,18 @@ public class OpenSSLSocketImpl
         }
 
         PrivateKey privateKey = sslParameters.getKeyManager().getPrivateKey(alias);
-        ByteArrayOutputStream privateKeyOS = new ByteArrayOutputStream();
-        PEMWriter privateKeyPEMWriter = new PEMWriter(new OutputStreamWriter(privateKeyOS));
-        privateKeyPEMWriter.writeObject(privateKey);
-        privateKeyPEMWriter.close();
-        byte[] privateKeyBytes = privateKeyOS.toByteArray();
+        byte[] privateKeyBytes = privateKey.getEncoded();
         NativeCrypto.SSL_use_PrivateKey(sslNativePointer, privateKeyBytes);
 
         X509Certificate[] certificates = sslParameters.getKeyManager().getCertificateChain(alias);
-        ByteArrayOutputStream certificateOS = new ByteArrayOutputStream();
-        PEMWriter certificateWriter = new PEMWriter(new OutputStreamWriter(certificateOS));
-        for (X509Certificate certificate : certificates) {
-            certificateWriter.writeObject(certificate);
+        byte[][] certificateBytes = new byte[certificates.length][];
+        for (int i = 0; i < certificates.length; i++) {
+            try {
+                certificateBytes[i] = certificates[i].getEncoded();
+            } catch (CertificateEncodingException e) {
+                throw new IOException("Problem encoding certificate " + certificates[i], e);
+            }
         }
-        certificateWriter.close();
-        byte[] certificateBytes = certificateOS.toByteArray();
         // TODO SSL_use_certificate only looks at the first certificate in the chain.
         // It would be better to use a custom version of SSL_CTX_use_certificate_chain_file
         // to set the whole chain. Note there is no SSL_ equivalent of this SSL_CTX_ function.

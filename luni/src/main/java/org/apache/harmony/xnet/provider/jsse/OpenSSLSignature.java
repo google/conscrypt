@@ -16,6 +16,8 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
 import java.security.NoSuchAlgorithmException;
@@ -28,14 +30,57 @@ import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPublicKey;
 
 /**
- * Implements the JDK MessageDigest interface using OpenSSL's EVP API.
+ * Implements the subset of the JDK Signature interface needed for
+ * signature verification using OpenSSL.
  */
 public class OpenSSLSignature extends Signature {
+
+    private static Map<String,Class<? extends OpenSSLSignature>> jdkToOpenSsl
+            = new HashMap<String,Class<? extends OpenSSLSignature>>();
+
+    static {
+        // TODO Finish OpenSSLSignature implementation and move
+        // registration information to the OpenSSLProvider
+        jdkToOpenSsl.put("MD5WithRSAEncryption", MD5RSA.class);
+        jdkToOpenSsl.put("MD5WithRSA", MD5RSA.class);
+        jdkToOpenSsl.put("MD5/RSA", MD5RSA.class);
+        jdkToOpenSsl.put("1.2.840.113549.1.1.4", MD5RSA.class);
+        jdkToOpenSsl.put("1.2.840.113549.2.5with1.2.840.113549.1.1.1", MD5RSA.class);
+
+        jdkToOpenSsl.put("SHA1WithRSAEncryption", SHA1RSA.class);
+        jdkToOpenSsl.put("SHA1WithRSA", SHA1RSA.class);
+        jdkToOpenSsl.put("SHA1/RSA", SHA1RSA.class);
+        jdkToOpenSsl.put("SHA-1/RSA", SHA1RSA.class);
+        jdkToOpenSsl.put("1.2.840.113549.1.1.5", SHA1RSA.class);
+        jdkToOpenSsl.put("1.3.14.3.2.26with1.2.840.113549.1.1.1", SHA1RSA.class);
+        jdkToOpenSsl.put("1.3.14.3.2.26with1.2.840.113549.1.1.5", SHA1RSA.class);
+        jdkToOpenSsl.put("1.3.14.3.2.29", SHA1RSA.class);
+
+        jdkToOpenSsl.put("SHA256WithRSAEncryption", SHA256RSA.class);
+        jdkToOpenSsl.put("SHA256WithRSA", SHA256RSA.class);
+        jdkToOpenSsl.put("1.2.840.113549.1.1.11", SHA256RSA.class);
+
+        jdkToOpenSsl.put("SHA384WithRSAEncryption", SHA384RSA.class);
+        jdkToOpenSsl.put("SHA384WithRSA", SHA384RSA.class);
+        jdkToOpenSsl.put("1.2.840.113549.1.1.12", SHA384RSA.class);
+
+        jdkToOpenSsl.put("SHA512WithRSAEncryption", SHA512RSA.class);
+        jdkToOpenSsl.put("SHA512WithRSA", SHA512RSA.class);
+        jdkToOpenSsl.put("1.2.840.113549.1.1.13", SHA512RSA.class);
+
+        jdkToOpenSsl.put("SHA1withDSA", SHA1DSA.class);
+        jdkToOpenSsl.put("SHA/DSA", SHA1DSA.class);
+        jdkToOpenSsl.put("DSA", SHA1DSA.class);
+        jdkToOpenSsl.put("1.3.14.3.2.26with1.2.840.10040.4.1", SHA1DSA.class);
+        jdkToOpenSsl.put("1.3.14.3.2.26with1.2.840.10040.4.3", SHA1DSA.class);
+        jdkToOpenSsl.put("DSAWithSHA1", SHA1DSA.class);
+        jdkToOpenSsl.put("1.2.840.10040.4.3", SHA1DSA.class);
+    }
 
     /**
      * Holds a pointer to the native message digest context.
      */
-    private int ctx;
+    private final int ctx;
 
     /**
      * Holds a pointer to the native DSA key.
@@ -50,63 +95,53 @@ public class OpenSSLSignature extends Signature {
     /**
      * Holds the OpenSSL name of the algorithm (lower case, no dashes).
      */
-    private String evpAlgorithm;
+    private final String evpAlgorithm;
 
     /**
      * Holds a dummy buffer for writing single bytes to the digest.
      */
-    private byte[] singleByte = new byte[1];
+    private final byte[] singleByte = new byte[1];
 
     /**
      * Creates a new OpenSSLSignature instance for the given algorithm name.
      *
-     * @param algorithm The name of the algorithm, e.g. "SHA1".
+     * @param algorithm The name of the algorithm, e.g. "SHA1WithRSA".
      *
      * @return The new OpenSSLSignature instance.
      *
      * @throws RuntimeException In case of problems.
      */
     public static OpenSSLSignature getInstance(String algorithm) throws NoSuchAlgorithmException {
-        //log("OpenSSLSignature", "getInstance() invoked with " + algorithm);
-        return new OpenSSLSignature(algorithm);
+        // System.out.println("getInstance() invoked with " + algorithm);
+
+        Class <? extends OpenSSLSignature> clazz = jdkToOpenSsl.get(algorithm);
+        if (clazz == null) {
+            throw new NoSuchAlgorithmException(algorithm);
+        }
+        try {
+            return clazz.newInstance();
+        } catch (InstantiationException e) {
+            throw new NoSuchAlgorithmException(algorithm, e);
+        } catch (IllegalAccessException e) {
+            throw new NoSuchAlgorithmException(algorithm, e);
+        }
     }
 
     /**
      * Creates a new OpenSSLSignature instance for the given algorithm name.
      *
-     * @param algorithm The name of the algorithm, e.g. "SHA1".
+     * @param algorithm OpenSSL name of the algorithm, e.g. "RSA-SHA1".
      */
     private OpenSSLSignature(String algorithm) throws NoSuchAlgorithmException {
         super(algorithm);
 
-        int i = algorithm.indexOf("with");
-        if (i == -1) {
+        // We don't support MD2
+        if ("RSA-MD2".equals(algorithm)) {
             throw new NoSuchAlgorithmException(algorithm);
         }
 
-        // We don't support MD2 anymore. This needs to also check for aliases
-        // and OIDs.
-        if ("MD2withRSA".equalsIgnoreCase(algorithm) ||
-                "MD2withRSAEncryption".equalsIgnoreCase(algorithm) ||
-                "1.2.840.113549.1.1.2".equalsIgnoreCase(algorithm) ||
-                "MD2/RSA".equalsIgnoreCase(algorithm)) {
-            throw new NoSuchAlgorithmException("MD2withRSA");
-        }
-
-        // For the special combination of DSA and SHA1, we need to pass the
-        // algorithm name as a pair consisting of crypto algorithm and hash
-        // algorithm. For all other (RSA) cases, passing the hash algorithm
-        // alone is not only sufficient, but actually necessary. OpenSSL
-        // doesn't accept something like RSA-SHA1.
-        if ("1.3.14.3.2.26with1.2.840.10040.4.1".equals(algorithm)
-                || "SHA1withDSA".equals(algorithm)
-                || "SHAwithDSA".equals(algorithm)) {
-            evpAlgorithm = "DSA-SHA";
-        } else {
-            evpAlgorithm = algorithm.substring(0, i).replace("-", "").toUpperCase();
-        }
-
-        ctx = NativeCrypto.EVP_new();
+        this.evpAlgorithm = algorithm;
+        this.ctx = NativeCrypto.EVP_new();
     }
 
     @Override
@@ -136,7 +171,8 @@ public class OpenSSLSignature extends Signature {
 
     @Override
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
-        //log("OpenSSLSignature", "engineInitVerify() invoked with " + publicKey.getClass().getCanonicalName());
+        // System.out.println("engineInitVerify() invoked with "
+        //                    + publicKey.getClass().getCanonicalName());
 
         if (publicKey instanceof DSAPublicKey) {
             try {
@@ -212,4 +248,36 @@ public class OpenSSLSignature extends Signature {
             NativeCrypto.EVP_free(ctx);
         }
     }
+
+    public static final class MD5RSA extends OpenSSLSignature {
+        public MD5RSA() throws NoSuchAlgorithmException {
+            super("RSA-MD5");
+        }
+    }
+    public static final class SHA1RSA extends OpenSSLSignature {
+        public SHA1RSA() throws NoSuchAlgorithmException {
+            super("RSA-SHA1");
+        }
+    }
+    public static final class SHA256RSA extends OpenSSLSignature {
+        public SHA256RSA() throws NoSuchAlgorithmException {
+            super("RSA-SHA256");
+        }
+    }
+    public static final class SHA384RSA extends OpenSSLSignature {
+        public SHA384RSA() throws NoSuchAlgorithmException {
+            super("RSA-SHA384");
+        }
+    }
+    public static final class SHA512RSA extends OpenSSLSignature {
+        public SHA512RSA() throws NoSuchAlgorithmException {
+            super("RSA-SHA512");
+        }
+    }
+    public static final class SHA1DSA extends OpenSSLSignature {
+        public SHA1DSA() throws NoSuchAlgorithmException {
+            super("DSA-SHA1");
+        }
+    }
 }
+
