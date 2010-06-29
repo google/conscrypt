@@ -88,7 +88,13 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         } else if (parameters.getEnableSessionCreation()){
             isResuming = false;
             session = new SSLSessionImpl(parameters.getSecureRandom());
-            session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
+            // BEGIN android-added
+            if (engineOwner != null) {
+                session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
+            } else {
+                session.setPeer(socketOwner.getInetAddress().getHostName(), socketOwner.getPort());
+            }
+            // END android-added
             session.protocol = ProtocolVersion.getLatestVersion(parameters
                     .getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
@@ -106,7 +112,13 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         if (parameters.getEnableSessionCreation()){
             isResuming = false;
             session = new SSLSessionImpl(parameters.getSecureRandom());
-            session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
+            // BEGIN android-added
+            if (engineOwner != null) {
+                session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
+            } else {
+                session.setPeer(socketOwner.getInetAddress().getHostName(), socketOwner.getPort());
+            }
+            // END android-added
             session.protocol = ProtocolVersion.getLatestVersion(parameters
                     .getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
@@ -605,17 +617,20 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
 
     // Find session to resume in client session context
     private SSLSessionImpl findSessionToResume() {
-        // BEGIN android-changed
         String host = null;
         int port = -1;
         if (engineOwner != null) {
             host = engineOwner.getPeerHost();
             port = engineOwner.getPeerPort();
+        } else {
+            host = socketOwner.getInetAddress().getHostName();
+            port = socketOwner.getPort();
         }
         if (host == null || port == -1) {
             return null; // starts new session
         }
 
+        // BEGIN android-changed
         ClientSessionContext context = parameters.getClientSessionContext();
         SSLSessionImpl session
                 = (SSLSessionImpl) context.getSession(host, port);

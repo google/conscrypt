@@ -429,7 +429,13 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                         "SSL Session may not be created");
             }
             session = new SSLSessionImpl(cipher_suite, parameters.getSecureRandom());
-            session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
+            // BEGIN android-added
+            if (engineOwner != null) {
+                session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
+            } else {
+                session.setPeer(socketOwner.getInetAddress().getHostName(), socketOwner.getPort());
+            }
+            // END android-added
         }
 
         recordProtocol.setVersion(clientHello.client_version);
@@ -469,29 +475,21 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             X509KeyManager km = parameters.getKeyManager();
             if (km instanceof X509ExtendedKeyManager) {
                 X509ExtendedKeyManager ekm = (X509ExtendedKeyManager)km;
-                // BEGIN android-removed
-                // if (this.socketOwner != null) {
-                //     alias = ekm.chooseServerAlias(certType, null,
-                //             this.socketOwner);
-                // } else {
-                // END android-removed
+                if (this.socketOwner != null) {
+                    alias = ekm.chooseServerAlias(certType, null,
+                            this.socketOwner);
+                } else {
                     alias = ekm.chooseEngineServerAlias(certType, null,
                             this.engineOwner);
-                // BEGIN android-removed
-                // }
-                // END android-removed
+                }
                 if (alias != null) {
                     certs = ekm.getCertificateChain(alias);
                 }
             } else {
-                // BEGIN android-removed
-                // alias = km.chooseServerAlias(certType, null, this.socketOwner);
-                // if (alias != null) {
-                // END android-removed
+                alias = km.chooseServerAlias(certType, null, this.socketOwner);
+                if (alias != null) {
                     certs = km.getCertificateChain(alias);
-                // BEGIN android-removed
-                // }
-                // END android-removed
+                }
             }
 
             if (certs == null) {

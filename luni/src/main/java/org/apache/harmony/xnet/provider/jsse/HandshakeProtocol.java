@@ -152,9 +152,7 @@ public abstract class HandshakeProtocol {
     /**
      * SSLSocket owning this HandshakeProtocol
      */
-    // BEGIN android-removed
-    // public SSLSocketImpl socketOwner;
-    // END android-removed
+    public SSLSocketImpl socketOwner;
 
     /**
      * Creates HandshakeProtocol instance
@@ -166,13 +164,11 @@ public abstract class HandshakeProtocol {
             nonBlocking = true;
             this.parameters = engineOwner.sslParameters;
         }
-        // BEGIN android-removed
-        // else if (owner instanceof SSLSocketImpl) {
-        //     socketOwner = (SSLSocketImpl) owner;
-        //     nonBlocking = false;
-        //     this.parameters = socketOwner.sslParameters;
-        // }
-        // END android-removed
+        else if (owner instanceof SSLSocketImpl) {
+            socketOwner = (SSLSocketImpl) owner;
+            nonBlocking = false;
+            this.parameters = socketOwner.sslParameters;
+        }
     }
 
     /**

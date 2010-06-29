@@ -19,32 +19,16 @@ public class OpenSSLMessageDigestJDK extends MessageDigest {
     private byte[] singleByte = new byte[1];
 
     /**
-     * Creates a new OpenSSLMessageDigestJDK instance for the given algorithm
-     * name.
-     *
-     * @param algorithm The name of the algorithm, e.g. "SHA1".
-     *
-     * @return The new OpenSSLMessageDigestJDK instance.
-     *
-     * @throws RuntimeException In case of problems.
-     */
-    public static OpenSSLMessageDigestJDK getInstance(String algorithm) throws NoSuchAlgorithmException{
-        return new OpenSSLMessageDigestJDK(algorithm);
-    }
-
-    /**
      * Creates a new OpenSSLMessageDigest instance for the given algorithm
      * name.
      *
-     * @param algorithm The name of the algorithm, e.g. "SHA1".
+     * @param algorithm The name of the algorithm, e.g. "SHA-1".
      */
     private OpenSSLMessageDigestJDK(String algorithm) throws NoSuchAlgorithmException {
         super(algorithm);
 
-        // We don't support MD2 anymore. This needs to also check for aliases
-        // and OIDs.
-        if ("MD2".equalsIgnoreCase(algorithm) || "1.2.840.113549.2.2"
-                .equals(algorithm)) {
+        // We don't support MD2.
+        if ("MD2".equals(algorithm)) {
             throw new NoSuchAlgorithmException(algorithm);
         }
 
@@ -103,15 +87,21 @@ public class OpenSSLMessageDigestJDK extends MessageDigest {
         }
     }
 
-    static public class SHA224 extends OpenSSLMessageDigestJDK {
-        public SHA224() throws NoSuchAlgorithmException {
-            super("SHA-224");
-        }
-    }
-
     static public class SHA256 extends OpenSSLMessageDigestJDK {
         public SHA256() throws NoSuchAlgorithmException {
             super("SHA-256");
+        }
+    }
+
+    static public class SHA384 extends OpenSSLMessageDigestJDK {
+        public SHA384() throws NoSuchAlgorithmException {
+            super("SHA-384");
+        }
+    }
+
+    static public class SHA512 extends OpenSSLMessageDigestJDK {
+        public SHA512() throws NoSuchAlgorithmException {
+            super("SHA-512");
         }
     }
 }
