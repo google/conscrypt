@@ -17,10 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.SSLv3Constants;
-import org.apache.harmony.xnet.provider.jsse.SSLSessionImpl;
-import org.apache.harmony.xnet.provider.jsse.ProtocolVersion;
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.AccessController;
@@ -34,9 +30,7 @@ import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
-
 import java.util.Arrays;
-
 import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
 import javax.crypto.interfaces.DHPublicKey;
@@ -45,6 +39,9 @@ import javax.crypto.spec.DHPublicKeySpec;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
+import org.apache.harmony.xnet.provider.jsse.ProtocolVersion;
+import org.apache.harmony.xnet.provider.jsse.SSLSessionImpl;
+import org.apache.harmony.xnet.provider.jsse.SSLv3Constants;
 
 /**
  * Server side handshake protocol implementation.
@@ -149,8 +146,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                                     "HANDSHAKE FAILURE: no client certificate received");
                         }
                     } else {
-                        String authType = clientCert.certs[0].getPublicKey()
-                                .getAlgorithm();
+                        String authType = clientCert.getAuthType();
                         try {
                             parameters.getTrustManager().checkClientTrusted(
                                     clientCert.certs, authType);
@@ -176,22 +172,19 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     }
                     certificateVerify = new CertificateVerify(io_stream, length);
 
-                    DigitalSignature ds = new DigitalSignature(session.cipherSuite.keyExchange);
-                    ds.init(serverCert.certs[0]);
+                    String authType = clientCert.getAuthType();
+                    DigitalSignature ds = new DigitalSignature(authType);
+                    ds.init(clientCert.certs[0]);
                     byte[] md5_hash = null;
                     byte[] sha_hash = null;
 
-                    if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT
-                            || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA
-                            || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA
-                            || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT) {
+                    if ("RSA".equals(authType)) {
                         md5_hash = io_stream.getDigestMD5withoutLast();
                         sha_hash = io_stream.getDigestSHAwithoutLast();
-                    } else if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS
-                            || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT) {
+                    } else if ("DSA".equals(authType)) {
                         sha_hash = io_stream.getDigestSHAwithoutLast();
-                    } else if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon
-                            || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT) {
+                    // The Signature should be empty in case of anonymous signature algorithm:
+                    // } else if ("DH".equals(authType)) {
                     }
                     ds.setMD5(md5_hash);
                     ds.setSHA(sha_hash);
@@ -498,7 +491,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             }
             session.localCertificates = certs;
             serverCert = new CertificateMessage(certs);
-            privKey = parameters.getKeyManager().getPrivateKey(alias);
+            privKey = km.getPrivateKey(alias);
             send(serverCert);
         }
 
@@ -541,7 +534,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
 
         if (kpg != null) {
             // need to send server key exchange message
-            DigitalSignature ds = new DigitalSignature(cipher_suite.keyExchange);
+            DigitalSignature ds = new DigitalSignature(cipher_suite.authType);
             KeyPair kp = null;
             try {
                 kp = kpg.genKeyPair();

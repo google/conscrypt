@@ -30,8 +30,6 @@ import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.Enumeration;
-
 import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
 import javax.crypto.interfaces.DHKey;
@@ -39,8 +37,9 @@ import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.DHPublicKeySpec;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509KeyManager;
+import javax.security.auth.x500.X500Principal;
 
 /**
  * Client side handshake protocol implementation.
@@ -387,15 +386,13 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         PrivateKey clientKey = null;
 
         if (serverCert != null) {
-            if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon
-                    || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT) {
+            if (session.cipherSuite.isAnonymous()) {
                 unexpectedMessage();
                 return;
             }
             verifyServerCert();
         } else {
-            if (session.cipherSuite.keyExchange != CipherSuite.KEY_EXCHANGE_DH_anon
-                    && session.cipherSuite.keyExchange != CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT) {
+            if (!session.cipherSuite.isAnonymous()) {
                 unexpectedMessage();
                 return;
             }
@@ -404,18 +401,31 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         // Client certificate
         if (certificateRequest != null) {
             X509Certificate[] certs = null;
-            String clientAlias = ((X509ExtendedKeyManager) parameters
-                    .getKeyManager()).chooseClientAlias(certificateRequest
-                    .getTypesAsString(),
-                    certificateRequest.certificate_authorities, null);
-            if (clientAlias != null) {
-                X509ExtendedKeyManager km = (X509ExtendedKeyManager) parameters
-                        .getKeyManager();
-                certs = km.getCertificateChain((clientAlias));
-                clientKey = km.getPrivateKey(clientAlias);
+            // obtain certificates from key manager
+            String alias = null;
+            String[] certTypes = certificateRequest.getTypesAsString();
+            X500Principal[] issuers = certificateRequest.certificate_authorities;
+            X509KeyManager km = parameters.getKeyManager();
+            if (km instanceof X509ExtendedKeyManager) {
+                X509ExtendedKeyManager ekm = (X509ExtendedKeyManager)km;
+                if (this.socketOwner != null) {
+                    alias = ekm.chooseClientAlias(certTypes, issuers, this.socketOwner);
+                } else {
+                    alias = ekm.chooseEngineClientAlias(certTypes, issuers, this.engineOwner);
+                }
+                if (alias != null) {
+                    certs = ekm.getCertificateChain(alias);
+                }
+            } else {
+                alias = km.chooseClientAlias(certTypes, issuers, this.socketOwner);
+                if (alias != null) {
+                    certs = km.getCertificateChain(alias);
+                }
             }
+
             session.localCertificates = certs;
             clientCert = new CertificateMessage(certs);
+            clientKey = km.getPrivateKey(alias);
             send(clientCert);
         }
         // Client key exchange
@@ -529,22 +539,17 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         // fixed DH parameters
         if (clientCert != null && !clientKeyExchange.isEmpty()) {
             // Certificate verify
-            DigitalSignature ds = new DigitalSignature(
-                    session.cipherSuite.keyExchange);
+            String authType = clientKey.getAlgorithm();
+            DigitalSignature ds = new DigitalSignature(authType);
             ds.init(clientKey);
 
-            if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT
-                    || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA
-                    || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA
-                    || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT) {
+            if ("RSA".equals(authType)) {
                 ds.setMD5(io_stream.getDigestMD5());
                 ds.setSHA(io_stream.getDigestSHA());
-            } else if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS
-                    || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT) {
+            } else if ("DSA".equals(authType)) {
                 ds.setSHA(io_stream.getDigestSHA());
-            // The Signature should be empty in case of anonimous signature algorithm:
-            // } else if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon ||
-            //         session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT) {
+            // The Signature should be empty in case of anonymous signature algorithm:
+            // } else if ("DH".equals(authType)) {
             }
             certificateVerify = new CertificateVerify(ds.sign());
             send(certificateVerify);

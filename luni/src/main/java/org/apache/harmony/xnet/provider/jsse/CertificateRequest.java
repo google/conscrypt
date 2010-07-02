@@ -17,16 +17,14 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.Message;
-import org.apache.harmony.xnet.provider.jsse.Handshake;
-import org.apache.harmony.xnet.provider.jsse.HandshakeIODataStream;
-import org.apache.harmony.xnet.provider.jsse.AlertProtocol;
-
 import java.io.IOException;
 import java.security.cert.X509Certificate;
 import java.util.Vector;
-
 import javax.security.auth.x500.X500Principal;
+import org.apache.harmony.xnet.provider.jsse.AlertProtocol;
+import org.apache.harmony.xnet.provider.jsse.Handshake;
+import org.apache.harmony.xnet.provider.jsse.HandshakeIODataStream;
+import org.apache.harmony.xnet.provider.jsse.Message;
 
 /**
  *
@@ -53,13 +51,17 @@ public class CertificateRequest extends Message {
     /**
      * Certificate authorities
      */
-    X500Principal[] certificate_authorities;
+    final X500Principal[] certificate_authorities;
 
-    // Requested certificate types as Strings
-    // ("RSA", "DSA", "DH_RSA" or "DH_DSA")
+    /**
+     * Requested certificate types as Strings
+     * ("RSA", "DSA", "DH_RSA" or "DH_DSA")
+     */
     private String[] types;
 
-    // Encoded form of certificate authorities
+    /**
+     * Encoded form of certificate authorities
+     */
     private byte[][] encoded_principals;
 
     /**
@@ -69,7 +71,7 @@ public class CertificateRequest extends Message {
      * @param accepted - array of certificate authority certificates
      */
     public CertificateRequest(byte[] certificate_types,
-            X509Certificate[] accepted) {
+                              X509Certificate[] accepted) {
 
         if (accepted == null) {
             fatalAlert(AlertProtocol.INTERNAL_ERROR,
@@ -102,7 +104,6 @@ public class CertificateRequest extends Message {
         certificate_types = new byte[size];
         in.read(certificate_types, 0, size);
         size = in.readUint16();
-        certificate_authorities = new X500Principal[size];
         int totalPrincipalsLength = 0;
         int principalLength = 0;
         Vector<X500Principal> principals = new Vector<X500Principal>();

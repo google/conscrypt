@@ -68,20 +68,15 @@ public class DigitalSignature {
      * Create Signature type
      * @param keyExchange
      */
-    public DigitalSignature(int keyExchange) {
+    public DigitalSignature(String authType) {
         try {
             sha = MessageDigest.getInstance("SHA-1");
 
-            if (keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT ||
-                    keyExchange == CipherSuite.KEY_EXCHANGE_RSA ||
-                    keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA ||
-                    keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT) {
-                // SignatureAlgorithm is rsa
+            if ("RSA".equals(authType)) {
                 md5 = MessageDigest.getInstance("MD5");
                 cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
                 signature = null;
-            } else if (keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS ||
-                    keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT ) {
+            } else if ("DSA".equals(authType)) {
                 // SignatureAlgorithm is dsa
                 signature = Signature.getInstance("NONEwithDSA");
                 cipher = null;
@@ -216,6 +211,7 @@ public class DigitalSignature {
     public boolean verifySignature(byte[] data) {
         if (signature != null) {
             try {
+                signature.update(sha_hash);
                 return signature.verify(data);
             } catch (SignatureException e) {
                 return false;

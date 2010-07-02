@@ -163,6 +163,10 @@ public class CertificateMessage extends Message {
 
     }
 
+    public String getAuthType() {
+        return certs[0].getPublicKey().getAlgorithm();
+    }
+
     /**
      * Returns message type
      *
