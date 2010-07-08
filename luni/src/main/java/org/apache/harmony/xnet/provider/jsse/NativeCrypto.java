@@ -254,7 +254,30 @@ public final class NativeCrypto {
 
     public static native int SSL_new(int ssl_ctx) throws IOException;
 
-    public static final String[] KEY_TYPES = new String[] { "RSA", "DSA", "DH_RSA" , "DH_DSA" };
+    public static final String[] KEY_TYPES = new String[] {
+        "RSA",
+        "DSA",
+        "DH_RSA",
+        "DH_DSA",
+        "EC"
+    };
+
+    public static String keyType(int keyType) {
+        switch (keyType) {
+            case 1: // TLS_CT_RSA_SIGN
+                return "RSA";
+            case 2: // TLS_CT_DSS_SIGN
+                return "DSA";
+            case 3: // TLS_CT_RSA_FIXED_DH
+                return "DH_RSA";
+            case 4: // TLS_CT_DSS_FIXED_DH
+                return "DH_DSA";
+            case 64: // TLS_CT_ECDSA_SIGN
+                return "EC";
+            default:
+                return null;
+        }
+    }
 
     public static native void SSL_use_certificate(int ssl, byte[][] asn1DerEncodedCertificate);
 
@@ -414,7 +437,7 @@ public final class NativeCrypto {
     public static native byte[] SSL_SESSION_session_id(int sslSessionNativePointer);
 
     /**
-     * Returns the X509 certificates of the peer in the PEM format.
+     * Returns the ASN.1 DER encoded X509 certificates of the peer.
      */
     public static native byte[][] SSL_SESSION_get_peer_cert_chain(int sslCtxNativePointer,
                                                                   int sslSessionNativePointer);
@@ -439,12 +462,12 @@ public final class NativeCrypto {
         /**
          * Verify that we trust the certificate chain is trusted.
          *
-         * @param bytes An array of certficates in PEM encode bytes
+         * @param asn1DerEncodedCertificate An array of ASN.1 DER encoded certficates
          * @param authMethod auth algorithm name
          *
          * @throws CertificateException if the certificate is untrusted
          */
-        public void verifyCertificateChain(byte[][] bytes, String authMethod)
+        public void verifyCertificateChain(byte[][] asn1DerEncodedCertificate, String authMethod)
             throws CertificateException;
 
         /**
@@ -454,9 +477,12 @@ public final class NativeCrypto {
          * certificate if has an appropriate one available, similar to
          * how the server provides its certificate.
          *
-         * @param keyType One of KEY_TYPES such as RSA or DSA
+         * @param keyTypes key types supported by the server,
+         * convertible to strings with #keyType
+         * @param asn1DerEncodedX500Principals CAs known to the server
          */
-        public void clientCertificateRequested(String keyType)
+        public void clientCertificateRequested(byte[] keyTypes,
+                                               byte[][] asn1DerEncodedX500Principals)
             throws IOException;
 
         /**

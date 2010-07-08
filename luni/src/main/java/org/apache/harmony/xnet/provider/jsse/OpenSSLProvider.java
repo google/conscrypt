@@ -23,6 +23,12 @@ public final class OpenSSLProvider extends Provider {
     public OpenSSLProvider() {
         super("AndroidOpenSSL", 1.0, "Android's OpenSSL-backed security provider");
 
+        put("SSLContext.SSL", OpenSSLContextImpl.class.getName());
+        put("SSLContext.SSLv3", OpenSSLContextImpl.class.getName());
+        put("SSLContext.TLS", OpenSSLContextImpl.class.getName());
+        put("SSLContext.TLSv1", OpenSSLContextImpl.class.getName());
+        put("SSLContext.Default", DefaultSSLContextImpl.class.getName());
+
         put("MessageDigest.SHA-1",
             "org.apache.harmony.xnet.provider.jsse.OpenSSLMessageDigestJDK$SHA1");
         put("Alg.Alias.MessageDigest.SHA1", "SHA-1");

@@ -20,8 +20,10 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.cert.CertPath;
 import java.security.cert.CertPathValidator;
 import java.security.cert.CertPathValidatorException;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.PKIXParameters;
@@ -32,14 +34,7 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
 import javax.net.ssl.X509TrustManager;
-
-// BEGIN android-added
-import java.lang.reflect.Method;
-import java.security.cert.CertPath;
-import java.security.cert.CertificateEncodingException;
-// END android-added
 
 /**
  *
@@ -109,7 +104,7 @@ public class TrustManagerImpl implements X509TrustManager {
             throw new CertificateException(err);
         }
         // BEGIN android-added
-        // Cater for degenerate special case where we can't
+        // Caters to degenerate special case where we can't
         // establish an actual certificate chain the usual way,
         // but have the peer certificate in our trust store.
         if (isDirectlyTrustedCert(chain)) {
@@ -122,7 +117,8 @@ public class TrustManagerImpl implements X509TrustManager {
             if (!Arrays.equals(chain[0].getEncoded(),
                     ((X509Certificate)certPath.getCertificates().get(0))
                     .getEncoded())) {
-                // sanity check failed (shouldn't ever happen, but we are using pretty remote code)
+                // Sanity check failed (shouldn't ever happen, but we
+                // are using pretty remote code)
                 throw new CertificateException("Certificate chain error");
             }
             validator.validate(certPath, params);
@@ -142,29 +138,29 @@ public class TrustManagerImpl implements X509TrustManager {
             throws CertificateException {
         if (chain == null || chain.length == 0 || authType == null
                 || authType.length() == 0) {
-            throw new IllegalArgumentException(
-                    "null or zero-length parameter");
+            throw new IllegalArgumentException("null or zero-length parameter");
         }
         if (err != null) {
             throw new CertificateException(err);
         }
-// BEGIN android-changed
+        // BEGIN android-changed
         CertificateException ce = null;
         try {
-            CertPath certPath = factory.generateCertPath(
-                    Arrays.asList(chain));
+            CertPath certPath = factory.generateCertPath(Arrays.asList(chain));
             if (!Arrays.equals(chain[0].getEncoded(),
                     certPath.getCertificates().get(0).getEncoded())) {
-                // Sanity check failed (shouldn't ever happen, but we are
-                // using pretty remote code)
+                // Sanity check failed (shouldn't ever happen, but we
+                // are using pretty remote code)
                 throw new CertificateException("Certificate chain error");
             }
             validator.validate(certPath, params);
+            // END android-changed
         } catch (InvalidAlgorithmParameterException e) {
             ce = new CertificateException(e);
         } catch (CertPathValidatorException e) {
             ce = new CertificateException(e);
         }
+        // BEGIN android-added
         if (ce != null) {
             // Caters to degenerate special case where we can't
             // establish an actual certificate chain the usual way
@@ -173,6 +169,7 @@ public class TrustManagerImpl implements X509TrustManager {
                 throw ce;
             }
         }
+        // END android-added
     }
 
     /**

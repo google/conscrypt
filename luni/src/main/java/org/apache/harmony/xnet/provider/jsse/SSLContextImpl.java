@@ -56,6 +56,7 @@ public class SSLContextImpl extends SSLContextSpi {
         clientSessionContext = new ClientSessionContext();
         serverSessionContext = new ServerSessionContext();
     }
+
     /**
      * Constuctor for the DefaultSSLContextImpl.
      * @param dummy is null, used to distinguish this case from the
@@ -110,11 +111,12 @@ public class SSLContextImpl extends SSLContextSpi {
         engineGetServerSessionContext().setPersistentCache(serverCache);
     }
 
+    @Override
     public SSLSocketFactory engineGetSocketFactory() {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initialized.");
         }
-        return new OpenSSLSocketFactoryImpl(sslParameters);
+        return new SSLSocketFactoryImpl(sslParameters);
     }
 
     @Override
@@ -122,7 +124,7 @@ public class SSLContextImpl extends SSLContextSpi {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initialized.");
         }
-        return new OpenSSLServerSocketFactoryImpl(sslParameters);
+        return new SSLServerSocketFactoryImpl(sslParameters);
     }
 
     @Override

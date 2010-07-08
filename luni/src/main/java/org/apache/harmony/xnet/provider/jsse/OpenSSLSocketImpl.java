@@ -35,6 +35,7 @@ import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import javax.security.auth.x500.X500Principal;
 import org.apache.harmony.security.provider.cert.X509CertImpl;
 
 /**
@@ -308,7 +309,7 @@ public class OpenSSLSocketImpl
             for (String keyType : NativeCrypto.KEY_TYPES) {
                 setCertificate(sslParameters.getKeyManager().chooseServerAlias(keyType,
                                                                                null,
-                                                                               null));
+                                                                               this));
             }
         }
 
@@ -354,6 +355,18 @@ public class OpenSSLSocketImpl
                                             NativeCrypto.SSL_VERIFY_CLIENT_ONCE);
             }
             // ... and it defaults properly so we don't need call SSL_set_verify in the common case.
+
+            // TODO Need to call SSL_CTX_set_client_CA_list to notify trusted issuers to client
+            //
+            // From SSL_CTX_load_verify_locations(3SSL)
+            //     In server mode, when requesting a client
+            //     certificate, the server must send the list of CAs
+            //     of which it will accept client certificates. This
+            //     list is not influenced by the contents of CAfile or
+            //     CApath and must explicitly be set using the
+            //     SSL_CTX_set_client_CA_list(3) family of functions.
+            //
+            // We can get the list from sslParameters.getTrustManager().getAcceptedIssuers()
         }
 
         if (client && full) {
@@ -398,15 +411,7 @@ public class OpenSSLSocketImpl
             } else {
                 localCertificates = new X509Certificate[localCertificatesBytes.length];
                 for (int i = 0; i < localCertificatesBytes.length; i++) {
-                    try {
-                        // TODO do not go through PEM decode, DER encode, DER decode
-                        localCertificates[i]
-                            = new X509CertImpl(
-                                javax.security.cert.X509Certificate.getInstance(
-                                    localCertificatesBytes[i]).getEncoded());
-                    } catch (javax.security.cert.CertificateException e) {
-                        throw new IOException("Problem decoding local certificate", e);
-                    }
+                    localCertificates[i] = new X509CertImpl(localCertificatesBytes[i]);
                 }
             }
 
@@ -441,7 +446,7 @@ public class OpenSSLSocketImpl
 
     }
 
-    private void setCertificate (String alias) throws IOException {
+    private void setCertificate(String alias) throws IOException {
         if (alias == null) {
             return;
         }
@@ -459,9 +464,6 @@ public class OpenSSLSocketImpl
                 throw new IOException("Problem encoding certificate " + certificates[i], e);
             }
         }
-        // TODO SSL_use_certificate only looks at the first certificate in the chain.
-        // It would be better to use a custom version of SSL_CTX_use_certificate_chain_file
-        // to set the whole chain. Note there is no SSL_ equivalent of this SSL_CTX_ function.
         NativeCrypto.SSL_use_certificate(sslNativePointer, certificateBytes);
 
         // checks the last installed private key and certificate,
@@ -473,10 +475,25 @@ public class OpenSSLSocketImpl
      * Implementation of NativeCrypto.SSLHandshakeCallbacks
      * invoked via JNI from client_cert_cb
      */
-    public void clientCertificateRequested(String keyType) throws IOException {
-        setCertificate(sslParameters.getKeyManager().chooseClientAlias(new String[] { keyType },
-                                                                       null,
-                                                                       null));
+    public void clientCertificateRequested(byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals)
+            throws IOException {
+
+        String[] keyTypes = new String[keyTypeBytes.length];
+        for (int i = 0; i < keyTypeBytes.length; i++) {
+            keyTypes[i] = NativeCrypto.keyType(keyTypeBytes[i]);
+        }
+
+        X500Principal[] issuers;
+        if (asn1DerEncodedPrincipals == null) {
+            issuers = null;
+        } else {
+            issuers = new X500Principal[asn1DerEncodedPrincipals.length];
+            for (int i = 0; i < asn1DerEncodedPrincipals.length; i++) {
+                issuers[i] = new X500Principal(asn1DerEncodedPrincipals[i]);
+            }
+        }
+
+        setCertificate(sslParameters.getKeyManager().chooseClientAlias(keyTypes, issuers, this));
     }
 
     /**
@@ -533,7 +550,7 @@ public class OpenSSLSocketImpl
     /**
      * Implementation of NativeCrypto.SSLHandshakeCallbacks
      *
-     * @param bytes An array of certficates in PEM encode bytes
+     * @param bytes An array of ASN.1 DER encoded certficates
      * @param authMethod auth algorithm name
      *
      * @throws CertificateException if the certificate is untrusted
