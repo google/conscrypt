@@ -163,11 +163,11 @@ public class HandshakeIODataStream
     }
 
     @Override
-    public int read(byte[] dest, int offset, int length) throws IOException {
+    public int read(byte[] dst, int offset, int length) throws IOException {
         if (length > available()) {
             throw new EndOfBufferException();
         }
-        System.arraycopy(buffer, read_pos, dest, offset, length);
+        System.arraycopy(buffer, read_pos, dst, offset, length);
         read_pos = read_pos + length;
         return length;
     }
@@ -461,4 +461,3 @@ public class HandshakeIODataStream
         return res;
     }
 }
-
