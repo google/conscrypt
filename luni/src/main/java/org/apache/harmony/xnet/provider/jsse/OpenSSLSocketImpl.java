@@ -346,13 +346,11 @@ public class OpenSSLSocketImpl
             if (sslParameters.getNeedClientAuth()) {
                 NativeCrypto.SSL_set_verify(sslNativePointer,
                                             NativeCrypto.SSL_VERIFY_PEER|
-                                            NativeCrypto.SSL_VERIFY_FAIL_IF_NO_PEER_CERT|
-                                            NativeCrypto.SSL_VERIFY_CLIENT_ONCE);
+                                            NativeCrypto.SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
             // ... over just wanting it...
             } else if (sslParameters.getWantClientAuth()) {
                 NativeCrypto.SSL_set_verify(sslNativePointer,
-                                            NativeCrypto.SSL_VERIFY_PEER|
-                                            NativeCrypto.SSL_VERIFY_CLIENT_ONCE);
+                                            NativeCrypto.SSL_VERIFY_PEER);
             }
             // ... and it defaults properly so we don't need call SSL_set_verify in the common case.
 

@@ -392,7 +392,6 @@ public final class NativeCrypto {
     public static final int SSL_VERIFY_NONE =                 0x00;
     public static final int SSL_VERIFY_PEER =                 0x01;
     public static final int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = 0x02;
-    public static final int SSL_VERIFY_CLIENT_ONCE =          0x04;
 
     public static native void SSL_set_verify(int sslNativePointer, int mode) throws IOException;
 
