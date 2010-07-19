@@ -18,14 +18,19 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.security.PrivateKey;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import javax.net.ssl.SSLException;
 
 /**
  * Provides the Java side of our JNI glue for OpenSSL.
@@ -252,7 +257,7 @@ public final class NativeCrypto {
 
     public static native void SSL_CTX_free(int ssl_ctx);
 
-    public static native int SSL_new(int ssl_ctx) throws IOException;
+    public static native int SSL_new(int ssl_ctx) throws SSLException;
 
     public static final String[] KEY_TYPES = new String[] {
         "RSA",
@@ -279,11 +284,31 @@ public final class NativeCrypto {
         }
     }
 
-    public static native void SSL_use_certificate(int ssl, byte[][] asn1DerEncodedCertificate);
+    public static byte[][] encodeCertificates(Certificate[] certificates)
+            throws CertificateEncodingException {
+        byte[][] certificateBytes = new byte[certificates.length][];
+        for (int i = 0; i < certificates.length; i++) {
+            certificateBytes[i] = certificates[i].getEncoded();
+        }
+        return certificateBytes;
+    }
+
+    public static native void SSL_use_certificate(int ssl, byte[][] asn1DerEncodedCertificateChain);
 
     public static native void SSL_use_PrivateKey(int ssl, byte[] pkcs8EncodedPrivateKey);
 
-    public static native void SSL_check_private_key(int ssl);
+    public static native void SSL_check_private_key(int ssl) throws SSLException;
+
+    public static byte[][] encodeIssuerX509Principals(X509Certificate[] certificates)
+            throws CertificateEncodingException {
+        byte[][] principalBytes = new byte[certificates.length][];
+        for (int i = 0; i < certificates.length; i++) {
+            principalBytes[i] = certificates[i].getIssuerX500Principal().getEncoded();
+        }
+        return principalBytes;
+    }
+
+    public static native void SSL_set_client_CA_list(int ssl, byte[][] asn1DerEncodedX500Principals);
 
     public static native long SSL_get_mode(int ssl);
 
@@ -393,13 +418,13 @@ public final class NativeCrypto {
     public static final int SSL_VERIFY_PEER =                 0x01;
     public static final int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = 0x02;
 
-    public static native void SSL_set_verify(int sslNativePointer, int mode) throws IOException;
+    public static native void SSL_set_verify(int sslNativePointer, int mode);
 
     public static native void SSL_set_session(int sslNativePointer, int sslSessionNativePointer)
-        throws IOException;
+        throws SSLException;
 
     public static native void SSL_set_session_creation_enabled(
-            int sslNativePointer, boolean creationEnabled) throws IOException;
+            int sslNativePointer, boolean creationEnabled) throws SSLException;
 
     /**
      * Returns the sslSessionNativePointer of the negotiated session
@@ -409,7 +434,13 @@ public final class NativeCrypto {
                                               SSLHandshakeCallbacks shc,
                                               int timeout,
                                               boolean client_mode)
-        throws IOException, CertificateException;
+        throws SSLException, SocketTimeoutException, CertificateException;
+
+    /**
+     * Currently only intended for forcing renegotiation for testing.
+     * Not used within OpenSSLSocketImpl.
+     */
+    public static native void SSL_renegotiate(int sslNativePointer) throws SSLException;
 
     public static native byte[][] SSL_get_certificate(int sslNativePointer);
 
@@ -451,7 +482,7 @@ public final class NativeCrypto {
 
     public static native byte[] i2d_SSL_SESSION(int sslSessionNativePointer);
 
-    public static native int d2i_SSL_SESSION(byte[] data, int size);
+    public static native int d2i_SSL_SESSION(byte[] data);
 
     /**
      * A collection of callbacks from the native OpenSSL code that are
@@ -461,12 +492,12 @@ public final class NativeCrypto {
         /**
          * Verify that we trust the certificate chain is trusted.
          *
-         * @param asn1DerEncodedCertificate An array of ASN.1 DER encoded certficates
+         * @param asn1DerEncodedCertificateChain A chain of ASN.1 DER encoded certficates
          * @param authMethod auth algorithm name
          *
          * @throws CertificateException if the certificate is untrusted
          */
-        public void verifyCertificateChain(byte[][] asn1DerEncodedCertificate, String authMethod)
+        public void verifyCertificateChain(byte[][] asn1DerEncodedCertificateChain, String authMethod)
             throws CertificateException;
 
         /**
@@ -482,7 +513,7 @@ public final class NativeCrypto {
          */
         public void clientCertificateRequested(byte[] keyTypes,
                                                byte[][] asn1DerEncodedX500Principals)
-            throws IOException;
+            throws CertificateEncodingException, SSLException;
 
         /**
          * Called when SSL handshake is completed. Note that this can

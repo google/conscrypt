@@ -82,7 +82,7 @@ public class OpenSSLSessionImpl implements SSLSession {
             javax.security.cert.X509Certificate[] peerCertificateChain,
             AbstractSessionContext sessionContext)
             throws IOException {
-        this(NativeCrypto.d2i_SSL_SESSION(derData, derData.length),
+        this(NativeCrypto.d2i_SSL_SESSION(derData),
              null,
              peerHost,
              peerPort,
