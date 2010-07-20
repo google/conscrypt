@@ -448,8 +448,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             }
             preMasterSecret = new byte[48];
             parameters.getSecureRandom().nextBytes(preMasterSecret);
-            System.arraycopy(clientHello.client_version, 0, preMasterSecret, 0,
-                    2);
+            System.arraycopy(clientHello.client_version, 0, preMasterSecret, 0, 2);
             try {
                 clientKeyExchange = new ClientKeyExchange(c
                         .doFinal(preMasterSecret),

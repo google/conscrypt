@@ -450,18 +450,26 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
         if (!cipher_suite.isAnonymous()) { // need to send server certificate
             X509Certificate[] certs = null;
             String certType = null;
-            if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA
-                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT
-                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA
-                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT) {
-                certType = "RSA";
-            } else if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS
-                    || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT) {
-                certType = "DSA";
-            } else if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_DSS) {
-                certType = "DH_DSA";
-            } else if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_RSA) {
-                certType = "DH_RSA";
+            switch (cipher_suite.keyExchange) {
+                case CipherSuite.KEY_EXCHANGE_RSA:
+                case CipherSuite.KEY_EXCHANGE_RSA_EXPORT:
+                case CipherSuite.KEY_EXCHANGE_DHE_RSA:
+                case CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT:
+                    certType = "RSA";
+                    break;
+                case CipherSuite.KEY_EXCHANGE_DHE_DSS:
+                case CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT:
+                case CipherSuite.KEY_EXCHANGE_DH_DSS_EXPORT:
+                    certType = "DSA";
+                    break;
+                case CipherSuite.KEY_EXCHANGE_DH_DSS:
+                    certType = "DH_DSA";
+                    break;
+                case CipherSuite.KEY_EXCHANGE_DH_RSA:
+                    certType = "DH_RSA";
+                    break;
+                default:
+                    fatalAlert(AlertProtocol.HANDSHAKE_FAILURE, "NO CERT TYPE FOR " + cipher_suite.getName());
             }
             // obtain certificates from key manager
             String alias = null;
@@ -699,7 +707,9 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
         } else {
             if ((parameters.getNeedClientAuth() && clientCert == null)
                     || clientKeyExchange == null
-                    || (clientCert != null && !clientKeyExchange.isEmpty() && certificateVerify == null)) {
+                    || (clientCert != null
+                            && !clientKeyExchange.isEmpty()
+                            && certificateVerify == null)) {
                 unexpectedMessage();
             } else {
                 changeCipherSpecReceived = true;

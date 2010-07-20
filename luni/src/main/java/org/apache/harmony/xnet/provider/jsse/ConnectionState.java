@@ -17,9 +17,8 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.Logger;
-
 import javax.crypto.Cipher;
+import org.apache.harmony.xnet.provider.jsse.Logger;
 
 /**
  * This abstract class is a base for Record Protocol operating environmet
@@ -38,9 +37,9 @@ public abstract class ConnectionState {
     protected Cipher decCipher;
 
     /**
-     * The cipher type
+     * The block size, or zero if not a block cipher
      */
-    protected boolean is_block_cipher;
+    protected int block_size;
 
     /**
      * The size of MAC used under this connection state
@@ -88,6 +87,16 @@ public abstract class ConnectionState {
         //it does not take the padding of block ciphered structures
         //into account (so returned value can be greater than actual)
         return decCipher.getOutputSize(generic_cipher_size)-hash_size;
+    }
+
+    /**
+     * Returns the number of bytes of padding required to round the
+     * content up to the required block size. Assumes power of two
+     * block size.
+     */
+    protected int getPaddingSize(int content_size) {
+        int mask = block_size - 1;
+        return (block_size - (content_size & mask));
     }
 
     /**

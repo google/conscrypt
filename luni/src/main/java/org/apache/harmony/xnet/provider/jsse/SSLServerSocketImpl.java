@@ -263,7 +263,6 @@ public class SSLServerSocketImpl extends SSLServerSocket {
             }
         }
         s.init();
-        s.startHandshake();
         if (logger != null) {
             logger.println("SSLServerSocketImpl: accepted, initialized");
         }

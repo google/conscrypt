@@ -175,7 +175,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
         creationTime = System.currentTimeMillis();
         lastAccessedTime = creationTime;
         if (cipher_suite == null) {
-            this.cipherSuite = CipherSuite.TLS_NULL_WITH_NULL_NULL;
+            this.cipherSuite = CipherSuite.SSL_NULL_WITH_NULL_NULL;
             id = new byte[0];
             isServer = false;
             isValid = false;

@@ -42,8 +42,7 @@ public class CipherSuite {
     final int keyExchange;
 
     /**
-     * algorithm used for authentication ("RSA", "DSA", "DH", "" for
-     * unknown, or null for anonymous)
+     * algorithm used for authentication ("RSA", "DSA", "DH", null for anonymous)
      */
     final String authType;
 
@@ -58,7 +57,7 @@ public class CipherSuite {
     final int keyMaterial;
     final int expandedKeyMaterial;
     final int effectiveKeyBytes;
-    final int IVSize;
+    final int ivSize;
     final private int blockSize;
 
     // cipher suite code
@@ -98,184 +97,309 @@ public class CipherSuite {
     /**
      * TLS cipher suite codes
      */
-    static final byte[] CODE_TLS_NULL_WITH_NULL_NULL = { 0x00, 0x00 };
-    static final byte[] CODE_TLS_RSA_WITH_NULL_MD5 = { 0x00, 0x01 };
-    static final byte[] CODE_TLS_RSA_WITH_NULL_SHA = { 0x00, 0x02 };
-    static final byte[] CODE_TLS_RSA_EXPORT_WITH_RC4_40_MD5 = { 0x00, 0x03 };
-    static final byte[] CODE_TLS_RSA_WITH_RC4_128_MD5 = { 0x00, 0x04 };
-    static final byte[] CODE_TLS_RSA_WITH_RC4_128_SHA = { 0x00, 0x05 };
-    static final byte[] CODE_TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5 = { 0x00, 0x06 };
-    static final byte[] CODE_TLS_RSA_WITH_IDEA_CBC_SHA = { 0x00, 0x07 };
-    static final byte[] CODE_TLS_RSA_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x08 };
-    static final byte[] CODE_TLS_RSA_WITH_DES_CBC_SHA = { 0x00, 0x09 };
-    static final byte[] CODE_TLS_RSA_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x0A };
-    static final byte[] CODE_TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x0B };
-    static final byte[] CODE_TLS_DH_DSS_WITH_DES_CBC_SHA = { 0x00, 0x0C };
-    static final byte[] CODE_TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x0D };
-    static final byte[] CODE_TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x0E };
-    static final byte[] CODE_TLS_DH_RSA_WITH_DES_CBC_SHA = { 0x00, 0x0F };
-    static final byte[] CODE_TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x10 };
-    static final byte[] CODE_TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x11 };
-    static final byte[] CODE_TLS_DHE_DSS_WITH_DES_CBC_SHA = { 0x00, 0x12 };
-    static final byte[] CODE_TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x13 };
-    static final byte[] CODE_TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x14 };
-    static final byte[] CODE_TLS_DHE_RSA_WITH_DES_CBC_SHA = { 0x00, 0x15 };
-    static final byte[] CODE_TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x16 };
-    static final byte[] CODE_TLS_DH_anon_EXPORT_WITH_RC4_40_MD5 = { 0x00, 0x17 };
-    static final byte[] CODE_TLS_DH_anon_WITH_RC4_128_MD5 = { 0x00, 0x18 };
-    static final byte[] CODE_TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x19 };
-    static final byte[] CODE_TLS_DH_anon_WITH_DES_CBC_SHA = { 0x00, 0x1A };
-    static final byte[] CODE_TLS_DH_anon_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x1B };
+    static final byte[] CODE_SSL_NULL_WITH_NULL_NULL = { 0x00, 0x00 };
+    static final byte[] CODE_SSL_RSA_WITH_NULL_MD5 = { 0x00, 0x01 };
+    static final byte[] CODE_SSL_RSA_WITH_NULL_SHA = { 0x00, 0x02 };
+    static final byte[] CODE_SSL_RSA_EXPORT_WITH_RC4_40_MD5 = { 0x00, 0x03 };
+    static final byte[] CODE_SSL_RSA_WITH_RC4_128_MD5 = { 0x00, 0x04 };
+    static final byte[] CODE_SSL_RSA_WITH_RC4_128_SHA = { 0x00, 0x05 };
+    static final byte[] CODE_SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5 = { 0x00, 0x06 };
+    // BEGIN android-removed
+    // static final byte[] CODE_TLS_RSA_WITH_IDEA_CBC_SHA = { 0x00, 0x07 };
+    // END android-removed
+    static final byte[] CODE_SSL_RSA_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x08 };
+    static final byte[] CODE_SSL_RSA_WITH_DES_CBC_SHA = { 0x00, 0x09 };
+    static final byte[] CODE_SSL_RSA_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x0A };
+    // BEGIN android-removed
+    // static final byte[] CODE_SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x0B };
+    // static final byte[] CODE_SSL_DH_DSS_WITH_DES_CBC_SHA = { 0x00, 0x0C };
+    // static final byte[] CODE_SSL_DH_DSS_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x0D };
+    // static final byte[] CODE_SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x0E };
+    // static final byte[] CODE_SSL_DH_RSA_WITH_DES_CBC_SHA = { 0x00, 0x0F };
+    // static final byte[] CODE_SSL_DH_RSA_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x10 };
+    // END android-removed
+    static final byte[] CODE_SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x11 };
+    static final byte[] CODE_SSL_DHE_DSS_WITH_DES_CBC_SHA = { 0x00, 0x12 };
+    static final byte[] CODE_SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x13 };
+    static final byte[] CODE_SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x14 };
+    static final byte[] CODE_SSL_DHE_RSA_WITH_DES_CBC_SHA = { 0x00, 0x15 };
+    static final byte[] CODE_SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x16 };
+    static final byte[] CODE_SSL_DH_anon_EXPORT_WITH_RC4_40_MD5 = { 0x00, 0x17 };
+    static final byte[] CODE_SSL_DH_anon_WITH_RC4_128_MD5 = { 0x00, 0x18 };
+    static final byte[] CODE_SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA = { 0x00, 0x19 };
+    static final byte[] CODE_SSL_DH_anon_WITH_DES_CBC_SHA = { 0x00, 0x1A };
+    static final byte[] CODE_SSL_DH_anon_WITH_3DES_EDE_CBC_SHA = { 0x00, 0x1B };
 
-    static final CipherSuite TLS_NULL_WITH_NULL_NULL = new CipherSuite(
+    // AES Cipher Suites from RFC 3268 - http://www.ietf.org/rfc/rfc3268.txt
+    static final byte[] CODE_TLS_RSA_WITH_AES_128_CBC_SHA = { 0x00, 0x2F };
+    //static final byte[] CODE_TLS_DH_DSS_WITH_AES_128_CBC_SHA = { 0x00, 0x30 };
+    //static final byte[] CODE_TLS_DH_RSA_WITH_AES_128_CBC_SHA = { 0x00, 0x31 };
+    static final byte[] CODE_TLS_DHE_DSS_WITH_AES_128_CBC_SHA = { 0x00, 0x32 };
+    static final byte[] CODE_TLS_DHE_RSA_WITH_AES_128_CBC_SHA = { 0x00, 0x33 };
+    static final byte[] CODE_TLS_DH_anon_WITH_AES_128_CBC_SHA = { 0x00, 0x34 };
+    static final byte[] CODE_TLS_RSA_WITH_AES_256_CBC_SHA = { 0x00, 0x35 };
+    //static final byte[] CODE_TLS_DH_DSS_WITH_AES_256_CBC_SHA = { 0x00, 0x36 };
+    //static final byte[] CODE_TLS_DH_RSA_WITH_AES_256_CBC_SHA = { 0x00, 0x37 };
+    static final byte[] CODE_TLS_DHE_DSS_WITH_AES_256_CBC_SHA = { 0x00, 0x38 };
+    static final byte[] CODE_TLS_DHE_RSA_WITH_AES_256_CBC_SHA = { 0x00, 0x39 };
+    static final byte[] CODE_TLS_DH_anon_WITH_AES_256_CBC_SHA = { 0x00, 0x3A };
+
+    static final CipherSuite SSL_NULL_WITH_NULL_NULL = new CipherSuite(
             "SSL_NULL_WITH_NULL_NULL", true, 0, null, null, null,
-            CODE_TLS_NULL_WITH_NULL_NULL);
+            CODE_SSL_NULL_WITH_NULL_NULL);
 
-    static final CipherSuite TLS_RSA_WITH_NULL_MD5 = new CipherSuite(
+    static final CipherSuite SSL_RSA_WITH_NULL_MD5 = new CipherSuite(
             "SSL_RSA_WITH_NULL_MD5", true, KEY_EXCHANGE_RSA, "RSA", null, "MD5",
-            CODE_TLS_RSA_WITH_NULL_MD5);
+            CODE_SSL_RSA_WITH_NULL_MD5);
 
-    static final CipherSuite TLS_RSA_WITH_NULL_SHA = new CipherSuite(
+    static final CipherSuite SSL_RSA_WITH_NULL_SHA = new CipherSuite(
             "SSL_RSA_WITH_NULL_SHA", true, KEY_EXCHANGE_RSA, "RSA", null, "SHA",
-            CODE_TLS_RSA_WITH_NULL_SHA);
+            CODE_SSL_RSA_WITH_NULL_SHA);
 
-    static final CipherSuite TLS_RSA_EXPORT_WITH_RC4_40_MD5 = new CipherSuite(
+    static final CipherSuite SSL_RSA_EXPORT_WITH_RC4_40_MD5 = new CipherSuite(
             "SSL_RSA_EXPORT_WITH_RC4_40_MD5", true, KEY_EXCHANGE_RSA_EXPORT,
-            "RSA", "RC4_40", "MD5", CODE_TLS_RSA_EXPORT_WITH_RC4_40_MD5);
+            "RSA", "RC4_40", "MD5", CODE_SSL_RSA_EXPORT_WITH_RC4_40_MD5);
 
-    static final CipherSuite TLS_RSA_WITH_RC4_128_MD5 = new CipherSuite(
+    static final CipherSuite SSL_RSA_WITH_RC4_128_MD5 = new CipherSuite(
             "SSL_RSA_WITH_RC4_128_MD5", false, KEY_EXCHANGE_RSA, "RSA", "RC4_128",
-            "MD5", CODE_TLS_RSA_WITH_RC4_128_MD5);
+            "MD5", CODE_SSL_RSA_WITH_RC4_128_MD5);
 
-    static final CipherSuite TLS_RSA_WITH_RC4_128_SHA = new CipherSuite(
+    static final CipherSuite SSL_RSA_WITH_RC4_128_SHA = new CipherSuite(
             "SSL_RSA_WITH_RC4_128_SHA", false, KEY_EXCHANGE_RSA, "RSA", "RC4_128",
-            "SHA", CODE_TLS_RSA_WITH_RC4_128_SHA);
+            "SHA", CODE_SSL_RSA_WITH_RC4_128_SHA);
 
-    static final CipherSuite TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5 = new CipherSuite(
+    static final CipherSuite SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5 = new CipherSuite(
             "SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5", true, KEY_EXCHANGE_RSA_EXPORT,
-            "RSA", "RC2_CBC_40", "MD5", CODE_TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5);
+            "RSA", "RC2_CBC_40", "MD5", CODE_SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5);
 
-    static final CipherSuite TLS_RSA_WITH_IDEA_CBC_SHA = new CipherSuite(
-            "TLS_RSA_WITH_IDEA_CBC_SHA", false, KEY_EXCHANGE_RSA, "RSA", "IDEA_CBC",
-            "SHA", CODE_TLS_RSA_WITH_IDEA_CBC_SHA);
+    // BEGIN android-removed
+    // static final CipherSuite TLS_RSA_WITH_IDEA_CBC_SHA = new CipherSuite(
+    //         "TLS_RSA_WITH_IDEA_CBC_SHA", false, KEY_EXCHANGE_RSA, "RSA", "IDEA_CBC",
+    //         "SHA", CODE_TLS_RSA_WITH_IDEA_CBC_SHA);
+    // END android-removed
 
-    static final CipherSuite TLS_RSA_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_RSA_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
             "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA", true, KEY_EXCHANGE_RSA_EXPORT,
-            "RSA", "DES40_CBC", "SHA", CODE_TLS_RSA_EXPORT_WITH_DES40_CBC_SHA);
+            "RSA", "DES40_CBC", "SHA", CODE_SSL_RSA_EXPORT_WITH_DES40_CBC_SHA);
 
-    static final CipherSuite TLS_RSA_WITH_DES_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_RSA_WITH_DES_CBC_SHA = new CipherSuite(
             "SSL_RSA_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_RSA, "RSA", "DES_CBC",
-            "SHA", CODE_TLS_RSA_WITH_DES_CBC_SHA);
+            "SHA", CODE_SSL_RSA_WITH_DES_CBC_SHA);
 
-    static final CipherSuite TLS_RSA_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_RSA_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
             "SSL_RSA_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_RSA,
-            "RSA", "3DES_EDE_CBC", "SHA", CODE_TLS_RSA_WITH_3DES_EDE_CBC_SHA);
+            "RSA", "3DES_EDE_CBC", "SHA", CODE_SSL_RSA_WITH_3DES_EDE_CBC_SHA);
 
-    static final CipherSuite TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
-            "SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA", true,
-            KEY_EXCHANGE_DH_DSS_EXPORT, "DH", "DES40_CBC", "SHA",
-            CODE_TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA);
+    // BEGIN android-removed
+    // static final CipherSuite SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
+    //         "SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA", true,
+    //         KEY_EXCHANGE_DH_DSS_EXPORT, "DH", "DES40_CBC", "SHA",
+    //         CODE_SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA);
+    //
+    // static final CipherSuite SSL_DH_DSS_WITH_DES_CBC_SHA = new CipherSuite(
+    //         "SSL_DH_DSS_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_DH_DSS,
+    //         "DH", "DES_CBC", "SHA", CODE_SSL_DH_DSS_WITH_DES_CBC_SHA);
+    //
+    // static final CipherSuite SSL_DH_DSS_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
+    //         "SSL_DH_DSS_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_DH_DSS,
+    //         "DH", "3DES_EDE_CBC", "SHA", CODE_SSL_DH_DSS_WITH_3DES_EDE_CBC_SHA);
+    //
+    // static final CipherSuite SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
+    //         "SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA", true,
+    //         KEY_EXCHANGE_DH_RSA_EXPORT, "DH", "DES40_CBC", "SHA",
+    //         CODE_SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA);
+    //
+    // static final CipherSuite SSL_DH_RSA_WITH_DES_CBC_SHA = new CipherSuite(
+    //         "SSL_DH_RSA_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_DH_RSA,
+    //         "DH", "DES_CBC", "SHA", CODE_SSL_DH_RSA_WITH_DES_CBC_SHA);
+    //
+    // static final CipherSuite SSL_DH_RSA_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
+    //         "SSL_DH_RSA_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_DH_RSA,
+    //         "DH", "3DES_EDE_CBC", "SHA", CODE_SSL_DH_RSA_WITH_3DES_EDE_CBC_SHA);
+    // END android-removed
 
-    static final CipherSuite TLS_DH_DSS_WITH_DES_CBC_SHA = new CipherSuite(
-            "SSL_DH_DSS_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_DH_DSS,
-            "DH", "DES_CBC", "SHA", CODE_TLS_DH_DSS_WITH_DES_CBC_SHA);
-
-    static final CipherSuite TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
-            "SSL_DH_DSS_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_DH_DSS,
-            "DH", "3DES_EDE_CBC", "SHA", CODE_TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA);
-
-    static final CipherSuite TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
-            "SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA", true,
-            KEY_EXCHANGE_DH_RSA_EXPORT, "DH", "DES40_CBC", "SHA",
-            CODE_TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA);
-
-    static final CipherSuite TLS_DH_RSA_WITH_DES_CBC_SHA = new CipherSuite(
-            "SSL_DH_RSA_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_DH_RSA,
-            "DH", "DES_CBC", "SHA", CODE_TLS_DH_RSA_WITH_DES_CBC_SHA);
-
-    static final CipherSuite TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
-            "SSL_DH_RSA_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_DH_RSA,
-            "DH", "3DES_EDE_CBC", "SHA", CODE_TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA);
-
-    static final CipherSuite TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
             "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", true,
             KEY_EXCHANGE_DHE_DSS_EXPORT, "DSA", "DES40_CBC", "SHA",
-            CODE_TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA);
+            CODE_SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA);
 
-    static final CipherSuite TLS_DHE_DSS_WITH_DES_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_DHE_DSS_WITH_DES_CBC_SHA = new CipherSuite(
             "SSL_DHE_DSS_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_DHE_DSS,
-            "DSA", "DES_CBC", "SHA", CODE_TLS_DHE_DSS_WITH_DES_CBC_SHA);
+            "DSA", "DES_CBC", "SHA", CODE_SSL_DHE_DSS_WITH_DES_CBC_SHA);
 
-    static final CipherSuite TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
             "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_DHE_DSS,
-            "DSA", "3DES_EDE_CBC", "SHA", CODE_TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA);
+            "DSA", "3DES_EDE_CBC", "SHA", CODE_SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA);
 
-    static final CipherSuite TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
             "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA", true,
             KEY_EXCHANGE_DHE_RSA_EXPORT, "RSA", "DES40_CBC", "SHA",
-            CODE_TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA);
+            CODE_SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA);
 
-    static final CipherSuite TLS_DHE_RSA_WITH_DES_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_DHE_RSA_WITH_DES_CBC_SHA = new CipherSuite(
             "SSL_DHE_RSA_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_DHE_RSA,
-            "RSA", "DES_CBC", "SHA", CODE_TLS_DHE_RSA_WITH_DES_CBC_SHA);
+            "RSA", "DES_CBC", "SHA", CODE_SSL_DHE_RSA_WITH_DES_CBC_SHA);
 
-    static final CipherSuite TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
             "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_DHE_RSA,
-            "RSA", "3DES_EDE_CBC", "SHA", CODE_TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA);
+            "RSA", "3DES_EDE_CBC", "SHA", CODE_SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA);
 
-    static final CipherSuite TLS_DH_anon_EXPORT_WITH_RC4_40_MD5 = new CipherSuite(
+    static final CipherSuite SSL_DH_anon_EXPORT_WITH_RC4_40_MD5 = new CipherSuite(
             "SSL_DH_anon_EXPORT_WITH_RC4_40_MD5", true,
             KEY_EXCHANGE_DH_anon_EXPORT, "DH", "RC4_40", "MD5",
-            CODE_TLS_DH_anon_EXPORT_WITH_RC4_40_MD5);
+            CODE_SSL_DH_anon_EXPORT_WITH_RC4_40_MD5);
 
-    static final CipherSuite TLS_DH_anon_WITH_RC4_128_MD5 = new CipherSuite(
+    static final CipherSuite SSL_DH_anon_WITH_RC4_128_MD5 = new CipherSuite(
             "SSL_DH_anon_WITH_RC4_128_MD5", false, KEY_EXCHANGE_DH_anon,
-            "DH", "RC4_128", "MD5", CODE_TLS_DH_anon_WITH_RC4_128_MD5);
+            "DH", "RC4_128", "MD5", CODE_SSL_DH_anon_WITH_RC4_128_MD5);
 
-    static final CipherSuite TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA = new CipherSuite(
             "SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA", true,
             KEY_EXCHANGE_DH_anon_EXPORT, "DH", "DES40_CBC", "SHA",
-            CODE_TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA);
+            CODE_SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA);
 
-    static final CipherSuite TLS_DH_anon_WITH_DES_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_DH_anon_WITH_DES_CBC_SHA = new CipherSuite(
             "SSL_DH_anon_WITH_DES_CBC_SHA", false, KEY_EXCHANGE_DH_anon,
-            "DH", "DES_CBC", "SHA", CODE_TLS_DH_anon_WITH_DES_CBC_SHA);
+            "DH", "DES_CBC", "SHA", CODE_SSL_DH_anon_WITH_DES_CBC_SHA);
 
-    static final CipherSuite TLS_DH_anon_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
+    static final CipherSuite SSL_DH_anon_WITH_3DES_EDE_CBC_SHA = new CipherSuite(
             "SSL_DH_anon_WITH_3DES_EDE_CBC_SHA", false, KEY_EXCHANGE_DH_anon,
-            "DH", "3DES_EDE_CBC", "SHA", CODE_TLS_DH_anon_WITH_3DES_EDE_CBC_SHA);
+            "DH", "3DES_EDE_CBC", "SHA", CODE_SSL_DH_anon_WITH_3DES_EDE_CBC_SHA);
+
+    static final CipherSuite TLS_RSA_WITH_AES_128_CBC_SHA
+            = new CipherSuite("TLS_RSA_WITH_AES_128_CBC_SHA",
+                              false,
+                              KEY_EXCHANGE_RSA,
+                              "RSA",
+                              "AES_128",
+                              "SHA",
+                              CODE_TLS_RSA_WITH_AES_128_CBC_SHA);
+    static final CipherSuite TLS_DHE_DSS_WITH_AES_128_CBC_SHA
+            = new CipherSuite("TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
+                              false,
+                              KEY_EXCHANGE_DHE_DSS,
+                              "DSA",
+                              "AES_128",
+                              "SHA",
+                              CODE_TLS_DHE_DSS_WITH_AES_128_CBC_SHA);
+    static final CipherSuite TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+            = new CipherSuite("TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+                              false,
+                              KEY_EXCHANGE_DHE_RSA,
+                              "RSA",
+                              "AES_128",
+                              "SHA",
+                              CODE_TLS_DHE_RSA_WITH_AES_128_CBC_SHA);
+    static final CipherSuite TLS_DH_anon_WITH_AES_128_CBC_SHA
+            = new CipherSuite("TLS_DH_anon_WITH_AES_128_CBC_SHA",
+                              false,
+                              KEY_EXCHANGE_DH_anon,
+                              "DH",
+                              "AES_128",
+                              "SHA",
+                              CODE_TLS_DH_anon_WITH_AES_128_CBC_SHA);
+    static final CipherSuite TLS_RSA_WITH_AES_256_CBC_SHA
+            = new CipherSuite("TLS_RSA_WITH_AES_256_CBC_SHA",
+                              false,
+                              KEY_EXCHANGE_RSA,
+                              "RSA",
+                              "AES_256",
+                              "SHA",
+                              CODE_TLS_RSA_WITH_AES_256_CBC_SHA);
+    static final CipherSuite TLS_DHE_DSS_WITH_AES_256_CBC_SHA
+            = new CipherSuite("TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
+                              false,
+                              KEY_EXCHANGE_DHE_DSS,
+                              "DSA",
+                              "AES_256",
+                              "SHA",
+                              CODE_TLS_DHE_DSS_WITH_AES_256_CBC_SHA);
+    static final CipherSuite TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+            = new CipherSuite("TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+                              false,
+                              KEY_EXCHANGE_DHE_RSA,
+                              "RSA",
+                              "AES_256",
+                              "SHA",
+                              CODE_TLS_DHE_RSA_WITH_AES_256_CBC_SHA);
+    static final CipherSuite TLS_DH_anon_WITH_AES_256_CBC_SHA
+            = new CipherSuite("TLS_DH_anon_WITH_AES_256_CBC_SHA",
+                              false,
+                              KEY_EXCHANGE_DH_anon,
+                              "DH",
+                              "AES_256",
+                              "SHA",
+                              CODE_TLS_DH_anon_WITH_AES_256_CBC_SHA);
 
     // array for quick access to cipher suite by code
     private static final CipherSuite[] SUITES_BY_CODE = {
-            TLS_NULL_WITH_NULL_NULL,
-            TLS_RSA_WITH_NULL_MD5,
-            TLS_RSA_WITH_NULL_SHA,
-            TLS_RSA_EXPORT_WITH_RC4_40_MD5,
-            TLS_RSA_WITH_RC4_128_MD5,
-            TLS_RSA_WITH_RC4_128_SHA,
-            TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5,
-            TLS_RSA_WITH_IDEA_CBC_SHA,
-            TLS_RSA_EXPORT_WITH_DES40_CBC_SHA,
-            TLS_RSA_WITH_DES_CBC_SHA,
-            TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-            TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA,
-            TLS_DH_DSS_WITH_DES_CBC_SHA,
-            TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA,
-            TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA,
-            TLS_DH_RSA_WITH_DES_CBC_SHA,
-            TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA,
-            TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA,
-            TLS_DHE_DSS_WITH_DES_CBC_SHA,
-            TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
-            TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA,
-            TLS_DHE_RSA_WITH_DES_CBC_SHA,
-            TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
-            TLS_DH_anon_EXPORT_WITH_RC4_40_MD5,
-            TLS_DH_anon_WITH_RC4_128_MD5,
-            TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA,
-            TLS_DH_anon_WITH_DES_CBC_SHA,
-            TLS_DH_anon_WITH_3DES_EDE_CBC_SHA
-            };
+        // http://www.iana.org/assignments/tls-parameters/tls-parameters.xml
+        SSL_NULL_WITH_NULL_NULL,                        // { 0x00, 0x00 };
+        SSL_RSA_WITH_NULL_MD5,                          // { 0x00, 0x01 };
+        SSL_RSA_WITH_NULL_SHA,                          // { 0x00, 0x02 };
+        SSL_RSA_EXPORT_WITH_RC4_40_MD5,                 // { 0x00, 0x03 };
+        SSL_RSA_WITH_RC4_128_MD5,                       // { 0x00, 0x04 };
+        SSL_RSA_WITH_RC4_128_SHA,                       // { 0x00, 0x05 };
+        // BEGIN android-changed
+        null, // SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,    // { 0x00, 0x06 };
+        null, // TLS_RSA_WITH_IDEA_CBC_SHA,             // { 0x00, 0x07 };
+        // END android-changed
+        SSL_RSA_EXPORT_WITH_DES40_CBC_SHA,              // { 0x00, 0x08 };
+        SSL_RSA_WITH_DES_CBC_SHA,                       // { 0x00, 0x09 };
+        SSL_RSA_WITH_3DES_EDE_CBC_SHA,                  // { 0x00, 0x0a };
+        // BEGIN android-changed
+        null, // SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA   // { 0x00, 0x0b };
+        null, // SSL_DH_DSS_WITH_DES_CBC_SHA,           // { 0x00, 0x0c };
+        null, // SSL_DH_DSS_WITH_3DES_EDE_CBC_SHA,      // { 0x00, 0x0d };
+        null, // SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA,  // { 0x00, 0x0e };
+        null, // SSL_DH_RSA_WITH_DES_CBC_SHA,           // { 0x00, 0x0f };
+        null, // SSL_DH_RSA_WITH_3DES_EDE_CBC_SHA,      // { 0x00, 0x10 };
+        // END android-changed
+        SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA,          // { 0x00, 0x11 };
+        SSL_DHE_DSS_WITH_DES_CBC_SHA,                   // { 0x00, 0x12 };
+        SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,              // { 0x00, 0x13 };
+        SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA,          // { 0x00, 0x14 };
+        SSL_DHE_RSA_WITH_DES_CBC_SHA,                   // { 0x00, 0x15 };
+        SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,              // { 0x00, 0x16 };
+        SSL_DH_anon_EXPORT_WITH_RC4_40_MD5,             // { 0x00, 0x17 };
+        SSL_DH_anon_WITH_RC4_128_MD5,                   // { 0x00, 0x18 };
+        SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA,          // { 0x00, 0x19 };
+        SSL_DH_anon_WITH_DES_CBC_SHA,                   // { 0x00, 0x1A };
+        SSL_DH_anon_WITH_3DES_EDE_CBC_SHA,              // { 0x00, 0x1B };
+        // BEGIN android-added
+        null, // SSL_FORTEZZA_KEA_WITH_NULL_SHA         // { 0x00, 0x1C };
+        null, // SSL_FORTEZZA_KEA_WITH_FORTEZZA_CBC_SHA // { 0x00, 0x1D };
+        null, // TLS_KRB5_WITH_DES_CBC_SHA              // { 0x00, 0x1E };
+        null, // TLS_KRB5_WITH_3DES_EDE_CBC_SHA         // { 0x00, 0x1F };
+        null, // TLS_KRB5_WITH_RC4_128_SHA              // { 0x00, 0x20 };
+        null, // TLS_KRB5_WITH_IDEA_CBC_SHA             // { 0x00, 0x21 };
+        null, // TLS_KRB5_WITH_DES_CBC_MD5              // { 0x00, 0x22 };
+        null, // TLS_KRB5_WITH_3DES_EDE_CBC_MD5         // { 0x00, 0x23 };
+        null, // TLS_KRB5_WITH_RC4_128_MD5              // { 0x00, 0x24 };
+        null, // TLS_KRB5_WITH_IDEA_CBC_MD5             // { 0x00, 0x25 };
+        null, // TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA    // { 0x00, 0x26 };
+        null, // TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA    // { 0x00, 0x27 };
+        null, // TLS_KRB5_EXPORT_WITH_RC4_40_SHA        // { 0x00, 0x28 };
+        null, // TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5    // { 0x00, 0x29 };
+        null, // TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5    // { 0x00, 0x2A };
+        null, // TLS_KRB5_EXPORT_WITH_RC4_40_MD5        // { 0x00, 0x2B };
+        null, // TLS_PSK_WITH_NULL_SHA                  // { 0x00, 0x2C };
+        null, // TLS_DHE_PSK_WITH_NULL_SHA              // { 0x00, 0x2D };
+        null, // TLS_RSA_PSK_WITH_NULL_SHA              // { 0x00, 0x2E };
+        TLS_RSA_WITH_AES_128_CBC_SHA,                   // { 0x00, 0x2F };
+        null, // TLS_DH_DSS_WITH_AES_128_CBC_SHA        // { 0x00, 0x30 };
+        null, // TLS_DH_RSA_WITH_AES_128_CBC_SHA        // { 0x00, 0x31 };
+        TLS_DHE_DSS_WITH_AES_128_CBC_SHA,               // { 0x00, 0x32 };
+        TLS_DHE_RSA_WITH_AES_128_CBC_SHA,               // { 0x00, 0x33 };
+        TLS_DH_anon_WITH_AES_128_CBC_SHA,               // { 0x00, 0x34 };
+        TLS_RSA_WITH_AES_256_CBC_SHA,                   // { 0x00, 0x35 };
+        null, // TLS_DH_DSS_WITH_AES_256_CBC_SHA,       // { 0x00, 0x36 };
+        null, // TLS_DH_RSA_WITH_AES_256_CBC_SHA,       // { 0x00, 0x37 };
+        TLS_DHE_DSS_WITH_AES_256_CBC_SHA,               // { 0x00, 0x38 };
+        TLS_DHE_RSA_WITH_AES_256_CBC_SHA,               // { 0x00, 0x39 };
+        TLS_DH_anon_WITH_AES_256_CBC_SHA,               // { 0x00, 0x3A };
+        // END android-added
+    };
 
     // hash for quick access to cipher suite by name
     private static final Hashtable<String, CipherSuite> SUITES_BY_NAME;
@@ -302,7 +426,10 @@ public class CipherSuite {
         int count = 0;
         SUITES_BY_NAME = new Hashtable<String, CipherSuite>();
         for (int i = 0; i < SUITES_BY_CODE.length; i++) {
-            if (SUITES_BY_CODE[i] == TLS_NULL_WITH_NULL_NULL) {
+            if (SUITES_BY_CODE[i] == SSL_NULL_WITH_NULL_NULL) {
+                continue;
+            }
+            if (SUITES_BY_CODE[i] == null) {
                 continue;
             }
             SUITES_BY_NAME.put(SUITES_BY_CODE[i].getName(), SUITES_BY_CODE[i]);
@@ -314,7 +441,10 @@ public class CipherSuite {
         SUPPORTED_CIPHER_SUITE_NAMES = new String[count];
         count = 0;
         for (int i = 0; i < SUITES_BY_CODE.length; i++) {
-            if (SUITES_BY_CODE[i] == TLS_NULL_WITH_NULL_NULL) {
+            if (SUITES_BY_CODE[i] == SSL_NULL_WITH_NULL_NULL) {
+                continue;
+            }
+            if (SUITES_BY_CODE[i] == null) {
                 continue;
             }
             if (SUITES_BY_CODE[i].supported) {
@@ -325,21 +455,21 @@ public class CipherSuite {
         }
 
         CipherSuite[] defaultCipherSuites = {
-                TLS_RSA_WITH_RC4_128_MD5,
-                TLS_RSA_WITH_RC4_128_SHA,
-                // TLS_RSA_WITH_AES_128_CBC_SHA,
-                // TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
-                // TLS_DHE_DSS_WITH_AES_128_CBC_SHA,
-                TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-                TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
-                TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
-                TLS_RSA_WITH_DES_CBC_SHA,
-                TLS_DHE_RSA_WITH_DES_CBC_SHA,
-                TLS_DHE_DSS_WITH_DES_CBC_SHA,
-                TLS_RSA_EXPORT_WITH_RC4_40_MD5,
-                TLS_RSA_EXPORT_WITH_DES40_CBC_SHA,
-                TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA,
-                TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA
+                SSL_RSA_WITH_RC4_128_MD5,
+                SSL_RSA_WITH_RC4_128_SHA,
+                TLS_RSA_WITH_AES_128_CBC_SHA,
+                TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+                TLS_DHE_DSS_WITH_AES_128_CBC_SHA,
+                SSL_RSA_WITH_3DES_EDE_CBC_SHA,
+                SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+                SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
+                SSL_RSA_WITH_DES_CBC_SHA,
+                SSL_DHE_RSA_WITH_DES_CBC_SHA,
+                SSL_DHE_DSS_WITH_DES_CBC_SHA,
+                SSL_RSA_EXPORT_WITH_RC4_40_MD5,
+                SSL_RSA_EXPORT_WITH_DES40_CBC_SHA,
+                SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA,
+                SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA
                 };
         count = 0;
         for (int i = 0; i < defaultCipherSuites.length; i++) {
@@ -370,8 +500,8 @@ public class CipherSuite {
     public static CipherSuite getByCode(byte b1, byte b2) {
         if (b1 != 0 || (b2 & 0xFF) > SUITES_BY_CODE.length) {
             // Unknown
-            return new CipherSuite("UNKNOWN_" + b1 + "_" + b2, false, 0, "",
-                    "", "", new byte[] { b1, b2 });
+            return new CipherSuite("UNKNOWN_" + b1 + "_" + b2, false, 0, null,
+                    null, null, new byte[] { b1, b2 });
         }
         return SUITES_BY_CODE[b2];
     }
@@ -389,7 +519,7 @@ public class CipherSuite {
         // as TLSv1 equivalent of V2CipherSpec should be included in
         // V2ClientHello, ignore V2CipherSpec
         return new CipherSuite("UNKNOWN_" + b1 + "_" + b2 + "_" + b3, false, 0,
-                "", "", "", new byte[] { b1, b2, b3 });
+                null, null, null, new byte[] { b1, b2, b3 });
     }
 
     /**
@@ -406,63 +536,79 @@ public class CipherSuite {
             keyMaterial = 0;
             expandedKeyMaterial = 0;
             effectiveKeyBytes = 0;
-            IVSize = 0;
+            ivSize = 0;
             blockSize = 0;
-        } else if ("IDEA_CBC".equals(cipherName)) {
-            this.cipherName = "IDEA/CBC/NoPadding";
-            keyMaterial = 16;
-            expandedKeyMaterial = 16;
-            effectiveKeyBytes = 16;
-            IVSize = 8;
-            blockSize = 8;
-        } else if ("RC2_CBC_40".equals(cipherName)) {
-            this.cipherName = "RC2/CBC/NoPadding";
-            keyMaterial = 5;
-            expandedKeyMaterial = 16;
-            effectiveKeyBytes = 5;
-            IVSize = 8;
-            blockSize = 8;
+        // BEGIN android-removed
+        // } else if ("IDEA_CBC".equals(cipherName)) {
+        //     this.cipherName = "IDEA/CBC/NoPadding";
+        //     keyMaterial = 16;
+        //     expandedKeyMaterial = 16;
+        //     effectiveKeyBytes = 16;
+        //     ivSize = 8;
+        //     blockSize = 8;
+        // } else if ("RC2_CBC_40".equals(cipherName)) {
+        //     this.cipherName = "RC2/CBC/NoPadding";
+        //     keyMaterial = 5;
+        //     expandedKeyMaterial = 16;
+        //     effectiveKeyBytes = 5;
+        //     ivSize = 8;
+        //     blockSize = 8;
+        // END android-removed
         } else if ("RC4_40".equals(cipherName)) {
             this.cipherName = "RC4";
             keyMaterial = 5;
             expandedKeyMaterial = 16;
             effectiveKeyBytes = 5;
-            IVSize = 0;
+            ivSize = 0;
             blockSize = 0;
         } else if ("RC4_128".equals(cipherName)) {
             this.cipherName = "RC4";
             keyMaterial = 16;
             expandedKeyMaterial = 16;
             effectiveKeyBytes = 16;
-            IVSize = 0;
+            ivSize = 0;
             blockSize = 0;
         } else if ("DES40_CBC".equals(cipherName)) {
             this.cipherName = "DES/CBC/NoPadding";
             keyMaterial = 5;
             expandedKeyMaterial = 8;
             effectiveKeyBytes = 5;
-            IVSize = 8;
+            ivSize = 8;
             blockSize = 8;
         } else if ("DES_CBC".equals(cipherName)) {
             this.cipherName = "DES/CBC/NoPadding";
             keyMaterial = 8;
             expandedKeyMaterial = 8;
             effectiveKeyBytes = 7;
-            IVSize = 8;
+            ivSize = 8;
             blockSize = 8;
         } else if ("3DES_EDE_CBC".equals(cipherName)) {
             this.cipherName = "DESede/CBC/NoPadding";
             keyMaterial = 24;
             expandedKeyMaterial = 24;
             effectiveKeyBytes = 24;
-            IVSize = 8;
+            ivSize = 8;
             blockSize = 8;
+        } else if ("AES_128".equals(cipherName)) {
+            this.cipherName = "AES/CBC/NoPadding";
+            keyMaterial = 16;
+            expandedKeyMaterial = 16;
+            effectiveKeyBytes = 16;
+            ivSize = 16;
+            blockSize = 16;
+        } else if ("AES_256".equals(cipherName)) {
+            this.cipherName = "AES/CBC/NoPadding";
+            keyMaterial = 32;
+            expandedKeyMaterial = 32;
+            effectiveKeyBytes = 32;
+            ivSize = 16;
+            blockSize = 16;
         } else {
             this.cipherName = cipherName;
             keyMaterial = 0;
             expandedKeyMaterial = 0;
             effectiveKeyBytes = 0;
-            IVSize = 0;
+            ivSize = 0;
             blockSize = 0;
         }
 

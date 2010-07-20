@@ -17,18 +17,18 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.AlertException;
-import org.apache.harmony.xnet.provider.jsse.SSLSessionImpl;
-import org.apache.harmony.xnet.provider.jsse.PRF;
-import org.apache.harmony.xnet.provider.jsse.ConnectionState;
-
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
+import javax.crypto.NullCipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLProtocolException;
+import org.apache.harmony.xnet.provider.jsse.AlertException;
+import org.apache.harmony.xnet.provider.jsse.ConnectionState;
+import org.apache.harmony.xnet.provider.jsse.PRF;
+import org.apache.harmony.xnet.provider.jsse.SSLSessionImpl;
 
 /**
  * This class encapsulates the operating environment of the TLS v1
@@ -93,7 +93,8 @@ public class ConnectionStateTLS extends ConnectionState {
             int key_size = (is_exportabe)
                 ? cipherSuite.keyMaterial
                 : cipherSuite.expandedKeyMaterial;
-            int iv_size = cipherSuite.getBlockSize();
+            int iv_size = cipherSuite.ivSize;
+            block_size = cipherSuite.getBlockSize();
 
             String algName = cipherSuite.getBulkEncryptionAlgorithm();
             String macName = cipherSuite.getHmacName();
@@ -104,8 +105,8 @@ public class ConnectionStateTLS extends ConnectionState {
                 logger.println("  encryption alg name: " + algName);
                 logger.println("  mac alg name: " + macName);
                 logger.println("  hash size: " + hash_size);
-                logger.println("  block size: " + iv_size);
-                logger.println("  IV size (== block size):" + iv_size);
+                logger.println("  block size: " + block_size);
+                logger.println("  IV size:" + iv_size);
                 logger.println("  key size: " + key_size);
             }
 
@@ -128,10 +129,6 @@ public class ConnectionStateTLS extends ConnectionState {
             byte[] server_key = new byte[key_size];
 
             boolean is_client = !session.isServer;
-
-            is_block_cipher = (iv_size > 0);
-            // do not count, as block_size is always 8
-            // block_size = iv_size;
 
             System.arraycopy(key_block, 0, client_mac_secret, 0, hash_size);
             System.arraycopy(key_block, hash_size,
@@ -158,13 +155,13 @@ public class ConnectionStateTLS extends ConnectionState {
                         SERVER_WRITE_KEY_LABEL, seed);
                 client_key = final_client_key;
                 server_key = final_server_key;
-                if (is_block_cipher) {
+                if (block_size != 0) {
                     byte[] iv_block = new byte[2*iv_size];
                     PRF.computePRF(iv_block, null, IV_BLOCK_LABEL, seed);
                     clientIV = new IvParameterSpec(iv_block, 0, iv_size);
                     serverIV = new IvParameterSpec(iv_block, iv_size, iv_size);
                 }
-            } else if (is_block_cipher) {
+            } else if (block_size != 0) {
                 clientIV = new IvParameterSpec(key_block,
                         2*(hash_size+key_size), iv_size);
                 serverIV = new IvParameterSpec(key_block,
@@ -199,23 +196,31 @@ public class ConnectionStateTLS extends ConnectionState {
                 }
             }
 
-            encCipher = Cipher.getInstance(algName);
-            decCipher = Cipher.getInstance(algName);
+            if (algName == null) {
+                encCipher = new NullCipher();
+                decCipher = new NullCipher();
+            } else {
+                encCipher = Cipher.getInstance(algName);
+                decCipher = Cipher.getInstance(algName);
+                if (is_client) { // client side
+                    encCipher.init(Cipher.ENCRYPT_MODE,
+                                   new SecretKeySpec(client_key, algName), clientIV);
+                    decCipher.init(Cipher.DECRYPT_MODE,
+                                   new SecretKeySpec(server_key, algName), serverIV);
+                } else { // server side
+                    encCipher.init(Cipher.ENCRYPT_MODE,
+                                   new SecretKeySpec(server_key, algName), serverIV);
+                    decCipher.init(Cipher.DECRYPT_MODE,
+                                   new SecretKeySpec(client_key, algName), clientIV);
+                }
+            }
+
             encMac = Mac.getInstance(macName);
             decMac = Mac.getInstance(macName);
-
             if (is_client) { // client side
-                encCipher.init(Cipher.ENCRYPT_MODE,
-                        new SecretKeySpec(client_key, algName), clientIV);
-                decCipher.init(Cipher.DECRYPT_MODE,
-                        new SecretKeySpec(server_key, algName), serverIV);
                 encMac.init(new SecretKeySpec(client_mac_secret, macName));
                 decMac.init(new SecretKeySpec(server_mac_secret, macName));
             } else { // server side
-                encCipher.init(Cipher.ENCRYPT_MODE,
-                        new SecretKeySpec(server_key, algName), serverIV);
-                decCipher.init(Cipher.DECRYPT_MODE,
-                        new SecretKeySpec(client_key, algName), clientIV);
                 encMac.init(new SecretKeySpec(server_mac_secret, macName));
                 decMac.init(new SecretKeySpec(client_mac_secret, macName));
             }
@@ -236,9 +241,7 @@ public class ConnectionStateTLS extends ConnectionState {
     protected byte[] encrypt(byte type, byte[] fragment, int offset, int len) {
         try {
             int content_mac_length = len + hash_size;
-            int padding_length = is_block_cipher
-                    ? ((8 - (++content_mac_length & 0x07)) & 0x07)
-                    : 0;
+            int padding_length = (block_size == 0) ? 0 : getPaddingSize(++content_mac_length);
             byte[] res = new byte[content_mac_length + padding_length];
             System.arraycopy(fragment, offset, res, 0, len);
 
@@ -258,14 +261,14 @@ public class ConnectionStateTLS extends ConnectionState {
             //    logger.print(fragment, offset, len);
             //}
 
-            if (is_block_cipher) {
+            if (block_size != 0) {
                 // do padding:
                 Arrays.fill(res, content_mac_length-1,
                         res.length, (byte) (padding_length));
             }
             if (logger != null) {
                 logger.println("SSLRecordProtocol.do_encryption: Generic"
-                        + (is_block_cipher
+                        + (block_size != 0
                             ? "BlockCipher with padding["+padding_length+"]:"
                             : "StreamCipher:"));
                 logger.print(res);
@@ -303,7 +306,7 @@ public class ConnectionStateTLS extends ConnectionState {
         byte[] data = decCipher.update(fragment, offset, len);
         // the 'content' part of the structure
         byte[] content;
-        if (is_block_cipher) {
+        if (block_size != 0) {
             // check padding
             int padding_length = data[data.length-1];
             for (int i=0; i<padding_length; i++) {
