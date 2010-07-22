@@ -34,6 +34,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     private final SSLParameters sslParameters;
     private String[] enabledProtocols = NativeCrypto.getSupportedProtocols();
     private String[] enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
+    private String[] enabledCompressionMethods = NativeCrypto.getDefaultCompressionMethods();
 
     protected OpenSSLServerSocketImpl(SSLParameters sslParameters)
         throws IOException {
@@ -129,6 +130,26 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
         enabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(suites);
     }
 
+    public String[] getSupportedCompressionMethods() {
+        return NativeCrypto.getSupportedCompressionMethods();
+    }
+
+    public String[] getEnabledCompressionMethods() {
+        return enabledCompressionMethods.clone();
+    }
+
+    /**
+     * This method enables the compression methods listed by
+     * getSupportedCompressionMethods().
+     *
+     * @param suites the names of all the compression methods to enable
+     * @throws IllegalArgumentException when one or more of the ciphers in array
+     *         suites are not supported, or when the array is null.
+     */
+    public void setEnabledCompressionMethods(String[] methods) {
+        enabledCompressionMethods = NativeCrypto.checkEnabledCompressionMethods(methods);
+    }
+
     @Override
     public boolean getWantClientAuth() {
         return sslParameters.getWantClientAuth();
@@ -168,7 +189,8 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
         OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters,
                                                          enabledProtocols.clone(),
-                                                         enabledCipherSuites.clone());
+                                                         enabledCipherSuites.clone(),
+                                                         enabledCompressionMethods.clone());
         implAccept(socket);
         return socket;
     }

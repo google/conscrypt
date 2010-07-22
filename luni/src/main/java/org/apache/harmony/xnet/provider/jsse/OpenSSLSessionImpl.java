@@ -53,6 +53,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     private int peerPort = -1;
     private String cipherSuite;
     private String protocol;
+    private String compressionMethod;
     private AbstractSessionContext sessionContext;
     private byte[] id;
 
@@ -137,7 +138,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives the last time this concrete SSL session was accessed. Accessing
+     * Returns the last time this concrete SSL session was accessed. Accessing
      * here is to mean that a new connection with the same SSL context data was
      * established.
      *
@@ -148,7 +149,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives the largest buffer size for the application's data bound to this
+     * Returns the largest buffer size for the application's data bound to this
      * concrete SSL session.
      * @return the largest buffer size
      */
@@ -157,7 +158,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives the largest SSL/TLS packet size one can expect for this concrete
+     * Returns the largest SSL/TLS packet size one can expect for this concrete
      * SSL session.
      * @return the largest packet size
      */
@@ -166,7 +167,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives the principal (subject) of this concrete SSL session used in the
+     * Returns the principal (subject) of this concrete SSL session used in the
      * handshaking phase of the connection.
      * @return a X509 certificate or null if no principal was defined
      */
@@ -179,7 +180,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives the certificate(s) of the principal (subject) of this concrete SSL
+     * Returns the certificate(s) of the principal (subject) of this concrete SSL
      * session used in the handshaking phase of the connection. The OpenSSL
      * native method supports only RSA certificates.
      * @return an array of certificates (the local one first and then eventually
@@ -191,7 +192,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives the certificate(s) of the peer in this SSL session
+     * Returns the certificate(s) of the peer in this SSL session
      * used in the handshaking phase of the connection.
      * Please notice hat this method is superseded by
      * <code>getPeerCertificates()</code>.
@@ -230,7 +231,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives the identitity of the peer in this SSL session
+     * Return the identitity of the peer in this SSL session
      * determined via certificate(s).
      * @return an array of X509 certificates (the peer's one first and then
      *         eventually that of the certification authority) or null if no
@@ -295,7 +296,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives the peer's port number for the actual SSL session. It is the port
+     * Returns the peer's port number for the actual SSL session. It is the port
      * number of the client for the server; and that of the server for the
      * client. It is not a reliable way to get a peer's port number: it is
      * mainly used internally to implement links for a temporary cache of SSL
@@ -308,7 +309,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives back a string identifier of the crypto tools used in the actual SSL
+     * Returns a string identifier of the crypto tools used in the actual SSL
      * session. For example AES_256_WITH_MD5.
      *
      * @return an identifier for all the cryptographic algorithms used in the
@@ -317,7 +318,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     public String getCipherSuite() {
         if (cipherSuite == null) {
             String name = NativeCrypto.SSL_SESSION_cipher(sslSessionNativePointer);
-            cipherSuite = NativeCrypto.OPENSSL_TO_STANDARD.get(name);
+            cipherSuite = NativeCrypto.OPENSSL_TO_STANDARD_CIPHER_SUITES.get(name);
             if (cipherSuite == null) {
                 cipherSuite = name;
             }
@@ -326,7 +327,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives back the standard version name of the SSL protocol used in all
+     * Returns the standard version name of the SSL protocol used in all
      * connections pertaining to this SSL session.
      *
      * @return the standard version name of the SSL protocol used in all
@@ -341,7 +342,24 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives back the context to which the actual SSL session is bound. A SSL
+     * Returns the compression method name used in all connections
+     * pertaining to this SSL session.
+     *
+     * @return the compresison method used in all connections
+     *         pertaining to this SSL session.
+     *
+     */
+    public String getCompressionMethod() {
+        if (compressionMethod == null) {
+            compressionMethod
+                    = NativeCrypto.SSL_SESSION_compress_meth(sessionContext.sslCtxNativePointer,
+                                                             sslSessionNativePointer);
+        }
+        return compressionMethod;
+    }
+
+    /**
+     * Returns the context to which the actual SSL session is bound. A SSL
      * context consists of (1) a possible delegate, (2) a provider and (3) a
      * protocol. If the security manager is activated and one tries to access
      * the SSL context an exception may be thrown if a
@@ -359,9 +377,9 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives back a boolean flag signaling whether a SSL session is valid and
-     * available
-     * for resuming or joining or not.
+     * Returns a boolean flag signaling whether a SSL session is valid
+     * and available for resuming or joining or not.
+     *
      * @return true if this session may be resumed.
      */
     public boolean isValid() {
@@ -385,7 +403,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives back the object which is bound to the the input parameter name.
+     * Returns the object which is bound to the the input parameter name.
      * This name is a sort of link to the data of the SSL session's application
      * layer, if any exists. The search for this link is monitored, as a matter
      * of security, by the full machinery of the <code>AccessController</code>
@@ -404,7 +422,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Gives back an array with the names (sort of links) of all the data
+     * Returns an array with the names (sort of links) of all the data
      * objects of the application layer bound into the SSL session. The search
      * for this link is monitored, as a matter of security, by the full
      * machinery of the <code>AccessController</code> class.

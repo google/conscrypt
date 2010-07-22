@@ -119,14 +119,14 @@ public final class NativeCrypto {
     private static final String SUPPORTED_PROTOCOL_SSLV3 = "SSLv3";
     private static final String SUPPORTED_PROTOCOL_TLSV1 = "TLSv1";
 
-    public static final Map<String, String> OPENSSL_TO_STANDARD
-        = new HashMap<String, String>();
-    public static final Map<String, String> STANDARD_TO_OPENSSL
-        = new LinkedHashMap<String, String>();
+    public static final Map<String, String> OPENSSL_TO_STANDARD_CIPHER_SUITES
+            = new HashMap<String, String>();
+    public static final Map<String, String> STANDARD_TO_OPENSSL_CIPHER_SUITES
+            = new LinkedHashMap<String, String>();
 
     private static void add(String standard, String openssl) {
-        OPENSSL_TO_STANDARD.put(openssl, standard);
-        STANDARD_TO_OPENSSL.put(standard, openssl);
+        OPENSSL_TO_STANDARD_CIPHER_SUITES.put(openssl, standard);
+        STANDARD_TO_OPENSSL_CIPHER_SUITES.put(standard, openssl);
     }
 
     static {
@@ -216,18 +216,19 @@ public final class NativeCrypto {
         // add(null, "PSK-AES128-CBC-SHA");
         // add(null, "PSK-AES256-CBC-SHA");
         // add(null, "PSK-RC4-SHA");
-
     }
 
     private static final String[] SUPPORTED_CIPHER_SUITES
-        = STANDARD_TO_OPENSSL.keySet().toArray(new String[0]);
+            = STANDARD_TO_OPENSSL_CIPHER_SUITES.keySet().toArray(new String[0]);
 
-    // SSL mode
+    // SSL mode from ssl.h
     public static long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000040L;
 
-    // SSL options
-    public static long SSL_OP_NO_SSLv3 = 0x02000000L;
-    public static long SSL_OP_NO_TLSv1 = 0x04000000L;
+    // SSL options from ssl.h
+    public static long SSL_OP_NO_TICKET      = 0x00004000L;
+    public static long SSL_OP_NO_COMPRESSION = 0x00020000L;
+    public static long SSL_OP_NO_SSLv3       = 0x02000000L;
+    public static long SSL_OP_NO_TLSv1       = 0x04000000L;
 
     public static native int SSL_CTX_new();
 
@@ -327,10 +328,7 @@ public final class NativeCrypto {
     }
 
     public static void setEnabledProtocols(int ssl, String[] protocols) {
-        if (protocols == null) {
-            throw new IllegalArgumentException("protocols == null");
-        }
-
+        checkEnabledProtocols(protocols);
         // openssl uses negative logic letting you disable protocols.
         // so first, assume we need to set all (disable all) and clear none (enable none).
         // in the loop, selectively move bits from set to clear (from disable to enable)
@@ -338,9 +336,6 @@ public final class NativeCrypto {
         long optionsToClear = 0;
         for (int i = 0; i < protocols.length; i++) {
             String protocol = protocols[i];
-            if (protocol == null) {
-                throw new IllegalArgumentException("protocols[" + i + "] == null");
-            }
             if (protocol.equals(SUPPORTED_PROTOCOL_SSLV3)) {
                 optionsToSet &= ~SSL_OP_NO_SSLv3;
                 optionsToClear |= SSL_OP_NO_SSLv3;
@@ -348,8 +343,8 @@ public final class NativeCrypto {
                 optionsToSet &= ~SSL_OP_NO_TLSv1;
                 optionsToClear |= SSL_OP_NO_TLSv1;
             } else {
-                throw new IllegalArgumentException("protocol " + protocol
-                                                   + " is not supported");
+                // error checked by checkEnabledProtocols
+                throw new IllegalStateException();
             }
         }
 
@@ -382,7 +377,7 @@ public final class NativeCrypto {
         List<String> opensslSuites = new ArrayList<String>();
         for (int i = 0; i < cipherSuites.length; i++) {
             String cipherSuite = cipherSuites[i];
-            String openssl = STANDARD_TO_OPENSSL.get(cipherSuite);
+            String openssl = STANDARD_TO_OPENSSL_CIPHER_SUITES.get(cipherSuite);
             String cs = (openssl == null) ? cipherSuite : openssl;
             opensslSuites.add(cs);
         }
@@ -399,16 +394,76 @@ public final class NativeCrypto {
             if (cipherSuite == null) {
                 throw new IllegalArgumentException("cipherSuites[" + i + "] == null");
             }
-            if (STANDARD_TO_OPENSSL.containsKey(cipherSuite)) {
+            if (STANDARD_TO_OPENSSL_CIPHER_SUITES.containsKey(cipherSuite)) {
                 continue;
             }
-            if (OPENSSL_TO_STANDARD.containsKey(cipherSuite)) {
+            if (OPENSSL_TO_STANDARD_CIPHER_SUITES.containsKey(cipherSuite)) {
                 // TODO log warning about using backward compatability
                 continue;
             }
             throw new IllegalArgumentException("cipherSuite " + cipherSuite + " is not supported.");
         }
         return cipherSuites;
+    }
+
+    private static final String SUPPORTED_COMPRESSION_METHOD_ZLIB = "ZLIB";
+    private static final String SUPPORTED_COMPRESSION_METHOD_NULL = "NULL";
+
+    private static final String[] SUPPORTED_COMPRESSION_METHODS
+            = { SUPPORTED_COMPRESSION_METHOD_ZLIB, SUPPORTED_COMPRESSION_METHOD_NULL };
+
+    public static String[] getSupportedCompressionMethods() {
+        return SUPPORTED_COMPRESSION_METHODS.clone();
+    }
+
+    public static final String[] getDefaultCompressionMethods() {
+        return new String[] { SUPPORTED_COMPRESSION_METHOD_NULL };
+    }
+
+    public static String[] checkEnabledCompressionMethods(String[] methods) {
+        if (methods == null) {
+            throw new IllegalArgumentException("methods == null");
+        }
+        if (methods.length < 1
+                && !methods[methods.length-1].equals(SUPPORTED_COMPRESSION_METHOD_NULL)) {
+            throw new IllegalArgumentException("last method must be NULL");
+        }
+        for (int i = 0; i < methods.length; i++) {
+            String method = methods[i];
+            if (method == null) {
+                throw new IllegalArgumentException("methods[" + i + "] == null");
+            }
+            if (!method.equals(SUPPORTED_COMPRESSION_METHOD_ZLIB)
+                    && !method.equals(SUPPORTED_COMPRESSION_METHOD_NULL)) {
+                throw new IllegalArgumentException("method " + method
+                                                   + " is not supported");
+            }
+        }
+        return methods;
+    }
+
+    public static void setEnabledCompressionMethods(int ssl, String[] methods) {
+        checkEnabledCompressionMethods(methods);
+        // openssl uses negative logic letting you disable compression.
+        // so first, assume we need to set all (disable all) and clear none (enable none).
+        // in the loop, selectively move bits from set to clear (from disable to enable)
+        long optionsToSet = (SSL_OP_NO_COMPRESSION);
+        long optionsToClear = 0;
+        for (int i = 0; i < methods.length; i++) {
+            String method = methods[i];
+            if (method.equals(SUPPORTED_COMPRESSION_METHOD_NULL)) {
+                // nothing to do to support NULL
+            } else if (method.equals(SUPPORTED_COMPRESSION_METHOD_ZLIB)) {
+                optionsToSet &= ~SSL_OP_NO_COMPRESSION;
+                optionsToClear |= SSL_OP_NO_COMPRESSION;
+            } else {
+                // error checked by checkEnabledCompressionMethods
+                throw new IllegalStateException();
+            }
+        }
+
+        SSL_set_options(ssl, optionsToSet);
+        SSL_clear_options(ssl, optionsToClear);
     }
 
     /*
@@ -425,6 +480,10 @@ public final class NativeCrypto {
 
     public static native void SSL_set_session_creation_enabled(
             int sslNativePointer, boolean creationEnabled) throws SSLException;
+
+    public static native void SSL_set_tlsext_host_name(int sslNativePointer, String hostname)
+            throws SSLException;
+    public static native String SSL_get_servername(int sslNativePointer);
 
     /**
      * Returns the sslSessionNativePointer of the negotiated session
@@ -477,6 +536,9 @@ public final class NativeCrypto {
     public static native String SSL_SESSION_get_version(int sslSessionNativePointer);
 
     public static native String SSL_SESSION_cipher(int sslSessionNativePointer);
+
+    public static native String SSL_SESSION_compress_meth(int sslCtxNativePointer,
+                                                          int sslSessionNativePointer);
 
     public static native void SSL_SESSION_free(int sslSessionNativePointer);
 
