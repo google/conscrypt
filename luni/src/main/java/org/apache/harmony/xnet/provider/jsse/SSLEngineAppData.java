@@ -17,8 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.AlertException;
-
 import java.nio.ByteBuffer;
 import javax.net.ssl.SSLException;
 

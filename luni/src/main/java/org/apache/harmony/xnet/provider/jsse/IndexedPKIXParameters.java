@@ -16,24 +16,22 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import javax.security.auth.x500.X500Principal;
-
-import java.security.cert.CertPath;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyStoreException;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.PKIXParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyStoreException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.security.auth.x500.X500Principal;
 
 /**
  * Indexes trust anchors so they can be found in O(1) time instead of O(N).

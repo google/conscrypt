@@ -17,8 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.SSLInputStream;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 

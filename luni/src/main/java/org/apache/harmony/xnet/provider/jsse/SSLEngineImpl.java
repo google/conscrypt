@@ -27,9 +27,6 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
-import org.apache.harmony.xnet.provider.jsse.AlertException;
-import org.apache.harmony.xnet.provider.jsse.SSLEngineDataStream;
-import org.apache.harmony.xnet.provider.jsse.SSLSessionImpl;
 
 /**
  * Implementation of SSLEngine.

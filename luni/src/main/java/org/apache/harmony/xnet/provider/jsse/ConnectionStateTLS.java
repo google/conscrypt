@@ -25,10 +25,6 @@ import javax.crypto.NullCipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLProtocolException;
-import org.apache.harmony.xnet.provider.jsse.AlertException;
-import org.apache.harmony.xnet.provider.jsse.ConnectionState;
-import org.apache.harmony.xnet.provider.jsse.PRF;
-import org.apache.harmony.xnet.provider.jsse.SSLSessionImpl;
 
 /**
  * This class encapsulates the operating environment of the TLS v1

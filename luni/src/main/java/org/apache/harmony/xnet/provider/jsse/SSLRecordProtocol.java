@@ -17,10 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.AlertException;
-import org.apache.harmony.xnet.provider.jsse.SSLSessionImpl;
-import org.apache.harmony.xnet.provider.jsse.SSLInputStream;
-
 import java.io.IOException;
 import javax.net.ssl.SSLProtocolException;
 

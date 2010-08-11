@@ -19,7 +19,6 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.security.GeneralSecurityException;
 import java.util.Hashtable;
-
 import javax.crypto.Cipher;
 
 /**

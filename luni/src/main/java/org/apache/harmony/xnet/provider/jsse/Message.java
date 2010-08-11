@@ -17,8 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.AlertException;
-
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 

@@ -39,9 +39,6 @@ import javax.crypto.spec.DHPublicKeySpec;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
-import org.apache.harmony.xnet.provider.jsse.ProtocolVersion;
-import org.apache.harmony.xnet.provider.jsse.SSLSessionImpl;
-import org.apache.harmony.xnet.provider.jsse.SSLv3Constants;
 
 /**
  * Server side handshake protocol implementation.

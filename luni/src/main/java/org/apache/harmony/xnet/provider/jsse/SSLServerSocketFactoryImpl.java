@@ -17,8 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.SSLParameters;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;

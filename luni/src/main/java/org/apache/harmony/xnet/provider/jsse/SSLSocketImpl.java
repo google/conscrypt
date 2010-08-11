@@ -17,11 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.AlertException;
-import org.apache.harmony.xnet.provider.jsse.SSLSocketOutputStream;
-import org.apache.harmony.xnet.provider.jsse.SSLStreamedInput;
-import org.apache.harmony.xnet.provider.jsse.SSLSessionImpl;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -99,7 +94,7 @@ public class SSLSocketImpl extends SSLSocket {
      * @param   sslParameters:  SSLParameters
      * @throws  IOException
      * @throws  UnknownHostException
-     * @see javax.net.ssl.SSLSocket#SSLSocket(String,int) 
+     * @see javax.net.ssl.SSLSocket#SSLSocket(String,int)
      * method documentation for more information.
      */
     protected SSLSocketImpl(String host, int port, SSLParameters sslParameters)
@@ -137,7 +132,7 @@ public class SSLSocketImpl extends SSLSocket {
      * @param   sslParameters:  SSLParameters
      * @return
      * @throws  IOException
-     * @see javax.net.ssl.SSLSocket#SSLSocket(InetAddress,int) 
+     * @see javax.net.ssl.SSLSocket#SSLSocket(InetAddress,int)
      * method documentation for more information.
      */
     protected SSLSocketImpl(InetAddress host, int port,
@@ -494,19 +489,19 @@ public class SSLSocketImpl extends SSLSocket {
         super.connect(endpoint);
         init();
     }
-    
+
     /**
      * This method works according to the specification of implemented class.
      * @see java.net.Socket#connect(SocketAddress,int)
      * method documentation for more information
      */
     @Override
-    public void connect(SocketAddress endpoint, int timeout) 
+    public void connect(SocketAddress endpoint, int timeout)
             throws IOException {
         super.connect(endpoint, timeout);
         init();
     }
-    
+
     /**
      * This method works according to the specification of implemented class.
      * @see javax.net.ssl.SSLSocket#close()
@@ -616,7 +611,7 @@ public class SSLSocketImpl extends SSLSocket {
                         if (!handshakeProtocol.getStatus().equals(
                                 SSLEngineResult.HandshakeStatus
                                 .NOT_HANDSHAKING)) {
-                            // handshake protocol got addressed to it message 
+                            // handshake protocol got addressed to it message
                             // and did not ignore it, so it's a rehandshake
                             doHandshake();
                         }
@@ -709,7 +704,7 @@ public class SSLSocketImpl extends SSLSocket {
      * handshake message from handshake protocol and sends it to another peer.
      * If this status is NEED_UNWRAP, method receives and processes handshake
      * message from another peer. Each of this stages (wrap/unwrap) change
-     * the state of handshake protocol and this process is performed 
+     * the state of handshake protocol and this process is performed
      * until handshake status is FINISHED. After handshake process is finnished
      * handshake completed event are sent to the registered listeners.
      * For more information about the handshake process see
@@ -798,7 +793,7 @@ public class SSLSocketImpl extends SSLSocket {
             }
         }
     }
-        
+
     /*
      * Process received alert message
      */
@@ -813,7 +808,7 @@ public class SSLSocketImpl extends SSLSocket {
             shutdown();
             throw new SSLException(description);
         }
-        
+
         if (logger != null) {
             logger.println("Warning alert received: "
                 + alertProtocol.getAlertDescription());
@@ -829,11 +824,11 @@ public class SSLSocketImpl extends SSLSocket {
             // TODO: process other warning messages
         }
     }
-    
+
     /*
      * Sends fatal alert message and throws exception
      */
-    private void reportFatalAlert(byte description_code, 
+    private void reportFatalAlert(byte description_code,
             SSLException reason) throws IOException {
         alertProtocol.alert(AlertProtocol.FATAL, description_code);
         try {

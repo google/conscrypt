@@ -17,9 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.AlertException;
-import org.apache.harmony.xnet.provider.jsse.SSLInputStream;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.security.MessageDigest;

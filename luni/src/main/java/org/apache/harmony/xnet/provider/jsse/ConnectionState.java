@@ -18,7 +18,6 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import javax.crypto.Cipher;
-import org.apache.harmony.xnet.provider.jsse.Logger;
 
 /**
  * This abstract class is a base for Record Protocol operating environmet

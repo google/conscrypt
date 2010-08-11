@@ -16,8 +16,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
 import java.security.NoSuchAlgorithmException;
@@ -28,6 +26,8 @@ import java.security.SignatureException;
 import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Implements the subset of the JDK Signature interface needed for

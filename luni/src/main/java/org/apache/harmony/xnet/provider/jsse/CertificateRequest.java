@@ -21,10 +21,6 @@ import java.io.IOException;
 import java.security.cert.X509Certificate;
 import java.util.Vector;
 import javax.security.auth.x500.X500Principal;
-import org.apache.harmony.xnet.provider.jsse.AlertProtocol;
-import org.apache.harmony.xnet.provider.jsse.Handshake;
-import org.apache.harmony.xnet.provider.jsse.HandshakeIODataStream;
-import org.apache.harmony.xnet.provider.jsse.Message;
 
 /**
  *

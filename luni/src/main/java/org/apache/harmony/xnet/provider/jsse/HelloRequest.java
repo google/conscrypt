@@ -17,10 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.Message;
-import org.apache.harmony.xnet.provider.jsse.Handshake;
-import org.apache.harmony.xnet.provider.jsse.HandshakeIODataStream;
-
 import java.io.IOException;
 
 /**
