@@ -301,10 +301,23 @@ public class OpenSSLSocketImpl
     }
 
     /**
+     * Checks whether the socket is closed, and throws an exception.
+     *
+     * @throws SocketException
+     *             if the socket is closed.
+     */
+    private void checkOpen() throws SocketException {
+        if (isClosed()) {
+            throw new SocketException("Socket is closed");
+        }
+    }
+
+    /**
      * Perform the handshake
      * @param full If true, disable handshake cutthrough for a fully synchronous handshake
      */
     public synchronized void startHandshake(boolean full) throws IOException {
+        checkOpen();
         synchronized (handshakeLock) {
             if (!handshakeStarted) {
                 handshakeStarted = true;
@@ -631,6 +644,7 @@ public class OpenSSLSocketImpl
      */
     @Override
     public InputStream getInputStream() throws IOException {
+        checkOpen();
         synchronized (this) {
             if (is == null) {
                 is = new SSLInputStream();
@@ -650,6 +664,7 @@ public class OpenSSLSocketImpl
      */
     @Override
     public OutputStream getOutputStream() throws IOException {
+        checkOpen();
         synchronized (this) {
             if (os == null) {
                 os = new SSLOutputStream();
@@ -702,6 +717,7 @@ public class OpenSSLSocketImpl
          */
         @Override
         public int read() throws IOException {
+            checkOpen();
             synchronized (readLock) {
                 return NativeCrypto.SSL_read_byte(sslNativePointer, timeout);
             }
@@ -713,6 +729,7 @@ public class OpenSSLSocketImpl
          */
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
+            checkOpen();
             if (b == null) {
                 throw new NullPointerException("b == null");
             }
@@ -748,6 +765,7 @@ public class OpenSSLSocketImpl
          */
         @Override
         public void write(int b) throws IOException {
+            checkOpen();
             synchronized (writeLock) {
                 NativeCrypto.SSL_write_byte(sslNativePointer, b);
             }
@@ -759,6 +777,7 @@ public class OpenSSLSocketImpl
          */
         @Override
         public void write(byte[] b, int start, int len) throws IOException {
+            checkOpen();
             if (b == null) {
                 throw new NullPointerException("b == null");
             }
