@@ -524,7 +524,7 @@ public class CipherSuite {
     /**
      * Creates CipherSuite
      */
-    public CipherSuite(String name, boolean isExportable, int keyExchange,
+    private CipherSuite(String name, boolean isExportable, int keyExchange,
             String authType, String cipherName, String hash, byte[] code) {
         this.name = name;
         this.keyExchange = keyExchange;
@@ -687,19 +687,6 @@ public class CipherSuite {
     @Override
     public String toString() {
         return name + ": " + cipherSuiteCode[0] + " " + cipherSuiteCode[1];
-    }
-
-    /**
-     * Compares this cipher suite to the specified object.
-     */
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof CipherSuite
-                && this.cipherSuiteCode[0] == ((CipherSuite) obj).cipherSuiteCode[0]
-                && this.cipherSuiteCode[1] == ((CipherSuite) obj).cipherSuiteCode[1]) {
-            return true;
-        }
-        return false;
     }
 
     /**
