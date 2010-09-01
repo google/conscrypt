@@ -142,17 +142,4 @@ public class ProtocolVersion {
         this.name = name;
         this.version = version;
     }
-
-    /**
-     * Compares this ProtocolVersion to the specified object.
-     */
-    @Override
-    public boolean equals(Object o) {
-        if (o instanceof ProtocolVersion
-                && this.version[0] == ((ProtocolVersion) o).version[0]
-                && this.version[1] == ((ProtocolVersion) o).version[1]) {
-            return true;
-        }
-        return false;
-    }
 }
