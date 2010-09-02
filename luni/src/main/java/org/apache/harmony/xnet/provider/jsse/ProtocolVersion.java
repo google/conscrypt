@@ -112,13 +112,13 @@ public class ProtocolVersion {
     /**
      * SSL 3.0 protocol version
      */
-    public static ProtocolVersion SSLv3 = new ProtocolVersion("SSLv3",
+    public static final ProtocolVersion SSLv3 = new ProtocolVersion("SSLv3",
             new byte[] { 3, 0 });
 
     /**
      * TLS 1.0 protocol version
      */
-    public static ProtocolVersion TLSv1 = new ProtocolVersion("TLSv1",
+    public static final ProtocolVersion TLSv1 = new ProtocolVersion("TLSv1",
             new byte[] { 3, 1 });
 
     static {

@@ -36,11 +36,11 @@ import javax.net.ssl.SSLProtocolException;
  * getChangeCipherSpecMesage method).
  * For server side mode record protocol retrieves the parameters from
  * handshake protocol after receiving of client's change_cipher_spec message.
- * After the pending session has been setted up as a curent session,
- * new connectin state object is created and used for encryption/decryption
+ * After the pending session has been set up as a current session,
+ * new connection state object is created and used for encryption/decryption
  * of the messages.
  * Among with base functionality this class provides the information about
- * constrains on the data length, and information about correspondance
+ * constrains on the data length, and information about correspondence
  * of plain and encrypted data lengths.
  * For more information on TLS v1 see http://www.ietf.org/rfc/rfc2246.txt,
  * on SSL v3 see http://wp.netscape.com/eng/ssl3,
@@ -52,24 +52,24 @@ public class SSLRecordProtocol {
      * Maximum length of allowed plain data fragment
      * as specified by TLS specification.
      */
-    protected static int MAX_DATA_LENGTH = 16384; // 2^14
+    protected static final int MAX_DATA_LENGTH = 16384; // 2^14
     /**
      * Maximum length of allowed compressed data fragment
      * as specified by TLS specification.
      */
-    protected static int MAX_COMPRESSED_DATA_LENGTH
+    protected static final int MAX_COMPRESSED_DATA_LENGTH
                                     = MAX_DATA_LENGTH + 1024;
     /**
      * Maximum length of allowed ciphered data fragment
      * as specified by TLS specification.
      */
-    protected static int MAX_CIPHERED_DATA_LENGTH
+    protected static final int MAX_CIPHERED_DATA_LENGTH
                                     = MAX_COMPRESSED_DATA_LENGTH + 1024;
     /**
      * Maximum length of ssl record. It is counted as:
      * type(1) + version(2) + length(2) + MAX_CIPHERED_DATA_LENGTH
      */
-    protected static int MAX_SSL_PACKET_SIZE
+    protected static final int MAX_SSL_PACKET_SIZE
                                     = MAX_CIPHERED_DATA_LENGTH + 5;
     // the SSL session used for connection
     private SSLSessionImpl session;
@@ -79,7 +79,7 @@ public class SSLRecordProtocol {
     private SSLInputStream in;
     // handshake protocol object to which handshaking data will be transmitted
     private HandshakeProtocol handshakeProtocol;
-    // alert protocol to indicate alerts occured/received
+    // alert protocol to indicate alerts occurred/received
     private AlertProtocol alertProtocol;
     // application data object to which application data will be transmitted
     private org.apache.harmony.xnet.provider.jsse.Appendable appData;
@@ -119,7 +119,7 @@ public class SSLRecordProtocol {
 
     /**
      * Returns the session obtained during the handshake negotiation.
-     * If the handshake process was not compleated, method returns null.
+     * If the handshake process was not completed, method returns null.
      * @return the session in effect.
      */
     protected SSLSessionImpl getSession() {
@@ -148,7 +148,7 @@ public class SSLRecordProtocol {
             int res = 5 + activeWriteState.getFragmentSize(data_size);
             return (res > MAX_CIPHERED_DATA_LENGTH)
                 ? MAX_CIPHERED_DATA_LENGTH // so the source data should be
-                                           // splitted into several packets
+                                           // split into several packets
                 : res;
         }
     }
@@ -178,7 +178,6 @@ public class SSLRecordProtocol {
      * Depending on the Connection State (Session) encrypts and compress
      * the provided data, and packs it into TLSCiphertext structure.
      * @param   content_type: int
-     * @param   fragment: byte[]
      * @return  ssl packet created over the current connection state
      */
     protected byte[] wrap(byte content_type, DataStream dataStream) {
@@ -318,10 +317,10 @@ public class SSLRecordProtocol {
      * In addition this method can recognize SSLv2 hello message which
      * are often used to establish the SSL/TLS session.
      *
-     * @throws IOException if some io errors have been occured
+     * @throws IOException if some io errors have been occurred
      * @throws EndOfSourceException if underlying input stream
      *                              has ran out of data.
-     * @throws EndOfBufferException if there was not enought data
+     * @throws EndOfBufferException if there was not enough data
      *                              to build complete ssl packet.
      * @return the type of unwrapped message.
      */
@@ -442,7 +441,7 @@ public class SSLRecordProtocol {
 
     /**
      * Sets up the SSL version used in this connection.
-     * This method is calling from the hanshake protocol after
+     * This method is calling from the handshake protocol after
      * it becomes known witch protocol version will be used.
      * @param   ver:    byte[]
      * @return
@@ -452,7 +451,7 @@ public class SSLRecordProtocol {
     }
 
     /**
-     * Shutdownes the protocol. It will be impossiblke to use the instance
+     * Shuts down the protocol. It will be impossible to use the instance
      * after the calling of this method.
      */
     protected void shutdown() {
