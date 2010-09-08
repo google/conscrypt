@@ -16,6 +16,7 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import dalvik.system.BlockGuard;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -718,6 +719,7 @@ public class OpenSSLSocketImpl
         @Override
         public int read() throws IOException {
             checkOpen();
+            BlockGuard.getThreadPolicy().onNetwork();
             synchronized (readLock) {
                 return NativeCrypto.SSL_read_byte(sslNativePointer, timeout);
             }
@@ -730,6 +732,7 @@ public class OpenSSLSocketImpl
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
             checkOpen();
+            BlockGuard.getThreadPolicy().onNetwork();
             if (b == null) {
                 throw new NullPointerException("b == null");
             }
@@ -766,6 +769,7 @@ public class OpenSSLSocketImpl
         @Override
         public void write(int b) throws IOException {
             checkOpen();
+            BlockGuard.getThreadPolicy().onNetwork();
             synchronized (writeLock) {
                 NativeCrypto.SSL_write_byte(sslNativePointer, b);
             }
@@ -778,6 +782,7 @@ public class OpenSSLSocketImpl
         @Override
         public void write(byte[] b, int start, int len) throws IOException {
             checkOpen();
+            BlockGuard.getThreadPolicy().onNetwork();
             if (b == null) {
                 throw new NullPointerException("b == null");
             }
@@ -1174,6 +1179,7 @@ public class OpenSSLSocketImpl
                     // Shut down the SSL connection, per se.
                     try {
                         if (handshakeStarted) {
+                            BlockGuard.getThreadPolicy().onNetwork();
                             NativeCrypto.SSL_shutdown(sslNativePointer);
                         }
                     } catch (IOException ex) {
