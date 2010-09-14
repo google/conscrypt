@@ -21,6 +21,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -30,9 +32,7 @@ import java.util.NoSuchElementException;
 import java.util.logging.Level;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
-import javax.security.cert.CertificateEncodingException;
-import javax.security.cert.CertificateException;
-import javax.security.cert.X509Certificate;
+import org.apache.harmony.security.provider.cert.X509CertImpl;
 
 /**
  * Supports SSL session caches.
@@ -199,11 +199,10 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             daos.write(data);
 
             // Certificates.
-            X509Certificate[] certs = session.getPeerCertificateChain();
+            Certificate[] certs = session.getPeerCertificates();
             daos.writeInt(certs.length);
 
-            // TODO: Call nativegetpeercertificates()
-            for (X509Certificate cert : certs) {
+            for (Certificate cert : certs) {
                 data = cert.getEncoded();
                 daos.writeInt(data.length);
                 daos.write(data);
@@ -240,19 +239,16 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             dais.readFully(sessionData);
 
             int count = dais.readInt();
-            X509Certificate[] certs = new X509Certificate[count];
+            X509CertImpl[] certs = new X509CertImpl[count];
             for (int i = 0; i < count; i++) {
                 length = dais.readInt();
                 byte[] certData = new byte[length];
                 dais.readFully(certData);
-                certs[i] = X509Certificate.getInstance(certData);
+                certs[i] = new X509CertImpl(certData);
             }
 
             return new OpenSSLSessionImpl(sessionData, host, port, certs, this);
         } catch (IOException e) {
-            log(e);
-            return null;
-        } catch (CertificateException e) {
             log(e);
             return null;
         }
