@@ -29,7 +29,7 @@ import javax.net.ssl.SSLSocketFactory;
  */
 public class SSLSocketFactoryImpl extends SSLSocketFactory {
 
-    private SSLParameters sslParameters;
+    private SSLParametersImpl sslParameters;
     private IOException instantiationException;
 
     /**
@@ -38,7 +38,7 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
     public SSLSocketFactoryImpl() {
         super();
         try {
-            sslParameters = SSLParameters.getDefault();
+            sslParameters = SSLParametersImpl.getDefault();
         } catch (KeyManagementException e) {
             instantiationException =
                 new IOException("Delayed instantiation exception:");
@@ -49,7 +49,7 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
     /**
      * Constructor.
      */
-    protected SSLSocketFactoryImpl(SSLParameters sslParameters) {
+    protected SSLSocketFactoryImpl(SSLParametersImpl sslParameters) {
         super();
         this.sslParameters = sslParameters;
     }
@@ -85,7 +85,7 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
         if (instantiationException != null) {
             throw instantiationException;
         }
-        return new SSLSocketWrapper(s, autoClose, (SSLParameters) sslParameters
+        return new SSLSocketWrapper(s, autoClose, (SSLParametersImpl) sslParameters
                 .clone());
     }
 
@@ -99,7 +99,7 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
         if (instantiationException != null) {
             throw instantiationException;
         }
-        return new SSLSocketImpl((SSLParameters) sslParameters.clone());
+        return new SSLSocketImpl((SSLParametersImpl) sslParameters.clone());
     }
 
     /**
@@ -112,7 +112,7 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
             throw instantiationException;
         }
         return new SSLSocketImpl(host, port,
-                (SSLParameters) sslParameters.clone());
+                (SSLParametersImpl) sslParameters.clone());
     }
 
     /**
@@ -126,7 +126,7 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
             throw instantiationException;
         }
         return new SSLSocketImpl(host, port, localHost, localPort,
-                (SSLParameters) sslParameters.clone());
+                (SSLParametersImpl) sslParameters.clone());
     }
 
     /**
@@ -139,7 +139,7 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
             throw instantiationException;
         }
         return new SSLSocketImpl(host, port,
-                (SSLParameters) sslParameters.clone());
+                (SSLParametersImpl) sslParameters.clone());
     }
 
     /**
@@ -152,7 +152,7 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
             throw instantiationException;
         }
         return new SSLSocketImpl(address, port, localAddress, localPort,
-                (SSLParameters) sslParameters.clone());
+                (SSLParametersImpl) sslParameters.clone());
     }
 
     // ------------------------------------------------------------------

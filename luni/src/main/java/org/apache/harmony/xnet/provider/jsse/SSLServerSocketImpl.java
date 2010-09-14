@@ -34,7 +34,7 @@ public class SSLServerSocketImpl extends SSLServerSocket {
     // ssl socket, whether it require/want client authentication or not,
     // and controls whether new SSL sessions may be established by this
     // socket or not.
-    private final SSLParameters sslParameters;
+    private final SSLParametersImpl sslParameters;
 
     // logger
     private Logger.Stream logger = Logger.getStream("ssocket");
@@ -44,7 +44,7 @@ public class SSLServerSocketImpl extends SSLServerSocket {
      * @param   sslParameters:  SSLParameters
      * @throws  IOException
      */
-    protected SSLServerSocketImpl(SSLParameters sslParameters)
+    protected SSLServerSocketImpl(SSLParametersImpl sslParameters)
         throws IOException {
         super();
         this.sslParameters = sslParameters;
@@ -56,7 +56,7 @@ public class SSLServerSocketImpl extends SSLServerSocket {
      * @param   sslParameters:  SSLParameters
      * @throws  IOException
      */
-    protected SSLServerSocketImpl(int port, SSLParameters sslParameters)
+    protected SSLServerSocketImpl(int port, SSLParametersImpl sslParameters)
         throws IOException {
         super(port);
         this.sslParameters = sslParameters;
@@ -70,7 +70,7 @@ public class SSLServerSocketImpl extends SSLServerSocket {
      * @throws  IOException
      */
     protected SSLServerSocketImpl(int port, int backlog,
-            SSLParameters sslParameters) throws IOException {
+            SSLParametersImpl sslParameters) throws IOException {
         super(port, backlog);
         this.sslParameters = sslParameters;
     }
@@ -85,7 +85,7 @@ public class SSLServerSocketImpl extends SSLServerSocket {
      */
     protected SSLServerSocketImpl(int port, int backlog,
                                 InetAddress iAddress,
-                                SSLParameters sslParameters)
+                                SSLParametersImpl sslParameters)
         throws IOException {
         super(port, backlog, iAddress);
         this.sslParameters = sslParameters;
@@ -247,7 +247,7 @@ public class SSLServerSocketImpl extends SSLServerSocket {
             logger.println("SSLServerSocketImpl.accept ..");
         }
         SSLSocketImpl s = new SSLSocketImpl(
-                (SSLParameters) sslParameters.clone());
+                (SSLParametersImpl) sslParameters.clone());
         implAccept(s);
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {

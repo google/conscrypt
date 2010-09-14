@@ -23,13 +23,13 @@ import java.security.KeyManagementException;
 
 public class OpenSSLServerSocketFactoryImpl extends javax.net.ssl.SSLServerSocketFactory {
 
-    private SSLParameters sslParameters;
+    private SSLParametersImpl sslParameters;
     private IOException instantiationException;
 
     public OpenSSLServerSocketFactoryImpl() {
         super();
         try {
-            this.sslParameters = SSLParameters.getDefault();
+            this.sslParameters = SSLParametersImpl.getDefault();
             this.sslParameters.setUseClientMode(false);
         } catch (KeyManagementException e) {
             instantiationException =
@@ -38,8 +38,8 @@ public class OpenSSLServerSocketFactoryImpl extends javax.net.ssl.SSLServerSocke
         }
     }
 
-    public OpenSSLServerSocketFactoryImpl(SSLParameters sslParameters) {
-        this.sslParameters = (SSLParameters) sslParameters.clone();
+    public OpenSSLServerSocketFactoryImpl(SSLParametersImpl sslParameters) {
+        this.sslParameters = (SSLParametersImpl) sslParameters.clone();
         this.sslParameters.setUseClientMode(false);
     }
 
@@ -52,18 +52,18 @@ public class OpenSSLServerSocketFactoryImpl extends javax.net.ssl.SSLServerSocke
     }
 
     public ServerSocket createServerSocket() throws IOException {
-        return new OpenSSLServerSocketImpl((SSLParameters) sslParameters.clone());
+        return new OpenSSLServerSocketImpl((SSLParametersImpl) sslParameters.clone());
     }
 
     public ServerSocket createServerSocket(int port) throws IOException {
-        return new OpenSSLServerSocketImpl(port, (SSLParameters) sslParameters.clone());
+        return new OpenSSLServerSocketImpl(port, (SSLParametersImpl) sslParameters.clone());
     }
 
     public ServerSocket createServerSocket(int port, int backlog)
             throws IOException {
         return new OpenSSLServerSocketImpl(port,
                                            backlog,
-                                           (SSLParameters) sslParameters.clone());
+                                           (SSLParametersImpl) sslParameters.clone());
     }
 
     public ServerSocket createServerSocket(int port,
@@ -72,6 +72,6 @@ public class OpenSSLServerSocketFactoryImpl extends javax.net.ssl.SSLServerSocke
         return new OpenSSLServerSocketImpl(port,
                                            backlog,
                                            iAddress,
-                                           (SSLParameters) sslParameters.clone());
+                                           (SSLParametersImpl) sslParameters.clone());
     }
 }

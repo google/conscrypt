@@ -64,7 +64,7 @@ public class SSLSocketImpl extends SSLSocket {
     // ssl socket, whether it require/want client authentication or not,
     // and controls whether new SSL sessions may be established by this
     // socket or not.
-    protected SSLParameters sslParameters;
+    protected SSLParametersImpl sslParameters;
     // super's streams to be wrapped:
     protected InputStream input;
     protected OutputStream output;
@@ -77,11 +77,11 @@ public class SSLSocketImpl extends SSLSocket {
 
     /**
      * Constructor
-     * @param   sslParameters:  SSLParameters
+     * @param   sslParameters:  SSLParametersImpl
      * @see javax.net.ssl.SSLSocket#SSLSocket() method documentation
      * for more information.
      */
-    protected SSLSocketImpl(SSLParameters sslParameters) {
+    protected SSLSocketImpl(SSLParametersImpl sslParameters) {
         super();
         this.sslParameters = sslParameters;
         // init should be called after creation!
@@ -91,13 +91,13 @@ public class SSLSocketImpl extends SSLSocket {
      * Constructor
      * @param   host:   String
      * @param   port:   int
-     * @param   sslParameters:  SSLParameters
+     * @param   sslParameters:  SSLParametersImpl
      * @throws  IOException
      * @throws  UnknownHostException
      * @see javax.net.ssl.SSLSocket#SSLSocket(String,int)
      * method documentation for more information.
      */
-    protected SSLSocketImpl(String host, int port, SSLParameters sslParameters)
+    protected SSLSocketImpl(String host, int port, SSLParametersImpl sslParameters)
             throws IOException, UnknownHostException {
         super(host, port);
         this.sslParameters = sslParameters;
@@ -110,7 +110,7 @@ public class SSLSocketImpl extends SSLSocket {
      * @param   port:   int
      * @param   localHost:  InetAddress
      * @param   localPort:  int
-     * @param   sslParameters:  SSLParameters
+     * @param   sslParameters:  SSLParametersImpl
      * @throws  IOException
      * @throws  UnknownHostException
      * @see javax.net.ssl.SSLSocket#SSLSocket(String,int,InetAddress,int)
@@ -118,7 +118,7 @@ public class SSLSocketImpl extends SSLSocket {
      */
     protected SSLSocketImpl(String host, int port,
             InetAddress localHost, int localPort,
-            SSLParameters sslParameters) throws IOException,
+            SSLParametersImpl sslParameters) throws IOException,
             UnknownHostException {
         super(host, port, localHost, localPort);
         this.sslParameters = sslParameters;
@@ -129,14 +129,14 @@ public class SSLSocketImpl extends SSLSocket {
      * Constructor
      * @param   host:   InetAddress
      * @param   port:   int
-     * @param   sslParameters:  SSLParameters
+     * @param   sslParameters:  SSLParametersImpl
      * @return
      * @throws  IOException
      * @see javax.net.ssl.SSLSocket#SSLSocket(InetAddress,int)
      * method documentation for more information.
      */
     protected SSLSocketImpl(InetAddress host, int port,
-            SSLParameters sslParameters) throws IOException {
+            SSLParametersImpl sslParameters) throws IOException {
         super(host, port);
         this.sslParameters = sslParameters;
         init();
@@ -148,7 +148,7 @@ public class SSLSocketImpl extends SSLSocket {
      * @param   port:   int
      * @param   localAddress:   InetAddress
      * @param   localPort:  int
-     * @param   sslParameters:  SSLParameters
+     * @param   sslParameters:  SSLParametersImpl
      * @return
      * @throws  IOException
      * @see javax.net.ssl.SSLSocket#SSLSocket(InetAddress,int,InetAddress,int)
@@ -156,7 +156,7 @@ public class SSLSocketImpl extends SSLSocket {
      */
     protected SSLSocketImpl(InetAddress address, int port,
             InetAddress localAddress, int localPort,
-            SSLParameters sslParameters) throws IOException {
+            SSLParametersImpl sslParameters) throws IOException {
         super(address, port, localAddress, localPort);
         this.sslParameters = sslParameters;
         init();

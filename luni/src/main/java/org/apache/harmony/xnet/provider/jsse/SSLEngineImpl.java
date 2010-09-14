@@ -69,7 +69,7 @@ public class SSLEngineImpl extends SSLEngine {
     private SSLSessionImpl session;
 
     // peer configuration parameters
-    protected SSLParameters sslParameters;
+    protected SSLParametersImpl sslParameters;
 
     // in case of emergency situations when data could not be
     // placed in destination buffers it will be stored in this
@@ -80,12 +80,12 @@ public class SSLEngineImpl extends SSLEngine {
     // logger
     private Logger.Stream logger = Logger.getStream("engine");
 
-    protected SSLEngineImpl(SSLParameters sslParameters) {
+    protected SSLEngineImpl(SSLParametersImpl sslParameters) {
         super();
         this.sslParameters = sslParameters;
     }
 
-    protected SSLEngineImpl(String host, int port, SSLParameters sslParameters) {
+    protected SSLEngineImpl(String host, int port, SSLParametersImpl sslParameters) {
         super(host, port);
         this.sslParameters = sslParameters;
     }
