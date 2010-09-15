@@ -98,19 +98,6 @@ public class SSLContextImpl extends SSLContextSpi {
                                           clientSessionContext, serverSessionContext);
     }
 
-    /**
-     * @deprecated call setPersistentCache directly on the result of
-     * engineGetClientSessionContext() or
-     * engineGetServerSessionContext
-     */
-    public void engineInit(KeyManager[] kms, TrustManager[] tms,
-            SecureRandom sr, SSLClientSessionCache clientCache,
-            SSLServerSessionCache serverCache) throws KeyManagementException {
-        engineInit(kms, tms, sr);
-        engineGetClientSessionContext().setPersistentCache(clientCache);
-        engineGetServerSessionContext().setPersistentCache(serverCache);
-    }
-
     @Override
     public SSLSocketFactory engineGetSocketFactory() {
         if (sslParameters == null) {
