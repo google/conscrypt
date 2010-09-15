@@ -76,9 +76,9 @@ public abstract class HandshakeProtocol {
     protected SSLRecordProtocol recordProtocol;
 
     /**
-     * SSLParameters suplied by SSLSocket or SSLEngine
+     * SSLParametersImpl suplied by SSLSocket or SSLEngine
      */
-    protected SSLParameters parameters;
+    protected SSLParametersImpl parameters;
 
     /**
      * Delegated tasks for this handshake implementation

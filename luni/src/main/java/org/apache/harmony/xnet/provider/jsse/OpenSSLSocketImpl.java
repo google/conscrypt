@@ -62,7 +62,7 @@ public class OpenSSLSocketImpl
     private final Object handshakeLock = new Object();
     private final Object readLock = new Object();
     private final Object writeLock = new Object();
-    private SSLParameters sslParameters;
+    private SSLParametersImpl sslParameters;
     private String[] enabledProtocols;
     private String[] enabledCipherSuites;
     private String[] enabledCompressionMethods;
@@ -106,7 +106,7 @@ public class OpenSSLSocketImpl
      *            context
      * @throws IOException if network fails
      */
-    protected OpenSSLSocketImpl(SSLParameters sslParameters) throws IOException {
+    protected OpenSSLSocketImpl(SSLParametersImpl sslParameters) throws IOException {
         super();
         init(sslParameters);
     }
@@ -118,7 +118,7 @@ public class OpenSSLSocketImpl
      *            context
      * @throws IOException if network fails
      */
-    protected OpenSSLSocketImpl(SSLParameters sslParameters,
+    protected OpenSSLSocketImpl(SSLParametersImpl sslParameters,
                                 String[] enabledProtocols,
                                 String[] enabledCipherSuites,
                                 String[] enabledCompressionMethods) throws IOException {
@@ -132,7 +132,7 @@ public class OpenSSLSocketImpl
      * @throws IOException if network fails
      * @throws java.net.UnknownHostException host not defined
      */
-    protected OpenSSLSocketImpl(String host, int port, SSLParameters sslParameters)
+    protected OpenSSLSocketImpl(String host, int port, SSLParametersImpl sslParameters)
         throws IOException {
         super(host, port);
         init(sslParameters);
@@ -144,7 +144,7 @@ public class OpenSSLSocketImpl
      * @throws IOException if network fails
      * @throws java.net.UnknownHostException host not defined
      */
-    protected OpenSSLSocketImpl(InetAddress address, int port, SSLParameters sslParameters)
+    protected OpenSSLSocketImpl(InetAddress address, int port, SSLParametersImpl sslParameters)
         throws IOException {
         super(address, port);
         init(sslParameters);
@@ -159,7 +159,7 @@ public class OpenSSLSocketImpl
      */
     protected OpenSSLSocketImpl(String host, int port,
                                 InetAddress clientAddress, int clientPort,
-                                SSLParameters sslParameters)
+                                SSLParametersImpl sslParameters)
         throws IOException {
         super(host, port, clientAddress, clientPort);
         init(sslParameters);
@@ -173,7 +173,7 @@ public class OpenSSLSocketImpl
      */
     protected OpenSSLSocketImpl(InetAddress address, int port,
                                 InetAddress clientAddress, int clientPort,
-                                SSLParameters sslParameters)
+                                SSLParametersImpl sslParameters)
         throws IOException {
         super(address, port, clientAddress, clientPort);
         init(sslParameters);
@@ -186,7 +186,7 @@ public class OpenSSLSocketImpl
      * @throws IOException if network fails
      */
     protected OpenSSLSocketImpl(Socket socket, String host, int port,
-            boolean autoClose, SSLParameters sslParameters) throws IOException {
+            boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
         super();
         this.socket = socket;
         this.timeout = socket.getSoTimeout();
@@ -200,7 +200,7 @@ public class OpenSSLSocketImpl
      * Initialize the SSL socket and set the certificates for the
      * future handshaking.
      */
-    private void init(SSLParameters sslParameters) throws IOException {
+    private void init(SSLParametersImpl sslParameters) throws IOException {
         init(sslParameters,
              NativeCrypto.getSupportedProtocols(),
              NativeCrypto.getDefaultCipherSuites(),
@@ -211,7 +211,7 @@ public class OpenSSLSocketImpl
      * Initialize the SSL socket and set the certificates for the
      * future handshaking.
      */
-    private void init(SSLParameters sslParameters,
+    private void init(SSLParametersImpl sslParameters,
                       String[] enabledProtocols,
                       String[] enabledCipherSuites,
                       String[] enabledCompressionMethods) throws IOException {

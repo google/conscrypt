@@ -28,7 +28,7 @@ import javax.net.ssl.SSLServerSocketFactory;
  */
 public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
 
-    private SSLParameters sslParameters;
+    private SSLParametersImpl sslParameters;
     private IOException instantiationException;
 
     /**
@@ -37,7 +37,7 @@ public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
     public SSLServerSocketFactoryImpl() {
         super();
         try {
-            this.sslParameters = SSLParameters.getDefault();
+            this.sslParameters = SSLParametersImpl.getDefault();
             this.sslParameters.setUseClientMode(false);
         } catch (KeyManagementException e) {
             instantiationException =
@@ -49,9 +49,9 @@ public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
     /**
      * Constructor.
      */
-    protected SSLServerSocketFactoryImpl(SSLParameters sslParameters) {
+    protected SSLServerSocketFactoryImpl(SSLParametersImpl sslParameters) {
         super();
-        this.sslParameters = (SSLParameters) sslParameters.clone();
+        this.sslParameters = (SSLParametersImpl) sslParameters.clone();
         this.sslParameters.setUseClientMode(false);
     }
 
@@ -85,7 +85,7 @@ public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
         if (instantiationException != null) {
             throw instantiationException;
         }
-        return new SSLServerSocketImpl((SSLParameters) sslParameters.clone());
+        return new SSLServerSocketImpl((SSLParametersImpl) sslParameters.clone());
     }
 
 
@@ -98,7 +98,7 @@ public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
             throw instantiationException;
         }
         return new SSLServerSocketImpl(port,
-                (SSLParameters) sslParameters.clone());
+                (SSLParametersImpl) sslParameters.clone());
     }
 
     /**
@@ -111,7 +111,7 @@ public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
             throw instantiationException;
         }
         return new SSLServerSocketImpl(port, backlog,
-                (SSLParameters) sslParameters.clone());
+                (SSLParametersImpl) sslParameters.clone());
     }
 
     /**
@@ -124,7 +124,7 @@ public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
             throw instantiationException;
         }
         return new SSLServerSocketImpl(port, backlog, iAddress,
-                (SSLParameters) sslParameters.clone());
+                (SSLParametersImpl) sslParameters.clone());
     }
 }
 

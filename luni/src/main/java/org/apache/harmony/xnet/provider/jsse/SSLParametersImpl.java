@@ -40,7 +40,7 @@ import javax.net.ssl.X509TrustManager;
  * and controls whether new SSL sessions may be established by this
  * socket or not.
  */
-public class SSLParameters implements Cloneable {
+public class SSLParametersImpl implements Cloneable {
 
     // default source of authentication keys
     private static X509KeyManager defaultKeyManager;
@@ -49,7 +49,7 @@ public class SSLParameters implements Cloneable {
     // default source of random numbers
     private static SecureRandom defaultSecureRandom;
     // default SSL parameters
-    private static SSLParameters defaultParameters;
+    private static SSLParametersImpl defaultParameters;
 
     // client session context contains the set of reusable
     // client-side SSL sessions
@@ -102,7 +102,7 @@ public class SSLParameters implements Cloneable {
      * See {@link javax.net.ssl.SSLContext#init(KeyManager[],TrustManager[],
      * SecureRandom)} for more information
      */
-    protected SSLParameters(KeyManager[] kms, TrustManager[] tms,
+    protected SSLParametersImpl(KeyManager[] kms, TrustManager[] tms,
 // BEGIN android-changed
             SecureRandom sr, ClientSessionContext clientSessionContext,
             ServerSessionContext serverSessionContext)
@@ -210,17 +210,17 @@ public class SSLParameters implements Cloneable {
         // END android-added
     }
 
-    protected static SSLParameters getDefault() throws KeyManagementException {
+    protected static SSLParametersImpl getDefault() throws KeyManagementException {
         if (defaultParameters == null) {
 // BEGIN android-changed
-            defaultParameters = new SSLParameters(null,
-                                                  null,
-                                                  null,
-                                                  new ClientSessionContext(),
-                                                  new ServerSessionContext());
+            defaultParameters = new SSLParametersImpl(null,
+                                                      null,
+                                                      null,
+                                                      new ClientSessionContext(),
+                                                      new ServerSessionContext());
 // END android-changed
         }
-        return (SSLParameters) defaultParameters.clone();
+        return (SSLParametersImpl) defaultParameters.clone();
     }
 
     /**

@@ -24,13 +24,13 @@ import java.security.KeyManagementException;
 
 public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
 
-    private SSLParameters sslParameters;
+    private SSLParametersImpl sslParameters;
     private IOException instantiationException;
 
     public OpenSSLSocketFactoryImpl() {
         super();
         try {
-            sslParameters = SSLParameters.getDefault();
+            sslParameters = SSLParametersImpl.getDefault();
         } catch (KeyManagementException e) {
             instantiationException =
                 new IOException("Delayed instantiation exception:");
@@ -38,7 +38,7 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
         }
     }
 
-    public OpenSSLSocketFactoryImpl(SSLParameters sslParameters) {
+    public OpenSSLSocketFactoryImpl(SSLParametersImpl sslParameters) {
         super();
         this.sslParameters = sslParameters;
     }
@@ -55,11 +55,11 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
         if (instantiationException != null) {
             throw instantiationException;
         }
-        return new OpenSSLSocketImpl((SSLParameters) sslParameters.clone());
+        return new OpenSSLSocketImpl((SSLParametersImpl) sslParameters.clone());
     }
 
     public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
-        return new OpenSSLSocketImpl(host, port, (SSLParameters) sslParameters.clone());
+        return new OpenSSLSocketImpl(host, port, (SSLParametersImpl) sslParameters.clone());
     }
 
     public Socket createSocket(String host, int port, InetAddress localHost, int localPort)
@@ -68,11 +68,11 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
                                      port,
                                      localHost,
                                      localPort,
-                                     (SSLParameters) sslParameters.clone());
+                                     (SSLParametersImpl) sslParameters.clone());
     }
 
     public Socket createSocket(InetAddress host, int port) throws IOException {
-        return new OpenSSLSocketImpl(host, port, (SSLParameters) sslParameters.clone());
+        return new OpenSSLSocketImpl(host, port, (SSLParametersImpl) sslParameters.clone());
     }
 
     public Socket createSocket(InetAddress address,
@@ -84,7 +84,7 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
                                      port,
                                      localAddress,
                                      localPort,
-                                     (SSLParameters) sslParameters.clone());
+                                     (SSLParametersImpl) sslParameters.clone());
     }
 
     public Socket createSocket(Socket s, String host, int port, boolean autoClose)
@@ -93,6 +93,6 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
                                             host,
                                             port,
                                             autoClose,
-                                            (SSLParameters) sslParameters.clone());
+                                            (SSLParametersImpl) sslParameters.clone());
     }
 }

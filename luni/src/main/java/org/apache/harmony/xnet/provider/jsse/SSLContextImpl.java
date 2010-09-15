@@ -50,7 +50,7 @@ public class SSLContextImpl extends SSLContextSpi {
     /** Server session cache. */
     private final ServerSessionContext serverSessionContext;
 
-    protected SSLParameters sslParameters;
+    protected SSLParametersImpl sslParameters;
 
     public SSLContextImpl() {
         clientSessionContext = new ClientSessionContext();
@@ -73,11 +73,11 @@ public class SSLContextImpl extends SSLContextSpi {
                 clientSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetClientSessionContext();
                 serverSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetServerSessionContext();
             }
-            sslParameters = new SSLParameters(DEFAULT_SSL_CONTEXT_IMPL.getKeyManagers(),
-                                              DEFAULT_SSL_CONTEXT_IMPL.getTrustManagers(),
-                                              null,
-                                              clientSessionContext,
-                                              serverSessionContext);
+            sslParameters = new SSLParametersImpl(DEFAULT_SSL_CONTEXT_IMPL.getKeyManagers(),
+                                                  DEFAULT_SSL_CONTEXT_IMPL.getTrustManagers(),
+                                                  null,
+                                                  clientSessionContext,
+                                                  serverSessionContext);
         }
     }
 
@@ -94,8 +94,8 @@ public class SSLContextImpl extends SSLContextSpi {
     @Override
     public void engineInit(KeyManager[] kms, TrustManager[] tms,
             SecureRandom sr) throws KeyManagementException {
-        sslParameters = new SSLParameters(kms, tms, sr,
-                                          clientSessionContext, serverSessionContext);
+        sslParameters = new SSLParametersImpl(kms, tms, sr,
+                                              clientSessionContext, serverSessionContext);
     }
 
     @Override
@@ -119,7 +119,7 @@ public class SSLContextImpl extends SSLContextSpi {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initialized.");
         }
-        SSLParameters p = (SSLParameters) sslParameters.clone();
+        SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
         p.setUseClientMode(false);
         return new SSLEngineImpl(host, port, p);
     }
@@ -129,7 +129,7 @@ public class SSLContextImpl extends SSLContextSpi {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initialized.");
         }
-        SSLParameters p = (SSLParameters) sslParameters.clone();
+        SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
         p.setUseClientMode(false);
         return new SSLEngineImpl(p);
     }

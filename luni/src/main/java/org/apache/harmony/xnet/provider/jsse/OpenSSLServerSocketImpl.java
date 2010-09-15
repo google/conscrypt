@@ -31,24 +31,24 @@ import javax.net.ssl.SSLException;
  * later, for example in the package.html or a separate reference document.
  */
 public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
-    private final SSLParameters sslParameters;
+    private final SSLParametersImpl sslParameters;
     private String[] enabledProtocols = NativeCrypto.getSupportedProtocols();
     private String[] enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
     private String[] enabledCompressionMethods = NativeCrypto.getDefaultCompressionMethods();
 
-    protected OpenSSLServerSocketImpl(SSLParameters sslParameters)
+    protected OpenSSLServerSocketImpl(SSLParametersImpl sslParameters)
         throws IOException {
         super();
         this.sslParameters = sslParameters;
     }
 
-    protected OpenSSLServerSocketImpl(int port, SSLParameters sslParameters)
+    protected OpenSSLServerSocketImpl(int port, SSLParametersImpl sslParameters)
         throws IOException {
         super(port);
         this.sslParameters = sslParameters;
     }
 
-    protected OpenSSLServerSocketImpl(int port, int backlog, SSLParameters sslParameters)
+    protected OpenSSLServerSocketImpl(int port, int backlog, SSLParametersImpl sslParameters)
         throws IOException {
         super(port, backlog);
         this.sslParameters = sslParameters;
@@ -57,7 +57,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     protected OpenSSLServerSocketImpl(int port,
                                       int backlog,
                                       InetAddress iAddress,
-                                      SSLParameters sslParameters)
+                                      SSLParametersImpl sslParameters)
         throws IOException {
         super(port, backlog, iAddress);
         this.sslParameters = sslParameters;

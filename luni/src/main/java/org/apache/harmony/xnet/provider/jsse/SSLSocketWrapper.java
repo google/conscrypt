@@ -31,7 +31,7 @@ public class SSLSocketWrapper extends SSLSocketImpl {
     private final Socket socket;
     private final boolean autoClose;
 
-    protected SSLSocketWrapper(Socket socket, boolean autoClose, SSLParameters sslParameters) throws IOException {
+    protected SSLSocketWrapper(Socket socket, boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
         super(sslParameters);
         if (!socket.isConnected()) {
             throw new SocketException("Socket is not connected.");
