@@ -462,23 +462,18 @@ public class OpenSSLSocketImpl
                 // Should have been prevented by NativeCrypto.SSL_set_session_creation_enabled
                 throw new IllegalStateException("SSL Session may not be created");
             }
-            byte[][] localCertificatesBytes = NativeCrypto.SSL_get_certificate(sslNativePointer);
-            X509Certificate[] localCertificates;
-            if (localCertificatesBytes == null) {
-                localCertificates = null;
-            } else {
-                localCertificates = new X509Certificate[localCertificatesBytes.length];
-                for (int i = 0; i < localCertificatesBytes.length; i++) {
-                    localCertificates[i] = new X509CertImpl(localCertificatesBytes[i]);
-                }
-            }
-
+            X509Certificate[] localCertificates
+                    = createCertChain(NativeCrypto.SSL_get_certificate(sslNativePointer));
+            X509Certificate[] peerCertificates
+                    = createCertChain(NativeCrypto.SSL_get_peer_cert_chain(sslNativePointer));
             if (wrappedHost == null) {
-                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
+                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer,
+                                                    localCertificates, peerCertificates,
                                                     super.getInetAddress().getHostName(),
                                                     super.getPort(), sessionContext);
             } else  {
-                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
+                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer,
+                                                    localCertificates, peerCertificates,
                                                     wrappedHost, wrappedPort,
                                                     sessionContext);
             }
@@ -501,7 +496,25 @@ public class OpenSSLSocketImpl
         if (handshakeCompleted) {
             notifyHandshakeCompletedListeners();
         }
+    }
 
+    /**
+     * Return a possibly null array of X509Certificates given the
+     * possibly null array of DER encoded bytes.
+     */
+    private static final X509Certificate[] createCertChain(byte[][] certificatesBytes) {
+        if (certificatesBytes == null) {
+            return null;
+        }
+        X509Certificate[] certificates = new X509Certificate[certificatesBytes.length];
+        for (int i = 0; i < certificatesBytes.length; i++) {
+            try {
+                certificates[i] = new X509CertImpl(certificatesBytes[i]);
+            } catch (IOException e) {
+                return null;
+            }
+        }
+        return certificates;
     }
 
     private void setCertificate(String alias) throws CertificateEncodingException, SSLException {
@@ -809,12 +822,15 @@ public class OpenSSLSocketImpl
      */
     @Override
     public SSLSession getSession() {
-        try {
-            startHandshake(true);
-        } catch (IOException e) {
-            // return an invalid session with
-            // invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
-            return SSLSessionImpl.NULL_SESSION;
+        if (sslSession == null) {
+            try {
+                startHandshake(true);
+            } catch (IOException e) {
+
+                // return an invalid session with
+                // invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
+                return SSLSessionImpl.NULL_SESSION;
+            }
         }
         return sslSession;
     }

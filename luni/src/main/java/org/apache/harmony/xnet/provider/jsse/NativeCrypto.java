@@ -500,7 +500,15 @@ public final class NativeCrypto {
      */
     public static native void SSL_renegotiate(int sslNativePointer) throws SSLException;
 
+    /**
+     * Returns the local ASN.1 DER encoded X509 certificates.
+     */
     public static native byte[][] SSL_get_certificate(int sslNativePointer);
+
+    /**
+     * Returns the peer ASN.1 DER encoded X509 certificates.
+     */
+    public static native byte[][] SSL_get_peer_cert_chain(int sslNativePointer);
 
     /**
      * Reads with the native SSL_read function from the encrypted data stream
@@ -523,12 +531,6 @@ public final class NativeCrypto {
     public static native void SSL_free(int sslNativePointer);
 
     public static native byte[] SSL_SESSION_session_id(int sslSessionNativePointer);
-
-    /**
-     * Returns the ASN.1 DER encoded X509 certificates of the peer.
-     */
-    public static native byte[][] SSL_SESSION_get_peer_cert_chain(int sslCtxNativePointer,
-                                                                  int sslSessionNativePointer);
 
     public static native long SSL_SESSION_get_time(int sslSessionNativePointer);
 

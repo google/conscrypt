@@ -21,6 +21,7 @@ import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.Principal;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Vector;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -29,10 +30,9 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
-import javax.security.cert.CertificateEncodingException;
+import javax.security.cert.CertificateException;
 import libcore.base.Objects;
 import org.apache.harmony.luni.util.TwoKeyHashMap;
-import org.apache.harmony.security.provider.cert.X509CertImpl;
 
 /**
  * Implementation of the class OpenSSLSessionImpl
@@ -42,8 +42,8 @@ public class OpenSSLSessionImpl implements SSLSession {
 
     private long creationTime = 0;
     long lastAccessedTime = 0;
-    X509Certificate[] localCertificates;
-    volatile X509Certificate[] peerCertificates;
+    final X509Certificate[] localCertificates;
+    final X509Certificate[] peerCertificates;
 
     private boolean isValid = true;
     private TwoKeyHashMap values = new TwoKeyHashMap();
@@ -65,9 +65,11 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @param sslParameters the SSL parameters like ciphers' suites etc.
      */
     protected OpenSSLSessionImpl(int sslSessionNativePointer, X509Certificate[] localCertificates,
-            String peerHost, int peerPort, AbstractSessionContext sessionContext) {
+            X509Certificate[] peerCertificates, String peerHost, int peerPort,
+            AbstractSessionContext sessionContext) {
         this.sslSessionNativePointer = sslSessionNativePointer;
         this.localCertificates = localCertificates;
+        this.peerCertificates = peerCertificates;
         this.peerHost = peerHost;
         this.peerPort = peerPort;
         this.sessionContext = sessionContext;
@@ -80,15 +82,15 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     OpenSSLSessionImpl(byte[] derData,
             String peerHost, int peerPort,
-            javax.security.cert.X509Certificate[] peerCertificateChain,
+            X509Certificate[] peerCertificates,
             AbstractSessionContext sessionContext)
             throws IOException {
         this(NativeCrypto.d2i_SSL_SESSION(derData),
              null,
+             peerCertificates,
              peerHost,
              peerPort,
              sessionContext);
-        this.peerCertificateChain = peerCertificateChain;
         // TODO move this check into native code so we can throw an error with more information
         if (this.sslSessionNativePointer == 0) {
             throw new IOException("Invalid session data");
@@ -205,6 +207,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     public javax.security.cert.X509Certificate[] getPeerCertificateChain()
             throws SSLPeerUnverifiedException {
+        checkPeerCertificatesPresent();
         javax.security.cert.X509Certificate[] result = peerCertificateChain;
         if (result == null) {
             // single-check idiom
@@ -220,21 +223,17 @@ public class OpenSSLSessionImpl implements SSLSession {
     private javax.security.cert.X509Certificate[] createPeerCertificateChain()
             throws SSLPeerUnverifiedException {
         try {
-            byte[][] bytes
-                    = NativeCrypto.SSL_SESSION_get_peer_cert_chain(
-                            sessionContext.sslCtxNativePointer, sslSessionNativePointer);
-            if (bytes == null) {
-                throw new SSLPeerUnverifiedException("No certificate available");
-            }
-
             javax.security.cert.X509Certificate[] chain
-                    = new javax.security.cert.X509Certificate[bytes.length];
+                    = new javax.security.cert.X509Certificate[peerCertificates.length];
 
-            for (int i = 0; i < bytes.length; i++) {
-                chain[i] = javax.security.cert.X509Certificate.getInstance(bytes[i]);
+            for (int i = 0; i < peerCertificates.length; i++) {
+                byte[] encoded = peerCertificates[i].getEncoded();
+                chain[i] = javax.security.cert.X509Certificate.getInstance(encoded);
             }
             return chain;
-        } catch (javax.security.cert.CertificateException e) {
+        } catch (CertificateEncodingException e) {
+            throw new SSLPeerUnverifiedException(e.getMessage());
+        } catch (CertificateException e) {
             throw new SSLPeerUnverifiedException(e.getMessage());
         }
     }
@@ -250,33 +249,16 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         could not be verified.
      */
     public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
-        X509Certificate[] result = peerCertificates;
-        if (result == null) {
-            // single-check idiom
-            peerCertificates = result = createPeerCertificates();
-        }
-        return result;
+        checkPeerCertificatesPresent();
+        return peerCertificates;
     }
 
     /**
-     * Provide a value to initialize the volatile peerCertificates
-     * field based on the peerCertificateChain field
+     * Throw SSLPeerUnverifiedException on null or empty peerCertificates array
      */
-    private X509Certificate[] createPeerCertificates() throws SSLPeerUnverifiedException {
-        getPeerCertificateChain();
-        try {
-            X509Certificate[] certificates = new X509CertImpl[peerCertificateChain.length];
-            for (int i = 0; i < certificates.length; i++) {
-                byte[] encoded = peerCertificateChain[i].getEncoded();
-                certificates[i] = new X509CertImpl(encoded);
-            }
-            return certificates;
-        } catch (SSLPeerUnverifiedException e) {
-            return new X509Certificate[]{};
-        } catch (IOException e) {
-            return new X509Certificate[]{};
-        } catch (CertificateEncodingException e) {
-            return new X509Certificate[]{};
+    private void checkPeerCertificatesPresent() throws SSLPeerUnverifiedException {
+        if (peerCertificates == null || peerCertificates.length == 0) {
+            throw new SSLPeerUnverifiedException("No peer certificates");
         }
     }
 
@@ -284,17 +266,14 @@ public class OpenSSLSessionImpl implements SSLSession {
      * The identity of the principal that was used by the peer during the SSL
      * handshake phase is returned by this method.
      * @return a X500Principal of the last certificate for X509-based
-     *         cipher suites. If no principal was sent, then null is returned.
+     *         cipher suites.
      * @throws <code>SSLPeerUnverifiedException</code> if either a not X509
      *         certificate was used (i.e. Kerberos certificates) or the
      *         peer does not exist.
      *
      */
     public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
-        getPeerCertificates();
-        if (peerCertificates == null) {
-            throw new SSLPeerUnverifiedException("No peer certificate");
-        }
+        checkPeerCertificatesPresent();
         return peerCertificates[0].getSubjectX500Principal();
     }
 
