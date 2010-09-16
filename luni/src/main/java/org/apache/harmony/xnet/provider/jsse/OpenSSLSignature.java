@@ -141,7 +141,7 @@ public class OpenSSLSignature extends Signature {
         }
 
         this.evpAlgorithm = algorithm;
-        this.ctx = NativeCrypto.EVP_new();
+        this.ctx = NativeCrypto.EVP_MD_CTX_create();
     }
 
     @Override
@@ -245,7 +245,7 @@ public class OpenSSLSignature extends Signature {
         }
 
         if (ctx != 0) {
-            NativeCrypto.EVP_free(ctx);
+            NativeCrypto.EVP_MD_CTX_destroy(ctx);
         }
     }
 

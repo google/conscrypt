@@ -54,9 +54,11 @@ public final class NativeCrypto {
 
     // --- General context handling functions (despite the names) --------------
 
-    public static native int EVP_new();
+    public static native int EVP_MD_CTX_create();
 
-    public static native void EVP_free(int ctx);
+    public static native void EVP_MD_CTX_destroy(int ctx);
+
+    public static native int EVP_MD_CTX_copy(int ctx);
 
     // --- Digest handling functions -------------------------------------------
 
@@ -66,9 +68,9 @@ public final class NativeCrypto {
 
     public static native int EVP_DigestFinal(int ctx, byte[] hash, int offset);
 
-    public static native int EVP_DigestSize(int ctx);
+    public static native int EVP_MD_CTX_size(int ctx);
 
-    public static native int EVP_DigestBlockSize(int ctx);
+    public static native int EVP_MD_CTX_block_size(int ctx);
 
     // --- Signature handling functions ----------------------------------------
 
