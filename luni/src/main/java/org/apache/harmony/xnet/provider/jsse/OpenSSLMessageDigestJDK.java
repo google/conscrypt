@@ -14,6 +14,11 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
     private int ctx;
 
     /**
+     * The OpenSSL version of the algorithm name for later use by reset.
+     */
+    private final String openssl;
+
+    /**
      * Holds a dummy buffer for writing single bytes to the digest.
      */
     private byte[] singleByte = new byte[1];
@@ -22,19 +27,17 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
      * Creates a new OpenSSLMessageDigest instance for the given algorithm
      * name.
      *
-     * @param algorithm The name of the algorithm, e.g. "SHA-1".
+     * @param algorithm The standard name of the algorithm, e.g. "SHA-1".
+     * @param algorithm The name of the openssl algorithm, e.g. "sha1".
      */
-    private OpenSSLMessageDigestJDK(String algorithm) throws NoSuchAlgorithmException {
+    private OpenSSLMessageDigestJDK(String algorithm, String openssl)
+            throws NoSuchAlgorithmException {
         super(algorithm);
-
-        // We don't support MD2.
-        if ("MD2".equals(algorithm)) {
-            throw new NoSuchAlgorithmException(algorithm);
-        }
+        this.openssl = openssl;
 
         ctx = NativeCrypto.EVP_MD_CTX_create();
         try {
-            NativeCrypto.EVP_DigestInit(ctx, getAlgorithm().replace("-", "").toLowerCase());
+            NativeCrypto.EVP_DigestInit(ctx, openssl);
         } catch (Exception ex) {
             throw new NoSuchAlgorithmException(ex.getMessage() + " (" + algorithm + ")");
         }
@@ -57,7 +60,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
 
     @Override
     protected void engineReset() {
-        NativeCrypto.EVP_DigestInit(ctx, getAlgorithm().replace("-", "").toLowerCase());
+        NativeCrypto.EVP_DigestInit(ctx, openssl);
     }
 
     @Override
@@ -86,35 +89,36 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
     protected void finalize() throws Throwable {
         super.finalize();
         NativeCrypto.EVP_MD_CTX_destroy(ctx);
+        ctx = 0;
     }
 
     public static class MD5 extends OpenSSLMessageDigestJDK {
         public MD5() throws NoSuchAlgorithmException {
-            super("MD5");
+            super("MD5", "md5");
         }
     }
 
     public static class SHA1 extends OpenSSLMessageDigestJDK {
         public SHA1() throws NoSuchAlgorithmException {
-            super("SHA-1");
+            super("SHA-1", "sha1");
         }
     }
 
     public static class SHA256 extends OpenSSLMessageDigestJDK {
         public SHA256() throws NoSuchAlgorithmException {
-            super("SHA-256");
+            super("SHA-256", "sha256");
         }
     }
 
     public static class SHA384 extends OpenSSLMessageDigestJDK {
         public SHA384() throws NoSuchAlgorithmException {
-            super("SHA-384");
+            super("SHA-384", "sha384");
         }
     }
 
     public static class SHA512 extends OpenSSLMessageDigestJDK {
         public SHA512() throws NoSuchAlgorithmException {
-            super("SHA-512");
+            super("SHA-512", "sha512");
         }
     }
 }
