@@ -17,6 +17,7 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -94,7 +95,7 @@ public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {
                     pwd = keyStorePwd.toCharArray();
                 }
                 try {
-                    keyStore.load(new FileInputStream(new File(keyStoreName)), pwd);
+                    keyStore.load(new BufferedInputStream(new FileInputStream(keyStoreName)), pwd);
                 } catch (FileNotFoundException e) {
                     throw new KeyStoreException(e);
                 } catch (IOException e) {
