@@ -82,9 +82,17 @@ public class OpenSSLSocketImpl
     private boolean handshakeCompleted = false;
 
     private ArrayList<HandshakeCompletedListener> listeners;
-    private int timeout = 0;
+
+    /**
+     * Local cache of timeout to avoid getsockopt on every read and
+     * write for non-wrapped sockets. Note that
+     * OpenSSLSocketImplWrapper overrides setSoTimeout and
+     * getSoTimeout to delegate to the wrapped socket.
+     */
+    private int timeoutMilliseconds = 0;
+
     // BEGIN android-added
-    private int handshakeTimeout = -1;  // -1 = same as timeout; 0 = infinite
+    private int handshakeTimeoutMilliseconds = -1;  // -1 = same as timeout; 0 = infinite
     // END android-added
     private String wrappedHost;
     private int wrappedPort;
@@ -189,11 +197,14 @@ public class OpenSSLSocketImpl
             boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
         super();
         this.socket = socket;
-        this.timeout = socket.getSoTimeout();
         this.wrappedHost = host;
         this.wrappedPort = port;
         this.autoClose = autoClose;
         init(sslParameters);
+
+        // this.timeout is not set intentionally.
+        // OpenSSLSocketImplWrapper.getSoTimeout will delegate timeout
+        // to wrapped socket
     }
 
     /**
@@ -435,9 +446,9 @@ public class OpenSSLSocketImpl
 
         // BEGIN android-added
         // Temporarily use a different timeout for the handshake process
-        int savedTimeout = timeout;
-        if (handshakeTimeout >= 0) {
-            setSoTimeout(handshakeTimeout);
+        int savedTimeoutMilliseconds = getSoTimeout();
+        if (handshakeTimeoutMilliseconds >= 0) {
+            setSoTimeout(handshakeTimeoutMilliseconds);
         }
         // END android-added
 
@@ -445,8 +456,8 @@ public class OpenSSLSocketImpl
         Socket socket = this.socket != null ? this.socket : this;
         int sslSessionNativePointer;
         try {
-            sslSessionNativePointer
-                = NativeCrypto.SSL_do_handshake(sslNativePointer, socket, this, timeout, client);
+            sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer, socket,
+                                                                    this, getSoTimeout(), client);
         } catch (CertificateException e) {
             throw new SSLPeerUnverifiedException(e.getMessage());
         }
@@ -487,8 +498,8 @@ public class OpenSSLSocketImpl
 
         // BEGIN android-added
         // Restore the original timeout now that the handshake is complete
-        if (handshakeTimeout >= 0) {
-            setSoTimeout(savedTimeout);
+        if (handshakeTimeoutMilliseconds >= 0) {
+            setSoTimeout(savedTimeoutMilliseconds);
         }
         // END android-added
 
@@ -734,7 +745,7 @@ public class OpenSSLSocketImpl
             checkOpen();
             BlockGuard.getThreadPolicy().onNetwork();
             synchronized (readLock) {
-                return NativeCrypto.SSL_read_byte(sslNativePointer, timeout);
+                return NativeCrypto.SSL_read_byte(sslNativePointer, getSoTimeout());
             }
         }
 
@@ -756,7 +767,7 @@ public class OpenSSLSocketImpl
                 return 0;
             }
             synchronized (readLock) {
-                return NativeCrypto.SSL_read(sslNativePointer, b, off, len, timeout);
+                return NativeCrypto.SSL_read(sslNativePointer, b, off, len, getSoTimeout());
             }
         }
     }
@@ -1136,9 +1147,14 @@ public class OpenSSLSocketImpl
      * @throws SocketException if an error occurs setting the option
      */
     @Override
-    public void setSoTimeout(int timeout) throws SocketException {
-        super.setSoTimeout(timeout);
-        this.timeout = timeout;
+    public void setSoTimeout(int timeoutMilliseconds) throws SocketException {
+        super.setSoTimeout(timeoutMilliseconds);
+        this.timeoutMilliseconds = timeoutMilliseconds;
+    }
+
+    @Override
+    public int getSoTimeout() throws SocketException {
+        return timeoutMilliseconds;
     }
 
     // BEGIN android-added
@@ -1148,8 +1164,8 @@ public class OpenSSLSocketImpl
      *
      * @param timeout the handshake timeout value
      */
-    public void setHandshakeTimeout(int timeout) throws SocketException {
-        this.handshakeTimeout = timeout;
+    public void setHandshakeTimeout(int timeoutMilliseconds) throws SocketException {
+        this.handshakeTimeoutMilliseconds = timeoutMilliseconds;
     }
     // END android-added
 
