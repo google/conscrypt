@@ -37,7 +37,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
     /**
      * Holds a dummy buffer for writing single bytes to the digest.
      */
-    private byte[] singleByte = new byte[1];
+    private final byte[] singleByte = new byte[1];
 
     /**
      * Creates a new OpenSSLMessageDigest instance for the given algorithm
