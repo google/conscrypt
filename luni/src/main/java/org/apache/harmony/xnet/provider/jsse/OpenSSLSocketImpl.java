@@ -426,7 +426,7 @@ public class OpenSSLSocketImpl
 
             if (certRequested) {
                 X509Certificate[] issuers = sslParameters.getTrustManager().getAcceptedIssuers();
-                if (issuers != null) {
+                if (issuers != null && issuers.length != 0) {
                     byte[][] issuersBytes;
                     try {
                         issuersBytes = NativeCrypto.encodeIssuerX509Principals(issuers);
