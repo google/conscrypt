@@ -23,7 +23,9 @@ import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Map;
 import java.util.Vector;
+import java.util.Set;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLPermission;
 import javax.net.ssl.SSLSession;
@@ -46,7 +48,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     final X509Certificate[] peerCertificates;
 
     private boolean isValid = true;
-    private TwoKeyHashMap values = new TwoKeyHashMap();
+    private TwoKeyHashMap values = new TwoKeyHashMap<String, AccessControlContext, Object>();
     private volatile javax.security.cert.X509Certificate[] peerCertificateChain;
     protected int sslSessionNativePointer;
     private String peerHost;
@@ -427,17 +429,18 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         bound to this SSL session.
      */
     public String[] getValueNames() {
-        Vector v = new Vector();
+        Vector<String> v = new Vector<String>();
         AccessControlContext current = AccessController.getContext();
-        AccessControlContext cont;
-        for (Object o : values.entrySet()) {
-            TwoKeyHashMap.Entry entry = (TwoKeyHashMap.Entry) o;
-            cont = (AccessControlContext) entry.getKey2();
-            if (Objects.equal(current, cont == null)) {
+        Set<Map.Entry<String, Object>> set = values.entrySet();
+        for (Map.Entry<String, Object> o : set) {
+            TwoKeyHashMap.Entry<String, AccessControlContext, Object> entry
+                    = (TwoKeyHashMap.Entry<String, AccessControlContext, Object>) o;
+            AccessControlContext cont = entry.getKey2();
+            if (Objects.equal(current, cont)) {
                 v.add(entry.getKey1());
             }
         }
-        return (String[]) v.toArray(new String[0]);
+        return v.toArray(new String[v.size()]);
     }
 
     /**
