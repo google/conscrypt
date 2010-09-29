@@ -94,11 +94,13 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
         return d;
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        NativeCrypto.EVP_MD_CTX_destroy(ctx);
-        ctx = 0;
+    @Override protected void finalize() throws Throwable {
+        try {
+            NativeCrypto.EVP_MD_CTX_destroy(ctx);
+            ctx = 0;
+        } finally {
+            super.finalize();
+        }
     }
 
     public static class MD5 extends OpenSSLMessageDigestJDK {
