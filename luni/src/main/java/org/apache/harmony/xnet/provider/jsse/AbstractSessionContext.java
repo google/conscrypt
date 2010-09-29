@@ -285,8 +285,12 @@ abstract class AbstractSessionContext implements SSLSessionContext {
                 "Error converting session.", t);
     }
 
-    protected void finalize() throws IOException {
-        NativeCrypto.SSL_CTX_free(sslCtxNativePointer);
+    @Override protected void finalize() throws Throwable {
+        try {
+            NativeCrypto.SSL_CTX_free(sslCtxNativePointer);
+        } finally {
+            super.finalize();
+        }
     }
 
     /**

@@ -1253,25 +1253,28 @@ public class OpenSSLSocketImpl
         sslNativePointer = 0;
     }
 
-    @Override
-    protected void finalize() throws IOException {
-        /*
-         * Just worry about our own state. Notably we do not try and
-         * close anything. The SocketImpl, either our own
-         * PlainSocketImpl, or the Socket we are wrapping, will do
-         * that. This might mean we do not properly SSL_shutdown, but
-         * if you want to do that, properly close the socket yourself.
-         *
-         * The reason why we don't try to SSL_shutdown, is that there
-         * can be a race between finalizers where the PlainSocketImpl
-         * finalizer runs first and closes the socket. However, in the
-         * meanwhile, the underlying file descriptor could be reused
-         * for another purpose. If we call SSL_shutdown, the
-         * underlying socket BIOs still have the old file descriptor
-         * and will write the close notify to some unsuspecting
-         * reader.
-         */
-        updateInstanceCount(-1);
-        free();
+    @Override protected void finalize() throws Throwable {
+        try {
+            /*
+             * Just worry about our own state. Notably we do not try and
+             * close anything. The SocketImpl, either our own
+             * PlainSocketImpl, or the Socket we are wrapping, will do
+             * that. This might mean we do not properly SSL_shutdown, but
+             * if you want to do that, properly close the socket yourself.
+             *
+             * The reason why we don't try to SSL_shutdown, is that there
+             * can be a race between finalizers where the PlainSocketImpl
+             * finalizer runs first and closes the socket. However, in the
+             * meanwhile, the underlying file descriptor could be reused
+             * for another purpose. If we call SSL_shutdown, the
+             * underlying socket BIOs still have the old file descriptor
+             * and will write the close notify to some unsuspecting
+             * reader.
+             */
+            updateInstanceCount(-1);
+            free();
+        } finally {
+            super.finalize();
+        }
     }
 }

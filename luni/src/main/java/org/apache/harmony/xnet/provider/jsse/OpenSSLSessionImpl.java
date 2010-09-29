@@ -499,7 +499,11 @@ public class OpenSSLSessionImpl implements SSLSession {
         }
     }
 
-    protected void finalize() {
-        NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
+    @Override protected void finalize() throws Throwable {
+        try {
+            NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
+        } finally {
+            super.finalize();
+        }
     }
 }

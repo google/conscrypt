@@ -232,20 +232,21 @@ public class OpenSSLSignature extends Signature {
 
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
+    @Override protected void finalize() throws Throwable {
+        try {
+            if (dsa != 0) {
+                NativeCrypto.EVP_PKEY_free(dsa);
+            }
 
-        if (dsa != 0) {
-            NativeCrypto.EVP_PKEY_free(dsa);
-        }
+            if (rsa != 0) {
+                NativeCrypto.EVP_PKEY_free(rsa);
+            }
 
-        if (rsa != 0) {
-            NativeCrypto.EVP_PKEY_free(rsa);
-        }
-
-        if (ctx != 0) {
-            NativeCrypto.EVP_MD_CTX_destroy(ctx);
+            if (ctx != 0) {
+                NativeCrypto.EVP_MD_CTX_destroy(ctx);
+            }
+        } finally {
+            super.finalize();
         }
     }
 
