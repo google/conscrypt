@@ -21,6 +21,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.io.IOException;
 import java.security.AccessController;
 import java.security.InvalidAlgorithmParameterException;
@@ -95,7 +96,15 @@ public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {
                     pwd = keyStorePwd.toCharArray();
                 }
                 try {
-                    keyStore.load(new BufferedInputStream(new FileInputStream(keyStoreName)), pwd);
+                    InputStream in = null;
+                    try {
+                        in = new BufferedInputStream(new FileInputStream(keyStoreName));
+                        keyStore.load(in, pwd);
+                    } finally {
+                        if (in != null) {
+                            in.close();
+                        }
+                    }
                 } catch (FileNotFoundException e) {
                     throw new KeyStoreException(e);
                 } catch (IOException e) {

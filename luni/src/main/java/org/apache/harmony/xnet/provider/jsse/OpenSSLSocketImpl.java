@@ -17,6 +17,7 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import dalvik.system.BlockGuard;
+import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,6 +38,7 @@ import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 import org.apache.harmony.security.provider.cert.X509CertImpl;
 
@@ -75,6 +77,7 @@ public class OpenSSLSocketImpl
     private final FileDescriptor fd;
     private boolean autoClose;
     private boolean handshakeStarted = false;
+    private final CloseGuard guard = CloseGuard.getUnopened();
 
     /**
      * Not set to true until the update from native that tells us the
@@ -369,158 +372,172 @@ public class OpenSSLSocketImpl
             sslParameters.getClientSessionContext().sslCtxNativePointer :
             sslParameters.getServerSessionContext().sslCtxNativePointer;
 
-        this.sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
-
-        // setup server certificates and private keys.
-        // clients will receive a call back to request certificates.
-        if (!client) {
-            for (String keyType : NativeCrypto.KEY_TYPES) {
-                try {
-                    setCertificate(sslParameters.getKeyManager().chooseServerAlias(keyType,
-                                                                                   null,
-                                                                                   this));
-                } catch (CertificateEncodingException e) {
-                    throw new IOException(e);
-                }
-            }
-        }
-
-        NativeCrypto.setEnabledProtocols(sslNativePointer, enabledProtocols);
-        NativeCrypto.setEnabledCipherSuites(sslNativePointer, enabledCipherSuites);
-        if (enabledCompressionMethods.length != 0) {
-            NativeCrypto.setEnabledCompressionMethods(sslNativePointer, enabledCompressionMethods);
-        }
-        if (useSessionTickets) {
-            NativeCrypto.SSL_clear_options(sslNativePointer, NativeCrypto.SSL_OP_NO_TICKET);
-        }
-        if (hostname != null) {
-            NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, hostname);
-        }
-
-        boolean enableSessionCreation = sslParameters.getEnableSessionCreation();
-        if (!enableSessionCreation) {
-            NativeCrypto.SSL_set_session_creation_enabled(sslNativePointer,
-                                                          enableSessionCreation);
-        }
-
-        AbstractSessionContext sessionContext;
-        OpenSSLSessionImpl session;
-        if (client) {
-            // look for client session to reuse
-            ClientSessionContext clientSessionContext = sslParameters.getClientSessionContext();
-            sessionContext = clientSessionContext;
-            session = getCachedClientSession(clientSessionContext);
-            if (session != null) {
-                NativeCrypto.SSL_set_session(sslNativePointer,  session.sslSessionNativePointer);
-            }
-        } else {
-            sessionContext = sslParameters.getServerSessionContext();
-            session = null;
-        }
-
-        // setup peer certificate verification
-        if (client) {
-            // TODO support for anonymous cipher would require us to
-            // conditionally use SSL_VERIFY_NONE
-        } else {
-            // needing client auth takes priority...
-            boolean certRequested = false;
-            if (sslParameters.getNeedClientAuth()) {
-                NativeCrypto.SSL_set_verify(sslNativePointer,
-                                            NativeCrypto.SSL_VERIFY_PEER
-                                            | NativeCrypto.SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
-                certRequested = true;
-            // ... over just wanting it...
-            } else if (sslParameters.getWantClientAuth()) {
-                NativeCrypto.SSL_set_verify(sslNativePointer,
-                                            NativeCrypto.SSL_VERIFY_PEER);
-                certRequested = true;
-            // ... and it defaults properly so we don't need call SSL_set_verify in the common case.
-            } else {
-                certRequested = false;
-            }
-
-            if (certRequested) {
-                X509Certificate[] issuers = sslParameters.getTrustManager().getAcceptedIssuers();
-                if (issuers != null && issuers.length != 0) {
-                    byte[][] issuersBytes;
-                    try {
-                        issuersBytes = NativeCrypto.encodeIssuerX509Principals(issuers);
-                    } catch (CertificateEncodingException e) {
-                        throw new IOException("Problem encoding principals", e);
-                    }
-                    NativeCrypto.SSL_set_client_CA_list(sslNativePointer, issuersBytes);
-                }
-            }
-        }
-
-        if (client && full) {
-            // we want to do a full synchronous handshake, so turn off cutthrough
-            NativeCrypto.SSL_clear_mode(sslNativePointer,
-                                        NativeCrypto.SSL_MODE_HANDSHAKE_CUTTHROUGH);
-        }
-
-        // BEGIN android-added
-        // Temporarily use a different timeout for the handshake process
-        int savedTimeoutMilliseconds = getSoTimeout();
-        if (handshakeTimeoutMilliseconds >= 0) {
-            setSoTimeout(handshakeTimeoutMilliseconds);
-        }
-        // END android-added
-
-
-        int sslSessionNativePointer;
+        this.sslNativePointer = 0;
+        boolean exception = true;
         try {
-            sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer, fd, this,
-                                                                    getSoTimeout(), client);
-        } catch (CertificateException e) {
-            throw new SSLPeerUnverifiedException(e.getMessage());
-        }
-        byte[] sessionId = NativeCrypto.SSL_SESSION_session_id(sslSessionNativePointer);
-        sslSession = (OpenSSLSessionImpl) sessionContext.getSession(sessionId);
-        if (sslSession != null) {
-            sslSession.lastAccessedTime = System.currentTimeMillis();
-            LoggerHolder.logger.fine("Reused cached session for "
-                                     + getInetAddress() + ".");
-            NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
-        } else {
+            sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
+            guard.open("close");
+
+            // setup server certificates and private keys.
+            // clients will receive a call back to request certificates.
+            if (!client) {
+                for (String keyType : NativeCrypto.KEY_TYPES) {
+                    try {
+                        setCertificate(sslParameters.getKeyManager().chooseServerAlias(keyType,
+                                                                                       null,
+                                                                                       this));
+                    } catch (CertificateEncodingException e) {
+                        throw new IOException(e);
+                    }
+                }
+            }
+
+            NativeCrypto.setEnabledProtocols(sslNativePointer, enabledProtocols);
+            NativeCrypto.setEnabledCipherSuites(sslNativePointer, enabledCipherSuites);
+            if (enabledCompressionMethods.length != 0) {
+                NativeCrypto.setEnabledCompressionMethods(sslNativePointer,
+                                                          enabledCompressionMethods);
+            }
+            if (useSessionTickets) {
+                NativeCrypto.SSL_clear_options(sslNativePointer, NativeCrypto.SSL_OP_NO_TICKET);
+            }
+            if (hostname != null) {
+                NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, hostname);
+            }
+
+            boolean enableSessionCreation = sslParameters.getEnableSessionCreation();
             if (!enableSessionCreation) {
-                // Should have been prevented by NativeCrypto.SSL_set_session_creation_enabled
-                throw new IllegalStateException("SSL Session may not be created");
+                NativeCrypto.SSL_set_session_creation_enabled(sslNativePointer,
+                                                              enableSessionCreation);
             }
-            X509Certificate[] localCertificates
-                    = createCertChain(NativeCrypto.SSL_get_certificate(sslNativePointer));
-            X509Certificate[] peerCertificates
-                    = createCertChain(NativeCrypto.SSL_get_peer_cert_chain(sslNativePointer));
-            if (wrappedHost == null) {
-                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer,
-                                                    localCertificates, peerCertificates,
-                                                    super.getInetAddress().getHostName(),
-                                                    super.getPort(), sessionContext);
-            } else  {
-                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer,
-                                                    localCertificates, peerCertificates,
-                                                    wrappedHost, wrappedPort,
-                                                    sessionContext);
+
+            AbstractSessionContext sessionContext;
+            OpenSSLSessionImpl session;
+            if (client) {
+                // look for client session to reuse
+                ClientSessionContext clientSessionContext = sslParameters.getClientSessionContext();
+                sessionContext = clientSessionContext;
+                session = getCachedClientSession(clientSessionContext);
+                if (session != null) {
+                    NativeCrypto.SSL_set_session(sslNativePointer,
+                                                 session.sslSessionNativePointer);
+                }
+            } else {
+                sessionContext = sslParameters.getServerSessionContext();
+                session = null;
             }
-            // if not, putSession later in handshakeCompleted() callback
+
+            // setup peer certificate verification
+            if (client) {
+                // TODO support for anonymous cipher would require us to
+                // conditionally use SSL_VERIFY_NONE
+            } else {
+                // needing client auth takes priority...
+                boolean certRequested = false;
+                if (sslParameters.getNeedClientAuth()) {
+                    NativeCrypto.SSL_set_verify(sslNativePointer,
+                                                NativeCrypto.SSL_VERIFY_PEER
+                                                | NativeCrypto.SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
+                    certRequested = true;
+                // ... over just wanting it...
+                } else if (sslParameters.getWantClientAuth()) {
+                    NativeCrypto.SSL_set_verify(sslNativePointer,
+                                                NativeCrypto.SSL_VERIFY_PEER);
+                    certRequested = true;
+                // ... and it defaults properly so don't call SSL_set_verify in the common case.
+                } else {
+                    certRequested = false;
+                }
+
+                if (certRequested) {
+                    X509TrustManager trustManager = sslParameters.getTrustManager();
+                    X509Certificate[] issuers = trustManager.getAcceptedIssuers();
+                    if (issuers != null && issuers.length != 0) {
+                        byte[][] issuersBytes;
+                        try {
+                            issuersBytes = NativeCrypto.encodeIssuerX509Principals(issuers);
+                        } catch (CertificateEncodingException e) {
+                            throw new IOException("Problem encoding principals", e);
+                        }
+                        NativeCrypto.SSL_set_client_CA_list(sslNativePointer, issuersBytes);
+                    }
+                }
+            }
+
+            if (client && full) {
+                // we want to do a full synchronous handshake, so turn off cutthrough
+                NativeCrypto.SSL_clear_mode(sslNativePointer,
+                                            NativeCrypto.SSL_MODE_HANDSHAKE_CUTTHROUGH);
+            }
+
+            // BEGIN android-added
+            // Temporarily use a different timeout for the handshake process
+            int savedTimeoutMilliseconds = getSoTimeout();
+            if (handshakeTimeoutMilliseconds >= 0) {
+                setSoTimeout(handshakeTimeoutMilliseconds);
+            }
+            // END android-added
+
+            int sslSessionNativePointer;
+            try {
+                sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer, fd, this,
+                                                                        getSoTimeout(), client);
+            } catch (CertificateException e) {
+                throw new SSLPeerUnverifiedException(e.getMessage());
+            }
+            byte[] sessionId = NativeCrypto.SSL_SESSION_session_id(sslSessionNativePointer);
+            sslSession = (OpenSSLSessionImpl) sessionContext.getSession(sessionId);
+            if (sslSession != null) {
+                sslSession.lastAccessedTime = System.currentTimeMillis();
+                LoggerHolder.logger.fine("Reused cached session for "
+                                         + getInetAddress() + ".");
+                NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
+            } else {
+                if (!enableSessionCreation) {
+                    // Should have been prevented by NativeCrypto.SSL_set_session_creation_enabled
+                    throw new IllegalStateException("SSL Session may not be created");
+                }
+                X509Certificate[] localCertificates
+                        = createCertChain(NativeCrypto.SSL_get_certificate(sslNativePointer));
+                X509Certificate[] peerCertificates
+                        = createCertChain(NativeCrypto.SSL_get_peer_cert_chain(sslNativePointer));
+                if (wrappedHost == null) {
+                    sslSession = new OpenSSLSessionImpl(sslSessionNativePointer,
+                                                        localCertificates, peerCertificates,
+                                                        super.getInetAddress().getHostName(),
+                                                        super.getPort(), sessionContext);
+                } else  {
+                    sslSession = new OpenSSLSessionImpl(sslSessionNativePointer,
+                                                        localCertificates, peerCertificates,
+                                                        wrappedHost, wrappedPort,
+                                                        sessionContext);
+                }
+                // if not, putSession later in handshakeCompleted() callback
+                if (handshakeCompleted) {
+                    sessionContext.putSession(sslSession);
+                }
+                LoggerHolder.logger.fine("Created new session for "
+                                         + getInetAddress().getHostName() + ".");
+            }
+
+            // BEGIN android-added
+            // Restore the original timeout now that the handshake is complete
+            if (handshakeTimeoutMilliseconds >= 0) {
+                setSoTimeout(savedTimeoutMilliseconds);
+            }
+            // END android-added
+
+            // if not, notifyHandshakeCompletedListeners later in handshakeCompleted() callback
             if (handshakeCompleted) {
-                sessionContext.putSession(sslSession);
+                notifyHandshakeCompletedListeners();
             }
-            LoggerHolder.logger.fine("Created new session for "
-                                     + getInetAddress().getHostName() + ".");
-        }
 
-        // BEGIN android-added
-        // Restore the original timeout now that the handshake is complete
-        if (handshakeTimeoutMilliseconds >= 0) {
-            setSoTimeout(savedTimeoutMilliseconds);
-        }
-        // END android-added
-
-        // if not, notifyHandshakeCompletedListeners later in handshakeCompleted() callback
-        if (handshakeCompleted) {
-            notifyHandshakeCompletedListeners();
+            exception = false;
+        } finally {
+            // on exceptional exit, free the native content immediate to avoid CloseGuard warning
+            if (exception) {
+                free();
+            }
         }
     }
 
@@ -854,7 +871,6 @@ public class OpenSSLSocketImpl
             try {
                 startHandshake(true);
             } catch (IOException e) {
-
                 // return an invalid session with
                 // invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
                 return SSLSessionImpl.NULL_SESSION;
@@ -1268,6 +1284,7 @@ public class OpenSSLSocketImpl
         }
         NativeCrypto.SSL_free(sslNativePointer);
         sslNativePointer = 0;
+        guard.close();
     }
 
     @Override protected void finalize() throws Throwable {
@@ -1288,6 +1305,7 @@ public class OpenSSLSocketImpl
              * and will write the close notify to some unsuspecting
              * reader.
              */
+            guard.warnIfOpen();
             updateInstanceCount(-1);
             free();
         } finally {
