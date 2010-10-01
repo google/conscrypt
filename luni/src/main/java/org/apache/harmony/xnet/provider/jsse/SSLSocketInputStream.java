@@ -142,23 +142,6 @@ public final class SSLSocketInputStream
         return i;
     }
 
-    /**
-     * Method acts as described in spec for superclass.
-     * @see java.io.InputStream#skip(long)
-     */
-    @Override
-    public long skip(long n) throws IOException {
-        long i = 0;
-        int av = available();
-        if (av < n) {
-            n = av;
-        }
-        while ((i < n) && (read() != -1)) {
-            i++;
-        }
-        return i;
-    }
-
     // The helper class devivering the application data from the record layer
     // to this input stream.
     // It 'adapts' the InputStream interface to Appendable, which is used for

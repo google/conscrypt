@@ -45,16 +45,6 @@ public abstract class SSLInputStream extends InputStream {
     @Override
     public abstract int read() throws IOException;
 
-    @Override
-    public long skip(long n) throws IOException {
-        long skept = n;
-        while (n > 0) {
-            read();
-            n--;
-        }
-        return skept;
-    }
-
     /**
      * Reads and returns uint8 value.
      */
