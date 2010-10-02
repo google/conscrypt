@@ -17,6 +17,7 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import dalvik.system.BlockGuard;
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -56,6 +57,7 @@ import org.apache.harmony.security.provider.cert.X509CertImpl;
 public class OpenSSLSocketImpl
         extends javax.net.ssl.SSLSocket
         implements NativeCrypto.SSLHandshakeCallbacks {
+
     private int sslNativePointer;
     private InputStream is;
     private OutputStream os;
@@ -69,7 +71,8 @@ public class OpenSSLSocketImpl
     private boolean useSessionTickets;
     private String hostname;
     private OpenSSLSessionImpl sslSession;
-    private Socket socket;
+    private final Socket socket;
+    private final FileDescriptor fd;
     private boolean autoClose;
     private boolean handshakeStarted = false;
 
@@ -116,6 +119,8 @@ public class OpenSSLSocketImpl
      */
     protected OpenSSLSocketImpl(SSLParametersImpl sslParameters) throws IOException {
         super();
+        this.socket = this;
+        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters);
     }
 
@@ -131,6 +136,8 @@ public class OpenSSLSocketImpl
                                 String[] enabledCipherSuites,
                                 String[] enabledCompressionMethods) throws IOException {
         super();
+        this.socket = this;
+        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters, enabledProtocols, enabledCipherSuites, enabledCompressionMethods);
     }
 
@@ -141,8 +148,10 @@ public class OpenSSLSocketImpl
      * @throws java.net.UnknownHostException host not defined
      */
     protected OpenSSLSocketImpl(String host, int port, SSLParametersImpl sslParameters)
-        throws IOException {
+            throws IOException {
         super(host, port);
+        this.socket = this;
+        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters);
     }
 
@@ -153,8 +162,10 @@ public class OpenSSLSocketImpl
      * @throws java.net.UnknownHostException host not defined
      */
     protected OpenSSLSocketImpl(InetAddress address, int port, SSLParametersImpl sslParameters)
-        throws IOException {
+            throws IOException {
         super(address, port);
+        this.socket = this;
+        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters);
     }
 
@@ -168,8 +179,10 @@ public class OpenSSLSocketImpl
     protected OpenSSLSocketImpl(String host, int port,
                                 InetAddress clientAddress, int clientPort,
                                 SSLParametersImpl sslParameters)
-        throws IOException {
+            throws IOException {
         super(host, port, clientAddress, clientPort);
+        this.socket = this;
+        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters);
     }
 
@@ -182,8 +195,10 @@ public class OpenSSLSocketImpl
     protected OpenSSLSocketImpl(InetAddress address, int port,
                                 InetAddress clientAddress, int clientPort,
                                 SSLParametersImpl sslParameters)
-        throws IOException {
+            throws IOException {
         super(address, port, clientAddress, clientPort);
+        this.socket = this;
+        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters);
     }
 
@@ -197,6 +212,7 @@ public class OpenSSLSocketImpl
             boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
         super();
         this.socket = socket;
+        this.fd = NativeCrypto.getFileDescriptor(socket);
         this.wrappedHost = host;
         this.wrappedPort = port;
         this.autoClose = autoClose;
@@ -453,11 +469,10 @@ public class OpenSSLSocketImpl
         // END android-added
 
 
-        Socket socket = this.socket != null ? this.socket : this;
         int sslSessionNativePointer;
         try {
-            sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer, socket,
-                                                                    this, getSoTimeout(), client);
+            sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer, fd, this,
+                                                                    getSoTimeout(), client);
         } catch (CertificateException e) {
             throw new SSLPeerUnverifiedException(e.getMessage());
         }
@@ -513,7 +528,7 @@ public class OpenSSLSocketImpl
      * Return a possibly null array of X509Certificates given the
      * possibly null array of DER encoded bytes.
      */
-    private static final X509Certificate[] createCertChain(byte[][] certificatesBytes) {
+    private static X509Certificate[] createCertChain(byte[][] certificatesBytes) {
         if (certificatesBytes == null) {
             return null;
         }
@@ -745,7 +760,8 @@ public class OpenSSLSocketImpl
             checkOpen();
             BlockGuard.getThreadPolicy().onNetwork();
             synchronized (readLock) {
-                return NativeCrypto.SSL_read_byte(sslNativePointer, getSoTimeout());
+                return NativeCrypto.SSL_read_byte(sslNativePointer, fd, OpenSSLSocketImpl.this,
+                                                  getSoTimeout());
             }
         }
 
@@ -767,7 +783,8 @@ public class OpenSSLSocketImpl
                 return 0;
             }
             synchronized (readLock) {
-                return NativeCrypto.SSL_read(sslNativePointer, b, off, len, getSoTimeout());
+                return NativeCrypto.SSL_read(sslNativePointer, fd, OpenSSLSocketImpl.this,
+                                             b, off, len, getSoTimeout());
             }
         }
     }
@@ -795,7 +812,7 @@ public class OpenSSLSocketImpl
             checkOpen();
             BlockGuard.getThreadPolicy().onNetwork();
             synchronized (writeLock) {
-                NativeCrypto.SSL_write_byte(sslNativePointer, b);
+                NativeCrypto.SSL_write_byte(sslNativePointer, fd, OpenSSLSocketImpl.this, b);
             }
         }
 
@@ -817,7 +834,7 @@ public class OpenSSLSocketImpl
                 return;
             }
             synchronized (writeLock) {
-                NativeCrypto.SSL_write(sslNativePointer, b, start, len);
+                NativeCrypto.SSL_write(sslNativePointer, fd, OpenSSLSocketImpl.this, b, start, len);
             }
         }
     }
@@ -1189,7 +1206,7 @@ public class OpenSSLSocketImpl
                 synchronized (this) {
                     free();
 
-                    if (socket != null) {
+                    if (socket != this) {
                         if (autoClose && !socket.isClosed()) socket.close();
                     } else {
                         if (!super.isClosed()) super.close();
@@ -1212,7 +1229,7 @@ public class OpenSSLSocketImpl
                     try {
                         if (handshakeStarted) {
                             BlockGuard.getThreadPolicy().onNetwork();
-                            NativeCrypto.SSL_shutdown(sslNativePointer);
+                            NativeCrypto.SSL_shutdown(sslNativePointer, fd, this);
                         }
                     } catch (IOException ex) {
                         /*
@@ -1229,7 +1246,7 @@ public class OpenSSLSocketImpl
                      */
                     free();
 
-                    if (socket != null) {
+                    if (socket != this) {
                         if (autoClose && !socket.isClosed())
                             socket.close();
                     } else {

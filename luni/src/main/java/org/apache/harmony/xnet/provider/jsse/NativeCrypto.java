@@ -16,8 +16,11 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import java.io.FileDescriptor;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.Socket;
+import java.net.SocketImpl;
 import java.net.SocketTimeoutException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
@@ -116,6 +119,31 @@ public final class NativeCrypto {
     public static native int RAND_load_file(String filename, long max_bytes);
 
     // --- SSL handling --------------------------------------------------------
+
+    private static final Field JAVA_NET_SOCKET_IMPL;
+    private static final Field JAVA_NET_SOCKETIMPL_FD;
+    static {
+        try {
+            JAVA_NET_SOCKET_IMPL = Socket.class.getDeclaredField("impl");
+            JAVA_NET_SOCKET_IMPL.setAccessible(true);
+            JAVA_NET_SOCKETIMPL_FD = SocketImpl.class.getDeclaredField("fd");
+            JAVA_NET_SOCKETIMPL_FD.setAccessible(true);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+    /**
+     * Return the FileDescriptor associated with the provided socket.
+     */
+    public static FileDescriptor getFileDescriptor(Socket socket) {
+        try {
+            SocketImpl socketImpl = (SocketImpl) JAVA_NET_SOCKET_IMPL.get(socket);
+            FileDescriptor fd = (FileDescriptor) JAVA_NET_SOCKETIMPL_FD.get(socketImpl);
+            return fd;
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
+    }
 
     private static final String SUPPORTED_PROTOCOL_SSLV3 = "SSLv3";
     private static final String SUPPORTED_PROTOCOL_TLSV1 = "TLSv1";
@@ -490,7 +518,7 @@ public final class NativeCrypto {
      * Returns the sslSessionNativePointer of the negotiated session
      */
     public static native int SSL_do_handshake(int sslNativePointer,
-                                              Socket sock,
+                                              FileDescriptor fd,
                                               SSLHandshakeCallbacks shc,
                                               int timeout,
                                               boolean client_mode)
@@ -516,19 +544,33 @@ public final class NativeCrypto {
      * Reads with the native SSL_read function from the encrypted data stream
      * @return -1 if error or the end of the stream is reached.
      */
-    public static native int SSL_read_byte(int sslNativePointer, int timeout) throws IOException;
-    public static native int SSL_read(int sslNativePointer, byte[] b, int off, int len, int timeout)
+    public static native int SSL_read_byte(int sslNativePointer,
+                                           FileDescriptor fd,
+                                           SSLHandshakeCallbacks shc,
+                                           int timeout) throws IOException;
+    public static native int SSL_read(int sslNativePointer,
+                                      FileDescriptor fd,
+                                      SSLHandshakeCallbacks shc,
+                                      byte[] b, int off, int len, int timeout)
         throws IOException;
 
     /**
      * Writes with the native SSL_write function to the encrypted data stream.
      */
-    public static native void SSL_write_byte(int sslNativePointer, int b) throws IOException;
-    public static native void SSL_write(int sslNativePointer, byte[] b, int off, int len)
+    public static native void SSL_write_byte(int sslNativePointer,
+                                             FileDescriptor fd,
+                                             SSLHandshakeCallbacks shc,
+                                             int b) throws IOException;
+    public static native void SSL_write(int sslNativePointer,
+                                        FileDescriptor fd,
+                                        SSLHandshakeCallbacks shc,
+                                        byte[] b, int off, int len)
         throws IOException;
 
     public static native void SSL_interrupt(int sslNativePointer) throws IOException;
-    public static native void SSL_shutdown(int sslNativePointer) throws IOException;
+    public static native void SSL_shutdown(int sslNativePointer,
+                                           FileDescriptor fd,
+                                           SSLHandshakeCallbacks shc) throws IOException;
 
     public static native void SSL_free(int sslNativePointer);
 
