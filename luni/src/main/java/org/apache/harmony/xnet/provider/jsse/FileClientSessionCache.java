@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import javax.net.ssl.SSLSession;
+import libcore.io.IoUtils;
 
 /**
  * File-based cache implementation. Only one process should access the
@@ -172,9 +173,7 @@ public class FileClientSessionCache {
                 logReadError(host, e);
                 return null;
             } finally {
-                try {
-                    in.close();
-                } catch (IOException e) { /* ignore */ }
+                IoUtils.closeQuietly(in);
             }
         }
 
