@@ -100,16 +100,6 @@ public class OpenSSLSocketImpl
     private String wrappedHost;
     private int wrappedPort;
 
-    private static final AtomicInteger instanceCount = new AtomicInteger(0);
-
-    public static int getInstanceCount() {
-        return instanceCount.get();
-    }
-
-    private static void updateInstanceCount(int amount) {
-        instanceCount.addAndGet(amount);
-    }
-
     /**
      * Class constructor with 1 parameter
      *
@@ -246,7 +236,6 @@ public class OpenSSLSocketImpl
         this.enabledProtocols = enabledProtocols;
         this.enabledCipherSuites = enabledCipherSuites;
         this.enabledCompressionMethods = enabledCompressionMethods;
-        updateInstanceCount(1);
     }
 
     /**
@@ -1288,7 +1277,6 @@ public class OpenSSLSocketImpl
              * and will write the close notify to some unsuspecting
              * reader.
              */
-            updateInstanceCount(-1);
             free();
         } finally {
             super.finalize();
