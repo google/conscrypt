@@ -77,7 +77,7 @@ public class OpenSSLSocketImpl
     private final FileDescriptor fd;
     private boolean autoClose;
     private boolean handshakeStarted = false;
-    private final CloseGuard guard = CloseGuard.getUnopened();
+    private final CloseGuard guard = CloseGuard.get();
 
     /**
      * Not set to true until the update from native that tells us the
@@ -1294,7 +1294,9 @@ public class OpenSSLSocketImpl
              * and will write the close notify to some unsuspecting
              * reader.
              */
-            guard.warnIfOpen();
+            if (guard != null) {
+                guard.warnIfOpen();
+            }
             free();
         } finally {
             super.finalize();
