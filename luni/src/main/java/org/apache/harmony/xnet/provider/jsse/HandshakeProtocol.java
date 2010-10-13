@@ -389,8 +389,8 @@ public abstract class HandshakeProtocol {
             return;
         }
         try {
-            byte[] hanshake_messages = io_stream.getMessages();
-            md5.update(hanshake_messages);
+            byte[] handshake_messages = io_stream.getMessages();
+            md5.update(handshake_messages);
             md5.update(sender);
             md5.update(session.master_secret);
             byte[] b = md5.digest(SSLv3Constants.MD5pad1);
@@ -398,7 +398,7 @@ public abstract class HandshakeProtocol {
             md5.update(SSLv3Constants.MD5pad2);
             System.arraycopy(md5.digest(b), 0, buf, 0, 16);
 
-            sha.update(hanshake_messages);
+            sha.update(handshake_messages);
             sha.update(sender);
             sha.update(session.master_secret);
             b = sha.digest(SSLv3Constants.SHApad1);

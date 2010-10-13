@@ -442,7 +442,7 @@ public class SSLRecordProtocol {
 
     /**
      * Sets up the SSL version used in this connection.
-     * This method is calling from the hanshake protocol after
+     * This method is calling from the handshake protocol after
      * it becomes known witch protocol version will be used.
      * @param   ver:    byte[]
      * @return
