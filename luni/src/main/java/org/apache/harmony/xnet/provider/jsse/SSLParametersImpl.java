@@ -110,42 +110,29 @@ public class SSLParametersImpl implements Cloneable {
         this.serverSessionContext = serverSessionContext;
         this.clientSessionContext = clientSessionContext;
 // END android-changed
-        try {
-            // It's not described by the spec of SSLContext what should happen
-            // if the arrays of length 0 are specified. This implementation
-            // behave as for null arrays (i.e. use installed security providers)
 
-            // initialize keyManager
-            if ((kms == null) || (kms.length == 0)) {
-                keyManager = getDefaultKeyManager();
-            } else {
-                keyManager = findX509KeyManager(kms);
-            }
-            if (keyManager == null) {
-                throw new KeyManagementException("No X509KeyManager found");
-            }
+        // It's not described by the spec of SSLContext what should happen
+        // if the arrays of length 0 are specified. This implementation
+        // behave as for null arrays (i.e. use installed security providers)
 
-            // initialize trustManager
-            if ((tms == null) || (tms.length == 0)) {
-                trustManager = getDefaultTrustManager();
-            } else {
-                trustManager = findX509TrustManager(tms);
-            }
-            if (trustManager == null) {
-                throw new KeyManagementException("No X509TrustManager found");
-            }
-        } catch (NoSuchAlgorithmException e) {
-            throw new KeyManagementException(e);
-        } catch (KeyStoreException e) {
-            throw new KeyManagementException(e);
-        } catch (UnrecoverableKeyException e) {
-            throw new KeyManagementException(e);
-// BEGIN android-added
-        } catch (CertificateEncodingException e) {
-            throw new KeyManagementException(e);
-        } catch (InvalidAlgorithmParameterException e) {
-            throw new KeyManagementException(e);
-// END android-added
+        // initialize keyManager
+        if ((kms == null) || (kms.length == 0)) {
+            keyManager = getDefaultKeyManager();
+        } else {
+            keyManager = findX509KeyManager(kms);
+        }
+        if (keyManager == null) {
+            throw new KeyManagementException("No X509KeyManager found");
+        }
+
+        // initialize trustManager
+        if ((tms == null) || (tms.length == 0)) {
+            trustManager = getDefaultTrustManager();
+        } else {
+            trustManager = findX509TrustManager(tms);
+        }
+        if (trustManager == null) {
+            throw new KeyManagementException("No X509TrustManager found");
         }
         // initialize secure random
         // BEGIN android-removed
@@ -386,8 +373,7 @@ public class SSLParametersImpl implements Cloneable {
 // END android-changed
     }
 
-    private static X509KeyManager getDefaultKeyManager()
-            throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
+    private static X509KeyManager getDefaultKeyManager() {
         X509KeyManager result = defaultKeyManager;
         if (result == null) {
             // single-check idiom
@@ -395,13 +381,20 @@ public class SSLParametersImpl implements Cloneable {
         }
         return result;
     }
-    private static X509KeyManager createDefaultKeyManager()
-            throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
-        String algorithm = KeyManagerFactory.getDefaultAlgorithm();
-        KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm);
-        kmf.init(null, null);
-        KeyManager[] kms = kmf.getKeyManagers();
-        return findX509KeyManager(kms);
+    private static X509KeyManager createDefaultKeyManager() {
+        try {
+            String algorithm = KeyManagerFactory.getDefaultAlgorithm();
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm);
+            kmf.init(null, null);
+            KeyManager[] kms = kmf.getKeyManagers();
+            return findX509KeyManager(kms);
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        } catch (KeyStoreException e) {
+            return null;
+        } catch (UnrecoverableKeyException e) {
+            return null;
+        }
     }
     private static X509KeyManager findX509KeyManager(KeyManager[] kms) {
         for (KeyManager km : kms) {
@@ -417,9 +410,7 @@ public class SSLParametersImpl implements Cloneable {
      *
      * TODO: Move this to a published API under dalvik.system.
      */
-    public static X509TrustManager getDefaultTrustManager()
-            throws NoSuchAlgorithmException, KeyStoreException,
-            CertificateEncodingException, InvalidAlgorithmParameterException {
+    public static X509TrustManager getDefaultTrustManager() {
         X509TrustManager result = defaultTrustManager;
         if (result == null) {
             // single-check idiom
@@ -427,20 +418,28 @@ public class SSLParametersImpl implements Cloneable {
         }
         return result;
     }
-    private static X509TrustManager createDefaultTrustManager()
-            throws NoSuchAlgorithmException, KeyStoreException,
-            CertificateEncodingException, InvalidAlgorithmParameterException {
-        String algorithm = TrustManagerFactory.getDefaultAlgorithm();
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
-        tmf.init((KeyStore) null);
-        TrustManager[] tms = tmf.getTrustManagers();
-        X509TrustManager trustManager = findX509TrustManager(tms);
-        // BEGIN android-added
-        if (trustManager instanceof TrustManagerImpl) {
-            ((TrustManagerImpl) trustManager).indexTrustAnchors();
+    private static X509TrustManager createDefaultTrustManager() {
+        try {
+            String algorithm = TrustManagerFactory.getDefaultAlgorithm();
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
+            tmf.init((KeyStore) null);
+            TrustManager[] tms = tmf.getTrustManagers();
+            X509TrustManager trustManager = findX509TrustManager(tms);
+            // BEGIN android-added
+            if (trustManager instanceof TrustManagerImpl) {
+                ((TrustManagerImpl) trustManager).indexTrustAnchors();
+            }
+            // END android-added
+            return trustManager;
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        } catch (KeyStoreException e) {
+            return null;
+        } catch (CertificateEncodingException e) {
+            return null;
+        } catch (InvalidAlgorithmParameterException e) {
+            return null;
         }
-        // END android-added
-        return trustManager;
     }
     private static X509TrustManager findX509TrustManager(TrustManager[] tms) {
         for (TrustManager tm : tms) {
