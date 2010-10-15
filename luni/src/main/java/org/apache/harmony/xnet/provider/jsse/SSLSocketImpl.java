@@ -698,8 +698,8 @@ public class SSLSocketImpl extends SSLSocket {
     }
 
     /*
-     * Performs handshake proccess over this connection. The hanshake
-     * process is dirrected by the handshake status code provided by
+     * Performs handshake proccess over this connection. The handshake
+     * process is directed by the handshake status code provided by
      * handshake protocol. If this status is NEED_WRAP, method retrieves
      * handshake message from handshake protocol and sends it to another peer.
      * If this status is NEED_UNWRAP, method receives and processes handshake
