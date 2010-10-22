@@ -46,13 +46,13 @@ import javax.net.ssl.X509TrustManager;
  */
 public class TrustManagerImpl implements X509TrustManager {
 
-    private CertPathValidator validator;
+    private final CertPathValidator validator;
 
     private PKIXParameters params;
 
-    private Exception err = null;
+    private final Exception err;
 
-    private CertificateFactory factory;
+    private final CertificateFactory factory;
 
     /**
      * Creates trust manager implementation
@@ -60,9 +60,12 @@ public class TrustManagerImpl implements X509TrustManager {
      * @param ks
      */
     public TrustManagerImpl(KeyStore ks) {
+        CertPathValidator validatorLocal = null;
+        CertificateFactory factoryLocal = null;
+        Exception errLocal = null;
         try {
-            validator = CertPathValidator.getInstance("PKIX");
-            factory = CertificateFactory.getInstance("X509");
+            validatorLocal = CertPathValidator.getInstance("PKIX");
+            factoryLocal = CertificateFactory.getInstance("X509");
             byte[] nameConstrains = null;
             Set<TrustAnchor> trusted = new HashSet<TrustAnchor>();
             for (Enumeration<String> en = ks.aliases(); en.hasMoreElements();) {
@@ -75,11 +78,14 @@ public class TrustManagerImpl implements X509TrustManager {
             params = new PKIXParameters(trusted);
             params.setRevocationEnabled(false);
         } catch (Exception e) {
-            err = e;
+            errLocal = e;
         }
+        this.validator = validatorLocal;
+        this.factory = factoryLocal;
+        this.err = errLocal;
     }
 
-// BEGIN android-added
+    // BEGIN android-added
     /**
      * Indexes trust anchors so they can be found in O(1) instead of O(N) time.
      */
@@ -88,7 +94,7 @@ public class TrustManagerImpl implements X509TrustManager {
         params = new IndexedPKIXParameters(params.getTrustAnchors());
         params.setRevocationEnabled(false);
     }
-// END android-added
+    // END android-added
 
     /**
      * @see javax.net.ssl.X509TrustManager#checkClientTrusted(X509Certificate[],
@@ -96,38 +102,7 @@ public class TrustManagerImpl implements X509TrustManager {
      */
     public void checkClientTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
-        if (chain == null || chain.length == 0 || authType == null
-                || authType.length() == 0) {
-            throw new IllegalArgumentException("null or zero-length parameter");
-        }
-        if (err != null) {
-            throw new CertificateException(err);
-        }
-        // BEGIN android-added
-        // Caters to degenerate special case where we can't
-        // establish an actual certificate chain the usual way,
-        // but have the peer certificate in our trust store.
-        if (isDirectlyTrustedCert(chain)) {
-            return;
-        }
-        // END android-added
-        try {
-            // BEGIN android-changed
-            CertPath certPath = factory.generateCertPath(Arrays.asList(chain));
-            if (!Arrays.equals(chain[0].getEncoded(),
-                    ((X509Certificate)certPath.getCertificates().get(0))
-                    .getEncoded())) {
-                // Sanity check failed (shouldn't ever happen, but we
-                // are using pretty remote code)
-                throw new CertificateException("Certificate chain error");
-            }
-            validator.validate(certPath, params);
-            // END android-changed
-        } catch (InvalidAlgorithmParameterException e) {
-            throw new CertificateException(e);
-        } catch (CertPathValidatorException e) {
-            throw new CertificateException(e);
-        }
+        checkTrusted(chain, authType);
     }
 
     /**
@@ -136,8 +111,12 @@ public class TrustManagerImpl implements X509TrustManager {
      */
     public void checkServerTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
-        if (chain == null || chain.length == 0 || authType == null
-                || authType.length() == 0) {
+        checkTrusted(chain, authType);
+    }
+
+    private void checkTrusted(X509Certificate[] chain, String authType)
+            throws CertificateException {
+        if (chain == null || chain.length == 0 || authType == null || authType.length() == 0) {
             throw new IllegalArgumentException("null or zero-length parameter");
         }
         if (err != null) {
@@ -146,7 +125,7 @@ public class TrustManagerImpl implements X509TrustManager {
         // BEGIN android-changed
         CertificateException ce = null;
         try {
-            CertPath certPath = factory.generateCertPath(Arrays.asList(chain));
+            CertPath certPath = factory.generateCertPath(Arrays.asList(cleanupCertChain(chain)));
             if (!Arrays.equals(chain[0].getEncoded(),
                     certPath.getCertificates().get(0).getEncoded())) {
                 // Sanity check failed (shouldn't ever happen, but we
@@ -168,8 +147,66 @@ public class TrustManagerImpl implements X509TrustManager {
             if (!isDirectlyTrustedCert(chain)) {
                 throw ce;
             }
+        } // END android-added
+    }
+
+    /**
+     * Clean up the certificate chain, returning a cleaned up chain,
+     * which may be a new array instance if elements were removed.
+     * Theoretically, we shouldn't have to do this, but various web
+     * servers in practice are mis-configured to have out-of-order
+     * certificates, expired self-issued root certificate, or CAs with
+     * unsupported signature algorithms such as md2WithRSAEncryption.
+     */
+    private X509Certificate[] cleanupCertChain(X509Certificate[] chain) {
+        if (chain.length <= 1) {
+            return chain;
         }
-        // END android-added
+
+        // 1. Clean the received certificates chain.
+        int currIndex;
+        // Start with the first certificate in the chain, assuming it
+        // is the leaf certificate (server or client cert).
+        for (currIndex = 0; currIndex < chain.length; currIndex++) {
+            // Walk the rest of the chain to find a "subject" matching
+            // the "issuer" of the current certificate. In a properly
+            // order chain this should be the next cert and be fast.
+            // If not, we reorder things to be as the validator will
+            // expect.
+            boolean foundNext = false;
+            for (int nextIndex = currIndex + 1; nextIndex < chain.length; nextIndex++) {
+                if (chain[currIndex].getIssuerDN().equals(chain[nextIndex].getSubjectDN())) {
+                    foundNext = true;
+                    // Exchange certificates so that 0 through currIndex + 1 are in proper order
+                    if (nextIndex != currIndex + 1) {
+                        X509Certificate tempCertificate = chain[nextIndex];
+                        chain[nextIndex] = chain[currIndex + 1];
+                        chain[currIndex + 1] = tempCertificate;
+                    }
+                    break;
+                }
+            }
+            // If we can't find the next in the chain, just give up
+            // and use what we found so far. This drops unrelated
+            // certificates that have nothing to do with the cert
+            // chain.
+            if (!foundNext) {
+                break;
+            }
+        }
+
+        // 2. drop the last certificate if it is self signed
+        X509Certificate lastCertificate = chain[currIndex];
+        if (lastCertificate.getSubjectDN().equals(lastCertificate.getIssuerDN())) {
+            --currIndex;
+        }
+
+        // 3. If the chain is now shorter, copy to an appropriately sized array.
+        int chainLength = currIndex + 1;
+        if (chainLength == chain.length) {
+            return chain;
+        }
+        return Arrays.copyOf(chain, chainLength);
     }
 
     /**
