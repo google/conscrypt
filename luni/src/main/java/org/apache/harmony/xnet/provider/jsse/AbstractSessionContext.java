@@ -158,7 +158,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
      * Called when a session is removed. Used by ClientSessionContext
      * to update its host-and-port based cache.
      */
-    abstract protected void sessionRemoved(SSLSession session);
+    protected abstract void sessionRemoved(SSLSession session);
 
     public final void setSessionCacheSize(int size)
             throws IllegalArgumentException {
