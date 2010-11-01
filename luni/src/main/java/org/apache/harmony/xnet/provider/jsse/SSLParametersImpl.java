@@ -425,19 +425,10 @@ public class SSLParametersImpl implements Cloneable {
             tmf.init((KeyStore) null);
             TrustManager[] tms = tmf.getTrustManagers();
             X509TrustManager trustManager = findX509TrustManager(tms);
-            // BEGIN android-added
-            if (trustManager instanceof TrustManagerImpl) {
-                ((TrustManagerImpl) trustManager).indexTrustAnchors();
-            }
-            // END android-added
             return trustManager;
         } catch (NoSuchAlgorithmException e) {
             return null;
         } catch (KeyStoreException e) {
-            return null;
-        } catch (CertificateEncodingException e) {
-            return null;
-        } catch (InvalidAlgorithmParameterException e) {
             return null;
         }
     }
