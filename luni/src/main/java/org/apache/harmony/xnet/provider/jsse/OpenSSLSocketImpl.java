@@ -334,8 +334,8 @@ public class OpenSSLSocketImpl
      * @param full If true, disable handshake cutthrough for a fully synchronous handshake
      */
     public synchronized void startHandshake(boolean full) throws IOException {
-        checkOpen();
         synchronized (handshakeLock) {
+            checkOpen();
             if (!handshakeStarted) {
                 handshakeStarted = true;
             } else {
@@ -746,9 +746,9 @@ public class OpenSSLSocketImpl
          */
         @Override
         public int read() throws IOException {
-            checkOpen();
             BlockGuard.getThreadPolicy().onNetwork();
             synchronized (readLock) {
+                checkOpen();
                 return NativeCrypto.SSL_read_byte(sslNativePointer, fd, OpenSSLSocketImpl.this,
                                                   getSoTimeout());
             }
@@ -760,18 +760,18 @@ public class OpenSSLSocketImpl
          */
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
-            checkOpen();
             BlockGuard.getThreadPolicy().onNetwork();
-            if (b == null) {
-                throw new NullPointerException("b == null");
-            }
-            if ((len | off) < 0 || len > b.length - off) {
-                throw new IndexOutOfBoundsException();
-            }
-            if (0 == len) {
-                return 0;
-            }
             synchronized (readLock) {
+                checkOpen();
+                if (b == null) {
+                    throw new NullPointerException("b == null");
+                }
+                if ((len | off) < 0 || len > b.length - off) {
+                    throw new IndexOutOfBoundsException();
+                }
+                if (0 == len) {
+                    return 0;
+                }
                 return NativeCrypto.SSL_read(sslNativePointer, fd, OpenSSLSocketImpl.this,
                                              b, off, len, getSoTimeout());
             }
@@ -798,9 +798,9 @@ public class OpenSSLSocketImpl
          */
         @Override
         public void write(int b) throws IOException {
-            checkOpen();
             BlockGuard.getThreadPolicy().onNetwork();
             synchronized (writeLock) {
+                checkOpen();
                 NativeCrypto.SSL_write_byte(sslNativePointer, fd, OpenSSLSocketImpl.this, b);
             }
         }
@@ -811,18 +811,18 @@ public class OpenSSLSocketImpl
          */
         @Override
         public void write(byte[] b, int start, int len) throws IOException {
-            checkOpen();
             BlockGuard.getThreadPolicy().onNetwork();
-            if (b == null) {
-                throw new NullPointerException("b == null");
-            }
-            if ((len | start) < 0 || len > b.length - start) {
-                throw new IndexOutOfBoundsException();
-            }
-            if (len == 0) {
-                return;
-            }
             synchronized (writeLock) {
+                checkOpen();
+                if (b == null) {
+                    throw new NullPointerException("b == null");
+                }
+                if ((len | start) < 0 || len > b.length - start) {
+                    throw new IndexOutOfBoundsException();
+                }
+                if (len == 0) {
+                    return;
+                }
                 NativeCrypto.SSL_write(sslNativePointer, fd, OpenSSLSocketImpl.this, b, start, len);
             }
         }
