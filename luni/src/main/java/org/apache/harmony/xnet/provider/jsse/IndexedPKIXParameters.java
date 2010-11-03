@@ -17,7 +17,9 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.PublicKey;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.PKIXParameters;
@@ -25,12 +27,11 @@ import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.security.auth.x500.X500Principal;
 
 /**
@@ -38,78 +39,63 @@ import javax.security.auth.x500.X500Principal;
  */
 public class IndexedPKIXParameters extends PKIXParameters {
 
-    final Map<Bytes, TrustAnchor> encodings
-            = new HashMap<Bytes, TrustAnchor>();
-    final Map<X500Principal, TrustAnchor> bySubject
-            = new HashMap<X500Principal, TrustAnchor>();
-    final Map<X500Principal, List<TrustAnchor>> byCA
+    private final Map<X500Principal, List<TrustAnchor>> subjectToTrustAnchors
             = new HashMap<X500Principal, List<TrustAnchor>>();
 
     public IndexedPKIXParameters(Set<TrustAnchor> anchors)
-            throws KeyStoreException, InvalidAlgorithmParameterException,
-            CertificateEncodingException {
+            throws InvalidAlgorithmParameterException {
         super(anchors);
+        index();
+    }
 
-        for (TrustAnchor anchor : anchors) {
+    public IndexedPKIXParameters(KeyStore keyStore)
+        throws KeyStoreException, InvalidAlgorithmParameterException {
+        super(keyStore);
+        index();
+    }
+
+    private void index() {
+        for (TrustAnchor anchor : getTrustAnchors()) {
+            X500Principal subject;
             X509Certificate cert = anchor.getTrustedCert();
-
-            Bytes encoded = new Bytes(cert.getEncoded());
-            encodings.put(encoded, anchor);
-
-            X500Principal subject = cert.getSubjectX500Principal();
-            if (bySubject.put(subject, anchor) != null) {
-                // TODO: Should we allow this?
-                throw new KeyStoreException("Two certs have the same subject: "
-                        + subject);
+            if (cert != null) {
+                subject = cert.getSubjectX500Principal();
+            } else {
+                subject = anchor.getCA();
             }
 
-            X500Principal ca = anchor.getCA();
-            List<TrustAnchor> caAnchors = byCA.get(ca);
-            if (caAnchors == null) {
-                caAnchors = new ArrayList<TrustAnchor>();
-                byCA.put(ca, caAnchors);
+            List<TrustAnchor> anchors = subjectToTrustAnchors.get(subject);
+            if (anchors == null) {
+                anchors = new ArrayList<TrustAnchor>();
+                subjectToTrustAnchors.put(subject, anchors);
             }
-            caAnchors.add(anchor);
+            anchors.add(anchor);
         }
     }
 
     public TrustAnchor findTrustAnchor(X509Certificate cert)
             throws CertPathValidatorException {
-        // Mimic the alg in CertPathValidatorUtilities.findTrustAnchor().
-        Exception verificationException = null;
         X500Principal issuer = cert.getIssuerX500Principal();
-
-        List<TrustAnchor> anchors = byCA.get(issuer);
-        if (anchors != null) {
-            for (TrustAnchor caAnchor : anchors) {
-                try {
-                    cert.verify(caAnchor.getCAPublicKey());
-                    return caAnchor;
-                } catch (Exception e) {
-                    verificationException = e;
-                }
-            }
+        List<TrustAnchor> anchors = subjectToTrustAnchors.get(issuer);
+        if (anchors == null) {
+            return null;
         }
 
-        TrustAnchor anchor = bySubject.get(issuer);
-        if (anchor != null) {
+        Exception verificationException = null;
+        for (TrustAnchor anchor : anchors) {
+            PublicKey publicKey;
             try {
-                cert.verify(anchor.getTrustedCert().getPublicKey());
+                X509Certificate caCert = anchor.getTrustedCert();
+                if (caCert != null) {
+                    publicKey = caCert.getPublicKey();
+                } else {
+                    publicKey = anchor.getCAPublicKey();
+                }
+                cert.verify(publicKey);
                 return anchor;
             } catch (Exception e) {
                 verificationException = e;
             }
-        }
-
-        try {
-            Bytes encoded = new Bytes(cert.getEncoded());
-            anchor = encodings.get(encoded);
-            if (anchor != null) {
-                return anchor;
-            }
-        } catch (Exception e) {
-            Logger.getLogger(IndexedPKIXParameters.class.getName()).log(
-                    Level.WARNING, "Error encoding cert.", e);
         }
 
         // Throw last verification exception.
@@ -122,19 +108,34 @@ public class IndexedPKIXParameters extends PKIXParameters {
         return null;
     }
 
-    /**
-     * Returns true if the given certificate is found in the trusted key
-     * store.
-     */
-    public boolean isDirectlyTrusted(X509Certificate cert) {
-        try {
-            Bytes encoded = new Bytes(cert.getEncoded());
-            return encodings.containsKey(encoded);
-        } catch (Exception e) {
-            Logger.getLogger(IndexedPKIXParameters.class.getName()).log(
-                    Level.WARNING, "Error encoding cert.", e);
+    public boolean isTrustAnchor(X509Certificate cert) {
+        X500Principal subject = cert.getSubjectX500Principal();
+        List<TrustAnchor> anchors = subjectToTrustAnchors.get(subject);
+        if (anchors == null) {
             return false;
         }
+        return isTrustAnchor(cert, anchors);
+    }
+
+    public static boolean isTrustAnchor(X509Certificate cert, Collection<TrustAnchor> anchors) {
+        PublicKey certPublicKey = cert.getPublicKey();
+        for (TrustAnchor anchor : anchors) {
+            PublicKey caPublicKey;
+            try {
+                X509Certificate caCert = anchor.getTrustedCert();
+                if (caCert != null) {
+                    caPublicKey = caCert.getPublicKey();
+                } else {
+                    caPublicKey = anchor.getCAPublicKey();
+                }
+                if (caPublicKey.equals(certPublicKey)) {
+                    return true;
+                }
+            } catch (Exception e) {
+                // can happen with unsupported public key types
+            }
+        }
+        return false;
     }
 
     /**

@@ -659,9 +659,7 @@ public class OpenSSLSocketImpl
             }
             X509Certificate[] peerCertificateChain = new X509Certificate[bytes.length];
             for (int i = 0; i < bytes.length; i++) {
-                peerCertificateChain[i] =
-                    new X509CertImpl(
-                        javax.security.cert.X509Certificate.getInstance(bytes[i]).getEncoded());
+                peerCertificateChain[i] = new X509CertImpl(bytes[i]);
             }
             boolean client = sslParameters.getUseClientMode();
             if (client) {
