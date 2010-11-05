@@ -249,8 +249,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                                 try {
                                     agreement = KeyAgreement.getInstance("DH");
                                 } catch (NoSuchAlgorithmException ee) {
-                                    agreement = KeyAgreement
-                                            .getInstance("DiffieHellman");
+                                    agreement = KeyAgreement.getInstance("DiffieHellman");
                                 }
                                 clientPublic = kf
                                         .generatePublic(new DHPublicKeySpec(
