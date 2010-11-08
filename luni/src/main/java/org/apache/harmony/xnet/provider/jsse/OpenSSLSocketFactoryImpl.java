@@ -24,23 +24,25 @@ import java.security.KeyManagementException;
 
 public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
 
-    private SSLParametersImpl sslParameters;
-    private IOException instantiationException;
+    private final SSLParametersImpl sslParameters;
+    private final IOException instantiationException;
 
     public OpenSSLSocketFactoryImpl() {
-        super();
+        SSLParametersImpl sslParametersLocal = null;
+        IOException instantiationExceptionLocal = null;
         try {
-            sslParameters = SSLParametersImpl.getDefault();
+            sslParametersLocal = SSLParametersImpl.getDefault();
         } catch (KeyManagementException e) {
-            instantiationException =
-                new IOException("Delayed instantiation exception:");
-            instantiationException.initCause(e);
+            instantiationExceptionLocal = new IOException("Delayed instantiation exception:");
+            instantiationExceptionLocal.initCause(e);
         }
+        this.sslParameters = sslParametersLocal;
+        this.instantiationException = instantiationExceptionLocal;
     }
 
     public OpenSSLSocketFactoryImpl(SSLParametersImpl sslParameters) {
-        super();
         this.sslParameters = sslParameters;
+        this.instantiationException = null;
     }
 
     public String[] getDefaultCipherSuites() {
