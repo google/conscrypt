@@ -139,6 +139,8 @@ public class TrustManagerImpl implements X509TrustManager {
      * after bridge CA certs.
      */
     private X509Certificate[] cleanupCertChain(X509Certificate[] chain) {
+        X509Certificate[] original = chain;
+
         // 1. Clean the received certificates chain.
         int currIndex;
         // Start with the first certificate in the chain, assuming it
@@ -161,6 +163,10 @@ public class TrustManagerImpl implements X509TrustManager {
                     foundNext = true;
                     // Exchange certificates so that 0 through currIndex + 1 are in proper order
                     if (nextIndex != currIndex + 1) {
+                        // don't mutuate original chain, which may be directly from an SSLSession
+                        if (chain == original) {
+                            chain = original.clone();
+                        }
                         X509Certificate tempCertificate = chain[nextIndex];
                         chain[nextIndex] = chain[currIndex + 1];
                         chain[currIndex + 1] = tempCertificate;
