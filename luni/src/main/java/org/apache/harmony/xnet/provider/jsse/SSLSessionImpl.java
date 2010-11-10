@@ -33,6 +33,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
+import libcore.base.EmptyArray;
 import libcore.base.Objects;
 
 /**
@@ -175,7 +176,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
         lastAccessedTime = creationTime;
         if (cipher_suite == null) {
             this.cipherSuite = CipherSuite.SSL_NULL_WITH_NULL_NULL;
-            id = new byte[0];
+            id = EmptyArray.BYTE;
             isServer = false;
             isValid = false;
         } else {

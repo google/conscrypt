@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.net.ssl.SSLException;
 
 /**
@@ -247,8 +248,11 @@ public final class NativeCrypto {
         // add(null, "PSK-RC4-SHA");
     }
 
-    private static final String[] SUPPORTED_CIPHER_SUITES
-            = STANDARD_TO_OPENSSL_CIPHER_SUITES.keySet().toArray(new String[0]);
+    private static final String[] SUPPORTED_CIPHER_SUITES;
+    static {
+        Set<String> suites = STANDARD_TO_OPENSSL_CIPHER_SUITES.keySet();
+        SUPPORTED_CIPHER_SUITES = suites.toArray(new String[suites.size()]);
+    }
 
     // SSL mode from ssl.h
     public static long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000040L;

@@ -23,6 +23,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import javax.net.ssl.SSLSocketFactory;
+import libcore.base.EmptyArray;
 
 /**
  * Implementation of SSLSocketFactory.
@@ -62,7 +63,7 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
     @Override
     public String[] getDefaultCipherSuites() {
         if (instantiationException != null) {
-            return new String[0];
+            return EmptyArray.STRING;
         }
         return sslParameters.getEnabledCipherSuites();
     }
@@ -73,7 +74,7 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
     @Override
     public String[] getSupportedCipherSuites() {
         if (instantiationException != null) {
-            return new String[0];
+            return EmptyArray.STRING;
         }
         return CipherSuite.getSupportedCipherSuiteNames();
     }
@@ -159,4 +160,3 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
 
     // ------------------------------------------------------------------
 }
-

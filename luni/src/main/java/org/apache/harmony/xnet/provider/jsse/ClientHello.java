@@ -20,6 +20,7 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import libcore.base.EmptyArray;
 
 /**
  * Represents Client Hello message
@@ -141,7 +142,7 @@ public class ClientHello extends Message {
         if (challenge_length < 16) {
             fatalAlert(AlertProtocol.DECODE_ERROR, "DECODE ERROR: incorrect V2ClientHello, short challenge data");
         }
-        session_id = new byte[0];
+        session_id = EmptyArray.BYTE;
         cipher_suites = new CipherSuite[cipher_spec_length/3];
         for (int i = 0; i < cipher_suites.length; i++) {
             byte b0 = (byte) in.read();

@@ -30,6 +30,7 @@ import java.security.cert.CertificateException;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactorySpi;
 import javax.net.ssl.ManagerFactoryParameters;
+import libcore.base.EmptyArray;
 
 /**
  * KeyManagerFactory implementation.
@@ -56,7 +57,7 @@ public class KeyManagerFactoryImpl extends KeyManagerFactorySpi {
             if (password != null) {
                 pwd = password.clone();
             } else {
-                pwd = new char[0];
+                pwd = EmptyArray.CHAR;
             }
         } else {
             keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -85,7 +86,7 @@ public class KeyManagerFactoryImpl extends KeyManagerFactorySpi {
                             }
                         });
                 if (keyStorePwd == null) {
-                    pwd = new char[0];
+                    pwd = EmptyArray.CHAR;
                 } else {
                     pwd = keyStorePwd.toCharArray();
                 }

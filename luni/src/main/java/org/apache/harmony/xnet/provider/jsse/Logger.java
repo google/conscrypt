@@ -20,6 +20,7 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.io.PrintStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import libcore.base.EmptyArray;
 
 /**
  * This class provides debug logging for JSSE provider implementation
@@ -106,7 +107,7 @@ public class Logger {
                         }
                     });
         } catch (Exception e) {
-            names = new String[0];
+            names = EmptyArray.STRING;
         }
     }
 
@@ -119,4 +120,3 @@ public class Logger {
         return null;
     }
 }
-

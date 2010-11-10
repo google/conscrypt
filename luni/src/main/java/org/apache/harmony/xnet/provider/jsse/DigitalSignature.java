@@ -30,6 +30,7 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.net.ssl.SSLException;
+import libcore.base.EmptyArray;
 
 /**
  * This class represents Signature type, as described in TLS v 1.0 Protocol
@@ -190,15 +191,15 @@ public class DigitalSignature {
             } else if (cipher != null) {
                 return cipher.doFinal();
             }
-            return new byte[0];
+            return EmptyArray.BYTE;
         } catch (DigestException e){
-            return new byte[0];
+            return EmptyArray.BYTE;
         } catch (SignatureException e){
-            return new byte[0];
+            return EmptyArray.BYTE;
         } catch (BadPaddingException e){
-            return new byte[0];
+            return EmptyArray.BYTE;
         } catch (IllegalBlockSizeException e){
-            return new byte[0];
+            return EmptyArray.BYTE;
         }
     }
 

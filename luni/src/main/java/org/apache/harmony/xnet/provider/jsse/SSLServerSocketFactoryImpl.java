@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.security.KeyManagementException;
 import javax.net.ssl.SSLServerSocketFactory;
+import libcore.base.EmptyArray;
 
 /**
  * Implementation of SSLServerSocketFactory.
@@ -61,7 +62,7 @@ public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
     @Override
     public String[] getDefaultCipherSuites() {
         if (instantiationException != null) {
-            return new String[0];
+            return EmptyArray.STRING;
         }
         return sslParameters.getEnabledCipherSuites();
     }
@@ -72,7 +73,7 @@ public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
     @Override
     public String[] getSupportedCipherSuites() {
         if (instantiationException != null) {
-            return new String[0];
+            return EmptyArray.STRING;
         }
         return CipherSuite.getSupportedCipherSuiteNames();
     }
@@ -127,4 +128,3 @@ public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
                 (SSLParametersImpl) sslParameters.clone());
     }
 }
-

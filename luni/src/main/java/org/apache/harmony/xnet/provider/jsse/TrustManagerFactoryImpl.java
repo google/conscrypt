@@ -32,6 +32,7 @@ import java.security.cert.CertificateException;
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactorySpi;
+import libcore.base.EmptyArray;
 
 /**
  *
@@ -91,7 +92,7 @@ public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {
                         });
                 char[] pwd;
                 if (keyStorePwd == null) {
-                    pwd = new char[0];
+                    pwd = EmptyArray.CHAR;
                 } else {
                     pwd = keyStorePwd.toCharArray();
                 }

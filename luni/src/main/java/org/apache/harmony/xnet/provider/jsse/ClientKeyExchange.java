@@ -19,6 +19,7 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import libcore.base.EmptyArray;
 
 /**
  * Represents client key exchange message
@@ -79,7 +80,7 @@ public class ClientKeyExchange extends Message {
      *
      */
     public ClientKeyExchange() {
-        exchange_keys = new byte[0];
+        exchange_keys = EmptyArray.BYTE;
         length = 0;
         isRSA = false;
     }
@@ -97,7 +98,7 @@ public class ClientKeyExchange extends Message {
         this.isRSA = isRSA;
         if (length == 0) {
             this.length = 0;
-            exchange_keys = new byte[0];
+            exchange_keys = EmptyArray.BYTE;
         } else {
             int size;
             if (isRSA && !isTLS) {// SSL3.0 RSA
