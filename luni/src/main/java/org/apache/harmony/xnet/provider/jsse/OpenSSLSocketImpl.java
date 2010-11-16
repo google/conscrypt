@@ -523,9 +523,9 @@ public class OpenSSLSocketImpl
 
             exception = false;
         } finally {
-            // on exceptional exit, free the native content immediate to avoid CloseGuard warning
+            // on exceptional exit, treat the socket as closed
             if (exception) {
-                free();
+                close();
             }
         }
     }
