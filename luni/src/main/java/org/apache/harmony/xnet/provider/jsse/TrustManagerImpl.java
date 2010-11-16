@@ -20,18 +20,16 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.PublicKey;
 import java.security.cert.CertPath;
 import java.security.cert.CertPathValidator;
 import java.security.cert.CertPathValidatorException;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.PKIXParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -52,6 +50,8 @@ public class TrustManagerImpl implements X509TrustManager {
 
     private final PKIXParameters params;
 
+    private final X509Certificate[] acceptedIssuers;
+
     private final Exception err;
 
     private final CertificateFactory factory;
@@ -65,11 +65,13 @@ public class TrustManagerImpl implements X509TrustManager {
         CertPathValidator validatorLocal = null;
         CertificateFactory factoryLocal = null;
         PKIXParameters paramsLocal = null;
+        X509Certificate[] acceptedIssuersLocal = null;
         Exception errLocal = null;
         try {
             validatorLocal = CertPathValidator.getInstance("PKIX");
             factoryLocal = CertificateFactory.getInstance("X509");
-            paramsLocal = new IndexedPKIXParameters(ks);
+            acceptedIssuersLocal = acceptedIssuers(ks);
+            paramsLocal = new IndexedPKIXParameters(trustAnchors(acceptedIssuersLocal));
             paramsLocal.setRevocationEnabled(false);
         } catch (Exception e) {
             errLocal = e;
@@ -77,7 +79,39 @@ public class TrustManagerImpl implements X509TrustManager {
         this.validator = validatorLocal;
         this.factory = factoryLocal;
         this.params = paramsLocal;
+        this.acceptedIssuers = (acceptedIssuersLocal != null
+                                ? acceptedIssuersLocal
+                                : new X509Certificate[0]);
         this.err = errLocal;
+    }
+
+    private static X509Certificate[] acceptedIssuers(KeyStore ks) throws KeyStoreException {
+        // Note that unlike the PKIXParameters code to create a Set of
+        // TrustAnchors from a KeyStore, this version takes from both
+        // TrustedCertificateEntry and PrivateKeyEntry, not just
+        // TrustedCertificateEntry, which is why TrustManagerImpl
+        // cannot just use an PKIXParameters(KeyStore)
+        // constructor.
+
+        // TODO remove duplicates if same cert is found in both a
+        // PrivateKeyEntry and TrustedCertificateEntry
+        List<X509Certificate> trusted = new ArrayList<X509Certificate>();
+        for (Enumeration<String> en = ks.aliases(); en.hasMoreElements();) {
+            final String alias = en.nextElement();
+            final X509Certificate cert = (X509Certificate) ks.getCertificate(alias);
+            if (cert != null) {
+                trusted.add(cert);
+            }
+        }
+        return trusted.toArray(new X509Certificate[trusted.size()]);
+    }
+
+    private static Set<TrustAnchor> trustAnchors(X509Certificate[] certs) {
+        Set<TrustAnchor> trustAnchors = new HashSet<TrustAnchor>(certs.length);
+        for (X509Certificate cert : certs) {
+            trustAnchors.add(new TrustAnchor(cert, null));
+        }
+        return trustAnchors;
     }
 
     /**
@@ -206,18 +240,6 @@ public class TrustManagerImpl implements X509TrustManager {
      * @see javax.net.ssl.X509TrustManager#getAcceptedIssuers()
      */
     public X509Certificate[] getAcceptedIssuers() {
-        if (params == null) {
-            return new X509Certificate[0];
-        }
-        Set<TrustAnchor> anchors = params.getTrustAnchors();
-        List<X509Certificate> certs = new ArrayList<X509Certificate>(anchors.size());
-        for (TrustAnchor trustAnchor : anchors) {
-            X509Certificate cert = trustAnchor.getTrustedCert();
-            if (cert != null) {
-                certs.add(cert);
-            }
-        }
-        return certs.toArray(new X509Certificate[certs.size()]);
+        return acceptedIssuers.clone();
     }
-
 }
