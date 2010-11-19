@@ -173,7 +173,7 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
                 }
                 // key algorithm does not match
                 if (!certKeyAlg.equals(keyAlgorithm)) {
-                    continue ;
+                    continue;
                 }
                 /*
                  * TODO find a more reliable test for signature

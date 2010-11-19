@@ -140,7 +140,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     if (clientCert.certs.length == 0) {
                         if (parameters.getNeedClientAuth()) {
                             fatalAlert(AlertProtocol.HANDSHAKE_FAILURE,
-                                    "HANDSHAKE FAILURE: no client certificate received");
+                                       "HANDSHAKE FAILURE: no client certificate received");
                         }
                     } else {
                         String authType = clientCert.getAuthType();
@@ -149,7 +149,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                                     clientCert.certs, authType);
                         } catch (CertificateException e) {
                             fatalAlert(AlertProtocol.BAD_CERTIFICATE,
-                                    "Untrusted Client Certificate ", e);
+                                       "Untrusted Client Certificate ", e);
                         }
                         session.peerCertificates = clientCert.certs;
                     }
@@ -187,15 +187,14 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     ds.setSHA(sha_hash);
                     if (!ds.verifySignature(certificateVerify.signedHash)) {
                         fatalAlert(AlertProtocol.DECRYPT_ERROR,
-                                "DECRYPT ERROR: CERTIFICATE_VERIFY incorrect signature");
+                                   "DECRYPT ERROR: CERTIFICATE_VERIFY incorrect signature");
                     }
                     break;
                 case 16: // CLIENT_KEY_EXCHANGE
                     if (isResuming
                             || serverHelloDone == null
                             || clientKeyExchange != null
-                            || (clientCert == null && parameters
-                                    .getNeedClientAuth())) {
+                            || (clientCert == null && parameters.getNeedClientAuth())) {
                         unexpectedMessage();
                         return;
                     }
@@ -208,8 +207,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                         try {
                             c = Cipher.getInstance("RSA/ECB/PKCS1Padding");
                             c.init(Cipher.DECRYPT_MODE, privKey);
-                            preMasterSecret = c
-                                    .doFinal(clientKeyExchange.exchange_keys);
+                            preMasterSecret = c.doFinal(clientKeyExchange.exchange_keys);
                             // check preMasterSecret:
                             if (preMasterSecret.length != 48
                                     || preMasterSecret[0] != clientHello.client_version[0]
@@ -222,7 +220,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                             }
                         } catch (Exception e) {
                             fatalAlert(AlertProtocol.INTERNAL_ERROR,
-                                    "INTERNAL ERROR", e);
+                                       "INTERNAL ERROR", e);
                         }
                     } else { // diffie hellman key exchange
                         clientKeyExchange = new ClientKeyExchange(io_stream,
@@ -233,26 +231,12 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                             // matched server cert. DH params
 
                             // client cert. contains fixed DH parameters
-                            preMasterSecret = ((DHPublicKey) clientCert.certs[0]
-                                    .getPublicKey()).getY().toByteArray();
+                            preMasterSecret = ((DHPublicKey) clientCert.certs[0].getPublicKey()).getY().toByteArray();
                         } else {
-                            PublicKey clientPublic;
-                            KeyAgreement agreement;
                             try {
-                                KeyFactory kf = null;
-                                try {
-                                    kf = KeyFactory.getInstance("DH");
-                                } catch (NoSuchAlgorithmException ee) {
-                                    kf = KeyFactory
-                                            .getInstance("DiffieHellman");
-                                }
-                                try {
-                                    agreement = KeyAgreement.getInstance("DH");
-                                } catch (NoSuchAlgorithmException ee) {
-                                    agreement = KeyAgreement.getInstance("DiffieHellman");
-                                }
-                                clientPublic = kf
-                                        .generatePublic(new DHPublicKeySpec(
+                                KeyFactory kf = KeyFactory.getInstance("DH");
+                                KeyAgreement agreement = KeyAgreement.getInstance("DH");
+                                PublicKey clientPublic = kf.generatePublic(new DHPublicKeySpec(
                                                 new BigInteger(
                                                         1,
                                                         clientKeyExchange.exchange_keys),
@@ -263,7 +247,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                                 preMasterSecret = agreement.generateSecret();
                             } catch (Exception e) {
                                 fatalAlert(AlertProtocol.INTERNAL_ERROR,
-                                        "INTERNAL ERROR", e);
+                                           "INTERNAL ERROR", e);
                                 return;
                             }
                         }
@@ -348,14 +332,14 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                 }
             }
             fatalAlert(AlertProtocol.HANDSHAKE_FAILURE,
-                    "HANDSHAKE FAILURE. Incorrect client hello message");
+                       "HANDSHAKE FAILURE. Incorrect client hello message");
         }
 
         if (!ProtocolVersion.isSupported(clientHello.client_version)) {
             fatalAlert(AlertProtocol.PROTOCOL_VERSION,
-                    "PROTOCOL VERSION. Unsupported client version "
-                    + clientHello.client_version[0]
-                    + clientHello.client_version[1]);
+                       "PROTOCOL VERSION. Unsupported client version "
+                       + clientHello.client_version[0]
+                       + clientHello.client_version[1]);
         }
 
         isResuming = false;
@@ -406,7 +390,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     }
                 }
                 fatalAlert(AlertProtocol.HANDSHAKE_FAILURE,
-                        "HANDSHAKE FAILURE. Incorrect client hello message");
+                           "HANDSHAKE FAILURE. Incorrect client hello message");
             }
         } else {
             cipher_suite = selectSuite(clientHello.cipher_suites);
@@ -415,7 +399,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             }
             if (!parameters.getEnableSessionCreation()) {
                 fatalAlert(AlertProtocol.HANDSHAKE_FAILURE,
-                        "SSL Session may not be created");
+                           "SSL Session may not be created");
             }
             session = new SSLSessionImpl(cipher_suite, parameters.getSecureRandom());
             // BEGIN android-added
@@ -445,27 +429,9 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
         //    create and send server certificate message if needed
         if (!cipher_suite.isAnonymous()) { // need to send server certificate
             X509Certificate[] certs = null;
-            String certType = null;
-            switch (cipher_suite.keyExchange) {
-                case CipherSuite.KEY_EXCHANGE_RSA:
-                case CipherSuite.KEY_EXCHANGE_RSA_EXPORT:
-                case CipherSuite.KEY_EXCHANGE_DHE_RSA:
-                case CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT:
-                    certType = "RSA";
-                    break;
-                case CipherSuite.KEY_EXCHANGE_DHE_DSS:
-                case CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT:
-                case CipherSuite.KEY_EXCHANGE_DH_DSS_EXPORT:
-                    certType = "DSA";
-                    break;
-                case CipherSuite.KEY_EXCHANGE_DH_DSS:
-                    certType = "DH_DSA";
-                    break;
-                case CipherSuite.KEY_EXCHANGE_DH_RSA:
-                    certType = "DH_RSA";
-                    break;
-                default:
-                    fatalAlert(AlertProtocol.HANDSHAKE_FAILURE, "NO CERT TYPE FOR " + cipher_suite.getName());
+            String certType = cipher_suite.getServerKeyType();
+            if (certType == null) {
+                fatalAlert(AlertProtocol.HANDSHAKE_FAILURE, "NO CERT TYPE FOR " + cipher_suite.getName());
             }
             // obtain certificates from key manager
             String alias = null;
@@ -522,11 +488,7 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT
                     || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon
                     || cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT) {
-                try {
-                    kpg = KeyPairGenerator.getInstance("DH");
-                } catch (NoSuchAlgorithmException ee) {
-                    kpg = KeyPairGenerator.getInstance("DiffieHellman");
-                }
+                kpg = KeyPairGenerator.getInstance("DH");
                 p = new BigInteger(1, DHParameters.getPrime());
                 g = new BigInteger("2");
                 DHParameterSpec spec = new DHParameterSpec(p, g);
@@ -546,14 +508,8 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     rsakey = (RSAPublicKey) kp.getPublic();
                 } else {
                     DHPublicKey dhkey = (DHPublicKey) kp.getPublic();
-                    KeyFactory kf = null;
-                    try {
-                        kf = KeyFactory.getInstance("DH");
-                    } catch (NoSuchAlgorithmException e) {
-                            kf = KeyFactory.getInstance("DiffieHellman");
-                    }
-                    dhkeySpec = kf.getKeySpec(dhkey,
-                            DHPublicKeySpec.class);
+                    KeyFactory kf = KeyFactory.getInstance("DH");
+                    dhkeySpec = kf.getKeySpec(dhkey, DHPublicKeySpec.class);
                 }
                 if (!cipher_suite.isAnonymous()) { // calculate signed_params
 
@@ -626,7 +582,8 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                 // don't send certificateRequest
                 break certRequest;
             }
-            byte[] requestedClientCertTypes = {1, 2}; // rsa sign, dsa sign
+            byte[] requestedClientCertTypes = { CipherSuite.TLS_CT_RSA_SIGN,
+                                                CipherSuite.TLS_CT_DSS_SIGN };
             certificateRequest = new CertificateRequest(
                     requestedClientCertTypes, accepted);
             send(certificateRequest);
@@ -673,15 +630,15 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
     }
 
     // find appropriate cipher_suite in the client suites
-    private CipherSuite selectSuite(CipherSuite[] client_suites) {
-        for (int i = 0; i < client_suites.length; i++) {
-            if (!client_suites[i].supported) {
+    private CipherSuite selectSuite(CipherSuite[] clientSuites) {
+        for (CipherSuite clientSuite : clientSuites) {
+            if (!clientSuite.supported) {
                 continue;
             }
             // BEGIN android-changed
-            for (int j = 0; j < parameters.getEnabledCipherSuitesMember().length; j++) {
-                if (client_suites[i].equals(parameters.getEnabledCipherSuitesMember()[j])) {
-                    return client_suites[i];
+            for (CipherSuite enabledCipherSuite : parameters.getEnabledCipherSuitesMember()) {
+                if (clientSuite.equals(enabledCipherSuite)) {
+                    return clientSuite;
                 }
             }
             // END android-changed

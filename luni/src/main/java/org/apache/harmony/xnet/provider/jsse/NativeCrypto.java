@@ -161,32 +161,31 @@ public final class NativeCrypto {
 
     static {
         // Note these are added in priority order
-        // Android doesn't currently support Elliptic Curve
         add("SSL_RSA_WITH_RC4_128_MD5",              "RC4-MD5");
         add("SSL_RSA_WITH_RC4_128_SHA",              "RC4-SHA");
         add("TLS_RSA_WITH_AES_128_CBC_SHA",          "AES128-SHA");
         add("TLS_RSA_WITH_AES_256_CBC_SHA",          "AES256-SHA");
-        // add("TLS_ECDH_ECDSA_WITH_RC4_128_SHA",       "ECDH-ECDSA-RC4-SHA");
-        // add("TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",   "ECDH-ECDSA-AES128-SHA");
-        // add("TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA",   "ECDH-ECDSA-AES256-SHA");
-        // add("TLS_ECDH_RSA_WITH_RC4_128_SHA",         "ECDH-RSA-RC4-SHA");
-        // add("TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",     "ECDH-RSA-AES128-SHA");
-        // add("TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",     "ECDH-RSA-AES256-SHA");
-        // add("TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",      "ECDHE-ECDSA-RC4-SHA");
-        // add("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",  "ECDHE-ECDSA-AES128-SHA");
-        // add("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",  "ECDHE-ECDSA-AES256-SHA");
-        // add("TLS_ECDHE_RSA_WITH_RC4_128_SHA",        "ECDHE-RSA-RC4-SHA");
-        // add("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",    "ECDHE-RSA-AES128-SHA");
-        // add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",    "ECDHE-RSA-AES256-SHA");
+        add("TLS_ECDH_ECDSA_WITH_RC4_128_SHA",       "ECDH-ECDSA-RC4-SHA");
+        add("TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",   "ECDH-ECDSA-AES128-SHA");
+        add("TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA",   "ECDH-ECDSA-AES256-SHA");
+        add("TLS_ECDH_RSA_WITH_RC4_128_SHA",         "ECDH-RSA-RC4-SHA");
+        add("TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",     "ECDH-RSA-AES128-SHA");
+        add("TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",     "ECDH-RSA-AES256-SHA");
+        add("TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",      "ECDHE-ECDSA-RC4-SHA");
+        add("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",  "ECDHE-ECDSA-AES128-SHA");
+        add("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",  "ECDHE-ECDSA-AES256-SHA");
+        add("TLS_ECDHE_RSA_WITH_RC4_128_SHA",        "ECDHE-RSA-RC4-SHA");
+        add("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",    "ECDHE-RSA-AES128-SHA");
+        add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",    "ECDHE-RSA-AES256-SHA");
         add("TLS_DHE_RSA_WITH_AES_128_CBC_SHA",      "DHE-RSA-AES128-SHA");
         add("TLS_DHE_RSA_WITH_AES_256_CBC_SHA",      "DHE-RSA-AES256-SHA");
         add("TLS_DHE_DSS_WITH_AES_128_CBC_SHA",      "DHE-DSS-AES128-SHA");
         add("TLS_DHE_DSS_WITH_AES_256_CBC_SHA",      "DHE-DSS-AES256-SHA");
         add("SSL_RSA_WITH_3DES_EDE_CBC_SHA",         "DES-CBC3-SHA");
-        // add("TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",  "ECDH-ECDSA-DES-CBC3-SHA");
-        // add("TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",    "ECDH-RSA-DES-CBC3-SHA");
-        // add("TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA", "ECDHE-ECDSA-DES-CBC3-SHA");
-        // add("TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",   "ECDHE-RSA-DES-CBC3-SHA");
+        add("TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",  "ECDH-ECDSA-DES-CBC3-SHA");
+        add("TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",    "ECDH-RSA-DES-CBC3-SHA");
+        add("TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA", "ECDHE-ECDSA-DES-CBC3-SHA");
+        add("TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",   "ECDHE-RSA-DES-CBC3-SHA");
         add("SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",     "EDH-RSA-DES-CBC3-SHA");
         add("SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",     "EDH-DSS-DES-CBC3-SHA");
         add("SSL_RSA_WITH_DES_CBC_SHA",              "DES-CBC-SHA");
@@ -198,22 +197,22 @@ public final class NativeCrypto {
         add("SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", "EXP-EDH-DSS-DES-CBC-SHA");
         add("SSL_RSA_WITH_NULL_MD5",                 "NULL-MD5");
         add("SSL_RSA_WITH_NULL_SHA",                 "NULL-SHA");
-        // add("TLS_ECDH_ECDSA_WITH_NULL_SHA",          "ECDH-ECDSA-NULL-SHA");
-        // add("TLS_ECDH_RSA_WITH_NULL_SHA",            "ECDH-RSA-NULL-SHA");
-        // add("TLS_ECDHE_ECDSA_WITH_NULL_SHA",         "ECDHE-ECDSA-NULL-SHA");
-        // add("TLS_ECDHE_RSA_WITH_NULL_SHA",           "ECDHE-RSA-NULL-SHA");
+        add("TLS_ECDH_ECDSA_WITH_NULL_SHA",          "ECDH-ECDSA-NULL-SHA");
+        add("TLS_ECDH_RSA_WITH_NULL_SHA",            "ECDH-RSA-NULL-SHA");
+        add("TLS_ECDHE_ECDSA_WITH_NULL_SHA",         "ECDHE-ECDSA-NULL-SHA");
+        add("TLS_ECDHE_RSA_WITH_NULL_SHA",           "ECDHE-RSA-NULL-SHA");
         add("SSL_DH_anon_WITH_RC4_128_MD5",          "ADH-RC4-MD5");
         add("TLS_DH_anon_WITH_AES_128_CBC_SHA",      "ADH-AES128-SHA");
         add("TLS_DH_anon_WITH_AES_256_CBC_SHA",      "ADH-AES256-SHA");
         add("SSL_DH_anon_WITH_3DES_EDE_CBC_SHA",     "ADH-DES-CBC3-SHA");
         add("SSL_DH_anon_WITH_DES_CBC_SHA",          "ADH-DES-CBC-SHA");
-        // add("TLS_ECDH_anon_WITH_RC4_128_SHA",        "AECDH-RC4-SHA");
-        // add("TLS_ECDH_anon_WITH_AES_128_CBC_SHA",    "AECDH-AES128-SHA");
-        // add("TLS_ECDH_anon_WITH_AES_256_CBC_SHA",    "AECDH-AES256-SHA");
-        // add("TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA",   "AECDH-DES-CBC3-SHA");
+        add("TLS_ECDH_anon_WITH_RC4_128_SHA",        "AECDH-RC4-SHA");
+        add("TLS_ECDH_anon_WITH_AES_128_CBC_SHA",    "AECDH-AES128-SHA");
+        add("TLS_ECDH_anon_WITH_AES_256_CBC_SHA",    "AECDH-AES256-SHA");
+        add("TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA",   "AECDH-DES-CBC3-SHA");
         add("SSL_DH_anon_EXPORT_WITH_RC4_40_MD5",    "EXP-ADH-RC4-MD5");
         add("SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA", "EXP-ADH-DES-CBC-SHA");
-        // add("TLS_ECDH_anon_WITH_NULL_SHA",           "AECDH-NULL-SHA");
+        add("TLS_ECDH_anon_WITH_NULL_SHA",           "AECDH-NULL-SHA");
 
         // No Kerberos in Android
         // add("TLS_KRB5_WITH_RC4_128_SHA",           "KRB5-RC4-SHA");
@@ -246,6 +245,9 @@ public final class NativeCrypto {
         // add(null, "PSK-AES128-CBC-SHA");
         // add(null, "PSK-AES256-CBC-SHA");
         // add(null, "PSK-RC4-SHA");
+
+        // Signaling Cipher Suite Value for secure renegotiation
+        // add("TLS_EMPTY_RENEGOTIATION_INFO_SCSV",     null);
     }
 
     private static final String[] SUPPORTED_CIPHER_SUITES;
@@ -270,9 +272,28 @@ public final class NativeCrypto {
             "SSL_RSA_WITH_RC4_128_MD5",
             "SSL_RSA_WITH_RC4_128_SHA",
             "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDH_ECDSA_WITH_RC4_128_SHA",
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_RC4_128_SHA",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
             "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
             "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
             "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
             "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
             "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
             "SSL_RSA_WITH_DES_CBC_SHA",
@@ -281,7 +302,8 @@ public final class NativeCrypto {
             "SSL_RSA_EXPORT_WITH_RC4_40_MD5",
             "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",
             "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
-            "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA"
+            "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA",
+            // "TLS_EMPTY_RENEGOTIATION_INFO_SCSV"
         };
     }
 
@@ -292,36 +314,6 @@ public final class NativeCrypto {
     public static native void SSL_CTX_free(int ssl_ctx);
 
     public static native int SSL_new(int ssl_ctx) throws SSLException;
-
-    public static final String KEY_TYPE_RSA = "RSA";
-    public static final String KEY_TYPE_DSA = "DSA";
-    public static final String KEY_TYPE_DH_RSA = "DH_RSA";
-    public static final String KEY_TYPE_DH_DSA = "DH_DSA";
-    public static final String KEY_TYPE_EC = "EC";
-    public static final String KEY_TYPE_EC_EC = "EC_EC";
-    public static final String KEY_TYPE_EC_RSA = "EC_RSA";
-
-    public static String keyType(int keyType) {
-        // See also http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
-        switch (keyType) {
-            case 1: // openssl TLS_CT_RSA_SIGN
-                return KEY_TYPE_RSA; // RFC rsa_sign
-            case 2: // openssl TLS_CT_DSS_SIGN
-                return KEY_TYPE_DSA; // RFC dss_sign
-            case 3: // openssl TLS_CT_RSA_FIXED_DH
-                return KEY_TYPE_DH_RSA; // RFC rsa_fixed_dh
-            case 4: // openssl TLS_CT_DSS_FIXED_DH
-                return KEY_TYPE_DH_DSA; // RFC dss_fixed_dh
-            case 64: // openssl TLS_CT_ECDSA_SIGN
-                return KEY_TYPE_EC; // RFC ecdsa_sign
-            case 65: // openssl TLS_CT_RSA_FIXED_ECDH
-                return KEY_TYPE_EC_RSA; // RFC rsa_fixed_ecdh
-            case 66: // openssl TLS_CT_ECDSA_FIXED_ECDH
-                return KEY_TYPE_EC_EC; // RFC ecdsa_fixed_ecdh
-            default:
-                return null;
-        }
-    }
 
     public static byte[][] encodeCertificates(Certificate[] certificates)
             throws CertificateEncodingException {

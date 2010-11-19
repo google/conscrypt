@@ -208,28 +208,28 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
          * an anonymous cipher is picked.
          */
         for (String enabledCipherSuite : enabledCipherSuites) {
-            String keyType = CipherSuite.getByName(enabledCipherSuite).getKeyType();
+            String keyType = CipherSuite.getByName(enabledCipherSuite).getServerKeyType();
             if (keyType == null) {
                 // anonymous always work
                 return;
             }
-            if (keyType.equals(NativeCrypto.KEY_TYPE_RSA)
-                    || keyType.equals(NativeCrypto.KEY_TYPE_DH_RSA)) {
+            if (keyType.equals(CipherSuite.KEY_TYPE_RSA)
+                    || keyType.equals(CipherSuite.KEY_TYPE_DH_RSA)) {
                 if (checkForPrivateKey(keyType, RSAPrivateKey.class)) {
                     return;
                 }
                 continue;
             }
-            if (keyType.equals(NativeCrypto.KEY_TYPE_DSA)
-                    || keyType.equals(NativeCrypto.KEY_TYPE_DH_DSA)) {
+            if (keyType.equals(CipherSuite.KEY_TYPE_DSA)
+                    || keyType.equals(CipherSuite.KEY_TYPE_DH_DSA)) {
                 if (checkForPrivateKey(keyType, DSAPrivateKey.class)) {
                     return;
                 }
                 continue;
             }
-            if (keyType.equals(NativeCrypto.KEY_TYPE_EC)
-                    || keyType.equals(NativeCrypto.KEY_TYPE_EC_RSA)
-                    || keyType.equals(NativeCrypto.KEY_TYPE_EC_EC)) {
+            if (keyType.equals(CipherSuite.KEY_TYPE_EC)
+                    || keyType.equals(CipherSuite.KEY_TYPE_EC_RSA)
+                    || keyType.equals(CipherSuite.KEY_TYPE_EC_EC)) {
                 if (checkForPrivateKey(keyType, ECPrivateKey.class)) {
                     return;
                 }

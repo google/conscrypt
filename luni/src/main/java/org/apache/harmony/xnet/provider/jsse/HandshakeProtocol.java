@@ -96,7 +96,7 @@ public abstract class HandshakeProtocol {
     protected SSLSessionImpl session;
 
     /**
-     * Sended and received handshake messages
+     * Sent and received handshake messages
      */
     protected ClientHello clientHello;
     protected ServerHello serverHello;
@@ -479,8 +479,7 @@ public abstract class HandshakeProtocol {
     }
 
     /**
-     *
-     * Clears previously sended and received handshake messages
+     * Clears previously sent and received handshake messages
      */
     protected void clearMessages() {
         io_stream.clearBuffer();

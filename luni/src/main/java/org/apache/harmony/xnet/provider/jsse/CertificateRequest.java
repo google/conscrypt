@@ -31,15 +31,6 @@ import javax.security.auth.x500.X500Principal;
 public class CertificateRequest extends Message {
 
     /**
-     * Client certificate types as defined in
-     * TLS 1.0 spec., 7.4.4. Certificate request
-     */
-    public static final byte RSA_SIGN = 1;
-    public static final byte DSS_SIGN = 2;
-    public static final byte RSA_FIXED_DH = 3;
-    public static final byte DSS_FIXED_DH = 4;
-
-    /**
      * Requested certificate types
      */
     final byte[] certificate_types;
@@ -161,23 +152,12 @@ public class CertificateRequest extends Message {
         if (types == null) {
             types = new String[certificate_types.length];
             for (int i = 0; i < types.length; i++) {
-                switch (certificate_types[i]) {
-                case 1:
-                    types[i] = "RSA";
-                    break;
-                case 2:
-                    types[i] = "DSA";
-                    break;
-                case 3:
-                    types[i] = "DH_RSA";
-                    break;
-                case 4:
-                    types[i] = "DH_DSA";
-                    break;
-                default:
+                String type = CipherSuite.getClientKeyType(certificate_types[i]);
+                if (type == null) {
                     fatalAlert(AlertProtocol.DECODE_ERROR,
                             "DECODE ERROR: incorrect CertificateRequest");
                 }
+                types[i] = type;
             }
         }
         return types;

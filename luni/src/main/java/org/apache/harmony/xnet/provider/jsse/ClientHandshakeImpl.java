@@ -93,8 +93,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                 session.setPeer(socketOwner.getInetAddress().getHostName(), socketOwner.getPort());
             }
             // END android-added
-            session.protocol = ProtocolVersion.getLatestVersion(parameters
-                    .getEnabledProtocols());
+            session.protocol = ProtocolVersion.getLatestVersion(parameters.getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
         } else {
             fatalAlert(AlertProtocol.HANDSHAKE_FAILURE, "SSL Session may not be created ");
@@ -117,8 +116,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                 session.setPeer(socketOwner.getInetAddress().getHostName(), socketOwner.getPort());
             }
             // END android-added
-            session.protocol = ProtocolVersion.getLatestVersion(parameters
-                    .getEnabledProtocols());
+            session.protocol = ProtocolVersion.getLatestVersion(parameters.getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
             startSession();
         } else {
@@ -198,24 +196,22 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                     serverHello = new ServerHello(io_stream, length);
 
                     //check protocol version
-                    ProtocolVersion servProt = ProtocolVersion
-                            .getByVersion(serverHello.server_version);
+                    ProtocolVersion servProt = ProtocolVersion.getByVersion(serverHello.server_version);
                     String[] enabled = parameters.getEnabledProtocols();
                     find: {
                         for (int i = 0; i < enabled.length; i++) {
-                            if (servProt.equals(ProtocolVersion
-                                    .getByName(enabled[i]))) {
+                            if (servProt.equals(ProtocolVersion.getByName(enabled[i]))) {
                                 break find;
                             }
                         }
                         fatalAlert(AlertProtocol.HANDSHAKE_FAILURE,
-                                "Bad server hello protocol version");
+                                   "Bad server hello protocol version");
                     }
 
                     // check compression method
                     if (serverHello.compression_method != 0) {
                         fatalAlert(AlertProtocol.HANDSHAKE_FAILURE,
-                                "Bad server hello compression method");
+                                   "Bad server hello compression method");
                     }
 
                     //check cipher_suite
@@ -224,13 +220,12 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                     // END android-changed
                     find: {
                         for (int i = 0; i < enabledSuites.length; i++) {
-                            if (serverHello.cipher_suite
-                                    .equals(enabledSuites[i])) {
+                            if (serverHello.cipher_suite.equals(enabledSuites[i])) {
                                 break find;
                             }
                         }
                         fatalAlert(AlertProtocol.HANDSHAKE_FAILURE,
-                                "Bad server hello cipher suite");
+                                   "Bad server hello cipher suite");
                     }
 
                     if (isResuming) {
@@ -242,11 +237,10 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                             isResuming = false;
                         } else if (!session.protocol.equals(servProt)) {
                             fatalAlert(AlertProtocol.HANDSHAKE_FAILURE,
-                                    "Bad server hello protocol version");
-                        } else if (!session.cipherSuite
-                                .equals(serverHello.cipher_suite)) {
+                                       "Bad server hello protocol version");
+                        } else if (!session.cipherSuite.equals(serverHello.cipher_suite)) {
                             fatalAlert(AlertProtocol.HANDSHAKE_FAILURE,
-                                    "Bad server hello cipher suite");
+                                       "Bad server hello cipher suite");
                         }
                         if (serverHello.server_version[1] == 1) {
                             computerReferenceVerifyDataTLS("server finished");
@@ -283,12 +277,10 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                         unexpectedMessage();
                         return;
                     }
-                    certificateRequest = new CertificateRequest(io_stream,
-                            length);
+                    certificateRequest = new CertificateRequest(io_stream, length);
                     break;
                 case 14: // SERVER_HELLO_DONE
-                    if (serverHello == null || serverHelloDone != null
-                            || isResuming) {
+                    if (serverHello == null || serverHelloDone != null || isResuming) {
                         unexpectedMessage();
                         return;
                     }
@@ -458,29 +450,12 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                 return;
             }
         } else {
-            PublicKey serverPublic;
-            KeyAgreement agreement = null;
-            DHParameterSpec spec;
             try {
-                KeyFactory kf = null;
-                try {
-                    kf = KeyFactory.getInstance("DH");
-                } catch (NoSuchAlgorithmException e) {
-                    kf = KeyFactory.getInstance("DiffieHellman");
-                }
-
-                try {
-                    agreement = KeyAgreement.getInstance("DH");
-                } catch (NoSuchAlgorithmException ee) {
-                    agreement = KeyAgreement.getInstance("DiffieHellman");
-                }
-
-                KeyPairGenerator kpg = null;
-                try {
-                    kpg = KeyPairGenerator.getInstance("DH");
-                } catch (NoSuchAlgorithmException e) {
-                    kpg = KeyPairGenerator.getInstance("DiffieHellman");
-                }
+                KeyFactory kf = KeyFactory.getInstance("DH");
+                KeyAgreement agreement = KeyAgreement.getInstance("DH");
+                KeyPairGenerator kpg = KeyPairGenerator.getInstance("DH");
+                PublicKey serverPublic;
+                DHParameterSpec spec;
                 if (serverKeyExchange != null) {
                     serverPublic = kf.generatePublic(new DHPublicKeySpec(
                             serverKeyExchange.par3, serverKeyExchange.par1,
@@ -560,42 +535,12 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
      * Verifies certificate path
      */
     private void verifyServerCert() {
-        String authType = null;
-        switch (session.cipherSuite.keyExchange) {
-        case 1: // KeyExchange_RSA
-            authType = "RSA";
-            break;
-        case 2: // KeyExchange_RSA_EXPORT
-            if (serverKeyExchange != null ) {
-                // ephemeral RSA key is used
-                authType = "RSA_EXPORT";
-            } else {
-                authType = "RSA";
-            }
-            break;
-        case 3: // KeyExchange_DHE_DSS
-        case 4: // KeyExchange_DHE_DSS_EXPORT
-            authType = "DHE_DSS";
-            break;
-        case 5: // KeyExchange_DHE_RSA
-        case 6: // KeyExchange_DHE_RSA_EXPORT
-            authType = "DHE_RSA";
-            break;
-        case 7: // KeyExchange_DH_DSS
-        case 11: // KeyExchange_DH_DSS_EXPORT
-            authType = "DH_DSS";
-            break;
-        case 8: // KeyExchange_DH_RSA
-        case 12: // KeyExchange_DH_RSA_EXPORT
-            authType = "DH_RSA";
-            break;
-        case 9: // KeyExchange_DH_anon
-        case 10: // KeyExchange_DH_anon_EXPORT
+        String authType = session.cipherSuite.getAuthType(serverKeyExchange != null);
+        if (authType == null) {
             return;
         }
         try {
-            parameters.getTrustManager().checkServerTrusted(serverCert.certs,
-                    authType);
+            parameters.getTrustManager().checkServerTrusted(serverCert.certs, authType);
         } catch (CertificateException e) {
             fatalAlert(AlertProtocol.BAD_CERTIFICATE, "Not trusted server certificate", e);
             return;
