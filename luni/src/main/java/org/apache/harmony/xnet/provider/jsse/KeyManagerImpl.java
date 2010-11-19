@@ -26,8 +26,10 @@ import java.security.PrivateKey;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Vector;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedKeyManager;
@@ -148,30 +150,63 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
         if (keyType == null || keyType.length == 0) {
             return null;
         }
+        List<Principal> issuersList = (issuers == null) ? null : Arrays.asList(issuers);
         Vector<String> found = new Vector<String>();
         for (Enumeration<String> aliases = hash.keys(); aliases.hasMoreElements();) {
             final String alias = aliases.nextElement();
             final KeyStore.PrivateKeyEntry entry = hash.get(alias);
-            final Certificate[] certs = entry.getCertificateChain();
-            final String alg = certs[0].getPublicKey().getAlgorithm();
-            for (int i = 0; i < keyType.length; i++) {
-                if (alg.equals(keyType[i])) {
-                    if (issuers != null && issuers.length != 0) {
-                        // check that certificate was issued by specified issuer
-                        loop: for (int ii = 0; ii < certs.length; ii++) {
-                            if (certs[ii] instanceof X509Certificate) {
-                                X500Principal issuer = ((X509Certificate) certs[ii])
-                                        .getIssuerX500Principal();
-                                for (int iii = 0; iii < issuers.length; iii++) {
-                                    if (issuer.equals(issuers[iii])) {
-                                        found.add(alias);
-                                        break loop;
-                                    }
-                                }
-                            }
-
-                        }
-                    } else {
+            final Certificate[] chain = entry.getCertificateChain();
+            final Certificate cert = chain[0];
+            final String certKeyAlg = cert.getPublicKey().getAlgorithm();
+            final String certSigAlg = (cert instanceof X509Certificate
+                                       ? ((X509Certificate) cert).getSigAlgName().toUpperCase()
+                                       : null);
+            for (String keyAlgorithm : keyType) {
+                String sigAlgorithm;
+                // handle cases like EC_EC and EC_RSA
+                int index = keyAlgorithm.indexOf('_');
+                if (index == -1) {
+                    sigAlgorithm = keyAlgorithm;
+                } else {
+                    sigAlgorithm = keyAlgorithm.substring(index + 1);
+                    keyAlgorithm = keyAlgorithm.substring(0, index);
+                }
+                // key algorithm does not match
+                if (!certKeyAlg.equals(keyAlgorithm)) {
+                    continue ;
+                }
+                /*
+                 * TODO find a more reliable test for signature
+                 * algorithm. Unfortunately value varies with
+                 * provider. For example for "EC" it could be
+                 * "SHA1WithECDSA" or simply "ECDSA".
+                 */
+                // sig algorithm does not match
+                if (certSigAlg != null && !certSigAlg.contains(sigAlgorithm)) {
+                    continue;
+                }
+                // no issuers to match, just add to return list and continue
+                if (issuers == null || issuers.length == 0) {
+                    found.add(alias);
+                    continue;
+                }
+                // check that a certificate in the chain was issued by one of the specified issuers
+                loop: for (Certificate certFromChain : chain) {
+                    if (!(certFromChain instanceof X509Certificate)) {
+                        // skip non-X509Certificates
+                        continue;
+                    }
+                    X509Certificate xcertFromChain = (X509Certificate) certFromChain;
+                    /*
+                     * Note use of X500Principal from
+                     * getIssuerX500Principal as opposed to Principal
+                     * from getIssuerDN. Principal.equals test does
+                     * not work in the case where
+                     * xcertFromChain.getIssuerDN is a bouncycastle
+                     * org.bouncycastle.jce.X509Principal.
+                     */
+                    X500Principal issuerFromChain = xcertFromChain.getIssuerX500Principal();
+                    if (issuersList.contains(issuerFromChain)) {
                         found.add(alias);
                     }
                 }

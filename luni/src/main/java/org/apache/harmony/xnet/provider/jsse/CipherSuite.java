@@ -737,5 +737,30 @@ public class CipherSuite {
         return isExportable;
     }
 
+    /**
+     * Returns key type constant suitable for calling X509KeyManager
+     * and X509ExtendedKeyManager "choose" methods.
+     */
+    public String getKeyType() {
+        switch (keyExchange) {
+            case KEY_EXCHANGE_DHE_RSA:
+            case KEY_EXCHANGE_DHE_RSA_EXPORT:
+            case KEY_EXCHANGE_DH_RSA:
+            case KEY_EXCHANGE_DH_RSA_EXPORT:
+            case KEY_EXCHANGE_RSA:
+            case KEY_EXCHANGE_RSA_EXPORT:
+                return NativeCrypto.KEY_TYPE_RSA;
+            case KEY_EXCHANGE_DHE_DSS:
+            case KEY_EXCHANGE_DHE_DSS_EXPORT:
+            case KEY_EXCHANGE_DH_DSS:
+            case KEY_EXCHANGE_DH_DSS_EXPORT:
+                return NativeCrypto.KEY_TYPE_DSA;
+            case KEY_EXCHANGE_DH_anon:
+            case KEY_EXCHANGE_DH_anon_EXPORT:
+                return null;
+            default:
+                throw new IllegalStateException("Unknown key type for key exchange " + keyExchange);
+        }
+    }
 }
 
