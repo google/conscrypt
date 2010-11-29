@@ -293,26 +293,31 @@ public final class NativeCrypto {
 
     public static native int SSL_new(int ssl_ctx) throws SSLException;
 
-    public static final String[] KEY_TYPES = new String[] {
-        "RSA",
-        "DSA",
-        "DH_RSA",
-        "DH_DSA",
-        "EC"
-    };
+    public static final String KEY_TYPE_RSA = "RSA";
+    public static final String KEY_TYPE_DSA = "DSA";
+    public static final String KEY_TYPE_DH_RSA = "DH_RSA";
+    public static final String KEY_TYPE_DH_DSA = "DH_DSA";
+    public static final String KEY_TYPE_EC = "EC";
+    public static final String KEY_TYPE_EC_EC = "EC_EC";
+    public static final String KEY_TYPE_EC_RSA = "EC_RSA";
 
     public static String keyType(int keyType) {
+        // See also http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
         switch (keyType) {
-            case 1: // TLS_CT_RSA_SIGN
-                return "RSA";
-            case 2: // TLS_CT_DSS_SIGN
-                return "DSA";
-            case 3: // TLS_CT_RSA_FIXED_DH
-                return "DH_RSA";
-            case 4: // TLS_CT_DSS_FIXED_DH
-                return "DH_DSA";
-            case 64: // TLS_CT_ECDSA_SIGN
-                return "EC";
+            case 1: // openssl TLS_CT_RSA_SIGN
+                return KEY_TYPE_RSA; // RFC rsa_sign
+            case 2: // openssl TLS_CT_DSS_SIGN
+                return KEY_TYPE_DSA; // RFC dss_sign
+            case 3: // openssl TLS_CT_RSA_FIXED_DH
+                return KEY_TYPE_DH_RSA; // RFC rsa_fixed_dh
+            case 4: // openssl TLS_CT_DSS_FIXED_DH
+                return KEY_TYPE_DH_DSA; // RFC dss_fixed_dh
+            case 64: // openssl TLS_CT_ECDSA_SIGN
+                return KEY_TYPE_EC; // RFC ecdsa_sign
+            case 65: // openssl TLS_CT_RSA_FIXED_ECDH
+                return KEY_TYPE_EC_RSA; // RFC rsa_fixed_ecdh
+            case 66: // openssl TLS_CT_ECDSA_FIXED_ECDH
+                return KEY_TYPE_EC_EC; // RFC ecdsa_fixed_ecdh
             default:
                 return null;
         }

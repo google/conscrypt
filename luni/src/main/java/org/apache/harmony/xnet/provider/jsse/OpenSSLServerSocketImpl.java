@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.security.PrivateKey;
+import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.RSAPrivateKey;
 import javax.net.ssl.SSLException;
@@ -207,54 +208,34 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
          * an anonymous cipher is picked.
          */
         for (String enabledCipherSuite : enabledCipherSuites) {
-            CipherSuite cipherSuite = CipherSuite.getByName(enabledCipherSuite);
-
-            int keyExchange;
-            if (cipherSuite == null) {
-                // An NativeCrypto cipher suite unknown to the Java
-                // implementation, use some safe heuristics
-                if (enabledCipherSuite.contains("_RSA_")) {
-                    keyExchange = CipherSuite.KEY_EXCHANGE_RSA;
-                } else if (enabledCipherSuite.contains("_DSS_")) {
-                    keyExchange = CipherSuite.KEY_EXCHANGE_DH_DSS;
-                } else if (enabledCipherSuite.contains("_anon_")) {
-                    keyExchange = CipherSuite.KEY_EXCHANGE_DH_anon;
-                } else {
-                    keyExchange = -1;
+            String keyType = CipherSuite.getByName(enabledCipherSuite).getKeyType();
+            if (keyType == null) {
+                // anonymous always work
+                return;
+            }
+            if (keyType.equals(NativeCrypto.KEY_TYPE_RSA)
+                    || keyType.equals(NativeCrypto.KEY_TYPE_DH_RSA)) {
+                if (checkForPrivateKey(keyType, RSAPrivateKey.class)) {
+                    return;
                 }
-            } else {
-                keyExchange = cipherSuite.keyExchange;
+                continue;
             }
-
-            switch (keyExchange) {
-                case CipherSuite.KEY_EXCHANGE_DHE_RSA:
-                case CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT:
-                case CipherSuite.KEY_EXCHANGE_DH_RSA:
-                case CipherSuite.KEY_EXCHANGE_DH_RSA_EXPORT:
-                case CipherSuite.KEY_EXCHANGE_RSA:
-                case CipherSuite.KEY_EXCHANGE_RSA_EXPORT:
-                    if (checkForPrivateKey("RSA", RSAPrivateKey.class)) {
-                        return;
-                    }
-                    continue;
-
-                case CipherSuite.KEY_EXCHANGE_DHE_DSS:
-                case CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT:
-                case CipherSuite.KEY_EXCHANGE_DH_DSS:
-                case CipherSuite.KEY_EXCHANGE_DH_DSS_EXPORT:
-                    if (checkForPrivateKey("DSA", DSAPrivateKey.class)) {
-                        return;
-                    }
-                    continue;
-
-                case CipherSuite.KEY_EXCHANGE_DH_anon:
-                case CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT:
-                    // anonymous always works
+            if (keyType.equals(NativeCrypto.KEY_TYPE_DSA)
+                    || keyType.equals(NativeCrypto.KEY_TYPE_DH_DSA)) {
+                if (checkForPrivateKey(keyType, DSAPrivateKey.class)) {
                     return;
-                default:
-                    // unknown, just assume it will work
-                    return;
+                }
+                continue;
             }
+            if (keyType.equals(NativeCrypto.KEY_TYPE_EC)
+                    || keyType.equals(NativeCrypto.KEY_TYPE_EC_RSA)
+                    || keyType.equals(NativeCrypto.KEY_TYPE_EC_EC)) {
+                if (checkForPrivateKey(keyType, ECPrivateKey.class)) {
+                    return;
+                }
+                continue;
+            }
+            throw new IllegalStateException("Unknown key type " + keyType);
         }
         throw new SSLException("Could not find any key store entries "
                                + "to support the enabled cipher suites.");

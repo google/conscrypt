@@ -31,6 +31,8 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import javax.net.ssl.HandshakeCompletedEvent;
@@ -370,7 +372,14 @@ public class OpenSSLSocketImpl
             // setup server certificates and private keys.
             // clients will receive a call back to request certificates.
             if (!client) {
-                for (String keyType : NativeCrypto.KEY_TYPES) {
+                Set<String> keyTypes = new HashSet<String>();
+                for (String enabledCipherSuite : enabledCipherSuites) {
+                    String keyType = CipherSuite.getByName(enabledCipherSuite).getKeyType();
+                    if (keyType != null) {
+                        keyTypes.add(keyType);
+                    }
+                }
+                for (String keyType : keyTypes) {
                     try {
                         setCertificate(sslParameters.getKeyManager().chooseServerAlias(keyType,
                                                                                        null,
