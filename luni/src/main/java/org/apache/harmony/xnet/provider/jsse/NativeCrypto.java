@@ -159,6 +159,28 @@ public final class NativeCrypto {
         STANDARD_TO_OPENSSL_CIPHER_SUITES.put(standard, openssl);
     }
 
+    /**
+     * TLS_EMPTY_RENEGOTIATION_INFO_SCSV is RFC 5746's renegotiation
+     * indication signaling cipher suite value. It is not a real
+     * cipher suite. It is just an indication in the default and
+     * supported cipher suite lists indicates that the implementation
+     * supports secure renegotiation.
+     *
+     * In the RI, its presence means that the SCSV is sent in the
+     * cipher suite list to indicate secure renegotiation support and
+     * its absense means to send an empty TLS renegotiation info
+     * extension instead.
+     *
+     * However, OpenSSL doesn't provide an API to give this level of
+     * control, instead always sending the SCSV and always including
+     * the empty renegotiation info if TLS is used (as opposed to
+     * SSL). So we simply allow TLS_EMPTY_RENEGOTIATION_INFO_SCSV to
+     * be passed for compatibility as to provide the hint that we
+     * support secure renegotiation.
+     */
+    public static String TLS_EMPTY_RENEGOTIATION_INFO_SCSV
+            = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
+
     static {
         // Note these are added in priority order
         add("SSL_RSA_WITH_RC4_128_MD5",              "RC4-MD5");
@@ -246,14 +268,16 @@ public final class NativeCrypto {
         // add(null, "PSK-AES256-CBC-SHA");
         // add(null, "PSK-RC4-SHA");
 
-        // Signaling Cipher Suite Value for secure renegotiation
-        // add("TLS_EMPTY_RENEGOTIATION_INFO_SCSV",     null);
+        // Signaling Cipher Suite Value for secure renegotiation handled as special case.
+        // add("TLS_EMPTY_RENEGOTIATION_INFO_SCSV", null);
     }
 
     private static final String[] SUPPORTED_CIPHER_SUITES;
     static {
-        Set<String> suites = STANDARD_TO_OPENSSL_CIPHER_SUITES.keySet();
-        SUPPORTED_CIPHER_SUITES = suites.toArray(new String[suites.size()]);
+        int size = STANDARD_TO_OPENSSL_CIPHER_SUITES.size();
+        SUPPORTED_CIPHER_SUITES = new String[size + 1];
+        STANDARD_TO_OPENSSL_CIPHER_SUITES.keySet().toArray(SUPPORTED_CIPHER_SUITES);
+        SUPPORTED_CIPHER_SUITES[size] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
     }
 
     // SSL mode from ssl.h
@@ -303,7 +327,7 @@ public final class NativeCrypto {
             "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",
             "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
             "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA",
-            // "TLS_EMPTY_RENEGOTIATION_INFO_SCSV"
+            TLS_EMPTY_RENEGOTIATION_INFO_SCSV
         };
     }
 
@@ -407,6 +431,9 @@ public final class NativeCrypto {
         List<String> opensslSuites = new ArrayList<String>();
         for (int i = 0; i < cipherSuites.length; i++) {
             String cipherSuite = cipherSuites[i];
+            if (cipherSuite.equals(TLS_EMPTY_RENEGOTIATION_INFO_SCSV)) {
+                continue;
+            }
             String openssl = STANDARD_TO_OPENSSL_CIPHER_SUITES.get(cipherSuite);
             String cs = (openssl == null) ? cipherSuite : openssl;
             opensslSuites.add(cs);
@@ -423,6 +450,9 @@ public final class NativeCrypto {
             String cipherSuite = cipherSuites[i];
             if (cipherSuite == null) {
                 throw new IllegalArgumentException("cipherSuites[" + i + "] == null");
+            }
+            if (cipherSuite.equals(TLS_EMPTY_RENEGOTIATION_INFO_SCSV)) {
+                continue;
             }
             if (STANDARD_TO_OPENSSL_CIPHER_SUITES.containsKey(cipherSuite)) {
                 continue;

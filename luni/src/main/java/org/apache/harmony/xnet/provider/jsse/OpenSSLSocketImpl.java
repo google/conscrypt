@@ -374,6 +374,9 @@ public class OpenSSLSocketImpl
             if (!client) {
                 Set<String> keyTypes = new HashSet<String>();
                 for (String enabledCipherSuite : enabledCipherSuites) {
+                    if (enabledCipherSuite.equals(NativeCrypto.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)) {
+                        continue;
+                    }
                     String keyType = CipherSuite.getByName(enabledCipherSuite).getServerKeyType();
                     if (keyType != null) {
                         keyTypes.add(keyType);
