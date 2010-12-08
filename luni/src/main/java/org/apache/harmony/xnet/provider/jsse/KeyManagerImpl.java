@@ -84,8 +84,8 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
         }
     }
 
-    public String chooseClientAlias(String[] keyType, Principal[] issuers, Socket socket) {
-        final String[] al = chooseAlias(keyType, issuers);
+    public String chooseClientAlias(String[] keyTypes, Principal[] issuers, Socket socket) {
+        final String[] al = chooseAlias(keyTypes, issuers);
         return (al == null ? null : al[0]);
     }
 
@@ -135,8 +135,8 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
     }
 
     @Override
-    public String chooseEngineClientAlias(String[] keyType, Principal[] issuers, SSLEngine engine) {
-        final String[] al = chooseAlias(keyType, issuers);
+    public String chooseEngineClientAlias(String[] keyTypes, Principal[] issuers, SSLEngine engine) {
+        final String[] al = chooseAlias(keyTypes, issuers);
         return (al == null ? null : al[0]);
     }
 
@@ -146,8 +146,8 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
         return (al == null ? null : al[0]);
     }
 
-    private String[] chooseAlias(String[] keyType, Principal[] issuers) {
-        if (keyType == null || keyType.length == 0) {
+    private String[] chooseAlias(String[] keyTypes, Principal[] issuers) {
+        if (keyTypes == null || keyTypes.length == 0) {
             return null;
         }
         List<Principal> issuersList = (issuers == null) ? null : Arrays.asList(issuers);
@@ -161,7 +161,10 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
             final String certSigAlg = (cert instanceof X509Certificate
                                        ? ((X509Certificate) cert).getSigAlgName().toUpperCase()
                                        : null);
-            for (String keyAlgorithm : keyType) {
+            for (String keyAlgorithm : keyTypes) {
+                if (keyAlgorithm == null) {
+                    continue;
+                }
                 String sigAlgorithm;
                 // handle cases like EC_EC and EC_RSA
                 int index = keyAlgorithm.indexOf('_');
