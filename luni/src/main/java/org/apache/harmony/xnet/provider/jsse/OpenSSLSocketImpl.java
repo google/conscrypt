@@ -797,7 +797,7 @@ public class OpenSSLSocketImpl
                 if ((len | off) < 0 || len > b.length - off) {
                     throw new IndexOutOfBoundsException();
                 }
-                if (0 == len) {
+                if (len == 0) {
                     return 0;
                 }
                 return NativeCrypto.SSL_read(sslNativePointer, fd, OpenSSLSocketImpl.this,
