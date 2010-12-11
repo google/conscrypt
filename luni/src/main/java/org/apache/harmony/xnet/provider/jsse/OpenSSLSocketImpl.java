@@ -31,6 +31,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -787,21 +788,16 @@ public class OpenSSLSocketImpl
          * @see java.io.InputStream#read(byte[],int,int)
          */
         @Override
-        public int read(byte[] b, int off, int len) throws IOException {
+        public int read(byte[] buf, int offset, int byteCount) throws IOException {
             BlockGuard.getThreadPolicy().onNetwork();
             synchronized (readLock) {
                 checkOpen();
-                if (b == null) {
-                    throw new NullPointerException("b == null");
-                }
-                if ((len | off) < 0 || len > b.length - off) {
-                    throw new IndexOutOfBoundsException();
-                }
-                if (len == 0) {
+                Arrays.checkOffsetAndCount(buf.length, offset, byteCount);
+                if (byteCount == 0) {
                     return 0;
                 }
                 return NativeCrypto.SSL_read(sslNativePointer, fd, OpenSSLSocketImpl.this,
-                                             b, off, len, getSoTimeout());
+                                             buf, offset, byteCount, getSoTimeout());
             }
         }
     }
@@ -838,20 +834,15 @@ public class OpenSSLSocketImpl
          * @see java.io.OutputStream#write(byte[],int,int)
          */
         @Override
-        public void write(byte[] b, int start, int len) throws IOException {
+        public void write(byte[] buf, int offset, int byteCount) throws IOException {
             BlockGuard.getThreadPolicy().onNetwork();
             synchronized (writeLock) {
                 checkOpen();
-                if (b == null) {
-                    throw new NullPointerException("b == null");
-                }
-                if ((len | start) < 0 || len > b.length - start) {
-                    throw new IndexOutOfBoundsException();
-                }
-                if (len == 0) {
+                Arrays.checkOffsetAndCount(buf.length, offset, byteCount);
+                if (byteCount == 0) {
                     return;
                 }
-                NativeCrypto.SSL_write(sslNativePointer, fd, OpenSSLSocketImpl.this, b, start, len);
+                NativeCrypto.SSL_write(sslNativePointer, fd, OpenSSLSocketImpl.this, buf, offset, byteCount);
             }
         }
     }
