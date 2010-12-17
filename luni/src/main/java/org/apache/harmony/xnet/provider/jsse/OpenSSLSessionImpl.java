@@ -234,9 +234,13 @@ public class OpenSSLSessionImpl implements SSLSession {
             }
             return chain;
         } catch (CertificateEncodingException e) {
-            throw new SSLPeerUnverifiedException(e.getMessage());
+            SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
+            exception.initCause(exception);
+            throw exception;
         } catch (CertificateException e) {
-            throw new SSLPeerUnverifiedException(e.getMessage());
+            SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
+            exception.initCause(exception);
+            throw exception;
         }
     }
 

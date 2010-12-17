@@ -39,7 +39,7 @@ import java.util.logging.Logger;
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
@@ -485,7 +485,9 @@ public class OpenSSLSocketImpl
                 sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer, fd, this,
                                                                         getSoTimeout(), client);
             } catch (CertificateException e) {
-                throw new SSLPeerUnverifiedException(e.getMessage());
+                SSLHandshakeException wrapper = new SSLHandshakeException(e.getMessage());
+                wrapper.initCause(e);
+                throw wrapper;
             }
             byte[] sessionId = NativeCrypto.SSL_SESSION_session_id(sslSessionNativePointer);
             sslSession = (OpenSSLSessionImpl) sessionContext.getSession(sessionId);
@@ -842,7 +844,8 @@ public class OpenSSLSocketImpl
                 if (byteCount == 0) {
                     return;
                 }
-                NativeCrypto.SSL_write(sslNativePointer, fd, OpenSSLSocketImpl.this, buf, offset, byteCount);
+                NativeCrypto.SSL_write(sslNativePointer, fd, OpenSSLSocketImpl.this,
+                                       buf, offset, byteCount);
             }
         }
     }
