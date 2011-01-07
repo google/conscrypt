@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.security.AccessController;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -61,15 +60,9 @@ public class KeyManagerFactoryImpl extends KeyManagerFactorySpi {
             }
         } else {
             keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            String keyStoreName = AccessController
-                    .doPrivileged(new java.security.PrivilegedAction<String>() {
-                        public String run() {
-                            return System.getProperty("javax.net.ssl.keyStore");
-                        }
-                    });
+            String keyStoreName = System.getProperty("javax.net.ssl.keyStore");
             String keyStorePwd = null;
-            if (keyStoreName == null || keyStoreName.equalsIgnoreCase("NONE")
-                    || keyStoreName.length() == 0) {
+            if (keyStoreName == null || keyStoreName.equalsIgnoreCase("NONE") || keyStoreName.isEmpty()) {
                 try {
                     keyStore.load(null, null);
                 } catch (IOException e) {
@@ -78,22 +71,14 @@ public class KeyManagerFactoryImpl extends KeyManagerFactorySpi {
                     throw new KeyStoreException(e);
                 }
             } else {
-                keyStorePwd = AccessController
-                        .doPrivileged(new java.security.PrivilegedAction<String>() {
-                            public String run() {
-                                return System
-                                        .getProperty("javax.net.ssl.keyStorePassword");
-                            }
-                        });
+                keyStorePwd = System.getProperty("javax.net.ssl.keyStorePassword");
                 if (keyStorePwd == null) {
                     pwd = EmptyArray.CHAR;
                 } else {
                     pwd = keyStorePwd.toCharArray();
                 }
                 try {
-                    keyStore.load(new FileInputStream(new File(keyStoreName)),
-                            pwd);
-
+                    keyStore.load(new FileInputStream(new File(keyStoreName)), pwd);
                 } catch (FileNotFoundException e) {
                     throw new KeyStoreException(e);
                 } catch (IOException e) {

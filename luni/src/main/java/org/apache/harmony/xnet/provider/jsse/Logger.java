@@ -18,8 +18,6 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.PrintStream;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import libcore.base.EmptyArray;
 
 /**
@@ -100,12 +98,7 @@ public class Logger {
 
     static {
         try {
-            names = AccessController
-                    .doPrivileged(new PrivilegedAction<String[]>() {
-                        public String[] run() {
-                            return System.getProperty("jsse", "").split(",");
-                        }
-                    });
+            names = System.getProperty("jsse", "").split(",");
         } catch (Exception e) {
             names = EmptyArray.STRING;
         }

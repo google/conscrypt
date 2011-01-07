@@ -58,6 +58,5 @@ public class DelegatedTask implements Runnable {
                 handshaker.delegatedTaskErr = e;
             }
         }
-
     }
 }

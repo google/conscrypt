@@ -17,8 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.security.Provider;
 
 /**
@@ -108,17 +106,13 @@ public final class JSSEProvider extends Provider {
 
     public JSSEProvider() {
         super("HarmonyJSSE", 1.0, "Harmony JSSE Provider");
-        AccessController.doPrivileged(new PrivilegedAction<Void>() {
-            public Void run() {
-                put("SSLContext.SSL", SSLContextImpl.class.getName());
-                put("SSLContext.SSLv3", SSLContextImpl.class.getName());
-                put("SSLContext.TLS", SSLContextImpl.class.getName());
-                put("SSLContext.TLSv1", SSLContextImpl.class.getName());
 
-                put("KeyManagerFactory.X509", KeyManagerFactoryImpl.class.getName());
-                put("TrustManagerFactory.X509", TrustManagerFactoryImpl.class.getName());
-                return null;
-            }
-        });
+        put("SSLContext.SSL", SSLContextImpl.class.getName());
+        put("SSLContext.SSLv3", SSLContextImpl.class.getName());
+        put("SSLContext.TLS", SSLContextImpl.class.getName());
+        put("SSLContext.TLSv1", SSLContextImpl.class.getName());
+
+        put("KeyManagerFactory.X509", KeyManagerFactoryImpl.class.getName());
+        put("TrustManagerFactory.X509", TrustManagerFactoryImpl.class.getName());
     }
 }

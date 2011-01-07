@@ -363,18 +363,11 @@ public class OpenSSLSessionImpl implements SSLSession {
     /**
      * Returns the context to which the actual SSL session is bound. A SSL
      * context consists of (1) a possible delegate, (2) a provider and (3) a
-     * protocol. If the security manager is activated and one tries to access
-     * the SSL context an exception may be thrown if a
-     * <code>SSLPermission("getSSLSessionContext")</code>
-     * permission is not set.
+     * protocol.
      * @return the SSL context used for this session, or null if it is
      * unavailable.
      */
     public SSLSessionContext getSessionContext() {
-        SecurityManager sm = System.getSecurityManager();
-        if (sm != null) {
-            sm.checkPermission(new SSLPermission("getSSLSessionContext"));
-        }
         return sessionContext;
     }
 

@@ -23,7 +23,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.IOException;
-import java.security.AccessController;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -63,16 +62,9 @@ public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {
             }
             // END android-added
             keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            String keyStoreName = AccessController
-                    .doPrivileged(new java.security.PrivilegedAction<String>() {
-                        public String run() {
-                            return System
-                                    .getProperty("javax.net.ssl.trustStore");
-                        }
-                    });
+            String keyStoreName = System.getProperty("javax.net.ssl.trustStore");
             String keyStorePwd = null;
-            if (keyStoreName == null || keyStoreName.equalsIgnoreCase("NONE")
-                    || keyStoreName.length() == 0) {
+            if (keyStoreName == null || keyStoreName.equalsIgnoreCase("NONE") || keyStoreName.isEmpty()) {
                 try {
                     keyStore.load(null, null);
                 } catch (IOException e) {
@@ -83,13 +75,7 @@ public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {
                     throw new KeyStoreException(e);
                 }
             } else {
-                keyStorePwd = AccessController
-                        .doPrivileged(new java.security.PrivilegedAction<String>() {
-                            public String run() {
-                                return System
-                                        .getProperty("javax.net.ssl.trustStorePassword");
-                            }
-                        });
+                keyStorePwd = System.getProperty("javax.net.ssl.trustStorePassword");
                 char[] pwd;
                 if (keyStorePwd == null) {
                     pwd = EmptyArray.CHAR;

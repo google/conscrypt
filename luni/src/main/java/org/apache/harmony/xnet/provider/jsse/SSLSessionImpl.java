@@ -281,10 +281,6 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
     }
 
     public SSLSessionContext getSessionContext() {
-        SecurityManager sm = System.getSecurityManager();
-        if (sm != null) {
-            sm.checkPermission(new SSLPermission("getSSLSessionContext"));
-        }
         return context;
     }
 
