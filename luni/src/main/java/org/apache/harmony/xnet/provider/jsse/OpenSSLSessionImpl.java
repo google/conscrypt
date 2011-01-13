@@ -23,8 +23,8 @@ import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Map;
-import java.util.Vector;
 import java.util.Set;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLPermission;
@@ -426,7 +426,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         bound to this SSL session.
      */
     public String[] getValueNames() {
-        Vector<String> v = new Vector<String>();
+        ArrayList<String> v = new ArrayList<String>();
         AccessControlContext current = AccessController.getContext();
         Set<Map.Entry<String, Object>> set = values.entrySet();
         for (Map.Entry<String, Object> o : set) {

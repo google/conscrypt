@@ -26,12 +26,12 @@ import java.security.PrivateKey;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
-import java.util.Vector;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.security.auth.x500.X500Principal;
@@ -152,7 +152,7 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
             return null;
         }
         List<Principal> issuersList = (issuers == null) ? null : Arrays.asList(issuers);
-        Vector<String> found = new Vector<String>();
+        ArrayList<String> found = new ArrayList<String>();
         for (Enumeration<String> aliases = hash.keys(); aliases.hasMoreElements();) {
             final String alias = aliases.nextElement();
             final KeyStore.PrivateKeyEntry entry = hash.get(alias);

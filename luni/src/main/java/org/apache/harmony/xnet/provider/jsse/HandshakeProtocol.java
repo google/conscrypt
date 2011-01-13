@@ -518,8 +518,8 @@ public abstract class HandshakeProtocol {
     }
 
     /**
-     * Shutdownes the protocol. It will be impossiblke to use the instance
-     * after the calling of this method.
+     * Shuts down the protocol. It will be impossible to use the instance
+     * after calling this method.
      */
     protected void shutdown() {
         clearMessages();

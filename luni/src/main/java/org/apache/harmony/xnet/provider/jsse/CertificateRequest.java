@@ -19,7 +19,7 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
 import java.security.cert.X509Certificate;
-import java.util.Vector;
+import java.util.ArrayList;
 import javax.security.auth.x500.X500Principal;
 
 /**
@@ -85,31 +85,25 @@ public class CertificateRequest extends Message {
      * @param length
      * @throws IOException
      */
-    public CertificateRequest(HandshakeIODataStream in, int length)
-            throws IOException {
+    public CertificateRequest(HandshakeIODataStream in, int length) throws IOException {
         int size = in.readUint8();
         certificate_types = new byte[size];
         in.read(certificate_types, 0, size);
         size = in.readUint16();
         int totalPrincipalsLength = 0;
         int principalLength = 0;
-        Vector<X500Principal> principals = new Vector<X500Principal>();
+        ArrayList<X500Principal> principals = new ArrayList<X500Principal>();
         while (totalPrincipalsLength < size) {
             principalLength = in.readUint16(); // encoded X500Principal size
             principals.add(new X500Principal(in));
             totalPrincipalsLength += 2;
             totalPrincipalsLength += principalLength;
         }
-        certificate_authorities = new X500Principal[principals.size()];
-        for (int i = 0; i < certificate_authorities.length; i++) {
-            certificate_authorities[i] = principals.elementAt(i);
-        }
+        certificate_authorities = principals.toArray(new X500Principal[principals.size()]);
         this.length = 3 + certificate_types.length + totalPrincipalsLength;
         if (this.length != length) {
-            fatalAlert(AlertProtocol.DECODE_ERROR,
-                    "DECODE ERROR: incorrect CertificateRequest");
+            fatalAlert(AlertProtocol.DECODE_ERROR, "DECODE ERROR: incorrect CertificateRequest");
         }
-
     }
 
     /**

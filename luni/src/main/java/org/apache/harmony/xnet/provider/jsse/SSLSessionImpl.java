@@ -24,9 +24,9 @@ import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Vector;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLPermission;
 import javax.net.ssl.SSLSession;
@@ -292,7 +292,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
     }
 
     public String[] getValueNames() {
-        final Vector<String> v = new Vector<String>();
+        final ArrayList<String> v = new ArrayList<String>();
         final AccessControlContext currAcc = AccessController.getContext();
         for (ValueKey key : values.keySet()) {
             if (Objects.equal(currAcc, key.acc)) {
