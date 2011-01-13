@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Locale;
 import java.util.Vector;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedKeyManager;
@@ -159,7 +160,7 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
             final Certificate cert = chain[0];
             final String certKeyAlg = cert.getPublicKey().getAlgorithm();
             final String certSigAlg = (cert instanceof X509Certificate
-                                       ? ((X509Certificate) cert).getSigAlgName().toUpperCase()
+                                       ? ((X509Certificate) cert).getSigAlgName().toUpperCase(Locale.US)
                                        : null);
             for (String keyAlgorithm : keyTypes) {
                 if (keyAlgorithm == null) {

@@ -18,6 +18,7 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.PrintStream;
+import java.util.Locale;
 import libcore.base.EmptyArray;
 
 /**
@@ -78,8 +79,7 @@ public class Logger {
                 byte[] data, int offset, int len) {
             String line = "";
             for (int i=0; i<len; i++) {
-                String tail =
-                    Integer.toHexString(0x00ff & data[i+offset]).toUpperCase();
+                String tail = Integer.toHexString(data[i+offset] & 0xff).toUpperCase(Locale.US);
                 if (tail.length() == 1) {
                     tail = "0" + tail;
                 }

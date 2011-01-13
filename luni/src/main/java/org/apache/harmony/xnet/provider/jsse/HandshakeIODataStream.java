@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.security.MessageDigest;
 import java.util.Arrays;
+import java.util.Locale;
 import javax.net.ssl.SSLHandshakeException;
 
 /**
@@ -375,8 +376,7 @@ public class HandshakeIODataStream
         String delimiter = "";
 
         for (int i=write_pos_beg; i<write_pos; i++) {
-            String tail = Integer.toHexString(
-                    0x00ff & buffer[i]).toUpperCase();
+            String tail = Integer.toHexString(buffer[i] & 0xff).toUpperCase(Locale.US);
             if (tail.length() == 1) {
                 tail = "0" + tail;
             }
