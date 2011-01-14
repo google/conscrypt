@@ -100,9 +100,7 @@ public class OpenSSLSocketImpl
      */
     private int timeoutMilliseconds = 0;
 
-    // BEGIN android-added
     private int handshakeTimeoutMilliseconds = -1;  // -1 = same as timeout; 0 = infinite
-    // END android-added
     private String wrappedHost;
     private int wrappedPort;
 
@@ -472,13 +470,11 @@ public class OpenSSLSocketImpl
                                             NativeCrypto.SSL_MODE_HANDSHAKE_CUTTHROUGH);
             }
 
-            // BEGIN android-added
             // Temporarily use a different timeout for the handshake process
             int savedTimeoutMilliseconds = getSoTimeout();
             if (handshakeTimeoutMilliseconds >= 0) {
                 setSoTimeout(handshakeTimeoutMilliseconds);
             }
-            // END android-added
 
             int sslSessionNativePointer;
             try {
@@ -524,12 +520,10 @@ public class OpenSSLSocketImpl
                                          + getInetAddress().getHostName() + ".");
             }
 
-            // BEGIN android-added
             // Restore the original timeout now that the handshake is complete
             if (handshakeTimeoutMilliseconds >= 0) {
                 setSoTimeout(savedTimeoutMilliseconds);
             }
-            // END android-added
 
             // if not, notifyHandshakeCompletedListeners later in handshakeCompleted() callback
             if (handshakeCompleted) {
@@ -1184,7 +1178,6 @@ public class OpenSSLSocketImpl
         return timeoutMilliseconds;
     }
 
-    // BEGIN android-added
     /**
      * Set the handshake timeout on this socket.  This timeout is specified in
      * milliseconds and will be used only during the handshake process.
@@ -1194,7 +1187,6 @@ public class OpenSSLSocketImpl
     public void setHandshakeTimeout(int timeoutMilliseconds) throws SocketException {
         this.handshakeTimeoutMilliseconds = timeoutMilliseconds;
     }
-    // END android-added
 
     /**
      * Closes the SSL socket. Once closed, a socket is not available for further

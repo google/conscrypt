@@ -121,9 +121,7 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
     /**
      * Context of the session
      */
-// BEGIN android-changed
     SSLSessionContext context;
-// END android-changed
 
     /**
      * certificates were sent to the peer

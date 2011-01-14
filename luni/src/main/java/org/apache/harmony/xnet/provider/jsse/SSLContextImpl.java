@@ -28,11 +28,6 @@ import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 
-// BEGIN android-note
-//  Modified heavily during SSLSessionContext refactoring. Added support for
-//  persistent session caches.
-// END android-note
-
 /**
  * Implementation of SSLContext service provider interface.
  */

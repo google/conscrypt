@@ -86,13 +86,11 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         } else if (parameters.getEnableSessionCreation()){
             isResuming = false;
             session = new SSLSessionImpl(parameters.getSecureRandom());
-            // BEGIN android-added
             if (engineOwner != null) {
                 session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
             } else {
                 session.setPeer(socketOwner.getInetAddress().getHostName(), socketOwner.getPort());
             }
-            // END android-added
             session.protocol = ProtocolVersion.getLatestVersion(parameters.getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
         } else {
@@ -109,13 +107,11 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         if (parameters.getEnableSessionCreation()){
             isResuming = false;
             session = new SSLSessionImpl(parameters.getSecureRandom());
-            // BEGIN android-added
             if (engineOwner != null) {
                 session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
             } else {
                 session.setPeer(socketOwner.getInetAddress().getHostName(), socketOwner.getPort());
             }
-            // END android-added
             session.protocol = ProtocolVersion.getLatestVersion(parameters.getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
             startSession();
@@ -133,9 +129,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         if (isResuming) {
             cipher_suites = new CipherSuite[] { session.cipherSuite };
         } else {
-            // BEGIN android-changed
             cipher_suites = parameters.getEnabledCipherSuitesMember();
-            // END android-changed
         }
         clientHello = new ClientHello(parameters.getSecureRandom(),
                 session.protocol.version, session.id, cipher_suites);
@@ -215,9 +209,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                     }
 
                     //check cipher_suite
-                    // BEGIN android-changed
                     CipherSuite[] enabledSuites = parameters.getEnabledCipherSuitesMember();
-                    // END android-changed
                     find: {
                         for (int i = 0; i < enabledSuites.length; i++) {
                             if (serverHello.cipher_suite.equals(enabledSuites[i])) {
@@ -304,9 +296,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                     serverFinished = new Finished(io_stream, length);
                     verifyFinished(serverFinished.getData());
                     session.lastAccessedTime = System.currentTimeMillis();
-                    // BEGIN android-added
                     session.context = parameters.getClientSessionContext();
-                    // END android-added
                     parameters.getClientSessionContext().putSession(session);
                     if (isResuming) {
                         sendChangeCipherSpec();
@@ -578,7 +568,6 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             return null; // starts new session
         }
 
-        // BEGIN android-changed
         ClientSessionContext context = parameters.getClientSessionContext();
         SSLSessionImpl session
                 = (SSLSessionImpl) context.getSession(host, port);
@@ -586,7 +575,6 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             session = (SSLSessionImpl) session.clone();
         }
         return session;
-        // END android-changed
     }
 
 }

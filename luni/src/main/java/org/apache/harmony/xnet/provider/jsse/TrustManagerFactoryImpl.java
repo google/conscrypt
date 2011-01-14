@@ -51,16 +51,10 @@ public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {
         if (ks != null) {
             keyStore = ks;
         } else {
-            // BEGIN android-added
             if (System.getProperty("javax.net.ssl.trustStore") == null) {
-                String file = System.getProperty("java.home")
-                    + java.io.File.separator + "etc" + java.io.File.separator
-                    + "security" + java.io.File.separator
-                    + "cacerts.bks";
-
-                System.setProperty("javax.net.ssl.trustStore", file);
+                String filename = System.getProperty("java.home") + "/etc/security/cacerts.bks";
+                System.setProperty("javax.net.ssl.trustStore", filename);
             }
-            // END android-added
             keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
             String keyStoreName = System.getProperty("javax.net.ssl.trustStore");
             String keyStorePwd = null;

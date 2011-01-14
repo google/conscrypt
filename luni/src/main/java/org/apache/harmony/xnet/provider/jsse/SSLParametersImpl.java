@@ -33,7 +33,7 @@ import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 
 /**
- * The instances of this class incapsulate all the info
+ * The instances of this class encapsulate all the info
  * about enabled cipher suites and protocols,
  * as well as the information about client/server mode of
  * ssl socket, whether it require/want client authentication or not,
@@ -53,12 +53,10 @@ public class SSLParametersImpl implements Cloneable {
 
     // client session context contains the set of reusable
     // client-side SSL sessions
-// BEGIN android-changed
     private final ClientSessionContext clientSessionContext;
     // server session context contains the set of reusable
     // server-side SSL sessions
     private final ServerSessionContext serverSessionContext;
-// END android-changed
     // source of authentication keys
     private X509KeyManager keyManager;
     // source of authentication trust decisions
@@ -67,9 +65,7 @@ public class SSLParametersImpl implements Cloneable {
     private SecureRandom secureRandom;
 
     // cipher suites available for SSL connection
-    // BEGIN android-changed
     private CipherSuite[] enabledCipherSuites;
-    // END android-changed
     // string representations of available cipher suites
     private String[] enabledCipherSuiteNames = null;
 
@@ -85,14 +81,12 @@ public class SSLParametersImpl implements Cloneable {
     // if the peer with this parameters allowed to cteate new SSL session
     private boolean enable_session_creation = true;
 
-// BEGIN android-changed
     protected CipherSuite[] getEnabledCipherSuitesMember() {
         if (enabledCipherSuites == null) {
             this.enabledCipherSuites = CipherSuite.DEFAULT_CIPHER_SUITES;
         }
         return enabledCipherSuites;
     }
-// END android-changed
 
     /**
      * Initializes the parameters. Naturally this constructor is used
@@ -103,13 +97,11 @@ public class SSLParametersImpl implements Cloneable {
      * SecureRandom)} for more information
      */
     protected SSLParametersImpl(KeyManager[] kms, TrustManager[] tms,
-// BEGIN android-changed
             SecureRandom sr, ClientSessionContext clientSessionContext,
             ServerSessionContext serverSessionContext)
             throws KeyManagementException {
         this.serverSessionContext = serverSessionContext;
         this.clientSessionContext = clientSessionContext;
-// END android-changed
 
         // It's not described by the spec of SSLContext what should happen
         // if the arrays of length 0 are specified. This implementation
@@ -150,7 +142,7 @@ public class SSLParametersImpl implements Cloneable {
         // null, we don't replace it by a new instance. The native code below
         // then directly accesses /dev/urandom. Not the most elegant solution,
         // but faster than going through the SecureRandom object.
-            secureRandom = sr;
+        secureRandom = sr;
         // END android-added
     }
 
@@ -170,18 +162,14 @@ public class SSLParametersImpl implements Cloneable {
     /**
      * @return server session context
      */
-// BEGIN android-changed
     protected ServerSessionContext getServerSessionContext() {
-// END android-changed
         return serverSessionContext;
     }
 
     /**
      * @return client session context
      */
-// BEGIN android-changed
     protected ClientSessionContext getClientSessionContext() {
-// END android-changed
         return clientSessionContext;
     }
 
@@ -215,23 +203,19 @@ public class SSLParametersImpl implements Cloneable {
         return secureRandom;
     }
 
-    // BEGIN android-added
     /**
      * @return the secure random member reference, even it is null
      */
     protected SecureRandom getSecureRandomMember() {
         return secureRandom;
     }
-    // END android-added
 
     /**
      * @return the names of enabled cipher suites
      */
     protected String[] getEnabledCipherSuites() {
         if (enabledCipherSuiteNames == null) {
-            // BEGIN android-added
             CipherSuite[] enabledCipherSuites = getEnabledCipherSuitesMember();
-            // END android-added
             enabledCipherSuiteNames = new String[enabledCipherSuites.length];
             for (int i = 0; i< enabledCipherSuites.length; i++) {
                 enabledCipherSuiteNames[i] = enabledCipherSuites[i].getName();
@@ -364,13 +348,11 @@ public class SSLParametersImpl implements Cloneable {
      */
     @Override
     protected Object clone() {
-// BEGIN android-changed
         try {
             return super.clone();
         } catch (CloneNotSupportedException e) {
             throw new AssertionError(e);
         }
-// END android-changed
     }
 
     private static X509KeyManager getDefaultKeyManager() {

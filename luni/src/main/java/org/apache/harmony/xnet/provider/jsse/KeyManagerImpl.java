@@ -96,11 +96,9 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
     }
 
     public X509Certificate[] getCertificateChain(String alias) {
-        // BEGIN android-changed
         if (alias == null) {
             return null;
         }
-        // END android-changed
         if (hash.containsKey(alias)) {
             Certificate[] certs = hash.get(alias).getCertificateChain();
             if (certs[0] instanceof X509Certificate) {
@@ -124,11 +122,9 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
     }
 
     public PrivateKey getPrivateKey(String alias) {
-        // BEGIN android-changed
         if (alias == null) {
             return null;
         }
-        // END android-changed
         if (hash.containsKey(alias)) {
             return hash.get(alias).getPrivateKey();
         }

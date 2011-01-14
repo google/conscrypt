@@ -78,11 +78,9 @@ public abstract class SSLInputStream extends InputStream {
      * Reads and returns uint64 value.
      */
     public long readUint64() throws IOException {
-        // BEGIN android-changed
         long hi = readUint32();
         long lo = readUint32();
         return (hi << 32) | lo;
-        // END android-changed
     }
 
     /**
