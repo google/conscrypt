@@ -84,8 +84,7 @@ public class FileClientSessionCache {
         Impl(File directory) throws IOException {
             boolean exists = directory.exists();
             if (exists && !directory.isDirectory()) {
-                throw new IOException(directory
-                        + " exists but is not a directory.");
+                throw new IOException(directory + " exists but is not a directory.");
             }
 
             if (exists) {
@@ -96,13 +95,17 @@ public class FileClientSessionCache {
                 // Note: Sorting an array here was faster than creating a
                 // HashSet on Dalvik.
                 initialFiles = directory.list();
+                if (initialFiles == null) {
+                    // File.list() will return null in error cases without throwing IOException
+                    // http://b/3363561
+                    throw new IOException(directory + " exists but cannot list contents.");
+                }
                 Arrays.sort(initialFiles);
                 size = initialFiles.length;
             } else {
                 // Create directory.
                 if (!directory.mkdirs()) {
-                    throw new IOException("Creation of " + directory
-                            + " directory failed.");
+                    throw new IOException("Creation of " + directory + " directory failed.");
                 }
                 size = 0;
             }
