@@ -66,31 +66,24 @@ public class Logger {
             printAsHex(16, " ", "", data, offset, len);
         }
 
-        public void printAsHex(int perLine,
-                String prefix,
-                String delimiter,
-                byte[] data) {
+        public void printAsHex(int perLine, String prefix, String delimiter, byte[] data) {
             printAsHex(perLine, prefix, delimiter, data, 0, data.length);
         }
 
-        public void printAsHex(int perLine,
-                String prefix,
-                String delimiter,
+        public void printAsHex(int perLine, String prefix, String delimiter,
                 byte[] data, int offset, int len) {
-            String line = "";
-            for (int i=0; i<len; i++) {
-                String tail = Integer.toHexString(data[i+offset] & 0xff).toUpperCase(Locale.US);
-                if (tail.length() == 1) {
-                    tail = "0" + tail;
-                }
-                line += prefix + tail + delimiter;
+            StringBuilder line = new StringBuilder();
+            for (int i = 0; i < len; i++) {
+                line.append(prefix);
+                line.append(Byte.toHexString(data[i+offset], false));
+                line.append(delimiter);
 
                 if (((i+1)%perLine) == 0) {
-                    super.println(line);
-                    line = "";
+                    super.println(line.toString());
+                    line = new StringBuilder();
                 }
             }
-            super.println(line);
+            super.println(line.toString());
         }
     }
 

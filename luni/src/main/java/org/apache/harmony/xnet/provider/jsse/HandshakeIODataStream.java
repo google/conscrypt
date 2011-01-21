@@ -368,31 +368,6 @@ public class HandshakeIODataStream
         return res;
     }
 
-    // ---------------------- Debud functionality -------------------------
-
-    protected void printContent(PrintStream outstream) {
-        int perLine = 20;
-        String prefix = " ";
-        String delimiter = "";
-
-        for (int i=write_pos_beg; i<write_pos; i++) {
-            String tail = Integer.toHexString(buffer[i] & 0xff).toUpperCase(Locale.US);
-            if (tail.length() == 1) {
-                tail = "0" + tail;
-            }
-            outstream.print(prefix + tail + delimiter);
-
-            if (((i-write_pos_beg+1)%10) == 0) {
-                outstream.print(" ");
-            }
-
-            if (((i-write_pos_beg+1)%perLine) == 0) {
-                outstream.println();
-            }
-        }
-        outstream.println();
-    }
-
     // ---------------------- Message Digest Functionality ----------------
 
     /**
