@@ -48,7 +48,7 @@ public class TrustManagerImpl implements X509TrustManager {
 
     private final CertPathValidator validator;
 
-    private final PKIXParameters params;
+    private final IndexedPKIXParameters params;
 
     private final X509Certificate[] acceptedIssuers;
 
@@ -64,7 +64,7 @@ public class TrustManagerImpl implements X509TrustManager {
     public TrustManagerImpl(KeyStore ks) {
         CertPathValidator validatorLocal = null;
         CertificateFactory factoryLocal = null;
-        PKIXParameters paramsLocal = null;
+        IndexedPKIXParameters paramsLocal = null;
         X509Certificate[] acceptedIssuersLocal = null;
         Exception errLocal = null;
         try {
@@ -155,6 +155,15 @@ public class TrustManagerImpl implements X509TrustManager {
         }
         try {
             validator.validate(certPath, params);
+            // Add intermediate CAs to the index to tolerate sites
+            // that assume that the browser will have cached these.
+            // The server certificate is skipped by skipping the
+            // zeroth element of new chain and note that the root CA
+            // will have been removed in cleanupCertChain.
+            // http://b/3404902
+            for (int i = 1; i < newChain.length; i++) {
+                params.index(new TrustAnchor(newChain[i], null));
+            }
         } catch (InvalidAlgorithmParameterException e) {
             throw new CertificateException(e);
         } catch (CertPathValidatorException e) {
@@ -182,7 +191,7 @@ public class TrustManagerImpl implements X509TrustManager {
         for (currIndex = 0; currIndex < chain.length; currIndex++) {
             // If the current cert is a TrustAnchor, we can ignore the rest of the chain.
             // This avoids including "bridge" CA certs that added for legacy compatability.
-            if (isTrustAnchor(chain[currIndex])) {
+            if (params.isTrustAnchor(chain[currIndex])) {
                 currIndex--;
                 break;
             }
@@ -223,17 +232,6 @@ public class TrustManagerImpl implements X509TrustManager {
             return chain;
         }
         return Arrays.copyOf(chain, chainLength);
-    }
-
-    /**
-     * Checks whether the given certificate is found in our trust store.
-     */
-    private boolean isTrustAnchor(X509Certificate cert) {
-        if (params instanceof IndexedPKIXParameters) {
-            IndexedPKIXParameters index = (IndexedPKIXParameters) params;
-            return index.isTrustAnchor(cert);
-        }
-        return IndexedPKIXParameters.isTrustAnchor(cert, params.getTrustAnchors());
     }
 
     /**

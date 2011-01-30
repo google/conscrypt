@@ -17,11 +17,8 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.PublicKey;
 import java.security.cert.CertPathValidatorException;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.PKIXParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
@@ -37,7 +34,7 @@ import javax.security.auth.x500.X500Principal;
 /**
  * Indexes trust anchors so they can be found in O(1) time instead of O(N).
  */
-public class IndexedPKIXParameters extends PKIXParameters {
+public final class IndexedPKIXParameters extends PKIXParameters {
 
     private final Map<X500Principal, List<TrustAnchor>> subjectToTrustAnchors
             = new HashMap<X500Principal, List<TrustAnchor>>();
@@ -48,22 +45,22 @@ public class IndexedPKIXParameters extends PKIXParameters {
         index();
     }
 
-    public IndexedPKIXParameters(KeyStore keyStore)
-        throws KeyStoreException, InvalidAlgorithmParameterException {
-        super(keyStore);
-        index();
-    }
-
     private void index() {
         for (TrustAnchor anchor : getTrustAnchors()) {
-            X500Principal subject;
-            X509Certificate cert = anchor.getTrustedCert();
-            if (cert != null) {
-                subject = cert.getSubjectX500Principal();
-            } else {
-                subject = anchor.getCA();
-            }
+            index(anchor);
+        }
+    }
 
+    public void index(TrustAnchor anchor) {
+        X500Principal subject;
+        X509Certificate cert = anchor.getTrustedCert();
+        if (cert != null) {
+            subject = cert.getSubjectX500Principal();
+        } else {
+            subject = anchor.getCA();
+        }
+
+        synchronized (subjectToTrustAnchors) {
             List<TrustAnchor> anchors = subjectToTrustAnchors.get(subject);
             if (anchors == null) {
                 anchors = new ArrayList<TrustAnchor>();
@@ -76,25 +73,27 @@ public class IndexedPKIXParameters extends PKIXParameters {
     public TrustAnchor findTrustAnchor(X509Certificate cert)
             throws CertPathValidatorException {
         X500Principal issuer = cert.getIssuerX500Principal();
-        List<TrustAnchor> anchors = subjectToTrustAnchors.get(issuer);
-        if (anchors == null) {
-            return null;
-        }
-
         Exception verificationException = null;
-        for (TrustAnchor anchor : anchors) {
-            PublicKey publicKey;
-            try {
-                X509Certificate caCert = anchor.getTrustedCert();
-                if (caCert != null) {
-                    publicKey = caCert.getPublicKey();
-                } else {
-                    publicKey = anchor.getCAPublicKey();
+        synchronized (subjectToTrustAnchors) {
+            List<TrustAnchor> anchors = subjectToTrustAnchors.get(issuer);
+            if (anchors == null) {
+                return null;
+            }
+
+            for (TrustAnchor anchor : anchors) {
+                PublicKey publicKey;
+                try {
+                    X509Certificate caCert = anchor.getTrustedCert();
+                    if (caCert != null) {
+                        publicKey = caCert.getPublicKey();
+                    } else {
+                        publicKey = anchor.getCAPublicKey();
+                    }
+                    cert.verify(publicKey);
+                    return anchor;
+                } catch (Exception e) {
+                    verificationException = e;
                 }
-                cert.verify(publicKey);
-                return anchor;
-            } catch (Exception e) {
-                verificationException = e;
             }
         }
 
@@ -110,14 +109,16 @@ public class IndexedPKIXParameters extends PKIXParameters {
 
     public boolean isTrustAnchor(X509Certificate cert) {
         X500Principal subject = cert.getSubjectX500Principal();
-        List<TrustAnchor> anchors = subjectToTrustAnchors.get(subject);
-        if (anchors == null) {
-            return false;
+        synchronized (subjectToTrustAnchors) {
+            List<TrustAnchor> anchors = subjectToTrustAnchors.get(subject);
+            if (anchors == null) {
+                return false;
+            }
+            return isTrustAnchor(cert, anchors);
         }
-        return isTrustAnchor(cert, anchors);
     }
 
-    public static boolean isTrustAnchor(X509Certificate cert, Collection<TrustAnchor> anchors) {
+    private static boolean isTrustAnchor(X509Certificate cert, Collection<TrustAnchor> anchors) {
         PublicKey certPublicKey = cert.getPublicKey();
         for (TrustAnchor anchor : anchors) {
             PublicKey caPublicKey;
