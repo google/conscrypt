@@ -80,7 +80,7 @@ public class OpenSSLSignature extends Signature {
     /**
      * Holds a pointer to the native message digest context.
      */
-    private final int ctx;
+    private int ctx;
 
     /**
      * Holds a pointer to the native DSA key.
@@ -141,7 +141,6 @@ public class OpenSSLSignature extends Signature {
         }
 
         this.evpAlgorithm = algorithm;
-        this.ctx = NativeCrypto.EVP_MD_CTX_create();
     }
 
     @Override
@@ -199,7 +198,7 @@ public class OpenSSLSignature extends Signature {
         }
 
         try {
-            NativeCrypto.EVP_VerifyInit(ctx, evpAlgorithm);
+            ctx = NativeCrypto.EVP_VerifyInit(evpAlgorithm);
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
