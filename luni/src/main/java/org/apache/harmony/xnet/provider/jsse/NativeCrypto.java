@@ -56,9 +56,15 @@ public final class NativeCrypto {
 
     public static native void EVP_PKEY_free(int pkey);
 
-    // --- General context handling functions (despite the names) --------------
+    // --- Message digest functions --------------
 
-    public static native int EVP_MD_CTX_create();
+    public static native int EVP_get_digestbyname(String name);
+
+    public static native int EVP_MD_size(int evp_md);
+
+    public static native int EVP_MD_block_size(int evp_md);
+
+    // --- Message digest context functions --------------
 
     public static native void EVP_MD_CTX_destroy(int ctx);
 
@@ -66,19 +72,15 @@ public final class NativeCrypto {
 
     // --- Digest handling functions -------------------------------------------
 
-    public static native void EVP_DigestInit(int ctx, String algorithm);
+    public static native int EVP_DigestInit(int evp_md);
 
     public static native void EVP_DigestUpdate(int ctx, byte[] buffer, int offset, int length);
 
     public static native int EVP_DigestFinal(int ctx, byte[] hash, int offset);
 
-    public static native int EVP_MD_CTX_size(int ctx);
-
-    public static native int EVP_MD_CTX_block_size(int ctx);
-
     // --- Signature handling functions ----------------------------------------
 
-    public static native void EVP_VerifyInit(int ctx, String algorithm);
+    public static native int EVP_VerifyInit(String algorithm);
 
     public static native void EVP_VerifyUpdate(int ctx, byte[] buffer,
                                                int offset, int length);
