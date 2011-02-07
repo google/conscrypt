@@ -22,7 +22,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.security.KeyManagementException;
 import javax.net.ssl.SSLServerSocketFactory;
-import libcore.base.EmptyArray;
+import libcore.util.EmptyArray;
 
 /**
  * Implementation of SSLServerSocketFactory.

@@ -33,7 +33,7 @@ import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 import javax.security.cert.CertificateException;
-import libcore.base.Objects;
+import libcore.util.Objects;
 import org.apache.harmony.luni.util.TwoKeyHashMap;
 
 /**

@@ -18,7 +18,6 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -31,7 +30,7 @@ import java.security.cert.CertificateException;
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactorySpi;
-import libcore.base.EmptyArray;
+import libcore.util.EmptyArray;
 
 /**
  *
