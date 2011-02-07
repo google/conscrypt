@@ -19,7 +19,7 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import libcore.base.EmptyArray;
+import libcore.util.EmptyArray;
 
 /**
  * Represents client key exchange message

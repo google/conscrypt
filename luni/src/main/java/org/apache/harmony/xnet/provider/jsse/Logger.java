@@ -20,7 +20,7 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.io.PrintStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import libcore.base.EmptyArray;
+import libcore.util.EmptyArray;
 
 /**
  * This class provides debug logging for JSSE provider implementation

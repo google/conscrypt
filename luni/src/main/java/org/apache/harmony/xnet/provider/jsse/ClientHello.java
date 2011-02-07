@@ -20,7 +20,7 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import libcore.base.EmptyArray;
+import libcore.util.EmptyArray;
 
 /**
  * Represents Client Hello message

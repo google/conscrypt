@@ -30,7 +30,7 @@ import java.security.cert.CertificateException;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactorySpi;
 import javax.net.ssl.ManagerFactoryParameters;
-import libcore.base.EmptyArray;
+import libcore.util.EmptyArray;
 
 /**
  * KeyManagerFactory implementation.
