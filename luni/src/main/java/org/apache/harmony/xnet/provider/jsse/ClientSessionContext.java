@@ -39,6 +39,10 @@ public class ClientSessionContext extends AbstractSessionContext {
         super(10, 0);
     }
 
+    public int size() {
+        return sessionsByHostAndPort.size();
+    }
+
     public void setPersistentCache(SSLClientSessionCache persistentCache) {
         this.persistentCache = persistentCache;
     }
@@ -94,7 +98,7 @@ public class ClientSessionContext extends AbstractSessionContext {
     }
 
     @Override
-    void putSession(SSLSession session) {
+    public void putSession(SSLSession session) {
         super.putSession(session);
 
         String host = session.getPeerHost();

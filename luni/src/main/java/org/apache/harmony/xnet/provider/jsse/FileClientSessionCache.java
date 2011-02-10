@@ -39,7 +39,7 @@ import libcore.io.IoUtils;
  */
 public class FileClientSessionCache {
 
-    static final int MAX_SIZE = 12; // ~72k
+    public static final int MAX_SIZE = 12; // ~72k
 
     static final java.util.logging.Logger logger
             = java.util.logging.Logger.getLogger(
