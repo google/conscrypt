@@ -180,7 +180,7 @@ public final class NativeCrypto {
      * be passed for compatibility as to provide the hint that we
      * support secure renegotiation.
      */
-    public static String TLS_EMPTY_RENEGOTIATION_INFO_SCSV
+    public static final String TLS_EMPTY_RENEGOTIATION_INFO_SCSV
             = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
 
     static {
@@ -283,13 +283,13 @@ public final class NativeCrypto {
     }
 
     // SSL mode from ssl.h
-    public static long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000040L;
+    public static final long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000040L;
 
     // SSL options from ssl.h
-    public static long SSL_OP_NO_TICKET      = 0x00004000L;
-    public static long SSL_OP_NO_COMPRESSION = 0x00020000L;
-    public static long SSL_OP_NO_SSLv3       = 0x02000000L;
-    public static long SSL_OP_NO_TLSv1       = 0x04000000L;
+    public static final long SSL_OP_NO_TICKET      = 0x00004000L;
+    public static final long SSL_OP_NO_COMPRESSION = 0x00020000L;
+    public static final long SSL_OP_NO_SSLv3       = 0x02000000L;
+    public static final long SSL_OP_NO_TLSv1       = 0x04000000L;
 
     public static native int SSL_CTX_new();
 
