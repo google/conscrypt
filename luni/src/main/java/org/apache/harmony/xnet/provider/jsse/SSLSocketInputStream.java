@@ -26,16 +26,15 @@ import javax.net.ssl.SSLException;
  * for SSLSocket. It accumulates the application data
  * received by SSL protocol.
  */
-public final class SSLSocketInputStream
-        extends InputStream {
+public final class SSLSocketInputStream extends InputStream {
 
     // The size of the internal data buffer.
     // It should not be less than maximum data chunk enclosed
     // in one ssl packet.
-    private final int size = SSLRecordProtocol.MAX_DATA_LENGTH;
+    private static final int BUFFER_SIZE = SSLRecordProtocol.MAX_DATA_LENGTH;
 
     // Internal buffer accumulating the received application data
-    private byte[] buffer = new byte[size];
+    private byte[] buffer = new byte[BUFFER_SIZE];
 
     // position of the next byte to read from the buffer
     private int pos;
@@ -142,10 +141,10 @@ public final class SSLSocketInputStream
         return i;
     }
 
-    // The helper class devivering the application data from the record layer
+    // The helper class delivering the application data from the record layer
     // to this input stream.
     // It 'adapts' the InputStream interface to Appendable, which is used for
-    // transmition of income data from the record protocol to its clients.
+    // transmission of income data from the record protocol to its clients.
     private class Adapter implements org.apache.harmony.xnet.provider.jsse.Appendable {
         /**
          * Appends the data to the stream.
@@ -154,20 +153,20 @@ public final class SSLSocketInputStream
          */
         public void append(byte[] src) {
             int length = src.length;
-            if (size - (end - pos) < length) {
+            if (BUFFER_SIZE - (end - pos) < length) {
                 // If the size of the buffer is greater than or equals to
                 // SSLRecordProtocol.MAX_DATA_LENGTH this situation will
                 // happen iff:
                 // 1. the length of received data fragment is greater
                 // than allowed by the spec
-                // 2. it is rehandhaking stage and we have got several
+                // 2. it is rehandshaking stage and we have got several
                 // extra app data messages.
                 // In any case it is better to throw alert exception.
                 throw new AlertException(AlertProtocol.INTERNAL_ERROR,
                         new SSLException("Could not accept income app data."));
             }
-            if (end + length > size) {
-                // move the content of the buffer to the beginnig
+            if (end + length > BUFFER_SIZE) {
+                // move the content of the buffer to the beginning
                 System.arraycopy(buffer, pos, buffer, 0, end-pos);
                 end -= pos;
                 pos = 0;
@@ -177,4 +176,3 @@ public final class SSLSocketInputStream
         }
     }
 }
-
