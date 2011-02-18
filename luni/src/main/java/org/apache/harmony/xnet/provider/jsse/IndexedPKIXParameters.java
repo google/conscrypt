@@ -63,7 +63,7 @@ public final class IndexedPKIXParameters extends PKIXParameters {
         synchronized (subjectToTrustAnchors) {
             List<TrustAnchor> anchors = subjectToTrustAnchors.get(subject);
             if (anchors == null) {
-                anchors = new ArrayList<TrustAnchor>();
+                anchors = new ArrayList<TrustAnchor>(1);
                 subjectToTrustAnchors.put(subject, anchors);
             }
             anchors.add(anchor);
