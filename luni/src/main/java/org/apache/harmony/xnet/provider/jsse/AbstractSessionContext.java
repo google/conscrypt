@@ -292,28 +292,4 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             super.finalize();
         }
     }
-
-    /**
-     * Byte array wrapper. Implements equals() and hashCode().
-     */
-    static class ByteArray {
-
-        private final byte[] bytes;
-
-        ByteArray(byte[] bytes) {
-            this.bytes = bytes;
-        }
-
-        @Override
-        public int hashCode() {
-            return Arrays.hashCode(bytes);
-        }
-
-        @Override
-        @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
-        public boolean equals(Object o) {
-            ByteArray other = (ByteArray) o;
-            return Arrays.equals(bytes, other.bytes);
-        }
-    }
 }

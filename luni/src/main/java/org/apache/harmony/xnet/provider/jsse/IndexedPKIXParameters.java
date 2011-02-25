@@ -138,22 +138,4 @@ public final class IndexedPKIXParameters extends PKIXParameters {
         }
         return false;
     }
-
-    /**
-     * Wraps a byte[] and adds equals() and hashCode() support.
-     */
-    static class Bytes {
-        final byte[] bytes;
-        final int hash;
-        Bytes(byte[] bytes) {
-            this.bytes = bytes;
-            this.hash = Arrays.hashCode(bytes);
-        }
-        @Override public int hashCode() {
-            return hash;
-        }
-        @Override public boolean equals(Object o) {
-            return Arrays.equals(bytes, ((Bytes) o).bytes);
-        }
-    }
 }
