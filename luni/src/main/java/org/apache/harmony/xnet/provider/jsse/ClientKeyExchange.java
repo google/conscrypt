@@ -19,6 +19,7 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import libcore.io.Streams;
 import libcore.util.EmptyArray;
 
 /**
@@ -109,7 +110,7 @@ public class ClientKeyExchange extends Message {
                 this.length = 2 + size;
             }
             exchange_keys = new byte[size];
-            in.read(exchange_keys, 0, size);
+            Streams.readFully(in, exchange_keys);
             if (this.length != length) {
                 fatalAlert(AlertProtocol.DECODE_ERROR, "DECODE ERROR: incorrect ClientKeyExchange");
             }

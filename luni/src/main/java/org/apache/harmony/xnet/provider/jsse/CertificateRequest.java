@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import javax.security.auth.x500.X500Principal;
+import libcore.io.Streams;
 
 /**
  *
@@ -88,7 +89,7 @@ public class CertificateRequest extends Message {
     public CertificateRequest(HandshakeIODataStream in, int length) throws IOException {
         int size = in.readUint8();
         certificate_types = new byte[size];
-        in.read(certificate_types, 0, size);
+        Streams.readFully(in, certificate_types);
         size = in.readUint16();
         int totalPrincipalsLength = 0;
         int principalLength = 0;

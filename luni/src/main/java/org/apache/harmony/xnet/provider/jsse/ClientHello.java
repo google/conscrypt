@@ -20,6 +20,7 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import libcore.io.Streams;
 import libcore.util.EmptyArray;
 
 /**
@@ -88,7 +89,7 @@ public class ClientHello extends Message {
         client_version = new byte[2];
         client_version[0] = (byte) in.readUint8();
         client_version[1] = (byte) in.readUint8();
-        in.read(random, 0, 32);
+        Streams.readFully(in, random);
         int size = in.read();
         session_id = new byte[size];
         in.read(session_id, 0, size);
