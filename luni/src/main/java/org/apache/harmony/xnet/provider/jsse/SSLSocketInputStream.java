@@ -107,28 +107,14 @@ public final class SSLSocketInputStream extends InputStream {
                 return -1;
             }
             // If there is no data in the buffer
-            // - will block untill the data will be provided by
+            // - will block until the data will be provided by
             // record layer
             owner.needAppData();
         }
         return buffer[pos++] & 0xFF;
     }
 
-    /**
-     * Method acts as described in spec for superclass.
-     * @see java.io.InputStream#read(byte[])
-     */
-    @Override
-    public int read(byte[] b) throws IOException {
-        return read(b, 0, b.length);
-    }
-
-    /**
-     * Method acts as described in spec for superclass.
-     * @see java.io.InputStream#read(byte[],int,int)
-     */
-    @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    @Override public int read(byte[] b, int off, int len) throws IOException {
         int read_b;
         int i = 0;
         do {

@@ -43,13 +43,7 @@ public class SSLSocketOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(byte[] b) throws IOException {
-        owner.writeAppData(b, 0, b.length);
-    }
-
-    @Override
     public void write(byte[] b, int off, int len) throws IOException {
         owner.writeAppData(b, off, len);
     }
-
 }
