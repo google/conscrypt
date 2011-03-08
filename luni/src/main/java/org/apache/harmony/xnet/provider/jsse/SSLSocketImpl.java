@@ -48,10 +48,10 @@ public class SSLSocketImpl extends SSLSocket {
     // alert protocol to be used
     private AlertProtocol alertProtocol;
     // application data input stream, this stream is presented by
-    // ssl socket as an input stream. Additionaly this object is a
+    // ssl socket as an input stream. Additionally this object is a
     // place where application data will be stored by record protocol
     private SSLSocketInputStream appDataIS;
-    // outcoming application data stream
+    // outgoing application data stream
     private SSLSocketOutputStream appDataOS;
     // active session object
     private SSLSessionImpl session;
@@ -663,8 +663,7 @@ public class SSLSocketImpl extends SSLSocket {
      * This method is called by SSLSocketOutputStream when client application
      * tryes to send the data over ssl protocol.
      */
-    protected void writeAppData(byte[] data, int offset, int len)
-                                                    throws IOException {
+    protected void writeAppData(byte[] data, int offset, int len) throws IOException {
         if (!handshake_started) {
             startHandshake();
         }
@@ -698,14 +697,14 @@ public class SSLSocketImpl extends SSLSocket {
     }
 
     /*
-     * Performs handshake proccess over this connection. The handshake
+     * Performs handshake process over this connection. The handshake
      * process is directed by the handshake status code provided by
      * handshake protocol. If this status is NEED_WRAP, method retrieves
      * handshake message from handshake protocol and sends it to another peer.
      * If this status is NEED_UNWRAP, method receives and processes handshake
      * message from another peer. Each of this stages (wrap/unwrap) change
      * the state of handshake protocol and this process is performed
-     * until handshake status is FINISHED. After handshake process is finnished
+     * until handshake status is FINISHED. After handshake process is finished
      * handshake completed event are sent to the registered listeners.
      * For more information about the handshake process see
      * TLS v1 specification (http://www.ietf.org/rfc/rfc2246.txt) p 7.3.
@@ -840,4 +839,3 @@ public class SSLSocketImpl extends SSLSocket {
         throw reason;
     }
 }
-

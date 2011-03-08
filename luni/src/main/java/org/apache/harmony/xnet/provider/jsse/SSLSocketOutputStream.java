@@ -39,7 +39,7 @@ public class SSLSocketOutputStream extends OutputStream {
     @Override
     public void write(int b) throws IOException {
         singleByte[0] = (byte) (b & 0xFF);
-        owner.writeAppData(singleByte, 0, 1);
+        write(singleByte);
     }
 
     @Override

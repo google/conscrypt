@@ -69,7 +69,7 @@ public final class SSLSocketInputStream extends InputStream {
         end_reached = true;
     }
 
-    // ------------------ InputStream implementetion -------------------
+    // ------------------ InputStream implementation -------------------
 
     /**
      * Returns the number of bytes available for reading without blocking.
