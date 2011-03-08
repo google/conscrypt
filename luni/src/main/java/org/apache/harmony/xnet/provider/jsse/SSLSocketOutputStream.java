@@ -19,6 +19,7 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import libcore.io.Streams;
 
 /**
  * This is a application data output stream used in SSLSocket
@@ -27,19 +28,14 @@ import java.io.OutputStream;
  * and then sent to the peer host.
  */
 public class SSLSocketOutputStream extends OutputStream {
-
     private final SSLSocketImpl owner;
 
     protected SSLSocketOutputStream(SSLSocketImpl owner) {
         this.owner = owner;
     }
 
-    private final byte[] singleByte = new byte[1];
-
-    @Override
-    public void write(int b) throws IOException {
-        singleByte[0] = (byte) (b & 0xFF);
-        write(singleByte);
+    @Override public void write(int b) throws IOException {
+        Streams.writeSingleByte(this, b);
     }
 
     @Override

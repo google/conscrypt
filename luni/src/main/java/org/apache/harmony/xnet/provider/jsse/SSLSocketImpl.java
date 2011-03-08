@@ -450,9 +450,6 @@ public class SSLSocketImpl extends SSLSocket {
         }
     }
 
-
-    // ---------------- Socket's methods overridings -------------------
-
     /**
      * This method works according to the specification of implemented class.
      * @see javax.net.ssl.SSLSocket#getInputStream()
@@ -563,17 +560,8 @@ public class SSLSocketImpl extends SSLSocket {
                 "Method shutdownInput() is not supported.");
     }
 
-    /**
-     * Returns the string representation of the object.
-     */
-    @Override
-    public String toString() {
-        return "[SSLSocketImpl]";
-    }
-
     // -----------------------------------------------------------------
 
-    // Shutdownes the ssl socket and makes all cleanup work.
     private void shutdown() {
         if (handshake_started) {
             alertProtocol.shutdown();
@@ -588,7 +576,7 @@ public class SSLSocketImpl extends SSLSocket {
 
     /**
      * This method is called by SSLSocketInputStream class
-     * when client application tryes to read application data from
+     * when client application tries to read application data from
      * the stream, but there is no data in its underlying buffer.
      * @throws  IOException
      */
@@ -635,7 +623,7 @@ public class SSLSocketImpl extends SSLSocket {
                                     + type + " has been got"));
                 }
                 if (alertProtocol.hasAlert()) {
-                    // warning alert occured during wrap or unwrap
+                    // warning alert occurred during wrap or unwrap
                     // (note: fatal alert causes AlertException
                     // to be thrown)
                     output.write(alertProtocol.wrap());
@@ -660,8 +648,8 @@ public class SSLSocketImpl extends SSLSocket {
     }
 
     /**
-     * This method is called by SSLSocketOutputStream when client application
-     * tryes to send the data over ssl protocol.
+     * This method is called by SSLSocketOutputStream when a client application
+     * tries to send the data over ssl protocol.
      */
     protected void writeAppData(byte[] data, int offset, int len) throws IOException {
         if (!handshake_started) {
@@ -765,7 +753,7 @@ public class SSLSocketImpl extends SSLSocket {
                             "Handshake passed unexpected status: "+status));
                 }
                 if (alertProtocol.hasAlert()) {
-                    // warning alert uccured during wrap or unwrap
+                    // warning alert occurred during wrap or unwrap
                     // (note: fatal alert causes AlertException
                     // to be thrown)
                     output.write(alertProtocol.wrap());
