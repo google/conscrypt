@@ -44,9 +44,7 @@ public class SSLServerSocketImpl extends SSLServerSocket {
      * @param   sslParameters:  SSLParameters
      * @throws  IOException
      */
-    protected SSLServerSocketImpl(SSLParametersImpl sslParameters)
-        throws IOException {
-        super();
+    protected SSLServerSocketImpl(SSLParametersImpl sslParameters) throws IOException {
         this.sslParameters = sslParameters;
     }
 

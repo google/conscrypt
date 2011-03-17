@@ -59,7 +59,6 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
      * @param pwd
      */
     public KeyManagerImpl(KeyStore keyStore, char[] pwd) {
-        super();
         this.hash = new Hashtable<String, PrivateKeyEntry>();
         final Enumeration<String> aliases;
         try {

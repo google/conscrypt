@@ -112,7 +112,6 @@ public class OpenSSLSocketImpl
      * @throws IOException if network fails
      */
     protected OpenSSLSocketImpl(SSLParametersImpl sslParameters) throws IOException {
-        super();
         this.socket = this;
         this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters);
@@ -129,7 +128,6 @@ public class OpenSSLSocketImpl
                                 String[] enabledProtocols,
                                 String[] enabledCipherSuites,
                                 String[] enabledCompressionMethods) throws IOException {
-        super();
         this.socket = this;
         this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters, enabledProtocols, enabledCipherSuites, enabledCompressionMethods);
@@ -204,7 +202,6 @@ public class OpenSSLSocketImpl
      */
     protected OpenSSLSocketImpl(Socket socket, String host, int port,
             boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
-        super();
         this.socket = socket;
         this.fd = NativeCrypto.getFileDescriptor(socket);
         this.wrappedHost = host;

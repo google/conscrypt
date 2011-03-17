@@ -37,9 +37,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     private String[] enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
     private String[] enabledCompressionMethods = NativeCrypto.getDefaultCompressionMethods();
 
-    protected OpenSSLServerSocketImpl(SSLParametersImpl sslParameters)
-        throws IOException {
-        super();
+    protected OpenSSLServerSocketImpl(SSLParametersImpl sslParameters) throws IOException {
         this.sslParameters = sslParameters;
     }
 

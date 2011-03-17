@@ -82,7 +82,6 @@ public class SSLSocketImpl extends SSLSocket {
      * for more information.
      */
     protected SSLSocketImpl(SSLParametersImpl sslParameters) {
-        super();
         this.sslParameters = sslParameters;
         // init should be called after creation!
     }

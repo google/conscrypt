@@ -27,7 +27,6 @@ public class OpenSSLServerSocketFactoryImpl extends javax.net.ssl.SSLServerSocke
     private IOException instantiationException;
 
     public OpenSSLServerSocketFactoryImpl() {
-        super();
         try {
             this.sslParameters = SSLParametersImpl.getDefault();
             this.sslParameters.setUseClientMode(false);

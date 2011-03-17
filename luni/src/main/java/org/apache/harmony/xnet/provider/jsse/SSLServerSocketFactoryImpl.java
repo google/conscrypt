@@ -36,7 +36,6 @@ public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
      * Constructor.
      */
     public SSLServerSocketFactoryImpl() {
-        super();
         try {
             this.sslParameters = SSLParametersImpl.getDefault();
             this.sslParameters.setUseClientMode(false);
@@ -51,7 +50,6 @@ public class SSLServerSocketFactoryImpl extends SSLServerSocketFactory {
      * Constructor.
      */
     protected SSLServerSocketFactoryImpl(SSLParametersImpl sslParameters) {
-        super();
         this.sslParameters = (SSLParametersImpl) sslParameters.clone();
         this.sslParameters.setUseClientMode(false);
     }

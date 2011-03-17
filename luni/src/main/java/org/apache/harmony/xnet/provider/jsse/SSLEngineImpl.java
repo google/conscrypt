@@ -81,7 +81,6 @@ public class SSLEngineImpl extends SSLEngine {
     private Logger.Stream logger = Logger.getStream("engine");
 
     protected SSLEngineImpl(SSLParametersImpl sslParameters) {
-        super();
         this.sslParameters = sslParameters;
     }
 
@@ -753,4 +752,3 @@ public class SSLEngineImpl extends SSLEngine {
             : SSLEngineResult.Status.OK;
     }
 }
-

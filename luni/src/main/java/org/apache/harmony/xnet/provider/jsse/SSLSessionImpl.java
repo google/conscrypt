@@ -57,7 +57,6 @@ public class SSLSessionImpl implements SSLSession, Cloneable  {
         final AccessControlContext acc;
 
         ValueKey(String name) {
-            super();
             this.name = name;
             this.acc = AccessController.getContext();
         }
