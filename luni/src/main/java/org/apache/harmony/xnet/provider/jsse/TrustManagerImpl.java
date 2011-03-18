@@ -44,7 +44,7 @@ import javax.net.ssl.X509TrustManager;
  *
  * @see javax.net.ssl.X509TrustManager
  */
-public class TrustManagerImpl implements X509TrustManager {
+public final class TrustManagerImpl implements X509TrustManager {
 
     private final CertPathValidator validator;
 
@@ -55,6 +55,10 @@ public class TrustManagerImpl implements X509TrustManager {
     private final Exception err;
 
     private final CertificateFactory factory;
+
+    public final IndexedPKIXParameters getIndexedPKIXParameters() {
+        return params;
+    }
 
     /**
      * Creates trust manager implementation
@@ -118,7 +122,7 @@ public class TrustManagerImpl implements X509TrustManager {
      * @see javax.net.ssl.X509TrustManager#checkClientTrusted(X509Certificate[],
      *      String)
      */
-    public void checkClientTrusted(X509Certificate[] chain, String authType)
+    @Override public void checkClientTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
         checkTrusted(chain, authType);
     }
@@ -127,7 +131,7 @@ public class TrustManagerImpl implements X509TrustManager {
      * @see javax.net.ssl.X509TrustManager#checkServerTrusted(X509Certificate[],
      *      String)
      */
-    public void checkServerTrusted(X509Certificate[] chain, String authType)
+    @Override public void checkServerTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
         checkTrusted(chain, authType);
     }
@@ -237,7 +241,7 @@ public class TrustManagerImpl implements X509TrustManager {
     /**
      * @see javax.net.ssl.X509TrustManager#getAcceptedIssuers()
      */
-    public X509Certificate[] getAcceptedIssuers() {
+    @Override public X509Certificate[] getAcceptedIssuers() {
         return acceptedIssuers.clone();
     }
 }
