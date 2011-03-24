@@ -546,8 +546,7 @@ public class SSLSocketImpl extends SSLSocket {
      */
     @Override
     public void shutdownOutput() {
-        throw new UnsupportedOperationException(
-                "Method shutdownOutput() is not supported.");
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -555,8 +554,7 @@ public class SSLSocketImpl extends SSLSocket {
      */
     @Override
     public void shutdownInput() {
-        throw new UnsupportedOperationException(
-                "Method shutdownInput() is not supported.");
+        throw new UnsupportedOperationException();
     }
 
     // -----------------------------------------------------------------
