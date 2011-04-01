@@ -77,7 +77,6 @@ public class OpenSSLSocketImpl
     private String hostname;
     private OpenSSLSessionImpl sslSession;
     private final Socket socket;
-    private final FileDescriptor fd;
     private boolean autoClose;
     private boolean handshakeStarted = false;
     private final CloseGuard guard = CloseGuard.get();
@@ -113,7 +112,6 @@ public class OpenSSLSocketImpl
      */
     protected OpenSSLSocketImpl(SSLParametersImpl sslParameters) throws IOException {
         this.socket = this;
-        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters);
     }
 
@@ -129,7 +127,6 @@ public class OpenSSLSocketImpl
                                 String[] enabledCipherSuites,
                                 String[] enabledCompressionMethods) throws IOException {
         this.socket = this;
-        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters, enabledProtocols, enabledCipherSuites, enabledCompressionMethods);
     }
 
@@ -143,7 +140,6 @@ public class OpenSSLSocketImpl
             throws IOException {
         super(host, port);
         this.socket = this;
-        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters);
     }
 
@@ -157,7 +153,6 @@ public class OpenSSLSocketImpl
             throws IOException {
         super(address, port);
         this.socket = this;
-        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters);
     }
 
@@ -174,7 +169,6 @@ public class OpenSSLSocketImpl
             throws IOException {
         super(host, port, clientAddress, clientPort);
         this.socket = this;
-        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters);
     }
 
@@ -190,7 +184,6 @@ public class OpenSSLSocketImpl
             throws IOException {
         super(address, port, clientAddress, clientPort);
         this.socket = this;
-        this.fd = NativeCrypto.getFileDescriptor(socket);
         init(sslParameters);
     }
 
@@ -203,7 +196,6 @@ public class OpenSSLSocketImpl
     protected OpenSSLSocketImpl(Socket socket, String host, int port,
             boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
         this.socket = socket;
-        this.fd = NativeCrypto.getFileDescriptor(socket);
         this.wrappedHost = host;
         this.wrappedPort = port;
         this.autoClose = autoClose;
@@ -475,8 +467,8 @@ public class OpenSSLSocketImpl
 
             int sslSessionNativePointer;
             try {
-                sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer, fd, this,
-                                                                        getSoTimeout(), client);
+                sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer,
+                        socket.getFileDescriptor$(), this, getSoTimeout(), client);
             } catch (CertificateException e) {
                 SSLHandshakeException wrapper = new SSLHandshakeException(e.getMessage());
                 wrapper.initCause(e);
@@ -771,8 +763,8 @@ public class OpenSSLSocketImpl
             BlockGuard.getThreadPolicy().onNetwork();
             synchronized (readLock) {
                 checkOpen();
-                return NativeCrypto.SSL_read_byte(sslNativePointer, fd, OpenSSLSocketImpl.this,
-                                                  getSoTimeout());
+                return NativeCrypto.SSL_read_byte(sslNativePointer, socket.getFileDescriptor$(),
+                        OpenSSLSocketImpl.this, getSoTimeout());
             }
         }
 
@@ -789,8 +781,8 @@ public class OpenSSLSocketImpl
                 if (byteCount == 0) {
                     return 0;
                 }
-                return NativeCrypto.SSL_read(sslNativePointer, fd, OpenSSLSocketImpl.this,
-                                             buf, offset, byteCount, getSoTimeout());
+                return NativeCrypto.SSL_read(sslNativePointer, socket.getFileDescriptor$(),
+                        OpenSSLSocketImpl.this, buf, offset, byteCount, getSoTimeout());
             }
         }
     }
@@ -818,7 +810,8 @@ public class OpenSSLSocketImpl
             BlockGuard.getThreadPolicy().onNetwork();
             synchronized (writeLock) {
                 checkOpen();
-                NativeCrypto.SSL_write_byte(sslNativePointer, fd, OpenSSLSocketImpl.this, b);
+                NativeCrypto.SSL_write_byte(sslNativePointer, socket.getFileDescriptor$(),
+                        OpenSSLSocketImpl.this, b);
             }
         }
 
@@ -835,8 +828,8 @@ public class OpenSSLSocketImpl
                 if (byteCount == 0) {
                     return;
                 }
-                NativeCrypto.SSL_write(sslNativePointer, fd, OpenSSLSocketImpl.this,
-                                       buf, offset, byteCount);
+                NativeCrypto.SSL_write(sslNativePointer, socket.getFileDescriptor$(),
+                        OpenSSLSocketImpl.this, buf, offset, byteCount);
             }
         }
     }
@@ -1226,7 +1219,8 @@ public class OpenSSLSocketImpl
                     try {
                         if (handshakeStarted) {
                             BlockGuard.getThreadPolicy().onNetwork();
-                            NativeCrypto.SSL_shutdown(sslNativePointer, fd, this);
+                            NativeCrypto.SSL_shutdown(sslNativePointer, socket.getFileDescriptor$(),
+                                    this);
                         }
                     } catch (IOException ignored) {
                         /*
