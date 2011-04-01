@@ -123,31 +123,6 @@ public final class NativeCrypto {
 
     // --- SSL handling --------------------------------------------------------
 
-    private static final Field JAVA_NET_SOCKET_IMPL;
-    private static final Field JAVA_NET_SOCKETIMPL_FD;
-    static {
-        try {
-            JAVA_NET_SOCKET_IMPL = Socket.class.getDeclaredField("impl");
-            JAVA_NET_SOCKET_IMPL.setAccessible(true);
-            JAVA_NET_SOCKETIMPL_FD = SocketImpl.class.getDeclaredField("fd");
-            JAVA_NET_SOCKETIMPL_FD.setAccessible(true);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
-    }
-    /**
-     * Return the FileDescriptor associated with the provided socket.
-     */
-    public static FileDescriptor getFileDescriptor(Socket socket) {
-        try {
-            SocketImpl socketImpl = (SocketImpl) JAVA_NET_SOCKET_IMPL.get(socket);
-            FileDescriptor fd = (FileDescriptor) JAVA_NET_SOCKETIMPL_FD.get(socketImpl);
-            return fd;
-        } catch (IllegalAccessException e) {
-            throw new AssertionError(e);
-        }
-    }
-
     private static final String SUPPORTED_PROTOCOL_SSLV3 = "SSLv3";
     private static final String SUPPORTED_PROTOCOL_TLSV1 = "TLSv1";
 
