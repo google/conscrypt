@@ -17,14 +17,14 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.security.InvalidAlgorithmParameterException;
+import org.apache.harmony.xnet.provider.jsse.IndexedPKIXParameters;
+import org.apache.harmony.xnet.provider.jsse.TrustManagerImpl;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManager;
@@ -421,6 +421,11 @@ public class SSLParametersImpl implements Cloneable {
             }
         }
         return null;
+    }
+
+    public static IndexedPKIXParameters getDefaultIndexedPKIXParameters() {
+        TrustManagerImpl tm = (TrustManagerImpl) getDefaultTrustManager();
+        return tm.getIndexedPKIXParameters();
     }
 
 }
