@@ -18,10 +18,10 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.Socket;
-import java.net.SocketImpl;
 import java.net.SocketTimeoutException;
+import java.nio.ByteOrder;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
@@ -32,8 +32,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import javax.net.ssl.SSLException;
+import javax.security.auth.x500.X500Principal;
+import libcore.io.Memory;
 
 /**
  * Provides the Java side of our JNI glue for OpenSSL.
@@ -120,6 +121,23 @@ public final class NativeCrypto {
     public static native void RAND_seed(byte[] seed);
 
     public static native int RAND_load_file(String filename, long max_bytes);
+
+    // --- X509_NAME -----------------------------------------------------------
+
+    public static int X509_NAME_hash(X500Principal principal) {
+        return X509_NAME_hash(principal, "SHA1");
+    }
+    public static int X509_NAME_hash_old(X500Principal principal) {
+        return X509_NAME_hash(principal, "MD5");
+    }
+    private static int X509_NAME_hash(X500Principal principal, String algorithm) {
+        try {
+            byte[] digest = MessageDigest.getInstance(algorithm).digest(principal.getEncoded());
+            return Memory.peekInt(digest, 0, ByteOrder.LITTLE_ENDIAN);
+        } catch (NoSuchAlgorithmException e) {
+            throw new AssertionError(e);
+        }
+    }
 
     // --- SSL handling --------------------------------------------------------
 

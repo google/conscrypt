@@ -17,10 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
@@ -30,7 +26,6 @@ import java.security.cert.CertificateException;
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactorySpi;
-import libcore.util.EmptyArray;
 
 /**
  *
@@ -50,53 +45,17 @@ public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {
         if (ks != null) {
             keyStore = ks;
         } else {
-            if (System.getProperty("javax.net.ssl.trustStore") == null) {
-                String filename = System.getProperty("java.home") + "/etc/security/cacerts.bks";
-                System.setProperty("javax.net.ssl.trustStore", filename);
-            }
-            keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            String keyStoreName = System.getProperty("javax.net.ssl.trustStore");
-            String keyStorePwd = null;
-            if (keyStoreName == null || keyStoreName.equalsIgnoreCase("NONE") || keyStoreName.isEmpty()) {
-                try {
-                    keyStore.load(null, null);
-                } catch (IOException e) {
-                    throw new KeyStoreException(e);
-                } catch (CertificateException e) {
-                    throw new KeyStoreException(e);
-                } catch (NoSuchAlgorithmException e) {
-                    throw new KeyStoreException(e);
-                }
-            } else {
-                keyStorePwd = System.getProperty("javax.net.ssl.trustStorePassword");
-                char[] pwd;
-                if (keyStorePwd == null) {
-                    pwd = EmptyArray.CHAR;
-                } else {
-                    pwd = keyStorePwd.toCharArray();
-                }
-                try {
-                    InputStream in = null;
-                    try {
-                        in = new BufferedInputStream(new FileInputStream(keyStoreName));
-                        keyStore.load(in, pwd);
-                    } finally {
-                        if (in != null) {
-                            in.close();
-                        }
-                    }
-                } catch (FileNotFoundException e) {
-                    throw new KeyStoreException(e);
-                } catch (IOException e) {
-                    throw new KeyStoreException(e);
-                } catch (CertificateException e) {
-                    throw new KeyStoreException(e);
-                } catch (NoSuchAlgorithmException e) {
-                    throw new KeyStoreException(e);
-                }
+            keyStore = KeyStore.getInstance("AndroidCAStore");
+            try {
+                keyStore.load(null, null);
+            } catch (IOException e) {
+                throw new KeyStoreException(e);
+            } catch (CertificateException e) {
+                throw new KeyStoreException(e);
+            } catch (NoSuchAlgorithmException e) {
+                throw new KeyStoreException(e);
             }
         }
-
     }
 
     /**
