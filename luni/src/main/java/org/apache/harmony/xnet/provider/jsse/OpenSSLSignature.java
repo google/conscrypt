@@ -181,8 +181,8 @@ public class OpenSSLSignature extends Signature {
                         dsaParams.getQ().toByteArray(), dsaParams.getG().toByteArray(),
                         dsaPublicKey.getY().toByteArray(), null);
 
-            } catch (Exception ex) {
-                throw new InvalidKeyException(ex.toString());
+            } catch (Exception e) {
+                throw new InvalidKeyException(e);
             }
         } else if (publicKey instanceof RSAPublicKey) {
             try {
@@ -190,8 +190,8 @@ public class OpenSSLSignature extends Signature {
                 rsa = NativeCrypto.EVP_PKEY_new_RSA(rsaPublicKey.getModulus().toByteArray(),
                         rsaPublicKey.getPublicExponent().toByteArray(), null, null, null);
 
-            } catch (Exception ex) {
-                throw new InvalidKeyException(ex.toString());
+            } catch (Exception e) {
+                throw new InvalidKeyException(e);
             }
         } else {
             throw new InvalidKeyException("Need DSA or RSA public key");

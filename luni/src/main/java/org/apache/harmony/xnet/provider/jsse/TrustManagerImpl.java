@@ -46,14 +46,24 @@ import javax.net.ssl.X509TrustManager;
  */
 public final class TrustManagerImpl implements X509TrustManager {
 
+    /**
+     * The AndroidCAStore if non-null, null otherwise
+     */
+    private final KeyStore rootKeyStore;
+
     private final CertPathValidator validator;
 
     private final IndexedPKIXParameters params;
 
-    private final X509Certificate[] acceptedIssuers;
+    /**
+     * This is lazily initialized in the AndroidCAStore case since it
+     * forces us to bring all the CAs into memory. In the
+     * non-AndroidCAStore, we initialize this as part of the
+     * constructor.
+     */
+    private volatile X509Certificate[] acceptedIssuers;
 
     private final Exception err;
-
     private final CertificateFactory factory;
 
     public final IndexedPKIXParameters getIndexedPKIXParameters() {
@@ -61,35 +71,50 @@ public final class TrustManagerImpl implements X509TrustManager {
     }
 
     /**
-     * Creates trust manager implementation
+     * Creates X509TrustManager based on a keystore
      *
      * @param ks
      */
-    public TrustManagerImpl(KeyStore ks) {
+    public TrustManagerImpl(KeyStore keyStore) {
         CertPathValidator validatorLocal = null;
         CertificateFactory factoryLocal = null;
+        KeyStore rootKeyStoreLocal = null;
         IndexedPKIXParameters paramsLocal = null;
         X509Certificate[] acceptedIssuersLocal = null;
         Exception errLocal = null;
         try {
             validatorLocal = CertPathValidator.getInstance("PKIX");
             factoryLocal = CertificateFactory.getInstance("X509");
-            acceptedIssuersLocal = acceptedIssuers(ks);
-            paramsLocal = new IndexedPKIXParameters(trustAnchors(acceptedIssuersLocal));
+
+            Set<TrustAnchor> trustAnchors;
+            // if we have an AndroidCAStore, we will lazily load CAs
+            if ("AndroidCAStore".equals(keyStore.getType())) {
+                rootKeyStoreLocal = keyStore;
+                acceptedIssuersLocal = null;
+                // Note we need to include at least one TrustAnchor
+                // for the IndexedPKIXParameters super class to be happy.
+                trustAnchors = trustAnchors(acceptedIssuers(keyStore, true));
+            } else {
+                rootKeyStoreLocal = null;
+                acceptedIssuersLocal = acceptedIssuers(keyStore, false);
+                trustAnchors = trustAnchors(acceptedIssuersLocal);
+            }
+
+            paramsLocal = new IndexedPKIXParameters(trustAnchors);
             paramsLocal.setRevocationEnabled(false);
         } catch (Exception e) {
             errLocal = e;
         }
+        this.rootKeyStore = rootKeyStoreLocal;
         this.validator = validatorLocal;
         this.factory = factoryLocal;
         this.params = paramsLocal;
-        this.acceptedIssuers = (acceptedIssuersLocal != null
-                                ? acceptedIssuersLocal
-                                : new X509Certificate[0]);
+        this.acceptedIssuers = acceptedIssuersLocal;
         this.err = errLocal;
     }
 
-    private static X509Certificate[] acceptedIssuers(KeyStore ks) throws KeyStoreException {
+    private static X509Certificate[] acceptedIssuers(KeyStore ks, boolean onlyOne)
+            throws KeyStoreException {
         // Note that unlike the PKIXParameters code to create a Set of
         // TrustAnchors from a KeyStore, this version takes from both
         // TrustedCertificateEntry and PrivateKeyEntry, not just
@@ -105,6 +130,9 @@ public final class TrustManagerImpl implements X509TrustManager {
             final X509Certificate cert = (X509Certificate) ks.getCertificate(alias);
             if (cert != null) {
                 trusted.add(cert);
+                if (onlyOne) {
+                    break;
+                }
             }
         }
         return trusted.toArray(new X509Certificate[trusted.size()]);
@@ -118,19 +146,11 @@ public final class TrustManagerImpl implements X509TrustManager {
         return trustAnchors;
     }
 
-    /**
-     * @see javax.net.ssl.X509TrustManager#checkClientTrusted(X509Certificate[],
-     *      String)
-     */
     @Override public void checkClientTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
         checkTrusted(chain, authType);
     }
 
-    /**
-     * @see javax.net.ssl.X509TrustManager#checkServerTrusted(X509Certificate[],
-     *      String)
-     */
     @Override public void checkServerTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
         checkTrusted(chain, authType);
@@ -150,6 +170,13 @@ public final class TrustManagerImpl implements X509TrustManager {
             // chain was entirely trusted, skip the validator
             return;
         }
+
+        if (rootKeyStore != null) {
+            // check if we need to add a missing TrustAnchor value to
+            // the IndexedPKIXParameters from the KeyStore
+            optionallyAddTrustAnchorFromKeyStore(newChain[newChain.length-1]);
+        }
+
         CertPath certPath = factory.generateCertPath(Arrays.asList(newChain));
         if (!Arrays.equals(chain[0].getEncoded(),
                            certPath.getCertificates().get(0).getEncoded())) {
@@ -166,7 +193,7 @@ public final class TrustManagerImpl implements X509TrustManager {
             // will have been removed in cleanupCertChain.
             // http://b/3404902
             for (int i = 1; i < newChain.length; i++) {
-                params.index(new TrustAnchor(newChain[i], null));
+                index(newChain[i]);
             }
         } catch (InvalidAlgorithmParameterException e) {
             throw new CertificateException(e);
@@ -195,7 +222,7 @@ public final class TrustManagerImpl implements X509TrustManager {
         for (currIndex = 0; currIndex < chain.length; currIndex++) {
             // If the current cert is a TrustAnchor, we can ignore the rest of the chain.
             // This avoids including "bridge" CA certs that added for legacy compatability.
-            if (params.isTrustAnchor(chain[currIndex])) {
+            if (isTrustAnchor(chain[currIndex])) {
                 currIndex--;
                 break;
             }
@@ -238,10 +265,72 @@ public final class TrustManagerImpl implements X509TrustManager {
         return Arrays.copyOf(chain, chainLength);
     }
 
+    private void optionallyAddTrustAnchorFromKeyStore(X509Certificate lastCert) {
+        TrustAnchor trustAnchor;
+        try {
+            // returns null if no match based on issuer
+            trustAnchor = params.findTrustAnchor(lastCert);
+        } catch (CertPathValidatorException e) {
+            // set to null if there seemed to be a match but
+            // failed verification, we might have another CA to
+            // discover with the same subject as one already known
+            // to the IndexedPKIXParameters.
+            trustAnchor = null;
+        }
+        if (trustAnchor == null) {
+            // we have a KeyStore and the issuer of the last cert in
+            // the chain seems to be missing from the
+            // IndexedPKIXParameters, check the KeyStore for a hit
+            X509Certificate issuer = RootKeyStoreSpi.findIssuer(lastCert);
+            if (issuer != null) {
+                index(issuer);
+            }
+        }
+    }
+
     /**
-     * @see javax.net.ssl.X509TrustManager#getAcceptedIssuers()
+     * Check the IndexedPKIXParameters for the cert to see if it is
+     * already trusted and failing that check the KeyStore if it is
+     * available.
      */
+    private boolean isTrustAnchor(X509Certificate cert) {
+        boolean isTrustAnchor = params.isTrustAnchor(cert);
+        if (isTrustAnchor) {
+            return true;
+        }
+        if (rootKeyStore == null) {
+            // not trusted and no KeyStore to check
+            return false;
+        }
+        // probe KeyStore for a cert. AndroidCAStore stores its
+        // contents hashed by cert subject on the filesystem to make
+        // this faster than scanning all key store entries.
+        if (RootKeyStoreSpi.isTrustAnchor(cert)) {
+            // add new TrustAnchor to params index to avoid
+            // checking filesystem next time around.
+            index(cert);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Add a new TrustAnchor to the IndexedPKIXParameters
+     */
+    private void index(X509Certificate cert) {
+        params.index(new TrustAnchor(cert, null));
+    }
+
     @Override public X509Certificate[] getAcceptedIssuers() {
+        X509Certificate[] result = acceptedIssuers;
+        if (result == null) {
+            // single-check idiom
+            try {
+                acceptedIssuers = result = acceptedIssuers(rootKeyStore, false);
+            } catch (KeyStoreException e) {
+                acceptedIssuers = result = new X509Certificate[0];
+            }
+        }
         return acceptedIssuers.clone();
     }
 }
