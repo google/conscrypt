@@ -313,9 +313,6 @@ public class OpenSSLSessionImpl implements SSLSession {
     /**
      * Returns a string identifier of the crypto tools used in the actual SSL
      * session. For example AES_256_WITH_MD5.
-     *
-     * @return an identifier for all the cryptographic algorithms used in the
-     *         actual SSL session.
      */
     public String getCipherSuite() {
         if (cipherSuite == null) {
@@ -331,10 +328,6 @@ public class OpenSSLSessionImpl implements SSLSession {
     /**
      * Returns the standard version name of the SSL protocol used in all
      * connections pertaining to this SSL session.
-     *
-     * @return the standard version name of the SSL protocol used in all
-     *         connections pertaining to this SSL session.
-     *
      */
     public String getProtocol() {
         if (protocol == null) {
@@ -346,10 +339,6 @@ public class OpenSSLSessionImpl implements SSLSession {
     /**
      * Returns the compression method name used in all connections
      * pertaining to this SSL session.
-     *
-     * @return the compresison method used in all connections
-     *         pertaining to this SSL session.
-     *
      */
     public String getCompressionMethod() {
         if (compressionMethod == null) {
