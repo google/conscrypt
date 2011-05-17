@@ -23,9 +23,10 @@ import java.security.cert.PKIXParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,14 +40,30 @@ public final class IndexedPKIXParameters extends PKIXParameters {
     private final Map<X500Principal, List<TrustAnchor>> subjectToTrustAnchors
             = new HashMap<X500Principal, List<TrustAnchor>>();
 
+    public IndexedPKIXParameters() {}
+
     public IndexedPKIXParameters(Set<TrustAnchor> anchors)
             throws InvalidAlgorithmParameterException {
         super(anchors);
         index();
     }
 
+    @Override public Set<TrustAnchor> getTrustAnchors() {
+        Set<TrustAnchor> result = new HashSet<TrustAnchor>();
+        synchronized (subjectToTrustAnchors) {
+            for (List<TrustAnchor> trustAnchors : subjectToTrustAnchors.values()) {
+                result.addAll(trustAnchors);
+            }
+        }
+        return Collections.unmodifiableSet(result);
+    }
+
+    @Override public void setTrustAnchors(Set<TrustAnchor> trustAnchors) {
+        throw new UnsupportedOperationException();
+    }
+
     private void index() {
-        for (TrustAnchor anchor : getTrustAnchors()) {
+        for (TrustAnchor anchor : super.getTrustAnchors()) {
             index(anchor);
         }
     }
