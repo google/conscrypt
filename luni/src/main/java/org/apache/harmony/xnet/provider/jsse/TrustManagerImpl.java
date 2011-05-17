@@ -73,10 +73,6 @@ public final class TrustManagerImpl implements X509TrustManager {
     private final Exception err;
     private final CertificateFactory factory;
 
-    public final IndexedPKIXParameters getIndexedPKIXParameters() {
-        return params;
-    }
-
     /**
      * Creates X509TrustManager based on a keystore
      *
