@@ -422,10 +422,4 @@ public class SSLParametersImpl implements Cloneable {
         }
         return null;
     }
-
-    public static IndexedPKIXParameters getDefaultIndexedPKIXParameters() {
-        TrustManagerImpl tm = (TrustManagerImpl) getDefaultTrustManager();
-        return tm.getIndexedPKIXParameters();
-    }
-
 }
