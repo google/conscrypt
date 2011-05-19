@@ -28,7 +28,7 @@ import java.util.Enumeration;
 /**
  * A KeyStoreSpi wrapper for the TrustedCertificateStore.
  */
-public final class RootKeyStoreSpi extends KeyStoreSpi {
+public final class TrustedCertificateKeyStoreSpi extends KeyStoreSpi {
 
     private final TrustedCertificateStore store = new TrustedCertificateStore();
 
