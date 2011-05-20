@@ -41,9 +41,10 @@ import libcore.io.IoUtils;
  * A source for trusted root certificate authority (CA) certificates
  * supporting an immutable system CA directory along with mutable
  * directories allowing the user addition of custom CAs and user
- * removal of system CAs. This store supports the RootKeyStoreSpi
- * wrapper to allow a traditional KeyStore interface for use with
- * {@link javax.net.ssl.TrustManagerFactory.init}.
+ * removal of system CAs. This store supports the {@code
+ * TrustedCertificateKeyStoreSpi} wrapper to allow a traditional
+ * KeyStore interface for use with {@link
+ * javax.net.ssl.TrustManagerFactory.init}.
  *
  * <p>The CAs are accessed via {@code KeyStore} style aliases. Aliases
  * are made up of a prefix identifying the source ("system:" vs
@@ -55,11 +56,12 @@ import libcore.io.IoUtils;
  * getCertificateAlias} can be implemented efficiently without
  * scanning the entire store.
  *
- * <p>In addition to supporting the {@code RootKeyStoreSpi}
- * implementation, {@code TrustedCertificateStore} also provides the
- * additional public methods {@link #isTrustAnchor} and {@link
- * #findIssuer} to allow efficient lookup operations for CAs again
- * based on the file naming convention.
+ * <p>In addition to supporting the {@code
+ * TrustedCertificateKeyStoreSpi} implementation, {@code
+ * TrustedCertificateStore} also provides the additional public
+ * methods {@link #isTrustAnchor} and {@link #findIssuer} to allow
+ * efficient lookup operations for CAs again based on the file naming
+ * convention.
  *
  * <p>The KeyChainService users the {@link installCertificate} and
  * {@link #deleteCertificateEntry} to install user CAs as well as
@@ -433,9 +435,10 @@ public final class TrustedCertificateStore {
 
     /**
      * This could be considered the implementation of {@code
-     * RootKeyStoreSpi.engineDeleteEntry} but we consider
-     * RootKeyStoreSpi to be read only. Instead, this is used by the
-     * {@code KeyChainService} to delete CA certificates.
+     * TrustedCertificateKeyStoreSpi.engineDeleteEntry} but we
+     * consider {@code TrustedCertificateKeyStoreSpi} to be read
+     * only. Instead, this is used by the {@code KeyChainService} to
+     * delete CA certificates.
      */
     public void deleteCertificateEntry(String alias) throws IOException, CertificateException {
         if (alias == null) {

@@ -114,6 +114,6 @@ public final class JSSEProvider extends Provider {
 
         put("KeyManagerFactory.X509", KeyManagerFactoryImpl.class.getName());
         put("TrustManagerFactory.X509", TrustManagerFactoryImpl.class.getName());
-        put("KeyStore.AndroidCAStore", RootKeyStoreSpi.class.getName());
+        put("KeyStore.AndroidCAStore", TrustedCertificateKeyStoreSpi.class.getName());
     }
 }

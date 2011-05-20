@@ -17,7 +17,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import org.apache.harmony.xnet.provider.jsse.IndexedPKIXParameters;
 import org.apache.harmony.xnet.provider.jsse.TrustManagerImpl;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
