@@ -18,7 +18,6 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
-import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -34,12 +33,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
@@ -520,6 +519,8 @@ public class OpenSSLSocketImpl
             }
 
             exception = false;
+        } catch (SSLProtocolException e) {
+            throw new SSLHandshakeException(e);
         } finally {
             // on exceptional exit, treat the socket as closed
             if (exception) {
@@ -551,13 +552,18 @@ public class OpenSSLSocketImpl
         if (alias == null) {
             return;
         }
-
         PrivateKey privateKey = sslParameters.getKeyManager().getPrivateKey(alias);
-        byte[] privateKeyBytes = privateKey.getEncoded();
-        NativeCrypto.SSL_use_PrivateKey(sslNativePointer, privateKeyBytes);
-
+        if (privateKey == null) {
+            return;
+        }
         X509Certificate[] certificates = sslParameters.getKeyManager().getCertificateChain(alias);
+        if (certificates == null) {
+            return;
+        }
+
+        byte[] privateKeyBytes = privateKey.getEncoded();
         byte[][] certificateBytes = NativeCrypto.encodeCertificates(certificates);
+        NativeCrypto.SSL_use_PrivateKey(sslNativePointer, privateKeyBytes);
         NativeCrypto.SSL_use_certificate(sslNativePointer, certificateBytes);
 
         // checks the last installed private key and certificate,
