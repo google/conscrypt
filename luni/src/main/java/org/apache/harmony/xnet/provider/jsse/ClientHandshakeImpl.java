@@ -278,12 +278,11 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                     }
                     serverHelloDone = new ServerHelloDone(io_stream, length);
                     if (this.nonBlocking) {
-                        delegatedTasks.add(new DelegatedTask(new PrivilegedExceptionAction<Void>() {
-                            public Void run() throws Exception {
+                        delegatedTasks.add(new DelegatedTask(new Runnable() {
+                            public void run() {
                                 processServerHelloDone();
-                                return null;
                             }
-                        }, this, AccessController.getContext()));
+                        }, this));
                         return;
                     }
                     processServerHelloDone();

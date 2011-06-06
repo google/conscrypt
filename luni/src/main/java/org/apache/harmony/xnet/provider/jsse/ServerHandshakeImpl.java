@@ -119,12 +119,11 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     needSendHelloRequest = false;
                     clientHello = new ClientHello(io_stream, length);
                     if (nonBlocking) {
-                        delegatedTasks.add(new DelegatedTask(new PrivilegedExceptionAction<Void>() {
-                            public Void run() throws Exception {
+                        delegatedTasks.add(new DelegatedTask(new Runnable() {
+                            public void run() {
                                 processClientHello();
-                                return null;
                             }
-                        }, this, AccessController.getContext()));
+                        }, this));
                         return;
                     }
                     processClientHello();
@@ -300,13 +299,11 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             return;
         }
         if (nonBlocking) {
-            delegatedTasks.add(new DelegatedTask(
-                    new PrivilegedExceptionAction<Void>() {
-                        public Void run() throws Exception {
-                            processClientHello();
-                            return null;
-                        }
-                    }, this, AccessController.getContext()));
+            delegatedTasks.add(new DelegatedTask(new Runnable() {
+                public void run() {
+                    processClientHello();
+                }
+            }, this));
             return;
         }
         processClientHello();
