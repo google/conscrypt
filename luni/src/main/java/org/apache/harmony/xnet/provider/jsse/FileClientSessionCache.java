@@ -29,7 +29,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.logging.Level;
 import javax.net.ssl.SSLSession;
 import libcore.io.IoUtils;
 
@@ -40,10 +39,6 @@ import libcore.io.IoUtils;
 public class FileClientSessionCache {
 
     public static final int MAX_SIZE = 12; // ~72k
-
-    static final java.util.logging.Logger logger
-            = java.util.logging.Logger.getLogger(
-                    FileClientSessionCache.class.getName());
 
     private FileClientSessionCache() {}
 
@@ -134,8 +129,8 @@ public class FileClientSessionCache {
         public synchronized byte[] getSessionData(String host, int port) {
             /*
              * Note: This method is only called when the in-memory cache
-             * in SSLSessionContext misses, so it would be unnecesarily
-             * rendundant for this cache to store data in memory.
+             * in SSLSessionContext misses, so it would be unnecessarily
+             * redundant for this cache to store data in memory.
              */
 
             String name = fileName(host, port);
@@ -163,26 +158,24 @@ public class FileClientSessionCache {
             try {
                 in = new FileInputStream(file);
             } catch (FileNotFoundException e) {
-                logReadError(host, e);
+                logReadError(host, file, e);
                 return null;
             }
             try {
                 int size = (int) file.length();
                 byte[] data = new byte[size];
                 new DataInputStream(in).readFully(data);
-                logger.log(Level.FINE, "Read session for " + host + ".");
                 return data;
             } catch (IOException e) {
-                logReadError(host, e);
+                logReadError(host, file, e);
                 return null;
             } finally {
                 IoUtils.closeQuietly(in);
             }
         }
 
-        static void logReadError(String host, Throwable t) {
-            logger.log(Level.INFO, "Error reading session data for " + host
-                    + ".", t);
+        static void logReadError(String host, File file, Throwable t) {
+            System.logW("Error reading session data for " + host + " from " + file + ".", t);
         }
 
         public synchronized void putSessionData(SSLSession session,
@@ -203,7 +196,7 @@ public class FileClientSessionCache {
                 out = new FileOutputStream(file);
             } catch (FileNotFoundException e) {
                 // We can't write to the file.
-                logWriteError(host, e);
+                logWriteError(host, file, e);
                 return;
             }
 
@@ -220,14 +213,14 @@ public class FileClientSessionCache {
                 out.write(sessionData);
                 writeSuccessful = true;
             } catch (IOException e) {
-                logWriteError(host, e);
+                logWriteError(host, file, e);
             } finally {
                 boolean closeSuccessful = false;
                 try {
                     out.close();
                     closeSuccessful = true;
                 } catch (IOException e) {
-                    logWriteError(host, e);
+                    logWriteError(host, file, e);
                 } finally {
                     if (!writeSuccessful || !closeSuccessful) {
                         // Storage failed. Clean up.
@@ -235,8 +228,6 @@ public class FileClientSessionCache {
                     } else {
                         // Success!
                         accessOrder.put(name, file);
-                        logger.log(Level.FINE, "Stored session for " + host
-                                + ".");
                     }
                 }
             }
@@ -297,15 +288,13 @@ public class FileClientSessionCache {
         @SuppressWarnings("ThrowableInstanceNeverThrown")
         private void delete(File file) {
             if (!file.delete()) {
-                logger.log(Level.INFO, "Failed to delete " + file + ".",
-                        new IOException());
+                System.logW("Failed to delete " + file + ".", new IOException());
             }
             size--;
         }
 
-        static void logWriteError(String host, Throwable t) {
-            logger.log(Level.INFO, "Error writing session data for "
-                    + host + ".", t);
+        static void logWriteError(String host, File file, Throwable t) {
+            System.logW("Error writing session data for " + host + " to " + file + ".", t);
         }
     }
 

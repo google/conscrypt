@@ -625,7 +625,7 @@ public final class NativeCrypto {
         /**
          * Verify that we trust the certificate chain is trusted.
          *
-         * @param asn1DerEncodedCertificateChain A chain of ASN.1 DER encoded certficates
+         * @param asn1DerEncodedCertificateChain A chain of ASN.1 DER encoded certificates
          * @param authMethod auth algorithm name
          *
          * @throws CertificateException if the certificate is untrusted

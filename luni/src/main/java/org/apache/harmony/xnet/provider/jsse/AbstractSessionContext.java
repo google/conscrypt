@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.logging.Level;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
 import org.apache.harmony.security.provider.cert.X509CertImpl;
@@ -281,8 +280,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     }
 
     static void log(Throwable t) {
-        java.util.logging.Logger.global.log(Level.WARNING,
-                "Error converting session.", t);
+        System.logW("Error converting session.", t);
     }
 
     @Override protected void finalize() throws Throwable {

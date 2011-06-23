@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Logger;
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
@@ -102,25 +101,11 @@ public class OpenSSLSocketImpl
     private String wrappedHost;
     private int wrappedPort;
 
-    /**
-     * Class constructor with 1 parameter
-     *
-     * @param sslParameters Parameters for the SSL
-     *            context
-     * @throws IOException if network fails
-     */
     protected OpenSSLSocketImpl(SSLParametersImpl sslParameters) throws IOException {
         this.socket = this;
         init(sslParameters);
     }
 
-    /**
-     * Create an OpenSSLSocketImpl from an OpenSSLServerSocketImpl
-     *
-     * @param sslParameters Parameters for the SSL
-     *            context
-     * @throws IOException if network fails
-     */
     protected OpenSSLSocketImpl(SSLParametersImpl sslParameters,
                                 String[] enabledProtocols,
                                 String[] enabledCipherSuites,
@@ -129,12 +114,6 @@ public class OpenSSLSocketImpl
         init(sslParameters, enabledProtocols, enabledCipherSuites, enabledCompressionMethods);
     }
 
-    /**
-     * Class constructor with 3 parameters
-     *
-     * @throws IOException if network fails
-     * @throws java.net.UnknownHostException host not defined
-     */
     protected OpenSSLSocketImpl(String host, int port, SSLParametersImpl sslParameters)
             throws IOException {
         super(host, port);
@@ -142,12 +121,6 @@ public class OpenSSLSocketImpl
         init(sslParameters);
     }
 
-    /**
-     * Class constructor with 3 parameters: 1st is InetAddress
-     *
-     * @throws IOException if network fails
-     * @throws java.net.UnknownHostException host not defined
-     */
     protected OpenSSLSocketImpl(InetAddress address, int port, SSLParametersImpl sslParameters)
             throws IOException {
         super(address, port);
@@ -156,41 +129,25 @@ public class OpenSSLSocketImpl
     }
 
 
-    /**
-     * Class constructor with 5 parameters: 1st is host
-     *
-     * @throws IOException if network fails
-     * @throws java.net.UnknownHostException host not defined
-     */
     protected OpenSSLSocketImpl(String host, int port,
                                 InetAddress clientAddress, int clientPort,
-                                SSLParametersImpl sslParameters)
-            throws IOException {
+                                SSLParametersImpl sslParameters) throws IOException {
         super(host, port, clientAddress, clientPort);
         this.socket = this;
         init(sslParameters);
     }
 
-    /**
-     * Class constructor with 5 parameters: 1st is InetAddress
-     *
-     * @throws IOException if network fails
-     * @throws java.net.UnknownHostException host not defined
-     */
     protected OpenSSLSocketImpl(InetAddress address, int port,
                                 InetAddress clientAddress, int clientPort,
-                                SSLParametersImpl sslParameters)
-            throws IOException {
+                                SSLParametersImpl sslParameters) throws IOException {
         super(address, port, clientAddress, clientPort);
         this.socket = this;
         init(sslParameters);
     }
 
     /**
-     * Constructor with 5 parameters: 1st is socket. Enhances an existing socket
-     * with SSL functionality. Invoked via OpenSSLSocketImplWrapper constructor.
-     *
-     * @throws IOException if network fails
+     * Create an SSL socket that wraps another socket. Invoked by
+     * OpenSSLSocketImplWrapper constructor.
      */
     protected OpenSSLSocketImpl(Socket socket, String host, int port,
             boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
@@ -232,8 +189,6 @@ public class OpenSSLSocketImpl
 
     /**
      * Gets the suitable session reference from the session cache container.
-     *
-     * @return OpenSSLSessionImpl
      */
     private OpenSSLSessionImpl getCachedClientSession(ClientSessionContext sessionContext) {
         if (super.getInetAddress() == null ||
@@ -288,33 +243,17 @@ public class OpenSSLSocketImpl
     }
 
     /**
-     * Ensures that logger is lazily loaded. The outer class seems to load
-     * before logging is ready.
-     */
-    static class LoggerHolder {
-        static final Logger logger = Logger.getLogger(OpenSSLSocketImpl.class.getName());
-    }
-
-    /**
      * Starts a TLS/SSL handshake on this connection using some native methods
      * from the OpenSSL library. It can negotiate new encryption keys, change
      * cipher suites, or initiate a new session. The certificate chain is
      * verified if the correspondent property in java.Security is set. All
      * listeners are notified at the end of the TLS/SSL handshake.
-     *
-     * @throws <code>IOException</code> if network fails
      */
     @Override
     public void startHandshake() throws IOException {
         startHandshake(true);
     }
 
-    /**
-     * Checks whether the socket is closed, and throws an exception.
-     *
-     * @throws SocketException
-     *             if the socket is closed.
-     */
     private void checkOpen() throws SocketException {
         if (isClosed()) {
             throw new SocketException("Socket is closed");
@@ -323,6 +262,7 @@ public class OpenSSLSocketImpl
 
     /**
      * Perform the handshake
+     *
      * @param full If true, disable handshake cutthrough for a fully synchronous handshake
      */
     public synchronized void startHandshake(boolean full) throws IOException {
@@ -400,19 +340,17 @@ public class OpenSSLSocketImpl
             }
 
             AbstractSessionContext sessionContext;
-            OpenSSLSessionImpl session;
             if (client) {
                 // look for client session to reuse
                 ClientSessionContext clientSessionContext = sslParameters.getClientSessionContext();
                 sessionContext = clientSessionContext;
-                session = getCachedClientSession(clientSessionContext);
+                OpenSSLSessionImpl session = getCachedClientSession(clientSessionContext);
                 if (session != null) {
                     NativeCrypto.SSL_set_session(sslNativePointer,
                                                  session.sslSessionNativePointer);
                 }
             } else {
                 sessionContext = sslParameters.getServerSessionContext();
-                session = null;
             }
 
             // setup peer certificate verification
@@ -421,7 +359,7 @@ public class OpenSSLSocketImpl
                 // conditionally use SSL_VERIFY_NONE
             } else {
                 // needing client auth takes priority...
-                boolean certRequested = false;
+                boolean certRequested;
                 if (sslParameters.getNeedClientAuth()) {
                     NativeCrypto.SSL_set_verify(sslNativePointer,
                                                 NativeCrypto.SSL_VERIFY_PEER
@@ -477,8 +415,6 @@ public class OpenSSLSocketImpl
             sslSession = (OpenSSLSessionImpl) sessionContext.getSession(sessionId);
             if (sslSession != null) {
                 sslSession.lastAccessedTime = System.currentTimeMillis();
-                LoggerHolder.logger.fine("Reused cached session for "
-                                         + getInetAddress() + ".");
                 NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
             } else {
                 if (!enableSessionCreation) {
@@ -504,8 +440,6 @@ public class OpenSSLSocketImpl
                 if (handshakeCompleted) {
                     sessionContext.putSession(sslSession);
                 }
-                LoggerHolder.logger.fine("Created new session for "
-                                         + getInetAddress().getHostName() + ".");
             }
 
             // Restore the original timeout now that the handshake is complete
@@ -571,10 +505,7 @@ public class OpenSSLSocketImpl
         NativeCrypto.SSL_check_private_key(sslNativePointer);
     }
 
-    /**
-     * Implementation of NativeCrypto.SSLHandshakeCallbacks
-     * invoked via JNI from client_cert_cb
-     */
+    @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / client_cert_cb
     public void clientCertificateRequested(byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals)
             throws CertificateEncodingException, SSLException {
 
@@ -595,16 +526,13 @@ public class OpenSSLSocketImpl
         setCertificate(sslParameters.getKeyManager().chooseClientAlias(keyTypes, issuers, this));
     }
 
-    /**
-     * Implementation of NativeCrypto.SSLHandshakeCallbacks
-     * invoked via JNI from info_callback
-     */
+    @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / info_callback
     public void handshakeCompleted() {
         handshakeCompleted = true;
 
         // If sslSession is null, the handshake was completed during
         // the call to NativeCrypto.SSL_do_handshake and not during a
-        // later read operation. That means we do not need to fixup
+        // later read operation. That means we do not need to fix up
         // the SSLSession and session cache or notify
         // HandshakeCompletedListeners, it will be done in
         // startHandshake.
@@ -646,16 +574,8 @@ public class OpenSSLSocketImpl
         }
     }
 
-    /**
-     * Implementation of NativeCrypto.SSLHandshakeCallbacks
-     *
-     * @param bytes An array of ASN.1 DER encoded certficates
-     * @param authMethod auth algorithm name
-     *
-     * @throws CertificateException if the certificate is untrusted
-     */
-    @SuppressWarnings("unused")
-    public void verifyCertificateChain(byte[][] bytes, String authMethod)
+    @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks
+    @Override public void verifyCertificateChain(byte[][] bytes, String authMethod)
             throws CertificateException {
         try {
             if (bytes == null || bytes.length == 0) {
@@ -684,17 +604,7 @@ public class OpenSSLSocketImpl
         }
     }
 
-    /**
-     * Returns an input stream for this SSL socket using native calls to the
-     * OpenSSL library.
-     *
-     * @return: an input stream for reading bytes from this socket.
-     * @throws: <code>IOException</code> if an I/O error occurs when creating
-     *          the input stream, the socket is closed, the socket is not
-     *          connected, or the socket input has been shutdown.
-     */
-    @Override
-    public InputStream getInputStream() throws IOException {
+    @Override public InputStream getInputStream() throws IOException {
         checkOpen();
         synchronized (this) {
             if (is == null) {
@@ -705,16 +615,7 @@ public class OpenSSLSocketImpl
         }
     }
 
-    /**
-     * Returns an output stream for this SSL socket using native calls to the
-     * OpenSSL library.
-     *
-     * @return an output stream for writing bytes to this socket.
-     * @throws <code>IOException</code> if an I/O error occurs when creating
-     *             the output stream, or no connection to the socket exists.
-     */
-    @Override
-    public OutputStream getOutputStream() throws IOException {
+    @Override public OutputStream getOutputStream() throws IOException {
         checkOpen();
         synchronized (this) {
             if (os == null) {
@@ -723,26 +624,6 @@ public class OpenSSLSocketImpl
 
             return os;
         }
-    }
-
-    /**
-     * This method is not supported for this SSLSocket implementation
-     * because reading from an SSLSocket may involve writing to the
-     * network.
-     */
-    @Override
-    public void shutdownInput() throws IOException {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * This method is not supported for this SSLSocket implementation
-     * because writing to an SSLSocket may involve reading from the
-     * network.
-     */
-    @Override
-    public void shutdownOutput() throws IOException {
-        throw new UnsupportedOperationException();
     }
 
     /**
@@ -843,16 +724,7 @@ public class OpenSSLSocketImpl
     }
 
 
-    /**
-     * The SSL session used by this connection is returned. The SSL session
-     * determines which cipher suite should be used by all connections within
-     * that session and which identities have the session's client and server.
-     * This method starts the SSL handshake.
-     * @return the SSLSession.
-     * @throws <code>IOException</code> if the handshake fails
-     */
-    @Override
-    public SSLSession getSession() {
+    @Override public SSLSession getSession() {
         if (sslSession == null) {
             try {
                 startHandshake(true);
@@ -865,29 +737,18 @@ public class OpenSSLSocketImpl
         return sslSession;
     }
 
-    /**
-     * Registers a listener to be notified that a SSL handshake
-     * was successfully completed on this connection.
-     * @throws <code>IllegalArgumentException</code> if listener is null.
-     */
-    @Override
-    public void addHandshakeCompletedListener(
+    @Override public void addHandshakeCompletedListener(
             HandshakeCompletedListener listener) {
         if (listener == null) {
             throw new IllegalArgumentException("Provided listener is null");
         }
         if (listeners == null) {
-            listeners = new ArrayList();
+            listeners = new ArrayList<HandshakeCompletedListener>();
         }
         listeners.add(listener);
     }
 
-    /**
-     * The method removes a registered listener.
-     * @throws IllegalArgumentException if listener is null or not registered
-     */
-    @Override
-    public void removeHandshakeCompletedListener(
+    @Override public void removeHandshakeCompletedListener(
             HandshakeCompletedListener listener) {
         if (listener == null) {
             throw new IllegalArgumentException("Provided listener is null");
@@ -902,98 +763,35 @@ public class OpenSSLSocketImpl
         }
     }
 
-    /**
-     * Returns true if new SSL sessions may be established by this socket.
-     *
-     * @return true if the session may be created; false if a session already
-     *         exists and must be resumed.
-     */
-    @Override
-    public boolean getEnableSessionCreation() {
+    @Override public boolean getEnableSessionCreation() {
         return sslParameters.getEnableSessionCreation();
     }
 
-    /**
-     * Set a flag for the socket to inhibit or to allow the creation of a new
-     * SSL sessions. If the flag is set to false, and there are no actual
-     * sessions to resume, then there will be no successful handshaking.
-     *
-     * @param flag true if session may be created; false
-     *            if a session already exists and must be resumed.
-     */
-    @Override
-    public void setEnableSessionCreation(boolean flag) {
+    @Override public void setEnableSessionCreation(boolean flag) {
         sslParameters.setEnableSessionCreation(flag);
     }
 
-    /**
-     * The names of the cipher suites which could be used by the SSL connection
-     * are returned.
-     * @return an array of cipher suite names
-     */
-    @Override
-    public String[] getSupportedCipherSuites() {
+    @Override public String[] getSupportedCipherSuites() {
         return NativeCrypto.getSupportedCipherSuites();
     }
 
-    /**
-     * The names of the cipher suites that are in use in the actual the SSL
-     * connection are returned.
-     *
-     * @return an array of cipher suite names
-     */
-    @Override
-    public String[] getEnabledCipherSuites() {
+    @Override public String[] getEnabledCipherSuites() {
         return enabledCipherSuites.clone();
     }
 
-    /**
-     * This method enables the cipher suites listed by
-     * getSupportedCipherSuites().
-     *
-     * @param suites names of all the cipher suites to
-     *            put on use
-     * @throws IllegalArgumentException when one or more of the
-     *             ciphers in array suites are not supported, or when the array
-     *             is null.
-     */
-    @Override
-    public void setEnabledCipherSuites(String[] suites) {
+    @Override public void setEnabledCipherSuites(String[] suites) {
         enabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(suites);
     }
 
-    /**
-     * The names of the protocols' versions that may be used on this SSL
-     * connection.
-     * @return an array of protocols names
-     */
-    @Override
-    public String[] getSupportedProtocols() {
+    @Override public String[] getSupportedProtocols() {
         return NativeCrypto.getSupportedProtocols();
     }
 
-    /**
-     * The names of the protocols' versions that are in use on this SSL
-     * connection.
-     *
-     * @return an array of protocols names
-     */
-    @Override
-    public String[] getEnabledProtocols() {
+    @Override public String[] getEnabledProtocols() {
         return enabledProtocols.clone();
     }
 
-    /**
-     * This method enables the protocols' versions listed by
-     * getSupportedProtocols().
-     *
-     * @param protocols The names of all the protocols to allow
-     *
-     * @throws IllegalArgumentException when one or more of the names in the
-     *             array are not supported, or when the array is null.
-     */
-    @Override
-    public void setEnabledProtocols(String[] protocols) {
+    @Override public void setEnabledProtocols(String[] protocols) {
         enabledProtocols = NativeCrypto.checkEnabledProtocols(protocols);
     }
 
@@ -1017,15 +815,12 @@ public class OpenSSLSocketImpl
     }
 
     /**
-     * This method enables the compression method listed by
-     * getSupportedCompressionMethods().
-     *
-     * @param methods The names of all the compression methods to allow
+     * Enables compression methods listed by getSupportedCompressionMethods().
      *
      * @throws IllegalArgumentException when one or more of the names in the
      *             array are not supported, or when the array is null.
      */
-    public void setEnabledCompressionMethods (String[] methods) {
+    public void setEnabledCompressionMethods(String[] methods) {
         enabledCompressionMethods = NativeCrypto.checkEnabledCompressionMethods(methods);
     }
 
@@ -1039,15 +834,6 @@ public class OpenSSLSocketImpl
     }
 
     /**
-     * This method gives true back if the SSL socket is set to client mode.
-     *
-     * @return true if the socket should do the handshaking as client.
-     */
-    public boolean getUseSessionTickets() {
-        return useSessionTickets;
-    }
-
-    /**
      * This method enables Server Name Indication
      *
      * @param hostname the desired SNI hostname, or null to disable
@@ -1056,151 +842,65 @@ public class OpenSSLSocketImpl
         this.hostname = hostname;
     }
 
-    /**
-     * This method returns the current SNI hostname
-     *
-     * @return a host name if SNI is enabled, or null otherwise
-     */
-    public String getHostname() {
-        return hostname;
-    }
-
-    /**
-     * This method gives true back if the SSL socket is set to client mode.
-     *
-     * @return true if the socket should do the handshaking as client.
-     */
-    public boolean getUseClientMode() {
+    @Override public boolean getUseClientMode() {
         return sslParameters.getUseClientMode();
     }
 
-    /**
-     * This method set the actual SSL socket to client mode.
-     *
-     * @param mode true if the socket starts in client
-     *            mode
-     * @throws IllegalArgumentException if mode changes during
-     *             handshake.
-     */
-    @Override
-    public void setUseClientMode(boolean mode) {
+    @Override public void setUseClientMode(boolean mode) {
         if (handshakeStarted) {
             throw new IllegalArgumentException(
-            "Could not change the mode after the initial handshake has begun.");
+                    "Could not change the mode after the initial handshake has begun.");
         }
         sslParameters.setUseClientMode(mode);
     }
 
-    /**
-     * Returns true if the SSL socket requests client's authentication. Relevant
-     * only for server sockets!
-     *
-     * @return true if client authentication is desired, false if not.
-     */
-    @Override
-    public boolean getWantClientAuth() {
+    @Override public boolean getWantClientAuth() {
         return sslParameters.getWantClientAuth();
     }
 
-    /**
-     * Returns true if the SSL socket needs client's authentication. Relevant
-     * only for server sockets!
-     *
-     * @return true if client authentication is desired, false if not.
-     */
-    @Override
-    public boolean getNeedClientAuth() {
+    @Override public boolean getNeedClientAuth() {
         return sslParameters.getNeedClientAuth();
     }
 
-    /**
-     * Sets the SSL socket to use client's authentication. Relevant only for
-     * server sockets!
-     *
-     * @param need true if client authentication is
-     *            desired, false if not.
-     */
-    @Override
-    public void setNeedClientAuth(boolean need) {
+    @Override public void setNeedClientAuth(boolean need) {
         sslParameters.setNeedClientAuth(need);
     }
 
-    /**
-     * Sets the SSL socket to use client's authentication. Relevant only for
-     * server sockets! Notice that in contrast to setNeedClientAuth(..) this
-     * method will continue the negotiation if the client decide not to send
-     * authentication credentials.
-     *
-     * @param want true if client authentication is
-     *            desired, false if not.
-     */
-    @Override
-    public void setWantClientAuth(boolean want) {
+    @Override public void setWantClientAuth(boolean want) {
         sslParameters.setWantClientAuth(want);
     }
 
-    /**
-     * This method is not supported for SSLSocket implementation.
-     */
-    @Override
-    public void sendUrgentData(int data) throws IOException {
-        throw new SocketException(
-                "Method sendUrgentData() is not supported.");
+    @Override public void sendUrgentData(int data) throws IOException {
+        throw new SocketException("Method sendUrgentData() is not supported.");
     }
 
-    /**
-     * This method is not supported for SSLSocket implementation.
-     */
-    @Override
-    public void setOOBInline(boolean on) throws SocketException {
-        throw new SocketException(
-                "Methods sendUrgentData, setOOBInline are not supported.");
+    @Override public void setOOBInline(boolean on) throws SocketException {
+        throw new SocketException("Methods sendUrgentData, setOOBInline are not supported.");
     }
 
-    /**
-     * Set the read timeout on this socket. The SO_TIMEOUT option, is specified
-     * in milliseconds. The read operation will block indefinitely for a zero
-     * value.
-     *
-     * @param timeout the read timeout value
-     * @throws SocketException if an error occurs setting the option
-     */
-    @Override
-    public void setSoTimeout(int timeoutMilliseconds) throws SocketException {
+    @Override public void setSoTimeout(int timeoutMilliseconds) throws SocketException {
         super.setSoTimeout(timeoutMilliseconds);
         this.timeoutMilliseconds = timeoutMilliseconds;
     }
 
-    @Override
-    public int getSoTimeout() throws SocketException {
+    @Override public int getSoTimeout() throws SocketException {
         return timeoutMilliseconds;
     }
 
     /**
      * Set the handshake timeout on this socket.  This timeout is specified in
      * milliseconds and will be used only during the handshake process.
-     *
-     * @param timeout the handshake timeout value
      */
     public void setHandshakeTimeout(int timeoutMilliseconds) throws SocketException {
         this.handshakeTimeoutMilliseconds = timeoutMilliseconds;
     }
 
-    /**
-     * Closes the SSL socket. Once closed, a socket is not available for further
-     * use anymore under any circumstance. A new socket must be created.
-     *
-     * @throws <code>IOException</code> if an I/O error happens during the
-     *             socket's closure.
-     */
-    @Override
-    public void close() throws IOException {
-        // TODO: Close SSL sockets using a background thread so they close
-        // gracefully.
+    @Override public void close() throws IOException {
+        // TODO: Close SSL sockets using a background thread so they close gracefully.
 
         synchronized (handshakeLock) {
             if (!handshakeStarted) {
-                // prevent further attemps to start handshake
+                // prevent further attempts to start handshake
                 handshakeStarted = true;
 
                 synchronized (this) {

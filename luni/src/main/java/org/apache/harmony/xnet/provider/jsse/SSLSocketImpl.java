@@ -541,22 +541,6 @@ public class SSLSocketImpl extends SSLSocket {
                 "Methods sendUrgentData, setOOBInline are not supported.");
     }
 
-    /**
-     * This method is not supported for SSLSocket implementation.
-     */
-    @Override
-    public void shutdownOutput() {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * This method is not supported for SSLSocket implementation.
-     */
-    @Override
-    public void shutdownInput() {
-        throw new UnsupportedOperationException();
-    }
-
     // -----------------------------------------------------------------
 
     private void shutdown() {
