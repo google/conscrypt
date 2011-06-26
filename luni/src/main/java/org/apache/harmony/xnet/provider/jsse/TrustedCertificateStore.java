@@ -119,22 +119,25 @@ public final class TrustedCertificateStore {
     }
 
     public TrustedCertificateStore(File systemDir, File addedDir, File deletedDir) {
-        if (!systemDir.isDirectory()) {
-            throw new IllegalStateException(systemDir + " is not a directory");
-        }
-
         this.systemDir = systemDir;
         this.addedDir = addedDir;
         this.deletedDir = deletedDir;
     }
 
     public Certificate getCertificate(String alias) {
+        return getCertificate(alias, false);
+    }
+
+    public Certificate getCertificate(String alias, boolean includeDeletedSystem) {
+
         File file = fileForAlias(alias);
         if (file == null || (isUser(alias) && isTombstone(file))) {
             return null;
         }
         X509Certificate cert = readCertificate(file);
-        if (cert == null || (isSystem(alias) && isDeletedSystemCertificate(cert))) {
+        if (cert == null || (isSystem(alias)
+                             && !includeDeletedSystem
+                             && isDeletedSystemCertificate(cert))) {
             // skip malformed certs as well as deleted system ones
             return null;
         }
@@ -227,6 +230,12 @@ public final class TrustedCertificateStore {
         return result;
     }
 
+    public Set<String> userAliases() {
+        Set<String> result = new HashSet<String>();
+        addAliases(result, PREFIX_USER, addedDir);
+        return result;
+    }
+
     private void addAliases(Set<String> result, String prefix, File dir) {
         String[] files = dir.list();
         if (files == null) {
@@ -240,8 +249,27 @@ public final class TrustedCertificateStore {
         }
     }
 
+    public Set<String> allSystemAliases() {
+        Set<String> result = new HashSet<String>();
+        String[] files = systemDir.list();
+        if (files == null) {
+            return result;
+        }
+        for (String filename : files) {
+            String alias = PREFIX_SYSTEM + filename;
+            if (containsAlias(alias, true)) {
+                result.add(alias);
+            }
+        }
+        return result;
+    }
+
     public boolean containsAlias(String alias) {
-        return getCertificate(alias) != null;
+        return containsAlias(alias, false);
+    }
+
+    private boolean containsAlias(String alias, boolean includeDeletedSystem) {
+        return getCertificate(alias, includeDeletedSystem) != null;
     }
 
     public String getCertificateAlias(Certificate c) {
