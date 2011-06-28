@@ -41,6 +41,7 @@ import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import libcore.io.Streams;
 import org.apache.harmony.security.provider.cert.X509CertImpl;
 
 /**
@@ -649,12 +650,7 @@ public class OpenSSLSocketImpl
          */
         @Override
         public int read() throws IOException {
-            BlockGuard.getThreadPolicy().onNetwork();
-            synchronized (readLock) {
-                checkOpen();
-                return NativeCrypto.SSL_read_byte(sslNativePointer, socket.getFileDescriptor$(),
-                        OpenSSLSocketImpl.this, getSoTimeout());
-            }
+            return Streams.readSingleByte(this);
         }
 
         /**
@@ -695,13 +691,8 @@ public class OpenSSLSocketImpl
          * @see java.io.OutputStream#write(int)
          */
         @Override
-        public void write(int b) throws IOException {
-            BlockGuard.getThreadPolicy().onNetwork();
-            synchronized (writeLock) {
-                checkOpen();
-                NativeCrypto.SSL_write_byte(sslNativePointer, socket.getFileDescriptor$(),
-                        OpenSSLSocketImpl.this, b);
-            }
+        public void write(int oneByte) throws IOException {
+            Streams.writeSingleByte(this, oneByte);
         }
 
         /**

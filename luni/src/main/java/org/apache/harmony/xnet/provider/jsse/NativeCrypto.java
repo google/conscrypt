@@ -570,10 +570,6 @@ public final class NativeCrypto {
      * Reads with the native SSL_read function from the encrypted data stream
      * @return -1 if error or the end of the stream is reached.
      */
-    public static native int SSL_read_byte(int sslNativePointer,
-                                           FileDescriptor fd,
-                                           SSLHandshakeCallbacks shc,
-                                           int timeout) throws IOException;
     public static native int SSL_read(int sslNativePointer,
                                       FileDescriptor fd,
                                       SSLHandshakeCallbacks shc,
@@ -583,10 +579,6 @@ public final class NativeCrypto {
     /**
      * Writes with the native SSL_write function to the encrypted data stream.
      */
-    public static native void SSL_write_byte(int sslNativePointer,
-                                             FileDescriptor fd,
-                                             SSLHandshakeCallbacks shc,
-                                             int b) throws IOException;
     public static native void SSL_write(int sslNativePointer,
                                         FileDescriptor fd,
                                         SSLHandshakeCallbacks shc,
