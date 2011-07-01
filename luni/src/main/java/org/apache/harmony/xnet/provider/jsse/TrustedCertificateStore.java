@@ -354,17 +354,12 @@ public final class TrustedCertificateStore {
                 }
             }
         };
-        X509Certificate user = findCert(addedDir,
-                                        c.getIssuerX500Principal(),
-                                        selector,
-                                        X509Certificate.class);
+        X500Principal issuer = c.getIssuerX500Principal();
+        X509Certificate user = findCert(addedDir, issuer, selector, X509Certificate.class);
         if (user != null) {
             return user;
         }
-        X509Certificate system = findCert(systemDir,
-                                          c.getIssuerX500Principal(),
-                                          selector,
-                                          X509Certificate.class);
+        X509Certificate system = findCert(systemDir, issuer, selector, X509Certificate.class);
         if (system != null && !isDeletedSystemCertificate(system)) {
             return system;
         }
