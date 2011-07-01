@@ -75,9 +75,9 @@ import libcore.io.IoUtils;
  *
  * <p>Note that the default mutable directory is created by init via
  * configuration in the system/core/rootdir/init.rc file. The
- * directive "mkdir /data/misc/keychain 0775 keychain keychain"
- * ensures that its owner and group are the keychain uid and keychain
- * gid and that it is world readable but only writable by the keychain
+ * directive "mkdir /data/misc/keychain 0775 system system"
+ * ensures that its owner and group are the system uid and system
+ * gid and that it is world readable but only writable by the system
  * user.
  */
 public final class TrustedCertificateStore {
