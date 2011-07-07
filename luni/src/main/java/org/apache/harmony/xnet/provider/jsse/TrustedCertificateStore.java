@@ -197,7 +197,7 @@ public final class TrustedCertificateStore {
             os = new FileOutputStream(file);
             os.write(cert.getEncoded());
         } finally {
-            os.close();
+            IoUtils.closeQuietly(os);
         }
         file.setReadable(true, false);
     }
