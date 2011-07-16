@@ -89,31 +89,6 @@ public final class NativeCrypto {
     public static native int EVP_VerifyFinal(int ctx, byte[] signature,
                                              int offset, int length, int key);
 
-    // --- Legacy Signature handling -------------------------------------------
-    // TODO rewrite/replace with EVP_Verify*
-    /**
-     * Verifies an RSA signature. Conceptually, this method doesn't really
-     * belong here, but due to its native code being closely tied to OpenSSL
-     * (just like the rest of this class), we put it here for the time being.
-     * This also solves potential problems with native library initialization.
-     *
-     * @param message The message to verify
-     * @param signature The signature to verify
-     * @param algorithm The hash/sign algorithm to use, i.e. "RSA-SHA1"
-     * @param key The RSA public key to use
-     * @return true if the verification succeeds, false otherwise
-     */
-    public static boolean verifySignature(
-            byte[] message, byte[] signature, String algorithm, RSAPublicKey key) {
-        byte[] modulus = key.getModulus().toByteArray();
-        byte[] exponent = key.getPublicExponent().toByteArray();
-
-        return verifySignature(message, signature, algorithm, modulus, exponent) == 1;
-    }
-
-    private static native int verifySignature(byte[] message, byte[] signature,
-            String algorithm, byte[] modulus, byte[] exponent);
-
     // --- RAND seeding --------------------------------------------------------
 
     public static final int RAND_SEED_LENGTH_IN_BYTES = 1024;
