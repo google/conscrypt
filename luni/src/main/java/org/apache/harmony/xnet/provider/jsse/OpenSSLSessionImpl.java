@@ -17,24 +17,18 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
-import java.security.AccessControlContext;
-import java.security.AccessController;
 import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLPermission;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 import javax.security.cert.CertificateException;
-import libcore.util.Objects;
-import org.apache.harmony.luni.util.TwoKeyHashMap;
 
 /**
  * Implementation of the class OpenSSLSessionImpl
@@ -48,7 +42,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     final X509Certificate[] peerCertificates;
 
     private boolean isValid = true;
-    private TwoKeyHashMap values = new TwoKeyHashMap<String, AccessControlContext, Object>();
+    private final Map<String, Object> values = new HashMap<String, Object>();
     private volatile javax.security.cert.X509Certificate[] peerCertificateChain;
     protected int sslSessionNativePointer;
     private String peerHost;
@@ -62,9 +56,6 @@ public class OpenSSLSessionImpl implements SSLSession {
     /**
      * Class constructor creates an SSL session context given the appropriate
      * SSL parameters.
-     *
-     * @param session the Identifier for SSL session
-     * @param sslParameters the SSL parameters like ciphers' suites etc.
      */
     protected OpenSSLSessionImpl(int sslSessionNativePointer, X509Certificate[] localCertificates,
             X509Certificate[] peerCertificates, String peerHost, int peerPort,
@@ -245,7 +236,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Return the identitity of the peer in this SSL session
+     * Return the identity of the peer in this SSL session
      * determined via certificate(s).
      * @return an array of X509 certificates (the peer's one first and then
      *         eventually that of the certification authority) or null if no
@@ -400,9 +391,9 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     public Object getValue(String name) {
         if (name == null) {
-            throw new IllegalArgumentException("Parameter is null");
+            throw new IllegalArgumentException("name == null");
         }
-        return values.get(name, AccessController.getContext());
+        return values.get(name);
     }
 
     /**
@@ -415,18 +406,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         bound to this SSL session.
      */
     public String[] getValueNames() {
-        ArrayList<String> v = new ArrayList<String>();
-        AccessControlContext current = AccessController.getContext();
-        Set<Map.Entry<String, Object>> set = values.entrySet();
-        for (Map.Entry<String, Object> o : set) {
-            TwoKeyHashMap.Entry<String, AccessControlContext, Object> entry
-                    = (TwoKeyHashMap.Entry<String, AccessControlContext, Object>) o;
-            AccessControlContext cont = entry.getKey2();
-            if (Objects.equal(current, cont)) {
-                v.add(entry.getKey1());
-            }
-        }
-        return v.toArray(new String[v.size()]);
+        return values.keySet().toArray(new String[values.size()]);
     }
 
     /**
@@ -446,9 +426,9 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     public void putValue(String name, Object value) {
         if (name == null || value == null) {
-            throw new IllegalArgumentException("Parameter is null");
+            throw new IllegalArgumentException("name == null || value == null");
         }
-        Object old = values.put(name, AccessController.getContext(), value);
+        Object old = values.put(name, value);
         if (value instanceof SSLSessionBindingListener) {
             ((SSLSessionBindingListener) value)
                     .valueBound(new SSLSessionBindingEvent(this, name));
@@ -476,9 +456,9 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     public void removeValue(String name) {
         if (name == null) {
-            throw new IllegalArgumentException("Parameter is null");
+            throw new IllegalArgumentException("name == null");
         }
-        Object old = values.remove(name, AccessController.getContext());
+        Object old = values.remove(name);
         if (old instanceof SSLSessionBindingListener) {
             SSLSessionBindingListener listener = (SSLSessionBindingListener) old;
             listener.valueUnbound(new SSLSessionBindingEvent(this, name));
