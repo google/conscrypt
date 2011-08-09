@@ -18,14 +18,12 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
-import java.security.AccessController;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.PrivilegedExceptionAction;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
