@@ -18,6 +18,8 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
+
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -982,6 +984,15 @@ public class OpenSSLSocketImpl
             free();
         } finally {
             super.finalize();
+        }
+    }
+
+    @Override
+    public FileDescriptor getFileDescriptor$() {
+        if (socket == this) {
+            return super.getFileDescriptor$();
+        } else {
+            return socket.getFileDescriptor$();
         }
     }
 }

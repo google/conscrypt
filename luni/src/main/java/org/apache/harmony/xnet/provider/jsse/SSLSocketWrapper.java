@@ -17,6 +17,7 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -217,6 +218,11 @@ public class SSLSocketWrapper extends SSLSocketImpl {
     @Override
     public int getLocalPort() {
         return socket.getLocalPort();
+    }
+
+    @Override
+    public FileDescriptor getFileDescriptor$() {
+        return socket.getFileDescriptor$();
     }
 
     // -------------------------------------------------------------------
