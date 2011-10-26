@@ -560,7 +560,7 @@ public final class NativeCrypto {
                                         byte[] b, int off, int len)
         throws IOException;
 
-    public static native void SSL_interrupt(int sslNativePointer) throws IOException;
+    public static native void SSL_interrupt(int sslNativePointer);
     public static native void SSL_shutdown(int sslNativePointer,
                                            FileDescriptor fd,
                                            SSLHandshakeCallbacks shc) throws IOException;

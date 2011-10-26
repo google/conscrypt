@@ -930,21 +930,23 @@ public class OpenSSLSocketImpl
                          * is problem sending a "close notify" which
                          * can happen if the underlying socket is closed.
                          */
-                    }
+                    } finally {
+                        /*
+                         * Even if the above call failed, it is still safe to free
+                         * the native structs, and we need to do so lest we leak
+                         * memory.
+                         */
+                        free();
 
-                    /*
-                     * Even if the above call failed, it is still safe to free
-                     * the native structs, and we need to do so lest we leak
-                     * memory.
-                     */
-                    free();
-
-                    if (socket != this) {
-                        if (autoClose && !socket.isClosed())
-                            socket.close();
-                    } else {
-                        if (!super.isClosed())
-                            super.close();
+                        if (socket != this) {
+                            if (autoClose && !socket.isClosed()) {
+                                socket.close();
+                            }
+                        } else {
+                            if (!super.isClosed()) {
+                                super.close();
+                            }
+                        }
                     }
                 }
             }
