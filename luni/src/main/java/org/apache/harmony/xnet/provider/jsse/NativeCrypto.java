@@ -436,8 +436,8 @@ public final class NativeCrypto {
         return cipherSuites;
     }
 
-    private static final String SUPPORTED_COMPRESSION_METHOD_ZLIB = "ZLIB";
-    private static final String SUPPORTED_COMPRESSION_METHOD_NULL = "NULL";
+    public static final String SUPPORTED_COMPRESSION_METHOD_ZLIB = "ZLIB";
+    public static final String SUPPORTED_COMPRESSION_METHOD_NULL = "NULL";
 
     private static final String[] SUPPORTED_COMPRESSION_METHODS
             = { SUPPORTED_COMPRESSION_METHOD_ZLIB, SUPPORTED_COMPRESSION_METHOD_NULL };

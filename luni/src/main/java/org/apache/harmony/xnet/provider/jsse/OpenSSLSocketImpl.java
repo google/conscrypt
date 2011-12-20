@@ -18,7 +18,6 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
-
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
@@ -194,14 +193,12 @@ public class OpenSSLSocketImpl
      * Gets the suitable session reference from the session cache container.
      */
     private OpenSSLSessionImpl getCachedClientSession(ClientSessionContext sessionContext) {
-        if (super.getInetAddress() == null ||
-                super.getInetAddress().getHostAddress() == null ||
-                super.getInetAddress().getHostName() == null) {
+        String hostName = getPeerHostName();
+        int port = getPeerPort();
+        if (hostName == null) {
             return null;
         }
-        OpenSSLSessionImpl session = (OpenSSLSessionImpl) sessionContext.getSession(
-                super.getInetAddress().getHostName(),
-                super.getPort());
+        OpenSSLSessionImpl session = (OpenSSLSessionImpl) sessionContext.getSession(hostName, port);
         if (session == null) {
             return null;
         }
@@ -231,15 +228,17 @@ public class OpenSSLSocketImpl
         }
 
         String compressionMethod = session.getCompressionMethod();
-        boolean compressionMethodFound = false;
-        for (String enabledCompressionMethod : enabledCompressionMethods) {
-            if (compressionMethod.equals(enabledCompressionMethod)) {
-                compressionMethodFound = true;
-                break;
+        if (!compressionMethod.equals(NativeCrypto.SUPPORTED_COMPRESSION_METHOD_NULL)) {
+            boolean compressionMethodFound = false;
+            for (String enabledCompressionMethod : enabledCompressionMethods) {
+                if (compressionMethod.equals(enabledCompressionMethod)) {
+                    compressionMethodFound = true;
+                    break;
+                }
             }
-        }
-        if (!compressionMethodFound) {
-            return null;
+            if (!compressionMethodFound) {
+                return null;
+            }
         }
 
         return session;
@@ -428,17 +427,8 @@ public class OpenSSLSocketImpl
                         = createCertChain(NativeCrypto.SSL_get_certificate(sslNativePointer));
                 X509Certificate[] peerCertificates
                         = createCertChain(NativeCrypto.SSL_get_peer_cert_chain(sslNativePointer));
-                if (wrappedHost == null) {
-                    sslSession = new OpenSSLSessionImpl(sslSessionNativePointer,
-                                                        localCertificates, peerCertificates,
-                                                        super.getInetAddress().getHostName(),
-                                                        super.getPort(), sessionContext);
-                } else  {
-                    sslSession = new OpenSSLSessionImpl(sslSessionNativePointer,
-                                                        localCertificates, peerCertificates,
-                                                        wrappedHost, wrappedPort,
-                                                        sessionContext);
-                }
+                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
+                        peerCertificates, getPeerHostName(), getPeerPort(), sessionContext);
                 // if not, putSession later in handshakeCompleted() callback
                 if (handshakeCompleted) {
                     sessionContext.putSession(sslSession);
@@ -464,6 +454,14 @@ public class OpenSSLSocketImpl
                 close();
             }
         }
+    }
+
+    private String getPeerHostName() {
+        return wrappedHost == null ? super.getInetAddress().getHostName() : wrappedHost;
+    }
+
+    private int getPeerPort() {
+        return wrappedHost == null ? super.getPort() : wrappedPort;
     }
 
     /**
