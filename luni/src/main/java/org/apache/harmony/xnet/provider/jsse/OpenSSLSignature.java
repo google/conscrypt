@@ -27,6 +27,7 @@ import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -37,44 +38,50 @@ public class OpenSSLSignature extends Signature {
 
     private static Map<String,Class<? extends OpenSSLSignature>> jdkToOpenSsl
             = new HashMap<String,Class<? extends OpenSSLSignature>>();
+    private static void register(String algorithm, Class implementation) {
+        jdkToOpenSsl.put(algorithm.toUpperCase(Locale.US), implementation);
+    }
+    private static Class lookup(String algorithm) {
+        return jdkToOpenSsl.get(algorithm.toUpperCase(Locale.US));
+    }
 
     static {
         // TODO Finish OpenSSLSignature implementation and move
         // registration information to the OpenSSLProvider
-        jdkToOpenSsl.put("MD5WithRSAEncryption", MD5RSA.class);
-        jdkToOpenSsl.put("MD5WithRSA", MD5RSA.class);
-        jdkToOpenSsl.put("MD5/RSA", MD5RSA.class);
-        jdkToOpenSsl.put("1.2.840.113549.1.1.4", MD5RSA.class);
-        jdkToOpenSsl.put("1.2.840.113549.2.5with1.2.840.113549.1.1.1", MD5RSA.class);
+        register("MD5WithRSAEncryption", MD5RSA.class);
+        register("MD5WithRSA", MD5RSA.class);
+        register("MD5/RSA", MD5RSA.class);
+        register("1.2.840.113549.1.1.4", MD5RSA.class);
+        register("1.2.840.113549.2.5with1.2.840.113549.1.1.1", MD5RSA.class);
 
-        jdkToOpenSsl.put("SHA1WithRSAEncryption", SHA1RSA.class);
-        jdkToOpenSsl.put("SHA1WithRSA", SHA1RSA.class);
-        jdkToOpenSsl.put("SHA1/RSA", SHA1RSA.class);
-        jdkToOpenSsl.put("SHA-1/RSA", SHA1RSA.class);
-        jdkToOpenSsl.put("1.2.840.113549.1.1.5", SHA1RSA.class);
-        jdkToOpenSsl.put("1.3.14.3.2.26with1.2.840.113549.1.1.1", SHA1RSA.class);
-        jdkToOpenSsl.put("1.3.14.3.2.26with1.2.840.113549.1.1.5", SHA1RSA.class);
-        jdkToOpenSsl.put("1.3.14.3.2.29", SHA1RSA.class);
+        register("SHA1WithRSAEncryption", SHA1RSA.class);
+        register("SHA1WithRSA", SHA1RSA.class);
+        register("SHA1/RSA", SHA1RSA.class);
+        register("SHA-1/RSA", SHA1RSA.class);
+        register("1.2.840.113549.1.1.5", SHA1RSA.class);
+        register("1.3.14.3.2.26with1.2.840.113549.1.1.1", SHA1RSA.class);
+        register("1.3.14.3.2.26with1.2.840.113549.1.1.5", SHA1RSA.class);
+        register("1.3.14.3.2.29", SHA1RSA.class);
 
-        jdkToOpenSsl.put("SHA256WithRSAEncryption", SHA256RSA.class);
-        jdkToOpenSsl.put("SHA256WithRSA", SHA256RSA.class);
-        jdkToOpenSsl.put("1.2.840.113549.1.1.11", SHA256RSA.class);
+        register("SHA256WithRSAEncryption", SHA256RSA.class);
+        register("SHA256WithRSA", SHA256RSA.class);
+        register("1.2.840.113549.1.1.11", SHA256RSA.class);
 
-        jdkToOpenSsl.put("SHA384WithRSAEncryption", SHA384RSA.class);
-        jdkToOpenSsl.put("SHA384WithRSA", SHA384RSA.class);
-        jdkToOpenSsl.put("1.2.840.113549.1.1.12", SHA384RSA.class);
+        register("SHA384WithRSAEncryption", SHA384RSA.class);
+        register("SHA384WithRSA", SHA384RSA.class);
+        register("1.2.840.113549.1.1.12", SHA384RSA.class);
 
-        jdkToOpenSsl.put("SHA512WithRSAEncryption", SHA512RSA.class);
-        jdkToOpenSsl.put("SHA512WithRSA", SHA512RSA.class);
-        jdkToOpenSsl.put("1.2.840.113549.1.1.13", SHA512RSA.class);
+        register("SHA512WithRSAEncryption", SHA512RSA.class);
+        register("SHA512WithRSA", SHA512RSA.class);
+        register("1.2.840.113549.1.1.13", SHA512RSA.class);
 
-        jdkToOpenSsl.put("SHA1withDSA", SHA1DSA.class);
-        jdkToOpenSsl.put("SHA/DSA", SHA1DSA.class);
-        jdkToOpenSsl.put("DSA", SHA1DSA.class);
-        jdkToOpenSsl.put("1.3.14.3.2.26with1.2.840.10040.4.1", SHA1DSA.class);
-        jdkToOpenSsl.put("1.3.14.3.2.26with1.2.840.10040.4.3", SHA1DSA.class);
-        jdkToOpenSsl.put("DSAWithSHA1", SHA1DSA.class);
-        jdkToOpenSsl.put("1.2.840.10040.4.3", SHA1DSA.class);
+        register("SHA1withDSA", SHA1DSA.class);
+        register("SHA/DSA", SHA1DSA.class);
+        register("DSA", SHA1DSA.class);
+        register("1.3.14.3.2.26with1.2.840.10040.4.1", SHA1DSA.class);
+        register("1.3.14.3.2.26with1.2.840.10040.4.3", SHA1DSA.class);
+        register("DSAWithSHA1", SHA1DSA.class);
+        register("1.2.840.10040.4.3", SHA1DSA.class);
     }
 
     /**
@@ -114,7 +121,7 @@ public class OpenSSLSignature extends Signature {
     public static OpenSSLSignature getInstance(String algorithm) throws NoSuchAlgorithmException {
         // System.out.println("getInstance() invoked with " + algorithm);
 
-        Class <? extends OpenSSLSignature> clazz = jdkToOpenSsl.get(algorithm);
+        Class <? extends OpenSSLSignature> clazz = lookup(algorithm);
         if (clazz == null) {
             throw new NoSuchAlgorithmException(algorithm);
         }
