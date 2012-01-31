@@ -51,9 +51,11 @@ public final class NativeCrypto {
     // --- DSA/RSA public/private key handling functions -----------------------
 
     public static native int EVP_PKEY_new_DSA(byte[] p, byte[] q, byte[] g,
-                                              byte[] priv_key, byte[] pub_key);
+                                              byte[] pub_key, byte[] priv_key);
 
     public static native int EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q);
+
+    public static native int EVP_PKEY_size(int pkey);
 
     public static native void EVP_PKEY_free(int pkey);
 
@@ -80,6 +82,13 @@ public final class NativeCrypto {
     public static native int EVP_DigestFinal(int ctx, byte[] hash, int offset);
 
     // --- Signature handling functions ----------------------------------------
+
+    public static native int EVP_SignInit(String algorithm);
+
+    public static native void EVP_SignUpdate(int ctx, byte[] buffer,
+                                               int offset, int length);
+
+    public static native int EVP_SignFinal(int ctx, byte[] signature, int offset, int key);
 
     public static native int EVP_VerifyInit(String algorithm);
 
