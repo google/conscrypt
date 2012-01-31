@@ -30,64 +30,12 @@ import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
 
 /**
  * Implements the subset of the JDK Signature interface needed for
  * signature verification using OpenSSL.
  */
 public class OpenSSLSignature extends Signature {
-
-    private static Map<String,Class<? extends OpenSSLSignature>> jdkToOpenSsl
-            = new HashMap<String,Class<? extends OpenSSLSignature>>();
-    private static void register(String algorithm, Class implementation) {
-        jdkToOpenSsl.put(algorithm.toUpperCase(Locale.US), implementation);
-    }
-    private static Class lookup(String algorithm) {
-        return jdkToOpenSsl.get(algorithm.toUpperCase(Locale.US));
-    }
-
-    static {
-        // TODO Finish OpenSSLSignature implementation and move
-        // registration information to the OpenSSLProvider
-        register("MD5WithRSAEncryption", MD5RSA.class);
-        register("MD5WithRSA", MD5RSA.class);
-        register("MD5/RSA", MD5RSA.class);
-        register("1.2.840.113549.1.1.4", MD5RSA.class);
-        register("1.2.840.113549.2.5with1.2.840.113549.1.1.1", MD5RSA.class);
-
-        register("SHA1WithRSAEncryption", SHA1RSA.class);
-        register("SHA1WithRSA", SHA1RSA.class);
-        register("SHA1/RSA", SHA1RSA.class);
-        register("SHA-1/RSA", SHA1RSA.class);
-        register("1.2.840.113549.1.1.5", SHA1RSA.class);
-        register("1.3.14.3.2.26with1.2.840.113549.1.1.1", SHA1RSA.class);
-        register("1.3.14.3.2.26with1.2.840.113549.1.1.5", SHA1RSA.class);
-        register("1.3.14.3.2.29", SHA1RSA.class);
-
-        register("SHA256WithRSAEncryption", SHA256RSA.class);
-        register("SHA256WithRSA", SHA256RSA.class);
-        register("1.2.840.113549.1.1.11", SHA256RSA.class);
-
-        register("SHA384WithRSAEncryption", SHA384RSA.class);
-        register("SHA384WithRSA", SHA384RSA.class);
-        register("1.2.840.113549.1.1.12", SHA384RSA.class);
-
-        register("SHA512WithRSAEncryption", SHA512RSA.class);
-        register("SHA512WithRSA", SHA512RSA.class);
-        register("1.2.840.113549.1.1.13", SHA512RSA.class);
-
-        register("SHA1withDSA", SHA1DSA.class);
-        register("SHA/DSA", SHA1DSA.class);
-        register("DSA", SHA1DSA.class);
-        register("1.3.14.3.2.26with1.2.840.10040.4.1", SHA1DSA.class);
-        register("1.3.14.3.2.26with1.2.840.10040.4.3", SHA1DSA.class);
-        register("DSAWithSHA1", SHA1DSA.class);
-        register("1.2.840.10040.4.3", SHA1DSA.class);
-    }
-
     /**
      * Holds a pointer to the native message digest context.
      */
@@ -112,31 +60,6 @@ public class OpenSSLSignature extends Signature {
      * Holds a dummy buffer for writing single bytes to the digest.
      */
     private final byte[] singleByte = new byte[1];
-
-    /**
-     * Creates a new OpenSSLSignature instance for the given algorithm name.
-     *
-     * @param algorithm The name of the algorithm, e.g. "SHA1WithRSA".
-     *
-     * @return The new OpenSSLSignature instance.
-     *
-     * @throws RuntimeException In case of problems.
-     */
-    public static OpenSSLSignature getInstance(String algorithm) throws NoSuchAlgorithmException {
-        // System.out.println("getInstance() invoked with " + algorithm);
-
-        Class <? extends OpenSSLSignature> clazz = lookup(algorithm);
-        if (clazz == null) {
-            throw new NoSuchAlgorithmException(algorithm);
-        }
-        try {
-            return clazz.newInstance();
-        } catch (InstantiationException e) {
-            throw new NoSuchAlgorithmException(algorithm, e);
-        } catch (IllegalAccessException e) {
-            throw new NoSuchAlgorithmException(algorithm, e);
-        }
-    }
 
     /**
      * Creates a new OpenSSLSignature instance for the given algorithm name.
