@@ -57,6 +57,19 @@ public final class OpenSSLProvider extends Provider {
             "org.apache.harmony.xnet.provider.jsse.OpenSSLMessageDigestJDK$MD5");
         put("Alg.Alias.MessageDigest.1.2.840.113549.2.5", "MD5");
 
+        // KeyPairGenerators
+        put("KeyPairGenerator.RSA", OpenSSLRSAKeyPairGenerator.class.getName());
+        put("Alg.Alias.KeyPairGenerator.1.2.840.113549.1.1.1", "RSA");
+
+        put("KeyPairGenerator.DSA", OpenSSLDSAKeyPairGenerator.class.getName());
+
+        // KeyFactory
+
+        put("KeyFactory.RSA", OpenSSLRSAKeyFactory.class.getName());
+        put("Alg.Alias.KeyFactory.1.2.840.113549.1.1.1", "RSA");
+
+        // put("KeyFactory.DSA", OpenSSLDSAKeyFactory.class.getName());
+
         // Signatures
         put("Signature.MD5WithRSAEncryption", OpenSSLSignature.MD5RSA.class.getName());
         put("Alg.Alias.Signature.MD5WithRSA", "MD5WithRSAEncryption");

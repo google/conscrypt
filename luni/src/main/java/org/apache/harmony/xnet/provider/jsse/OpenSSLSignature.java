@@ -16,7 +16,6 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
 import java.security.NoSuchAlgorithmException;
@@ -24,7 +23,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
-import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.RSAPrivateCrtKey;
@@ -42,14 +40,9 @@ public class OpenSSLSignature extends Signature {
     private int ctx;
 
     /**
-     * Holds a pointer to the native DSA key.
+     * The current OpenSSL key we're operating on.
      */
-    private int dsa;
-
-    /**
-     * Holds a pointer to the native RSA key.
-     */
-    private int rsa;
+    private OpenSSLKey key;
 
     /**
      * Holds the OpenSSL name of the algorithm (lower case, no dashes).
@@ -108,75 +101,18 @@ public class OpenSSLSignature extends Signature {
     @Override
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
         destroyContextIfExists();
-        freeKeysIfExist();
 
-        if (privateKey instanceof DSAPrivateKey) {
-            try {
-                DSAPrivateKey dsaPrivateKey = (DSAPrivateKey) privateKey;
-                DSAParams dsaParams = dsaPrivateKey.getParams();
-                dsa = NativeCrypto.EVP_PKEY_new_DSA(
-                        dsaParams.getP().toByteArray(),
-                        dsaParams.getQ().toByteArray(),
-                        dsaParams.getG().toByteArray(),
-                        null,
-                        dsaPrivateKey.getX().toByteArray());
-            } catch (Exception e) {
-                throw new InvalidKeyException(e);
-            }
+        if (privateKey instanceof OpenSSLKey) {
+            key = (OpenSSLKey) privateKey;
+        } else if (privateKey instanceof DSAPrivateKey) {
+            DSAPrivateKey dsaPrivateKey = (DSAPrivateKey) privateKey;
+            key = OpenSSLDSAPrivateKey.getInstance(dsaPrivateKey);
         } else if (privateKey instanceof RSAPrivateCrtKey) {
             RSAPrivateCrtKey rsaPrivateKey = (RSAPrivateCrtKey) privateKey;
-
-            final BigInteger modulus = rsaPrivateKey.getModulus();
-            final BigInteger privateExponent = rsaPrivateKey.getPrivateExponent();
-
-            if (modulus == null) {
-                throw new InvalidKeyException("modulus == null");
-            } else if (privateExponent == null) {
-                throw new InvalidKeyException("privateExponent == null");
-            }
-
-            try {
-                /*
-                 * OpenSSL uses the public modulus to do RSA blinding. Regular
-                 * RSAPrivateKey does not have the public modulus, so we can
-                 * only possibly support RSAPrivateCrtKey without turning off
-                 * blinding.
-                 */
-                final BigInteger publicExponent = rsaPrivateKey.getPublicExponent();
-                final BigInteger primeP = rsaPrivateKey.getPrimeP();
-                final BigInteger primeQ = rsaPrivateKey.getPrimeQ();
-
-                rsa = NativeCrypto.EVP_PKEY_new_RSA(
-                        modulus.toByteArray(),
-                        publicExponent == null ? null : publicExponent.toByteArray(),
-                        privateExponent.toByteArray(),
-                        primeP == null ? null : primeP.toByteArray(),
-                        primeQ == null ? null : primeQ.toByteArray());
-            } catch (Exception e) {
-                throw new InvalidKeyException(e);
-            }
+            key = OpenSSLRSAPrivateKey.getInstance(rsaPrivateKey);
         } else if (privateKey instanceof RSAPrivateKey) {
             RSAPrivateKey rsaPrivateKey = (RSAPrivateKey) privateKey;
-
-            final BigInteger modulus = rsaPrivateKey.getModulus();
-            final BigInteger privateExponent = rsaPrivateKey.getPrivateExponent();
-
-            if (modulus == null) {
-                throw new InvalidKeyException("modulus == null");
-            } else if (privateExponent == null) {
-                throw new InvalidKeyException("privateExponent == null");
-            }
-
-            try {
-                rsa = NativeCrypto.EVP_PKEY_new_RSA(
-                        modulus.toByteArray(),
-                        null,
-                        privateExponent.toByteArray(),
-                        null,
-                        null);
-            } catch (Exception e) {
-                throw new InvalidKeyException(e);
-            }
+            key = OpenSSLRSAPrivateKey.getInstance(rsaPrivateKey);
         } else {
             throw new InvalidKeyException("Need DSA or RSA private key");
         }
@@ -186,33 +122,15 @@ public class OpenSSLSignature extends Signature {
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
         // If we had an existing context, destroy it first.
         destroyContextIfExists();
-        freeKeysIfExist();
 
-        if (publicKey instanceof DSAPublicKey) {
-            try {
-                DSAPublicKey dsaPublicKey = (DSAPublicKey)publicKey;
-                DSAParams dsaParams = dsaPublicKey.getParams();
-                dsa = NativeCrypto.EVP_PKEY_new_DSA(
-                        dsaParams.getP().toByteArray(),
-                        dsaParams.getQ().toByteArray(),
-                        dsaParams.getG().toByteArray(),
-                        dsaPublicKey.getY().toByteArray(),
-                        null);
-            } catch (Exception e) {
-                throw new InvalidKeyException(e);
-            }
+        if (publicKey instanceof OpenSSLKey) {
+            key = (OpenSSLKey) publicKey;
+        } else if (publicKey instanceof DSAPublicKey) {
+            DSAPublicKey dsaPublicKey = (DSAPublicKey) publicKey;
+            key = OpenSSLDSAPublicKey.getInstance(dsaPublicKey);
         } else if (publicKey instanceof RSAPublicKey) {
-            try {
-                RSAPublicKey rsaPublicKey = (RSAPublicKey)publicKey;
-                rsa = NativeCrypto.EVP_PKEY_new_RSA(
-                        rsaPublicKey.getModulus().toByteArray(),
-                        rsaPublicKey.getPublicExponent().toByteArray(),
-                        null,
-                        null,
-                        null);
-            } catch (Exception e) {
-                throw new InvalidKeyException(e);
-            }
+            RSAPublicKey rsaPublicKey = (RSAPublicKey) publicKey;
+            key = OpenSSLRSAPublicKey.getInstance(rsaPublicKey);
         } else {
             throw new InvalidKeyException("Need DSA or RSA public key");
         }
@@ -224,16 +142,14 @@ public class OpenSSLSignature extends Signature {
 
     @Override
     protected byte[] engineSign() throws SignatureException {
-        int handle = (rsa != 0) ? rsa : dsa;
-
-        if (handle == 0) {
+        if (key == null) {
             // This can't actually happen, but you never know...
             throw new SignatureException("Need DSA or RSA private key");
         }
 
         try {
-            byte[] buffer = new byte[NativeCrypto.EVP_PKEY_size(handle)];
-            int bytesWritten = NativeCrypto.EVP_SignFinal(ctx, buffer, 0, handle);
+            byte[] buffer = new byte[NativeCrypto.EVP_PKEY_size(key.getPkeyContext())];
+            int bytesWritten = NativeCrypto.EVP_SignFinal(ctx, buffer, 0, key.getPkeyContext());
 
             byte[] signature = new byte[bytesWritten];
             System.arraycopy(buffer, 0, signature, 0, bytesWritten);
@@ -252,15 +168,14 @@ public class OpenSSLSignature extends Signature {
 
     @Override
     protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
-        int handle = (rsa != 0) ? rsa : dsa;
-
-        if (handle == 0) {
+        if (key == null) {
             // This can't actually happen, but you never know...
             throw new SignatureException("Need DSA or RSA public key");
         }
 
         try {
-            int result = NativeCrypto.EVP_VerifyFinal(ctx, sigBytes, 0, sigBytes.length, handle);
+            int result = NativeCrypto.EVP_VerifyFinal(ctx, sigBytes, 0, sigBytes.length,
+                    key.getPkeyContext());
             return result == 1;
         } catch (Exception ex) {
             throw new SignatureException(ex);
@@ -280,26 +195,9 @@ public class OpenSSLSignature extends Signature {
         }
     }
 
-    private void freeKeysIfExist() {
-        if (dsa != 0) {
-            NativeCrypto.EVP_PKEY_free(dsa);
-        }
-
-        if (rsa != 0) {
-            NativeCrypto.EVP_PKEY_free(rsa);
-        }
-    }
-
-    @Override protected void finalize() throws Throwable {
+    @Override
+    protected void finalize() throws Throwable {
         try {
-            if (dsa != 0) {
-                NativeCrypto.EVP_PKEY_free(dsa);
-            }
-
-            if (rsa != 0) {
-                NativeCrypto.EVP_PKEY_free(rsa);
-            }
-
             if (ctx != 0) {
                 NativeCrypto.EVP_MD_CTX_destroy(ctx);
             }

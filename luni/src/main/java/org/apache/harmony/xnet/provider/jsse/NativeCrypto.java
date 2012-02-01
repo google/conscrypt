@@ -53,11 +53,48 @@ public final class NativeCrypto {
     public static native int EVP_PKEY_new_DSA(byte[] p, byte[] q, byte[] g,
                                               byte[] pub_key, byte[] priv_key);
 
-    public static native int EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q);
+    public static native int EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q,
+            byte[] dmp1, byte[] dmq1, byte[] iqmp);
 
     public static native int EVP_PKEY_size(int pkey);
 
     public static native void EVP_PKEY_free(int pkey);
+
+    public static native byte[] i2d_PKCS8_PRIV_KEY_INFO(int pkey);
+
+    public static native int d2i_PKCS8_PRIV_KEY_INFO(byte[] data);
+
+    public static native byte[] i2d_PUBKEY(int pkey);
+
+    public static native int d2i_PUBKEY(byte[] data);
+
+    public static native int RSA_generate_key_ex(int modulusBits, byte[] publicExponent);
+
+    /**
+     * @return array of {n, e}
+     */
+    public static native byte[][] get_RSA_public_params(int rsa);
+
+    /**
+     * @return array of {n, e, d, p, q, dmp1, dmq1, iqmp}
+     */
+    public static native byte[][] get_RSA_private_params(int rsa);
+
+    public static native int DSA_generate_key(int primeBits, byte[] seed, byte[] g, byte[] p,
+            byte[] q);
+
+    /**
+     * @return array of {g, p, q, y(pub), x(priv)}
+     */
+    public static native byte[][] get_DSA_params(int dsa);
+
+    public static native byte[] i2d_RSAPublicKey(int rsa);
+
+    public static native byte[] i2d_RSAPrivateKey(int rsa);
+
+    public static native byte[] i2d_DSAPublicKey(int dsa);
+
+    public static native byte[] i2d_DSAPrivateKey(int dsa);
 
     // --- Message digest functions --------------
 
