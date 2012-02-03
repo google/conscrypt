@@ -32,6 +32,10 @@ public class OpenSSLDSAPublicKey implements DSAPublicKey {
         this.key = key;
     }
 
+    OpenSSLKey getOpenSSLKey() {
+        return key;
+    }
+
     OpenSSLDSAPublicKey(DSAPublicKeySpec dsaKeySpec) throws InvalidKeySpecException {
         try {
             key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_DSA(

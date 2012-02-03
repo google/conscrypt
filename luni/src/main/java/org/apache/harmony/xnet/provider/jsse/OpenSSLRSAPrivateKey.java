@@ -25,15 +25,15 @@ import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPrivateKeySpec;
 
 public class OpenSSLRSAPrivateKey implements RSAPrivateCrtKey {
+    private final OpenSSLKey key;
+
+    private boolean fetchedParams;
+
     private BigInteger modulus;
 
     private BigInteger publicExponent;
 
     private BigInteger privateExponent;
-
-    private final OpenSSLKey key;
-
-    private boolean fetchedParams;
 
     private BigInteger primeP;
 
@@ -47,6 +47,10 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateCrtKey {
 
     OpenSSLRSAPrivateKey(OpenSSLKey key) {
         this.key = key;
+    }
+
+    OpenSSLKey getOpenSSLKey() {
+        return key;
     }
 
     public OpenSSLRSAPrivateKey(RSAPrivateKeySpec rsaKeySpec) throws InvalidKeySpecException {

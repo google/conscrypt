@@ -18,7 +18,6 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
-import java.security.PublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
@@ -34,6 +33,10 @@ public class OpenSSLRSAPublicKey implements RSAPublicKey {
 
     OpenSSLRSAPublicKey(OpenSSLKey key) {
         this.key = key;
+    }
+
+    OpenSSLKey getOpenSSLKey() {
+        return key;
     }
 
     OpenSSLRSAPublicKey(RSAPublicKeySpec spec) throws InvalidKeySpecException {

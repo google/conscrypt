@@ -32,6 +32,10 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey {
         this.key = key;
     }
 
+    OpenSSLKey getOpenSSLKey() {
+        return key;
+    }
+
     OpenSSLDSAPrivateKey(DSAPrivateKeySpec dsaKeySpec) throws InvalidKeySpecException {
         try {
             key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_DSA(
