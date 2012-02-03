@@ -24,6 +24,8 @@ import java.security.spec.DSAPrivateKeySpec;
 import java.security.spec.InvalidKeySpecException;
 
 public class OpenSSLDSAPrivateKey implements DSAPrivateKey {
+    private static final long serialVersionUID = 6524734576187424628L;
+
     private final OpenSSLKey key;
 
     private OpenSSLDSAParams params;
@@ -94,5 +96,55 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey {
     public BigInteger getX() {
         ensureReadParams();
         return params.getX();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (o instanceof OpenSSLDSAPrivateKey) {
+            OpenSSLDSAPrivateKey other = (OpenSSLDSAPrivateKey) o;
+
+            /*
+             * We can shortcut the true case, but it still may be equivalent but
+             * different copies.
+             */
+            if (key.equals(other.getOpenSSLKey())) {
+                return true;
+            }
+        }
+
+        if (!(o instanceof DSAPrivateKey)) {
+            return false;
+        }
+
+        ensureReadParams();
+
+        DSAPrivateKey other = (DSAPrivateKey) o;
+        return params.getX().equals(other.getX()) && params.equals(other.getParams());
+    }
+
+    @Override
+    public int hashCode() {
+        ensureReadParams();
+
+        return getX().hashCode() ^ params.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        ensureReadParams();
+
+        final StringBuilder sb = new StringBuilder("OpenSSLDSAPrivateKey{");
+        sb.append("X=");
+        sb.append(params.getX().toString(16));
+        sb.append(',');
+        sb.append("params=");
+        sb.append(params.toString());
+        sb.append('}');
+
+        return sb.toString();
     }
 }

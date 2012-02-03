@@ -18,8 +18,9 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.math.BigInteger;
 import java.security.interfaces.DSAParams;
+import java.security.spec.AlgorithmParameterSpec;
 
-public class OpenSSLDSAParams implements DSAParams {
+public class OpenSSLDSAParams implements DSAParams, AlgorithmParameterSpec {
 
     private OpenSSLKey key;
 
@@ -37,6 +38,10 @@ public class OpenSSLDSAParams implements DSAParams {
 
     OpenSSLDSAParams(OpenSSLKey key) {
         this.key = key;
+    }
+
+    OpenSSLKey getOpenSSLKey() {
+        return key;
     }
 
     private void ensureReadParams() {
@@ -80,5 +85,56 @@ public class OpenSSLDSAParams implements DSAParams {
     BigInteger getX() {
         ensureReadParams();
         return x;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (o instanceof OpenSSLDSAParams) {
+            OpenSSLDSAParams other = (OpenSSLDSAParams) o;
+
+            /*
+             * We can shortcut the true case, but it still may be equivalent but
+             * different copies.
+             */
+            if (key == other.getOpenSSLKey()) {
+                return true;
+            }
+        }
+
+        if (!(o instanceof DSAParams)) {
+            return false;
+        }
+
+        ensureReadParams();
+
+        DSAParams other = (DSAParams) o;
+        return g.equals(other.getG()) && p.equals(other.getP()) && q.equals(other.getQ());
+    }
+
+    @Override
+    public int hashCode() {
+        ensureReadParams();
+
+        return g.hashCode() ^ p.hashCode() ^ q.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        ensureReadParams();
+
+        final StringBuilder sb = new StringBuilder("OpenSSLDSAParams{");
+        sb.append("G=");
+        sb.append(g.toString(16));
+        sb.append(",P=");
+        sb.append(p.toString(16));
+        sb.append(",Q=");
+        sb.append(q.toString(16));
+        sb.append('}');
+
+        return sb.toString();
     }
 }

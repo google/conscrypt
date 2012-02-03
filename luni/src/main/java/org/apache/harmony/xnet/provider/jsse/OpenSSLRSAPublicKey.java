@@ -23,6 +23,8 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
 
 public class OpenSSLRSAPublicKey implements RSAPublicKey {
+    private static final long serialVersionUID = 123125005824688292L;
+
     private final OpenSSLKey key;
 
     private BigInteger publicExponent;
@@ -108,5 +110,56 @@ public class OpenSSLRSAPublicKey implements RSAPublicKey {
     public BigInteger getPublicExponent() {
         ensureReadParams();
         return publicExponent;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (o instanceof OpenSSLRSAPublicKey) {
+            OpenSSLRSAPublicKey other = (OpenSSLRSAPublicKey) o;
+
+            /*
+             * We can shortcut the true case, but it still may be equivalent but
+             * different copies.
+             */
+            if (key.equals(other.getOpenSSLKey())) {
+                return true;
+            }
+        }
+
+        if (!(o instanceof RSAPublicKey)) {
+            return false;
+        }
+
+        ensureReadParams();
+
+        RSAPublicKey other = (RSAPublicKey) o;
+        return modulus.equals(other.getModulus())
+                && publicExponent.equals(other.getPublicExponent());
+    }
+
+    @Override
+    public int hashCode() {
+        ensureReadParams();
+
+        return modulus.hashCode() ^ publicExponent.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        ensureReadParams();
+
+        final StringBuilder sb = new StringBuilder("OpenSSLRSAPublicKey{");
+        sb.append("modulus=");
+        sb.append(modulus.toString(16));
+        sb.append(',');
+        sb.append("publicExponent=");
+        sb.append(publicExponent.toString(16));
+        sb.append('}');
+
+        return sb.toString();
     }
 }

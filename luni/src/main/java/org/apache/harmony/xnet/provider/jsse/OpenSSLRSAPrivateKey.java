@@ -25,6 +25,8 @@ import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPrivateKeySpec;
 
 public class OpenSSLRSAPrivateKey implements RSAPrivateCrtKey {
+    private static final long serialVersionUID = 4872170254439578735L;
+
     private final OpenSSLKey key;
 
     private boolean fetchedParams;
@@ -198,15 +200,18 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateCrtKey {
         }
 
         byte[][] params = NativeCrypto.get_RSA_private_params(key.getPkeyContext());
-        if (params[0] != null) {
-            modulus = new BigInteger(params[0]);
+        if (params[0] == null || params[2] == null) {
+            throw new RuntimeException("modulus == null || privateExponent == null");
         }
+
+        modulus = new BigInteger(params[0]);
+
         if (params[1] != null) {
             publicExponent = new BigInteger(params[1]);
         }
-        if (params[2] != null) {
-            privateExponent = new BigInteger(params[2]);
-        }
+
+        privateExponent = new BigInteger(params[2]);
+
         if (params[3] != null) {
             primeP = new BigInteger(params[3]);
         }
@@ -272,5 +277,108 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateCrtKey {
     public BigInteger getCrtCoefficient() {
         ensureReadParams();
         return crtCoefficient;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (o instanceof OpenSSLRSAPrivateKey) {
+            OpenSSLRSAPrivateKey other = (OpenSSLRSAPrivateKey) o;
+
+            /*
+             * We can shortcut the true case, but it still may be equivalent but
+             * different copies.
+             */
+            if (key.equals(other.getOpenSSLKey())) {
+                return true;
+            }
+        }
+
+        if (o instanceof RSAPrivateCrtKey) {
+            ensureReadParams();
+            RSAPrivateCrtKey other = (RSAPrivateCrtKey) o;
+
+            return modulus.equals(other.getModulus())
+                    && publicExponent.equals(other.getPublicExponent())
+                    && privateExponent.equals(other.getPrivateExponent())
+                    && primeP.equals(other.getPrimeP()) && primeQ.equals(other.getPrimeQ())
+                    && primeExponentP.equals(other.getPrimeExponentP())
+                    && primeExponentQ.equals(other.getPrimeExponentQ())
+                    && crtCoefficient.equals(other.getCrtCoefficient());
+        } else if (o instanceof RSAPrivateKey) {
+            ensureReadParams();
+            RSAPrivateKey other = (RSAPrivateKey) o;
+
+            return modulus.equals(other.getModulus())
+                    && privateExponent.equals(other.getPrivateExponent());
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        ensureReadParams();
+
+        int hashCode = modulus.hashCode() ^ privateExponent.hashCode();
+        if (publicExponent != null) {
+            hashCode ^= publicExponent.hashCode();
+        }
+        return hashCode;
+    }
+
+    @Override
+    public String toString() {
+        ensureReadParams();
+
+        final StringBuilder sb = new StringBuilder("OpenSSLRSAPrivateKey{");
+        sb.append("modulus=");
+        sb.append(modulus.toString(16));
+        sb.append(',');
+
+        if (publicExponent != null) {
+            sb.append("publicExponent=");
+            sb.append(publicExponent.toString(16));
+            sb.append(',');
+        }
+
+        sb.append("privateExponent=");
+        sb.append(privateExponent.toString(16));
+        sb.append(',');
+
+        if (primeP != null) {
+            sb.append("primeP=");
+            sb.append(primeP.toString(16));
+            sb.append(',');
+        }
+
+        if (primeQ != null) {
+            sb.append("primeQ=");
+            sb.append(primeQ.toString(16));
+            sb.append(',');
+        }
+
+        if (primeExponentP != null) {
+            sb.append("primeExponentP=");
+            sb.append(primeExponentP.toString(16));
+            sb.append(',');
+        }
+
+        if (primeExponentQ != null) {
+            sb.append("primeExponentQ=");
+            sb.append(primeExponentQ.toString(16));
+            sb.append(',');
+        }
+
+        if (crtCoefficient != null) {
+            sb.append("crtCoefficient=");
+            sb.append(crtCoefficient.toString(16));
+            sb.append(',');
+        }
+
+        return sb.toString();
     }
 }

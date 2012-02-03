@@ -37,4 +37,18 @@ class OpenSSLKey {
             super.finalize();
         }
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (!(o instanceof OpenSSLKey)) {
+            return false;
+        }
+
+        OpenSSLKey other = (OpenSSLKey) o;
+        return ctx == other.getPkeyContext();
+    }
 }

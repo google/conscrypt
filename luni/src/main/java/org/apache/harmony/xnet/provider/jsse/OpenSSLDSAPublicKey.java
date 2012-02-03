@@ -24,6 +24,8 @@ import java.security.spec.DSAPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 
 public class OpenSSLDSAPublicKey implements DSAPublicKey {
+    private static final long serialVersionUID = 5238609500353792232L;
+
     private final OpenSSLKey key;
 
     private OpenSSLDSAParams params;
@@ -94,5 +96,55 @@ public class OpenSSLDSAPublicKey implements DSAPublicKey {
     public BigInteger getY() {
         ensureReadParams();
         return params.getY();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (o instanceof OpenSSLDSAPublicKey) {
+            OpenSSLDSAPublicKey other = (OpenSSLDSAPublicKey) o;
+
+            /*
+             * We can shortcut the true case, but it still may be equivalent but
+             * different copies.
+             */
+            if (key.equals(other.getOpenSSLKey())) {
+                return true;
+            }
+        }
+
+        if (!(o instanceof DSAPublicKey)) {
+            return false;
+        }
+
+        ensureReadParams();
+
+        DSAPublicKey other = (DSAPublicKey) o;
+        return params.getY().equals(other.getY()) && params.equals(other.getParams());
+    }
+
+    @Override
+    public int hashCode() {
+        ensureReadParams();
+
+        return params.getY().hashCode() ^ params.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        ensureReadParams();
+
+        final StringBuilder sb = new StringBuilder("OpenSSLDSAPublicKey{");
+        sb.append("Y=");
+        sb.append(params.getY().toString(16));
+        sb.append(',');
+        sb.append("params=");
+        sb.append(params.toString());
+        sb.append('}');
+
+        return sb.toString();
     }
 }
