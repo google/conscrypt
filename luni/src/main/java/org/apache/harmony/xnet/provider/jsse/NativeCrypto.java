@@ -135,6 +135,21 @@ public final class NativeCrypto {
     public static native int EVP_VerifyFinal(int ctx, byte[] signature,
                                              int offset, int length, int key);
 
+
+    // --- Block ciphers -------------------------------------------------------
+
+    public static native int EVP_get_cipherbyname(String string);
+
+    public static native int EVP_CipherInit_ex(int cipherNid, byte[] key, byte[] iv,
+            boolean encrypting);
+
+    public static native int EVP_CipherUpdate(int ctx, byte[] out, int outOffset, byte[] in,
+            int inOffset);
+
+    public static native int EVP_CipherFinal_ex(int ctx, byte[] out, int outOffset);
+
+    public static native void EVP_CIPHER_CTX_cleanup(int ctx);
+
     // --- RAND seeding --------------------------------------------------------
 
     public static final int RAND_SEED_LENGTH_IN_BYTES = 1024;
