@@ -457,7 +457,14 @@ public class OpenSSLSocketImpl
     }
 
     private String getPeerHostName() {
-        return wrappedHost == null ? super.getInetAddress().getHostName() : wrappedHost;
+        if (wrappedHost != null) {
+            return wrappedHost;
+        }
+        InetAddress inetAddress = super.getInetAddress();
+        if (inetAddress != null) {
+            return inetAddress.getHostName();
+        }
+        return null;
     }
 
     private int getPeerPort() {
