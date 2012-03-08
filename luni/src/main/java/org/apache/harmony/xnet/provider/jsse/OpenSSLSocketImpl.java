@@ -496,9 +496,22 @@ public class OpenSSLSocketImpl
             return;
         }
 
-        byte[] privateKeyBytes = privateKey.getEncoded();
+        if (privateKey instanceof OpenSSLRSAPrivateKey) {
+            OpenSSLRSAPrivateKey rsaKey = (OpenSSLRSAPrivateKey) privateKey;
+            OpenSSLKey key = rsaKey.getOpenSSLKey();
+            NativeCrypto.SSL_use_OpenSSL_PrivateKey(sslNativePointer, key.getPkeyContext());
+        } else if (privateKey instanceof OpenSSLDSAPrivateKey) {
+            OpenSSLDSAPrivateKey dsaKey = (OpenSSLDSAPrivateKey) privateKey;
+            OpenSSLKey key = dsaKey.getOpenSSLKey();
+            NativeCrypto.SSL_use_OpenSSL_PrivateKey(sslNativePointer, key.getPkeyContext());
+        } else if ("PKCS#8".equals(privateKey.getFormat())) {
+            byte[] privateKeyBytes = privateKey.getEncoded();
+            NativeCrypto.SSL_use_PrivateKey(sslNativePointer, privateKeyBytes);
+        } else {
+            throw new SSLException("Unsupported PrivateKey format: " + privateKey.getFormat());
+        }
+
         byte[][] certificateBytes = NativeCrypto.encodeCertificates(certificates);
-        NativeCrypto.SSL_use_PrivateKey(sslNativePointer, privateKeyBytes);
         NativeCrypto.SSL_use_certificate(sslNativePointer, certificateBytes);
 
         // checks the last installed private key and certificate,
