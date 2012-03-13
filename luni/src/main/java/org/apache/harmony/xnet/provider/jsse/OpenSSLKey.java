@@ -17,14 +17,26 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 class OpenSSLKey {
-    private int ctx;
+    private final int ctx;
+
+    private final OpenSSLEngine engine;
 
     OpenSSLKey(int ctx) {
         this.ctx = ctx;
+        engine = null;
+    }
+
+    OpenSSLKey(int ctx, OpenSSLEngine engine) {
+        this.ctx = ctx;
+        this.engine = engine;
     }
 
     int getPkeyContext() {
         return ctx;
+    }
+
+    OpenSSLEngine getEngine() {
+        return engine;
     }
 
     @Override
@@ -49,6 +61,22 @@ class OpenSSLKey {
         }
 
         OpenSSLKey other = (OpenSSLKey) o;
-        return ctx == other.getPkeyContext();
+        if (ctx != other.getPkeyContext()) {
+            return false;
+        }
+
+        if (engine == null) {
+            return other.getEngine() == null;
+        } else {
+            return engine.equals(other.getEngine());
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 1;
+        hash = hash * 17 + ctx;
+        hash = hash * 31 + (engine == null ? 0 : engine.getEngineContext());
+        return hash;
     }
 }

@@ -48,6 +48,19 @@ public final class NativeCrypto {
 
     private native static void clinit();
 
+    // --- ENGINE functions ----------------------------------------------------
+    public static native void ENGINE_load_dynamic();
+
+    public static native int ENGINE_by_id(String id);
+
+    public static native int ENGINE_init(int e);
+
+    public static native int ENGINE_finish(int e);
+
+    public static native int ENGINE_free(int e);
+
+    public static native int ENGINE_load_private_key(int e, String key_id);
+
     // --- DSA/RSA public/private key handling functions -----------------------
 
     public static native int EVP_PKEY_new_DSA(byte[] p, byte[] q, byte[] g,
@@ -57,6 +70,8 @@ public final class NativeCrypto {
             byte[] dmp1, byte[] dmq1, byte[] iqmp);
 
     public static native int EVP_PKEY_size(int pkey);
+
+    public static native int EVP_PKEY_type(int pkey);
 
     public static native void EVP_PKEY_free(int pkey);
 
@@ -311,6 +326,12 @@ public final class NativeCrypto {
         SUPPORTED_CIPHER_SUITES[size] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
     }
 
+    // EVP_PKEY types from evp.h and objects.h
+    public static final int EVP_PKEY_RSA = 6;   // NID_rsaEcnryption
+    public static final int EVP_PKEY_DSA = 116; // NID_dsa
+    public static final int EVP_PKEY_DH  = 28;  // NID_dhKeyAgreement
+    public static final int EVP_PKEY_EC  = 408; // NID_X9_62_id_ecPublicKey
+
     // SSL mode from ssl.h
     public static final long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000040L;
 
@@ -380,6 +401,8 @@ public final class NativeCrypto {
     }
 
     public static native void SSL_use_certificate(int ssl, byte[][] asn1DerEncodedCertificateChain);
+
+    public static native void SSL_use_OpenSSL_PrivateKey(int ssl, int pkey);
 
     public static native void SSL_use_PrivateKey(int ssl, byte[] pkcs8EncodedPrivateKey);
 

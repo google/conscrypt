@@ -186,11 +186,29 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateCrtKey {
 
     @Override
     public String getFormat() {
+        /*
+         * If we're using an OpenSSL ENGINE, there's no guarantee we can export
+         * the key. Returning {@code null} tells the caller that there's no
+         * encoded format.
+         */
+        if (key.getEngine() != null) {
+            return null;
+        }
+
         return "PKCS#8";
     }
 
     @Override
     public byte[] getEncoded() {
+        /*
+         * If we're using an OpenSSL ENGINE, there's no guarantee we can export
+         * the key. Returning {@code null} tells the caller that there's no
+         * encoded format.
+         */
+        if (key.getEngine() != null) {
+            return null;
+        }
+
         return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getPkeyContext());
     }
 
@@ -332,9 +350,16 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateCrtKey {
 
     @Override
     public String toString() {
-        ensureReadParams();
-
         final StringBuilder sb = new StringBuilder("OpenSSLRSAPrivateKey{");
+
+        if (key.getEngine() != null) {
+            sb.append("key=");
+            sb.append(key);
+            sb.append('}');
+            return sb.toString();
+        }
+
+        ensureReadParams();
         sb.append("modulus=");
         sb.append(modulus.toString(16));
         sb.append(',');
