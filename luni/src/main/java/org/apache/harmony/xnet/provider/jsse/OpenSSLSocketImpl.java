@@ -48,9 +48,6 @@ import org.apache.harmony.security.provider.cert.X509CertImpl;
 /**
  * Implementation of the class OpenSSLSocketImpl based on OpenSSL.
  * <p>
- * This class only supports SSLv3 and TLSv1. This should be documented elsewhere
- * later, for example in the package.html or a separate reference document.
- * <p>
  * Extensions to SSLSocket include:
  * <ul>
  * <li>handshake timeout

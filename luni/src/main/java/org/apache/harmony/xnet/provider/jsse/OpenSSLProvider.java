@@ -29,6 +29,8 @@ public final class OpenSSLProvider extends Provider {
         put("SSLContext.SSLv3", OpenSSLContextImpl.class.getName());
         put("SSLContext.TLS", OpenSSLContextImpl.class.getName());
         put("SSLContext.TLSv1", OpenSSLContextImpl.class.getName());
+        put("SSLContext.TLSv1.1", OpenSSLContextImpl.class.getName());
+        put("SSLContext.TLSv1.2", OpenSSLContextImpl.class.getName());
         put("SSLContext.Default", DefaultSSLContextImpl.class.getName());
 
         // Message Digests

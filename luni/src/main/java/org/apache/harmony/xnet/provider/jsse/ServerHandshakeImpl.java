@@ -330,11 +330,17 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                        "HANDSHAKE FAILURE. Incorrect client hello message");
         }
 
+        byte[] server_version = clientHello.client_version;
         if (!ProtocolVersion.isSupported(clientHello.client_version)) {
-            fatalAlert(AlertProtocol.PROTOCOL_VERSION,
-                       "PROTOCOL VERSION. Unsupported client version "
-                       + clientHello.client_version[0]
-                       + clientHello.client_version[1]);
+            if (clientHello.client_version[0] >= 3) {
+                // Protocol from the future, admit that the newest thing we know is TLSv1
+                server_version = ProtocolVersion.TLSv1.version;
+            } else {
+                fatalAlert(AlertProtocol.PROTOCOL_VERSION,
+                           "PROTOCOL VERSION. Unsupported client version "
+                           + clientHello.client_version[0]
+                           + clientHello.client_version[1]);
+            }
         }
 
         isResuming = false;
@@ -404,13 +410,13 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             }
         }
 
-        recordProtocol.setVersion(clientHello.client_version);
-        session.protocol = ProtocolVersion.getByVersion(clientHello.client_version);
+        recordProtocol.setVersion(server_version);
+        session.protocol = ProtocolVersion.getByVersion(server_version);
         session.clientRandom = clientHello.random;
 
         // create server hello message
         serverHello = new ServerHello(parameters.getSecureRandom(),
-                clientHello.client_version,
+                server_version,
                 session.getId(), cipher_suite, (byte) 0); //CompressionMethod.null
         session.serverRandom = serverHello.random;
         send(serverHello);

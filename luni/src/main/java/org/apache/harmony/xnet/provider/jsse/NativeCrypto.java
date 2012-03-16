@@ -194,6 +194,8 @@ public final class NativeCrypto {
 
     private static final String SUPPORTED_PROTOCOL_SSLV3 = "SSLv3";
     private static final String SUPPORTED_PROTOCOL_TLSV1 = "TLSv1";
+    private static final String SUPPORTED_PROTOCOL_TLSV1_1 = "TLSv1.1";
+    private static final String SUPPORTED_PROTOCOL_TLSV1_2 = "TLSv1.2";
 
     public static final Map<String, String> OPENSSL_TO_STANDARD_CIPHER_SUITES
             = new HashMap<String, String>();
@@ -340,6 +342,8 @@ public final class NativeCrypto {
     public static final long SSL_OP_NO_COMPRESSION = 0x00020000L;
     public static final long SSL_OP_NO_SSLv3       = 0x02000000L;
     public static final long SSL_OP_NO_TLSv1       = 0x04000000L;
+    public static final long SSL_OP_NO_TLSv1_1     = 0x00000400L;
+    public static final long SSL_OP_NO_TLSv1_2     = 0x08000000L;
 
     public static native int SSL_CTX_new();
 
@@ -432,7 +436,11 @@ public final class NativeCrypto {
     public static native long SSL_clear_options(int ssl, long options);
 
     public static String[] getSupportedProtocols() {
-        return new String[] { SUPPORTED_PROTOCOL_SSLV3, SUPPORTED_PROTOCOL_TLSV1 };
+        return new String[] { SUPPORTED_PROTOCOL_SSLV3,
+                              SUPPORTED_PROTOCOL_TLSV1,
+                              SUPPORTED_PROTOCOL_TLSV1_1,
+                              SUPPORTED_PROTOCOL_TLSV1_2,
+        };
     }
 
     public static void setEnabledProtocols(int ssl, String[] protocols) {
@@ -440,7 +448,7 @@ public final class NativeCrypto {
         // openssl uses negative logic letting you disable protocols.
         // so first, assume we need to set all (disable all) and clear none (enable none).
         // in the loop, selectively move bits from set to clear (from disable to enable)
-        long optionsToSet = (SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
+        long optionsToSet = (SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1 | SSL_OP_NO_TLSv1_2);
         long optionsToClear = 0;
         for (int i = 0; i < protocols.length; i++) {
             String protocol = protocols[i];
@@ -450,6 +458,12 @@ public final class NativeCrypto {
             } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1)) {
                 optionsToSet &= ~SSL_OP_NO_TLSv1;
                 optionsToClear |= SSL_OP_NO_TLSv1;
+            } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1_1)) {
+                optionsToSet &= ~SSL_OP_NO_TLSv1_1;
+                optionsToClear |= SSL_OP_NO_TLSv1_1;
+            } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1_2)) {
+                optionsToSet &= ~SSL_OP_NO_TLSv1_2;
+                optionsToClear |= SSL_OP_NO_TLSv1_2;
             } else {
                 // error checked by checkEnabledProtocols
                 throw new IllegalStateException();
@@ -470,7 +484,9 @@ public final class NativeCrypto {
                 throw new IllegalArgumentException("protocols[" + i + "] == null");
             }
             if ((!protocol.equals(SUPPORTED_PROTOCOL_SSLV3))
-                    && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1))) {
+                    && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1))
+                    && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1_1))
+                    && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1_2))) {
                 throw new IllegalArgumentException("protocol " + protocol
                                                    + " is not supported");
             }
