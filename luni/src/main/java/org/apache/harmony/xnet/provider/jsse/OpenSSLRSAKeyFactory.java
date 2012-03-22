@@ -61,7 +61,7 @@ public class OpenSSLRSAKeyFactory<T, S> extends KeyFactorySpi {
         if (keySpec instanceof RSAPrivateCrtKeySpec) {
             RSAPrivateCrtKeySpec rsaKeySpec = (RSAPrivateCrtKeySpec) keySpec;
 
-            return new OpenSSLRSAPrivateKey(rsaKeySpec);
+            return new OpenSSLRSAPrivateCrtKey(rsaKeySpec);
         } else if (keySpec instanceof RSAPrivateKeySpec) {
             RSAPrivateKeySpec rsaKeySpec = (RSAPrivateKeySpec) keySpec;
 
@@ -72,7 +72,7 @@ public class OpenSSLRSAKeyFactory<T, S> extends KeyFactorySpi {
             try {
                 final OpenSSLKey key = new OpenSSLKey(
                         NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(pkcs8KeySpec.getEncoded()));
-                return new OpenSSLRSAPrivateKey(key);
+                return OpenSSLRSAPrivateKey.getInstance(key);
             } catch (Exception e) {
                 throw new InvalidKeySpecException(e);
             }
@@ -110,8 +110,7 @@ public class OpenSSLRSAKeyFactory<T, S> extends KeyFactorySpi {
             if (RSAPrivateKeySpec.class.equals(keySpec)) {
                 BigInteger modulus = rsaKey.getModulus();
                 BigInteger privateExponent = rsaKey.getPrivateExponent();
-                return (T) new RSAPrivateCrtKeySpec(modulus, null, privateExponent, null, null,
-                        null, null, null);
+                return (T) new RSAPrivateKeySpec(modulus, privateExponent);
             } else if (RSAPrivateCrtKeySpec.class.equals(keySpec)) {
                 BigInteger modulus = rsaKey.getModulus();
                 BigInteger publicExponent = rsaKey.getPublicExponent();

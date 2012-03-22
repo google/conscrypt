@@ -148,7 +148,7 @@ public class OpenSSLSignature extends Signature {
             }
 
             RSAPrivateCrtKey rsaPrivateKey = (RSAPrivateCrtKey) privateKey;
-            key = OpenSSLRSAPrivateKey.getInstance(rsaPrivateKey);
+            key = OpenSSLRSAPrivateCrtKey.getInstance(rsaPrivateKey);
         } else if (privateKey instanceof RSAPrivateKey) {
             if (engineType != EngineType.RSA) {
                 throw new InvalidKeyException("Signature not initialized as RSA");

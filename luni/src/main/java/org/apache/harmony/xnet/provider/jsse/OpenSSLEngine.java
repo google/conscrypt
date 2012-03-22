@@ -62,7 +62,7 @@ public class OpenSSLEngine {
         final int keyType = NativeCrypto.EVP_PKEY_type(keyRef);
         switch (keyType) {
             case NativeCrypto.EVP_PKEY_RSA:
-                return new OpenSSLRSAPrivateKey(new OpenSSLKey(keyRef, this));
+                return OpenSSLRSAPrivateKey.getInstance(new OpenSSLKey(keyRef, this));
             case NativeCrypto.EVP_PKEY_DSA:
                 return new OpenSSLDSAPrivateKey(new OpenSSLKey(keyRef, this));
             default:

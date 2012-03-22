@@ -44,7 +44,7 @@ public class OpenSSLRSAKeyPairGenerator extends KeyPairGeneratorSpi {
         final OpenSSLKey key = new OpenSSLKey(NativeCrypto.RSA_generate_key_ex(modulusBits,
                 publicExponent));
 
-        PrivateKey privKey = new OpenSSLRSAPrivateKey(key);
+        PrivateKey privKey = OpenSSLRSAPrivateKey.getInstance(key);
         PublicKey pubKey = new OpenSSLRSAPublicKey(key);
 
         return new KeyPair(pubKey, privKey);
