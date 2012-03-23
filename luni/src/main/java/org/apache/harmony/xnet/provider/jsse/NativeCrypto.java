@@ -26,7 +26,6 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -616,14 +615,38 @@ public final class NativeCrypto {
     public static native String SSL_get_servername(int sslNativePointer);
 
     /**
+     * Enables NPN for all SSL connections in the context.
+     *
+     * <p>For clients this causes the NPN extension to be included in the
+     * ClientHello message.
+     *
+     * <p>For servers this causes the NPN extension to be included in the
+     * ServerHello message. The NPN extension will not be included in the
+     * ServerHello response if the client didn't include it in the ClientHello
+     * request.
+     *
+     * <p>In either case the caller should pass a non-null byte array of NPN
+     * protocols to {@link #SSL_do_handshake}.
+     */
+    public static native void SSL_CTX_enable_npn(int sslCtxNativePointer);
+
+    /**
+     * Disables NPN for all SSL connections in the context.
+     */
+    public static native void SSL_CTX_disable_npn(int sslCtxNativePointer);
+
+    /**
      * Returns the sslSessionNativePointer of the negotiated session
      */
     public static native int SSL_do_handshake(int sslNativePointer,
                                               FileDescriptor fd,
                                               SSLHandshakeCallbacks shc,
                                               int timeout,
-                                              boolean client_mode)
+                                              boolean client_mode,
+                                              byte[] npnProtocols)
         throws SSLException, SocketTimeoutException, CertificateException;
+
+    public static native byte[] SSL_CTX_get_npn_negotiated_protocol(int sslNativePointer);
 
     /**
      * Currently only intended for forcing renegotiation for testing.
