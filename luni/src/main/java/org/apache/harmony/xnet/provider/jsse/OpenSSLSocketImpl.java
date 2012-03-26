@@ -1023,7 +1023,7 @@ public class OpenSSLSocketImpl
      * protocol was agreed upon.
      */
     public byte[] getNpnSelectedProtocol() {
-        return NativeCrypto.SSL_CTX_get_npn_negotiated_protocol(sslNativePointer);
+        return NativeCrypto.SSL_get_npn_negotiated_protocol(sslNativePointer);
     }
 
     /**

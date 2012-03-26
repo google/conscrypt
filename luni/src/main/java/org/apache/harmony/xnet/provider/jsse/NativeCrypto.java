@@ -646,7 +646,7 @@ public final class NativeCrypto {
                                               byte[] npnProtocols)
         throws SSLException, SocketTimeoutException, CertificateException;
 
-    public static native byte[] SSL_CTX_get_npn_negotiated_protocol(int sslNativePointer);
+    public static native byte[] SSL_get_npn_negotiated_protocol(int sslNativePointer);
 
     /**
      * Currently only intended for forcing renegotiation for testing.
