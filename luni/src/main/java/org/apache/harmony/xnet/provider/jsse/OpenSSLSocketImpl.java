@@ -67,6 +67,7 @@ public class OpenSSLSocketImpl
     private final Object readLock = new Object();
     private final Object writeLock = new Object();
     private SSLParametersImpl sslParameters;
+    private byte[] npnProtocols;
     private String[] enabledProtocols;
     private String[] enabledCipherSuites;
     private String[] enabledCompressionMethods;
@@ -295,6 +296,10 @@ public class OpenSSLSocketImpl
             sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
             guard.open("close");
 
+            if (npnProtocols != null) {
+                NativeCrypto.SSL_CTX_enable_npn(sslCtxNativePointer);
+            }
+
             // setup server certificates and private keys.
             // clients will receive a call back to request certificates.
             if (!client) {
@@ -404,7 +409,7 @@ public class OpenSSLSocketImpl
             int sslSessionNativePointer;
             try {
                 sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer,
-                        socket.getFileDescriptor$(), this, getSoTimeout(), client);
+                        socket.getFileDescriptor$(), this, getSoTimeout(), client, npnProtocols);
             } catch (CertificateException e) {
                 SSLHandshakeException wrapper = new SSLHandshakeException(e.getMessage());
                 wrapper.initCause(e);
@@ -1011,5 +1016,26 @@ public class OpenSSLSocketImpl
         } else {
             return socket.getFileDescriptor$();
         }
+    }
+
+    /**
+     * Returns the protocol agreed upon by client and server, or null if no
+     * protocol was agreed upon.
+     */
+    public byte[] getNpnSelectedProtocol() {
+        return NativeCrypto.SSL_CTX_get_npn_negotiated_protocol(sslNativePointer);
+    }
+
+    /**
+     * Sets the list of protocols this peer is interested in. If null no
+     * protocols will be used.
+     *
+     * @param npnProtocols from SSL_select_next_proto, "vector of 8-bit, length
+     *     prefixed byte strings. The length byte itself is not included in the
+     *     length. A byte string of length 0 is invalid. No byte string may be
+     *     truncated.
+     */
+    public void setNpnProtocols(byte[] npnProtocols) {
+        this.npnProtocols = npnProtocols;
     }
 }
