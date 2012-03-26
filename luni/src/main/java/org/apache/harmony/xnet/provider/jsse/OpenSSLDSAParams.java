@@ -44,7 +44,7 @@ public class OpenSSLDSAParams implements DSAParams, AlgorithmParameterSpec {
         return key;
     }
 
-    private void ensureReadParams() {
+    private synchronized final void ensureReadParams() {
         if (fetchedParams) {
             return;
         }
@@ -53,8 +53,12 @@ public class OpenSSLDSAParams implements DSAParams, AlgorithmParameterSpec {
         g = new BigInteger(params[0]);
         p = new BigInteger(params[1]);
         q = new BigInteger(params[2]);
-        y = new BigInteger(params[3]);
-        x = new BigInteger(params[4]);
+        if (params[3] != null) {
+            y = new BigInteger(params[3]);
+        }
+        if (params[4] != null) {
+            x = new BigInteger(params[4]);
+        }
 
         fetchedParams = true;
     }

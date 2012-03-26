@@ -39,6 +39,10 @@ class OpenSSLKey {
         return engine;
     }
 
+    boolean isEngineBased() {
+        return engine != null;
+    }
+
     @Override
     protected void finalize() throws Throwable {
         try {
