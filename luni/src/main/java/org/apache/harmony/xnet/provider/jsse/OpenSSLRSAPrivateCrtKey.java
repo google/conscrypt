@@ -232,7 +232,7 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
     public String toString() {
         final StringBuilder sb = new StringBuilder("OpenSSLRSAPrivateCrtKey{");
 
-        if (getOpenSSLKey().getEngine() != null) {
+        if (getOpenSSLKey().isEngineBased()) {
             sb.append("key=");
             sb.append(getOpenSSLKey());
             sb.append('}');

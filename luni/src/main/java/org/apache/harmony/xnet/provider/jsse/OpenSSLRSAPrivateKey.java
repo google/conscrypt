@@ -118,11 +118,18 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
     }
 
     void readParams(byte[][] params) {
-        if (params[0] == null || params[2] == null) {
-            throw new RuntimeException("modulus == null || privateExponent == null");
+        if (params[0] == null) {
+            throw new NullPointerException("modulus == null");
+        } else if (params[2] == null && !key.isEngineBased()) {
+            throw new NullPointerException("privateExponent == null");
         }
+
         modulus = new BigInteger(params[0]);
-        privateExponent = new BigInteger(params[2]);
+
+        // ENGINE-based keys are not guaranteed to have a private exponent.
+        if (params[2] != null) {
+            privateExponent = new BigInteger(params[2]);
+        }
     }
 
     @Override
@@ -144,7 +151,7 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
          * the key. Returning {@code null} tells the caller that there's no
          * encoded format.
          */
-        if (key.getEngine() != null) {
+        if (key.isEngineBased()) {
             return null;
         }
 
@@ -157,7 +164,7 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
          * the key. Returning {@code null} tells the caller that there's no
          * encoded format.
          */
-        if (key.getEngine() != null) {
+        if (key.isEngineBased()) {
             return null;
         }
 
@@ -201,15 +208,21 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
     @Override
     public int hashCode() {
         ensureReadParams();
-        int hashCode = modulus.hashCode() ^ privateExponent.hashCode();
-        return hashCode;
+        int hash = 1;
+
+        hash = hash * 3 + modulus.hashCode();
+        if (privateExponent != null) {
+            hash = hash * 7 + privateExponent.hashCode();
+        }
+
+        return hash;
     }
 
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("OpenSSLRSAPrivateKey{");
 
-        if (key.getEngine() != null) {
+        if (key.isEngineBased()) {
             sb.append("key=");
             sb.append(key);
             sb.append('}');

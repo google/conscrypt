@@ -89,7 +89,7 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey {
          * the key. Returning {@code null} tells the caller that there's no
          * encoded format.
          */
-        if (key.getEngine() != null) {
+        if (key.isEngineBased()) {
             return null;
         }
 
@@ -103,7 +103,7 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey {
          * the key. Returning {@code null} tells the caller that there's no
          * encoded format.
          */
-        if (key.getEngine() != null) {
+        if (key.isEngineBased()) {
             return null;
         }
 
@@ -140,22 +140,42 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey {
 
         ensureReadParams();
 
-        DSAPrivateKey other = (DSAPrivateKey) o;
-        return params.getX().equals(other.getX()) && params.equals(other.getParams());
+        final BigInteger x = params.getX();
+        if (x == null) {
+            /*
+             * If our X is null, we can't tell if these two private keys are
+             * equivalent. This usually happens if this key is ENGINE-based. If
+             * the other key was ENGINE-based, we should have caught it in the
+             * OpenSSLDSAPrivateKey case.
+             */
+            return false;
+        }
+
+        final DSAPrivateKey other = (DSAPrivateKey) o;
+        return x.equals(other.getX()) && params.equals(other.getParams());
     }
 
     @Override
     public int hashCode() {
         ensureReadParams();
 
-        return getX().hashCode() ^ params.hashCode();
+        int hash = 1;
+
+        final BigInteger x = getX();
+        if (x != null) {
+            hash = hash * 3 + x.hashCode();
+        }
+
+        hash = hash * 7 + params.hashCode();
+
+        return hash;
     }
 
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("OpenSSLDSAPrivateKey{");
 
-        if (key.getEngine() != null) {
+        if (key.isEngineBased()) {
             sb.append("key=");
             sb.append(key);
             sb.append('}');
