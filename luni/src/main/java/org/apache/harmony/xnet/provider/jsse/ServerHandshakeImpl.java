@@ -205,8 +205,10 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                         Cipher c = null;
                         try {
                             c = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-                            c.init(Cipher.DECRYPT_MODE, privKey);
-                            preMasterSecret = c.doFinal(clientKeyExchange.exchange_keys);
+                            c.init(Cipher.UNWRAP_MODE, privKey);
+                            preMasterSecret = c.unwrap(clientKeyExchange.exchange_keys,
+                                                       "preMasterSecret",
+                                                       Cipher.SECRET_KEY).getEncoded();
                             // check preMasterSecret:
                             if (preMasterSecret.length != 48
                                     || preMasterSecret[0] != clientHello.client_version[0]
