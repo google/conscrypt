@@ -168,7 +168,7 @@ public class OpenSSLSocketImpl
      */
     private void init(SSLParametersImpl sslParameters) throws IOException {
         init(sslParameters,
-             NativeCrypto.getSupportedProtocols(),
+             NativeCrypto.getDefaultProtocols(),
              NativeCrypto.getDefaultCipherSuites(),
              NativeCrypto.getDefaultCompressionMethods());
     }
