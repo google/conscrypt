@@ -392,6 +392,8 @@ public final class NativeCrypto {
 
     public static native void SSL_CTX_free(int ssl_ctx);
 
+    public static native void SSL_CTX_set_session_id_context(int ssl_ctx, byte[] sid_ctx);
+
     public static native int SSL_new(int ssl_ctx) throws SSLException;
 
     public static byte[][] encodeCertificates(Certificate[] certificates)
