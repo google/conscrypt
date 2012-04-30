@@ -341,7 +341,7 @@ public final class NativeCrypto {
     public static final long SSL_OP_NO_COMPRESSION = 0x00020000L;
     public static final long SSL_OP_NO_SSLv3       = 0x02000000L;
     public static final long SSL_OP_NO_TLSv1       = 0x04000000L;
-    public static final long SSL_OP_NO_TLSv1_1     = 0x00000400L;
+    public static final long SSL_OP_NO_TLSv1_1     = 0x10000000L;
     public static final long SSL_OP_NO_TLSv1_2     = 0x08000000L;
 
     public static native int SSL_CTX_new();
