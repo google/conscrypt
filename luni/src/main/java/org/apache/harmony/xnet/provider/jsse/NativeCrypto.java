@@ -650,7 +650,7 @@ public final class NativeCrypto {
     public static native int SSL_do_handshake(int sslNativePointer,
                                               FileDescriptor fd,
                                               SSLHandshakeCallbacks shc,
-                                              int timeout,
+                                              int timeoutMillis,
                                               boolean client_mode,
                                               byte[] npnProtocols)
         throws SSLException, SocketTimeoutException, CertificateException;
@@ -680,7 +680,7 @@ public final class NativeCrypto {
     public static native int SSL_read(int sslNativePointer,
                                       FileDescriptor fd,
                                       SSLHandshakeCallbacks shc,
-                                      byte[] b, int off, int len, int timeout)
+                                      byte[] b, int off, int len, int timeoutMillis)
         throws IOException;
 
     /**
