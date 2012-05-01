@@ -176,6 +176,10 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
         return "RSA";
     }
 
+    public int getPkeyContext() {
+        return key.getPkeyContext();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == this) {
