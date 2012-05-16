@@ -242,18 +242,6 @@ public class OpenSSLSocketImpl
         return session;
     }
 
-    /**
-     * Starts a TLS/SSL handshake on this connection using some native methods
-     * from the OpenSSL library. It can negotiate new encryption keys, change
-     * cipher suites, or initiate a new session. The certificate chain is
-     * verified if the correspondent property in java.Security is set. All
-     * listeners are notified at the end of the TLS/SSL handshake.
-     */
-    @Override
-    public void startHandshake() throws IOException {
-        startHandshake(true);
-    }
-
     private void checkOpen() throws SocketException {
         if (isClosed()) {
             throw new SocketException("Socket is closed");
@@ -261,11 +249,13 @@ public class OpenSSLSocketImpl
     }
 
     /**
-     * Perform the handshake
-     *
-     * @param full If true, disable handshake cutthrough for a fully synchronous handshake
+     * Starts a TLS/SSL handshake on this connection using some native methods
+     * from the OpenSSL library. It can negotiate new encryption keys, change
+     * cipher suites, or initiate a new session. The certificate chain is
+     * verified if the correspondent property in java.Security is set. All
+     * listeners are notified at the end of the TLS/SSL handshake.
      */
-    public synchronized void startHandshake(boolean full) throws IOException {
+    @Override public synchronized void startHandshake() throws IOException {
         synchronized (handshakeLock) {
             checkOpen();
             if (!handshakeStarted) {
@@ -392,12 +382,6 @@ public class OpenSSLSocketImpl
                         NativeCrypto.SSL_set_client_CA_list(sslNativePointer, issuersBytes);
                     }
                 }
-            }
-
-            if (client && full) {
-                // we want to do a full synchronous handshake, so turn off cutthrough
-                NativeCrypto.SSL_clear_mode(sslNativePointer,
-                                            NativeCrypto.SSL_MODE_HANDSHAKE_CUTTHROUGH);
             }
 
             // Temporarily use a different timeout for the handshake process
@@ -656,11 +640,11 @@ public class OpenSSLSocketImpl
      */
     private class SSLInputStream extends InputStream {
         SSLInputStream() throws IOException {
-            /**
-            /* Note: When startHandshake() throws an exception, no
+            /*
+             * Note: When startHandshake() throws an exception, no
              * SSLInputStream object will be created.
              */
-            OpenSSLSocketImpl.this.startHandshake(false);
+            OpenSSLSocketImpl.this.startHandshake();
         }
 
         /**
@@ -701,11 +685,11 @@ public class OpenSSLSocketImpl
      */
     private class SSLOutputStream extends OutputStream {
         SSLOutputStream() throws IOException {
-            /**
-            /* Note: When startHandshake() throws an exception, no
+            /*
+             * Note: When startHandshake() throws an exception, no
              * SSLOutputStream object will be created.
              */
-            OpenSSLSocketImpl.this.startHandshake(false);
+            OpenSSLSocketImpl.this.startHandshake();
         }
 
         /**
@@ -740,7 +724,7 @@ public class OpenSSLSocketImpl
     @Override public SSLSession getSession() {
         if (sslSession == null) {
             try {
-                startHandshake(true);
+                startHandshake();
             } catch (IOException e) {
                 // return an invalid session with
                 // invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
