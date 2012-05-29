@@ -1014,12 +1014,15 @@ public class OpenSSLSocketImpl
      * Sets the list of protocols this peer is interested in. If null no
      * protocols will be used.
      *
-     * @param npnProtocols from SSL_select_next_proto, "vector of 8-bit, length
-     *     prefixed byte strings. The length byte itself is not included in the
-     *     length. A byte string of length 0 is invalid. No byte string may be
-     *     truncated.
+     * @param npnProtocols a non-empty array of protocol names. From
+     *     SSL_select_next_proto, "vector of 8-bit, length prefixed byte
+     *     strings. The length byte itself is not included in the length. A byte
+     *     string of length 0 is invalid. No byte string may be truncated.".
      */
     public void setNpnProtocols(byte[] npnProtocols) {
+        if (npnProtocols != null && npnProtocols.length == 0) {
+            throw new IllegalArgumentException("npnProtocols.length == 0");
+        }
         this.npnProtocols = npnProtocols;
     }
 }
