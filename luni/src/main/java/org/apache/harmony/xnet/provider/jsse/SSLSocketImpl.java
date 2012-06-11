@@ -41,6 +41,10 @@ public class SSLSocketImpl extends SSLSocket {
     // indicates if handshake has been started
     private boolean handshake_started = false;
 
+    // used when we're wrapping a socket
+    private final String wrappedHost;
+    private final int wrappedPort;
+
     // record protocol to be used
     protected SSLRecordProtocol recordProtocol;
     // handshake protocol to be used
@@ -83,6 +87,8 @@ public class SSLSocketImpl extends SSLSocket {
      */
     protected SSLSocketImpl(SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
+        this.wrappedHost = null;
+        this.wrappedPort = -1;
         // init should be called after creation!
     }
 
@@ -99,6 +105,8 @@ public class SSLSocketImpl extends SSLSocket {
     protected SSLSocketImpl(String host, int port, SSLParametersImpl sslParameters)
             throws IOException, UnknownHostException {
         super(host, port);
+        this.wrappedHost = host;
+        this.wrappedPort = port;
         this.sslParameters = sslParameters;
         init();
     }
@@ -120,6 +128,8 @@ public class SSLSocketImpl extends SSLSocket {
             SSLParametersImpl sslParameters) throws IOException,
             UnknownHostException {
         super(host, port, localHost, localPort);
+        this.wrappedHost = host;
+        this.wrappedPort = port;
         this.sslParameters = sslParameters;
         init();
     }
@@ -138,6 +148,8 @@ public class SSLSocketImpl extends SSLSocket {
             SSLParametersImpl sslParameters) throws IOException {
         super(host, port);
         this.sslParameters = sslParameters;
+        this.wrappedHost = null;
+        this.wrappedPort = -1;
         init();
     }
 
@@ -158,6 +170,8 @@ public class SSLSocketImpl extends SSLSocket {
             SSLParametersImpl sslParameters) throws IOException {
         super(address, port, localAddress, localPort);
         this.sslParameters = sslParameters;
+        this.wrappedHost = null;
+        this.wrappedPort = -1;
         init();
     }
 
@@ -191,6 +205,29 @@ public class SSLSocketImpl extends SSLSocket {
             input.close();
             output.close();
         }
+    }
+
+    String getWrappedHostName() {
+        return wrappedHost;
+    }
+
+    int getWrappedPort() {
+        return wrappedPort;
+    }
+
+    String getPeerHostName() {
+        if (wrappedHost != null) {
+            return wrappedHost;
+        }
+        InetAddress inetAddress = super.getInetAddress();
+        if (inetAddress != null) {
+            return inetAddress.getHostName();
+        }
+        return null;
+    }
+
+    int getPeerPort() {
+        return (wrappedPort == -1) ? super.getPort() : wrappedPort;
     }
 
     // --------------- SSLParameters based methods ---------------------

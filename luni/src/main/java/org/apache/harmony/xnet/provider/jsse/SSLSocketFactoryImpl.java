@@ -88,7 +88,7 @@ public class SSLSocketFactoryImpl extends SSLSocketFactory {
         if (instantiationException != null) {
             throw instantiationException;
         }
-        return new SSLSocketWrapper(s, autoClose, (SSLParametersImpl) sslParameters
+        return new SSLSocketWrapper(s, host, port, autoClose, (SSLParametersImpl) sslParameters
                 .clone());
     }
 
