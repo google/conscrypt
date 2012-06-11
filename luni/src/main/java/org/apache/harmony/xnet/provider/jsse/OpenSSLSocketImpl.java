@@ -442,7 +442,7 @@ public class OpenSSLSocketImpl
         }
     }
 
-    private String getPeerHostName() {
+    String getPeerHostName() {
         if (wrappedHost != null) {
             return wrappedHost;
         }
@@ -453,7 +453,7 @@ public class OpenSSLSocketImpl
         return null;
     }
 
-    private int getPeerPort() {
+    int getPeerPort() {
         return wrappedHost == null ? super.getPort() : wrappedPort;
     }
 
@@ -594,8 +594,13 @@ public class OpenSSLSocketImpl
             }
             boolean client = sslParameters.getUseClientMode();
             if (client) {
-                sslParameters.getTrustManager().checkServerTrusted(peerCertificateChain,
-                                                                   authMethod);
+                X509TrustManager x509tm = sslParameters.getTrustManager();
+                if (x509tm instanceof TrustManagerImpl) {
+                    TrustManagerImpl tm = (TrustManagerImpl) x509tm;
+                    tm.checkServerTrusted(peerCertificateChain, authMethod, wrappedHost);
+                } else {
+                    x509tm.checkServerTrusted(peerCertificateChain, authMethod);
+                }
             } else {
                 String authType = peerCertificateChain[0].getPublicKey().getAlgorithm();
                 sslParameters.getTrustManager().checkClientTrusted(peerCertificateChain,
