@@ -500,7 +500,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
 
         // send certificate verify for all certificates except those containing
         // fixed DH parameters
-        if (clientCert != null && !clientKeyExchange.isEmpty()) {
+        if (clientCert != null && clientCert.certs.length > 0 && !clientKeyExchange.isEmpty()) {
             // Certificate verify
             String authType = clientKey.getAlgorithm();
             DigitalSignature ds = new DigitalSignature(authType);
