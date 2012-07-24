@@ -914,11 +914,11 @@ public class OpenSSLSocketImpl
             }
         }
 
-        NativeCrypto.SSL_interrupt(sslNativePointer);
-
         synchronized (this) {
             synchronized (writeLock) {
                 synchronized (readLock) {
+
+                    NativeCrypto.SSL_interrupt(sslNativePointer);
 
                     // Shut down the SSL connection, per se.
                     try {
