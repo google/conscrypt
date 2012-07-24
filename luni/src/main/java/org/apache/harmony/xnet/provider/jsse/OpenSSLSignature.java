@@ -241,7 +241,7 @@ public class OpenSSLSignature extends Signature {
                     key.getPkeyContext());
             return result == 1;
         } catch (Exception ex) {
-            throw new SignatureException(ex);
+            return false;
         } finally {
             /*
              * Java expects the digest context to be reset completely after
