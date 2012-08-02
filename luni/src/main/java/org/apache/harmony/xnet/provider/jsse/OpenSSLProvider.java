@@ -109,6 +109,9 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Signature.DSAWithSHA1", "SHA1withDSA");
         put("Alg.Alias.Signature.1.2.840.10040.4.3", "SHA1withDSA");
 
+        put("Signature.RAWRSA", OpenSSLSignatureRawRSA.class.getName());
+        put("Alg.Alias.Signature.NONEwithRSA", "RAWRSA");
+
         // SecureRandom
         /*
          * We have to specify SHA1PRNG because various documentation mentions
