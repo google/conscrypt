@@ -19,7 +19,6 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.security.AccessController;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
