@@ -19,8 +19,6 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.PrintStream;
 import java.util.Locale;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import libcore.util.EmptyArray;
 
 /**
