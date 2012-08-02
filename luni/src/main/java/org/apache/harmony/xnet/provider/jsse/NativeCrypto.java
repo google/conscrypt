@@ -172,6 +172,8 @@ public final class NativeCrypto {
 
     public static native int RAND_load_file(String filename, long max_bytes);
 
+    public static native void RAND_bytes(byte[] output);
+
     // --- X509_NAME -----------------------------------------------------------
 
     public static int X509_NAME_hash(X500Principal principal) {

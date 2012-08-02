@@ -108,5 +108,14 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.10040.4.3", "SHA1withDSA");
         put("Alg.Alias.Signature.DSAWithSHA1", "SHA1withDSA");
         put("Alg.Alias.Signature.1.2.840.10040.4.3", "SHA1withDSA");
+
+        // SecureRandom
+        /*
+         * We have to specify SHA1PRNG because various documentation mentions
+         * that algorithm by name instead of just recommending calling
+         * "new SecureRandom()"
+         */
+        put("SecureRandom.SHA1PRNG", OpenSSLRandom.class.getName());
+        put("SecureRandom.SHA1PRNG ImplementedIn", "Software");
     }
 }
