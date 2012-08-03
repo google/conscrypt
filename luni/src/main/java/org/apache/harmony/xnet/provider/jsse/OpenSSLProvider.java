@@ -120,5 +120,9 @@ public final class OpenSSLProvider extends Provider {
          */
         put("SecureRandom.SHA1PRNG", OpenSSLRandom.class.getName());
         put("SecureRandom.SHA1PRNG ImplementedIn", "Software");
+
+        // Cipher
+        put("Cipher.RSA/ECB/NoPadding", OpenSSLCipherRawRSA.class.getName());
+        put("Alg.Alias.Cipher.RSA/None/NoPadding", "RSA/ECB/NoPadding");
     }
 }
