@@ -84,6 +84,20 @@ public final class NativeCrypto {
 
     public static native int RSA_generate_key_ex(int modulusBits, byte[] publicExponent);
 
+    public static native int RSA_size(int pkey);
+
+    public static native int RSA_private_encrypt(int flen, byte[] from, byte[] to, int pkey,
+            int padding);
+
+    public static native int RSA_public_decrypt(int flen, byte[] from, byte[] to, int pkey,
+            int padding);
+
+    public static native void RSA_padding_add_PKCS1_type_1(byte[] to, int tlen, byte[] from,
+            int flen);
+
+    public static native int RSA_padding_check_PKCS1_type_1(byte[] to, int tlen, byte[] from,
+            int flen, int rsa_len);
+
     /**
      * @return array of {n, e}
      */
@@ -334,6 +348,10 @@ public final class NativeCrypto {
     public static final int EVP_PKEY_DSA = 116; // NID_dsa
     public static final int EVP_PKEY_DH  = 28;  // NID_dhKeyAgreement
     public static final int EVP_PKEY_EC  = 408; // NID_X9_62_id_ecPublicKey
+
+    // RSA padding modes from rsa.h
+    public static final int RSA_PKCS1_PADDING = 1;
+    public static final int RSA_NO_PADDING    = 3;
 
     // SSL mode from ssl.h
     public static final long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000040L;
