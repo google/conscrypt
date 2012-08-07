@@ -16,6 +16,11 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import org.apache.harmony.security.x501.Name;
+import org.apache.harmony.security.x509.AuthorityKeyIdentifier;
+import org.apache.harmony.security.x509.GeneralName;
+import org.apache.harmony.security.x509.GeneralNames;
+import org.apache.harmony.security.x509.SubjectKeyIdentifier;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,19 +28,20 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.KeyStoreSpi;
-import java.security.PublicKey;
-import java.security.cert.CertSelector;
+import java.math.BigInteger;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 import libcore.io.IoUtils;
+import libcore.util.Objects;
 
 /**
  * A source for trusted root certificate authority (CA) certificates
@@ -364,6 +370,109 @@ public final class TrustedCertificateStore {
             return system;
         }
         return null;
+    }
+
+    private static AuthorityKeyIdentifier getAuthorityKeyIdentifier(X509Certificate cert) {
+        final byte[] akidBytes = cert.getExtensionValue("2.5.29.35");
+        if (akidBytes == null) {
+            return null;
+        }
+
+        try {
+            return AuthorityKeyIdentifier.decode(akidBytes);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private static SubjectKeyIdentifier getSubjectKeyIdentifier(X509Certificate cert) {
+        final byte[] skidBytes = cert.getExtensionValue("2.5.29.14");
+        if (skidBytes == null) {
+            return null;
+        }
+
+        try {
+            return SubjectKeyIdentifier.decode(skidBytes);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private static boolean isSelfSignedCertificate(X509Certificate cert) {
+        if (!Objects.equal(cert.getSubjectX500Principal(), cert.getIssuerX500Principal())) {
+            return false;
+        }
+
+        final AuthorityKeyIdentifier akid = getAuthorityKeyIdentifier(cert);
+        if (akid != null) {
+            final byte[] akidKeyId = akid.getKeyIdentifier();
+            if (akidKeyId != null) {
+                final SubjectKeyIdentifier skid = getSubjectKeyIdentifier(cert);
+                if (!Arrays.equals(akidKeyId, skid.getKeyIdentifier())) {
+                    return false;
+                }
+            }
+
+            final BigInteger akidSerial = akid.getAuthorityCertSerialNumber();
+            if (akidSerial != null && !akidSerial.equals(cert.getSerialNumber())) {
+                return false;
+            }
+
+            final GeneralNames possibleIssuerNames = akid.getAuthorityCertIssuer();
+            if (possibleIssuerNames != null) {
+                GeneralName issuerName = null;
+
+                /* Get the first Directory Name (DN) to match how OpenSSL works. */
+                for (GeneralName possibleName : possibleIssuerNames.getNames()) {
+                    if (possibleName.getTag() == GeneralName.DIR_NAME) {
+                        issuerName = possibleName;
+                        break;
+                    }
+                }
+
+                if (issuerName != null) {
+                    final String issuerCanonical = ((Name) issuerName.getName())
+                            .getName(X500Principal.CANONICAL);
+
+                    try {
+                        final String subjectCanonical = new Name(cert.getSubjectX500Principal()
+                                .getEncoded()).getName(X500Principal.CANONICAL);
+                        if (!issuerCanonical.equals(subjectCanonical)) {
+                            return false;
+                        }
+                    } catch (IOException ignored) {
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Attempt to build a certificate chain from the supplied {@code leaf}
+     * argument through the chain of issuers as high up as known. If the chain
+     * can't be completed, the most complete chain available will be returned.
+     * This means that a list with only the {@code leaf} certificate is returned
+     * if no issuer certificates could be found.
+     */
+    public List<X509Certificate> getCertificateChain(X509Certificate leaf) {
+        final List<X509Certificate> chain = new ArrayList<X509Certificate>();
+        chain.add(leaf);
+
+        for (int i = 0; true; i++) {
+            X509Certificate cert = chain.get(i);
+            if (isSelfSignedCertificate(cert)) {
+                break;
+            }
+            X509Certificate issuer = findIssuer(cert);
+            if (issuer == null) {
+                break;
+            }
+            chain.add(issuer);
+        }
+
+        return chain;
     }
 
     // like java.security.cert.CertSelector but with X509Certificate and without cloning
