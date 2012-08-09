@@ -37,6 +37,7 @@ import javax.crypto.spec.DHPublicKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
+import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 
 /**
@@ -88,7 +89,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             if (engineOwner != null) {
                 session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
             } else {
-                session.setPeer(socketOwner.getInetAddress().getHostName(), socketOwner.getPort());
+                session.setPeer(socketOwner.getPeerHostName(), socketOwner.getPeerPort());
             }
             session.protocol = ProtocolVersion.getLatestVersion(parameters.getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
@@ -109,7 +110,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             if (engineOwner != null) {
                 session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
             } else {
-                session.setPeer(socketOwner.getInetAddress().getHostName(), socketOwner.getPort());
+                session.setPeer(socketOwner.getPeerHostName(), socketOwner.getPeerPort());
             }
             session.protocol = ProtocolVersion.getLatestVersion(parameters.getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
@@ -527,8 +528,21 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         if (authType == null) {
             return;
         }
+        String hostname = null;
+        if (engineOwner != null) {
+            hostname = engineOwner.getPeerHost();
+        } else {
+            // we don't want to do an inet address lookup here in case we're talking to a proxy
+            hostname = socketOwner.getWrappedHostName();
+        }
         try {
-            parameters.getTrustManager().checkServerTrusted(serverCert.certs, authType);
+            X509TrustManager x509tm = parameters.getTrustManager();
+            if (x509tm instanceof TrustManagerImpl) {
+                TrustManagerImpl tm = (TrustManagerImpl) x509tm;
+                tm.checkServerTrusted(serverCert.certs, authType, hostname);
+            } else {
+                x509tm.checkServerTrusted(serverCert.certs, authType);
+            }
         } catch (CertificateException e) {
             fatalAlert(AlertProtocol.BAD_CERTIFICATE, "Not trusted server certificate", e);
             return;
@@ -559,8 +573,8 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             host = engineOwner.getPeerHost();
             port = engineOwner.getPeerPort();
         } else {
-            host = socketOwner.getInetAddress().getHostName();
-            port = socketOwner.getPort();
+            host = socketOwner.getPeerHostName();
+            port = socketOwner.getPeerPort();
         }
         if (host == null || port == -1) {
             return null; // starts new session
