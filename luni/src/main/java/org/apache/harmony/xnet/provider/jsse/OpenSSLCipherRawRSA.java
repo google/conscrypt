@@ -221,7 +221,14 @@ public class OpenSSLCipherRawRSA extends CipherSpi {
             int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
             BadPaddingException {
         byte[] b = engineDoFinal(input, inputOffset, inputLen);
-        System.arraycopy(output, 0, b, outputOffset, b.length);
+
+        final int lastOffset = outputOffset + b.length;
+        if (lastOffset > output.length) {
+            throw new ShortBufferException("output buffer is too small " + output.length + " < "
+                    + lastOffset);
+        }
+
+        System.arraycopy(b, 0, output, outputOffset, b.length);
         return b.length;
     }
 }
