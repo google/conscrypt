@@ -196,6 +196,15 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
             if (key.equals(other.getOpenSSLKey())) {
                 return true;
             }
+
+            /*
+             * If this key is ENGINE-based, it could be equivalent to another
+             * ENGINE-based key. The modulus may be equal, but that occurrence
+             * should be so improbably low as to never happen.
+             */
+            if (key.isEngineBased() || other.getOpenSSLKey().isEngineBased()) {
+                return modulus.equals(other.getModulus());
+            }
         }
 
         if (o instanceof RSAPrivateKey) {
@@ -226,11 +235,11 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
     public String toString() {
         final StringBuilder sb = new StringBuilder("OpenSSLRSAPrivateKey{");
 
-        if (key.isEngineBased()) {
+        final boolean engineBased = key.isEngineBased();
+        if (engineBased) {
             sb.append("key=");
             sb.append(key);
             sb.append('}');
-            return sb.toString();
         }
 
         ensureReadParams();
@@ -238,9 +247,11 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
         sb.append(modulus.toString(16));
         sb.append(',');
 
-        sb.append("privateExponent=");
-        sb.append(privateExponent.toString(16));
-        sb.append(',');
+        if (!engineBased) {
+            sb.append("privateExponent=");
+            sb.append(privateExponent.toString(16));
+            sb.append(',');
+        }
 
         return sb.toString();
     }
