@@ -201,6 +201,16 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
             if (getOpenSSLKey().equals(other.getOpenSSLKey())) {
                 return true;
             }
+
+            /*
+             * If this key is ENGINE-based, it could be equivalent to another
+             * ENGINE-based key. The modulus may be equal, but that occurrence
+             * should be so improbably low as to never happen.
+             */
+            if (getOpenSSLKey().isEngineBased() || other.getOpenSSLKey().isEngineBased()) {
+                return publicExponent.equals(other.getPublicExponent())
+                        && getModulus().equals(other.getModulus());
+            }
         }
 
         if (o instanceof RSAPrivateCrtKey) {
@@ -232,11 +242,11 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
     public String toString() {
         final StringBuilder sb = new StringBuilder("OpenSSLRSAPrivateCrtKey{");
 
-        if (getOpenSSLKey().isEngineBased()) {
+        final boolean engineBased = getOpenSSLKey().isEngineBased();
+        if (engineBased) {
             sb.append("key=");
             sb.append(getOpenSSLKey());
             sb.append('}');
-            return sb.toString();
         }
 
         ensureReadParams();
@@ -250,9 +260,11 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
             sb.append(',');
         }
 
-        sb.append("privateExponent=");
-        sb.append(getPrivateExponent().toString(16));
-        sb.append(',');
+        if (!engineBased) {
+            sb.append("privateExponent=");
+            sb.append(getPrivateExponent().toString(16));
+            sb.append(',');
+        }
 
         if (primeP != null) {
             sb.append("primeP=");
