@@ -24,6 +24,8 @@ public class OpenSSLEngine {
         NativeCrypto.ENGINE_load_dynamic();
     }
 
+    private static final Object mLoadingLock = new Object();
+
     /** The ENGINE's native handle. */
     private final int ctx;
 
@@ -32,10 +34,14 @@ public class OpenSSLEngine {
             throw new NullPointerException("engine == null");
         }
 
-        final int engineCtx = NativeCrypto.ENGINE_by_id(engine);
+        final int engineCtx;
+        synchronized (mLoadingLock) {
+            engineCtx = NativeCrypto.ENGINE_by_id(engine);
+            if (engineCtx == 0) {
+                throw new IllegalArgumentException("Unknown ENGINE id: " + engine);
+            }
 
-        if (engineCtx == 0) {
-            throw new IllegalArgumentException("Unknown ENGINE id: " + engine);
+            NativeCrypto.ENGINE_add(engineCtx);
         }
 
         return new OpenSSLEngine(engineCtx);
@@ -45,6 +51,7 @@ public class OpenSSLEngine {
         ctx = engineCtx;
 
         if (NativeCrypto.ENGINE_init(engineCtx) == 0) {
+            NativeCrypto.ENGINE_free(engineCtx);
             throw new IllegalArgumentException("Could not initialize engine");
         }
     }
