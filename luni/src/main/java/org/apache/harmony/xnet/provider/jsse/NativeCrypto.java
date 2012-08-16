@@ -52,6 +52,8 @@ public final class NativeCrypto {
 
     public static native int ENGINE_by_id(String id);
 
+    public static native int ENGINE_add(int e);
+
     public static native int ENGINE_init(int e);
 
     public static native int ENGINE_finish(int e);
