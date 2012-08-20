@@ -920,11 +920,12 @@ public class OpenSSLSocketImpl
         }
 
         synchronized (this) {
+
+            // Interrupt any outstanding reads or writes before taking the writeLock and readLock
+            NativeCrypto.SSL_interrupt(sslNativePointer);
+
             synchronized (writeLock) {
                 synchronized (readLock) {
-
-                    NativeCrypto.SSL_interrupt(sslNativePointer);
-
                     // Shut down the SSL connection, per se.
                     try {
                         if (handshakeStarted) {
