@@ -120,6 +120,10 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey {
         return key.getPkeyContext();
     }
 
+    public String getPkeyAlias() {
+        return key.getAlias();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == this) {
