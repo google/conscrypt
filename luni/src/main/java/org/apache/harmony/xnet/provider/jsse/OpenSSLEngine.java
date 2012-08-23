@@ -69,9 +69,9 @@ public class OpenSSLEngine {
         final int keyType = NativeCrypto.EVP_PKEY_type(keyRef);
         switch (keyType) {
             case NativeCrypto.EVP_PKEY_RSA:
-                return OpenSSLRSAPrivateKey.getInstance(new OpenSSLKey(keyRef, this));
+                return OpenSSLRSAPrivateKey.getInstance(new OpenSSLKey(keyRef, this, id));
             case NativeCrypto.EVP_PKEY_DSA:
-                return new OpenSSLDSAPrivateKey(new OpenSSLKey(keyRef, this));
+                return new OpenSSLDSAPrivateKey(new OpenSSLKey(keyRef, this, id));
             default:
                 throw new InvalidKeyException("Unknown key type: " + keyType);
         }
