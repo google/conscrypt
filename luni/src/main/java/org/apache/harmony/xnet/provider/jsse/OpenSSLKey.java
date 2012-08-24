@@ -21,14 +21,18 @@ class OpenSSLKey {
 
     private final OpenSSLEngine engine;
 
+    private final String alias;
+
     OpenSSLKey(int ctx) {
         this.ctx = ctx;
         engine = null;
+        alias = null;
     }
 
-    OpenSSLKey(int ctx, OpenSSLEngine engine) {
+    OpenSSLKey(int ctx, OpenSSLEngine engine, String alias) {
         this.ctx = ctx;
         this.engine = engine;
+        this.alias = alias;
     }
 
     int getPkeyContext() {
@@ -41,6 +45,10 @@ class OpenSSLKey {
 
     boolean isEngineBased() {
         return engine != null;
+    }
+
+    String getAlias() {
+        return alias;
     }
 
     @Override
