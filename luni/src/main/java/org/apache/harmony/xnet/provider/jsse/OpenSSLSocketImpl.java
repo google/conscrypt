@@ -51,7 +51,6 @@ import org.apache.harmony.security.provider.cert.X509CertImpl;
  * Extensions to SSLSocket include:
  * <ul>
  * <li>handshake timeout
- * <li>compression methods
  * <li>session tickets
  * <li>Server Name Indication
  * </ul>
@@ -70,7 +69,6 @@ public class OpenSSLSocketImpl
     private byte[] npnProtocols;
     private String[] enabledProtocols;
     private String[] enabledCipherSuites;
-    private String[] enabledCompressionMethods;
     private boolean useSessionTickets;
     private String hostname;
     private OpenSSLSessionImpl sslSession;
@@ -108,10 +106,9 @@ public class OpenSSLSocketImpl
 
     protected OpenSSLSocketImpl(SSLParametersImpl sslParameters,
                                 String[] enabledProtocols,
-                                String[] enabledCipherSuites,
-                                String[] enabledCompressionMethods) throws IOException {
+                                String[] enabledCipherSuites) throws IOException {
         this.socket = this;
-        init(sslParameters, enabledProtocols, enabledCipherSuites, enabledCompressionMethods);
+        init(sslParameters, enabledProtocols, enabledCipherSuites);
     }
 
     protected OpenSSLSocketImpl(String host, int port, SSLParametersImpl sslParameters)
@@ -169,8 +166,7 @@ public class OpenSSLSocketImpl
     private void init(SSLParametersImpl sslParameters) throws IOException {
         init(sslParameters,
              NativeCrypto.getDefaultProtocols(),
-             NativeCrypto.getDefaultCipherSuites(),
-             NativeCrypto.getDefaultCompressionMethods());
+             NativeCrypto.getDefaultCipherSuites());
     }
 
     /**
@@ -179,12 +175,10 @@ public class OpenSSLSocketImpl
      */
     private void init(SSLParametersImpl sslParameters,
                       String[] enabledProtocols,
-                      String[] enabledCipherSuites,
-                      String[] enabledCompressionMethods) throws IOException {
+                      String[] enabledCipherSuites) throws IOException {
         this.sslParameters = sslParameters;
         this.enabledProtocols = enabledProtocols;
         this.enabledCipherSuites = enabledCipherSuites;
-        this.enabledCompressionMethods = enabledCompressionMethods;
     }
 
     /**
@@ -223,20 +217,6 @@ public class OpenSSLSocketImpl
         }
         if (!cipherSuiteFound) {
             return null;
-        }
-
-        String compressionMethod = session.getCompressionMethod();
-        if (!compressionMethod.equals(NativeCrypto.SUPPORTED_COMPRESSION_METHOD_NULL)) {
-            boolean compressionMethodFound = false;
-            for (String enabledCompressionMethod : enabledCompressionMethods) {
-                if (compressionMethod.equals(enabledCompressionMethod)) {
-                    compressionMethodFound = true;
-                    break;
-                }
-            }
-            if (!compressionMethodFound) {
-                return null;
-            }
         }
 
         return session;
@@ -316,10 +296,6 @@ public class OpenSSLSocketImpl
 
             NativeCrypto.setEnabledProtocols(sslNativePointer, enabledProtocols);
             NativeCrypto.setEnabledCipherSuites(sslNativePointer, enabledCipherSuites);
-            if (enabledCompressionMethods.length != 0) {
-                NativeCrypto.setEnabledCompressionMethods(sslNativePointer,
-                                                          enabledCompressionMethods);
-            }
             if (useSessionTickets) {
                 NativeCrypto.SSL_clear_options(sslNativePointer, NativeCrypto.SSL_OP_NO_TICKET);
             }
@@ -790,35 +766,6 @@ public class OpenSSLSocketImpl
 
     @Override public void setEnabledProtocols(String[] protocols) {
         enabledProtocols = NativeCrypto.checkEnabledProtocols(protocols);
-    }
-
-    /**
-     * The names of the compression methods that may be used on this SSL
-     * connection.
-     * @return an array of compression methods
-     */
-    public String[] getSupportedCompressionMethods() {
-        return NativeCrypto.getSupportedCompressionMethods();
-    }
-
-    /**
-     * The names of the compression methods versions that are in use
-     * on this SSL connection.
-     *
-     * @return an array of compression methods
-     */
-    public String[] getEnabledCompressionMethods() {
-        return enabledCompressionMethods.clone();
-    }
-
-    /**
-     * Enables compression methods listed by getSupportedCompressionMethods().
-     *
-     * @throws IllegalArgumentException when one or more of the names in the
-     *             array are not supported, or when the array is null.
-     */
-    public void setEnabledCompressionMethods(String[] methods) {
-        enabledCompressionMethods = NativeCrypto.checkEnabledCompressionMethods(methods);
     }
 
     /**

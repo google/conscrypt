@@ -339,7 +339,6 @@ public final class NativeCrypto {
     // SSL options from ssl.h
     public static final long SSL_OP_NO_TICKET                              = 0x00004000L;
     public static final long SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION = 0x00010000L;
-    public static final long SSL_OP_NO_COMPRESSION                         = 0x00020000L;
     public static final long SSL_OP_NO_SSLv3                               = 0x02000000L;
     public static final long SSL_OP_NO_TLSv1                               = 0x04000000L;
     public static final long SSL_OP_NO_TLSv1_1                             = 0x10000000L;
@@ -544,66 +543,6 @@ public final class NativeCrypto {
         return cipherSuites;
     }
 
-    public static final String SUPPORTED_COMPRESSION_METHOD_ZLIB = "ZLIB";
-    public static final String SUPPORTED_COMPRESSION_METHOD_NULL = "NULL";
-
-    private static final String[] SUPPORTED_COMPRESSION_METHODS
-            = { SUPPORTED_COMPRESSION_METHOD_ZLIB, SUPPORTED_COMPRESSION_METHOD_NULL };
-
-    public static String[] getSupportedCompressionMethods() {
-        return SUPPORTED_COMPRESSION_METHODS.clone();
-    }
-
-    public static final String[] getDefaultCompressionMethods() {
-        return new String[] { SUPPORTED_COMPRESSION_METHOD_NULL };
-    }
-
-    public static String[] checkEnabledCompressionMethods(String[] methods) {
-        if (methods == null) {
-            throw new IllegalArgumentException("methods == null");
-        }
-        if (methods.length < 1
-                && !methods[methods.length-1].equals(SUPPORTED_COMPRESSION_METHOD_NULL)) {
-            throw new IllegalArgumentException("last method must be NULL");
-        }
-        for (int i = 0; i < methods.length; i++) {
-            String method = methods[i];
-            if (method == null) {
-                throw new IllegalArgumentException("methods[" + i + "] == null");
-            }
-            if (!method.equals(SUPPORTED_COMPRESSION_METHOD_ZLIB)
-                    && !method.equals(SUPPORTED_COMPRESSION_METHOD_NULL)) {
-                throw new IllegalArgumentException("method " + method
-                                                   + " is not supported");
-            }
-        }
-        return methods;
-    }
-
-    public static void setEnabledCompressionMethods(int ssl, String[] methods) {
-        checkEnabledCompressionMethods(methods);
-        // openssl uses negative logic letting you disable compression.
-        // so first, assume we need to set all (disable all) and clear none (enable none).
-        // in the loop, selectively move bits from set to clear (from disable to enable)
-        long optionsToSet = (SSL_OP_NO_COMPRESSION);
-        long optionsToClear = 0;
-        for (int i = 0; i < methods.length; i++) {
-            String method = methods[i];
-            if (method.equals(SUPPORTED_COMPRESSION_METHOD_NULL)) {
-                // nothing to do to support NULL
-            } else if (method.equals(SUPPORTED_COMPRESSION_METHOD_ZLIB)) {
-                optionsToSet &= ~SSL_OP_NO_COMPRESSION;
-                optionsToClear |= SSL_OP_NO_COMPRESSION;
-            } else {
-                // error checked by checkEnabledCompressionMethods
-                throw new IllegalStateException();
-            }
-        }
-
-        SSL_set_options(ssl, optionsToSet);
-        SSL_clear_options(ssl, optionsToClear);
-    }
-
     /*
      * See the OpenSSL ssl.h header file for more information.
      */
@@ -706,9 +645,6 @@ public final class NativeCrypto {
     public static native String SSL_SESSION_get_version(int sslSessionNativePointer);
 
     public static native String SSL_SESSION_cipher(int sslSessionNativePointer);
-
-    public static native String SSL_SESSION_compress_meth(int sslCtxNativePointer,
-                                                          int sslSessionNativePointer);
 
     public static native void SSL_SESSION_free(int sslSessionNativePointer);
 
