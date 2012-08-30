@@ -49,7 +49,6 @@ public class OpenSSLSessionImpl implements SSLSession {
     private int peerPort = -1;
     private String cipherSuite;
     private String protocol;
-    private String compressionMethod;
     private AbstractSessionContext sessionContext;
     private byte[] id;
 
@@ -325,19 +324,6 @@ public class OpenSSLSessionImpl implements SSLSession {
             protocol = NativeCrypto.SSL_SESSION_get_version(sslSessionNativePointer);
         }
         return protocol;
-    }
-
-    /**
-     * Returns the compression method name used in all connections
-     * pertaining to this SSL session.
-     */
-    public String getCompressionMethod() {
-        if (compressionMethod == null) {
-            compressionMethod
-                    = NativeCrypto.SSL_SESSION_compress_meth(sessionContext.sslCtxNativePointer,
-                                                             sslSessionNativePointer);
-        }
-        return compressionMethod;
     }
 
     /**
