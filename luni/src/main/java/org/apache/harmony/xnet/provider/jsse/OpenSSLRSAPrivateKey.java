@@ -201,14 +201,7 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
                 return true;
             }
 
-            /*
-             * If this key is ENGINE-based, it could be equivalent to another
-             * ENGINE-based key. The modulus may be equal, but that occurrence
-             * should be so improbably low as to never happen.
-             */
-            if (key.isEngineBased() || other.getOpenSSLKey().isEngineBased()) {
-                return modulus.equals(other.getModulus());
-            }
+            return NativeCrypto.EVP_PKEY_cmp(getPkeyContext(), other.getPkeyContext()) == 1;
         }
 
         if (o instanceof RSAPrivateKey) {
