@@ -191,8 +191,8 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
             return true;
         }
 
-        if (o instanceof OpenSSLRSAPrivateCrtKey) {
-            OpenSSLRSAPrivateCrtKey other = (OpenSSLRSAPrivateCrtKey) o;
+        if (o instanceof OpenSSLRSAPrivateKey) {
+            OpenSSLRSAPrivateKey other = (OpenSSLRSAPrivateKey) o;
 
             /*
              * We can shortcut the true case, but it still may be equivalent but
@@ -202,28 +202,35 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
                 return true;
             }
 
-            /*
-             * If this key is ENGINE-based, it could be equivalent to another
-             * ENGINE-based key. The modulus may be equal, but that occurrence
-             * should be so improbably low as to never happen.
-             */
-            if (getOpenSSLKey().isEngineBased() || other.getOpenSSLKey().isEngineBased()) {
-                return publicExponent.equals(other.getPublicExponent())
-                        && getModulus().equals(other.getModulus());
-            }
+            return NativeCrypto.EVP_PKEY_cmp(getPkeyContext(), other.getPkeyContext()) == 1;
         }
 
         if (o instanceof RSAPrivateCrtKey) {
             ensureReadParams();
             RSAPrivateCrtKey other = (RSAPrivateCrtKey) o;
 
-            return getModulus().equals(other.getModulus())
-                    && publicExponent.equals(other.getPublicExponent())
-                    && getPrivateExponent().equals(other.getPrivateExponent())
-                    && primeP.equals(other.getPrimeP()) && primeQ.equals(other.getPrimeQ())
-                    && primeExponentP.equals(other.getPrimeExponentP())
-                    && primeExponentQ.equals(other.getPrimeExponentQ())
-                    && crtCoefficient.equals(other.getCrtCoefficient());
+            if (getOpenSSLKey().isEngineBased()) {
+                return getModulus().equals(other.getModulus())
+                        && publicExponent.equals(other.getPublicExponent());
+            } else {
+                return getModulus().equals(other.getModulus())
+                        && publicExponent.equals(other.getPublicExponent())
+                        && getPrivateExponent().equals(other.getPrivateExponent())
+                        && primeP.equals(other.getPrimeP()) && primeQ.equals(other.getPrimeQ())
+                        && primeExponentP.equals(other.getPrimeExponentP())
+                        && primeExponentQ.equals(other.getPrimeExponentQ())
+                        && crtCoefficient.equals(other.getCrtCoefficient());
+            }
+        } else if (o instanceof RSAPrivateKey) {
+            ensureReadParams();
+            RSAPrivateKey other = (RSAPrivateKey) o;
+
+            if (getOpenSSLKey().isEngineBased()) {
+                return getModulus().equals(other.getModulus());
+            } else {
+                return getModulus().equals(other.getModulus())
+                        && getPrivateExponent().equals(other.getPrivateExponent());
+            }
         }
 
         return false;

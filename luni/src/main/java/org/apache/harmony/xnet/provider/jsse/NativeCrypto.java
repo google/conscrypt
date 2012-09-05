@@ -76,6 +76,8 @@ public final class NativeCrypto {
 
     public static native void EVP_PKEY_free(int pkey);
 
+    public static native int EVP_PKEY_cmp(int pkey1, int pkey2);
+
     public static native byte[] i2d_PKCS8_PRIV_KEY_INFO(int pkey);
 
     public static native int d2i_PKCS8_PRIV_KEY_INFO(byte[] data);
