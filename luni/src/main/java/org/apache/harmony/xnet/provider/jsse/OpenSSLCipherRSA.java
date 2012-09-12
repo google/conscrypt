@@ -19,35 +19,44 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.InvalidParameterException;
 import java.security.Key;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.AlgorithmParameterSpec;
-
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
 import javax.crypto.CipherSpi;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.ShortBufferException;
+import javax.crypto.spec.SecretKeySpec;
+import libcore.util.EmptyArray;
 
-public class OpenSSLCipherRawRSA extends CipherSpi {
-    /**
-     * An empty list that is returned from update calls.
-     */
-    private static final byte[] emptyList = new byte[0];
-
+public abstract class OpenSSLCipherRSA extends CipherSpi {
     /**
      * The current OpenSSL key we're operating on.
      */
     private OpenSSLKey key;
 
     /**
-     * Current cipher mode: encrypting or decrypting.
+     * Current key type: private or public.
      */
     private boolean usingPrivateKey;
+
+    /**
+     * Current cipher mode: encrypting or decrypting.
+     */
+    private boolean encrypting;
 
     /**
      * Buffer for operations
@@ -65,6 +74,15 @@ public class OpenSSLCipherRawRSA extends CipherSpi {
      */
     private boolean inputTooLarge;
 
+    /**
+     * Current padding mode
+     */
+    private int padding = NativeCrypto.RSA_PKCS1_PADDING;
+
+    protected OpenSSLCipherRSA(int padding) {
+        this.padding = padding;
+    }
+
     @Override
     protected void engineSetMode(String mode) throws NoSuchAlgorithmException {
         final String modeUpper = mode.toUpperCase();
@@ -78,7 +96,12 @@ public class OpenSSLCipherRawRSA extends CipherSpi {
     @Override
     protected void engineSetPadding(String padding) throws NoSuchPaddingException {
         final String paddingUpper = padding.toUpperCase();
+        if ("PKCS1PADDING".equals(paddingUpper)) {
+            this.padding = NativeCrypto.RSA_PKCS1_PADDING;
+            return;
+        }
         if ("NOPADDING".equals(paddingUpper)) {
+            this.padding = NativeCrypto.RSA_NO_PADDING;
             return;
         }
 
@@ -110,6 +133,14 @@ public class OpenSSLCipherRawRSA extends CipherSpi {
     }
 
     private void engineInitInternal(int opmode, Key key) throws InvalidKeyException {
+        if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+            encrypting = true;
+        } else if (opmode == Cipher.DECRYPT_MODE || opmode == Cipher.UNWRAP_MODE) {
+            encrypting = false;
+        } else {
+            throw new InvalidParameterException("Unsupported opmode " + opmode);
+        }
+
         if (key instanceof OpenSSLRSAPrivateKey) {
             OpenSSLRSAPrivateKey rsaPrivateKey = (OpenSSLRSAPrivateKey) key;
             usingPrivateKey = true;
@@ -169,12 +200,12 @@ public class OpenSSLCipherRawRSA extends CipherSpi {
     protected byte[] engineUpdate(byte[] input, int inputOffset, int inputLen) {
         if (bufferOffset + inputLen > buffer.length) {
             inputTooLarge = true;
-            return emptyList;
+            return EmptyArray.BYTE;
         }
 
         System.arraycopy(input, inputOffset, buffer, bufferOffset, inputLen);
         bufferOffset += inputLen;
-        return emptyList;
+        return EmptyArray.BYTE;
     }
 
     @Override
@@ -197,19 +228,43 @@ public class OpenSSLCipherRawRSA extends CipherSpi {
 
         final byte[] tmpBuf;
         if (bufferOffset != buffer.length) {
-            tmpBuf = new byte[buffer.length];
-            System.arraycopy(buffer, 0, tmpBuf, buffer.length - bufferOffset, bufferOffset);
+            if (padding == NativeCrypto.RSA_NO_PADDING) {
+                tmpBuf = new byte[buffer.length];
+                System.arraycopy(buffer, 0, tmpBuf, buffer.length - bufferOffset, bufferOffset);
+            } else {
+                tmpBuf = Arrays.copyOf(buffer, bufferOffset);
+            }
         } else {
             tmpBuf = buffer;
         }
 
-        final byte[] output = new byte[buffer.length];
-        if (usingPrivateKey) {
-            NativeCrypto.RSA_private_encrypt(tmpBuf.length, tmpBuf, output, key.getPkeyContext(),
-                    NativeCrypto.RSA_NO_PADDING);
+        byte[] output = new byte[buffer.length];
+        int resultSize;
+        if (encrypting) {
+            if (usingPrivateKey) {
+                resultSize = NativeCrypto.RSA_private_encrypt(tmpBuf.length, tmpBuf, output,
+                                                              key.getPkeyContext(), padding);
+            } else {
+                resultSize = NativeCrypto.RSA_public_encrypt(tmpBuf.length, tmpBuf, output,
+                                                             key.getPkeyContext(), padding);
+            }
         } else {
-            NativeCrypto.RSA_public_decrypt(tmpBuf.length, tmpBuf, output, key.getPkeyContext(),
-                    NativeCrypto.RSA_NO_PADDING);
+            try {
+                if (usingPrivateKey) {
+                    resultSize = NativeCrypto.RSA_private_decrypt(tmpBuf.length, tmpBuf, output,
+                                                                  key.getPkeyContext(), padding);
+                } else {
+                    resultSize = NativeCrypto.RSA_public_decrypt(tmpBuf.length, tmpBuf, output,
+                                                                 key.getPkeyContext(), padding);
+                }
+            } catch (SignatureException e) {
+                IllegalBlockSizeException newE = new IllegalBlockSizeException();
+                newE.initCause(e);
+                throw newE;
+            }
+        }
+        if (!encrypting && resultSize != output.length) {
+            output = Arrays.copyOf(output, resultSize);
         }
 
         bufferOffset = 0;
@@ -230,5 +285,54 @@ public class OpenSSLCipherRawRSA extends CipherSpi {
 
         System.arraycopy(b, 0, output, outputOffset, b.length);
         return b.length;
+    }
+
+    @Override
+    protected byte[] engineWrap(Key key) throws IllegalBlockSizeException, InvalidKeyException {
+        try {
+            byte[] encoded = key.getEncoded();
+            return engineDoFinal(encoded, 0, encoded.length);
+        } catch (BadPaddingException e) {
+            IllegalBlockSizeException newE = new IllegalBlockSizeException();
+            newE.initCause(e);
+            throw newE;
+        }
+    }
+
+    @Override
+    protected Key engineUnwrap(byte[] wrappedKey, String wrappedKeyAlgorithm,
+            int wrappedKeyType) throws InvalidKeyException, NoSuchAlgorithmException {
+        try {
+            byte[] encoded = engineDoFinal(wrappedKey, 0, wrappedKey.length);
+            if (wrappedKeyType == Cipher.PUBLIC_KEY) {
+                KeyFactory keyFactory = KeyFactory.getInstance(wrappedKeyAlgorithm);
+                return keyFactory.generatePublic(new X509EncodedKeySpec(encoded));
+            } else if (wrappedKeyType == Cipher.PRIVATE_KEY) {
+                KeyFactory keyFactory = KeyFactory.getInstance(wrappedKeyAlgorithm);
+                return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(encoded));
+            } else if (wrappedKeyType == Cipher.SECRET_KEY) {
+                return new SecretKeySpec(encoded, wrappedKeyAlgorithm);
+            } else {
+                throw new UnsupportedOperationException("wrappedKeyType == " + wrappedKeyType);
+            }
+        } catch (IllegalBlockSizeException e) {
+            throw new InvalidKeyException(e);
+        } catch (BadPaddingException e) {
+            throw new InvalidKeyException(e);
+        } catch (InvalidKeySpecException e) {
+            throw new InvalidKeyException(e);
+        }
+    }
+
+    public static class PKCS1 extends OpenSSLCipherRSA {
+        public PKCS1() {
+            super(NativeCrypto.RSA_PKCS1_PADDING);
+        }
+    }
+
+    public static class Raw extends OpenSSLCipherRSA {
+        public Raw() {
+            super(NativeCrypto.RSA_NO_PADDING);
+        }
     }
 }
