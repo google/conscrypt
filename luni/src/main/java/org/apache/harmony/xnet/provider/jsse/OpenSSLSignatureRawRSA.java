@@ -26,6 +26,7 @@ import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
 
 /**
  * Implements the JDK Signature interface needed for RAW RSA signature
@@ -144,13 +145,10 @@ public class OpenSSLSignatureRawRSA extends Signature {
                     + inputBuffer.length + " (modulus size)");
         }
 
-        byte[] paddedBuffer = new byte[inputBuffer.length];
         byte[] outputBuffer = new byte[inputBuffer.length];
         try {
-            NativeCrypto.RSA_padding_add_PKCS1_type_1(paddedBuffer, paddedBuffer.length,
-                    inputBuffer, inputOffset);
-            NativeCrypto.RSA_private_encrypt(paddedBuffer.length, paddedBuffer, outputBuffer,
-                    key.getPkeyContext(), NativeCrypto.RSA_NO_PADDING);
+            NativeCrypto.RSA_private_encrypt(inputOffset, inputBuffer, outputBuffer,
+                    key.getPkeyContext(), NativeCrypto.RSA_PKCS1_PADDING);
             return outputBuffer;
         } catch (Exception ex) {
             throw new SignatureException(ex);
@@ -170,30 +168,20 @@ public class OpenSSLSignatureRawRSA extends Signature {
             return false;
         }
 
-        byte[] paddedBuffer = new byte[inputBuffer.length];
         byte[] outputBuffer = new byte[inputBuffer.length];
         try {
-            int paddedSize = NativeCrypto.RSA_public_decrypt(sigBytes.length, sigBytes,
-                    paddedBuffer, key.getPkeyContext(), NativeCrypto.RSA_NO_PADDING);
-
-            /*
-             * RSA_padding_check_PKCS1_type_1 expects the leading 0-byte to be
-             * truncated already.
-             */
-            paddedSize--;
-            System.arraycopy(paddedBuffer, 1, paddedBuffer, 0, paddedSize);
-
-            final int size;
+            final int resultSize;
             try {
-                size = NativeCrypto.RSA_padding_check_PKCS1_type_1(outputBuffer,
-                        outputBuffer.length, paddedBuffer, paddedSize, inputBuffer.length);
+                resultSize = NativeCrypto.RSA_public_decrypt(sigBytes.length, sigBytes,
+                        outputBuffer, key.getPkeyContext(), NativeCrypto.RSA_PKCS1_PADDING);
+            } catch (SignatureException e) {
+                throw e;
             } catch (Exception e) {
                 return false;
             }
-
             /* Make this constant time by comparing every byte. */
-            boolean matches = (size == inputOffset);
-            for (int i = 0; i < size; i++) {
+            boolean matches = (resultSize == inputOffset);
+            for (int i = 0; i < resultSize; i++) {
                 if (inputBuffer[i] != outputBuffer[i]) {
                     matches = false;
                 }

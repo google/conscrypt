@@ -22,6 +22,7 @@ import java.net.SocketTimeoutException;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
@@ -31,6 +32,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import javax.crypto.BadPaddingException;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
 import libcore.io.Memory;
@@ -92,13 +94,13 @@ public final class NativeCrypto {
             int padding);
 
     public static native int RSA_public_decrypt(int flen, byte[] from, byte[] to, int pkey,
+            int padding) throws BadPaddingException, SignatureException;
+
+    public static native int RSA_public_encrypt(int flen, byte[] from, byte[] to, int pkey,
             int padding);
 
-    public static native void RSA_padding_add_PKCS1_type_1(byte[] to, int tlen, byte[] from,
-            int flen);
-
-    public static native int RSA_padding_check_PKCS1_type_1(byte[] to, int tlen, byte[] from,
-            int flen, int rsa_len);
+    public static native int RSA_private_decrypt(int flen, byte[] from, byte[] to, int pkey,
+            int padding) throws BadPaddingException, SignatureException;
 
     /**
      * @return array of {n, e}
