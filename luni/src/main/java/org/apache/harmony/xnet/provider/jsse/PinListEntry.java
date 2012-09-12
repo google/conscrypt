@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import libcore.io.EventLogger;
 
 /**
  * This class represents a single entry in the pin file.
@@ -96,7 +97,7 @@ class PinListEntry {
                 return false;
             }
         }
-        log("Received unpinned chain for " + cn);
+        logPinFailure(cn, chain);
         return enforcing;
     }
 
@@ -131,10 +132,13 @@ class PinListEntry {
         }
     }
 
-    private static void log(String s) {
-        if (DEBUG) {
-            System.out.println("PINENTRY: " + s);
+    private void logPinFailure(String cn, List<X509Certificate> chain) {
+        Object[] values = new Object[chain.size() + 1];
+        values[0] = (Object) cn;
+        for (int i=0; i < chain.size(); i++) {
+            values[i+1] = chain.get(i).toString();
         }
+        EventLogger.writeEvent(90100, values);
     }
 }
 
