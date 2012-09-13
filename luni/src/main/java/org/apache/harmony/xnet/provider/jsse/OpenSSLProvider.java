@@ -80,26 +80,26 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Signature.1.2.840.113549.2.5with1.2.840.113549.1.1.1",
                 "MD5WithRSAEncryption");
 
-        put("Signature.SHA1WithRSAEncryption", OpenSSLSignature.SHA1RSA.class.getName());
-        put("Alg.Alias.Signature.SHA1WithRSA", "SHA1WithRSAEncryption");
-        put("Alg.Alias.Signature.SHA1/RSA", "SHA1WithRSAEncryption");
-        put("Alg.Alias.Signature.SHA-1/RSA", "SHA1WithRSAEncryption");
-        put("Alg.Alias.Signature.1.2.840.113549.1.1.5", "SHA1WithRSAEncryption");
-        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.113549.1.1.1", "SHA1WithRSAEncryption");
-        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.113549.1.1.5", "SHA1WithRSAEncryption");
-        put("Alg.Alias.Signature.1.3.14.3.2.29", "SHA1WithRSAEncryption");
+        put("Signature.SHA1WithRSA", OpenSSLSignature.SHA1RSA.class.getName());
+        put("Alg.Alias.Signature.SHA1WithRSA", "SHA1WithRSA");
+        put("Alg.Alias.Signature.SHA1/RSA", "SHA1WithRSA");
+        put("Alg.Alias.Signature.SHA-1/RSA", "SHA1WithRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.5", "SHA1WithRSA");
+        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.113549.1.1.1", "SHA1WithRSA");
+        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.113549.1.1.5", "SHA1WithRSA");
+        put("Alg.Alias.Signature.1.3.14.3.2.29", "SHA1WithRSA");
 
-        put("Signature.SHA256WithRSAEncryption", OpenSSLSignature.SHA256RSA.class.getName());
-        put("Alg.Alias.Signature.SHA256WithRSA", "SHA256WithRSAEncryption");
-        put("Alg.Alias.Signature.1.2.840.113549.1.1.11", "SHA256WithRSAEncryption");
+        put("Signature.SHA256WithRSA", OpenSSLSignature.SHA256RSA.class.getName());
+        put("Alg.Alias.Signature.SHA256WithRSAEncryption", "SHA256WithRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.11", "SHA256WithRSA");
 
-        put("Signature.SHA384WithRSAEncryption", OpenSSLSignature.SHA384RSA.class.getName());
-        put("Alg.Alias.Signature.SHA384WithRSA", "SHA384WithRSAEncryption");
-        put("Alg.Alias.Signature.1.2.840.113549.1.1.12", "SHA384WithRSAEncryption");
+        put("Signature.SHA384WithRSA", OpenSSLSignature.SHA384RSA.class.getName());
+        put("Alg.Alias.Signature.SHA384WithRSAEncryption", "SHA384WithRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.12", "SHA384WithRSA");
 
-        put("Signature.SHA512WithRSAEncryption", OpenSSLSignature.SHA512RSA.class.getName());
-        put("Alg.Alias.Signature.SHA512WithRSA", "SHA512WithRSAEncryption");
-        put("Alg.Alias.Signature.1.2.840.113549.1.1.13", "SHA512WithRSAEncryption");
+        put("Signature.SHA512WithRSA", OpenSSLSignature.SHA512RSA.class.getName());
+        put("Alg.Alias.Signature.SHA512WithRSAEncryption", "SHA512WithRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.13", "SHA512WithRSA");
 
         put("Signature.SHA1withDSA", OpenSSLSignature.SHA1DSA.class.getName());
         put("Alg.Alias.Signature.SHA/DSA", "SHA1withDSA");
