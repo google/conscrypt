@@ -121,7 +121,7 @@ public class FileClientSessionCache {
          */
         private static String fileName(String host, int port) {
             if (host == null) {
-                throw new NullPointerException("host");
+                throw new NullPointerException("host == null");
             }
             return host + "." + port;
         }
@@ -182,7 +182,7 @@ public class FileClientSessionCache {
                 byte[] sessionData) {
             String host = session.getPeerHost();
             if (sessionData == null) {
-                throw new NullPointerException("sessionData");
+                throw new NullPointerException("sessionData == null");
             }
 
             String name = fileName(host, session.getPeerPort());
