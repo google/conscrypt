@@ -30,7 +30,8 @@ import libcore.io.EventLogger;
 /**
  * This class represents a single entry in the pin file.
  */
-class PinListEntry {
+// public for testing by CertPinManagerTest
+public class PinListEntry {
 
     /** The Common Name (CN) as used on the SSL certificate */
     private final String cn;
