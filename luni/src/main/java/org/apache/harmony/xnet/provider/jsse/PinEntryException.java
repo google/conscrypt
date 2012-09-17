@@ -16,7 +16,8 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-class PinEntryException extends Exception {
+// public for testing by CertPinManagerTest
+public class PinEntryException extends Exception {
 
     PinEntryException() {
     }
