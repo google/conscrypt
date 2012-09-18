@@ -298,6 +298,14 @@ public final class TrustedCertificateStore {
     }
 
     /**
+     * Returns true to indicate that the certificate was added by the
+     * user, false otherwise.
+     */
+    public boolean isUserAddedCertificate(X509Certificate cert) {
+        return getCertificateFile(addedDir, cert).exists();
+    }
+
+    /**
      * Returns a File for where the certificate is found if it exists
      * or where it should be installed if it does not exist. The
      * caller can disambiguate these cases by calling {@code
