@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.net.ssl.X509TrustManager;
+import libcore.io.EventLogger;
 
 /**
  *
@@ -235,6 +236,7 @@ public final class TrustManagerImpl implements X509TrustManager {
                 throw new CertificateException(e);
             }
             if (chainIsNotPinned) {
+                EventLogger.writeEvent(90102, chainContainsUserCert(wholeChain));
                 throw new CertificateException(new CertPathValidatorException(
                         "Certificate path is not properly pinned.", null, certPath, -1));
             }
@@ -395,5 +397,14 @@ public final class TrustManagerImpl implements X509TrustManager {
 
     @Override public X509Certificate[] getAcceptedIssuers() {
         return (acceptedIssuers != null) ? acceptedIssuers.clone() : acceptedIssuers(rootKeyStore);
+    }
+
+    private boolean chainContainsUserCert(List<X509Certificate> chain) {
+        for (X509Certificate cert : chain) {
+            if (trustedCertificateStore.isUserAddedCertificate(cert)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
