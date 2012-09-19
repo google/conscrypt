@@ -129,7 +129,7 @@ public final class TrustManagerImpl implements X509TrustManager {
             this.pinManager = manager;
         } else {
             try {
-                pinManager = new CertPinManager();
+                pinManager = new CertPinManager(trustedCertificateStoreLocal);
             } catch (PinManagerException e) {
                 throw new SecurityException("Could not initialize CertPinManager", e);
             }
@@ -236,7 +236,6 @@ public final class TrustManagerImpl implements X509TrustManager {
                 throw new CertificateException(e);
             }
             if (chainIsNotPinned) {
-                EventLogger.writeEvent(90102, chainContainsUserCert(wholeChain));
                 throw new CertificateException(new CertPathValidatorException(
                         "Certificate path is not properly pinned.", null, certPath, -1));
             }
@@ -397,14 +396,5 @@ public final class TrustManagerImpl implements X509TrustManager {
 
     @Override public X509Certificate[] getAcceptedIssuers() {
         return (acceptedIssuers != null) ? acceptedIssuers.clone() : acceptedIssuers(rootKeyStore);
-    }
-
-    private boolean chainContainsUserCert(List<X509Certificate> chain) {
-        for (X509Certificate cert : chain) {
-            if (trustedCertificateStore.isUserAddedCertificate(cert)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

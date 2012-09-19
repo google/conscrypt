@@ -46,6 +46,8 @@ public class PinListEntry {
 
     private static final boolean DEBUG = false;
 
+    private final TrustedCertificateStore certStore;
+
     public String getCommonName() {
         return cn;
     }
@@ -54,10 +56,14 @@ public class PinListEntry {
         return enforcing;
     }
 
-    public PinListEntry(String entry) throws PinEntryException {
+    public PinListEntry(String entry, TrustedCertificateStore store) throws PinEntryException {
         if (entry == null) {
             throw new NullPointerException("entry == null");
         }
+        if (store == null) {
+            throw new NullPointerException("store == null");
+        }
+        certStore = store;
         // Examples:
         // *.google.com=true|34c8a0d...9e04ca05f,9e04ca05f...34c8a0d
         // *.android.com=true|ca05f...8a0d34c
@@ -98,7 +104,7 @@ public class PinListEntry {
                 return false;
             }
         }
-        logPinFailure(cn, chain);
+        logPinFailure(chain);
         return enforcing;
     }
 
@@ -133,13 +139,17 @@ public class PinListEntry {
         }
     }
 
-    private void logPinFailure(String cn, List<X509Certificate> chain) {
-        Object[] values = new Object[chain.size() + 1];
-        values[0] = (Object) cn;
-        for (int i=0; i < chain.size(); i++) {
-            values[i+1] = chain.get(i).toString();
+    private boolean chainContainsUserCert(List<X509Certificate> chain) {
+        for (X509Certificate cert : chain) {
+            if (certStore.isUserAddedCertificate(cert)) {
+                return true;
+            }
         }
-        EventLogger.writeEvent(90100, values);
+        return false;
+    }
+
+    private void logPinFailure(List<X509Certificate> chain) {
+        PinFailureLogger.log(cn, chainContainsUserCert(chain), enforcing, chain);
     }
 }
 
