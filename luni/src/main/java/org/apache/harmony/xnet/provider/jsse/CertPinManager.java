@@ -42,18 +42,21 @@ public class CertPinManager {
     private static final boolean DEBUG = false;
 
     private final File pinFile;
+    private final TrustedCertificateStore certStore;
 
-    public CertPinManager() throws PinManagerException {
+    public CertPinManager(TrustedCertificateStore store) throws PinManagerException {
         pinFile = new File("/data/misc/keychain/pins");
+        certStore = store;
         rebuild();
     }
 
     /** Test only */
-    public CertPinManager(String path) throws PinManagerException {
+    public CertPinManager(String path, TrustedCertificateStore store) throws PinManagerException {
         if (path == null) {
             throw new NullPointerException("path == null");
         }
         pinFile = new File(path);
+        certStore = store;
         rebuild();
     }
 
@@ -86,7 +89,7 @@ public class CertPinManager {
             // rebuild the pinned certs
             for (String entry : getPinFileEntries(pinFileContents)) {
                 try {
-                    PinListEntry pin = new PinListEntry(entry);
+                    PinListEntry pin = new PinListEntry(entry, certStore);
                     entries.put(pin.getCommonName(), pin);
                 } catch (PinEntryException e) {
                     log("Pinlist contains a malformed pin: " + entry, e);
