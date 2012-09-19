@@ -16,9 +16,11 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.List;
-import libcore.io.EventLogger;
+import libcore.io.Base64;
+import libcore.io.DropBox;
 
 public class PinFailureLogger {
 
@@ -42,14 +44,22 @@ public class PinFailureLogger {
     protected static synchronized void writeToLog(String cn, boolean chainContainsUserCert,
                                                   boolean pinIsEnforcing,
                                                   List<X509Certificate> chain) {
-        Object[] values = new Object[chain.size() + 3];
-        values[0] = cn;
-        values[1] = chainContainsUserCert;
-        values[2] = pinIsEnforcing;
-        for (int i=0; i < chain.size(); i++) {
-            values[i+3] = chain.get(i).toString();
+        StringBuilder sb = new StringBuilder();
+        sb.append(cn);
+        sb.append("|");
+        sb.append(chainContainsUserCert);
+        sb.append("|");
+        sb.append(pinIsEnforcing);
+        sb.append("|");
+        for (X509Certificate cert : chain) {
+            try {
+                sb.append(Base64.encode(cert.getEncoded()));
+            } catch (CertificateEncodingException e) {
+                sb.append("Error: could not encode certificate");
+            }
+            sb.append("|");
         }
-        EventLogger.writeEvent(90100, values);
+        DropBox.addText("cert_pin_failure", sb.toString());
     }
 
     protected static boolean timeToLog() {
