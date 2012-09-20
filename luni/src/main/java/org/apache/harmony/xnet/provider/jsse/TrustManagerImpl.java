@@ -214,15 +214,41 @@ public final class TrustManagerImpl implements X509TrustManager {
             throw new CertificateException(err);
         }
 
-        // get the cleaned up chain and trust anchors
-        Set<TrustAnchor> trustAnchors = new HashSet<TrustAnchor>();
-        X509Certificate[] newChain = cleanupCertChainAndFindTrustAnchors(chain, trustAnchors);
+        // get the cleaned up chain and trust anchor
+        Set<TrustAnchor> trustAnchor = new HashSet<TrustAnchor>(); // there can only be one!
+        X509Certificate[] newChain = cleanupCertChainAndFindTrustAnchors(chain, trustAnchor);
 
-        // build the whole chain including all the trust anchors
+        // add the first trust anchor to the chain, which may be an intermediate
         List<X509Certificate> wholeChain = new ArrayList<X509Certificate>();
         wholeChain.addAll(Arrays.asList(newChain));
-        for (TrustAnchor trust : trustAnchors) {
+        // trustAnchor is actually just a single element
+        for (TrustAnchor trust : trustAnchor) {
             wholeChain.add(trust.getTrustedCert());
+        }
+
+        // add all the cached certificates from the cert index, avoiding loops
+        // this gives us a full chain from leaf to root, which we use for cert pinning and pass
+        // back out to callers when we return.
+        X509Certificate last = wholeChain.get(wholeChain.size() - 1);
+        while (true) {
+            TrustAnchor cachedTrust = trustedCertificateIndex.findByIssuerAndSignature(last);
+            // the cachedTrust can be null if there isn't anything in the index or if a user has
+            // trusted a non-self-signed cert.
+            if (cachedTrust == null) {
+                break;
+            }
+
+            // at this point we have a cached trust anchor, but don't know if its one we got from
+            // the server. Extract the cert, compare it to the last element in the chain, and add it
+            // if we haven't seen it before.
+            X509Certificate next = cachedTrust.getTrustedCert();
+            if (next != last) {
+                wholeChain.add(next);
+                last = next;
+            } else {
+                // if next == last then we found a self-signed cert and the chain is done
+                break;
+            }
         }
 
         // build the cert path from the array of certs sans trust anchors
@@ -246,13 +272,13 @@ public final class TrustManagerImpl implements X509TrustManager {
             return wholeChain;
         }
 
-        if (trustAnchors.isEmpty()) {
+        if (trustAnchor.isEmpty()) {
             throw new CertificateException(new CertPathValidatorException(
                     "Trust anchor for certification path not found.", null, certPath, -1));
         }
 
         try {
-            PKIXParameters params = new PKIXParameters(trustAnchors);
+            PKIXParameters params = new PKIXParameters(trustAnchor);
             params.setRevocationEnabled(false);
             validator.validate(certPath, params);
             // Add intermediate CAs to the index to tolerate sites
