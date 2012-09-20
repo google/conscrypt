@@ -60,9 +60,6 @@ public class PinListEntry {
         if (entry == null) {
             throw new NullPointerException("entry == null");
         }
-        if (store == null) {
-            throw new NullPointerException("store == null");
-        }
         certStore = store;
         // Examples:
         // *.google.com=true|34c8a0d...9e04ca05f,9e04ca05f...34c8a0d
@@ -140,6 +137,9 @@ public class PinListEntry {
     }
 
     private boolean chainContainsUserCert(List<X509Certificate> chain) {
+        if (certStore == null) {
+            return false;
+        }
         for (X509Certificate cert : chain) {
             if (certStore.isUserAddedCertificate(cert)) {
                 return true;
