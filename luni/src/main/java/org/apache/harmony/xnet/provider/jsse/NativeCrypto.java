@@ -645,7 +645,7 @@ public final class NativeCrypto {
     public static native int SSL_read(int sslNativePointer,
                                       FileDescriptor fd,
                                       SSLHandshakeCallbacks shc,
-                                      byte[] b, int off, int len, int timeoutMillis)
+                                      byte[] b, int off, int len, int readTimeoutMillis)
         throws IOException;
 
     /**
@@ -654,7 +654,7 @@ public final class NativeCrypto {
     public static native void SSL_write(int sslNativePointer,
                                         FileDescriptor fd,
                                         SSLHandshakeCallbacks shc,
-                                        byte[] b, int off, int len)
+                                        byte[] b, int off, int len, int writeTimeoutMillis)
         throws IOException;
 
     public static native void SSL_interrupt(int sslNativePointer);

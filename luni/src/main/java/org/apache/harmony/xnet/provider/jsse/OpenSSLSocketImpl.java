@@ -42,7 +42,11 @@ import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import static libcore.io.OsConstants.*;
+import libcore.io.ErrnoException;
+import libcore.io.Libcore;
 import libcore.io.Streams;
+import libcore.io.StructTimeval;
 import org.apache.harmony.security.provider.cert.X509CertImpl;
 
 /**
@@ -93,7 +97,8 @@ public class OpenSSLSocketImpl
      * OpenSSLSocketImplWrapper overrides setSoTimeout and
      * getSoTimeout to delegate to the wrapped socket.
      */
-    private int timeoutMilliseconds = 0;
+    private int readTimeoutMilliseconds = 0;
+    private int writeTimeoutMilliseconds = 0;
 
     private int handshakeTimeoutMilliseconds = -1;  // -1 = same as timeout; 0 = infinite
     private String wrappedHost;
@@ -361,9 +366,11 @@ public class OpenSSLSocketImpl
             }
 
             // Temporarily use a different timeout for the handshake process
-            int savedTimeoutMilliseconds = getSoTimeout();
+            int savedReadTimeoutMilliseconds = getSoTimeout();
+            int savedWriteTimeoutMilliseconds = getSoWriteTimeout();
             if (handshakeTimeoutMilliseconds >= 0) {
                 setSoTimeout(handshakeTimeoutMilliseconds);
+                setSoWriteTimeout(handshakeTimeoutMilliseconds);
             }
 
             int sslSessionNativePointer;
@@ -399,7 +406,8 @@ public class OpenSSLSocketImpl
 
             // Restore the original timeout now that the handshake is complete
             if (handshakeTimeoutMilliseconds >= 0) {
-                setSoTimeout(savedTimeoutMilliseconds);
+                setSoTimeout(savedReadTimeoutMilliseconds);
+                setSoWriteTimeout(savedWriteTimeoutMilliseconds);
             }
 
             // if not, notifyHandshakeCompletedListeners later in handshakeCompleted() callback
@@ -696,7 +704,7 @@ public class OpenSSLSocketImpl
                     return;
                 }
                 NativeCrypto.SSL_write(sslNativePointer, socket.getFileDescriptor$(),
-                        OpenSSLSocketImpl.this, buf, offset, byteCount);
+                        OpenSSLSocketImpl.this, buf, offset, byteCount, writeTimeoutMilliseconds);
             }
         }
     }
@@ -827,21 +835,42 @@ public class OpenSSLSocketImpl
         throw new SocketException("Methods sendUrgentData, setOOBInline are not supported.");
     }
 
-    @Override public void setSoTimeout(int timeoutMilliseconds) throws SocketException {
-        super.setSoTimeout(timeoutMilliseconds);
-        this.timeoutMilliseconds = timeoutMilliseconds;
+    @Override public void setSoTimeout(int readTimeoutMilliseconds) throws SocketException {
+        super.setSoTimeout(readTimeoutMilliseconds);
+        this.readTimeoutMilliseconds = readTimeoutMilliseconds;
     }
 
     @Override public int getSoTimeout() throws SocketException {
-        return timeoutMilliseconds;
+        return readTimeoutMilliseconds;
+    }
+
+    /**
+     * Note write timeouts are not part of the javax.net.ssl.SSLSocket API
+     */
+    public void setSoWriteTimeout(int writeTimeoutMilliseconds) throws SocketException {
+        this.writeTimeoutMilliseconds = writeTimeoutMilliseconds;
+
+        StructTimeval tv = StructTimeval.fromMillis(writeTimeoutMilliseconds);
+        try {
+            Libcore.os.setsockoptTimeval(getFileDescriptor$(), SOL_SOCKET, SO_SNDTIMEO, tv);
+        } catch (ErrnoException errnoException) {
+            throw errnoException.rethrowAsSocketException();
+        }
+    }
+
+    /**
+     * Note write timeouts are not part of the javax.net.ssl.SSLSocket API
+     */
+    public int getSoWriteTimeout() throws SocketException {
+        return writeTimeoutMilliseconds;
     }
 
     /**
      * Set the handshake timeout on this socket.  This timeout is specified in
      * milliseconds and will be used only during the handshake process.
      */
-    public void setHandshakeTimeout(int timeoutMilliseconds) throws SocketException {
-        this.handshakeTimeoutMilliseconds = timeoutMilliseconds;
+    public void setHandshakeTimeout(int handshakeTimeoutMilliseconds) throws SocketException {
+        this.handshakeTimeoutMilliseconds = handshakeTimeoutMilliseconds;
     }
 
     @Override public void close() throws IOException {
