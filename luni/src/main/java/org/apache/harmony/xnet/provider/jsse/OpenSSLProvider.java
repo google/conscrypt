@@ -125,5 +125,20 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Cipher.RSA/None/NoPadding", "RSA/ECB/NoPadding");
         put("Cipher.RSA/ECB/PKCS1Padding", OpenSSLCipherRSA.PKCS1.class.getName());
         put("Alg.Alias.Cipher.RSA/None/PKCS1Padding", "RSA/ECB/PKCS1Padding");
+
+        /*
+         * OpenSSL only supports a subset of modes, so we'll name them
+         * explicitly here.
+         */
+        put("Cipher.AES/ECB/NoPadding", OpenSSLCipher.AES.ECB.NoPadding.class.getName());
+        put("Cipher.AES/ECB/PKCS5Padding", OpenSSLCipher.AES.ECB.PKCS5Padding.class.getName());
+        put("Cipher.AES/CBC/NoPadding", OpenSSLCipher.AES.CBC.NoPadding.class.getName());
+        put("Cipher.AES/CBC/PKCS5Padding", OpenSSLCipher.AES.CBC.PKCS5Padding.class.getName());
+        put("Cipher.AES/CFB/NoPadding", OpenSSLCipher.AES.CFB.NoPadding.class.getName());
+        put("Cipher.AES/CFB/PKCS5Padding", OpenSSLCipher.AES.CFB.PKCS5Padding.class.getName());
+        put("Cipher.AES/CTR/NoPadding", OpenSSLCipher.AES.CTR.NoPadding.class.getName());
+        put("Cipher.AES/CTR/PKCS5Padding", OpenSSLCipher.AES.CTR.PKCS5Padding.class.getName());
+        put("Cipher.AES/OFB/NoPadding", OpenSSLCipher.AES.OFB.NoPadding.class.getName());
+        put("Cipher.AES/OFB/PKCS5Padding", OpenSSLCipher.AES.OFB.PKCS5Padding.class.getName());
     }
 }
