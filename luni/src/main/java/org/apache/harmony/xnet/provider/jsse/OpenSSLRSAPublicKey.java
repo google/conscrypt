@@ -16,6 +16,9 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.interfaces.RSAPublicKey;
@@ -25,13 +28,13 @@ import java.security.spec.RSAPublicKeySpec;
 public class OpenSSLRSAPublicKey implements RSAPublicKey {
     private static final long serialVersionUID = 123125005824688292L;
 
-    private final OpenSSLKey key;
+    private transient OpenSSLKey key;
 
     private BigInteger publicExponent;
 
     private BigInteger modulus;
 
-    private boolean fetchedParams;
+    private transient boolean fetchedParams;
 
     OpenSSLRSAPublicKey(OpenSSLKey key) {
         this.key = key;
@@ -161,5 +164,25 @@ public class OpenSSLRSAPublicKey implements RSAPublicKey {
         sb.append('}');
 
         return sb.toString();
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        stream.defaultReadObject();
+
+        key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(
+                modulus.toByteArray(),
+                publicExponent.toByteArray(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null));
+        fetchedParams = true;
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        ensureReadParams();
+        stream.defaultWriteObject();
     }
 }

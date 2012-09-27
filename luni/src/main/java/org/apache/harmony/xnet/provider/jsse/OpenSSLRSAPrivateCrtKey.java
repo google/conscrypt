@@ -16,6 +16,10 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
+import java.io.IOException;
+import java.io.NotSerializableException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.interfaces.RSAPrivateCrtKey;
@@ -24,6 +28,8 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateCrtKeySpec;
 
 public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSAPrivateCrtKey {
+    private static final long serialVersionUID = 3785291944868707197L;
+
     private BigInteger publicExponent;
 
     private BigInteger primeP;
@@ -297,5 +303,28 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
         }
 
         return sb.toString();
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        stream.defaultReadObject();
+
+        key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(
+                modulus.toByteArray(),
+                publicExponent == null ? null : publicExponent.toByteArray(),
+                privateExponent.toByteArray(),
+                primeP == null ? null : primeP.toByteArray(),
+                primeQ == null ? null : primeQ.toByteArray(),
+                primeExponentP == null ? null : primeExponentP.toByteArray(),
+                primeExponentQ == null ? null : primeExponentQ.toByteArray(),
+                crtCoefficient == null ? null : crtCoefficient.toByteArray()));
+        fetchedParams = true;
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        if (getOpenSSLKey().isEngineBased()) {
+            throw new NotSerializableException("engine-based keys can not be serialized");
+        }
+        ensureReadParams();
+        stream.defaultWriteObject();
     }
 }
