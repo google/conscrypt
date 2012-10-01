@@ -140,5 +140,14 @@ public final class OpenSSLProvider extends Provider {
         put("Cipher.AES/CTR/PKCS5Padding", OpenSSLCipher.AES.CTR.PKCS5Padding.class.getName());
         put("Cipher.AES/OFB/NoPadding", OpenSSLCipher.AES.OFB.NoPadding.class.getName());
         put("Cipher.AES/OFB/PKCS5Padding", OpenSSLCipher.AES.OFB.PKCS5Padding.class.getName());
+
+        put("Cipher.DESEDE/CBC/NoPadding", OpenSSLCipher.DESEDE.CBC.NoPadding.class.getName());
+        put("Cipher.DESEDE/CBC/PKCS5Padding", OpenSSLCipher.DESEDE.CBC.PKCS5Padding.class.getName());
+        put("Cipher.DESEDE/CFB/NoPadding", OpenSSLCipher.DESEDE.CFB.NoPadding.class.getName());
+        put("Cipher.DESEDE/CFB/PKCS5Padding", OpenSSLCipher.DESEDE.CFB.PKCS5Padding.class.getName());
+        put("Cipher.DESEDE/ECB/NoPadding", OpenSSLCipher.DESEDE.ECB.NoPadding.class.getName());
+        put("Cipher.DESEDE/ECB/PKCS5Padding", OpenSSLCipher.DESEDE.ECB.PKCS5Padding.class.getName());
+        put("Cipher.DESEDE/OFB/NoPadding", OpenSSLCipher.DESEDE.OFB.NoPadding.class.getName());
+        put("Cipher.DESEDE/OFB/PKCS5Padding", OpenSSLCipher.DESEDE.OFB.PKCS5Padding.class.getName());
     }
 }
