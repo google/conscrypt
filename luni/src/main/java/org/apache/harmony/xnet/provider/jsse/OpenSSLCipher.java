@@ -145,6 +145,10 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     protected abstract int getCipherBlockSize();
 
+    protected boolean supportsVariableSizeKey() {
+        return false;
+    }
+
     @Override
     protected void engineSetMode(String modeStr) throws NoSuchAlgorithmException {
         final Mode mode;
@@ -251,8 +255,15 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
         this.iv = iv;
 
-        NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), cipherType, encodedKey, iv,
-                encrypting);
+        if (supportsVariableSizeKey()) {
+            NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), cipherType, null, null,
+                    encrypting);
+            NativeCrypto.EVP_CIPHER_CTX_set_key_length(cipherCtx.getContext(), encodedKey.length);
+            NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), 0, encodedKey, iv, encrypting);
+        } else {
+            NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), cipherType, encodedKey, iv,
+                    encrypting);
+        }
 
         // OpenSSL only supports PKCS5 Padding.
         NativeCrypto.EVP_CIPHER_CTX_set_padding(cipherCtx.getContext(),
@@ -763,6 +774,40 @@ public abstract class OpenSSLCipher extends CipherSpi {
         @Override
         protected int getCipherBlockSize() {
             return DES_BLOCK_SIZE;
+        }
+    }
+
+    public static class ARC4 extends OpenSSLCipher {
+        public ARC4() {
+        }
+
+        @Override
+        protected String getCipherName(int keySize, Mode mode) {
+            return "rc4";
+        }
+
+        @Override
+        protected void checkSupportedKeySize(int keySize) throws InvalidKeyException {
+        }
+
+        @Override
+        protected void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
+            throw new NoSuchAlgorithmException("ARC4 does not support modes");
+        }
+
+        @Override
+        protected void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
+            throw new NoSuchPaddingException("ARC4 does not support padding");
+        }
+
+        @Override
+        protected int getCipherBlockSize() {
+            return 0;
+        }
+
+        @Override
+        protected boolean supportsVariableSizeKey() {
+            return true;
         }
     }
 }
