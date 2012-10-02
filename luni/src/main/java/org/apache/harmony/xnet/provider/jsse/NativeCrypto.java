@@ -172,13 +172,21 @@ public final class NativeCrypto {
 
     public static native int EVP_get_cipherbyname(String string);
 
-    public static native int EVP_CipherInit_ex(int cipherNid, byte[] key, byte[] iv,
+    public static native void EVP_CipherInit_ex(int ctx, int evpCipher, byte[] key, byte[] iv,
             boolean encrypting);
 
     public static native int EVP_CipherUpdate(int ctx, byte[] out, int outOffset, byte[] in,
-            int inOffset);
+            int inOffset, int inLength);
 
     public static native int EVP_CipherFinal_ex(int ctx, byte[] out, int outOffset);
+
+    public static native int EVP_CIPHER_iv_length(int evpCipher);
+
+    public static native int EVP_CIPHER_CTX_new();
+
+    public static native int EVP_CIPHER_CTX_block_size(int ctx);
+
+    public static native void EVP_CIPHER_CTX_set_padding(int ctx, boolean enablePadding);
 
     public static native void EVP_CIPHER_CTX_cleanup(int ctx);
 
