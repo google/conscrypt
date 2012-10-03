@@ -19,7 +19,7 @@ package org.apache.harmony.xnet.provider.jsse;
 public class OpenSSLCipherContext {
     private final int context;
 
-    OpenSSLCipherContext(int ctx) {
+    public OpenSSLCipherContext(int ctx) {
         if (ctx == 0) {
             throw new NullPointerException("ctx == 0");
         }
