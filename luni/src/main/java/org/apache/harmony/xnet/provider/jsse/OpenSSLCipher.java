@@ -769,10 +769,17 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
         @Override
         protected String getCipherName(int keySize, Mode mode) {
-            if (mode == Mode.ECB) {
-                return "des-ede";
+            final String baseCipherName;
+            if (keySize == 16) {
+                baseCipherName = "des-ede";
             } else {
-                return "des-ede-" + mode.toString().toLowerCase(Locale.US);
+                baseCipherName = "des-ede3";
+            }
+
+            if (mode == Mode.ECB) {
+                return baseCipherName;
+            } else {
+                return baseCipherName + "-" + mode.toString().toLowerCase(Locale.US);
             }
         }
 
