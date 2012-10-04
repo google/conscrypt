@@ -104,16 +104,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
      */
     private int modeBlockSize;
 
-    /**
-     * Buffer to hold a block-sized entry before calling into OpenSSL.
-     */
-    private byte[] buffer;
-
-    /**
-     * Current offset in the buffer.
-     */
-    private int bufferOffset;
-
     protected OpenSSLCipher() {
     }
 
@@ -191,17 +181,10 @@ public abstract class OpenSSLCipher extends CipherSpi {
      * right at the block size, it will add another block for the padding.
      */
     private final int getFinalOutputSize(int inputLen) {
-        final int totalLen = bufferOffset + inputLen;
-        final int overrunLen = totalLen % blockSize;
-
-        if (overrunLen == 0) {
-            if ((padding == Padding.NOPADDING) && (totalLen > 0)) {
-                return totalLen;
-            } else {
-                return totalLen + blockSize;
-            }
+        if (modeBlockSize == 1) {
+            return getUpdateOutputSize(inputLen);
         } else {
-            return totalLen - overrunLen + blockSize;
+            return getUpdateOutputSize(inputLen) + modeBlockSize;
         }
     }
 
@@ -263,9 +246,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
         NativeCrypto.EVP_CIPHER_CTX_set_padding(cipherCtx.getContext(),
                 padding == Padding.PKCS5PADDING);
         modeBlockSize = NativeCrypto.EVP_CIPHER_CTX_block_size(cipherCtx.getContext());
-
-        buffer = new byte[blockSize];
-        bufferOffset = 0;
     }
 
     @Override
@@ -305,129 +285,76 @@ public abstract class OpenSSLCipher extends CipherSpi {
     }
 
     private final int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset, int totalLen, int fullBlocksSize) throws ShortBufferException {
+            int outputOffset) throws ShortBufferException {
         final int intialOutputOffset = outputOffset;
 
-        /* Take care of existing buffered bytes. */
-        final int remainingBuffer = buffer.length - bufferOffset;
-        if (bufferOffset > 0 && inputLen >= remainingBuffer) {
-            System.arraycopy(input, inputOffset, buffer, bufferOffset, remainingBuffer);
-            final int writtenBytes = NativeCrypto.EVP_CipherUpdate(cipherCtx.getContext(), output,
-                    outputOffset, buffer, 0, blockSize);
-            fullBlocksSize -= writtenBytes;
-            outputOffset += writtenBytes;
-
-            inputLen -= remainingBuffer;
-            inputOffset += remainingBuffer;
-
-            bufferOffset = 0;
+        final int bytesLeft = output.length - outputOffset;
+        if (bytesLeft < getUpdateOutputSize(inputLen)) {
+            throw new ShortBufferException("output buffer too small during update: " + bytesLeft
+                    + " < " + output.length);
         }
 
-        /* Take care of the bytes that would fill up our block-sized buffer. */
-        if (fullBlocksSize > 0) {
-            final int bytesLeft = output.length - outputOffset;
-            if (bytesLeft < fullBlocksSize) {
-                throw new ShortBufferException("output buffer too small during update: "
-                        + bytesLeft + " < " + fullBlocksSize);
-            }
-
-            outputOffset += NativeCrypto.EVP_CipherUpdate(cipherCtx.getContext(), output,
-                    outputOffset, input, inputOffset, fullBlocksSize);
-            inputLen -= fullBlocksSize;
-            inputOffset += fullBlocksSize;
-        }
-
-        /* Put the rest into the buffer for next time. */
-        if (inputLen > 0) {
-            System.arraycopy(input, inputOffset, buffer, bufferOffset, inputLen);
-            bufferOffset += inputLen;
-        }
+        outputOffset += NativeCrypto.EVP_CipherUpdate(cipherCtx.getContext(), output, outputOffset,
+                input, inputOffset, inputLen);
 
         return outputOffset - intialOutputOffset;
     }
 
+    private int getUpdateOutputSize(int inputLen) {
+        if (encrypting) {
+            return inputLen + modeBlockSize - 1;
+        } else if (modeBlockSize == 1) {
+            return inputLen;
+        } else {
+            return inputLen + modeBlockSize;
+        }
+    }
+
     @Override
     protected byte[] engineUpdate(byte[] input, int inputOffset, int inputLen) {
-        final int totalLen = bufferOffset + inputLen;
-        final int fullBlocksSize = totalLen - (totalLen % blockSize);
+        final int maximumLen = getUpdateOutputSize(inputLen);
 
         /* See how large our output buffer would need to be. */
         final byte[] output;
-        if (fullBlocksSize > 0) {
-            output = new byte[fullBlocksSize];
+        if (maximumLen > 0) {
+            output = new byte[maximumLen];
         } else {
             output = EmptyArray.BYTE;
         }
 
+        final int bytesWritten;
         try {
-            updateInternal(input, inputOffset, inputLen, output, 0, totalLen, fullBlocksSize);
+            bytesWritten = updateInternal(input, inputOffset, inputLen, output, 0);
         } catch (ShortBufferException e) {
             /* This shouldn't happen. */
-            throw new AssertionError("calculated buffer size was wrong: " + fullBlocksSize);
+            throw new RuntimeException("calculated buffer size was wrong: " + maximumLen);
         }
 
-        return output;
+        if (output.length == bytesWritten) {
+            return output;
+        } else if (bytesWritten == 0) {
+            return EmptyArray.BYTE;
+        } else {
+            return Arrays.copyOfRange(output, 0, bytesWritten);
+        }
     }
 
     @Override
     protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output,
             int outputOffset) throws ShortBufferException {
-        final int totalLen = bufferOffset + inputLen;
-        final int fullBlocksSize = totalLen - (totalLen % modeBlockSize);
-        return updateInternal(input, inputOffset, inputLen, output, outputOffset, totalLen, fullBlocksSize);
+        return updateInternal(input, inputOffset, inputLen, output, outputOffset);
     }
 
     private int doFinalInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset, int totalLen, int trailingLen, int maximumPossibleSize)
-            throws IllegalBlockSizeException, BadPaddingException, ShortBufferException {
-        if ((trailingLen != 0) && (padding == Padding.NOPADDING)) {
-            throw new IllegalBlockSizeException("not multiple of block size " + trailingLen
-                    + " != " + modeBlockSize);
-        }
-
+            int outputOffset) throws IllegalBlockSizeException, BadPaddingException,
+            ShortBufferException {
         /* Remember this so we can tell how many characters were written. */
         final int initialOutputOffset = outputOffset;
 
         if (inputLen > 0) {
-            /*
-             * First run update to set up our invariant that we have less than
-             * {@code blockSize} worth of bytes for the next CipherUpdate call.
-             */
-            final int updateSize;
-            if (trailingLen == 0 && maximumPossibleSize >= blockSize) {
-                updateSize = maximumPossibleSize - blockSize;
-            } else {
-                updateSize = maximumPossibleSize - trailingLen;
-            }
             final int updateBytesWritten = updateInternal(input, inputOffset, inputLen, output,
-                    outputOffset, totalLen, updateSize);
+                    outputOffset);
             outputOffset += updateBytesWritten;
-        }
-
-        /* Take care of existing buffered bytes. */
-        if (bufferOffset > 0) {
-            final int bytesLeft = output.length - outputOffset;
-
-            final int bytesNeeded = bufferOffset + modeBlockSize - 1;
-            final int writtenBytes;
-            if (bytesLeft < bytesNeeded) {
-                final byte[] tmpBuf = new byte[bytesNeeded];
-                writtenBytes = NativeCrypto.EVP_CipherUpdate(cipherCtx.getContext(), tmpBuf, 0,
-                        buffer, 0, bufferOffset);
-                if (writtenBytes > 0) {
-                    if (writtenBytes > bytesLeft) {
-                        System.arraycopy(tmpBuf, 0, output, outputOffset, bytesLeft);
-                    } else {
-                        System.arraycopy(tmpBuf, 0, output, outputOffset, writtenBytes);
-                    }
-                }
-            } else {
-                writtenBytes = NativeCrypto.EVP_CipherUpdate(cipherCtx.getContext(), output,
-                        outputOffset, buffer, 0, bufferOffset);
-            }
-
-            outputOffset += writtenBytes;
-            bufferOffset = 0;
         }
 
         /* Allow OpenSSL to pad if necessary and clean up state. */
@@ -437,12 +364,13 @@ public abstract class OpenSSLCipher extends CipherSpi {
             writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx.getContext(), output,
                     outputOffset);
         } else {
-            writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx.getContext(), buffer, 0);
+            byte[] lastBlock = new byte[modeBlockSize];
+            writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx.getContext(), lastBlock, 0);
             if (writtenBytes > bytesLeft) {
                 throw new ShortBufferException("buffer is too short: " + writtenBytes + " > "
                         + bytesLeft);
             } else if (writtenBytes > 0) {
-                System.arraycopy(buffer, 0, output, outputOffset, writtenBytes);
+                System.arraycopy(lastBlock, 0, output, outputOffset, writtenBytes);
             }
         }
         outputOffset += writtenBytes;
@@ -456,16 +384,12 @@ public abstract class OpenSSLCipher extends CipherSpi {
     @Override
     protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
             throws IllegalBlockSizeException, BadPaddingException {
-        final int totalLen = bufferOffset + inputLen;
-        final int trailingLen = totalLen % modeBlockSize;
-
-        final int maximumPossibleSize = calculateMaximumPossibleSize(totalLen, trailingLen);
+        final int maximumSize = getFinalOutputSize(inputLen);
         /* Assume that we'll output exactly on a byte boundary. */
-        byte[] output = new byte[maximumPossibleSize];
+        byte[] output = new byte[maximumSize];
         final int bytesWritten;
         try {
-            bytesWritten = doFinalInternal(input, inputOffset, inputLen, output, 0, totalLen,
-                    trailingLen, maximumPossibleSize);
+            bytesWritten = doFinalInternal(input, inputOffset, inputLen, output, 0);
         } catch (ShortBufferException e) {
             /* This should not happen since we sized our own buffer. */
             throw new RuntimeException("our calculated buffer was too small", e);
@@ -486,21 +410,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
             throw new NullPointerException("output == null");
         }
 
-        final int totalLen = bufferOffset + inputLen;
-        final int trailingLen = totalLen % modeBlockSize;
-
-        final int maximumPossibleSize = calculateMaximumPossibleSize(totalLen, trailingLen);
-
-        return doFinalInternal(input, inputOffset, inputLen, output, outputOffset, totalLen,
-                trailingLen, maximumPossibleSize);
-    }
-
-    private int calculateMaximumPossibleSize(final int totalLen, final int trailingLen) {
-        if (encrypting && (modeBlockSize > 1) && (padding != Padding.NOPADDING)) {
-            return totalLen - trailingLen + modeBlockSize;
-        } else {
-            return totalLen;
-        }
+        return doFinalInternal(input, inputOffset, inputLen, output, outputOffset);
     }
 
     @Override
