@@ -190,7 +190,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     @Override
     protected int engineGetOutputSize(int inputLen) {
-        return getFinalOutputSize(inputLen);
+        if (modeBlockSize == 1) {
+            return inputLen;
+        } else {
+            return inputLen + modeBlockSize;
+        }
     }
 
     @Override
