@@ -104,6 +104,12 @@ public abstract class OpenSSLCipher extends CipherSpi {
      */
     private int modeBlockSize;
 
+    /**
+     * Whether the cipher has processed any data yet. OpenSSL doesn't like
+     * calling "doFinal()" in decryption mode without processing any updates.
+     */
+    private boolean calledUpdate;
+
     protected OpenSSLCipher() {
     }
 
@@ -250,6 +256,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         NativeCrypto.EVP_CIPHER_CTX_set_padding(cipherCtx.getContext(),
                 padding == Padding.PKCS5PADDING);
         modeBlockSize = NativeCrypto.EVP_CIPHER_CTX_block_size(cipherCtx.getContext());
+        calledUpdate = false;
     }
 
     @Override
@@ -301,6 +308,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
         outputOffset += NativeCrypto.EVP_CipherUpdate(cipherCtx.getContext(), output, outputOffset,
                 input, inputOffset, inputLen);
 
+        calledUpdate = true;
+
         return outputOffset - intialOutputOffset;
     }
 
@@ -349,6 +358,14 @@ public abstract class OpenSSLCipher extends CipherSpi {
         return updateInternal(input, inputOffset, inputLen, output, outputOffset);
     }
 
+    /**
+     * Reset this Cipher instance state to process a new chunk of data.
+     */
+    private void reset() {
+        NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), 0, null, null, encrypting);
+        calledUpdate = false;
+    }
+
     private int doFinalInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
             int outputOffset) throws IllegalBlockSizeException, BadPaddingException,
             ShortBufferException {
@@ -361,6 +378,14 @@ public abstract class OpenSSLCipher extends CipherSpi {
             outputOffset += updateBytesWritten;
         }
 
+        /*
+         * If we're decrypting and haven't had any input, we should return null.
+         * Otherwise OpenSSL will complain if we call final.
+         */
+        if (!encrypting && !calledUpdate) {
+            return 0;
+        }
+
         /* Allow OpenSSL to pad if necessary and clean up state. */
         final int bytesLeft = output.length - outputOffset;
         final int writtenBytes;
@@ -368,7 +393,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
             writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx.getContext(), output,
                     outputOffset);
         } else {
-            byte[] lastBlock = new byte[modeBlockSize];
+            final byte[] lastBlock = new byte[modeBlockSize];
             writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx.getContext(), lastBlock, 0);
             if (writtenBytes > bytesLeft) {
                 throw new ShortBufferException("buffer is too short: " + writtenBytes + " > "
@@ -379,8 +404,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         }
         outputOffset += writtenBytes;
 
-        /* Re-initialize the cipher for the next time. */
-        NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), 0, null, null, encrypting);
+        reset();
 
         return outputOffset - initialOutputOffset;
     }
@@ -388,6 +412,15 @@ public abstract class OpenSSLCipher extends CipherSpi {
     @Override
     protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
             throws IllegalBlockSizeException, BadPaddingException {
+        /*
+         * Other implementations return null if we've never called update()
+         * while decrypting.
+         */
+        if (!encrypting && !calledUpdate && inputLen == 0) {
+            reset();
+            return null;
+        }
+
         final int maximumSize = getFinalOutputSize(inputLen);
         /* Assume that we'll output exactly on a byte boundary. */
         byte[] output = new byte[maximumSize];
@@ -401,6 +434,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
         if (bytesWritten == output.length) {
             return output;
+        } else if (bytesWritten == 0) {
+            return EmptyArray.BYTE;
         } else {
             return Arrays.copyOfRange(output, 0, bytesWritten);
         }
