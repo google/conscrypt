@@ -190,6 +190,8 @@ public final class NativeCrypto {
 
     public static native int EVP_CIPHER_CTX_block_size(int ctx);
 
+    public static native int get_EVP_CIPHER_CTX_buf_len(int ctx);
+
     public static native void EVP_CIPHER_CTX_set_padding(int ctx, boolean enablePadding);
 
     public static native void EVP_CIPHER_CTX_cleanup(int ctx);
