@@ -186,21 +186,23 @@ public abstract class OpenSSLCipher extends CipherSpi {
      * {@code inputLen}. If padding is enabled and the size of the input puts it
      * right at the block size, it will add another block for the padding.
      */
-    private final int getFinalOutputSize(int inputLen) {
+    private int getOutputSize(int inputLen) {
         if (modeBlockSize == 1) {
-            return getUpdateOutputSize(inputLen);
+            return inputLen;
         } else {
-            return getUpdateOutputSize(inputLen) + modeBlockSize;
+            final int buffered = NativeCrypto.get_EVP_CIPHER_CTX_buf_len(cipherCtx.getContext());
+            if (!encrypting || padding == Padding.NOPADDING) {
+                return buffered + inputLen;
+            } else {
+                final int totalLen = inputLen + buffered + modeBlockSize;
+                return totalLen - (totalLen % modeBlockSize);
+            }
         }
     }
 
     @Override
     protected int engineGetOutputSize(int inputLen) {
-        if (modeBlockSize == 1) {
-            return inputLen;
-        } else {
-            return inputLen + modeBlockSize;
-        }
+        return getOutputSize(inputLen);
     }
 
     @Override
@@ -296,11 +298,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
     }
 
     private final int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException {
+            int outputOffset, int maximumLen) throws ShortBufferException {
         final int intialOutputOffset = outputOffset;
 
         final int bytesLeft = output.length - outputOffset;
-        if (bytesLeft < getUpdateOutputSize(inputLen)) {
+        if (bytesLeft < maximumLen) {
             throw new ShortBufferException("output buffer too small during update: " + bytesLeft
                     + " < " + output.length);
         }
@@ -313,19 +315,9 @@ public abstract class OpenSSLCipher extends CipherSpi {
         return outputOffset - intialOutputOffset;
     }
 
-    private int getUpdateOutputSize(int inputLen) {
-        if (encrypting) {
-            return inputLen + modeBlockSize - 1;
-        } else if (modeBlockSize == 1) {
-            return inputLen;
-        } else {
-            return inputLen + modeBlockSize;
-        }
-    }
-
     @Override
     protected byte[] engineUpdate(byte[] input, int inputOffset, int inputLen) {
-        final int maximumLen = getUpdateOutputSize(inputLen);
+        final int maximumLen = getOutputSize(inputLen);
 
         /* See how large our output buffer would need to be. */
         final byte[] output;
@@ -337,7 +329,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
         final int bytesWritten;
         try {
-            bytesWritten = updateInternal(input, inputOffset, inputLen, output, 0);
+            bytesWritten = updateInternal(input, inputOffset, inputLen, output, 0, maximumLen);
         } catch (ShortBufferException e) {
             /* This shouldn't happen. */
             throw new RuntimeException("calculated buffer size was wrong: " + maximumLen);
@@ -355,7 +347,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
     @Override
     protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output,
             int outputOffset) throws ShortBufferException {
-        return updateInternal(input, inputOffset, inputLen, output, outputOffset);
+        final int maximumLen = getOutputSize(inputLen);
+        return updateInternal(input, inputOffset, inputLen, output, outputOffset, maximumLen);
     }
 
     /**
@@ -367,15 +360,16 @@ public abstract class OpenSSLCipher extends CipherSpi {
     }
 
     private int doFinalInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws IllegalBlockSizeException, BadPaddingException,
-            ShortBufferException {
+            int outputOffset, int maximumLen) throws IllegalBlockSizeException,
+            BadPaddingException, ShortBufferException {
         /* Remember this so we can tell how many characters were written. */
         final int initialOutputOffset = outputOffset;
 
         if (inputLen > 0) {
             final int updateBytesWritten = updateInternal(input, inputOffset, inputLen, output,
-                    outputOffset);
+                    outputOffset, maximumLen);
             outputOffset += updateBytesWritten;
+            maximumLen -= updateBytesWritten;
         }
 
         /*
@@ -389,11 +383,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
         /* Allow OpenSSL to pad if necessary and clean up state. */
         final int bytesLeft = output.length - outputOffset;
         final int writtenBytes;
-        if (bytesLeft >= blockSize) {
+        if (bytesLeft >= maximumLen) {
             writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx.getContext(), output,
                     outputOffset);
         } else {
-            final byte[] lastBlock = new byte[modeBlockSize];
+            final byte[] lastBlock = new byte[maximumLen];
             writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx.getContext(), lastBlock, 0);
             if (writtenBytes > bytesLeft) {
                 throw new ShortBufferException("buffer is too short: " + writtenBytes + " > "
@@ -421,12 +415,12 @@ public abstract class OpenSSLCipher extends CipherSpi {
             return null;
         }
 
-        final int maximumSize = getFinalOutputSize(inputLen);
+        final int maximumLen = getOutputSize(inputLen);
         /* Assume that we'll output exactly on a byte boundary. */
-        byte[] output = new byte[maximumSize];
+        byte[] output = new byte[maximumLen];
         final int bytesWritten;
         try {
-            bytesWritten = doFinalInternal(input, inputOffset, inputLen, output, 0);
+            bytesWritten = doFinalInternal(input, inputOffset, inputLen, output, 0, maximumLen);
         } catch (ShortBufferException e) {
             /* This should not happen since we sized our own buffer. */
             throw new RuntimeException("our calculated buffer was too small", e);
@@ -449,7 +443,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
             throw new NullPointerException("output == null");
         }
 
-        return doFinalInternal(input, inputOffset, inputLen, output, outputOffset);
+        final int maximumLen = getOutputSize(inputLen);
+        return doFinalInternal(input, inputOffset, inputLen, output, outputOffset, maximumLen);
     }
 
     @Override
