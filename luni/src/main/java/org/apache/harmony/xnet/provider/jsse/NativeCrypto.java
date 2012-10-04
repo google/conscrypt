@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
 import libcore.io.Memory;
@@ -178,7 +179,8 @@ public final class NativeCrypto {
     public static native int EVP_CipherUpdate(int ctx, byte[] out, int outOffset, byte[] in,
             int inOffset, int inLength);
 
-    public static native int EVP_CipherFinal_ex(int ctx, byte[] out, int outOffset);
+    public static native int EVP_CipherFinal_ex(int ctx, byte[] out, int outOffset)
+            throws BadPaddingException, IllegalBlockSizeException;
 
     public static native int EVP_CIPHER_iv_length(int evpCipher);
 
