@@ -73,6 +73,8 @@ public final class NativeCrypto {
     public static native int EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q,
             byte[] dmp1, byte[] dmq1, byte[] iqmp);
 
+    public static native int EVP_PKEY_new_mac_key(int type, byte[] key);
+
     public static native int EVP_PKEY_size(int pkey);
 
     public static native int EVP_PKEY_type(int pkey);
@@ -141,6 +143,8 @@ public final class NativeCrypto {
 
     // --- Message digest context functions --------------
 
+    public static native int EVP_MD_CTX_create();
+
     public static native void EVP_MD_CTX_destroy(int ctx);
 
     public static native int EVP_MD_CTX_copy(int ctx);
@@ -152,6 +156,14 @@ public final class NativeCrypto {
     public static native void EVP_DigestUpdate(int ctx, byte[] buffer, int offset, int length);
 
     public static native int EVP_DigestFinal(int ctx, byte[] hash, int offset);
+
+    // --- MAC handling functions ----------------------------------------------
+
+    public static native void EVP_DigestSignInit(int evp_md_ctx, int evp_md, int evp_pkey);
+
+    public static native void EVP_DigestSignUpdate(int evp_md_ctx, byte[] in);
+
+    public static native byte[] EVP_DigestSignFinal(int evp_md_ctx);
 
     // --- Signature handling functions ----------------------------------------
 
@@ -362,10 +374,12 @@ public final class NativeCrypto {
     }
 
     // EVP_PKEY types from evp.h and objects.h
-    public static final int EVP_PKEY_RSA = 6;   // NID_rsaEcnryption
-    public static final int EVP_PKEY_DSA = 116; // NID_dsa
-    public static final int EVP_PKEY_DH  = 28;  // NID_dhKeyAgreement
-    public static final int EVP_PKEY_EC  = 408; // NID_X9_62_id_ecPublicKey
+    public static final int EVP_PKEY_RSA  = 6;   // NID_rsaEcnryption
+    public static final int EVP_PKEY_DSA  = 116; // NID_dsa
+    public static final int EVP_PKEY_DH   = 28;  // NID_dhKeyAgreement
+    public static final int EVP_PKEY_EC   = 408; // NID_X9_62_id_ecPublicKey
+    public static final int EVP_PKEY_HMAC = 855; // NID_hmac
+    public static final int EVP_PKEY_CMAC = 894; // NID_cmac
 
     // RSA padding modes from rsa.h
     public static final int RSA_PKCS1_PADDING = 1;
