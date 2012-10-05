@@ -149,5 +149,12 @@ public final class OpenSSLProvider extends Provider {
         put("Cipher.DESEDE/ECB/PKCS5Padding", OpenSSLCipher.DESEDE.ECB.PKCS5Padding.class.getName());
         put("Cipher.DESEDE/OFB/NoPadding", OpenSSLCipher.DESEDE.OFB.NoPadding.class.getName());
         put("Cipher.DESEDE/OFB/PKCS5Padding", OpenSSLCipher.DESEDE.OFB.PKCS5Padding.class.getName());
+
+        // Mac
+        put("Mac.HmacMD5", OpenSSLMac.HmacMD5.class.getName());
+        put("Mac.HmacSHA1", OpenSSLMac.HmacSHA1.class.getName());
+        put("Mac.HmacSHA256", OpenSSLMac.HmacSHA256.class.getName());
+        put("Mac.HmacSHA384", OpenSSLMac.HmacSHA384.class.getName());
+        put("Mac.HmacSHA512", OpenSSLMac.HmacSHA512.class.getName());
     }
 }
