@@ -191,7 +191,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
             return inputLen;
         } else {
             final int buffered = NativeCrypto.get_EVP_CIPHER_CTX_buf_len(cipherCtx.getContext());
-            if (!encrypting || padding == Padding.NOPADDING) {
+            if (padding == Padding.NOPADDING) {
                 return buffered + inputLen;
             } else {
                 final int totalLen = inputLen + buffered + modeBlockSize;
@@ -417,7 +417,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
         final int maximumLen = getOutputSize(inputLen);
         /* Assume that we'll output exactly on a byte boundary. */
-        byte[] output = new byte[maximumLen];
+        final byte[] output = new byte[maximumLen];
         final int bytesWritten;
         try {
             bytesWritten = doFinalInternal(input, inputOffset, inputLen, output, 0, maximumLen);
