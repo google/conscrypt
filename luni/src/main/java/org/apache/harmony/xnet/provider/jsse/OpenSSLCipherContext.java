@@ -16,10 +16,10 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-public class OpenSSLCipherContext {
+class OpenSSLCipherContext {
     private final int context;
 
-    public OpenSSLCipherContext(int ctx) {
+    OpenSSLCipherContext(int ctx) {
         if (ctx == 0) {
             throw new NullPointerException("ctx == 0");
         }
