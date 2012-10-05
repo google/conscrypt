@@ -742,4 +742,6 @@ public final class NativeCrypto {
          */
         public void handshakeCompleted();
     }
+
+    public static native long ERR_peek_last_error();
 }
