@@ -110,16 +110,34 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
 
     @Override
     protected int engineGetBlockSize() {
-        return 0;
+        if (encrypting) {
+            return paddedBlockSizeBytes();
+        }
+        return keySizeBytes();
     }
 
     @Override
     protected int engineGetOutputSize(int inputLen) {
+        if (encrypting) {
+            return keySizeBytes();
+        }
+        return paddedBlockSizeBytes();
+    }
+
+    private int paddedBlockSizeBytes() {
+        int paddedBlockSizeBytes = keySizeBytes();
+        if (padding == NativeCrypto.RSA_PKCS1_PADDING) {
+            paddedBlockSizeBytes--;  // for 0 prefix
+            paddedBlockSizeBytes -= 10;  // PKCS1 padding header length
+        }
+        return paddedBlockSizeBytes;
+    }
+
+    private int keySizeBytes() {
         if (key == null) {
             throw new IllegalStateException("cipher is not initialized");
         }
-
-        return buffer.length;
+        return NativeCrypto.RSA_size(this.key.getPkeyContext());
     }
 
     @Override
