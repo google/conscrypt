@@ -18,13 +18,23 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.security.Provider;
 
+/**
+ * Provider that goes through OpenSSL for operations.
+ * <p>
+ * Every algorithm should have its IANA assigned OID as an alias. See the following URLs for each type:
+ * <ul>
+ * <li><a href="http://www.iana.org/assignments/hash-function-text-names/hash-function-text-names.xml">Hash functions</a></li>
+ * <li><a href="http://www.iana.org/assignments/dssc/dssc.xml">Signature algorithms</a></li>
+ * <li><a href="http://csrc.nist.gov/groups/ST/crypto_apps_infra/csor/algorithms.html">NIST cryptographic algorithms</a></li>
+ * </ul>
+ */
 public final class OpenSSLProvider extends Provider {
     public static final String PROVIDER_NAME = "AndroidOpenSSL";
 
     public OpenSSLProvider() {
         super(PROVIDER_NAME, 1.0, "Android's OpenSSL-backed security provider");
 
-        // SSL Contexts
+        /* === SSL Contexts === */
         put("SSLContext.SSL", OpenSSLContextImpl.class.getName());
         put("SSLContext.SSLv3", OpenSSLContextImpl.class.getName());
         put("SSLContext.TLS", OpenSSLContextImpl.class.getName());
@@ -33,7 +43,7 @@ public final class OpenSSLProvider extends Provider {
         put("SSLContext.TLSv1.2", OpenSSLContextImpl.class.getName());
         put("SSLContext.Default", DefaultSSLContextImpl.class.getName());
 
-        // Message Digests
+        /* === Message Digests === */
         put("MessageDigest.SHA-1",
             "org.apache.harmony.xnet.provider.jsse.OpenSSLMessageDigestJDK$SHA1");
         put("Alg.Alias.MessageDigest.SHA1", "SHA-1");
@@ -55,24 +65,25 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.MessageDigest.SHA512", "SHA-512");
         put("Alg.Alias.MessageDigest.2.16.840.1.101.3.4.2.3", "SHA-512");
 
+        // iso(1) member-body(2) US(840) rsadsi(113549) digestAlgorithm(2) md5(5)
         put("MessageDigest.MD5",
             "org.apache.harmony.xnet.provider.jsse.OpenSSLMessageDigestJDK$MD5");
         put("Alg.Alias.MessageDigest.1.2.840.113549.2.5", "MD5");
 
-        // KeyPairGenerators
+        /* == KeyPairGenerators == */
         put("KeyPairGenerator.RSA", OpenSSLRSAKeyPairGenerator.class.getName());
         put("Alg.Alias.KeyPairGenerator.1.2.840.113549.1.1.1", "RSA");
 
         put("KeyPairGenerator.DSA", OpenSSLDSAKeyPairGenerator.class.getName());
 
-        // KeyFactory
+        /* == KeyFactory == */
 
         put("KeyFactory.RSA", OpenSSLRSAKeyFactory.class.getName());
         put("Alg.Alias.KeyFactory.1.2.840.113549.1.1.1", "RSA");
 
         // put("KeyFactory.DSA", OpenSSLDSAKeyFactory.class.getName());
 
-        // Signatures
+        /* == Signatures == */
         put("Signature.MD5WithRSAEncryption", OpenSSLSignature.MD5RSA.class.getName());
         put("Alg.Alias.Signature.MD5WithRSA", "MD5WithRSAEncryption");
         put("Alg.Alias.Signature.MD5/RSA", "MD5WithRSAEncryption");
@@ -81,7 +92,7 @@ public final class OpenSSLProvider extends Provider {
                 "MD5WithRSAEncryption");
 
         put("Signature.SHA1WithRSA", OpenSSLSignature.SHA1RSA.class.getName());
-        put("Alg.Alias.Signature.SHA1WithRSA", "SHA1WithRSA");
+        put("Alg.Alias.Signature.SHA1WithRSAEncryption", "SHA1WithRSA");
         put("Alg.Alias.Signature.SHA1/RSA", "SHA1WithRSA");
         put("Alg.Alias.Signature.SHA-1/RSA", "SHA1WithRSA");
         put("Alg.Alias.Signature.1.2.840.113549.1.1.5", "SHA1WithRSA");
@@ -92,14 +103,22 @@ public final class OpenSSLProvider extends Provider {
         put("Signature.SHA256WithRSA", OpenSSLSignature.SHA256RSA.class.getName());
         put("Alg.Alias.Signature.SHA256WithRSAEncryption", "SHA256WithRSA");
         put("Alg.Alias.Signature.1.2.840.113549.1.1.11", "SHA256WithRSA");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.1with1.2.840.113549.1.1.1",
+                "SHA256WithRSA");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.1with1.2.840.113549.1.1.11",
+                "SHA256WithRSA");
 
         put("Signature.SHA384WithRSA", OpenSSLSignature.SHA384RSA.class.getName());
         put("Alg.Alias.Signature.SHA384WithRSAEncryption", "SHA384WithRSA");
         put("Alg.Alias.Signature.1.2.840.113549.1.1.12", "SHA384WithRSA");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.2with1.2.840.113549.1.1.1",
+                "SHA384WithRSA");
 
         put("Signature.SHA512WithRSA", OpenSSLSignature.SHA512RSA.class.getName());
         put("Alg.Alias.Signature.SHA512WithRSAEncryption", "SHA512WithRSA");
         put("Alg.Alias.Signature.1.2.840.113549.1.1.13", "SHA512WithRSA");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.3with1.2.840.113549.1.1.1",
+                "SHA512WithRSA");
 
         put("Signature.SHA1withDSA", OpenSSLSignature.SHA1DSA.class.getName());
         put("Alg.Alias.Signature.SHA/DSA", "SHA1withDSA");
@@ -111,7 +130,7 @@ public final class OpenSSLProvider extends Provider {
 
         put("Signature.NONEwithRSA", OpenSSLSignatureRawRSA.class.getName());
 
-        // SecureRandom
+        /* === SecureRandom === */
         /*
          * We have to specify SHA1PRNG because various documentation mentions
          * that algorithm by name instead of just recommending calling
@@ -120,7 +139,7 @@ public final class OpenSSLProvider extends Provider {
         put("SecureRandom.SHA1PRNG", OpenSSLRandom.class.getName());
         put("SecureRandom.SHA1PRNG ImplementedIn", "Software");
 
-        // Cipher
+        /* === Cipher === */
         put("Cipher.RSA/ECB/NoPadding", OpenSSLCipherRSA.Raw.class.getName());
         put("Alg.Alias.Cipher.RSA/None/NoPadding", "RSA/ECB/NoPadding");
         put("Cipher.RSA/ECB/PKCS1Padding", OpenSSLCipherRSA.PKCS1.class.getName());
@@ -150,11 +169,35 @@ public final class OpenSSLProvider extends Provider {
         put("Cipher.DESEDE/OFB/NoPadding", OpenSSLCipher.DESEDE.OFB.NoPadding.class.getName());
         put("Cipher.DESEDE/OFB/PKCS5Padding", OpenSSLCipher.DESEDE.OFB.PKCS5Padding.class.getName());
 
-        // Mac
+        /* === Mac === */
+
         put("Mac.HmacMD5", OpenSSLMac.HmacMD5.class.getName());
+
+        // PKCS#2 - iso(1) member-body(2) US(840) rsadsi(113549) digestAlgorithm(2)
+        // http://www.oid-info.com/get/1.2.840.113549.2
+
+        // HMAC-SHA-1 PRF (7)
         put("Mac.HmacSHA1", OpenSSLMac.HmacSHA1.class.getName());
+        put("Alg.Alias.Mac.1.2.840.113549.2.7", "HmacSHA1");
+        put("Alg.Alias.Mac.HMAC-SHA1", "HmacSHA1");
+        put("Alg.Alias.Mac.HMAC/SHA1", "HmacSHA1");
+
+        // id-hmacWithSHA256 (9)
         put("Mac.HmacSHA256", OpenSSLMac.HmacSHA256.class.getName());
+        put("Alg.Alias.Mac.1.2.840.113549.2.9", "HmacSHA256");
+        put("Alg.Alias.Mac.HMAC-SHA256", "HmacSHA256");
+        put("Alg.Alias.Mac.HMAC/SHA256", "HmacSHA256");
+
+        // id-hmacWithSHA384 (10)
         put("Mac.HmacSHA384", OpenSSLMac.HmacSHA384.class.getName());
+        put("Alg.Alias.Mac.1.2.840.113549.2.10", "HmacSHA384");
+        put("Alg.Alias.Mac.HMAC-SHA384", "HmacSHA384");
+        put("Alg.Alias.Mac.HMAC/SHA384", "HmacSHA384");
+
+        // id-hmacWithSHA384 (11)
         put("Mac.HmacSHA512", OpenSSLMac.HmacSHA512.class.getName());
+        put("Alg.Alias.Mac.1.2.840.113549.2.11", "HmacSHA512");
+        put("Alg.Alias.Mac.HMAC-SHA512", "HmacSHA512");
+        put("Alg.Alias.Mac.HMAC/SHA512", "HmacSHA512");
     }
 }
