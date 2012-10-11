@@ -79,6 +79,10 @@ public final class NativeCrypto {
 
     public static native int EVP_PKEY_type(int pkey);
 
+    public static native String EVP_PKEY_print_public(int pkeyRef);
+
+    public static native String EVP_PKEY_print_private(int pkeyRef);
+
     public static native void EVP_PKEY_free(int pkey);
 
     public static native byte[] i2d_PKCS8_PRIV_KEY_INFO(int pkey);
@@ -130,6 +134,57 @@ public final class NativeCrypto {
     public static native byte[] i2d_DSAPublicKey(int dsa);
 
     public static native byte[] i2d_DSAPrivateKey(int dsa);
+
+    // --- EC functions --------------------------
+
+    /**
+     * Used to request EC_GROUP_new_curve_GFp to EC_GROUP_new_curve
+     */
+    public static final int EC_CURVE_GFP = 1;
+
+    /**
+     * Used to request EC_GROUP_new_curve_GF2m to EC_GROUP_new_curve
+     */
+    public static final int EC_CURVE_GF2M = 2;
+
+    public static native int EVP_PKEY_new_EC_KEY(int groupRef, int pubkeyRef, byte[] privkey);
+
+    public static native int EC_GROUP_new_by_curve_name(String curveName);
+
+    public static native int EC_GROUP_new_curve(int type, byte[] p, byte[] a, byte[] b);
+
+    public static native byte[][] EC_GROUP_get_curve(int groupRef);
+
+    public static native void EC_GROUP_clear_free(int ctx);
+
+    public static native boolean EC_GROUP_cmp(int ctx1, int ctx2);
+
+    public static native void EC_GROUP_set_generator(int groupCtx, int pointCtx, byte[] n, byte[] h);
+
+    public static native int EC_GROUP_get_generator(int groupCtx);
+
+    public static native int get_EC_GROUP_type(int groupCtx);
+
+    public static native byte[] EC_GROUP_get_order(int groupCtx);
+
+    public static native byte[] EC_GROUP_get_cofactor(int groupCtx);
+
+    public static native int EC_POINT_new(int groupRef);
+
+    public static native void EC_POINT_clear_free(int pointRef);
+
+    public static native boolean EC_POINT_cmp(int groupRef, int pointRef1, int pointRef2);
+
+    public static native byte[][] EC_POINT_get_affine_coordinates(int groupCtx, int pointCtx);
+
+    public static native void EC_POINT_set_affine_coordinates(int groupCtx, int pointCtx, byte[] x,
+            byte[] y);
+
+    public static native int EC_KEY_generate_key(int groupRef);
+
+    public static native byte[] EC_KEY_get_private_key(int keyRef);
+
+    public static native int EC_KEY_get_public_key(int keyRef);
 
     // --- Message digest functions --------------
 

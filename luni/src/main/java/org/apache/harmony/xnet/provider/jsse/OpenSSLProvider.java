@@ -76,6 +76,8 @@ public final class OpenSSLProvider extends Provider {
 
         put("KeyPairGenerator.DSA", OpenSSLDSAKeyPairGenerator.class.getName());
 
+        put("KeyPairGenerator.EC", OpenSSLECKeyPairGenerator.class.getName());
+
         /* == KeyFactory == */
 
         put("KeyFactory.RSA", OpenSSLRSAKeyFactory.class.getName());
@@ -129,6 +131,25 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Signature.1.2.840.10040.4.3", "SHA1withDSA");
 
         put("Signature.NONEwithRSA", OpenSSLSignatureRawRSA.class.getName());
+
+        put("Signature.ECDSA", OpenSSLSignature.SHA1ECDSA.class.getName());
+        put("Alg.Alias.Signature.SHA1withECDSA", "ECDSA");
+        put("Alg.Alias.Signature.ECDSAwithSHA1", "ECDSA");
+        // iso(1) member-body(2) us(840) ansi-x962(10045) signatures(4) ecdsa-with-SHA1(1)
+        put("Alg.Alias.Signature.1.2.840.10045.4.1", "ECDSA");
+
+        // iso(1) member-body(2) us(840) ansi-x962(10045) signatures(4) ecdsa-with-SHA2(3)
+        put("Signature.SHA256withECDSA", OpenSSLSignature.SHA256ECDSA.class.getName());
+        // ecdsa-with-SHA256(2)
+        put("Alg.Alias.Signature.1.2.840.10045.4.3.2", "SHA256withECDSA");
+
+        put("Signature.SHA384withECDSA", OpenSSLSignature.SHA384ECDSA.class.getName());
+        // ecdsa-with-SHA384(3)
+        put("Alg.Alias.Signature.1.2.840.10045.4.3.3", "SHA384withECDSA");
+
+        put("Signature.SHA512withECDSA", OpenSSLSignature.SHA512ECDSA.class.getName());
+        // ecdsa-with-SHA512(4)
+        put("Alg.Alias.Signature.1.2.840.10045.4.3.4", "SHA512withECDSA");
 
         /* === SecureRandom === */
         /*
