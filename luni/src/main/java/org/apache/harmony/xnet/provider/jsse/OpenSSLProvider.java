@@ -137,19 +137,23 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Signature.ECDSAwithSHA1", "ECDSA");
         // iso(1) member-body(2) us(840) ansi-x962(10045) signatures(4) ecdsa-with-SHA1(1)
         put("Alg.Alias.Signature.1.2.840.10045.4.1", "ECDSA");
+        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.10045.2.1", "ECDSA");
 
         // iso(1) member-body(2) us(840) ansi-x962(10045) signatures(4) ecdsa-with-SHA2(3)
         put("Signature.SHA256withECDSA", OpenSSLSignature.SHA256ECDSA.class.getName());
         // ecdsa-with-SHA256(2)
         put("Alg.Alias.Signature.1.2.840.10045.4.3.2", "SHA256withECDSA");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.1with1.2.840.10045.2.1", "SHA256withECDSA");
 
         put("Signature.SHA384withECDSA", OpenSSLSignature.SHA384ECDSA.class.getName());
         // ecdsa-with-SHA384(3)
         put("Alg.Alias.Signature.1.2.840.10045.4.3.3", "SHA384withECDSA");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.2with1.2.840.10045.2.1", "SHA384withECDSA");
 
         put("Signature.SHA512withECDSA", OpenSSLSignature.SHA512ECDSA.class.getName());
         // ecdsa-with-SHA512(4)
         put("Alg.Alias.Signature.1.2.840.10045.4.3.4", "SHA512withECDSA");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.3with1.2.840.10045.2.1", "SHA512withECDSA");
 
         /* === SecureRandom === */
         /*
