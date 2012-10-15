@@ -273,6 +273,12 @@ public final class NativeCrypto {
 
     public static native void RAND_bytes(byte[] output);
 
+    // --- ASN.1 objects -------------------------------------------------------
+
+    public static native String OBJ_txt2nid_longName(String oid);
+
+    public static native String OBJ_txt2nid_oid(String oid);
+
     // --- X509_NAME -----------------------------------------------------------
 
     public static int X509_NAME_hash(X500Principal principal) {
