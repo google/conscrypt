@@ -193,6 +193,10 @@ public final class TrustManagerImpl implements X509TrustManager {
                     "Trust anchor for certification path not found.", null, certPath, -1));
         }
 
+        // There's no point in checking trust anchors here, and it will throw off the MD5 check,
+        // so we just hand it the chain without anchors
+        ChainStrengthAnalyzer.check(newChain);
+
         try {
             PKIXParameters params = new PKIXParameters(trustAnchors);
             params.setRevocationEnabled(false);
