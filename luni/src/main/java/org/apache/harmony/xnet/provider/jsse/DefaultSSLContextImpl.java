@@ -83,11 +83,7 @@ public final class DefaultSSLContextImpl extends OpenSSLContextImpl {
             }
         }
 
-        String kmfAlg = Security.getProperty("ssl.KeyManagerFactory.algorithm");
-        if (kmfAlg == null) {
-            kmfAlg = "SunX509";
-        }
-
+        String kmfAlg = KeyManagerFactory.getDefaultAlgorithm();
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(kmfAlg);
         kmf.init(ks, pwd);
         KEY_MANAGERS = kmf.getKeyManagers();
@@ -119,11 +115,7 @@ public final class DefaultSSLContextImpl extends OpenSSLContextImpl {
                 is.close();
             }
         }
-        String tmfAlg = Security.getProperty("ssl.TrustManagerFactory.algorithm");
-        if (tmfAlg == null) {
-            tmfAlg = "PKIX";
-        }
-
+        String tmfAlg = TrustManagerFactory.getDefaultAlgorithm();
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlg);
         tmf.init(ks);
         TRUST_MANAGERS = tmf.getTrustManagers();

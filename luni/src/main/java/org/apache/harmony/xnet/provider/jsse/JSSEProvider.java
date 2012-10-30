@@ -112,8 +112,12 @@ public final class JSSEProvider extends Provider {
         put("SSLContext.TLS", SSLContextImpl.class.getName());
         put("SSLContext.TLSv1", SSLContextImpl.class.getName());
 
-        put("KeyManagerFactory.X509", KeyManagerFactoryImpl.class.getName());
-        put("TrustManagerFactory.X509", TrustManagerFactoryImpl.class.getName());
+        put("KeyManagerFactory.PKIX", KeyManagerFactoryImpl.class.getName());
+        put("Alg.Alias.KeyManagerFactory.X509", "PKIX");
+
+        put("TrustManagerFactory.PKIX", TrustManagerFactoryImpl.class.getName());
+        put("Alg.Alias.TrustManagerFactory.X509", "PKIX");
+
         put("KeyStore.AndroidCAStore", TrustedCertificateKeyStoreSpi.class.getName());
     }
 }
