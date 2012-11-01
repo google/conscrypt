@@ -86,12 +86,11 @@ public final class OpenSSLProvider extends Provider {
         // put("KeyFactory.DSA", OpenSSLDSAKeyFactory.class.getName());
 
         /* == Signatures == */
-        put("Signature.MD5WithRSAEncryption", OpenSSLSignature.MD5RSA.class.getName());
-        put("Alg.Alias.Signature.MD5WithRSA", "MD5WithRSAEncryption");
-        put("Alg.Alias.Signature.MD5/RSA", "MD5WithRSAEncryption");
-        put("Alg.Alias.Signature.1.2.840.113549.1.1.4", "MD5WithRSAEncryption");
-        put("Alg.Alias.Signature.1.2.840.113549.2.5with1.2.840.113549.1.1.1",
-                "MD5WithRSAEncryption");
+        put("Signature.MD5WithRSA", OpenSSLSignature.MD5RSA.class.getName());
+        put("Alg.Alias.Signature.MD5WithRSAEncryption", "MD5WithRSA");
+        put("Alg.Alias.Signature.MD5/RSA", "MD5WithRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.4", "MD5WithRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.2.5with1.2.840.113549.1.1.1", "MD5WithRSA");
 
         put("Signature.SHA1WithRSA", OpenSSLSignature.SHA1RSA.class.getName());
         put("Alg.Alias.Signature.SHA1WithRSAEncryption", "SHA1WithRSA");
