@@ -30,6 +30,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPrivateKey;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -338,6 +339,183 @@ public final class NativeCrypto {
             throw new AssertionError(e);
         }
     }
+
+    public static native String X509_NAME_print_ex(long x509nameCtx, long flags);
+
+    // --- X509 ----------------------------------------------------------------
+
+    /** Used to request get_X509_GENERAL_NAME_stack get the "altname" field. */
+    public static final int GN_STACK_SUBJECT_ALT_NAME = 1;
+
+    /**
+     * Used to request get_X509_GENERAL_NAME_stack get the issuerAlternativeName
+     * extension.
+     */
+    public static final int GN_STACK_ISSUER_ALT_NAME = 2;
+
+    /**
+     * Used to request only non-critical types in get_X509*_ext_oids.
+     */
+    public static final int EXTENSION_TYPE_NON_CRITICAL = 0;
+
+    /**
+     * Used to request only critical types in get_X509*_ext_oids.
+     */
+    public static final int EXTENSION_TYPE_CRITICAL = 1;
+
+    public static native long d2i_X509_bio(long bioCtx);
+
+    public static native long PEM_read_bio_X509(long bioCtx);
+
+    public static native byte[] i2d_X509(long x509ctx);
+
+    /** Takes an X509 context not an X509_PUBKEY context. */
+    public static native byte[] i2d_X509_PUBKEY(long x509ctx);
+
+    public static native void X509_free(long x509ctx);
+
+    public static native int X509_cmp(long x509ctx1, long x509ctx2);
+
+    public static native int get_X509_hashCode(long x509ctx);
+
+    public static native void X509_print_ex(long bioCtx, long x509ctx, long nmflag, long certflag);
+
+    public static native byte[] X509_get_issuer_name(long x509ctx);
+
+    public static native byte[] X509_get_subject_name(long x509ctx);
+
+    public static native String get_X509_sig_alg_oid(long x509ctx);
+
+    public static native byte[] get_X509_sig_alg_parameter(long x509ctx);
+
+    public static native boolean[] get_X509_issuerUID(long x509ctx);
+
+    public static native boolean[] get_X509_subjectUID(long x509ctx);
+
+    public static native long X509_get_pubkey(long x509ctx) throws NoSuchAlgorithmException;
+
+    public static native String get_X509_pubkey_oid(long x509ctx);
+
+    public static native byte[] X509_get_ext_oid(long x509ctx, String oid);
+
+    public static native String[] get_X509_ext_oids(long x509ctx, int critical);
+
+    public static native Object[][] get_X509_GENERAL_NAME_stack(long x509ctx, int type);
+
+    public static native boolean[] get_X509_ex_kusage(long x509ctx);
+
+    public static native String[] get_X509_ex_xkusage(long x509ctx);
+
+    public static native int X509_check_ca(long x509ctx);
+
+    public static native int get_X509_ex_pathlen(long x509ctx);
+
+    public static native long X509_get_notBefore(long x509ctx);
+
+    public static native long X509_get_notAfter(long x509ctx);
+
+    public static native long X509_get_version(long x509ctx);
+
+    public static native byte[] X509_get_serialNumber(long x509ctx);
+
+    public static native void X509_verify(long x509ctx, long pkeyCtx);
+
+    public static native byte[] get_X509_cert_info_enc(long x509ctx);
+
+    public static native byte[] get_X509_signature(long x509ctx);
+
+    public static native int get_X509_ex_flags(long x509ctx);
+
+    // --- X509 EXFLAG ---------------------------------------------------------
+
+    public static final int EXFLAG_CRITICAL = 0x200;
+
+    // --- PKCS7 ---------------------------------------------------------------
+
+    /** Used as the "which" field in d2i_PKCS7_bio and PEM_read_bio_PKCS7. */
+    public static final int PKCS7_CERTS = 1;
+
+    /** Used as the "which" field in d2i_PKCS7_bio and PEM_read_bio_PKCS7. */
+    public static final int PKCS7_CRLS = 2;
+
+    /** Returns an array of X509 or X509_CRL pointers. */
+    public static native long[] d2i_PKCS7_bio(long bioCtx, int which);
+
+    /** Returns an array of X509 or X509_CRL pointers. */
+    public static native long[] PEM_read_bio_PKCS7(long bioCtx, int which);
+
+    // --- X509_CRL ------------------------------------------------------------
+
+    public static native long d2i_X509_CRL_bio(long bioCtx);
+
+    public static native long PEM_read_bio_X509_CRL(long bioCtx);
+
+    public static native byte[] i2d_X509_CRL(long x509CrlCtx);
+
+    public static native void X509_CRL_free(long x509CrlCtx);
+
+    public static native void X509_CRL_print(long bioCtx, long x509CrlCtx);
+
+    public static native String get_X509_CRL_sig_alg_oid(long x509CrlCtx);
+
+    public static native byte[] get_X509_CRL_sig_alg_parameter(long x509CrlCtx);
+
+    public static native byte[] X509_CRL_get_issuer_name(long x509CrlCtx);
+
+    /** Returns X509_REVOKED reference that is not duplicated! */
+    public static native long X509_CRL_get0_by_cert(long x509CrlCtx, long x509Ctx);
+
+    /** Returns X509_REVOKED reference that is not duplicated! */
+    public static native long X509_CRL_get0_by_serial(long x509CrlCtx, byte[] serial);
+
+    /** Returns an array of X509_REVOKED that are owned by the caller. */
+    public static native long[] X509_CRL_get_REVOKED(long x509CrlCtx);
+
+    public static native String[] get_X509_CRL_ext_oids(long x509ctx, int critical);
+
+    public static native byte[] X509_CRL_get_ext_oid(long x509CrlCtx, String oid);
+
+    public static native long X509_CRL_get_version(long x509CrlCtx);
+
+    public static native long X509_CRL_get_ext(long x509CrlCtx, String oid);
+
+    public static native byte[] get_X509_CRL_signature(long x509ctx);
+
+    public static native void X509_CRL_verify(long x509CrlCtx, long pkeyCtx);
+
+    public static native byte[] get_X509_CRL_crl_enc(long x509CrlCtx);
+
+    public static native long X509_CRL_get_lastUpdate(long x509CrlCtx);
+
+    public static native long X509_CRL_get_nextUpdate(long x509CrlCtx);
+
+    // --- X509_REVOKED --------------------------------------------------------
+
+    public static native long X509_REVOKED_dup(long x509RevokedCtx);
+
+    public static native byte[] i2d_X509_REVOKED(long x509RevokedCtx);
+
+    public static native String[] get_X509_REVOKED_ext_oids(long x509ctx, int critical);
+
+    public static native byte[] X509_REVOKED_get_ext_oid(long x509RevokedCtx, String oid);
+
+    public static native byte[] X509_REVOKED_get_serialNumber(long x509RevokedCtx);
+
+    public static native long X509_REVOKED_get_ext(long x509RevokedCtx, String oid);
+
+    /** Returns ASN1_TIME reference. */
+    public static native long get_X509_REVOKED_revocationDate(long x509RevokedCtx);
+
+    public static native void X509_REVOKED_print(long bioRef, long x509RevokedCtx);
+
+    // --- X509_EXTENSION ------------------------------------------------------
+
+    public static native int X509_supported_extension(long x509ExtensionRef);
+
+    // --- ASN1_TIME -----------------------------------------------------------
+
+    public static native void ASN1_TIME_to_Calendar(long asn1TimeCtx, Calendar cal);
+
     // --- BIO stream creation -------------------------------------------------
 
     public static native long create_BIO_InputStream(OpenSSLBIOInputStream is);

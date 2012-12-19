@@ -38,20 +38,29 @@ public class OpenSSLBIOInputStream extends FilterInputStream {
         return ctx;
     }
 
-    public int readLine(byte[] buffer) throws IOException {
+    /**
+     * Similar to a {@code readLine} method, but matches what OpenSSL expects
+     * from a {@code BIO_gets} method.
+     */
+    public int gets(byte[] buffer) throws IOException {
         if (buffer == null || buffer.length == 0) {
             return 0;
         }
 
         int offset = 0;
-        int inputByte = read();
-        while (offset < buffer.length && inputByte != '\n' && inputByte != -1) {
-            buffer[offset++] = (byte) inputByte;
+        int inputByte = 0;
+        while (offset < buffer.length) {
             inputByte = read();
-        }
+            if (inputByte == '\n' || inputByte == -1) {
+                if (offset == 0) {
+                    // If we haven't read anything yet, ignore CRLF.
+                    continue;
+                } else {
+                    break;
+                }
+            }
 
-        if (inputByte == '\n') {
-            buffer[offset++] = '\n';
+            buffer[offset++] = (byte) inputByte;
         }
 
         return offset;
