@@ -23,13 +23,18 @@ import java.security.KeyStoreException;
 import java.security.cert.CertPath;
 import java.security.cert.CertPathValidator;
 import java.security.cert.CertPathValidatorException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.PKIXCertPathChecker;
 import java.security.cert.PKIXParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -179,12 +184,12 @@ public final class TrustManagerImpl implements X509TrustManager {
 
     @Override public void checkClientTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
-        checkTrusted(chain, authType, null);
+        checkTrusted(chain, authType, null, true);
     }
 
     @Override public void checkServerTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
-        checkTrusted(chain, authType, null);
+        checkTrusted(chain, authType, null, false);
     }
 
     /**
@@ -194,7 +199,7 @@ public final class TrustManagerImpl implements X509TrustManager {
      */
     public List<X509Certificate> checkServerTrusted(X509Certificate[] chain, String authType,
                                                     String host) throws CertificateException {
-        return checkTrusted(chain, authType, host);
+        return checkTrusted(chain, authType, host, false);
     }
 
     public void handleTrustStorageUpdate() {
@@ -202,10 +207,11 @@ public final class TrustManagerImpl implements X509TrustManager {
             trustedCertificateIndex.reset();
         } else {
             trustedCertificateIndex.reset(trustAnchors(acceptedIssuers));
-       }
+        }
     }
 
-    private List<X509Certificate> checkTrusted(X509Certificate[] chain, String authType, String host)
+    private List<X509Certificate> checkTrusted(X509Certificate[] chain, String authType,
+                                               String host, boolean clientAuth)
             throws CertificateException {
         if (chain == null || chain.length == 0 || authType == null || authType.length() == 0) {
             throw new IllegalArgumentException("null or zero-length parameter");
@@ -284,6 +290,8 @@ public final class TrustManagerImpl implements X509TrustManager {
         try {
             PKIXParameters params = new PKIXParameters(trustAnchor);
             params.setRevocationEnabled(false);
+            params.addCertPathChecker(new ExtendedKeyUsagePKIXCertPathChecker(clientAuth,
+                                                                              newChain[0]));
             validator.validate(certPath, params);
             // Add intermediate CAs to the index to tolerate sites
             // that assume that the browser will have cached these.
@@ -382,6 +390,122 @@ public final class TrustManagerImpl implements X509TrustManager {
     }
 
     /**
+     * If an EKU extension is present in the end-entity certificate,
+     * it MUST contain an appropriate key usage. For servers, this
+     * includes anyExtendedKeyUsage, serverAuth, or the historical
+     * Server Gated Cryptography options of nsSGC or msSGC.  For
+     * clients, this includes anyExtendedKeyUsage and clientAuth.
+     */
+    private static class ExtendedKeyUsagePKIXCertPathChecker extends PKIXCertPathChecker {
+
+        private static final String EKU_OID = "2.5.29.37";
+
+        private static final String EKU_anyExtendedKeyUsage = "2.5.29.37.0";
+        private static final String EKU_clientAuth = "1.3.6.1.5.5.7.3.2";
+        private static final String EKU_serverAuth = "1.3.6.1.5.5.7.3.1";
+        private static final String EKU_nsSGC = "2.16.840.1.113730.4.1";
+        private static final String EKU_msSGC = "1.3.6.1.4.1.311.10.3.3";
+
+        private static final Set<String> SUPPORTED_EXTENSIONS
+                = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(EKU_OID)));
+
+        private final boolean clientAuth;
+        private final X509Certificate leaf;
+
+        private ExtendedKeyUsagePKIXCertPathChecker(boolean clientAuth, X509Certificate leaf) {
+            this.clientAuth = clientAuth;
+            this.leaf = leaf;
+        }
+
+        @Override public void init(boolean forward) throws CertPathValidatorException {
+        }
+
+        @Override public boolean isForwardCheckingSupported() {
+            return true;
+        }
+
+        @Override public Set<String> getSupportedExtensions() {
+            return SUPPORTED_EXTENSIONS;
+        }
+
+        @Override public void check(Certificate c, Collection<String> unresolvedCritExts)
+                throws CertPathValidatorException {
+            // We only want to validate the EKU on the leaf certificate.
+            if (c != leaf) {
+                return;
+            }
+            List<String> ekuOids;
+            try {
+                ekuOids = leaf.getExtendedKeyUsage();
+            } catch (CertificateParsingException e) {
+                // A malformed EKU is bad news, consider it fatal.
+                throw new CertPathValidatorException(e);
+            }
+            // We are here to check EKU, but there is none.
+            if (ekuOids == null) {
+                return;
+            }
+
+            boolean goodExtendedKeyUsage = false;
+            for (String ekuOid : ekuOids) {
+                // anyExtendedKeyUsage for clients and servers
+                if (ekuOid.equals(EKU_anyExtendedKeyUsage)) {
+                    goodExtendedKeyUsage = true;
+                    break;
+                }
+
+                // clients
+                if (clientAuth) {
+                    if (ekuOid.equals(EKU_clientAuth)) {
+                        goodExtendedKeyUsage = true;
+                        break;
+                    }
+                    continue;
+                }
+
+                // servers
+                if (ekuOid.equals(EKU_serverAuth)) {
+                    goodExtendedKeyUsage = true;
+                    break;
+                }
+                if (ekuOid.equals(EKU_nsSGC)) {
+                    goodExtendedKeyUsage = true;
+                    break;
+                }
+                if (ekuOid.equals(EKU_msSGC)) {
+                    goodExtendedKeyUsage = true;
+                    break;
+                }
+            }
+            if (goodExtendedKeyUsage) {
+                // Mark extendedKeyUsage as resolved if present.
+                unresolvedCritExts.remove(EKU_OID);
+            } else {
+                throw new CertPathValidatorException("End-entity certificate does not have a valid "
+                                                     + "extendedKeyUsage.");
+            }
+        }
+    }
+
+    private TrustAnchor findTrustAnchorByIssuerAndSignature(X509Certificate lastCert) {
+        TrustAnchor trustAnchor = trustedCertificateIndex.findByIssuerAndSignature(lastCert);
+        if (trustAnchor != null) {
+            return trustAnchor;
+        }
+        if (trustedCertificateStore == null) {
+            return null;
+        }
+        // we have a KeyStore and the issuer of the last cert in
+        // the chain seems to be missing from the
+        // TrustedCertificateIndex, check the KeyStore for a hit
+        X509Certificate issuer = trustedCertificateStore.findIssuer(lastCert);
+        if (issuer != null) {
+            return trustedCertificateIndex.index(issuer);
+        }
+        return null;
+    }
+
+    /**
      * Check the trustedCertificateIndex for the cert to see if it is
      * already trusted and failing that check the KeyStore if it is
      * available.
@@ -402,24 +526,6 @@ public final class TrustManagerImpl implements X509TrustManager {
             // add new TrustAnchor to params index to avoid
             // checking filesystem next time around.
             return trustedCertificateIndex.index(cert);
-        }
-        return null;
-    }
-
-    private TrustAnchor findTrustAnchorByIssuerAndSignature(X509Certificate lastCert) {
-        TrustAnchor trustAnchor = trustedCertificateIndex.findByIssuerAndSignature(lastCert);
-        if (trustAnchor != null) {
-            return trustAnchor;
-        }
-        if (trustedCertificateStore == null) {
-            return null;
-        }
-        // we have a KeyStore and the issuer of the last cert in
-        // the chain seems to be missing from the
-        // TrustedCertificateIndex, check the KeyStore for a hit
-        X509Certificate issuer = trustedCertificateStore.findIssuer(lastCert);
-        if (issuer != null) {
-            return trustedCertificateIndex.index(issuer);
         }
         return null;
     }
