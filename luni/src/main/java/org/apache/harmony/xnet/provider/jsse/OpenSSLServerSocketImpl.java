@@ -32,6 +32,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     private final SSLParametersImpl sslParameters;
     private String[] enabledProtocols = NativeCrypto.getSupportedProtocols();
     private String[] enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
+    private boolean channelIdEnabled;
 
     protected OpenSSLServerSocketImpl(SSLParametersImpl sslParameters) throws IOException {
         this.sslParameters = sslParameters;
@@ -113,6 +114,20 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     }
 
     /**
+     * Enables/disables the TLS Channel ID extension for this server socket.
+     */
+    public void setChannelIdEnabled(boolean enabled) {
+      channelIdEnabled = enabled;
+    }
+
+    /**
+     * Checks whether the TLS Channel ID extension is enabled for this server socket.
+     */
+    public boolean isChannelIdEnabled() {
+      return channelIdEnabled;
+    }
+
+    /**
      * This method enables the cipher suites listed by
      * getSupportedCipherSuites().
      *
@@ -165,6 +180,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
         OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters,
                                                          enabledProtocols.clone(),
                                                          enabledCipherSuites.clone());
+        socket.setChannelIdEnabled(channelIdEnabled);
         implAccept(socket);
         return socket;
     }
