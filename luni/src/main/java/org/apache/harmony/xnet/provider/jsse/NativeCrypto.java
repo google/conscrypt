@@ -149,11 +149,37 @@ public final class NativeCrypto {
      */
     public static final int EC_CURVE_GF2M = 2;
 
+    /**
+     * EC_GROUP_set_asn1_flag: indicates an EC_GROUP is a NamedCurve.
+     */
+    public static final int OPENSSL_EC_NAMED_CURVE = 0x001;
+
+    /**
+     * EC_GROUP_set_point_conversion_form: indicates compressed ASN.1 format
+     */
+    public static final int POINT_CONVERSION_COMPRESSED = 2;
+
+    /**
+     * EC_GROUP_set_point_conversion_form: indicates uncompressed ASN.1 format
+     */
+    public static final int POINT_CONVERSION_UNCOMPRESSED = 4;
+
+    /**
+     * EC_GROUP_set_point_conversion_form: indicates hybrid ASN.1 format
+     */
+    public static final int POINT_CONVERSION_HYBRID = 4;
+
     public static native int EVP_PKEY_new_EC_KEY(int groupRef, int pubkeyRef, byte[] privkey);
 
     public static native int EC_GROUP_new_by_curve_name(String curveName);
 
     public static native int EC_GROUP_new_curve(int type, byte[] p, byte[] a, byte[] b);
+
+    public static native void EC_GROUP_set_asn1_flag(int groupRef, int flag);
+
+    public static native void EC_GROUP_set_point_conversion_form(int groupRef, int form);
+
+    public static native int EC_GROUP_get_curve_name(int groupRef);
 
     public static native byte[][] EC_GROUP_get_curve(int groupRef);
 
@@ -183,6 +209,8 @@ public final class NativeCrypto {
             byte[] y);
 
     public static native int EC_KEY_generate_key(int groupRef);
+
+    public static native int EC_KEY_get0_group(int pkeyRef);
 
     public static native byte[] EC_KEY_get_private_key(int keyRef);
 
@@ -276,6 +304,8 @@ public final class NativeCrypto {
     public static native void RAND_bytes(byte[] output);
 
     // --- ASN.1 objects -------------------------------------------------------
+
+    public static native int OBJ_txt2nid(String oid);
 
     public static native String OBJ_txt2nid_longName(String oid);
 
