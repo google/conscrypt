@@ -228,6 +228,8 @@ public final class NativeCrypto {
 
     public static native int EVP_MD_CTX_create();
 
+    public static native void EVP_MD_CTX_init(int ctx);
+
     public static native void EVP_MD_CTX_destroy(int ctx);
 
     public static native int EVP_MD_CTX_copy(int ctx);
