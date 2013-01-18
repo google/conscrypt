@@ -82,6 +82,7 @@ public abstract class OpenSSLMac extends MacSpi {
             throw new InvalidKeyException("key cannot be encoded");
         }
 
+        NativeCrypto.EVP_MD_CTX_init(ctx.getContext());
         macKey = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_mac_key(evp_pkey_type, keyBytes));
 
         reset();
