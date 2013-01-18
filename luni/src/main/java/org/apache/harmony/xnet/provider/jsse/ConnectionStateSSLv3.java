@@ -294,9 +294,9 @@ public class ConnectionStateSSLv3 extends ConnectionState {
         byte[] content;
         if (block_size != 0) {
             // check padding
-            int padding_length = data[data.length-1];
+            int padding_length = data[data.length-1] & 0xFF;
             for (int i=0; i<padding_length; i++) {
-                if (data[data.length-2-i] != padding_length) {
+                if ((data[data.length-2-i] & 0xFF) != padding_length) {
                     throw new AlertException(
                             AlertProtocol.DECRYPTION_FAILED,
                             new SSLProtocolException(
