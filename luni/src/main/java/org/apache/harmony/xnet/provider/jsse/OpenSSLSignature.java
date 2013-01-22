@@ -119,31 +119,38 @@ public class OpenSSLSignature extends Signature {
         return null;
     }
 
+    private void checkEngineType(OpenSSLKey pkey) throws InvalidKeyException {
+        final int pkeyType = NativeCrypto.EVP_PKEY_type(pkey.getPkeyContext());
+
+        switch (engineType) {
+            case RSA:
+                if (pkeyType != NativeCrypto.EVP_PKEY_RSA) {
+                    throw new InvalidKeyException("Signature not initialized as RSA");
+                }
+                break;
+            case DSA:
+                if (pkeyType != NativeCrypto.EVP_PKEY_DSA) {
+                    throw new InvalidKeyException("Signature not initialized as DSA");
+                }
+                break;
+            case EC:
+                if (pkeyType != NativeCrypto.EVP_PKEY_EC) {
+                    throw new InvalidKeyException("Signature not initialized as EC");
+                }
+                break;
+            default:
+                throw new InvalidKeyException("Need DSA or RSA or EC private key");
+        }
+    }
+
     @Override
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
         destroyContextIfExists();
 
-        if (privateKey instanceof OpenSSLDSAPrivateKey) {
-            if (engineType != EngineType.DSA) {
-                throw new InvalidKeyException("Signature not initialized as DSA");
-            }
-
-            OpenSSLDSAPrivateKey dsaPrivateKey = (OpenSSLDSAPrivateKey) privateKey;
-            key = dsaPrivateKey.getOpenSSLKey();
-        } else if (privateKey instanceof DSAPrivateKey) {
-            if (engineType != EngineType.DSA) {
-                throw new InvalidKeyException("Signature not initialized as DSA");
-            }
-
-            DSAPrivateKey dsaPrivateKey = (DSAPrivateKey) privateKey;
-            key = OpenSSLDSAPrivateKey.getInstance(dsaPrivateKey);
-        } else if (privateKey instanceof OpenSSLRSAPrivateKey) {
-            if (engineType != EngineType.RSA) {
-                throw new InvalidKeyException("Signature not initialized as RSA");
-            }
-
-            OpenSSLRSAPrivateKey rsaPrivateKey = (OpenSSLRSAPrivateKey) privateKey;
-            key = rsaPrivateKey.getOpenSSLKey();
+        if (privateKey instanceof OpenSSLKeyHolder) {
+            OpenSSLKey pkey = ((OpenSSLKeyHolder) privateKey).getOpenSSLKey();
+            checkEngineType(pkey);
+            key = pkey;
         } else if (privateKey instanceof RSAPrivateCrtKey) {
             if (engineType != EngineType.RSA) {
                 throw new InvalidKeyException("Signature not initialized as RSA");
@@ -158,13 +165,13 @@ public class OpenSSLSignature extends Signature {
 
             RSAPrivateKey rsaPrivateKey = (RSAPrivateKey) privateKey;
             key = OpenSSLRSAPrivateKey.getInstance(rsaPrivateKey);
-        } else if (privateKey instanceof OpenSSLECPrivateKey) {
-            if (engineType != EngineType.EC) {
-                throw new InvalidKeyException("Signature not initialized as EC");
+        } else if (privateKey instanceof DSAPrivateKey) {
+            if (engineType != EngineType.DSA) {
+                throw new InvalidKeyException("Signature not initialized as DSA");
             }
 
-            OpenSSLECPrivateKey ecPrivateKey = (OpenSSLECPrivateKey) privateKey;
-            key = ecPrivateKey.getOpenSSLKey();
+            DSAPrivateKey dsaPrivateKey = (DSAPrivateKey) privateKey;
+            key = OpenSSLDSAPrivateKey.getInstance(dsaPrivateKey);
         } else if (privateKey instanceof ECPrivateKey) {
             if (engineType != EngineType.EC) {
                 throw new InvalidKeyException("Signature not initialized as EC");
@@ -182,27 +189,10 @@ public class OpenSSLSignature extends Signature {
         // If we had an existing context, destroy it first.
         destroyContextIfExists();
 
-        if (publicKey instanceof OpenSSLDSAPublicKey) {
-            if (engineType != EngineType.DSA) {
-                throw new InvalidKeyException("Signature not initialized as DSA");
-            }
-
-            OpenSSLDSAPublicKey dsaPublicKey = (OpenSSLDSAPublicKey) publicKey;
-            key = dsaPublicKey.getOpenSSLKey();
-        } else if (publicKey instanceof DSAPublicKey) {
-            if (engineType != EngineType.DSA) {
-                throw new InvalidKeyException("Signature not initialized as DSA");
-            }
-
-            DSAPublicKey dsaPublicKey = (DSAPublicKey) publicKey;
-            key = OpenSSLDSAPublicKey.getInstance(dsaPublicKey);
-        } else if (publicKey instanceof OpenSSLRSAPublicKey) {
-            if (engineType != EngineType.RSA) {
-                throw new InvalidKeyException("Signature not initialized as RSA");
-            }
-
-            OpenSSLRSAPublicKey rsaPublicKey = (OpenSSLRSAPublicKey) publicKey;
-            key = rsaPublicKey.getOpenSSLKey();
+        if (publicKey instanceof OpenSSLKeyHolder) {
+            OpenSSLKey pkey = ((OpenSSLKeyHolder) publicKey).getOpenSSLKey();
+            checkEngineType(pkey);
+            key = pkey;
         } else if (publicKey instanceof RSAPublicKey) {
             if (engineType != EngineType.RSA) {
                 throw new InvalidKeyException("Signature not initialized as RSA");
@@ -210,13 +200,13 @@ public class OpenSSLSignature extends Signature {
 
             RSAPublicKey rsaPublicKey = (RSAPublicKey) publicKey;
             key = OpenSSLRSAPublicKey.getInstance(rsaPublicKey);
-        } else if (publicKey instanceof OpenSSLECPublicKey) {
-            if (engineType != EngineType.EC) {
-                throw new InvalidKeyException("Signature not initialized as EC");
+        } else if (publicKey instanceof DSAPublicKey) {
+            if (engineType != EngineType.DSA) {
+                throw new InvalidKeyException("Signature not initialized as DSA");
             }
 
-            OpenSSLECPublicKey ecPublicKey = (OpenSSLECPublicKey) publicKey;
-            key = ecPublicKey.getOpenSSLKey();
+            DSAPublicKey dsaPublicKey = (DSAPublicKey) publicKey;
+            key = OpenSSLDSAPublicKey.getInstance(dsaPublicKey);
         } else if (publicKey instanceof ECPublicKey) {
             if (engineType != EngineType.EC) {
                 throw new InvalidKeyException("Signature not initialized as EC");

@@ -27,7 +27,7 @@ import java.security.interfaces.DSAPrivateKey;
 import java.security.spec.DSAPrivateKeySpec;
 import java.security.spec.InvalidKeySpecException;
 
-public class OpenSSLDSAPrivateKey implements DSAPrivateKey {
+public class OpenSSLDSAPrivateKey implements DSAPrivateKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 6524734576187424628L;
 
     private transient OpenSSLKey key;
@@ -38,7 +38,8 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey {
         this.key = key;
     }
 
-    OpenSSLKey getOpenSSLKey() {
+    @Override
+    public OpenSSLKey getOpenSSLKey() {
         return key;
     }
 
@@ -118,14 +119,6 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey {
     public BigInteger getX() {
         ensureReadParams();
         return params.getX();
-    }
-
-    public int getPkeyContext() {
-        return key.getPkeyContext();
-    }
-
-    public String getPkeyAlias() {
-        return key.getAlias();
     }
 
     @Override

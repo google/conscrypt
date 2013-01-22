@@ -102,7 +102,7 @@ public class OpenSSLSignatureRawRSA extends Signature {
             RSAPrivateKey rsaPrivateKey = (RSAPrivateKey) privateKey;
             key = OpenSSLRSAPrivateKey.getInstance(rsaPrivateKey);
         } else {
-            throw new InvalidKeyException("Need DSA or RSA private key");
+            throw new InvalidKeyException("Need RSA private key");
         }
 
         // Allocate buffer according to RSA modulus size.
@@ -120,7 +120,7 @@ public class OpenSSLSignatureRawRSA extends Signature {
             RSAPublicKey rsaPublicKey = (RSAPublicKey) publicKey;
             key = OpenSSLRSAPublicKey.getInstance(rsaPublicKey);
         } else {
-            throw new InvalidKeyException("Need DSA or RSA public key");
+            throw new InvalidKeyException("Need RSA public key");
         }
 
         // Allocate buffer according to RSA modulus size.

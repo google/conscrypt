@@ -27,7 +27,7 @@ import java.security.interfaces.ECPrivateKey;
 import java.security.spec.ECParameterSpec;
 import java.util.Arrays;
 
-public final class OpenSSLECPrivateKey implements ECPrivateKey {
+public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = -4036633595001083922L;
 
     private static final String ALGORITHM = "EC";
@@ -38,6 +38,12 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey {
 
     public OpenSSLECPrivateKey(OpenSSLECGroupContext group, OpenSSLKey key) {
         this.group = group;
+        this.key = key;
+    }
+
+    public OpenSSLECPrivateKey(OpenSSLKey key) {
+        final int origGroup = NativeCrypto.EC_KEY_get0_group(key.getPkeyContext());
+        this.group = new OpenSSLECGroupContext(NativeCrypto.EC_GROUP_dup(origGroup));
         this.key = key;
     }
 
@@ -82,7 +88,8 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey {
         return new BigInteger(NativeCrypto.EC_KEY_get_private_key(key.getPkeyContext()));
     }
 
-    OpenSSLKey getOpenSSLKey() {
+    @Override
+    public OpenSSLKey getOpenSSLKey() {
         return key;
     }
 

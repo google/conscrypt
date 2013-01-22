@@ -199,16 +199,7 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
 
         if (o instanceof OpenSSLRSAPrivateKey) {
             OpenSSLRSAPrivateKey other = (OpenSSLRSAPrivateKey) o;
-
-            /*
-             * We can shortcut the true case, but it still may be equivalent but
-             * different copies.
-             */
-            if (getOpenSSLKey().equals(other.getOpenSSLKey())) {
-                return true;
-            }
-
-            return NativeCrypto.EVP_PKEY_cmp(getPkeyContext(), other.getPkeyContext()) == 1;
+            return getOpenSSLKey().equals(other.getOpenSSLKey());
         }
 
         if (o instanceof RSAPrivateCrtKey) {
