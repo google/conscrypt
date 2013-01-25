@@ -29,7 +29,7 @@ import java.security.spec.EllipticCurve;
 final class OpenSSLECGroupContext {
     private final int groupCtx;
 
-    private OpenSSLECGroupContext(int groupCtx) {
+    OpenSSLECGroupContext(int groupCtx) {
         this.groupCtx = groupCtx;
     }
 

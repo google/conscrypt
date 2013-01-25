@@ -26,7 +26,7 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateKeySpec;
 
-public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
+public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 4872170254439578735L;
 
     protected transient OpenSSLKey key;
@@ -47,7 +47,8 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
         fetchedParams = true;
     }
 
-    final OpenSSLKey getOpenSSLKey() {
+    @Override
+    public OpenSSLKey getOpenSSLKey() {
         return key;
     }
 
@@ -180,14 +181,6 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
         return "RSA";
     }
 
-    public int getPkeyContext() {
-        return key.getPkeyContext();
-    }
-
-    public String getPkeyAlias() {
-        return key.getAlias();
-    }
-
     @Override
     public boolean equals(Object o) {
         if (o == this) {
@@ -196,16 +189,7 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey {
 
         if (o instanceof OpenSSLRSAPrivateKey) {
             OpenSSLRSAPrivateKey other = (OpenSSLRSAPrivateKey) o;
-
-            /*
-             * We can shortcut the true case, but it still may be equivalent but
-             * different copies.
-             */
-            if (key.equals(other.getOpenSSLKey())) {
-                return true;
-            }
-
-            return NativeCrypto.EVP_PKEY_cmp(getPkeyContext(), other.getPkeyContext()) == 1;
+            return key.equals(other.getOpenSSLKey());
         }
 
         if (o instanceof RSAPrivateKey) {

@@ -16,26 +16,34 @@
 
 package org.apache.harmony.xnet.provider.jsse;
 
-class OpenSSLKey {
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+
+public class OpenSSLKey {
     private final int ctx;
 
     private final OpenSSLEngine engine;
 
     private final String alias;
 
-    OpenSSLKey(int ctx) {
+    public OpenSSLKey(int ctx) {
         this.ctx = ctx;
         engine = null;
         alias = null;
     }
 
-    OpenSSLKey(int ctx, OpenSSLEngine engine, String alias) {
+    public OpenSSLKey(int ctx, OpenSSLEngine engine, String alias) {
         this.ctx = ctx;
         this.engine = engine;
         this.alias = alias;
     }
 
-    int getPkeyContext() {
+    /**
+     * Returns the raw pointer to the EVP_PKEY context for use in JNI calls. The
+     * life cycle of this native pointer is managed by the {@code OpenSSLKey}
+     * instance and must not be destroyed or freed by users of this API.
+     */
+    public int getPkeyContext() {
         return ctx;
     }
 
@@ -47,8 +55,21 @@ class OpenSSLKey {
         return engine != null;
     }
 
-    String getAlias() {
+    public String getAlias() {
         return alias;
+    }
+
+    public PublicKey getPublicKey() throws NoSuchAlgorithmException {
+        switch (NativeCrypto.EVP_PKEY_type(ctx)) {
+            case NativeCrypto.EVP_PKEY_RSA:
+                return new OpenSSLRSAPublicKey(this);
+            case NativeCrypto.EVP_PKEY_DSA:
+                return new OpenSSLDSAPublicKey(this);
+            case NativeCrypto.EVP_PKEY_EC:
+                return new OpenSSLECPublicKey(this);
+            default:
+                throw new NoSuchAlgorithmException("unknown PKEY type");
+        }
     }
 
     @Override
@@ -77,11 +98,24 @@ class OpenSSLKey {
             return false;
         }
 
+        /*
+         * ENGINE-based keys must be checked in a special way.
+         */
         if (engine == null) {
-            return other.getEngine() == null;
+            if (other.getEngine() != null) {
+                return false;
+            }
+        } else if (!engine.equals(other.getEngine())) {
+            return false;
         } else {
-            return engine.equals(other.getEngine());
+            if (alias != null) {
+                return alias.equals(other.getAlias());
+            } else if (other.getAlias() != null) {
+                return false;
+            }
         }
+
+        return NativeCrypto.EVP_PKEY_cmp(ctx, other.getPkeyContext()) == 1;
     }
 
     @Override
