@@ -27,7 +27,7 @@ import java.security.interfaces.DSAPublicKey;
 import java.security.spec.DSAPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 
-public class OpenSSLDSAPublicKey implements DSAPublicKey {
+public class OpenSSLDSAPublicKey implements DSAPublicKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 5238609500353792232L;
 
     private transient OpenSSLKey key;
@@ -38,7 +38,8 @@ public class OpenSSLDSAPublicKey implements DSAPublicKey {
         this.key = key;
     }
 
-    OpenSSLKey getOpenSSLKey() {
+    @Override
+    public OpenSSLKey getOpenSSLKey() {
         return key;
     }
 

@@ -103,7 +103,16 @@ public class OpenSSLEngine {
 
         OpenSSLEngine other = (OpenSSLEngine) o;
 
-        return other.getEngineContext() == ctx;
+        if (other.getEngineContext() == ctx) {
+            return true;
+        }
+
+        final String id = NativeCrypto.ENGINE_get_id(ctx);
+        if (id == null) {
+            return false;
+        }
+
+        return id.equals(NativeCrypto.ENGINE_get_id(other.getEngineContext()));
     }
 
     @Override

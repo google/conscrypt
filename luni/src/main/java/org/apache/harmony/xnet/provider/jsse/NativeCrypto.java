@@ -66,6 +66,8 @@ public final class NativeCrypto {
 
     public static native int ENGINE_load_private_key(int e, String key_id);
 
+    public static native String ENGINE_get_id(int engineRef);
+
     // --- DSA/RSA public/private key handling functions -----------------------
 
     public static native int EVP_PKEY_new_DSA(byte[] p, byte[] q, byte[] g,
@@ -175,6 +177,8 @@ public final class NativeCrypto {
     public static native int EC_GROUP_new_by_curve_name(String curveName);
 
     public static native int EC_GROUP_new_curve(int type, byte[] p, byte[] a, byte[] b);
+
+    public static native int EC_GROUP_dup(int groupRef);
 
     public static native void EC_GROUP_set_asn1_flag(int groupRef, int flag);
 

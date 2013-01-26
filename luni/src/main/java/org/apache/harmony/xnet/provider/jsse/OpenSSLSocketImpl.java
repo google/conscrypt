@@ -491,17 +491,8 @@ public class OpenSSLSocketImpl
             return;
         }
 
-        if (privateKey instanceof OpenSSLRSAPrivateKey) {
-            OpenSSLRSAPrivateKey rsaKey = (OpenSSLRSAPrivateKey) privateKey;
-            OpenSSLKey key = rsaKey.getOpenSSLKey();
-            NativeCrypto.SSL_use_OpenSSL_PrivateKey(sslNativePointer, key.getPkeyContext());
-        } else if (privateKey instanceof OpenSSLDSAPrivateKey) {
-            OpenSSLDSAPrivateKey dsaKey = (OpenSSLDSAPrivateKey) privateKey;
-            OpenSSLKey key = dsaKey.getOpenSSLKey();
-            NativeCrypto.SSL_use_OpenSSL_PrivateKey(sslNativePointer, key.getPkeyContext());
-        } else if (privateKey instanceof OpenSSLECPrivateKey) {
-            OpenSSLECPrivateKey ecKey = (OpenSSLECPrivateKey) privateKey;
-            OpenSSLKey key = ecKey.getOpenSSLKey();
+        if (privateKey instanceof OpenSSLKeyHolder) {
+            OpenSSLKey key = ((OpenSSLKeyHolder) privateKey).getOpenSSLKey();
             NativeCrypto.SSL_use_OpenSSL_PrivateKey(sslNativePointer, key.getPkeyContext());
         } else if ("PKCS#8".equals(privateKey.getFormat())) {
             byte[] privateKeyBytes = privateKey.getEncoded();
