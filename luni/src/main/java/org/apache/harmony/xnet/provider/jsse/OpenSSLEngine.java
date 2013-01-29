@@ -17,7 +17,10 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+
+import javax.crypto.SecretKey;
 
 public class OpenSSLEngine {
     static {
@@ -66,14 +69,29 @@ public class OpenSSLEngine {
             return null;
         }
 
-        final int keyType = NativeCrypto.EVP_PKEY_type(keyRef);
-        switch (keyType) {
-            case NativeCrypto.EVP_PKEY_RSA:
-                return OpenSSLRSAPrivateKey.getInstance(new OpenSSLKey(keyRef, this, id));
-            case NativeCrypto.EVP_PKEY_DSA:
-                return new OpenSSLDSAPrivateKey(new OpenSSLKey(keyRef, this, id));
-            default:
-                throw new InvalidKeyException("Unknown key type: " + keyType);
+        OpenSSLKey pkey = new OpenSSLKey(keyRef, this, id);
+        try {
+            return pkey.getPrivateKey();
+        } catch (NoSuchAlgorithmException e) {
+            throw new InvalidKeyException(e);
+        }
+    }
+
+    public SecretKey getSecretKeyById(String id, String algorithm) throws InvalidKeyException {
+        if (id == null) {
+            throw new NullPointerException("id == null");
+        }
+
+        final int keyRef = NativeCrypto.ENGINE_load_private_key(ctx, id);
+        if (keyRef == 0) {
+            return null;
+        }
+
+        OpenSSLKey pkey = new OpenSSLKey(keyRef, this, id);
+        try {
+            return pkey.getSecretKey(algorithm);
+        } catch (NoSuchAlgorithmException e) {
+            throw new InvalidKeyException(e);
         }
     }
 
