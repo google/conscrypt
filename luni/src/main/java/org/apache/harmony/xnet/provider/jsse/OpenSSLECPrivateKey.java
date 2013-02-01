@@ -25,6 +25,8 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.interfaces.ECPrivateKey;
 import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPrivateKeySpec;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
 public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder {
@@ -45,6 +47,18 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
         final int origGroup = NativeCrypto.EC_KEY_get0_group(key.getPkeyContext());
         this.group = new OpenSSLECGroupContext(NativeCrypto.EC_GROUP_dup(origGroup));
         this.key = key;
+    }
+
+    public OpenSSLECPrivateKey(ECPrivateKeySpec ecKeySpec) throws InvalidKeySpecException {
+        try {
+            OpenSSLECGroupContext group = OpenSSLECGroupContext.getInstance(ecKeySpec
+                    .getParams());
+            final BigInteger privKey = ecKeySpec.getS();
+            key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getContext(), 0,
+                    privKey.toByteArray()));
+        } catch (Exception e) {
+            throw new InvalidKeySpecException(e);
+        }
     }
 
     public static OpenSSLKey getInstance(ECPrivateKey ecPrivateKey) throws InvalidKeyException {
