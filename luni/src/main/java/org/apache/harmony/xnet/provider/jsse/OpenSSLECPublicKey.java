@@ -26,6 +26,8 @@ import java.security.InvalidKeyException;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPoint;
+import java.security.spec.ECPublicKeySpec;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
 public final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
@@ -46,6 +48,18 @@ public final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
         final int origGroup = NativeCrypto.EC_KEY_get0_group(key.getPkeyContext());
         this.group = new OpenSSLECGroupContext(NativeCrypto.EC_GROUP_dup(origGroup));
         this.key = key;
+    }
+
+    public OpenSSLECPublicKey(ECPublicKeySpec ecKeySpec) throws InvalidKeySpecException {
+        try {
+            OpenSSLECGroupContext group = OpenSSLECGroupContext.getInstance(ecKeySpec.getParams());
+            OpenSSLECPointContext pubKey = OpenSSLECPointContext.getInstance(
+                    NativeCrypto.get_EC_GROUP_type(group.getContext()), group, ecKeySpec.getW());
+            key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getContext(),
+                    pubKey.getContext(), null));
+        } catch (Exception e) {
+            throw new InvalidKeySpecException(e);
+        }
     }
 
     public static OpenSSLKey getInstance(ECPublicKey ecPublicKey) throws InvalidKeyException {

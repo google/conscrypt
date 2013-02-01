@@ -79,11 +79,12 @@ public final class OpenSSLProvider extends Provider {
         put("KeyPairGenerator.EC", OpenSSLECKeyPairGenerator.class.getName());
 
         /* == KeyFactory == */
-
         put("KeyFactory.RSA", OpenSSLRSAKeyFactory.class.getName());
         put("Alg.Alias.KeyFactory.1.2.840.113549.1.1.1", "RSA");
 
-        // put("KeyFactory.DSA", OpenSSLDSAKeyFactory.class.getName());
+        put("KeyFactory.DSA", OpenSSLDSAKeyFactory.class.getName());
+
+        put("KeyFactory.EC", OpenSSLECKeyFactory.class.getName());
 
         /* == Signatures == */
         put("Signature.MD5WithRSA", OpenSSLSignature.MD5RSA.class.getName());
