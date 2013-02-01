@@ -26,10 +26,10 @@ import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.EllipticCurve;
 
-final class OpenSSLECGroupContext {
+public final class OpenSSLECGroupContext {
     private final int groupCtx;
 
-    OpenSSLECGroupContext(int groupCtx) {
+    public OpenSSLECGroupContext(int groupCtx) {
         this.groupCtx = groupCtx;
     }
 
