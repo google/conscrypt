@@ -315,7 +315,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         final int bytesLeft = output.length - outputOffset;
         if (bytesLeft < maximumLen) {
             throw new ShortBufferException("output buffer too small during update: " + bytesLeft
-                    + " < " + output.length);
+                    + " < " + maximumLen);
         }
 
         outputOffset += NativeCrypto.EVP_CipherUpdate(cipherCtx.getContext(), output, outputOffset,
