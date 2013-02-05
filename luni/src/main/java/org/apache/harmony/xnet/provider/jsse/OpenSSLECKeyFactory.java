@@ -73,7 +73,7 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeySpecException(e);
             }
         }
-        throw new InvalidKeySpecException("Must use ECPublicKeySpec or PKCS8EncodedKeySpec; was "
+        throw new InvalidKeySpecException("Must use ECPrivateKeySpec or PKCS8EncodedKeySpec; was "
                 + keySpec.getClass().getName());
     }
 
@@ -147,7 +147,7 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
             ECParameterSpec params = ecKey.getParams();
 
             try {
-                return engineGeneratePublic(new ECPrivateKeySpec(s, params));
+                return engineGeneratePrivate(new ECPrivateKeySpec(s, params));
             } catch (InvalidKeySpecException e) {
                 throw new InvalidKeyException(e);
             }
