@@ -79,6 +79,15 @@ public class OpenSSLDSAPublicKey implements DSAPublicKey, OpenSSLKeyHolder {
     @Override
     public DSAParams getParams() {
         ensureReadParams();
+
+        /*
+         * DSA keys can lack parameters if they're part of a certificate
+         * chain. In this case, we just return null.
+         */
+        if (!params.hasParams()) {
+            return null;
+        }
+
         return params;
     }
 
