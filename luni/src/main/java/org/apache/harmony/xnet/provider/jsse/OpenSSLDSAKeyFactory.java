@@ -72,7 +72,7 @@ public class OpenSSLDSAKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeySpecException(e);
             }
         }
-        throw new InvalidKeySpecException("Must use DSAPublicKeySpec or PKCS8EncodedKeySpec; was "
+        throw new InvalidKeySpecException("Must use DSAPrivateKeySpec or PKCS8EncodedKeySpec; was "
                 + keySpec.getClass().getName());
     }
 
@@ -158,7 +158,7 @@ public class OpenSSLDSAKeyFactory extends KeyFactorySpi {
             BigInteger g = params.getG();
 
             try {
-                return engineGeneratePublic(new DSAPrivateKeySpec(x, p, q, g));
+                return engineGeneratePrivate(new DSAPrivateKeySpec(x, p, q, g));
             } catch (InvalidKeySpecException e) {
                 throw new InvalidKeyException(e);
             }
