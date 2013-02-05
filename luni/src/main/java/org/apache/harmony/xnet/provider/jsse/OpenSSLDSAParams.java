@@ -50,9 +50,15 @@ public class OpenSSLDSAParams implements DSAParams, AlgorithmParameterSpec {
         }
 
         byte[][] params = NativeCrypto.get_DSA_params(key.getPkeyContext());
-        g = new BigInteger(params[0]);
-        p = new BigInteger(params[1]);
-        q = new BigInteger(params[2]);
+        if (params[0] != null) {
+            g = new BigInteger(params[0]);
+        }
+        if (params[1] != null) {
+            p = new BigInteger(params[1]);
+        }
+        if (params[2] != null) {
+            q = new BigInteger(params[2]);
+        }
         if (params[3] != null) {
             y = new BigInteger(params[3]);
         }
@@ -79,6 +85,11 @@ public class OpenSSLDSAParams implements DSAParams, AlgorithmParameterSpec {
     public BigInteger getQ() {
         ensureReadParams();
         return q;
+    }
+
+    boolean hasParams() {
+        ensureReadParams();
+        return (g != null) && (p != null) && (q != null);
     }
 
     BigInteger getY() {
