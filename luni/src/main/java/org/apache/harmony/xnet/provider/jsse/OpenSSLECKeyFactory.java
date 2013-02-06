@@ -97,10 +97,11 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
                 ECPoint w = ecKey.getW();
 
                 return (T) new ECPublicKeySpec(w, params);
-            } else if (PKCS8EncodedKeySpec.class.equals(keySpec)) {
-                return (T) new PKCS8EncodedKeySpec(key.getEncoded());
+            } else if (X509EncodedKeySpec.class.equals(keySpec)) {
+                return (T) new X509EncodedKeySpec(key.getEncoded());
             } else {
-                throw new InvalidKeySpecException("Must be ECPublicKeySpec or PKCS8EncodedKeySpec");
+                throw new InvalidKeySpecException(
+                        "Must be ECPublicKeySpec or X509EncodedKeySpec; was " + keySpec.getName());
             }
         } else if (key instanceof ECPrivateKey) {
             ECPrivateKey ecKey = (ECPrivateKey) key;
@@ -111,13 +112,15 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
                 BigInteger s = ecKey.getS();
 
                 return (T) new ECPrivateKeySpec(s, params);
-            } else if (X509EncodedKeySpec.class.equals(keySpec)) {
-                return (T) new X509EncodedKeySpec(ecKey.getEncoded());
+            } else if (PKCS8EncodedKeySpec.class.equals(keySpec)) {
+                return (T) new PKCS8EncodedKeySpec(ecKey.getEncoded());
             } else {
-                throw new InvalidKeySpecException("Must be ECPrivateKeySpec or X509EncodedKeySpec");
+                throw new InvalidKeySpecException(
+                        "Must be ECPrivateKeySpec or PKCS8EncodedKeySpec; was " + keySpec.getName());
             }
         } else {
-            throw new InvalidKeySpecException("Must be ECPublicKey or ECPrivateKey");
+            throw new InvalidKeySpecException("Must be ECPublicKey or ECPrivateKey; was "
+                    + key.getClass().getName());
         }
     }
 
@@ -152,7 +155,8 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeyException(e);
             }
         } else {
-            throw new InvalidKeyException("Key is not ECPublicKey or ECPrivateKey");
+            throw new InvalidKeyException("Key must be ECPublicKey or ECPrivateKey; was "
+                    + key.getClass().getName());
         }
     }
 
