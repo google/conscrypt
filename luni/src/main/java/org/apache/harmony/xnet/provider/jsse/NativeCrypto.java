@@ -187,7 +187,7 @@ public final class NativeCrypto {
 
     public static native void EC_GROUP_set_point_conversion_form(int groupRef, int form);
 
-    public static native int EC_GROUP_get_curve_name(int groupRef);
+    public static native String EC_GROUP_get_curve_name(int groupRef);
 
     public static native byte[][] EC_GROUP_get_curve(int groupRef);
 
