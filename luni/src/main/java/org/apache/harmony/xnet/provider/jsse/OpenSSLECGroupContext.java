@@ -104,6 +104,11 @@ public final class OpenSSLECGroupContext {
 
     public static OpenSSLECGroupContext getInstance(ECParameterSpec params)
             throws InvalidAlgorithmParameterException {
+        final String curveName = params.getCurveName();
+        if (curveName != null) {
+            return OpenSSLECGroupContext.getCurveByName(curveName);
+        }
+
         final EllipticCurve curve = params.getCurve();
         final ECField field = curve.getField();
 
@@ -127,7 +132,8 @@ public final class OpenSSLECGroupContext {
     }
 
     public ECParameterSpec getECParameterSpec() {
-        final int curveType = NativeCrypto.get_EC_GROUP_type(groupCtx);
+        final String curveName = NativeCrypto.EC_GROUP_get_curve_name(groupCtx);
+
         final byte[][] curveParams = NativeCrypto.EC_GROUP_get_curve(groupCtx);
         final BigInteger p = new BigInteger(curveParams[0]);
         final BigInteger a = new BigInteger(curveParams[1]);
@@ -152,6 +158,6 @@ public final class OpenSSLECGroupContext {
         final BigInteger order = new BigInteger(NativeCrypto.EC_GROUP_get_order(groupCtx));
         final BigInteger cofactor = new BigInteger(NativeCrypto.EC_GROUP_get_cofactor(groupCtx));
 
-        return new ECParameterSpec(curve, generator, order, cofactor.intValue());
+        return new ECParameterSpec(curve, generator, order, cofactor.intValue(), curveName);
     }
 }

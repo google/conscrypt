@@ -99,10 +99,11 @@ public class OpenSSLDSAKeyFactory extends KeyFactorySpi {
                 BigInteger g = params.getG();
 
                 return (T) new DSAPublicKeySpec(y, p, q, g);
-            } else if (PKCS8EncodedKeySpec.class.equals(keySpec)) {
-                return (T) new PKCS8EncodedKeySpec(key.getEncoded());
+            } else if (X509EncodedKeySpec.class.equals(keySpec)) {
+                return (T) new X509EncodedKeySpec(key.getEncoded());
             } else {
-                throw new InvalidKeySpecException("Must be DSAPublicKeySpec or PKCS8EncodedKeySpec");
+                throw new InvalidKeySpecException(
+                        "Must be DSAPublicKeySpec or X509EncodedKeySpec; was " + keySpec.getName());
             }
         } else if (key instanceof DSAPrivateKey) {
             DSAPrivateKey dsaKey = (DSAPrivateKey) key;
@@ -116,13 +117,16 @@ public class OpenSSLDSAKeyFactory extends KeyFactorySpi {
                 BigInteger g = params.getG();
 
                 return (T) new DSAPrivateKeySpec(x, p, q, g);
-            } else if (X509EncodedKeySpec.class.equals(keySpec)) {
-                return (T) new X509EncodedKeySpec(dsaKey.getEncoded());
+            } else if (PKCS8EncodedKeySpec.class.equals(keySpec)) {
+                return (T) new PKCS8EncodedKeySpec(dsaKey.getEncoded());
             } else {
-                throw new InvalidKeySpecException("Must be DSAPrivateKeySpec or X509EncodedKeySpec");
+                throw new InvalidKeySpecException(
+                        "Must be DSAPrivateKeySpec or PKCS8EncodedKeySpec; was "
+                                + keySpec.getName());
             }
         } else {
-            throw new InvalidKeySpecException("Must be DSAPublicKey or DSAPrivateKey");
+            throw new InvalidKeySpecException("Must be DSAPublicKey or DSAPrivateKey; was "
+                    + key.getClass().getName());
         }
     }
 
@@ -163,7 +167,8 @@ public class OpenSSLDSAKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeyException(e);
             }
         } else {
-            throw new InvalidKeyException("Key is not DSAPublicKey or DSAPrivateKey");
+            throw new InvalidKeyException("Key must be DSAPublicKey or DSAPrivateKey; was "
+                    + key.getClass().getName());
         }
     }
 }
