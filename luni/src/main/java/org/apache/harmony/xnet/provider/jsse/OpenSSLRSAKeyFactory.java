@@ -95,11 +95,11 @@ public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
         if (key instanceof RSAPublicKey) {
             RSAPublicKey rsaKey = (RSAPublicKey) key;
 
-            if (RSAPublicKeySpec.class.equals(keySpec)) {
+            if (RSAPublicKeySpec.class.isAssignableFrom(keySpec)) {
                 BigInteger modulus = rsaKey.getModulus();
                 BigInteger publicExponent = rsaKey.getPublicExponent();
                 return (T) new RSAPublicKeySpec(modulus, publicExponent);
-            } else if (X509EncodedKeySpec.class.equals(keySpec)) {
+            } else if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return (T) new X509EncodedKeySpec(key.getEncoded());
             } else {
                 throw new InvalidKeySpecException("Must be RSAPublicKeySpec or X509EncodedKeySpec");
@@ -107,11 +107,7 @@ public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
         } else if (key instanceof RSAPrivateCrtKey) {
             RSAPrivateCrtKey rsaKey = (RSAPrivateCrtKey) key;
 
-            if (RSAPrivateKeySpec.class.equals(keySpec)) {
-                BigInteger modulus = rsaKey.getModulus();
-                BigInteger privateExponent = rsaKey.getPrivateExponent();
-                return (T) new RSAPrivateKeySpec(modulus, privateExponent);
-            } else if (RSAPrivateCrtKeySpec.class.equals(keySpec)) {
+            if (RSAPrivateCrtKeySpec.class.isAssignableFrom(keySpec)) {
                 BigInteger modulus = rsaKey.getModulus();
                 BigInteger publicExponent = rsaKey.getPublicExponent();
                 BigInteger privateExponent = rsaKey.getPrivateExponent();
@@ -122,7 +118,11 @@ public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
                 BigInteger crtCoefficient = rsaKey.getCrtCoefficient();
                 return (T) new RSAPrivateCrtKeySpec(modulus, publicExponent, privateExponent,
                         primeP, primeQ, primeExponentP, primeExponentQ, crtCoefficient);
-            } else if (PKCS8EncodedKeySpec.class.equals(keySpec)) {
+            } else if (RSAPrivateKeySpec.class.isAssignableFrom(keySpec)) {
+                BigInteger modulus = rsaKey.getModulus();
+                BigInteger privateExponent = rsaKey.getPrivateExponent();
+                return (T) new RSAPrivateKeySpec(modulus, privateExponent);
+            } else if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return (T) new PKCS8EncodedKeySpec(rsaKey.getEncoded());
             } else {
                 throw new InvalidKeySpecException(
@@ -131,16 +131,11 @@ public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
         } else if (key instanceof RSAPrivateKey) {
             RSAPrivateKey rsaKey = (RSAPrivateKey) key;
 
-            if (RSAPrivateKeySpec.class.equals(keySpec)) {
+            if (RSAPrivateKeySpec.class.isAssignableFrom(keySpec)) {
                 BigInteger modulus = rsaKey.getModulus();
                 BigInteger privateExponent = rsaKey.getPrivateExponent();
                 return (T) new RSAPrivateKeySpec(modulus, privateExponent);
-            } else if (RSAPrivateCrtKeySpec.class.equals(keySpec)) {
-                BigInteger modulus = rsaKey.getModulus();
-                BigInteger privateExponent = rsaKey.getPrivateExponent();
-                return (T) new RSAPrivateCrtKeySpec(modulus, null, privateExponent, null, null,
-                        null, null, null);
-            } else if (PKCS8EncodedKeySpec.class.equals(keySpec)) {
+            } else if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return (T) new PKCS8EncodedKeySpec(rsaKey.getEncoded());
             } else {
                 throw new InvalidKeySpecException(

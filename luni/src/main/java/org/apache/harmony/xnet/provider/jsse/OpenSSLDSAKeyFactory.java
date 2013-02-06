@@ -90,7 +90,7 @@ public class OpenSSLDSAKeyFactory extends KeyFactorySpi {
         if (key instanceof DSAPublicKey) {
             DSAPublicKey dsaKey = (DSAPublicKey) key;
 
-            if (DSAPublicKeySpec.class.equals(keySpec)) {
+            if (DSAPublicKeySpec.class.isAssignableFrom(keySpec)) {
                 BigInteger y = dsaKey.getY();
 
                 DSAParams params = dsaKey.getParams();
@@ -99,7 +99,7 @@ public class OpenSSLDSAKeyFactory extends KeyFactorySpi {
                 BigInteger g = params.getG();
 
                 return (T) new DSAPublicKeySpec(y, p, q, g);
-            } else if (X509EncodedKeySpec.class.equals(keySpec)) {
+            } else if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return (T) new X509EncodedKeySpec(key.getEncoded());
             } else {
                 throw new InvalidKeySpecException(
@@ -108,7 +108,7 @@ public class OpenSSLDSAKeyFactory extends KeyFactorySpi {
         } else if (key instanceof DSAPrivateKey) {
             DSAPrivateKey dsaKey = (DSAPrivateKey) key;
 
-            if (DSAPrivateKeySpec.class.equals(keySpec)) {
+            if (DSAPrivateKeySpec.class.isAssignableFrom(keySpec)) {
                 BigInteger x = dsaKey.getX();
 
                 DSAParams params = dsaKey.getParams();
@@ -117,7 +117,7 @@ public class OpenSSLDSAKeyFactory extends KeyFactorySpi {
                 BigInteger g = params.getG();
 
                 return (T) new DSAPrivateKeySpec(x, p, q, g);
-            } else if (PKCS8EncodedKeySpec.class.equals(keySpec)) {
+            } else if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return (T) new PKCS8EncodedKeySpec(dsaKey.getEncoded());
             } else {
                 throw new InvalidKeySpecException(

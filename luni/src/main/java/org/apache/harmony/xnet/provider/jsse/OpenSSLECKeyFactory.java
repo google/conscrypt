@@ -91,13 +91,13 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
         if (key instanceof ECPublicKey) {
             ECPublicKey ecKey = (ECPublicKey) key;
 
-            if (ECPublicKeySpec.class.equals(keySpec)) {
+            if (ECPublicKeySpec.class.isAssignableFrom(keySpec)) {
                 ECParameterSpec params = ecKey.getParams();
 
                 ECPoint w = ecKey.getW();
 
                 return (T) new ECPublicKeySpec(w, params);
-            } else if (X509EncodedKeySpec.class.equals(keySpec)) {
+            } else if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return (T) new X509EncodedKeySpec(key.getEncoded());
             } else {
                 throw new InvalidKeySpecException(
@@ -106,13 +106,13 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
         } else if (key instanceof ECPrivateKey) {
             ECPrivateKey ecKey = (ECPrivateKey) key;
 
-            if (ECPrivateKeySpec.class.equals(keySpec)) {
+            if (ECPrivateKeySpec.class.isAssignableFrom(keySpec)) {
                 ECParameterSpec params = ecKey.getParams();
 
                 BigInteger s = ecKey.getS();
 
                 return (T) new ECPrivateKeySpec(s, params);
-            } else if (PKCS8EncodedKeySpec.class.equals(keySpec)) {
+            } else if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return (T) new PKCS8EncodedKeySpec(ecKey.getEncoded());
             } else {
                 throw new InvalidKeySpecException(
