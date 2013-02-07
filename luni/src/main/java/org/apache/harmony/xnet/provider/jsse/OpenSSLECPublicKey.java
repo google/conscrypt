@@ -154,23 +154,12 @@ public final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
         stream.defaultReadObject();
 
-        final ECParameterSpec params = (ECParameterSpec) stream.readObject();
-        final BigInteger pubkeyX = (BigInteger) stream.readObject();
-        final BigInteger pubkeyY = (BigInteger) stream.readObject();
+        byte[] encoded = (byte[]) stream.readObject();
 
-        final OpenSSLECGroupContext group;
-        try {
-            group = OpenSSLECGroupContext.getInstance(params);
-        } catch (InvalidAlgorithmParameterException e) {
-            throw new ClassNotFoundException("cannot restore field type", e);
-        }
+        key = new OpenSSLKey(NativeCrypto.d2i_PUBKEY(encoded));
 
-        final int curveType = NativeCrypto.get_EC_GROUP_type(group.getContext());
-        final ECPoint javaPubKey = new ECPoint(pubkeyX, pubkeyY);
-        final OpenSSLECPointContext pubKey = OpenSSLECPointContext.getInstance(curveType, group,
-                javaPubKey);
-        key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getContext(),
-                pubKey.getContext(), null));
+        final int origGroup = NativeCrypto.EC_KEY_get0_group(key.getPkeyContext());
+        group = new OpenSSLECGroupContext(NativeCrypto.EC_GROUP_dup(origGroup));
     }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
@@ -179,9 +168,6 @@ public final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
         }
 
         stream.defaultWriteObject();
-        stream.writeObject(getParams());
-        final ECPoint pubKey = getPublicKey();
-        stream.writeObject(pubKey.getAffineX());
-        stream.writeObject(pubKey.getAffineY());
+        stream.writeObject(getEncoded());
     }
 }

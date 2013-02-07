@@ -149,18 +149,12 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
         stream.defaultReadObject();
 
-        final ECParameterSpec params = (ECParameterSpec) stream.readObject();
-        final BigInteger privkey = (BigInteger) stream.readObject();
+        byte[] encoded = (byte[]) stream.readObject();
 
-        final OpenSSLECGroupContext group;
-        try {
-            group = OpenSSLECGroupContext.getInstance(params);
-        } catch (InvalidAlgorithmParameterException e) {
-            throw new ClassNotFoundException("cannot restore field type", e);
-        }
+        key = new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(encoded));
 
-        key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getContext(), 0,
-                privkey.toByteArray()));
+        final int origGroup = NativeCrypto.EC_KEY_get0_group(key.getPkeyContext());
+        group = new OpenSSLECGroupContext(NativeCrypto.EC_GROUP_dup(origGroup));
     }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
@@ -169,7 +163,6 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
         }
 
         stream.defaultWriteObject();
-        stream.writeObject(getParams());
-        stream.writeObject(getPrivateKey());
+        stream.writeObject(getEncoded());
     }
 }
