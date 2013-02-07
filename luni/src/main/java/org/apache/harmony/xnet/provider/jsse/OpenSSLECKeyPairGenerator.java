@@ -37,11 +37,10 @@ public final class OpenSSLECKeyPairGenerator extends KeyPairGenerator {
     static {
         /* NIST curves */
         SIZE_TO_CURVE_NAME.put(192, "prime192v1");
-        SIZE_TO_CURVE_NAME.put(224, "P-224");
-        SIZE_TO_CURVE_NAME.put(239, "prime239v1");
+        SIZE_TO_CURVE_NAME.put(224, "secp224r1");
         SIZE_TO_CURVE_NAME.put(256, "prime256v1");
-        SIZE_TO_CURVE_NAME.put(384, "P-384");
-        SIZE_TO_CURVE_NAME.put(521, "P-521");
+        SIZE_TO_CURVE_NAME.put(384, "secp384r1");
+        SIZE_TO_CURVE_NAME.put(521, "secp521r1");
     }
 
     private OpenSSLECGroupContext group;
