@@ -17,9 +17,9 @@
 package org.apache.harmony.xnet.provider.jsse;
 
 class OpenSSLCipherContext {
-    private final int context;
+    private final long context;
 
-    OpenSSLCipherContext(int ctx) {
+    OpenSSLCipherContext(long ctx) {
         if (ctx == 0) {
             throw new NullPointerException("ctx == 0");
         }
@@ -36,7 +36,7 @@ class OpenSSLCipherContext {
         }
     }
 
-    int getContext() {
+    long getContext() {
         return context;
     }
 }

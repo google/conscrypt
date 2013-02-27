@@ -239,7 +239,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
         checkSupportedKeySize(encodedKey.length);
 
-        final int cipherType = NativeCrypto.EVP_get_cipherbyname(getCipherName(encodedKey.length,
+        final long cipherType = NativeCrypto.EVP_get_cipherbyname(getCipherName(encodedKey.length,
                 mode));
         if (cipherType == 0) {
             throw new InvalidAlgorithmParameterException("Cannot find name for key length = "

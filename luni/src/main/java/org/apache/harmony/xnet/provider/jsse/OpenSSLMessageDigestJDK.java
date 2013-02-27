@@ -27,12 +27,12 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
     /**
      * Holds a pointer to the native message digest context.
      */
-    private int ctx;
+    private long ctx;
 
     /**
      * Holds the EVP_MD for the hashing algorithm, e.g. EVP_get_digestbyname("sha1");
      */
-    private final int evp_md;
+    private final long evp_md;
 
     /**
      * Holds the output size of the message digest.
@@ -48,7 +48,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
      * Creates a new OpenSSLMessageDigest instance for the given algorithm
      * name.
      */
-    private OpenSSLMessageDigestJDK(String algorithm, int evp_md, int size)
+    private OpenSSLMessageDigestJDK(String algorithm, long evp_md, int size)
             throws NoSuchAlgorithmException {
         super(algorithm);
         this.evp_md = evp_md;
@@ -90,7 +90,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
         return d;
     }
 
-    private int getCtx() {
+    private long getCtx() {
         if (ctx == 0) {
             ctx = NativeCrypto.EVP_DigestInit(evp_md);
         }
@@ -113,7 +113,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
     }
 
     public static class MD5 extends OpenSSLMessageDigestJDK {
-        private static final int EVP_MD = NativeCrypto.EVP_get_digestbyname("md5");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("md5");
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
         public MD5() throws NoSuchAlgorithmException {
             super("MD5",EVP_MD, SIZE);
@@ -121,7 +121,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
     }
 
     public static class SHA1 extends OpenSSLMessageDigestJDK {
-        private static final int EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
         public SHA1() throws NoSuchAlgorithmException {
             super("SHA-1", EVP_MD, SIZE);
@@ -129,7 +129,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
     }
 
     public static class SHA256 extends OpenSSLMessageDigestJDK {
-        private static final int EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
         public SHA256() throws NoSuchAlgorithmException {
             super("SHA-256", EVP_MD, SIZE);
@@ -137,7 +137,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
     }
 
     public static class SHA384 extends OpenSSLMessageDigestJDK {
-        private static final int EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
         public SHA384() throws NoSuchAlgorithmException {
             super("SHA-384", EVP_MD, SIZE);
@@ -145,7 +145,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
     }
 
     public static class SHA512 extends OpenSSLMessageDigestJDK {
-        private static final int EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
         public SHA512() throws NoSuchAlgorithmException {
             super("SHA-512", EVP_MD, SIZE);

@@ -27,9 +27,9 @@ import java.security.spec.ECPoint;
 import java.security.spec.EllipticCurve;
 
 public final class OpenSSLECGroupContext {
-    private final int groupCtx;
+    private final long groupCtx;
 
-    public OpenSSLECGroupContext(int groupCtx) {
+    public OpenSSLECGroupContext(long groupCtx) {
         this.groupCtx = groupCtx;
     }
 
@@ -42,7 +42,7 @@ public final class OpenSSLECGroupContext {
             curveName = "prime192v1";
         }
 
-        final int ctx = NativeCrypto.EC_GROUP_new_by_curve_name(curveName);
+        final long ctx = NativeCrypto.EC_GROUP_new_by_curve_name(curveName);
         if (ctx == 0) {
             return null;
         }
@@ -56,7 +56,7 @@ public final class OpenSSLECGroupContext {
 
     public static OpenSSLECGroupContext getInstance(int type, BigInteger p, BigInteger a,
             BigInteger b, BigInteger x, BigInteger y, BigInteger n, BigInteger h) {
-        final int ctx = NativeCrypto.EC_GROUP_new_curve(type, p.toByteArray(), a.toByteArray(),
+        final long ctx = NativeCrypto.EC_GROUP_new_curve(type, p.toByteArray(), a.toByteArray(),
                 b.toByteArray());
         if (ctx == 0) {
             return null;
@@ -106,7 +106,7 @@ public final class OpenSSLECGroupContext {
         return super.hashCode();
     }
 
-    public int getContext() {
+    public long getContext() {
         return groupCtx;
     }
 

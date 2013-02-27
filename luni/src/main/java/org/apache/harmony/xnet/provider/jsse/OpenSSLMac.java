@@ -33,7 +33,7 @@ public abstract class OpenSSLMac extends MacSpi {
      * Holds the EVP_MD for the hashing algorithm, e.g.
      * EVP_get_digestbyname("sha1");
      */
-    private final int evp_md;
+    private final long evp_md;
 
     /**
      * The key type of the secret key.
@@ -55,7 +55,7 @@ public abstract class OpenSSLMac extends MacSpi {
      */
     private final byte[] singleByte = new byte[1];
 
-    protected OpenSSLMac(int evp_md, int size, int evp_pkey_type) {
+    protected OpenSSLMac(long evp_md, int size, int evp_pkey_type) {
         this.evp_md = evp_md;
         this.size = size;
         this.evp_pkey_type = evp_pkey_type;
@@ -121,7 +121,7 @@ public abstract class OpenSSLMac extends MacSpi {
     }
 
     public static class HmacMD5 extends OpenSSLMac {
-        private static final int EVP_MD = NativeCrypto.EVP_get_digestbyname("md5");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("md5");
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacMD5() {
@@ -130,7 +130,7 @@ public abstract class OpenSSLMac extends MacSpi {
     }
 
     public static class HmacSHA1 extends OpenSSLMac {
-        private static final int EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA1() {
@@ -139,7 +139,7 @@ public abstract class OpenSSLMac extends MacSpi {
     }
 
     public static class HmacSHA256 extends OpenSSLMac {
-        private static final int EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA256() throws NoSuchAlgorithmException {
@@ -148,7 +148,7 @@ public abstract class OpenSSLMac extends MacSpi {
     }
 
     public static class HmacSHA384 extends OpenSSLMac {
-        private static final int EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA384() throws NoSuchAlgorithmException {
@@ -157,7 +157,7 @@ public abstract class OpenSSLMac extends MacSpi {
     }
 
     public static class HmacSHA512 extends OpenSSLMac {
-        private static final int EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA512() {

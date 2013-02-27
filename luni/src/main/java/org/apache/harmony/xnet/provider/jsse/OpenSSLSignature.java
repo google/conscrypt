@@ -43,7 +43,7 @@ public class OpenSSLSignature extends Signature {
     /**
      * Holds a pointer to the native message digest context.
      */
-    private int ctx;
+    private long ctx;
 
     /**
      * The current OpenSSL key we're operating on.

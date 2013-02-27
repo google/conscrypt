@@ -44,7 +44,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     private boolean isValid = true;
     private final Map<String, Object> values = new HashMap<String, Object>();
     private volatile javax.security.cert.X509Certificate[] peerCertificateChain;
-    protected int sslSessionNativePointer;
+    protected long sslSessionNativePointer;
     private String peerHost;
     private int peerPort = -1;
     private String cipherSuite;
@@ -56,7 +56,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * Class constructor creates an SSL session context given the appropriate
      * SSL parameters.
      */
-    protected OpenSSLSessionImpl(int sslSessionNativePointer, X509Certificate[] localCertificates,
+    protected OpenSSLSessionImpl(long sslSessionNativePointer, X509Certificate[] localCertificates,
             X509Certificate[] peerCertificates, String peerHost, int peerPort,
             AbstractSessionContext sessionContext) {
         this.sslSessionNativePointer = sslSessionNativePointer;
