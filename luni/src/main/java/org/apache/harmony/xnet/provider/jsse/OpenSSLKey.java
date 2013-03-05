@@ -23,19 +23,19 @@ import java.security.PublicKey;
 import javax.crypto.SecretKey;
 
 public class OpenSSLKey {
-    private final int ctx;
+    private final long ctx;
 
     private final OpenSSLEngine engine;
 
     private final String alias;
 
-    public OpenSSLKey(int ctx) {
+    public OpenSSLKey(long ctx) {
         this.ctx = ctx;
         engine = null;
         alias = null;
     }
 
-    public OpenSSLKey(int ctx, OpenSSLEngine engine, String alias) {
+    public OpenSSLKey(long ctx, OpenSSLEngine engine, String alias) {
         this.ctx = ctx;
         this.engine = engine;
         this.alias = alias;
@@ -46,7 +46,7 @@ public class OpenSSLKey {
      * life cycle of this native pointer is managed by the {@code OpenSSLKey}
      * instance and must not be destroyed or freed by users of this API.
      */
-    public int getPkeyContext() {
+    public long getPkeyContext() {
         return ctx;
     }
 
@@ -147,8 +147,8 @@ public class OpenSSLKey {
     @Override
     public int hashCode() {
         int hash = 1;
-        hash = hash * 17 + ctx;
-        hash = hash * 31 + (engine == null ? 0 : engine.getEngineContext());
+        hash = hash * 17 + (int) ctx;
+        hash = hash * 31 + (int) (engine == null ? 0 : engine.getEngineContext());
         return hash;
     }
 }

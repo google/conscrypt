@@ -44,7 +44,7 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
     }
 
     public OpenSSLECPrivateKey(OpenSSLKey key) {
-        final int origGroup = NativeCrypto.EC_KEY_get0_group(key.getPkeyContext());
+        final long origGroup = NativeCrypto.EC_KEY_get0_group(key.getPkeyContext());
         this.group = new OpenSSLECGroupContext(NativeCrypto.EC_GROUP_dup(origGroup));
         this.key = key;
     }
@@ -153,7 +153,7 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
 
         key = new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(encoded));
 
-        final int origGroup = NativeCrypto.EC_KEY_get0_group(key.getPkeyContext());
+        final long origGroup = NativeCrypto.EC_KEY_get0_group(key.getPkeyContext());
         group = new OpenSSLECGroupContext(NativeCrypto.EC_GROUP_dup(origGroup));
     }
 

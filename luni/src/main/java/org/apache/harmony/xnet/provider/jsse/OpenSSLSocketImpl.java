@@ -64,7 +64,7 @@ public class OpenSSLSocketImpl
         extends javax.net.ssl.SSLSocket
         implements NativeCrypto.SSLHandshakeCallbacks {
 
-    private int sslNativePointer;
+    private long sslNativePointer;
     private InputStream is;
     private OutputStream os;
     private final Object handshakeLock = new Object();
@@ -266,7 +266,7 @@ public class OpenSSLSocketImpl
 
         final boolean client = sslParameters.getUseClientMode();
 
-        final int sslCtxNativePointer = (client) ?
+        final long sslCtxNativePointer = (client) ?
             sslParameters.getClientSessionContext().sslCtxNativePointer :
             sslParameters.getServerSessionContext().sslCtxNativePointer;
 

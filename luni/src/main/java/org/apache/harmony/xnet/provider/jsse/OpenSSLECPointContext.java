@@ -21,9 +21,9 @@ import java.security.spec.ECPoint;
 
 final class OpenSSLECPointContext {
     private final OpenSSLECGroupContext group;
-    private final int pointCtx;
+    private final long pointCtx;
 
-    OpenSSLECPointContext(OpenSSLECGroupContext group, int pointCtx) {
+    OpenSSLECPointContext(OpenSSLECGroupContext group, long pointCtx) {
         this.group = group;
         this.pointCtx = pointCtx;
     }
@@ -67,7 +67,7 @@ final class OpenSSLECPointContext {
         return super.hashCode();
     }
 
-    public int getContext() {
+    public long getContext() {
         return pointCtx;
     }
 

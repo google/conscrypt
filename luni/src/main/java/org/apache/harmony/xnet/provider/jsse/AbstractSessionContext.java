@@ -41,7 +41,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     volatile int maximumSize;
     volatile int timeout;
 
-    final int sslCtxNativePointer = NativeCrypto.SSL_CTX_new();
+    final long sslCtxNativePointer = NativeCrypto.SSL_CTX_new();
 
     /** Identifies OpenSSL sessions. */
     static final int OPEN_SSL = 1;

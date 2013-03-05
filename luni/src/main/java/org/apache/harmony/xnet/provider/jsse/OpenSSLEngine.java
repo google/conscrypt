@@ -30,14 +30,14 @@ public class OpenSSLEngine {
     private static final Object mLoadingLock = new Object();
 
     /** The ENGINE's native handle. */
-    private final int ctx;
+    private final long ctx;
 
     public static OpenSSLEngine getInstance(String engine) throws IllegalArgumentException {
         if (engine == null) {
             throw new NullPointerException("engine == null");
         }
 
-        final int engineCtx;
+        final long engineCtx;
         synchronized (mLoadingLock) {
             engineCtx = NativeCrypto.ENGINE_by_id(engine);
             if (engineCtx == 0) {
@@ -50,7 +50,7 @@ public class OpenSSLEngine {
         return new OpenSSLEngine(engineCtx);
     }
 
-    private OpenSSLEngine(int engineCtx) {
+    private OpenSSLEngine(long engineCtx) {
         ctx = engineCtx;
 
         if (NativeCrypto.ENGINE_init(engineCtx) == 0) {
@@ -64,7 +64,7 @@ public class OpenSSLEngine {
             throw new NullPointerException("id == null");
         }
 
-        final int keyRef = NativeCrypto.ENGINE_load_private_key(ctx, id);
+        final long keyRef = NativeCrypto.ENGINE_load_private_key(ctx, id);
         if (keyRef == 0) {
             return null;
         }
@@ -82,7 +82,7 @@ public class OpenSSLEngine {
             throw new NullPointerException("id == null");
         }
 
-        final int keyRef = NativeCrypto.ENGINE_load_private_key(ctx, id);
+        final long keyRef = NativeCrypto.ENGINE_load_private_key(ctx, id);
         if (keyRef == 0) {
             return null;
         }
@@ -95,7 +95,7 @@ public class OpenSSLEngine {
         }
     }
 
-    int getEngineContext() {
+    long getEngineContext() {
         return ctx;
     }
 
@@ -135,6 +135,6 @@ public class OpenSSLEngine {
 
     @Override
     public int hashCode() {
-        return ctx;
+      return (int) ctx;
     }
 }
