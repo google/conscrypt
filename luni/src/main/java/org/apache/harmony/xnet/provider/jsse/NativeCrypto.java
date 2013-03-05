@@ -18,6 +18,7 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.SocketTimeoutException;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
@@ -337,6 +338,18 @@ public final class NativeCrypto {
             throw new AssertionError(e);
         }
     }
+    // --- BIO stream creation -------------------------------------------------
+
+    public static native long create_BIO_InputStream(OpenSSLBIOInputStream is);
+
+    public static native long create_BIO_OutputStream(OutputStream os);
+
+    public static native int BIO_read(long bioRef, byte[] buffer);
+
+    public static native void BIO_write(long bioRef, byte[] buffer, int offset, int length)
+            throws IOException;
+
+    public static native void BIO_free(long bioRef);
 
     // --- SSL handling --------------------------------------------------------
 
