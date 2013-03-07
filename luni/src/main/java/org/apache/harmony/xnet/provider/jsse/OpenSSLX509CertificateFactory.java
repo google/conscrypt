@@ -263,7 +263,6 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Collection<? extends Certificate> engineGenerateCertificates(
             InputStream inStream) throws CertificateException {
@@ -283,7 +282,6 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Collection<? extends CRL> engineGenerateCRLs(InputStream inStream) throws CRLException {
         try {
