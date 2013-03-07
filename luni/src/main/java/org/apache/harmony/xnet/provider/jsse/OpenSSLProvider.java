@@ -226,5 +226,10 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Mac.1.2.840.113549.2.11", "HmacSHA512");
         put("Alg.Alias.Mac.HMAC-SHA512", "HmacSHA512");
         put("Alg.Alias.Mac.HMAC/SHA512", "HmacSHA512");
+
+        /* === Certificate === */
+
+        put("CertificateFactory.X509", OpenSSLX509CertificateFactory.class.getName());
+        put("Alg.Alias.CertificateFactory.X.509", "X509");
     }
 }
