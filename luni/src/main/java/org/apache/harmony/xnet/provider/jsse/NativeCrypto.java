@@ -365,12 +365,18 @@ public final class NativeCrypto {
 
     public static native long d2i_X509_bio(long bioCtx);
 
+    public static native long d2i_X509(byte[] encoded);
+
     public static native long PEM_read_bio_X509(long bioCtx);
 
     public static native byte[] i2d_X509(long x509ctx);
 
     /** Takes an X509 context not an X509_PUBKEY context. */
     public static native byte[] i2d_X509_PUBKEY(long x509ctx);
+
+    public static native byte[] ASN1_seq_pack_X509(long[] x509CertRefs);
+
+    public static native long[] ASN1_seq_unpack_X509_bio(long bioRef);
 
     public static native void X509_free(long x509ctx);
 
@@ -440,6 +446,9 @@ public final class NativeCrypto {
 
     /** Returns an array of X509 or X509_CRL pointers. */
     public static native long[] d2i_PKCS7_bio(long bioCtx, int which);
+
+    /** Returns an array of X509 or X509_CRL pointers. */
+    public static native byte[] i2d_PKCS7(long[] certs);
 
     /** Returns an array of X509 or X509_CRL pointers. */
     public static native long[] PEM_read_bio_PKCS7(long bioCtx, int which);
