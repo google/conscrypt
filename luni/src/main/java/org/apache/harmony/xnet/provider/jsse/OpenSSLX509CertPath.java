@@ -18,8 +18,6 @@ package org.apache.harmony.xnet.provider.jsse;
 
 import org.apache.harmony.xnet.provider.jsse.OpenSSLX509CertificateFactory.ParsingException;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PushbackInputStream;
@@ -28,6 +26,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -43,6 +42,7 @@ public class OpenSSLX509CertPath extends CertPath {
      * encode this into bytes such as {@link #getEncoded()}.
      */
     private enum Encoding {
+        PKI_PATH("PkiPath"),
         PKCS7("PKCS7");
 
         private final String apiName;
@@ -65,10 +65,11 @@ public class OpenSSLX509CertPath extends CertPath {
     /** Unmodifiable list of encodings for the API. */
     private static final List<String> ALL_ENCODINGS = Collections.unmodifiableList(Arrays
             .asList(new String[] {
-                Encoding.PKCS7.apiName,
+                    Encoding.PKI_PATH.apiName,
+                    Encoding.PKCS7.apiName,
             }));
 
-    private static final Encoding DEFAULT_ENCODING = Encoding.PKCS7;
+    private static final Encoding DEFAULT_ENCODING = Encoding.PKI_PATH;
 
     private final List<? extends X509Certificate> mCertificates;
 
@@ -88,28 +89,29 @@ public class OpenSSLX509CertPath extends CertPath {
     }
 
     private byte[] getEncoded(Encoding encoding) throws CertificateEncodingException {
-        switch (encoding) {
-            case PKCS7:
-                return toPkcs7Format();
-            default:
-                throw new CertificateEncodingException("Unknown encoding");
-        }
-    }
-
-    private byte[] toPkcs7Format() throws CertificateEncodingException {
         final OpenSSLX509Certificate[] certs = new OpenSSLX509Certificate[mCertificates.size()];
         final long[] certRefs = new long[certs.length];
 
-        for (int i = 0; i < certs.length; i++) {
-            if (certs[i] instanceof OpenSSLX509Certificate) {
-                certs[i] = (OpenSSLX509Certificate) mCertificates.get(i);
+        for (int i = 0, j = certs.length - 1; j >= 0; i++, j--) {
+            final X509Certificate cert = mCertificates.get(i);
+
+            if (cert instanceof OpenSSLX509Certificate) {
+                certs[j] = (OpenSSLX509Certificate) cert;
             } else {
-                certs[i] = OpenSSLX509Certificate.fromX509Der(mCertificates.get(i).getEncoded());
+                certs[j] = OpenSSLX509Certificate.fromX509Der(cert.getEncoded());
             }
-            certRefs[i] = certs[i].getContext();
+
+            certRefs[j] = certs[j].getContext();
         }
 
-        return NativeCrypto.i2d_PKCS7(certRefs);
+        switch (encoding) {
+            case PKI_PATH:
+                return NativeCrypto.ASN1_seq_pack_X509(certRefs);
+            case PKCS7:
+                return NativeCrypto.i2d_PKCS7(certRefs);
+            default:
+                throw new CertificateEncodingException("Unknown encoding");
+        }
     }
 
     @Override
@@ -124,12 +126,40 @@ public class OpenSSLX509CertPath extends CertPath {
             throw new CertificateEncodingException("Invalid encoding: " + encoding);
         }
 
-        return getEncoded();
+        return getEncoded(enc);
     }
 
     @Override
     public Iterator<String> getEncodings() {
         return getEncodingsIterator();
+    }
+
+    private static CertPath fromPkiPathEncoding(InputStream inStream) throws CertificateException {
+        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(inStream);
+
+        final long[] certRefs;
+        try {
+            certRefs = NativeCrypto.ASN1_seq_unpack_X509_bio(bis.getBioContext());
+        } catch (Exception e) {
+            throw new CertificateException(e);
+        } finally {
+            NativeCrypto.BIO_free(bis.getBioContext());
+        }
+
+        if (certRefs == null) {
+            return new OpenSSLX509CertPath(Collections.<X509Certificate> emptyList());
+        }
+
+        final List<OpenSSLX509Certificate> certs =
+                new ArrayList<OpenSSLX509Certificate>(certRefs.length);
+        for (int i = certRefs.length - 1; i >= 0; i--) {
+            if (certRefs[i] == 0) {
+                continue;
+            }
+            certs.add(new OpenSSLX509Certificate(certRefs[i]));
+        }
+
+        return new OpenSSLX509CertPath(certs);
     }
 
     private static CertPath fromPkcs7Encoding(InputStream inStream) throws CertificateException {
@@ -177,6 +207,8 @@ public class OpenSSLX509CertPath extends CertPath {
     private static CertPath fromEncoding(InputStream inStream, Encoding encoding)
             throws CertificateException {
         switch (encoding) {
+            case PKI_PATH:
+                return fromPkiPathEncoding(inStream);
             case PKCS7:
                 return fromPkcs7Encoding(inStream);
             default:

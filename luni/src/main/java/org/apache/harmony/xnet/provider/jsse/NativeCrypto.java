@@ -374,6 +374,10 @@ public final class NativeCrypto {
     /** Takes an X509 context not an X509_PUBKEY context. */
     public static native byte[] i2d_X509_PUBKEY(long x509ctx);
 
+    public static native byte[] ASN1_seq_pack_X509(long[] x509CertRefs);
+
+    public static native long[] ASN1_seq_unpack_X509_bio(long bioRef);
+
     public static native void X509_free(long x509ctx);
 
     public static native int X509_cmp(long x509ctx1, long x509ctx2);
