@@ -55,7 +55,7 @@ import javax.security.auth.x500.X500Principal;
 public class OpenSSLX509Certificate extends X509Certificate {
     private final long mContext;
 
-    private OpenSSLX509Certificate(long ctx) {
+    OpenSSLX509Certificate(long ctx) {
         mContext = ctx;
     }
 
@@ -76,6 +76,14 @@ public class OpenSSLX509Certificate extends X509Certificate {
         }
     }
 
+    public static OpenSSLX509Certificate fromX509Der(byte[] encoded) {
+        final long certCtx = NativeCrypto.d2i_X509(encoded);
+        if (certCtx == 0) {
+            return null;
+        }
+        return new OpenSSLX509Certificate(certCtx);
+    }
+
     public static List<OpenSSLX509Certificate> fromPkcs7DerInputStream(InputStream is)
             throws ParsingException {
         OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is);
@@ -87,6 +95,10 @@ public class OpenSSLX509Certificate extends X509Certificate {
             throw new ParsingException(e);
         } finally {
             NativeCrypto.BIO_free(bis.getBioContext());
+        }
+
+        if (certRefs == null) {
+            return Collections.emptyList();
         }
 
         final List<OpenSSLX509Certificate> certs = new ArrayList<OpenSSLX509Certificate>(

@@ -21,13 +21,16 @@ import java.io.InputStream;
 import java.io.PushbackInputStream;
 import java.security.cert.CRL;
 import java.security.cert.CRLException;
+import java.security.cert.CertPath;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactorySpi;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
@@ -289,5 +292,38 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
         } catch (ParsingException e) {
             throw new CRLException(e);
         }
+    }
+
+    @Override
+    public Iterator<String> engineGetCertPathEncodings() {
+        return OpenSSLX509CertPath.getEncodingsIterator();
+    }
+
+    @Override
+    public CertPath engineGenerateCertPath(InputStream inStream) throws CertificateException {
+        return OpenSSLX509CertPath.fromEncoding(inStream);
+    }
+
+    @Override
+    public CertPath engineGenerateCertPath(InputStream inStream, String encoding)
+            throws CertificateException {
+        return OpenSSLX509CertPath.fromEncoding(inStream, encoding);
+    }
+
+    @Override
+    public CertPath engineGenerateCertPath(List<? extends Certificate> certificates)
+            throws CertificateException {
+        final List<X509Certificate> filtered = new ArrayList<X509Certificate>(certificates.size());
+        for (int i = 0; i < certificates.size(); i++) {
+            final Certificate c = certificates.get(i);
+
+            if (!(c instanceof X509Certificate)) {
+                throw new CertificateException("Certificate not X.509 type at index " + i);
+            }
+
+            filtered.add((X509Certificate) c);
+        }
+
+        return new OpenSSLX509CertPath(filtered);
     }
 }
