@@ -55,7 +55,7 @@ public abstract class OpenSSLMac extends MacSpi {
      */
     private final byte[] singleByte = new byte[1];
 
-    protected OpenSSLMac(long evp_md, int size, int evp_pkey_type) {
+    private OpenSSLMac(long evp_md, int size, int evp_pkey_type) {
         this.evp_md = evp_md;
         this.size = size;
         this.evp_pkey_type = evp_pkey_type;

@@ -294,6 +294,10 @@ public class OpenSSLX509Certificate extends X509Certificate {
     @Override
     public boolean[] getKeyUsage() {
         final boolean[] kusage = NativeCrypto.get_X509_ex_kusage(mContext);
+        if (kusage == null) {
+            return null;
+        }
+
         if (kusage.length >= 9) {
             return kusage;
         }
