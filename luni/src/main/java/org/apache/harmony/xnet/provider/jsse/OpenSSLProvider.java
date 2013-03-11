@@ -86,6 +86,9 @@ public final class OpenSSLProvider extends Provider {
 
         put("KeyFactory.EC", OpenSSLECKeyFactory.class.getName());
 
+        /* == KeyAgreement == */
+        put("KeyAgreement.ECDH", OpenSSLECDHKeyAgreement.class.getName());
+
         /* == Signatures == */
         put("Signature.MD5WithRSA", OpenSSLSignature.MD5RSA.class.getName());
         put("Alg.Alias.Signature.MD5WithRSAEncryption", "MD5WithRSA");

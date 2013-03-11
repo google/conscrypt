@@ -226,6 +226,9 @@ public final class NativeCrypto {
 
     public static native long EC_KEY_get_public_key(long keyRef);
 
+    public static native int ECDH_compute_key(
+            byte[] out, int outOffset, long publicKeyRef, long privateKeyRef);
+
     // --- Message digest functions --------------
 
     public static native long EVP_get_digestbyname(String name);
