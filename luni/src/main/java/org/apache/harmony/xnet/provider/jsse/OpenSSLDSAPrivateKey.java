@@ -117,6 +117,10 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey, OpenSSLKeyHolder {
 
     @Override
     public BigInteger getX() {
+        if (key.isEngineBased()) {
+            throw new UnsupportedOperationException("private key value X cannot be extracted");
+        }
+
         ensureReadParams();
         return params.getX();
     }
@@ -218,6 +222,7 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey, OpenSSLKeyHolder {
         if (getOpenSSLKey().isEngineBased()) {
             throw new NotSerializableException("engine-based keys can not be serialized");
         }
+
         stream.defaultWriteObject();
 
         ensureReadParams();

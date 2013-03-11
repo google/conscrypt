@@ -322,6 +322,7 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
         if (getOpenSSLKey().isEngineBased()) {
             throw new NotSerializableException("engine-based keys can not be serialized");
         }
+
         ensureReadParams();
         stream.defaultWriteObject();
     }

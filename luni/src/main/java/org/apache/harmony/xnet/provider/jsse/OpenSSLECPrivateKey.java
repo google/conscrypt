@@ -95,6 +95,10 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
 
     @Override
     public BigInteger getS() {
+        if (key.isEngineBased()) {
+            throw new UnsupportedOperationException("private key value S cannot be extracted");
+        }
+
         return getPrivateKey();
     }
 
