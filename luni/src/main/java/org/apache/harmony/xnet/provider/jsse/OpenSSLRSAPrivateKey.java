@@ -139,6 +139,10 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
 
     @Override
     public final BigInteger getPrivateExponent() {
+        if (key.isEngineBased()) {
+            throw new UnsupportedOperationException("private exponent cannot be extracted");
+        }
+
         ensureReadParams();
         return privateExponent;
     }
@@ -260,6 +264,7 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
         if (getOpenSSLKey().isEngineBased()) {
             throw new NotSerializableException("engine-based keys can not be serialized");
         }
+
         ensureReadParams();
         stream.defaultWriteObject();
     }
