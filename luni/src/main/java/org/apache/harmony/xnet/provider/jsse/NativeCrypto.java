@@ -23,12 +23,12 @@ import java.net.SocketTimeoutException;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.SignatureException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.ECPrivateKey;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -764,7 +764,7 @@ public final class NativeCrypto {
     public static native void SSL_use_PKCS8_PrivateKey_for_tls_channel_id(
             long ssl, byte[] pkcs8EncodedPrivateKey) throws SSLException;
 
-    public static void SSL_set1_tls_channel_id(long ssl, ECPrivateKey privateKey)
+    public static void SSL_set1_tls_channel_id(long ssl, PrivateKey privateKey)
             throws SSLException {
         if (privateKey == null) {
             throw new NullPointerException("privateKey == null");
