@@ -30,7 +30,6 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.ECPrivateKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -79,7 +78,7 @@ public class OpenSSLSocketImpl
     /** Whether the TLS Channel ID extension is enabled. This field is server-side only. */
     private boolean channelIdEnabled;
     /** Private key for the TLS Channel ID extension. This field is client-side only. */
-    private ECPrivateKey channelIdPrivateKey;
+    private PrivateKey channelIdPrivateKey;
     private OpenSSLSessionImpl sslSession;
     private final Socket socket;
     private boolean autoClose;
@@ -858,13 +857,13 @@ public class OpenSSLSocketImpl
      * <p>This method needs to be invoked before the handshake starts.
      *
      * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key (disables
-     *        TLS Channel ID). The private key is an Elliptic Curve (EC) key based on the NIST
+     *        TLS Channel ID). The private key must be an Elliptic Curve (EC) key based on the NIST
      *        P-256 curve (aka SECG secp256r1 or ANSI X9.62 prime256v1).
      *
      * @throws IllegalStateException if this is a server socket or if the handshake has already
      *         started.
      */
-    public void setChannelIdPrivateKey(ECPrivateKey privateKey) {
+    public void setChannelIdPrivateKey(PrivateKey privateKey) {
         if (!getUseClientMode()) {
             throw new IllegalStateException("Server mode");
         }
