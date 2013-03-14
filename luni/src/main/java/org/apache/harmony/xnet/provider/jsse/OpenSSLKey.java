@@ -19,6 +19,9 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.SecretKey;
 
@@ -75,6 +78,28 @@ public class OpenSSLKey {
         }
     }
 
+    static PublicKey getPublicKey(X509EncodedKeySpec keySpec, int type)
+            throws InvalidKeySpecException {
+        X509EncodedKeySpec x509KeySpec = (X509EncodedKeySpec) keySpec;
+
+        final OpenSSLKey key;
+        try {
+            key = new OpenSSLKey(NativeCrypto.d2i_PUBKEY(x509KeySpec.getEncoded()));
+        } catch (Exception e) {
+            throw new InvalidKeySpecException(e);
+        }
+
+        if (NativeCrypto.EVP_PKEY_type(key.getPkeyContext()) != type) {
+            throw new InvalidKeySpecException("Unexpected key type");
+        }
+
+        try {
+            return key.getPublicKey();
+        } catch (NoSuchAlgorithmException e) {
+            throw new InvalidKeySpecException(e);
+        }
+    }
+
     public PrivateKey getPrivateKey() throws NoSuchAlgorithmException {
         switch (NativeCrypto.EVP_PKEY_type(ctx)) {
             case NativeCrypto.EVP_PKEY_RSA:
@@ -85,6 +110,28 @@ public class OpenSSLKey {
                 return new OpenSSLECPrivateKey(this);
             default:
                 throw new NoSuchAlgorithmException("unknown PKEY type");
+        }
+    }
+
+    static PrivateKey getPrivateKey(PKCS8EncodedKeySpec keySpec, int type)
+            throws InvalidKeySpecException {
+        PKCS8EncodedKeySpec pkcs8KeySpec = (PKCS8EncodedKeySpec) keySpec;
+
+        final OpenSSLKey key;
+        try {
+            key = new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(pkcs8KeySpec.getEncoded()));
+        } catch (Exception e) {
+            throw new InvalidKeySpecException(e);
+        }
+
+        if (NativeCrypto.EVP_PKEY_type(key.getPkeyContext()) != type) {
+            throw new InvalidKeySpecException("Unexpected key type");
+        }
+
+        try {
+            return key.getPrivateKey();
+        } catch (NoSuchAlgorithmException e) {
+            throw new InvalidKeySpecException(e);
         }
     }
 
