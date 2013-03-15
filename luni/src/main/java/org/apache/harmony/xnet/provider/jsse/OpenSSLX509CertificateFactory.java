@@ -61,6 +61,10 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
      */
     private static abstract class Parser<T> {
         public T generateItem(InputStream inStream) throws ParsingException {
+            if (inStream == null) {
+                throw new ParsingException("inStream == null");
+            }
+
             final boolean markable = inStream.markSupported();
             if (markable) {
                 inStream.mark(PKCS7_MARKER.length);
