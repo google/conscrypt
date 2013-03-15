@@ -51,8 +51,7 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
 
     public OpenSSLECPrivateKey(ECPrivateKeySpec ecKeySpec) throws InvalidKeySpecException {
         try {
-            OpenSSLECGroupContext group = OpenSSLECGroupContext.getInstance(ecKeySpec
-                    .getParams());
+            group = OpenSSLECGroupContext.getInstance(ecKeySpec.getParams());
             final BigInteger privKey = ecKeySpec.getS();
             key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getContext(), 0,
                     privKey.toByteArray()));

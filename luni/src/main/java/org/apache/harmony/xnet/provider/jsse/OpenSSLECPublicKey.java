@@ -52,7 +52,7 @@ public final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
 
     public OpenSSLECPublicKey(ECPublicKeySpec ecKeySpec) throws InvalidKeySpecException {
         try {
-            OpenSSLECGroupContext group = OpenSSLECGroupContext.getInstance(ecKeySpec.getParams());
+            group = OpenSSLECGroupContext.getInstance(ecKeySpec.getParams());
             OpenSSLECPointContext pubKey = OpenSSLECPointContext.getInstance(
                     NativeCrypto.get_EC_GROUP_type(group.getContext()), group, ecKeySpec.getW());
             key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getContext(),

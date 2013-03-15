@@ -37,20 +37,14 @@ public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
 
     @Override
     protected PublicKey engineGeneratePublic(KeySpec keySpec) throws InvalidKeySpecException {
+        if (keySpec == null) {
+            throw new InvalidKeySpecException("keySpec == null");
+        }
+
         if (keySpec instanceof RSAPublicKeySpec) {
-            RSAPublicKeySpec rsaKeySpec = (RSAPublicKeySpec) keySpec;
-
-            return new OpenSSLRSAPublicKey(rsaKeySpec);
+            return new OpenSSLRSAPublicKey((RSAPublicKeySpec) keySpec);
         } else if (keySpec instanceof X509EncodedKeySpec) {
-            X509EncodedKeySpec x509KeySpec = (X509EncodedKeySpec) keySpec;
-
-            try {
-                final OpenSSLKey key = new OpenSSLKey(
-                        NativeCrypto.d2i_PUBKEY(x509KeySpec.getEncoded()));
-                return new OpenSSLRSAPublicKey(key);
-            } catch (Exception e) {
-                throw new InvalidKeySpecException(e);
-            }
+            return OpenSSLKey.getPublicKey((X509EncodedKeySpec) keySpec, NativeCrypto.EVP_PKEY_RSA);
         }
         throw new InvalidKeySpecException("Must use RSAPublicKeySpec or X509EncodedKeySpec; was "
                 + keySpec.getClass().getName());
@@ -58,24 +52,17 @@ public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
 
     @Override
     protected PrivateKey engineGeneratePrivate(KeySpec keySpec) throws InvalidKeySpecException {
+        if (keySpec == null) {
+            throw new InvalidKeySpecException("keySpec == null");
+        }
+
         if (keySpec instanceof RSAPrivateCrtKeySpec) {
-            RSAPrivateCrtKeySpec rsaKeySpec = (RSAPrivateCrtKeySpec) keySpec;
-
-            return new OpenSSLRSAPrivateCrtKey(rsaKeySpec);
+            return new OpenSSLRSAPrivateCrtKey((RSAPrivateCrtKeySpec) keySpec);
         } else if (keySpec instanceof RSAPrivateKeySpec) {
-            RSAPrivateKeySpec rsaKeySpec = (RSAPrivateKeySpec) keySpec;
-
-            return new OpenSSLRSAPrivateKey(rsaKeySpec);
+            return new OpenSSLRSAPrivateKey((RSAPrivateKeySpec) keySpec);
         } else if (keySpec instanceof PKCS8EncodedKeySpec) {
-            PKCS8EncodedKeySpec pkcs8KeySpec = (PKCS8EncodedKeySpec) keySpec;
-
-            try {
-                final OpenSSLKey key = new OpenSSLKey(
-                        NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(pkcs8KeySpec.getEncoded()));
-                return OpenSSLRSAPrivateKey.getInstance(key);
-            } catch (Exception e) {
-                throw new InvalidKeySpecException(e);
-            }
+            return OpenSSLKey.getPrivateKey((PKCS8EncodedKeySpec) keySpec,
+                    NativeCrypto.EVP_PKEY_RSA);
         }
         throw new InvalidKeySpecException("Must use RSAPublicKeySpec or PKCS8EncodedKeySpec; was "
                 + keySpec.getClass().getName());
@@ -92,57 +79,83 @@ public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException("keySpec == null");
         }
 
-        if (key instanceof RSAPublicKey) {
+        if (!"RSA".equals(key.getAlgorithm())) {
+            throw new InvalidKeySpecException("Key must be a RSA key");
+        }
+
+        if (key instanceof RSAPublicKey && RSAPublicKeySpec.class.isAssignableFrom(keySpec)) {
             RSAPublicKey rsaKey = (RSAPublicKey) key;
-
-            if (RSAPublicKeySpec.class.isAssignableFrom(keySpec)) {
-                BigInteger modulus = rsaKey.getModulus();
-                BigInteger publicExponent = rsaKey.getPublicExponent();
-                return (T) new RSAPublicKeySpec(modulus, publicExponent);
-            } else if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                return (T) new X509EncodedKeySpec(key.getEncoded());
-            } else {
-                throw new InvalidKeySpecException("Must be RSAPublicKeySpec or X509EncodedKeySpec");
+            return (T) new RSAPublicKeySpec(rsaKey.getModulus(), rsaKey.getPublicExponent());
+        } else if (key instanceof PublicKey && RSAPublicKeySpec.class.isAssignableFrom(keySpec)) {
+            final byte[] encoded = key.getEncoded();
+            if (!"X.509".equals(key.getFormat()) || encoded == null) {
+                throw new InvalidKeySpecException("Not a valid X.509 encoding");
             }
-        } else if (key instanceof RSAPrivateCrtKey) {
+            RSAPublicKey rsaKey =
+                    (RSAPublicKey) engineGeneratePublic(new X509EncodedKeySpec(encoded));
+            return (T) new RSAPublicKeySpec(rsaKey.getModulus(), rsaKey.getPublicExponent());
+        } else if (key instanceof RSAPrivateCrtKey
+                && RSAPrivateCrtKeySpec.class.isAssignableFrom(keySpec)) {
             RSAPrivateCrtKey rsaKey = (RSAPrivateCrtKey) key;
-
-            if (RSAPrivateCrtKeySpec.class.isAssignableFrom(keySpec)) {
-                BigInteger modulus = rsaKey.getModulus();
-                BigInteger publicExponent = rsaKey.getPublicExponent();
-                BigInteger privateExponent = rsaKey.getPrivateExponent();
-                BigInteger primeP = rsaKey.getPrimeP();
-                BigInteger primeQ = rsaKey.getPrimeQ();
-                BigInteger primeExponentP = rsaKey.getPrimeExponentP();
-                BigInteger primeExponentQ = rsaKey.getPrimeExponentQ();
-                BigInteger crtCoefficient = rsaKey.getCrtCoefficient();
-                return (T) new RSAPrivateCrtKeySpec(modulus, publicExponent, privateExponent,
-                        primeP, primeQ, primeExponentP, primeExponentQ, crtCoefficient);
-            } else if (RSAPrivateKeySpec.class.isAssignableFrom(keySpec)) {
-                BigInteger modulus = rsaKey.getModulus();
-                BigInteger privateExponent = rsaKey.getPrivateExponent();
-                return (T) new RSAPrivateKeySpec(modulus, privateExponent);
-            } else if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                return (T) new PKCS8EncodedKeySpec(rsaKey.getEncoded());
-            } else {
-                throw new InvalidKeySpecException(
-                        "Must be RSAPrivateKeySpec or or RSAPrivateCrtKeySpec or PKCS8EncodedKeySpec");
-            }
-        } else if (key instanceof RSAPrivateKey) {
+            return (T) new RSAPrivateCrtKeySpec(rsaKey.getModulus(), rsaKey.getPublicExponent(),
+                    rsaKey.getPrivateExponent(), rsaKey.getPrimeP(), rsaKey.getPrimeQ(),
+                    rsaKey.getPrimeExponentP(), rsaKey.getPrimeExponentQ(),
+                    rsaKey.getCrtCoefficient());
+        } else if (key instanceof RSAPrivateCrtKey
+                && RSAPrivateKeySpec.class.isAssignableFrom(keySpec)) {
+            RSAPrivateCrtKey rsaKey = (RSAPrivateCrtKey) key;
+            return (T) new RSAPrivateKeySpec(rsaKey.getModulus(), rsaKey.getPrivateExponent());
+        } else if (key instanceof RSAPrivateKey
+                && RSAPrivateKeySpec.class.isAssignableFrom(keySpec)) {
             RSAPrivateKey rsaKey = (RSAPrivateKey) key;
-
-            if (RSAPrivateKeySpec.class.isAssignableFrom(keySpec)) {
-                BigInteger modulus = rsaKey.getModulus();
-                BigInteger privateExponent = rsaKey.getPrivateExponent();
-                return (T) new RSAPrivateKeySpec(modulus, privateExponent);
-            } else if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                return (T) new PKCS8EncodedKeySpec(rsaKey.getEncoded());
-            } else {
-                throw new InvalidKeySpecException(
-                        "Must be RSAPrivateKeySpec or PKCS8EncodedKeySpec");
+            return (T) new RSAPrivateKeySpec(rsaKey.getModulus(), rsaKey.getPrivateExponent());
+        } else if (key instanceof PrivateKey
+                && RSAPrivateCrtKeySpec.class.isAssignableFrom(keySpec)) {
+            final byte[] encoded = key.getEncoded();
+            if (!"PKCS#8".equals(key.getFormat()) || encoded == null) {
+                throw new InvalidKeySpecException("Not a valid PKCS#8 encoding");
             }
+            RSAPrivateKey privKey =
+                    (RSAPrivateKey) engineGeneratePrivate(new PKCS8EncodedKeySpec(encoded));
+            if (privKey instanceof RSAPrivateCrtKey) {
+                RSAPrivateCrtKey rsaKey = (RSAPrivateCrtKey) privKey;
+                return (T) new RSAPrivateCrtKeySpec(rsaKey.getModulus(),
+                        rsaKey.getPublicExponent(), rsaKey.getPrivateExponent(),
+                        rsaKey.getPrimeP(), rsaKey.getPrimeQ(), rsaKey.getPrimeExponentP(),
+                        rsaKey.getPrimeExponentQ(), rsaKey.getCrtCoefficient());
+            } else {
+                throw new InvalidKeySpecException("Encoded key is not an RSAPrivateCrtKey");
+            }
+        } else if (key instanceof PrivateKey && RSAPrivateKeySpec.class.isAssignableFrom(keySpec)) {
+            final byte[] encoded = key.getEncoded();
+            if (!"PKCS#8".equals(key.getFormat()) || encoded == null) {
+                throw new InvalidKeySpecException("Not a valid PKCS#8 encoding");
+            }
+            RSAPrivateKey rsaKey =
+                    (RSAPrivateKey) engineGeneratePrivate(new PKCS8EncodedKeySpec(encoded));
+            return (T) new RSAPrivateKeySpec(rsaKey.getModulus(), rsaKey.getPrivateExponent());
+        } else if (key instanceof PrivateKey
+                && PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
+            final byte[] encoded = key.getEncoded();
+            if (!"PKCS#8".equals(key.getFormat())) {
+                throw new InvalidKeySpecException("Encoding type must be PKCS#8; was "
+                        + key.getFormat());
+            } else if (encoded == null) {
+                throw new InvalidKeySpecException("Key is not encodable");
+            }
+            return (T) new PKCS8EncodedKeySpec(encoded);
+        } else if (key instanceof PublicKey && X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
+            final byte[] encoded = key.getEncoded();
+            if (!"X.509".equals(key.getFormat())) {
+                throw new InvalidKeySpecException("Encoding type must be X.509; was "
+                        + key.getFormat());
+            } else if (encoded == null) {
+                throw new InvalidKeySpecException("Key is not encodable");
+            }
+            return (T) new X509EncodedKeySpec(encoded);
         } else {
-            throw new InvalidKeySpecException("Must be RSAPublicKey or RSAPrivateKey");
+            throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
+                    + key.getClass().getName() + ", keySpec=" + keySpec.getName());
         }
     }
 
@@ -189,9 +202,21 @@ public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
             } catch (InvalidKeySpecException e) {
                 throw new InvalidKeyException(e);
             }
+        } else if ("PKCS#8".equals(key.getFormat())) {
+            try {
+                return engineGeneratePrivate(new PKCS8EncodedKeySpec(key.getEncoded()));
+            } catch (InvalidKeySpecException e) {
+                throw new InvalidKeyException(e);
+            }
+        } else if ("X.509".equals(key.getFormat())) {
+            try {
+                return engineGeneratePublic(new X509EncodedKeySpec(key.getEncoded()));
+            } catch (InvalidKeySpecException e) {
+                throw new InvalidKeyException(e);
+            }
         } else {
-            throw new InvalidKeyException(
-                    "Key must be RSAPublicKey or RSAPrivateCrtKey or RSAPrivateKey");
+            throw new InvalidKeyException("Key must be an RSA public or private key; was "
+                    + key.getClass().getName());
         }
     }
 }
