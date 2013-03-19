@@ -28,6 +28,7 @@ import java.security.SignatureException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -409,7 +410,8 @@ public final class NativeCrypto {
 
     public static native String[] get_X509_ext_oids(long x509ctx, int critical);
 
-    public static native Object[][] get_X509_GENERAL_NAME_stack(long x509ctx, int type);
+    public static native Object[][] get_X509_GENERAL_NAME_stack(long x509ctx, int type)
+            throws CertificateParsingException;
 
     public static native boolean[] get_X509_ex_kusage(long x509ctx);
 
