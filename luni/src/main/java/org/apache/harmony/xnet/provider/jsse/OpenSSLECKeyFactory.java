@@ -158,7 +158,7 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
             } catch (InvalidKeySpecException e) {
                 throw new InvalidKeyException(e);
             }
-        } else if ("PKCS#8".equals(key.getFormat())) {
+        } else if ((key instanceof PrivateKey) && ("PKCS#8".equals(key.getFormat()))) {
             byte[] encoded = key.getEncoded();
             if (encoded == null) {
                 throw new InvalidKeyException("Key does not support encoding");
@@ -168,7 +168,7 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
             } catch (InvalidKeySpecException e) {
                 throw new InvalidKeyException(e);
             }
-        } else if ("X.509".equals(key.getFormat())) {
+        } else if ((key instanceof PublicKey) && ("X.509".equals(key.getFormat()))) {
             byte[] encoded = key.getEncoded();
             if (encoded == null) {
                 throw new InvalidKeyException("Key does not support encoding");
