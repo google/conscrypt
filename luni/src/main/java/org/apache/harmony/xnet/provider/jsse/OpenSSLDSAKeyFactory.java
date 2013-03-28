@@ -173,14 +173,22 @@ public class OpenSSLDSAKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeyException(e);
             }
         } else if ("PKCS#8".equals(key.getFormat())) {
+            byte[] encoded = key.getEncoded();
+            if (encoded == null) {
+                throw new InvalidKeyException("Key does not support encoding");
+            }
             try {
-                return engineGeneratePrivate(new PKCS8EncodedKeySpec(key.getEncoded()));
+                return engineGeneratePrivate(new PKCS8EncodedKeySpec(encoded));
             } catch (InvalidKeySpecException e) {
                 throw new InvalidKeyException(e);
             }
         } else if ("X.509".equals(key.getFormat())) {
+            byte[] encoded = key.getEncoded();
+            if (encoded == null) {
+                throw new InvalidKeyException("Key does not support encoding");
+            }
             try {
-                return engineGeneratePublic(new X509EncodedKeySpec(key.getEncoded()));
+                return engineGeneratePublic(new X509EncodedKeySpec(encoded));
             } catch (InvalidKeySpecException e) {
                 throw new InvalidKeyException(e);
             }
