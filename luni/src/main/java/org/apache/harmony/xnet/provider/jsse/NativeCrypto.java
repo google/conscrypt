@@ -206,6 +206,8 @@ public final class NativeCrypto {
 
     public static native byte[] EC_GROUP_get_order(long groupCtx);
 
+    public static native int EC_GROUP_get_degree(long groupCtx);
+
     public static native byte[] EC_GROUP_get_cofactor(long groupCtx);
 
     public static native long EC_POINT_new(long groupRef);
