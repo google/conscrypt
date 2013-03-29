@@ -19,9 +19,10 @@ package org.apache.harmony.xnet.provider.jsse;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
 import java.security.spec.AlgorithmParameterSpec;
 
 import javax.crypto.KeyAgreementSpi;
@@ -54,36 +55,14 @@ public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
         if (!lastPhase) {
             throw new IllegalStateException("ECDH only has one phase");
         }
+
         if (key == null) {
             throw new InvalidKeyException("key == null");
         }
-        if (!(key instanceof ECPublicKey)) {
-            throw new InvalidKeyException("This phase requires an ECPublicKey. Actual key type: "
-                + key.getClass());
+        if (!(key instanceof PublicKey)) {
+            throw new InvalidKeyException("Not a public key: " + key.getClass());
         }
-        ECPublicKey publicKey = (ECPublicKey) key;
-
-        OpenSSLKey openSslPublicKey;
-        if (publicKey instanceof OpenSSLECPublicKey) {
-            // OpenSSL-backed key
-            openSslPublicKey = ((OpenSSLECPublicKey) publicKey).getOpenSSLKey();
-        } else {
-            // Not an OpenSSL-backed key -- create an OpenSSL-backed key from its X.509 encoding
-            if (!"X.509".equals(publicKey.getFormat())) {
-                throw new InvalidKeyException("Non-OpenSSL public key (" + publicKey.getClass()
-                    + ") offers unsupported encoding format: " + publicKey.getFormat());
-            }
-            byte[] encoded = publicKey.getEncoded();
-            if (encoded == null) {
-                throw new InvalidKeyException("Non-OpenSSL public key (" + publicKey.getClass()
-                    + ") does not provide encoded form");
-            }
-            try {
-                openSslPublicKey = new OpenSSLKey(NativeCrypto.d2i_PUBKEY(encoded));
-            } catch (Exception e) {
-                throw new InvalidKeyException("Failed to decode X.509 encoded public key", e);
-            }
-        }
+        OpenSSLKey openSslPublicKey = translateKeyToEcOpenSSLKey(key);
 
         byte[] buffer = new byte[mExpectedResultLength];
         int actualResultLength = NativeCrypto.ECDH_compute_key(
@@ -142,35 +121,15 @@ public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
         if (key == null) {
             throw new InvalidKeyException("key == null");
         }
-        if (!(key instanceof ECPrivateKey)) {
-            throw new InvalidKeyException("Not an EC private key: " + key.getClass());
+        if (!(key instanceof PrivateKey)) {
+            throw new InvalidKeyException("Not a private key: " + key.getClass());
         }
-        ECPrivateKey privateKey = (ECPrivateKey) key;
-        mExpectedResultLength =
-                (privateKey.getParams().getCurve().getField().getFieldSize() + 7) / 8;
 
-        OpenSSLKey openSslPrivateKey;
-        if (privateKey instanceof OpenSSLECPrivateKey) {
-            // OpenSSL-backed key
-            openSslPrivateKey = ((OpenSSLECPrivateKey) privateKey).getOpenSSLKey();
-        } else {
-            // Not an OpenSSL-backed key -- create an OpenSSL-backed key from its PKCS#8 encoding
-            if (!"PKCS#8".equals(privateKey.getFormat())) {
-                throw new InvalidKeyException("Non-OpenSSL private key (" + privateKey.getClass()
-                    + ") offers unsupported encoding format: " + privateKey.getFormat());
-            }
-            byte[] encoded = privateKey.getEncoded();
-            if (encoded == null) {
-                throw new InvalidKeyException("Non-OpenSSL private key (" + privateKey.getClass()
-                    + ") does not provide encoded form");
-            }
-            try {
-                openSslPrivateKey = new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(encoded));
-            } catch (Exception e) {
-                throw new InvalidKeyException("Failed to decode PKCS#8 encoded private key", e);
-            }
-        }
-        mOpenSslPrivateKey = openSslPrivateKey;
+        OpenSSLKey openSslKey = translateKeyToEcOpenSSLKey(key);
+        int fieldSizeBits = NativeCrypto.EC_GROUP_get_degree(NativeCrypto.EC_KEY_get0_group(
+                openSslKey.getPkeyContext()));
+        mExpectedResultLength = (fieldSizeBits + 7) / 8;
+        mOpenSslPrivateKey = openSslKey;
     }
 
     @Override
@@ -186,6 +145,15 @@ public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
     private void checkCompleted() {
         if (mResult == null) {
             throw new IllegalStateException("Key agreement not completed");
+        }
+    }
+
+    private static OpenSSLKey translateKeyToEcOpenSSLKey(Key key) throws InvalidKeyException {
+        try {
+            return ((OpenSSLKeyHolder) KeyFactory.getInstance(
+                    "EC", OpenSSLProvider.PROVIDER_NAME).translateKey(key)).getOpenSSLKey();
+        } catch (Exception e) {
+            throw new InvalidKeyException("Failed to translate key to OpenSSL EC key", e);
         }
     }
 }
