@@ -116,8 +116,11 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
 
         public Collection<? extends T> generateItems(InputStream inStream)
                 throws ParsingException {
+            if (inStream == null) {
+                throw new NullPointerException("inStream == null");
+            }
             try {
-                if (inStream == null || inStream.available() == 0) {
+                if (inStream.available() == 0) {
                     return Collections.emptyList();
                 }
             } catch (IOException e) {
@@ -291,6 +294,10 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
 
     @Override
     public Collection<? extends CRL> engineGenerateCRLs(InputStream inStream) throws CRLException {
+        if (inStream == null) {
+            return Collections.emptyList();
+        }
+
         try {
             return crlParser.generateItems(inStream);
         } catch (ParsingException e) {

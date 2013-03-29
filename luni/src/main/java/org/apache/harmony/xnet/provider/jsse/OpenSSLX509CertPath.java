@@ -137,10 +137,21 @@ public class OpenSSLX509CertPath extends CertPath {
     private static CertPath fromPkiPathEncoding(InputStream inStream) throws CertificateException {
         OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(inStream);
 
+        final boolean markable = inStream.markSupported();
+        if (markable) {
+            inStream.mark(PUSHBACK_SIZE);
+        }
+
         final long[] certRefs;
         try {
             certRefs = NativeCrypto.ASN1_seq_unpack_X509_bio(bis.getBioContext());
         } catch (Exception e) {
+            if (markable) {
+                try {
+                    inStream.reset();
+                } catch (IOException ignored) {
+                }
+            }
             throw new CertificateException(e);
         } finally {
             NativeCrypto.BIO_free(bis.getBioContext());
@@ -218,6 +229,10 @@ public class OpenSSLX509CertPath extends CertPath {
 
     public static CertPath fromEncoding(InputStream inStream, String encoding)
             throws CertificateException {
+        if (inStream == null) {
+            throw new NullPointerException("inStream == null");
+        }
+
         Encoding enc = Encoding.findByApiName(encoding);
         if (enc == null) {
             throw new CertificateException("Invalid encoding: " + encoding);
