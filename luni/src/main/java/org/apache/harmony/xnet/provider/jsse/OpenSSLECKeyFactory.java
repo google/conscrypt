@@ -133,8 +133,9 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
         if (key == null) {
             throw new InvalidKeyException("key == null");
         }
-
-        if (key instanceof ECPublicKey) {
+        if ((key instanceof OpenSSLECPublicKey) || (key instanceof OpenSSLECPrivateKey)) {
+            return key;
+        } else if (key instanceof ECPublicKey) {
             ECPublicKey ecKey = (ECPublicKey) key;
 
             ECPoint w = ecKey.getW();
