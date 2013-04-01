@@ -230,7 +230,7 @@ public class OpenSSLX509CertPath extends CertPath {
     public static CertPath fromEncoding(InputStream inStream, String encoding)
             throws CertificateException {
         if (inStream == null) {
-            throw new NullPointerException("inStream == null");
+            throw new CertificateException("inStream == null");
         }
 
         Encoding enc = Encoding.findByApiName(encoding);
