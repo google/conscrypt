@@ -117,7 +117,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
         public Collection<? extends T> generateItems(InputStream inStream)
                 throws ParsingException {
             if (inStream == null) {
-                throw new NullPointerException("inStream == null");
+                throw new ParsingException("inStream == null");
             }
             try {
                 if (inStream.available() == 0) {
