@@ -309,7 +309,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
 
     @Override
     public int getBasicConstraints() {
-        if (NativeCrypto.X509_check_ca(mContext) != 1) {
+        if ((NativeCrypto.get_X509_ex_flags(mContext) & NativeCrypto.EXFLAG_CA) == 0) {
             return -1;
         }
 
