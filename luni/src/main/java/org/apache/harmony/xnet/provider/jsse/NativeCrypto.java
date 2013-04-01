@@ -419,8 +419,6 @@ public final class NativeCrypto {
 
     public static native String[] get_X509_ex_xkusage(long x509ctx);
 
-    public static native int X509_check_ca(long x509ctx);
-
     public static native int get_X509_ex_pathlen(long x509ctx);
 
     public static native long X509_get_notBefore(long x509ctx);
@@ -440,6 +438,8 @@ public final class NativeCrypto {
     public static native int get_X509_ex_flags(long x509ctx);
 
     // --- X509 EXFLAG ---------------------------------------------------------
+
+    public static final int EXFLAG_CA = 0x10;
 
     public static final int EXFLAG_CRITICAL = 0x200;
 
