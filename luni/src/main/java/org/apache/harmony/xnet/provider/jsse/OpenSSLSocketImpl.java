@@ -38,6 +38,7 @@ import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509TrustManager;
@@ -319,17 +320,19 @@ public class OpenSSLSocketImpl
             }
 
             AbstractSessionContext sessionContext;
+            OpenSSLSessionImpl sessionToReuse;
             if (client) {
                 // look for client session to reuse
                 ClientSessionContext clientSessionContext = sslParameters.getClientSessionContext();
                 sessionContext = clientSessionContext;
-                OpenSSLSessionImpl session = getCachedClientSession(clientSessionContext);
-                if (session != null) {
+                sessionToReuse = getCachedClientSession(clientSessionContext);
+                if (sessionToReuse != null) {
                     NativeCrypto.SSL_set_session(sslNativePointer,
-                                                 session.sslSessionNativePointer);
+                                                 sessionToReuse.sslSessionNativePointer);
                 }
             } else {
                 sessionContext = sslParameters.getServerSessionContext();
+                sessionToReuse = null;
             }
 
             // setup peer certificate verification
@@ -400,8 +403,8 @@ public class OpenSSLSocketImpl
                 throw wrapper;
             }
             byte[] sessionId = NativeCrypto.SSL_SESSION_session_id(sslSessionNativePointer);
-            sslSession = (OpenSSLSessionImpl) sessionContext.getSession(sessionId);
-            if (sslSession != null) {
+            if (sessionToReuse != null && Arrays.equals(sessionToReuse.getId(), sessionId)) {
+                this.sslSession = sessionToReuse;
                 sslSession.lastAccessedTime = System.currentTimeMillis();
                 NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
             } else {
@@ -413,7 +416,7 @@ public class OpenSSLSocketImpl
                         = createCertChain(NativeCrypto.SSL_get_certificate(sslNativePointer));
                 X509Certificate[] peerCertificates
                         = createCertChain(NativeCrypto.SSL_get_peer_cert_chain(sslNativePointer));
-                sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
+                this.sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
                         peerCertificates, getPeerHostName(), getPeerPort(), sessionContext);
                 // if not, putSession later in handshakeCompleted() callback
                 if (handshakeCompleted) {
@@ -462,17 +465,13 @@ public class OpenSSLSocketImpl
      * Return a possibly null array of X509Certificates given the
      * possibly null array of DER encoded bytes.
      */
-    private static X509Certificate[] createCertChain(byte[][] certificatesBytes) {
+    private static X509Certificate[] createCertChain(byte[][] certificatesBytes) throws IOException {
         if (certificatesBytes == null) {
             return null;
         }
         X509Certificate[] certificates = new X509Certificate[certificatesBytes.length];
         for (int i = 0; i < certificatesBytes.length; i++) {
-            try {
-                certificates[i] = new X509CertImpl(certificatesBytes[i]);
-            } catch (IOException e) {
-                return null;
-            }
+            certificates[i] = new X509CertImpl(certificatesBytes[i]);
         }
         return certificates;
     }
