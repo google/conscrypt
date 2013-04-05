@@ -165,7 +165,9 @@ public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
             throw new InvalidKeyException("key == null");
         }
 
-        if (key instanceof RSAPublicKey) {
+        if ((key instanceof OpenSSLRSAPublicKey) || (key instanceof OpenSSLRSAPrivateKey)) {
+            return key;
+        } else if (key instanceof RSAPublicKey) {
             RSAPublicKey rsaKey = (RSAPublicKey) key;
 
             try {

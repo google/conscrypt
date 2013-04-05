@@ -141,8 +141,9 @@ public class OpenSSLDSAKeyFactory extends KeyFactorySpi {
         if (key == null) {
             throw new InvalidKeyException("key == null");
         }
-
-        if (key instanceof DSAPublicKey) {
+        if ((key instanceof OpenSSLDSAPublicKey) || (key instanceof OpenSSLDSAPrivateKey)) {
+            return key;
+        } else if (key instanceof DSAPublicKey) {
             DSAPublicKey dsaKey = (DSAPublicKey) key;
 
             BigInteger y = dsaKey.getY();
