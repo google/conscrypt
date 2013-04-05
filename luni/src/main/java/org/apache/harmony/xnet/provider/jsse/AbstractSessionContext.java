@@ -51,7 +51,12 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         @Override
         protected boolean removeEldestEntry(
                 Map.Entry<ByteArray, SSLSession> eldest) {
-            return maximumSize > 0 && size() > maximumSize;
+            boolean remove = maximumSize > 0 && size() > maximumSize;
+            if (remove) {
+                remove(eldest.getKey());
+                sessionRemoved(eldest.getValue());
+            }
+            return false;
         }
     };
 
