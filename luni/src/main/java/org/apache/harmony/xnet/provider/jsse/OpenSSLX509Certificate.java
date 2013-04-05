@@ -329,7 +329,11 @@ public class OpenSSLX509Certificate extends X509Certificate {
     private void verifyOpenSSL(OpenSSLKey pkey) throws CertificateException,
             NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException,
             SignatureException {
-        NativeCrypto.X509_verify(mContext, pkey.getPkeyContext());
+        try {
+            NativeCrypto.X509_verify(mContext, pkey.getPkeyContext());
+        } catch (RuntimeException e) {
+            throw new CertificateException(e);
+        }
     }
 
     private void verifyInternal(PublicKey key, String sigProvider) throws CertificateException,
