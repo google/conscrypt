@@ -242,16 +242,16 @@ public class OpenSSLX509Certificate extends X509Certificate {
 
     @Override
     public Date getNotBefore() {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeZone(TimeZone.getTimeZone("UTC"));
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        calendar.set(Calendar.MILLISECOND, 0);
         NativeCrypto.ASN1_TIME_to_Calendar(NativeCrypto.X509_get_notBefore(mContext), calendar);
         return calendar.getTime();
     }
 
     @Override
     public Date getNotAfter() {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeZone(TimeZone.getTimeZone("UTC"));
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        calendar.set(Calendar.MILLISECOND, 0);
         NativeCrypto.ASN1_TIME_to_Calendar(NativeCrypto.X509_get_notAfter(mContext), calendar);
         return calendar.getTime();
     }
