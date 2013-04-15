@@ -106,8 +106,8 @@ public class OpenSSLX509CRLEntry extends X509CRLEntry {
 
     @Override
     public Date getRevocationDate() {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeZone(TimeZone.getTimeZone("UTC"));
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        calendar.set(Calendar.MILLISECOND, 0);
         NativeCrypto.ASN1_TIME_to_Calendar(NativeCrypto.get_X509_REVOKED_revocationDate(mContext),
                 calendar);
         return calendar.getTime();
