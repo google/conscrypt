@@ -51,7 +51,11 @@ public class OpenSSLBIOInputStream extends FilterInputStream {
         int inputByte = 0;
         while (offset < buffer.length) {
             inputByte = read();
-            if (inputByte == '\n' || inputByte == -1) {
+            if (inputByte == -1) {
+                // EOF
+                break;
+            }
+            if (inputByte == '\n') {
                 if (offset == 0) {
                     // If we haven't read anything yet, ignore CRLF.
                     continue;
