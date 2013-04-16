@@ -363,7 +363,7 @@ public final class TrustManagerImpl implements X509TrustManager {
 
         // 2. Find the trust anchor in the chain, if any
         int anchorIndex;
-        for (anchorIndex = 0; anchorIndex < chain.length; anchorIndex++) {
+        for (anchorIndex = 0; anchorIndex <= currIndex; anchorIndex++) {
             // If the current cert is a TrustAnchor, we can ignore the rest of the chain.
             // This avoids including "bridge" CA certs that added for legacy compatibility.
             TrustAnchor trustAnchor = findTrustAnchorBySubjectAndPublicKey(chain[anchorIndex]);
