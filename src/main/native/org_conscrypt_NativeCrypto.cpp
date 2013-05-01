@@ -22,7 +22,7 @@
 #define TO_STRING(x) TO_STRING1(x)
 #ifndef JNI_JARJAR_PREFIX
 #define CONSCRYPT_UNBUNDLED
-#define JNI_JARJAR_PREFIX ""
+#define JNI_JARJAR_PREFIX
 #endif
 
 #define LOG_TAG "NativeCrypto"
@@ -51,7 +51,6 @@
 #include "JniConstants.h"
 #include "JniException.h"
 #include "NetFd.h"
-#include "NetworkUtilities.h"
 #include "ScopedLocalRef.h"
 #include "ScopedPrimitiveArray.h"
 #include "ScopedUtfChars.h"
@@ -76,6 +75,15 @@
 
 static JavaVM* gJavaVM;
 static jclass openSslOutputStreamClass;
+
+static jclass byteArrayClass;
+static jclass calendarClass;
+static jclass objectClass;
+static jclass objectArrayClass;
+static jclass integerClass;
+static jclass inputStreamClass;
+static jclass outputStreamClass;
+static jclass stringClass;
 
 static jmethodID calendar_setMethod;
 static jmethodID inputStream_readMethod;
@@ -321,6 +329,13 @@ typedef UniquePtr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENE
 static void freeOpenSslErrorState(void) {
     ERR_clear_error();
     ERR_remove_state(0);
+}
+
+/**
+ * Throws a OutOfMemoryError with the given string as a message.
+ */
+static void jniThrowOutOfMemory(JNIEnv* env, const char* message) {
+    jniThrowException(env, "java/lang/OutOfMemoryError", message);
 }
 
 /**
@@ -1048,6 +1063,25 @@ static BIO_METHOD stream_bio_method = {
 };
 
 /**
+ * Copied from libnativehelper NetworkUtilites.cpp
+ */
+static bool setBlocking(int fd, bool blocking) {
+    int flags = fcntl(fd, F_GETFL);
+    if (flags == -1) {
+        return false;
+    }
+
+    if (!blocking) {
+        flags |= O_NONBLOCK;
+    } else {
+        flags &= ~O_NONBLOCK;
+    }
+
+    int rc = fcntl(fd, F_SETFL, flags);
+    return (rc != -1);
+}
+
+/**
  * OpenSSL locking support. Taken from the O'Reilly book by Viega et al., but I
  * suppose there are not many other ways to do this on a Linux system (modulo
  * isomorphism).
@@ -1590,7 +1624,7 @@ static jstring NativeCrypto_EVP_PKEY_print_public(JNIEnv* env, jclass, jlong pke
 
     Unique_BIO buffer(BIO_new(BIO_s_mem()));
     if (buffer.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate BIO");
+        jniThrowOutOfMemory(env, "Unable to allocate BIO");
         return NULL;
     }
 
@@ -1620,7 +1654,7 @@ static jstring NativeCrypto_EVP_PKEY_print_private(JNIEnv* env, jclass, jlong pk
 
     Unique_BIO buffer(BIO_new(BIO_s_mem()));
     if (buffer.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate BIO");
+        jniThrowOutOfMemory(env, "Unable to allocate BIO");
         return NULL;
     }
 
@@ -1768,7 +1802,7 @@ static jlong NativeCrypto_RSA_generate_key_ex(JNIEnv* env, jclass, jint modulusB
 
     Unique_RSA rsa(RSA_new());
     if (rsa.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate RSA key");
+        jniThrowOutOfMemory(env, "Unable to allocate RSA key");
         return 0;
     }
 
@@ -1883,7 +1917,7 @@ static jobjectArray NativeCrypto_get_RSA_public_params(JNIEnv* env, jclass, jlon
         return 0;
     }
 
-    jobjectArray joa = env->NewObjectArray(2, JniConstants::byteArrayClass, NULL);
+    jobjectArray joa = env->NewObjectArray(2, byteArrayClass, NULL);
     if (joa == NULL) {
         return NULL;
     }
@@ -1921,7 +1955,7 @@ static jobjectArray NativeCrypto_get_RSA_private_params(JNIEnv* env, jclass, jlo
         return 0;
     }
 
-    jobjectArray joa = env->NewObjectArray(8, JniConstants::byteArrayClass, NULL);
+    jobjectArray joa = env->NewObjectArray(8, byteArrayClass, NULL);
     if (joa == NULL) {
         return NULL;
     }
@@ -2016,7 +2050,7 @@ static jlong NativeCrypto_DSA_generate_key(JNIEnv* env, jclass, jint primeBits,
     Unique_DSA dsa(DSA_new());
     if (dsa.get() == NULL) {
         JNI_TRACE("DSA_generate_key failed");
-        jniThrowOutOfMemoryError(env, "Unable to allocate DSA key");
+        jniThrowOutOfMemory(env, "Unable to allocate DSA key");
         freeOpenSslErrorState();
         return 0;
     }
@@ -2083,7 +2117,7 @@ static jobjectArray NativeCrypto_get_DSA_params(JNIEnv* env, jclass, jlong pkeyR
         return 0;
     }
 
-    jobjectArray joa = env->NewObjectArray(5, JniConstants::byteArrayClass, NULL);
+    jobjectArray joa = env->NewObjectArray(5, byteArrayClass, NULL);
     if (joa == NULL) {
         return NULL;
     }
@@ -2317,7 +2351,7 @@ static jobjectArray NativeCrypto_EC_GROUP_get_curve(JNIEnv* env, jclass, jlong g
         return NULL;
     }
 
-    jobjectArray joa = env->NewObjectArray(3, JniConstants::byteArrayClass, NULL);
+    jobjectArray joa = env->NewObjectArray(3, byteArrayClass, NULL);
     if (joa == NULL) {
         return NULL;
     }
@@ -2352,7 +2386,7 @@ static jbyteArray NativeCrypto_EC_GROUP_get_order(JNIEnv* env, jclass, jlong gro
     Unique_BIGNUM order(BN_new());
     if (order.get() == NULL) {
         JNI_TRACE("EC_GROUP_get_order(%p) => can't create BN", group);
-        jniThrowOutOfMemoryError(env, "BN_new");
+        jniThrowOutOfMemory(env, "BN_new");
         return NULL;
     }
 
@@ -2395,7 +2429,7 @@ static jbyteArray NativeCrypto_EC_GROUP_get_cofactor(JNIEnv* env, jclass, jlong 
     Unique_BIGNUM cofactor(BN_new());
     if (cofactor.get() == NULL) {
         JNI_TRACE("EC_GROUP_get_cofactor(%p) => can't create BN", group);
-        jniThrowOutOfMemoryError(env, "BN_new");
+        jniThrowOutOfMemory(env, "BN_new");
         return NULL;
     }
 
@@ -2511,7 +2545,7 @@ static jlong NativeCrypto_EC_GROUP_get_generator(JNIEnv* env, jclass, jlong grou
     Unique_EC_POINT dup(EC_POINT_dup(generator, group));
     if (dup.get() == NULL) {
         JNI_TRACE("EC_GROUP_get_generator(%p) => oom error", group);
-        jniThrowOutOfMemoryError(env, "unable to dupe generator");
+        jniThrowOutOfMemory(env, "unable to dupe generator");
         return 0;
     }
 
@@ -2532,7 +2566,7 @@ static jlong NativeCrypto_EC_POINT_new(JNIEnv* env, jclass, jlong groupRef)
 
     EC_POINT* point = EC_POINT_new(group);
     if (point == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable create an EC_POINT");
+        jniThrowOutOfMemory(env, "Unable create an EC_POINT");
         return 0;
     }
 
@@ -2649,7 +2683,7 @@ static jobjectArray NativeCrypto_EC_POINT_get_affine_coordinates(JNIEnv* env, jc
         return NULL;
     }
 
-    jobjectArray joa = env->NewObjectArray(2, JniConstants::byteArrayClass, NULL);
+    jobjectArray joa = env->NewObjectArray(2, byteArrayClass, NULL);
     if (joa == NULL) {
         return NULL;
     }
@@ -2678,7 +2712,7 @@ static jlong NativeCrypto_EC_KEY_generate_key(JNIEnv* env, jclass, jlong groupRe
     Unique_EC_KEY eckey(EC_KEY_new());
     if (eckey.get() == NULL) {
         JNI_TRACE("EC_KEY_generate_key(%p) => EC_KEY_new() oom", group);
-        jniThrowOutOfMemoryError(env, "Unable to create an EC_KEY");
+        jniThrowOutOfMemory(env, "Unable to create an EC_KEY");
         return 0;
     }
 
@@ -2838,7 +2872,7 @@ static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
 
     Unique_EVP_MD_CTX ctx(EVP_MD_CTX_create());
     if (ctx.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable create a EVP_MD_CTX");
+        jniThrowOutOfMemory(env, "Unable create a EVP_MD_CTX");
         return 0;
     }
 
@@ -2875,7 +2909,7 @@ static jlong NativeCrypto_EVP_MD_CTX_copy(JNIEnv* env, jclass, jlong ctxRef) {
 
     EVP_MD_CTX* copy = EVP_MD_CTX_create();
     if (copy == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate copy of EVP_MD_CTX");
+        jniThrowOutOfMemory(env, "Unable to allocate copy of EVP_MD_CTX");
         return 0;
     }
 
@@ -2936,7 +2970,7 @@ static jlong NativeCrypto_EVP_DigestInit(JNIEnv* env, jclass, jlong evpMdRef) {
 
     Unique_EVP_MD_CTX ctx(EVP_MD_CTX_create());
     if (ctx.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate EVP_MD_CTX");
+        jniThrowOutOfMemory(env, "Unable to allocate EVP_MD_CTX");
         return 0;
     }
     JNI_TRACE("NativeCrypto_EVP_DigestInit ctx=%p", ctx.get());
@@ -3156,7 +3190,7 @@ static jlong NativeCrypto_EVP_SignInit(JNIEnv* env, jclass, jstring algorithm) {
 
     Unique_EVP_MD_CTX ctx(EVP_MD_CTX_create());
     if (ctx.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate EVP_MD_CTX");
+        jniThrowOutOfMemory(env, "Unable to allocate EVP_MD_CTX");
         return 0;
     }
     JNI_TRACE("NativeCrypto_EVP_SignInit ctx=%p", ctx.get());
@@ -3257,7 +3291,7 @@ static jlong NativeCrypto_EVP_VerifyInit(JNIEnv* env, jclass, jstring algorithm)
 
     Unique_EVP_MD_CTX ctx(EVP_MD_CTX_create());
     if (ctx.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate EVP_MD_CTX");
+        jniThrowOutOfMemory(env, "Unable to allocate EVP_MD_CTX");
         return 0;
     }
     JNI_TRACE("NativeCrypto_EVP_VerifyInit ctx=%p", ctx.get());
@@ -3522,7 +3556,7 @@ static jlong NativeCrypto_EVP_CIPHER_CTX_new(JNIEnv* env, jclass) {
 
     Unique_EVP_CIPHER_CTX ctx(EVP_CIPHER_CTX_new());
     if (ctx.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate cipher context");
+        jniThrowOutOfMemory(env, "Unable to allocate cipher context");
         JNI_TRACE("EVP_CipherInit_ex => context allocation error");
         return 0;
     }
@@ -3749,7 +3783,7 @@ static int NativeCrypto_BIO_read(JNIEnv* env, jclass, jlong bioRef, jbyteArray o
 
     UniquePtr<unsigned char[]> buffer(new unsigned char[outputSize]);
     if (buffer.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate buffer for read");
+        jniThrowOutOfMemory(env, "Unable to allocate buffer for read");
         return 0;
     }
 
@@ -3791,7 +3825,7 @@ static void NativeCrypto_BIO_write(JNIEnv* env, jclass, jlong bioRef, jbyteArray
 
     UniquePtr<unsigned char[]> buffer(new unsigned char[length]);
     if (buffer.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate buffer for write");
+        jniThrowOutOfMemory(env, "Unable to allocate buffer for write");
         return;
     }
 
@@ -3823,7 +3857,7 @@ static jstring X509_NAME_to_jstring(JNIEnv* env, X509_NAME* name, unsigned long 
 
     Unique_BIO buffer(BIO_new(BIO_s_mem()));
     if (buffer.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate BIO");
+        jniThrowOutOfMemory(env, "Unable to allocate BIO");
         JNI_TRACE("X509_NAME_to_jstring(%p) => threw error", name);
         return NULL;
     }
@@ -3947,8 +3981,7 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
      */
     const int origCount = count;
 
-    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count,
-            JniConstants::objectArrayClass, NULL));
+    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count, objectArrayClass, NULL));
     for (int i = 0, j = 0; i < origCount; i++, j++) {
         GENERAL_NAME* gen = sk_GENERAL_NAME_value(gn_stack, i);
         ScopedLocalRef<jobject> val(env, GENERAL_NAME_to_jobject(env, gen));
@@ -3968,10 +4001,9 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
             continue;
         }
 
-        ScopedLocalRef<jobjectArray> item(env, env->NewObjectArray(2, JniConstants::objectClass,
-                NULL));
+        ScopedLocalRef<jobjectArray> item(env, env->NewObjectArray(2, objectClass, NULL));
 
-        ScopedLocalRef<jobject> type(env, env->CallStaticObjectMethod(JniConstants::integerClass,
+        ScopedLocalRef<jobject> type(env, env->CallStaticObjectMethod(integerClass,
                 integer_valueOfMethod, gen->type));
         env->SetObjectArrayElement(item.get(), 0, type.get());
         env->SetObjectArrayElement(item.get(), 1, val.get());
@@ -3987,8 +4019,8 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
         JNI_TRACE("get_X509_GENERAL_NAME_stack(%p, %d) shrunk from %d to %d", x509, type,
                 origCount, count);
 
-        ScopedLocalRef<jobjectArray> joa_copy(env, env->NewObjectArray(count,
-                JniConstants::objectArrayClass, NULL));
+        ScopedLocalRef<jobjectArray> joa_copy(env, env->NewObjectArray(count, objectArrayClass,
+                NULL));
 
         for (int i = 0; i < count; i++) {
             ScopedLocalRef<jobject> item(env, env->GetObjectArrayElement(joa.get(), i));
@@ -5176,8 +5208,7 @@ static jobjectArray NativeCrypto_get_X509_ex_xkusage(JNIEnv* env, jclass, jlong 
     }
 
     size_t size = sk_ASN1_OBJECT_num(objArray.get());
-    ScopedLocalRef<jobjectArray> exKeyUsage(env, env->NewObjectArray(size,
-            JniConstants::stringClass, NULL));
+    ScopedLocalRef<jobjectArray> exKeyUsage(env, env->NewObjectArray(size, stringClass, NULL));
     if (exKeyUsage.get() == NULL) {
         return NULL;
     }
@@ -5251,7 +5282,7 @@ static jobjectArray get_X509Type_ext_oids(JNIEnv* env, jlong x509Ref, jint criti
 
     JNI_TRACE("get_X509Type_ext_oids(%p, %d) has %d entries", x509, critical, count);
 
-    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count, JniConstants::stringClass, NULL));
+    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count, stringClass, NULL));
     if (joa.get() == NULL) {
         JNI_TRACE("get_X509Type_ext_oids(%p, %d) => fail to allocate result array", x509, critical);
         return NULL;
@@ -5365,7 +5396,7 @@ static jobjectArray getCertificateBytes(JNIEnv* env, const STACK_OF(X509)* chain
         return NULL;
     }
 
-    jobjectArray joa = env->NewObjectArray(count, JniConstants::byteArrayClass, NULL);
+    jobjectArray joa = env->NewObjectArray(count, byteArrayClass, NULL);
     if (joa == NULL) {
         return NULL;
     }
@@ -5397,8 +5428,7 @@ static jobjectArray getPrincipalBytes(JNIEnv* env, const STACK_OF(X509_NAME)* na
         return NULL;
     }
 
-    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count, JniConstants::byteArrayClass,
-            NULL));
+    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count, byteArrayClass, NULL));
     if (joa.get() == NULL) {
         return NULL;
     }
@@ -6424,13 +6454,13 @@ static void NativeCrypto_SSL_use_certificate(JNIEnv* env, jclass,
 
     Unique_sk_X509 chain(sk_X509_new_null());
     if (chain.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate local certificate chain");
+        jniThrowOutOfMemory(env, "Unable to allocate local certificate chain");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => chain allocation error", ssl);
         return;
     }
     for (int i = 1; i < length; i++) {
         if (!sk_X509_push(chain.get(), certificatesX509.release(i))) {
-            jniThrowOutOfMemoryError(env, "Unable to push certificate");
+            jniThrowOutOfMemory(env, "Unable to push certificate");
             JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificate push error", ssl);
             return;
         }
@@ -6489,7 +6519,7 @@ static void NativeCrypto_SSL_set_client_CA_list(JNIEnv* env, jclass,
 
     Unique_sk_X509_NAME principalsStack(sk_X509_NAME_new_null());
     if (principalsStack.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate principal stack");
+        jniThrowOutOfMemory(env, "Unable to allocate principal stack");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_set_client_CA_list => stack allocation error", ssl);
         return;
     }
@@ -6520,7 +6550,7 @@ static void NativeCrypto_SSL_set_client_CA_list(JNIEnv* env, jclass,
         }
 
         if (!sk_X509_NAME_push(principalsStack.get(), principalX509Name.release())) {
-            jniThrowOutOfMemoryError(env, "Unable to push principal");
+            jniThrowOutOfMemory(env, "Unable to push principal");
             JNI_TRACE("ssl=%p NativeCrypto_SSL_set_client_CA_list => principal push error", ssl);
             return;
         }
@@ -6660,7 +6690,7 @@ static void NativeCrypto_SSL_set_cipher_lists(JNIEnv* env, jclass,
             if ((strcmp(c.c_str(), cipher->name) == 0)
                     && (strcmp(SSL_CIPHER_get_version(cipher), "SSLv2"))) {
                 if (!sk_SSL_CIPHER_push(cipherstack.get(), cipher)) {
-                    jniThrowOutOfMemoryError(env, "Unable to push cipher");
+                    jniThrowOutOfMemory(env, "Unable to push cipher");
                     JNI_TRACE("ssl=%p NativeCrypto_SSL_set_cipher_lists => cipher push error", ssl);
                     return;
                 }
@@ -7092,19 +7122,19 @@ static jobjectArray NativeCrypto_SSL_get_certificate(JNIEnv* env, jclass, jlong 
 
     Unique_sk_X509 chain(sk_X509_new_null());
     if (chain.get() == NULL) {
-        jniThrowOutOfMemoryError(env, "Unable to allocate local certificate chain");
+        jniThrowOutOfMemory(env, "Unable to allocate local certificate chain");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => threw exception", ssl);
         return NULL;
     }
     if (!sk_X509_push(chain.get(), certificate)) {
-        jniThrowOutOfMemoryError(env, "Unable to push local certificate");
+        jniThrowOutOfMemory(env, "Unable to push local certificate");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => NULL", ssl);
         return NULL;
     }
     STACK_OF(X509)* cert_chain = SSL_get_certificate_chain(ssl, certificate);
     for (int i=0; i<sk_X509_num(cert_chain); i++) {
         if (!sk_X509_push(chain.get(), sk_X509_value(cert_chain, i))) {
-            jniThrowOutOfMemoryError(env, "Unable to push local certificate chain");
+            jniThrowOutOfMemory(env, "Unable to push local certificate chain");
             JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => NULL", ssl);
             return NULL;
         }
@@ -7133,12 +7163,12 @@ static jobjectArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jl
         }
         chain_copy.reset(sk_X509_dup(chain));
         if (chain_copy.get() == NULL) {
-            jniThrowOutOfMemoryError(env, "Unable to allocate peer certificate chain");
+            jniThrowOutOfMemory(env, "Unable to allocate peer certificate chain");
             JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate dup error", ssl);
             return NULL;
         }
         if (!sk_X509_push(chain_copy.get(), x509)) {
-            jniThrowOutOfMemoryError(env, "Unable to push server's peer certificate");
+            jniThrowOutOfMemory(env, "Unable to push server's peer certificate");
             JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate push error", ssl);
             return NULL;
         }
@@ -8028,17 +8058,27 @@ static void initialize_conscrypt(JNIEnv* env) {
         abort();
     }
 
-    calendar_setMethod = env->GetMethodID(JniConstants::calendarClass, "set", "(IIIIII)V");
-    inputStream_readMethod = env->GetMethodID(JniConstants::inputStreamClass, "read", "([B)I");
-    integer_valueOfMethod = env->GetStaticMethodID(JniConstants::integerClass, "valueOf",
+    calendar_setMethod = env->GetMethodID(calendarClass, "set", "(IIIIII)V");
+    inputStream_readMethod = env->GetMethodID(inputStreamClass, "read", "([B)I");
+    integer_valueOfMethod = env->GetStaticMethodID(integerClass, "valueOf",
             "(I)Ljava/lang/Integer;");
     openSslInputStream_readLineMethod = env->GetMethodID(openSslOutputStreamClass, "gets",
             "([B)I");
-    outputStream_writeMethod = env->GetMethodID(JniConstants::outputStreamClass, "write", "([B)V");
-    outputStream_flushMethod = env->GetMethodID(JniConstants::outputStreamClass, "flush", "()V");
+    outputStream_writeMethod = env->GetMethodID(outputStreamClass, "write", "([B)V");
+    outputStream_flushMethod = env->GetMethodID(outputStreamClass, "flush", "()V");
 }
 
 #if defined(CONSCRYPT_UNBUNDLED)
+
+static jclass findClass(JNIEnv* env, const char* name) {
+    ScopedLocalRef<jclass> localClass(env, env->FindClass(name));
+    jclass result = reinterpret_cast<jclass>(env->NewGlobalRef(localClass.get()));
+    if (result == NULL) {
+        ALOGE("failed to find class '%s'", name);
+        abort();
+    }
+    return result;
+}
 
 // Use JNI_OnLoad for when we're standalone
 int JNI_OnLoad(JavaVM *vm, void* reserved) {
@@ -8046,13 +8086,22 @@ int JNI_OnLoad(JavaVM *vm, void* reserved) {
     gJavaVM = vm;
 
     JNIEnv *env;
-    if (vm->GetEnv((void**)&env, JNI_VERSION_1_4)){
+    if (vm->GetEnv((void**)&env, JNI_VERSION_1_6) != JNI_OK) {
         ALOGE("Could not get JNIEnv");
         return JNI_ERR;
     }
 
+    byteArrayClass = findClass(env, "[B");
+    calendarClass = findClass(env, "java/util/Calendar");
+    inputStreamClass = findClass(env, "java/io/InputStream");
+    integerClass = findClass(env, "java/lang/Integer");
+    objectClass = findClass(env, "java/lang/Object");
+    objectArrayClass = findClass(env, "[Ljava/lang/Object;");
+    outputStreamClass = findClass(env, "java/io/OutputStream");
+    stringClass = findClass(env, "java/lang/String");
+
     initialize_conscrypt(env);
-    return JNI_VERSION_1_4;
+    return JNI_VERSION_1_6;
 }
 
 #else
@@ -8060,6 +8109,16 @@ int JNI_OnLoad(JavaVM *vm, void* reserved) {
 // Use this when built into Android
 void register_org_conscrypt_NativeCrypto(JNIEnv* env) {
     JNI_TRACE("register_org_conscrypt_NativeCrypto");
+
+    byteArrayClass = JniConstants::byteArrayClass;
+    calendarClass = JniConstants::calendarClass;
+    inputStreamClass = JniConstants::inputStreamClass;
+    integerClass = JniConstants::integerClass;
+    objectClass = JniConstants::objectClass;
+    objectArrayClass = JniConstants::objectArrayClass;
+    outputStreamClass = JniConstants::outputStreamClass;
+    stringClass = JniConstants::stringClass;
+
     env->GetJavaVM(&gJavaVM);
     initialize_conscrypt(env);
 }
