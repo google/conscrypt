@@ -34,11 +34,6 @@ public final class OpenSSLProvider extends Provider {
     public OpenSSLProvider() {
         super(PROVIDER_NAME, 1.0, "Android's OpenSSL-backed security provider");
 
-        // If we're compiled stand-alone, we need to load the JNI library
-        if ("org.conscrypt".equals(getClass().getPackage().getName())) {
-            System.loadLibrary("conscrypt");
-        }
-
         /* === SSL Contexts === */
         put("SSLContext.SSL", OpenSSLContextImpl.class.getName());
         put("SSLContext.SSLv3", OpenSSLContextImpl.class.getName());
