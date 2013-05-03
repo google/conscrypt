@@ -29,7 +29,6 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStore.PrivateKeyEntry;
-import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.DSAPublicKey;
@@ -67,12 +66,12 @@ public class NativeCryptoTest extends TestCase {
 
     private static final long TIMEOUT_SECONDS = 5;
 
-    private static byte[] SERVER_PRIVATE_KEY;
+    private static OpenSSLKey SERVER_PRIVATE_KEY;
     private static byte[][] SERVER_CERTIFICATES;
-    private static byte[] CLIENT_PRIVATE_KEY;
+    private static OpenSSLKey CLIENT_PRIVATE_KEY;
     private static byte[][] CLIENT_CERTIFICATES;
     private static byte[][] CA_PRINCIPALS;
-    private static PrivateKey CHANNEL_ID_PRIVATE_KEY;
+    private static OpenSSLKey CHANNEL_ID_PRIVATE_KEY;
     private static byte[] CHANNEL_ID;
 
     @Override
@@ -80,7 +79,7 @@ public class NativeCryptoTest extends TestCase {
         assertEquals(0, NativeCrypto.ERR_peek_last_error());
     }
 
-    private static byte[] getServerPrivateKey() {
+    private static OpenSSLKey getServerPrivateKey() {
         initCerts();
         return SERVER_PRIVATE_KEY;
     }
@@ -90,7 +89,7 @@ public class NativeCryptoTest extends TestCase {
         return SERVER_CERTIFICATES;
     }
 
-    private static byte[] getClientPrivateKey() {
+    private static OpenSSLKey getClientPrivateKey() {
         initCerts();
         return CLIENT_PRIVATE_KEY;
     }
@@ -116,13 +115,13 @@ public class NativeCryptoTest extends TestCase {
         try {
             PrivateKeyEntry serverPrivateKeyEntry
                     = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
-            SERVER_PRIVATE_KEY = serverPrivateKeyEntry.getPrivateKey().getEncoded();
+            SERVER_PRIVATE_KEY = OpenSSLKey.fromPrivateKey(serverPrivateKeyEntry.getPrivateKey());
             SERVER_CERTIFICATES = NativeCrypto.encodeCertificates(
                     serverPrivateKeyEntry.getCertificateChain());
 
             PrivateKeyEntry clientPrivateKeyEntry
                     = TestKeyStore.getClientCertificate().getPrivateKey("RSA", "RSA");
-            CLIENT_PRIVATE_KEY = clientPrivateKeyEntry.getPrivateKey().getEncoded();
+            CLIENT_PRIVATE_KEY = OpenSSLKey.fromPrivateKey(clientPrivateKeyEntry.getPrivateKey());
             CLIENT_CERTIFICATES = NativeCrypto.encodeCertificates(
                     clientPrivateKeyEntry.getCertificateChain());
 
@@ -147,7 +146,7 @@ public class NativeCryptoTest extends TestCase {
         BigInteger s = new BigInteger(
                 "229cdbbf489aea584828a261a23f9ff8b0f66f7ccac98bf2096ab3aee41497c5", 16);
         CHANNEL_ID_PRIVATE_KEY = new OpenSSLECPrivateKey(
-                new ECPrivateKeySpec(s, openSslSpec.getECParameterSpec()));
+                new ECPrivateKeySpec(s, openSslSpec.getECParameterSpec())).getOpenSSLKey();
 
         // Channel ID is the concatenation of the X and Y coordinates of the public key.
         CHANNEL_ID = new BigInteger(
@@ -339,7 +338,7 @@ public class NativeCryptoTest extends TestCase {
 
     public void test_SSL_use_PrivateKey_for_tls_channel_id() throws Exception {
         try {
-            NativeCrypto.SSL_set1_tls_channel_id(NULL, null);
+            NativeCrypto.SSL_set1_tls_channel_id(NULL, NULL);
             fail();
         } catch (NullPointerException expected) {
         }
@@ -348,25 +347,14 @@ public class NativeCryptoTest extends TestCase {
         long s = NativeCrypto.SSL_new(c);
 
         try {
-            NativeCrypto.SSL_set1_tls_channel_id(s, null);
+            NativeCrypto.SSL_set1_tls_channel_id(s, NULL);
             fail();
         } catch (NullPointerException expected) {
         }
 
-        // Use the key via the wrapper that decides whether to use PKCS#8 or native OpenSSL.
-        NativeCrypto.SSL_set1_tls_channel_id(s, CHANNEL_ID_PRIVATE_KEY);
-
-        // Use the key via its PKCS#8 representation.
-        assertEquals("PKCS#8", CHANNEL_ID_PRIVATE_KEY.getFormat());
-        byte[] pkcs8EncodedKeyBytes = CHANNEL_ID_PRIVATE_KEY.getEncoded();
-        assertNotNull(pkcs8EncodedKeyBytes);
-        NativeCrypto.SSL_use_PKCS8_PrivateKey_for_tls_channel_id(s, pkcs8EncodedKeyBytes);
-
         // Use the key natively. This works because the initChannelIdKey method ensures that the
         // key is backed by OpenSSL.
-        NativeCrypto.SSL_use_OpenSSL_PrivateKey_for_tls_channel_id(
-                s,
-                ((OpenSSLECPrivateKey) CHANNEL_ID_PRIVATE_KEY).getOpenSSLKey().getPkeyContext());
+        NativeCrypto.SSL_set1_tls_channel_id(s, CHANNEL_ID_PRIVATE_KEY.getPkeyContext());
 
         NativeCrypto.SSL_free(s);
         NativeCrypto.SSL_CTX_free(c);
@@ -374,7 +362,7 @@ public class NativeCryptoTest extends TestCase {
 
     public void test_SSL_use_PrivateKey() throws Exception {
         try {
-            NativeCrypto.SSL_use_PrivateKey(NULL, null);
+            NativeCrypto.SSL_use_PrivateKey(NULL, NULL);
             fail();
         } catch (NullPointerException expected) {
         }
@@ -383,12 +371,12 @@ public class NativeCryptoTest extends TestCase {
         long s = NativeCrypto.SSL_new(c);
 
         try {
-            NativeCrypto.SSL_use_PrivateKey(s, null);
+            NativeCrypto.SSL_use_PrivateKey(s, NULL);
             fail();
         } catch (NullPointerException expected) {
         }
 
-        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey());
+        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey().getPkeyContext());
 
         NativeCrypto.SSL_free(s);
         NativeCrypto.SSL_CTX_free(c);
@@ -430,7 +418,7 @@ public class NativeCryptoTest extends TestCase {
         } catch (SSLException expected) {
         }
 
-        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey());
+        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey().getPkeyContext());
         NativeCrypto.SSL_check_private_key(s);
 
         NativeCrypto.SSL_free(s);
@@ -441,7 +429,7 @@ public class NativeCryptoTest extends TestCase {
         long s = NativeCrypto.SSL_new(c);
 
         // first private, then certificate
-        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey());
+        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey().getPkeyContext());
 
         try {
             NativeCrypto.SSL_check_private_key(s);
@@ -613,7 +601,7 @@ public class NativeCryptoTest extends TestCase {
     private static final boolean DEBUG = false;
 
     public static class Hooks {
-        private PrivateKey channelIdPrivateKey;
+        private OpenSSLKey channelIdPrivateKey;
 
         public long getContext() throws SSLException {
             return NativeCrypto.SSL_CTX_new();
@@ -626,7 +614,7 @@ public class NativeCryptoTest extends TestCase {
             NativeCrypto.SSL_set_cipher_lists(s, new String[] { "RC4-MD5" });
 
             if (channelIdPrivateKey != null) {
-                NativeCrypto.SSL_set1_tls_channel_id(s, channelIdPrivateKey);
+                NativeCrypto.SSL_set1_tls_channel_id(s, channelIdPrivateKey.getPkeyContext());
             }
             return s;
         }
@@ -721,13 +709,13 @@ public class NativeCryptoTest extends TestCase {
     }
 
     public static class ServerHooks extends Hooks {
-        private final byte[] privateKey;
+        private final OpenSSLKey privateKey;
         private final byte[][] certificates;
         private boolean channelIdEnabled;
         private byte[] channelIdAfterHandshake;
         private Throwable channelIdAfterHandshakeException;
 
-        public ServerHooks(byte[] privateKey, byte[][] certificates) {
+        public ServerHooks(OpenSSLKey privateKey, byte[][] certificates) {
             this.privateKey = privateKey;
             this.certificates = certificates;
         }
@@ -736,7 +724,7 @@ public class NativeCryptoTest extends TestCase {
         public long beforeHandshake(long c) throws SSLException {
             long s = super.beforeHandshake(c);
             if (privateKey != null) {
-                NativeCrypto.SSL_use_PrivateKey(s, privateKey);
+                NativeCrypto.SSL_use_PrivateKey(s, privateKey.getPkeyContext());
             }
             if (certificates != null) {
                 NativeCrypto.SSL_use_certificate(s, certificates);
@@ -870,7 +858,7 @@ public class NativeCryptoTest extends TestCase {
             @Override
             public void clientCertificateRequested(long s) {
                 super.clientCertificateRequested(s);
-                NativeCrypto.SSL_use_PrivateKey(s, getClientPrivateKey());
+                NativeCrypto.SSL_use_PrivateKey(s, getClientPrivateKey().getPkeyContext());
                 NativeCrypto.SSL_use_certificate(s, getClientCertificates());
             }
         };

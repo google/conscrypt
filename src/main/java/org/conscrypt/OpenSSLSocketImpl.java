@@ -25,6 +25,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
@@ -78,7 +79,7 @@ public class OpenSSLSocketImpl
     /** Whether the TLS Channel ID extension is enabled. This field is server-side only. */
     private boolean channelIdEnabled;
     /** Private key for the TLS Channel ID extension. This field is client-side only. */
-    private PrivateKey channelIdPrivateKey;
+    private OpenSSLKey channelIdPrivateKey;
     private OpenSSLSessionImpl sslSession;
     private final Socket socket;
     private boolean autoClose;
@@ -380,14 +381,16 @@ public class OpenSSLSocketImpl
             }
 
             // TLS Channel ID
-            if (client) {
-                // Client-side TLS Channel ID
-                if (channelIdPrivateKey != null) {
-                    NativeCrypto.SSL_set1_tls_channel_id(sslNativePointer, channelIdPrivateKey);
-                }
-            } else {
-                // Server-side TLS Channel ID
-                if (channelIdEnabled) {
+            if (channelIdEnabled) {
+                if (client) {
+                    // Client-side TLS Channel ID
+                    if (channelIdPrivateKey == null) {
+                        throw new SSLHandshakeException("Invalid TLS channel ID key specified");
+                    }
+                    NativeCrypto.SSL_set1_tls_channel_id(sslNativePointer,
+                            channelIdPrivateKey.getPkeyContext());
+                } else {
+                    // Server-side TLS Channel ID
                     NativeCrypto.SSL_enable_tls_channel_id(sslNativePointer);
                 }
             }
@@ -497,14 +500,11 @@ public class OpenSSLSocketImpl
             return;
         }
 
-        if (privateKey instanceof OpenSSLKeyHolder) {
-            OpenSSLKey key = ((OpenSSLKeyHolder) privateKey).getOpenSSLKey();
-            NativeCrypto.SSL_use_OpenSSL_PrivateKey(sslNativePointer, key.getPkeyContext());
-        } else if ("PKCS#8".equals(privateKey.getFormat())) {
-            byte[] privateKeyBytes = privateKey.getEncoded();
-            NativeCrypto.SSL_use_PrivateKey(sslNativePointer, privateKeyBytes);
-        } else {
-            throw new SSLException("Unsupported PrivateKey format: " + privateKey.getFormat());
+        try {
+            final OpenSSLKey key = OpenSSLKey.fromPrivateKey(privateKey);
+            NativeCrypto.SSL_use_PrivateKey(sslNativePointer, key.getPkeyContext());
+        } catch (InvalidKeyException e) {
+            throw new SSLException(e);
         }
 
         byte[][] certificateBytes = NativeCrypto.encodeCertificates(certificates);
@@ -879,7 +879,17 @@ public class OpenSSLSocketImpl
                     "Could not change Channel ID private key after the initial handshake has"
                     + " begun.");
         }
-        this.channelIdPrivateKey = privateKey;
+        if (privateKey == null) {
+            this.channelIdEnabled = false;
+            this.channelIdPrivateKey = null;
+        } else {
+            this.channelIdEnabled = true;
+            try {
+                this.channelIdPrivateKey = OpenSSLKey.fromPrivateKey(privateKey);
+            } catch (InvalidKeyException e) {
+                // Will have error in startHandshake
+            }
+        }
     }
 
     @Override public boolean getUseClientMode() {

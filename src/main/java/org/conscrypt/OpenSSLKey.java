@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -62,6 +63,18 @@ public class OpenSSLKey {
 
     public String getAlias() {
         return alias;
+    }
+
+    public static OpenSSLKey fromPrivateKey(PrivateKey key) throws InvalidKeyException {
+        if (key instanceof OpenSSLKeyHolder) {
+            return ((OpenSSLKeyHolder) key).getOpenSSLKey();
+        }
+
+        if ("PKCS#8".equals(key.getFormat())) {
+            return new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(key.getEncoded()));
+        } else {
+            throw new InvalidKeyException("Unknown key format " + key.getFormat());
+        }
     }
 
     public PublicKey getPublicKey() throws NoSuchAlgorithmException {
