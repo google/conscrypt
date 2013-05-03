@@ -29,7 +29,6 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -809,15 +808,6 @@ public final class NativeCrypto {
     public static native void SSL_use_PrivateKey(long ssl, byte[] pkcs8EncodedPrivateKey);
 
     public static native void SSL_check_private_key(long ssl) throws SSLException;
-
-    public static byte[][] encodeIssuerX509Principals(X509Certificate[] certificates)
-            throws CertificateEncodingException {
-        byte[][] principalBytes = new byte[certificates.length][];
-        for (int i = 0; i < certificates.length; i++) {
-            principalBytes[i] = certificates[i].getIssuerX500Principal().getEncoded();
-        }
-        return principalBytes;
-    }
 
     public static native void SSL_set_client_CA_list(long ssl, byte[][] asn1DerEncodedX500Principals);
 
