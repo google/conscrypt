@@ -7677,6 +7677,9 @@ static void NativeCrypto_SSL_SESSION_free(JNIEnv* env, jclass, jlong ssl_session
 static jbyteArray NativeCrypto_i2d_SSL_SESSION(JNIEnv* env, jclass, jlong ssl_session_address) {
     SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
     JNI_TRACE("ssl_session=%p NativeCrypto_i2d_SSL_SESSION", ssl_session);
+    if (ssl_session == NULL) {
+        return NULL;
+    }
     return ASN1ToByteArray<SSL_SESSION, i2d_SSL_SESSION>(env, ssl_session);
 }
 
