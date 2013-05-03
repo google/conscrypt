@@ -362,7 +362,7 @@ public class OpenSSLSocketImpl
                     if (issuers != null && issuers.length != 0) {
                         byte[][] issuersBytes;
                         try {
-                            issuersBytes = NativeCrypto.encodeIssuerX509Principals(issuers);
+                            issuersBytes = encodeIssuerX509Principals(issuers);
                         } catch (CertificateEncodingException e) {
                             throw new IOException("Problem encoding principals", e);
                         }
@@ -443,6 +443,15 @@ public class OpenSSLSocketImpl
                 close();
             }
         }
+    }
+
+    private static byte[][] encodeIssuerX509Principals(X509Certificate[] certificates)
+            throws CertificateEncodingException {
+        byte[][] principalBytes = new byte[certificates.length][];
+        for (int i = 0; i < certificates.length; i++) {
+            principalBytes[i] = certificates[i].getIssuerX500Principal().getEncoded();
+        }
+        return principalBytes;
     }
 
     String getPeerHostName() {
