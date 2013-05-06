@@ -445,6 +445,8 @@ public final class NativeCrypto {
 
     public static native int get_X509_ex_flags(long x509ctx);
 
+    public static native int X509_check_issued(long ctx, long ctx2);
+
     // --- X509 EXFLAG ---------------------------------------------------------
 
     public static final int EXFLAG_CA = 0x10;
