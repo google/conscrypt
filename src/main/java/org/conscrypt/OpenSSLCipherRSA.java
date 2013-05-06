@@ -40,7 +40,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.SecretKeySpec;
-import libcore.util.EmptyArray;
+import org.conscrypt.util.EmptyArray;
 
 public abstract class OpenSSLCipherRSA extends CipherSpi {
     /**

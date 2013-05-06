@@ -40,7 +40,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import libcore.util.EmptyArray;
+import org.conscrypt.util.EmptyArray;
 
 public abstract class OpenSSLCipher extends CipherSpi {
 
