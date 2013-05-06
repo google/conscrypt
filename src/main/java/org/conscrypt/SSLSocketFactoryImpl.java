@@ -23,7 +23,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import javax.net.ssl.SSLSocketFactory;
-import libcore.util.EmptyArray;
+import org.conscrypt.util.EmptyArray;
 
 /**
  * Implementation of SSLSocketFactory.

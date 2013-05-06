@@ -20,7 +20,7 @@ package org.conscrypt;
 import java.io.IOException;
 import java.math.BigInteger;
 import libcore.io.Streams;
-import libcore.util.EmptyArray;
+import org.conscrypt.util.EmptyArray;
 
 /**
  * Represents client key exchange message

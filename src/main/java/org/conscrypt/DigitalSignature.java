@@ -30,7 +30,7 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.net.ssl.SSLException;
-import libcore.util.EmptyArray;
+import org.conscrypt.util.EmptyArray;
 
 /**
  * This class represents Signature type, as described in TLS v 1.0 Protocol

@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import libcore.io.Streams;
-import libcore.util.EmptyArray;
+import org.conscrypt.util.EmptyArray;
 
 /**
  * Represents Client Hello message

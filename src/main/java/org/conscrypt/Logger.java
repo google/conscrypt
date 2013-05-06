@@ -19,7 +19,7 @@ package org.conscrypt;
 
 import java.io.PrintStream;
 import java.util.Locale;
-import libcore.util.EmptyArray;
+import org.conscrypt.util.EmptyArray;
 
 /**
  * This class provides debug logging for JSSE provider implementation
