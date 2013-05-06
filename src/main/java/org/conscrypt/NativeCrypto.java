@@ -38,7 +38,6 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
-import libcore.io.Memory;
 
 /**
  * Provides the Java side of our JNI glue for OpenSSL.
@@ -347,7 +346,11 @@ public final class NativeCrypto {
     private static int X509_NAME_hash(X500Principal principal, String algorithm) {
         try {
             byte[] digest = MessageDigest.getInstance(algorithm).digest(principal.getEncoded());
-            return Memory.peekInt(digest, 0, ByteOrder.LITTLE_ENDIAN);
+            int offset = 0;
+            return (((digest[offset++] & 0xff) <<  0) |
+                    ((digest[offset++] & 0xff) <<  8) |
+                    ((digest[offset++] & 0xff) << 16) |
+                    ((digest[offset  ] & 0xff) << 24));
         } catch (NoSuchAlgorithmException e) {
             throw new AssertionError(e);
         }
