@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import javax.net.ssl.DefaultHostnameVerifier;
 import libcore.io.IoUtils;
 import libcore.util.BasicLruCache;
 
@@ -36,7 +36,6 @@ public class CertPinManager {
 
     private final Map<String, PinListEntry> entries = new HashMap<String, PinListEntry>();
     private final BasicLruCache<String, String> hostnameCache = new BasicLruCache<String, String>(10);
-    private final DefaultHostnameVerifier verifier = new DefaultHostnameVerifier();
 
     private boolean initialized = false;
     private static final boolean DEBUG = false;
@@ -166,11 +165,57 @@ public class CertPinManager {
                 continue;
             }
             // now verify that the CN matches at all
-            if (verifier.verifyHostName(hostname, cn)) {
+            if (isHostnameMatchedBy(hostname, cn)) {
                 bestMatch = cn;
             }
         }
         return bestMatch;
+    }
+
+    /**
+     * Returns true if {@code hostName} matches the name or pattern {@code cn}.
+     *
+     * @param hostName lowercase host name.
+     * @param cn certificate host name. May include wildcards like
+     *            {@code *.android.com}.
+     */
+    private static boolean isHostnameMatchedBy(String hostName, String cn) {
+        if (hostName == null || hostName.isEmpty() || cn == null || cn.isEmpty()) {
+            return false;
+        }
+
+        cn = cn.toLowerCase(Locale.US);
+
+        if (!cn.contains("*")) {
+            return hostName.equals(cn);
+        }
+
+        if (cn.startsWith("*.") && hostName.regionMatches(0, cn, 2, cn.length() - 2)) {
+            return true; // "*.foo.com" matches "foo.com"
+        }
+
+        int asterisk = cn.indexOf('*');
+        int dot = cn.indexOf('.');
+        if (asterisk > dot) {
+            return false; // malformed; wildcard must be in the first part of
+                          // the cn
+        }
+
+        if (!hostName.regionMatches(0, cn, 0, asterisk)) {
+            return false; // prefix before '*' doesn't match
+        }
+
+        int suffixLength = cn.length() - (asterisk + 1);
+        int suffixStart = hostName.length() - suffixLength;
+        if (hostName.indexOf('.', asterisk) < suffixStart) {
+            return false; // wildcard '*' can't match a '.'
+        }
+
+        if (!hostName.regionMatches(suffixStart, cn, asterisk + 1, suffixLength)) {
+            return false; // suffix after '*' doesn't match
+        }
+
+        return true;
     }
 
     private static void log(String s, Exception e) {
