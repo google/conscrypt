@@ -47,7 +47,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import javax.security.auth.x500.X500Principal;
 import org.apache.harmony.security.utils.AlgNameMapper;
-import org.apache.harmony.security.x509.X509PublicKey;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 public class OpenSSLX509Certificate extends X509Certificate {
@@ -410,7 +409,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
          * We couldn't find anything else, so just return a nearly-unusable
          * X.509-encoded key.
          */
-        return new X509PublicKey(oid, encoded, null);
+        return new X509PublicKey(oid, encoded);
     }
 
     @Override
