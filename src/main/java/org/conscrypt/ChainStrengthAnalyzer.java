@@ -19,7 +19,6 @@ package org.conscrypt;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
-import java.util.List;
 
 public final class ChainStrengthAnalyzer {
 

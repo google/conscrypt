@@ -29,6 +29,8 @@ import java.security.Provider;
  * </ul>
  */
 public final class OpenSSLProvider extends Provider {
+    private static final long serialVersionUID = 2996752495318905136L;
+
     public static final String PROVIDER_NAME = "AndroidOpenSSL";
 
     public OpenSSLProvider() {

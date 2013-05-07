@@ -193,9 +193,9 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @return an array of X509 certificates (the peer's one first and then
      *         eventually that of the certification authority) or null if no
      *         certificate were used during the SSL connection.
-     * @throws <code>SSLPeerUnverifiedCertificateException</code> if either a
-     *         not X509 certificate was used (i.e. Kerberos certificates) or the
-     *         peer could not be verified.
+     * @throws SSLPeerUnverifiedException if either a non-X.509 certificate
+     *         was used (i.e. Kerberos certificates) or the peer could not
+     *         be verified.
      */
     public javax.security.cert.X509Certificate[] getPeerCertificateChain()
             throws SSLPeerUnverifiedException {
@@ -240,9 +240,9 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @return an array of X509 certificates (the peer's one first and then
      *         eventually that of the certification authority) or null if no
      *         certificate were used during the SSL connection.
-     * @throws <code>SSLPeerUnverifiedException</code> if either a not X509
-     *         certificate was used (i.e. Kerberos certificates) or the peer
-     *         could not be verified.
+     * @throws SSLPeerUnverifiedException if either a non-X.509 certificate
+     *         was used (i.e. Kerberos certificates) or the peer could not
+     *         be verified.
      */
     public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
         checkPeerCertificatesPresent();
@@ -263,9 +263,8 @@ public class OpenSSLSessionImpl implements SSLSession {
      * handshake phase is returned by this method.
      * @return a X500Principal of the last certificate for X509-based
      *         cipher suites.
-     * @throws <code>SSLPeerUnverifiedException</code> if either a not X509
-     *         certificate was used (i.e. Kerberos certificates) or the
-     *         peer does not exist.
+     * @throws SSLPeerUnverifiedException if either a non-X.509 certificate
+     *         was used (i.e. Kerberos certificates) or the peer does not exist.
      *
      */
     public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
@@ -371,7 +370,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @param name the name of the binding to find.
      * @return the value bound to that name, or null if the binding does not
      *         exist.
-     * @throws <code>IllegalArgumentException</code> if the argument is null.
+     * @throws IllegalArgumentException if the argument is null.
      */
     public Object getValue(String name) {
         if (name == null) {
@@ -401,8 +400,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *            accepted!)
      * @param value data object that shall be bound to
      *            name.
-     * @throws <code>IllegalArgumentException</code> if one or both
-     *             argument(s) is null.
+     * @throws IllegalArgumentException if one or both argument(s) is null.
      */
     public void putValue(String name, Object value) {
         if (name == null || value == null) {
@@ -428,7 +426,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *
      * @param name the name of the link (no null are
      *            accepted!)
-     * @throws <code>IllegalArgumentException</code> if the argument is null.
+     * @throws IllegalArgumentException if the argument is null.
      */
     public void removeValue(String name) {
         if (name == null) {

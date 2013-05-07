@@ -322,7 +322,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
      * Processes SSLv2 Hello message.
      * SSLv2 client hello message message is an unexpected message
      * for client side of handshake protocol.
-     * @ see TLS 1.0 spec., E.1. Version 2 client hello
+     * See TLS 1.0 spec., E.1. Version 2 client hello
      * @param bytes
      */
     @Override

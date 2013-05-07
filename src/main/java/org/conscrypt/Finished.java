@@ -63,7 +63,6 @@ public class Finished extends Message {
 
     /**
      * Returns message type
-     * @return
      */
     @Override
     public int getType() {
@@ -72,7 +71,6 @@ public class Finished extends Message {
 
     /**
      * Returns verify data
-     * @return
      */
     public byte[] getData() {
         return data;

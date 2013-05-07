@@ -190,7 +190,7 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
                     continue;
                 }
                 // check that a certificate in the chain was issued by one of the specified issuers
-                loop: for (Certificate certFromChain : chain) {
+                for (Certificate certFromChain : chain) {
                     if (!(certFromChain instanceof X509Certificate)) {
                         // skip non-X509Certificates
                         continue;
