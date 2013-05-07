@@ -18,7 +18,6 @@
 package org.conscrypt;
 
 import java.io.IOException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -158,8 +157,6 @@ public class CertificateMessage extends Message {
 
     /**
      * Returns message type
-     *
-     * @return
      */
     @Override
     public int getType() {

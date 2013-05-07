@@ -180,7 +180,6 @@ public abstract class HandshakeProtocol {
 
     /**
      * Start session negotiation
-     * @param session
      */
     public abstract void start();
 
@@ -198,7 +197,6 @@ public abstract class HandshakeProtocol {
 
     /**
      * Returns handshake status
-     * @return
      */
     public SSLEngineResult.HandshakeStatus getStatus() {
         if (io_stream.hasData() || needSendCCSpec ||
@@ -260,8 +258,7 @@ public abstract class HandshakeProtocol {
     public abstract void unwrapSSLv2(byte[] bytes);
 
     /**
-     * Proceses outbound handshake messages
-     * @return
+     * Processes outbound handshake messages
      */
     public byte[] wrap() {
         if (delegatedTaskErr != null) {

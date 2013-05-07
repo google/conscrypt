@@ -66,17 +66,17 @@ public class DigitalSignature {
 
     /**
      * Create Signature type
-     * @param keyExchange
+     * @param algorithm the key algorithm used for the signature
      */
-    public DigitalSignature(String authType) {
+    public DigitalSignature(String algorithm) {
         try {
             sha = MessageDigest.getInstance("SHA-1");
 
-            if ("RSA".equals(authType)) {
+            if ("RSA".equals(algorithm)) {
                 md5 = MessageDigest.getInstance("MD5");
                 cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
                 signature = null;
-            } else if ("DSA".equals(authType)) {
+            } else if ("DSA".equals(algorithm)) {
                 // SignatureAlgorithm is dsa
                 signature = Signature.getInstance("NONEwithDSA");
                 cipher = null;

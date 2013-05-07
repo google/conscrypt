@@ -133,7 +133,6 @@ public class ClientKeyExchange extends Message {
 
     /**
      * Returns message type
-     * @return
      */
     @Override
     public int getType() {
@@ -142,7 +141,6 @@ public class ClientKeyExchange extends Message {
 
     /**
      * Returns true if the message is empty (in case of implicit DH Yc)
-     * @return
      */
     public boolean isEmpty() {
         return (exchange_keys.length == 0);

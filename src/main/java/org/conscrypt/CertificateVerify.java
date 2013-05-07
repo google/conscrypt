@@ -82,8 +82,6 @@ public class CertificateVerify extends Message {
 
     /**
      * Returns message type
-     *
-     * @return
      */
     @Override
     public int getType() {

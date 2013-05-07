@@ -59,6 +59,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
 
     public static OpenSSLX509Certificate fromX509DerInputStream(InputStream is)
             throws ParsingException {
+        @SuppressWarnings("resource")
         final OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is);
 
         try {
@@ -84,6 +85,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
 
     public static List<OpenSSLX509Certificate> fromPkcs7DerInputStream(InputStream is)
             throws ParsingException {
+        @SuppressWarnings("resource")
         OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is);
 
         final long[] certRefs;
@@ -112,6 +114,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
 
     public static OpenSSLX509Certificate fromX509PemInputStream(InputStream is)
             throws ParsingException {
+        @SuppressWarnings("resource")
         final OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is);
 
         try {
@@ -129,6 +132,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
 
     public static List<OpenSSLX509Certificate> fromPkcs7PemInputStream(InputStream is)
             throws ParsingException {
+        @SuppressWarnings("resource")
         OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is);
 
         final long[] certRefs;
