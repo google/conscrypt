@@ -155,9 +155,8 @@ public class AlertProtocol {
      * of the income TSL record: if it contains alert message from another
      * peer, or if warning alert occured during the processing of the
      * message and this warning should be sent to another peer.
-     * @param   level:  alert level code
-     * @param   description: alert description code
-     * @return
+     * @param level alert level code
+     * @param description alert description code
      */
     protected void alert(byte level, byte description) {
         if (logger != null) {

@@ -199,7 +199,6 @@ public class ClientHello extends Message {
 
     /**
      * Returns message type
-     * @return
      */
     @Override
     public int getType() {

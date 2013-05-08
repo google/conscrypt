@@ -33,13 +33,11 @@ public abstract class Message {
 
     /**
      * Returns message type
-     * @return
      */
     abstract int getType();
 
     /**
      * Returns message length
-     * @return
      */
     public int length() {
         return length;

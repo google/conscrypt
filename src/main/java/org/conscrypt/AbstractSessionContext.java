@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
-
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
 
@@ -83,7 +82,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
-    public final Enumeration getIds() {
+    public final Enumeration<byte[]> getIds() {
         final Iterator<SSLSession> i = sessionIterator();
         return new Enumeration<byte[]>() {
             private SSLSession next;

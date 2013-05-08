@@ -971,7 +971,6 @@ public class CipherSuite {
 
     /**
      * Returns true if cipher suite is anonymous
-     * @return
      */
     public boolean isAnonymous() {
         if (keyExchange == KEY_EXCHANGE_DH_anon
@@ -984,7 +983,6 @@ public class CipherSuite {
 
     /**
      * Returns array of supported CipherSuites
-     * @return
      */
     public static CipherSuite[] getSupported() {
         return SUPPORTED_CIPHER_SUITES;
@@ -992,7 +990,6 @@ public class CipherSuite {
 
     /**
      * Returns array of supported cipher suites names
-     * @return
      */
     public static String[] getSupportedCipherSuiteNames() {
         return SUPPORTED_CIPHER_SUITE_NAMES.clone();
@@ -1000,7 +997,6 @@ public class CipherSuite {
 
     /**
      * Returns cipher suite name
-     * @return
      */
     public String getName() {
         return name;
@@ -1008,7 +1004,6 @@ public class CipherSuite {
 
     /**
      * Returns cipher suite code as byte array
-     * @return
      */
     public byte[] toBytes() {
         return cipherSuiteCode;
@@ -1024,7 +1019,6 @@ public class CipherSuite {
 
     /**
      * Returns cipher algorithm name
-     * @return
      */
     public String getBulkEncryptionAlgorithm() {
         return cipherName;
@@ -1032,7 +1026,6 @@ public class CipherSuite {
 
     /**
      * Returns cipher block size
-     * @return
      */
     public int getBlockSize() {
         return blockSize;
@@ -1040,7 +1033,6 @@ public class CipherSuite {
 
     /**
      * Returns MAC algorithm name
-     * @return
      */
     public String getHmacName() {
         return hmacName;
@@ -1048,7 +1040,6 @@ public class CipherSuite {
 
     /**
      * Returns hash algorithm name
-     * @return
      */
     public String getHashName() {
         return hashName;
@@ -1056,7 +1047,6 @@ public class CipherSuite {
 
     /**
      * Returns hash size
-     * @return
      */
     public int getMACLength() {
         return hashSize;
@@ -1064,7 +1054,6 @@ public class CipherSuite {
 
     /**
      * Indicates whether this cipher suite is exportable
-     * @return
      */
     public boolean isExportable() {
         return isExportable;

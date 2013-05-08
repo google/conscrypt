@@ -74,7 +74,7 @@ public class ConnectionStateTLS extends ConnectionState {
     /**
      * Creates the instance of TLS v1 Connection State. All of the
      * security parameters are provided by session object.
-     * @param   session: the sessin object which incapsulates
+     * @param session the sessin object which incapsulates
      * all of the security parameters established by handshake protocol.
      * The key calculation for the state is done according
      * to the TLS v 1.0 Protocol specification.

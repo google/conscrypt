@@ -26,7 +26,6 @@ import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.Arrays;
 
 /**
  * Implements the JDK Signature interface needed for RAW RSA signature

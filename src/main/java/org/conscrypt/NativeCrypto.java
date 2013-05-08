@@ -20,7 +20,6 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.SocketTimeoutException;
-import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;

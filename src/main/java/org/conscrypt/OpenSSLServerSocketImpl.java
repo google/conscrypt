@@ -233,7 +233,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
                                + "to support the enabled cipher suites.");
     }
 
-    private boolean checkForPrivateKey(String keyType, Class keyClass) {
+    private boolean checkForPrivateKey(String keyType, Class<?> keyClass) {
         String alias = sslParameters.getKeyManager().chooseServerAlias(keyType, null, null);
         if (alias == null) {
             return false;
