@@ -59,6 +59,21 @@
 #undef WITH_JNI_TRACE
 #undef WITH_JNI_TRACE_DATA
 
+/*
+ * How to use this for debugging with Wireshark:
+ *
+ * 1. Pull lines from logcat to a file that looks like (without quotes):
+ *     "RSA Session-ID:... Master-Key:..." <CR>
+ *     "RSA Session-ID:... Master-Key:..." <CR>
+ *     <etc>
+ * 2. Start Wireshark
+ * 3. Go to Edit -> Preferences -> SSL -> (Pre-)Master-Key log and fill in
+ *    the file you put the lines in above.
+ * 4. Follow the stream that corresponds to the desired "Session-ID" in
+ *    the Server Hello.
+ */
+#undef WITH_JNI_TRACE_KEYS
+
 #ifdef WITH_JNI_TRACE
 #define JNI_TRACE(...) \
         ((void)ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__));     \
@@ -6800,6 +6815,66 @@ static jbyteArray NativeCrypto_SSL_get_npn_negotiated_protocol(JNIEnv* env, jcla
     return result;
 }
 
+#ifdef WITH_JNI_TRACE_KEYS
+static inline char hex_char(unsigned char in)
+{
+    if (in < 10) {
+        return '0' + in;
+    } else if (in <= 0xF0) {
+        return 'A' + in - 10;
+    } else {
+        return '?';
+    }
+}
+
+static void hex_string(char **dest, unsigned char* input, int len)
+{
+    *dest = (char*) malloc(len * 2 + 1);
+    char *output = *dest;
+    for (int i = 0; i < len; i++) {
+        *output++ = hex_char(input[i] >> 4);
+        *output++ = hex_char(input[i] & 0xF);
+    }
+    *output = '\0';
+}
+
+static void debug_print_session_key(SSL_SESSION* session)
+{
+    char *session_id_str;
+    char *master_key_str;
+    const char *key_type;
+    char *keyline;
+
+    hex_string(&session_id_str, session->session_id, session->session_id_length);
+    hex_string(&master_key_str, session->master_key, session->master_key_length);
+
+    X509* peer = SSL_SESSION_get0_peer(session);
+    EVP_PKEY* pkey = X509_PUBKEY_get(peer->cert_info->key);
+    switch (EVP_PKEY_type(pkey->type)) {
+    case EVP_PKEY_RSA:
+        key_type = "RSA";
+        break;
+    case EVP_PKEY_DSA:
+        key_type = "DSA";
+        break;
+    case EVP_PKEY_EC:
+        key_type = "EC";
+        break;
+    default:
+        key_type = "Unknown";
+        break;
+    }
+
+    asprintf(&keyline, "%s Session-ID:%s Master-Key:%s\n", key_type, session_id_str,
+            master_key_str);
+    JNI_TRACE("ssl_session=%p %s", session, keyline);
+
+    free(session_id_str);
+    free(master_key_str);
+    free(keyline);
+}
+#endif /* WITH_JNI_TRACE_KEYS */
+
 /**
  * Perform SSL handshake
  */
@@ -6974,6 +7049,9 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
     }
     SSL_SESSION* ssl_session = SSL_get1_session(ssl);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake => ssl_session=%p", ssl, ssl_session);
+#ifdef WITH_JNI_TRACE_KEYS
+    debug_print_session_key(ssl_session);
+#endif
     return (jlong) ssl_session;
 }
 
