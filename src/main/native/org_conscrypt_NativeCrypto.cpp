@@ -6740,20 +6740,25 @@ static int next_proto_select_callback(SSL* ssl, unsigned char **out, unsigned ch
     AppData* appData = toAppData(ssl);
     JNI_TRACE("AppData=%p", appData);
     unsigned char* npnProtocols = reinterpret_cast<unsigned char*>(appData->npnProtocolsData);
-    size_t npnProtocolsLength = appData->npnProtocolsLength;
-    JNI_TRACE("npn_protocols=%p, length=%d", npnProtocols, npnProtocolsLength);
+    if (npnProtocols != NULL) {
+        size_t npnProtocolsLength = appData->npnProtocolsLength;
+        JNI_TRACE("npn_protocols=%p, length=%d", npnProtocols, npnProtocolsLength);
 
-    int status = SSL_select_next_proto(out, outlen, in, inlen, npnProtocols, npnProtocolsLength);
-    switch (status) {
-      case OPENSSL_NPN_NEGOTIATED:
-        JNI_TRACE("ssl=%p next_proto_select_callback NPN negotiated", ssl);
-        break;
-      case OPENSSL_NPN_UNSUPPORTED:
-        JNI_TRACE("ssl=%p next_proto_select_callback NPN unsupported", ssl);
-        break;
-      case OPENSSL_NPN_NO_OVERLAP:
-        JNI_TRACE("ssl=%p next_proto_select_callback NPN no overlap", ssl);
-        break;
+        int status = SSL_select_next_proto(out, outlen, in, inlen, npnProtocols,
+                npnProtocolsLength);
+        switch (status) {
+        case OPENSSL_NPN_NEGOTIATED:
+            JNI_TRACE("ssl=%p next_proto_select_callback NPN negotiated", ssl);
+            break;
+        case OPENSSL_NPN_UNSUPPORTED:
+            JNI_TRACE("ssl=%p next_proto_select_callback NPN unsupported", ssl);
+            break;
+        case OPENSSL_NPN_NO_OVERLAP:
+            JNI_TRACE("ssl=%p next_proto_select_callback NPN no overlap", ssl);
+            break;
+        }
+    } else {
+        JNI_TRACE("npn_protocols=NULL");
     }
     return SSL_TLSEXT_ERR_OK;
 }
