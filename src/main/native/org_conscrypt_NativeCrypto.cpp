@@ -752,8 +752,7 @@ static jbyteArray bignumToArray(JNIEnv* env, const BIGNUM* source, const char* s
         return NULL;
     }
 
-    int len = BN_num_bytes(source) + 1;
-    jbyteArray javaBytes = env->NewByteArray(len);
+    jbyteArray javaBytes = env->NewByteArray(BN_num_bytes(source) + 1);
     ScopedByteArrayRW bytes(env, javaBytes);
     if (bytes.get() == NULL) {
         JNI_TRACE("bignumToArray(%p, %s) => NULL", source, sourceName);
@@ -769,7 +768,7 @@ static jbyteArray bignumToArray(JNIEnv* env, const BIGNUM* source, const char* s
         *tmp = 0x00;
     }
 
-    if (BN_bn2bin(source, tmp + 1) <= 0) {
+    if (BN_num_bytes(source) > 0 && BN_bn2bin(source, tmp + 1) <= 0) {
         throwExceptionIfNecessary(env, "bignumToArray");
         return NULL;
     }
