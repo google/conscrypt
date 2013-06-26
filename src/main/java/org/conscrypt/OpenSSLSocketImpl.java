@@ -72,6 +72,7 @@ public class OpenSSLSocketImpl
     private final Object writeLock = new Object();
     private SSLParametersImpl sslParameters;
     private byte[] npnProtocols;
+    private byte[] alpnProtocols;
     private String[] enabledProtocols;
     private String[] enabledCipherSuites;
     private boolean useSessionTickets;
@@ -280,6 +281,10 @@ public class OpenSSLSocketImpl
                 NativeCrypto.SSL_CTX_enable_npn(sslCtxNativePointer);
             }
 
+            if (client && alpnProtocols != null) {
+                NativeCrypto.SSL_CTX_set_alpn_protos(sslCtxNativePointer, alpnProtocols);
+            }
+
             // setup server certificates and private keys.
             // clients will receive a call back to request certificates.
             if (!client) {
@@ -398,7 +403,8 @@ public class OpenSSLSocketImpl
             int sslSessionNativePointer;
             try {
                 sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer,
-                        socket.getFileDescriptor$(), this, getSoTimeout(), client, npnProtocols);
+                        socket.getFileDescriptor$(), this, getSoTimeout(), client, npnProtocols,
+                        client ? null : alpnProtocols);
             } catch (CertificateException e) {
                 SSLHandshakeException wrapper = new SSLHandshakeException(e.getMessage());
                 wrapper.initCause(e);
@@ -1086,6 +1092,14 @@ public class OpenSSLSocketImpl
     }
 
     /**
+     * Returns the protocol agreed upon by client and server, or {@code null} if
+     * no protocol was agreed upon.
+     */
+    public byte[] getAlpnSelectedProtocol() {
+        return NativeCrypto.SSL_get0_alpn_selected(sslNativePointer);
+    }
+
+    /**
      * Sets the list of protocols this peer is interested in. If null no
      * protocols will be used.
      *
@@ -1099,5 +1113,22 @@ public class OpenSSLSocketImpl
             throw new IllegalArgumentException("npnProtocols.length == 0");
         }
         this.npnProtocols = npnProtocols;
+    }
+
+    /**
+     * Sets the list of protocols this peer is interested in. If the list is
+     * {@code null}, no protocols will be used.
+     *
+     * @param alpnProtocols a non-empty array of protocol names. From
+     *            SSL_select_next_proto, "vector of 8-bit, length prefixed byte
+     *            strings. The length byte itself is not included in the length.
+     *            A byte string of length 0 is invalid. No byte string may be
+     *            truncated.".
+     */
+    public void setAlpnProtocols(byte[] alpnProtocols) {
+        if (alpnProtocols != null && alpnProtocols.length == 0) {
+            throw new IllegalArgumentException("alpnProtocols.length == 0");
+        }
+        this.alpnProtocols = alpnProtocols;
     }
 }

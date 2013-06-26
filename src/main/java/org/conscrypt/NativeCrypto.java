@@ -952,14 +952,29 @@ public final class NativeCrypto {
     public static native void SSL_CTX_disable_npn(long sslCtxNativePointer);
 
     /**
-     * Returns the sslSessionNativePointer of the negotiated session
+     * For clients, sets the list of supported ALPN protocols in wire-format
+     * (length-prefixed 8-bit strings) on an SSL context.
+     */
+    public static native int SSL_CTX_set_alpn_protos(long sslCtxPointer, byte[] protos);
+
+    /**
+     * Returns the selected ALPN protocol. If the server did not select a
+     * protocol, {@code null} will be returned.
+     */
+    public static native byte[] SSL_get0_alpn_selected(long sslPointer);
+
+    /**
+     * Returns the sslSessionNativePointer of the negotiated session. If this is
+     * a server negotiation, supplying the {@code alpnProtocols} will enable
+     * ALPN negotiation.
      */
     public static native int SSL_do_handshake(long sslNativePointer,
                                               FileDescriptor fd,
                                               SSLHandshakeCallbacks shc,
                                               int timeoutMillis,
                                               boolean client_mode,
-                                              byte[] npnProtocols)
+                                              byte[] npnProtocols,
+                                              byte[] alpnProtocols)
         throws SSLException, SocketTimeoutException, CertificateException;
 
     public static native byte[] SSL_get_npn_negotiated_protocol(long sslNativePointer);
