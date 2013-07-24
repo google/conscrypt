@@ -391,7 +391,7 @@ public class SSLSocketImpl extends SSLSocket {
             } catch (IOException e) {
                 // return an invalid session with
                 // invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
-                return SSLSessionImpl.NULL_SESSION;
+                return SSLSessionImpl.getNullSession();
             }
         }
         return session;
