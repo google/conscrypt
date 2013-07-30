@@ -4179,7 +4179,7 @@ static jint NativeCrypto_get_X509_ex_flags(JNIEnv* env, jclass, jlong x509Ref) {
     return x509->ex_flags;
 }
 
-static jboolean NativeCrypto_X509_check_issued(JNIEnv* env, jclass, jlong x509Ref1, jlong x509Ref2) {
+static jboolean NativeCrypto_X509_check_issued(JNIEnv*, jclass, jlong x509Ref1, jlong x509Ref2) {
     X509* x509_1 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref1));
     X509* x509_2 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref2));
     JNI_TRACE("X509_check_issued(%p, %p)", x509_1, x509_2);
@@ -6756,7 +6756,8 @@ static jstring NativeCrypto_SSL_get_servername(JNIEnv* env, jclass, jlong ssl_ad
  * same protocol. The list of protocols in "primary" is considered the order
  * which should take precedence.
  */
-static int proto_select(SSL* ssl, unsigned char **out, unsigned char *outLength,
+static int proto_select(SSL* ssl __attribute__ ((unused)),
+        unsigned char **out, unsigned char *outLength,
         const unsigned char *primary, const unsigned int primaryLength,
         const unsigned char *secondary, const unsigned int secondaryLength) {
     if (primary != NULL) {
@@ -6799,8 +6800,8 @@ static int alpn_select_callback(SSL* ssl, const unsigned char **out, unsigned ch
 /**
  * Callback for the client to select an NPN protocol.
  */
-static int next_proto_select_callback(SSL* ssl, unsigned char **out, unsigned char *outlen,
-        const unsigned char *in, unsigned int inlen, void *arg)
+static int next_proto_select_callback(SSL* ssl, unsigned char** out, unsigned char* outlen,
+                                      const unsigned char* in, unsigned int inlen, void*)
 {
     JNI_TRACE("ssl=%p next_proto_select_callback", ssl);
 
