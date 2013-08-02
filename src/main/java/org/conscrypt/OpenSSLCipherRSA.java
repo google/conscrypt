@@ -33,6 +33,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+import java.util.Locale;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.CipherSpi;
@@ -85,7 +86,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
 
     @Override
     protected void engineSetMode(String mode) throws NoSuchAlgorithmException {
-        final String modeUpper = mode.toUpperCase();
+        final String modeUpper = mode.toUpperCase(Locale.ROOT);
         if ("NONE".equals(modeUpper) || "ECB".equals(modeUpper)) {
             return;
         }
@@ -95,7 +96,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
 
     @Override
     protected void engineSetPadding(String padding) throws NoSuchPaddingException {
-        final String paddingUpper = padding.toUpperCase();
+        final String paddingUpper = padding.toUpperCase(Locale.ROOT);
         if ("PKCS1PADDING".equals(paddingUpper)) {
             this.padding = NativeCrypto.RSA_PKCS1_PADDING;
             return;
