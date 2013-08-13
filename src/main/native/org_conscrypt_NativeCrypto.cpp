@@ -252,9 +252,8 @@ class X509Chain {
     X509Chain(size_t n) : x509s_(n) {}
 
     ~X509Chain() {
-        // TODO: C++0x auto
-        for (std::vector<X509*>::const_iterator it = x509s_.begin(); it != x509s_.end(); ++it) {
-            X509_free(*it);
+        for (const auto& x509 : x509s_) {
+            X509_free(x509);
         }
     }
 
