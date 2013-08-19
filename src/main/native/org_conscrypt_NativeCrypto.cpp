@@ -998,7 +998,7 @@ public:
             return -1;
         }
 
-        return 1;
+        return len;
     }
 };
 
@@ -3619,7 +3619,7 @@ static void NativeCrypto_EVP_CIPHER_CTX_set_padding(JNIEnv* env, jclass, jlong c
         return;
     }
 
-    EVP_CIPHER_CTX_set_padding(ctx, enablePadding);
+    EVP_CIPHER_CTX_set_padding(ctx, enablePadding); // Not void, but always returns 1.
     JNI_TRACE("EVP_CIPHER_CTX_set_padding(%p, %d) => success", ctx, enablePadding);
 }
 
@@ -3634,16 +3634,24 @@ static void NativeCrypto_EVP_CIPHER_CTX_set_key_length(JNIEnv* env, jclass, jlon
         return;
     }
 
-    EVP_CIPHER_CTX_set_key_length(ctx, keySizeBits);
+    if (!EVP_CIPHER_CTX_set_key_length(ctx, keySizeBits)) {
+        throwExceptionIfNecessary(env, "NativeCrypto_EVP_CIPHER_CTX_set_key_length");
+        JNI_TRACE("NativeCrypto_EVP_CIPHER_CTX_set_key_length => threw error");
+        return;
+    }
     JNI_TRACE("EVP_CIPHER_CTX_set_key_length(%p, %d) => success", ctx, keySizeBits);
 }
 
-static void NativeCrypto_EVP_CIPHER_CTX_cleanup(JNIEnv*, jclass, jlong ctxRef) {
+static void NativeCrypto_EVP_CIPHER_CTX_cleanup(JNIEnv* env, jclass, jlong ctxRef) {
     EVP_CIPHER_CTX* ctx = reinterpret_cast<EVP_CIPHER_CTX*>(ctxRef);
     JNI_TRACE("EVP_CIPHER_CTX_cleanup(%p)", ctx);
 
     if (ctx != NULL) {
-        EVP_CIPHER_CTX_cleanup(ctx);
+        if (!EVP_CIPHER_CTX_cleanup(ctx)) {
+            throwExceptionIfNecessary(env, "EVP_CIPHER_CTX_cleanup");
+            JNI_TRACE("EVP_CIPHER_CTX_cleanup => threw error");
+            return;
+        }
     }
     JNI_TRACE("EVP_CIPHER_CTX_cleanup(%p) => success", ctx);
 }
@@ -3680,7 +3688,7 @@ static void NativeCrypto_RAND_bytes(JNIEnv* env, jclass, jbyteArray output) {
     }
 
     unsigned char* tmp = reinterpret_cast<unsigned char*>(outputBytes.get());
-    if (!RAND_bytes(tmp, outputBytes.size())) {
+    if (RAND_bytes(tmp, outputBytes.size()) <= 0) {
         throwExceptionIfNecessary(env, "NativeCrypto_RAND_bytes");
         JNI_TRACE("tmp=%p NativeCrypto_RAND_bytes => threw error", tmp);
         return;
@@ -3843,7 +3851,7 @@ static void NativeCrypto_BIO_write(JNIEnv* env, jclass, jlong bioRef, jbyteArray
     }
 
     env->GetByteArrayRegion(inputJavaBytes, offset, length, reinterpret_cast<jbyte*>(buffer.get()));
-    if (BIO_write(bio, buffer.get(), length) != 1) {
+    if (BIO_write(bio, buffer.get(), length) != length) {
         freeOpenSslErrorState();
         jniThrowException(env, "java/io/IOException", "BIO_write");
         JNI_TRACE("BIO_write(%p, %p, %d, %d) => IO error", bio, inputJavaBytes, offset, length);
@@ -4380,8 +4388,12 @@ static void NativeCrypto_X509_CRL_print(JNIEnv* env, jclass, jlong bioRef, jlong
         return;
     }
 
-    X509_CRL_print(bio, crl);
-    JNI_TRACE("X509_CRL_print(%p, %p) => success", bio, crl);
+    if (!X509_CRL_print(bio, crl)) {
+        throwExceptionIfNecessary(env, "X509_CRL_print");
+        JNI_TRACE("X509_CRL_print(%p, %p) => threw error", bio, crl);
+    } else {
+        JNI_TRACE("X509_CRL_print(%p, %p) => success", bio, crl);
+    }
 }
 
 static jstring NativeCrypto_get_X509_CRL_sig_alg_oid(JNIEnv* env, jclass, jlong x509CrlRef) {
@@ -5078,8 +5090,12 @@ static void NativeCrypto_X509_print_ex(JNIEnv* env, jclass, jlong bioRef, jlong 
         return;
     }
 
-    X509_print_ex(bio, x509, nmflag, certflag);
-    JNI_TRACE("X509_print_ex(%p, %p, %ld, %ld) => success", bio, x509, nmflag, certflag);
+    if (!X509_print_ex(bio, x509, nmflag, certflag)) {
+        throwExceptionIfNecessary(env, "X509_print_ex");
+        JNI_TRACE("X509_print_ex(%p, %p, %ld, %ld) => threw error", bio, x509, nmflag, certflag);
+    } else {
+        JNI_TRACE("X509_print_ex(%p, %p, %ld, %ld) => success", bio, x509, nmflag, certflag);
+    }
 }
 
 static jlong NativeCrypto_X509_get_pubkey(JNIEnv* env, jclass, jlong x509Ref) {
