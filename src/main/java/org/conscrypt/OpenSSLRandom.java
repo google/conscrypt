@@ -22,20 +22,58 @@ import java.security.SecureRandomSpi;
 public class OpenSSLRandom extends SecureRandomSpi implements Serializable {
     private static final long serialVersionUID = 8506210602917522860L;
 
+    private boolean mSeeded;
+
     @Override
     protected void engineSetSeed(byte[] seed) {
+        // NOTE: The contract of the SecureRandomSpi does not appear to prohibit self-seeding here
+        // (in addition to using the provided seed).
+        selfSeedIfNotSeeded();
         NativeCrypto.RAND_seed(seed);
     }
 
     @Override
     protected void engineNextBytes(byte[] bytes) {
+        selfSeedIfNotSeeded();
         NativeCrypto.RAND_bytes(bytes);
     }
 
     @Override
     protected byte[] engineGenerateSeed(int numBytes) {
+        selfSeedIfNotSeeded();
         byte[] output = new byte[numBytes];
         NativeCrypto.RAND_bytes(output);
         return output;
+    }
+
+    /**
+     * Self-seeds this instance from the Linux RNG. Does nothing if this instance has already been
+     * seeded.
+     */
+    private void selfSeedIfNotSeeded() {
+        // NOTE: No need to worry about concurrent access to this field because the worst case is
+        // that the code below is executed multiple times (by different threads), which may only
+        // increase the entropy of the OpenSSL PRNG.
+        if (mSeeded) {
+            return;
+        }
+
+        seedOpenSSLPRNGFromLinuxRNG();
+        mSeeded = true;
+    }
+
+    /**
+     * Obtains a seed from the Linux RNG and mixes it into the OpenSSL PRNG (default RAND engine).
+     *
+     * <p>NOTE: This modifies the OpenSSL PRNG shared by all instances of OpenSSLRandom and other
+     * crypto primitives offered by or built on top of OpenSSL.
+     */
+    public static void seedOpenSSLPRNGFromLinuxRNG() {
+        int seedLengthInBytes = NativeCrypto.RAND_SEED_LENGTH_IN_BYTES;
+        int bytesRead = NativeCrypto.RAND_load_file("/dev/urandom", seedLengthInBytes);
+        if (bytesRead != seedLengthInBytes) {
+            throw new SecurityException("Failed to read sufficient bytes from /dev/urandom."
+                    + " Expected: " + seedLengthInBytes + ", actual: " + bytesRead);
+        }
     }
 }
