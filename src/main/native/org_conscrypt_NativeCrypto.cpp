@@ -8178,8 +8178,6 @@ static void initialize_conscrypt(JNIEnv* env) {
     outputStream_flushMethod = env->GetMethodID(outputStreamClass, "flush", "()V");
 }
 
-#if defined(CONSCRYPT_UNBUNDLED)
-
 static jclass findClass(JNIEnv* env, const char* name) {
     ScopedLocalRef<jclass> localClass(env, env->FindClass(name));
     jclass result = reinterpret_cast<jclass>(env->NewGlobalRef(localClass.get()));
@@ -8191,7 +8189,7 @@ static jclass findClass(JNIEnv* env, const char* name) {
 }
 
 // Use JNI_OnLoad for when we're standalone
-int JNI_OnLoad(JavaVM *vm, void* reserved) {
+int JNI_OnLoad(JavaVM *vm, void*) {
     JNI_TRACE("JNI_OnLoad NativeCrypto");
     gJavaVM = vm;
 
@@ -8213,24 +8211,3 @@ int JNI_OnLoad(JavaVM *vm, void* reserved) {
     initialize_conscrypt(env);
     return JNI_VERSION_1_6;
 }
-
-#else
-
-// Use this when built into Android
-void register_org_conscrypt_NativeCrypto(JNIEnv* env) {
-    JNI_TRACE("register_org_conscrypt_NativeCrypto");
-
-    byteArrayClass = JniConstants::byteArrayClass;
-    calendarClass = JniConstants::calendarClass;
-    inputStreamClass = JniConstants::inputStreamClass;
-    integerClass = JniConstants::integerClass;
-    objectClass = JniConstants::objectClass;
-    objectArrayClass = JniConstants::objectArrayClass;
-    outputStreamClass = JniConstants::outputStreamClass;
-    stringClass = JniConstants::stringClass;
-
-    env->GetJavaVM(&gJavaVM);
-    initialize_conscrypt(env);
-}
-
-#endif // defined(CONSCRYPT_UNBUNDLED)

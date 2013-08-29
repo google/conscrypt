@@ -46,11 +46,12 @@ public final class NativeCrypto {
     // --- OpenSSL library initialization --------------------------------------
     static {
         /*
-         * If we're compiled as part of Android, we don't need to explicitly
-         * call loadLibrary. Detect this by looking for the jarjar'd package
-         * name.
+         * If we're compiled as part of Android, should use a different JNI
+         * library name. Detect this by looking for the jarjar'd package name.
          */
-        if (!"com.android.org.conscrypt".equals(NativeCrypto.class.getPackage().getName())) {
+        if ("com.android.org.conscrypt".equals(NativeCrypto.class.getPackage().getName())) {
+            System.loadLibrary("javacrypto");
+        } else {
             System.loadLibrary("conscrypt_jni");
         }
 
