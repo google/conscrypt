@@ -337,6 +337,8 @@ public class NativeCryptoTest extends TestCase {
     }
 
     public void test_SSL_use_PrivateKey_for_tls_channel_id() throws Exception {
+        initChannelIdKey();
+
         try {
             NativeCrypto.SSL_set1_tls_channel_id(NULL, NULL);
             fail();
