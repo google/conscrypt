@@ -16,8 +16,6 @@
 
 package org.conscrypt;
 
-import org.apache.harmony.security.utils.AlgNameMapper;
-
 import java.security.Provider;
 
 /**
@@ -35,12 +33,11 @@ public final class OpenSSLProvider extends Provider {
 
     public static final String PROVIDER_NAME = "AndroidOpenSSL";
 
-    static {
-        AlgNameMapper.setSource(new OpenSSLMapper());
-    }
-
     public OpenSSLProvider() {
         super(PROVIDER_NAME, 1.0, "Android's OpenSSL-backed security provider");
+
+        // Make sure the platform is initialized.
+        Platform.setup();
 
         final String prefix = getClass().getPackage().getName() + ".";
 
