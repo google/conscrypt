@@ -506,15 +506,17 @@ public class OpenSSLSocketImpl
             return;
         }
 
+        // Note that OpenSSL says to use SSL_use_certificate before SSL_use_PrivateKey.
+
+        byte[][] certificateBytes = NativeCrypto.encodeCertificates(certificates);
+        NativeCrypto.SSL_use_certificate(sslNativePointer, certificateBytes);
+
         try {
             final OpenSSLKey key = OpenSSLKey.fromPrivateKey(privateKey);
             NativeCrypto.SSL_use_PrivateKey(sslNativePointer, key.getPkeyContext());
         } catch (InvalidKeyException e) {
             throw new SSLException(e);
         }
-
-        byte[][] certificateBytes = NativeCrypto.encodeCertificates(certificates);
-        NativeCrypto.SSL_use_certificate(sslNativePointer, certificateBytes);
 
         // checks the last installed private key and certificate,
         // so need to do this once per loop iteration
