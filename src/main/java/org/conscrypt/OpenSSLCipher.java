@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.io.IOException;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -118,6 +119,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
     }
 
     /**
+     * Returns the standard name for the particular algorithm.
+     */
+    protected abstract String getBaseCipherName();
+
+    /**
      * Returns the OpenSSL cipher name for the particular {@code keySize} and
      * cipher {@code mode}.
      */
@@ -214,10 +220,22 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     @Override
     protected AlgorithmParameters engineGetParameters() {
+        if (iv != null && iv.length > 0) {
+            try {
+                AlgorithmParameters params = AlgorithmParameters.getInstance(getBaseCipherName());
+                params.init(iv);
+                return params;
+            } catch (NoSuchAlgorithmException e) {
+                return null;
+            } catch (IOException e) {
+                return null;
+            }
+        }
         return null;
     }
 
-    private void engineInitInternal(int opmode, Key key, byte[] iv) throws InvalidKeyException, InvalidAlgorithmParameterException {
+    private void engineInitInternal(int opmode, Key key, byte[] iv, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
         if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
             encrypting = true;
         } else if (opmode == Cipher.DECRYPT_MODE || opmode == Cipher.UNWRAP_MODE) {
@@ -245,9 +263,15 @@ public abstract class OpenSSLCipher extends CipherSpi {
         }
 
         final int ivLength = NativeCrypto.EVP_CIPHER_iv_length(cipherType);
-        if (iv == null) {
+        if (iv == null && ivLength != 0) {
             iv = new byte[ivLength];
-        } else if (iv.length != ivLength) {
+            if (encrypting) {
+                if (random == null) {
+                    random = new SecureRandom();
+                }
+                random.nextBytes(iv);
+            }
+        } else if (iv != null && iv.length != ivLength) {
             throw new InvalidAlgorithmParameterException("expected IV length of " + ivLength);
         }
 
@@ -273,7 +297,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
     @Override
     protected void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
         try {
-            engineInitInternal(opmode, key, null);
+            engineInitInternal(opmode, key, null, random);
         } catch (InvalidAlgorithmParameterException e) {
             throw new RuntimeException(e);
         }
@@ -290,7 +314,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
             iv = null;
         }
 
-        engineInitInternal(opmode, key, iv);
+        engineInitInternal(opmode, key, iv, random);
     }
 
     @Override
@@ -631,6 +655,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
         }
 
         @Override
+        protected String getBaseCipherName() {
+            return "AES";
+        }
+
+        @Override
         protected String getCipherName(int keyLength, Mode mode) {
             return "aes-" + (keyLength * 8) + "-" + mode.toString().toLowerCase(Locale.US);
         }
@@ -721,6 +750,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
         }
 
         @Override
+        protected String getBaseCipherName() {
+            return "DESede";
+        }
+
+        @Override
         protected String getCipherName(int keySize, Mode mode) {
             final String baseCipherName;
             if (keySize == 16) {
@@ -777,6 +811,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     public static class ARC4 extends OpenSSLCipher {
         public ARC4() {
+        }
+
+        @Override
+        protected String getBaseCipherName() {
+            return "ARCFOUR";
         }
 
         @Override
