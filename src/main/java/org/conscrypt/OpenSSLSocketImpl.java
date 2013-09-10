@@ -64,28 +64,15 @@ public class OpenSSLSocketImpl
         extends javax.net.ssl.SSLSocket
         implements NativeCrypto.SSLHandshakeCallbacks {
 
-    private long sslNativePointer;
-    private InputStream is;
-    private OutputStream os;
+    /**
+     * Protects handshakeStarted and handshakeCompleted.
+     */
     private final Object handshakeLock = new Object();
-    private final Object readLock = new Object();
-    private final Object writeLock = new Object();
-    private SSLParametersImpl sslParameters;
-    private byte[] npnProtocols;
-    private byte[] alpnProtocols;
-    private String[] enabledProtocols;
-    private String[] enabledCipherSuites;
-    private boolean useSessionTickets;
-    private String hostname;
-    /** Whether the TLS Channel ID extension is enabled. This field is server-side only. */
-    private boolean channelIdEnabled;
-    /** Private key for the TLS Channel ID extension. This field is client-side only. */
-    private OpenSSLKey channelIdPrivateKey;
-    private OpenSSLSessionImpl sslSession;
-    private final Socket socket;
-    private boolean autoClose;
+
+    /**
+     * First thread to try to handshake sets this to true.
+     */
     private boolean handshakeStarted = false;
-    private final CloseGuard guard = CloseGuard.get();
 
     /**
      * Not set to true until the update from native that tells us the
@@ -94,6 +81,67 @@ public class OpenSSLSocketImpl
      * handshake_cutthrough support.
      */
     private boolean handshakeCompleted = false;
+
+    /**
+     * Protected by synchronizing on this. Starts as 0, set by
+     * startHandshake, reset to 0 on close.
+     */
+    private long sslNativePointer;
+
+    /**
+     * Protected by synchronizing on this. Starts as null, set by
+     * getInputStream after startHandshake.
+     */
+    private InputStream is;
+
+    /**
+     * Protected by synchronizing on this. Starts as null, set by
+     * getInputStream after startHandshake.
+     */
+    private OutputStream os;
+
+    /**
+     * OpenSSL only lets one thread read at a time, so this is used to
+     * make sure we serialize callers of SSL_read. Thread is already
+     * expected to have completed handshaking.
+     */
+    private final Object readLock = new Object();
+
+    /**
+     * OpenSSL only lets one thread write at a time, so this is used
+     * to make sure we serialize callers of SSL_write. Thread is
+     * already expected to have completed handshaking.
+     */
+    private final Object writeLock = new Object();
+
+    private final Socket socket;
+    private final boolean autoClose;
+    private final String wrappedHost;
+    private final int wrappedPort;
+    private final SSLParametersImpl sslParameters;
+    private final CloseGuard guard = CloseGuard.get();
+
+    private String[] enabledProtocols;
+    private String[] enabledCipherSuites;
+    private byte[] npnProtocols;
+    private byte[] alpnProtocols;
+    private boolean useSessionTickets;
+    private String hostname;
+
+    /**
+     * Whether the TLS Channel ID extension is enabled. This field is
+     * server-side only.
+     */
+    private boolean channelIdEnabled;
+
+    /**
+     * Private key for the TLS Channel ID extension. This field is
+     * client-side only. Set during startHandshake.
+     */
+    private OpenSSLKey channelIdPrivateKey;
+
+    /** Set during startHandshake. */
+    private OpenSSLSessionImpl sslSession;
 
     private ArrayList<HandshakeCompletedListener> listeners;
 
@@ -107,33 +155,51 @@ public class OpenSSLSocketImpl
     private int writeTimeoutMilliseconds = 0;
 
     private int handshakeTimeoutMilliseconds = -1;  // -1 = same as timeout; 0 = infinite
-    private String wrappedHost;
-    private int wrappedPort;
 
     protected OpenSSLSocketImpl(SSLParametersImpl sslParameters) throws IOException {
         this.socket = this;
-        init(sslParameters);
+        this.wrappedHost = null;
+        this.wrappedPort = -1;
+        this.autoClose = false;
+        this.sslParameters = sslParameters;
+        this.enabledProtocols = NativeCrypto.getDefaultProtocols();
+        this.enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
     }
 
     protected OpenSSLSocketImpl(SSLParametersImpl sslParameters,
                                 String[] enabledProtocols,
                                 String[] enabledCipherSuites) throws IOException {
         this.socket = this;
-        init(sslParameters, enabledProtocols, enabledCipherSuites);
+        this.wrappedHost = null;
+        this.wrappedPort = -1;
+        this.autoClose = false;
+        this.sslParameters = sslParameters;
+        this.enabledProtocols = enabledProtocols;
+        this.enabledCipherSuites = enabledCipherSuites;
     }
 
     protected OpenSSLSocketImpl(String host, int port, SSLParametersImpl sslParameters)
             throws IOException {
         super(host, port);
         this.socket = this;
-        init(sslParameters);
+        this.wrappedHost = null;
+        this.wrappedPort = -1;
+        this.autoClose = false;
+        this.sslParameters = sslParameters;
+        this.enabledProtocols = NativeCrypto.getDefaultProtocols();
+        this.enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
     }
 
     protected OpenSSLSocketImpl(InetAddress address, int port, SSLParametersImpl sslParameters)
             throws IOException {
         super(address, port);
         this.socket = this;
-        init(sslParameters);
+        this.wrappedHost = null;
+        this.wrappedPort = -1;
+        this.autoClose = false;
+        this.sslParameters = sslParameters;
+        this.enabledProtocols = NativeCrypto.getDefaultProtocols();
+        this.enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
     }
 
 
@@ -142,7 +208,12 @@ public class OpenSSLSocketImpl
                                 SSLParametersImpl sslParameters) throws IOException {
         super(host, port, clientAddress, clientPort);
         this.socket = this;
-        init(sslParameters);
+        this.wrappedHost = null;
+        this.wrappedPort = -1;
+        this.autoClose = false;
+        this.sslParameters = sslParameters;
+        this.enabledProtocols = NativeCrypto.getDefaultProtocols();
+        this.enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
     }
 
     protected OpenSSLSocketImpl(InetAddress address, int port,
@@ -150,7 +221,12 @@ public class OpenSSLSocketImpl
                                 SSLParametersImpl sslParameters) throws IOException {
         super(address, port, clientAddress, clientPort);
         this.socket = this;
-        init(sslParameters);
+        this.wrappedHost = null;
+        this.wrappedPort = -1;
+        this.autoClose = false;
+        this.sslParameters = sslParameters;
+        this.enabledProtocols = NativeCrypto.getDefaultProtocols();
+        this.enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
     }
 
     /**
@@ -163,33 +239,13 @@ public class OpenSSLSocketImpl
         this.wrappedHost = host;
         this.wrappedPort = port;
         this.autoClose = autoClose;
-        init(sslParameters);
+        this.sslParameters = sslParameters;
+        this.enabledProtocols = NativeCrypto.getDefaultProtocols();
+        this.enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
 
         // this.timeout is not set intentionally.
         // OpenSSLSocketImplWrapper.getSoTimeout will delegate timeout
         // to wrapped socket
-    }
-
-    /**
-     * Initialize the SSL socket and set the certificates for the
-     * future handshaking.
-     */
-    private void init(SSLParametersImpl sslParameters) throws IOException {
-        init(sslParameters,
-             NativeCrypto.getDefaultProtocols(),
-             NativeCrypto.getDefaultCipherSuites());
-    }
-
-    /**
-     * Initialize the SSL socket and set the certificates for the
-     * future handshaking.
-     */
-    private void init(SSLParametersImpl sslParameters,
-                      String[] enabledProtocols,
-                      String[] enabledCipherSuites) throws IOException {
-        this.sslParameters = sslParameters;
-        this.enabledProtocols = enabledProtocols;
-        this.enabledCipherSuites = enabledCipherSuites;
     }
 
     /**
@@ -268,8 +324,8 @@ public class OpenSSLSocketImpl
         final boolean client = sslParameters.getUseClientMode();
 
         final long sslCtxNativePointer = (client) ?
-            sslParameters.getClientSessionContext().sslCtxNativePointer :
-            sslParameters.getServerSessionContext().sslCtxNativePointer;
+                sslParameters.getClientSessionContext().sslCtxNativePointer :
+                sslParameters.getServerSessionContext().sslCtxNativePointer;
 
         this.sslNativePointer = 0;
         boolean exception = true;
@@ -482,7 +538,8 @@ public class OpenSSLSocketImpl
      * Return a possibly null array of X509Certificates given the
      * possibly null array of DER encoded bytes.
      */
-    private static X509Certificate[] createCertChain(byte[][] certificatesBytes) throws IOException {
+    private static X509Certificate[] createCertChain(byte[][] certificatesBytes)
+            throws IOException {
         if (certificatesBytes == null) {
             return null;
         }
@@ -986,9 +1043,13 @@ public class OpenSSLSocketImpl
                     free();
 
                     if (socket != this) {
-                        if (autoClose && !socket.isClosed()) socket.close();
+                        if (autoClose && !socket.isClosed()) {
+                            socket.close();
+                        }
                     } else {
-                        if (!super.isClosed()) super.close();
+                        if (!super.isClosed()) {
+                            super.close();
+                        }
                     }
                 }
 
