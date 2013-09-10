@@ -291,6 +291,7 @@ typedef UniquePtr<PKCS7, PKCS7_Delete> Unique_PKCS7;
 
 struct sk_SSL_CIPHER_Delete {
     void operator()(STACK_OF(SSL_CIPHER)* p) const {
+        // We don't own SSL_CIPHER references, so no need for pop_free
         sk_SSL_CIPHER_free(p);
     }
 };
@@ -298,28 +299,28 @@ typedef UniquePtr<STACK_OF(SSL_CIPHER), sk_SSL_CIPHER_Delete> Unique_sk_SSL_CIPH
 
 struct sk_X509_Delete {
     void operator()(STACK_OF(X509)* p) const {
-        sk_X509_free(p);
+        sk_X509_pop_free(p, X509_free);
     }
 };
 typedef UniquePtr<STACK_OF(X509), sk_X509_Delete> Unique_sk_X509;
 
 struct sk_X509_NAME_Delete {
     void operator()(STACK_OF(X509_NAME)* p) const {
-        sk_X509_NAME_free(p);
+        sk_X509_NAME_pop_free(p, X509_NAME_free);
     }
 };
 typedef UniquePtr<STACK_OF(X509_NAME), sk_X509_NAME_Delete> Unique_sk_X509_NAME;
 
 struct sk_ASN1_OBJECT_Delete {
     void operator()(STACK_OF(ASN1_OBJECT)* p) const {
-        sk_ASN1_OBJECT_free(p);
+        sk_ASN1_OBJECT_pop_free(p, ASN1_OBJECT_free);
     }
 };
 typedef UniquePtr<STACK_OF(ASN1_OBJECT), sk_ASN1_OBJECT_Delete> Unique_sk_ASN1_OBJECT;
 
 struct sk_GENERAL_NAME_Delete {
     void operator()(STACK_OF(GENERAL_NAME)* p) const {
-        sk_GENERAL_NAME_free(p);
+        sk_GENERAL_NAME_pop_free(p, GENERAL_NAME_free);
     }
 };
 typedef UniquePtr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENERAL_NAME;
