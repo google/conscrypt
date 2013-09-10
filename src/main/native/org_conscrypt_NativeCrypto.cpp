@@ -47,6 +47,7 @@
 #include <openssl/x509v3.h>
 
 #include "AsynchronousSocketCloseMonitor.h"
+#include "cutils/log.h"
 #include "JNIHelp.h"
 #include "JniConstants.h"
 #include "JniException.h"
