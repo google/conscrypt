@@ -27,12 +27,10 @@
 
 #define LOG_TAG "NativeCrypto"
 
-#include <algorithm>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <vector>
 
 #include <jni.h>
 
@@ -247,34 +245,6 @@ struct X509_Delete {
 };
 typedef UniquePtr<X509, X509_Delete> Unique_X509;
 
-class X509Chain {
-  public:
-    X509Chain(size_t n) : x509s_(n) {}
-
-    ~X509Chain() {
-        for (const auto& x509 : x509s_) {
-            X509_free(x509);
-        }
-    }
-
-    X509*& operator[](size_t n) {
-        return x509s_[n];
-    }
-
-    X509* operator[](size_t n) const {
-        return x509s_[n];
-    }
-
-    X509* release(size_t i) {
-        X509* x = x509s_[i];
-        x509s_[i] = NULL;
-        return x;
-    }
-
-  private:
-    std::vector<X509*> x509s_;
-};
-
 struct X509_NAME_Delete {
     void operator()(X509_NAME* p) const {
         X509_NAME_free(p);
@@ -331,7 +301,7 @@ typedef UniquePtr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENE
  * without triggering a warning by not using the result of release().
  */
 #define OWNERSHIP_TRANSFERRED(obj) \
-    typeof (obj.release()) _dummy __attribute__((unused)) = obj.release()
+    do { typeof (obj.release()) _dummy __attribute__((unused)) = obj.release(); } while(0)
 
 /**
  * Frees the SSL error state.
@@ -6381,7 +6351,13 @@ static void NativeCrypto_SSL_use_certificate(JNIEnv* env, jclass,
         return;
     }
 
-    X509Chain certificatesX509(length);
+    Unique_sk_X509 chain(sk_X509_new_null());
+    if (chain.get() == NULL) {
+        jniThrowOutOfMemory(env, "Unable to allocate local certificate chain");
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => chain allocation error", ssl);
+        return;
+    }
+
     for (int i = 0; i < length; i++) {
         ScopedLocalRef<jbyteArray> certificate(env,
                 reinterpret_cast<jbyteArray>(env->GetObjectArrayElement(certificates, i)));
@@ -6397,50 +6373,44 @@ static void NativeCrypto_SSL_use_certificate(JNIEnv* env, jclass,
             return;
         }
         const unsigned char* tmp = reinterpret_cast<const unsigned char*>(buf.get());
-        certificatesX509[i] = d2i_X509(NULL, &tmp, buf.size());
-
-        if (certificatesX509[i] == NULL) {
+        Unique_X509 cert(d2i_X509(NULL, &tmp, buf.size()));
+        if (cert.get() == NULL || !sk_X509_push(chain.get(), cert.get())) {
             ALOGE("%s", ERR_error_string(ERR_peek_error(), NULL));
             throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "Error parsing certificate");
             SSL_clear(ssl);
             JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificates parsing error", ssl);
             return;
         }
+        OWNERSHIP_TRANSFERRED(cert);
     }
 
-    int ret = SSL_use_certificate(ssl, certificatesX509[0]);
-    if (ret == 1) {
-        certificatesX509.release(0);
-    } else {
+    Unique_X509 serverCert(sk_X509_value(chain.get(), 0));
+    if (serverCert.get() == NULL) {
+        // Note this shouldn't happen since we checked the number of certificates above.
+        jniThrowOutOfMemory(env, "Unable to allocate local certificate chain");
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => chain allocation error", ssl);
+        return;
+    }
+    sk_X509_delete(chain.get(), 0);
+
+    int ret = SSL_use_certificate(ssl, serverCert.get());
+    if (ret != 1) {
         ALOGE("%s", ERR_error_string(ERR_peek_error(), NULL));
         throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "Error setting certificate");
         SSL_clear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => SSL_use_certificate error", ssl);
         return;
     }
+    OWNERSHIP_TRANSFERRED(serverCert);
 
-    Unique_sk_X509 chain(sk_X509_new_null());
-    if (chain.get() == NULL) {
-        jniThrowOutOfMemory(env, "Unable to allocate local certificate chain");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => chain allocation error", ssl);
-        return;
-    }
-    for (int i = 1; i < length; i++) {
-        if (!sk_X509_push(chain.get(), certificatesX509.release(i))) {
-            jniThrowOutOfMemory(env, "Unable to push certificate");
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificate push error", ssl);
-            return;
-        }
-    }
     int chainResult = SSL_use_certificate_chain(ssl, chain.get());
     if (chainResult == 0) {
         throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "Error setting certificate chain");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => SSL_use_certificate_chain error",
                   ssl);
         return;
-    } else {
-        OWNERSHIP_TRANSFERRED(chain);
     }
+    OWNERSHIP_TRANSFERRED(chain);
 
     JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => ok", ssl);
 }
@@ -7359,7 +7329,10 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
         JNI_TRACE("ssl=%p sslRead SSL_read result=%d sslError=%d", ssl, result, sslError);
 #ifdef WITH_JNI_TRACE_DATA
         for (int i = 0; i < result; i+= WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
-            int n = std::min(result - i, WITH_JNI_TRACE_DATA_CHUNK_SIZE);
+            int n = result - i;
+            if (n > WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
+                n = WITH_JNI_TRACE_DATA_CHUNK_SIZE;
+            }
             JNI_TRACE("ssl=%p sslRead data: %d:\n%.*s", ssl, n, n, buf+i);
         }
 #endif
@@ -7563,7 +7536,10 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
                   ssl, result, sslError, ssl->s3->wbuf.left);
 #ifdef WITH_JNI_TRACE_DATA
         for (int i = 0; i < result; i+= WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
-            int n = std::min(result - i, WITH_JNI_TRACE_DATA_CHUNK_SIZE);
+            int n = result - i;
+            if (n > WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
+                n = WITH_JNI_TRACE_DATA_CHUNK_SIZE;
+            }
             JNI_TRACE("ssl=%p sslWrite data: %d:\n%.*s", ssl, n, n, buf+i);
         }
 #endif
