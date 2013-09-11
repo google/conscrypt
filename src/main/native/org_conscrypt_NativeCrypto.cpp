@@ -856,6 +856,14 @@ jbooleanArray ASN1BitStringToBooleanArray(JNIEnv* env, ASN1_BIT_STRING* bitStr) 
 }
 
 /**
+ * To avoid the round-trip to ASN.1 and back in X509_dup, we just up the reference count.
+ */
+static X509* X509_dup_nocopy(X509* x509) {
+    CRYPTO_add(&x509->references, 1, CRYPTO_LOCK_X509);
+    return x509;
+}
+
+/**
  * BIO for InputStream
  */
 class BIO_Stream {
@@ -4962,7 +4970,7 @@ static jlongArray NativeCrypto_ASN1_seq_unpack_X509_bio(JNIEnv* env, jclass, jlo
     ScopedLocalRef<jlongArray> certArray(env, env->NewLongArray(size));
     ScopedLongArrayRW certs(env, certArray.get());
     for (size_t i = 0; i < size; i++) {
-        X509* item = reinterpret_cast<X509*>(sk_X509_value(path.get(), i));
+        X509* item = reinterpret_cast<X509*>(sk_X509_shift(path.get()));
         certs[i] = reinterpret_cast<uintptr_t>(item);
     }
 
@@ -4986,7 +4994,7 @@ static jbyteArray NativeCrypto_ASN1_seq_pack_X509(JNIEnv* env, jclass, jlongArra
 
     for (size_t i = 0; i < certsArray.size(); i++) {
         X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(certsArray[i]));
-        sk_X509_push(certStack.get(), X509_dup(x509));
+        sk_X509_push(certStack.get(), X509_dup_nocopy(x509));
     }
 
     int len;
@@ -7233,14 +7241,14 @@ static jobjectArray NativeCrypto_SSL_get_certificate(JNIEnv* env, jclass, jlong 
         JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => threw exception", ssl);
         return NULL;
     }
-    if (!sk_X509_push(chain.get(), certificate)) {
+    if (!sk_X509_push(chain.get(), X509_dup_nocopy(certificate))) {
         jniThrowOutOfMemory(env, "Unable to push local certificate");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => NULL", ssl);
         return NULL;
     }
     STACK_OF(X509)* cert_chain = SSL_get_certificate_chain(ssl, certificate);
     for (int i=0; i<sk_X509_num(cert_chain); i++) {
-        if (!sk_X509_push(chain.get(), sk_X509_value(cert_chain, i))) {
+        if (!sk_X509_push(chain.get(), X509_dup_nocopy(sk_X509_value(cert_chain, i)))) {
             jniThrowOutOfMemory(env, "Unable to push local certificate chain");
             JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => NULL", ssl);
             return NULL;
@@ -7268,13 +7276,21 @@ static jobjectArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jl
             JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => NULL", ssl);
             return NULL;
         }
-        chain_copy.reset(sk_X509_dup(chain));
+        chain_copy.reset(sk_X509_new_null());
         if (chain_copy.get() == NULL) {
             jniThrowOutOfMemory(env, "Unable to allocate peer certificate chain");
             JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate dup error", ssl);
             return NULL;
         }
-        if (!sk_X509_push(chain_copy.get(), x509)) {
+        size_t chain_size = sk_X509_num(chain);
+        for (size_t i = 0; i < chain_size; i++) {
+            if (!sk_X509_push(chain_copy.get(), X509_dup_nocopy(sk_X509_value(chain, i)))) {
+                jniThrowOutOfMemory(env, "Unable to push server's peer certificate chain");
+                JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate chain push error", ssl);
+                return NULL;
+            }
+        }
+        if (!sk_X509_push(chain_copy.get(), X509_dup_nocopy(x509))) {
             jniThrowOutOfMemory(env, "Unable to push server's peer certificate");
             JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate push error", ssl);
             return NULL;
