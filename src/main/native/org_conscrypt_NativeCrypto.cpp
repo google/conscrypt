@@ -831,6 +831,9 @@ jbooleanArray ASN1BitStringToBooleanArray(JNIEnv* env, ASN1_BIT_STRING* bitStr) 
  * To avoid the round-trip to ASN.1 and back in X509_dup, we just up the reference count.
  */
 static X509* X509_dup_nocopy(X509* x509) {
+    if (x509 == NULL) {
+        return NULL;
+    }
     CRYPTO_add(&x509->references, 1, CRYPTO_LOCK_X509);
     return x509;
 }
@@ -5402,36 +5405,27 @@ static void info_callback_LOG(const SSL* s __attribute__ ((unused)), int where, 
 #endif
 
 /**
- * Returns an array containing all the X509 certificate's bytes.
+ * Returns an array containing all the X509 certificate references
  */
-static jobjectArray getCertificateBytes(JNIEnv* env, const STACK_OF(X509)* chain)
+static jlongArray getCertificateRefs(JNIEnv* env, const STACK_OF(X509)* chain)
 {
     if (chain == NULL) {
         // Chain can be NULL if the associated cipher doesn't do certs.
         return NULL;
     }
-
-    int count = sk_X509_num(chain);
+    ssize_t count = sk_X509_num(chain);
     if (count <= 0) {
         return NULL;
     }
-
-    jobjectArray joa = env->NewObjectArray(count, byteArrayClass, NULL);
-    if (joa == NULL) {
+    ScopedLocalRef<jlongArray> refArray(env, env->NewLongArray(count));
+    ScopedLongArrayRW refs(env, refArray.get());
+    if (refs.get() == NULL) {
         return NULL;
     }
-
-    for (int i = 0; i < count; i++) {
-        X509* cert = sk_X509_value(chain, i);
-
-        ScopedLocalRef<jbyteArray> byteArray(env, ASN1ToByteArray<X509, i2d_X509>(env, cert));
-        if (byteArray.get() == NULL) {
-            return NULL;
-        }
-        env->SetObjectArrayElement(joa, i, byteArray.get());
+    for (ssize_t i = 0; i < count; i++) {
+        refs[i] = reinterpret_cast<uintptr_t>(X509_dup_nocopy(sk_X509_value(chain, i)));
     }
-
-    return joa;
+    return refArray.release();
 }
 
 /**
@@ -5828,15 +5822,15 @@ static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg __attr
 
     jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
     jmethodID methodID
-        = env->GetMethodID(cls, "verifyCertificateChain", "([[BLjava/lang/String;)V");
+        = env->GetMethodID(cls, "verifyCertificateChain", "([JLjava/lang/String;)V");
 
-    jobjectArray objectArray = getCertificateBytes(env, x509_store_ctx->untrusted);
+    jlongArray refArray = getCertificateRefs(env, x509_store_ctx->untrusted);
 
     const char* authMethod = SSL_authentication_method(ssl);
     JNI_TRACE("ssl=%p cert_verify_callback calling verifyCertificateChain authMethod=%s",
               ssl, authMethod);
     jstring authMethodString = env->NewStringUTF(authMethod);
-    env->CallVoidMethod(sslHandshakeCallbacks, methodID, objectArray, authMethodString);
+    env->CallVoidMethod(sslHandshakeCallbacks, methodID, refArray, authMethodString);
 
     int result = (env->ExceptionCheck()) ? 0 : 1;
     JNI_TRACE("ssl=%p cert_verify_callback => %d", ssl, result);
@@ -6332,24 +6326,39 @@ static void NativeCrypto_SSL_use_PrivateKey(JNIEnv* env, jclass, jlong ssl_addre
 }
 
 static void NativeCrypto_SSL_use_certificate(JNIEnv* env, jclass,
-                                             jlong ssl_address, jobjectArray certificates)
+                                             jlong ssl_address, jlongArray certificatesJava)
 {
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate certificates=%p", ssl, certificates);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate certificates=%p", ssl, certificatesJava);
     if (ssl == NULL) {
         return;
     }
 
-    if (certificates == NULL) {
+    if (certificatesJava == NULL) {
         jniThrowNullPointerException(env, "certificates == null");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificates == null", ssl);
         return;
     }
 
-    int length = env->GetArrayLength(certificates);
+    size_t length = env->GetArrayLength(certificatesJava);
     if (length == 0) {
         jniThrowException(env, "java/lang/IllegalArgumentException", "certificates.length == 0");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificates.length == 0", ssl);
+        return;
+    }
+
+    ScopedLongArrayRO certificates(env, certificatesJava);
+    if (certificates.get() == NULL) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificates == null", ssl);
+        return;
+    }
+
+    Unique_X509 serverCert(
+            X509_dup_nocopy(reinterpret_cast<X509*>(static_cast<uintptr_t>(certificates[0]))));
+    if (serverCert.get() == NULL) {
+        // Note this shouldn't happen since we checked the number of certificates above.
+        jniThrowOutOfMemory(env, "Unable to allocate local certificate chain");
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => chain allocation error", ssl);
         return;
     }
 
@@ -6360,22 +6369,9 @@ static void NativeCrypto_SSL_use_certificate(JNIEnv* env, jclass,
         return;
     }
 
-    for (int i = 0; i < length; i++) {
-        ScopedLocalRef<jbyteArray> certificate(env,
-                reinterpret_cast<jbyteArray>(env->GetObjectArrayElement(certificates, i)));
-        if (certificate.get() == NULL) {
-            jniThrowNullPointerException(env, "certificates element == null");
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificates element null", ssl);
-            return;
-        }
-
-        ScopedByteArrayRO buf(env, certificate.get());
-        if (buf.get() == NULL) {
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => threw exception", ssl);
-            return;
-        }
-        const unsigned char* tmp = reinterpret_cast<const unsigned char*>(buf.get());
-        Unique_X509 cert(d2i_X509(NULL, &tmp, buf.size()));
+    for (size_t i = 1; i < length; i++) {
+        Unique_X509 cert(
+                X509_dup_nocopy(reinterpret_cast<X509*>(static_cast<uintptr_t>(certificates[i]))));
         if (cert.get() == NULL || !sk_X509_push(chain.get(), cert.get())) {
             ALOGE("%s", ERR_error_string(ERR_peek_error(), NULL));
             throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "Error parsing certificate");
@@ -6385,15 +6381,6 @@ static void NativeCrypto_SSL_use_certificate(JNIEnv* env, jclass,
         }
         OWNERSHIP_TRANSFERRED(cert);
     }
-
-    Unique_X509 serverCert(sk_X509_value(chain.get(), 0));
-    if (serverCert.get() == NULL) {
-        // Note this shouldn't happen since we checked the number of certificates above.
-        jniThrowOutOfMemory(env, "Unable to allocate local certificate chain");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => chain allocation error", ssl);
-        return;
-    }
-    sk_X509_delete(chain.get(), 0);
 
     int ret = SSL_use_certificate(ssl, serverCert.get());
     if (ret != 1) {
@@ -6988,7 +6975,7 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
     JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake fd=%p shc=%p timeout_millis=%d client_mode=%d npn=%p",
               ssl, fdObject, shc, timeout_millis, client_mode, npnProtocols);
     if (ssl == NULL) {
-      return 0;
+        return 0;
     }
     if (fdObject == NULL) {
         jniThrowNullPointerException(env, "fd == null");
@@ -7192,7 +7179,7 @@ static void NativeCrypto_SSL_renegotiate(JNIEnv* env, jclass, jlong ssl_address)
 /**
  * public static native byte[][] SSL_get_certificate(int ssl);
  */
-static jobjectArray NativeCrypto_SSL_get_certificate(JNIEnv* env, jclass, jlong ssl_address)
+static jlongArray NativeCrypto_SSL_get_certificate(JNIEnv* env, jclass, jlong ssl_address)
 {
     SSL* ssl = to_SSL(env, ssl_address, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate", ssl);
@@ -7227,13 +7214,13 @@ static jobjectArray NativeCrypto_SSL_get_certificate(JNIEnv* env, jclass, jlong 
         }
     }
 
-    jobjectArray objectArray = getCertificateBytes(env, chain.get());
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => %p", ssl, objectArray);
-    return objectArray;
+    jlongArray refArray = getCertificateRefs(env, chain.get());
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => %p", ssl, refArray);
+    return refArray;
 }
 
-// Fills a byte[][] with the peer certificates in the chain.
-static jobjectArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlong ssl_address)
+// Fills a long[] with the peer certificates in the chain.
+static jlongArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlong ssl_address)
 {
     SSL* ssl = to_SSL(env, ssl_address, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain", ssl);
@@ -7269,9 +7256,9 @@ static jobjectArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jl
         }
         chain = chain_copy.get();
     }
-    jobjectArray objectArray = getCertificateBytes(env, chain);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => %p", ssl, objectArray);
-    return objectArray;
+    jlongArray refArray = getCertificateRefs(env, chain);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => %p", ssl, refArray);
+    return refArray;
 }
 
 /**
@@ -8112,7 +8099,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_get_tls_channel_id, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, SSL_set1_tls_channel_id, "(JJ)V"),
     NATIVE_METHOD(NativeCrypto, SSL_use_PrivateKey, "(JJ)V"),
-    NATIVE_METHOD(NativeCrypto, SSL_use_certificate, "(J[[B)V"),
+    NATIVE_METHOD(NativeCrypto, SSL_use_certificate, "(J[J)V"),
     NATIVE_METHOD(NativeCrypto, SSL_check_private_key, "(J)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_client_CA_list, "(J[[B)V"),
     NATIVE_METHOD(NativeCrypto, SSL_get_mode, "(J)J"),
@@ -8129,8 +8116,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_get_servername, "(J)Ljava/lang/String;"),
     NATIVE_METHOD(NativeCrypto, SSL_do_handshake, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "IZ[B[B)I"),
     NATIVE_METHOD(NativeCrypto, SSL_renegotiate, "(J)V"),
-    NATIVE_METHOD(NativeCrypto, SSL_get_certificate, "(J)[[B"),
-    NATIVE_METHOD(NativeCrypto, SSL_get_peer_cert_chain, "(J)[[B"),
+    NATIVE_METHOD(NativeCrypto, SSL_get_certificate, "(J)[J"),
+    NATIVE_METHOD(NativeCrypto, SSL_get_peer_cert_chain, "(J)[J"),
     NATIVE_METHOD(NativeCrypto, SSL_read, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)I"),
     NATIVE_METHOD(NativeCrypto, SSL_write, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)V"),
     NATIVE_METHOD(NativeCrypto, SSL_interrupt, "(J)V"),

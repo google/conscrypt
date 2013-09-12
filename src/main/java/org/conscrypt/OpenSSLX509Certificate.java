@@ -27,6 +27,7 @@ import java.security.Principal;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
@@ -153,6 +154,17 @@ public class OpenSSLX509Certificate extends X509Certificate {
             certs.add(new OpenSSLX509Certificate(certRefs[i]));
         }
         return certs;
+    }
+
+    public static OpenSSLX509Certificate fromCertificate(Certificate cert)
+            throws CertificateEncodingException {
+        if (cert instanceof OpenSSLX509Certificate) {
+            return (OpenSSLX509Certificate) cert;
+        } else if (cert instanceof X509Certificate) {
+            return fromX509Der(cert.getEncoded());
+        } else {
+            throw new CertificateEncodingException("Only X.509 certificates are supported");
+        }
     }
 
     @Override

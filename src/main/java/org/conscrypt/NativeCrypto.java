@@ -23,7 +23,6 @@ import java.net.SocketTimeoutException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
@@ -776,16 +775,7 @@ public final class NativeCrypto {
 
     public static native void SSL_set1_tls_channel_id(long ssl, long pkey);
 
-    public static byte[][] encodeCertificates(Certificate[] certificates)
-            throws CertificateEncodingException {
-        byte[][] certificateBytes = new byte[certificates.length][];
-        for (int i = 0; i < certificates.length; i++) {
-            certificateBytes[i] = certificates[i].getEncoded();
-        }
-        return certificateBytes;
-    }
-
-    public static native void SSL_use_certificate(long ssl, byte[][] asn1DerEncodedCertificateChain);
+    public static native void SSL_use_certificate(long ssl, long[] x509refs);
 
     public static native void SSL_use_PrivateKey(long ssl, long pkey);
 
@@ -987,14 +977,14 @@ public final class NativeCrypto {
     public static native void SSL_renegotiate(long sslNativePointer) throws SSLException;
 
     /**
-     * Returns the local ASN.1 DER encoded X509 certificates.
+     * Returns the local X509 certificate references. Must X509_free when done.
      */
-    public static native byte[][] SSL_get_certificate(long sslNativePointer);
+    public static native long[] SSL_get_certificate(long sslNativePointer);
 
     /**
-     * Returns the peer ASN.1 DER encoded X509 certificates.
+     * Returns the peer X509 certificate references. Must X509_free when done.
      */
-    public static native byte[][] SSL_get_peer_cert_chain(long sslNativePointer);
+    public static native long[] SSL_get_peer_cert_chain(long sslNativePointer);
 
     /**
      * Reads with the native SSL_read function from the encrypted data stream
@@ -1044,12 +1034,12 @@ public final class NativeCrypto {
         /**
          * Verify that we trust the certificate chain is trusted.
          *
-         * @param asn1DerEncodedCertificateChain A chain of ASN.1 DER encoded certificates
+         * @param certificateChainRefs chain of X.509 certificate references
          * @param authMethod auth algorithm name
          *
          * @throws CertificateException if the certificate is untrusted
          */
-        public void verifyCertificateChain(byte[][] asn1DerEncodedCertificateChain, String authMethod)
+        public void verifyCertificateChain(long[] certificateChainRefs, String authMethod)
             throws CertificateException;
 
         /**

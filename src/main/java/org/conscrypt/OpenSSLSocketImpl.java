@@ -39,7 +39,6 @@ import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509TrustManager;
@@ -538,14 +537,14 @@ public class OpenSSLSocketImpl
      * Return a possibly null array of X509Certificates given the
      * possibly null array of DER encoded bytes.
      */
-    private static X509Certificate[] createCertChain(byte[][] certificatesBytes)
+    private static OpenSSLX509Certificate[] createCertChain(long[] certificateRefs)
             throws IOException {
-        if (certificatesBytes == null) {
+        if (certificateRefs == null) {
             return null;
         }
-        X509Certificate[] certificates = new X509Certificate[certificatesBytes.length];
-        for (int i = 0; i < certificatesBytes.length; i++) {
-            certificates[i] = OpenSSLX509Certificate.fromX509Der(certificatesBytes[i]);
+        OpenSSLX509Certificate[] certificates = new OpenSSLX509Certificate[certificateRefs.length];
+        for (int i = 0; i < certificateRefs.length; i++) {
+            certificates[i] = new OpenSSLX509Certificate(certificateRefs[i]);
         }
         return certificates;
     }
@@ -563,10 +562,23 @@ public class OpenSSLSocketImpl
             return;
         }
 
-        // Note that OpenSSL says to use SSL_use_certificate before SSL_use_PrivateKey.
+        /*
+         * Make sure we keep a reference to the OpenSSLX509Certificate by using
+         * this array. Otherwise, if they're not OpenSSLX509Certificate
+         * instances originally, they may be garbage collected before we complete
+         * our JNI calls.
+         */
+        OpenSSLX509Certificate[] openSslCerts = new OpenSSLX509Certificate[certificates.length];
+        long[] x509refs = new long[certificates.length];
+        for (int i = 0; i < certificates.length; i++) {
+            OpenSSLX509Certificate openSslCert = OpenSSLX509Certificate
+                    .fromCertificate(certificates[i]);
+            openSslCerts[i] = openSslCert;
+            x509refs[i] = openSslCert.getContext();
+        }
 
-        byte[][] certificateBytes = NativeCrypto.encodeCertificates(certificates);
-        NativeCrypto.SSL_use_certificate(sslNativePointer, certificateBytes);
+        // Note that OpenSSL says to use SSL_use_certificate before SSL_use_PrivateKey.
+        NativeCrypto.SSL_use_certificate(sslNativePointer, x509refs);
 
         try {
             final OpenSSLKey key = OpenSSLKey.fromPrivateKey(privateKey);
@@ -650,28 +662,28 @@ public class OpenSSLSocketImpl
     }
 
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks
-    @Override public void verifyCertificateChain(byte[][] bytes, String authMethod)
+    @Override public void verifyCertificateChain(long[] certRefs, String authMethod)
             throws CertificateException {
         try {
-            if (bytes == null || bytes.length == 0) {
+            if (certRefs == null || certRefs.length == 0) {
                 throw new SSLException("Peer sent no certificate");
             }
-            X509Certificate[] peerCertificateChain = new X509Certificate[bytes.length];
-            for (int i = 0; i < bytes.length; i++) {
-                peerCertificateChain[i] = OpenSSLX509Certificate.fromX509Der(bytes[i]);
+            OpenSSLX509Certificate[] peerCertChain = new OpenSSLX509Certificate[certRefs.length];
+            for (int i = 0; i < certRefs.length; i++) {
+                peerCertChain[i] = new OpenSSLX509Certificate(certRefs[i]);
             }
             boolean client = sslParameters.getUseClientMode();
             if (client) {
                 X509TrustManager x509tm = sslParameters.getTrustManager();
                 if (x509tm instanceof TrustManagerImpl) {
                     TrustManagerImpl tm = (TrustManagerImpl) x509tm;
-                    tm.checkServerTrusted(peerCertificateChain, authMethod, wrappedHost);
+                    tm.checkServerTrusted(peerCertChain, authMethod, wrappedHost);
                 } else {
-                    x509tm.checkServerTrusted(peerCertificateChain, authMethod);
+                    x509tm.checkServerTrusted(peerCertChain, authMethod);
                 }
             } else {
-                String authType = peerCertificateChain[0].getPublicKey().getAlgorithm();
-                sslParameters.getTrustManager().checkClientTrusted(peerCertificateChain,
+                String authType = peerCertChain[0].getPublicKey().getAlgorithm();
+                sslParameters.getTrustManager().checkClientTrusted(peerCertChain,
                                                                    authType);
             }
 
@@ -723,7 +735,7 @@ public class OpenSSLSocketImpl
          * this operation can block until the data will be
          * available.
          * @return read value.
-         * @throws <code>IOException</code>
+         * @throws IOException
          */
         @Override
         public int read() throws IOException {
