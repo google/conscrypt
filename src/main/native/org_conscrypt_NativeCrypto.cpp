@@ -388,6 +388,7 @@ static void throwForEvpError(JNIEnv* env, int reason, const char *message) {
         throwBadPaddingException(env, message);
         break;
     case EVP_R_DATA_NOT_MULTIPLE_OF_BLOCK_LENGTH:
+    case EVP_R_WRONG_FINAL_BLOCK_LENGTH:
         throwIllegalBlockSizeException(env, message);
         break;
     case EVP_R_BAD_KEY_LENGTH:
