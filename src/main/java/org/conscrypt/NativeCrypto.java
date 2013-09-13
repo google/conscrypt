@@ -775,6 +775,15 @@ public final class NativeCrypto {
 
     public static native void SSL_set1_tls_channel_id(long ssl, long pkey);
 
+    public static byte[][] encodeCertificates(Certificate[] certificates)
+            throws CertificateEncodingException {
+        byte[][] certificateBytes = new byte[certificates.length][];
+        for (int i = 0; i < certificates.length; i++) {
+            certificateBytes[i] = certificates[i].getEncoded();
+        }
+        return certificateBytes;
+    }
+
     public static native void SSL_use_certificate(long ssl, long[] x509refs);
 
     public static native void SSL_use_PrivateKey(long ssl, long pkey);
