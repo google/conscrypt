@@ -94,6 +94,10 @@ public abstract class OpenSSLMac extends MacSpi {
     }
 
     private void reset() {
+        final OpenSSLKey macKey = this.macKey;
+        if (macKey == null) {
+            return;
+        }
         NativeCrypto.EVP_DigestSignInit(ctx.getContext(), evp_md, macKey.getPkeyContext());
     }
 
