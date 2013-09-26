@@ -57,6 +57,10 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.MessageDigest.SHA", "SHA-1");
         put("Alg.Alias.MessageDigest.1.3.14.3.2.26", "SHA-1");
 
+        put("MessageDigest.SHA-224", prefix + "OpenSSLMessageDigestJDK$SHA224");
+        put("Alg.Alias.MessageDigest.SHA224", "SHA-224");
+        put("Alg.Alias.MessageDigest.2.16.840.1.101.3.4.2.4", "SHA-224");
+
         put("MessageDigest.SHA-256", prefix + "OpenSSLMessageDigestJDK$SHA256");
         put("Alg.Alias.MessageDigest.SHA256", "SHA-256");
         put("Alg.Alias.MessageDigest.2.16.840.1.101.3.4.2.1", "SHA-256");
@@ -108,6 +112,14 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.113549.1.1.5", "SHA1WithRSA");
         put("Alg.Alias.Signature.1.3.14.3.2.29", "SHA1WithRSA");
 
+        put("Signature.SHA224WithRSA", prefix + "OpenSSLSignature$SHA224RSA");
+        put("Alg.Alias.Signature.SHA224WithRSAEncryption", "SHA224WithRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.11", "SHA224WithRSA");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.4with1.2.840.113549.1.1.1",
+                "SHA224WithRSA");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.4with1.2.840.113549.1.1.11",
+                "SHA224WithRSA");
+
         put("Signature.SHA256WithRSA", prefix + "OpenSSLSignature$SHA256RSA");
         put("Alg.Alias.Signature.SHA256WithRSAEncryption", "SHA256WithRSA");
         put("Alg.Alias.Signature.1.2.840.113549.1.1.11", "SHA256WithRSA");
@@ -144,6 +156,12 @@ public final class OpenSSLProvider extends Provider {
         // iso(1) member-body(2) us(840) ansi-x962(10045) signatures(4) ecdsa-with-SHA1(1)
         put("Alg.Alias.Signature.1.2.840.10045.4.1", "ECDSA");
         put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.10045.2.1", "ECDSA");
+
+        // iso(1) member-body(2) us(840) ansi-x962(10045) signatures(4) ecdsa-with-SHA2(3)
+        put("Signature.SHA224withECDSA", prefix + "OpenSSLSignature$SHA224ECDSA");
+        // ecdsa-with-SHA224(1)
+        put("Alg.Alias.Signature.1.2.840.10045.4.3.1", "SHA224withECDSA");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.4with1.2.840.10045.2.1", "SHA224withECDSA");
 
         // iso(1) member-body(2) us(840) ansi-x962(10045) signatures(4) ecdsa-with-SHA2(3)
         put("Signature.SHA256withECDSA", prefix + "OpenSSLSignature$SHA256ECDSA");
@@ -214,6 +232,12 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Mac.1.2.840.113549.2.7", "HmacSHA1");
         put("Alg.Alias.Mac.HMAC-SHA1", "HmacSHA1");
         put("Alg.Alias.Mac.HMAC/SHA1", "HmacSHA1");
+
+        // id-hmacWithSHA224 (8)
+        put("Mac.HmacSHA224", prefix + "OpenSSLMac$HmacSHA224");
+        put("Alg.Alias.Mac.1.2.840.113549.2.9", "HmacSHA224");
+        put("Alg.Alias.Mac.HMAC-SHA224", "HmacSHA224");
+        put("Alg.Alias.Mac.HMAC/SHA224", "HmacSHA224");
 
         // id-hmacWithSHA256 (9)
         put("Mac.HmacSHA256", prefix + "OpenSSLMac$HmacSHA256");

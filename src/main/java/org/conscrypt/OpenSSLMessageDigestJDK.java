@@ -128,6 +128,14 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
         }
     }
 
+    public static class SHA224 extends OpenSSLMessageDigestJDK {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha224");
+        private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
+        public SHA224() throws NoSuchAlgorithmException {
+            super("SHA-224", EVP_MD, SIZE);
+        }
+    }
+
     public static class SHA256 extends OpenSSLMessageDigestJDK {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);

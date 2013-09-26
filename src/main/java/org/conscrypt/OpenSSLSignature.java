@@ -299,6 +299,11 @@ public class OpenSSLSignature extends Signature {
             super("RSA-SHA1", EngineType.RSA);
         }
     }
+    public static final class SHA224RSA extends OpenSSLSignature {
+        public SHA224RSA() throws NoSuchAlgorithmException {
+            super("RSA-SHA224", EngineType.RSA);
+        }
+    }
     public static final class SHA256RSA extends OpenSSLSignature {
         public SHA256RSA() throws NoSuchAlgorithmException {
             super("RSA-SHA256", EngineType.RSA);
@@ -322,6 +327,11 @@ public class OpenSSLSignature extends Signature {
     public static final class SHA1ECDSA extends OpenSSLSignature {
         public SHA1ECDSA() throws NoSuchAlgorithmException {
             super("SHA1", EngineType.EC);
+        }
+    }
+    public static final class SHA224ECDSA extends OpenSSLSignature {
+        public SHA224ECDSA() throws NoSuchAlgorithmException {
+            super("SHA224", EngineType.EC);
         }
     }
     public static final class SHA256ECDSA extends OpenSSLSignature {
