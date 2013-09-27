@@ -161,11 +161,11 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
                 if (keyAlgorithm == null) {
                     continue;
                 }
-                String sigAlgorithm;
+                final String sigAlgorithm;
                 // handle cases like EC_EC and EC_RSA
                 int index = keyAlgorithm.indexOf('_');
                 if (index == -1) {
-                    sigAlgorithm = keyAlgorithm;
+                    sigAlgorithm = null;
                 } else {
                     sigAlgorithm = keyAlgorithm.substring(index + 1);
                     keyAlgorithm = keyAlgorithm.substring(0, index);
@@ -181,7 +181,8 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
                  * "SHA1WithECDSA" or simply "ECDSA".
                  */
                 // sig algorithm does not match
-                if (certSigAlg != null && !certSigAlg.contains(sigAlgorithm)) {
+                if (sigAlgorithm != null && certSigAlg != null
+                        && !certSigAlg.contains(sigAlgorithm)) {
                     continue;
                 }
                 // no issuers to match, just add to return list and continue
