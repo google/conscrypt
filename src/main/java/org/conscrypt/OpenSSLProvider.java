@@ -202,21 +202,16 @@ public final class OpenSSLProvider extends Provider {
         put("Cipher.AES/ECB/PKCS5Padding", prefix + "OpenSSLCipher$AES$ECB$PKCS5Padding");
         put("Cipher.AES/CBC/NoPadding", prefix + "OpenSSLCipher$AES$CBC$NoPadding");
         put("Cipher.AES/CBC/PKCS5Padding", prefix + "OpenSSLCipher$AES$CBC$PKCS5Padding");
-        put("Cipher.AES/CFB/NoPadding", prefix + "OpenSSLCipher$AES$CFB$NoPadding");
-        put("Cipher.AES/CFB/PKCS5Padding", prefix + "OpenSSLCipher$AES$CFB$PKCS5Padding");
-        put("Cipher.AES/CTR/NoPadding", prefix + "OpenSSLCipher$AES$CTR$NoPadding");
-        put("Cipher.AES/CTR/PKCS5Padding", prefix + "OpenSSLCipher$AES$CTR$PKCS5Padding");
-        put("Cipher.AES/OFB/NoPadding", prefix + "OpenSSLCipher$AES$OFB$NoPadding");
-        put("Cipher.AES/OFB/PKCS5Padding", prefix + "OpenSSLCipher$AES$OFB$PKCS5Padding");
+        put("Cipher.AES/CFB/NoPadding", prefix + "OpenSSLCipher$AES$CFB");
+        put("Cipher.AES/CTR/NoPadding", prefix + "OpenSSLCipher$AES$CTR");
+        put("Cipher.AES/OFB/NoPadding", prefix + "OpenSSLCipher$AES$OFB");
 
-        put("Cipher.DESEDE/CBC/NoPadding", prefix + "OpenSSLCipher$DESEDE$CBC$NoPadding");
-        put("Cipher.DESEDE/CBC/PKCS5Padding", prefix + "OpenSSLCipher$DESEDE$CBC$PKCS5Padding");
-        put("Cipher.DESEDE/CFB/NoPadding", prefix + "OpenSSLCipher$DESEDE$CFB$NoPadding");
-        put("Cipher.DESEDE/CFB/PKCS5Padding", prefix + "OpenSSLCipher$DESEDE$CFB$PKCS5Padding");
         put("Cipher.DESEDE/ECB/NoPadding", prefix + "OpenSSLCipher$DESEDE$ECB$NoPadding");
         put("Cipher.DESEDE/ECB/PKCS5Padding", prefix + "OpenSSLCipher$DESEDE$ECB$PKCS5Padding");
-        put("Cipher.DESEDE/OFB/NoPadding", prefix + "OpenSSLCipher$DESEDE$OFB$NoPadding");
-        put("Cipher.DESEDE/OFB/PKCS5Padding", prefix + "OpenSSLCipher$DESEDE$OFB$PKCS5Padding");
+        put("Cipher.DESEDE/CBC/NoPadding", prefix + "OpenSSLCipher$DESEDE$CBC$NoPadding");
+        put("Cipher.DESEDE/CBC/PKCS5Padding", prefix + "OpenSSLCipher$DESEDE$CBC$PKCS5Padding");
+        put("Cipher.DESEDE/CFB/NoPadding", prefix + "OpenSSLCipher$DESEDE$CFB");
+        put("Cipher.DESEDE/OFB/NoPadding", prefix + "OpenSSLCipher$DESEDE$OFB");
 
         put("Cipher.ARC4", prefix + "OpenSSLCipher$ARC4");
 
