@@ -184,6 +184,6 @@ ifeq ($(WITH_HOST_DALVIK),true)
     LOCAL_MODULE_TAGS := optional
     LOCAL_MODULE := libconscrypt_jni
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-    LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore libssl-host
+    LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
     include $(BUILD_HOST_SHARED_LIBRARY)
 endif
