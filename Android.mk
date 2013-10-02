@@ -59,7 +59,7 @@ LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := conscrypt
+LOCAL_MODULE := conscrypt2
 LOCAL_REQUIRED_MODULES := libjavacrypto
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 include $(BUILD_JAVA_LIBRARY)
@@ -71,7 +71,7 @@ LOCAL_JAVA_LIBRARIES := core
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := conscrypt-nojarjar
+LOCAL_MODULE := conscrypt-nojarjar2
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
@@ -84,7 +84,7 @@ LOCAL_JAVA_LIBRARIES := bouncycastle core core-junit
 LOCAL_STATIC_JAVA_LIBRARIES := core-tests-support conscrypt-nojarjar
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := conscrypt-tests
+LOCAL_MODULE := conscrypt-tests2
 LOCAL_REQUIRED_MODULES := libjavacrypto
 LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
@@ -104,7 +104,7 @@ LOCAL_C_INCLUDES += \
         libcore/luni/src/main/native
 LOCAL_SHARED_LIBRARIES := libcrypto libjavacore liblog libnativehelper libssl libz
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := libjavacrypto
+LOCAL_MODULE := libjavacrypto2
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 include $(BUILD_SHARED_LIBRARY)
 
@@ -122,7 +122,7 @@ ifeq ($(WITH_HOST_DALVIK),true)
     LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
     LOCAL_BUILD_HOST_DEX := true
     LOCAL_MODULE_TAGS := optional
-    LOCAL_MODULE := conscrypt-hostdex
+    LOCAL_MODULE := conscrypt-hostdex2
     LOCAL_REQUIRED_MODULES := libjavacrypto
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
     include $(BUILD_HOST_JAVA_LIBRARY)
@@ -135,7 +135,7 @@ ifeq ($(WITH_HOST_DALVIK),true)
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_BUILD_HOST_DEX := true
     LOCAL_MODULE_TAGS := optional
-    LOCAL_MODULE := conscrypt-hostdex-nojarjar
+    LOCAL_MODULE := conscrypt-hostdex-nojarjar2
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
     include $(BUILD_HOST_JAVA_LIBRARY)
 
@@ -147,7 +147,7 @@ ifeq ($(WITH_HOST_DALVIK),true)
     LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex core-hostdex core-junit-hostdex core-tests-support-hostdex conscrypt-hostdex-nojarjar
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_MODULE_TAGS := optional
-    LOCAL_MODULE := conscrypt-tests-hostdex
+    LOCAL_MODULE := conscrypt-tests-hostdex2
     LOCAL_REQUIRED_MODULES := libjavacrypto
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
     LOCAL_BUILD_HOST_DEX := true
@@ -165,7 +165,7 @@ ifeq ($(WITH_HOST_DALVIK),true)
     LOCAL_CPPFLAGS += $(core_cppflags)
     LOCAL_LDLIBS += -lpthread
     LOCAL_MODULE_TAGS := optional
-    LOCAL_MODULE := libjavacrypto
+    LOCAL_MODULE := libjavacrypto2
     LOCAL_CFLAGS += -DJNI_JARJAR_PREFIX="com/android/"
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
     LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
@@ -182,7 +182,7 @@ ifeq ($(WITH_HOST_DALVIK),true)
     LOCAL_CPPFLAGS += $(core_cppflags)
     LOCAL_LDLIBS += -lpthread
     LOCAL_MODULE_TAGS := optional
-    LOCAL_MODULE := libconscrypt_jni
+    LOCAL_MODULE := libconscrypt_jni2
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
     LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
     include $(BUILD_HOST_SHARED_LIBRARY)
