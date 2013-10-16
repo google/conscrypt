@@ -89,18 +89,22 @@ public class PinListEntry {
      *
      * <p>If enforcing is on and the given {@code chain} does not include the
      * expected pinned certificate, this will return {@code false} indicating
-     * the chain is not valid. Otherwise this will return {@code true}
-     * indicating the {@code chain} is valid.
+     * the chain is not valid unless the {@code chain} chains up to an user-installed
+     * CA cert. Otherwise this will return {@code true} indicating the {@code chain}
+     * is valid.
      */
     public boolean isChainValid(List<X509Certificate> chain) {
-        for (X509Certificate cert : chain) {
-            String fingerprint = getFingerprint(cert);
-            if (pinnedFingerprints.contains(fingerprint)) {
-                return true;
+        boolean containsUserCert = chainContainsUserCert(chain);
+        if (!containsUserCert) {
+            for (X509Certificate cert : chain) {
+                String fingerprint = getFingerprint(cert);
+                if (pinnedFingerprints.contains(fingerprint)) {
+                    return true;
+                }
             }
         }
-        logPinFailure(chain);
-        return !enforcing;
+        logPinFailure(chain, containsUserCert);
+        return !enforcing || containsUserCert;
     }
 
     private static String getFingerprint(X509Certificate cert) {
@@ -146,8 +150,8 @@ public class PinListEntry {
         return false;
     }
 
-    private void logPinFailure(List<X509Certificate> chain) {
-        PinFailureLogger.log(cn, chainContainsUserCert(chain), enforcing, chain);
+    private void logPinFailure(List<X509Certificate> chain, boolean containsUserCert) {
+        PinFailureLogger.log(cn, containsUserCert, enforcing, chain);
     }
 }
 
