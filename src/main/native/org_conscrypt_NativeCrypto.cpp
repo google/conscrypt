@@ -178,7 +178,7 @@ typedef UniquePtr<EVP_MD_CTX, EVP_MD_CTX_Delete> Unique_EVP_MD_CTX;
 
 struct EVP_CIPHER_CTX_Delete {
     void operator()(EVP_CIPHER_CTX* p) const {
-        EVP_CIPHER_CTX_cleanup(p);
+        EVP_CIPHER_CTX_free(p);
     }
 };
 typedef UniquePtr<EVP_CIPHER_CTX, EVP_CIPHER_CTX_Delete> Unique_EVP_CIPHER_CTX;
