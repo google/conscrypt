@@ -86,26 +86,29 @@ public class CertPinManagerTest extends TestCase {
 
     public void testPinFileMaximumLookup() throws Exception {
 
-        // write a pinfile with two entries, one longer than the other
-        String shortEntry = "*.google.com=true|" + shortPin;
-        String longEntry = "*.clients.google.com=true|" + longPin;
+        // Hostnames to match
+        String longHostname = "android.clients.google.com";
+        String shortHostname = "android.google.com";
+
+        // Write a pinfile with two entries, one longer than the other.
+        // NOTE: "shortChain", "longChain", "shortPin", and "longPin"
+        // does not have any bearing on the test. It's simply used to
+        // distinguish the following pin entries.
+        String shortHostnameEntry = "*.google.com=true|" + shortPin;
+        String longHostnameEntry = "*.clients.google.com=true|" + longPin;
 
         // create the pinFile
-        String path = writeTmpPinFile(shortEntry + "\n" + longEntry);
+        String path = writeTmpPinFile(shortHostnameEntry + "\n" + longHostnameEntry);
         CertPinManager pf = new CertPinManager(path, new TrustedCertificateStore());
 
-        // verify that the shorter chain doesn't work for a name matching the longer
-        assertTrue("short chain long uri failed",
-                   pf.chainIsNotPinned("android.clients.google.com", shortChain));
-        // verify that the longer chain doesn't work for a name matching the shorter
-        assertTrue("long chain short uri failed",
-                   pf.chainIsNotPinned("android.google.com", longChain));
-        // verify that the shorter chain works for the shorter domain
-        assertTrue("short chain short uri failed",
-                   !pf.chainIsNotPinned("android.google.com", shortChain));
-        // and the same for the longer
-        assertTrue("long chain long uri failed",
-                   !pf.chainIsNotPinned("android.clients.google.com", longChain));
+        assertFalse("Short entry should NOT match longer hostname",
+                pf.isChainValid(longHostname, shortChain));
+        assertFalse("Long entry should NOT match shorter hostname",
+                pf.isChainValid(shortHostname, longChain));
+        assertTrue("Short entry should match short hostname",
+                pf.isChainValid(shortHostname, shortChain));
+        assertTrue("Long entry should match long name",
+                pf.isChainValid(longHostname, longChain));
     }
 
     public void testPinEntryMalformedEntry() throws Exception {
@@ -145,8 +148,8 @@ public class CertPinManagerTest extends TestCase {
         PinListEntry e = new PinListEntry(shortEntry, new TrustedCertificateStore());
         assertTrue("Not enforcing!", e.getEnforcing());
         // verify that it doesn't accept
-        boolean retval = e.chainIsNotPinned(longChain);
-        assertTrue("Accepted an incorrect pinning, this is very bad", retval);
+        boolean retval = e.isChainValid(longChain);
+        assertFalse("Accepted an incorrect pinning, this is very bad", retval);
     }
 
     public void testPinEntryPinSuccess() throws Exception {
@@ -157,8 +160,8 @@ public class CertPinManagerTest extends TestCase {
         PinListEntry e = new PinListEntry(shortEntry, new TrustedCertificateStore());
         assertTrue("Not enforcing!", e.getEnforcing());
         // verify that it accepts
-        boolean retval = e.chainIsNotPinned(shortChain);
-        assertTrue("Failed on a correct pinning, this is very bad", !retval);
+        boolean retval = e.isChainValid(shortChain);
+        assertTrue("Failed on a correct pinning, this is very bad", retval);
     }
 
     public void testPinEntryNonEnforcing() throws Exception {
@@ -169,7 +172,7 @@ public class CertPinManagerTest extends TestCase {
         PinListEntry e = new PinListEntry(shortEntry, new TrustedCertificateStore());
         assertFalse("Enforcing!", e.getEnforcing());
         // verify that it accepts
-        boolean retval = e.chainIsNotPinned(shortChain);
-        assertTrue("Failed on an unenforced pinning, this is bad-ish", !retval);
+        boolean retval = e.isChainValid(shortChain);
+        assertTrue("Failed on an unenforced pinning, this is bad-ish", retval);
     }
 }

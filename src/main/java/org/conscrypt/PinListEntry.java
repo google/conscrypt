@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import libcore.io.EventLogger;
 
 /**
  * This class represents a single entry in the pin file.
@@ -43,8 +42,6 @@ public class PinListEntry {
     private final boolean enforcing;
 
     private final Set<String> pinnedFingerprints = new HashSet<String>();
-
-    private static final boolean DEBUG = false;
 
     private final TrustedCertificateStore certStore;
 
@@ -90,19 +87,20 @@ public class PinListEntry {
     /**
      * Checks the given chain against the pin list corresponding to this entry.
      *
-     * If the pin list does not contain the required certs and the enforcing field is true then
-     * this returns true, indicating a verification error. Otherwise, it returns false and
-     * verification should proceed.
+     * <p>If enforcing is on and the given {@code chain} does not include the
+     * expected pinned certificate, this will return {@code false} indicating
+     * the chain is not valid. Otherwise this will return {@code true}
+     * indicating the {@code chain} is valid.
      */
-    public boolean chainIsNotPinned(List<X509Certificate> chain) {
+    public boolean isChainValid(List<X509Certificate> chain) {
         for (X509Certificate cert : chain) {
             String fingerprint = getFingerprint(cert);
             if (pinnedFingerprints.contains(fingerprint)) {
-                return false;
+                return true;
             }
         }
         logPinFailure(chain);
-        return enforcing;
+        return !enforcing;
     }
 
     private static String getFingerprint(X509Certificate cert) {
