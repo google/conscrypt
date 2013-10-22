@@ -261,13 +261,13 @@ public final class TrustManagerImpl implements X509TrustManager {
         CertPath certPath = factory.generateCertPath(Arrays.asList(newChain));
 
         if (host != null) {
-            boolean chainIsNotPinned = true;
+            boolean isChainValid = false;
             try {
-                chainIsNotPinned = pinManager.chainIsNotPinned(host, wholeChain);
+                isChainValid = pinManager.isChainValid(host, wholeChain);
             } catch (PinManagerException e) {
                 throw new CertificateException(e);
             }
-            if (chainIsNotPinned) {
+            if (!isChainValid) {
                 throw new CertificateException(new CertPathValidatorException(
                         "Certificate path is not properly pinned.", null, certPath, -1));
             }
