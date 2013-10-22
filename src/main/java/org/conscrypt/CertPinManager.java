@@ -60,24 +60,25 @@ public class CertPinManager {
     }
 
     /**
-     * This is the public interface for cert pinning.
+     * Given a {@code hostname} and a {@code chain} this verifies that the
+     * certificate chain includes certificates from the pinned list iff the
+     * {@code hostname} is on the list of sites that should be pinned.
      *
-     * Given a hostname and a certificate chain this verifies that the chain includes
-     * certs from the pinned list provided.
-     *
-     * If the chain doesn't include those certs and is in enforcing mode, then this method
-     * returns true and the certificate check should fail.
+     * <p>If {@code chain} doesn't include those certificates and enforcing
+     * mode is enabled, then this method returns {@code false} and the
+     * certificate chain validation should fail.
      */
-    public boolean chainIsNotPinned(String hostname, List<X509Certificate> chain)
+    public boolean isChainValid(String hostname, List<X509Certificate> chain)
             throws PinManagerException {
         // lookup the entry
-        PinListEntry entry = lookup(hostname);
+        final PinListEntry entry = lookup(hostname);
 
-        // return its result or false if there's no pin
-        if (entry != null) {
-            return entry.chainIsNotPinned(chain);
+        // There was no entry in the pin list for this hostname.
+        if (entry == null) {
+            return true;
         }
-        return false;
+
+        return entry.isChainValid(chain);
     }
 
     private synchronized void rebuild() throws PinManagerException {
@@ -130,7 +131,7 @@ public class CertPinManager {
         }
 
         // check to see if our cache is valid
-        if (cacheIsNotValid()) {
+        if (!isCacheValid()) {
             rebuild();
         }
 
@@ -153,8 +154,8 @@ public class CertPinManager {
         return null;
     }
 
-    private boolean cacheIsNotValid() {
-        return pinFile.lastModified() != lastModified;
+    private boolean isCacheValid() {
+        return pinFile.lastModified() == lastModified;
     }
 
     private String getMatchingCN(String hostname) {
