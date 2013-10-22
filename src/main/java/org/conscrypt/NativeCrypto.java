@@ -720,6 +720,16 @@ public final class NativeCrypto {
     public static native long SSL_CTX_new();
 
     public static String[] getDefaultCipherSuites() {
+        // The default list of cipher suites is a trade-off between what we'd like to use and what
+        // servers currently support. We strive to be secure enough by default. We thus avoid
+        // unacceptably weak suites (e.g., those with bulk cipher secret key shorter than 80 bits),
+        // while maintaining the capability to connect to the majority of servers.
+        //
+        // Cipher suites are listed in preference order (favorite choice first) of the client.
+        // However, servers are not required to honor the order.
+        //
+        // NOTE: Removing cipher suites from this list needs to be done with caution, because this
+        // may prevent apps from connecting to servers they were previously able to connect to.
         return new String[] {
             "SSL_RSA_WITH_RC4_128_MD5",
             "SSL_RSA_WITH_RC4_128_SHA",
@@ -748,13 +758,6 @@ public final class NativeCrypto {
             "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
             "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
             "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
-            "SSL_RSA_WITH_DES_CBC_SHA",
-            "SSL_DHE_RSA_WITH_DES_CBC_SHA",
-            "SSL_DHE_DSS_WITH_DES_CBC_SHA",
-            "SSL_RSA_EXPORT_WITH_RC4_40_MD5",
-            "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",
-            "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
-            "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA",
             TLS_EMPTY_RENEGOTIATION_INFO_SCSV
         };
     }
