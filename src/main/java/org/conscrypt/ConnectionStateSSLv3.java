@@ -26,6 +26,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLProtocolException;
 
+
 /**
  * This class encapsulates the operating environment of the SSL v3
  * (http://wp.netscape.com/eng/ssl3) Record Protocol and provides
@@ -43,11 +44,14 @@ public class ConnectionStateSSLv3 extends ConnectionState {
     // paddings
     private final byte[] pad_1;
     private final byte[] pad_2;
+
     // array will hold the part of the MAC material:
-    // length of 3 == 1(SSLCompressed.type) + 2(SSLCompressed.length)
+    // length of 6 == 2 X (1(SSLCompressed.type) + 2(SSLCompressed.length))
+    // 1 each for encryption and decryption.
+    //
     // (more on SSLv3 MAC computation and payload protection see
     // SSL v3 specification, p. 5.2.3)
-    private final byte[] mac_material_part = new byte[3];
+    private final byte[] mac_material_part = new byte[6];
 
     /**
      * Creates the instance of SSL v3 Connection State. All of the
@@ -233,14 +237,17 @@ public class ConnectionStateSSLv3 extends ConnectionState {
             byte[] res = new byte[content_mac_length + padding_length];
             System.arraycopy(fragment, offset, res, 0, len);
 
-            mac_material_part[0] = type;
-            mac_material_part[1] = (byte) ((0x00FF00 & len) >> 8);
-            mac_material_part[2] = (byte) (0x0000FF & len);
-
             messageDigest.update(mac_write_secret);
             messageDigest.update(pad_1);
             messageDigest.update(write_seq_num);
-            messageDigest.update(mac_material_part);
+
+            // Use the first 3 bytes of mac_material_part as a scratch area,
+            // the last 3 bytes are used by decrypt.
+            mac_material_part[0] = type;
+            mac_material_part[1] = (byte) ((0x00FF00 & len) >> 8);
+            mac_material_part[2] = (byte) (0x0000FF & len);
+            messageDigest.update(mac_material_part, 0, 3);
+
             messageDigest.update(fragment, offset, len);
             byte[] digest = messageDigest.digest();
             messageDigest.update(mac_write_secret);
@@ -310,14 +317,17 @@ public class ConnectionStateSSLv3 extends ConnectionState {
 
         byte[] mac_value;
 
-        mac_material_part[0] = type;
-        mac_material_part[1] = (byte) ((0x00FF00 & content.length) >> 8);
-        mac_material_part[2] = (byte) (0x0000FF & content.length);
-
         messageDigest.update(mac_read_secret);
         messageDigest.update(pad_1);
         messageDigest.update(read_seq_num);
-        messageDigest.update(mac_material_part);
+
+        // The first 3 bytes of mac_material_part are used as a scratch area
+        // by encrypt() so we use the last three bytes here.
+        mac_material_part[3] = type;
+        mac_material_part[4] = (byte) ((0x00FF00 & content.length) >> 8);
+        mac_material_part[5] = (byte) (0x0000FF & content.length);
+        messageDigest.update(mac_material_part, 3, mac_material_part.length);
+
         messageDigest.update(data, 0, content.length);
         mac_value = messageDigest.digest();
         messageDigest.update(mac_read_secret);
