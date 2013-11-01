@@ -124,7 +124,7 @@ public class CipherSuiteTest extends TestCase {
 
     public void test_getSupportedCipherSuiteNames() throws Exception {
         String[] names = CipherSuite.getSupportedCipherSuiteNames();
-        StandardNames.assertSupportedCipherSuites(StandardNames.CIPHER_SUITES_SSLENGINE, names);
+        StandardNames.assertSSLEngineSupportedCipherSuites(names);
         for (String name : names) {
             test_CipherSuite(name);
         }
