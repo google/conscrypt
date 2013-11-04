@@ -156,7 +156,12 @@ public class TrustManagerImplTest extends TestCase {
         assertInvalidPinned(chain1, trustManager(intermediate, "gugle.com", root), "gugle.com");
         // test a pinned hostname that should succeed
         assertValidPinned(chain2, trustManager(intermediate, "gugle.com", server), "gugle.com",
-                                                                                            chain2);
+                          chain2);
+        // test a pinned hostname that chains to user installed that should succeed
+        assertValidPinned(chain2, trustManagerUserInstalled(
+            (X509Certificate)TestKeyStore.getIntermediateCa2().getPrivateKey("RSA", "RSA")
+                .getCertificateChain()[1], intermediate, "gugle.com", server), "gugle.com",
+                chain2, true);
     }
 
     private X509TrustManager trustManager(X509Certificate ca) throws Exception {
@@ -177,6 +182,29 @@ public class TrustManagerImplTest extends TestCase {
         KeyStore keyStore = TestKeyStore.createKeyStore();
         keyStore.setCertificateEntry("alias", ca);
         return new TrustManagerImpl(keyStore, cm);
+    }
+
+    private TrustManagerImpl trustManagerUserInstalled(
+        X509Certificate caKeyStore, X509Certificate caUserStore, String hostname,
+        X509Certificate pin) throws Exception {
+        // build the cert pin manager
+        CertPinManager cm = certManager(hostname, pin);
+
+        // install at least one cert in the store (requirement)
+        KeyStore keyStore = TestKeyStore.createKeyStore();
+        keyStore.setCertificateEntry("alias", caKeyStore);
+
+        // install a cert into the user installed store
+        final File DIR_TEMP = new File(System.getProperty("java.io.tmpdir"));
+        final File DIR_TEST = new File(DIR_TEMP, "test");
+        final File system = new File(DIR_TEST, "system-test");
+        final File added = new File(DIR_TEST, "added-test");
+        final File deleted = new File(DIR_TEST, "deleted-test");
+
+        TrustedCertificateStore tcs = new TrustedCertificateStore(system, added, deleted);
+        added.mkdirs();
+        tcs.installCertificate(caUserStore);
+        return new TrustManagerImpl(keyStore, cm, tcs);
     }
 
     private CertPinManager certManager(String hostname, X509Certificate pin) throws Exception {
@@ -200,10 +228,23 @@ public class TrustManagerImplTest extends TestCase {
 
     private void assertValidPinned(X509Certificate[] chain, X509TrustManager tm, String hostname,
                                    X509Certificate[] fullChain) throws Exception {
+        assertValidPinned(chain, tm, hostname, fullChain, false);
+    }
+
+    private void assertValidPinned(X509Certificate[] chain, X509TrustManager tm, String hostname,
+                                   X509Certificate[] fullChain, boolean expectUserInstalled)
+                                   throws Exception {
         if (tm instanceof TrustManagerImpl) {
             TrustManagerImpl tmi = (TrustManagerImpl) tm;
             List<X509Certificate> checkedChain = tmi.checkServerTrusted(chain, "RSA", hostname);
             assertEquals(checkedChain, Arrays.asList(fullChain));
+            boolean chainContainsUserInstalled = false;
+            for (X509Certificate cert : checkedChain) {
+                if (tmi.isUserAddedCertificate(cert)) {
+                    chainContainsUserInstalled = true;
+                }
+            }
+            assertEquals(expectUserInstalled, chainContainsUserInstalled);
         }
         tm.checkServerTrusted(chain, "RSA");
     }

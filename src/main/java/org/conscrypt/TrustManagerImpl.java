@@ -101,6 +101,14 @@ public final class TrustManagerImpl implements X509TrustManager {
      * For testing only
      */
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager) {
+        this(keyStore, manager, null);
+    }
+
+    /**
+     * For testing only.
+     */
+    public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
+                            TrustedCertificateStore certStore) {
         CertPathValidator validatorLocal = null;
         CertificateFactory factoryLocal = null;
         KeyStore rootKeyStoreLocal = null;
@@ -115,12 +123,13 @@ public final class TrustManagerImpl implements X509TrustManager {
             // if we have an AndroidCAStore, we will lazily load CAs
             if ("AndroidCAStore".equals(keyStore.getType())) {
                 rootKeyStoreLocal = keyStore;
-                trustedCertificateStoreLocal = new TrustedCertificateStore();
+                trustedCertificateStoreLocal =
+                    (certStore != null) ? certStore : new TrustedCertificateStore();
                 acceptedIssuersLocal = null;
                 trustedCertificateIndexLocal = new TrustedCertificateIndex();
             } else {
                 rootKeyStoreLocal = null;
-                trustedCertificateStoreLocal = null;
+                trustedCertificateStoreLocal = certStore;
                 acceptedIssuersLocal = acceptedIssuers(keyStore);
                 trustedCertificateIndexLocal
                         = new TrustedCertificateIndex(trustAnchors(acceptedIssuersLocal));
@@ -190,6 +199,14 @@ public final class TrustManagerImpl implements X509TrustManager {
     @Override public void checkServerTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
         checkTrusted(chain, authType, null, false);
+    }
+
+    public boolean isUserAddedCertificate(X509Certificate cert) throws CertificateException {
+        if (trustedCertificateStore == null) {
+            return false;
+        } else {
+            return trustedCertificateStore.isUserAddedCertificate(cert);
+        }
     }
 
     /**
