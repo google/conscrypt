@@ -201,7 +201,7 @@ public final class TrustManagerImpl implements X509TrustManager {
         checkTrusted(chain, authType, null, false);
     }
 
-    public boolean isUserAddedCertificate(X509Certificate cert) throws CertificateException {
+    public boolean isUserAddedCertificate(X509Certificate cert) {
         if (trustedCertificateStore == null) {
             return false;
         } else {
