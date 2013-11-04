@@ -175,13 +175,38 @@ public class SSLRecordProtocol {
     }
 
     /**
-     * Depending on the Connection State (Session) encrypts and compress
-     * the provided data, and packs it into TLSCiphertext structure.
-     * @param   content_type: int
-     * @return  ssl packet created over the current connection state
+     * Depending on the Connection State (Session) encrypts and compress the
+     * provided data, and packs it into TLSCiphertext structure.
+     *
+     * @param content_type the SSL/TLS content type
+     * @param dataStream the stream to read from
+     * @return ssl packet created over the current connection state
      */
     protected byte[] wrap(byte content_type, DataStream dataStream) {
-        byte[] fragment = dataStream.getData(MAX_DATA_LENGTH);
+        if (content_type == ContentType.APPLICATION_DATA
+                && session != null
+                && !session.isServer
+                && (session.protocol == ProtocolVersion.SSLv3
+                    || session.protocol == ProtocolVersion.TLSv1)
+                && session.cipherSuite.isInitialRecordSplit()) {
+            byte[] first = wrap(content_type, dataStream, 1);
+            if (!dataStream.hasData()) {
+                return first;
+            }
+
+            byte[] second = wrap(content_type, dataStream, MAX_DATA_LENGTH);
+            byte[] output = new byte[first.length + second.length];
+            System.arraycopy(first, 0, output, 0, first.length);
+            System.arraycopy(second, 0, output, first.length, second.length);
+
+            return output;
+        } else {
+            return wrap(content_type, dataStream, MAX_DATA_LENGTH);
+        }
+    }
+
+    private byte[] wrap(byte content_type, DataStream dataStream, int max_len) {
+        byte[] fragment = dataStream.getData(max_len);
         return wrap(content_type, fragment, 0, fragment.length);
     }
 
