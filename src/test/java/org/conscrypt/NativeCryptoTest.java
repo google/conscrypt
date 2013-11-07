@@ -55,6 +55,7 @@ import libcore.io.IoUtils;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
+import static org.conscrypt.NativeCrypto.SSL_MODE_CBC_RECORD_SPLITTING;
 import static org.conscrypt.NativeCrypto.SSL_MODE_HANDSHAKE_CUTTHROUGH;
 
 public class NativeCryptoTest extends TestCase {
@@ -499,6 +500,9 @@ public class NativeCryptoTest extends TestCase {
         long s = NativeCrypto.SSL_new(c);
         // check SSL_MODE_HANDSHAKE_CUTTHROUGH off by default
         assertEquals(0, NativeCrypto.SSL_get_mode(s) & SSL_MODE_HANDSHAKE_CUTTHROUGH);
+        // check SSL_MODE_CBC_RECORD_SPLITTING off by default
+        assertEquals(0, NativeCrypto.SSL_get_mode(s) & SSL_MODE_CBC_RECORD_SPLITTING);
+
         // set SSL_MODE_HANDSHAKE_CUTTHROUGH on
         NativeCrypto.SSL_set_mode(s, SSL_MODE_HANDSHAKE_CUTTHROUGH);
         assertTrue((NativeCrypto.SSL_get_mode(s)
