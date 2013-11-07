@@ -393,6 +393,11 @@ public class OpenSSLSocketImpl
                 NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, hostname);
             }
 
+            // BEAST attack mitigation (1/n-1 record splitting for CBC cipher suites with TLSv1 and
+            // SSLv3).
+            NativeCrypto.SSL_set_mode(
+                    sslNativePointer, NativeCrypto.SSL_MODE_CBC_RECORD_SPLITTING);
+
             boolean enableSessionCreation = sslParameters.getEnableSessionCreation();
             if (!enableSessionCreation) {
                 NativeCrypto.SSL_set_session_creation_enabled(sslNativePointer,
