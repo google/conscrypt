@@ -747,17 +747,17 @@ public class CipherSuite {
         // NOTE: Removing cipher suites from this list needs to be done with caution, because this
         // may prevent apps from connecting to servers they were previously able to connect to.
         CipherSuite[] defaultCipherSuites = {
-                TLS_RSA_WITH_AES_128_CBC_SHA,
-                TLS_RSA_WITH_AES_256_CBC_SHA,
                 TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
                 TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
                 TLS_DHE_DSS_WITH_AES_128_CBC_SHA,
                 TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
+                TLS_RSA_WITH_AES_128_CBC_SHA,
+                TLS_RSA_WITH_AES_256_CBC_SHA,
                 SSL_RSA_WITH_RC4_128_MD5,
                 SSL_RSA_WITH_RC4_128_SHA,
-                SSL_RSA_WITH_3DES_EDE_CBC_SHA,
                 SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
-                SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA
+                SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
+                SSL_RSA_WITH_3DES_EDE_CBC_SHA,
                 };
         count = 0;
         for (int i = 0; i < defaultCipherSuites.length; i++) {
