@@ -306,7 +306,8 @@ public final class TrustedCertificateStore {
     private File getCertificateFile(File dir, final X509Certificate x) {
         // compare X509Certificate.getEncoded values
         CertSelector selector = new CertSelector() {
-            @Override public boolean match(X509Certificate cert) {
+            @Override
+            public boolean match(X509Certificate cert) {
                 return cert.equals(x);
             }
         };
@@ -325,7 +326,8 @@ public final class TrustedCertificateStore {
     public boolean isTrustAnchor(final X509Certificate c) {
         // compare X509Certificate.getPublicKey values
         CertSelector selector = new CertSelector() {
-            @Override public boolean match(X509Certificate ca) {
+            @Override
+            public boolean match(X509Certificate ca) {
                 return ca.getPublicKey().equals(c.getPublicKey());
             }
         };
@@ -351,7 +353,8 @@ public final class TrustedCertificateStore {
     public X509Certificate findIssuer(final X509Certificate c) {
         // match on verified issuer of Certificate
         CertSelector selector = new CertSelector() {
-            @Override public boolean match(X509Certificate ca) {
+            @Override
+            public boolean match(X509Certificate ca) {
                 try {
                     c.verify(ca.getPublicKey());
                     return true;

@@ -47,6 +47,7 @@ public class ClientSessionContext extends AbstractSessionContext {
         this.persistentCache = persistentCache;
     }
 
+    @Override
     protected void sessionRemoved(SSLSession session) {
         String host = session.getPeerHost();
         int port = session.getPeerPort();
@@ -130,11 +131,13 @@ public class ClientSessionContext extends AbstractSessionContext {
             this.port = port;
         }
 
-        @Override public int hashCode() {
+        @Override
+        public int hashCode() {
             return host.hashCode() * 31 + port;
         }
 
-        @Override public boolean equals(Object o) {
+        @Override
+        public boolean equals(Object o) {
             if (!(o instanceof HostAndPort)) {
                 return false;
             }

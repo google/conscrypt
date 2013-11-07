@@ -126,6 +126,7 @@ public class FileClientSessionCache {
             return host + "." + port;
         }
 
+        @Override
         public synchronized byte[] getSessionData(String host, int port) {
             /*
              * Note: This method is only called when the in-memory cache
@@ -178,6 +179,7 @@ public class FileClientSessionCache {
             System.logW("Error reading session data for " + host + " from " + file + ".", t);
         }
 
+        @Override
         public synchronized void putSessionData(SSLSession session,
                 byte[] sessionData) {
             String host = session.getPeerHost();

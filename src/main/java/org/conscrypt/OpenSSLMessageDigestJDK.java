@@ -84,6 +84,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
         return result;
     }
 
+    @Override
     public Object clone() throws CloneNotSupportedException {
         OpenSSLMessageDigestJDK d = (OpenSSLMessageDigestJDK) super.clone();
         d.ctx = NativeCrypto.EVP_MD_CTX_copy(getCtx());
@@ -104,7 +105,8 @@ public class OpenSSLMessageDigestJDK extends MessageDigest implements Cloneable 
         }
     }
 
-    @Override protected void finalize() throws Throwable {
+    @Override
+    protected void finalize() throws Throwable {
         try {
             free();
         } finally {

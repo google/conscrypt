@@ -18,7 +18,6 @@
 package org.conscrypt;
 
 import java.io.PrintStream;
-import java.util.Locale;
 import org.conscrypt.util.EmptyArray;
 
 /**

@@ -30,11 +30,13 @@ final class ByteArray {
         this.hashCode = Arrays.hashCode(bytes);
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         return hashCode;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         if (!(o instanceof ByteArray)) {
             return false;
         }
