@@ -93,6 +93,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * Gets the identifier of the actual SSL session
      * @return array of sessions' identifiers.
      */
+    @Override
     public byte[] getId() {
         if (id == null) {
             resetId();
@@ -124,6 +125,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * Gets the creation time of the SSL session.
      * @return the session's creation time in milliseconds since the epoch
      */
+    @Override
     public long getCreationTime() {
         if (creationTime == 0) {
             creationTime = NativeCrypto.SSL_SESSION_get_time(sslSessionNativePointer);
@@ -138,6 +140,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *
      * @return the session's last access time in milliseconds since the epoch
      */
+    @Override
     public long getLastAccessedTime() {
         return (lastAccessedTime == 0) ? getCreationTime() : lastAccessedTime;
     }
@@ -147,6 +150,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * concrete SSL session.
      * @return the largest buffer size
      */
+    @Override
     public int getApplicationBufferSize() {
         return SSLRecordProtocol.MAX_DATA_LENGTH;
     }
@@ -156,6 +160,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * SSL session.
      * @return the largest packet size
      */
+    @Override
     public int getPacketBufferSize() {
         return SSLRecordProtocol.MAX_SSL_PACKET_SIZE;
     }
@@ -165,6 +170,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * handshaking phase of the connection.
      * @return a X509 certificate or null if no principal was defined
      */
+    @Override
     public Principal getLocalPrincipal() {
         if (localCertificates != null && localCertificates.length > 0) {
             return localCertificates[0].getSubjectX500Principal();
@@ -181,6 +187,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         that of the certification authority) or null if no certificate
      *         were used during the handshaking phase.
      */
+    @Override
     public Certificate[] getLocalCertificates() {
         return localCertificates;
     }
@@ -197,6 +204,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         was used (i.e. Kerberos certificates) or the peer could not
      *         be verified.
      */
+    @Override
     public javax.security.cert.X509Certificate[] getPeerCertificateChain()
             throws SSLPeerUnverifiedException {
         checkPeerCertificatesPresent();
@@ -244,6 +252,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         was used (i.e. Kerberos certificates) or the peer could not
      *         be verified.
      */
+    @Override
     public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
         checkPeerCertificatesPresent();
         return peerCertificates;
@@ -267,6 +276,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         was used (i.e. Kerberos certificates) or the peer does not exist.
      *
      */
+    @Override
     public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
         checkPeerCertificatesPresent();
         return peerCertificates[0].getSubjectX500Principal();
@@ -282,6 +292,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         available.
      *
      */
+    @Override
     public String getPeerHost() {
         return peerHost;
     }
@@ -295,6 +306,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @return the peer's port number, or -1 if no one is available.
      *
      */
+    @Override
     public int getPeerPort() {
         return peerPort;
     }
@@ -303,6 +315,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * Returns a string identifier of the crypto tools used in the actual SSL
      * session. For example AES_256_WITH_MD5.
      */
+    @Override
     public String getCipherSuite() {
         if (cipherSuite == null) {
             String name = NativeCrypto.SSL_SESSION_cipher(sslSessionNativePointer);
@@ -318,6 +331,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * Returns the standard version name of the SSL protocol used in all
      * connections pertaining to this SSL session.
      */
+    @Override
     public String getProtocol() {
         if (protocol == null) {
             protocol = NativeCrypto.SSL_SESSION_get_version(sslSessionNativePointer);
@@ -332,6 +346,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @return the SSL context used for this session, or null if it is
      * unavailable.
      */
+    @Override
     public SSLSessionContext getSessionContext() {
         return sessionContext;
     }
@@ -342,6 +357,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *
      * @return true if this session may be resumed.
      */
+    @Override
     public boolean isValid() {
         SSLSessionContext context = sessionContext;
         if (isValid
@@ -357,6 +373,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     /**
      * It invalidates a SSL session forbidding any resumption.
      */
+    @Override
     public void invalidate() {
         isValid = false;
         sessionContext = null;
@@ -372,6 +389,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *         exist.
      * @throws IllegalArgumentException if the argument is null.
      */
+    @Override
     public Object getValue(String name) {
         if (name == null) {
             throw new IllegalArgumentException("name == null");
@@ -386,6 +404,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @return a non-null (possibly empty) array of names of the data objects
      *         bound to this SSL session.
      */
+    @Override
     public String[] getValueNames() {
         return values.keySet().toArray(new String[values.size()]);
     }
@@ -402,6 +421,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *            name.
      * @throws IllegalArgumentException if one or both argument(s) is null.
      */
+    @Override
     public void putValue(String name, Object value) {
         if (name == null || value == null) {
             throw new IllegalArgumentException("name == null || value == null");
@@ -428,6 +448,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      *            accepted!)
      * @throws IllegalArgumentException if the argument is null.
      */
+    @Override
     public void removeValue(String name) {
         if (name == null) {
             throw new IllegalArgumentException("name == null");
@@ -439,7 +460,8 @@ public class OpenSSLSessionImpl implements SSLSession {
         }
     }
 
-    @Override protected void finalize() throws Throwable {
+    @Override
+    protected void finalize() throws Throwable {
         try {
             NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
         } finally {

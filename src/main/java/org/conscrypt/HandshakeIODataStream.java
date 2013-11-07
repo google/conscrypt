@@ -18,10 +18,8 @@
 package org.conscrypt;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.security.MessageDigest;
 import java.util.Arrays;
-import java.util.Locale;
 import javax.net.ssl.SSLHandshakeException;
 
 /**
@@ -185,6 +183,7 @@ public class HandshakeIODataStream
      * the fake data if such was provided (to check the size of certificate
      * for example).
      */
+    @Override
     public void append(byte[] src) {
         append(src, 0, src.length);
     }
@@ -344,6 +343,7 @@ public class HandshakeIODataStream
 
     // ------------------- Retrieve the written bytes ----------------------
 
+    @Override
     public boolean hasData() {
         return (write_pos > write_pos_beg);
     }
@@ -353,6 +353,7 @@ public class HandshakeIODataStream
      * @param   length: int
      * @return
      */
+    @Override
     public byte[] getData(int length) {
         byte[] res;
         if (write_pos - write_pos_beg < length) {

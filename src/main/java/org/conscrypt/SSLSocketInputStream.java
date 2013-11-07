@@ -114,7 +114,8 @@ public final class SSLSocketInputStream extends InputStream {
         return buffer[pos++] & 0xFF;
     }
 
-    @Override public int read(byte[] b, int off, int len) throws IOException {
+    @Override
+    public int read(byte[] b, int off, int len) throws IOException {
         int read_b;
         int i = 0;
         do {
@@ -137,6 +138,7 @@ public final class SSLSocketInputStream extends InputStream {
          * This method could be implemented in the outer class
          * itself, but it could be insecure.
          */
+        @Override
         public void append(byte[] src) {
             int length = src.length;
             if (BUFFER_SIZE - (end - pos) < length) {

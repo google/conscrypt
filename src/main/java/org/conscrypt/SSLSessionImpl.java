@@ -89,30 +89,37 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
         this(null, secureRandom);
     }
 
+    @Override
     public int getApplicationBufferSize() {
         return SSLRecordProtocol.MAX_DATA_LENGTH;
     }
 
+    @Override
     public String getCipherSuite() {
         return cipherSuite.getName();
     }
 
+    @Override
     public long getCreationTime() {
         return creationTime;
     }
 
+    @Override
     public byte[] getId() {
         return id;
     }
 
+    @Override
     public long getLastAccessedTime() {
         return lastAccessedTime;
     }
 
+    @Override
     public Certificate[] getLocalCertificates() {
         return localCertificates;
     }
 
+    @Override
     public Principal getLocalPrincipal() {
         if (localCertificates != null && localCertificates.length > 0) {
             return localCertificates[0].getSubjectX500Principal();
@@ -120,10 +127,12 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
         return null;
     }
 
+    @Override
     public int getPacketBufferSize() {
         return SSLRecordProtocol.MAX_SSL_PACKET_SIZE;
     }
 
+    @Override
     public javax.security.cert.X509Certificate[] getPeerCertificateChain()
             throws SSLPeerUnverifiedException {
         if (peerCertificates == null) {
@@ -141,6 +150,7 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
         return certs;
     }
 
+    @Override
     public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
         if (peerCertificates == null) {
             throw new SSLPeerUnverifiedException("No peer certificate");
@@ -148,14 +158,17 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
         return peerCertificates;
     }
 
+    @Override
     public String getPeerHost() {
         return peerHost;
     }
 
+    @Override
     public int getPeerPort() {
         return peerPort;
     }
 
+    @Override
     public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
         if (peerCertificates == null) {
             throw new SSLPeerUnverifiedException("No peer certificate");
@@ -163,14 +176,17 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
         return peerCertificates[0].getSubjectX500Principal();
     }
 
+    @Override
     public String getProtocol() {
         return (protocol == null) ? "NONE" : protocol.name;
     }
 
+    @Override
     public SSLSessionContext getSessionContext() {
         return context;
     }
 
+    @Override
     public Object getValue(String name) {
         if (name == null) {
             throw new IllegalArgumentException("name == null");
@@ -178,15 +194,18 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
         return values.get(name);
     }
 
+    @Override
     public String[] getValueNames() {
         return values.keySet().toArray(new String[values.size()]);
     }
 
+    @Override
     public void invalidate() {
         isValid = false;
         context = null;
     }
 
+    @Override
     public boolean isValid() {
         if (isValid && context != null && context.getSessionTimeout() != 0
                 && lastAccessedTime + context.getSessionTimeout() > System.currentTimeMillis()) {
@@ -195,6 +214,7 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
         return isValid;
     }
 
+    @Override
     public void putValue(String name, Object value) {
         if (name == null || value == null) {
             throw new IllegalArgumentException("name == null || value == null");
@@ -209,6 +229,7 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
 
     }
 
+    @Override
     public void removeValue(String name) {
         if (name == null) {
             throw new IllegalArgumentException("name == null");

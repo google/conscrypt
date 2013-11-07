@@ -34,7 +34,8 @@ public class SSLSocketOutputStream extends OutputStream {
         this.owner = owner;
     }
 
-    @Override public void write(int b) throws IOException {
+    @Override
+    public void write(int b) throws IOException {
         Streams.writeSingleByte(this, b);
     }
 

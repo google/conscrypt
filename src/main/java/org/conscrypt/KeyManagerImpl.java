@@ -84,16 +84,19 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
         }
     }
 
+    @Override
     public String chooseClientAlias(String[] keyTypes, Principal[] issuers, Socket socket) {
         final String[] al = chooseAlias(keyTypes, issuers);
         return (al == null ? null : al[0]);
     }
 
+    @Override
     public String chooseServerAlias(String keyType, Principal[] issuers, Socket socket) {
         final String[] al = chooseAlias(new String[] { keyType }, issuers);
         return (al == null ? null : al[0]);
     }
 
+    @Override
     public X509Certificate[] getCertificateChain(String alias) {
         if (alias == null) {
             return null;
@@ -112,14 +115,17 @@ public class KeyManagerImpl extends X509ExtendedKeyManager {
 
     }
 
+    @Override
     public String[] getClientAliases(String keyType, Principal[] issuers) {
         return chooseAlias(new String[] { keyType }, issuers);
     }
 
+    @Override
     public String[] getServerAliases(String keyType, Principal[] issuers) {
         return chooseAlias(new String[] { keyType }, issuers);
     }
 
+    @Override
     public PrivateKey getPrivateKey(String alias) {
         if (alias == null) {
             return null;
