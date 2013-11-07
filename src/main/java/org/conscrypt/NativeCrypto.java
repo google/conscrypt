@@ -708,6 +708,7 @@ public final class NativeCrypto {
 
     // SSL mode from ssl.h
     public static final long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000020L;
+    public static final long SSL_MODE_CBC_RECORD_SPLITTING = 0x00000040L;
 
     // SSL options from ssl.h
     public static final long SSL_OP_NO_TICKET                              = 0x00004000L;
