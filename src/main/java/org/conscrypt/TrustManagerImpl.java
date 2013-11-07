@@ -40,7 +40,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.net.ssl.X509TrustManager;
-import libcore.io.EventLogger;
 
 /**
  *
@@ -182,12 +181,14 @@ public final class TrustManagerImpl implements X509TrustManager {
         return trustAnchors;
     }
 
-    @Override public void checkClientTrusted(X509Certificate[] chain, String authType)
+    @Override
+    public void checkClientTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
         checkTrusted(chain, authType, null, true);
     }
 
-    @Override public void checkServerTrusted(X509Certificate[] chain, String authType)
+    @Override
+    public void checkServerTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
         checkTrusted(chain, authType, null, false);
     }
@@ -417,18 +418,22 @@ public final class TrustManagerImpl implements X509TrustManager {
             this.leaf = leaf;
         }
 
-        @Override public void init(boolean forward) throws CertPathValidatorException {
+        @Override
+        public void init(boolean forward) throws CertPathValidatorException {
         }
 
-        @Override public boolean isForwardCheckingSupported() {
+        @Override
+        public boolean isForwardCheckingSupported() {
             return true;
         }
 
-        @Override public Set<String> getSupportedExtensions() {
+        @Override
+        public Set<String> getSupportedExtensions() {
             return SUPPORTED_EXTENSIONS;
         }
 
-        @Override public void check(Certificate c, Collection<String> unresolvedCritExts)
+        @Override
+        public void check(Certificate c, Collection<String> unresolvedCritExts)
                 throws CertPathValidatorException {
             // We only want to validate the EKU on the leaf certificate.
             if (c != leaf) {
@@ -530,7 +535,8 @@ public final class TrustManagerImpl implements X509TrustManager {
         return null;
     }
 
-    @Override public X509Certificate[] getAcceptedIssuers() {
+    @Override
+    public X509Certificate[] getAcceptedIssuers() {
         return (acceptedIssuers != null) ? acceptedIssuers.clone() : acceptedIssuers(rootKeyStore);
     }
 }

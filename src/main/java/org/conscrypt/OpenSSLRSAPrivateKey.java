@@ -167,6 +167,7 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
         return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getPkeyContext());
     }
 
+    @Override
     public final String getFormat() {
         /*
          * If we're using an OpenSSL ENGINE, there's no guarantee we can export

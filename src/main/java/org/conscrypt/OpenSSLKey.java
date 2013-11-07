@@ -92,7 +92,7 @@ public class OpenSSLKey {
 
     static PublicKey getPublicKey(X509EncodedKeySpec keySpec, int type)
             throws InvalidKeySpecException {
-        X509EncodedKeySpec x509KeySpec = (X509EncodedKeySpec) keySpec;
+        X509EncodedKeySpec x509KeySpec = keySpec;
 
         final OpenSSLKey key;
         try {
@@ -127,7 +127,7 @@ public class OpenSSLKey {
 
     static PrivateKey getPrivateKey(PKCS8EncodedKeySpec keySpec, int type)
             throws InvalidKeySpecException {
-        PKCS8EncodedKeySpec pkcs8KeySpec = (PKCS8EncodedKeySpec) keySpec;
+        PKCS8EncodedKeySpec pkcs8KeySpec = keySpec;
 
         final OpenSSLKey key;
         try {

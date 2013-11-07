@@ -82,10 +82,13 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
+    @Override
     public final Enumeration<byte[]> getIds() {
         final Iterator<SSLSession> i = sessionIterator();
         return new Enumeration<byte[]>() {
             private SSLSession next;
+
+            @Override
             public boolean hasMoreElements() {
                 if (next != null) {
                     return true;
@@ -100,6 +103,8 @@ abstract class AbstractSessionContext implements SSLSessionContext {
                 next = null;
                 return false;
             }
+
+            @Override
             public byte[] nextElement() {
                 if (hasMoreElements()) {
                     byte[] id = next.getId();
@@ -111,10 +116,12 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         };
     }
 
+    @Override
     public final int getSessionCacheSize() {
         return maximumSize;
     }
 
+    @Override
     public final int getSessionTimeout() {
         return timeout;
     }
@@ -137,6 +144,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
+    @Override
     public void setSessionTimeout(int seconds)
             throws IllegalArgumentException {
         if (seconds < 0) {
@@ -164,6 +172,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
      */
     protected abstract void sessionRemoved(SSLSession session);
 
+    @Override
     public final void setSessionCacheSize(int size)
             throws IllegalArgumentException {
         if (size < 0) {
@@ -258,6 +267,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
+    @Override
     public SSLSession getSession(byte[] sessionId) {
         if (sessionId == null) {
             throw new NullPointerException("sessionId == null");
@@ -288,7 +298,8 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         System.logW("Error converting session.", t);
     }
 
-    @Override protected void finalize() throws Throwable {
+    @Override
+    protected void finalize() throws Throwable {
         try {
             NativeCrypto.SSL_CTX_free(sslCtxNativePointer);
         } finally {

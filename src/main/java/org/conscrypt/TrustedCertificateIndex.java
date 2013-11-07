@@ -17,7 +17,6 @@
 package org.conscrypt;
 
 import java.security.PublicKey;
-import java.security.cert.CertPathValidatorException;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
