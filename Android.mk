@@ -116,42 +116,35 @@ ifeq ($(WITH_HOST_DALVIK),true)
     # Make the conscrypt-hostdex library
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
-    LOCAL_JAVA_LIBRARIES := core-hostdex
-    LOCAL_NO_STANDARD_LIBRARIES := true
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
-    LOCAL_BUILD_HOST_DEX := true
     LOCAL_MODULE_TAGS := optional
     LOCAL_MODULE := conscrypt-hostdex
     LOCAL_REQUIRED_MODULES := libjavacrypto
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-    include $(BUILD_HOST_JAVA_LIBRARY)
+    include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 
     # Make the conscrypt-hostdex-nojarjar for tests
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
-    LOCAL_JAVA_LIBRARIES := core-hostdex
-    LOCAL_NO_STANDARD_LIBRARIES := true
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_BUILD_HOST_DEX := true
     LOCAL_MODULE_TAGS := optional
     LOCAL_MODULE := conscrypt-hostdex-nojarjar
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-    include $(BUILD_HOST_JAVA_LIBRARY)
+    include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 
     # Make the conscrypt-tests library.
     ifeq ($(LIBCORE_SKIP_TESTS),)
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(call all-java-files-under,src/test/java)
-    LOCAL_NO_STANDARD_LIBRARIES := true
-    LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex core-hostdex core-junit-hostdex core-tests-support-hostdex conscrypt-hostdex-nojarjar
+    LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex core-junit-hostdex core-tests-support-hostdex conscrypt-hostdex-nojarjar
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_MODULE_TAGS := optional
     LOCAL_MODULE := conscrypt-tests-hostdex
     LOCAL_REQUIRED_MODULES := libjavacrypto
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-    LOCAL_BUILD_HOST_DEX := true
-    include $(BUILD_HOST_JAVA_LIBRARY)
+    include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
     endif
 
     # Conscrypt native library for host
