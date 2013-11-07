@@ -185,7 +185,6 @@ public class SSLRecordProtocol {
     protected byte[] wrap(byte content_type, DataStream dataStream) {
         if (content_type == ContentType.APPLICATION_DATA
                 && session != null
-                && !session.isServer
                 && (session.protocol == ProtocolVersion.SSLv3
                     || session.protocol == ProtocolVersion.TLSv1)
                 && session.cipherSuite.isInitialRecordSplit()) {
