@@ -45,14 +45,17 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
         this.instantiationException = null;
     }
 
+    @Override
     public String[] getDefaultCipherSuites() {
         return NativeCrypto.getDefaultCipherSuites();
     }
 
+    @Override
     public String[] getSupportedCipherSuites() {
         return NativeCrypto.getSupportedCipherSuites();
     }
 
+    @Override
     public Socket createSocket() throws IOException {
         if (instantiationException != null) {
             throw instantiationException;
@@ -60,10 +63,12 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
         return new OpenSSLSocketImpl((SSLParametersImpl) sslParameters.clone());
     }
 
+    @Override
     public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
         return new OpenSSLSocketImpl(host, port, (SSLParametersImpl) sslParameters.clone());
     }
 
+    @Override
     public Socket createSocket(String host, int port, InetAddress localHost, int localPort)
             throws IOException, UnknownHostException {
         return new OpenSSLSocketImpl(host,
@@ -73,10 +78,12 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
                                      (SSLParametersImpl) sslParameters.clone());
     }
 
+    @Override
     public Socket createSocket(InetAddress host, int port) throws IOException {
         return new OpenSSLSocketImpl(host, port, (SSLParametersImpl) sslParameters.clone());
     }
 
+    @Override
     public Socket createSocket(InetAddress address,
                                int port,
                                InetAddress localAddress,
@@ -89,6 +96,7 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
                                      (SSLParametersImpl) sslParameters.clone());
     }
 
+    @Override
     public Socket createSocket(Socket s, String host, int port, boolean autoClose)
             throws IOException {
         return new OpenSSLSocketImplWrapper(s,

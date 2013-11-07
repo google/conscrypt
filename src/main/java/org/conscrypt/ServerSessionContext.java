@@ -49,6 +49,7 @@ public class ServerSessionContext extends AbstractSessionContext {
         this.persistentCache = persistentCache;
     }
 
+    @Override
     protected void sessionRemoved(SSLSession session) {}
 
     @Override

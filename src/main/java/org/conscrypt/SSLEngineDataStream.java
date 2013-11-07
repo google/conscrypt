@@ -58,10 +58,12 @@ public class SSLEngineDataStream implements DataStream {
         return available;
     }
 
+    @Override
     public boolean hasData() {
         return available > 0;
     }
 
+    @Override
     public byte[] getData(int length) {
         // TODO: optimization work:
         // use ByteBuffer.get(byte[],int,int)

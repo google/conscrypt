@@ -32,80 +32,96 @@ public final class TrustedCertificateKeyStoreSpi extends KeyStoreSpi {
 
     private final TrustedCertificateStore store = new TrustedCertificateStore();
 
-    @Override public Key engineGetKey(String alias, char[] password) {
+    @Override
+    public Key engineGetKey(String alias, char[] password) {
         if (alias == null) {
             throw new NullPointerException("alias == null");
         }
         return null;
     }
 
-    @Override public Certificate[] engineGetCertificateChain(String alias) {
+    @Override
+    public Certificate[] engineGetCertificateChain(String alias) {
         if (alias == null) {
             throw new NullPointerException("alias == null");
         }
         return null;
     }
 
-    @Override public Certificate engineGetCertificate(String alias) {
+    @Override
+    public Certificate engineGetCertificate(String alias) {
         return store.getCertificate(alias);
     }
 
-    @Override public Date engineGetCreationDate(String alias) {
+    @Override
+    public Date engineGetCreationDate(String alias) {
         return store.getCreationDate(alias);
     }
 
-    @Override public void engineSetKeyEntry(
+    @Override
+    public void engineSetKeyEntry(
             String alias, Key key, char[] password, Certificate[] chain) {
         throw new UnsupportedOperationException();
     }
 
-    @Override public void engineSetKeyEntry(String alias, byte[] key, Certificate[] chain) {
+    @Override
+    public void engineSetKeyEntry(String alias, byte[] key, Certificate[] chain) {
         throw new UnsupportedOperationException();
     }
 
-    @Override public void engineSetCertificateEntry(String alias, Certificate cert) {
+    @Override
+    public void engineSetCertificateEntry(String alias, Certificate cert) {
         if (alias == null) {
             throw new NullPointerException("alias == null");
         }
         throw new UnsupportedOperationException();
     }
 
-    @Override public void engineDeleteEntry(String alias) {
+    @Override
+    public void engineDeleteEntry(String alias) {
         throw new UnsupportedOperationException();
     }
 
-    @Override public Enumeration<String> engineAliases() {
+    @Override
+    public Enumeration<String> engineAliases() {
         return Collections.enumeration(store.aliases());
     }
 
-    @Override public boolean engineContainsAlias(String alias) {
+    @Override
+    public boolean engineContainsAlias(String alias) {
         return store.containsAlias(alias);
     }
 
-    @Override public int engineSize() {
+    @Override
+    public int engineSize() {
         return store.aliases().size();
     }
 
-    @Override public boolean engineIsKeyEntry(String alias) {
+    @Override
+    public boolean engineIsKeyEntry(String alias) {
         if (alias == null) {
             throw new NullPointerException("alias == null");
         }
         return false;
     }
 
-    @Override public boolean engineIsCertificateEntry(String alias) {
+    @Override
+    public boolean engineIsCertificateEntry(String alias) {
         return engineContainsAlias(alias);
     }
 
-    @Override public String engineGetCertificateAlias(Certificate c) {
+    @Override
+    public String engineGetCertificateAlias(Certificate c) {
         return store.getCertificateAlias(c);
     }
 
-    @Override public void engineStore(OutputStream stream, char[] password) {
+    @Override
+    public void engineStore(OutputStream stream, char[] password) {
         throw new UnsupportedOperationException();
     }
 
-    @Override public void engineLoad(InputStream stream, char[] password) {
+    @Override
+    public void engineLoad(InputStream stream, char[] password) {
         if (stream != null) {
             throw new UnsupportedOperationException();
         }

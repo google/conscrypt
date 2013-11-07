@@ -40,6 +40,7 @@ public class SSLEngineAppData implements Appendable {
      * Stores received data. The source data is not cloned,
      * just the array reference is remembered into the buffer field.
      */
+    @Override
     public void append(byte[] src) {
         if (buffer != null) {
             throw new AlertException(

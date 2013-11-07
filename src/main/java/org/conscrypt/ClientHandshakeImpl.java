@@ -22,7 +22,6 @@ import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
@@ -279,6 +278,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                     serverHelloDone = new ServerHelloDone(io_stream, length);
                     if (this.nonBlocking) {
                         delegatedTasks.add(new DelegatedTask(new Runnable() {
+                            @Override
                             public void run() {
                                 processServerHelloDone();
                             }
