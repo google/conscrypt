@@ -729,10 +729,11 @@ public class NativeCryptoTest extends TestCase {
         }
 
         public boolean handshakeCompletedCalled;
-        public void handshakeCompleted() {
+
+        public void onSSLStateChange(long sslSessionNativePtr, int type, int val) {
             if (DEBUG) {
                 System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
-                                   + " handshakeCompleted");
+                                   + " onSSLStateChange");
             }
             this.handshakeCompletedCalled = true;
         }
