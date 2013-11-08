@@ -461,6 +461,8 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                 Key key = kp.getPublic();
                 if (clientCert != null
                         && serverCert != null
+                        && clientCert.certs.length > 0
+                        && serverCert.certs.length > 0
                         && (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA
                                 || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS)) {
                     PublicKey client_pk = clientCert.certs[0].getPublicKey();
@@ -470,16 +472,16 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                         if (((DHKey) client_pk).getParams().getG().equals(
                                 ((DHKey) server_pk).getParams().getG())
                                 && ((DHKey) client_pk).getParams().getP()
-                                    .equals(((DHKey) server_pk).getParams().getG())) {
+                                    .equals(((DHKey) server_pk).getParams().getP())) {
                             // client cert message DH public key parameters
                             // matched those specified by the
                             //   server in its certificate,
                             clientKeyExchange = new ClientKeyExchange(); // empty
                         }
                     }
-                } else {
-                    clientKeyExchange = new ClientKeyExchange(
-                            ((DHPublicKey) key).getY());
+                }
+                if (clientKeyExchange == null) {
+                    clientKeyExchange = new ClientKeyExchange(((DHPublicKey) key).getY());
                 }
                 key = kp.getPrivate();
                 agreement.init(key);
