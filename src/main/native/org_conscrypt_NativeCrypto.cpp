@@ -5544,7 +5544,6 @@ class AppData {
     MUTEX_TYPE mutex;
     JNIEnv* env;
     jobject sslHandshakeCallbacks;
-    jobject fileDescriptor;
     jbyteArray npnProtocolsArray;
     jbyte* npnProtocolsData;
     size_t npnProtocolsLength;
@@ -5628,7 +5627,6 @@ class AppData {
         }
         env = e;
         sslHandshakeCallbacks = shc;
-        fileDescriptor = fd;
         if (npnProtocols != NULL) {
             npnProtocolsArray = npnProtocols;
             npnProtocolsLength = e->GetArrayLength(npnProtocols);
@@ -5650,7 +5648,6 @@ class AppData {
 
     void clearCallbackState() {
         sslHandshakeCallbacks = NULL;
-        fileDescriptor = NULL;
         if (npnProtocolsArray != NULL) {
             env->ReleaseByteArrayElements(npnProtocolsArray, npnProtocolsData, JNI_ABORT);
             npnProtocolsArray = NULL;
