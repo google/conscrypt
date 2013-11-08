@@ -742,7 +742,17 @@ public class CipherSuite {
         // while maintaining the capability to connect to the majority of servers.
         //
         // Cipher suites are listed in preference order (favorite choice first) of the client.
-        // However, servers are not required to honor the order.
+        // However, servers are not required to honor the order. The key rules governing the
+        // preference order are:
+        // * Prefer Forward Secrecy (i.e., cipher suites that use ECDHE and DHE for key agreement).
+        // * Prefer AES to RC4 whose foundations are a bit shaky. See
+        //   http://www.isg.rhul.ac.uk/tls/. BEAST and Lucky13 mitigations are enabled.
+        // * Prefer AES_128+ and RC4_128 to 3DES_EDE. The effective bulk encryption key length of
+        //   3DES_EDE is reduced from 168 to only 112 bits by meet-in-the-middle attack.
+        // * Prefer 128-bit bulk encryption to 256-bit one, because 128-bit is safe enough while
+        //   consuming less CPU/time/energy.
+        // * Prefer HMAC-SHA to HMAC-MD5. Although HMAC-MD5 is not yet broken, the foundations are
+        //   much more shaky that those of HMAC-SHA. See http://tools.ietf.org/html/rfc6151.
         //
         // NOTE: Removing cipher suites from this list needs to be done with caution, because this
         // may prevent apps from connecting to servers they were previously able to connect to.
@@ -753,8 +763,8 @@ public class CipherSuite {
                 TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
                 TLS_RSA_WITH_AES_128_CBC_SHA,
                 TLS_RSA_WITH_AES_256_CBC_SHA,
-                SSL_RSA_WITH_RC4_128_MD5,
                 SSL_RSA_WITH_RC4_128_SHA,
+                SSL_RSA_WITH_RC4_128_MD5,
                 SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
                 SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
                 SSL_RSA_WITH_3DES_EDE_CBC_SHA,
