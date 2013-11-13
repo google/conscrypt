@@ -522,36 +522,13 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     ds.update(clientHello.getRandom());
                     ds.update(serverHello.getRandom());
 
-                    byte[] tmp;
-                    byte[] tmpLength = new byte[2];
 //FIXME 1_byte==0x00
                     if (cipher_suite.keyExchange == CipherSuite.KEY_EXCHANGE_RSA_EXPORT) {
-                        tmp = ServerKeyExchange.toUnsignedByteArray(rsakey.getModulus());
-                        tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
-                        tmpLength[1] = (byte) (tmp.length & 0xFF);
-                        ds.update(tmpLength);
-                        ds.update(tmp);
-                        tmp = ServerKeyExchange.toUnsignedByteArray(rsakey.getPublicExponent());
-                        tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
-                        tmpLength[1] = (byte) (tmp.length & 0xFF);
-                        ds.update(tmpLength);
-                        ds.update(tmp);
+                        ServerKeyExchange.updateSignatureRsa(ds, rsakey.getModulus(),
+                                rsakey.getPublicExponent());
                     } else {
-                        tmp = ServerKeyExchange.toUnsignedByteArray(dhkeySpec.getP());
-                        tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
-                        tmpLength[1] = (byte) (tmp.length & 0xFF);
-                        ds.update(tmpLength);
-                        ds.update(tmp);
-                        tmp = ServerKeyExchange.toUnsignedByteArray(dhkeySpec.getG());
-                        tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
-                        tmpLength[1] = (byte) (tmp.length & 0xFF);
-                        ds.update(tmpLength);
-                        ds.update(tmp);
-                        tmp = ServerKeyExchange.toUnsignedByteArray(dhkeySpec.getY());
-                        tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
-                        tmpLength[1] = (byte) (tmp.length & 0xFF);
-                        ds.update(tmpLength);
-                        ds.update(tmp);
+                        ServerKeyExchange.updateSignatureDh(ds, dhkeySpec.getP(), dhkeySpec.getG(),
+                                dhkeySpec.getY());
                     }
                     hash = ds.sign();
                 } else {
