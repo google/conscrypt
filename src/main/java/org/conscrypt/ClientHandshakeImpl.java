@@ -416,6 +416,16 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             try {
                 c = Cipher.getInstance("RSA/ECB/PKCS1Padding");
                 if (serverKeyExchange != null) {
+                    if (!session.cipherSuite.isAnonymous()) {
+                        DigitalSignature ds = new DigitalSignature(serverCert.getAuthType());
+                        ds.init(serverCert.certs[0]);
+                        ds.update(clientHello.getRandom());
+                        ds.update(serverHello.getRandom());
+                        if (!serverKeyExchange.verifySignature(ds)) {
+                            fatalAlert(AlertProtocol.DECRYPT_ERROR, "Cannot verify RSA params");
+                            return;
+                        }
+                    }
                     c.init(Cipher.WRAP_MODE, serverKeyExchange
                             .getRSAPublicKey());
                 } else {
