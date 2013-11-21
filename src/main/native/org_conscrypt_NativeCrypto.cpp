@@ -687,6 +687,16 @@ static SSL_SESSION* to_SSL_SESSION(JNIEnv* env, jlong ssl_session_address, bool 
     return ssl_session;
 }
 
+static SSL_CIPHER* to_SSL_CIPHER(JNIEnv* env, jlong ssl_cipher_address, bool throwIfNull) {
+    SSL_CIPHER* ssl_cipher
+        = reinterpret_cast<SSL_CIPHER*>(static_cast<uintptr_t>(ssl_cipher_address));
+    if ((ssl_cipher == NULL) && throwIfNull) {
+        JNI_TRACE("ssl_cipher == null");
+        jniThrowNullPointerException(env, "ssl_cipher == null");
+    }
+    return ssl_cipher;
+}
+
 /**
  * Converts a Java byte[] to an OpenSSL BIGNUM, allocating the BIGNUM on the
  * fly. Returns true on success. If the return value is false, there is a
@@ -6572,6 +6582,39 @@ static jlong NativeCrypto_SSL_clear_options(JNIEnv* env, jclass,
     return result;
 }
 
+static jlongArray NativeCrypto_SSL_get_ciphers(JNIEnv* env, jclass, jlong ssl_address)
+{
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_ciphers", ssl);
+
+    STACK_OF(SSL_CIPHER)* cipherStack = SSL_get_ciphers(ssl);
+    int count = (cipherStack != NULL) ? sk_SSL_CIPHER_num(cipherStack) : 0;
+    ScopedLocalRef<jlongArray> ciphersArray(env, env->NewLongArray(count));
+    ScopedLongArrayRW ciphers(env, ciphersArray.get());
+    for (int i = 0; i < count; i++) {
+        ciphers[i] = reinterpret_cast<jlong>(sk_SSL_CIPHER_value(cipherStack, i));
+    }
+
+    JNI_TRACE("NativeCrypto_SSL_get_ciphers(%p) => %p [size=%d]", ssl, ciphersArray.get(), count);
+    return ciphersArray.release();
+}
+
+static jint NativeCrypto_get_SSL_CIPHER_algorithm_mkey(JNIEnv* env, jclass,
+        jlong ssl_cipher_address)
+{
+    SSL_CIPHER* cipher = to_SSL_CIPHER(env, ssl_cipher_address, true);
+    JNI_TRACE("cipher=%p get_SSL_CIPHER_algorithm_mkey => %ld", cipher, cipher->algorithm_mkey);
+    return cipher->algorithm_mkey;
+}
+
+static jint NativeCrypto_get_SSL_CIPHER_algorithm_auth(JNIEnv* env, jclass,
+        jlong ssl_cipher_address)
+{
+    SSL_CIPHER* cipher = to_SSL_CIPHER(env, ssl_cipher_address, true);
+    JNI_TRACE("cipher=%p get_SSL_CIPHER_algorithm_auth => %ld", cipher, cipher->algorithm_auth);
+    return cipher->algorithm_auth;
+}
+
 /**
  * Sets the ciphers suites that are enabled in the SSL
  */
@@ -8106,6 +8149,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_set_options, "(JJ)J"),
     NATIVE_METHOD(NativeCrypto, SSL_clear_options, "(JJ)J"),
     NATIVE_METHOD(NativeCrypto, SSL_set_cipher_lists, "(J[Ljava/lang/String;)V"),
+    NATIVE_METHOD(NativeCrypto, SSL_get_ciphers, "(J)[J"),
+    NATIVE_METHOD(NativeCrypto, get_SSL_CIPHER_algorithm_auth, "(J)I"),
+    NATIVE_METHOD(NativeCrypto, get_SSL_CIPHER_algorithm_mkey, "(J)I"),
     NATIVE_METHOD(NativeCrypto, SSL_set_verify, "(JI)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_session, "(JJ)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_session_creation_enabled, "(JZ)V"),
