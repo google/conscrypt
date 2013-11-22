@@ -20,9 +20,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.security.PrivateKey;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.DSAPrivateKey;
-import java.security.interfaces.RSAPrivateKey;
 import javax.net.ssl.SSLException;
 
 /**
@@ -207,14 +204,14 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
             }
             if (keyType.equals(CipherSuite.KEY_TYPE_RSA)
                     || keyType.equals(CipherSuite.KEY_TYPE_DH_RSA)) {
-                if (checkForPrivateKey(keyType, RSAPrivateKey.class)) {
+                if (checkForPrivateKey(keyType, "RSA")) {
                     return;
                 }
                 continue;
             }
             if (keyType.equals(CipherSuite.KEY_TYPE_DSA)
                     || keyType.equals(CipherSuite.KEY_TYPE_DH_DSA)) {
-                if (checkForPrivateKey(keyType, DSAPrivateKey.class)) {
+                if (checkForPrivateKey(keyType, "DSA")) {
                     return;
                 }
                 continue;
@@ -222,7 +219,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
             if (keyType.equals(CipherSuite.KEY_TYPE_EC)
                     || keyType.equals(CipherSuite.KEY_TYPE_EC_RSA)
                     || keyType.equals(CipherSuite.KEY_TYPE_EC_EC)) {
-                if (checkForPrivateKey(keyType, ECPrivateKey.class)) {
+                if (checkForPrivateKey(keyType, "EC")) {
                     return;
                 }
                 continue;
@@ -233,12 +230,12 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
                                + "to support the enabled cipher suites.");
     }
 
-    private boolean checkForPrivateKey(String keyType, Class<?> keyClass) {
+    private boolean checkForPrivateKey(String keyType, String keyAlgorithm) {
         String alias = sslParameters.getKeyManager().chooseServerAlias(keyType, null, null);
         if (alias == null) {
             return false;
         }
         PrivateKey key = sslParameters.getKeyManager().getPrivateKey(alias);
-        return (key != null && keyClass.isAssignableFrom(key.getClass()));
+        return (key != null && keyAlgorithm.equals(key.getAlgorithm()));
     }
 }
