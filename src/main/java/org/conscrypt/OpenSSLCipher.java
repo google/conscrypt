@@ -321,10 +321,14 @@ public abstract class OpenSSLCipher extends CipherSpi {
     protected void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
         final AlgorithmParameterSpec spec;
-        try {
-            spec = params.getParameterSpec(IvParameterSpec.class);
-        } catch (InvalidParameterSpecException e) {
-            throw new InvalidAlgorithmParameterException(e);
+        if (params != null) {
+            try {
+                spec = params.getParameterSpec(IvParameterSpec.class);
+            } catch (InvalidParameterSpecException e) {
+                throw new InvalidAlgorithmParameterException(e);
+            }
+        } else {
+            spec = null;
         }
 
         engineInit(opmode, key, spec, random);
