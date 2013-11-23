@@ -59,7 +59,7 @@ public class PinFailureLogger {
             }
             sb.append("|");
         }
-        DropBox.addText("cert_pin_failure", sb.toString());
+        DropBox.addText("exp_det_cert_pin_failure", sb.toString());
     }
 
     protected static boolean timeToLog() {
