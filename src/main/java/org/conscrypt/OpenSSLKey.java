@@ -70,11 +70,16 @@ public class OpenSSLKey {
             return ((OpenSSLKeyHolder) key).getOpenSSLKey();
         }
 
-        if ("PKCS#8".equals(key.getFormat())) {
-            return new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(key.getEncoded()));
-        } else {
+        if (!"PKCS#8".equals(key.getFormat())) {
             throw new InvalidKeyException("Unknown key format " + key.getFormat());
         }
+
+        final byte[] encoded = key.getEncoded();
+        if (encoded == null) {
+            throw new InvalidKeyException("Key encoding is null");
+        }
+
+        return new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(key.getEncoded()));
     }
 
     public PublicKey getPublicKey() throws NoSuchAlgorithmException {
