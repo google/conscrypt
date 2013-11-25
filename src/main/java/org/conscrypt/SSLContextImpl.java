@@ -17,8 +17,6 @@
 
 package org.conscrypt;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.SecureRandom;
 import javax.net.ssl.KeyManager;
@@ -33,12 +31,6 @@ import javax.net.ssl.TrustManager;
  */
 public class SSLContextImpl extends SSLContextSpi {
 
-    /**
-     * The default SSLContextImpl for use with SSLContext.getInstance("Default").
-     * Protected by the DefaultSSLContextImpl.class monitor.
-     */
-    private static DefaultSSLContextImpl DEFAULT_SSL_CONTEXT_IMPL;
-
     /** Client session cache. */
     private final ClientSessionContext clientSessionContext;
 
@@ -50,30 +42,6 @@ public class SSLContextImpl extends SSLContextSpi {
     public SSLContextImpl() {
         clientSessionContext = new ClientSessionContext();
         serverSessionContext = new ServerSessionContext();
-    }
-
-    /**
-     * Constuctor for the DefaultSSLContextImpl.
-     * @param dummy is null, used to distinguish this case from the
-     * public SSLContextImpl() constructor.
-     */
-    protected SSLContextImpl(DefaultSSLContextImpl dummy)
-            throws GeneralSecurityException, IOException {
-        synchronized (DefaultSSLContextImpl.class) {
-            if (DEFAULT_SSL_CONTEXT_IMPL == null) {
-                clientSessionContext = new ClientSessionContext();
-                serverSessionContext = new ServerSessionContext();
-                DEFAULT_SSL_CONTEXT_IMPL = (DefaultSSLContextImpl)this;
-            } else {
-                clientSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetClientSessionContext();
-                serverSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetServerSessionContext();
-            }
-            sslParameters = new SSLParametersImpl(DEFAULT_SSL_CONTEXT_IMPL.getKeyManagers(),
-                                                  DEFAULT_SSL_CONTEXT_IMPL.getTrustManagers(),
-                                                  null,
-                                                  clientSessionContext,
-                                                  serverSessionContext);
-        }
     }
 
     /**
