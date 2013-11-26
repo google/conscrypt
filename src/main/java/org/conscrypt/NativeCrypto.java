@@ -718,6 +718,20 @@ public final class NativeCrypto {
     public static final long SSL_OP_NO_TLSv1_1                             = 0x10000000L;
     public static final long SSL_OP_NO_TLSv1_2                             = 0x08000000L;
 
+    /*
+     * Client certificate types as defined in
+     * TLS 1.0 spec., 7.4.4. Certificate request.
+     * EC constants from RFC 4492.
+     * OpenSSL constants from ssl/tls1.h.
+     */
+    public static final byte TLS_CT_RSA_SIGN = 1;
+    public static final byte TLS_CT_DSS_SIGN = 2;
+    public static final byte TLS_CT_RSA_FIXED_DH = 3;
+    public static final byte TLS_CT_DSS_FIXED_DH = 4;
+    public static final byte TLS_CT_ECDSA_SIGN = 64;
+    public static final byte TLS_CT_RSA_FIXED_ECDH = 65;
+    public static final byte TLS_CT_ECDSA_FIXED_ECDH = 66;
+
     public static native long SSL_CTX_new();
 
     public static String[] getDefaultCipherSuites() {
@@ -875,6 +889,68 @@ public final class NativeCrypto {
     }
 
     public static native void SSL_set_cipher_lists(long ssl, String[] ciphers);
+
+    /**
+     * Gets the list of cipher suites enabled for the provided {@code SSL} instance.
+     *
+     * @return array of {@code SSL_CIPHER} references.
+     */
+    public static native long[] SSL_get_ciphers(long ssl);
+
+    /*
+     * Constants for SSL_CIPHER algorithm_mkey (key exchange algorithm).
+     * OpenSSL constants from ssl/ssl_locl.h.
+     */
+    /** RSA key exchange */
+    public static final int SSL_kRSA =   0x00000001;
+    /** DH cert, RSA CA cert -- no such ciphersuite supported! */
+    public static final int SSL_kDHr =   0x00000002;
+    /** DH cert, DSA CA cert -- no such ciphersuite supported! */
+    public static final int SSL_kDHd =   0x00000004;
+    /** tmp DH key no DH cert */
+    public static final int SSL_kEDH =   0x00000008;
+    /** Kerberos5 key exchange */
+    public static final int SSL_kKRB5 =  0x00000010;
+    /** ECDH cert, RSA CA cert */
+    public static final int SSL_kECDHr = 0x00000020;
+    /** ECDH cert, ECDSA CA cert */
+    public static final int SSL_kECDHe = 0x00000040;
+    /** ephemeral ECDH */
+    public static final int SSL_kEECDH = 0x00000080;
+    /** PSK */
+    public static final int SSL_kPSK =   0x00000100;
+    /** GOST key exchange */
+    public static final int SSL_kGOST =  0x00000200;
+    /** SRP */
+    public static final int SSL_kSRP =   0x00000400;
+
+    /*
+     * Constants for SSL_CIPHER algorithm_auth (server authentication).
+     * OpenSSL constants from ssl/ssl_locl.h.
+     */
+    /** RSA auth */
+    public static final int SSL_aRSA =    0x00000001;
+    /** DSS auth */
+    public static final int SSL_aDSS =    0x00000002;
+    /** no auth (i.e. use ADH or AECDH) */
+    public static final int SSL_aNULL =   0x00000004;
+    /** Fixed DH auth (kDHd or kDHr) -- no such ciphersuites supported! */
+    public static final int SSL_aDH =     0x00000008;
+    /** Fixed ECDH auth (kECDHe or kECDHr) */
+    public static final int SSL_aECDH =   0x00000010;
+    /** KRB5 auth */
+    public static final int SSL_aKRB5 =   0x00000020;
+    /** ECDSA auth*/
+    public static final int SSL_aECDSA =  0x00000040;
+    /** PSK auth */
+    public static final int SSL_aPSK =    0x00000080;
+    /** GOST R 34.10-94 signature auth */
+    public static final int SSL_aGOST94 = 0x00000100;
+    /** GOST R 34.10-2001 signature auth */
+    public static final int SSL_aGOST01 = 0x00000200;
+
+    public static native int get_SSL_CIPHER_algorithm_mkey(long sslCipher);
+    public static native int get_SSL_CIPHER_algorithm_auth(long sslCipher);
 
     public static void setEnabledCipherSuites(long ssl, String[] cipherSuites) {
         checkEnabledCipherSuites(cipherSuites);
