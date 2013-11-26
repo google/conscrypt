@@ -19,8 +19,6 @@ package org.conscrypt;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.security.PrivateKey;
-import javax.net.ssl.SSLException;
 
 /**
  * OpenSSL-based implementation of server sockets.
@@ -169,73 +167,11 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
-
-        if (!sslParameters.getUseClientMode()) {
-            checkEnabledCipherSuites();
-        }
-
         OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters,
                                                          enabledProtocols.clone(),
                                                          enabledCipherSuites.clone());
         socket.setChannelIdEnabled(channelIdEnabled);
         implAccept(socket);
         return socket;
-    }
-
-    /**
-     * Check if any of the enabled cipher suites has a chance to work.
-     * Not 100% accurate, just a useful diagnostic that the RI does.
-     */
-    private void checkEnabledCipherSuites() throws SSLException {
-        /* Loop over all enabled cipher suites. If we find a problem,
-         * we just continue to the next one. If we find one that could
-         * work, we return. This basically makes sure the caller has
-         * configured some appropriate certificate/key unless
-         * an anonymous cipher is picked.
-         */
-        for (String enabledCipherSuite : enabledCipherSuites) {
-            if (enabledCipherSuite.equals(NativeCrypto.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)) {
-                continue;
-            }
-            String keyType = CipherSuite.getByName(enabledCipherSuite).getServerKeyType();
-            if (keyType == null) {
-                // anonymous always work
-                return;
-            }
-            if (keyType.equals(CipherSuite.KEY_TYPE_RSA)
-                    || keyType.equals(CipherSuite.KEY_TYPE_DH_RSA)) {
-                if (checkForPrivateKey(keyType, "RSA")) {
-                    return;
-                }
-                continue;
-            }
-            if (keyType.equals(CipherSuite.KEY_TYPE_DSA)
-                    || keyType.equals(CipherSuite.KEY_TYPE_DH_DSA)) {
-                if (checkForPrivateKey(keyType, "DSA")) {
-                    return;
-                }
-                continue;
-            }
-            if (keyType.equals(CipherSuite.KEY_TYPE_EC)
-                    || keyType.equals(CipherSuite.KEY_TYPE_EC_RSA)
-                    || keyType.equals(CipherSuite.KEY_TYPE_EC_EC)) {
-                if (checkForPrivateKey(keyType, "EC")) {
-                    return;
-                }
-                continue;
-            }
-            throw new IllegalStateException("Unknown key type " + keyType);
-        }
-        throw new SSLException("Could not find any key store entries "
-                               + "to support the enabled cipher suites.");
-    }
-
-    private boolean checkForPrivateKey(String keyType, String keyAlgorithm) {
-        String alias = sslParameters.getKeyManager().chooseServerAlias(keyType, null, null);
-        if (alias == null) {
-            return false;
-        }
-        PrivateKey key = sslParameters.getKeyManager().getPrivateKey(alias);
-        return (key != null && keyAlgorithm.equals(key.getAlgorithm()));
     }
 }
