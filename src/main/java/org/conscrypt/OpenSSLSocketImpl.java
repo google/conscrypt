@@ -361,30 +361,6 @@ public class OpenSSLSocketImpl
                 NativeCrypto.SSL_CTX_set_alpn_protos(sslCtxNativePointer, alpnProtocols);
             }
 
-            // setup server certificates and private keys.
-            // clients will receive a call back to request certificates.
-            if (!client) {
-                Set<String> keyTypes = new HashSet<String>();
-                for (String enabledCipherSuite : enabledCipherSuites) {
-                    if (enabledCipherSuite.equals(NativeCrypto.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)) {
-                        continue;
-                    }
-                    String keyType = CipherSuite.getByName(enabledCipherSuite).getServerKeyType();
-                    if (keyType != null) {
-                        keyTypes.add(keyType);
-                    }
-                }
-                for (String keyType : keyTypes) {
-                    try {
-                        setCertificate(sslParameters.getKeyManager().chooseServerAlias(keyType,
-                                                                                       null,
-                                                                                       this));
-                    } catch (CertificateEncodingException e) {
-                        throw new IOException(e);
-                    }
-                }
-            }
-
             NativeCrypto.setEnabledProtocols(sslNativePointer, enabledProtocols);
             NativeCrypto.setEnabledCipherSuites(sslNativePointer, enabledCipherSuites);
             if (useSessionTickets) {
@@ -419,6 +395,27 @@ public class OpenSSLSocketImpl
             } else {
                 sessionContext = sslParameters.getServerSessionContext();
                 sessionToReuse = null;
+            }
+
+            // setup server certificates and private keys.
+            // clients will receive a call back to request certificates.
+            if (!client) {
+                Set<String> keyTypes = new HashSet<String>();
+                for (long sslCipherNativePointer : NativeCrypto.SSL_get_ciphers(sslNativePointer)) {
+                    String keyType = getServerKeyType(sslCipherNativePointer);
+                    if (keyType != null) {
+                        keyTypes.add(keyType);
+                    }
+                }
+                for (String keyType : keyTypes) {
+                    try {
+                        setCertificate(sslParameters.getKeyManager().chooseServerAlias(keyType,
+                                                                                       null,
+                                                                                       this));
+                    } catch (CertificateEncodingException e) {
+                        throw new IOException(e);
+                    }
+                }
             }
 
             // setup peer certificate verification
@@ -684,7 +681,7 @@ public class OpenSSLSocketImpl
 
         String[] keyTypes = new String[keyTypeBytes.length];
         for (int i = 0; i < keyTypeBytes.length; i++) {
-            keyTypes[i] = CipherSuite.getClientKeyType(keyTypeBytes[i]);
+            keyTypes[i] = getClientKeyType(keyTypeBytes[i]);
         }
 
         X500Principal[] issuers;
@@ -1470,5 +1467,96 @@ public class OpenSSLSocketImpl
             throw new IllegalArgumentException("alpnProtocols.length == 0");
         }
         this.alpnProtocols = alpnProtocols;
+    }
+
+    /** Key type: RSA. */
+    private static final String KEY_TYPE_RSA = "RSA";
+
+    /** Key type: DSA. */
+    private static final String KEY_TYPE_DSA = "DSA";
+
+    /** Key type: Diffie-Hellman with RSA signature. */
+    private static final String KEY_TYPE_DH_RSA = "DH_RSA";
+
+    /** Key type: Diffie-Hellman with DSA signature. */
+    private static final String KEY_TYPE_DH_DSA = "DH_DSA";
+
+    /** Key type: Elliptic Curve. */
+    private static final String KEY_TYPE_EC = "EC";
+
+    /** Key type: Eliiptic Curve with ECDSA signature. */
+    private static final String KEY_TYPE_EC_EC = "EC_EC";
+
+    /** Key type: Eliiptic Curve with RSA signature. */
+    private static final String KEY_TYPE_EC_RSA = "EC_RSA";
+
+    /**
+     * Returns key type constant suitable for calling X509KeyManager.chooseServerAlias or
+     * X509ExtendedKeyManager.chooseEngineServerAlias. Returns {@code null} for anonymous key
+     * exchanges.
+     */
+    private static String getServerKeyType(long sslCipherNative) throws SSLException {
+        int algorithm_mkey = NativeCrypto.get_SSL_CIPHER_algorithm_mkey(sslCipherNative);
+        int algorithm_auth = NativeCrypto.get_SSL_CIPHER_algorithm_auth(sslCipherNative);
+        switch (algorithm_mkey) {
+            case NativeCrypto.SSL_kRSA:
+                return KEY_TYPE_RSA;
+            case NativeCrypto.SSL_kEDH:
+                switch (algorithm_auth) {
+                    case NativeCrypto.SSL_aDSS:
+                        return KEY_TYPE_DSA;
+                    case NativeCrypto.SSL_aRSA:
+                        return KEY_TYPE_RSA;
+                    case NativeCrypto.SSL_aNULL:
+                        return null;
+                }
+                break;
+            case NativeCrypto.SSL_kECDHr:
+                return KEY_TYPE_EC_RSA;
+            case NativeCrypto.SSL_kECDHe:
+                return KEY_TYPE_EC_EC;
+            case NativeCrypto.SSL_kEECDH:
+                switch (algorithm_auth) {
+                    case NativeCrypto.SSL_aECDSA:
+                        return KEY_TYPE_EC_EC;
+                    case NativeCrypto.SSL_aRSA:
+                        return KEY_TYPE_RSA;
+                    case NativeCrypto.SSL_aNULL:
+                        return null;
+                }
+                break;
+        }
+
+        throw new SSLException("Unsupported key exchange. "
+                + "mkey: 0x" + Long.toHexString(algorithm_mkey & 0xffffffffL)
+                + ", auth: 0x" + Long.toHexString(algorithm_auth & 0xffffffffL));
+    }
+
+    /**
+     * Similar to getServerKeyType, but returns value given TLS
+     * ClientCertificateType byte values from a CertificateRequest
+     * message for use with X509KeyManager.chooseClientAlias or
+     * X509ExtendedKeyManager.chooseEngineClientAlias.
+     */
+    static String getClientKeyType(byte keyType) {
+        // See also http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
+        switch (keyType) {
+            case NativeCrypto.TLS_CT_RSA_SIGN:
+                return KEY_TYPE_RSA; // RFC rsa_sign
+            case NativeCrypto.TLS_CT_DSS_SIGN:
+                return KEY_TYPE_DSA; // RFC dss_sign
+            case NativeCrypto.TLS_CT_RSA_FIXED_DH:
+                return KEY_TYPE_DH_RSA; // RFC rsa_fixed_dh
+            case NativeCrypto.TLS_CT_DSS_FIXED_DH:
+                return KEY_TYPE_DH_DSA; // RFC dss_fixed_dh
+            case NativeCrypto.TLS_CT_ECDSA_SIGN:
+                return KEY_TYPE_EC; // RFC ecdsa_sign
+            case NativeCrypto.TLS_CT_RSA_FIXED_ECDH:
+                return KEY_TYPE_EC_RSA; // RFC rsa_fixed_ecdh
+            case NativeCrypto.TLS_CT_ECDSA_FIXED_ECDH:
+                return KEY_TYPE_EC_EC; // RFC ecdsa_fixed_ecdh
+            default:
+                return null;
+        }
     }
 }
