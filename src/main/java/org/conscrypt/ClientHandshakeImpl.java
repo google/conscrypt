@@ -416,6 +416,16 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             try {
                 c = Cipher.getInstance("RSA/ECB/PKCS1Padding");
                 if (serverKeyExchange != null) {
+                    if (!session.cipherSuite.isAnonymous()) {
+                        DigitalSignature ds = new DigitalSignature(serverCert.getAuthType());
+                        ds.init(serverCert.certs[0]);
+                        ds.update(clientHello.getRandom());
+                        ds.update(serverHello.getRandom());
+                        if (!serverKeyExchange.verifySignature(ds)) {
+                            fatalAlert(AlertProtocol.DECRYPT_ERROR, "Cannot verify RSA params");
+                            return;
+                        }
+                    }
                     c.init(Cipher.WRAP_MODE, serverKeyExchange
                             .getRSAPublicKey());
                 } else {
@@ -438,61 +448,61 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
                         "Unexpected exception", e);
                 return;
             }
-        } else {
+        } else if (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS
+                || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS_EXPORT
+                || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA
+                || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA_EXPORT
+                || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon
+                || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DH_anon_EXPORT) {
+            /*
+             * All other key exchanges should have had a DH key communicated via
+             * ServerKeyExchange beforehand.
+             */
+            if (serverKeyExchange == null) {
+                fatalAlert(AlertProtocol.UNEXPECTED_MESSAGE, "Expected ServerKeyExchange");
+                return;
+            }
+            if (session.cipherSuite.isAnonymous() != serverKeyExchange.isAnonymous()) {
+                fatalAlert(AlertProtocol.DECRYPT_ERROR, "Wrong type in ServerKeyExchange");
+                return;
+            }
             try {
+                if (!session.cipherSuite.isAnonymous()) {
+                    DigitalSignature ds = new DigitalSignature(serverCert.getAuthType());
+                    ds.init(serverCert.certs[0]);
+                    ds.update(clientHello.getRandom());
+                    ds.update(serverHello.getRandom());
+                    if (!serverKeyExchange.verifySignature(ds)) {
+                        fatalAlert(AlertProtocol.DECRYPT_ERROR, "Cannot verify DH params");
+                        return;
+                    }
+                }
                 KeyFactory kf = KeyFactory.getInstance("DH");
                 KeyAgreement agreement = KeyAgreement.getInstance("DH");
                 KeyPairGenerator kpg = KeyPairGenerator.getInstance("DH");
-                PublicKey serverPublic;
-                DHParameterSpec spec;
-                if (serverKeyExchange != null) {
-                    serverPublic = kf.generatePublic(new DHPublicKeySpec(
-                            serverKeyExchange.par3, serverKeyExchange.par1,
-                            serverKeyExchange.par2));
-                    spec = new DHParameterSpec(serverKeyExchange.par1,
-                            serverKeyExchange.par2);
-                } else {
-                    serverPublic = serverCert.certs[0].getPublicKey();
-                    spec = ((DHPublicKey) serverPublic).getParams();
-                }
+                PublicKey serverDhPublic = kf.generatePublic(new DHPublicKeySpec(
+                        serverKeyExchange.par3, serverKeyExchange.par1,
+                        serverKeyExchange.par2));
+                DHParameterSpec spec = new DHParameterSpec(serverKeyExchange.par1,
+                        serverKeyExchange.par2);
                 kpg.initialize(spec);
-
                 KeyPair kp = kpg.generateKeyPair();
-                Key key = kp.getPublic();
-                if (clientCert != null
-                        && serverCert != null
-                        && clientCert.certs.length > 0
-                        && serverCert.certs.length > 0
-                        && (session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_RSA
-                                || session.cipherSuite.keyExchange == CipherSuite.KEY_EXCHANGE_DHE_DSS)) {
-                    PublicKey client_pk = clientCert.certs[0].getPublicKey();
-                    PublicKey server_pk = serverCert.certs[0].getPublicKey();
-                    if (client_pk instanceof DHKey
-                            && server_pk instanceof DHKey) {
-                        if (((DHKey) client_pk).getParams().getG().equals(
-                                ((DHKey) server_pk).getParams().getG())
-                                && ((DHKey) client_pk).getParams().getP()
-                                    .equals(((DHKey) server_pk).getParams().getP())) {
-                            // client cert message DH public key parameters
-                            // matched those specified by the
-                            //   server in its certificate,
-                            clientKeyExchange = new ClientKeyExchange(); // empty
-                        }
-                    }
-                }
-                if (clientKeyExchange == null) {
-                    clientKeyExchange = new ClientKeyExchange(((DHPublicKey) key).getY());
-                }
-                key = kp.getPrivate();
-                agreement.init(key);
-                agreement.doPhase(serverPublic, true);
+                DHPublicKey pubDhKey = (DHPublicKey) kp.getPublic();
+                clientKeyExchange = new ClientKeyExchange(pubDhKey.getY());
+                PrivateKey privDhKey = kp.getPrivate();
+                agreement.init(privDhKey);
+                agreement.doPhase(serverDhPublic, true);
                 preMasterSecret = agreement.generateSecret();
             } catch (Exception e) {
                 fatalAlert(AlertProtocol.INTERNAL_ERROR,
                         "Unexpected exception", e);
                 return;
             }
+        } else {
+            fatalAlert(AlertProtocol.DECRYPT_ERROR, "Unsupported handshake type");
+            return;
         }
+
         if (clientKeyExchange != null) {
             send(clientKeyExchange);
         }

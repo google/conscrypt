@@ -98,6 +98,60 @@ public class ServerKeyExchange extends Message {
         }
     }
 
+    public static void updateSignatureRsa(DigitalSignature ds, BigInteger modulus,
+            BigInteger publicExponent) {
+        byte[] tmp;
+        byte[] tmpLength = new byte[2];
+        tmp = ServerKeyExchange.toUnsignedByteArray(modulus);
+        tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
+        tmpLength[1] = (byte) (tmp.length & 0xFF);
+        ds.update(tmpLength);
+        ds.update(tmp);
+        tmp = ServerKeyExchange.toUnsignedByteArray(publicExponent);
+        tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
+        tmpLength[1] = (byte) (tmp.length & 0xFF);
+        ds.update(tmpLength);
+        ds.update(tmp);
+    }
+
+    public static void updateSignatureDh(DigitalSignature ds, BigInteger p, BigInteger g,
+            BigInteger y) {
+        byte[] tmp;
+        byte[] tmpLength = new byte[2];
+        tmp = ServerKeyExchange.toUnsignedByteArray(p);
+        tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
+        tmpLength[1] = (byte) (tmp.length & 0xFF);
+        ds.update(tmpLength);
+        ds.update(tmp);
+        tmp = ServerKeyExchange.toUnsignedByteArray(g);
+        tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
+        tmpLength[1] = (byte) (tmp.length & 0xFF);
+        ds.update(tmpLength);
+        ds.update(tmp);
+        tmp = ServerKeyExchange.toUnsignedByteArray(y);
+        tmpLength[0] = (byte) ((tmp.length & 0xFF00) >>> 8);
+        tmpLength[1] = (byte) (tmp.length & 0xFF);
+        ds.update(tmpLength);
+        ds.update(tmp);
+    }
+
+    public boolean verifySignature(DigitalSignature ds) {
+        if (par3 != null) {
+            updateSignatureDh(ds, par1, par2, par3);
+        } else {
+            updateSignatureRsa(ds, par1, par2);
+        }
+        return ds.verifySignature(hash);
+    }
+
+    /**
+     * Will return {@code true} if the signature is {@code null} since this is
+     * considered anonymous.
+     */
+    public boolean isAnonymous() {
+        return hash == null;
+    }
+
     /**
      * Creates inbound message
      * @param in
