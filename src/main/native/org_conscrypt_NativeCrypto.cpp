@@ -2967,7 +2967,7 @@ static jint NativeCrypto_EVP_DigestFinal(JNIEnv* env, jclass, jlong ctxRef,
  * public static native int EVP_DigestInit(int)
  */
 static jlong NativeCrypto_EVP_DigestInit(JNIEnv* env, jclass, jlong evpMdRef) {
-    EVP_MD* evp_md = reinterpret_cast<EVP_MD*>(evpMdRef);
+    const EVP_MD* evp_md = reinterpret_cast<const EVP_MD*>(evpMdRef);
     JNI_TRACE("NativeCrypto_EVP_DigestInit(%p)", evp_md);
 
     if (evp_md == NULL) {
