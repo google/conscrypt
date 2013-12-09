@@ -492,7 +492,13 @@ public class OpenSSLX509Certificate extends X509Certificate {
         return NativeCrypto.get_X509_hashCode(mContext);
     }
 
-    long getContext() {
+    /**
+     * Returns the raw pointer to the X509 context for use in JNI calls. The
+     * life cycle of this native pointer is managed by the
+     * {@code OpenSSLX509Certificate} instance and must not be destroyed or
+     * freed by users of this API.
+     */
+    public long getContext() {
         return mContext;
     }
 
