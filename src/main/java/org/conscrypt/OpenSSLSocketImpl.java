@@ -1538,7 +1538,7 @@ public class OpenSSLSocketImpl
      * message for use with X509KeyManager.chooseClientAlias or
      * X509ExtendedKeyManager.chooseEngineClientAlias.
      */
-    static String getClientKeyType(byte keyType) {
+    public static String getClientKeyType(byte keyType) {
         // See also http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
         switch (keyType) {
             case NativeCrypto.TLS_CT_RSA_SIGN:
