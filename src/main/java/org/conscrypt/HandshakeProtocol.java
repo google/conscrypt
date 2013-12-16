@@ -146,28 +146,19 @@ public abstract class HandshakeProtocol {
     /**
      * SSLEngine owning this HandshakeProtocol
      */
-    public SSLEngineImpl engineOwner;
-
-    /**
-     * SSLSocket owning this HandshakeProtocol
-     */
-    public SSLSocketImpl socketOwner;
+    protected final SSLEngineImpl engineOwner;
 
     /**
      * Creates HandshakeProtocol instance
      * @param owner
      */
-    protected HandshakeProtocol(Object owner) {
-        if (owner instanceof SSLEngineImpl) {
-            engineOwner = (SSLEngineImpl) owner;
-            nonBlocking = true;
-            this.parameters = engineOwner.sslParameters;
-        }
-        else if (owner instanceof SSLSocketImpl) {
-            socketOwner = (SSLSocketImpl) owner;
-            nonBlocking = false;
-            this.parameters = socketOwner.sslParameters;
-        }
+    protected HandshakeProtocol(SSLEngineImpl owner) {
+          if (owner == null) {
+             throw new NullPointerException();
+          }
+          engineOwner = owner;
+          nonBlocking = true;
+          this.parameters = engineOwner.sslParameters;
     }
 
     /**

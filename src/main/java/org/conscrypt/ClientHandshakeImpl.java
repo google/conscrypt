@@ -59,7 +59,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
      *
      * @param owner
      */
-    ClientHandshakeImpl(Object owner) {
+    ClientHandshakeImpl(SSLEngineImpl owner) {
         super(owner);
     }
 
@@ -85,11 +85,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         } else if (parameters.getEnableSessionCreation()){
             isResuming = false;
             session = new SSLSessionImpl(parameters.getSecureRandom());
-            if (engineOwner != null) {
-                session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
-            } else {
-                session.setPeer(socketOwner.getPeerHostName(), socketOwner.getPeerPort());
-            }
+            session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
             session.protocol = ProtocolVersion.getLatestVersion(parameters.getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
         } else {
@@ -106,11 +102,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         if (parameters.getEnableSessionCreation()){
             isResuming = false;
             session = new SSLSessionImpl(parameters.getSecureRandom());
-            if (engineOwner != null) {
-                session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
-            } else {
-                session.setPeer(socketOwner.getPeerHostName(), socketOwner.getPeerPort());
-            }
+            session.setPeer(engineOwner.getPeerHost(), engineOwner.getPeerPort());
             session.protocol = ProtocolVersion.getLatestVersion(parameters.getEnabledProtocols());
             recordProtocol.setVersion(session.protocol.version);
             startSession();
@@ -388,16 +380,12 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             X509KeyManager km = parameters.getKeyManager();
             if (km instanceof X509ExtendedKeyManager) {
                 X509ExtendedKeyManager ekm = (X509ExtendedKeyManager)km;
-                if (this.socketOwner != null) {
-                    alias = ekm.chooseClientAlias(certTypes, issuers, this.socketOwner);
-                } else {
-                    alias = ekm.chooseEngineClientAlias(certTypes, issuers, this.engineOwner);
-                }
+                alias = ekm.chooseEngineClientAlias(certTypes, issuers, this.engineOwner);
                 if (alias != null) {
                     certs = ekm.getCertificateChain(alias);
                 }
             } else {
-                alias = km.chooseClientAlias(certTypes, issuers, this.socketOwner);
+                alias = km.chooseClientAlias(certTypes, issuers, null);
                 if (alias != null) {
                     certs = km.getCertificateChain(alias);
                 }
@@ -540,13 +528,7 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         if (authType == null) {
             return;
         }
-        String hostname = null;
-        if (engineOwner != null) {
-            hostname = engineOwner.getPeerHost();
-        } else {
-            // we don't want to do an inet address lookup here in case we're talking to a proxy
-            hostname = socketOwner.getWrappedHostName();
-        }
+        String hostname = engineOwner.getPeerHost();
         try {
             X509TrustManager x509tm = parameters.getTrustManager();
             if (x509tm instanceof TrustManagerImpl) {
@@ -579,15 +561,8 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
 
     // Find session to resume in client session context
     private SSLSessionImpl findSessionToResume() {
-        String host = null;
-        int port = -1;
-        if (engineOwner != null) {
-            host = engineOwner.getPeerHost();
-            port = engineOwner.getPeerPort();
-        } else {
-            host = socketOwner.getPeerHostName();
-            port = socketOwner.getPeerPort();
-        }
+        String host = engineOwner.getPeerHost();
+        int port = engineOwner.getPeerPort();
         if (host == null || port == -1) {
             return null; // starts new session
         }
