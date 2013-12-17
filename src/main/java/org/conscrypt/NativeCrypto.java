@@ -778,6 +778,8 @@ public final class NativeCrypto {
         // However, servers are not required to honor the order. The key rules governing the
         // preference order are:
         // * Prefer Forward Secrecy (i.e., cipher suites that use ECDHE and DHE for key agreement).
+        // * Prefer AES-GCM to AES-CBC whose MAC-pad-then-encrypt approach leads to weaknesses
+        //   (e.g., Lucky 13).
         // * Prefer AES to RC4 whose foundations are a bit shaky. See
         //   http://www.isg.rhul.ac.uk/tls/. BEAST and Lucky13 mitigations are enabled.
         // * Prefer AES_128+ and RC4_128 to 3DES_EDE. The effective bulk encryption key length of
@@ -790,6 +792,12 @@ public final class NativeCrypto {
         // NOTE: Removing cipher suites from this list needs to be done with caution, because this
         // may prevent apps from connecting to servers they were previously able to connect to.
         return new String[] {
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
             "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
             "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
@@ -802,6 +810,8 @@ public final class NativeCrypto {
             "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA",
             "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
             "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_256_GCM_SHA384",
             "TLS_RSA_WITH_AES_128_CBC_SHA",
             "TLS_RSA_WITH_AES_256_CBC_SHA",
             "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
