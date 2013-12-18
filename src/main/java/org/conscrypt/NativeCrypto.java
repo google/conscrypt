@@ -771,7 +771,7 @@ public final class NativeCrypto {
     public static String[] getDefaultCipherSuites() {
         // The default list of cipher suites is a trade-off between what we'd like to use and what
         // servers currently support. We strive to be secure enough by default. We thus avoid
-        // unacceptably weak suites (e.g., those with bulk cipher secret key shorter than 80 bits),
+        // unacceptably weak suites (e.g., those with bulk cipher secret key shorter than 128 bits),
         // while maintaining the capability to connect to the majority of servers.
         //
         // Cipher suites are listed in preference order (favorite choice first) of the client.
@@ -782,8 +782,6 @@ public final class NativeCrypto {
         //   (e.g., Lucky 13).
         // * Prefer AES to RC4 whose foundations are a bit shaky. See
         //   http://www.isg.rhul.ac.uk/tls/. BEAST and Lucky13 mitigations are enabled.
-        // * Prefer AES_128+ and RC4_128 to 3DES_EDE. The effective bulk encryption key length of
-        //   3DES_EDE is reduced from 168 to only 112 bits by meet-in-the-middle attack.
         // * Prefer 128-bit bulk encryption to 256-bit one, because 128-bit is safe enough while
         //   consuming less CPU/time/energy.
         // * Prefer HMAC-SHA to HMAC-MD5. Although HMAC-MD5 is not yet broken, the foundations are
@@ -814,11 +812,6 @@ public final class NativeCrypto {
             "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
             "SSL_RSA_WITH_RC4_128_SHA",
             "SSL_RSA_WITH_RC4_128_MD5",
-            "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA",
-            "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
-            "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
-            "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
-            "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
             TLS_EMPTY_RENEGOTIATION_INFO_SCSV
         };
     }
