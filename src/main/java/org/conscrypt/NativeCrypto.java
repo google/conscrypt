@@ -784,8 +784,6 @@ public final class NativeCrypto {
         //   http://www.isg.rhul.ac.uk/tls/. BEAST and Lucky13 mitigations are enabled.
         // * Prefer 128-bit bulk encryption to 256-bit one, because 128-bit is safe enough while
         //   consuming less CPU/time/energy.
-        // * Prefer HMAC-SHA to HMAC-MD5. Although HMAC-MD5 is not yet broken, the foundations are
-        //   much more shaky that those of HMAC-SHA. See http://tools.ietf.org/html/rfc6151.
         //
         // NOTE: Removing cipher suites from this list needs to be done with caution, because this
         // may prevent apps from connecting to servers they were previously able to connect to.
@@ -811,7 +809,6 @@ public final class NativeCrypto {
             "TLS_RSA_WITH_AES_128_CBC_SHA",
             "TLS_RSA_WITH_AES_256_CBC_SHA",
             "SSL_RSA_WITH_RC4_128_SHA",
-            "SSL_RSA_WITH_RC4_128_MD5",
             TLS_EMPTY_RENEGOTIATION_INFO_SCSV
         };
     }
