@@ -1077,13 +1077,13 @@ public final class NativeCrypto {
      * a server negotiation, supplying the {@code alpnProtocols} will enable
      * ALPN negotiation.
      */
-    public static native int SSL_do_handshake(long sslNativePointer,
-                                              FileDescriptor fd,
-                                              SSLHandshakeCallbacks shc,
-                                              int timeoutMillis,
-                                              boolean client_mode,
-                                              byte[] npnProtocols,
-                                              byte[] alpnProtocols)
+    public static native long SSL_do_handshake(long sslNativePointer,
+                                               FileDescriptor fd,
+                                               SSLHandshakeCallbacks shc,
+                                               int timeoutMillis,
+                                               boolean client_mode,
+                                               byte[] npnProtocols,
+                                               byte[] alpnProtocols)
         throws SSLException, SocketTimeoutException, CertificateException;
 
     public static native byte[] SSL_get_npn_negotiated_protocol(long sslNativePointer);
