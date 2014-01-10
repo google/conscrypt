@@ -46,7 +46,6 @@ public class CertPinManager {
     public CertPinManager(TrustedCertificateStore store) throws PinManagerException {
         pinFile = new File("/data/misc/keychain/pins");
         certStore = store;
-        rebuild();
     }
 
     /** Test only */
@@ -56,7 +55,6 @@ public class CertPinManager {
         }
         pinFile = new File(path);
         certStore = store;
-        rebuild();
     }
 
     /**
@@ -81,7 +79,15 @@ public class CertPinManager {
         return entry.isChainValid(chain);
     }
 
-    private synchronized void rebuild() throws PinManagerException {
+    /**
+     * Tries to initialize the cache. Will return {@code true} if the
+     * initialization succeeded, or {@code false} if there is no data available.
+     */
+    private synchronized boolean ensureInitialized() throws PinManagerException {
+        if (initialized && isCacheValid()) {
+            return true;
+        }
+
         // reread the pin file
         String pinFileContents = readPinFile();
 
@@ -105,6 +111,8 @@ public class CertPinManager {
             // we've been fully initialized and are ready to go
             initialized = true;
         }
+
+        return initialized;
     }
 
     private String readPinFile() throws PinManagerException {
@@ -124,15 +132,9 @@ public class CertPinManager {
     }
 
     private synchronized PinListEntry lookup(String hostname) throws PinManagerException {
-
-        // if we don't have any data, don't bother
-        if (!initialized) {
+        // Ensure we're initialized, but exit early it we couldn't initialize.
+        if (!ensureInitialized()) {
             return null;
-        }
-
-        // check to see if our cache is valid
-        if (!isCacheValid()) {
-            rebuild();
         }
 
         // if so, check the hostname cache
