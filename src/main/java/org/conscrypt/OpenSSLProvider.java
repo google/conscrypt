@@ -197,19 +197,32 @@ public final class OpenSSLProvider extends Provider {
         /*
          * OpenSSL only supports a subset of modes, so we'll name them
          * explicitly here.
+         *
+         * Moreover, OpenSSL only supports PKCS#7 padding. PKCS#5 padding
+         * is also supported because it's a special case of PKCS#7 for 64-bit
+         * blocks. PKCS#5 technically supports only 64-bit blocks and won't
+         * produce the same result as PKCS#7 for blocks that are not 64 bits
+         * long. However, everybody assumes PKCS#7 when they say PKCS#5. For
+         * example, lots of code uses PKCS#5 with AES whose blocks are longer
+         * than 64 bits. We solve this confusion by making PKCS7Padding an
+         * alias for PKCS5Padding.
          */
         put("Cipher.AES/ECB/NoPadding", prefix + "OpenSSLCipher$AES$ECB$NoPadding");
         put("Cipher.AES/ECB/PKCS5Padding", prefix + "OpenSSLCipher$AES$ECB$PKCS5Padding");
+        put("Alg.Alias.Cipher.AES/ECB/PKCS7Padding", "AES/ECB/PKCS5Padding");
         put("Cipher.AES/CBC/NoPadding", prefix + "OpenSSLCipher$AES$CBC$NoPadding");
         put("Cipher.AES/CBC/PKCS5Padding", prefix + "OpenSSLCipher$AES$CBC$PKCS5Padding");
+        put("Alg.Alias.Cipher.AES/CBC/PKCS7Padding", "AES/CBC/PKCS5Padding");
         put("Cipher.AES/CFB/NoPadding", prefix + "OpenSSLCipher$AES$CFB");
         put("Cipher.AES/CTR/NoPadding", prefix + "OpenSSLCipher$AES$CTR");
         put("Cipher.AES/OFB/NoPadding", prefix + "OpenSSLCipher$AES$OFB");
 
         put("Cipher.DESEDE/ECB/NoPadding", prefix + "OpenSSLCipher$DESEDE$ECB$NoPadding");
         put("Cipher.DESEDE/ECB/PKCS5Padding", prefix + "OpenSSLCipher$DESEDE$ECB$PKCS5Padding");
+        put("Alg.Alias.Cipher.DESEDE/ECB/PKCS7Padding", "DESEDE/ECB/PKCS5Padding");
         put("Cipher.DESEDE/CBC/NoPadding", prefix + "OpenSSLCipher$DESEDE$CBC$NoPadding");
         put("Cipher.DESEDE/CBC/PKCS5Padding", prefix + "OpenSSLCipher$DESEDE$CBC$PKCS5Padding");
+        put("Alg.Alias.Cipher.DESEDE/CBC/PKCS7Padding", "DESEDE/CBC/PKCS5Padding");
         put("Cipher.DESEDE/CFB/NoPadding", prefix + "OpenSSLCipher$DESEDE$CFB");
         put("Cipher.DESEDE/OFB/NoPadding", prefix + "OpenSSLCipher$DESEDE$OFB");
 
