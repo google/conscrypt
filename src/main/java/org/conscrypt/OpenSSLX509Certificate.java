@@ -355,6 +355,8 @@ public class OpenSSLX509Certificate extends X509Certificate {
             NativeCrypto.X509_verify(mContext, pkey.getPkeyContext());
         } catch (RuntimeException e) {
             throw new CertificateException(e);
+        } catch (Exception e) {
+            throw new SignatureException();
         }
     }
 
