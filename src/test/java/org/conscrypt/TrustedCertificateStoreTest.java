@@ -215,7 +215,7 @@ public class TrustedCertificateStoreTest extends TestCase {
                 continue;
             }
             for (File file : files) {
-                assertTrue(file.delete());
+                assertTrue("Should delete " + file.getPath(), file.delete());
             }
         }
         store = null;
