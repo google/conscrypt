@@ -698,33 +698,58 @@ static SSL_CIPHER* to_SSL_CIPHER(JNIEnv* env, jlong ssl_cipher_address, bool thr
 }
 
 /**
- * Converts a Java byte[] to an OpenSSL BIGNUM, allocating the BIGNUM on the
- * fly. Returns true on success. If the return value is false, there is a
- * pending exception.
+ * Converts a Java byte[] two's complement to an OpenSSL BIGNUM. This will
+ * allocate the BIGNUM if *dest == NULL. Returns true on success. If the
+ * return value is false, there is a pending exception.
  */
 static bool arrayToBignum(JNIEnv* env, jbyteArray source, BIGNUM** dest) {
-    JNI_TRACE("arrayToBignum(%p, %p)", source, *dest);
+    JNI_TRACE("arrayToBignum(%p, %p)", source, dest);
+    if (dest == NULL) {
+        JNI_TRACE("arrayToBignum(%p, %p) => dest is null!", source, dest);
+        jniThrowNullPointerException(env, "dest == null");
+        return false;
+    }
+    JNI_TRACE("arrayToBignum(%p, %p) *dest == %p", source, dest, *dest);
 
     ScopedByteArrayRO sourceBytes(env, source);
     if (sourceBytes.get() == NULL) {
-        JNI_TRACE("arrayToBignum(%p) => NULL", source);
+        JNI_TRACE("arrayToBignum(%p, %p) => NULL", source, dest);
         return false;
     }
-    *dest = BN_bin2bn(reinterpret_cast<const unsigned char*>(sourceBytes.get()),
-                           sourceBytes.size(),
-                           NULL);
-    if (*dest == NULL) {
-        jniThrowRuntimeException(env, "Conversion to BIGNUM failed");
-        JNI_TRACE("arrayToBignum(%p) => threw exception", source);
-        return false;
-    }
+    const unsigned char* tmp = reinterpret_cast<const unsigned char*>(sourceBytes.get());
+    size_t tmpSize = sourceBytes.size();
+    UniquePtr<unsigned char[]> twosComplement;
+    bool negative = (tmp[0] & 0x80) != 0;
+    if (negative) {
+        // Need to convert to two's complement.
+        twosComplement.reset(new unsigned char[tmpSize]);
+        unsigned char* twosBytes = reinterpret_cast<unsigned char*>(twosComplement.get());
+        memcpy(twosBytes, tmp, tmpSize);
+        tmp = twosBytes;
 
-    JNI_TRACE("arrayToBignum(%p) => %p", source, *dest);
+        bool carry = true;
+        for (ssize_t i = tmpSize - 1; i >= 0; i--) {
+            twosBytes[i] ^= 0xFF;
+            if (carry) {
+                carry = (++twosBytes[i]) == 0;
+            }
+        }
+    }
+    BIGNUM *ret = BN_bin2bn(tmp, tmpSize, *dest);
+    if (ret == NULL) {
+        jniThrowRuntimeException(env, "Conversion to BIGNUM failed");
+        JNI_TRACE("arrayToBignum(%p, %p) => threw exception", source, dest);
+        return false;
+    }
+    BN_set_negative(ret, negative ? 1 : 0);
+
+    *dest = ret;
+    JNI_TRACE("arrayToBignum(%p, %p) => *dest = %p", source, dest, ret);
     return true;
 }
 
 /**
- * Converts an OpenSSL BIGNUM to a Java byte[] array.
+ * Converts an OpenSSL BIGNUM to a Java byte[] array in two's complement.
  */
 static jbyteArray bignumToArray(JNIEnv* env, const BIGNUM* source, const char* sourceName) {
     JNI_TRACE("bignumToArray(%p, %s)", source, sourceName);
@@ -734,7 +759,8 @@ static jbyteArray bignumToArray(JNIEnv* env, const BIGNUM* source, const char* s
         return NULL;
     }
 
-    jbyteArray javaBytes = env->NewByteArray(BN_num_bytes(source) + 1);
+    size_t numBytes = BN_num_bytes(source) + 1;
+    jbyteArray javaBytes = env->NewByteArray(numBytes);
     ScopedByteArrayRW bytes(env, javaBytes);
     if (bytes.get() == NULL) {
         JNI_TRACE("bignumToArray(%p, %s) => NULL", source, sourceName);
@@ -742,17 +768,23 @@ static jbyteArray bignumToArray(JNIEnv* env, const BIGNUM* source, const char* s
     }
 
     unsigned char* tmp = reinterpret_cast<unsigned char*>(bytes.get());
-
-    // Set the sign for the Java code.
-    if (BN_is_negative(source)) {
-        *tmp = 0xFF;
-    } else {
-        *tmp = 0x00;
-    }
-
     if (BN_num_bytes(source) > 0 && BN_bn2bin(source, tmp + 1) <= 0) {
         throwExceptionIfNecessary(env, "bignumToArray");
         return NULL;
+    }
+
+    // Set the sign and convert to two's complement if necessary for the Java code.
+    if (BN_is_negative(source)) {
+        bool carry = true;
+        for (ssize_t i = numBytes - 1; i >= 0; i--) {
+            tmp[i] ^= 0xFF;
+            if (carry) {
+                carry = (++tmp[i]) == 0;
+            }
+        }
+        *tmp |= 0x80;
+    } else {
+        *tmp = 0x00;
     }
 
     JNI_TRACE("bignumToArray(%p, %s) => %p", source, sourceName, javaBytes);
@@ -1496,7 +1528,7 @@ static jlong NativeCrypto_EVP_PKEY_new_EC_KEY(JNIEnv* env, jclass, jlong groupRe
 
     Unique_BIGNUM key(NULL);
     if (keyJavaBytes != NULL) {
-        BIGNUM* keyRef;
+        BIGNUM* keyRef = NULL;
         if (!arrayToBignum(env, keyJavaBytes, &keyRef)) {
             return 0;
         }
@@ -1801,7 +1833,7 @@ static jlong NativeCrypto_RSA_generate_key_ex(JNIEnv* env, jclass, jint modulusB
         jbyteArray publicExponent) {
     JNI_TRACE("RSA_generate_key_ex(%d, %p)", modulusBits, publicExponent);
 
-    BIGNUM* eRef;
+    BIGNUM* eRef = NULL;
     if (!arrayToBignum(env, publicExponent, &eRef)) {
         return 0;
     }
@@ -2257,19 +2289,19 @@ static jlong NativeCrypto_EC_GROUP_new_curve(JNIEnv* env, jclass, jint type, jby
 {
     JNI_TRACE("EC_GROUP_new_curve(%d, %p, %p, %p)", type, pJava, aJava, bJava);
 
-    BIGNUM* pRef;
+    BIGNUM* pRef = NULL;
     if (!arrayToBignum(env, pJava, &pRef)) {
         return 0;
     }
     Unique_BIGNUM p(pRef);
 
-    BIGNUM* aRef;
+    BIGNUM* aRef = NULL;
     if (!arrayToBignum(env, aJava, &aRef)) {
         return 0;
     }
     Unique_BIGNUM a(aRef);
 
-    BIGNUM* bRef;
+    BIGNUM* bRef = NULL;
     if (!arrayToBignum(env, bJava, &bRef)) {
         return 0;
     }
@@ -2516,13 +2548,13 @@ static void NativeCrypto_EC_GROUP_set_generator(JNIEnv* env, jclass, jlong group
         return;
     }
 
-    BIGNUM* nRef;
+    BIGNUM* nRef = NULL;
     if (!arrayToBignum(env, njavaBytes, &nRef)) {
         return;
     }
     Unique_BIGNUM n(nRef);
 
-    BIGNUM* hRef;
+    BIGNUM* hRef = NULL;
     if (!arrayToBignum(env, hjavaBytes, &hRef)) {
         return;
     }
@@ -2629,13 +2661,13 @@ static void NativeCrypto_EC_POINT_set_affine_coordinates(JNIEnv* env, jclass,
         return;
     }
 
-    BIGNUM* xRef;
+    BIGNUM* xRef = NULL;
     if (!arrayToBignum(env, xjavaBytes, &xRef)) {
         return;
     }
     Unique_BIGNUM x(xRef);
 
-    BIGNUM* yRef;
+    BIGNUM* yRef = NULL;
     if (!arrayToBignum(env, yjavaBytes, &yRef)) {
         return;
     }
