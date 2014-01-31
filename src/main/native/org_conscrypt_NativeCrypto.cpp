@@ -718,6 +718,16 @@ static bool arrayToBignum(JNIEnv* env, jbyteArray source, BIGNUM** dest) {
     }
     const unsigned char* tmp = reinterpret_cast<const unsigned char*>(sourceBytes.get());
     size_t tmpSize = sourceBytes.size();
+
+    /* if the array is empty, it is zero. */
+    if (tmpSize == 0) {
+        if (*dest == NULL) {
+            *dest = BN_new();
+        }
+        BN_zero(*dest);
+        return true;
+    }
+
     UniquePtr<unsigned char[]> twosComplement;
     bool negative = (tmp[0] & 0x80) != 0;
     if (negative) {
