@@ -438,7 +438,7 @@ public final class NativeCrypto {
 
     public static native byte[] X509_get_serialNumber(long x509ctx);
 
-    public static native void X509_verify(long x509ctx, long pkeyCtx);
+    public static native void X509_verify(long x509ctx, long pkeyCtx) throws BadPaddingException;
 
     public static native byte[] get_X509_cert_info_enc(long x509ctx);
 
