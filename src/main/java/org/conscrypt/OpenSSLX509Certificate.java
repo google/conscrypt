@@ -240,16 +240,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
 
     @Override
     public BigInteger getSerialNumber() {
-        byte[] signAndMagnitude = NativeCrypto.X509_get_serialNumber(mContext);
-
-        if ((signAndMagnitude[0] & 0xFF) == 0xFF) {
-            /* Negative numbers can't call the two's complement constructor. */
-            byte[] magnitude = new byte[signAndMagnitude.length - 1];
-            System.arraycopy(signAndMagnitude, 1, magnitude, 0, signAndMagnitude.length - 1);
-            return new BigInteger(-1, magnitude);
-        } else {
-            return new BigInteger(signAndMagnitude);
-        }
+        return new BigInteger(NativeCrypto.X509_get_serialNumber(mContext));
     }
 
     @Override
