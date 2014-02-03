@@ -151,7 +151,28 @@ public class OpenSSLSignature extends SignatureSpi {
     @Override
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
         initInternal(OpenSSLKey.fromPrivateKey(privateKey));
+        enableDSASignatureNonceHardeningIfApplicable();
         signing = true;
+    }
+
+    /**
+     * Enables a mitigation against private key leakage through DSA and ECDSA signatures when weak
+     * nonces (per-message k values) are used. To mitigate the issue, private key and message being
+     * signed is mixed into the randomly generated nonce (k).
+     *
+     * <p>Does nothing for signatures that are neither DSA nor ECDSA.
+     */
+    private void enableDSASignatureNonceHardeningIfApplicable() {
+        switch (engineType) {
+            case DSA:
+                NativeCrypto.set_DSA_flag_nonce_from_hash(key.getPkeyContext());
+                break;
+            case EC:
+                NativeCrypto.EC_KEY_set_nonce_from_hash(key.getPkeyContext(), true);
+                break;
+            default:
+              // Hardening not applicable
+        }
     }
 
     @Override
