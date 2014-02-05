@@ -5150,6 +5150,7 @@ static jlong NativeCrypto_X509_get_pubkey(JNIEnv* env, jclass, jlong x509Ref) {
         return 0;
     }
 
+    JNI_TRACE("X509_get_pubkey(%p) => %p", x509, pkey.get());
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
