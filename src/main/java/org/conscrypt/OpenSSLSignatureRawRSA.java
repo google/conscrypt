@@ -18,11 +18,10 @@ package org.conscrypt;
 
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.Signature;
 import java.security.SignatureException;
+import java.security.SignatureSpi;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -31,7 +30,7 @@ import java.security.interfaces.RSAPublicKey;
  * Implements the JDK Signature interface needed for RAW RSA signature
  * generation and verification using OpenSSL.
  */
-public class OpenSSLSignatureRawRSA extends Signature {
+public class OpenSSLSignatureRawRSA extends SignatureSpi {
     /**
      * The current OpenSSL key we're operating on.
      */
@@ -51,13 +50,6 @@ public class OpenSSLSignatureRawRSA extends Signature {
      * Provides a flag to specify when the input is too long.
      */
     private boolean inputIsTooLong;
-
-    /**
-     * Creates a new OpenSSLSignature instance for the given algorithm name.
-     */
-    public OpenSSLSignatureRawRSA() throws NoSuchAlgorithmException {
-        super("NONEwithRSA");
-    }
 
     @Override
     protected void engineUpdate(byte input) {
