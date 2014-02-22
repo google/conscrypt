@@ -2286,6 +2286,42 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    public void test_RSA_size_null_key_Failure() throws Exception {
+        try {
+            NativeCrypto.RSA_size(0);
+            fail();
+        } catch (NullPointerException expected) {}
+    }
+
+    public void test_RSA_private_encrypt_null_key_Failure() throws Exception {
+        try {
+            NativeCrypto.RSA_private_encrypt(0, new byte[0], new byte[0], 0, 0);
+            fail();
+        } catch (NullPointerException expected) {}
+    }
+
+    public void test_RSA_private_decrypt_null_key_Failure() throws Exception {
+        try {
+            NativeCrypto.RSA_private_decrypt(0, new byte[0], new byte[0], 0, 0);
+            fail();
+        } catch (NullPointerException expected) {}
+    }
+
+    public void test_RSA_public_encrypt_null_key_Failure() throws Exception {
+        try {
+            NativeCrypto.RSA_public_encrypt(0, new byte[0], new byte[0], 0, 0);
+            fail();
+        } catch (NullPointerException expected) {}
+    }
+
+    public void test_RSA_public_decrypt_null_key_Failure() throws Exception {
+        try {
+            NativeCrypto.RSA_public_decrypt(0, new byte[0], new byte[0], 0, 0);
+            fail();
+        } catch (NullPointerException expected) {}
+    }
+
+
     final byte[] dsa2048_p = {
             (byte) 0x00, (byte) 0xC3, (byte) 0x16, (byte) 0xD4, (byte) 0xBA, (byte) 0xDC,
             (byte) 0x0E, (byte) 0xB8, (byte) 0xFC, (byte) 0x40, (byte) 0xDB, (byte) 0xB0,
@@ -2432,6 +2468,13 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    public void test_get_DSA_params_null_key_Failure() throws Exception {
+        try {
+            NativeCrypto.get_DSA_params(0);
+            fail();
+        } catch (NullPointerException expected) {}
+    }
+
     /*
      * Test vector generation:
      * openssl rand -hex 16
@@ -2562,6 +2605,61 @@ public class NativeCryptoTest extends TestCase {
             if (key1 != NULL) {
                 NativeCrypto.EVP_PKEY_free(key1);
             }
+        }
+    }
+
+    public void test_EC_KEY_get_private_key_null_key_Failure() throws Exception {
+        try {
+            NativeCrypto.EC_KEY_get_private_key(0);
+            fail();
+        } catch (NullPointerException expected) {}
+    }
+
+    public void test_EC_KEY_get_public_key_null_key_Failure() throws Exception {
+        try {
+            NativeCrypto.EC_KEY_get_public_key(0);
+            fail();
+        } catch (NullPointerException expected) {}
+    }
+
+    public void test_ECDH_compute_key_null_key_Failure() throws Exception {
+        long groupRef = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
+        if (groupRef == 0) {
+            fail();
+        }
+        try {
+            long pkey1Ref = NativeCrypto.EC_KEY_generate_key(groupRef);
+            long pkey2Ref = NativeCrypto.EC_KEY_generate_key(groupRef);
+            try {
+                if (pkey1Ref == 0) {
+                    fail();
+                }
+                if (pkey2Ref == 0) {
+                    fail();
+                }
+
+                byte[] out = new byte[128];
+                int outOffset = 0;
+                // Assert that the method under test works fine with the two non-null keys
+                NativeCrypto.ECDH_compute_key(out, outOffset, pkey1Ref, pkey2Ref);
+
+                // Assert that it fails when only the first key is null
+                try {
+                    NativeCrypto.ECDH_compute_key(out, outOffset, 0, pkey2Ref);
+                    fail();
+                } catch (NullPointerException expected) {}
+
+                // Assert that it fails when only the second key is null
+                try {
+                    NativeCrypto.ECDH_compute_key(out, outOffset, pkey1Ref, 0);
+                    fail();
+                } catch (NullPointerException expected) {}
+            } finally {
+                NativeCrypto.EVP_PKEY_free(pkey1Ref);
+                NativeCrypto.EVP_PKEY_free(pkey2Ref);
+            }
+        } finally {
+            NativeCrypto.EC_GROUP_clear_free(groupRef);
         }
     }
 
