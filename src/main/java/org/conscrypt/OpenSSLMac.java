@@ -26,8 +26,7 @@ import javax.crypto.MacSpi;
 import javax.crypto.SecretKey;
 
 public abstract class OpenSSLMac extends MacSpi {
-    private final OpenSSLDigestContext ctx = new OpenSSLDigestContext(
-            NativeCrypto.EVP_MD_CTX_create());
+    private OpenSSLDigestContext ctx;
 
     /**
      * Holds the EVP_MD for the hashing algorithm, e.g.
@@ -88,17 +87,19 @@ public abstract class OpenSSLMac extends MacSpi {
             macKey = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_mac_key(evp_pkey_type, keyBytes));
         }
 
-        NativeCrypto.EVP_MD_CTX_init(ctx.getContext());
-
-        reset();
+        resetContext();
     }
 
-    private void reset() {
+    private final void resetContext() {
+        OpenSSLDigestContext ctxLocal = new OpenSSLDigestContext(NativeCrypto.EVP_MD_CTX_create());
+        NativeCrypto.EVP_MD_CTX_init(ctxLocal);
+
         final OpenSSLKey macKey = this.macKey;
-        if (macKey == null) {
-            return;
+        if (macKey != null) {
+            NativeCrypto.EVP_DigestSignInit(ctxLocal, evp_md, macKey.getPkeyContext());
         }
-        NativeCrypto.EVP_DigestSignInit(ctx.getContext(), evp_md, macKey.getPkeyContext());
+
+        this.ctx = ctxLocal;
     }
 
     @Override
@@ -109,19 +110,21 @@ public abstract class OpenSSLMac extends MacSpi {
 
     @Override
     protected void engineUpdate(byte[] input, int offset, int len) {
-        NativeCrypto.EVP_DigestUpdate(ctx.getContext(), input, offset, len);
+        final OpenSSLDigestContext ctxLocal = ctx;
+        NativeCrypto.EVP_DigestUpdate(ctxLocal, input, offset, len);
     }
 
     @Override
     protected byte[] engineDoFinal() {
-        final byte[] output = NativeCrypto.EVP_DigestSignFinal(ctx.getContext());
-        reset();
+        final OpenSSLDigestContext ctxLocal = ctx;
+        final byte[] output = NativeCrypto.EVP_DigestSignFinal(ctxLocal);
+        resetContext();
         return output;
     }
 
     @Override
     protected void engineReset() {
-        reset();
+        resetContext();
     }
 
     public static class HmacMD5 extends OpenSSLMac {

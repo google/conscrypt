@@ -89,6 +89,7 @@
 
 static JavaVM* gJavaVM;
 static jclass openSslOutputStreamClass;
+static jclass openSslNativeReferenceClass;
 
 static jclass byteArrayClass;
 static jclass calendarClass;
@@ -98,6 +99,8 @@ static jclass integerClass;
 static jclass inputStreamClass;
 static jclass outputStreamClass;
 static jclass stringClass;
+
+static jfieldID openSslNativeReference_context;
 
 static jmethodID calendar_setMethod;
 static jmethodID inputStream_readMethod;
@@ -695,6 +698,16 @@ static SSL_CIPHER* to_SSL_CIPHER(JNIEnv* env, jlong ssl_cipher_address, bool thr
         jniThrowNullPointerException(env, "ssl_cipher == null");
     }
     return ssl_cipher;
+}
+
+template<typename T>
+static T* fromContextObject(JNIEnv* env, jobject contextObject) {
+    T* ref = reinterpret_cast<T*>(env->GetLongField(contextObject, openSslNativeReference_context));
+    if (ref == NULL) {
+        JNI_TRACE("ctx == null");
+        jniThrowNullPointerException(env, "ctx == null");
+    }
+    return ref;
 }
 
 /**
@@ -3003,8 +3016,8 @@ static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
     return reinterpret_cast<uintptr_t>(ctx.release());
 }
 
-static void NativeCrypto_EVP_MD_CTX_init(JNIEnv*, jclass, jlong ctxRef) {
-    EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
+static void NativeCrypto_EVP_MD_CTX_init(JNIEnv* env, jclass, jobject ctxRef) {
+    EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
     JNI_TRACE("NativeCrypto_EVP_MD_CTX_init(%p)", ctx);
 
     if (ctx != NULL) {
@@ -3012,7 +3025,7 @@ static void NativeCrypto_EVP_MD_CTX_init(JNIEnv*, jclass, jlong ctxRef) {
     }
 }
 
-static void NativeCrypto_EVP_MD_CTX_destroy(JNIEnv*, jclass, jlong ctxRef) {
+static void NativeCrypto_EVP_MD_CTX_destroy(JNIEnv* env, jclass, jlong ctxRef) {
     EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
     JNI_TRACE("NativeCrypto_EVP_MD_CTX_destroy(%p)", ctx);
 
@@ -3021,43 +3034,38 @@ static void NativeCrypto_EVP_MD_CTX_destroy(JNIEnv*, jclass, jlong ctxRef) {
     }
 }
 
-static jlong NativeCrypto_EVP_MD_CTX_copy(JNIEnv* env, jclass, jlong ctxRef) {
-    EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
-    JNI_TRACE("NativeCrypto_EVP_MD_CTX_copy(%p)", ctx);
+static jint NativeCrypto_EVP_MD_CTX_copy(JNIEnv* env, jclass, jobject dstCtxRef, jobject srcCtxRef) {
+    EVP_MD_CTX* dst_ctx = fromContextObject<EVP_MD_CTX>(env, dstCtxRef);
+    const EVP_MD_CTX* src_ctx = fromContextObject<EVP_MD_CTX>(env, srcCtxRef);
+    JNI_TRACE("NativeCrypto_EVP_MD_CTX_copy(%p. %p)", dst_ctx, src_ctx);
 
-    if (ctx == NULL) {
-        jniThrowNullPointerException(env, "ctx == null");
+    if (src_ctx == NULL) {
+        return 0;
+    } else if (dst_ctx == NULL) {
         return 0;
     }
 
-    EVP_MD_CTX* copy = EVP_MD_CTX_create();
-    if (copy == NULL) {
-        jniThrowOutOfMemory(env, "Unable to allocate copy of EVP_MD_CTX");
-        return 0;
-    }
-
-    EVP_MD_CTX_init(copy);
-    int result = EVP_MD_CTX_copy_ex(copy, ctx);
+    int result = EVP_MD_CTX_copy_ex(dst_ctx, src_ctx);
     if (result == 0) {
-        EVP_MD_CTX_destroy(copy);
         jniThrowRuntimeException(env, "Unable to copy EVP_MD_CTX");
         freeOpenSslErrorState();
-        return 0;
     }
 
-    JNI_TRACE("NativeCrypto_EVP_MD_CTX_copy(%p) => %p", ctx, copy);
-    return reinterpret_cast<uintptr_t>(copy);
+    JNI_TRACE("NativeCrypto_EVP_MD_CTX_copy(%p, %p) => %d", dst_ctx, src_ctx, result);
+    return result;
 }
 
 /*
  * public static native int EVP_DigestFinal(long, byte[], int)
  */
-static jint NativeCrypto_EVP_DigestFinal(JNIEnv* env, jclass, jlong ctxRef,
-                                         jbyteArray hash, jint offset) {
-    EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
+static jint NativeCrypto_EVP_DigestFinal(JNIEnv* env, jclass, jobject ctxRef, jbyteArray hash,
+        jint offset) {
+    EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
     JNI_TRACE("NativeCrypto_EVP_DigestFinal(%p, %p, %d)", ctx, hash, offset);
 
-    if (ctx == NULL || hash == NULL) {
+    if (ctx == NULL) {
+        return -1;
+    } else if (hash == NULL) {
         jniThrowNullPointerException(env, "ctx == null || hash == null");
         return -1;
     }
@@ -3067,45 +3075,52 @@ static jint NativeCrypto_EVP_DigestFinal(JNIEnv* env, jclass, jlong ctxRef,
         return -1;
     }
     unsigned int bytesWritten = -1;
-    int ok = EVP_DigestFinal(ctx,
+    int ok = EVP_DigestFinal_ex(ctx,
                              reinterpret_cast<unsigned char*>(hashBytes.get() + offset),
                              &bytesWritten);
     if (ok == 0) {
         throwExceptionIfNecessary(env, "NativeCrypto_EVP_DigestFinal");
     }
-    EVP_MD_CTX_destroy(ctx);
 
     JNI_TRACE("NativeCrypto_EVP_DigestFinal(%p, %p, %d) => %d", ctx, hash, offset, bytesWritten);
     return bytesWritten;
 }
 
-/*
- * public static native int EVP_DigestInit(long)
- */
-static jlong NativeCrypto_EVP_DigestInit(JNIEnv* env, jclass, jlong evpMdRef) {
+static jint evpInit(JNIEnv* env, jobject evpMdCtxRef, jlong evpMdRef, const char* jniName,
+        int (*init_func)(EVP_MD_CTX*, const EVP_MD*, ENGINE*)) {
+    EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
     const EVP_MD* evp_md = reinterpret_cast<const EVP_MD*>(evpMdRef);
-    JNI_TRACE("NativeCrypto_EVP_DigestInit(%p)", evp_md);
+    JNI_TRACE("%s(%p, %p)", jniName, ctx, evp_md);
 
-    if (evp_md == NULL) {
-        jniThrowNullPointerException(env, NULL);
+    if (ctx == NULL) {
+        return 0;
+    } else if (evp_md == NULL) {
+        jniThrowNullPointerException(env, "evp_md == null");
         return 0;
     }
 
-    Unique_EVP_MD_CTX ctx(EVP_MD_CTX_create());
-    if (ctx.get() == NULL) {
-        jniThrowOutOfMemory(env, "Unable to allocate EVP_MD_CTX");
-        return 0;
-    }
-    JNI_TRACE("NativeCrypto_EVP_DigestInit ctx=%p", ctx.get());
-
-    int ok = EVP_DigestInit(ctx.get(), evp_md);
+    int ok = init_func(ctx, evp_md, NULL);
     if (ok == 0) {
-        bool exception = throwExceptionIfNecessary(env, "NativeCrypto_EVP_DigestInit");
+        bool exception = throwExceptionIfNecessary(env, jniName);
         if (exception) {
+            JNI_TRACE("%s(%p) => threw exception", jniName, evp_md);
             return 0;
         }
     }
-    return reinterpret_cast<uintptr_t>(ctx.release());
+    JNI_TRACE("%s(%p, %p) => %d", jniName, ctx, evp_md, ok);
+    return ok;
+}
+
+static jint NativeCrypto_EVP_DigestInit(JNIEnv* env, jclass, jobject evpMdCtxRef, jlong evpMdRef) {
+    return evpInit(env, evpMdCtxRef, evpMdRef, "EVP_DigestInit", EVP_DigestInit_ex);
+}
+
+static jint NativeCrypto_EVP_SignInit(JNIEnv* env, jclass, jobject evpMdCtxRef, jlong evpMdRef) {
+    return evpInit(env, evpMdCtxRef, evpMdRef, "EVP_SignInit", EVP_DigestInit_ex);
+}
+
+static jint NativeCrypto_EVP_VerifyInit(JNIEnv* env, jclass, jobject evpMdCtxRef, jlong evpMdRef) {
+    return evpInit(env, evpMdCtxRef, evpMdRef, "EVP_VerifyInit", EVP_DigestInit_ex);
 }
 
 /*
@@ -3169,45 +3184,14 @@ static jint NativeCrypto_EVP_MD_block_size(JNIEnv* env, jclass, jlong evpMdRef) 
     return result;
 }
 
-/*
- * public static native void EVP_DigestUpdate(long, byte[], int, int)
- */
-static void NativeCrypto_EVP_DigestUpdate(JNIEnv* env, jclass, jlong ctxRef,
-                                          jbyteArray buffer, jint offset, jint length) {
-    EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
-    JNI_TRACE("NativeCrypto_EVP_DigestUpdate(%p, %p, %d, %d)", ctx, buffer, offset, length);
-
-    if (offset < 0 || length < 0) {
-        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", NULL);
-        return;
-    }
-
-    if (ctx == NULL || buffer == NULL) {
-        jniThrowNullPointerException(env, NULL);
-        return;
-    }
-
-    ScopedByteArrayRO bufferBytes(env, buffer);
-    if (bufferBytes.get() == NULL) {
-        return;
-    }
-    int ok = EVP_DigestUpdate(ctx,
-                              reinterpret_cast<const unsigned char*>(bufferBytes.get() + offset),
-                              length);
-    if (ok == 0) {
-        throwExceptionIfNecessary(env, "NativeCrypto_EVP_DigestUpdate");
-    }
-}
-
-static void NativeCrypto_EVP_DigestSignInit(JNIEnv* env, jclass, jlong evpMdCtxRef,
+static void NativeCrypto_EVP_DigestSignInit(JNIEnv* env, jclass, jobject evpMdCtxRef,
         const jlong evpMdRef, jlong pkeyRef) {
-    EVP_MD_CTX* mdCtx = reinterpret_cast<EVP_MD_CTX*>(evpMdCtxRef);
+    EVP_MD_CTX* mdCtx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
     const EVP_MD* md = reinterpret_cast<const EVP_MD*>(evpMdRef);
     EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
     JNI_TRACE("EVP_DigestSignInit(%p, %p, %p)", mdCtx, md, pkey);
 
     if (mdCtx == NULL) {
-         jniThrowNullPointerException(env, "mdCtx == null");
          return;
     }
 
@@ -3230,14 +3214,14 @@ static void NativeCrypto_EVP_DigestSignInit(JNIEnv* env, jclass, jlong evpMdCtxR
     JNI_TRACE("EVP_DigestSignInit(%p, %p, %p) => success", mdCtx, md, pkey);
 }
 
-static void NativeCrypto_EVP_DigestSignUpdate(JNIEnv* env, jclass, jint evpMdCtxRef,
-        jbyteArray inJavaBytes, jint inOffset, jint inLength)
+static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, jint inOffset,
+        jint inLength, const char *jniName, int (*update_func)(EVP_MD_CTX*, const void *,
+        unsigned int))
 {
-    EVP_MD_CTX* mdCtx = reinterpret_cast<EVP_MD_CTX*>(evpMdCtxRef);
-    JNI_TRACE("EVP_DigestSignUpdate(%p, %p, %d, %d)", mdCtx, inJavaBytes, inOffset, inLength);
+    EVP_MD_CTX* mdCtx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
+    JNI_TRACE("%s(%p, %p, %d, %d)", jniName, mdCtx, inJavaBytes, inOffset, inLength);
 
     if (mdCtx == NULL) {
-         jniThrowNullPointerException(env, "mdCtx == null");
          return;
     }
 
@@ -3252,28 +3236,44 @@ static void NativeCrypto_EVP_DigestSignUpdate(JNIEnv* env, jclass, jint evpMdCtx
     }
 
     const ssize_t inEnd = inOffset + inLength;
-    if (inEnd < 0 || size_t(inEnd) >= inBytes.size()) {
+    if (inEnd < 0 || size_t(inEnd) > inBytes.size()) {
         jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "inLength");
         return;
     }
 
     const unsigned char *tmp = reinterpret_cast<const unsigned char *>(inBytes.get());
-    if (!EVP_DigestSignUpdate(mdCtx, tmp + inOffset, inLength)) {
-        JNI_TRACE("ctx=%p EVP_DigestSignUpdate => threw exception", mdCtx);
-        throwExceptionIfNecessary(env, "EVP_DigestSignUpdate");
+    if (!update_func(mdCtx, tmp + inOffset, inLength)) {
+        JNI_TRACE("ctx=%p %s => threw exception", mdCtx, jniName);
+        throwExceptionIfNecessary(env, jniName);
     }
 
-    JNI_TRACE("EVP_DigestSignUpdate(%p, %p, %d, %d) => success", mdCtx, inJavaBytes, inOffset,
-            inLength);
+    JNI_TRACE("%s(%p, %p, %d, %d) => success", jniName, mdCtx, inJavaBytes, inOffset, inLength);
 }
 
-static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jlong evpMdCtxRef)
+static void NativeCrypto_EVP_DigestUpdate(JNIEnv* env, jclass, jobject evpMdCtxRef,
+        jbyteArray inJavaBytes, jint inOffset, jint inLength) {
+    evpUpdate(env, evpMdCtxRef, inJavaBytes, inOffset, inLength, "EVP_DigestUpdate",
+            EVP_DigestUpdate);
+}
+
+static void NativeCrypto_EVP_DigestSignUpdate(JNIEnv* env, jclass, jobject evpMdCtxRef,
+        jbyteArray inJavaBytes, jint inOffset, jint inLength) {
+    evpUpdate(env, evpMdCtxRef, inJavaBytes, inOffset, inLength, "EVP_DigestSignUpdate",
+            EVP_DigestUpdate);
+}
+
+static void NativeCrypto_EVP_SignUpdate(JNIEnv* env, jclass, jobject evpMdCtxRef,
+        jbyteArray inJavaBytes, jint inOffset, jint inLength) {
+    evpUpdate(env, evpMdCtxRef, inJavaBytes, inOffset, inLength, "EVP_SignUpdate",
+            EVP_DigestUpdate);
+}
+
+static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject evpMdCtxRef)
 {
-    EVP_MD_CTX* mdCtx = reinterpret_cast<EVP_MD_CTX*>(evpMdCtxRef);
+    EVP_MD_CTX* mdCtx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
     JNI_TRACE("EVP_DigestSignFinal(%p)", mdCtx);
 
     if (mdCtx == NULL) {
-         jniThrowNullPointerException(env, "mdCtx == null");
          return NULL;
     }
 
@@ -3303,82 +3303,18 @@ static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jlong ev
     return outJavaBytes.release();
 }
 
-static jlong NativeCrypto_EVP_SignInit(JNIEnv* env, jclass, jstring algorithm) {
-    JNI_TRACE("NativeCrypto_EVP_SignInit(%p)", algorithm);
-
-    if (algorithm == NULL) {
-        jniThrowNullPointerException(env, NULL);
-        return 0;
-    }
-
-    Unique_EVP_MD_CTX ctx(EVP_MD_CTX_create());
-    if (ctx.get() == NULL) {
-        jniThrowOutOfMemory(env, "Unable to allocate EVP_MD_CTX");
-        return 0;
-    }
-    JNI_TRACE("NativeCrypto_EVP_SignInit ctx=%p", ctx.get());
-
-    ScopedUtfChars algorithmChars(env, algorithm);
-    if (algorithmChars.c_str() == NULL) {
-        return 0;
-    }
-    JNI_TRACE("NativeCrypto_EVP_SignInit algorithmChars=%s", algorithmChars.c_str());
-
-    const EVP_MD* digest = EVP_get_digestbynid(OBJ_txt2nid(algorithmChars.c_str()));
-    if (digest == NULL) {
-        JNI_TRACE("NativeCrypto_EVP_SignInit(%s) => hash not found", algorithmChars.c_str());
-        throwExceptionIfNecessary(env, "Hash algorithm not found");
-        return 0;
-    }
-
-    int ok = EVP_SignInit(ctx.get(), digest);
-    if (ok == 0) {
-        bool exception = throwExceptionIfNecessary(env, "NativeCrypto_EVP_SignInit");
-        if (exception) {
-            JNI_TRACE("NativeCrypto_EVP_SignInit(%s) => threw exception", algorithmChars.c_str());
-            return 0;
-        }
-    }
-
-    JNI_TRACE("NativeCrypto_EVP_SignInit(%s) => %p", algorithmChars.c_str(), ctx.get());
-    return reinterpret_cast<uintptr_t>(ctx.release());
-}
-
-/*
- * public static native void EVP_SignUpdate(long, byte[], int, int)
- */
-static void NativeCrypto_EVP_SignUpdate(JNIEnv* env, jclass, jlong ctxRef,
-                                          jbyteArray buffer, jint offset, jint length) {
-    EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
-    JNI_TRACE("NativeCrypto_EVP_SignUpdate(%p, %p, %d, %d)", ctx, buffer, offset, length);
-
-    if (ctx == NULL || buffer == NULL) {
-        jniThrowNullPointerException(env, NULL);
-        return;
-    }
-
-    ScopedByteArrayRO bufferBytes(env, buffer);
-    if (bufferBytes.get() == NULL) {
-        return;
-    }
-    int ok = EVP_SignUpdate(ctx,
-                            reinterpret_cast<const unsigned char*>(bufferBytes.get() + offset),
-                            length);
-    if (ok == 0) {
-        throwExceptionIfNecessary(env, "NativeCrypto_EVP_SignUpdate");
-    }
-}
-
 /*
  * public static native int EVP_SignFinal(long, byte[], int, long)
  */
-static jint NativeCrypto_EVP_SignFinal(JNIEnv* env, jclass, jlong ctxRef, jbyteArray signature,
+static jint NativeCrypto_EVP_SignFinal(JNIEnv* env, jclass, jobject ctxRef, jbyteArray signature,
         jint offset, jlong pkeyRef) {
-    EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
+    EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
     EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
     JNI_TRACE("NativeCrypto_EVP_SignFinal(%p, %p, %d, %p)", ctx, signature, offset, pkey);
 
-    if (ctx == NULL || pkey == NULL) {
+    if (ctx == NULL) {
+        return -1;
+    } else if (pkey == NULL) {
         jniThrowNullPointerException(env, NULL);
         return -1;
     }
@@ -3402,55 +3338,22 @@ static jint NativeCrypto_EVP_SignFinal(JNIEnv* env, jclass, jlong ctxRef, jbyteA
 }
 
 /*
- * public static native int EVP_VerifyInit(java.lang.String)
- */
-static jlong NativeCrypto_EVP_VerifyInit(JNIEnv* env, jclass, jstring algorithm) {
-    JNI_TRACE("NativeCrypto_EVP_VerifyInit(%p)", algorithm);
-
-    if (algorithm == NULL) {
-        jniThrowNullPointerException(env, NULL);
-        return 0;
-    }
-
-    Unique_EVP_MD_CTX ctx(EVP_MD_CTX_create());
-    if (ctx.get() == NULL) {
-        jniThrowOutOfMemory(env, "Unable to allocate EVP_MD_CTX");
-        return 0;
-    }
-    JNI_TRACE("NativeCrypto_EVP_VerifyInit ctx=%p", ctx.get());
-
-    ScopedUtfChars algorithmChars(env, algorithm);
-    if (algorithmChars.c_str() == NULL) {
-        return 0;
-    }
-    JNI_TRACE("NativeCrypto_EVP_VerifyInit algorithmChars=%s", algorithmChars.c_str());
-
-    const EVP_MD* digest = EVP_get_digestbynid(OBJ_txt2nid(algorithmChars.c_str()));
-    if (digest == NULL) {
-        jniThrowRuntimeException(env, "Hash algorithm not found");
-        return 0;
-    }
-
-    int ok = EVP_VerifyInit(ctx.get(), digest);
-    if (ok == 0) {
-        bool exception = throwExceptionIfNecessary(env, "NativeCrypto_EVP_VerifyInit");
-        if (exception) {
-            return 0;
-        }
-    }
-    return reinterpret_cast<uintptr_t>(ctx.release());
-}
-
-/*
  * public static native void EVP_VerifyUpdate(long, byte[], int, int)
  */
-static void NativeCrypto_EVP_VerifyUpdate(JNIEnv* env, jclass, jlong ctxRef,
+static void NativeCrypto_EVP_VerifyUpdate(JNIEnv* env, jclass, jobject ctxRef,
                                           jbyteArray buffer, jint offset, jint length) {
-    EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
+    EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
     JNI_TRACE("NativeCrypto_EVP_VerifyUpdate(%p, %p, %d, %d)", ctx, buffer, offset, length);
 
-    if (ctx == NULL || buffer == NULL) {
+    if (ctx == NULL) {
+        return;
+    } else if (buffer == NULL) {
         jniThrowNullPointerException(env, NULL);
+        return;
+    }
+
+    if (offset < 0 || length < 0) {
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", NULL);
         return;
     }
 
@@ -3458,6 +3361,11 @@ static void NativeCrypto_EVP_VerifyUpdate(JNIEnv* env, jclass, jlong ctxRef,
     if (bufferBytes.get() == NULL) {
         return;
     }
+    if (bufferBytes.size() < static_cast<size_t>(offset + length)) {
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", NULL);
+        return;
+    }
+
     int ok = EVP_VerifyUpdate(ctx,
                               reinterpret_cast<const unsigned char*>(bufferBytes.get() + offset),
                               length);
@@ -3469,14 +3377,16 @@ static void NativeCrypto_EVP_VerifyUpdate(JNIEnv* env, jclass, jlong ctxRef,
 /*
  * public static native int EVP_VerifyFinal(long, byte[], int, int, long)
  */
-static jint NativeCrypto_EVP_VerifyFinal(JNIEnv* env, jclass, jlong ctxRef, jbyteArray buffer,
+static jint NativeCrypto_EVP_VerifyFinal(JNIEnv* env, jclass, jobject ctxRef, jbyteArray buffer,
                                         jint offset, jint length, jlong pkeyRef) {
-    EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
+    EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
     EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
     JNI_TRACE("NativeCrypto_EVP_VerifyFinal(%p, %p, %d, %d, %p)",
               ctx, buffer, offset, length, pkey);
 
-    if (ctx == NULL || buffer == NULL || pkey == NULL) {
+    if (ctx == NULL) {
+        return -1;
+    } else if (buffer == NULL || pkey == NULL) {
         jniThrowNullPointerException(env, NULL);
         return -1;
     }
@@ -8142,24 +8052,24 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EC_KEY_set_nonce_from_hash, "(JZ)V"),
     NATIVE_METHOD(NativeCrypto, ECDH_compute_key, "([BIJJ)I"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_create, "()J"),
-    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_init, "(J)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_init, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;)V"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_destroy, "(J)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_copy, "(J)J"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestFinal, "(J[BI)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestInit, "(J)J"),
+    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_copy, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;J)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BII)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BI)I"),
     NATIVE_METHOD(NativeCrypto, EVP_get_digestbyname, "(Ljava/lang/String;)J"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_block_size, "(J)I"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_size, "(J)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestUpdate, "(J[BII)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_SignInit, "(Ljava/lang/String;)J"),
-    NATIVE_METHOD(NativeCrypto, EVP_SignUpdate, "(J[BII)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_SignFinal, "(J[BIJ)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_VerifyInit, "(Ljava/lang/String;)J"),
-    NATIVE_METHOD(NativeCrypto, EVP_VerifyUpdate, "(J[BII)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_VerifyFinal, "(J[BIIJ)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestSignInit, "(JJJ)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestSignUpdate, "(J[B)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestSignFinal, "(J)[B"),
+    NATIVE_METHOD(NativeCrypto, EVP_SignInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;J)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_SignUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BII)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_SignFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BIJ)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_VerifyInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;J)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_VerifyUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BII)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_VerifyFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BIIJ)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestSignInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;JJ)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestSignUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[B)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestSignFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;)[B"),
     NATIVE_METHOD(NativeCrypto, EVP_get_cipherbyname, "(Ljava/lang/String;)J"),
     NATIVE_METHOD(NativeCrypto, EVP_CipherInit_ex, "(JJ[B[BZ)V"),
     NATIVE_METHOD(NativeCrypto, EVP_CipherUpdate, "(J[BI[BII)I"),
@@ -8300,17 +8210,26 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, ERR_peek_last_error, "()J"),
 };
 
+static jclass getGlobalRefToClass(JNIEnv* env, const char* className) {
+    ScopedLocalRef<jclass> localClass(env, env->FindClass(className));
+    jclass globalRef = reinterpret_cast<jclass>(env->NewGlobalRef(localClass.get()));
+    if (globalRef == NULL) {
+        ALOGE("failed to find class %s", className);
+        abort();
+    }
+    return globalRef;
+}
+
 static void initialize_conscrypt(JNIEnv* env) {
     jniRegisterNativeMethods(env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto",
                              sNativeCryptoMethods, NELEM(sNativeCryptoMethods));
 
-    ScopedLocalRef<jclass> localClass(env,
-            env->FindClass(TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream"));
-    openSslOutputStreamClass = reinterpret_cast<jclass>(env->NewGlobalRef(localClass.get()));
-    if (openSslOutputStreamClass == NULL) {
-        ALOGE("failed to find class OpenSSLBIOInputStream");
-        abort();
-    }
+    openSslNativeReferenceClass = getGlobalRefToClass(env,
+            TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLNativeReference");
+    openSslOutputStreamClass = getGlobalRefToClass(env,
+            TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream");
+
+    openSslNativeReference_context = env->GetFieldID(openSslNativeReferenceClass, "context", "J");
 
     calendar_setMethod = env->GetMethodID(calendarClass, "set", "(IIIIII)V");
     inputStream_readMethod = env->GetMethodID(inputStreamClass, "read", "([B)I");
