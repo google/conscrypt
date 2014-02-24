@@ -143,6 +143,8 @@ public final class NativeCrypto {
      */
     public static native byte[][] get_DSA_params(long dsa);
 
+    public static native void set_DSA_flag_nonce_from_hash(long dsa);
+
     public static native byte[] i2d_RSAPublicKey(long rsa);
 
     public static native byte[] i2d_RSAPrivateKey(long rsa);
@@ -233,6 +235,8 @@ public final class NativeCrypto {
     public static native byte[] EC_KEY_get_private_key(long keyRef);
 
     public static native long EC_KEY_get_public_key(long keyRef);
+
+    public static native void EC_KEY_set_nonce_from_hash(long keyRef, boolean enabled);
 
     public static native int ECDH_compute_key(
             byte[] out, int outOffset, long publicKeyRef, long privateKeyRef);

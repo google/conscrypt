@@ -2475,6 +2475,13 @@ public class NativeCryptoTest extends TestCase {
         } catch (NullPointerException expected) {}
     }
 
+    public void test_set_DSA_flag_nonce_from_hash_null_key_Failure() throws Exception {
+        try {
+            NativeCrypto.set_DSA_flag_nonce_from_hash(0);
+            fail();
+        } catch (NullPointerException expected) {}
+    }
+
     /*
      * Test vector generation:
      * openssl rand -hex 16
@@ -2618,6 +2625,13 @@ public class NativeCryptoTest extends TestCase {
     public void test_EC_KEY_get_public_key_null_key_Failure() throws Exception {
         try {
             NativeCrypto.EC_KEY_get_public_key(0);
+            fail();
+        } catch (NullPointerException expected) {}
+    }
+
+    public void test_EC_KEY_set_nonce_from_hash_null_key_Failure() throws Exception {
+        try {
+            NativeCrypto.EC_KEY_set_nonce_from_hash(0, true);
             fail();
         } catch (NullPointerException expected) {}
     }
