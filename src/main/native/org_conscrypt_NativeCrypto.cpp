@@ -3178,7 +3178,7 @@ static void NativeCrypto_EVP_DigestUpdate(JNIEnv* env, jclass, jlong ctxRef,
     JNI_TRACE("NativeCrypto_EVP_DigestUpdate(%p, %p, %d, %d)", ctx, buffer, offset, length);
 
     if (offset < 0 || length < 0) {
-        jniThrowException(env, "java/lang/IndexOutOfBoundsException", NULL);
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", NULL);
         return;
     }
 
@@ -3247,13 +3247,13 @@ static void NativeCrypto_EVP_DigestSignUpdate(JNIEnv* env, jclass, jint evpMdCtx
     }
 
     if (inOffset < 0 || size_t(inOffset) > inBytes.size()) {
-        jniThrowException(env, "java/lang/IndexOutOfBoundsException", "inOffset");
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "inOffset");
         return;
     }
 
     const ssize_t inEnd = inOffset + inLength;
     if (inEnd < 0 || size_t(inEnd) >= inBytes.size()) {
-        jniThrowException(env, "java/lang/IndexOutOfBoundsException", "inLength");
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "inLength");
         return;
     }
 
@@ -3596,7 +3596,7 @@ static jint NativeCrypto_EVP_CipherUpdate(JNIEnv* env, jclass, jlong ctxRef, jby
     }
     const size_t inSize = inBytes.size();
     if (size_t(inOffset + inLength) > inSize) {
-        jniThrowException(env, "java/lang/IndexOutOfBoundsException",
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException",
                 "in.length < (inSize + inOffset)");
         return 0;
     }
@@ -3607,7 +3607,7 @@ static jint NativeCrypto_EVP_CipherUpdate(JNIEnv* env, jclass, jlong ctxRef, jby
     }
     const size_t outSize = outBytes.size();
     if (size_t(outOffset + inLength) > outSize) {
-        jniThrowException(env, "java/lang/IndexOutOfBoundsException",
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException",
                 "out.length < inSize + outOffset + blockSize - 1");
         return 0;
     }
@@ -3941,14 +3941,14 @@ static void NativeCrypto_BIO_write(JNIEnv* env, jclass, jlong bioRef, jbyteArray
     }
 
     if (offset < 0 || length < 0) {
-        jniThrowException(env, "java/lang/IndexOutOfBoundsException", "offset < 0 || length < 0");
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "offset < 0 || length < 0");
         JNI_TRACE("BIO_write(%p, %p, %d, %d) => IOOB", bio, inputJavaBytes, offset, length);
         return;
     }
 
     int inputSize = env->GetArrayLength(inputJavaBytes);
     if (inputSize < offset + length) {
-        jniThrowException(env, "java/lang/IndexOutOfBoundsException",
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException",
                 "input.length < offset + length");
         JNI_TRACE("BIO_write(%p, %p, %d, %d) => IOOB", bio, inputJavaBytes, offset, length);
         return;
