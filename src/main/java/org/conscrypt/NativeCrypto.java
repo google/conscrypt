@@ -253,43 +253,47 @@ public final class NativeCrypto {
 
     public static native long EVP_MD_CTX_create();
 
-    public static native void EVP_MD_CTX_init(long ctx);
+    public static native void EVP_MD_CTX_init(OpenSSLDigestContext ctx);
 
     public static native void EVP_MD_CTX_destroy(long ctx);
 
-    public static native long EVP_MD_CTX_copy(long ctx);
+    public static native int EVP_MD_CTX_copy(OpenSSLDigestContext dst_ctx,
+            OpenSSLDigestContext src_ctx);
 
     // --- Digest handling functions -------------------------------------------
 
-    public static native long EVP_DigestInit(long evp_md);
+    public static native int EVP_DigestInit(OpenSSLDigestContext ctx, long evp_md);
 
-    public static native void EVP_DigestUpdate(long ctx, byte[] buffer, int offset, int length);
+    public static native void EVP_DigestUpdate(OpenSSLDigestContext ctx, byte[] buffer,
+            int offset, int length);
 
-    public static native int EVP_DigestFinal(long ctx, byte[] hash, int offset);
+    public static native int EVP_DigestFinal(OpenSSLDigestContext ctx, byte[] hash, int offset);
 
     // --- MAC handling functions ----------------------------------------------
 
-    public static native void EVP_DigestSignInit(long evp_md_ctx, long evp_md, long evp_pkey);
+    public static native void EVP_DigestSignInit(OpenSSLDigestContext evp_md_ctx, long evp_md,
+            long evp_pkey);
 
-    public static native void EVP_DigestSignUpdate(long evp_md_ctx, byte[] in);
+    public static native void EVP_DigestSignUpdate(OpenSSLDigestContext evp_md_ctx, byte[] in);
 
-    public static native byte[] EVP_DigestSignFinal(long evp_md_ctx);
+    public static native byte[] EVP_DigestSignFinal(OpenSSLDigestContext evp_md_ctx);
 
     // --- Signature handling functions ----------------------------------------
 
-    public static native long EVP_SignInit(String algorithm);
+    public static native int EVP_SignInit(OpenSSLDigestContext ctx, long evpRef);
 
-    public static native void EVP_SignUpdate(long ctx, byte[] buffer,
+    public static native void EVP_SignUpdate(OpenSSLDigestContext ctx, byte[] buffer,
                                                int offset, int length);
 
-    public static native int EVP_SignFinal(long ctx, byte[] signature, int offset, long key);
+    public static native int EVP_SignFinal(OpenSSLDigestContext ctx, byte[] signature, int offset,
+            long key);
 
-    public static native long EVP_VerifyInit(String algorithm);
+    public static native int EVP_VerifyInit(OpenSSLDigestContext ctx, long evpRef);
 
-    public static native void EVP_VerifyUpdate(long ctx, byte[] buffer,
+    public static native void EVP_VerifyUpdate(OpenSSLDigestContext ctx, byte[] buffer,
                                                int offset, int length);
 
-    public static native int EVP_VerifyFinal(long ctx, byte[] signature,
+    public static native int EVP_VerifyFinal(OpenSSLDigestContext ctx, byte[] signature,
                                              int offset, int length, long key);
 
 
