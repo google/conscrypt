@@ -2217,12 +2217,12 @@ public class NativeCryptoTest extends TestCase {
     }
 
     public void test_EVP_SignInit() throws Exception {
-        final long ctx = NativeCrypto.EVP_SignInit("RSA-SHA256");
-        assertTrue(ctx != NULL);
-        NativeCrypto.EVP_MD_CTX_destroy(ctx);
+        final OpenSSLDigestContext ctx = new OpenSSLDigestContext(NativeCrypto.EVP_MD_CTX_create());
+        assertEquals(1,
+                NativeCrypto.EVP_SignInit(ctx, NativeCrypto.EVP_get_digestbyname("SHA-256")));
 
         try {
-            NativeCrypto.EVP_SignInit("foobar");
+            NativeCrypto.EVP_SignInit(ctx, 0);
             fail();
         } catch (RuntimeException expected) {
         }
