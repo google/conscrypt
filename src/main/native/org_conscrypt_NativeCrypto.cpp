@@ -3216,7 +3216,7 @@ static void NativeCrypto_EVP_DigestSignInit(JNIEnv* env, jclass, jobject evpMdCt
 
 static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, jint inOffset,
         jint inLength, const char *jniName, int (*update_func)(EVP_MD_CTX*, const void *,
-        unsigned int))
+        size_t))
 {
     EVP_MD_CTX* mdCtx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
     JNI_TRACE("%s(%p, %p, %d, %d)", jniName, mdCtx, inJavaBytes, inOffset, inLength);
