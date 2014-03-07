@@ -21,21 +21,14 @@ import java.security.InvalidParameterException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.Signature;
 import java.security.SignatureException;
-import java.security.interfaces.DSAPrivateKey;
-import java.security.interfaces.DSAPublicKey;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
-import java.security.interfaces.RSAPrivateCrtKey;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
+import java.security.SignatureSpi;
 
 /**
  * Implements the subset of the JDK Signature interface needed for
  * signature verification using OpenSSL.
  */
-public class OpenSSLSignature extends Signature {
+public class OpenSSLSignature extends SignatureSpi {
     private static enum EngineType {
         RSA, DSA, EC,
     };
@@ -66,14 +59,17 @@ public class OpenSSLSignature extends Signature {
     private final byte[] singleByte = new byte[1];
 
     /**
+     * True when engine is initialized to signing.
+     */
+    private boolean signing;
+
+    /**
      * Creates a new OpenSSLSignature instance for the given algorithm name.
      *
      * @param algorithm OpenSSL name of the algorithm, e.g. "RSA-SHA1".
      */
     private OpenSSLSignature(String algorithm, EngineType engineType)
             throws NoSuchAlgorithmException {
-        super(algorithm);
-
         // We don't support MD2
         if ("RSA-MD2".equals(algorithm)) {
             throw new NoSuchAlgorithmException(algorithm);
@@ -91,7 +87,7 @@ public class OpenSSLSignature extends Signature {
 
     @Override
     protected void engineUpdate(byte[] input, int offset, int len) {
-        if (state == SIGN) {
+        if (signing) {
             if (ctx == 0) {
                 try {
                     ctx = NativeCrypto.EVP_SignInit(evpAlgorithm);
@@ -155,11 +151,13 @@ public class OpenSSLSignature extends Signature {
     @Override
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
         initInternal(OpenSSLKey.fromPrivateKey(privateKey));
+        signing = true;
     }
 
     @Override
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
         initInternal(OpenSSLKey.fromPublicKey(publicKey));
+        signing = false;
     }
 
     @Override
