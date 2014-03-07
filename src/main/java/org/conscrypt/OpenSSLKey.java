@@ -82,6 +82,23 @@ public class OpenSSLKey {
         return new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(key.getEncoded()));
     }
 
+    public static OpenSSLKey fromPublicKey(PublicKey key) throws InvalidKeyException {
+        if (key instanceof OpenSSLKeyHolder) {
+            return ((OpenSSLKeyHolder) key).getOpenSSLKey();
+        }
+
+        if (!"X.509".equals(key.getFormat())) {
+            throw new InvalidKeyException("Unknown key format " + key.getFormat());
+        }
+
+        final byte[] encoded = key.getEncoded();
+        if (encoded == null) {
+            throw new InvalidKeyException("Key encoding is null");
+        }
+
+        return new OpenSSLKey(NativeCrypto.d2i_PUBKEY(key.getEncoded()));
+    }
+
     public PublicKey getPublicKey() throws NoSuchAlgorithmException {
         switch (NativeCrypto.EVP_PKEY_type(ctx)) {
             case NativeCrypto.EVP_PKEY_RSA:
