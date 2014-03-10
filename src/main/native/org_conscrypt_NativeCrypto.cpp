@@ -6890,7 +6890,7 @@ static int next_protos_advertised_callback(SSL* ssl,
         return SSL_TLSEXT_ERR_OK;
     } else {
         *out = NULL;
-        *outlen = NULL;
+        *outlen = 0;
         return SSL_TLSEXT_ERR_NOACK;
     }
 }
