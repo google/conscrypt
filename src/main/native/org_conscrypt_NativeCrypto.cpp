@@ -1880,6 +1880,11 @@ static jint NativeCrypto_RSA_size(JNIEnv* env, jclass, jlong pkeyRef) {
     EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
     JNI_TRACE("RSA_size(%p)", pkey);
 
+    if (pkey == NULL) {
+        jniThrowNullPointerException(env, "pkey == null");
+        return 0;
+    }
+
     Unique_RSA rsa(EVP_PKEY_get1_RSA(pkey));
     if (rsa.get() == NULL) {
         jniThrowRuntimeException(env, "RSA_size failed");
@@ -1897,6 +1902,11 @@ static jint RSA_crypt_operation(RSACryptOperation operation,
         jbyteArray fromJavaBytes, jbyteArray toJavaBytes, jlong pkeyRef, jint padding) {
     EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
     JNI_TRACE("%s(%d, %p, %p, %p)", caller, flen, fromJavaBytes, toJavaBytes, pkey);
+
+    if (pkey == NULL) {
+        jniThrowNullPointerException(env, "pkey == null");
+        return -1;
+    }
 
     Unique_RSA rsa(EVP_PKEY_get1_RSA(pkey));
     if (rsa.get() == NULL) {
@@ -2159,6 +2169,11 @@ static jlong NativeCrypto_DSA_generate_key(JNIEnv* env, jclass, jint primeBits,
 static jobjectArray NativeCrypto_get_DSA_params(JNIEnv* env, jclass, jlong pkeyRef) {
     EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
     JNI_TRACE("get_DSA_params(%p)", pkey);
+
+    if (pkey == NULL) {
+        jniThrowNullPointerException(env, "pkey == null");
+        return NULL;
+    }
 
     Unique_DSA dsa(EVP_PKEY_get1_DSA(pkey));
     if (dsa.get() == NULL) {
@@ -2821,6 +2836,11 @@ static jbyteArray NativeCrypto_EC_KEY_get_private_key(JNIEnv* env, jclass, jlong
     EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
     JNI_TRACE("EC_KEY_get_private_key(%p)", pkey);
 
+    if (pkey == NULL) {
+        jniThrowNullPointerException(env, "pkey == null");
+        return NULL;
+    }
+
     Unique_EC_KEY eckey(EVP_PKEY_get1_EC_KEY(pkey));
     if (eckey.get() == NULL) {
         throwExceptionIfNecessary(env, "EVP_PKEY_get1_EC_KEY");
@@ -2843,6 +2863,11 @@ static jlong NativeCrypto_EC_KEY_get_public_key(JNIEnv* env, jclass, jlong pkeyR
 {
     EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
     JNI_TRACE("EC_KEY_get_public_key(%p)", pkey);
+
+    if (pkey == NULL) {
+        jniThrowNullPointerException(env, "pkey == null");
+        return 0;
+    }
 
     Unique_EC_KEY eckey(EVP_PKEY_get1_EC_KEY(pkey));
     if (eckey.get() == NULL) {
@@ -2881,6 +2906,11 @@ static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
         return -1;
     }
 
+    if (pubPkey == NULL) {
+        jniThrowNullPointerException(env, "pubPkey == null");
+        return -1;
+    }
+
     Unique_EC_KEY pubkey(EVP_PKEY_get1_EC_KEY(pubPkey));
     if (pubkey.get() == NULL) {
         JNI_TRACE("ECDH_compute_key(%p) => can't get public key", pubPkey);
@@ -2892,6 +2922,11 @@ static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
     if (pubkeyPoint == NULL) {
         JNI_TRACE("ECDH_compute_key(%p) => can't get public key point", pubPkey);
         throwExceptionIfNecessary(env, "EVP_PKEY_get1_EC_KEY public");
+        return -1;
+    }
+
+    if (privPkey == NULL) {
+        jniThrowNullPointerException(env, "privPkey == null");
         return -1;
     }
 
