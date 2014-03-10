@@ -5619,6 +5619,7 @@ class AppData {
         if (fdsEmergency[1] != -1) {
             close(fdsEmergency[1]);
         }
+        clearCallbackState();
         MUTEX_CLEANUP(mutex);
     }
 
@@ -5665,20 +5666,22 @@ class AppData {
         env = e;
         sslHandshakeCallbacks = shc;
         if (npnProtocols != NULL) {
-            npnProtocolsArray = npnProtocols;
-            npnProtocolsLength = e->GetArrayLength(npnProtocols);
             npnProtocolsData = e->GetByteArrayElements(npnProtocols, NULL);
             if (npnProtocolsData == NULL) {
+                clearCallbackState();
                 return false;
             }
+            npnProtocolsArray = npnProtocols;
+            npnProtocolsLength = e->GetArrayLength(npnProtocols);
         }
         if (alpnProtocols != NULL) {
-            alpnProtocolsArray = alpnProtocols;
-            alpnProtocolsLength = e->GetArrayLength(alpnProtocols);
             alpnProtocolsData = e->GetByteArrayElements(alpnProtocols, NULL);
             if (alpnProtocolsData == NULL) {
+                clearCallbackState();
                 return false;
             }
+            alpnProtocolsArray = alpnProtocols;
+            alpnProtocolsLength = e->GetArrayLength(alpnProtocols);
         }
         return true;
     }
@@ -6818,6 +6821,7 @@ static int proto_select(SSL* ssl __attribute__ ((unused)),
         switch (status) {
         case OPENSSL_NPN_NEGOTIATED:
             JNI_TRACE("ssl=%p proto_select NPN/ALPN negotiated", ssl);
+            return SSL_TLSEXT_ERR_OK;
             break;
         case OPENSSL_NPN_UNSUPPORTED:
             JNI_TRACE("ssl=%p proto_select NPN/ALPN unsupported", ssl);
@@ -6827,9 +6831,13 @@ static int proto_select(SSL* ssl __attribute__ ((unused)),
             break;
         }
     } else {
+        if (out != NULL && outLength != NULL) {
+            *out = NULL;
+            *outLength = 0;
+        }
         JNI_TRACE("protocols=NULL");
     }
-    return SSL_TLSEXT_ERR_OK;
+    return SSL_TLSEXT_ERR_NOACK;
 }
 
 /**
@@ -6879,8 +6887,12 @@ static int next_protos_advertised_callback(SSL* ssl,
     if (npnProtocols != NULL) {
         *out = npnProtocols;
         *outlen = appData->npnProtocolsLength;
+        return SSL_TLSEXT_ERR_OK;
+    } else {
+        *out = NULL;
+        *outlen = NULL;
+        return SSL_TLSEXT_ERR_NOACK;
     }
-    return SSL_TLSEXT_ERR_OK;
 }
 
 static void NativeCrypto_SSL_CTX_enable_npn(JNIEnv* env, jclass, jlong ssl_ctx_address)
