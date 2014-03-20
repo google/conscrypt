@@ -693,11 +693,12 @@ public class NativeCryptoTest extends TestCase {
         public String authMethod;
         public boolean verifyCertificateChainCalled;
 
-        public void verifyCertificateChain(long[] certChainRefs, String authMethod)
-                throws CertificateException {
+        public void verifyCertificateChain(long sslSessionNativePtr, long[] certChainRefs,
+                String authMethod) throws CertificateException {
             if (DEBUG) {
                 System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
                                    + " verifyCertificateChain"
+                                   + " sessionPtr=0x" + Long.toString(sslSessionNativePtr, 16)
                                    + " asn1DerEncodedCertificateChain="
                                    + Arrays.toString(certChainRefs)
                                    + " authMethod=" + authMethod);

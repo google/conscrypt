@@ -1160,13 +1160,14 @@ public final class NativeCrypto {
         /**
          * Verify that we trust the certificate chain is trusted.
          *
+         * @param sslSessionNativePtr pointer to a reference of the SSL_SESSION
          * @param certificateChainRefs chain of X.509 certificate references
          * @param authMethod auth algorithm name
          *
          * @throws CertificateException if the certificate is untrusted
          */
-        public void verifyCertificateChain(long[] certificateChainRefs, String authMethod)
-            throws CertificateException;
+        public void verifyCertificateChain(long sslSessionNativePtr, long[] certificateChainRefs,
+                String authMethod) throws CertificateException;
 
         /**
          * Called on an SSL client when the server requests (or

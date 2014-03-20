@@ -18,13 +18,18 @@ package org.conscrypt;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.KeyStore;
 import java.security.MessageDigest;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import junit.framework.TestCase;
@@ -128,9 +133,10 @@ public class TrustManagerImplTest extends TestCase {
 
         assertTrue(tm instanceof TrustManagerImpl);
         TrustManagerImpl tmi = (TrustManagerImpl) tm;
-        List<X509Certificate> certs = tmi.checkServerTrusted(chain2, "RSA", "purple.com");
+        List<X509Certificate> certs = tmi.checkServerTrusted(chain2, "RSA", new MySSLSession(
+                "purple.com"));
         assertEquals(Arrays.asList(chain3), certs);
-        certs = tmi.checkServerTrusted(chain1, "RSA", "purple.com");
+        certs = tmi.checkServerTrusted(chain1, "RSA", new MySSLSession("purple.com"));
         assertEquals(Arrays.asList(chain3), certs);
     }
 
@@ -202,7 +208,8 @@ public class TrustManagerImplTest extends TestCase {
                                    X509Certificate[] fullChain) throws Exception {
         if (tm instanceof TrustManagerImpl) {
             TrustManagerImpl tmi = (TrustManagerImpl) tm;
-            List<X509Certificate> checkedChain = tmi.checkServerTrusted(chain, "RSA", hostname);
+            List<X509Certificate> checkedChain = tmi.checkServerTrusted(chain, "RSA",
+                    new MySSLSession(hostname));
             assertEquals(checkedChain, Arrays.asList(fullChain));
         }
         tm.checkServerTrusted(chain, "RSA");
@@ -226,9 +233,123 @@ public class TrustManagerImplTest extends TestCase {
         assertTrue(tm.getClass().getName(), tm instanceof TrustManagerImpl);
         try {
             TrustManagerImpl tmi = (TrustManagerImpl) tm;
-            tmi.checkServerTrusted(chain, "RSA", hostname);
+            tmi.checkServerTrusted(chain, "RSA", new MySSLSession(hostname));
             fail();
         } catch (CertificateException expected) {
+        }
+    }
+
+    private class MySSLSession implements SSLSession {
+        private final String hostname;
+
+        public MySSLSession(String hostname) {
+            this.hostname = hostname;
+        }
+
+        @Override
+        public int getApplicationBufferSize() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String getCipherSuite() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long getCreationTime() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public byte[] getId() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long getLastAccessedTime() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Certificate[] getLocalCertificates() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Principal getLocalPrincipal() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int getPacketBufferSize() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public javax.security.cert.X509Certificate[] getPeerCertificateChain()
+                throws SSLPeerUnverifiedException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String getPeerHost() {
+            return hostname;
+        }
+
+        @Override
+        public int getPeerPort() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String getProtocol() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public SSLSessionContext getSessionContext() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Object getValue(String name) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String[] getValueNames() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void invalidate() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isValid() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void putValue(String name, Object value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void removeValue(String name) {
+            throw new UnsupportedOperationException();
         }
     }
 }
