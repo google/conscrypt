@@ -292,11 +292,11 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertNull(store.getCertificateAlias(getCa1()));
 
         try {
-            store.isTrustAnchor(null);
+            store.getTrustAnchor(null);
             fail();
         } catch (NullPointerException expected) {
         }
-        assertFalse(store.isTrustAnchor(getCa1()));
+        assertNull(store.getTrustAnchor(getCa1()));
 
         try {
             store.findIssuer(null);
@@ -451,14 +451,14 @@ public class TrustedCertificateStoreTest extends TestCase {
         String systemAlias = alias(false, ca1, 0);
         install(ca1, systemAlias);
         assertRootCa(ca1, systemAlias);
-        assertTrue(store.isTrustAnchor(ca2));
+        assertEquals(ca1, store.getTrustAnchor(ca2));
         assertEquals(ca1, store.findIssuer(ca2));
         resetStore();
 
         String userAlias = alias(true, ca1, 0);
         store.installCertificate(ca1);
         assertRootCa(ca1, userAlias);
-        assertTrue(store.isTrustAnchor(ca2));
+        assertNotNull(store.getTrustAnchor(ca2));
         assertEquals(ca1, store.findIssuer(ca2));
         resetStore();
     }
@@ -559,7 +559,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertEquals(x, store.getCertificate(alias));
         assertEquals(file(alias).lastModified(), store.getCreationDate(alias).getTime());
         assertTrue(store.containsAlias(alias));
-        assertTrue(store.isTrustAnchor(x));
+        assertEquals(x, store.getTrustAnchor(x));
     }
 
     private void assertIntermediateCa(X509Certificate x, String alias) {
@@ -576,7 +576,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertNull(store.getCertificate(alias));
         assertFalse(store.containsAlias(alias));
         assertNull(store.getCertificateAlias(x));
-        assertFalse(store.isTrustAnchor(x));
+        assertNull(store.getTrustAnchor(x));
         assertEquals(store.allSystemAliases().contains(alias),
                      store.getCertificate(alias, true) != null);
     }

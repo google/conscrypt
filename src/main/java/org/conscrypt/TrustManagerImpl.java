@@ -596,10 +596,11 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         // probe KeyStore for a cert. AndroidCAStore stores its
         // contents hashed by cert subject on the filesystem to make
         // this faster than scanning all key store entries.
-        if (trustedCertificateStore.isTrustAnchor(cert)) {
+        X509Certificate systemCert = trustedCertificateStore.getTrustAnchor(cert);
+        if (systemCert != null) {
             // add new TrustAnchor to params index to avoid
             // checking filesystem next time around.
-            return trustedCertificateIndex.index(cert);
+            return trustedCertificateIndex.index(systemCert);
         }
         return null;
     }
