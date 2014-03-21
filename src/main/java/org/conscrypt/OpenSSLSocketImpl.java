@@ -422,10 +422,7 @@ public class OpenSSLSocketImpl
             }
 
             // setup peer certificate verification
-            if (client) {
-                // TODO support for anonymous cipher would require us to
-                // conditionally use SSL_VERIFY_NONE
-            } else {
+            if (!client) {
                 // needing client auth takes priority...
                 boolean certRequested;
                 if (sslParameters.getNeedClientAuth()) {

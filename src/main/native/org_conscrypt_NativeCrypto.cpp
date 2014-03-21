@@ -6223,15 +6223,14 @@ static jlong NativeCrypto_SSL_new(JNIEnv* env, jclass, jlong ssl_ctx_address)
         return 0;
     }
 
-    /* Java code in class OpenSSLSocketImpl does the verification. Meaning of
-     * SSL_VERIFY_NONE flag in client mode: if not using an anonymous cipher
-     * (by default disabled), the server will send a certificate which will
-     * be checked. The result of the certificate verification process can be
-     * checked after the TLS/SSL handshake using the SSL_get_verify_result(3)
-     * function. The handshake will be continued regardless of the
-     * verification result.
+    /*
+     * Java code in class OpenSSLSocketImpl does the verification. Since
+     * the callbacks do all the verification of the chain, this flag
+     * simply controls whether to send protocol-level alerts or not.
+     * SSL_VERIFY_NONE means don't send alerts and anything else means send
+     * alerts.
      */
-    SSL_set_verify(ssl.get(), SSL_VERIFY_NONE, NULL);
+    SSL_set_verify(ssl.get(), SSL_VERIFY_PEER, NULL);
 
     JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_new => ssl=%p", ssl_ctx, ssl.get());
     return (jlong) ssl.release();
