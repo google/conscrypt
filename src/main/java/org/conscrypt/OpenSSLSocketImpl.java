@@ -41,6 +41,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 import libcore.io.ErrnoException;
@@ -407,13 +408,15 @@ public class OpenSSLSocketImpl
                         keyTypes.add(keyType);
                     }
                 }
-                for (String keyType : keyTypes) {
-                    try {
-                        setCertificate(sslParameters.getKeyManager().chooseServerAlias(keyType,
-                                                                                       null,
-                                                                                       this));
-                    } catch (CertificateEncodingException e) {
-                        throw new IOException(e);
+                X509KeyManager x509KeyManager = sslParameters.getX509KeyManager();
+                if (x509KeyManager != null) {
+                    for (String keyType : keyTypes) {
+                        try {
+                            setCertificate(
+                                    x509KeyManager.chooseServerAlias(keyType, null, this));
+                        } catch (CertificateEncodingException e) {
+                            throw new IOException(e);
+                        }
                     }
                 }
             }
@@ -441,16 +444,18 @@ public class OpenSSLSocketImpl
                 }
 
                 if (certRequested) {
-                    X509TrustManager trustManager = sslParameters.getTrustManager();
-                    X509Certificate[] issuers = trustManager.getAcceptedIssuers();
-                    if (issuers != null && issuers.length != 0) {
-                        byte[][] issuersBytes;
-                        try {
-                            issuersBytes = encodeIssuerX509Principals(issuers);
-                        } catch (CertificateEncodingException e) {
-                            throw new IOException("Problem encoding principals", e);
+                    X509TrustManager x509TrustManager = sslParameters.getX509TrustManager();
+                    if (x509TrustManager != null) {
+                        X509Certificate[] issuers = x509TrustManager.getAcceptedIssuers();
+                        if (issuers != null && issuers.length != 0) {
+                            byte[][] issuersBytes;
+                            try {
+                                issuersBytes = encodeIssuerX509Principals(issuers);
+                            } catch (CertificateEncodingException e) {
+                                throw new IOException("Problem encoding principals", e);
+                            }
+                            NativeCrypto.SSL_set_client_CA_list(sslNativePointer, issuersBytes);
                         }
-                        NativeCrypto.SSL_set_client_CA_list(sslNativePointer, issuersBytes);
                     }
                 }
             }
@@ -635,11 +640,16 @@ public class OpenSSLSocketImpl
         if (alias == null) {
             return;
         }
-        PrivateKey privateKey = sslParameters.getKeyManager().getPrivateKey(alias);
+        X509KeyManager keyManager = sslParameters.getX509KeyManager();
+        if (keyManager == null) {
+            return;
+        }
+        PrivateKey privateKey = keyManager.getPrivateKey(alias);
         if (privateKey == null) {
             return;
         }
-        X509Certificate[] certificates = sslParameters.getKeyManager().getCertificateChain(alias);
+        X509Certificate[] certificates =
+                keyManager.getCertificateChain(alias);
         if (certificates == null) {
             return;
         }
@@ -693,7 +703,10 @@ public class OpenSSLSocketImpl
                 issuers[i] = new X500Principal(asn1DerEncodedPrincipals[i]);
             }
         }
-        setCertificate(sslParameters.getKeyManager().chooseClientAlias(keyTypes, issuers, this));
+        X509KeyManager keyManager = sslParameters.getX509KeyManager();
+        String alias =
+                (keyManager != null) ? keyManager.chooseClientAlias(keyTypes, issuers, this) : null;
+        setCertificate(alias);
     }
 
     @Override
@@ -766,6 +779,10 @@ public class OpenSSLSocketImpl
     public void verifyCertificateChain(long[] certRefs, String authMethod)
             throws CertificateException {
         try {
+            X509TrustManager x509tm = sslParameters.getX509TrustManager();
+            if (x509tm == null) {
+                throw new CertificateException("No X.509 TrustManager");
+            }
             if (certRefs == null || certRefs.length == 0) {
                 throw new SSLException("Peer sent no certificate");
             }
@@ -775,7 +792,6 @@ public class OpenSSLSocketImpl
             }
             boolean client = sslParameters.getUseClientMode();
             if (client) {
-                X509TrustManager x509tm = sslParameters.getTrustManager();
                 if (x509tm instanceof TrustManagerImpl) {
                     TrustManagerImpl tm = (TrustManagerImpl) x509tm;
                     tm.checkServerTrusted(peerCertChain, authMethod, getPeerHostName());
@@ -784,8 +800,7 @@ public class OpenSSLSocketImpl
                 }
             } else {
                 String authType = peerCertChain[0].getPublicKey().getAlgorithm();
-                sslParameters.getTrustManager().checkClientTrusted(peerCertChain,
-                                                                   authType);
+                x509tm.checkClientTrusted(peerCertChain, authType);
             }
 
         } catch (CertificateException e) {
