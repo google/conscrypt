@@ -28,6 +28,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
+
 import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
 import javax.crypto.interfaces.DHPublicKey;
@@ -142,8 +143,11 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                     } else {
                         String authType = clientCert.getAuthType();
                         try {
-                            parameters.getTrustManager().checkClientTrusted(
-                                    clientCert.certs, authType);
+                            X509TrustManager tm = parameters.getX509TrustManager();
+                            if (tm == null) {
+                                new CertificateException("No X.509 TrustManager");
+                            }
+                            tm.checkClientTrusted(clientCert.certs, authType);
                         } catch (CertificateException e) {
                             fatalAlert(AlertProtocol.BAD_CERTIFICATE,
                                        "Untrusted Client Certificate ", e);
@@ -431,18 +435,20 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             }
             // obtain certificates from key manager
             String alias = null;
-            X509KeyManager km = parameters.getKeyManager();
-            if (km instanceof X509ExtendedKeyManager) {
-                X509ExtendedKeyManager ekm = (X509ExtendedKeyManager)km;
-                alias = ekm.chooseEngineServerAlias(certType, null,
-                        this.engineOwner);
-                if (alias != null) {
-                    certs = ekm.getCertificateChain(alias);
-                }
-            } else {
-                alias = km.chooseServerAlias(certType, null, null);
-                if (alias != null) {
-                    certs = km.getCertificateChain(alias);
+            X509KeyManager km = parameters.getX509KeyManager();
+            if (km != null) {
+                if (km instanceof X509ExtendedKeyManager) {
+                    X509ExtendedKeyManager ekm = (X509ExtendedKeyManager)km;
+                    alias = ekm.chooseEngineServerAlias(certType, null,
+                            this.engineOwner);
+                    if (alias != null) {
+                        certs = ekm.getCertificateChain(alias);
+                    }
+                } else {
+                    alias = km.chooseServerAlias(certType, null, null);
+                    if (alias != null) {
+                        certs = km.getCertificateChain(alias);
+                    }
                 }
             }
 
@@ -452,7 +458,9 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
             }
             session.localCertificates = certs;
             serverCert = new CertificateMessage(certs);
-            privKey = km.getPrivateKey(alias);
+            if (km != null) {
+                privKey = km.getPrivateKey(alias);
+            }
             send(serverCert);
         }
 
@@ -544,8 +552,12 @@ public class ServerHandshakeImpl extends HandshakeProtocol {
                 || parameters.getNeedClientAuth()) {
             X509Certificate[] accepted;
             try {
-                X509TrustManager tm = parameters.getTrustManager();
-                accepted = tm.getAcceptedIssuers();
+                X509TrustManager tm = parameters.getX509TrustManager();
+                if (tm == null) {
+                    accepted = new X509Certificate[0];
+                } else {
+                    accepted = tm.getAcceptedIssuers();
+                }
             } catch (ClassCastException e) {
                 // don't send certificateRequest
                 break certRequest;
