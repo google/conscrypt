@@ -41,10 +41,10 @@ import javax.net.ssl.X509TrustManager;
  */
 public class SSLParametersImpl implements Cloneable {
 
-    // default source of authentication keys
-    private static volatile X509KeyManager defaultKeyManager;
-    // default source of authentication trust decisions
-    private static volatile X509TrustManager defaultTrustManager;
+    // default source of X.509 certificate based authentication keys
+    private static volatile X509KeyManager defaultX509KeyManager;
+    // default source of X.509 certificate based authentication trust decisions
+    private static volatile X509TrustManager defaultX509TrustManager;
     // default source of random numbers
     private static volatile SecureRandom defaultSecureRandom;
     // default SSL parameters
@@ -56,10 +56,10 @@ public class SSLParametersImpl implements Cloneable {
     // server session context contains the set of reusable
     // server-side SSL sessions
     private final ServerSessionContext serverSessionContext;
-    // source of authentication keys
-    private X509KeyManager keyManager;
-    // source of authentication trust decisions
-    private X509TrustManager trustManager;
+    // source of X.509 certificate based authentication keys or null if not provided
+    private final X509KeyManager x509KeyManager;
+    // source of X.509 certificate based authentication trust decisions or null if not provided
+    private final X509TrustManager x509TrustManager;
     // source of random numbers
     private SecureRandom secureRandom;
 
@@ -106,18 +106,18 @@ public class SSLParametersImpl implements Cloneable {
         // if the arrays of length 0 are specified. This implementation
         // behave as for null arrays (i.e. use installed security providers)
 
-        // initialize keyManager
+        // initialize x509KeyManager
         if ((kms == null) || (kms.length == 0)) {
-            keyManager = getDefaultKeyManager();
+            x509KeyManager = getDefaultX509KeyManager();
         } else {
-            keyManager = findX509KeyManager(kms);
+            x509KeyManager = findFirstX509KeyManager(kms);
         }
 
-        // initialize trustManager
+        // initialize x509TrustManager
         if ((tms == null) || (tms.length == 0)) {
-            trustManager = getDefaultTrustManager();
+            x509TrustManager = getDefaultX509TrustManager();
         } else {
-            trustManager = findX509TrustManager(tms);
+            x509TrustManager = findFirstX509TrustManager(tms);
         }
         // initialize secure random
         // BEGIN android-removed
@@ -167,17 +167,17 @@ public class SSLParametersImpl implements Cloneable {
     }
 
     /**
-     * @return key manager
+     * @return X.509 key manager or {@code null} for none.
      */
-    protected X509KeyManager getKeyManager() {
-        return keyManager;
+    protected X509KeyManager getX509KeyManager() {
+        return x509KeyManager;
     }
 
     /**
-     * @return trust manager
+     * @return X.509 trust manager or {@code null} for none.
      */
-    protected X509TrustManager getTrustManager() {
-        return trustManager;
+    protected X509TrustManager getX509TrustManager() {
+        return x509TrustManager;
     }
 
     /**
@@ -348,21 +348,26 @@ public class SSLParametersImpl implements Cloneable {
         }
     }
 
-    private static X509KeyManager getDefaultKeyManager() throws KeyManagementException {
-        X509KeyManager result = defaultKeyManager;
+    private static X509KeyManager getDefaultX509KeyManager() throws KeyManagementException {
+        X509KeyManager result = defaultX509KeyManager;
         if (result == null) {
             // single-check idiom
-            defaultKeyManager = result = createDefaultKeyManager();
+            defaultX509KeyManager = result = createDefaultX509KeyManager();
         }
         return result;
     }
-    private static X509KeyManager createDefaultKeyManager() throws KeyManagementException {
+    private static X509KeyManager createDefaultX509KeyManager() throws KeyManagementException {
         try {
             String algorithm = KeyManagerFactory.getDefaultAlgorithm();
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm);
             kmf.init(null, null);
             KeyManager[] kms = kmf.getKeyManagers();
-            return findX509KeyManager(kms);
+            X509KeyManager result = findFirstX509KeyManager(kms);
+            if (result == null) {
+                throw new KeyManagementException("No X509KeyManager among default KeyManagers: "
+                        + Arrays.toString(kms));
+            }
+            return result;
         } catch (NoSuchAlgorithmException e) {
             throw new KeyManagementException(e);
         } catch (KeyStoreException e) {
@@ -371,13 +376,19 @@ public class SSLParametersImpl implements Cloneable {
             throw new KeyManagementException(e);
         }
     }
-    private static X509KeyManager findX509KeyManager(KeyManager[] kms) throws KeyManagementException {
+
+    /**
+     * Finds the first {@link X509KeyManager} element in the provided array.
+     *
+     * @return the first {@code X509KeyManager} or {@code null} if not found.
+     */
+    private static X509KeyManager findFirstX509KeyManager(KeyManager[] kms) {
         for (KeyManager km : kms) {
             if (km instanceof X509KeyManager) {
                 return (X509KeyManager)km;
             }
         }
-        throw new KeyManagementException("Failed to find an X509KeyManager in " + Arrays.toString(kms));
+        return null;
     }
 
     /**
@@ -385,21 +396,26 @@ public class SSLParametersImpl implements Cloneable {
      *
      * TODO: Move this to a published API under dalvik.system.
      */
-    public static X509TrustManager getDefaultTrustManager() throws KeyManagementException {
-        X509TrustManager result = defaultTrustManager;
+    private static X509TrustManager getDefaultX509TrustManager() throws KeyManagementException {
+        X509TrustManager result = defaultX509TrustManager;
         if (result == null) {
             // single-check idiom
-            defaultTrustManager = result = createDefaultTrustManager();
+            defaultX509TrustManager = result = createDefaultX509TrustManager();
         }
         return result;
     }
-    private static X509TrustManager createDefaultTrustManager() throws KeyManagementException {
+    private static X509TrustManager createDefaultX509TrustManager() throws KeyManagementException {
         try {
             String algorithm = TrustManagerFactory.getDefaultAlgorithm();
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
             tmf.init((KeyStore) null);
             TrustManager[] tms = tmf.getTrustManagers();
-            X509TrustManager trustManager = findX509TrustManager(tms);
+            X509TrustManager trustManager = findFirstX509TrustManager(tms);
+            if (trustManager == null) {
+                throw new KeyManagementException(
+                        "No X509TrustManager in among default TrustManagers: "
+                                + Arrays.toString(tms));
+            }
             return trustManager;
         } catch (NoSuchAlgorithmException e) {
             throw new KeyManagementException(e);
@@ -407,12 +423,18 @@ public class SSLParametersImpl implements Cloneable {
             throw new KeyManagementException(e);
         }
     }
-    private static X509TrustManager findX509TrustManager(TrustManager[] tms) throws KeyManagementException {
+
+    /**
+     * Finds the first {@link X509TrustManager} element in the provided array.
+     *
+     * @return the first {@code X509TrustManager} or {@code null} if not found.
+     */
+    private static X509TrustManager findFirstX509TrustManager(TrustManager[] tms) {
         for (TrustManager tm : tms) {
             if (tm instanceof X509TrustManager) {
                 return (X509TrustManager)tm;
             }
         }
-        throw new KeyManagementException("Failed to find an X509TrustManager in " +  Arrays.toString(tms));
+        return null;
     }
 }

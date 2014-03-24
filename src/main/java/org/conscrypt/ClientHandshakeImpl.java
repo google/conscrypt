@@ -377,23 +377,25 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
             String alias = null;
             String[] certTypes = certificateRequest.getTypesAsString();
             X500Principal[] issuers = certificateRequest.certificate_authorities;
-            X509KeyManager km = parameters.getKeyManager();
-            if (km instanceof X509ExtendedKeyManager) {
-                X509ExtendedKeyManager ekm = (X509ExtendedKeyManager)km;
-                alias = ekm.chooseEngineClientAlias(certTypes, issuers, this.engineOwner);
-                if (alias != null) {
-                    certs = ekm.getCertificateChain(alias);
+            X509KeyManager km = parameters.getX509KeyManager();
+            if (km != null) {
+                if (km instanceof X509ExtendedKeyManager) {
+                    X509ExtendedKeyManager ekm = (X509ExtendedKeyManager)km;
+                    alias = ekm.chooseEngineClientAlias(certTypes, issuers, this.engineOwner);
+                    if (alias != null) {
+                        certs = ekm.getCertificateChain(alias);
+                    }
+                } else {
+                    alias = km.chooseClientAlias(certTypes, issuers, null);
+                    if (alias != null) {
+                        certs = km.getCertificateChain(alias);
+                    }
                 }
-            } else {
-                alias = km.chooseClientAlias(certTypes, issuers, null);
-                if (alias != null) {
-                    certs = km.getCertificateChain(alias);
-                }
+                clientKey = km.getPrivateKey(alias);
             }
 
             session.localCertificates = certs;
             clientCert = new CertificateMessage(certs);
-            clientKey = km.getPrivateKey(alias);
             send(clientCert);
         }
         // Client key exchange
@@ -530,7 +532,10 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         }
         String hostname = engineOwner.getPeerHost();
         try {
-            X509TrustManager x509tm = parameters.getTrustManager();
+            X509TrustManager x509tm = parameters.getX509TrustManager();
+            if (x509tm == null) {
+                throw new CertificateException("No X.509 TrustManager");
+            }
             if (x509tm instanceof TrustManagerImpl) {
                 TrustManagerImpl tm = (TrustManagerImpl) x509tm;
                 tm.checkServerTrusted(serverCert.certs, authType, hostname);
