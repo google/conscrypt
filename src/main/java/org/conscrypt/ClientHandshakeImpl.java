@@ -18,7 +18,6 @@
 package org.conscrypt;
 
 import java.io.IOException;
-import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -29,12 +28,12 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
-import javax.crypto.interfaces.DHKey;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.DHPublicKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
@@ -531,15 +530,14 @@ public class ClientHandshakeImpl extends HandshakeProtocol {
         if (authType == null) {
             return;
         }
-        String hostname = engineOwner.getPeerHost();
         try {
             X509TrustManager x509tm = parameters.getX509TrustManager();
             if (x509tm == null) {
                 throw new CertificateException("No X.509 TrustManager");
             }
-            if (x509tm instanceof TrustManagerImpl) {
-                TrustManagerImpl tm = (TrustManagerImpl) x509tm;
-                tm.checkServerTrusted(serverCert.certs, authType, hostname);
+            if (x509tm instanceof X509ExtendedTrustManager) {
+                X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
+                x509etm.checkServerTrusted(serverCert.certs, authType, engineOwner);
             } else {
                 x509tm.checkServerTrusted(serverCert.certs, authType);
             }

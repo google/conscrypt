@@ -5859,7 +5859,7 @@ static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg __attr
 
     jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
     jmethodID methodID
-        = env->GetMethodID(cls, "verifyCertificateChain", "([JLjava/lang/String;)V");
+        = env->GetMethodID(cls, "verifyCertificateChain", "(J[JLjava/lang/String;)V");
 
     jlongArray refArray = getCertificateRefs(env, x509_store_ctx->untrusted);
 
@@ -5867,7 +5867,9 @@ static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg __attr
     JNI_TRACE("ssl=%p cert_verify_callback calling verifyCertificateChain authMethod=%s",
               ssl, authMethod);
     jstring authMethodString = env->NewStringUTF(authMethod);
-    env->CallVoidMethod(sslHandshakeCallbacks, methodID, refArray, authMethodString);
+    env->CallVoidMethod(sslHandshakeCallbacks, methodID,
+            static_cast<jlong>(reinterpret_cast<uintptr_t>(SSL_get1_session(ssl))), refArray,
+            authMethodString);
 
     int result = (env->ExceptionCheck()) ? 0 : 1;
     JNI_TRACE("ssl=%p cert_verify_callback => %d", ssl, result);
