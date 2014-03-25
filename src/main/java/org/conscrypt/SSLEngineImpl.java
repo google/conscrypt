@@ -25,6 +25,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 
 /**
@@ -749,5 +750,27 @@ public class SSLEngineImpl extends SSLEngine {
         return (engine_was_closed)
             ? SSLEngineResult.Status.CLOSED
             : SSLEngineResult.Status.OK;
+    }
+
+    @Override
+    public SSLSession getHandshakeSession() {
+        HandshakeProtocol handshake = handshakeProtocol;
+        if (handshake != null) {
+            return handshake.getSession();
+        }
+        return null;
+    }
+
+    @Override
+    public SSLParameters getSSLParameters() {
+        SSLParameters p = super.getSSLParameters();
+        p.setEndpointIdentificationAlgorithm(sslParameters.getEndpointIdentificationAlgorithm());
+        return p;
+    }
+
+    @Override
+    public void setSSLParameters(SSLParameters p) {
+        super.setSSLParameters(p);
+        sslParameters.setEndpointIdentificationAlgorithm(p.getEndpointIdentificationAlgorithm());
     }
 }
