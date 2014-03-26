@@ -56,6 +56,7 @@
 #include "UniquePtr.h"
 
 #undef WITH_JNI_TRACE
+#undef WITH_JNI_TRACE_MD
 #undef WITH_JNI_TRACE_DATA
 
 /*
@@ -83,6 +84,12 @@
 */
 #else
 #define JNI_TRACE(...) ((void)0)
+#endif
+#ifdef WITH_JNI_TRACE_MD
+#define JNI_TRACE_MD(...) \
+        ((void)ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__));
+#else
+#define JNI_TRACE_MD(...) ((void)0)
 #endif
 // don't overwhelm logcat
 #define WITH_JNI_TRACE_DATA_CHUNK_SIZE 512
@@ -3012,7 +3019,7 @@ static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
 }
 
 static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
-    JNI_TRACE("EVP_MD_CTX_create()");
+    JNI_TRACE_MD("EVP_MD_CTX_create()");
 
     Unique_EVP_MD_CTX ctx(EVP_MD_CTX_create());
     if (ctx.get() == NULL) {
@@ -3020,13 +3027,13 @@ static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
         return 0;
     }
 
-    JNI_TRACE("EVP_MD_CTX_create() => %p", ctx.get());
+    JNI_TRACE_MD("EVP_MD_CTX_create() => %p", ctx.get());
     return reinterpret_cast<uintptr_t>(ctx.release());
 }
 
 static void NativeCrypto_EVP_MD_CTX_init(JNIEnv* env, jclass, jobject ctxRef) {
     EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
-    JNI_TRACE("NativeCrypto_EVP_MD_CTX_init(%p)", ctx);
+    JNI_TRACE_MD("EVP_MD_CTX_init(%p)", ctx);
 
     if (ctx != NULL) {
         EVP_MD_CTX_init(ctx);
@@ -3035,7 +3042,7 @@ static void NativeCrypto_EVP_MD_CTX_init(JNIEnv* env, jclass, jobject ctxRef) {
 
 static void NativeCrypto_EVP_MD_CTX_destroy(JNIEnv* env, jclass, jlong ctxRef) {
     EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
-    JNI_TRACE("NativeCrypto_EVP_MD_CTX_destroy(%p)", ctx);
+    JNI_TRACE_MD("EVP_MD_CTX_destroy(%p)", ctx);
 
     if (ctx != NULL) {
         EVP_MD_CTX_destroy(ctx);
@@ -3045,7 +3052,7 @@ static void NativeCrypto_EVP_MD_CTX_destroy(JNIEnv* env, jclass, jlong ctxRef) {
 static jint NativeCrypto_EVP_MD_CTX_copy(JNIEnv* env, jclass, jobject dstCtxRef, jobject srcCtxRef) {
     EVP_MD_CTX* dst_ctx = fromContextObject<EVP_MD_CTX>(env, dstCtxRef);
     const EVP_MD_CTX* src_ctx = fromContextObject<EVP_MD_CTX>(env, srcCtxRef);
-    JNI_TRACE("NativeCrypto_EVP_MD_CTX_copy(%p. %p)", dst_ctx, src_ctx);
+    JNI_TRACE_MD("EVP_MD_CTX_copy(%p. %p)", dst_ctx, src_ctx);
 
     if (src_ctx == NULL) {
         return 0;
@@ -3059,7 +3066,7 @@ static jint NativeCrypto_EVP_MD_CTX_copy(JNIEnv* env, jclass, jobject dstCtxRef,
         freeOpenSslErrorState();
     }
 
-    JNI_TRACE("NativeCrypto_EVP_MD_CTX_copy(%p, %p) => %d", dst_ctx, src_ctx, result);
+    JNI_TRACE_MD("EVP_MD_CTX_copy(%p, %p) => %d", dst_ctx, src_ctx, result);
     return result;
 }
 
@@ -3069,7 +3076,7 @@ static jint NativeCrypto_EVP_MD_CTX_copy(JNIEnv* env, jclass, jobject dstCtxRef,
 static jint NativeCrypto_EVP_DigestFinal(JNIEnv* env, jclass, jobject ctxRef, jbyteArray hash,
         jint offset) {
     EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
-    JNI_TRACE("NativeCrypto_EVP_DigestFinal(%p, %p, %d)", ctx, hash, offset);
+    JNI_TRACE_MD("EVP_DigestFinal(%p, %p, %d)", ctx, hash, offset);
 
     if (ctx == NULL) {
         return -1;
@@ -3087,10 +3094,10 @@ static jint NativeCrypto_EVP_DigestFinal(JNIEnv* env, jclass, jobject ctxRef, jb
                              reinterpret_cast<unsigned char*>(hashBytes.get() + offset),
                              &bytesWritten);
     if (ok == 0) {
-        throwExceptionIfNecessary(env, "NativeCrypto_EVP_DigestFinal");
+        throwExceptionIfNecessary(env, "EVP_DigestFinal");
     }
 
-    JNI_TRACE("NativeCrypto_EVP_DigestFinal(%p, %p, %d) => %d", ctx, hash, offset, bytesWritten);
+    JNI_TRACE_MD("EVP_DigestFinal(%p, %p, %d) => %d", ctx, hash, offset, bytesWritten);
     return bytesWritten;
 }
 
@@ -3098,7 +3105,7 @@ static jint evpInit(JNIEnv* env, jobject evpMdCtxRef, jlong evpMdRef, const char
         int (*init_func)(EVP_MD_CTX*, const EVP_MD*, ENGINE*)) {
     EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
     const EVP_MD* evp_md = reinterpret_cast<const EVP_MD*>(evpMdRef);
-    JNI_TRACE("%s(%p, %p)", jniName, ctx, evp_md);
+    JNI_TRACE_MD("%s(%p, %p)", jniName, ctx, evp_md);
 
     if (ctx == NULL) {
         return 0;
@@ -3115,7 +3122,7 @@ static jint evpInit(JNIEnv* env, jobject evpMdCtxRef, jlong evpMdRef, const char
             return 0;
         }
     }
-    JNI_TRACE("%s(%p, %p) => %d", jniName, ctx, evp_md, ok);
+    JNI_TRACE_MD("%s(%p, %p) => %d", jniName, ctx, evp_md, ok);
     return ok;
 }
 
@@ -3227,7 +3234,7 @@ static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, 
         size_t))
 {
     EVP_MD_CTX* mdCtx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
-    JNI_TRACE("%s(%p, %p, %d, %d)", jniName, mdCtx, inJavaBytes, inOffset, inLength);
+    JNI_TRACE_MD("%s(%p, %p, %d, %d)", jniName, mdCtx, inJavaBytes, inOffset, inLength);
 
     if (mdCtx == NULL) {
          return;
@@ -3255,7 +3262,7 @@ static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, 
         throwExceptionIfNecessary(env, jniName);
     }
 
-    JNI_TRACE("%s(%p, %p, %d, %d) => success", jniName, mdCtx, inJavaBytes, inOffset, inLength);
+    JNI_TRACE_MD("%s(%p, %p, %d, %d) => success", jniName, mdCtx, inJavaBytes, inOffset, inLength);
 }
 
 static void NativeCrypto_EVP_DigestUpdate(JNIEnv* env, jclass, jobject evpMdCtxRef,
