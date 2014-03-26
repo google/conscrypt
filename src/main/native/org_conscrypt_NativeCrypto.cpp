@@ -513,6 +513,14 @@ static void throwSocketTimeoutException(JNIEnv* env, const char* message) {
 /**
  * Throws a javax.net.ssl.SSLException with the given string as a message.
  */
+static void throwSSLHandshakeExceptionStr(JNIEnv* env, const char* message) {
+    JNI_TRACE("throwSSLExceptionStr %s", message);
+    jniThrowException(env, "javax/net/ssl/SSLHandshakeException", message);
+}
+
+/**
+ * Throws a javax.net.ssl.SSLException with the given string as a message.
+ */
 static void throwSSLExceptionStr(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSSLExceptionStr %s", message);
     jniThrowException(env, "javax/net/ssl/SSLException", message);
@@ -536,8 +544,8 @@ static void throwSSLProtocolExceptionStr(JNIEnv* env, const char* message) {
  * SSL_ERROR_NONE to probe with ERR_get_error
  * @param message null-ok; general error message
  */
-static void throwSSLExceptionWithSslErrors(
-        JNIEnv* env, SSL* ssl, int sslErrorCode, const char* message) {
+static void throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCode,
+        const char* message, void (*actualThrow)(JNIEnv*, const char*) = throwSSLExceptionStr) {
 
     if (message == NULL) {
         message = "SSL error";
@@ -585,7 +593,7 @@ static void throwSSLExceptionWithSslErrors(
     char* str;
     if (asprintf(&str, "%s: ssl=%p: %s", message, ssl, sslErrorStr) <= 0) {
         // problem with asprintf, just throw argument message, log everything
-        throwSSLExceptionStr(env, message);
+        actualThrow(env, message);
         ALOGV("%s: ssl=%p: %s", message, ssl, sslErrorStr);
         freeOpenSslErrorState();
         return;
@@ -641,7 +649,7 @@ static void throwSSLExceptionWithSslErrors(
     if (sslErrorCode == SSL_ERROR_SSL) {
         throwSSLProtocolExceptionStr(env, allocStr);
     } else {
-        throwSSLExceptionStr(env, allocStr);
+        actualThrow(env, allocStr);
     }
 
     ALOGV("%s", allocStr);
@@ -7171,7 +7179,8 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
                 return 0;
             }
             if (selectResult == -1) {
-                throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_SYSCALL, "handshake error");
+                throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_SYSCALL, "handshake error",
+                        throwSSLHandshakeExceptionStr);
                 SSL_clear(ssl);
                 JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake selectResult == -1 => 0", ssl);
                 return 0;
@@ -7198,9 +7207,10 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
          */
         int sslError = SSL_get_error(ssl, ret);
         if (sslError == SSL_ERROR_NONE || (sslError == SSL_ERROR_SYSCALL && errno == 0)) {
-            throwSSLExceptionStr(env, "Connection closed by peer");
+            throwSSLHandshakeExceptionStr(env, "Connection closed by peer");
         } else {
-            throwSSLExceptionWithSslErrors(env, ssl, sslError, "SSL handshake terminated");
+            throwSSLExceptionWithSslErrors(env, ssl, sslError, "SSL handshake terminated",
+                    throwSSLHandshakeExceptionStr);
         }
         SSL_clear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake clean error => 0", ssl);
@@ -7214,7 +7224,8 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
          * at this point.
          */
         int sslError = SSL_get_error(ssl, ret);
-        throwSSLExceptionWithSslErrors(env, ssl, sslError, "SSL handshake aborted");
+        throwSSLExceptionWithSslErrors(env, ssl, sslError, "SSL handshake aborted",
+                throwSSLHandshakeExceptionStr);
         SSL_clear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake unclean error => 0", ssl);
         return 0;
