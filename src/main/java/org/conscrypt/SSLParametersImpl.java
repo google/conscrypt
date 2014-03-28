@@ -104,19 +104,15 @@ public class SSLParametersImpl implements Cloneable {
         this.serverSessionContext = serverSessionContext;
         this.clientSessionContext = clientSessionContext;
 
-        // It's not described by the spec of SSLContext what should happen
-        // if the arrays of length 0 are specified. This implementation
-        // behave as for null arrays (i.e. use installed security providers)
-
         // initialize x509KeyManager
-        if ((kms == null) || (kms.length == 0)) {
+        if (kms == null) {
             x509KeyManager = getDefaultX509KeyManager();
         } else {
             x509KeyManager = findFirstX509KeyManager(kms);
         }
 
         // initialize x509TrustManager
-        if ((tms == null) || (tms.length == 0)) {
+        if (tms == null) {
             x509TrustManager = getDefaultX509TrustManager();
         } else {
             x509TrustManager = findFirstX509TrustManager(tms);
