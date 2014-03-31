@@ -64,14 +64,6 @@ public class SSLParametersImpl implements Cloneable {
     // source of random numbers
     private SecureRandom secureRandom;
 
-    // cipher suites available for SSL connection
-    private CipherSuite[] enabledCipherSuites;
-    // string representations of available cipher suites
-    private String[] enabledCipherSuiteNames = null;
-
-    // protocols available for SSL connection
-    private String[] enabledProtocols = ProtocolVersion.supportedProtocols;
-
     // if the peer with this parameters tuned to work in client mode
     private boolean client_mode = true;
     // if the peer with this parameters tuned to require client authentication
@@ -81,13 +73,6 @@ public class SSLParametersImpl implements Cloneable {
     // if the peer with this parameters allowed to cteate new SSL session
     private boolean enable_session_creation = true;
     private String endpointIdentificationAlgorithm;
-
-    protected CipherSuite[] getEnabledCipherSuitesMember() {
-        if (enabledCipherSuites == null) {
-            this.enabledCipherSuites = CipherSuite.DEFAULT_CIPHER_SUITES;
-        }
-        return enabledCipherSuites;
-    }
 
     /**
      * Initializes the parameters. Naturally this constructor is used
@@ -199,70 +184,6 @@ public class SSLParametersImpl implements Cloneable {
      */
     protected SecureRandom getSecureRandomMember() {
         return secureRandom;
-    }
-
-    /**
-     * @return the names of enabled cipher suites
-     */
-    protected String[] getEnabledCipherSuites() {
-        if (enabledCipherSuiteNames == null) {
-            CipherSuite[] enabledCipherSuites = getEnabledCipherSuitesMember();
-            enabledCipherSuiteNames = new String[enabledCipherSuites.length];
-            for (int i = 0; i< enabledCipherSuites.length; i++) {
-                enabledCipherSuiteNames[i] = enabledCipherSuites[i].getName();
-            }
-        }
-        return enabledCipherSuiteNames.clone();
-    }
-
-    /**
-     * Sets the set of available cipher suites for use in SSL connection.
-     * @param suites String[]
-     */
-    protected void setEnabledCipherSuites(String[] suites) {
-        if (suites == null) {
-            throw new IllegalArgumentException("suites == null");
-        }
-        CipherSuite[] cipherSuites = new CipherSuite[suites.length];
-        for (int i=0; i<suites.length; i++) {
-            String suite = suites[i];
-            if (suite == null) {
-                throw new IllegalArgumentException("suites[" + i + "] == null");
-            }
-            cipherSuites[i] = CipherSuite.getByName(suite);
-            if (cipherSuites[i] == null || !cipherSuites[i].supported) {
-                throw new IllegalArgumentException(suite + " is not supported.");
-            }
-        }
-        enabledCipherSuites = cipherSuites;
-        enabledCipherSuiteNames = suites;
-    }
-
-    /**
-     * @return the set of enabled protocols
-     */
-    protected String[] getEnabledProtocols() {
-        return enabledProtocols.clone();
-    }
-
-    /**
-     * Sets the set of available protocols for use in SSL connection.
-     * @param protocols String[]
-     */
-    protected void setEnabledProtocols(String[] protocols) {
-        if (protocols == null) {
-            throw new IllegalArgumentException("protocols == null");
-        }
-        for (int i=0; i<protocols.length; i++) {
-            String protocol = protocols[i];
-            if (protocol == null) {
-                throw new IllegalArgumentException("protocols[" + i + "] == null");
-            }
-            if (!ProtocolVersion.isSupported(protocol)) {
-                throw new IllegalArgumentException("Protocol " + protocol + " is not supported.");
-            }
-        }
-        enabledProtocols = protocols;
     }
 
     /**
