@@ -6952,30 +6952,30 @@ static jbyteArray NativeCrypto_SSL_get_npn_negotiated_protocol(JNIEnv* env, jcla
     return result;
 }
 
-static int NativeCrypto_SSL_CTX_set_alpn_protos(JNIEnv* env, jclass, jlong ssl_ctx_address,
+static int NativeCrypto_SSL_set_alpn_protos(JNIEnv* env, jclass, jlong ssl_address,
         jbyteArray protos) {
-    SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
-    if (ssl_ctx == NULL) {
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    if (ssl == NULL) {
         return 0;
     }
 
-    JNI_TRACE("ssl_ctx=%p SSL_CTX_set_alpn_protos protos=%p", ssl_ctx, protos);
+    JNI_TRACE("ssl=%p SSL_set_alpn_protos protos=%p", ssl, protos);
 
     if (protos == NULL) {
-        JNI_TRACE("ssl_ctx=%p SSL_CTX_set_alpn_protos protos=NULL", ssl_ctx);
+        JNI_TRACE("ssl=%p SSL_set_alpn_protos protos=NULL", ssl);
         return 1;
     }
 
     ScopedByteArrayRO protosBytes(env, protos);
     if (protosBytes.get() == NULL) {
-        JNI_TRACE("ssl_ctx=%p SSL_CTX_set_alpn_protos protos=%p => protosBytes == NULL", ssl_ctx,
+        JNI_TRACE("ssl=%p SSL_set_alpn_protos protos=%p => protosBytes == NULL", ssl,
                 protos);
         return 0;
     }
 
     const unsigned char *tmp = reinterpret_cast<const unsigned char*>(protosBytes.get());
-    int ret = SSL_CTX_set_alpn_protos(ssl_ctx, tmp, protosBytes.size());
-    JNI_TRACE("ssl_ctx=%p SSL_CTX_set_alpn_protos protos=%p => ret=%d", ssl_ctx, protos, ret);
+    int ret = SSL_set_alpn_protos(ssl, tmp, protosBytes.size());
+    JNI_TRACE("ssl=%p SSL_set_alpn_protos protos=%p => ret=%d", ssl, protos, ret);
     return ret;
 }
 
@@ -8238,7 +8238,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_CTX_enable_npn, "(J)V"),
     NATIVE_METHOD(NativeCrypto, SSL_CTX_disable_npn, "(J)V"),
     NATIVE_METHOD(NativeCrypto, SSL_get_npn_negotiated_protocol, "(J)[B"),
-    NATIVE_METHOD(NativeCrypto, SSL_CTX_set_alpn_protos, "(J[B)I"),
+    NATIVE_METHOD(NativeCrypto, SSL_set_alpn_protos, "(J[B)I"),
     NATIVE_METHOD(NativeCrypto, SSL_get0_alpn_selected, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, ERR_peek_last_error, "()J"),
 };
