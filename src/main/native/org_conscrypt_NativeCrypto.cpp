@@ -7380,7 +7380,8 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
         return 0;
     }
 
-    BIO* bio = SSL_get_rbio(ssl);
+    BIO* rbio = SSL_get_rbio(ssl);
+    BIO* wbio = SSL_get_wbio(ssl);
 
     AppData* appData = toAppData(ssl);
     if (appData == NULL) {
@@ -7394,7 +7395,7 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
             return -1;
         }
 
-        unsigned int bytesMoved = BIO_number_read(bio) + BIO_number_written(bio);
+        unsigned int bytesMoved = BIO_number_read(rbio) + BIO_number_written(wbio);
 
         if (!appData->setCallbackState(env, shc, fdObject, NULL, NULL)) {
             MUTEX_UNLOCK(appData->mutex);
@@ -7427,7 +7428,7 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
         // If we have been successful in moving data around, check whether it
         // might make sense to wake up other blocked threads, so they can give
         // it a try, too.
-        if (BIO_number_read(bio) + BIO_number_written(bio) != bytesMoved
+        if (BIO_number_read(rbio) + BIO_number_written(wbio) != bytesMoved
                 && appData->waitingThreads > 0) {
             sslNotify(appData);
         }
@@ -7583,7 +7584,8 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
         return 0;
     }
 
-    BIO* bio = SSL_get_wbio(ssl);
+    BIO* rbio = SSL_get_rbio(ssl);
+    BIO* wbio = SSL_get_wbio(ssl);
 
     AppData* appData = toAppData(ssl);
     if (appData == NULL) {
@@ -7599,7 +7601,7 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
             return -1;
         }
 
-        unsigned int bytesMoved = BIO_number_read(bio) + BIO_number_written(bio);
+        unsigned int bytesMoved = BIO_number_read(rbio) + BIO_number_written(wbio);
 
         if (!appData->setCallbackState(env, shc, fdObject, NULL, NULL)) {
             MUTEX_UNLOCK(appData->mutex);
@@ -7634,7 +7636,7 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
         // If we have been successful in moving data around, check whether it
         // might make sense to wake up other blocked threads, so they can give
         // it a try, too.
-        if (BIO_number_read(bio) + BIO_number_written(bio) != bytesMoved
+        if (BIO_number_read(rbio) + BIO_number_written(wbio) != bytesMoved
                 && appData->waitingThreads > 0) {
             sslNotify(appData);
         }
