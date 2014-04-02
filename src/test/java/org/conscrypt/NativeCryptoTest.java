@@ -1448,8 +1448,9 @@ public class NativeCryptoTest extends TestCase {
 
         Hooks cHooks = new Hooks() {
             @Override public long beforeHandshake(long context) throws SSLException {
-                NativeCrypto.SSL_CTX_set_alpn_protos(context, clientAlpnProtocols);
-                return super.beforeHandshake(context);
+                long sslContext = super.beforeHandshake(context);
+                NativeCrypto.SSL_set_alpn_protos(sslContext, clientAlpnProtocols);
+                return sslContext;
             }
             @Override public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {

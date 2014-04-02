@@ -1070,9 +1070,9 @@ public final class NativeCrypto {
 
     /**
      * For clients, sets the list of supported ALPN protocols in wire-format
-     * (length-prefixed 8-bit strings) on an SSL context.
+     * (length-prefixed 8-bit strings).
      */
-    public static native int SSL_CTX_set_alpn_protos(long sslCtxPointer, byte[] protos);
+    public static native int SSL_set_alpn_protos(long sslPointer, byte[] protos);
 
     /**
      * Returns the selected ALPN protocol. If the server did not select a
