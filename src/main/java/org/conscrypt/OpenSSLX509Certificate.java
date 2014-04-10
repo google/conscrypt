@@ -72,7 +72,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
         } catch (Exception e) {
             throw new ParsingException(e);
         } finally {
-            NativeCrypto.BIO_free(bis.getBioContext());
+            bis.release();
         }
     }
 
@@ -95,7 +95,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
         } catch (Exception e) {
             throw new ParsingException(e);
         } finally {
-            NativeCrypto.BIO_free(bis.getBioContext());
+            bis.release();
         }
 
         if (certRefs == null) {
@@ -127,7 +127,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
         } catch (Exception e) {
             throw new ParsingException(e);
         } finally {
-            NativeCrypto.BIO_free(bis.getBioContext());
+            bis.release();
         }
     }
 
@@ -143,7 +143,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
         } catch (Exception e) {
             throw new ParsingException(e);
         } finally {
-            NativeCrypto.BIO_free(bis.getBioContext());
+            bis.release();
         }
 
         final List<OpenSSLX509Certificate> certs = new ArrayList<OpenSSLX509Certificate>(
@@ -401,7 +401,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
             NativeCrypto.X509_print_ex(bioCtx, mContext, 0, 0);
             return os.toString();
         } finally {
-            NativeCrypto.BIO_free(bioCtx);
+            NativeCrypto.BIO_free_all(bioCtx);
         }
     }
 

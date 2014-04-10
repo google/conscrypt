@@ -562,7 +562,7 @@ public final class NativeCrypto {
     public static native void BIO_write(long bioRef, byte[] buffer, int offset, int length)
             throws IOException;
 
-    public static native void BIO_free(long bioRef);
+    public static native void BIO_free_all(long bioRef);
 
     // --- SSL handling --------------------------------------------------------
 

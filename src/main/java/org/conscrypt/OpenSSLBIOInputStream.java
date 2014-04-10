@@ -38,6 +38,10 @@ public class OpenSSLBIOInputStream extends FilterInputStream {
         return ctx;
     }
 
+    public void release() {
+        NativeCrypto.BIO_free_all(ctx);
+    }
+
     /**
      * Similar to a {@code readLine} method, but matches what OpenSSL expects
      * from a {@code BIO_gets} method.
