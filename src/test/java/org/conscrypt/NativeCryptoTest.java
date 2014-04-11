@@ -2747,15 +2747,16 @@ public class NativeCryptoTest extends TestCase {
         byte[] actual = "Test".getBytes();
         ByteArrayInputStream is = new ByteArrayInputStream(actual);
 
-        long ctx = NativeCrypto.create_BIO_InputStream(new OpenSSLBIOInputStream(is));
+        @SuppressWarnings("resource")
+        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is);
         try {
             byte[] buffer = new byte[1024];
-            int numRead = NativeCrypto.BIO_read(ctx, buffer);
+            int numRead = NativeCrypto.BIO_read(bis.getBioContext(), buffer);
             assertEquals(actual.length, numRead);
             assertEquals(Arrays.toString(actual),
                     Arrays.toString(Arrays.copyOfRange(buffer, 0, numRead)));
         } finally {
-            NativeCrypto.BIO_free(ctx);
+            bis.release();
         }
 
     }
@@ -2770,7 +2771,7 @@ public class NativeCryptoTest extends TestCase {
             assertEquals(actual.length, os.size());
             assertEquals(Arrays.toString(actual), Arrays.toString(os.toByteArray()));
         } finally {
-            NativeCrypto.BIO_free(ctx);
+            NativeCrypto.BIO_free_all(ctx);
         }
     }
 }

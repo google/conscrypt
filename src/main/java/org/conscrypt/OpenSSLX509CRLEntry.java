@@ -129,7 +129,7 @@ public class OpenSSLX509CRLEntry extends X509CRLEntry {
             NativeCrypto.X509_REVOKED_print(bioCtx, mContext);
             return os.toString();
         } finally {
-            NativeCrypto.BIO_free(bioCtx);
+            NativeCrypto.BIO_free_all(bioCtx);
         }
     }
 }
