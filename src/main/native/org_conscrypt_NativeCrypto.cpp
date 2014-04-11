@@ -125,7 +125,7 @@ typedef UniquePtr<unsigned char, OPENSSL_Delete> Unique_OPENSSL_str;
 
 struct BIO_Delete {
     void operator()(BIO* p) const {
-        BIO_free(p);
+        BIO_free_all(p);
     }
 };
 typedef UniquePtr<BIO, BIO_Delete> Unique_BIO;
@@ -3896,16 +3896,16 @@ static void NativeCrypto_BIO_write(JNIEnv* env, jclass, jlong bioRef, jbyteArray
     JNI_TRACE("BIO_write(%p, %p, %d, %d) => success", bio, inputJavaBytes, offset, length);
 }
 
-static void NativeCrypto_BIO_free(JNIEnv* env, jclass, jlong bioRef) {
+static void NativeCrypto_BIO_free_all(JNIEnv* env, jclass, jlong bioRef) {
     BIO* bio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(bioRef));
-    JNI_TRACE("BIO_free(%p)", bio);
+    JNI_TRACE("BIO_free_all(%p)", bio);
 
     if (bio == NULL) {
         jniThrowNullPointerException(env, "bio == null");
         return;
     }
 
-    BIO_free(bio);
+    BIO_free_all(bio);
 }
 
 static jstring X509_NAME_to_jstring(JNIEnv* env, X509_NAME* name, unsigned long flags) {
@@ -8124,7 +8124,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, create_BIO_OutputStream, "(Ljava/io/OutputStream;)J"),
     NATIVE_METHOD(NativeCrypto, BIO_read, "(J[B)I"),
     NATIVE_METHOD(NativeCrypto, BIO_write, "(J[BII)V"),
-    NATIVE_METHOD(NativeCrypto, BIO_free, "(J)V"),
+    NATIVE_METHOD(NativeCrypto, BIO_free_all, "(J)V"),
     NATIVE_METHOD(NativeCrypto, X509_NAME_print_ex, "(JJ)Ljava/lang/String;"),
     NATIVE_METHOD(NativeCrypto, d2i_X509_bio, "(J)J"),
     NATIVE_METHOD(NativeCrypto, d2i_X509, "([B)J"),

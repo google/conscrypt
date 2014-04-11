@@ -153,7 +153,7 @@ public class OpenSSLX509CertPath extends CertPath {
             }
             throw new CertificateException(e);
         } finally {
-            NativeCrypto.BIO_free(bis.getBioContext());
+            bis.release();
         }
 
         if (certRefs == null) {
