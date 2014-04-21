@@ -17,76 +17,40 @@
 
 package org.conscrypt;
 
+import org.conscrypt.util.EmptyArray;
+
 import java.security.Principal;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.X509Certificate;
 import java.util.HashMap;
-import java.util.Map;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
-import org.conscrypt.util.EmptyArray;
 
-public final class SSLSessionImpl implements SSLSession, Cloneable  {
+public final class SSLNullSession implements SSLSession, Cloneable {
 
     /*
      * Holds default instances so class preloading doesn't create an instance of
      * it.
      */
     private static class DefaultHolder {
-        public static final SSLSessionImpl NULL_SESSION = new SSLSessionImpl(null);
+        public static final SSLNullSession NULL_SESSION = new SSLNullSession();
     }
 
-    private long creationTime;
-    private boolean isValid = true;
-    private final Map<String, Object> values = new HashMap<String, Object>();
+    private final HashMap<String, Object> values = new HashMap<String, Object>();
 
-    byte[] id;
+    long creationTime;
     long lastAccessedTime;
-    ProtocolVersion protocol;
-    CipherSuite cipherSuite;
-    SSLSessionContext context;
-    X509Certificate[] localCertificates;
-    X509Certificate[] peerCertificates;
-    private String peerHost;
-    private int peerPort = -1;
-    byte[] master_secret;
-    byte[] clientRandom;
-    byte[] serverRandom;
-    final boolean isServer;
 
-    public static SSLSessionImpl getNullSession() {
+    public static SSLSession getNullSession() {
         return DefaultHolder.NULL_SESSION;
     }
 
-    public SSLSessionImpl(CipherSuite cipher_suite, SecureRandom secureRandom) {
+    public SSLNullSession() {
         creationTime = System.currentTimeMillis();
         lastAccessedTime = creationTime;
-        if (cipher_suite == null) {
-            this.cipherSuite = CipherSuite.SSL_NULL_WITH_NULL_NULL;
-            id = EmptyArray.BYTE;
-            isServer = false;
-            isValid = false;
-        } else {
-            this.cipherSuite = cipher_suite;
-            id = new byte[32];
-            secureRandom.nextBytes(id);
-            long time = creationTime / 1000;
-            id[28] = (byte) ((time & 0xFF000000) >>> 24);
-            id[29] = (byte) ((time & 0x00FF0000) >>> 16);
-            id[30] = (byte) ((time & 0x0000FF00) >>> 8);
-            id[31] = (byte) ((time & 0x000000FF));
-            isServer = true;
-        }
-
-    }
-
-    public SSLSessionImpl(SecureRandom secureRandom) {
-        this(null, secureRandom);
     }
 
     @Override
@@ -96,7 +60,7 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
 
     @Override
     public String getCipherSuite() {
-        return cipherSuite.getName();
+        return "SSL_NULL_WITH_NULL_NULL";
     }
 
     @Override
@@ -106,7 +70,7 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
 
     @Override
     public byte[] getId() {
-        return id;
+        return EmptyArray.BYTE;
     }
 
     @Override
@@ -116,14 +80,11 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
 
     @Override
     public Certificate[] getLocalCertificates() {
-        return localCertificates;
+        return null;
     }
 
     @Override
     public Principal getLocalPrincipal() {
-        if (localCertificates != null && localCertificates.length > 0) {
-            return localCertificates[0].getSubjectX500Principal();
-        }
         return null;
     }
 
@@ -135,55 +96,37 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
     @Override
     public javax.security.cert.X509Certificate[] getPeerCertificateChain()
             throws SSLPeerUnverifiedException {
-        if (peerCertificates == null) {
-            throw new SSLPeerUnverifiedException("No peer certificate");
-        }
-        javax.security.cert.X509Certificate[] certs = new javax.security.cert.X509Certificate[peerCertificates.length];
-        for (int i = 0; i < certs.length; i++) {
-            try {
-                certs[i] = javax.security.cert.X509Certificate.getInstance(peerCertificates[i]
-                        .getEncoded());
-            } catch (javax.security.cert.CertificateException ignored) {
-            } catch (CertificateEncodingException ignored) {
-            }
-        }
-        return certs;
+        throw new SSLPeerUnverifiedException("No peer certificate");
     }
 
     @Override
     public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
-        if (peerCertificates == null) {
-            throw new SSLPeerUnverifiedException("No peer certificate");
-        }
-        return peerCertificates;
+        throw new SSLPeerUnverifiedException("No peer certificate");
     }
 
     @Override
     public String getPeerHost() {
-        return peerHost;
+        return null;
     }
 
     @Override
     public int getPeerPort() {
-        return peerPort;
+        return -1;
     }
 
     @Override
     public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
-        if (peerCertificates == null) {
-            throw new SSLPeerUnverifiedException("No peer certificate");
-        }
-        return peerCertificates[0].getSubjectX500Principal();
+        throw new SSLPeerUnverifiedException("No peer certificate");
     }
 
     @Override
     public String getProtocol() {
-        return (protocol == null) ? "NONE" : protocol.name;
+        return "NONE";
     }
 
     @Override
     public SSLSessionContext getSessionContext() {
-        return context;
+        return null;
     }
 
     @Override
@@ -201,17 +144,11 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
 
     @Override
     public void invalidate() {
-        isValid = false;
-        context = null;
     }
 
     @Override
     public boolean isValid() {
-        if (isValid && context != null && context.getSessionTimeout() != 0
-                && lastAccessedTime + context.getSessionTimeout() > System.currentTimeMillis()) {
-            isValid = false;
-        }
-        return isValid;
+        return false;
     }
 
     @Override
@@ -239,19 +176,5 @@ public final class SSLSessionImpl implements SSLSession, Cloneable  {
             SSLSessionBindingListener listener = (SSLSessionBindingListener) old;
             listener.valueUnbound(new SSLSessionBindingEvent(this, name));
         }
-    }
-
-    @Override
-    public Object clone() {
-        try {
-            return super.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new AssertionError(e);
-        }
-    }
-
-    void setPeer(String peerHost, int peerPort) {
-        this.peerHost = peerHost;
-        this.peerPort = peerPort;
     }
 }
