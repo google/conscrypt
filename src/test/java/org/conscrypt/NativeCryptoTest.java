@@ -924,9 +924,9 @@ public class NativeCryptoTest extends TestCase {
         // this depends on the SSL_set_cipher_lists call in beforeHandshake
         // the three returned are the non-ephemeral cases.
         assertEquals(3, clientCallback.keyTypes.length);
-        assertEquals("RSA", OpenSSLSocketImpl.getClientKeyType(clientCallback.keyTypes[0]));
-        assertEquals("DSA", OpenSSLSocketImpl.getClientKeyType(clientCallback.keyTypes[1]));
-        assertEquals("EC", OpenSSLSocketImpl.getClientKeyType(clientCallback.keyTypes[2]));
+        assertEquals("RSA", SSLParametersImpl.getClientKeyType(clientCallback.keyTypes[0]));
+        assertEquals("DSA", SSLParametersImpl.getClientKeyType(clientCallback.keyTypes[1]));
+        assertEquals("EC", SSLParametersImpl.getClientKeyType(clientCallback.keyTypes[2]));
         assertEqualPrincipals(getCaPrincipals(),
                               clientCallback.asn1DerEncodedX500Principals);
         assertFalse(serverCallback.clientCertificateRequestedCalled);

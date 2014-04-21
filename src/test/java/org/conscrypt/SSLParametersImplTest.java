@@ -18,14 +18,14 @@ package org.conscrypt;
 
 import junit.framework.TestCase;
 
-public class OpenSSLSocketImplTest extends TestCase {
+public class SSLParametersImplTest extends TestCase {
 
   public void testGetClientKeyType() throws Exception {
     // See http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
     byte b = Byte.MIN_VALUE;
     do {
       String byteString = Byte.toString(b);
-      String keyType = OpenSSLSocketImpl.getClientKeyType(b);
+      String keyType = SSLParametersImpl.getClientKeyType(b);
       switch (b) {
         case 1:
           assertEquals(byteString, "RSA", keyType);
