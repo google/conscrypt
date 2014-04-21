@@ -110,22 +110,12 @@ public class OpenSSLContextImpl extends SSLContextSpi {
 
   @Override
   public SSLEngine engineCreateSSLEngine(String host, int port) {
-      if (sslParameters == null) {
-          throw new IllegalStateException("SSLContext is not initialized.");
-      }
-      SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
-      p.setUseClientMode(false);
-      return new SSLEngineImpl(host, port, p);
+      throw new UnsupportedOperationException();
   }
 
   @Override
   public SSLEngine engineCreateSSLEngine() {
-      if (sslParameters == null) {
-          throw new IllegalStateException("SSLContext is not initialized.");
-      }
-      SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
-      p.setUseClientMode(false);
-      return new SSLEngineImpl(p);
+      throw new UnsupportedOperationException();
   }
 
   @Override
