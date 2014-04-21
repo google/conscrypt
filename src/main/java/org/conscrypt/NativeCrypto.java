@@ -774,6 +774,12 @@ public final class NativeCrypto {
     public static final byte TLS_CT_RSA_FIXED_ECDH = 65;
     public static final byte TLS_CT_ECDSA_FIXED_ECDH = 66;
 
+    /*
+     * Used in the SSL_get_shutdown and SSL_set_shutdown functions.
+     */
+    public static final int SSL_SENT_SHUTDOWN = 1;
+    public static final int SSL_RECEIVED_SHUTDOWN = 2;
+
     public static native long SSL_CTX_new();
 
     public static String[] getDefaultCipherSuites() {
@@ -1035,6 +1041,10 @@ public final class NativeCrypto {
     public static final int SSL_VERIFY_PEER =                 0x01;
     public static final int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = 0x02;
 
+    public static native void SSL_set_accept_state(long sslNativePointer);
+
+    public static native void SSL_set_connect_state(long sslNativePointer);
+
     public static native void SSL_set_verify(long sslNativePointer, int mode);
 
     public static native void SSL_set_session(long sslNativePointer, long sslSessionNativePointer)
@@ -1094,6 +1104,20 @@ public final class NativeCrypto {
                                                byte[] alpnProtocols)
         throws SSLException, SocketTimeoutException, CertificateException;
 
+    /**
+     * Returns the sslSessionNativePointer of the negotiated session. If this is
+     * a server negotiation, supplying the {@code alpnProtocols} will enable
+     * ALPN negotiation.
+     */
+    public static native long SSL_do_handshake_bio(long sslNativePointer,
+                                                   long sourceBioRef,
+                                                   long sinkBioRef,
+                                                   SSLHandshakeCallbacks shc,
+                                                   boolean client_mode,
+                                                   byte[] npnProtocols,
+                                                   byte[] alpnProtocols)
+        throws SSLException, SocketTimeoutException, CertificateException;
+
     public static native byte[] SSL_get_npn_negotiated_protocol(long sslNativePointer);
 
     /**
@@ -1122,6 +1146,13 @@ public final class NativeCrypto {
                                       byte[] b, int off, int len, int readTimeoutMillis)
         throws IOException;
 
+    public static native int SSL_read_BIO(long sslNativePointer,
+                                          byte[] dest,
+                                          long sourceBioRef,
+                                          long sinkBioRef,
+                                          SSLHandshakeCallbacks shc)
+        throws IOException;
+
     /**
      * Writes with the native SSL_write function to the encrypted data stream.
      */
@@ -1131,10 +1162,23 @@ public final class NativeCrypto {
                                         byte[] b, int off, int len, int writeTimeoutMillis)
         throws IOException;
 
+    public static native int SSL_write_BIO(long sslNativePointer,
+                                           byte[] source,
+                                           int length,
+                                           long sinkBioRef,
+                                           SSLHandshakeCallbacks shc)
+        throws IOException;
+
     public static native void SSL_interrupt(long sslNativePointer);
     public static native void SSL_shutdown(long sslNativePointer,
                                            FileDescriptor fd,
                                            SSLHandshakeCallbacks shc) throws IOException;
+
+    public static native void SSL_shutdown_BIO(long sslNativePointer,
+                                               long sourceBioRef, long sinkBioRef,
+                                               SSLHandshakeCallbacks shc) throws IOException;
+
+    public static native int SSL_get_shutdown(long sslNativePointer);
 
     public static native void SSL_free(long sslNativePointer);
 
@@ -1185,12 +1229,33 @@ public final class NativeCrypto {
             throws CertificateEncodingException, SSLException;
 
         /**
-         * Called when SSL handshake is completed. Note that this can
-         * be after SSL_do_handshake returns when handshake cutthrough
-         * is enabled.
+         * Called when SSL state changes. This could be handshake completion.
          */
-        public void handshakeCompleted();
+        public void onSSLStateChange(long sslSessionNativePtr, int type, int val);
     }
+
+    // Values used in the SSLHandshakeCallbacks#onSSLStateChange as the {@code type}.
+    public static final int SSL_ST_CONNECT = 0x1000;
+    public static final int SSL_ST_ACCEPT = 0x2000;
+    public static final int SSL_ST_MASK = 0x0FFF;
+    public static final int SSL_ST_INIT = (SSL_ST_CONNECT | SSL_ST_ACCEPT);
+    public static final int SSL_ST_BEFORE = 0x4000;
+    public static final int SSL_ST_OK = 0x03;
+    public static final int SSL_ST_RENEGOTIATE = (0x04 | SSL_ST_INIT);
+
+    public static final int SSL_CB_LOOP = 0x01;
+    public static final int SSL_CB_EXIT = 0x02;
+    public static final int SSL_CB_READ = 0x04;
+    public static final int SSL_CB_WRITE = 0x08;
+    public static final int SSL_CB_ALERT = 0x4000;
+    public static final int SSL_CB_READ_ALERT = (SSL_CB_ALERT | SSL_CB_READ);
+    public static final int SSL_CB_WRITE_ALERT = (SSL_CB_ALERT | SSL_CB_WRITE);
+    public static final int SSL_CB_ACCEPT_LOOP = (SSL_ST_ACCEPT | SSL_CB_LOOP);
+    public static final int SSL_CB_ACCEPT_EXIT = (SSL_ST_ACCEPT | SSL_CB_EXIT);
+    public static final int SSL_CB_CONNECT_LOOP = (SSL_ST_CONNECT | SSL_CB_LOOP);
+    public static final int SSL_CB_CONNECT_EXIT = (SSL_ST_CONNECT | SSL_CB_EXIT);
+    public static final int SSL_CB_HANDSHAKE_START = 0x10;
+    public static final int SSL_CB_HANDSHAKE_DONE = 0x20;
 
     public static native long ERR_peek_last_error();
 }

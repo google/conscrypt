@@ -428,7 +428,11 @@ public class OpenSSLSocketImpl
 
     @Override
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / info_callback
-    public void handshakeCompleted() {
+    public void onSSLStateChange(long sslSessionNativePtr, int type, int val) {
+        if (type != NativeCrypto.SSL_CB_HANDSHAKE_DONE) {
+            return;
+        }
+
         synchronized (stateLock) {
             if (state == STATE_HANDSHAKE_STARTED) {
                 // If sslSession is null, the handshake was completed during
@@ -817,12 +821,12 @@ public class OpenSSLSocketImpl
 
     @Override
     public String[] getEnabledCipherSuites() {
-        return sslParameters.openSslEnabledCipherSuites.clone();
+        return sslParameters.getEnabledCipherSuites();
     }
 
     @Override
     public void setEnabledCipherSuites(String[] suites) {
-        sslParameters.openSslEnabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(suites);
+        sslParameters.setEnabledCipherSuites(suites);
     }
 
     @Override
