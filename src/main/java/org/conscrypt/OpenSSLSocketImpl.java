@@ -350,7 +350,7 @@ public class OpenSSLSocketImpl
                 }
             }
 
-            sslParameters.setupSession(sslSessionNativePointer, sslNativePointer,
+            sslSession = sslParameters.setupSession(sslSessionNativePointer, sslNativePointer,
                     sessionToReuse, getPeerHostName(), getPeerPort(), handshakeCompleted);
 
             // Restore the original timeout now that the handshake is complete
