@@ -6272,6 +6272,18 @@ static jlong NativeCrypto_SSL_new(JNIEnv* env, jclass, jlong ssl_ctx_address)
     }
 
     /*
+     * Create our special application data.
+     */
+    AppData* appData = AppData::create();
+    if (appData == NULL) {
+        throwSSLExceptionStr(env, "Unable to create application data");
+        freeOpenSslErrorState();
+        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_new appData => 0", ssl_ctx);
+        return 0;
+    }
+    SSL_set_app_data(ssl.get(), reinterpret_cast<char*>(appData));
+
+    /*
      * Java code in class OpenSSLSocketImpl does the verification. Since
      * the callbacks do all the verification of the chain, this flag
      * simply controls whether to send protocol-level alerts or not.
@@ -6280,7 +6292,7 @@ static jlong NativeCrypto_SSL_new(JNIEnv* env, jclass, jlong ssl_ctx_address)
      */
     SSL_set_verify(ssl.get(), SSL_VERIFY_PEER, NULL);
 
-    JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_new => ssl=%p", ssl_ctx, ssl.get());
+    JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_new => ssl=%p appData=%p", ssl_ctx, ssl.get(), appData);
     return (jlong) ssl.release();
 }
 
@@ -7118,8 +7130,8 @@ static jlong NativeCrypto_SSL_do_handshake_bio(JNIEnv* env, jclass, jlong ssl_ad
     SSL* ssl = to_SSL(env, ssl_address, true);
     BIO* rbio = reinterpret_cast<BIO*>(rbioRef);
     BIO* wbio = reinterpret_cast<BIO*>(wbioRef);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake_bio sessionArray=%p rbio=%p wbio=%p shc=%p client_mode=%d npn=%p",
-              ssl, sessionArray, rbio, wbio, shc, client_mode, npnProtocols);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake_bio rbio=%p wbio=%p shc=%p client_mode=%d npn=%p",
+              ssl, rbio, wbio, shc, client_mode, npnProtocols);
     if (ssl == NULL) {
         return 0;
     }
@@ -7137,20 +7149,13 @@ static jlong NativeCrypto_SSL_do_handshake_bio(JNIEnv* env, jclass, jlong ssl_ad
 
     ScopedSslBio sslBio(ssl, rbio, wbio);
 
-    /*
-     * Create our special application data.
-     */
-    AppData* appData = AppData::create();
+    AppData* appData = toAppData(ssl);
     if (appData == NULL) {
-        throwSSLExceptionStr(env, "Unable to create application data");
+        throwSSLExceptionStr(env, "Unable to retrieve application data");
         SSL_clear(ssl);
-        freeOpenSslErrorState();
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake_bio appData => 0", ssl);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake appData => 0", ssl);
         return 0;
     }
-
-    SSL_set_app_data(ssl, reinterpret_cast<char*>(appData));
-    JNI_TRACE("ssl=%p AppData::create => %p", ssl, appData);
 
     if (!client_mode && alpnProtocols != NULL) {
         SSL_CTX_set_alpn_select_cb(SSL_get_SSL_CTX(ssl), alpn_select_callback, NULL);
@@ -7262,19 +7267,13 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
         return 0;
     }
 
-    /*
-     * Create our special application data.
-     */
-    AppData* appData = AppData::create();
+    AppData* appData = toAppData(ssl);
     if (appData == NULL) {
-        throwSSLExceptionStr(env, "Unable to create application data");
+        throwSSLExceptionStr(env, "Unable to retrieve application data");
         SSL_clear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake appData => 0", ssl);
         return 0;
     }
-
-    SSL_set_app_data(ssl, reinterpret_cast<char*>(appData));
-    JNI_TRACE("ssl=%p AppData::create => %p", ssl, appData);
 
     if (client_mode) {
         SSL_set_connect_state(ssl);
