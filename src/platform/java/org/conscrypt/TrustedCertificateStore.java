@@ -90,16 +90,15 @@ public final class TrustedCertificateStore {
         return alias.startsWith(PREFIX_USER);
     }
 
-    private static final File CA_CERTS_DIR_SYSTEM;
-    private static final File CA_CERTS_DIR_ADDED;
-    private static final File CA_CERTS_DIR_DELETED;
+    private static File defaultCaCertsSystemDir;
+    private static File defaultCaCertsAddedDir;
+    private static File defaultCaCertsDeletedDir;
     private static final CertificateFactory CERT_FACTORY;
     static {
         String ANDROID_ROOT = System.getenv("ANDROID_ROOT");
         String ANDROID_DATA = System.getenv("ANDROID_DATA");
-        CA_CERTS_DIR_SYSTEM = new File(ANDROID_ROOT + "/etc/security/cacerts");
-        CA_CERTS_DIR_ADDED = new File(ANDROID_DATA + "/misc/keychain/cacerts-added");
-        CA_CERTS_DIR_DELETED = new File(ANDROID_DATA + "/misc/keychain/cacerts-removed");
+        defaultCaCertsSystemDir = new File(ANDROID_ROOT + "/etc/security/cacerts");
+        setDefaultUserDirectory(new File(ANDROID_DATA + "/misc/keychain"));
 
         try {
             CERT_FACTORY = CertificateFactory.getInstance("X509");
@@ -108,12 +107,17 @@ public final class TrustedCertificateStore {
         }
     }
 
+    public static void setDefaultUserDirectory(File root) {
+        defaultCaCertsAddedDir = new File(root, "cacerts-added");
+        defaultCaCertsDeletedDir = new File(root, "cacerts-removed");
+    }
+
     private final File systemDir;
     private final File addedDir;
     private final File deletedDir;
 
     public TrustedCertificateStore() {
-        this(CA_CERTS_DIR_SYSTEM, CA_CERTS_DIR_ADDED, CA_CERTS_DIR_DELETED);
+        this(defaultCaCertsSystemDir, defaultCaCertsAddedDir, defaultCaCertsDeletedDir);
     }
 
     public TrustedCertificateStore(File systemDir, File addedDir, File deletedDir) {
