@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ReadOnlyBufferException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 
@@ -303,12 +304,24 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
 
     @Override
     public boolean isInboundDone() {
+        if (sslNativePointer == 0) {
+            synchronized (stateLock) {
+                return engineState == EngineState.CLOSED
+                        || engineState == EngineState.CLOSED_INBOUND;
+            }
+        }
         return (NativeCrypto.SSL_get_shutdown(sslNativePointer)
                 & NativeCrypto.SSL_RECEIVED_SHUTDOWN) != 0;
     }
 
     @Override
     public boolean isOutboundDone() {
+        if (sslNativePointer == 0) {
+            synchronized (stateLock) {
+                return engineState == EngineState.CLOSED
+                        || engineState == EngineState.CLOSED_OUTBOUND;
+            }
+        }
         return (NativeCrypto.SSL_get_shutdown(sslNativePointer)
                 & NativeCrypto.SSL_SENT_SHUTDOWN) != 0;
     }
@@ -350,21 +363,48 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         sslParameters.setWantClientAuth(want);
     }
 
+    private static void checkIndex(int length, int offset, int count) {
+        if (offset < 0) {
+            throw new IndexOutOfBoundsException("offset < 0");
+        } else if (count < 0) {
+            throw new IndexOutOfBoundsException("count < 0");
+        } else if (offset > length) {
+            throw new IndexOutOfBoundsException("offset > length");
+        } else if (offset > length - count) {
+            throw new IndexOutOfBoundsException("offset + count > length");
+        }
+    }
+
     @Override
     public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer[] dsts, int offset, int length)
             throws SSLException {
+        if (src == null) {
+            throw new IllegalArgumentException("src == null");
+        } else if (dsts == null) {
+            throw new IllegalArgumentException("dsts == null");
+        }
+        for (ByteBuffer dst : dsts) {
+            if (dst == null) {
+                throw new IllegalArgumentException("one of the dst == null");
+            } else if (dst.isReadOnly()) {
+                throw new ReadOnlyBufferException();
+            }
+        }
+        checkIndex(dsts.length, offset, length);
+
         synchronized (stateLock) {
             // If the inbound direction is closed. we can't send anymore.
             if (engineState == EngineState.CLOSED || engineState == EngineState.CLOSED_INBOUND) {
                 return new SSLEngineResult(Status.CLOSED, getHandshakeStatus(), 0, 0);
             }
+            if (engineState == EngineState.NEW || engineState == EngineState.MODE_SET) {
+                beginHandshake();
+            }
         }
 
         // If we haven't completed the handshake yet, just let the caller know.
         HandshakeStatus handshakeStatus = getHandshakeStatus();
-        if (handshakeStatus == HandshakeStatus.NEED_TASK) {
-            return new SSLEngineResult(Status.OK, handshakeStatus, 0, 0);
-        } else if (handshakeStatus == HandshakeStatus.NEED_UNWRAP) {
+        if (handshakeStatus == HandshakeStatus.NEED_UNWRAP) {
             OpenSSLBIOSource source = OpenSSLBIOSource.wrap(src);
             long sslSessionCtx = 0L;
             try {
@@ -375,7 +415,8 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                     sslSession = sslParameters.setupSession(sslSessionCtx, sslNativePointer, null,
                             getPeerHost(), getPeerPort(), true);
                 }
-                return new SSLEngineResult(Status.OK, getHandshakeStatus(), 0, 0);
+                int bytesWritten = handshakeSink.position();
+                return new SSLEngineResult(Status.OK, getHandshakeStatus(), 0, bytesWritten);
             } catch (Exception e) {
                 throw new SSLHandshakeException(e);
             } finally {
@@ -384,6 +425,8 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                 }
                 source.release();
             }
+        } else if (handshakeStatus != HandshakeStatus.NOT_HANDSHAKING) {
+            return new SSLEngineResult(Status.OK, handshakeStatus, 0, 0);
         }
 
         try {
@@ -418,18 +461,37 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     @Override
     public SSLEngineResult wrap(ByteBuffer[] srcs, int offset, int length, ByteBuffer dst)
             throws SSLException {
+        if (srcs == null) {
+            throw new IllegalArgumentException("srcs == null");
+        } else if (dst == null) {
+            throw new IllegalArgumentException("dst == null");
+        } else if (dst.isReadOnly()) {
+            throw new ReadOnlyBufferException();
+        }
+        for (ByteBuffer src : srcs) {
+            if (src == null) {
+                throw new IllegalArgumentException("one of the src == null");
+            }
+        }
+        checkIndex(srcs.length, offset, length);
+
+        if (dst.remaining() < NativeCrypto.SSL3_RT_MAX_PACKET_SIZE) {
+            return new SSLEngineResult(Status.BUFFER_OVERFLOW, getHandshakeStatus(), 0, 0);
+        }
+
         synchronized (stateLock) {
             // If the outbound direction is closed. we can't send anymore.
             if (engineState == EngineState.CLOSED || engineState == EngineState.CLOSED_OUTBOUND) {
                 return new SSLEngineResult(Status.CLOSED, getHandshakeStatus(), 0, 0);
             }
+            if (engineState == EngineState.NEW || engineState == EngineState.MODE_SET) {
+                beginHandshake();
+            }
         }
 
         // If we haven't completed the handshake yet, just let the caller know.
         HandshakeStatus handshakeStatus = getHandshakeStatus();
-        if (handshakeStatus == HandshakeStatus.NEED_TASK) {
-            return new SSLEngineResult(Status.OK, handshakeStatus, 0, 0);
-        } else if (handshakeStatus == HandshakeStatus.NEED_WRAP) {
+        if (handshakeStatus == HandshakeStatus.NEED_WRAP) {
             if (handshakeSink.available() == 0) {
                 long sslSessionCtx = 0L;
                 try {
@@ -449,8 +511,10 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                     }
                 }
             }
-            writeSinkToByteBuffer(handshakeSink, dst);
-            return new SSLEngineResult(Status.OK, getHandshakeStatus(), 0, 0);
+            int bytesWritten = writeSinkToByteBuffer(handshakeSink, dst);
+            return new SSLEngineResult(Status.OK, getHandshakeStatus(), 0, bytesWritten);
+        } else if (handshakeStatus != HandshakeStatus.NOT_HANDSHAKING) {
+            return new SSLEngineResult(Status.OK, handshakeStatus, 0, 0);
         }
 
         try {
