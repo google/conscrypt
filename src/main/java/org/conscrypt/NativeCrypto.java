@@ -1257,5 +1257,21 @@ public final class NativeCrypto {
     public static final int SSL_CB_HANDSHAKE_START = 0x10;
     public static final int SSL_CB_HANDSHAKE_DONE = 0x20;
 
+    /*
+     * From ssl/ssl3.h
+     */
+    public static final int SSL3_RT_HEADER_LENGTH = 5;
+    public static final int SSL_RT_MAX_CIPHER_BLOCK_SIZE = 16;
+    public static final int SSL3_RT_MAX_MD_SIZE = 64;
+    public static final int SSL3_RT_MAX_PLAIN_LENGTH = 16384;
+    public static final int SSL3_RT_MAX_ENCRYPTED_OVERHEAD = 256 + SSL3_RT_MAX_MD_SIZE;
+    public static final int SSL3_RT_SEND_MAX_ENCRYPTED_OVERHEAD = SSL_RT_MAX_CIPHER_BLOCK_SIZE
+            + SSL3_RT_MAX_MD_SIZE;
+    public static final int SSL3_RT_MAX_COMPRESSED_LENGTH = SSL3_RT_MAX_PLAIN_LENGTH;
+    public static final int SSL3_RT_MAX_ENCRYPTED_LENGTH = SSL3_RT_MAX_ENCRYPTED_OVERHEAD
+            + SSL3_RT_MAX_COMPRESSED_LENGTH;
+    public static final int SSL3_RT_MAX_PACKET_SIZE = SSL3_RT_MAX_ENCRYPTED_LENGTH
+            + SSL3_RT_HEADER_LENGTH;
+
     public static native long ERR_peek_last_error();
 }
