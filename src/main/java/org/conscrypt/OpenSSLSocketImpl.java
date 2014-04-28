@@ -17,6 +17,7 @@
 package org.conscrypt;
 
 import android.system.ErrnoException;
+import android.system.Os;
 import android.system.StructTimeval;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
@@ -45,7 +46,6 @@ import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import libcore.io.Libcore;
 import libcore.io.Streams;
 
 import static android.system.OsConstants.SOL_SOCKET;
@@ -1014,7 +1014,7 @@ public class OpenSSLSocketImpl
 
         StructTimeval tv = StructTimeval.fromMillis(writeTimeoutMilliseconds);
         try {
-            Libcore.os.setsockoptTimeval(getFileDescriptor$(), SOL_SOCKET, SO_SNDTIMEO, tv);
+            Os.setsockoptTimeval(getFileDescriptor$(), SOL_SOCKET, SO_SNDTIMEO, tv);
         } catch (ErrnoException errnoException) {
             throw errnoException.rethrowAsSocketException();
         }
