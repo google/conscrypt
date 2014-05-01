@@ -448,7 +448,7 @@ public class SSLParametersImpl implements Cloneable {
         }
 
         if (client_mode && alpnProtocols != null) {
-            NativeCrypto.SSL_set_alpn_protos(sslCtxNativePointer, alpnProtocols);
+            NativeCrypto.SSL_set_alpn_protos(sslNativePointer, alpnProtocols);
         }
 
         NativeCrypto.setEnabledProtocols(sslNativePointer, openSslEnabledProtocols);
