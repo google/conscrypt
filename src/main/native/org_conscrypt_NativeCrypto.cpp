@@ -966,6 +966,11 @@ public:
             return -1;
         }
 
+        if (env->ExceptionCheck()) {
+            JNI_TRACE("BIO_Stream::flush called with pending exception");
+            return -1;
+        }
+
         env->CallVoidMethod(mStream, outputStream_flushMethod);
         if (env->ExceptionCheck()) {
             return -1;
@@ -1027,6 +1032,11 @@ private:
             return -1;
         }
 
+        if (env->ExceptionCheck()) {
+            JNI_TRACE("BIO_InputStream::read called with pending exception");
+            return -1;
+        }
+
         ScopedLocalRef<jbyteArray> javaBytes(env, env->NewByteArray(len));
         if (javaBytes.get() == NULL) {
             JNI_TRACE("BIO_InputStream::read failed call to NewByteArray");
@@ -1065,6 +1075,11 @@ public:
         JNIEnv* env = getEnv();
         if (env == NULL) {
             JNI_TRACE("BIO_OutputStream::write => could not get JNIEnv");
+            return -1;
+        }
+
+        if (env->ExceptionCheck()) {
+            JNI_TRACE("BIO_OutputStream::write => called with pending exception");
             return -1;
         }
 
