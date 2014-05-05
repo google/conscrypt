@@ -533,8 +533,10 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                 src.duplicate().get(buffer, 0, toRead);
                 int numRead = NativeCrypto.SSL_write_BIO(sslNativePointer, buffer, toRead,
                         localToRemoteSink.getContext(), this);
-                src.position(src.position() + numRead);
-                totalRead += numRead;
+                if (numRead > 0) {
+                    src.position(src.position() + numRead);
+                    totalRead += numRead;
+                }
             }
 
             return new SSLEngineResult(Status.OK, getHandshakeStatus(), totalRead,
@@ -554,6 +556,9 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
 
     private int writeBytesToByteBuffers(byte[] buffer, int numRead, ByteBuffer[] dsts)
             throws SSLException {
+        if (numRead <= 0) {
+            return 0;
+        }
         int offset = 0;
         for (int i = 0; i < dsts.length && offset < numRead; i++) {
             int toPut = Math.min(dsts[i].remaining(), numRead - offset);
