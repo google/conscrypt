@@ -323,7 +323,7 @@ public final class TrustedCertificateStore {
      * with other differences (for example when switching signature
      * from md2WithRSAEncryption to SHA1withRSA)
      */
-    public boolean isTrustAnchor(final X509Certificate c) {
+    public X509Certificate getTrustAnchor(final X509Certificate c) {
         // compare X509Certificate.getPublicKey values
         CertSelector selector = new CertSelector() {
             @Override
@@ -331,18 +331,21 @@ public final class TrustedCertificateStore {
                 return ca.getPublicKey().equals(c.getPublicKey());
             }
         };
-        boolean user = findCert(addedDir,
-                                c.getSubjectX500Principal(),
-                                selector,
-                                Boolean.class);
-        if (user) {
-            return true;
+        X509Certificate user = findCert(addedDir,
+                                        c.getSubjectX500Principal(),
+                                        selector,
+                                        X509Certificate.class);
+        if (user != null) {
+            return user;
         }
         X509Certificate system = findCert(systemDir,
                                           c.getSubjectX500Principal(),
                                           selector,
                                           X509Certificate.class);
-        return system != null && !isDeletedSystemCertificate(system);
+        if (system != null && !isDeletedSystemCertificate(system)) {
+            return system;
+        }
+        return null;
     }
 
     /**
