@@ -7537,6 +7537,8 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
     AppData* appData = toAppData(ssl);
     if (appData == NULL) {
         return THROW_SSLEXCEPTION;
+    } else if (!SSL_is_init_finished(ssl)) {
+        return THROW_SSLEXCEPTION;
     }
 
     while (appData->aliveAndKicking) {
@@ -7848,6 +7850,8 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
 
     AppData* appData = toAppData(ssl);
     if (appData == NULL) {
+        return THROW_SSLEXCEPTION;
+    } else if (!SSL_is_init_finished(ssl)) {
         return THROW_SSLEXCEPTION;
     }
 
