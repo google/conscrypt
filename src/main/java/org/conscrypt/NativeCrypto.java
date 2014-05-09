@@ -153,6 +153,17 @@ public final class NativeCrypto {
 
     public static native byte[] i2d_DSAPrivateKey(long dsa);
 
+    // --- DH public/private key handling functions ----------------------------
+
+    public static native long EVP_PKEY_new_DH(byte[] p, byte[] g, byte[] pub_key, byte[] priv_key);
+
+    public static native long DH_generate_key(int primeBits, int generator);
+
+    /**
+     * @return array of {p, g, y(pub), x(priv)}
+     */
+    public static native byte[][] get_DH_params(long dh);
+
     // --- EC functions --------------------------
 
     /**
