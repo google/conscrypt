@@ -7683,9 +7683,11 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
     BIO* wbio = SSL_get_wbio(ssl);
 
     AppData* appData = toAppData(ssl);
+    JNI_TRACE("ssl=%p sslRead appData=%p", ssl, appData);
     if (appData == NULL) {
         return THROW_SSLEXCEPTION;
-    } else if (!SSL_is_init_finished(ssl)) {
+    } else if (!SSL_is_init_finished(ssl) && !SSL_renegotiate_pending(ssl)) {
+        JNI_TRACE("ssl=%p sslRead => init is not finished", ssl);
         return THROW_SSLEXCEPTION;
     }
 
@@ -7997,9 +7999,11 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
     BIO* wbio = SSL_get_wbio(ssl);
 
     AppData* appData = toAppData(ssl);
+    JNI_TRACE("ssl=%p sslWrite appData=%p", ssl, appData);
     if (appData == NULL) {
         return THROW_SSLEXCEPTION;
-    } else if (!SSL_is_init_finished(ssl)) {
+    } else if (!SSL_is_init_finished(ssl) && !SSL_renegotiate_pending(ssl)) {
+        JNI_TRACE("ssl=%p sslWrite => init is not finished", ssl);
         return THROW_SSLEXCEPTION;
     }
 
