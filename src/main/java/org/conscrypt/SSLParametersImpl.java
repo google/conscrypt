@@ -504,12 +504,13 @@ public class SSLParametersImpl implements Cloneable {
                                             NativeCrypto.SSL_VERIFY_PEER
                                             | NativeCrypto.SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
                 certRequested = true;
-                // ... over just wanting it...
+            // ... over just wanting it...
             } else if (getWantClientAuth()) {
                 NativeCrypto.SSL_set_verify(sslNativePointer, NativeCrypto.SSL_VERIFY_PEER);
                 certRequested = true;
-            // ... and it defaults properly so don't call SSL_set_verify in the common case.
+            // ... and we must disable verification if we don't want client auth.
             } else {
+                NativeCrypto.SSL_set_verify(sslNativePointer, NativeCrypto.SSL_VERIFY_NONE);
                 certRequested = false;
             }
 
