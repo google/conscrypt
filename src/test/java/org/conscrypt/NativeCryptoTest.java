@@ -767,6 +767,7 @@ public class NativeCryptoTest extends TestCase {
             if (channelIdEnabled) {
                 NativeCrypto.SSL_enable_tls_channel_id(s);
             }
+            NativeCrypto.SSL_set_verify(s, NativeCrypto.SSL_VERIFY_NONE);
             return s;
         }
 
