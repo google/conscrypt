@@ -102,7 +102,7 @@ public class OpenSSLDHPublicKey implements DHPublicKey, OpenSSLKeyHolder {
 
     @Override
     public String getAlgorithm() {
-        return "DSA";
+        return "DH";
     }
 
     @Override
