@@ -103,6 +103,8 @@ public class OpenSSLKey {
         switch (NativeCrypto.EVP_PKEY_type(ctx)) {
             case NativeCrypto.EVP_PKEY_RSA:
                 return new OpenSSLRSAPublicKey(this);
+            case NativeCrypto.EVP_PKEY_DH:
+                return new OpenSSLDHPublicKey(this);
             case NativeCrypto.EVP_PKEY_DSA:
                 return new OpenSSLDSAPublicKey(this);
             case NativeCrypto.EVP_PKEY_EC:
@@ -138,6 +140,8 @@ public class OpenSSLKey {
         switch (NativeCrypto.EVP_PKEY_type(ctx)) {
             case NativeCrypto.EVP_PKEY_RSA:
                 return new OpenSSLRSAPrivateKey(this);
+            case NativeCrypto.EVP_PKEY_DH:
+                return new OpenSSLDHPrivateKey(this);
             case NativeCrypto.EVP_PKEY_DSA:
                 return new OpenSSLDSAPrivateKey(this);
             case NativeCrypto.EVP_PKEY_EC:
