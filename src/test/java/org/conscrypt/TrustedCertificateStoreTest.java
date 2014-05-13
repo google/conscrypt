@@ -22,26 +22,24 @@ import java.io.OutputStream;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 import junit.framework.TestCase;
 import libcore.java.security.TestKeyStore;
 
 public class TrustedCertificateStoreTest extends TestCase {
+    private static final Random tempFileRandom = new Random();
 
-    private static final File DIR_TEMP = new File(System.getProperty("java.io.tmpdir"));
-    private static final File DIR_TEST = new File(DIR_TEMP, "test");
-    private static final File DIR_SYSTEM = new File(DIR_TEST, "system");
-    private static final File DIR_ADDED = new File(DIR_TEST, "added");
-    private static final File DIR_DELETED = new File(DIR_TEST, "removed");
+    private final File dirTest = new File(System.getProperty("java.io.tmpdir", "."),
+            "cert-store-test" + tempFileRandom.nextInt());
+    private final File dirSystem = new File(dirTest, "system");
+    private final File dirAdded = new File(dirTest, "added");
+    private final File dirDeleted = new File(dirTest, "removed");
 
     private static X509Certificate CA1;
     private static X509Certificate CA2;
@@ -196,12 +194,13 @@ public class TrustedCertificateStoreTest extends TestCase {
     }
 
     private void setupStore() {
-        DIR_SYSTEM.mkdirs();
+        dirSystem.mkdirs();
+        cleanStore();
         createStore();
     }
 
     private void createStore() {
-        store = new TrustedCertificateStore(DIR_SYSTEM, DIR_ADDED, DIR_DELETED);
+        store = new TrustedCertificateStore(dirSystem, dirAdded, dirDeleted);
     }
 
     @Override protected void tearDown() {
@@ -209,7 +208,7 @@ public class TrustedCertificateStoreTest extends TestCase {
     }
 
     private void cleanStore() {
-        for (File dir : new File[] { DIR_SYSTEM, DIR_ADDED, DIR_DELETED, DIR_TEST }) {
+        for (File dir : new File[] { dirSystem, dirAdded, dirDeleted, dirTest }) {
             File[] files = dir.listFiles();
             if (files == null) {
                 continue;
@@ -249,6 +248,7 @@ public class TrustedCertificateStoreTest extends TestCase {
 
     public void testPartialFileIsIgnored() throws Exception {
         File file = file(getAliasSystemCa1());
+        file.getParentFile().mkdirs();
         OutputStream os = new FileOutputStream(file);
         os.write(0);
         os.close();
@@ -314,7 +314,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         store.deleteCertificateEntry(null);
         store.deleteCertificateEntry("");
 
-        String[] userFiles = DIR_ADDED.list();
+        String[] userFiles = dirAdded.list();
         assertTrue(userFiles == null || userFiles.length == 0);
     }
 
@@ -432,8 +432,8 @@ public class TrustedCertificateStoreTest extends TestCase {
     }
 
     public void testWithExistingUserDirectories() throws Exception {
-        DIR_ADDED.mkdirs();
-        DIR_DELETED.mkdirs();
+        dirAdded.mkdirs();
+        dirDeleted.mkdirs();
         install(getCa1(), getAliasSystemCa1());
         assertRootCa(getCa1(), getAliasSystemCa1());
         assertAliases(getAliasSystemCa1());
@@ -626,7 +626,7 @@ public class TrustedCertificateStoreTest extends TestCase {
     /**
      * Install certificate under specified alias
      */
-    private static void install(X509Certificate x, String alias) {
+    private void install(X509Certificate x, String alias) {
         try {
             File file = file(alias);
             file.getParentFile().mkdirs();
@@ -641,12 +641,12 @@ public class TrustedCertificateStoreTest extends TestCase {
     /**
      * Compute file for an alias
      */
-    private static File file(String alias) {
+    private File file(String alias) {
         File dir;
         if (TrustedCertificateStore.isSystem(alias)) {
-            dir = DIR_SYSTEM;
+            dir = dirSystem;
         } else if (TrustedCertificateStore.isUser(alias)) {
-            dir = DIR_ADDED;
+            dir = dirAdded;
         } else {
             throw new IllegalArgumentException(alias);
         }
