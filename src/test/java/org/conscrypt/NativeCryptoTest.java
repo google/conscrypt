@@ -1409,6 +1409,8 @@ public class NativeCryptoTest extends TestCase {
                 assertEquals("spdy/2", new String(negotiated));
                 assertTrue("NPN should enable cutthrough on the client",
                         0 != (NativeCrypto.SSL_get_mode(ssl) & SSL_MODE_HANDSHAKE_CUTTHROUGH));
+                NativeCrypto.SSL_write(ssl, fd, callback, new byte[] { 42 }, 0, 1,
+                        (int) ((TIMEOUT_SECONDS * 1000) / 2));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
@@ -1423,6 +1425,9 @@ public class NativeCryptoTest extends TestCase {
                 assertEquals("spdy/2", new String(negotiated));
                 assertEquals("NPN should not enable cutthrough on the server",
                         0, NativeCrypto.SSL_get_mode(ssl) & SSL_MODE_HANDSHAKE_CUTTHROUGH);
+                byte[] buffer = new byte[1];
+                NativeCrypto.SSL_read(ssl, fd, callback, buffer, 0, 1, 0);
+                assertEquals(42, buffer[0]);
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
         };
