@@ -1481,6 +1481,14 @@ static jlong NativeCrypto_EVP_PKEY_new_DH(JNIEnv* env, jclass,
         return 0;
     }
 
+    /* The public key can be recovered if the private key is available. */
+    if (dh->pub_key == NULL && dh->priv_key != NULL) {
+        if (!DH_generate_key(dh.get())) {
+            jniThrowRuntimeException(env, "EVP_PKEY_new_DH failed during pub_key generation");
+            return 0;
+        }
+    }
+
     Unique_EVP_PKEY pkey(EVP_PKEY_new());
     if (pkey.get() == NULL) {
         jniThrowRuntimeException(env, "EVP_PKEY_new failed");
