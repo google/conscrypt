@@ -3450,7 +3450,7 @@ static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, 
     }
 
     const ssize_t inEnd = inOffset + inLength;
-    if (inEnd < 0 || size_t(inEnd) > inBytes.size()) {
+    if (inLength < 0 || inEnd < 0 || size_t(inEnd) > inBytes.size()) {
         jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "inLength");
         return;
     }
