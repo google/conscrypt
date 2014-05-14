@@ -41,7 +41,7 @@ public class OpenSSLDHPrivateKey implements DHPrivateKey, OpenSSLKeyHolder {
     /** private key */
     private transient byte[] x;
 
-    private transient final Object mParamsLock = new Object();
+    private transient Object mParamsLock = new Object();
 
     private transient boolean readParams;
 
@@ -226,6 +226,7 @@ public class OpenSSLDHPrivateKey implements DHPrivateKey, OpenSSLKeyHolder {
                 g.toByteArray(),
                 null,
                 x.toByteArray()));
+        mParamsLock = new Object();
     }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
