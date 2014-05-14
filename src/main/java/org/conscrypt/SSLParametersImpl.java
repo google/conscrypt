@@ -295,7 +295,6 @@ public class SSLParametersImpl implements Cloneable {
     /**
      * Returns the value indicating if the peer with this parameters
      * tuned to request client authentication
-     * @return
      */
     protected boolean getWantClientAuth() {
         return want_client_auth;
@@ -734,8 +733,7 @@ public class SSLParametersImpl implements Cloneable {
      * @return the first {@code X509ExtendedTrustManager} or
      *         {@code X509TrustManager} or {@code null} if not found.
      */
-    private static X509ExtendedTrustManager findFirstX509TrustManager(TrustManager[] tms)
-            throws KeyManagementException {
+    private static X509ExtendedTrustManager findFirstX509TrustManager(TrustManager[] tms) {
         for (TrustManager tm : tms) {
             if (tm instanceof X509ExtendedTrustManager) {
                 return (X509ExtendedTrustManager) tm;
