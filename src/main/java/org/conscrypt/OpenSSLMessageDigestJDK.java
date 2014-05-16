@@ -22,7 +22,7 @@ import java.security.NoSuchAlgorithmException;
 /**
  * Implements the JDK MessageDigest interface using OpenSSL's EVP API.
  */
-public class OpenSSLMessageDigestJDK extends MessageDigestSpi {
+public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneable {
     private OpenSSLDigestContext ctx;
 
     /**
@@ -48,6 +48,12 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi {
         this.size = size;
 
         resetContext();
+    }
+
+    private OpenSSLMessageDigestJDK(long evp_md, int size, OpenSSLDigestContext ctx) {
+        this.evp_md = evp_md;
+        this.size = size;
+        this.ctx = ctx;
     }
 
     private final void resetContext() {
@@ -132,5 +138,13 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi {
         public SHA512() throws NoSuchAlgorithmException {
             super(EVP_MD, SIZE);
         }
+    }
+
+    @Override
+    public Object clone() {
+        OpenSSLDigestContext ctxCopy = new OpenSSLDigestContext(NativeCrypto.EVP_MD_CTX_create());
+        NativeCrypto.EVP_MD_CTX_init(ctxCopy);
+        NativeCrypto.EVP_MD_CTX_copy(ctxCopy, ctx);
+        return new OpenSSLMessageDigestJDK(evp_md, size, ctxCopy);
     }
 }
