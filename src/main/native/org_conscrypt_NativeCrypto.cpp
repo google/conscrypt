@@ -5877,6 +5877,7 @@ class AppData {
         if (fd != NULL) {
             netFd.reset(new NetFd(e, fd));
             if (netFd->isClosed()) {
+                JNI_TRACE("appData=%p setCallbackState => netFd->isClosed() == true", this);
                 return false;
             }
         }
@@ -5886,6 +5887,7 @@ class AppData {
             npnProtocolsData = e->GetByteArrayElements(npnProtocols, NULL);
             if (npnProtocolsData == NULL) {
                 clearCallbackState();
+                JNI_TRACE("appData=%p setCallbackState => npnProtocolsData == NULL", this);
                 return false;
             }
             npnProtocolsArray = npnProtocols;
@@ -5895,6 +5897,7 @@ class AppData {
             alpnProtocolsData = e->GetByteArrayElements(alpnProtocols, NULL);
             if (alpnProtocolsData == NULL) {
                 clearCallbackState();
+                JNI_TRACE("appData=%p setCallbackState => alpnProtocolsData == NULL", this);
                 return false;
             }
             alpnProtocolsArray = alpnProtocols;
