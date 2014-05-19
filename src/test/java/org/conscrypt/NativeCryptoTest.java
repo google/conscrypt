@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -1877,32 +1878,61 @@ public class NativeCryptoTest extends TestCase {
         server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
+    private static abstract class SSLSessionWrappedTask {
+        public abstract void run(long sslSession) throws Exception;
+    }
+
+    private void wrapWithSSLSession(SSLSessionWrappedTask task) throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c);
+        try {
+            task.run(s);
+        } finally {
+            NativeCrypto.SSL_free(s);
+            NativeCrypto.SSL_CTX_free(c);
+        }
+    }
+
     public void test_SSL_shutdown() throws Exception {
 
         // null FileDescriptor
-        try {
-            NativeCrypto.SSL_shutdown(NULL, null, DUMMY_CB);
-        } catch (NullPointerException expected) {
-        }
+        wrapWithSSLSession(new SSLSessionWrappedTask() {
+            @Override
+            public void run(long sslSession) throws Exception {
+                try {
+                    NativeCrypto.SSL_shutdown(sslSession, null, DUMMY_CB);
+                    fail();
+                } catch (NullPointerException expected) {
+                }
+            }
+        });
 
         // null SSLHandshakeCallbacks
-        try {
-            NativeCrypto.SSL_shutdown(NULL, INVALID_FD, null);
-        } catch (NullPointerException expected) {
-        }
+        wrapWithSSLSession(new SSLSessionWrappedTask() {
+            @Override
+            public void run(long sslSession) throws Exception {
+                try {
+                    NativeCrypto.SSL_shutdown(sslSession, INVALID_FD, null);
+                    fail();
+                } catch (NullPointerException expected) {
+                }
+            }
+        });
 
         // SSL_shutdown is a rare case that tolerates a null SSL argument
         NativeCrypto.SSL_shutdown(NULL, INVALID_FD, DUMMY_CB);
 
         // handshaking not yet performed
-        long c = NativeCrypto.SSL_CTX_new();
-        long s = NativeCrypto.SSL_new(c);
-        try {
-            NativeCrypto.SSL_shutdown(s, INVALID_FD, DUMMY_CB);
-        } catch (SSLProtocolException expected) {
-        }
-        NativeCrypto.SSL_free(s);
-        NativeCrypto.SSL_CTX_free(c);
+        wrapWithSSLSession(new SSLSessionWrappedTask() {
+            @Override
+            public void run(long sslSession) throws Exception {
+                try {
+                    NativeCrypto.SSL_shutdown(sslSession, INVALID_FD, DUMMY_CB);
+                    fail();
+                } catch (SocketException expected) {
+                }
+            }
+        });
 
         // positively tested elsewhere because handshake uses use
         // SSL_shutdown to ensure SSL_SESSIONs are reused.
