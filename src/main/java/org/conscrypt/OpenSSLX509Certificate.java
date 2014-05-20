@@ -226,11 +226,13 @@ public class OpenSSLX509Certificate extends X509Certificate {
     public void checkValidity(Date date) throws CertificateExpiredException,
             CertificateNotYetValidException {
         if (getNotBefore().compareTo(date) > 0) {
-            throw new CertificateNotYetValidException();
+            throw new CertificateNotYetValidException("Certificate not valid until "
+                    + getNotBefore().toString() + " (compared to " + date.toString() + ")");
         }
 
         if (getNotAfter().compareTo(date) < 0) {
-            throw new CertificateExpiredException();
+            throw new CertificateExpiredException("Certificate expired at "
+                    + getNotAfter().toString() + " (compared to " + date.toString() + ")");
         }
     }
 
