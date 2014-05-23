@@ -21,16 +21,23 @@
 #define TO_STRING1(x) #x
 #define TO_STRING(x) TO_STRING1(x)
 #ifndef JNI_JARJAR_PREFIX
-#define CONSCRYPT_UNBUNDLED
-#define JNI_JARJAR_PREFIX
+    #ifndef CONSCRYPT_NOT_UNBUNDLED
+        #define CONSCRYPT_UNBUNDLED
+    #endif
+    #define JNI_JARJAR_PREFIX
 #endif
 
 #define LOG_TAG "NativeCrypto"
 
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+#ifdef CONSCRYPT_UNBUNDLED
+#include <dlfcn.h>
+#endif
 
 #include <jni.h>
 
@@ -44,16 +51,41 @@
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
+#ifndef CONSCRYPT_UNBUNDLED
+/* If we're compiled unbundled from Android system image, we use the
+ * CompatibilityCloseMonitor
+ */
 #include "AsynchronousCloseMonitor.h"
+#endif
+
+#ifndef CONSCRYPT_UNBUNDLED
 #include "cutils/log.h"
+#else
+#include <android/log.h>
+#define ALOGD(...) \
+        __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__);
+#define ALOGE(...) \
+        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);
+#define ALOGV(...) \
+        __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__);
+#endif
+
+#ifndef CONSCRYPT_UNBUNDLED
 #include "JNIHelp.h"
 #include "JniConstants.h"
 #include "JniException.h"
-#include "NetFd.h"
+#else
+#define NATIVE_METHOD(className, functionName, signature) \
+  { #functionName, signature, reinterpret_cast<void*>(className ## _ ## functionName) }
+#define REGISTER_NATIVE_METHODS(jni_class_name) \
+  RegisterNativeMethods(env, jni_class_name, gMethods, arraysize(gMethods))
+#endif
+
 #include "ScopedLocalRef.h"
 #include "ScopedPrimitiveArray.h"
 #include "ScopedUtfChars.h"
 #include "UniquePtr.h"
+#include "NetFd.h"
 
 #undef WITH_JNI_TRACE
 #undef WITH_JNI_TRACE_MD
@@ -1181,6 +1213,48 @@ static BIO_METHOD stream_bio_method = {
         bio_stream_destroy, /* bio_free */
         NULL, /* no bio_callback_ctrl */
 };
+
+#ifdef CONSCRYPT_UNBUNDLED
+/*
+ * This is a big hack; don't learn from this. Basically what happened is we do
+ * not have an API way to insert ourselves into the AsynchronousCloseMonitor
+ * that's compiled into the native libraries for libcore when we're unbundled.
+ * So we try to look up the symbol from the main library to find it.
+ */
+typedef void (*acm_ctor_func)(void*, int);
+typedef void (*acm_dtor_func)(void*);
+static acm_ctor_func async_close_monitor_ctor = NULL;
+static acm_dtor_func async_close_monitor_dtor = NULL;
+
+class CompatibilityCloseMonitor {
+public:
+    CompatibilityCloseMonitor(int fd) {
+        if (async_close_monitor_ctor != NULL) {
+            async_close_monitor_ctor(objBuffer, fd);
+        }
+    }
+
+    ~CompatibilityCloseMonitor() {
+        if (async_close_monitor_dtor != NULL) {
+            async_close_monitor_dtor(objBuffer);
+        }
+    }
+private:
+    char objBuffer[256];
+#if 0
+    static_assert(sizeof(objBuffer) > 2*sizeof(AsynchronousCloseMonitor),
+                  "CompatibilityCloseMonitor must be larger than the actual object");
+#endif
+};
+
+static void findAsynchronousCloseMonitorFuncs() {
+    void *lib = dlopen("libjavacore.so", RTLD_NOW);
+    if (lib != NULL) {
+        async_close_monitor_ctor = (acm_ctor_func) dlsym(lib, "_ZN24AsynchronousCloseMonitorC1Ei");
+        async_close_monitor_dtor = (acm_dtor_func) dlsym(lib, "_ZN24AsynchronousCloseMonitorD1Ev");
+    }
+}
+#endif
 
 /**
  * Copied from libnativehelper NetworkUtilites.cpp
@@ -5989,7 +6063,11 @@ static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData, 
             ptv = NULL;
         }
 
+#ifndef CONSCRYPT_UNBUNDLED
         AsynchronousCloseMonitor monitor(intFd);
+#else
+        CompatibilityCloseMonitor monitor(intFd);
+#endif
         result = select(maxFd + 1, &rfds, &wfds, NULL, ptv);
         JNI_TRACE("sslSelect %s fd=%d appData=%p timeout_millis=%d => %d",
                   (type == SSL_ERROR_WANT_READ) ? "READ" : "WRITE",
@@ -8919,6 +8997,10 @@ static void initialize_conscrypt(JNIEnv* env) {
             "([B)I");
     outputStream_writeMethod = env->GetMethodID(outputStreamClass, "write", "([B)V");
     outputStream_flushMethod = env->GetMethodID(outputStreamClass, "flush", "()V");
+
+#ifdef CONSCRYPT_UNBUNDLED
+    findAsynchronousCloseMonitorFuncs();
+#endif
 }
 
 static jclass findClass(JNIEnv* env, const char* name) {

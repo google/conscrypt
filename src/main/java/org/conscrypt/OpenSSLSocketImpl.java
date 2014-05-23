@@ -16,9 +16,7 @@
 
 package org.conscrypt;
 
-import android.system.ErrnoException;
-import android.system.Os;
-import android.system.StructTimeval;
+import org.conscrypt.util.Arrays;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
@@ -34,7 +32,6 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
@@ -42,14 +39,9 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import libcore.io.Streams;
-
-import static android.system.OsConstants.SOL_SOCKET;
-import static android.system.OsConstants.SO_SNDTIMEO;
 
 /**
  * Implementation of the class OpenSSLSocketImpl based on OpenSSL.
@@ -318,7 +310,7 @@ public class OpenSSLSocketImpl
             long sslSessionNativePointer;
             try {
                 sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer,
-                        socket.getFileDescriptor$(), this, getSoTimeout(), client,
+                        Platform.getFileDescriptor(socket), this, getSoTimeout(), client,
                         sslParameters.npnProtocols, client ? null : sslParameters.alpnProtocols);
             } catch (CertificateException e) {
                 SSLHandshakeException wrapper = new SSLHandshakeException(e.getMessage());
@@ -380,7 +372,8 @@ public class OpenSSLSocketImpl
                 }
             }
         } catch (SSLProtocolException e) {
-            throw new SSLHandshakeException(e);
+            throw (SSLHandshakeException) new SSLHandshakeException("Handshake failed")
+                    .initCause(e);
         } finally {
             // on exceptional exit, treat the socket as closed
             if (releaseResources) {
@@ -518,20 +511,10 @@ public class OpenSSLSocketImpl
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
-                if (x509tm instanceof X509ExtendedTrustManager) {
-                    X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
-                    x509etm.checkServerTrusted(peerCertChain, authMethod, this);
-                } else {
-                    x509tm.checkServerTrusted(peerCertChain, authMethod);
-                }
+                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, this);
             } else {
                 String authType = peerCertChain[0].getPublicKey().getAlgorithm();
-                if (x509tm instanceof X509ExtendedTrustManager) {
-                    X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
-                    x509etm.checkClientTrusted(peerCertChain, authType, this);
-                } else {
-                    x509tm.checkClientTrusted(peerCertChain, authType);
-                }
+                Platform.checkClientTrusted(x509tm, peerCertChain, authType, this);
             }
         } catch (CertificateException e) {
             throw e;
@@ -649,7 +632,9 @@ public class OpenSSLSocketImpl
          */
         @Override
         public int read() throws IOException {
-            return Streams.readSingleByte(this);
+            byte[] buffer = new byte[1];
+            int result = read(buffer, 0, 1);
+            return (result != -1) ? buffer[0] & 0xff : -1;
         }
 
         /**
@@ -675,7 +660,7 @@ public class OpenSSLSocketImpl
                     if (DBG_STATE) assertReadableOrWriteableState();
                 }
 
-                return NativeCrypto.SSL_read(sslNativePointer, socket.getFileDescriptor$(),
+                return NativeCrypto.SSL_read(sslNativePointer, Platform.getFileDescriptor(socket),
                         OpenSSLSocketImpl.this, buf, offset, byteCount, getSoTimeout());
             }
         }
@@ -714,7 +699,9 @@ public class OpenSSLSocketImpl
          */
         @Override
         public void write(int oneByte) throws IOException {
-            Streams.writeSingleByte(this, oneByte);
+            byte[] buffer = new byte[1];
+            buffer[0] = (byte) (oneByte & 0xff);
+            write(buffer);
         }
 
         /**
@@ -739,7 +726,7 @@ public class OpenSSLSocketImpl
                     if (DBG_STATE) assertReadableOrWriteableState();
                 }
 
-                NativeCrypto.SSL_write(sslNativePointer, socket.getFileDescriptor$(),
+                NativeCrypto.SSL_write(sslNativePointer, Platform.getFileDescriptor(socket),
                         OpenSSLSocketImpl.this, buf, offset, byteCount, writeTimeoutMilliseconds);
             }
         }
@@ -771,7 +758,8 @@ public class OpenSSLSocketImpl
         return sslSession;
     }
 
-    @Override
+    // Comment annotation to compile Conscrypt unbundled with Java 6.
+    /* @Override */
     public SSLSession getHandshakeSession() {
         return handshakeSession;
     }
@@ -1012,12 +1000,7 @@ public class OpenSSLSocketImpl
     public void setSoWriteTimeout(int writeTimeoutMilliseconds) throws SocketException {
         this.writeTimeoutMilliseconds = writeTimeoutMilliseconds;
 
-        StructTimeval tv = StructTimeval.fromMillis(writeTimeoutMilliseconds);
-        try {
-            Os.setsockoptTimeval(getFileDescriptor$(), SOL_SOCKET, SO_SNDTIMEO, tv);
-        } catch (ErrnoException errnoException) {
-            throw errnoException.rethrowAsSocketException();
-        }
+        Platform.setSocketTimeout(this, writeTimeoutMilliseconds);
     }
 
     /**
@@ -1100,7 +1083,7 @@ public class OpenSSLSocketImpl
     private void shutdownAndFreeSslNative() throws IOException {
         try {
             BlockGuard.getThreadPolicy().onNetwork();
-            NativeCrypto.SSL_shutdown(sslNativePointer, socket.getFileDescriptor$(),
+            NativeCrypto.SSL_shutdown(sslNativePointer, Platform.getFileDescriptor(socket),
                     this);
         } catch (IOException ignored) {
             /*
@@ -1164,12 +1147,12 @@ public class OpenSSLSocketImpl
         }
     }
 
-    @Override
+    /* @Override */
     public FileDescriptor getFileDescriptor$() {
         if (socket == this) {
-            return super.getFileDescriptor$();
+            return Platform.getFileDescriptorFromSSLSocket(this);
         } else {
-            return socket.getFileDescriptor$();
+            return Platform.getFileDescriptor(socket);
         }
     }
 
@@ -1225,7 +1208,7 @@ public class OpenSSLSocketImpl
     @Override
     public SSLParameters getSSLParameters() {
         SSLParameters params = super.getSSLParameters();
-        params.setEndpointIdentificationAlgorithm(
+        Platform.setEndpointIdentificationAlgorithm(params,
                 sslParameters.getEndpointIdentificationAlgorithm());
         return params;
     }
@@ -1233,7 +1216,8 @@ public class OpenSSLSocketImpl
     @Override
     public void setSSLParameters(SSLParameters p) {
         super.setSSLParameters(p);
-        sslParameters.setEndpointIdentificationAlgorithm(p.getEndpointIdentificationAlgorithm());
+        sslParameters.setEndpointIdentificationAlgorithm(
+                Platform.getEndpointIdentificationAlgorithm(p));
     }
 
     @Override
