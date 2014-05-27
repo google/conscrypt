@@ -108,6 +108,49 @@ LOCAL_MODULE := libjavacrypto
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 include $(BUILD_SHARED_LIBRARY)
 
+# Unbundled Conscrypt jar
+include $(CLEAR_VARS)
+exclude_src_files := \
+	src/main/java/org/conscrypt/CertPinManager.java \
+	src/main/java/org/conscrypt/FileClientSessionCache.java \
+	src/main/java/org/conscrypt/JSSEProvider.java \
+	src/main/java/org/conscrypt/PinFailureLogger.java \
+	src/main/java/org/conscrypt/PinListEntry.java \
+	src/main/java/org/conscrypt/Platform.java \
+	src/main/java/org/conscrypt/TrustedCertificateIndex.java \
+	src/main/java/org/conscrypt/TrustedCertificateKeyStoreSpi.java \
+	src/main/java/org/conscrypt/TrustedCertificateStore.java \
+	src/main/java/org/conscrypt/TrustManagerFactoryImpl.java \
+	src/main/java/org/conscrypt/TrustManagerImpl.java
+unbundled_src_files := $(call all-java-files-under,src/main/java)
+unbundled_src_files += $(call all-java-files-under,src/compat/java)
+unbundled_src_files := $(filter-out $(exclude_src_files), $(unbundled_src_files))
+LOCAL_SRC_FILES := $(unbundled_src_files)
+LOCAL_SDK_VERSION := 9
+LOCAL_JAVACFLAGS := $(local_javac_flags)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := conscrypt-unbundled
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+include $(BUILD_STATIC_JAVA_LIBRARY)
+
+# Unbundled Conscrypt crypto JNI library
+include $(CLEAR_VARS)
+LOCAL_CFLAGS += $(core_cflags)
+LOCAL_CPPFLAGS += $(core_cppflags)
+LOCAL_SRC_FILES := \
+        src/main/native/org_conscrypt_NativeCrypto.cpp \
+	src/compat/native/JNIHelp.cpp
+LOCAL_C_INCLUDES += \
+        external/openssl/include \
+	external/conscrypt/src/compat/native
+LOCAL_SHARED_LIBRARIES := liblog libz libdl
+LOCAL_STATIC_LIBRARIES := libssl_static libcrypto_static
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := libconscrypt_jni
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+LOCAL_SDK_VERSION := 9
+include $(BUILD_SHARED_LIBRARY)
+
 #
 # Build for the host.
 #
@@ -172,7 +215,7 @@ ifeq ($(WITH_HOST_DALVIK),true)
             external/openssl/include \
             libcore/include \
             libcore/luni/src/main/native
-    LOCAL_CPPFLAGS += $(core_cppflags)
+    LOCAL_CPPFLAGS += $(core_cppflags) -DCONSCRYPT_NOT_UNBUNDLED
     LOCAL_LDLIBS += -lpthread
     LOCAL_MODULE_TAGS := optional
     LOCAL_MODULE := libconscrypt_jni

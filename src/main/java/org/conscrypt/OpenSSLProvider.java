@@ -34,7 +34,11 @@ public final class OpenSSLProvider extends Provider {
     public static final String PROVIDER_NAME = "AndroidOpenSSL";
 
     public OpenSSLProvider() {
-        super(PROVIDER_NAME, 1.0, "Android's OpenSSL-backed security provider");
+        this(PROVIDER_NAME);
+    }
+
+    public OpenSSLProvider(String providerName) {
+        super(providerName, 1.0, "Android's OpenSSL-backed security provider");
 
         // Make sure the platform is initialized.
         Platform.setup();
