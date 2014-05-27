@@ -38,7 +38,6 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedKeyManager;
-import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
@@ -56,7 +55,7 @@ public class SSLParametersImpl implements Cloneable {
     // default source of X.509 certificate based authentication keys
     private static volatile X509KeyManager defaultX509KeyManager;
     // default source of X.509 certificate based authentication trust decisions
-    private static volatile X509ExtendedTrustManager defaultX509TrustManager;
+    private static volatile X509TrustManager defaultX509TrustManager;
     // default source of random numbers
     private static volatile SecureRandom defaultSecureRandom;
     // default SSL parameters
@@ -71,7 +70,7 @@ public class SSLParametersImpl implements Cloneable {
     // source of X.509 certificate based authentication keys or null if not provided
     private final X509KeyManager x509KeyManager;
     // source of X.509 certificate based authentication trust decisions or null if not provided
-    private final X509ExtendedTrustManager x509TrustManager;
+    private final X509TrustManager x509TrustManager;
     // source of random numbers
     private SecureRandom secureRandom;
 
@@ -194,7 +193,7 @@ public class SSLParametersImpl implements Cloneable {
     /**
      * @return X.509 trust manager or {@code null} for none.
      */
-    protected X509ExtendedTrustManager getX509TrustManager() {
+    protected X509TrustManager getX509TrustManager() {
         return x509TrustManager;
     }
 
@@ -695,9 +694,9 @@ public class SSLParametersImpl implements Cloneable {
      *
      * TODO: Move this to a published API under dalvik.system.
      */
-    public static X509ExtendedTrustManager getDefaultX509TrustManager()
+    public static X509TrustManager getDefaultX509TrustManager()
             throws KeyManagementException {
-        X509ExtendedTrustManager result = defaultX509TrustManager;
+        X509TrustManager result = defaultX509TrustManager;
         if (result == null) {
             // single-check idiom
             defaultX509TrustManager = result = createDefaultX509TrustManager();
@@ -705,14 +704,14 @@ public class SSLParametersImpl implements Cloneable {
         return result;
     }
 
-    private static X509ExtendedTrustManager createDefaultX509TrustManager()
+    private static X509TrustManager createDefaultX509TrustManager()
             throws KeyManagementException {
         try {
             String algorithm = TrustManagerFactory.getDefaultAlgorithm();
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
             tmf.init((KeyStore) null);
             TrustManager[] tms = tmf.getTrustManagers();
-            X509ExtendedTrustManager trustManager = findFirstX509TrustManager(tms);
+            X509TrustManager trustManager = findFirstX509TrustManager(tms);
             if (trustManager == null) {
                 throw new KeyManagementException(
                         "No X509TrustManager in among default TrustManagers: "
@@ -733,13 +732,10 @@ public class SSLParametersImpl implements Cloneable {
      * @return the first {@code X509ExtendedTrustManager} or
      *         {@code X509TrustManager} or {@code null} if not found.
      */
-    private static X509ExtendedTrustManager findFirstX509TrustManager(TrustManager[] tms) {
+    private static X509TrustManager findFirstX509TrustManager(TrustManager[] tms) {
         for (TrustManager tm : tms) {
-            if (tm instanceof X509ExtendedTrustManager) {
-                return (X509ExtendedTrustManager) tm;
-            }
             if (tm instanceof X509TrustManager) {
-                return new X509ExtendedTrustManagerWrapper((X509TrustManager) tm);
+                return (X509TrustManager) tm;
             }
         }
         return null;

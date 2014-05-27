@@ -295,7 +295,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     }
 
     static void log(Throwable t) {
-        System.logW("Error converting session.", t);
+        new Exception("Error converting session", t).printStackTrace();
     }
 
     @Override

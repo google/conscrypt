@@ -19,7 +19,6 @@ package org.conscrypt;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PushbackInputStream;
-import java.nio.charset.StandardCharsets;
 import java.security.cert.CertPath;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
@@ -33,8 +32,9 @@ import java.util.List;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 public class OpenSSLX509CertPath extends CertPath {
-    private static final byte[] PKCS7_MARKER = "-----BEGIN PKCS7"
-            .getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] PKCS7_MARKER = new byte[] {
+            '-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'
+    };
 
     private static final int PUSHBACK_SIZE = 64;
 

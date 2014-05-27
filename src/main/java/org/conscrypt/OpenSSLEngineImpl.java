@@ -30,7 +30,6 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
-import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
@@ -418,7 +417,8 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                 int bytesWritten = handshakeSink.position();
                 return new SSLEngineResult(Status.OK, getHandshakeStatus(), 0, bytesWritten);
             } catch (Exception e) {
-                throw new SSLHandshakeException(e);
+                throw (SSLHandshakeException) new SSLHandshakeException("Handshake failed")
+                        .initCause(e);
             } finally {
                 if (sslSession == null && sslSessionCtx != 0) {
                     NativeCrypto.SSL_SESSION_free(sslSessionCtx);
@@ -504,7 +504,8 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                                 null, null, getPeerPort(), true);
                     }
                 } catch (Exception e) {
-                    throw new SSLHandshakeException(e);
+                    throw (SSLHandshakeException) new SSLHandshakeException("Handshake failed")
+                            .initCause(e);
                 } finally {
                     if (sslSession == null && sslSessionCtx != 0) {
                         NativeCrypto.SSL_SESSION_free(sslSessionCtx);
@@ -614,20 +615,10 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
-                if (x509tm instanceof X509ExtendedTrustManager) {
-                    X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
-                    x509etm.checkServerTrusted(peerCertChain, authMethod, this);
-                } else {
-                    x509tm.checkServerTrusted(peerCertChain, authMethod);
-                }
+                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, this);
             } else {
                 String authType = peerCertChain[0].getPublicKey().getAlgorithm();
-                if (x509tm instanceof X509ExtendedTrustManager) {
-                    X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
-                    x509etm.checkClientTrusted(peerCertChain, authType, this);
-                } else {
-                    x509tm.checkClientTrusted(peerCertChain, authType);
-                }
+                Platform.checkClientTrusted(x509tm, peerCertChain, authType, this);
             }
         } catch (CertificateException e) {
             throw e;
@@ -683,7 +674,8 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         }
     }
 
-    @Override
+    // Comment annotation to compile Conscrypt unbundled with Java 6.
+    /* @Override */
     public SSLSession getHandshakeSession() {
         return handshakeSession;
     }
