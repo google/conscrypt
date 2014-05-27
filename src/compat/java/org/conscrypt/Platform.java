@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 The Android Open Source Project
+ * Copyright 2014 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,71 +16,41 @@
 
 package org.conscrypt;
 
-import static android.system.OsConstants.SOL_SOCKET;
-import static android.system.OsConstants.SO_SNDTIMEO;
-
-import org.apache.harmony.security.utils.AlgNameMapper;
-import org.apache.harmony.security.utils.AlgNameMapperSource;
-import android.system.ErrnoException;
-import android.system.Os;
-import android.system.StructTimeval;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketImpl;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.ECParameterSpec;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
-import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 
-class Platform {
-    private static class NoPreloadHolder {
-        public static final Platform MAPPER = new Platform();
+/**
+ *
+ */
+public class Platform {
+    private static Method m_getCurveName;
+    static {
+        try {
+            m_getCurveName = ECParameterSpec.class.getDeclaredMethod("getCurveName");
+            m_getCurveName.setAccessible(true);
+        } catch (Exception ignored) {
+        }
     }
 
-    /**
-     * Runs all the setup for the platform that only needs to run once.
-     */
     public static void setup() {
-        NoPreloadHolder.MAPPER.ping();
-    }
-
-    /**
-     * Just a placeholder to make sure the class is initialized.
-     */
-    private void ping() {
-    }
-
-    private Platform() {
-        AlgNameMapper.setSource(new OpenSSLMapper());
-    }
-
-    private static class OpenSSLMapper implements AlgNameMapperSource {
-        @Override
-        public String mapNameToOid(String algName) {
-            return NativeCrypto.OBJ_txt2nid_oid(algName);
-        }
-
-        @Override
-        public String mapOidToName(String oid) {
-            return NativeCrypto.OBJ_txt2nid_longName(oid);
-        }
     }
 
     public static FileDescriptor getFileDescriptor(Socket s) {
-        return s.getFileDescriptor$();
-    }
-
-    public static FileDescriptor getFileDescriptorFromSSLSocket(OpenSSLSocketImpl openSSLSocketImpl) {
         try {
             Field f_impl = Socket.class.getDeclaredField("impl");
             f_impl.setAccessible(true);
-            Object socketImpl = f_impl.get(openSSLSocketImpl);
-            Field f_fd = SocketImpl.class.getDeclaredField("fd");
+            Object socketImpl = f_impl.get(s);
+            Class<?> c_socketImpl = Class.forName("java.net.SocketImpl");
+            Field f_fd = c_socketImpl.getDeclaredField("fd");
             f_fd.setAccessible(true);
             return (FileDescriptor) f_fd.get(socketImpl);
         } catch (Exception e) {
@@ -88,69 +58,100 @@ class Platform {
         }
     }
 
+    public static FileDescriptor getFileDescriptorFromSSLSocket(OpenSSLSocketImpl openSSLSocketImpl) {
+        return getFileDescriptor(openSSLSocketImpl);
+    }
+
     public static String getCurveName(ECParameterSpec spec) {
-        return spec.getCurveName();
+        if (m_getCurveName == null) {
+            return null;
+        }
+        try {
+            return (String) m_getCurveName.invoke(spec);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public static void setCurveName(ECParameterSpec spec, String curveName) {
-        spec.setCurveName(curveName);
+        try {
+            Method setCurveName = spec.getClass().getDeclaredMethod("setCurveName", String.class);
+            setCurveName.invoke(spec, curveName);
+        } catch (Exception ignored) {
+        }
     }
 
-    public static void setSocketTimeout(Socket s, long timeoutMillis) throws SocketException {
-        StructTimeval tv = StructTimeval.fromMillis(timeoutMillis);
-        try {
-            Os.setsockoptTimeval(s.getFileDescriptor$(), SOL_SOCKET, SO_SNDTIMEO, tv);
-        } catch (ErrnoException errnoException) {
-            throw errnoException.rethrowAsSocketException();
-        }
+    public static void setSocketTimeout(Socket s, long timeoutMillis) {
+        // TODO: implement this for unbundled
     }
 
     public static void setEndpointIdentificationAlgorithm(SSLParameters params,
             String endpointIdentificationAlgorithm) {
-        params.setEndpointIdentificationAlgorithm(endpointIdentificationAlgorithm);
+        // TODO: implement this for unbundled
     }
 
     public static String getEndpointIdentificationAlgorithm(SSLParameters params) {
-        return params.getEndpointIdentificationAlgorithm();
+        // TODO: implement this for unbundled
+        return null;
     }
 
     public static void checkClientTrusted(X509TrustManager x509tm, X509Certificate[] chain,
             String authType, Socket socket) throws CertificateException {
+        // TODO: use reflection to find whether we have X509ExtendedTrustManager
+        /*
         if (x509tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
             x509etm.checkClientTrusted(chain, authType, socket);
         } else {
+        */
             x509tm.checkClientTrusted(chain, authType);
+        /*
         }
+        */
     }
 
     public static void checkServerTrusted(X509TrustManager x509tm, X509Certificate[] chain,
             String authType, Socket socket) throws CertificateException {
+        // TODO: use reflection to find whether we have X509ExtendedTrustManager
+        /*
         if (x509tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
             x509etm.checkServerTrusted(chain, authType, socket);
         } else {
+        */
             x509tm.checkServerTrusted(chain, authType);
+        /*
         }
+        */
     }
 
     public static void checkClientTrusted(X509TrustManager x509tm, X509Certificate[] chain,
             String authType, SSLEngine engine) throws CertificateException {
+        // TODO: use reflection to find whether we have X509ExtendedTrustManager
+        /*
         if (x509tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
             x509etm.checkClientTrusted(chain, authType, engine);
         } else {
+        */
             x509tm.checkClientTrusted(chain, authType);
+        /*
         }
+        */
     }
 
     public static void checkServerTrusted(X509TrustManager x509tm, X509Certificate[] chain,
             String authType, SSLEngine engine) throws CertificateException {
+        // TODO: use reflection to find whether we have X509ExtendedTrustManager
+        /*
         if (x509tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
-            x509etm.checkServerTrusted(chain, authType, engine);
+            x509etm.checkServerTrusted(peerCertChain, authMethod, this);
         } else {
+        */
             x509tm.checkServerTrusted(chain, authType);
+        /*
         }
+        */
     }
 }
