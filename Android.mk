@@ -51,21 +51,7 @@ core_cppflags := -std=gnu++11
 # Build for the target (device).
 #
 
-# Create the conscrypt library
-include $(CLEAR_VARS)
-LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
-LOCAL_JAVA_LIBRARIES := core
-LOCAL_NO_STANDARD_LIBRARIES := true
-LOCAL_JAVACFLAGS := $(local_javac_flags)
-LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
-LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := conscrypt
-LOCAL_REQUIRED_MODULES := libjavacrypto
-LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-include $(BUILD_JAVA_LIBRARY)
-
-# Create the conscrypt library without jarjar for tests
-include $(CLEAR_VARS)
+# Java library with no JarJar rules (used for tests and inheritance)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
 LOCAL_JAVA_LIBRARIES := core
 LOCAL_NO_STANDARD_LIBRARIES := true
@@ -74,6 +60,18 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt-nojarjar
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 include $(BUILD_STATIC_JAVA_LIBRARY)
+
+# Platform Conscrypt library
+include $(CLEAR_VARS)
+LOCAL_JAVA_LIBRARIES := core
+LOCAL_NO_STANDARD_LIBRARIES := true
+LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := conscrypt
+LOCAL_REQUIRED_MODULES := libjavacrypto
+LOCAL_STATIC_JAVA_LIBRARIES := conscrypt-nojarjar
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+include $(BUILD_JAVA_LIBRARY)
 
 ifeq ($(LIBCORE_SKIP_TESTS),)
 # Make the conscrypt-tests library.
@@ -156,18 +154,7 @@ include $(BUILD_SHARED_LIBRARY)
 #
 
 ifeq ($(WITH_HOST_DALVIK),true)
-    # Make the conscrypt-hostdex library
-    include $(CLEAR_VARS)
-    LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
-    LOCAL_JAVACFLAGS := $(local_javac_flags)
-    LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
-    LOCAL_MODULE_TAGS := optional
-    LOCAL_MODULE := conscrypt-hostdex
-    LOCAL_REQUIRED_MODULES := libjavacrypto
-    LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-    include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
-
-    # Make the conscrypt-hostdex-nojarjar for tests
+    # Make the conscrypt-hostdex-nojarjar (for tests and inheritance)
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
     LOCAL_JAVACFLAGS := $(local_javac_flags)
@@ -175,6 +162,16 @@ ifeq ($(WITH_HOST_DALVIK),true)
     LOCAL_MODULE_TAGS := optional
     LOCAL_MODULE := conscrypt-hostdex-nojarjar
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+    include $(BUILD_HOST_DALVIK_STATIC_JAVA_LIBRARY)
+
+    # Make the conscrypt-hostdex library
+    include $(CLEAR_VARS)
+    LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
+    LOCAL_MODULE_TAGS := optional
+    LOCAL_MODULE := conscrypt-hostdex
+    LOCAL_REQUIRED_MODULES := libjavacrypto
+    LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+    LOCAL_STATIC_JAVA_LIBRARIES := conscrypt-hostdex-nojarjar
     include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 
     # Make the conscrypt-tests library.
