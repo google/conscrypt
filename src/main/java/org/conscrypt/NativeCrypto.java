@@ -729,11 +729,13 @@ public final class NativeCrypto {
         // add("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA", "EXP-KRB5-RC2-CBC-SHA");
         // add("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5", "EXP-KRB5-RC2-CBC-MD5");
 
-        // PSK is Private Shared Key - didn't exist in Froyo's openssl - no JSSE equivalent
-        // add(null, "PSK-3DES-EDE-CBC-SHA");
-        // add(null, "PSK-AES128-CBC-SHA");
-        // add(null, "PSK-AES256-CBC-SHA");
-        // add(null, "PSK-RC4-SHA");
+        // Pre-Shared Key (PSK) cipher suites
+        add("TLS_PSK_WITH_3DES_EDE_CBC_SHA", "PSK-3DES-EDE-CBC-SHA");
+        add("TLS_PSK_WITH_AES_128_CBC_SHA", "PSK-AES128-CBC-SHA");
+        add("TLS_PSK_WITH_AES_256_CBC_SHA", "PSK-AES256-CBC-SHA");
+        add("TLS_PSK_WITH_RC4_128_SHA", "PSK-RC4-SHA");
+        add("TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256", "ECDHE-PSK-WITH-AES-128-CBC-SHA256");
+        add("TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384", "ECDHE-PSK-WITH-AES-256-CBC-SHA384");
 
         // Signaling Cipher Suite Value for secure renegotiation handled as special case.
         // add("TLS_EMPTY_RENEGOTIATION_INFO_SCSV", null);
@@ -873,6 +875,13 @@ public final class NativeCrypto {
     public static native long SSL_set_options(long ssl, long options);
 
     public static native long SSL_clear_options(long ssl, long options);
+
+    public static native void SSL_use_psk_identity_hint(long ssl, String identityHint)
+            throws SSLException;
+
+    public static native void set_SSL_psk_client_callback_enabled(long ssl, boolean enabled);
+
+    public static native void set_SSL_psk_server_callback_enabled(long ssl, boolean enabled);
 
     public static String[] getDefaultProtocols() {
         return new String[] { SUPPORTED_PROTOCOL_SSLV3,
@@ -1238,6 +1247,35 @@ public final class NativeCrypto {
         public void clientCertificateRequested(byte[] keyTypes,
                                                byte[][] asn1DerEncodedX500Principals)
             throws CertificateEncodingException, SSLException;
+
+        /**
+         * Gets the key to be used in client mode for this connection in Pre-Shared Key (PSK) key
+         * exchange.
+         *
+         * @param identityHint PSK identity hint provided by the server or {@code null} if no hint
+         *        provided.
+         * @param identity buffer to be populated with PSK identity (NULL-terminated modified UTF-8)
+         *        by this method. This identity will be provided to the server.
+         * @param key buffer to be populated with key material by this method.
+         *
+         * @return number of bytes this method stored in the {@code key} buffer or {@code 0} if an
+         *         error occurred in which case the handshake will be aborted.
+         */
+        public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key);
+
+        /**
+         * Gets the key to be used in server mode for this connection in Pre-Shared Key (PSK) key
+         * exchange.
+         *
+         * @param identityHint PSK identity hint provided by this server to the client or
+         *        {@code null} if no hint was provided.
+         * @param identity PSK identity provided by the client.
+         * @param key buffer to be populated with key material by this method.
+         *
+         * @return number of bytes this method stored in the {@code key} buffer or {@code 0} if an
+         *         error occurred in which case the handshake will be aborted.
+         */
+        public int serverPSKKeyRequested(String identityHint, String identity, byte[] key);
 
         /**
          * Called when SSL state changes. This could be handshake completion.

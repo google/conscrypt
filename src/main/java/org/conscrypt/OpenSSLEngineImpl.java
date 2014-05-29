@@ -22,6 +22,7 @@ import java.nio.ReadOnlyBufferException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 
+import javax.crypto.SecretKey;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -38,7 +39,7 @@ import javax.security.auth.x500.X500Principal;
  * Implements the {@link SSLEngine} API using OpenSSL's non-blocking interfaces.
  */
 public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHandshakeCallbacks,
-        SSLParametersImpl.AliasChooser {
+        SSLParametersImpl.AliasChooser, SSLParametersImpl.PSKCallbacks {
     private final SSLParametersImpl sslParameters;
 
     /**
@@ -154,7 +155,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
             final long sslCtxNativePointer = sessionContext.sslCtxNativePointer;
             sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
-            sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this,
+            sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this, this,
                     getPeerHost());
             sslParameters.setCertificateValidation(sslNativePointer);
             sslParameters.setTlsChannelId(sslNativePointer, channelIdPrivateKey);
@@ -574,6 +575,16 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     }
 
     @Override
+    public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key) {
+        return sslParameters.clientPSKKeyRequested(identityHint, identity, key, this);
+    }
+
+    @Override
+    public int serverPSKKeyRequested(String identityHint, String identity, byte[] key) {
+        return sslParameters.serverPSKKeyRequested(identityHint, identity, key, this);
+    }
+
+    @Override
     public void onSSLStateChange(long sslSessionNativePtr, int type, int val) {
         synchronized (stateLock) {
             switch (type) {
@@ -699,5 +710,20 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         } else {
             return keyManager.chooseClientAlias(keyTypes, issuers, null);
         }
+    }
+
+    @Override
+    public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
+        return keyManager.chooseServerKeyIdentityHint(this);
+    }
+
+    @Override
+    public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
+        return keyManager.chooseClientKeyIdentity(identityHint, this);
+    }
+
+    @Override
+    public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
+        return keyManager.getKey(identityHint, identity, this);
     }
 }
