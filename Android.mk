@@ -129,7 +129,7 @@ LOCAL_SRC_FILES := $(unbundled_src_files)
 LOCAL_SDK_VERSION := 9
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := conscrypt-unbundled
+LOCAL_MODULE := conscrypt_unbundled
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
@@ -143,7 +143,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES += \
         external/openssl/include \
 	external/conscrypt/src/compat/native
-LOCAL_SHARED_LIBRARIES := liblog libz libdl
+LOCAL_LDFLAGS := -llog -lz -ldl
 LOCAL_STATIC_LIBRARIES := libssl_static libcrypto_static
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libconscrypt_jni
