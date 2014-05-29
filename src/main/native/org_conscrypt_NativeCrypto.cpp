@@ -6304,6 +6304,137 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     return result;
 }
 
+/**
+ * Pre-Shared Key (PSK) client callback.
+ */
+static unsigned int psk_client_callback(SSL* ssl, const char *hint,
+        char *identity, unsigned int max_identity_len,
+        unsigned char *psk, unsigned int max_psk_len) {
+    JNI_TRACE("ssl=%p psk_client_callback", ssl);
+
+    AppData* appData = toAppData(ssl);
+    JNIEnv* env = appData->env;
+    if (env == NULL) {
+        ALOGE("AppData->env missing in psk_client_callback");
+        JNI_TRACE("ssl=%p psk_client_callback env error", ssl);
+        return 0;
+    }
+    if (env->ExceptionCheck()) {
+        JNI_TRACE("ssl=%p psk_client_callback already pending exception", ssl);
+        return 0;
+    }
+
+    jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
+    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
+    jmethodID methodID =
+            env->GetMethodID(cls, "clientPSKKeyRequested", "(Ljava/lang/String;[B[B)I");
+    JNI_TRACE("ssl=%p psk_client_callback calling clientPSKKeyRequested", ssl);
+    ScopedLocalRef<jstring> identityHintJava(
+            env,
+            (hint != NULL) ? env->NewStringUTF(hint) : NULL);
+    ScopedLocalRef<jbyteArray> identityJava(env, env->NewByteArray(max_identity_len));
+    if (identityJava.get() == NULL) {
+        JNI_TRACE("ssl=%p psk_client_callback failed to allocate identity bufffer", ssl);
+        return 0;
+    }
+    ScopedLocalRef<jbyteArray> keyJava(env, env->NewByteArray(max_psk_len));
+    if (keyJava.get() == NULL) {
+        JNI_TRACE("ssl=%p psk_client_callback failed to allocate key bufffer", ssl);
+        return 0;
+    }
+    jint keyLen = env->CallIntMethod(sslHandshakeCallbacks, methodID,
+            identityHintJava.get(), identityJava.get(), keyJava.get());
+    if (env->ExceptionCheck()) {
+        JNI_TRACE("ssl=%p psk_client_callback exception", ssl);
+        return 0;
+    }
+    if (keyLen <= 0) {
+        JNI_TRACE("ssl=%p psk_client_callback failed to get key", ssl);
+        return 0;
+    } else if ((unsigned int) keyLen > max_psk_len) {
+        JNI_TRACE("ssl=%p psk_client_callback got key which is too long", ssl);
+        return 0;
+    }
+    ScopedByteArrayRO keyJavaRo(env, keyJava.get());
+    if (keyJavaRo.get() == NULL) {
+        JNI_TRACE("ssl=%p psk_client_callback failed to get key bytes", ssl);
+        return 0;
+    }
+    memcpy(psk, keyJavaRo.get(), keyLen);
+
+    ScopedByteArrayRO identityJavaRo(env, identityJava.get());
+    if (identityJavaRo.get() == NULL) {
+        JNI_TRACE("ssl=%p psk_client_callback failed to get identity bytes", ssl);
+        return 0;
+    }
+    memcpy(identity, identityJavaRo.get(), max_identity_len);
+
+    JNI_TRACE("ssl=%p psk_client_callback completed", ssl);
+    return keyLen;
+}
+
+/**
+ * Pre-Shared Key (PSK) server callback.
+ */
+static unsigned int psk_server_callback(SSL* ssl, const char *identity,
+        unsigned char *psk, unsigned int max_psk_len) {
+    JNI_TRACE("ssl=%p psk_server_callback", ssl);
+
+    AppData* appData = toAppData(ssl);
+    JNIEnv* env = appData->env;
+    if (env == NULL) {
+        ALOGE("AppData->env missing in psk_server_callback");
+        JNI_TRACE("ssl=%p psk_server_callback env error", ssl);
+        return 0;
+    }
+    if (env->ExceptionCheck()) {
+        JNI_TRACE("ssl=%p psk_server_callback already pending exception", ssl);
+        return 0;
+    }
+
+    jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
+    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
+    jmethodID methodID = env->GetMethodID(
+            cls, "serverPSKKeyRequested", "(Ljava/lang/String;Ljava/lang/String;[B)I");
+    JNI_TRACE("ssl=%p psk_server_callback calling serverPSKKeyRequested", ssl);
+    const char* identityHint = SSL_get_psk_identity_hint(ssl);
+    // identityHint = NULL;
+    // identity = NULL;
+    ScopedLocalRef<jstring> identityHintJava(
+            env,
+            (identityHint != NULL) ? env->NewStringUTF(identityHint) : NULL);
+    ScopedLocalRef<jstring> identityJava(
+            env,
+            (identity != NULL) ? env->NewStringUTF(identity) : NULL);
+    ScopedLocalRef<jbyteArray> keyJava(env, env->NewByteArray(max_psk_len));
+    if (keyJava.get() == NULL) {
+        JNI_TRACE("ssl=%p psk_server_callback failed to allocate key bufffer", ssl);
+        return 0;
+    }
+    jint keyLen = env->CallIntMethod(sslHandshakeCallbacks, methodID,
+            identityHintJava.get(), identityJava.get(), keyJava.get());
+    if (env->ExceptionCheck()) {
+        JNI_TRACE("ssl=%p psk_server_callback exception", ssl);
+        return 0;
+    }
+    if (keyLen <= 0) {
+        JNI_TRACE("ssl=%p psk_server_callback failed to get key", ssl);
+        return 0;
+    } else if ((unsigned int) keyLen > max_psk_len) {
+        JNI_TRACE("ssl=%p psk_server_callback got key which is too long", ssl);
+        return 0;
+    }
+    ScopedByteArrayRO keyJavaRo(env, keyJava.get());
+    if (keyJavaRo.get() == NULL) {
+        JNI_TRACE("ssl=%p psk_server_callback failed to get key bytes", ssl);
+        return 0;
+    }
+    memcpy(psk, keyJavaRo.get(), keyLen);
+
+    JNI_TRACE("ssl=%p psk_server_callback completed", ssl);
+    return keyLen;
+}
+
 static RSA* rsaGenerateKey(int keylength) {
     Unique_BIGNUM bn(BN_new());
     if (bn.get() == NULL) {
@@ -6921,6 +7052,62 @@ static jlong NativeCrypto_SSL_clear_options(JNIEnv* env, jclass,
     long result = SSL_clear_options(ssl, options);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_clear_options => 0x%lx", ssl, result);
     return result;
+}
+
+
+static void NativeCrypto_SSL_use_psk_identity_hint(JNIEnv* env, jclass,
+        jlong ssl_address, jstring identityHintJava)
+{
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_use_psk_identity_hint identityHint=%p",
+            ssl, identityHintJava);
+    if (ssl == NULL)  {
+        return;
+    }
+
+    int ret;
+    if (identityHintJava == NULL) {
+        ret = SSL_use_psk_identity_hint(ssl, NULL);
+    } else {
+        ScopedUtfChars identityHint(env, identityHintJava);
+        if (identityHint.c_str() == NULL) {
+            throwSSLExceptionStr(env, "Failed to obtain identityHint bytes");
+            return;
+        }
+        ret = SSL_use_psk_identity_hint(ssl, identityHint.c_str());
+    }
+
+    if (ret != 1) {
+        int sslErrorCode = SSL_get_error(ssl, ret);
+        throwSSLExceptionWithSslErrors(env, ssl, sslErrorCode, "Failed to set PSK identity hint");
+        SSL_clear(ssl);
+    }
+}
+
+static void NativeCrypto_set_SSL_psk_client_callback_enabled(JNIEnv* env, jclass,
+        jlong ssl_address, jboolean enabled)
+{
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_set_SSL_psk_client_callback_enabled(%d)",
+            ssl, enabled);
+    if (ssl == NULL)  {
+        return;
+    }
+
+    SSL_set_psk_client_callback(ssl, (enabled) ? psk_client_callback : NULL);
+}
+
+static void NativeCrypto_set_SSL_psk_server_callback_enabled(JNIEnv* env, jclass,
+        jlong ssl_address, jboolean enabled)
+{
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_set_SSL_psk_server_callback_enabled(%d)",
+            ssl, enabled);
+    if (ssl == NULL)  {
+        return;
+    }
+
+    SSL_set_psk_server_callback(ssl, (enabled) ? psk_server_callback : NULL);
 }
 
 static jlongArray NativeCrypto_SSL_get_ciphers(JNIEnv* env, jclass, jlong ssl_address)
@@ -8928,6 +9115,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_get_options, "(J)J"),
     NATIVE_METHOD(NativeCrypto, SSL_set_options, "(JJ)J"),
     NATIVE_METHOD(NativeCrypto, SSL_clear_options, "(JJ)J"),
+    NATIVE_METHOD(NativeCrypto, SSL_use_psk_identity_hint, "(JLjava/lang/String;)V"),
+    NATIVE_METHOD(NativeCrypto, set_SSL_psk_client_callback_enabled, "(JZ)V"),
+    NATIVE_METHOD(NativeCrypto, set_SSL_psk_server_callback_enabled, "(JZ)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_cipher_lists, "(J[Ljava/lang/String;)V"),
     NATIVE_METHOD(NativeCrypto, SSL_get_ciphers, "(J)[J"),
     NATIVE_METHOD(NativeCrypto, get_SSL_CIPHER_algorithm_auth, "(J)I"),
