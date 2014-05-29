@@ -32,6 +32,7 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import javax.crypto.SecretKey;
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
@@ -55,7 +56,8 @@ import javax.security.auth.x500.X500Principal;
  */
 public class OpenSSLSocketImpl
         extends javax.net.ssl.SSLSocket
-        implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.AliasChooser {
+        implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.AliasChooser,
+        SSLParametersImpl.PSKCallbacks {
 
     private static final boolean DBG_STATE = false;
 
@@ -288,7 +290,7 @@ public class OpenSSLSocketImpl
 
             final OpenSSLSessionImpl sessionToReuse = sslParameters.getSessionToReuse(
                     sslNativePointer, getPeerHostName(), getPeerPort());
-            sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this,
+            sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this, this,
                     getPeerHostName());
             sslParameters.setCertificateValidation(sslNativePointer);
             sslParameters.setTlsChannelId(sslNativePointer, channelIdPrivateKey);
@@ -417,6 +419,18 @@ public class OpenSSLSocketImpl
             throws CertificateEncodingException, SSLException {
         sslParameters.chooseClientCertificate(keyTypeBytes, asn1DerEncodedPrincipals,
                 sslNativePointer, this);
+    }
+
+    @Override
+    @SuppressWarnings("unused") // used by native psk_client_callback
+    public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key) {
+        return sslParameters.clientPSKKeyRequested(identityHint, identity, key, this);
+    }
+
+    @Override
+    @SuppressWarnings("unused") // used by native psk_server_callback
+    public int serverPSKKeyRequested(String identityHint, String identity, byte[] key) {
+        return sslParameters.serverPSKKeyRequested(identityHint, identity, key, this);
     }
 
     @Override
@@ -1229,5 +1243,20 @@ public class OpenSSLSocketImpl
     public String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
             String[] keyTypes) {
         return keyManager.chooseClientAlias(keyTypes, null, this);
+    }
+
+    @Override
+    public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
+        return keyManager.chooseServerKeyIdentityHint(this);
+    }
+
+    @Override
+    public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
+        return keyManager.chooseClientKeyIdentity(identityHint, this);
+    }
+
+    @Override
+    public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
+        return keyManager.getKey(identityHint, identity, this);
     }
 }

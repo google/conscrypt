@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -636,7 +637,10 @@ public class NativeCryptoTest extends TestCase {
     private static final boolean DEBUG = false;
 
     public static class Hooks {
+        protected String negotiatedCipherSuite;
         private OpenSSLKey channelIdPrivateKey;
+        protected boolean pskEnabled;
+        protected byte[] pskKey;
 
         /**
          * @throws SSLException
@@ -649,19 +653,30 @@ public class NativeCryptoTest extends TestCase {
             // without this SSL_set_cipher_lists call the tests were
             // negotiating DHE-RSA-AES256-SHA by default which had
             // very slow ephemeral RSA key generation
-            NativeCrypto.SSL_set_cipher_lists(s, new String[] { "RC4-MD5" });
+            List<String> cipherSuites = new ArrayList<String>();
+            cipherSuites.add("RC4-MD5");
+            if (pskEnabled) {
+                // In TLS-PSK the client indicates that PSK key exchange is desired by offering at
+                // least one PSK cipher suite.
+                cipherSuites.add(0, "PSK-AES128-CBC-SHA");
+            }
+            NativeCrypto.SSL_set_cipher_lists(
+                    s, cipherSuites.toArray(new String[cipherSuites.size()]));
 
             if (channelIdPrivateKey != null) {
                 NativeCrypto.SSL_set1_tls_channel_id(s, channelIdPrivateKey.getPkeyContext());
             }
             return s;
         }
+        public void configureCallbacks(
+                @SuppressWarnings("unused") TestSSLHandshakeCallbacks callbacks) {}
         public void clientCertificateRequested(@SuppressWarnings("unused") long s) {}
         public void afterHandshake(long session, long ssl, long context,
                                    Socket socket, FileDescriptor fd,
                                    SSLHandshakeCallbacks callback)
                 throws Exception {
             if (session != NULL) {
+                negotiatedCipherSuite = NativeCrypto.SSL_SESSION_cipher(session);
                 NativeCrypto.SSL_SESSION_free(session);
             }
             if (ssl != NULL) {
@@ -749,6 +764,97 @@ public class NativeCryptoTest extends TestCase {
         public Socket getSocket() {
             return socket;
         }
+
+        private boolean clientPSKKeyRequestedInvoked;
+        private String clientPSKKeyRequestedIdentityHint;
+        private int clientPSKKeyRequestedResult;
+        private byte[] clientPSKKeyRequestedResultKey;
+        private byte[] clientPSKKeyRequestedResultIdentity;
+
+        @Override
+        public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key) {
+            if (DEBUG) {
+                System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
+                                   + " clientPSKKeyRequested"
+                                   + " identityHint=" + identityHint
+                                   + " identity capacity=" + identity.length
+                                   + " key capacity=" + key.length);
+            }
+            clientPSKKeyRequestedInvoked = true;
+            clientPSKKeyRequestedIdentityHint = identityHint;
+            if (clientPSKKeyRequestedResultKey != null) {
+                System.arraycopy(
+                        clientPSKKeyRequestedResultKey, 0,
+                        key, 0,
+                        clientPSKKeyRequestedResultKey.length);
+            }
+            if (clientPSKKeyRequestedResultIdentity != null) {
+                System.arraycopy(
+                        clientPSKKeyRequestedResultIdentity, 0,
+                        identity, 0,
+                        Math.min(clientPSKKeyRequestedResultIdentity.length, identity.length));
+            }
+            return clientPSKKeyRequestedResult;
+        }
+
+        private boolean serverPSKKeyRequestedInvoked;
+        private int serverPSKKeyRequestedResult;
+        private byte[] serverPSKKeyRequestedResultKey;
+        private String serverPSKKeyRequestedIdentityHint;
+        private String serverPSKKeyRequestedIdentity;
+        @Override
+        public int serverPSKKeyRequested(String identityHint, String identity, byte[] key) {
+            if (DEBUG) {
+                System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
+                                   + " serverPSKKeyRequested"
+                                   + " identityHint=" + identityHint
+                                   + " identity=" + identity
+                                   + " key capacity=" + key.length);
+            }
+            serverPSKKeyRequestedInvoked = true;
+            serverPSKKeyRequestedIdentityHint = identityHint;
+            serverPSKKeyRequestedIdentity = identity;
+            if (serverPSKKeyRequestedResultKey != null) {
+                System.arraycopy(
+                        serverPSKKeyRequestedResultKey, 0,
+                        key, 0,
+                        serverPSKKeyRequestedResultKey.length);
+            }
+            return serverPSKKeyRequestedResult;
+        }
+    }
+
+    public static class ClientHooks extends Hooks {
+        protected String pskIdentity;
+
+        @Override
+        public void configureCallbacks(TestSSLHandshakeCallbacks callbacks) {
+            super.configureCallbacks(callbacks);
+            if (pskEnabled) {
+                if (pskIdentity != null) {
+                    // Create a NULL-terminated modified UTF-8 representation of pskIdentity.
+                    byte[] b;
+                    try {
+                        b = pskIdentity.getBytes("UTF-8");
+                    } catch (UnsupportedEncodingException e) {
+                        throw new RuntimeException("UTF-8 encoding not supported", e);
+                    }
+                    callbacks.clientPSKKeyRequestedResultIdentity =
+                            Arrays.copyOf(b, b.length + 1);
+                }
+                callbacks.clientPSKKeyRequestedResultKey = pskKey;
+                callbacks.clientPSKKeyRequestedResult = (pskKey != null) ? pskKey.length : 0;
+            }
+        }
+
+        @Override
+        public long beforeHandshake(long c) throws SSLException {
+            long s = super.beforeHandshake(c);
+            if (pskEnabled) {
+                NativeCrypto.set_SSL_psk_client_callback_enabled(s, true);
+            }
+            return s;
+        }
     }
 
     public static class ServerHooks extends Hooks {
@@ -757,6 +863,12 @@ public class NativeCryptoTest extends TestCase {
         private boolean channelIdEnabled;
         private byte[] channelIdAfterHandshake;
         private Throwable channelIdAfterHandshakeException;
+
+        protected String pskIdentityHint;
+
+        public ServerHooks() {
+            this(null, null);
+        }
 
         public ServerHooks(OpenSSLKey privateKey, long[] certificates) {
             this.privateKey = privateKey;
@@ -775,8 +887,21 @@ public class NativeCryptoTest extends TestCase {
             if (channelIdEnabled) {
                 NativeCrypto.SSL_enable_tls_channel_id(s);
             }
+            if (pskEnabled) {
+                NativeCrypto.set_SSL_psk_server_callback_enabled(s, true);
+                NativeCrypto.SSL_use_psk_identity_hint(s, pskIdentityHint);
+            }
             NativeCrypto.SSL_set_verify(s, NativeCrypto.SSL_VERIFY_NONE);
             return s;
+        }
+
+        @Override
+        public void configureCallbacks(TestSSLHandshakeCallbacks callbacks) {
+            super.configureCallbacks(callbacks);
+            if (pskEnabled) {
+                callbacks.serverPSKKeyRequestedResultKey = pskKey;
+                callbacks.serverPSKKeyRequestedResult = (pskKey != null) ? pskKey.length : 0;
+            }
         }
 
         @Override
@@ -820,6 +945,7 @@ public class NativeCryptoTest extends TestCase {
                 long s = hooks.beforeHandshake(c);
                 TestSSLHandshakeCallbacks callback
                         = new TestSSLHandshakeCallbacks(socket, s, hooks);
+                hooks.configureCallbacks(callback);
                 if (DEBUG) {
                     System.out.println("ssl=0x" + Long.toString(s, 16)
                                        + " handshake"
@@ -893,6 +1019,10 @@ public class NativeCryptoTest extends TestCase {
         assertFalse(serverCallback.verifyCertificateChainCalled);
         assertFalse(clientCallback.clientCertificateRequestedCalled);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
+        assertFalse(clientCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.serverPSKKeyRequestedInvoked);
         assertTrue(clientCallback.handshakeCompletedCalled);
         assertTrue(serverCallback.handshakeCompletedCalled);
     }
@@ -942,6 +1072,11 @@ public class NativeCryptoTest extends TestCase {
         assertEqualPrincipals(getCaPrincipals(),
                               clientCallback.asn1DerEncodedX500Principals);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
+
+        assertFalse(clientCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.serverPSKKeyRequestedInvoked);
 
         assertTrue(clientCallback.handshakeCompletedCalled);
         assertTrue(serverCallback.handshakeCompletedCalled);
@@ -1106,6 +1241,10 @@ public class NativeCryptoTest extends TestCase {
         assertFalse(serverCallback.verifyCertificateChainCalled);
         assertFalse(clientCallback.clientCertificateRequestedCalled);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
+        assertFalse(clientCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.serverPSKKeyRequestedInvoked);
         assertTrue(clientCallback.handshakeCompletedCalled);
         assertTrue(serverCallback.handshakeCompletedCalled);
         assertNull(sHooks.channelIdAfterHandshakeException);
@@ -1132,6 +1271,10 @@ public class NativeCryptoTest extends TestCase {
         assertFalse(serverCallback.verifyCertificateChainCalled);
         assertFalse(clientCallback.clientCertificateRequestedCalled);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
+        assertFalse(clientCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.serverPSKKeyRequestedInvoked);
         assertTrue(clientCallback.handshakeCompletedCalled);
         assertTrue(serverCallback.handshakeCompletedCalled);
         assertNull(sHooks.channelIdAfterHandshakeException);
@@ -1158,10 +1301,228 @@ public class NativeCryptoTest extends TestCase {
         assertFalse(serverCallback.verifyCertificateChainCalled);
         assertFalse(clientCallback.clientCertificateRequestedCalled);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
+        assertFalse(clientCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.serverPSKKeyRequestedInvoked);
         assertTrue(clientCallback.handshakeCompletedCalled);
         assertTrue(serverCallback.handshakeCompletedCalled);
         assertNull(sHooks.channelIdAfterHandshakeException);
         assertNull(sHooks.channelIdAfterHandshake);
+    }
+
+    public void test_SSL_do_handshake_with_psk_normal() throws Exception {
+        // normal TLS-PSK client and server case
+        final ServerSocket listener = new ServerSocket(0);
+        Hooks cHooks = new ClientHooks();
+        ServerHooks sHooks = new ServerHooks();
+        cHooks.pskEnabled = true;
+        sHooks.pskEnabled = true;
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        sHooks.pskKey = cHooks.pskKey;
+        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
+        Future<TestSSLHandshakeCallbacks> server =
+                handshake(listener, 0, false, sHooks, null, null);
+        TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        TestSSLHandshakeCallbacks serverCallback = server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertFalse(clientCallback.verifyCertificateChainCalled);
+        assertFalse(serverCallback.verifyCertificateChainCalled);
+        assertFalse(clientCallback.clientCertificateRequestedCalled);
+        assertFalse(serverCallback.clientCertificateRequestedCalled);
+        assertTrue(clientCallback.handshakeCompletedCalled);
+        assertTrue(serverCallback.handshakeCompletedCalled);
+        assertTrue(clientCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
+        assertTrue(serverCallback.serverPSKKeyRequestedInvoked);
+        assertContains(cHooks.negotiatedCipherSuite, "PSK");
+        assertEquals(cHooks.negotiatedCipherSuite, sHooks.negotiatedCipherSuite);
+        assertNull(clientCallback.clientPSKKeyRequestedIdentityHint);
+        assertNull(serverCallback.serverPSKKeyRequestedIdentityHint);
+        assertEquals("", serverCallback.serverPSKKeyRequestedIdentity);
+    }
+
+    public void test_SSL_do_handshake_with_psk_with_identity_and_hint() throws Exception {
+        // normal TLS-PSK client and server case where the server provides the client with a PSK
+        // identity hint, and the client provides the server with a PSK identity.
+        final ServerSocket listener = new ServerSocket(0);
+        ClientHooks cHooks = new ClientHooks();
+        ServerHooks sHooks = new ServerHooks();
+        cHooks.pskEnabled = true;
+        sHooks.pskEnabled = true;
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        sHooks.pskKey = cHooks.pskKey;
+        sHooks.pskIdentityHint = "Some non-ASCII characters: \u00c4\u0332";
+        cHooks.pskIdentity = "More non-ASCII characters: \u00f5\u044b";
+        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
+        Future<TestSSLHandshakeCallbacks> server =
+                handshake(listener, 0, false, sHooks, null, null);
+        TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        TestSSLHandshakeCallbacks serverCallback = server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertFalse(clientCallback.verifyCertificateChainCalled);
+        assertFalse(serverCallback.verifyCertificateChainCalled);
+        assertFalse(clientCallback.clientCertificateRequestedCalled);
+        assertFalse(serverCallback.clientCertificateRequestedCalled);
+        assertTrue(clientCallback.handshakeCompletedCalled);
+        assertTrue(serverCallback.handshakeCompletedCalled);
+        assertTrue(clientCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
+        assertTrue(serverCallback.serverPSKKeyRequestedInvoked);
+        assertContains(cHooks.negotiatedCipherSuite, "PSK");
+        assertEquals(cHooks.negotiatedCipherSuite, sHooks.negotiatedCipherSuite);
+        assertEquals(sHooks.pskIdentityHint, clientCallback.clientPSKKeyRequestedIdentityHint);
+        assertEquals(sHooks.pskIdentityHint, serverCallback.serverPSKKeyRequestedIdentityHint);
+        assertEquals(cHooks.pskIdentity, serverCallback.serverPSKKeyRequestedIdentity);
+    }
+
+    public void test_SSL_do_handshake_with_psk_with_identity_and_hint_of_max_length()
+            throws Exception {
+        // normal TLS-PSK client and server case where the server provides the client with a PSK
+        // identity hint, and the client provides the server with a PSK identity.
+        final ServerSocket listener = new ServerSocket(0);
+        ClientHooks cHooks = new ClientHooks();
+        ServerHooks sHooks = new ServerHooks();
+        cHooks.pskEnabled = true;
+        sHooks.pskEnabled = true;
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        sHooks.pskKey = cHooks.pskKey;
+        sHooks.pskIdentityHint = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"
+                + "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx";
+        cHooks.pskIdentity = "123456789012345678901234567890123456789012345678901234567890"
+                + "12345678901234567890123456789012345678901234567890123456789012345678";
+        assertEquals(PSKKeyManager.MAX_IDENTITY_HINT_LENGTH_BYTES, sHooks.pskIdentityHint.length());
+        assertEquals(PSKKeyManager.MAX_IDENTITY_LENGTH_BYTES, cHooks.pskIdentity.length());
+        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
+        Future<TestSSLHandshakeCallbacks> server =
+                handshake(listener, 0, false, sHooks, null, null);
+        TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        TestSSLHandshakeCallbacks serverCallback = server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertFalse(clientCallback.verifyCertificateChainCalled);
+        assertFalse(serverCallback.verifyCertificateChainCalled);
+        assertFalse(clientCallback.clientCertificateRequestedCalled);
+        assertFalse(serverCallback.clientCertificateRequestedCalled);
+        assertTrue(clientCallback.handshakeCompletedCalled);
+        assertTrue(serverCallback.handshakeCompletedCalled);
+        assertTrue(clientCallback.clientPSKKeyRequestedInvoked);
+        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
+        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
+        assertTrue(serverCallback.serverPSKKeyRequestedInvoked);
+        assertContains(cHooks.negotiatedCipherSuite, "PSK");
+        assertEquals(cHooks.negotiatedCipherSuite, sHooks.negotiatedCipherSuite);
+        assertEquals(sHooks.pskIdentityHint, clientCallback.clientPSKKeyRequestedIdentityHint);
+        assertEquals(sHooks.pskIdentityHint, serverCallback.serverPSKKeyRequestedIdentityHint);
+        assertEquals(cHooks.pskIdentity, serverCallback.serverPSKKeyRequestedIdentity);
+    }
+
+    public void test_SSL_do_handshake_with_psk_key_mismatch() throws Exception {
+        final ServerSocket listener = new ServerSocket(0);
+        ClientHooks cHooks = new ClientHooks();
+        ServerHooks sHooks = new ServerHooks();
+        cHooks.pskEnabled = true;
+        sHooks.pskEnabled = true;
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        sHooks.pskKey = "1, 2, 3, 3, Testing...".getBytes("UTF-8");
+        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
+        Future<TestSSLHandshakeCallbacks> server =
+                handshake(listener, 0, false, sHooks, null, null);
+        try {
+            client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            fail();
+        } catch (ExecutionException expected) {
+            assertEquals(SSLProtocolException.class, expected.getCause().getClass());
+        }
+    }
+
+    public void test_SSL_do_handshake_with_psk_with_no_client_key() throws Exception {
+        final ServerSocket listener = new ServerSocket(0);
+        ClientHooks cHooks = new ClientHooks();
+        ServerHooks sHooks = new ServerHooks();
+        cHooks.pskEnabled = true;
+        sHooks.pskEnabled = true;
+        cHooks.pskKey = null;
+        sHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
+        Future<TestSSLHandshakeCallbacks> server =
+                handshake(listener, 0, false, sHooks, null, null);
+        try {
+            client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            fail();
+        } catch (ExecutionException expected) {
+            assertEquals(SSLProtocolException.class, expected.getCause().getClass());
+        }
+    }
+
+    public void test_SSL_do_handshake_with_psk_with_no_server_key() throws Exception {
+        final ServerSocket listener = new ServerSocket(0);
+        ClientHooks cHooks = new ClientHooks();
+        ServerHooks sHooks = new ServerHooks();
+        cHooks.pskEnabled = true;
+        sHooks.pskEnabled = true;
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        sHooks.pskKey = null;
+        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
+        Future<TestSSLHandshakeCallbacks> server =
+                handshake(listener, 0, false, sHooks, null, null);
+        try {
+            client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            fail();
+        } catch (ExecutionException expected) {
+            assertEquals(SSLProtocolException.class, expected.getCause().getClass());
+        }
+    }
+
+    public void test_SSL_do_handshake_with_psk_key_too_long() throws Exception {
+        final ServerSocket listener = new ServerSocket(0);
+        ClientHooks cHooks = new ClientHooks() {
+            @Override
+            public void configureCallbacks(TestSSLHandshakeCallbacks callbacks) {
+                super.configureCallbacks(callbacks);
+                callbacks.clientPSKKeyRequestedResult = PSKKeyManager.MAX_KEY_LENGTH_BYTES + 1;
+            }
+        };
+        ServerHooks sHooks = new ServerHooks();
+        cHooks.pskEnabled = true;
+        sHooks.pskEnabled = true;
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        sHooks.pskKey = cHooks.pskKey;
+        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
+        Future<TestSSLHandshakeCallbacks> server =
+                handshake(listener, 0, false, sHooks, null, null);
+        try {
+            client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            fail();
+        } catch (ExecutionException expected) {
+            assertEquals(SSLProtocolException.class, expected.getCause().getClass());
+        }
+    }
+
+    public void test_SSL_use_psk_identity_hint() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c);
+        try {
+            NativeCrypto.SSL_use_psk_identity_hint(s, null);
+            NativeCrypto.SSL_use_psk_identity_hint(s, "test");
+
+            try {
+                // 800 characters is much longer than the permitted maximum.
+                StringBuilder pskIdentityHint = new StringBuilder();
+                for (int i = 0; i < 160; i++) {
+                    pskIdentityHint.append(" long");
+                }
+                assertTrue(pskIdentityHint.length() > PSKKeyManager.MAX_IDENTITY_HINT_LENGTH_BYTES);
+                NativeCrypto.SSL_use_psk_identity_hint(s, pskIdentityHint.toString());
+                fail();
+            } catch (SSLException expected) {
+            }
+        } finally {
+            NativeCrypto.SSL_free(s);
+            NativeCrypto.SSL_CTX_free(c);
+        }
     }
 
     public void test_SSL_set_session() throws Exception {
@@ -2818,5 +3179,15 @@ public class NativeCryptoTest extends TestCase {
         } finally {
             NativeCrypto.BIO_free_all(ctx);
         }
+    }
+
+    private static void assertContains(String actualValue, String expectedSubstring) {
+        if (actualValue == null) {
+            return;
+        }
+        if (actualValue.contains(expectedSubstring)) {
+            return;
+        }
+        fail("\"" + actualValue + "\" does not contain \"" + expectedSubstring + "\"");
     }
 }

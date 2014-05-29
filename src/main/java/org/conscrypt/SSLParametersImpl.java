@@ -17,7 +17,9 @@
 
 package org.conscrypt;
 
+import org.conscrypt.util.EmptyArray;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -31,6 +33,7 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import javax.crypto.SecretKey;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLException;
@@ -69,6 +72,8 @@ public class SSLParametersImpl implements Cloneable {
     private final ServerSessionContext serverSessionContext;
     // source of X.509 certificate based authentication keys or null if not provided
     private final X509KeyManager x509KeyManager;
+    // source of Pre-Shared Key (PSK) authentication keys or null if not provided.
+    private final PSKKeyManager pskKeyManager;
     // source of X.509 certificate based authentication trust decisions or null if not provided
     private final X509TrustManager x509TrustManager;
     // source of random numbers
@@ -116,11 +121,14 @@ public class SSLParametersImpl implements Cloneable {
         this.serverSessionContext = serverSessionContext;
         this.clientSessionContext = clientSessionContext;
 
-        // initialize x509KeyManager
+        // initialize key managers
         if (kms == null) {
             x509KeyManager = getDefaultX509KeyManager();
+            // There's no default PSK key manager
+            pskKeyManager = null;
         } else {
             x509KeyManager = findFirstX509KeyManager(kms);
+            pskKeyManager = findFirstPSKKeyManager(kms);
         }
 
         // initialize x509TrustManager
@@ -188,6 +196,13 @@ public class SSLParametersImpl implements Cloneable {
      */
     protected X509KeyManager getX509KeyManager() {
         return x509KeyManager;
+    }
+
+    /**
+     * @return Pre-Shared Key (PSK) key manager or {@code null} for none.
+     */
+    protected PSKKeyManager getPSKKeyManager() {
+        return pskKeyManager;
     }
 
     /**
@@ -440,7 +455,7 @@ public class SSLParametersImpl implements Cloneable {
     }
 
     void setSSLParameters(long sslCtxNativePointer, long sslNativePointer, AliasChooser chooser,
-            String hostname) throws SSLException, IOException {
+            PSKCallbacks pskCallbacks, String hostname) throws SSLException, IOException {
         if (npnProtocols != null) {
             NativeCrypto.SSL_CTX_enable_npn(sslCtxNativePointer);
         }
@@ -449,15 +464,16 @@ public class SSLParametersImpl implements Cloneable {
             NativeCrypto.SSL_set_alpn_protos(sslNativePointer, alpnProtocols);
         }
 
+        String[] enabledCipherSuites = openSslEnabledCipherSuites;
         NativeCrypto.setEnabledProtocols(sslNativePointer, openSslEnabledProtocols);
-        NativeCrypto.setEnabledCipherSuites(sslNativePointer, openSslEnabledCipherSuites);
+        NativeCrypto.setEnabledCipherSuites(sslNativePointer, enabledCipherSuites);
 
         // setup server certificates and private keys.
         // clients will receive a call back to request certificates.
         if (!client_mode) {
             Set<String> keyTypes = new HashSet<String>();
             for (long sslCipherNativePointer : NativeCrypto.SSL_get_ciphers(sslNativePointer)) {
-                String keyType = getServerKeyType(sslCipherNativePointer);
+                String keyType = getServerX509KeyType(sslCipherNativePointer);
                 if (keyType != null) {
                     keyTypes.add(keyType);
                 }
@@ -471,6 +487,27 @@ public class SSLParametersImpl implements Cloneable {
                     } catch (CertificateEncodingException e) {
                         throw new IOException(e);
                     }
+                }
+            }
+        }
+
+        // Enable Pre-Shared Key (PSK) key exchange if requested
+        PSKKeyManager pskKeyManager = getPSKKeyManager();
+        if (pskKeyManager != null) {
+            boolean pskEnabled = false;
+            for (String enabledCipherSuite : enabledCipherSuites) {
+                if ((enabledCipherSuite != null) && (enabledCipherSuite.contains("PSK"))) {
+                    pskEnabled = true;
+                    break;
+                }
+            }
+            if (pskEnabled) {
+                if (client_mode) {
+                    NativeCrypto.set_SSL_psk_client_callback_enabled(sslNativePointer, true);
+                } else {
+                    NativeCrypto.set_SSL_psk_server_callback_enabled(sslNativePointer, true);
+                    String identityHint = pskCallbacks.chooseServerPSKIdentityHint(pskKeyManager);
+                    NativeCrypto.SSL_use_psk_identity_hint(sslNativePointer, identityHint);
                 }
             }
         }
@@ -581,6 +618,72 @@ public class SSLParametersImpl implements Cloneable {
     }
 
     /**
+     * @see NativeCrypto.SSLHandshakeCallbacks#clientPSKKeyRequested(String, byte[], byte[])
+     */
+    int clientPSKKeyRequested(
+            String identityHint, byte[] identityBytesOut, byte[] key, PSKCallbacks pskCallbacks) {
+        PSKKeyManager pskKeyManager = getPSKKeyManager();
+        if (pskKeyManager == null) {
+            return 0;
+        }
+
+        String identity = pskCallbacks.chooseClientPSKIdentity(pskKeyManager, identityHint);
+        // Store identity in NULL-terminated modified UTF-8 representation into ientityBytesOut
+        byte[] identityBytes;
+        if (identity == null) {
+            identity = "";
+            identityBytes = EmptyArray.BYTE;
+        } else if (identity.isEmpty()) {
+            identityBytes = EmptyArray.BYTE;
+        } else {
+            try {
+                identityBytes = identity.getBytes("UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException("UTF-8 encoding not supported", e);
+            }
+        }
+        if (identityBytes.length + 1 > identityBytesOut.length) {
+            // Insufficient space in the output buffer
+            return 0;
+        }
+        if (identityBytes.length > 0) {
+            System.arraycopy(identityBytes, 0, identityBytesOut, 0, identityBytes.length);
+        }
+        identityBytesOut[identityBytes.length] = 0;
+
+        SecretKey secretKey = pskCallbacks.getPSKKey(pskKeyManager, identityHint, identity);
+        byte[] secretKeyBytes = secretKey.getEncoded();
+        if (secretKeyBytes == null) {
+            return 0;
+        } else if (secretKeyBytes.length > key.length) {
+            // Insufficient space in the output buffer
+            return 0;
+        }
+        System.arraycopy(secretKeyBytes, 0, key, 0, secretKeyBytes.length);
+        return secretKeyBytes.length;
+    }
+
+    /**
+     * @see NativeCrypto.SSLHandshakeCallbacks#serverPSKKeyRequested(String, String, byte[])
+     */
+    int serverPSKKeyRequested(
+            String identityHint, String identity, byte[] key, PSKCallbacks pskCallbacks) {
+        PSKKeyManager pskKeyManager = getPSKKeyManager();
+        if (pskKeyManager == null) {
+            return 0;
+        }
+        SecretKey secretKey = pskCallbacks.getPSKKey(pskKeyManager, identityHint, identity);
+        byte[] secretKeyBytes = secretKey.getEncoded();
+        if (secretKeyBytes == null) {
+            return 0;
+        } else if (secretKeyBytes.length > key.length) {
+            return 0;
+        }
+        System.arraycopy(secretKeyBytes, 0, key, 0, secretKeyBytes.length);
+        return secretKeyBytes.length;
+    }
+
+    /**
      * Gets the suitable session reference from the session cache container.
      */
     OpenSSLSessionImpl getCachedClientSession(ClientSessionContext sessionContext, String hostName,
@@ -634,6 +737,16 @@ public class SSLParametersImpl implements Cloneable {
     }
 
     /**
+     * For abstracting the {@code PSKKeyManager} calls between those taking an {@code SSLSocket} and
+     * those taking an {@code SSLEngine}.
+     */
+    public interface PSKCallbacks {
+        String chooseServerPSKIdentityHint(PSKKeyManager keyManager);
+        String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint);
+        SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity);
+    }
+
+    /**
      * Returns the clone of this object.
      * @return the clone.
      */
@@ -684,6 +797,20 @@ public class SSLParametersImpl implements Cloneable {
         for (KeyManager km : kms) {
             if (km instanceof X509KeyManager) {
                 return (X509KeyManager)km;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds the first {@link PSKKeyManager} element in the provided array.
+     *
+     * @return the first {@code PSKKeyManager} or {@code null} if not found.
+     */
+    private static PSKKeyManager findFirstPSKKeyManager(KeyManager[] kms) {
+        for (KeyManager km : kms) {
+            if (km instanceof PSKKeyManager) {
+                return (PSKKeyManager)km;
             }
         }
         return null;
@@ -772,10 +899,10 @@ public class SSLParametersImpl implements Cloneable {
 
     /**
      * Returns key type constant suitable for calling X509KeyManager.chooseServerAlias or
-     * X509ExtendedKeyManager.chooseEngineServerAlias. Returns {@code null} for anonymous key
-     * exchanges.
+     * X509ExtendedKeyManager.chooseEngineServerAlias. Returns {@code null} for key exchanges that
+     * do not use X.509 for server authentication.
      */
-    private static String getServerKeyType(long sslCipherNative) throws SSLException {
+    private static String getServerX509KeyType(long sslCipherNative) throws SSLException {
         int algorithm_mkey = NativeCrypto.get_SSL_CIPHER_algorithm_mkey(sslCipherNative);
         int algorithm_auth = NativeCrypto.get_SSL_CIPHER_algorithm_auth(sslCipherNative);
         switch (algorithm_mkey) {
@@ -801,10 +928,14 @@ public class SSLParametersImpl implements Cloneable {
                         return KEY_TYPE_EC_EC;
                     case NativeCrypto.SSL_aRSA:
                         return KEY_TYPE_RSA;
+                    case NativeCrypto.SSL_aPSK:
+                        return null;
                     case NativeCrypto.SSL_aNULL:
                         return null;
                 }
                 break;
+            case NativeCrypto.SSL_kPSK:
+                return null;
         }
 
         throw new SSLException("Unsupported key exchange. "
