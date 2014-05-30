@@ -3313,7 +3313,7 @@ static void NativeCrypto_EVP_MD_CTX_init(JNIEnv* env, jclass, jobject ctxRef) {
     }
 }
 
-static void NativeCrypto_EVP_MD_CTX_destroy(JNIEnv* env, jclass, jlong ctxRef) {
+static void NativeCrypto_EVP_MD_CTX_destroy(JNIEnv*, jclass, jlong ctxRef) {
     EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
     JNI_TRACE_MD("EVP_MD_CTX_destroy(%p)", ctx);
 
