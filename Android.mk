@@ -208,6 +208,8 @@ ifeq ($(WITH_HOST_DALVIK),true)
     include $(BUILD_HOST_SHARED_LIBRARY)
 
     # Conscrypt native library for nojarjar'd version
+    # Don't build this for unbundled conscrypt build
+    ifeq (,$(TARGET_BUILD_APPS))
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES += \
             src/main/native/org_conscrypt_NativeCrypto.cpp
@@ -222,4 +224,5 @@ ifeq ($(WITH_HOST_DALVIK),true)
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
     LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
     include $(BUILD_HOST_SHARED_LIBRARY)
+    endif
 endif
