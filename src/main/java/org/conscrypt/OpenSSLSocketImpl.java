@@ -165,18 +165,6 @@ public class OpenSSLSocketImpl
         this.sslParameters = sslParameters;
     }
 
-    protected OpenSSLSocketImpl(SSLParametersImpl sslParameters,
-                                String[] enabledProtocols,
-                                String[] enabledCipherSuites) throws IOException {
-        this.socket = this;
-        this.wrappedHost = null;
-        this.wrappedPort = -1;
-        this.autoClose = false;
-        this.sslParameters = sslParameters;
-        this.sslParameters.openSslEnabledProtocols = enabledProtocols;
-        this.sslParameters.openSslEnabledCipherSuites = enabledCipherSuites;
-    }
-
     protected OpenSSLSocketImpl(String host, int port, SSLParametersImpl sslParameters)
             throws IOException {
         super(host, port);
@@ -838,12 +826,12 @@ public class OpenSSLSocketImpl
 
     @Override
     public String[] getEnabledProtocols() {
-        return sslParameters.openSslEnabledProtocols.clone();
+        return sslParameters.getEnabledProtocols();
     }
 
     @Override
     public void setEnabledProtocols(String[] protocols) {
-        sslParameters.openSslEnabledProtocols = NativeCrypto.checkEnabledProtocols(protocols);
+        sslParameters.setEnabledProtocols(protocols);
     }
 
     /**

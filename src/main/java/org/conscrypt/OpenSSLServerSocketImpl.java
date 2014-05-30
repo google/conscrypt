@@ -25,8 +25,6 @@ import java.net.Socket;
  */
 public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     private final SSLParametersImpl sslParameters;
-    private String[] enabledProtocols = NativeCrypto.getSupportedProtocols();
-    private String[] enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
     private boolean channelIdEnabled;
 
     protected OpenSSLServerSocketImpl(SSLParametersImpl sslParameters) throws IOException {
@@ -81,7 +79,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
      */
     @Override
     public String[] getEnabledProtocols() {
-        return enabledProtocols.clone();
+        return sslParameters.getEnabledProtocols();
     }
 
     /**
@@ -95,7 +93,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
      */
     @Override
     public void setEnabledProtocols(String[] protocols) {
-        enabledProtocols = NativeCrypto.checkEnabledProtocols(protocols);
+        sslParameters.setEnabledProtocols(protocols);
     }
 
     @Override
@@ -105,7 +103,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public String[] getEnabledCipherSuites() {
-        return enabledCipherSuites.clone();
+        return sslParameters.getEnabledCipherSuites();
     }
 
     /**
@@ -132,7 +130,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
      */
     @Override
     public void setEnabledCipherSuites(String[] suites) {
-        enabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(suites);
+        sslParameters.setEnabledCipherSuites(suites);
     }
 
     @Override
@@ -167,9 +165,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
-        OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters,
-                                                         enabledProtocols.clone(),
-                                                         enabledCipherSuites.clone());
+        OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters);
         socket.setChannelIdEnabled(channelIdEnabled);
         implAccept(socket);
         return socket;
