@@ -54,6 +54,7 @@ core_cppflags := -std=gnu++11
 # Create the conscrypt library
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
+LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
 LOCAL_JAVA_LIBRARIES := core
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVACFLAGS := $(local_javac_flags)
@@ -67,6 +68,7 @@ include $(BUILD_JAVA_LIBRARY)
 # Create the conscrypt library without jarjar for tests
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
+LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
 LOCAL_JAVA_LIBRARIES := core
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVACFLAGS := $(local_javac_flags)
@@ -110,22 +112,8 @@ include $(BUILD_SHARED_LIBRARY)
 
 # Unbundled Conscrypt jar
 include $(CLEAR_VARS)
-exclude_src_files := \
-	src/main/java/org/conscrypt/CertPinManager.java \
-	src/main/java/org/conscrypt/FileClientSessionCache.java \
-	src/main/java/org/conscrypt/JSSEProvider.java \
-	src/main/java/org/conscrypt/PinFailureLogger.java \
-	src/main/java/org/conscrypt/PinListEntry.java \
-	src/main/java/org/conscrypt/Platform.java \
-	src/main/java/org/conscrypt/TrustedCertificateIndex.java \
-	src/main/java/org/conscrypt/TrustedCertificateKeyStoreSpi.java \
-	src/main/java/org/conscrypt/TrustedCertificateStore.java \
-	src/main/java/org/conscrypt/TrustManagerFactoryImpl.java \
-	src/main/java/org/conscrypt/TrustManagerImpl.java
-unbundled_src_files := $(call all-java-files-under,src/main/java)
-unbundled_src_files += $(call all-java-files-under,src/compat/java)
-unbundled_src_files := $(filter-out $(exclude_src_files), $(unbundled_src_files))
-LOCAL_SRC_FILES := $(unbundled_src_files)
+LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
+LOCAL_SRC_FILES += $(call all-java-files-under,src/compat/java)
 LOCAL_SDK_VERSION := 9
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
@@ -159,6 +147,7 @@ ifeq ($(WITH_HOST_DALVIK),true)
     # Make the conscrypt-hostdex library
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
+    LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
     LOCAL_MODULE_TAGS := optional
@@ -170,6 +159,7 @@ ifeq ($(WITH_HOST_DALVIK),true)
     # Make the conscrypt-hostdex-nojarjar for tests
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
+    LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_BUILD_HOST_DEX := true
     LOCAL_MODULE_TAGS := optional
