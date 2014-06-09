@@ -22,10 +22,17 @@ import java.io.OutputStream;
 import java.net.SocketTimeoutException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.Provider;
+import java.security.Security;
+import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
+import java.security.interfaces.DSAPrivateKey;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -33,7 +40,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
 
@@ -108,6 +117,12 @@ public final class NativeCrypto {
     public static native byte[] i2d_PUBKEY(long pkey);
 
     public static native long d2i_PUBKEY(byte[] data);
+
+    public static native long getRSAPrivateKeyWrapper(RSAPrivateKey key, byte[] modulus);
+
+    public static native long getDSAPrivateKeyWrapper(DSAPrivateKey key);
+
+    public static native long getECPrivateKeyWrapper(ECPrivateKey key, long ecGroupRef);
 
     public static native long RSA_generate_key_ex(int modulusBits, byte[] publicExponent);
 

@@ -63,6 +63,14 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey, OpenSSLKeyHolder {
     }
 
     static OpenSSLKey getInstance(DSAPrivateKey dsaPrivateKey) throws InvalidKeyException {
+        /**
+         * If the key is not encodable (PKCS11-like key), then wrap it and use
+         * JNI upcalls to satisfy requests.
+         */
+        if (dsaPrivateKey.getFormat() == null) {
+            return wrapPlatformKey(dsaPrivateKey);
+        }
+
         try {
             DSAParams dsaParams = dsaPrivateKey.getParams();
             return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_DSA(
@@ -74,6 +82,10 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey, OpenSSLKeyHolder {
         } catch (Exception e) {
             throw new InvalidKeyException(e);
         }
+    }
+
+    public static OpenSSLKey wrapPlatformKey(DSAPrivateKey dsaPrivateKey) {
+        return new OpenSSLKey(NativeCrypto.getDSAPrivateKeyWrapper(dsaPrivateKey));
     }
 
     @Override

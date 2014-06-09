@@ -89,7 +89,25 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
       return new OpenSSLRSAPrivateKey(key, params);
     }
 
+    protected static OpenSSLKey wrapPlatformKey(RSAPrivateKey rsaPrivateKey)
+            throws InvalidKeyException {
+        OpenSSLKey wrapper = Platform.wrapRsaKey(rsaPrivateKey);
+        if (wrapper != null) {
+            return wrapper;
+        }
+        return new OpenSSLKey(NativeCrypto.getRSAPrivateKeyWrapper(rsaPrivateKey, rsaPrivateKey
+                .getModulus().toByteArray()));
+    }
+
     static OpenSSLKey getInstance(RSAPrivateKey rsaPrivateKey) throws InvalidKeyException {
+        /**
+         * If the key is not encodable (PKCS11-like key), then wrap it and use
+         * JNI upcalls to satisfy requests.
+         */
+        if (rsaPrivateKey.getFormat() == null) {
+            return wrapPlatformKey(rsaPrivateKey);
+        }
+
         final BigInteger modulus = rsaPrivateKey.getModulus();
         final BigInteger privateExponent = rsaPrivateKey.getPrivateExponent();
 
