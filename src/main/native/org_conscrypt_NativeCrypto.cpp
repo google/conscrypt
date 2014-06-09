@@ -127,7 +127,7 @@
 #define WITH_JNI_TRACE_DATA_CHUNK_SIZE 512
 
 static JavaVM* gJavaVM;
-static jclass openSslOutputStreamClass;
+static jclass openSslInputStreamClass;
 static jclass openSslNativeReferenceClass;
 
 static jclass byteArrayClass;
@@ -9168,25 +9168,52 @@ static jclass getGlobalRefToClass(JNIEnv* env, const char* className) {
     return globalRef;
 }
 
+static jmethodID getStaticMethodRef(JNIEnv* env, jclass clazz, const char* name, const char* sig) {
+    jmethodID localMethod = env->GetStaticMethodID(clazz, name, sig);
+    if (localMethod == NULL) {
+        ALOGE("could not find static method %s", name);
+        abort();
+    }
+    return localMethod;
+}
+
+static jmethodID getMethodRef(JNIEnv* env, jclass clazz, const char* name, const char* sig) {
+    jmethodID localMethod = env->GetMethodID(clazz, name, sig);
+    if (localMethod == NULL) {
+        ALOGE("could not find method %s", name);
+        abort();
+    }
+    return localMethod;
+}
+
+static jfieldID getFieldRef(JNIEnv* env, jclass clazz, const char* name, const char* sig) {
+    jfieldID localField = env->GetFieldID(clazz, name, sig);
+    if (localField == NULL) {
+        ALOGE("could not find field %s", name);
+        abort();
+    }
+    return localField;
+}
+
 static void initialize_conscrypt(JNIEnv* env) {
     jniRegisterNativeMethods(env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto",
                              sNativeCryptoMethods, NELEM(sNativeCryptoMethods));
 
     openSslNativeReferenceClass = getGlobalRefToClass(env,
             TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLNativeReference");
-    openSslOutputStreamClass = getGlobalRefToClass(env,
+    openSslInputStreamClass = getGlobalRefToClass(env,
             TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream");
 
-    openSslNativeReference_context = env->GetFieldID(openSslNativeReferenceClass, "context", "J");
+    openSslNativeReference_context = getFieldRef(env, openSslNativeReferenceClass, "context", "J");
 
-    calendar_setMethod = env->GetMethodID(calendarClass, "set", "(IIIIII)V");
-    inputStream_readMethod = env->GetMethodID(inputStreamClass, "read", "([B)I");
+    calendar_setMethod = getMethodRef(env, calendarClass, "set", "(IIIIII)V");
+    inputStream_readMethod = getMethodRef(env, inputStreamClass, "read", "([B)I");
     integer_valueOfMethod = env->GetStaticMethodID(integerClass, "valueOf",
             "(I)Ljava/lang/Integer;");
-    openSslInputStream_readLineMethod = env->GetMethodID(openSslOutputStreamClass, "gets",
+    openSslInputStream_readLineMethod = getMethodRef(env, openSslInputStreamClass, "gets",
             "([B)I");
-    outputStream_writeMethod = env->GetMethodID(outputStreamClass, "write", "([B)V");
-    outputStream_flushMethod = env->GetMethodID(outputStreamClass, "flush", "()V");
+    outputStream_writeMethod = getMethodRef(env, outputStreamClass, "write", "([B)V");
+    outputStream_flushMethod = getMethodRef(env, outputStreamClass, "flush", "()V");
 
 #ifdef CONSCRYPT_UNBUNDLED
     findAsynchronousCloseMonitorFuncs();
