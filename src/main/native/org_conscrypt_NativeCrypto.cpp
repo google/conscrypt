@@ -9794,9 +9794,14 @@ static jclass findClass(JNIEnv* env, const char* name) {
     return result;
 }
 
+#ifdef STATIC_LIB
+// Give client libs everything they need to initialize our JNI
+int libconscrypt_JNI_OnLoad(JavaVM *vm, void*) {
+#else
 // Use JNI_OnLoad for when we're standalone
 int JNI_OnLoad(JavaVM *vm, void*) {
     JNI_TRACE("JNI_OnLoad NativeCrypto");
+#endif
     gJavaVM = vm;
 
     JNIEnv *env;
