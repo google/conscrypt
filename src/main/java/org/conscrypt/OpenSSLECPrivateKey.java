@@ -21,6 +21,7 @@ import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.interfaces.ECPrivateKey;
 import java.security.spec.ECParameterSpec;
@@ -59,10 +60,34 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
         }
     }
 
+    public static OpenSSLKey wrapPlatformKey(ECPrivateKey ecPrivateKey) throws InvalidKeyException {
+        OpenSSLECGroupContext group;
+        try {
+            group = OpenSSLECGroupContext.getInstance(ecPrivateKey.getParams());
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new InvalidKeyException("Unknown group parameters", e);
+        }
+        return wrapPlatformKey(ecPrivateKey, group);
+    }
+
+    private static OpenSSLKey wrapPlatformKey(ECPrivateKey ecPrivateKey, OpenSSLECGroupContext group)
+            throws InvalidKeyException {
+        return new OpenSSLKey(NativeCrypto.getECPrivateKeyWrapper(ecPrivateKey, group.getContext()));
+    }
+
     public static OpenSSLKey getInstance(ECPrivateKey ecPrivateKey) throws InvalidKeyException {
         try {
             OpenSSLECGroupContext group = OpenSSLECGroupContext.getInstance(ecPrivateKey
                     .getParams());
+
+            /**
+             * If the key is not encodable (PKCS11-like key), then wrap it and
+             * use JNI upcalls to satisfy requests.
+             */
+            if (ecPrivateKey.getFormat() == null) {
+                return wrapPlatformKey(ecPrivateKey, group);
+            }
+
             final BigInteger privKey = ecPrivateKey.getS();
             return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getContext(), 0,
                     privKey.toByteArray()));

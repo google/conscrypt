@@ -102,6 +102,7 @@ LOCAL_SRC_FILES := \
         src/main/native/org_conscrypt_NativeCrypto.cpp
 LOCAL_C_INCLUDES += \
         external/openssl/include \
+        external/openssl \
         libcore/include \
         libcore/luni/src/main/native
 LOCAL_SHARED_LIBRARIES := libcrypto libjavacore liblog libnativehelper libssl libz
@@ -127,10 +128,11 @@ LOCAL_CFLAGS += $(core_cflags)
 LOCAL_CPPFLAGS += $(core_cppflags)
 LOCAL_SRC_FILES := \
         src/main/native/org_conscrypt_NativeCrypto.cpp \
-	src/compat/native/JNIHelp.cpp
+        src/compat/native/JNIHelp.cpp
 LOCAL_C_INCLUDES += \
         external/openssl/include \
-	external/conscrypt/src/compat/native
+        external/openssl \
+        external/conscrypt/src/compat/native
 LOCAL_LDFLAGS := -llog -lz -ldl
 LOCAL_STATIC_LIBRARIES := libssl_static libcrypto_static
 LOCAL_MODULE_TAGS := optional
@@ -186,6 +188,7 @@ LOCAL_SRC_FILES += \
         src/main/native/org_conscrypt_NativeCrypto.cpp
 LOCAL_C_INCLUDES += \
         external/openssl/include \
+        external/openssl \
         libcore/include \
         libcore/luni/src/main/native
 LOCAL_CPPFLAGS += $(core_cppflags)
@@ -206,6 +209,7 @@ ifeq (,$(TARGET_BUILD_APPS))
             src/main/native/org_conscrypt_NativeCrypto.cpp
     LOCAL_C_INCLUDES += \
             external/openssl/include \
+            external/openssl \
             libcore/include \
             libcore/luni/src/main/native
     LOCAL_CPPFLAGS += $(core_cppflags) -DCONSCRYPT_NOT_UNBUNDLED
