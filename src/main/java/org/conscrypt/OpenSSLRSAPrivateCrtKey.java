@@ -93,6 +93,14 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
     }
 
     static OpenSSLKey getInstance(RSAPrivateCrtKey rsaPrivateKey) throws InvalidKeyException {
+        /**
+         * If the key is not encodable (PKCS11-like key), then wrap it and use
+         * JNI upcalls to satisfy requests.
+         */
+        if (rsaPrivateKey.getFormat() == null) {
+            return wrapPlatformKey(rsaPrivateKey);
+        }
+
         BigInteger modulus = rsaPrivateKey.getModulus();
         BigInteger privateExponent = rsaPrivateKey.getPrivateExponent();
 

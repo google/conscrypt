@@ -50,6 +50,7 @@
 #include <openssl/rsa.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
+#include "crypto/ecdsa/ecs_locl.h"
 
 #ifndef CONSCRYPT_UNBUNDLED
 /* If we're compiled unbundled from Android system image, we use the
@@ -127,6 +128,7 @@
 #define WITH_JNI_TRACE_DATA_CHUNK_SIZE 512
 
 static JavaVM* gJavaVM;
+static jclass cryptoUpcallsClass;
 static jclass openSslInputStreamClass;
 static jclass openSslNativeReferenceClass;
 
@@ -971,18 +973,30 @@ private:
 };
 
 /**
+ * Obtains the current thread's JNIEnv
+ */
+static JNIEnv* getJNIEnv() {
+    JNIEnv* env;
+    if (gJavaVM->AttachCurrentThread(&env, NULL) < 0) {
+        ALOGE("Could not attach JavaVM to find current JNIEnv");
+        return NULL;
+    }
+    return env;
+}
+
+/**
  * BIO for InputStream
  */
 class BIO_Stream {
 public:
     BIO_Stream(jobject stream) :
             mEof(false) {
-        JNIEnv* env = getEnv();
+        JNIEnv* env = getJNIEnv();
         mStream = env->NewGlobalRef(stream);
     }
 
     ~BIO_Stream() {
-        JNIEnv* env = getEnv();
+        JNIEnv* env = getJNIEnv();
 
         env->DeleteGlobalRef(mStream);
     }
@@ -993,7 +1007,7 @@ public:
     }
 
     int flush() {
-        JNIEnv* env = getEnv();
+        JNIEnv* env = getJNIEnv();
         if (env == NULL) {
             return -1;
         }
@@ -1018,16 +1032,6 @@ protected:
 
     void setEof(bool eof) {
         mEof = eof;
-    }
-
-    JNIEnv* getEnv() {
-        JNIEnv* env;
-
-        if (gJavaVM->AttachCurrentThread(&env, NULL) < 0) {
-            return NULL;
-        }
-
-        return env;
     }
 
 private:
@@ -1058,7 +1062,7 @@ public:
 
 private:
     int read_internal(char *buf, int len, jmethodID method) {
-        JNIEnv* env = getEnv();
+        JNIEnv* env = getJNIEnv();
         if (env == NULL) {
             JNI_TRACE("BIO_InputStream::read could not get JNIEnv");
             return -1;
@@ -1104,7 +1108,7 @@ public:
     }
 
     int write(const char *buf, int len) {
-        JNIEnv* env = getEnv();
+        JNIEnv* env = getJNIEnv();
         if (env == NULL) {
             JNI_TRACE("BIO_OutputStream::write => could not get JNIEnv");
             return -1;
@@ -1212,6 +1216,455 @@ static BIO_METHOD stream_bio_method = {
         bio_stream_create, /* bio_create */
         bio_stream_destroy, /* bio_free */
         NULL, /* no bio_callback_ctrl */
+};
+
+static jbyteArray rawSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey,
+        const char* message, size_t message_len) {
+    ScopedLocalRef<jbyteArray> messageArray(env, env->NewByteArray(message_len));
+    if (env->ExceptionCheck()) {
+        JNI_TRACE("rawSignDigestWithPrivateKey(%p) => threw exception", privateKey);
+        return NULL;
+    }
+
+    {
+        ScopedByteArrayRW messageBytes(env, messageArray.get());
+        if (messageBytes.get() == NULL) {
+            JNI_TRACE("rawSignDigestWithPrivateKey(%p) => using byte array failed", privateKey);
+            return NULL;
+        }
+
+        memcpy(messageBytes.get(), message, message_len);
+    }
+
+    jmethodID rawSignMethod = env->GetStaticMethodID(cryptoUpcallsClass,
+            "rawSignDigestWithPrivateKey", "(Ljava/security/PrivateKey;[B)[B");
+    if (rawSignMethod == NULL) {
+        ALOGE("Could not find rawSignDigestWithPrivateKey");
+        return NULL;
+    }
+
+    return reinterpret_cast<jbyteArray>(env->CallStaticObjectMethod(
+            cryptoUpcallsClass, rawSignMethod, privateKey, messageArray.get()));
+}
+
+static jbyteArray rawCipherWithPrivateKey(JNIEnv* env, jobject privateKey, jboolean encrypt,
+        const char* ciphertext, size_t ciphertext_len) {
+    ScopedLocalRef<jbyteArray> ciphertextArray(env, env->NewByteArray(ciphertext_len));
+    if (env->ExceptionCheck()) {
+        JNI_TRACE("rawCipherWithPrivateKey(%p) => threw exception", privateKey);
+        return NULL;
+    }
+
+    {
+        ScopedByteArrayRW ciphertextBytes(env, ciphertextArray.get());
+        if (ciphertextBytes.get() == NULL) {
+            JNI_TRACE("rawCipherWithPrivateKey(%p) => using byte array failed", privateKey);
+            return NULL;
+        }
+
+        memcpy(ciphertextBytes.get(), ciphertext, ciphertext_len);
+    }
+
+    jmethodID rawCipherMethod = env->GetStaticMethodID(cryptoUpcallsClass,
+            "rawCipherWithPrivateKey", "(Ljava/security/PrivateKey;Z[B)[B");
+    if (rawCipherMethod == NULL) {
+        ALOGE("Could not find rawCipherWithPrivateKey");
+        return NULL;
+    }
+
+    return reinterpret_cast<jbyteArray>(env->CallStaticObjectMethod(
+            cryptoUpcallsClass, rawCipherMethod, privateKey, encrypt, ciphertextArray.get()));
+}
+
+// *********************************************
+// From keystore_openssl.cpp in Chromium source.
+// *********************************************
+
+// Custom RSA_METHOD that uses the platform APIs.
+// Note that for now, only signing through RSA_sign() is really supported.
+// all other method pointers are either stubs returning errors, or no-ops.
+// See <openssl/rsa.h> for exact declaration of RSA_METHOD.
+
+int RsaMethodPubEnc(int /* flen */,
+                    const unsigned char* /* from */,
+                    unsigned char* /* to */,
+                    RSA* /* rsa */,
+                    int /* padding */) {
+    RSAerr(RSA_F_RSA_PUBLIC_ENCRYPT, RSA_R_RSA_OPERATIONS_NOT_SUPPORTED);
+    return -1;
+}
+
+int RsaMethodPubDec(int flen,
+                    const unsigned char* from,
+                    unsigned char* to,
+                    RSA* rsa,
+                    int padding) {
+    RSAerr(RSA_F_RSA_PUBLIC_DECRYPT, RSA_R_RSA_OPERATIONS_NOT_SUPPORTED);
+    return -1;
+}
+
+// See RSA_eay_private_encrypt in
+// third_party/openssl/openssl/crypto/rsa/rsa_eay.c for the default
+// implementation of this function.
+int RsaMethodPrivEnc(int flen,
+                     const unsigned char *from,
+                     unsigned char *to,
+                     RSA *rsa,
+                     int padding) {
+    if (padding != RSA_PKCS1_PADDING) {
+        // TODO(davidben): If we need to, we can implement RSA_NO_PADDING
+        // by using javax.crypto.Cipher and picking either the
+        // "RSA/ECB/NoPadding" or "RSA/ECB/PKCS1Padding" transformation as
+        // appropriate. I believe support for both of these was added in
+        // the same Android version as the "NONEwithRSA"
+        // java.security.Signature algorithm, so the same version checks
+        // for GetRsaLegacyKey should work.
+        RSAerr(RSA_F_RSA_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
+        return -1;
+    }
+
+    // Retrieve private key JNI reference.
+    jobject private_key = reinterpret_cast<jobject>(RSA_get_app_data(rsa));
+    if (!private_key) {
+        ALOGE("Null JNI reference passed to RsaMethodPrivEnc!");
+        RSAerr(RSA_F_RSA_PRIVATE_ENCRYPT, ERR_R_INTERNAL_ERROR);
+        return -1;
+    }
+
+    JNIEnv* env = getJNIEnv();
+    if (env == NULL) {
+        return -1;
+    }
+
+    // For RSA keys, this function behaves as RSA_private_encrypt with
+    // PKCS#1 padding.
+    ScopedLocalRef<jbyteArray> signature(
+            env, rawSignDigestWithPrivateKey(env, private_key,
+                                         reinterpret_cast<const char*>(from), flen));
+    if (signature.get() == NULL) {
+        ALOGE("Could not sign message in RsaMethodPrivEnc!");
+        RSAerr(RSA_F_RSA_PRIVATE_ENCRYPT, ERR_R_INTERNAL_ERROR);
+        return -1;
+    }
+
+    ScopedByteArrayRO signatureBytes(env, signature.get());
+    size_t expected_size = static_cast<size_t>(RSA_size(rsa));
+    if (signatureBytes.size() > expected_size) {
+        ALOGE("RSA Signature size mismatch, actual: %d, expected <= %d", signatureBytes.size(),
+              expected_size);
+        RSAerr(RSA_F_RSA_PRIVATE_ENCRYPT, ERR_R_INTERNAL_ERROR);
+        return -1;
+    }
+
+    // Copy result to OpenSSL-provided buffer. rawSignDigestWithPrivateKey
+    // should pad with leading 0s, but if it doesn't, pad the result.
+    size_t zero_pad = expected_size - signatureBytes.size();
+    memset(to, 0, zero_pad);
+    memcpy(to + zero_pad, signatureBytes.get(), signatureBytes.size());
+
+    return expected_size;
+}
+
+int RsaMethodPrivDec(int flen,
+                     const unsigned char* from,
+                     unsigned char* to,
+                     RSA* rsa,
+                     int padding) {
+    if (padding != RSA_PKCS1_PADDING) {
+        RSAerr(RSA_F_RSA_PRIVATE_DECRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
+        return -1;
+    }
+
+    // Retrieve private key JNI reference.
+    jobject private_key = reinterpret_cast<jobject>(RSA_get_app_data(rsa));
+    if (!private_key) {
+        ALOGE("Null JNI reference passed to RsaMethodPrivDec!");
+        RSAerr(RSA_F_RSA_PRIVATE_DECRYPT, ERR_R_INTERNAL_ERROR);
+        return -1;
+    }
+
+    JNIEnv* env = getJNIEnv();
+    if (env == NULL) {
+        return -1;
+    }
+
+    // For RSA keys, this function behaves as RSA_private_decrypt with
+    // PKCS#1 padding.
+    ScopedLocalRef<jbyteArray> cleartext(env, rawCipherWithPrivateKey(env, private_key, false,
+                                         reinterpret_cast<const char*>(from), flen));
+    if (cleartext.get() == NULL) {
+        ALOGE("Could not decrypt message in RsaMethodPrivDec!");
+        RSAerr(RSA_F_RSA_PRIVATE_DECRYPT, ERR_R_INTERNAL_ERROR);
+        return -1;
+    }
+
+    ScopedByteArrayRO cleartextBytes(env, cleartext.get());
+    size_t expected_size = static_cast<size_t>(RSA_size(rsa));
+    if (cleartextBytes.size() > expected_size) {
+        ALOGE("RSA ciphertext size mismatch, actual: %d, expected <= %d", cleartextBytes.size(),
+              expected_size);
+        RSAerr(RSA_F_RSA_PRIVATE_DECRYPT, ERR_R_INTERNAL_ERROR);
+        return -1;
+    }
+
+    // Copy result to OpenSSL-provided buffer.
+    memcpy(to, cleartextBytes.get(), cleartextBytes.size());
+
+    return cleartextBytes.size();
+}
+
+int RsaMethodInit(RSA*) {
+    return 0;
+}
+
+int RsaMethodFinish(RSA* rsa) {
+    // Ensure the global JNI reference created with this wrapper is
+    // properly destroyed with it.
+    jobject key = reinterpret_cast<jobject>(RSA_get_app_data(rsa));
+    if (key != NULL) {
+        RSA_set_app_data(rsa, NULL);
+        JNIEnv* env = getJNIEnv();
+        env->DeleteGlobalRef(key);
+    }
+    // Actual return value is ignored by OpenSSL. There are no docs
+    // explaining what this is supposed to be.
+    return 0;
+}
+
+const RSA_METHOD android_rsa_method = {
+        /* .name = */ "Android signing-only RSA method",
+        /* .rsa_pub_enc = */ RsaMethodPubEnc,
+        /* .rsa_pub_dec = */ RsaMethodPubDec,
+        /* .rsa_priv_enc = */ RsaMethodPrivEnc,
+        /* .rsa_priv_dec = */ RsaMethodPrivDec,
+        /* .rsa_mod_exp = */ NULL,
+        /* .bn_mod_exp = */ NULL,
+        /* .init = */ RsaMethodInit,
+        /* .finish = */ RsaMethodFinish,
+        // This flag is necessary to tell OpenSSL to avoid checking the content
+        // (i.e. internal fields) of the private key. Otherwise, it will complain
+        // it's not valid for the certificate.
+        /* .flags = */ RSA_METHOD_FLAG_NO_CHECK,
+        /* .app_data = */ NULL,
+        /* .rsa_sign = */ NULL,
+        /* .rsa_verify = */ NULL,
+        /* .rsa_keygen = */ NULL,
+};
+
+// Custom DSA_METHOD that uses the platform APIs.
+// Note that for now, only signing through DSA_sign() is really supported.
+// all other method pointers are either stubs returning errors, or no-ops.
+// See <openssl/dsa.h> for exact declaration of DSA_METHOD.
+//
+// Note: There is no DSA_set_app_data() and DSA_get_app_data() functions,
+//       but RSA_set_app_data() is defined as a simple macro that calls
+//       RSA_set_ex_data() with a hard-coded index of 0, so this code
+//       does the same thing here.
+
+DSA_SIG* DsaMethodDoSign(const unsigned char* dgst,
+                         int dlen,
+                         DSA* dsa) {
+    // Extract the JNI reference to the PrivateKey object.
+    jobject private_key = reinterpret_cast<jobject>(DSA_get_ex_data(dsa, 0));
+    if (private_key == NULL) return NULL;
+
+    JNIEnv* env = getJNIEnv();
+    if (env == NULL) {
+        return NULL;
+    }
+
+    // Sign the message with it, calling platform APIs.
+    ScopedLocalRef<jbyteArray> signature(
+            env, rawSignDigestWithPrivateKey(env, private_key, reinterpret_cast<const char*>(dgst),
+                                             dlen));
+    if (signature.get() == NULL) {
+        ALOGE("Could not sign message in DsaMethodDoSign!");
+        return NULL;
+    }
+
+    ScopedByteArrayRO signatureBytes(env, signature.get());
+    // Note: With DSA, the actual signature might be smaller than DSA_size().
+    size_t max_expected_size = static_cast<size_t>(DSA_size(dsa));
+    if (signatureBytes.size() > max_expected_size) {
+        ALOGE("DSA Signature size mismatch, actual: %d, expected <= %d", signatureBytes.size(),
+              max_expected_size);
+        return NULL;
+    }
+
+    // Convert the signature into a DSA_SIG object.
+    const unsigned char* sigbuf = reinterpret_cast<const unsigned char*>(signatureBytes.get());
+    int siglen = static_cast<size_t>(signatureBytes.size());
+    DSA_SIG* dsa_sig = d2i_DSA_SIG(NULL, &sigbuf, siglen);
+    return dsa_sig;
+}
+
+int DsaMethodSignSetup(DSA* /* dsa */,
+                       BN_CTX* /* ctx_in */,
+                       BIGNUM** /* kinvp */,
+                       BIGNUM** /* rp */,
+                       const unsigned char* /* dgst */,
+                       int /* dlen */) {
+    DSAerr(DSA_F_DSA_SIGN_SETUP, DSA_R_INVALID_DIGEST_TYPE);
+    return -1;
+}
+
+int DsaMethodDoVerify(const unsigned char* /* dgst */,
+                      int /* dgst_len */,
+                      DSA_SIG* /* sig */,
+                      DSA* /* dsa */) {
+    DSAerr(DSA_F_DSA_DO_VERIFY, DSA_R_INVALID_DIGEST_TYPE);
+    return -1;
+}
+
+int DsaMethodFinish(DSA* dsa) {
+    // Free the global JNI reference that was created with this
+    // wrapper key.
+    jobject key = reinterpret_cast<jobject>(DSA_get_ex_data(dsa, 0));
+    if (key != NULL) {
+        DSA_set_ex_data(dsa, 0, NULL);
+        JNIEnv* env = getJNIEnv();
+        env->DeleteGlobalRef(key);
+    }
+    // Actual return value is ignored by OpenSSL. There are no docs
+    // explaining what this is supposed to be.
+    return 0;
+}
+
+const DSA_METHOD android_dsa_method = {
+        /* .name = */ "Android signing-only DSA method",
+        /* .dsa_do_sign = */ DsaMethodDoSign,
+        /* .dsa_sign_setup = */ DsaMethodSignSetup,
+        /* .dsa_do_verify = */ DsaMethodDoVerify,
+        /* .dsa_mod_exp = */ NULL,
+        /* .bn_mod_exp = */ NULL,
+        /* .init = */ NULL,  // nothing to do here.
+        /* .finish = */ DsaMethodFinish,
+        /* .flags = */ 0,
+        /* .app_data = */ NULL,
+        /* .dsa_paramgem = */ NULL,
+        /* .dsa_keygen = */ NULL};
+
+// Used to ensure that the global JNI reference associated with a custom
+// EC_KEY + ECDSA_METHOD wrapper is released when its EX_DATA is destroyed
+// (this function is called when EVP_PKEY_free() is called on the wrapper).
+void ExDataFree(void* /* parent */,
+                void* ptr,
+                CRYPTO_EX_DATA* ad,
+                int idx,
+                long /* argl */,
+                void* /* argp */) {
+    jobject private_key = reinterpret_cast<jobject>(ptr);
+    if (private_key == NULL) return;
+
+    CRYPTO_set_ex_data(ad, idx, NULL);
+    JNIEnv* env = getJNIEnv();
+    env->DeleteGlobalRef(private_key);
+}
+
+int ExDataDup(CRYPTO_EX_DATA* /* to */,
+              CRYPTO_EX_DATA* /* from */,
+              void* /* from_d */,
+              int /* idx */,
+              long /* argl */,
+              void* /* argp */) {
+    // This callback shall never be called with the current OpenSSL
+    // implementation (the library only ever duplicates EX_DATA items
+    // for SSL and BIO objects). But provide this to catch regressions
+    // in the future.
+    // Return value is currently ignored by OpenSSL.
+    return 0;
+}
+
+class EcdsaExDataIndex {
+  public:
+    int ex_data_index() { return ex_data_index_; }
+
+    static EcdsaExDataIndex& Instance() {
+        static EcdsaExDataIndex singleton;
+        return singleton;
+    }
+
+  private:
+    EcdsaExDataIndex() {
+        ex_data_index_ = ECDSA_get_ex_new_index(0, NULL, NULL, ExDataDup, ExDataFree);
+    }
+    EcdsaExDataIndex(EcdsaExDataIndex const&);
+    ~EcdsaExDataIndex() {}
+    EcdsaExDataIndex& operator=(EcdsaExDataIndex const&);
+
+    int ex_data_index_;
+};
+
+// Returns the index of the custom EX_DATA used to store the JNI reference.
+int EcdsaGetExDataIndex(void) {
+    EcdsaExDataIndex& exData = EcdsaExDataIndex::Instance();
+    return exData.ex_data_index();
+}
+
+ECDSA_SIG* EcdsaMethodDoSign(const unsigned char* dgst, int dgst_len, const BIGNUM* /* inv */,
+                             const BIGNUM* /* rp */, EC_KEY* eckey) {
+    // Retrieve private key JNI reference.
+    jobject private_key =
+            reinterpret_cast<jobject>(ECDSA_get_ex_data(eckey, EcdsaGetExDataIndex()));
+    if (!private_key) {
+        ALOGE("Null JNI reference passed to EcdsaMethodDoSign!");
+        return NULL;
+    }
+    JNIEnv* env = getJNIEnv();
+    if (env == NULL) {
+        return NULL;
+    }
+
+    // Sign message with it through JNI.
+    ScopedLocalRef<jbyteArray> signature(
+            env, rawSignDigestWithPrivateKey(env, private_key, reinterpret_cast<const char*>(dgst),
+                                             dgst_len));
+    if (signature.get() == NULL) {
+        ALOGE("Could not sign message in EcdsaMethodDoSign!");
+        return NULL;
+    }
+
+    ScopedByteArrayRO signatureBytes(env, signature.get());
+    // Note: With ECDSA, the actual signature may be smaller than
+    // ECDSA_size().
+    size_t max_expected_size = static_cast<size_t>(ECDSA_size(eckey));
+    if (signatureBytes.size() > max_expected_size) {
+        ALOGE("ECDSA Signature size mismatch, actual: %d, expected <= %d", signatureBytes.size(),
+              max_expected_size);
+        return NULL;
+    }
+
+    // Convert signature to ECDSA_SIG object
+    const unsigned char* sigbuf = reinterpret_cast<const unsigned char*>(signatureBytes.get());
+    long siglen = static_cast<long>(signatureBytes.size());
+    return d2i_ECDSA_SIG(NULL, &sigbuf, siglen);
+}
+
+int EcdsaMethodSignSetup(EC_KEY* /* eckey */,
+                         BN_CTX* /* ctx */,
+                         BIGNUM** /* kinv */,
+                         BIGNUM** /* r */,
+                         const unsigned char*,
+                         int) {
+    ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP, ECDSA_R_ERR_EC_LIB);
+    return -1;
+}
+
+int EcdsaMethodDoVerify(const unsigned char* /* dgst */,
+                        int /* dgst_len */,
+                        const ECDSA_SIG* /* sig */,
+                        EC_KEY* /* eckey */) {
+    ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ECDSA_R_ERR_EC_LIB);
+    return -1;
+}
+
+const ECDSA_METHOD android_ecdsa_method = {
+        /* .name = */ "Android signing-only ECDSA method",
+        /* .ecdsa_do_sign = */ EcdsaMethodDoSign,
+        /* .ecdsa_sign_setup = */ EcdsaMethodSignSetup,
+        /* .ecdsa_do_verify = */ EcdsaMethodDoVerify,
+        /* .flags = */ 0,
+        /* .app_data = */ NULL,
 };
 
 #ifdef CONSCRYPT_UNBUNDLED
@@ -2035,6 +2488,112 @@ static jlong NativeCrypto_d2i_PUBKEY(JNIEnv* env, jclass, jbyteArray javaBytes) 
         return 0;
     }
 
+    return reinterpret_cast<uintptr_t>(pkey.release());
+}
+
+static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey,
+        jbyteArray modulusBytes) {
+    JNI_TRACE("getRSAPrivateKeyWrapper(%p, %p)", javaKey, modulus);
+
+    Unique_RSA rsa(RSA_new());
+    if (rsa.get() == NULL) {
+        jniThrowOutOfMemory(env, "Unable to allocate RSA key");
+        return 0;
+    }
+
+    RSA_set_method(rsa.get(), &android_rsa_method);
+
+    if (!arrayToBignum(env, modulusBytes, &rsa->n)) {
+        return 0;
+    }
+
+    RSA_set_app_data(rsa.get(), env->NewGlobalRef(javaKey));
+
+    Unique_EVP_PKEY pkey(EVP_PKEY_new());
+    if (pkey.get() == NULL) {
+        JNI_TRACE("getRSAPrivateKeyWrapper failed");
+        jniThrowRuntimeException(env, "NativeCrypto_getRSAPrivateKeyWrapper failed");
+        freeOpenSslErrorState();
+        return 0;
+    }
+
+    if (EVP_PKEY_assign_RSA(pkey.get(), rsa.get()) != 1) {
+        jniThrowRuntimeException(env, "getRSAPrivateKeyWrapper failed");
+        return 0;
+    }
+    OWNERSHIP_TRANSFERRED(rsa);
+    return reinterpret_cast<uintptr_t>(pkey.release());
+}
+
+static jlong NativeCrypto_getDSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey,
+        jbyteArray qBytes) {
+    JNI_TRACE("getDSAPrivateKeyWrapper(%p, %p)", javaKey, modulus);
+
+    Unique_DSA dsa(DSA_new());
+    if (dsa.get() == NULL) {
+        jniThrowOutOfMemory(env, "Unable to allocate DSA key");
+        return 0;
+    }
+
+    if (!arrayToBignum(env, qBytes, &dsa->q)) {
+        return 0;
+    }
+
+    DSA_set_method(dsa.get(), &android_dsa_method);
+    DSA_set_ex_data(dsa.get(), 0, env->NewGlobalRef(javaKey));
+
+    Unique_EVP_PKEY pkey(EVP_PKEY_new());
+    if (pkey.get() == NULL) {
+        JNI_TRACE("getDSAPrivateKeyWrapper failed");
+        jniThrowRuntimeException(env, "NativeCrypto_getDSAPrivateKeyWrapper failed");
+        freeOpenSslErrorState();
+        return 0;
+    }
+
+    if (EVP_PKEY_assign_DSA(pkey.get(), dsa.get()) != 1) {
+        jniThrowRuntimeException(env, "getDSAPrivateKeyWrapper failed");
+        return 0;
+    }
+    OWNERSHIP_TRANSFERRED(dsa);
+    return reinterpret_cast<uintptr_t>(pkey.release());
+}
+
+static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey, jlong groupRef) {
+    JNI_TRACE("getECPrivateKeyWrapper(%p, %p)", javaKey, modulus);
+
+    Unique_EC_KEY ecKey(EC_KEY_new());
+    if (ecKey.get() == NULL) {
+        jniThrowOutOfMemory(env, "Unable to allocate EC key");
+        return 0;
+    }
+
+    const EC_GROUP* group = reinterpret_cast<const EC_GROUP*>(groupRef);
+    JNI_TRACE("EC_GROUP_get_curve_name(%p)", group);
+
+    if (group == NULL) {
+        JNI_TRACE("EC_GROUP_get_curve_name => group == NULL");
+        jniThrowNullPointerException(env, "group == NULL");
+        return 0;
+    }
+
+    EC_KEY_set_group(ecKey.get(), group);
+
+    ECDSA_set_method(ecKey.get(), &android_ecdsa_method);
+    ECDSA_set_ex_data(ecKey.get(), EcdsaGetExDataIndex(), env->NewGlobalRef(javaKey));
+
+    Unique_EVP_PKEY pkey(EVP_PKEY_new());
+    if (pkey.get() == NULL) {
+        JNI_TRACE("getDSAPrivateKeyWrapper failed");
+        jniThrowRuntimeException(env, "NativeCrypto_getDSAPrivateKeyWrapper failed");
+        freeOpenSslErrorState();
+        return 0;
+    }
+
+    if (EVP_PKEY_assign_EC_KEY(pkey.get(), ecKey.get()) != 1) {
+        jniThrowRuntimeException(env, "getECPrivateKeyWrapper failed");
+        return 0;
+    }
+    OWNERSHIP_TRANSFERRED(ecKey);
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
@@ -8950,6 +9509,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, d2i_PKCS8_PRIV_KEY_INFO, "([B)J"),
     NATIVE_METHOD(NativeCrypto, i2d_PUBKEY, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, d2i_PUBKEY, "([B)J"),
+    NATIVE_METHOD(NativeCrypto, getRSAPrivateKeyWrapper, "(Ljava/security/interfaces/RSAPrivateKey;[B)J"),
+    NATIVE_METHOD(NativeCrypto, getDSAPrivateKeyWrapper, "(Ljava/security/interfaces/DSAPrivateKey;)J"),
+    NATIVE_METHOD(NativeCrypto, getECPrivateKeyWrapper, "(Ljava/security/interfaces/ECPrivateKey;J)J"),
     NATIVE_METHOD(NativeCrypto, RSA_generate_key_ex, "(I[B)J"),
     NATIVE_METHOD(NativeCrypto, RSA_size, "(J)I"),
     NATIVE_METHOD(NativeCrypto, RSA_private_encrypt, "(I[B[BJI)I"),
@@ -9199,6 +9761,8 @@ static void initialize_conscrypt(JNIEnv* env) {
     jniRegisterNativeMethods(env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto",
                              sNativeCryptoMethods, NELEM(sNativeCryptoMethods));
 
+    cryptoUpcallsClass = getGlobalRefToClass(env,
+            TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/CryptoUpcalls");
     openSslNativeReferenceClass = getGlobalRefToClass(env,
             TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLNativeReference");
     openSslInputStreamClass = getGlobalRefToClass(env,

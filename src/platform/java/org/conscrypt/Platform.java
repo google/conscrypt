@@ -29,6 +29,7 @@ import java.lang.reflect.Field;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
+import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.ECParameterSpec;
@@ -152,5 +153,13 @@ class Platform {
         } else {
             x509tm.checkServerTrusted(chain, authType);
         }
+    }
+
+    /**
+     * Wraps an old AndroidOpenSSL key instance. This is not needed on platform
+     * builds since we didn't backport, so return null.
+     */
+    public static OpenSSLKey wrapRsaKey(PrivateKey key) {
+        return null;
     }
 }
