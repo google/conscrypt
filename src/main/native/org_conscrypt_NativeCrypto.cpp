@@ -1350,7 +1350,7 @@ int RsaMethodPrivEnc(int flen,
     ScopedByteArrayRO signatureBytes(env, signature.get());
     size_t expected_size = static_cast<size_t>(RSA_size(rsa));
     if (signatureBytes.size() > expected_size) {
-        ALOGE("RSA Signature size mismatch, actual: %d, expected <= %d", signatureBytes.size(),
+        ALOGE("RSA Signature size mismatch, actual: %zd, expected <= %zd", signatureBytes.size(),
               expected_size);
         RSAerr(RSA_F_RSA_PRIVATE_ENCRYPT, ERR_R_INTERNAL_ERROR);
         return -1;
@@ -1401,7 +1401,7 @@ int RsaMethodPrivDec(int flen,
     ScopedByteArrayRO cleartextBytes(env, cleartext.get());
     size_t expected_size = static_cast<size_t>(RSA_size(rsa));
     if (cleartextBytes.size() > expected_size) {
-        ALOGE("RSA ciphertext size mismatch, actual: %d, expected <= %d", cleartextBytes.size(),
+        ALOGE("RSA ciphertext size mismatch, actual: %zd, expected <= %zd", cleartextBytes.size(),
               expected_size);
         RSAerr(RSA_F_RSA_PRIVATE_DECRYPT, ERR_R_INTERNAL_ERROR);
         return -1;
@@ -1486,7 +1486,7 @@ DSA_SIG* DsaMethodDoSign(const unsigned char* dgst,
     // Note: With DSA, the actual signature might be smaller than DSA_size().
     size_t max_expected_size = static_cast<size_t>(DSA_size(dsa));
     if (signatureBytes.size() > max_expected_size) {
-        ALOGE("DSA Signature size mismatch, actual: %d, expected <= %d", signatureBytes.size(),
+        ALOGE("DSA Signature size mismatch, actual: %zd, expected <= %zd", signatureBytes.size(),
               max_expected_size);
         return NULL;
     }
@@ -1629,7 +1629,7 @@ ECDSA_SIG* EcdsaMethodDoSign(const unsigned char* dgst, int dgst_len, const BIGN
     // ECDSA_size().
     size_t max_expected_size = static_cast<size_t>(ECDSA_size(eckey));
     if (signatureBytes.size() > max_expected_size) {
-        ALOGE("ECDSA Signature size mismatch, actual: %d, expected <= %d", signatureBytes.size(),
+        ALOGE("ECDSA Signature size mismatch, actual: %zd, expected <= %zd", signatureBytes.size(),
               max_expected_size);
         return NULL;
     }
