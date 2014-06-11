@@ -143,32 +143,31 @@ include $(BUILD_SHARED_LIBRARY)
 # Build for the host.
 #
 
-ifeq ($(WITH_HOST_DALVIK),true)
-    # Make the conscrypt-hostdex library
-    include $(CLEAR_VARS)
-    LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
-    LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
-    LOCAL_JAVACFLAGS := $(local_javac_flags)
-    LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
-    LOCAL_MODULE_TAGS := optional
-    LOCAL_MODULE := conscrypt-hostdex
-    LOCAL_REQUIRED_MODULES := libjavacrypto
-    LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-    include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
+# Make the conscrypt-hostdex library
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
+LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
+LOCAL_JAVACFLAGS := $(local_javac_flags)
+LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := conscrypt-hostdex
+LOCAL_REQUIRED_MODULES := libjavacrypto
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 
-    # Make the conscrypt-hostdex-nojarjar for tests
-    include $(CLEAR_VARS)
-    LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
-    LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
-    LOCAL_JAVACFLAGS := $(local_javac_flags)
-    LOCAL_BUILD_HOST_DEX := true
-    LOCAL_MODULE_TAGS := optional
-    LOCAL_MODULE := conscrypt-hostdex-nojarjar
-    LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-    include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
+# Make the conscrypt-hostdex-nojarjar for tests
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
+LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
+LOCAL_JAVACFLAGS := $(local_javac_flags)
+LOCAL_BUILD_HOST_DEX := true
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := conscrypt-hostdex-nojarjar
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 
-    # Make the conscrypt-tests library.
-    ifeq ($(LIBCORE_SKIP_TESTS),)
+# Make the conscrypt-tests library.
+ifeq ($(LIBCORE_SKIP_TESTS),)
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(call all-java-files-under,src/test/java)
     LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex core-junit-hostdex core-tests-support-hostdex conscrypt-hostdex-nojarjar
@@ -178,29 +177,31 @@ ifeq ($(WITH_HOST_DALVIK),true)
     LOCAL_REQUIRED_MODULES := libjavacrypto
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
     include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
-    endif
+endif
 
-    # Conscrypt native library for host
-    include $(CLEAR_VARS)
-    LOCAL_SRC_FILES += \
-            src/main/native/org_conscrypt_NativeCrypto.cpp
-    LOCAL_C_INCLUDES += \
-            external/openssl/include \
-            libcore/include \
-            libcore/luni/src/main/native
-    LOCAL_CPPFLAGS += $(core_cppflags)
-    LOCAL_LDLIBS += -lpthread
-    LOCAL_MODULE_TAGS := optional
-    LOCAL_MODULE := libjavacrypto
-    LOCAL_CFLAGS += -DJNI_JARJAR_PREFIX="com/android/"
-    LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-    LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
-    include $(BUILD_HOST_SHARED_LIBRARY)
+# Conscrypt native library for host
+include $(CLEAR_VARS)
+LOCAL_CLANG := true
+LOCAL_SRC_FILES += \
+        src/main/native/org_conscrypt_NativeCrypto.cpp
+LOCAL_C_INCLUDES += \
+        external/openssl/include \
+        libcore/include \
+        libcore/luni/src/main/native
+LOCAL_CPPFLAGS += $(core_cppflags)
+LOCAL_LDLIBS += -lpthread
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := libjavacrypto
+LOCAL_CFLAGS += -DJNI_JARJAR_PREFIX="com/android/"
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
+include $(BUILD_HOST_SHARED_LIBRARY)
 
-    # Conscrypt native library for nojarjar'd version
-    # Don't build this for unbundled conscrypt build
-    ifeq (,$(TARGET_BUILD_APPS))
+# Conscrypt native library for nojarjar'd version
+# Don't build this for unbundled conscrypt build
+ifeq (,$(TARGET_BUILD_APPS))
     include $(CLEAR_VARS)
+    LOCAL_CLANG := true
     LOCAL_SRC_FILES += \
             src/main/native/org_conscrypt_NativeCrypto.cpp
     LOCAL_C_INCLUDES += \
@@ -214,5 +215,4 @@ ifeq ($(WITH_HOST_DALVIK),true)
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
     LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
     include $(BUILD_HOST_SHARED_LIBRARY)
-    endif
 endif
