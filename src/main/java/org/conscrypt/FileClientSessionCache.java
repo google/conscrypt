@@ -30,14 +30,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import javax.net.ssl.SSLSession;
-import libcore.io.IoUtils;
 
 /**
  * File-based cache implementation. Only one process should access the
  * underlying directory at a time.
  */
 public class FileClientSessionCache {
-
     public static final int MAX_SIZE = 12; // ~72k
 
     private FileClientSessionCache() {}
@@ -171,12 +169,20 @@ public class FileClientSessionCache {
                 logReadError(host, file, e);
                 return null;
             } finally {
-                IoUtils.closeQuietly(in);
+                if (in != null) {
+                    try {
+                        in.close();
+                    } catch (RuntimeException rethrown) {
+                        throw rethrown;
+                    } catch (Exception ignored) {
+                    }
+                }
             }
         }
 
         static void logReadError(String host, File file, Throwable t) {
-            System.logW("Error reading session data for " + host + " from " + file + ".", t);
+            System.err.println("FileClientSessionCache: Error reading session data for " + host + " from " + file + ".");
+            t.printStackTrace();
         }
 
         @Override
@@ -290,13 +296,14 @@ public class FileClientSessionCache {
         @SuppressWarnings("ThrowableInstanceNeverThrown")
         private void delete(File file) {
             if (!file.delete()) {
-                System.logW("Failed to delete " + file + ".", new IOException());
+                new IOException("FileClientSessionCache: Failed to delete " + file + ".").printStackTrace();
             }
             size--;
         }
 
         static void logWriteError(String host, File file, Throwable t) {
-            System.logW("Error writing session data for " + host + " to " + file + ".", t);
+            System.err.println("FileClientSessionCache: Error writing session data for " + host + " to " + file + ".");
+            t.printStackTrace();
         }
     }
 
