@@ -1,0 +1,16 @@
+apply plugin: 'java'
+
+// this is the "Unbundled Conscrypt jar"
+sourceSets.main {
+    java.srcDirs = [
+        'src/main/java',
+        'src/compat/java',
+    ]
+}
+
+compileJava.options.encoding = 'UTF-8'
+compileJava.options.compilerArgs += ['-Xmaxwarns', '9999999']
+
+dependencies {
+    compile getAndroidPrebuilt('9')
+}
