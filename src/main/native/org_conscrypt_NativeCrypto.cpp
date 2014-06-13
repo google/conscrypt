@@ -7146,6 +7146,9 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_tmp_dh_callback(sslCtx.get(), tmp_dh_callback);
     SSL_CTX_set_tmp_ecdh_callback(sslCtx.get(), tmp_ecdh_callback);
 
+    // When TLS Channel ID extension is used, use the new version of it.
+    sslCtx.get()->tlsext_channel_id_enabled_new = 1;
+
     JNI_TRACE("NativeCrypto_SSL_CTX_new => %p", sslCtx.get());
     return (jlong) sslCtx.release();
 }
