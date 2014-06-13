@@ -141,6 +141,23 @@ LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_SDK_VERSION := 9
 include $(BUILD_SHARED_LIBRARY)
 
+# Static unbundled Conscrypt crypto JNI library
+include $(CLEAR_VARS)
+LOCAL_CFLAGS += $(core_cflags)
+LOCAL_CPPFLAGS += $(core_cppflags) -DJNI_JARJAR_PREFIX="com/google/android/gms/" -DCONSCRYPT_UNBUNDLED -DSTATIC_LIB
+LOCAL_SRC_FILES := \
+        src/main/native/org_conscrypt_NativeCrypto.cpp \
+        src/compat/native/JNIHelp.cpp
+LOCAL_C_INCLUDES += \
+        external/openssl/include \
+        external/openssl \
+        external/conscrypt/src/compat/native
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := libconscrypt_static
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+LOCAL_SDK_VERSION := 9
+include $(BUILD_STATIC_LIBRARY)
+
 #
 # Build for the host.
 #
