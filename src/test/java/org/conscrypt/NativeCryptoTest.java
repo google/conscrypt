@@ -641,6 +641,7 @@ public class NativeCryptoTest extends TestCase {
         private OpenSSLKey channelIdPrivateKey;
         protected boolean pskEnabled;
         protected byte[] pskKey;
+        protected List<String> enabledCipherSuites;
 
         /**
          * @throws SSLException
@@ -654,11 +655,15 @@ public class NativeCryptoTest extends TestCase {
             // negotiating DHE-RSA-AES256-SHA by default which had
             // very slow ephemeral RSA key generation
             List<String> cipherSuites = new ArrayList<String>();
-            cipherSuites.add("RC4-MD5");
-            if (pskEnabled) {
-                // In TLS-PSK the client indicates that PSK key exchange is desired by offering at
-                // least one PSK cipher suite.
-                cipherSuites.add(0, "PSK-AES128-CBC-SHA");
+            if (enabledCipherSuites == null) {
+                cipherSuites.add("RC4-MD5");
+                if (pskEnabled) {
+                    // In TLS-PSK the client indicates that PSK key exchange is desired by offering
+                    // at least one PSK cipher suite.
+                    cipherSuites.add(0, "PSK-AES128-CBC-SHA");
+                }
+            } else {
+                cipherSuites.addAll(enabledCipherSuites);
             }
             NativeCrypto.SSL_set_cipher_lists(
                     s, cipherSuites.toArray(new String[cipherSuites.size()]));
@@ -1228,8 +1233,11 @@ public class NativeCryptoTest extends TestCase {
         final ServerSocket listener = new ServerSocket(0);
         Hooks cHooks = new Hooks();
         cHooks.channelIdPrivateKey = CHANNEL_ID_PRIVATE_KEY;
+        // TLS Channel ID currently requires ECDHE-based key exchanges.
+        cHooks.enabledCipherSuites = Arrays.asList(new String[] {"ECDHE-RSA-AES128-SHA"});
         ServerHooks sHooks = new ServerHooks(getServerPrivateKey(), getServerCertificates());
         sHooks.channelIdEnabled = true;
+        sHooks.enabledCipherSuites = cHooks.enabledCipherSuites;
         Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
         Future<TestSSLHandshakeCallbacks> server = handshake(listener, 0, false, sHooks, null, null);
         TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -1237,7 +1245,7 @@ public class NativeCryptoTest extends TestCase {
         assertTrue(clientCallback.verifyCertificateChainCalled);
         assertEqualCertificateChains(getServerCertificates(),
                                      clientCallback.certificateChainRefs);
-        assertEquals("RSA", clientCallback.authMethod);
+        assertEquals("ECDHE_RSA", clientCallback.authMethod);
         assertFalse(serverCallback.verifyCertificateChainCalled);
         assertFalse(clientCallback.clientCertificateRequestedCalled);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
@@ -1258,8 +1266,11 @@ public class NativeCryptoTest extends TestCase {
         final ServerSocket listener = new ServerSocket(0);
         Hooks cHooks = new Hooks();
         cHooks.channelIdPrivateKey = CHANNEL_ID_PRIVATE_KEY;
+        // TLS Channel ID currently requires ECDHE-based key exchanges.
+        cHooks.enabledCipherSuites = Arrays.asList(new String[] {"ECDHE-RSA-AES128-SHA"});
         ServerHooks sHooks = new ServerHooks(getServerPrivateKey(), getServerCertificates());
         sHooks.channelIdEnabled = false;
+        sHooks.enabledCipherSuites = cHooks.enabledCipherSuites;
         Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
         Future<TestSSLHandshakeCallbacks> server = handshake(listener, 0, false, sHooks, null, null);
         TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -1267,7 +1278,7 @@ public class NativeCryptoTest extends TestCase {
         assertTrue(clientCallback.verifyCertificateChainCalled);
         assertEqualCertificateChains(getServerCertificates(),
                                      clientCallback.certificateChainRefs);
-        assertEquals("RSA", clientCallback.authMethod);
+        assertEquals("ECDHE_RSA", clientCallback.authMethod);
         assertFalse(serverCallback.verifyCertificateChainCalled);
         assertFalse(clientCallback.clientCertificateRequestedCalled);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
@@ -1288,8 +1299,11 @@ public class NativeCryptoTest extends TestCase {
         final ServerSocket listener = new ServerSocket(0);
         Hooks cHooks = new Hooks();
         cHooks.channelIdPrivateKey = null;
+        // TLS Channel ID currently requires ECDHE-based key exchanges.
+        cHooks.enabledCipherSuites = Arrays.asList(new String[] {"ECDHE-RSA-AES128-SHA"});
         ServerHooks sHooks = new ServerHooks(getServerPrivateKey(), getServerCertificates());
         sHooks.channelIdEnabled = true;
+        sHooks.enabledCipherSuites = cHooks.enabledCipherSuites;
         Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
         Future<TestSSLHandshakeCallbacks> server = handshake(listener, 0, false, sHooks, null, null);
         TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -1297,7 +1311,7 @@ public class NativeCryptoTest extends TestCase {
         assertTrue(clientCallback.verifyCertificateChainCalled);
         assertEqualCertificateChains(getServerCertificates(),
                                      clientCallback.certificateChainRefs);
-        assertEquals("RSA", clientCallback.authMethod);
+        assertEquals("ECDHE_RSA", clientCallback.authMethod);
         assertFalse(serverCallback.verifyCertificateChainCalled);
         assertFalse(clientCallback.clientCertificateRequestedCalled);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
