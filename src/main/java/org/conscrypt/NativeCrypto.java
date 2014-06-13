@@ -59,6 +59,9 @@ public final class NativeCrypto {
          */
         if ("com.android.org.conscrypt".equals(NativeCrypto.class.getPackage().getName())) {
             System.loadLibrary("javacrypto");
+        } else if ("com.google.android.gms.org.conscrypt".equals(NativeCrypto.class.getPackage().getName())) {
+            System.loadLibrary("gmscore");
+            System.loadLibrary("conscrypt_gmscore_jni");
         } else {
             System.loadLibrary("conscrypt_jni");
         }
