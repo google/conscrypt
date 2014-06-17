@@ -101,58 +101,13 @@ public class Platform {
         return null;
     }
 
-    public static void checkClientTrusted(X509TrustManager x509tm, X509Certificate[] chain,
-            String authType, Socket socket) throws CertificateException {
-        // TODO: use reflection to find whether we have X509ExtendedTrustManager
-        /*
-        if (x509tm instanceof X509ExtendedTrustManager) {
-            X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
-            x509etm.checkClientTrusted(chain, authType, socket);
-        } else {
-        */
-            x509tm.checkClientTrusted(chain, authType);
-        /*
-        }
-        */
-    }
-
     public static void checkServerTrusted(X509TrustManager x509tm, X509Certificate[] chain,
-            String authType, Socket socket) throws CertificateException {
-        // TODO: use reflection to find whether we have X509ExtendedTrustManager
+            String authType, String host) throws CertificateException {
+        // TODO: use reflection to find whether we have TrustManagerImpl
         /*
-        if (x509tm instanceof X509ExtendedTrustManager) {
-            X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
-            x509etm.checkServerTrusted(chain, authType, socket);
-        } else {
-        */
-            x509tm.checkServerTrusted(chain, authType);
-        /*
-        }
-        */
-    }
-
-    public static void checkClientTrusted(X509TrustManager x509tm, X509Certificate[] chain,
-            String authType, SSLEngine engine) throws CertificateException {
-        // TODO: use reflection to find whether we have X509ExtendedTrustManager
-        /*
-        if (x509tm instanceof X509ExtendedTrustManager) {
-            X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
-            x509etm.checkClientTrusted(chain, authType, engine);
-        } else {
-        */
-            x509tm.checkClientTrusted(chain, authType);
-        /*
-        }
-        */
-    }
-
-    public static void checkServerTrusted(X509TrustManager x509tm, X509Certificate[] chain,
-            String authType, SSLEngine engine) throws CertificateException {
-        // TODO: use reflection to find whether we have X509ExtendedTrustManager
-        /*
-        if (x509tm instanceof X509ExtendedTrustManager) {
-            X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) x509tm;
-            x509etm.checkServerTrusted(peerCertChain, authMethod, this);
+        if (x509tm instanceof TrustManagerImpl) {
+            TrustManagerImpl tm = (TrustManagerImpl) x509tm;
+            tm.checkServerTrusted(chain, authType, host);
         } else {
         */
             x509tm.checkServerTrusted(chain, authType);
