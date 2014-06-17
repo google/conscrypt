@@ -46,7 +46,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.X509ExtendedTrustManager;
+import javax.net.ssl.X509TrustManager;
 
 /**
  *
@@ -54,9 +54,9 @@ import javax.net.ssl.X509ExtendedTrustManager;
  * PKIX and CertificateFactory X509 implementations. This implementations should
  * be provided by some certification provider.
  *
- * @see javax.net.ssl.X509ExtendedTrustManager
+ * @see javax.net.ssl.X509TrustManager
  */
-public final class TrustManagerImpl extends X509ExtendedTrustManager {
+public final class TrustManagerImpl implements X509TrustManager {
 
     /**
      * The AndroidCAStore if non-null, null otherwise.
@@ -200,65 +200,23 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     @Override
     public void checkClientTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
-        checkTrusted(chain, authType, null, null, true);
-    }
-
-    @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket)
-            throws CertificateException {
-        SSLSession session = null;
-        SSLParameters parameters = null;
-        if (socket instanceof SSLSocket) {
-            SSLSocket sslSocket = (SSLSocket) socket;
-            session = sslSocket.getHandshakeSession();
-            if (session == null) {
-                throw new CertificateException("Not in handshake; no session available");
-            }
-            parameters = sslSocket.getSSLParameters();
-        }
-        checkTrusted(chain, authType, session, parameters, true);
-    }
-
-    @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
-            throws CertificateException {
-        SSLSession session = engine.getHandshakeSession();
-        if (session == null) {
-            throw new CertificateException("Not in handshake; no session available");
-        }
-        checkTrusted(chain, authType, session, engine.getSSLParameters(), true);
+        checkTrusted(chain, authType, null, true);
     }
 
     @Override
     public void checkServerTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
-        checkTrusted(chain, authType, null, null, false);
+        checkTrusted(chain, authType, null, false);
     }
 
-    @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket)
-            throws CertificateException {
-        SSLSession session = null;
-        SSLParameters parameters = null;
-        if (socket instanceof SSLSocket) {
-            SSLSocket sslSocket = (SSLSocket) socket;
-            session = sslSocket.getHandshakeSession();
-            if (session == null) {
-                throw new CertificateException("Not in handshake; no session available");
-            }
-            parameters = sslSocket.getSSLParameters();
-        }
-        checkTrusted(chain, authType, session, parameters, false);
-    }
-
-    @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
-            throws CertificateException {
-        SSLSession session = engine.getHandshakeSession();
-        if (session == null) {
-            throw new CertificateException("Not in handshake; no session available");
-        }
-        checkTrusted(chain, authType, session, engine.getSSLParameters(), false);
+    /**
+     * Validates whether a server is trusted. If hostname is given and non-null it also checks if
+     * chain is pinned appropriately for that host. If null, it does not check for pinned certs.
+     * The return value is a list of the certificates used for making the trust decision.
+     */
+    public List<X509Certificate> checkServerTrusted(X509Certificate[] chain, String authType,
+                                                    String host) throws CertificateException {
+        return checkTrusted(chain, authType, host, false);
     }
 
     public boolean isUserAddedCertificate(X509Certificate cert) {
@@ -277,7 +235,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      */
     public List<X509Certificate> checkServerTrusted(X509Certificate[] chain, String authType,
             SSLSession session) throws CertificateException {
-        return checkTrusted(chain, authType, session, null, false);
+        return checkTrusted(chain, authType, session.getPeerHost(), false);
     }
 
     public void handleTrustStorageUpdate() {
@@ -289,21 +247,13 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     }
 
     private List<X509Certificate> checkTrusted(X509Certificate[] chain, String authType,
-                                               SSLSession session, SSLParameters parameters,
-                                               boolean clientAuth)
+                                               String host, boolean clientAuth)
             throws CertificateException {
         if (chain == null || chain.length == 0 || authType == null || authType.length() == 0) {
             throw new IllegalArgumentException("null or zero-length parameter");
         }
         if (err != null) {
             throw new CertificateException(err);
-        }
-
-        if (parameters != null && "HTTPS".equals(parameters.getEndpointIdentificationAlgorithm())) {
-            HostnameVerifier verifier = HttpsURLConnection.getDefaultHostnameVerifier();
-            if (!verifier.verify(session.getPeerHost(), session)) {
-                throw new CertificateException("No subjectAltNames on the certificate match");
-            }
         }
 
         // get the cleaned up chain and trust anchor
@@ -346,7 +296,6 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         // build the cert path from the array of certs sans trust anchors
         CertPath certPath = factory.generateCertPath(Arrays.asList(newChain));
 
-        final String host = (session != null) ? session.getPeerHost() : null;
         if (host != null) {
             boolean isChainValid = false;
             try {
