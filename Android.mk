@@ -55,7 +55,7 @@ core_cppflags := -std=gnu++11
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
 LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
-LOCAL_JAVA_LIBRARIES := core
+LOCAL_JAVA_LIBRARIES := core-libart
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
@@ -69,7 +69,7 @@ include $(BUILD_JAVA_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
 LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
-LOCAL_JAVA_LIBRARIES := core
+LOCAL_JAVA_LIBRARIES := core-libart
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
@@ -82,7 +82,7 @@ ifeq ($(LIBCORE_SKIP_TESTS),)
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/test/java)
 LOCAL_NO_STANDARD_LIBRARIES := true
-LOCAL_JAVA_LIBRARIES := bouncycastle core core-junit
+LOCAL_JAVA_LIBRARIES := core-libart core-junit bouncycastle
 LOCAL_STATIC_JAVA_LIBRARIES := core-tests-support conscrypt-nojarjar
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
