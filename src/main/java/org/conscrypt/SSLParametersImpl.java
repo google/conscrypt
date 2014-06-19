@@ -136,24 +136,13 @@ public class SSLParametersImpl implements Cloneable {
         } else {
             x509TrustManager = findFirstX509TrustManager(tms);
         }
+
         // initialize secure random
-        // BEGIN android-removed
-        // if (sr == null) {
-        //     if (defaultSecureRandom == null) {
-        //         defaultSecureRandom = new SecureRandom();
-        //     }
-        //     secureRandom = defaultSecureRandom;
-        // } else {
-        //     secureRandom = sr;
-        // }
-        // END android-removed
-        // BEGIN android-added
         // We simply use the SecureRandom passed in by the caller. If it's
         // null, we don't replace it by a new instance. The native code below
         // then directly accesses /dev/urandom. Not the most elegant solution,
         // but faster than going through the SecureRandom object.
         secureRandom = sr;
-        // END android-added
 
         enabledProtocols = NativeCrypto.getDefaultProtocols();
         enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
