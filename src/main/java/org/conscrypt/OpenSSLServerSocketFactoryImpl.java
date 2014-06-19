@@ -44,7 +44,7 @@ public class OpenSSLServerSocketFactoryImpl extends javax.net.ssl.SSLServerSocke
 
     @Override
     public String[] getDefaultCipherSuites() {
-        return NativeCrypto.getDefaultCipherSuites();
+        return sslParameters.getEnabledCipherSuites();
     }
 
     @Override

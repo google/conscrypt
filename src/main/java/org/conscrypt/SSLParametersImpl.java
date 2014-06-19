@@ -79,8 +79,10 @@ public class SSLParametersImpl implements Cloneable {
     // source of random numbers
     private SecureRandom secureRandom;
 
-    // protocols available for SSL connection
-    private String[] enabledProtocols = NativeCrypto.getDefaultProtocols();
+    // protocols enabled for SSL connection
+    private String[] enabledProtocols;
+    // cipher suites enabled for SSL connection
+    private String[] enabledCipherSuites;
 
     // if the peer with this parameters tuned to work in client mode
     private boolean client_mode = true;
@@ -91,9 +93,6 @@ public class SSLParametersImpl implements Cloneable {
     // if the peer with this parameters allowed to cteate new SSL session
     private boolean enable_session_creation = true;
     private String endpointIdentificationAlgorithm;
-
-    String[] openSslEnabledProtocols = NativeCrypto.getDefaultProtocols();
-    String[] openSslEnabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
 
     byte[] npnProtocols;
     byte[] alpnProtocols;
@@ -155,6 +154,9 @@ public class SSLParametersImpl implements Cloneable {
         // but faster than going through the SecureRandom object.
         secureRandom = sr;
         // END android-added
+
+        enabledProtocols = NativeCrypto.getDefaultProtocols();
+        enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
     }
 
     protected static SSLParametersImpl getDefault() throws KeyManagementException {
@@ -239,14 +241,14 @@ public class SSLParametersImpl implements Cloneable {
      * @return the names of enabled cipher suites
      */
     protected String[] getEnabledCipherSuites() {
-        return openSslEnabledCipherSuites.clone();
+        return enabledCipherSuites.clone();
     }
 
     /**
      * Sets the enabled cipher suites after filtering through OpenSSL.
      */
     protected void setEnabledCipherSuites(String[] cipherSuites) {
-        openSslEnabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(cipherSuites);
+        enabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(cipherSuites);
     }
 
     /**
@@ -464,8 +466,7 @@ public class SSLParametersImpl implements Cloneable {
             NativeCrypto.SSL_set_alpn_protos(sslNativePointer, alpnProtocols);
         }
 
-        String[] enabledCipherSuites = openSslEnabledCipherSuites;
-        NativeCrypto.setEnabledProtocols(sslNativePointer, openSslEnabledProtocols);
+        NativeCrypto.setEnabledProtocols(sslNativePointer, enabledProtocols);
         NativeCrypto.setEnabledCipherSuites(sslNativePointer, enabledCipherSuites);
 
         // setup server certificates and private keys.
@@ -698,7 +699,7 @@ public class SSLParametersImpl implements Cloneable {
 
         String protocol = session.getProtocol();
         boolean protocolFound = false;
-        for (String enabledProtocol : openSslEnabledProtocols) {
+        for (String enabledProtocol : enabledProtocols) {
             if (protocol.equals(enabledProtocol)) {
                 protocolFound = true;
                 break;
@@ -710,7 +711,7 @@ public class SSLParametersImpl implements Cloneable {
 
         String cipherSuite = session.getCipherSuite();
         boolean cipherSuiteFound = false;
-        for (String enabledCipherSuite : openSslEnabledCipherSuites) {
+        for (String enabledCipherSuite : enabledCipherSuites) {
             if (cipherSuite.equals(enabledCipherSuite)) {
                 cipherSuiteFound = true;
                 break;
