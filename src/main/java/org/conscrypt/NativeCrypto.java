@@ -816,50 +816,57 @@ public final class NativeCrypto {
 
     public static native long SSL_CTX_new();
 
-    public static String[] getDefaultCipherSuites() {
-        // The default list of cipher suites is a trade-off between what we'd like to use and what
-        // servers currently support. We strive to be secure enough by default. We thus avoid
-        // unacceptably weak suites (e.g., those with bulk cipher secret key shorter than 128 bits),
-        // while maintaining the capability to connect to the majority of servers.
-        //
-        // Cipher suites are listed in preference order (favorite choice first) of the client.
-        // However, servers are not required to honor the order. The key rules governing the
-        // preference order are:
-        // * Prefer Forward Secrecy (i.e., cipher suites that use ECDHE and DHE for key agreement).
-        // * Prefer AES-GCM to AES-CBC whose MAC-pad-then-encrypt approach leads to weaknesses
-        //   (e.g., Lucky 13).
-        // * Prefer AES to RC4 whose foundations are a bit shaky. See
-        //   http://www.isg.rhul.ac.uk/tls/. BEAST and Lucky13 mitigations are enabled.
-        // * Prefer 128-bit bulk encryption to 256-bit one, because 128-bit is safe enough while
-        //   consuming less CPU/time/energy.
-        //
-        // NOTE: Removing cipher suites from this list needs to be done with caution, because this
-        // may prevent apps from connecting to servers they were previously able to connect to.
-        return new String[] {
-            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
-            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
-            "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
-            "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
-            "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
-            "TLS_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_RSA_WITH_AES_256_CBC_SHA",
-            "SSL_RSA_WITH_RC4_128_SHA",
-            TLS_EMPTY_RENEGOTIATION_INFO_SCSV
-        };
-    }
+    // IMPLEMENTATION NOTE: The default list of cipher suites is a trade-off between what we'd like
+    // to use and what servers currently support. We strive to be secure enough by default. We thus
+    // avoid unacceptably weak suites (e.g., those with bulk cipher secret key shorter than 128
+    // bits), while maintaining the capability to connect to the majority of servers.
+    //
+    // Cipher suites are listed in preference order (favorite choice first) of the client. However,
+    // servers are not required to honor the order. The key rules governing the preference order
+    // are:
+    // * Prefer Forward Secrecy (i.e., cipher suites that use ECDHE and DHE for key agreement).
+    // * Prefer AES-GCM to AES-CBC whose MAC-pad-then-encrypt approach leads to weaknesses (e.g.,
+    //   Lucky 13).
+    // * Prefer AES to RC4 whose foundations are a bit shaky. See http://www.isg.rhul.ac.uk/tls/.
+    //   BEAST and Lucky13 mitigations are enabled.
+    // * Prefer 128-bit bulk encryption to 256-bit one, because 128-bit is safe enough while
+    //   consuming less CPU/time/energy.
+    //
+    // NOTE: Removing cipher suites from this list needs to be done with caution, because this may
+    // prevent apps from connecting to servers they were previously able to connect to.
+
+    /** X.509 based cipher suites enabled by default (if requested), in preference order. */
+    static final String[] DEFAULT_X509_CIPHER_SUITES = new String[] {
+        "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+        "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+        "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+        "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+        "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+        "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
+        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+        "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+        "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+        "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
+        "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
+        "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
+        "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
+        "TLS_RSA_WITH_AES_128_GCM_SHA256",
+        "TLS_RSA_WITH_AES_256_GCM_SHA384",
+        "TLS_RSA_WITH_AES_128_CBC_SHA",
+        "TLS_RSA_WITH_AES_256_CBC_SHA",
+        "SSL_RSA_WITH_RC4_128_SHA",
+    };
+
+    /** TLS-PSK cipher suites enabled by default (if requested), in preference order. */
+    static final String[] DEFAULT_PSK_CIPHER_SUITES = new String[] {
+        "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA",
+        "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA",
+        "TLS_PSK_WITH_AES_128_CBC_SHA",
+        "TLS_PSK_WITH_AES_256_CBC_SHA",
+    };
 
     public static String[] getSupportedCipherSuites() {
         return SUPPORTED_CIPHER_SUITES.clone();
@@ -904,13 +911,12 @@ public final class NativeCrypto {
 
     public static native void set_SSL_psk_server_callback_enabled(long ssl, boolean enabled);
 
-    public static String[] getDefaultProtocols() {
-        return new String[] { SUPPORTED_PROTOCOL_SSLV3,
-                              SUPPORTED_PROTOCOL_TLSV1,
-                              SUPPORTED_PROTOCOL_TLSV1_1,
-                              SUPPORTED_PROTOCOL_TLSV1_2,
-        };
-    }
+    public static final String[] DEFAULT_PROTOCOLS = new String[] {
+        SUPPORTED_PROTOCOL_SSLV3,
+        SUPPORTED_PROTOCOL_TLSV1,
+        SUPPORTED_PROTOCOL_TLSV1_1,
+        SUPPORTED_PROTOCOL_TLSV1_2,
+    };
 
     public static String[] getSupportedProtocols() {
         return new String[] { SUPPORTED_PROTOCOL_SSLV3,
