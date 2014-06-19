@@ -47,7 +47,7 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
 
     @Override
     public String[] getDefaultCipherSuites() {
-        return NativeCrypto.getDefaultCipherSuites();
+        return sslParameters.getEnabledCipherSuites();
     }
 
     @Override
