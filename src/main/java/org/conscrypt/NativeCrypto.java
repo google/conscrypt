@@ -752,8 +752,8 @@ public final class NativeCrypto {
         add("TLS_PSK_WITH_AES_128_CBC_SHA", "PSK-AES128-CBC-SHA");
         add("TLS_PSK_WITH_AES_256_CBC_SHA", "PSK-AES256-CBC-SHA");
         add("TLS_PSK_WITH_RC4_128_SHA", "PSK-RC4-SHA");
-        add("TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256", "ECDHE-PSK-WITH-AES-128-CBC-SHA256");
-        add("TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384", "ECDHE-PSK-WITH-AES-256-CBC-SHA384");
+        add("TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA", "ECDHE-PSK-AES128-CBC-SHA");
+        add("TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA", "ECDHE-PSK-AES256-CBC-SHA");
 
         // Signaling Cipher Suite Value for secure renegotiation handled as special case.
         // add("TLS_EMPTY_RENEGOTIATION_INFO_SCSV", null);
