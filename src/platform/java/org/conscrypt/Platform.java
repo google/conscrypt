@@ -21,9 +21,11 @@ import static android.system.OsConstants.SO_SNDTIMEO;
 
 import org.apache.harmony.security.utils.AlgNameMapper;
 import org.apache.harmony.security.utils.AlgNameMapperSource;
+import android.os.Process;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.StructTimeval;
+import android.util.EventLog;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
 import java.net.Socket;
@@ -161,5 +163,13 @@ class Platform {
      */
     public static OpenSSLKey wrapRsaKey(PrivateKey key) {
         return null;
+    }
+
+    /**
+     * Logs to the system EventLog system.
+     */
+    public static void logEvent(String message) {
+        uid = Process.myUid();
+        EventLog.writeEvent(0x534e4554 /* SNET */, "conscrypt", uid, message);
     }
 }

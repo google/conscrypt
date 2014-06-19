@@ -248,4 +248,25 @@ public class Platform {
             return null;
         }
     }
+
+    /**
+     * Logs to the system EventLog system.
+     */
+    public static void logEvent(String message) {
+        try {
+            Class processClass = Class.forName("android.os.Process");
+            Object processInstance = processClass.newInstance();
+            Method myUidMethod = processClass.getMethod("myUid", (Class[]) null);
+            int uid = (Integer) myUidMethod.invoke(processInstance);
+
+            Class eventLogClass = Class.forName("android.util.EventLog");
+            Object eventLogInstance = eventLogClass.newInstance();
+            Method writeEventMethod = eventLogClass.getMethod("writeEvent",
+                    new Class[] { Integer.TYPE, Object[].class });
+            writeEventMethod.invoke(eventLogInstance, 0x534e4554 /* SNET */,
+                    new Object[] { "conscrypt", uid, message });
+        } catch (Exception e) {
+            // Do not log and fail silently
+        }
+    }
 }
