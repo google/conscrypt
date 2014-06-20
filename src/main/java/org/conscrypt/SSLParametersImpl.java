@@ -237,7 +237,7 @@ public class SSLParametersImpl implements Cloneable {
      * Sets the enabled cipher suites after filtering through OpenSSL.
      */
     protected void setEnabledCipherSuites(String[] cipherSuites) {
-        enabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(cipherSuites);
+        enabledCipherSuites = NativeCrypto.checkEnabledCipherSuites(cipherSuites).clone();
     }
 
     /**
@@ -252,7 +252,7 @@ public class SSLParametersImpl implements Cloneable {
      * @param protocols String[]
      */
     protected void setEnabledProtocols(String[] protocols) {
-        enabledProtocols = NativeCrypto.checkEnabledProtocols(protocols);
+        enabledProtocols = NativeCrypto.checkEnabledProtocols(protocols).clone();
     }
 
     /**
