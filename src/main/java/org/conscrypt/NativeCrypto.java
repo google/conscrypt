@@ -784,6 +784,7 @@ public final class NativeCrypto {
     public static final long SSL_MODE_CBC_RECORD_SPLITTING = 0x00000100L;
 
     // SSL options from ssl.h
+    public static final long SSL_OP_TLSEXT_PADDING                         = 0x00000010L;
     public static final long SSL_OP_NO_TICKET                              = 0x00004000L;
     public static final long SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION = 0x00010000L;
     public static final long SSL_OP_NO_SSLv3                               = 0x02000000L;
