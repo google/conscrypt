@@ -61,7 +61,7 @@ public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
         if (!(key instanceof PublicKey)) {
             throw new InvalidKeyException("Not a public key: " + key.getClass());
         }
-        OpenSSLKey openSslPublicKey = translateKeyToEcOpenSSLKey(key);
+        OpenSSLKey openSslPublicKey = OpenSSLKey.fromPublicKey((PublicKey) key);
 
         byte[] buffer = new byte[mExpectedResultLength];
         int actualResultLength = NativeCrypto.ECDH_compute_key(
@@ -124,7 +124,7 @@ public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
             throw new InvalidKeyException("Not a private key: " + key.getClass());
         }
 
-        OpenSSLKey openSslKey = translateKeyToEcOpenSSLKey(key);
+        OpenSSLKey openSslKey = OpenSSLKey.fromPrivateKey((PrivateKey) key);
         int fieldSizeBits = NativeCrypto.EC_GROUP_get_degree(NativeCrypto.EC_KEY_get0_group(
                 openSslKey.getPkeyContext()));
         mExpectedResultLength = (fieldSizeBits + 7) / 8;
@@ -144,15 +144,6 @@ public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
     private void checkCompleted() {
         if (mResult == null) {
             throw new IllegalStateException("Key agreement not completed");
-        }
-    }
-
-    private static OpenSSLKey translateKeyToEcOpenSSLKey(Key key) throws InvalidKeyException {
-        try {
-            return ((OpenSSLKeyHolder) KeyFactory.getInstance(
-                    "EC", OpenSSLProvider.PROVIDER_NAME).translateKey(key)).getOpenSSLKey();
-        } catch (Exception e) {
-            throw new InvalidKeyException("Failed to translate key to OpenSSL EC key", e);
         }
     }
 }
