@@ -513,10 +513,10 @@ public class OpenSSLSocketImpl
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
-                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, this);
+                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, getPeerHostName());
             } else {
                 String authType = peerCertChain[0].getPublicKey().getAlgorithm();
-                Platform.checkClientTrusted(x509tm, peerCertChain, authType, this);
+                x509tm.checkClientTrusted(peerCertChain, authType);
             }
         } catch (CertificateException e) {
             throw e;
@@ -758,12 +758,6 @@ public class OpenSSLSocketImpl
             }
         }
         return sslSession;
-    }
-
-    // Comment annotation to compile Conscrypt unbundled with Java 6.
-    /* @Override */
-    public SSLSession getHandshakeSession() {
-        return handshakeSession;
     }
 
     @Override
@@ -1205,21 +1199,6 @@ public class OpenSSLSocketImpl
             throw new IllegalArgumentException("alpnProtocols.length == 0");
         }
         sslParameters.alpnProtocols = alpnProtocols;
-    }
-
-    @Override
-    public SSLParameters getSSLParameters() {
-        SSLParameters params = super.getSSLParameters();
-        Platform.setEndpointIdentificationAlgorithm(params,
-                sslParameters.getEndpointIdentificationAlgorithm());
-        return params;
-    }
-
-    @Override
-    public void setSSLParameters(SSLParameters p) {
-        super.setSSLParameters(p);
-        sslParameters.setEndpointIdentificationAlgorithm(
-                Platform.getEndpointIdentificationAlgorithm(p));
     }
 
     @Override
