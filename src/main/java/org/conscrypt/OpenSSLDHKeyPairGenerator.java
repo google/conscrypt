@@ -27,13 +27,28 @@ import javax.crypto.spec.DHParameterSpec;
 
 public class OpenSSLDHKeyPairGenerator extends KeyPairGeneratorSpi {
 
+    /** The safe prime to use for the generated DH key pair. */
+    private BigInteger prime;
+
+    /** If {@code prime} is unspecified, this is the size of the generated prime. */
     private int primeBits = 1024;
 
-    private int generator = 2;
+    private static final BigInteger DEFAULT_GENERATOR = BigInteger.valueOf(2);
+
+    private BigInteger generator = DEFAULT_GENERATOR;
 
     @Override
     public KeyPair generateKeyPair() {
-        final OpenSSLKey key = new OpenSSLKey(NativeCrypto.DH_generate_key(primeBits, generator));
+        final OpenSSLKey key;
+        if (prime != null) {
+            key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_DH(prime.toByteArray(),
+                    generator.toByteArray(), null, null));
+        } else {
+            key = new OpenSSLKey(NativeCrypto.DH_generate_parameters_ex(primeBits,
+                    generator.longValue()));
+        }
+
+        NativeCrypto.DH_generate_key(key.getPkeyContext());
 
         final OpenSSLDHPrivateKey privKey = new OpenSSLDHPrivateKey(key);
         final OpenSSLDHPublicKey pubKey = new OpenSSLDHPublicKey(key);
@@ -43,18 +58,25 @@ public class OpenSSLDHKeyPairGenerator extends KeyPairGeneratorSpi {
 
     @Override
     public void initialize(int keysize, SecureRandom random) {
+        prime = null;
         primeBits = keysize;
+        generator = DEFAULT_GENERATOR;
     }
 
     @Override
     public void initialize(AlgorithmParameterSpec params, SecureRandom random)
             throws InvalidAlgorithmParameterException {
+        prime = null;
+        primeBits = 1024;
+        generator = DEFAULT_GENERATOR;
+
         if (params instanceof DHParameterSpec) {
             DHParameterSpec dhParams = (DHParameterSpec) params;
 
-            BigInteger pInt = dhParams.getP();
-            if (pInt != null) {
-                primeBits = pInt.bitLength();
+            prime = dhParams.getP();
+            BigInteger gen = dhParams.getG();
+            if (gen != null) {
+                generator = gen;
             }
         } else if (params != null) {
             throw new InvalidAlgorithmParameterException("Params must be DHParameterSpec");
