@@ -2003,7 +2003,8 @@ static jlong NativeCrypto_EVP_PKEY_new_DH(JNIEnv* env, jclass,
     }
 
     if (dh->p == NULL || dh->g == NULL
-            || (dh->pub_key == NULL && dh->priv_key == NULL)) {
+            || (pub_key != NULL && dh->pub_key == NULL)
+            || (priv_key != NULL && dh->priv_key == NULL)) {
         jniThrowRuntimeException(env, "Unable to convert BigInteger to BIGNUM");
         return 0;
     }
@@ -3009,48 +3010,63 @@ static void NativeCrypto_set_DSA_flag_nonce_from_hash(JNIEnv* env, jclass, jlong
     dsa->flags |= DSA_FLAG_NONCE_FROM_HASH;
 }
 
-static jlong NativeCrypto_DH_generate_key(JNIEnv* env, jclass, jint primeBits, jint generator) {
-    JNI_TRACE("DH_generate_key(%d, %d)", primeBits, generator);
+static jlong NativeCrypto_DH_generate_parameters_ex(JNIEnv* env, jclass, jint primeBits, jlong generator) {
+    JNI_TRACE("DH_generate_parameters_ex(%d, %d)", primeBits, generator);
 
     Unique_DH dh(DH_new());
     if (dh.get() == NULL) {
-        JNI_TRACE("DH_generate_key failed");
+        JNI_TRACE("DH_generate_parameters_ex failed");
         jniThrowOutOfMemory(env, "Unable to allocate DH key");
         freeOpenSslErrorState();
         return 0;
     }
 
-    JNI_TRACE("DH_generate_key generating parameters");
+    JNI_TRACE("DH_generate_parameters_ex generating parameters");
 
     if (!DH_generate_parameters_ex(dh.get(), primeBits, generator, NULL)) {
-        JNI_TRACE("DH_generate_key => param generation failed");
+        JNI_TRACE("DH_generate_parameters_ex => param generation failed");
         throwExceptionIfNecessary(env, "NativeCrypto_DH_generate_parameters_ex failed");
-        return 0;
-    }
-
-    if (!DH_generate_key(dh.get())) {
-        JNI_TRACE("DH_generate_key failed");
-        throwExceptionIfNecessary(env, "NativeCrypto_DH_generate_key failed");
         return 0;
     }
 
     Unique_EVP_PKEY pkey(EVP_PKEY_new());
     if (pkey.get() == NULL) {
-        JNI_TRACE("DH_generate_key failed");
-        jniThrowRuntimeException(env, "NativeCrypto_DH_generate_key failed");
+        JNI_TRACE("DH_generate_parameters_ex failed");
+        jniThrowRuntimeException(env, "NativeCrypto_DH_generate_parameters_ex failed");
         freeOpenSslErrorState();
         return 0;
     }
 
     if (EVP_PKEY_assign_DH(pkey.get(), dh.get()) != 1) {
-        JNI_TRACE("DH_generate_key failed");
-        throwExceptionIfNecessary(env, "NativeCrypto_DH_generate_key failed");
+        JNI_TRACE("DH_generate_parameters_ex failed");
+        throwExceptionIfNecessary(env, "NativeCrypto_DH_generate_parameters_ex failed");
         return 0;
     }
 
     OWNERSHIP_TRANSFERRED(dh);
-    JNI_TRACE("DH_generate_key(n=%d, g=%d) => %p", primeBits, generator, pkey.get());
+    JNI_TRACE("DH_generate_parameters_ex(n=%d, g=%d) => %p", primeBits, generator, pkey.get());
     return reinterpret_cast<uintptr_t>(pkey.release());
+}
+
+static void NativeCrypto_DH_generate_key(JNIEnv* env, jclass, jlong pkeyRef) {
+    JNI_TRACE("DH_generate_key(%p)", pkeyRef);
+    EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
+
+    if (pkey == NULL) {
+        jniThrowNullPointerException(env, "pkey == null");
+    }
+
+    Unique_DH dh(EVP_PKEY_get1_DH(pkey));
+    if (dh.get() == NULL) {
+        JNI_TRACE("DH_generate_key failed");
+        throwExceptionIfNecessary(env, "Unable to get DH key");
+        freeOpenSslErrorState();
+    }
+
+    if (!DH_generate_key(dh.get())) {
+        JNI_TRACE("DH_generate_key failed");
+        throwExceptionIfNecessary(env, "NativeCrypto_DH_generate_key failed");
+    }
 }
 
 static jobjectArray NativeCrypto_get_DH_params(JNIEnv* env, jclass, jlong pkeyRef) {
@@ -9526,7 +9542,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, DSA_generate_key, "(I[B[B[B[B)J"),
     NATIVE_METHOD(NativeCrypto, get_DSA_params, "(J)[[B"),
     NATIVE_METHOD(NativeCrypto, set_DSA_flag_nonce_from_hash, "(J)V"),
-    NATIVE_METHOD(NativeCrypto, DH_generate_key, "(II)J"),
+    NATIVE_METHOD(NativeCrypto, DH_generate_parameters_ex, "(IJ)J"),
+    NATIVE_METHOD(NativeCrypto, DH_generate_key, "(J)V"),
     NATIVE_METHOD(NativeCrypto, get_DH_params, "(J)[[B"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_new_by_curve_name, "(Ljava/lang/String;)J"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_new_curve, "(I[B[B[B)J"),
