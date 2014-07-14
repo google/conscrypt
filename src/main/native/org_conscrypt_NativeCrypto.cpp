@@ -4140,8 +4140,13 @@ static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject 
          return NULL;
     }
 
-    const size_t expectedSize = EVP_MD_CTX_size(mdCtx);
-    ScopedLocalRef<jbyteArray> outJavaBytes(env, env->NewByteArray(expectedSize));
+    size_t len;
+    if (EVP_DigestSignFinal(mdCtx, NULL, &len) != 1) {
+        JNI_TRACE("ctx=%p EVP_DigestSignFinal => threw exception", mdCtx);
+        throwExceptionIfNecessary(env, "EVP_DigestSignFinal");
+        return 0;
+    }
+    ScopedLocalRef<jbyteArray> outJavaBytes(env, env->NewByteArray(len));
     if (outJavaBytes.get() == NULL) {
         return NULL;
     }
@@ -4150,15 +4155,9 @@ static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject 
         return NULL;
     }
     unsigned char *tmp = reinterpret_cast<unsigned char*>(outBytes.get());
-    size_t len;
-    if (!EVP_DigestSignFinal(mdCtx, tmp, &len)) {
+    if (EVP_DigestSignFinal(mdCtx, tmp, &len) != 1) {
         JNI_TRACE("ctx=%p EVP_DigestSignFinal => threw exception", mdCtx);
         throwExceptionIfNecessary(env, "EVP_DigestSignFinal");
-        return 0;
-    }
-
-    if (len != expectedSize) {
-        jniThrowRuntimeException(env, "hash size unexpected");
         return 0;
     }
 
