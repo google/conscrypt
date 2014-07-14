@@ -84,6 +84,12 @@ public abstract class OpenSSLCipher extends CipherSpi {
     private Padding padding = Padding.PKCS5PADDING;
 
     /**
+     * May be used when reseting the cipher instance after calling
+     * {@code doFinal}.
+     */
+    private byte[] encodedKey;
+
+    /**
      * The Initial Vector (IV) used for the current cipher.
      */
     private byte[] iv;
@@ -252,8 +258,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
         if (encodedKey == null) {
             throw new InvalidKeyException("key.getEncoded() == null");
         }
-
         checkSupportedKeySize(encodedKey.length);
+        this.encodedKey = encodedKey;
 
         final long cipherType = NativeCrypto.EVP_get_cipherbyname(getCipherName(encodedKey.length,
                 mode));
@@ -392,7 +398,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
      * Reset this Cipher instance state to process a new chunk of data.
      */
     private void reset() {
-        NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), 0, null, null, encrypting);
+        NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), 0, encodedKey, iv, encrypting);
         calledUpdate = false;
     }
 
