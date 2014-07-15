@@ -175,7 +175,9 @@ public final class NativeCrypto {
 
     public static native long EVP_PKEY_new_DH(byte[] p, byte[] g, byte[] pub_key, byte[] priv_key);
 
-    public static native long DH_generate_key(int primeBits, int generator);
+    public static native long DH_generate_parameters_ex(int primeBits, long generator);
+
+    public static native void DH_generate_key(long pkeyRef);
 
     /**
      * @return array of {p, g, y(pub), x(priv)}
