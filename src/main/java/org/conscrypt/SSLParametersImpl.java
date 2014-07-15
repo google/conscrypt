@@ -144,8 +144,12 @@ public class SSLParametersImpl implements Cloneable {
         // but faster than going through the SecureRandom object.
         secureRandom = sr;
 
-        enabledProtocols = NativeCrypto.getDefaultProtocols();
-        enabledCipherSuites = NativeCrypto.getDefaultCipherSuites();
+        // initialize the list of cipher suites and protocols enabled by default
+        enabledProtocols = getDefaultProtocols();
+        boolean x509CipherSuitesNeeded = (x509KeyManager != null) || (x509TrustManager != null);
+        boolean pskCipherSuitesNeeded = pskKeyManager != null;
+        enabledCipherSuites = getDefaultCipherSuites(
+                x509CipherSuitesNeeded, pskCipherSuitesNeeded);
     }
 
     protected static SSLParametersImpl getDefault() throws KeyManagementException {
@@ -957,5 +961,56 @@ public class SSLParametersImpl implements Cloneable {
             default:
                 return null;
         }
+    }
+
+    private static String[] getDefaultCipherSuites(
+            boolean x509CipherSuitesNeeded,
+            boolean pskCipherSuitesNeeded) {
+        if (x509CipherSuitesNeeded) {
+            // X.509 based cipher suites need to be listed.
+            if (pskCipherSuitesNeeded) {
+                // Both X.509 and PSK based cipher suites need to be listed. Because TLS-PSK is not
+                // normally used, we assume that when PSK cipher suites are requested here they
+                // should be preferred over other cipher suites. Thus, we give PSK cipher suites
+                // higher priority than X.509 cipher suites.
+                // NOTE: There are cipher suites that use both X.509 and PSK (e.g., those based on
+                // RSA_PSK key exchange). However, these cipher suites are not currently supported.
+                return concat(
+                        NativeCrypto.DEFAULT_PSK_CIPHER_SUITES,
+                        NativeCrypto.DEFAULT_X509_CIPHER_SUITES,
+                        new String[] {NativeCrypto.TLS_EMPTY_RENEGOTIATION_INFO_SCSV});
+            } else {
+                // Only X.509 cipher suites need to be listed.
+                return concat(
+                        NativeCrypto.DEFAULT_X509_CIPHER_SUITES,
+                        new String[] {NativeCrypto.TLS_EMPTY_RENEGOTIATION_INFO_SCSV});
+            }
+        } else if (pskCipherSuitesNeeded) {
+            // Only PSK cipher suites need to be listed.
+            return concat(
+                    NativeCrypto.DEFAULT_PSK_CIPHER_SUITES,
+                    new String[] {NativeCrypto.TLS_EMPTY_RENEGOTIATION_INFO_SCSV});
+        } else {
+            // Neither X.509 nor PSK cipher suites need to be listed.
+            return new String[] {NativeCrypto.TLS_EMPTY_RENEGOTIATION_INFO_SCSV};
+        }
+    }
+
+    private static String[] getDefaultProtocols() {
+        return NativeCrypto.DEFAULT_PROTOCOLS.clone();
+    }
+
+    private static String[] concat(String[]... arrays) {
+        int resultLength = 0;
+        for (String[] array : arrays) {
+            resultLength += array.length;
+        }
+        String[] result = new String[resultLength];
+        int resultOffset = 0;
+        for (String[] array : arrays) {
+            System.arraycopy(array, 0, result, resultOffset, array.length);
+            resultOffset += array.length;
+        }
+        return result;
     }
 }
