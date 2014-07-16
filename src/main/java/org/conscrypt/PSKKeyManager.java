@@ -22,45 +22,77 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLEngine;
 
 /**
- * Pre-Shared Key (PSK) key manager for TLS/SSL.
+ * Provider of key material for pre-shared key (PSK) key exchange used in TLS-PSK cipher suites.
  *
- * <p>In a PSK key exchange, a Pre-Shared Key (PSK) for mutual authentication and for securing the
- * TLS/SSL connection. Both peers have to use the same key for the TLS/SSL handshake to succeed. The
- * key is not transmitted over the network.
+ * <h3>Overview of TLS-PSK</h3>
  *
- * <p>To help the peers choose the right key, the server can provide a <em>PSK identity hint</em> to
- * the client, and the client can provide a <em>PSK identity</em> to the server. The contents of
- * these two pieces of information are specific to application-level protocols.
+ * <p>TLS-PSK is a set of TLS/SSL cipher suites which rely on a symmetric pre-shared key (PSK) to
+ * secure the TLS/SSL connection and mutually authenticate its peers. These cipher suites may be
+ * a more natural fit compared to conventional public key based cipher suites in some scenarios
+ * where communication between peers is bootstrapped via a separate step (for example, a pairing
+ * step) and requires both peers to authenticate each other. In such scenarios a symmetric key (PSK)
+ * can be exchanged during the bootstrapping step, removing the need to generate and exchange public
+ * key pairs and X.509 certificates.</p>
+ *
+ * <p>When a TLS-PSK cipher suite is used, both peers have to use the same key for the TLS/SSL
+ * handshake to succeed. Thus, both peers are implicitly authenticated by a successful handshake.
+ * This removes the need to use a {@code TrustManager} in conjunction with this {@code KeyManager}.
+ * </p>
+ *
+ * <h3>Supporting multiple keys</h3>
+ *
+ * <p>A peer may have multiple keys to choose from. To help choose the right key, during the
+ * handshake the server can provide a <em>PSK identity hint</em> to the client, and the client can
+ * provide a <em>PSK identity</em> to the server. The contents of these two pieces of information
+ * are specific to application-level protocols.</p>
  *
  * <p><em>NOTE: Both the PSK identity hint and the PSK identity are transmitted in cleartext.
  * Moreover, these data are received and processed prior to peer having been authenticated. Thus,
  * they must not contain or leak key material or other sensitive information, and should be
- * treated (e.g., parsed) with caution, as untrusted data.</em>
+ * treated (e.g., parsed) with caution, as untrusted data.</em></p>
  *
- * <p>The high-level flow leading to peers choosing a key for a connection is as follows:
+ * <p>The high-level flow leading to peers choosing a key during TLS/SSL handshake is as follows:
  * <ol>
- * <li>The server receives a TLS/SSL handshake request from client.
- * <li>The server, optionally, sends a PSK identity hint to the client.</li>
- * <li>The client chooses the key to be used for the connection.</li>
- * <li>The client sends a PSK identity (may be empty) of the chosen key to the server.</li>
- * <li>The server chooses the key to be used for the connection.</li>
- * </ol>
+ * <li>Server receives a handshake request from client.
+ * <li>Server replies, optionally providing a PSK identity hint to client.</li>
+ * <li>Client chooses the key.</li>
+ * <li>Client provides a PSK identity of the chosen key to server.</li>
+ * <li>Server chooses the key.</li>
+ * </ol></p>
  *
- * <p>In the flow above, both the client and the server can signal that they do not have a suitable
- * key, in which case the the handshake will be aborted immediately. This may enable an attacker who
- * does not know the key to learn which PSK identity hints and/or PSK identities are supported. If
- * this is a concern then a randomly generated key should be used in the scenario where no key is
- * available. This will lead to the handshake aborting later, due to key mismatch -- exactly as in
- * the scenario where a key is available but is not known to the attacker.
+ * <p>In the flow above, either peer can signal that they do not have a suitable key, in which case
+ * the the handshake will be aborted immediately. This may enable a network attacker who does not
+ * know the key to learn which PSK identity hints or PSK identities are supported. If this is a
+ * concern then a randomly generated key should be used in the scenario where no key is available.
+ * This will lead to the handshake aborting later, due to key mismatch -- same as in the scenario
+ * where a key is available -- making it appear to the attacker that all PSK identity hints and PSK
+ * identities are supported.</p>
+ *
+ * <h3>Maximum sizes</h3>
  *
  * <p>The maximum supported sizes are as follows:
  * <ul>
  * <li>256 bytes for keys (see {@link #MAX_KEY_LENGTH_BYTES}),</li>
- * <li>128 bytes for identity and identity hint (in modified UTF-8 representation) (see
+ * <li>128 bytes for PSK identity and PSK identity hint (in modified UTF-8 representation) (see
  * {@link #MAX_IDENTITY_LENGTH_BYTES} and {@link #MAX_IDENTITY_HINT_LENGTH_BYTES}).</li>
- * </ul>
+ * </ul></p>
  *
- * @hide
+ * <h3>Example</h3>
+ * The following example illustrates how to create an {@code SSLContext} which enables the use of
+ * TLS-PSK in {@code SSLSocket}, {@code SSLServerSocket} and {@code SSLEngine} instances obtained
+ * from it.
+ * <pre> {@code
+ * PSKKeyManager myPskKeyManager = ...;
+ *
+ * SSLContext sslContext = SSLContext.getInstance("TLS");
+ * sslContext.init(
+ *         new KeyManager[] &#123;myPskKeyManager&#125;,
+ *         new TrustManager[0], // No TrustManagers needed for TLS-PSK
+ *         null // Use the default source of entropy
+ *         );
+ *
+ * SSLSocket sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(...);
+ * }</pre>
  */
 public interface PSKKeyManager extends KeyManager {
 
@@ -76,24 +108,24 @@ public interface PSKKeyManager extends KeyManager {
     int MAX_KEY_LENGTH_BYTES = 256;
 
     /**
-     * Gets the Pre-Shared Key (PSK) identity hint to report to the client at the other end of the
-     * provided connection to help agree on the PSK for this socket.
+     * Gets the PSK identity hint to report to the client to help agree on the PSK for the provided
+     * socket.
      *
      * @return PSK identity hint to be provided to the client or {@code null} to provide no hint.
      */
     String chooseServerKeyIdentityHint(Socket socket);
 
     /**
-     * Gets the Pre-Shared Key (PSK) identity hint to report to the client at the other end of the
-     * provided connection to help agree on the PSK for this engine.
+     * Gets the PSK identity hint to report to the client to help agree on the PSK for the provided
+     * engine.
      *
      * @return PSK identity hint to be provided to the client or {@code null} to provide no hint.
      */
     String chooseServerKeyIdentityHint(SSLEngine engine);
 
     /**
-     * Gets the Pre-Shared Key (PSK) identity to report to the server at the other end of the
-     * provided connection to help agree on the PSK for this socket.
+     * Gets the PSK identity to report to the server to help agree on the PSK for the provided
+     * socket.
      *
      * @param identityHint identity hint provided by the server or {@code null} if none provided.
      *
@@ -103,8 +135,8 @@ public interface PSKKeyManager extends KeyManager {
     String chooseClientKeyIdentity(String identityHint, Socket socket);
 
     /**
-     * Gets the Pre-Shared Key (PSK) identity to report to the server at the other end of the
-     * provided connection to help agree on the PSK for this engine.
+     * Gets the PSK identity to report to the server to help agree on the PSK for the provided
+     * engine.
      *
      * @param identityHint identity hint provided by the server or {@code null} if none provided.
      *
@@ -114,7 +146,7 @@ public interface PSKKeyManager extends KeyManager {
     String chooseClientKeyIdentity(String identityHint, SSLEngine engine);
 
     /**
-     * Gets the Pre-Shared Key (PSK) to use for the provided connection.
+     * Gets the PSK to use for the provided socket.
      *
      * @param identityHint identity hint provided by the server to help select the key or
      *        {@code null} if none provided.
@@ -126,7 +158,7 @@ public interface PSKKeyManager extends KeyManager {
     SecretKey getKey(String identityHint, String identity, Socket socket);
 
     /**
-     * Gets the Pre-Shared Key (PSK) to use for the provided connection.
+     * Gets the PSK to use for the provided engine.
      *
      * @param identityHint identity hint provided by the server to help select the key or
      *        {@code null} if none provided.
