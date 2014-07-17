@@ -119,8 +119,6 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
      */
     OpenSSLKey channelIdPrivateKey;
 
-    private byte[] mBuffer;
-
     public OpenSSLEngineImpl(SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
     }
@@ -390,14 +388,19 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         } else if (dsts == null) {
             throw new IllegalArgumentException("dsts == null");
         }
-        for (ByteBuffer dst : dsts) {
+        checkIndex(dsts.length, offset, length);
+        int dstRemaining = 0;
+        for (int i = 0; i < dsts.length; i++) {
+            ByteBuffer dst = dsts[i];
             if (dst == null) {
                 throw new IllegalArgumentException("one of the dst == null");
             } else if (dst.isReadOnly()) {
                 throw new ReadOnlyBufferException();
             }
+            if (i >= offset && i < offset + length) {
+                dstRemaining += dst.remaining();
+            }
         }
-        checkIndex(dsts.length, offset, length);
 
         synchronized (stateLock) {
             // If the inbound direction is closed. we can't send anymore.
@@ -437,32 +440,44 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
             return new SSLEngineResult(Status.OK, handshakeStatus, 0, 0);
         }
 
+        if (dstRemaining == 0) {
+            return new SSLEngineResult(Status.BUFFER_OVERFLOW, getHandshakeStatus(), 0, 0);
+        }
+
+        ByteBuffer srcDuplicate = src.duplicate();
+        OpenSSLBIOSource source = OpenSSLBIOSource.wrap(srcDuplicate);
         try {
-            byte[] buffer = mBuffer;
-            if (buffer == null) {
-                buffer = new byte[8192];
-                mBuffer = buffer;
+            int positionBeforeRead = srcDuplicate.position();
+            int produced = 0;
+            for (int i = 0; i < length; i++) {
+                ByteBuffer dst = dsts[offset + i];
+                ByteBuffer arrayDst = dst;
+                if (dst.isDirect() || dst.arrayOffset() != 0 || dst.position() != 0
+                    || dst.limit() != dst.capacity()) {
+                    arrayDst = ByteBuffer.allocate(dst.remaining());
+                }
+
+                int internalProduced = NativeCrypto.SSL_read_BIO(sslNativePointer, arrayDst.array(),
+                    source.getContext(),
+                localToRemoteSink.getContext(), this);
+                if (internalProduced <= 0) {
+                    continue;
+                }
+                arrayDst.position(arrayDst.position() + internalProduced);
+                produced += internalProduced;
+                if (dst != arrayDst) {
+                    arrayDst.flip();
+                    dst.put(arrayDst);
+                }
             }
 
-            ByteBuffer srcDuplicate = src.duplicate();
-            int numRead;
-            OpenSSLBIOSource source = OpenSSLBIOSource.wrap(srcDuplicate);
-            try {
-                /*
-                 * We can't just use .mark() here because the caller might be
-                 * using it.
-                 */
-                numRead = NativeCrypto.SSL_read_BIO(sslNativePointer, buffer, source.getContext(),
-                        localToRemoteSink.getContext(), this);
-            } finally {
-                source.release();
-            }
+            int consumed = srcDuplicate.position() - positionBeforeRead;
             src.position(srcDuplicate.position());
-
-            return new SSLEngineResult(Status.OK, getHandshakeStatus(), numRead,
-                    writeBytesToByteBuffers(buffer, numRead, dsts));
+            return new SSLEngineResult(Status.OK, getHandshakeStatus(), consumed, produced);
         } catch (IOException e) {
             throw new SSLException(e);
+        } finally {
+            source.release();
         }
     }
 
@@ -561,24 +576,6 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         dst.put(sink.toByteArray(), sink.position(), toWrite);
         sink.skip(toWrite);
         return toWrite;
-    }
-
-    private int writeBytesToByteBuffers(byte[] buffer, int numRead, ByteBuffer[] dsts)
-            throws SSLException {
-        if (numRead <= 0) {
-            return 0;
-        }
-        int offset = 0;
-        for (int i = 0; i < dsts.length && offset < numRead; i++) {
-            int toPut = Math.min(dsts[i].remaining(), numRead - offset);
-            dsts[i].put(buffer, offset, toPut);
-            offset += toPut;
-        }
-        if (offset != numRead) {
-            throw new SSLException("Buffers were not large enough; still "
-                    + (buffer.length - offset) + " bytes left.");
-        }
-        return offset;
     }
 
     @Override
