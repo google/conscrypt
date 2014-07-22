@@ -445,18 +445,24 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         try {
             int positionBeforeRead = srcDuplicate.position();
             int produced = 0;
-            for (int i = 0; i < length; i++) {
-                ByteBuffer dst = dsts[offset + i];
+            boolean shouldStop = false;
+
+            while (!shouldStop) {
+                ByteBuffer dst = getNextAvailableByteBuffer(dsts, offset, length);
+                if (dst == null) {
+                    shouldStop = true;
+                    continue;
+                }
                 ByteBuffer arrayDst = dst;
                 if (dst.isDirect() || dst.arrayOffset() != 0 || dst.position() != 0
-                    || dst.limit() != dst.capacity()) {
+                        || dst.limit() != dst.capacity()) {
                     arrayDst = ByteBuffer.allocate(dst.remaining());
                 }
 
                 int internalProduced = NativeCrypto.SSL_read_BIO(sslNativePointer, arrayDst.array(),
-                    source.getContext(),
-                localToRemoteSink.getContext(), this);
+                        source.getContext(), localToRemoteSink.getContext(), this);
                 if (internalProduced <= 0) {
+                    shouldStop = true;
                     continue;
                 }
                 arrayDst.position(arrayDst.position() + internalProduced);
@@ -475,6 +481,16 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         } finally {
             source.release();
         }
+    }
+
+    /** Returns the next non-empty ByteBuffer. */
+    private ByteBuffer getNextAvailableByteBuffer(ByteBuffer[] buffers, int offset, int length) {
+        for (int i = offset; i < length; ++i) {
+            if (buffers[i].remaining() > 0) {
+                return buffers[i];
+            }
+        }
+        return null;
     }
 
     @Override
