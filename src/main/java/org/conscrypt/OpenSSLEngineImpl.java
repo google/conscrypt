@@ -456,13 +456,15 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                     continue;
                 }
                 ByteBuffer arrayDst = dst;
-                if (dst.isDirect() || dst.arrayOffset() != 0 || dst.position() != 0
-                        || dst.limit() != dst.capacity()) {
+                if (dst.isDirect()) {
                     arrayDst = ByteBuffer.allocate(dst.remaining());
                 }
 
-                int internalProduced = NativeCrypto.SSL_read_BIO(sslNativePointer, arrayDst.array(),
-                        source.getContext(), localToRemoteSink.getContext(), this);
+                int dstOffset = arrayDst.arrayOffset() + arrayDst.position();
+
+                int internalProduced = NativeCrypto.SSL_read_BIO(sslNativePointer,
+                        arrayDst.array(), dstOffset, dst.remaining(), source.getContext(),
+                        localToRemoteSink.getContext(), this);
                 if (internalProduced <= 0) {
                     shouldStop = true;
                     continue;
