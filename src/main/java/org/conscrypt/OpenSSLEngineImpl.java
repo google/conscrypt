@@ -257,6 +257,8 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                 case NEW:
                 case MODE_SET:
                 case CLOSED:
+                case CLOSED_INBOUND:
+                case CLOSED_OUTBOUND:
                 case READY:
                 case READY_HANDSHAKE_CUT_THROUGH:
                     return HandshakeStatus.NOT_HANDSHAKING;
