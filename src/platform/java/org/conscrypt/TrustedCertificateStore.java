@@ -275,6 +275,10 @@ public final class TrustedCertificateStore {
     }
 
     public String getCertificateAlias(Certificate c) {
+        return getCertificateAlias(c, false);
+    }
+
+    public String getCertificateAlias(Certificate c, boolean includeDeletedSystem) {
         if (c == null || !(c instanceof X509Certificate)) {
             return null;
         }
@@ -283,7 +287,7 @@ public final class TrustedCertificateStore {
         if (user.exists()) {
             return PREFIX_USER + user.getName();
         }
-        if (isDeletedSystemCertificate(x)) {
+        if (!includeDeletedSystem && isDeletedSystemCertificate(x)) {
             return null;
         }
         File system = getCertificateFile(systemDir, x);
