@@ -2494,7 +2494,7 @@ static jlong NativeCrypto_d2i_PUBKEY(JNIEnv* env, jclass, jbyteArray javaBytes) 
 
 static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey,
         jbyteArray modulusBytes) {
-    JNI_TRACE("getRSAPrivateKeyWrapper(%p, %p)", javaKey, modulus);
+    JNI_TRACE("getRSAPrivateKeyWrapper(%p, %p)", javaKey, modulusBytes);
 
     Unique_RSA rsa(RSA_new());
     if (rsa.get() == NULL) {
@@ -2528,7 +2528,7 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
 
 static jlong NativeCrypto_getDSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey,
         jbyteArray qBytes) {
-    JNI_TRACE("getDSAPrivateKeyWrapper(%p, %p)", javaKey, modulus);
+    JNI_TRACE("getDSAPrivateKeyWrapper(%p, %p)", javaKey, qBytes);
 
     Unique_DSA dsa(DSA_new());
     if (dsa.get() == NULL) {
@@ -2560,7 +2560,7 @@ static jlong NativeCrypto_getDSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
 }
 
 static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey, jlong groupRef) {
-    JNI_TRACE("getECPrivateKeyWrapper(%p, %p)", javaKey, modulus);
+    JNI_TRACE("getECPrivateKeyWrapper(%p, %p)", javaKey, groupRef);
 
     Unique_EC_KEY ecKey(EC_KEY_new());
     if (ecKey.get() == NULL) {
