@@ -85,7 +85,7 @@ public class OpenSSLDSAPrivateKey implements DSAPrivateKey, OpenSSLKeyHolder {
     }
 
     public static OpenSSLKey wrapPlatformKey(DSAPrivateKey dsaPrivateKey) {
-        return new OpenSSLKey(NativeCrypto.getDSAPrivateKeyWrapper(dsaPrivateKey));
+        return new OpenSSLKey(NativeCrypto.getDSAPrivateKeyWrapper(dsaPrivateKey), true);
     }
 
     @Override
