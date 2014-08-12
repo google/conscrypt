@@ -437,16 +437,21 @@ public class SSLParametersImpl implements Cloneable {
         // SSL_use_PrivateKey.
         NativeCrypto.SSL_use_certificate(sslNativePointer, x509refs);
 
+        final OpenSSLKey key;
         try {
-            final OpenSSLKey key = OpenSSLKey.fromPrivateKey(privateKey);
+            key = OpenSSLKey.fromPrivateKey(privateKey);
             NativeCrypto.SSL_use_PrivateKey(sslNativePointer, key.getPkeyContext());
         } catch (InvalidKeyException e) {
             throw new SSLException(e);
         }
 
-        // checks the last installed private key and certificate,
-        // so need to do this once per loop iteration
-        NativeCrypto.SSL_check_private_key(sslNativePointer);
+        // We may not have access to all the information to check the private key
+        // if it's a wrapped platform key, so skip this check.
+        if (!key.isWrapped()) {
+            // Makes sure the set PrivateKey and X509Certificate refer to the same
+            // key by comparing the public values.
+            NativeCrypto.SSL_check_private_key(sslNativePointer);
+        }
     }
 
     void setSSLParameters(long sslCtxNativePointer, long sslNativePointer, AliasChooser chooser,

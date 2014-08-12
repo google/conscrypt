@@ -70,9 +70,10 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
         return wrapPlatformKey(ecPrivateKey, group);
     }
 
-    private static OpenSSLKey wrapPlatformKey(ECPrivateKey ecPrivateKey, OpenSSLECGroupContext group)
-            throws InvalidKeyException {
-        return new OpenSSLKey(NativeCrypto.getECPrivateKeyWrapper(ecPrivateKey, group.getContext()));
+    private static OpenSSLKey wrapPlatformKey(ECPrivateKey ecPrivateKey,
+            OpenSSLECGroupContext group) throws InvalidKeyException {
+        return new OpenSSLKey(NativeCrypto.getECPrivateKeyWrapper(ecPrivateKey,
+                group.getContext()), true);
     }
 
     public static OpenSSLKey getInstance(ECPrivateKey ecPrivateKey) throws InvalidKeyException {
