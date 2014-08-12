@@ -63,12 +63,14 @@
 #include "cutils/log.h"
 #else
 #include <android/log.h>
+#define ALOG(priority, tag, ...) \
+        __android_log_print(ANDROID_##priority, tag, __VA_ARGS__)
 #define ALOGD(...) \
-        __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__);
+        __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define ALOGE(...) \
-        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);
+        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define ALOGV(...) \
-        __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__);
+        __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
 #endif
 
 #ifndef CONSCRYPT_UNBUNDLED
@@ -109,12 +111,7 @@
 
 #ifdef WITH_JNI_TRACE
 #define JNI_TRACE(...) \
-        ((void)ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__));     \
-/*
-        ((void)printf("I/" LOG_TAG "-jni:"));         \
-        ((void)printf(__VA_ARGS__));          \
-        ((void)printf("\n"))
-*/
+        ((void)ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__))
 #else
 #define JNI_TRACE(...) ((void)0)
 #endif
@@ -2560,7 +2557,8 @@ static jlong NativeCrypto_getDSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
 }
 
 static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey, jlong groupRef) {
-    JNI_TRACE("getECPrivateKeyWrapper(%p, %p)", javaKey, groupRef);
+    const EC_GROUP* group = reinterpret_cast<const EC_GROUP*>(groupRef);
+    JNI_TRACE("getECPrivateKeyWrapper(%p, %p)", javaKey, group);
 
     Unique_EC_KEY ecKey(EC_KEY_new());
     if (ecKey.get() == NULL) {
@@ -2568,7 +2566,6 @@ static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject ja
         return 0;
     }
 
-    const EC_GROUP* group = reinterpret_cast<const EC_GROUP*>(groupRef);
     JNI_TRACE("EC_GROUP_get_curve_name(%p)", group);
 
     if (group == NULL) {
@@ -3011,7 +3008,7 @@ static void NativeCrypto_set_DSA_flag_nonce_from_hash(JNIEnv* env, jclass, jlong
 }
 
 static jlong NativeCrypto_DH_generate_parameters_ex(JNIEnv* env, jclass, jint primeBits, jlong generator) {
-    JNI_TRACE("DH_generate_parameters_ex(%d, %d)", primeBits, generator);
+    JNI_TRACE("DH_generate_parameters_ex(%d, %lld)", primeBits, (long long) generator);
 
     Unique_DH dh(DH_new());
     if (dh.get() == NULL) {
@@ -3044,13 +3041,14 @@ static jlong NativeCrypto_DH_generate_parameters_ex(JNIEnv* env, jclass, jint pr
     }
 
     OWNERSHIP_TRANSFERRED(dh);
-    JNI_TRACE("DH_generate_parameters_ex(n=%d, g=%d) => %p", primeBits, generator, pkey.get());
+    JNI_TRACE("DH_generate_parameters_ex(n=%d, g=%lld) => %p", primeBits, (long long) generator,
+            pkey.get());
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
 static void NativeCrypto_DH_generate_key(JNIEnv* env, jclass, jlong pkeyRef) {
-    JNI_TRACE("DH_generate_key(%p)", pkeyRef);
     EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
+    JNI_TRACE("DH_generate_key(%p)", pkey);
 
     if (pkey == NULL) {
         jniThrowNullPointerException(env, "pkey == null");
