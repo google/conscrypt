@@ -96,7 +96,7 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
             return wrapper;
         }
         return new OpenSSLKey(NativeCrypto.getRSAPrivateKeyWrapper(rsaPrivateKey, rsaPrivateKey
-                .getModulus().toByteArray()));
+                .getModulus().toByteArray()), true);
     }
 
     static OpenSSLKey getInstance(RSAPrivateKey rsaPrivateKey) throws InvalidKeyException {
