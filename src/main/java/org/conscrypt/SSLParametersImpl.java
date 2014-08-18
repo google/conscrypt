@@ -97,7 +97,7 @@ public class SSLParametersImpl implements Cloneable {
     byte[] npnProtocols;
     byte[] alpnProtocols;
     boolean useSessionTickets;
-    boolean useSni;
+    private Boolean useSni;
 
     /**
      * Whether the TLS Channel ID extension is enabled. This field is
@@ -330,7 +330,7 @@ public class SSLParametersImpl implements Cloneable {
      * extension Server Name Indication (SNI).
      */
     protected void setUseSni(boolean flag) {
-        useSni = flag;
+        useSni = Boolean.valueOf(flag);
     }
 
     /**
@@ -338,7 +338,7 @@ public class SSLParametersImpl implements Cloneable {
      * extension Server Name Indication (SNI).
      */
     protected boolean getUseSni() {
-        return useSni;
+        return useSni != null ? useSni.booleanValue() : isSniEnabledByDefault();
     }
 
     static byte[][] encodeIssuerX509Principals(X509Certificate[] certificates)
@@ -514,7 +514,7 @@ public class SSLParametersImpl implements Cloneable {
         if (useSessionTickets) {
             NativeCrypto.SSL_clear_options(sslNativePointer, NativeCrypto.SSL_OP_NO_TICKET);
         }
-        if (useSni && AddressUtils.isValidSniHostname(sniHostname)) {
+        if (getUseSni() && AddressUtils.isValidSniHostname(sniHostname)) {
             NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, sniHostname);
         }
 
@@ -546,6 +546,23 @@ public class SSLParametersImpl implements Cloneable {
         }
 
         return true;
+    }
+
+    /**
+     * Returns whether Server Name Indication (SNI) is enabled by default for
+     * sockets. For more information on SNI, see RFC 6066 section 3.
+     */
+    private boolean isSniEnabledByDefault() {
+        String enableSNI = System.getProperty("jsse.enableSNIExtension",
+                Platform.isSniEnabledByDefault() ? "true" : "false");
+        if ("true".equalsIgnoreCase(enableSNI)) {
+            return true;
+        } else if ("false".equalsIgnoreCase(enableSNI)) {
+            return false;
+        } else {
+            throw new RuntimeException(
+                    "Can only set \"jsse.enableSNIExtension\" to \"true\" or \"false\"");
+        }
     }
 
     void setCertificateValidation(long sslNativePointer) throws IOException {

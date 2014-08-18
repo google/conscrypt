@@ -266,4 +266,11 @@ public class Platform {
 
         return false;
     }
+
+    /**
+     * For unbundled versions, SNI is always enabled by default.
+     */
+    public static boolean isSniEnabledByDefault() {
+        return true;
+    }
 }
