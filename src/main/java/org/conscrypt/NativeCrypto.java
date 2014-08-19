@@ -22,10 +22,6 @@ import java.io.OutputStream;
 import java.net.SocketTimeoutException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.Provider;
-import java.security.Security;
-import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
@@ -40,9 +36,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
 
@@ -1195,6 +1189,8 @@ public final class NativeCrypto {
 
     public static native int SSL_read_BIO(long sslNativePointer,
                                           byte[] dest,
+                                          int destOffset,
+                                          int destLength,
                                           long sourceBioRef,
                                           long sinkBioRef,
                                           SSLHandshakeCallbacks shc)

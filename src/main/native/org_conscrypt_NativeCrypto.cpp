@@ -8699,7 +8699,7 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
 }
 
 static jint NativeCrypto_SSL_read_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteArray destJava,
-        jlong sourceBioRef, jlong sinkBioRef, jobject shc) {
+        jint destOffset, jint destLength, jlong sourceBioRef, jlong sinkBioRef, jobject shc) {
     SSL* ssl = to_SSL(env, sslRef, true);
     BIO* rbio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(sourceBioRef));
     BIO* wbio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(sinkBioRef));
@@ -8722,6 +8722,13 @@ static jint NativeCrypto_SSL_read_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
     ScopedByteArrayRW dest(env, destJava);
     if (dest.get() == NULL) {
         JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO => threw exception", ssl);
+        return -1;
+    }
+    if (destOffset < 0 || destOffset > ssize_t(dest.size()) || destLength < 0
+            || destLength > (ssize_t) dest.size() - destOffset) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO => destOffset=%d, destLength=%d, size=%zd",
+                  destOffset, destLength, dest.size());
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", NULL);
         return -1;
     }
 
@@ -8749,7 +8756,7 @@ static jint NativeCrypto_SSL_read_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
 
     ScopedSslBio sslBio(ssl, rbio, wbio);
 
-    int result = SSL_read(ssl, dest.get(), dest.size());
+    int result = SSL_read(ssl, dest.get() + destOffset, destLength);
     appData->clearCallbackState();
     // callbacks can happen if server requests renegotiation
     if (env->ExceptionCheck()) {
@@ -9745,7 +9752,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_get_certificate, "(J)[J"),
     NATIVE_METHOD(NativeCrypto, SSL_get_peer_cert_chain, "(J)[J"),
     NATIVE_METHOD(NativeCrypto, SSL_read, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)I"),
-    NATIVE_METHOD(NativeCrypto, SSL_read_BIO, "(J[BJJ" SSL_CALLBACKS ")I"),
+    NATIVE_METHOD(NativeCrypto, SSL_read_BIO, "(J[BIIJJ" SSL_CALLBACKS ")I"),
     NATIVE_METHOD(NativeCrypto, SSL_write, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)V"),
     NATIVE_METHOD(NativeCrypto, SSL_write_BIO, "(J[BIJ" SSL_CALLBACKS ")I"),
     NATIVE_METHOD(NativeCrypto, SSL_interrupt, "(J)V"),
