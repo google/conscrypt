@@ -22,6 +22,7 @@ import java.io.FileDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.Socket;
+import java.net.SocketException;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
@@ -87,8 +88,56 @@ public class Platform {
         }
     }
 
-    public static void setSocketTimeout(Socket s, long timeoutMillis) {
-        // TODO: implement this for unbundled
+    /*
+     * Call Os.setsockoptTimeval via reflection.
+     */
+    public static void setSocketWriteTimeout(Socket s, long timeoutMillis) throws SocketException {
+        try {
+            Class<?> c_structTimeval = getClass("android.system.StructTimeval",
+                    "libcore.io.StructTimeval");
+            if (c_structTimeval == null) {
+                Log.w(TAG, "Cannot find StructTimeval; not setting socket write timeout");
+                return;
+            }
+
+            Method m_fromMillis = c_structTimeval.getDeclaredMethod("fromMillis", long.class);
+            Object timeval = m_fromMillis.invoke(null, timeoutMillis);
+
+            Class<?> c_Libcore = Class.forName("libcore.io.Libcore");
+            if (c_Libcore == null) {
+                Log.w(TAG, "Cannot find libcore.os.Libcore; not setting socket write timeout");
+                return;
+            }
+
+            Field f_os = c_Libcore.getField("os");
+            Object instance_os = f_os.get(null);
+
+            Class<?> c_osConstants = getClass("android.system.OsConstants",
+                    "libcore.io.OsConstants");
+            Field f_SOL_SOCKET = c_osConstants.getField("SOL_SOCKET");
+            Field f_SO_SNDTIMEO = c_osConstants.getField("SO_SNDTIMEO");
+
+            Method m_setsockoptTimeval = instance_os.getClass().getMethod("setsockoptTimeval",
+                    FileDescriptor.class, int.class, int.class, c_structTimeval);
+
+            m_setsockoptTimeval.invoke(instance_os, getFileDescriptor(s), f_SOL_SOCKET.get(null),
+                    f_SO_SNDTIMEO.get(null), timeval);
+        } catch (Exception e) {
+            Log.w(TAG, "Could not set socket write timeout: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Tries to return a Class reference of one of the supplied class names.
+     */
+    private static Class<?> getClass(String... klasses) {
+        for (String klass : klasses) {
+            try {
+                return Class.forName(klass);
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
     }
 
     public static void setEndpointIdentificationAlgorithm(SSLParameters params,

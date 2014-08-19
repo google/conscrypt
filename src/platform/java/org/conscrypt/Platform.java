@@ -96,7 +96,7 @@ class Platform {
         spec.setCurveName(curveName);
     }
 
-    public static void setSocketTimeout(Socket s, long timeoutMillis) throws SocketException {
+    public static void setSocketWriteTimeout(Socket s, long timeoutMillis) throws SocketException {
         StructTimeval tv = StructTimeval.fromMillis(timeoutMillis);
         try {
             Os.setsockoptTimeval(s.getFileDescriptor$(), SOL_SOCKET, SO_SNDTIMEO, tv);
