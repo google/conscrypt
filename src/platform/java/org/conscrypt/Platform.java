@@ -26,6 +26,7 @@ import android.system.Os;
 import android.system.StructTimeval;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
@@ -121,5 +122,12 @@ class Platform {
      */
     public static OpenSSLKey wrapRsaKey(PrivateKey key) {
         return null;
+    }
+
+    /**
+     * Returns true if the supplied hostname is an literal IP address.
+     */
+    public static boolean isLiteralIpAddress(String hostname) {
+        return InetAddress.isNumeric(hostname);
     }
 }
