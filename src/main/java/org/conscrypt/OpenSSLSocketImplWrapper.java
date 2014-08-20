@@ -30,9 +30,9 @@ public class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
 
     private Socket socket;
 
-    protected OpenSSLSocketImplWrapper(Socket socket, String host, int port,
+    protected OpenSSLSocketImplWrapper(Socket socket, String hostname, int port,
             boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
-        super(socket, host, port, autoClose, sslParameters);
+        super(socket, hostname, port, autoClose, sslParameters);
         if (!socket.isConnected()) {
             throw new SocketException("Socket is not connected.");
         }
