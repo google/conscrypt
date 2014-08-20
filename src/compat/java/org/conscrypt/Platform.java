@@ -264,7 +264,7 @@ public class Platform {
         } catch (Exception ignored) {
         }
 
-        return false;
+        return AddressUtils.isLiteralIpAddress(hostname);
     }
 
     /**
