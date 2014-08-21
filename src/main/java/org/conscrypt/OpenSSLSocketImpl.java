@@ -165,9 +165,9 @@ public class OpenSSLSocketImpl
         this.sslParameters = sslParameters;
     }
 
-    protected OpenSSLSocketImpl(String host, int port, SSLParametersImpl sslParameters)
+    protected OpenSSLSocketImpl(String hostname, int port, SSLParametersImpl sslParameters)
             throws IOException {
-        super(host, port);
+        super(hostname, port);
         this.socket = this;
         this.wrappedHost = null;
         this.wrappedPort = -1;
@@ -186,10 +186,10 @@ public class OpenSSLSocketImpl
     }
 
 
-    protected OpenSSLSocketImpl(String host, int port,
+    protected OpenSSLSocketImpl(String hostname, int port,
                                 InetAddress clientAddress, int clientPort,
                                 SSLParametersImpl sslParameters) throws IOException {
-        super(host, port, clientAddress, clientPort);
+        super(hostname, port, clientAddress, clientPort);
         this.socket = this;
         this.wrappedHost = null;
         this.wrappedPort = -1;
@@ -212,10 +212,10 @@ public class OpenSSLSocketImpl
      * Create an SSL socket that wraps another socket. Invoked by
      * OpenSSLSocketImplWrapper constructor.
      */
-    protected OpenSSLSocketImpl(Socket socket, String host, int port,
+    protected OpenSSLSocketImpl(Socket socket, String hostname, int port,
             boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
         this.socket = socket;
-        this.wrappedHost = host;
+        this.wrappedHost = hostname;
         this.wrappedPort = port;
         this.autoClose = autoClose;
         this.sslParameters = sslParameters;
