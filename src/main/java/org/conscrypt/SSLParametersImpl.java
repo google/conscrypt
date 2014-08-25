@@ -455,7 +455,7 @@ public class SSLParametersImpl implements Cloneable {
     }
 
     void setSSLParameters(long sslCtxNativePointer, long sslNativePointer, AliasChooser chooser,
-            PSKCallbacks pskCallbacks, String hostname) throws SSLException, IOException {
+            PSKCallbacks pskCallbacks, String sniHostname) throws SSLException, IOException {
         if (npnProtocols != null) {
             NativeCrypto.SSL_CTX_enable_npn(sslCtxNativePointer);
         }
@@ -515,7 +515,7 @@ public class SSLParametersImpl implements Cloneable {
             NativeCrypto.SSL_clear_options(sslNativePointer, NativeCrypto.SSL_OP_NO_TICKET);
         }
         if (useSni) {
-            NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, hostname);
+            NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, sniHostname);
         }
 
         // BEAST attack mitigation (1/n-1 record splitting for CBC cipher suites
