@@ -341,7 +341,7 @@ public class OpenSSLSocketImpl
                 // Must match error string of SSL_R_UNEXPECTED_CCS
                 if (message.contains("unexpected CCS")) {
                     String logMessage = String.format("ssl_unexpected_ccs: host=%s",
-                            getPeerHostName());
+                            getHostname());
                     Platform.logEvent(logMessage);
                 }
 
