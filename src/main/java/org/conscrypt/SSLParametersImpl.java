@@ -514,7 +514,7 @@ public class SSLParametersImpl implements Cloneable {
         if (useSessionTickets) {
             NativeCrypto.SSL_clear_options(sslNativePointer, NativeCrypto.SSL_OP_NO_TICKET);
         }
-        if (useSni) {
+        if (useSni && AddressUtils.isValidSniHostname(sniHostname)) {
             NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, sniHostname);
         }
 
@@ -526,6 +526,26 @@ public class SSLParametersImpl implements Cloneable {
         if (!enableSessionCreation) {
             NativeCrypto.SSL_set_session_creation_enabled(sslNativePointer, enableSessionCreation);
         }
+    }
+
+    /**
+     * Returns true when the supplied hostname is valid for SNI purposes.
+     */
+    private static boolean isValidSniHostname(String sniHostname) {
+        if (sniHostname == null) {
+            return false;
+        }
+
+        // Must be a FQDN.
+        if (sniHostname.indexOf('.') == -1) {
+            return false;
+        }
+
+        if (Platform.isLiteralIpAddress(sniHostname)) {
+            return false;
+        }
+
+        return true;
     }
 
     void setCertificateValidation(long sslNativePointer) throws IOException {

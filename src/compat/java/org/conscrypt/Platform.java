@@ -21,6 +21,7 @@ import android.util.Log;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.InvalidKeyException;
@@ -272,5 +273,18 @@ public class Platform {
         } catch (Exception e) {
             // Fail silently
         }
+    }
+
+    /**
+     * Returns true if the supplied hostname is an literal IP address.
+     */
+    public static boolean isLiteralIpAddress(String hostname) {
+        try {
+            Method m_isNumeric = InetAddress.class.getMethod("isNumeric", String.class);
+            return (Boolean) m_isNumeric.invoke(null, hostname);
+        } catch (Exception ignored) {
+        }
+
+        return false;
     }
 }
