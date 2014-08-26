@@ -437,20 +437,25 @@ public class SSLParametersImpl implements Cloneable {
         // SSL_use_PrivateKey.
         NativeCrypto.SSL_use_certificate(sslNativePointer, x509refs);
 
+        final OpenSSLKey key;
         try {
-            final OpenSSLKey key = OpenSSLKey.fromPrivateKey(privateKey);
+            key = OpenSSLKey.fromPrivateKey(privateKey);
             NativeCrypto.SSL_use_PrivateKey(sslNativePointer, key.getPkeyContext());
         } catch (InvalidKeyException e) {
             throw new SSLException(e);
         }
 
-        // checks the last installed private key and certificate,
-        // so need to do this once per loop iteration
-        NativeCrypto.SSL_check_private_key(sslNativePointer);
+        // We may not have access to all the information to check the private key
+        // if it's a wrapped platform key, so skip this check.
+        if (!key.isWrapped()) {
+            // Makes sure the set PrivateKey and X509Certificate refer to the same
+            // key by comparing the public values.
+            NativeCrypto.SSL_check_private_key(sslNativePointer);
+        }
     }
 
     void setSSLParameters(long sslCtxNativePointer, long sslNativePointer, AliasChooser chooser,
-            PSKCallbacks pskCallbacks, String hostname) throws SSLException, IOException {
+            PSKCallbacks pskCallbacks, String sniHostname) throws SSLException, IOException {
         if (npnProtocols != null) {
             NativeCrypto.SSL_CTX_enable_npn(sslCtxNativePointer);
         }
@@ -509,8 +514,8 @@ public class SSLParametersImpl implements Cloneable {
         if (useSessionTickets) {
             NativeCrypto.SSL_clear_options(sslNativePointer, NativeCrypto.SSL_OP_NO_TICKET);
         }
-        if (useSni) {
-            NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, hostname);
+        if (useSni && AddressUtils.isValidSniHostname(sniHostname)) {
+            NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, sniHostname);
         }
 
         // BEAST attack mitigation (1/n-1 record splitting for CBC cipher suites
@@ -521,6 +526,26 @@ public class SSLParametersImpl implements Cloneable {
         if (!enableSessionCreation) {
             NativeCrypto.SSL_set_session_creation_enabled(sslNativePointer, enableSessionCreation);
         }
+    }
+
+    /**
+     * Returns true when the supplied hostname is valid for SNI purposes.
+     */
+    private static boolean isValidSniHostname(String sniHostname) {
+        if (sniHostname == null) {
+            return false;
+        }
+
+        // Must be a FQDN.
+        if (sniHostname.indexOf('.') == -1) {
+            return false;
+        }
+
+        if (Platform.isLiteralIpAddress(sniHostname)) {
+            return false;
+        }
+
+        return true;
     }
 
     void setCertificateValidation(long sslNativePointer) throws IOException {

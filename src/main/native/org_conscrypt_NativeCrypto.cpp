@@ -63,12 +63,14 @@
 #include "cutils/log.h"
 #else
 #include <android/log.h>
+#define ALOG(priority, tag, ...) \
+        __android_log_print(ANDROID_##priority, tag, __VA_ARGS__)
 #define ALOGD(...) \
-        __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__);
+        __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define ALOGE(...) \
-        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);
+        __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define ALOGV(...) \
-        __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__);
+        __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
 #endif
 
 #ifndef CONSCRYPT_UNBUNDLED
@@ -109,12 +111,7 @@
 
 #ifdef WITH_JNI_TRACE
 #define JNI_TRACE(...) \
-        ((void)ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__));     \
-/*
-        ((void)printf("I/" LOG_TAG "-jni:"));         \
-        ((void)printf(__VA_ARGS__));          \
-        ((void)printf("\n"))
-*/
+        ((void)ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__))
 #else
 #define JNI_TRACE(...) ((void)0)
 #endif
@@ -360,6 +357,51 @@ static void freeOpenSslErrorState(void) {
     ERR_clear_error();
     ERR_remove_state(0);
 }
+
+/**
+ * Manages the freeing of the OpenSSL error stack. This allows you to
+ * instantiate this object during an SSL call that may fail and not worry
+ * about manually calling freeOpenSslErrorState() later.
+ *
+ * As an optimization, you can also call .release() for passing as an
+ * argument to things that free the error stack state as a side-effect.
+ */
+class OpenSslError {
+public:
+    OpenSslError() : sslError_(SSL_ERROR_NONE), released_(false) {
+    }
+
+    OpenSslError(SSL* ssl, int returnCode) : sslError_(SSL_ERROR_NONE), released_(false) {
+        reset(ssl, returnCode);
+    }
+
+    ~OpenSslError() {
+        if (!released_ && sslError_ != SSL_ERROR_NONE) {
+            freeOpenSslErrorState();
+        }
+    }
+
+    int get() const {
+        return sslError_;
+    }
+
+    void reset(SSL* ssl, int returnCode) {
+        if (returnCode <= 0) {
+            sslError_ = SSL_get_error(ssl, returnCode);
+        } else {
+            sslError_ = SSL_ERROR_NONE;
+        }
+    }
+
+    int release() {
+        released_ = true;
+        return sslError_;
+    }
+
+private:
+    int sslError_;
+    bool released_;
+};
 
 /**
  * Throws a OutOfMemoryError with the given string as a message.
@@ -2494,7 +2536,7 @@ static jlong NativeCrypto_d2i_PUBKEY(JNIEnv* env, jclass, jbyteArray javaBytes) 
 
 static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey,
         jbyteArray modulusBytes) {
-    JNI_TRACE("getRSAPrivateKeyWrapper(%p, %p)", javaKey, modulus);
+    JNI_TRACE("getRSAPrivateKeyWrapper(%p, %p)", javaKey, modulusBytes);
 
     Unique_RSA rsa(RSA_new());
     if (rsa.get() == NULL) {
@@ -2528,7 +2570,7 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
 
 static jlong NativeCrypto_getDSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey,
         jbyteArray qBytes) {
-    JNI_TRACE("getDSAPrivateKeyWrapper(%p, %p)", javaKey, modulus);
+    JNI_TRACE("getDSAPrivateKeyWrapper(%p, %p)", javaKey, qBytes);
 
     Unique_DSA dsa(DSA_new());
     if (dsa.get() == NULL) {
@@ -2560,7 +2602,8 @@ static jlong NativeCrypto_getDSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
 }
 
 static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey, jlong groupRef) {
-    JNI_TRACE("getECPrivateKeyWrapper(%p, %p)", javaKey, modulus);
+    const EC_GROUP* group = reinterpret_cast<const EC_GROUP*>(groupRef);
+    JNI_TRACE("getECPrivateKeyWrapper(%p, %p)", javaKey, group);
 
     Unique_EC_KEY ecKey(EC_KEY_new());
     if (ecKey.get() == NULL) {
@@ -2568,7 +2611,6 @@ static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject ja
         return 0;
     }
 
-    const EC_GROUP* group = reinterpret_cast<const EC_GROUP*>(groupRef);
     JNI_TRACE("EC_GROUP_get_curve_name(%p)", group);
 
     if (group == NULL) {
@@ -3011,7 +3053,7 @@ static void NativeCrypto_set_DSA_flag_nonce_from_hash(JNIEnv* env, jclass, jlong
 }
 
 static jlong NativeCrypto_DH_generate_parameters_ex(JNIEnv* env, jclass, jint primeBits, jlong generator) {
-    JNI_TRACE("DH_generate_parameters_ex(%d, %d)", primeBits, generator);
+    JNI_TRACE("DH_generate_parameters_ex(%d, %lld)", primeBits, (long long) generator);
 
     Unique_DH dh(DH_new());
     if (dh.get() == NULL) {
@@ -3044,13 +3086,14 @@ static jlong NativeCrypto_DH_generate_parameters_ex(JNIEnv* env, jclass, jint pr
     }
 
     OWNERSHIP_TRANSFERRED(dh);
-    JNI_TRACE("DH_generate_parameters_ex(n=%d, g=%d) => %p", primeBits, generator, pkey.get());
+    JNI_TRACE("DH_generate_parameters_ex(n=%d, g=%lld) => %p", primeBits, (long long) generator,
+            pkey.get());
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
 static void NativeCrypto_DH_generate_key(JNIEnv* env, jclass, jlong pkeyRef) {
-    JNI_TRACE("DH_generate_key(%p)", pkeyRef);
     EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
+    JNI_TRACE("DH_generate_key(%p)", pkey);
 
     if (pkey == NULL) {
         jniThrowNullPointerException(env, "pkey == null");
@@ -4140,8 +4183,13 @@ static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject 
          return NULL;
     }
 
-    const size_t expectedSize = EVP_MD_CTX_size(mdCtx);
-    ScopedLocalRef<jbyteArray> outJavaBytes(env, env->NewByteArray(expectedSize));
+    size_t len;
+    if (EVP_DigestSignFinal(mdCtx, NULL, &len) != 1) {
+        JNI_TRACE("ctx=%p EVP_DigestSignFinal => threw exception", mdCtx);
+        throwExceptionIfNecessary(env, "EVP_DigestSignFinal");
+        return 0;
+    }
+    ScopedLocalRef<jbyteArray> outJavaBytes(env, env->NewByteArray(len));
     if (outJavaBytes.get() == NULL) {
         return NULL;
     }
@@ -4150,15 +4198,9 @@ static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject 
         return NULL;
     }
     unsigned char *tmp = reinterpret_cast<unsigned char*>(outBytes.get());
-    size_t len;
-    if (!EVP_DigestSignFinal(mdCtx, tmp, &len)) {
+    if (EVP_DigestSignFinal(mdCtx, tmp, &len) != 1) {
         JNI_TRACE("ctx=%p EVP_DigestSignFinal => threw exception", mdCtx);
         throwExceptionIfNecessary(env, "EVP_DigestSignFinal");
-        return 0;
-    }
-
-    if (len != expectedSize) {
-        jniThrowRuntimeException(env, "hash size unexpected");
         return 0;
     }
 
@@ -8199,24 +8241,24 @@ static jlong NativeCrypto_SSL_do_handshake_bio(JNIEnv* env, jclass, jlong ssl_ad
 
     if (ret <= 0) { // error. See SSL_do_handshake(3SSL) man page.
         // error case
-        int sslError = SSL_get_error(ssl, ret);
+        OpenSslError sslError(ssl, ret);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake_bio ret=%d errno=%d sslError=%d",
-                  ssl, ret, errno, sslError);
+                  ssl, ret, errno, sslError.get());
 
         /*
          * If SSL_do_handshake doesn't succeed due to the socket being
          * either unreadable or unwritable, we need to exit to allow
          * the SSLEngine code to wrap or unwrap.
          */
-        if (sslError == SSL_ERROR_NONE || (sslError == SSL_ERROR_SYSCALL && errno == 0)) {
+        if (sslError.get() == SSL_ERROR_NONE ||
+                (sslError.get() == SSL_ERROR_SYSCALL && errno == 0)) {
             throwSSLHandshakeExceptionStr(env, "Connection closed by peer");
             SSL_clear(ssl);
-            freeOpenSslErrorState();
-        } else if (sslError != SSL_ERROR_WANT_READ && sslError != SSL_ERROR_WANT_WRITE) {
-            throwSSLExceptionWithSslErrors(env, ssl, sslError, "SSL handshake terminated",
-                    throwSSLHandshakeExceptionStr);
+        } else if (sslError.get() != SSL_ERROR_WANT_READ &&
+                sslError.get() != SSL_ERROR_WANT_WRITE) {
+            throwSSLExceptionWithSslErrors(env, ssl, sslError.release(),
+                    "SSL handshake terminated", throwSSLHandshakeExceptionStr);
             SSL_clear(ssl);
-            freeOpenSslErrorState();
         }
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake_bio error => 0", ssl);
         return 0;
@@ -8328,9 +8370,9 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
             continue;
         }
         // error case
-        int sslError = SSL_get_error(ssl, ret);
+        OpenSslError sslError(ssl, ret);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake ret=%d errno=%d sslError=%d timeout_millis=%d",
-                  ssl, ret, errno, sslError, timeout_millis);
+                  ssl, ret, errno, sslError.get(), timeout_millis);
 
         /*
          * If SSL_do_handshake doesn't succeed due to the socket being
@@ -8340,9 +8382,9 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
          * cancel the handshake. Otherwise we try the SSL_connect
          * again.
          */
-        if (sslError == SSL_ERROR_WANT_READ || sslError == SSL_ERROR_WANT_WRITE) {
+        if (sslError.get() == SSL_ERROR_WANT_READ || sslError.get() == SSL_ERROR_WANT_WRITE) {
             appData->waitingThreads++;
-            int selectResult = sslSelect(env, sslError, fdObject, appData, timeout_millis);
+            int selectResult = sslSelect(env, sslError.get(), fdObject, appData, timeout_millis);
 
             if (selectResult == THROWN_EXCEPTION) {
                 // SocketException thrown by NetFd.isClosed
@@ -8377,12 +8419,13 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
          * completed, but everything is within the bounds of the TLS protocol.
          * We still might want to find out the real reason of the failure.
          */
-        int sslError = SSL_get_error(ssl, ret);
-        if (sslError == SSL_ERROR_NONE || (sslError == SSL_ERROR_SYSCALL && errno == 0)) {
+        OpenSslError sslError(ssl, ret);
+        if (sslError.get() == SSL_ERROR_NONE ||
+                (sslError.get() == SSL_ERROR_SYSCALL && errno == 0)) {
             throwSSLHandshakeExceptionStr(env, "Connection closed by peer");
         } else {
-            throwSSLExceptionWithSslErrors(env, ssl, sslError, "SSL handshake terminated",
-                    throwSSLHandshakeExceptionStr);
+            throwSSLExceptionWithSslErrors(env, ssl, sslError.release(),
+                    "SSL handshake terminated", throwSSLHandshakeExceptionStr);
         }
         SSL_clear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake clean error => 0", ssl);
@@ -8395,8 +8438,8 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
          * Translate the error and throw exception. We are sure it is an error
          * at this point.
          */
-        int sslError = SSL_get_error(ssl, ret);
-        throwSSLExceptionWithSslErrors(env, ssl, sslError, "SSL handshake aborted",
+        OpenSslError sslError(ssl, ret);
+        throwSSLExceptionWithSslErrors(env, ssl, sslError.release(), "SSL handshake aborted",
                 throwSSLHandshakeExceptionStr);
         SSL_clear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake unclean error => 0", ssl);
@@ -8428,8 +8471,8 @@ static void NativeCrypto_SSL_renegotiate(JNIEnv* env, jclass, jlong ssl_address)
     // first call asks client to perform renegotiation
     int ret = SSL_do_handshake(ssl);
     if (ret != 1) {
-        int sslError = SSL_get_error(ssl, ret);
-        throwSSLExceptionWithSslErrors(env, ssl, sslError,
+        OpenSslError sslError(ssl, ret);
+        throwSSLExceptionWithSslErrors(env, ssl, sslError.release(),
                                        "Problem with SSL_do_handshake after SSL_renegotiate");
         return;
     }
@@ -8525,7 +8568,7 @@ static jlongArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlon
 }
 
 static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* buf, jint len,
-                   int* sslReturnCode, int* sslErrorCode, int read_timeout_millis) {
+                   OpenSslError& sslError, int read_timeout_millis) {
     JNI_TRACE("ssl=%p sslRead buf=%p len=%d", ssl, buf, len);
 
     if (len == 0) {
@@ -8571,12 +8614,8 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
             JNI_TRACE("ssl=%p sslRead => THROWN_EXCEPTION", ssl);
             return THROWN_EXCEPTION;
         }
-        int sslError = SSL_ERROR_NONE;
-        if (result <= 0) {
-            sslError = SSL_get_error(ssl, result);
-            freeOpenSslErrorState();
-        }
-        JNI_TRACE("ssl=%p sslRead SSL_read result=%d sslError=%d", ssl, result, sslError);
+        sslError.reset(ssl, result);
+        JNI_TRACE("ssl=%p sslRead SSL_read result=%d sslError=%d", ssl, result, sslError.get());
 #ifdef WITH_JNI_TRACE_DATA
         for (int i = 0; i < result; i+= WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
             int n = result - i;
@@ -8597,13 +8636,13 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
 
         // If we are blocked by the underlying socket, tell the world that
         // there will be one more waiting thread now.
-        if (sslError == SSL_ERROR_WANT_READ || sslError == SSL_ERROR_WANT_WRITE) {
+        if (sslError.get() == SSL_ERROR_WANT_READ || sslError.get() == SSL_ERROR_WANT_WRITE) {
             appData->waitingThreads++;
         }
 
         MUTEX_UNLOCK(appData->mutex);
 
-        switch (sslError) {
+        switch (sslError.get()) {
             // Successfully read at least one byte.
             case SSL_ERROR_NONE: {
                 return result;
@@ -8617,13 +8656,11 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
             // Need to wait for availability of underlying layer, then retry.
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE: {
-                int selectResult = sslSelect(env, sslError, fdObject, appData, read_timeout_millis);
+                int selectResult = sslSelect(env, sslError.get(), fdObject, appData, read_timeout_millis);
                 if (selectResult == THROWN_EXCEPTION) {
                     return THROWN_EXCEPTION;
                 }
                 if (selectResult == -1) {
-                    *sslReturnCode = -1;
-                    *sslErrorCode = sslError;
                     return THROW_SSLEXCEPTION;
                 }
                 if (selectResult == 0) {
@@ -8653,8 +8690,6 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
 
             // Everything else is basically an error.
             default: {
-                *sslReturnCode = result;
-                *sslErrorCode = sslError;
                 return THROW_SSLEXCEPTION;
             }
         }
@@ -8729,11 +8764,9 @@ static jint NativeCrypto_SSL_read_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
         JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO => threw exception", ssl);
         return THROWN_EXCEPTION;
     }
-    int sslError = SSL_ERROR_NONE;
-    if (result <= 0) {
-        sslError = SSL_get_error(ssl, result);
-    }
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO SSL_read result=%d sslError=%d", ssl, result, sslError);
+    OpenSslError sslError(ssl, result);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO SSL_read result=%d sslError=%d", ssl, result,
+              sslError.get());
 #ifdef WITH_JNI_TRACE_DATA
     for (int i = 0; i < result; i+= WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
         int n = result - i;
@@ -8746,7 +8779,7 @@ static jint NativeCrypto_SSL_read_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
 
     MUTEX_UNLOCK(appData->mutex);
 
-    switch (sslError) {
+    switch (sslError.get()) {
         // Successfully read at least one byte.
         case SSL_ERROR_NONE:
             break;
@@ -8782,7 +8815,7 @@ static jint NativeCrypto_SSL_read_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
 
         // Everything else is basically an error.
         default: {
-            throwSSLExceptionWithSslErrors(env, ssl, sslError, "Read error");
+            throwSSLExceptionWithSslErrors(env, ssl, sslError.release(), "Read error");
             return -1;
         }
     }
@@ -8820,17 +8853,16 @@ static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address, jobjec
         JNI_TRACE("ssl=%p NativeCrypto_SSL_read => threw exception", ssl);
         return 0;
     }
-    int returnCode = 0;
-    int sslErrorCode = SSL_ERROR_NONE;;
 
+    OpenSslError sslError;
     int ret = sslRead(env, ssl, fdObject, shc, reinterpret_cast<char*>(bytes.get() + offset), len,
-                      &returnCode, &sslErrorCode, read_timeout_millis);
+                      sslError, read_timeout_millis);
 
     int result;
     switch (ret) {
         case THROW_SSLEXCEPTION:
             // See sslRead() regarding improper failure to handle normal cases.
-            throwSSLExceptionWithSslErrors(env, ssl, sslErrorCode, "Read error");
+            throwSSLExceptionWithSslErrors(env, ssl, sslError.release(), "Read error");
             result = -1;
             break;
         case THROW_SOCKETTIMEOUTEXCEPTION:
@@ -8852,7 +8884,7 @@ static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address, jobjec
 }
 
 static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const char* buf, jint len,
-                    int* sslReturnCode, int* sslErrorCode, int write_timeout_millis) {
+                    OpenSslError& sslError, int write_timeout_millis) {
     JNI_TRACE("ssl=%p sslWrite buf=%p len=%d write_timeout_millis=%d",
               ssl, buf, len, write_timeout_millis);
 
@@ -8902,13 +8934,9 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
             JNI_TRACE("ssl=%p sslWrite exception => THROWN_EXCEPTION", ssl);
             return THROWN_EXCEPTION;
         }
-        int sslError = SSL_ERROR_NONE;
-        if (result <= 0) {
-            sslError = SSL_get_error(ssl, result);
-            freeOpenSslErrorState();
-        }
+        sslError.reset(ssl, result);
         JNI_TRACE("ssl=%p sslWrite SSL_write result=%d sslError=%d left=%d",
-                  ssl, result, sslError, ssl->s3->wbuf.left);
+                  ssl, result, sslError.get(), ssl->s3->wbuf.left);
 #ifdef WITH_JNI_TRACE_DATA
         for (int i = 0; i < result; i+= WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
             int n = result - i;
@@ -8929,13 +8957,13 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
 
         // If we are blocked by the underlying socket, tell the world that
         // there will be one more waiting thread now.
-        if (sslError == SSL_ERROR_WANT_READ || sslError == SSL_ERROR_WANT_WRITE) {
+        if (sslError.get() == SSL_ERROR_WANT_READ || sslError.get() == SSL_ERROR_WANT_WRITE) {
             appData->waitingThreads++;
         }
 
         MUTEX_UNLOCK(appData->mutex);
 
-        switch (sslError) {
+        switch (sslError.get()) {
             // Successfully wrote at least one byte.
             case SSL_ERROR_NONE: {
                 buf += result;
@@ -8953,13 +8981,12 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
             // it's also not standard Java behavior, so we wait forever here.
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE: {
-                int selectResult = sslSelect(env, sslError, fdObject, appData, write_timeout_millis);
+                int selectResult = sslSelect(env, sslError.get(), fdObject, appData,
+                                             write_timeout_millis);
                 if (selectResult == THROWN_EXCEPTION) {
                     return THROWN_EXCEPTION;
                 }
                 if (selectResult == -1) {
-                    *sslReturnCode = -1;
-                    *sslErrorCode = sslError;
                     return THROW_SSLEXCEPTION;
                 }
                 if (selectResult == 0) {
@@ -8989,8 +9016,6 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
 
             // Everything else is basically an error.
             default: {
-                *sslReturnCode = result;
-                *sslErrorCode = sslError;
                 return THROW_SSLEXCEPTION;
             }
         }
@@ -9065,13 +9090,9 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
         JNI_TRACE("ssl=%p NativeCrypto_SSL_write_BIO exception => exception pending (reneg)", ssl);
         return -1;
     }
-    int sslError = SSL_ERROR_NONE;
-    if (result <= 0) {
-        sslError = SSL_get_error(ssl, result);
-        freeOpenSslErrorState();
-    }
+    OpenSslError sslError(ssl, result);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_write_BIO SSL_write result=%d sslError=%d left=%d",
-              ssl, result, sslError, ssl->s3->wbuf.left);
+              ssl, result, sslError.get(), ssl->s3->wbuf.left);
 #ifdef WITH_JNI_TRACE_DATA
     for (int i = 0; i < result; i+= WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
         int n = result - i;
@@ -9084,7 +9105,7 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
 
     MUTEX_UNLOCK(appData->mutex);
 
-    switch (sslError) {
+    switch (sslError.get()) {
         case SSL_ERROR_NONE:
             return result;
 
@@ -9114,7 +9135,7 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
 
         // Everything else is basically an error.
         default: {
-            throwSSLExceptionWithSslErrors(env, ssl, sslError, "Write error");
+            throwSSLExceptionWithSslErrors(env, ssl, sslError.release(), "Write error");
             break;
         }
     }
@@ -9149,15 +9170,14 @@ static void NativeCrypto_SSL_write(JNIEnv* env, jclass, jlong ssl_address, jobje
         JNI_TRACE("ssl=%p NativeCrypto_SSL_write => threw exception", ssl);
         return;
     }
-    int returnCode = 0;
-    int sslErrorCode = SSL_ERROR_NONE;
+    OpenSslError sslError;
     int ret = sslWrite(env, ssl, fdObject, shc, reinterpret_cast<const char*>(bytes.get() + offset),
-                       len, &returnCode, &sslErrorCode, write_timeout_millis);
+                       len, sslError, write_timeout_millis);
 
     switch (ret) {
         case THROW_SSLEXCEPTION:
             // See sslWrite() regarding improper failure to handle normal cases.
-            throwSSLExceptionWithSslErrors(env, ssl, sslErrorCode, "Write error");
+            throwSSLExceptionWithSslErrors(env, ssl, sslError.release(), "Write error");
             break;
         case THROW_SOCKETTIMEOUTEXCEPTION:
             throwSocketTimeoutException(env, "Write timed out");

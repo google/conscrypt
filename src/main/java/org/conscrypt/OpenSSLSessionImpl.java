@@ -288,9 +288,8 @@ public class OpenSSLSessionImpl implements SSLSession {
      * It is not a reliable way to get a fully qualified host name: it is mainly
      * used internally to implement links for a temporary cache of SSL sessions.
      *
-     * @return the host name of the peer, or null if no information is
+     * @return the host name of the peer, or {@code null} if no information is
      *         available.
-     *
      */
     @Override
     public String getPeerHost() {
@@ -303,8 +302,8 @@ public class OpenSSLSessionImpl implements SSLSession {
      * client. It is not a reliable way to get a peer's port number: it is
      * mainly used internally to implement links for a temporary cache of SSL
      * sessions.
-     * @return the peer's port number, or -1 if no one is available.
      *
+     * @return the peer's port number, or {@code -1} if no one is available.
      */
     @Override
     public int getPeerPort() {
