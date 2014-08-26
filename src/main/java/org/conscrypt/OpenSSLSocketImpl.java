@@ -1030,7 +1030,7 @@ public class OpenSSLSocketImpl
     public void setSoWriteTimeout(int writeTimeoutMilliseconds) throws SocketException {
         this.writeTimeoutMilliseconds = writeTimeoutMilliseconds;
 
-        Platform.setSocketTimeout(this, writeTimeoutMilliseconds);
+        Platform.setSocketWriteTimeout(this, writeTimeoutMilliseconds);
     }
 
     /**
