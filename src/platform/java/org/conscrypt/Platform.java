@@ -27,6 +27,7 @@ import android.system.StructTimeval;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
@@ -143,5 +144,12 @@ class Platform {
         } catch (Exception e) {
             // Do not log and fail silently
         }
+    }
+
+    /**
+     * Returns true if the supplied hostname is an literal IP address.
+     */
+    public static boolean isLiteralIpAddress(String hostname) {
+        return InetAddress.isNumeric(hostname);
     }
 }
