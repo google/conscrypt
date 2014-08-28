@@ -7949,7 +7949,7 @@ static int proto_select(SSL* ssl __attribute__ ((unused)),
         unsigned char **out, unsigned char *outLength,
         const unsigned char *primary, const unsigned int primaryLength,
         const unsigned char *secondary, const unsigned int secondaryLength) {
-    if (primary != NULL) {
+    if (primary != NULL && secondary != NULL) {
         JNI_TRACE("primary=%p, length=%d", primary, primaryLength);
 
         int status = SSL_select_next_proto(out, outLength, primary, primaryLength, secondary,
