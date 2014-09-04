@@ -127,8 +127,24 @@ public class OpenSSLSocketImpl
 
     private final Socket socket;
     private final boolean autoClose;
-    private String wrappedHost;
-    private final int wrappedPort;
+
+    /**
+     * The peer's DNS hostname if it was supplied during creation.
+     */
+    private String peerHostname;
+
+    /**
+     * The DNS hostname from reverse lookup on the socket. Should never be used
+     * for Server Name Indication (SNI).
+     */
+    private String resolvedHostname;
+
+    /**
+     * The peer's port if it was supplied during creation. Should only be set if
+     * {@link #peerHostname} is also set.
+     */
+    private final int peerPort;
+
     private final SSLParametersImpl sslParameters;
     private final CloseGuard guard = CloseGuard.get();
 
@@ -159,18 +175,18 @@ public class OpenSSLSocketImpl
 
     protected OpenSSLSocketImpl(SSLParametersImpl sslParameters) throws IOException {
         this.socket = this;
-        this.wrappedHost = null;
-        this.wrappedPort = -1;
+        this.peerHostname = null;
+        this.peerPort = -1;
         this.autoClose = false;
         this.sslParameters = sslParameters;
     }
 
-    protected OpenSSLSocketImpl(String host, int port, SSLParametersImpl sslParameters)
+    protected OpenSSLSocketImpl(String hostname, int port, SSLParametersImpl sslParameters)
             throws IOException {
-        super(host, port);
+        super(hostname, port);
         this.socket = this;
-        this.wrappedHost = null;
-        this.wrappedPort = -1;
+        this.peerHostname = hostname;
+        this.peerPort = port;
         this.autoClose = false;
         this.sslParameters = sslParameters;
     }
@@ -179,20 +195,20 @@ public class OpenSSLSocketImpl
             throws IOException {
         super(address, port);
         this.socket = this;
-        this.wrappedHost = null;
-        this.wrappedPort = -1;
+        this.peerHostname = null;
+        this.peerPort = -1;
         this.autoClose = false;
         this.sslParameters = sslParameters;
     }
 
 
-    protected OpenSSLSocketImpl(String host, int port,
+    protected OpenSSLSocketImpl(String hostname, int port,
                                 InetAddress clientAddress, int clientPort,
                                 SSLParametersImpl sslParameters) throws IOException {
-        super(host, port, clientAddress, clientPort);
+        super(hostname, port, clientAddress, clientPort);
         this.socket = this;
-        this.wrappedHost = null;
-        this.wrappedPort = -1;
+        this.peerHostname = hostname;
+        this.peerPort = port;
         this.autoClose = false;
         this.sslParameters = sslParameters;
     }
@@ -202,8 +218,8 @@ public class OpenSSLSocketImpl
                                 SSLParametersImpl sslParameters) throws IOException {
         super(address, port, clientAddress, clientPort);
         this.socket = this;
-        this.wrappedHost = null;
-        this.wrappedPort = -1;
+        this.peerHostname = null;
+        this.peerPort = -1;
         this.autoClose = false;
         this.sslParameters = sslParameters;
     }
@@ -212,11 +228,11 @@ public class OpenSSLSocketImpl
      * Create an SSL socket that wraps another socket. Invoked by
      * OpenSSLSocketImplWrapper constructor.
      */
-    protected OpenSSLSocketImpl(Socket socket, String host, int port,
+    protected OpenSSLSocketImpl(Socket socket, String hostname, int port,
             boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
         this.socket = socket;
-        this.wrappedHost = host;
-        this.wrappedPort = port;
+        this.peerHostname = hostname;
+        this.peerPort = port;
         this.autoClose = autoClose;
         this.sslParameters = sslParameters;
 
@@ -277,9 +293,9 @@ public class OpenSSLSocketImpl
             }
 
             final OpenSSLSessionImpl sessionToReuse = sslParameters.getSessionToReuse(
-                    sslNativePointer, getPeerHostName(), getPeerPort());
+                    sslNativePointer, getHostname(), getPort());
             sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this, this,
-                    getPeerHostName());
+                    peerHostname);
             sslParameters.setCertificateValidation(sslNativePointer);
             sslParameters.setTlsChannelId(sslNativePointer, channelIdPrivateKey);
 
@@ -325,7 +341,7 @@ public class OpenSSLSocketImpl
                 // Must match error string of SSL_R_UNEXPECTED_CCS
                 if (message.contains("unexpected CCS")) {
                     String logMessage = String.format("ssl_unexpected_ccs: host=%s",
-                            getPeerHostName());
+                            getHostname());
                     Platform.logEvent(logMessage);
                 }
 
@@ -342,7 +358,7 @@ public class OpenSSLSocketImpl
             }
 
             sslSession = sslParameters.setupSession(sslSessionNativePointer, sslNativePointer,
-                    sessionToReuse, getPeerHostName(), getPeerPort(), handshakeCompleted);
+                    sessionToReuse, getHostname(), getPort(), handshakeCompleted);
 
             // Restore the original timeout now that the handshake is complete
             if (handshakeTimeoutMilliseconds >= 0) {
@@ -395,19 +411,28 @@ public class OpenSSLSocketImpl
         }
     }
 
-    String getPeerHostName() {
-        if (wrappedHost != null) {
-            return wrappedHost;
+    /**
+     * Returns the hostname that was supplied during socket creation or tries to
+     * look up the hostname via the supplied socket address if possible. This
+     * may result in the return of a IP address and should not be used for
+     * Server Name Indication (SNI).
+     */
+    private String getHostname() {
+        if (peerHostname != null) {
+            return peerHostname;
         }
-        InetAddress inetAddress = super.getInetAddress();
-        if (inetAddress != null) {
-            return inetAddress.getHostName();
+        if (resolvedHostname == null) {
+            InetAddress inetAddress = super.getInetAddress();
+            if (inetAddress != null) {
+                resolvedHostname = inetAddress.getHostName();
+            }
         }
-        return null;
+        return resolvedHostname;
     }
 
-    int getPeerPort() {
-        return wrappedHost == null ? super.getPort() : wrappedPort;
+    @Override
+    public int getPort() {
+        return peerHostname == null ? super.getPort() : peerPort;
     }
 
     @Override
@@ -518,11 +543,11 @@ public class OpenSSLSocketImpl
 
             // Used for verifyCertificateChain callback
             handshakeSession = new OpenSSLSessionImpl(sslSessionNativePtr, null, peerCertChain,
-                    getPeerHostName(), getPeerPort(), null);
+                    getHostname(), getPort(), null);
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
-                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, getPeerHostName());
+                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, getHostname());
             } else {
                 String authType = peerCertChain[0].getPublicKey().getAlgorithm();
                 x509tm.checkClientTrusted(peerCertChain, authType);
@@ -853,7 +878,7 @@ public class OpenSSLSocketImpl
      */
     public void setHostname(String hostname) {
         sslParameters.setUseSni(hostname != null);
-        wrappedHost = hostname;
+        peerHostname = hostname;
     }
 
     /**
@@ -1005,7 +1030,7 @@ public class OpenSSLSocketImpl
     public void setSoWriteTimeout(int writeTimeoutMilliseconds) throws SocketException {
         this.writeTimeoutMilliseconds = writeTimeoutMilliseconds;
 
-        Platform.setSocketTimeout(this, writeTimeoutMilliseconds);
+        Platform.setSocketWriteTimeout(this, writeTimeoutMilliseconds);
     }
 
     /**

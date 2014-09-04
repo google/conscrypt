@@ -64,14 +64,14 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
     }
 
     @Override
-    public Socket createSocket(String host, int port) throws IOException, UnknownHostException {
-        return new OpenSSLSocketImpl(host, port, (SSLParametersImpl) sslParameters.clone());
+    public Socket createSocket(String hostname, int port) throws IOException, UnknownHostException {
+        return new OpenSSLSocketImpl(hostname, port, (SSLParametersImpl) sslParameters.clone());
     }
 
     @Override
-    public Socket createSocket(String host, int port, InetAddress localHost, int localPort)
+    public Socket createSocket(String hostname, int port, InetAddress localHost, int localPort)
             throws IOException, UnknownHostException {
-        return new OpenSSLSocketImpl(host,
+        return new OpenSSLSocketImpl(hostname,
                                      port,
                                      localHost,
                                      localPort,
@@ -79,8 +79,8 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
     }
 
     @Override
-    public Socket createSocket(InetAddress host, int port) throws IOException {
-        return new OpenSSLSocketImpl(host, port, (SSLParametersImpl) sslParameters.clone());
+    public Socket createSocket(InetAddress address, int port) throws IOException {
+        return new OpenSSLSocketImpl(address, port, (SSLParametersImpl) sslParameters.clone());
     }
 
     @Override
@@ -97,10 +97,10 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
     }
 
     @Override
-    public Socket createSocket(Socket s, String host, int port, boolean autoClose)
+    public Socket createSocket(Socket s, String hostname, int port, boolean autoClose)
             throws IOException {
         return new OpenSSLSocketImplWrapper(s,
-                                            host,
+                                            hostname,
                                             port,
                                             autoClose,
                                             (SSLParametersImpl) sslParameters.clone());
