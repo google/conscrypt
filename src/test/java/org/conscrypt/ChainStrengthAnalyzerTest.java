@@ -27,7 +27,7 @@ public class ChainStrengthAnalyzerTest extends TestCase {
 
     //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
     //-newkey rsa:2048 -sha256 -keyout k.pem -out good.pem
-    private static final String GOOD_PEM = "" +
+    private static final String GOOD_RSA_PEM = "" +
                             "-----BEGIN CERTIFICATE-----\n" +
                             "MIIDYTCCAkmgAwIBAgIJAPFX8KGuEZcgMA0GCSqGSIb3DQEBCwUAMEcxCzAJBgNV\n" +
                             "BAYTAlVTMREwDwYDVQQIDAhUZXN0c290YTESMBAGA1UEBwwJVGVzdHZpbGxlMREw\n" +
@@ -50,9 +50,49 @@ public class ChainStrengthAnalyzerTest extends TestCase {
                             "FoAjeos=\n" +
                             "-----END CERTIFICATE-----";
 
+    //ecparam -genkey -name secp160r1 -out eckey.pem && \
+    //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
+    //-newkey ec:eckey.pem -sha256 -keyout k.pem -out good.pem
+    private static final String GOOD_ECDSA_PEM = "" +
+                            "-----BEGIN CERTIFICATE-----\n" +
+                            "MIIBozCCAWCgAwIBAgIJAJR/CWJgQNnPMAoGCCqGSM49BAMCMEcxCzAJBgNVBAYT\n" +
+                            "AlVTMREwDwYDVQQIDAhUZXN0c290YTESMBAGA1UEBwwJVGVzdHZpbGxlMREwDwYD\n" +
+                            "VQQDDAh0ZXN0LmNvbTAeFw0xNDA5MDIyMDQ5NDFaFw0xNTA5MDIyMDQ5NDFaMEcx\n" +
+                            "CzAJBgNVBAYTAlVTMREwDwYDVQQIDAhUZXN0c290YTESMBAGA1UEBwwJVGVzdHZp\n" +
+                            "bGxlMREwDwYDVQQDDAh0ZXN0LmNvbTA+MBAGByqGSM49AgEGBSuBBAAIAyoABOaS\n" +
+                            "Xr6myiJiEh0HEFEKORUaWn5KSQ9neuSqvV/g16gP7FRWNOMvOIGjUDBOMB0GA1Ud\n" +
+                            "DgQWBBSQxtfG1cDUZx/bzlF2rwptvFiVKzAfBgNVHSMEGDAWgBSQxtfG1cDUZx/b\n" +
+                            "zlF2rwptvFiVKzAMBgNVHRMEBTADAQH/MAoGCCqGSM49BAMCAzEAMC4CFQDpEPFS\n" +
+                            "K3zy8/7faP0cpnhPsaiLbwIVAKxu20je3Z2CCYdb+2kldlsPpabt\n" +
+                            "-----END CERTIFICATE-----";
+
+    //openssl dsaparam -genkey 1024 -out dsakey.pem && \
+    //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
+    //-newkey dsa:dsakey.pem -sha256 -keyout k.pem -out good.pem
+    private static final String GOOD_DSA_PEM = "" +
+                            "-----BEGIN CERTIFICATE-----\n" +
+                            "MIIDHTCCAtugAwIBAgIJAI4X+OBX9ap9MAsGCWCGSAFlAwQDAjBHMQswCQYDVQQG\n" +
+                            "EwJVUzERMA8GA1UECAwIVGVzdHNvdGExEjAQBgNVBAcMCVRlc3R2aWxsZTERMA8G\n" +
+                            "A1UEAwwIdGVzdC5jb20wHhcNMTQwOTAyMjA1MjUwWhcNMTUwOTAyMjA1MjUwWjBH\n" +
+                            "MQswCQYDVQQGEwJVUzERMA8GA1UECAwIVGVzdHNvdGExEjAQBgNVBAcMCVRlc3R2\n" +
+                            "aWxsZTERMA8GA1UEAwwIdGVzdC5jb20wggG2MIIBKwYHKoZIzjgEATCCAR4CgYEA\n" +
+                            "2QAjoImNX+oSkLdHPDdAzRrbdGdp665OyVBORfdnQeUHbi4WDElqUefTvIWYoDpC\n" +
+                            "Dvio284lhTSwXs8H2LKW3xV3AChzaNmPbGwWd4x8zxrE0OSQ+nXgbnBdhlUNUHpa\n" +
+                            "AnuuD31eMIDRN6o9WJ7DgksL8aEDO9DRuKUI4TNJKtECFQCB4+ccG9JUCoRh/bnb\n" +
+                            "X3cw3BV55wKBgHTmAcAt9Yu6vPdxX6NyzBMwb11kdt/3f0111WCI8nJl/+9mpRDd\n" +
+                            "snuPJUzsT00/JMH+puEN2fgOq7QxlCHtgNhX+WUtRE+QFjgvqilM+o+YEWEzeLfp\n" +
+                            "kWu/VfM6fV1B3jjmMsie1VNuitVVV1WOE7Pw0rq8m/yXQ5xft0ylhmLSA4GEAAKB\n" +
+                            "gH2Q6/2aSPh2b+ePFTLQc20EI6oU6xcyDPKfTsSYH0nUGpr4/k02spVOpHvtUe8e\n" +
+                            "1TVS0U30bzdC3bIz2fSUmeU4Kqde4IoZZ3SKjxD0jUKU4/hGuPSAMDEZfPKQIcpj\n" +
+                            "UEiqYo+r1ER2u3LdSOqu5ZkYNgT4/C7tr6+NIg1Y4sNuo1AwTjAdBgNVHQ4EFgQU\n" +
+                            "PfxTb9tJ6gh4KgFCR6q4Hng1P1AwHwYDVR0jBBgwFoAUPfxTb9tJ6gh4KgFCR6q4\n" +
+                            "Hng1P1AwDAYDVR0TBAUwAwEB/zALBglghkgBZQMEAwIDLwAwLAIUNgv+keqfh+sd\n" +
+                            "6xqIy6O1QFmjCsMCFB+MYu4K4+BrgPrrMVOnHB4MFHHo\n" +
+                            "-----END CERTIFICATE-----";
+
     //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
     //-newkey rsa:2048 -md5 -keyout k.pem -out md5.pem
-    private static final String MD5_PEM = "" +
+    private static final String MD5_RSA_PEM = "" +
                             "-----BEGIN CERTIFICATE-----\n" +
                             "MIIDYTCCAkmgAwIBAgIJAJsffMf2cyx0MA0GCSqGSIb3DQEBBAUAMEcxCzAJBgNV\n" +
                             "BAYTAlVTMREwDwYDVQQIDAhUZXN0c290YTESMBAGA1UEBwwJVGVzdHZpbGxlMREw\n" +
@@ -77,7 +117,7 @@ public class ChainStrengthAnalyzerTest extends TestCase {
 
     //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
     //-newkey rsa:512 -sha256 -keyout k.pem -out short.pem
-    private static final String SHORT_PEM = "" +
+    private static final String SHORT_RSA_PEM = "" +
                             "-----BEGIN CERTIFICATE-----\n" +
                             "MIIB1zCCAYGgAwIBAgIJAOxaz9TreDNIMA0GCSqGSIb3DQEBCwUAMEcxCzAJBgNV\n" +
                             "BAYTAlVTMREwDwYDVQQIDAhUZXN0c290YTESMBAGA1UEBwwJVGVzdHZpbGxlMREw\n" +
@@ -91,16 +131,64 @@ public class ChainStrengthAnalyzerTest extends TestCase {
                             "Npi0+APKWkwxnEJk1kgpdeSTMgaHAphQ8qksHnSgeBAJSs2ZCQMinVPgOg==\n" +
                             "-----END CERTIFICATE-----";
 
+    //openssl dsaparam -genkey 768 -out dsakey.pem && \
+    //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
+    //-newkey dsa:dsakey.pem -sha256 -keyout k.pem -out short.pem
+    private static final String SHORT_DSA_PEM = "" +
+                            "-----BEGIN CERTIFICATE-----\n" +
+                            "MIICuDCCAnWgAwIBAgIJAMQeQVxVNTKRMAsGCWCGSAFlAwQDAjBHMQswCQYDVQQG\n" +
+                            "EwJVUzERMA8GA1UECAwIVGVzdHNvdGExEjAQBgNVBAcMCVRlc3R2aWxsZTERMA8G\n" +
+                            "A1UEAwwIdGVzdC5jb20wHhcNMTQwOTAyMjAzNjQ4WhcNMTUwOTAyMjAzNjQ4WjBH\n" +
+                            "MQswCQYDVQQGEwJVUzERMA8GA1UECAwIVGVzdHNvdGExEjAQBgNVBAcMCVRlc3R2\n" +
+                            "aWxsZTERMA8GA1UEAwwIdGVzdC5jb20wggFQMIHoBgcqhkjOOAQBMIHcAmEApVZC\n" +
+                            "vx5pcu5CjEv0n5M0PVxnX/4ZkJn8EAnkgn5P37KxDm7dIHcMw71Epd+l7hP4TLUV\n" +
+                            "etW9VOu1ybo+hOMr3IGqlaMVHxL5VWk6DGFjo5ZplF5QGQt+hqFYX8agruoFAhUA\n" +
+                            "xsTsmLlEe97rZm2UfNt51tXoQgECYA1dMDAfVUqfC06LJ0O5Q2RmjbkqCLfwiXvq\n" +
+                            "q0LVqxQJBVzmjbWoNRdmZpzhjOfMQ2bpQwTj+M4t2YPGifQTgumUolutWGEs7jxU\n" +
+                            "HcybdA8/3fqubZ/pEKrz1FhjIReuJgNjAAJgEWAocKA/8Q7pFQ7tkJDUTctU7ZUN\n" +
+                            "O9eUqghBkJAaHhjq8GJ/UIoPuS8PCz19/xDZICMhbKpobi+z/sy3atZLtcrrUhN1\n" +
+                            "XBgEPD6aWSP3qEBzz2a6MqL6RegDL3ldrRMjo1AwTjAdBgNVHQ4EFgQUk7IR6KN+\n" +
+                            "Lb8ZlDs4v1pKtmQans0wHwYDVR0jBBgwFoAUk7IR6KN+Lb8ZlDs4v1pKtmQans0w\n" +
+                            "DAYDVR0TBAUwAwEB/zALBglghkgBZQMEAwIDMAAwLQIUG9is/MhJ0qXggCtPiOdH\n" +
+                            "UZSNrCgCFQDBb443MntlcWrx5gV7YRd52k0Yug==\n" +
+                            "-----END CERTIFICATE-----";
+
+    //ecparam -genkey -name secp128r1 -out eckey.pem && \
+    //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
+    //-newkey ec:eckey.pem -sha256 -keyout k.pem -out short.pem
+    private static final String SHORT_ECDSA_PEM = "" +
+                            "-----BEGIN CERTIFICATE-----\n" +
+                            "MIIBkTCCAVigAwIBAgIJAKogErAsYuahMAoGCCqGSM49BAMCMEcxCzAJBgNVBAYT\n" +
+                            "AlVTMREwDwYDVQQIDAhUZXN0c290YTESMBAGA1UEBwwJVGVzdHZpbGxlMREwDwYD\n" +
+                            "VQQDDAh0ZXN0LmNvbTAeFw0xNDA5MDIyMDQ1MjdaFw0xNTA5MDIyMDQ1MjdaMEcx\n" +
+                            "CzAJBgNVBAYTAlVTMREwDwYDVQQIDAhUZXN0c290YTESMBAGA1UEBwwJVGVzdHZp\n" +
+                            "bGxlMREwDwYDVQQDDAh0ZXN0LmNvbTA2MBAGByqGSM49AgEGBSuBBAAcAyIABE9Z\n" +
+                            "bL28dyGE/sRmSUB0kqdsmkaKaC7gu+9A4CLDO5kJo1AwTjAdBgNVHQ4EFgQU7f+b\n" +
+                            "vrGRimukkorDkERufEFRaj0wHwYDVR0jBBgwFoAU7f+bvrGRimukkorDkERufEFR\n" +
+                            "aj0wDAYDVR0TBAUwAwEB/zAKBggqhkjOPQQDAgMnADAkAhBXRMkfHNexPXaqzJwT\n" +
+                            "9eAwAhAzX+1NE+FY0kk74wH83Cz0\n" +
+                            "-----END CERTIFICATE-----";
+
     public void testMD5() throws Exception {
-        assertBad(MD5_PEM, "Weak hash check did not fail as expected");
+        assertBad(MD5_RSA_PEM, "Weak hash check did not fail as expected");
     }
 
-    public void test512() throws Exception {
-        assertBad(SHORT_PEM, "Short modulus check did not fail as expected");
+    public void testRsa512() throws Exception {
+        assertBad(SHORT_RSA_PEM, "Short RSA modulus check did not fail as expected");
+    }
+
+    public void testDsa768() throws Exception {
+        assertBad(SHORT_DSA_PEM, "Short DSA key check did not fail as expected");
+    }
+
+    public void testEcdsa128() throws Exception {
+        assertBad(SHORT_ECDSA_PEM, "Short EC key check did not fail as expected");
     }
 
     public void testGoodChain() throws Exception {
-        assertGood(GOOD_PEM);
+        assertGood(GOOD_RSA_PEM);
+        assertGood(GOOD_DSA_PEM);
+        assertGood(GOOD_ECDSA_PEM);
     }
 
     private static void assertBad(String pem, String msg) throws Exception {
