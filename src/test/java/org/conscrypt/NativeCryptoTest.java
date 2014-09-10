@@ -2518,7 +2518,7 @@ public class NativeCryptoTest extends TestCase {
 
         long engine = NativeCrypto.ENGINE_by_id("non-existent");
         if (engine != 0) {
-            NativeCrypto.ENGINE_finish(engine);
+            NativeCrypto.ENGINE_free(engine);
             fail("should not acquire reference to non-existent engine");
         }
     }
@@ -2530,7 +2530,7 @@ public class NativeCryptoTest extends TestCase {
     public static void loadTestEngine() throws Exception {
         long testEngine = NativeCrypto.ENGINE_by_id(TEST_ENGINE_ID);
         if (testEngine != 0) {
-            NativeCrypto.ENGINE_finish(testEngine);
+            NativeCrypto.ENGINE_free(testEngine);
             return;
         }
 
@@ -2560,14 +2560,14 @@ public class NativeCryptoTest extends TestCase {
                     NativeCrypto.ENGINE_ctrl_cmd_string(dynEngine, "ID", TEST_ENGINE_ID, 0));
             assertEquals(1, NativeCrypto.ENGINE_ctrl_cmd_string(dynEngine, "LOAD", null, 0));
         } finally {
-            NativeCrypto.ENGINE_finish(dynEngine);
+            NativeCrypto.ENGINE_free(dynEngine);
         }
 
         testEngine = NativeCrypto.ENGINE_by_id(TEST_ENGINE_ID);
         if (testEngine == 0) {
             fail("could not load test engine");
         }
-        NativeCrypto.ENGINE_finish(testEngine);
+        NativeCrypto.ENGINE_free(testEngine);
     }
 
     public void test_ENGINE_by_id_TestEngine() throws Exception {
@@ -2576,6 +2576,7 @@ public class NativeCryptoTest extends TestCase {
         long engine = NativeCrypto.ENGINE_by_id(TEST_ENGINE_ID);
         assertTrue(engine != 0);
         NativeCrypto.ENGINE_add(engine);
+        NativeCrypto.ENGINE_init(engine);
 
         long pkey = NULL;
         try {
