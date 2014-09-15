@@ -31,7 +31,11 @@ public final class ChainStrengthAnalyzer {
     private static final int MIN_DSA_P_LEN_BITS = 1024;
     private static final int MIN_DSA_Q_LEN_BITS = 160;
 
-    private static final String[] OID_BLACKLIST = {"1.2.840.113549.1.1.4"}; // MD5withRSA
+    private static final String[] SIGNATURE_ALGORITHM_OID_BLACKLIST = {
+        "1.2.840.113549.1.1.2", // md2WithRSAEncryption
+        "1.2.840.113549.1.1.3", // md4WithRSAEncryption
+        "1.2.840.113549.1.1.4", // md5WithRSAEncryption
+    };
 
     public static final void check(X509Certificate[] chain) throws CertificateException {
         for (X509Certificate cert : chain) {
@@ -41,7 +45,7 @@ public final class ChainStrengthAnalyzer {
 
     private static final void checkCert(X509Certificate cert) throws CertificateException {
         checkKeyLength(cert);
-        checkNotMD5(cert);
+        checkSignatureAlgorithm(cert);
     }
 
     private static final void checkKeyLength(X509Certificate cert) throws CertificateException {
@@ -70,11 +74,12 @@ public final class ChainStrengthAnalyzer {
         }
     }
 
-    private static final void checkNotMD5(X509Certificate cert) throws CertificateException {
+    private static final void checkSignatureAlgorithm(
+            X509Certificate cert) throws CertificateException {
         String oid = cert.getSigAlgOID();
-        for (String blacklisted : OID_BLACKLIST) {
+        for (String blacklisted : SIGNATURE_ALGORITHM_OID_BLACKLIST) {
             if (oid.equals(blacklisted)) {
-                throw new CertificateException("Signature uses an insecure hash function");
+                throw new CertificateException("Signature uses an insecure hash function: " + oid);
             }
         }
     }

@@ -91,6 +91,57 @@ public class ChainStrengthAnalyzerTest extends TestCase {
                             "-----END CERTIFICATE-----";
 
     //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
+    //-newkey rsa:2048 -md2 -keyout k.pem -out md2.pem
+    private static final String MD2_RSA_PEM = "" +
+                            "-----BEGIN CERTIFICATE-----\n" +
+                            "MIIDuzCCAqOgAwIBAgIJAPgJ74B13cElMA0GCSqGSIb3DQEBAgUAMEcxCzAJBgNV\n" +
+                            "BAYTAlVTMREwDwYDVQQIEwhUZXN0c290YTESMBAGA1UEBxMJVGVzdHZpbGxlMREw\n" +
+                            "DwYDVQQDEwh0ZXN0LmNvbTAeFw0xNDA5MDUwMTMwMDZaFw0xNTA5MDUwMTMwMDZa\n" +
+                            "MEcxCzAJBgNVBAYTAlVTMREwDwYDVQQIEwhUZXN0c290YTESMBAGA1UEBxMJVGVz\n" +
+                            "dHZpbGxlMREwDwYDVQQDEwh0ZXN0LmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEP\n" +
+                            "ADCCAQoCggEBAMHoaqm+IagQsnbI5fg1shbV4o4RMuxdOdqq35+FUuyGHRm2iUwu\n" +
+                            "0KVIX35ZGpzzfbpsOMFSy5XoRdgdG/6zEpYXTNzjGWtZQ/51cwMAVxDFAsrL7bZz\n" +
+                            "9mMEbccXOBS6P4mCAVBQmPfjf6YEP9XUFSY4FeD/sfoIwvutQDbkiUKjhUnQzkSl\n" +
+                            "JwnIURUqJOonzBVQV+slypYC9GMrXBT+gVq3QaQSkBwQHHr3SAhZfr8nKoxWlPUy\n" +
+                            "l/uliZw9LlctlqRegzGo9m1JHHft9E4mqN4DsVfHl/43XE9DVzZwFZlJ2iJ0X2yL\n" +
+                            "VXvKPTwZucdXkhl3oW6NHT/u02P9EnSTbEUCAwEAAaOBqTCBpjAdBgNVHQ4EFgQU\n" +
+                            "q1g42h7XKGGPlPbgAmmWvlAC2kMwdwYDVR0jBHAwboAUq1g42h7XKGGPlPbgAmmW\n" +
+                            "vlAC2kOhS6RJMEcxCzAJBgNVBAYTAlVTMREwDwYDVQQIEwhUZXN0c290YTESMBAG\n" +
+                            "A1UEBxMJVGVzdHZpbGxlMREwDwYDVQQDEwh0ZXN0LmNvbYIJAPgJ74B13cElMAwG\n" +
+                            "A1UdEwQFMAMBAf8wDQYJKoZIhvcNAQECBQADggEBAIz1S5LVYRrmRAKfEaXf0Ja8\n" +
+                            "XyxGoE8BlM2WWHQoUO6HX+ixJBFueJT6kFJCH4NPKIZdTmhtKKOKBqJeHKiRom2L\n" +
+                            "a+p7GEGondaO/Q+8dqx+S7LUI22CaOss72DHoGFqES37KCs9P8G1gu/5GrQVgfV/\n" +
+                            "/UjESMF5/fQuFncgWfn5c6E5z7PRuYOLw3Clym1GbLUwldGeAeVqT4kcIgIKA3Rd\n" +
+                            "NqMum8A2TrJlrmtxG4OlkKdpKKjPRhYPYLtPXi/g0p8heJ8/YZSwXGQHrqqOND1F\n" +
+                            "fkc4rWxUev50cXXJ4qI8EM0zi3HpBqsqV6JgR8+VMA6MMxPQAWmGbBoztKv1r8U=\n" +
+                            "-----END CERTIFICATE-----";
+
+    //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
+    //-newkey rsa:2048 -md4 -keyout k.pem -out md4.pem
+    private static final String MD4_RSA_PEM = "" +
+                            "-----BEGIN CERTIFICATE-----\n" +
+                            "MIIDYTCCAkmgAwIBAgIJAO2CvPpNFLqwMA0GCSqGSIb3DQEBAwUAMEcxCzAJBgNV\n" +
+                            "BAYTAlVTMREwDwYDVQQIDAhUZXN0c290YTESMBAGA1UEBwwJVGVzdHZpbGxlMREw\n" +
+                            "DwYDVQQDDAh0ZXN0LmNvbTAeFw0xNDA5MDQyMjI1MzNaFw0xNTA5MDQyMjI1MzNa\n" +
+                            "MEcxCzAJBgNVBAYTAlVTMREwDwYDVQQIDAhUZXN0c290YTESMBAGA1UEBwwJVGVz\n" +
+                            "dHZpbGxlMREwDwYDVQQDDAh0ZXN0LmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEP\n" +
+                            "ADCCAQoCggEBAOQHeENDnuCN08gW/CgIcIYZlD8qgHIc/QgUaHkxbMNBomiOgD8Z\n" +
+                            "D1JGtrW6ucbdD66L3Zd5gAfqgGbJ8ySrVFpgXbSpVb6C0wulPZRrm9ll4sZ5BYvg\n" +
+                            "zgFhY0TlrizaupZMV+XM3dce/EOYGnrqxWr6jOS7cX3D5Vb9NVE6g+GIW6XKw51Z\n" +
+                            "qD+GxxZ2As0lYaZ3vc/+EbiTs/UuIUTsSQvctRkvc83e2vAPtWHX+9ztOLmpSRUP\n" +
+                            "8xpganKg5JrfKlXlMXdhJipnOPcYLRMf+UD/7s13TyiQ8Qgt1/h8nirkP8mHYreM\n" +
+                            "WenY9Sqrp0FPgGTZbkSnL127mUcWiq+CyasCAwEAAaNQME4wHQYDVR0OBBYEFPSg\n" +
+                            "PNT/OJ5IrgrbA7Y0kNgqMp2uMB8GA1UdIwQYMBaAFPSgPNT/OJ5IrgrbA7Y0kNgq\n" +
+                            "Mp2uMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEDBQADggEBADg6acU5eqHUDjvG\n" +
+                            "M6L+2gMVNiTczlYItLqoibYZW88wzgxpptGKFlWzdl11TIjUaIYqZktfLAWC3Oun\n" +
+                            "C564mYPZfaIJEDKNMqcVPiZa9g/8dbctmOxAAvOGdXl+5uk5xOrAsmab7/NH+ksA\n" +
+                            "YRpcZntUzbqH33GcMP3CG2i8TM0xM3ZjKch+79asBD/vZmNK1BhsHy3LAE2H2HeA\n" +
+                            "k+YDvaBU2yKb0RuZvUmfiySiIjyLtX9JagtHVpcnCZ6pXgCuBy60nGSeP5GQ024x\n" +
+                            "GdyN37tmX7gvcazx1+uBlGtw07Uydua4868v/kgu/Ll2zY37CIY6OFi1G0mdk2Xs\n" +
+                            "28zzK8s=\n" +
+                            "-----END CERTIFICATE-----";
+
+    //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
     //-newkey rsa:2048 -md5 -keyout k.pem -out md5.pem
     private static final String MD5_RSA_PEM = "" +
                             "-----BEGIN CERTIFICATE-----\n" +
@@ -168,6 +219,14 @@ public class ChainStrengthAnalyzerTest extends TestCase {
                             "aj0wDAYDVR0TBAUwAwEB/zAKBggqhkjOPQQDAgMnADAkAhBXRMkfHNexPXaqzJwT\n" +
                             "9eAwAhAzX+1NE+FY0kk74wH83Cz0\n" +
                             "-----END CERTIFICATE-----";
+
+    public void testMD2() throws Exception {
+        assertBad(MD2_RSA_PEM, "Weak hash check did not fail as expected");
+    }
+
+    public void testMD4() throws Exception {
+        assertBad(MD4_RSA_PEM, "Weak hash check did not fail as expected");
+    }
 
     public void testMD5() throws Exception {
         assertBad(MD5_RSA_PEM, "Weak hash check did not fail as expected");
