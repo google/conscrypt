@@ -628,6 +628,14 @@ public final class NativeCrypto {
     public static final String TLS_EMPTY_RENEGOTIATION_INFO_SCSV
             = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
 
+    /**
+     * TLS_FALLBACK_SCSV is from
+     * https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-00
+     * to indicate to the server that this is a fallback protocol
+     * request.
+     */
+    public static final String TLS_FALLBACK_SCSV = "TLS_FALLBACK_SCSV";
+
     static {
         add("SSL_RSA_WITH_RC4_128_MD5",              "RC4-MD5");
         add("SSL_RSA_WITH_RC4_128_SHA",              "RC4-SHA");
@@ -753,14 +761,18 @@ public final class NativeCrypto {
 
         // Signaling Cipher Suite Value for secure renegotiation handled as special case.
         // add("TLS_EMPTY_RENEGOTIATION_INFO_SCSV", null);
+
+        // Similarly, the fallback SCSV is handled as a special case.
+        // add("TLS_FALLBACK_SCSV", null);
     }
 
     private static final String[] SUPPORTED_CIPHER_SUITES;
     static {
         int size = STANDARD_TO_OPENSSL_CIPHER_SUITES.size();
-        SUPPORTED_CIPHER_SUITES = new String[size + 1];
+        SUPPORTED_CIPHER_SUITES = new String[size + 2];
         STANDARD_TO_OPENSSL_CIPHER_SUITES.keySet().toArray(SUPPORTED_CIPHER_SUITES);
         SUPPORTED_CIPHER_SUITES[size] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
+        SUPPORTED_CIPHER_SUITES[size + 1] = TLS_FALLBACK_SCSV;
     }
 
     // EVP_PKEY types from evp.h and objects.h
@@ -778,6 +790,7 @@ public final class NativeCrypto {
     // SSL mode from ssl.h
     public static final long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000080L;
     public static final long SSL_MODE_CBC_RECORD_SPLITTING = 0x00000100L;
+    public static final long SSL_MODE_SEND_FALLBACK_SCSV   = 0x00000200L;
 
     // SSL options from ssl.h
     public static final long SSL_OP_TLSEXT_PADDING                         = 0x00000010L;
@@ -1043,6 +1056,10 @@ public final class NativeCrypto {
             if (cipherSuite.equals(TLS_EMPTY_RENEGOTIATION_INFO_SCSV)) {
                 continue;
             }
+            if (cipherSuite.equals(TLS_FALLBACK_SCSV)) {
+                SSL_set_mode(ssl, SSL_MODE_SEND_FALLBACK_SCSV);
+                continue;
+            }
             String openssl = STANDARD_TO_OPENSSL_CIPHER_SUITES.get(cipherSuite);
             String cs = (openssl == null) ? cipherSuite : openssl;
             opensslSuites.add(cs);
@@ -1060,7 +1077,8 @@ public final class NativeCrypto {
             if (cipherSuite == null) {
                 throw new IllegalArgumentException("cipherSuites[" + i + "] == null");
             }
-            if (cipherSuite.equals(TLS_EMPTY_RENEGOTIATION_INFO_SCSV)) {
+            if (cipherSuite.equals(TLS_EMPTY_RENEGOTIATION_INFO_SCSV) ||
+                    cipherSuite.equals(TLS_FALLBACK_SCSV)) {
                 continue;
             }
             if (STANDARD_TO_OPENSSL_CIPHER_SUITES.containsKey(cipherSuite)) {
