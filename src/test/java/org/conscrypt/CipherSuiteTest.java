@@ -28,7 +28,8 @@ import libcore.java.security.StandardNames;
 public class CipherSuiteTest extends TestCase {
     public void test_getByName() throws Exception {
         for (String name : StandardNames.CIPHER_SUITES) {
-            if (name.equals(StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION)) {
+            if (name.equals(StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION)
+                    || name.equals(StandardNames.CIPHER_SUITE_FALLBACK)) {
                 assertNull(CipherSuite.getByName(name));
             } else if ((name.endsWith("_SHA256")) || (name.endsWith("_SHA384"))) {
                 // TLSv1.2 cipher suites not supported by the SSLEngine implementation which is the
