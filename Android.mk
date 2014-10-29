@@ -215,6 +215,7 @@ LOCAL_MODULE := libjavacrypto
 LOCAL_CFLAGS += -DJNI_JARJAR_PREFIX="com/android/"
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
+LOCAL_MULTILIB := both
 include $(BUILD_HOST_SHARED_LIBRARY)
 
 # Conscrypt native library for nojarjar'd version
@@ -235,5 +236,6 @@ ifeq (,$(TARGET_BUILD_APPS))
     LOCAL_MODULE := libconscrypt_jni
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
     LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
+    LOCAL_MULTILIB := both
     include $(BUILD_HOST_SHARED_LIBRARY)
 endif
