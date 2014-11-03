@@ -46,6 +46,11 @@ public class OpenSSLContextImpl extends SSLContextSpi {
 
   protected SSLParametersImpl sslParameters;
 
+  /** Allows outside callers to get the preferred SSLContext. */
+  public static OpenSSLContextImpl getPreferred() {
+      return new OpenSSLContextImpl();
+  }
+
   public OpenSSLContextImpl() {
       clientSessionContext = new ClientSessionContext();
       serverSessionContext = new ServerSessionContext();
