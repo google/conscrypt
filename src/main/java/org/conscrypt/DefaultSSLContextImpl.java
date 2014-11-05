@@ -49,14 +49,13 @@ public final class DefaultSSLContextImpl extends OpenSSLContextImpl {
     private static TrustManager[] TRUST_MANAGERS;
 
     /**
-     * DefaultSSLContextImpl delegates the work to the super class
-     * since there is no way to put a synchronized around both the
-     * call to super and the rest of this constructor to guarantee
-     * that we don't have races in creating the state shared between
-     * all default SSLContexts.
+     * DefaultSSLContextImpl delegates the work to the super class since there
+     * is no way to put a synchronized around both the call to super and the
+     * rest of this constructor to guarantee that we don't have races in
+     * creating the state shared between all default SSLContexts.
      */
     public DefaultSSLContextImpl() throws GeneralSecurityException, IOException {
-        super(null);
+        super();
     }
 
     // TODO javax.net.ssl.keyStoreProvider system property

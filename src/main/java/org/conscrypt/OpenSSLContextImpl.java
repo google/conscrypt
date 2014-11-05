@@ -32,114 +32,142 @@ import javax.net.ssl.TrustManager;
  */
 public class OpenSSLContextImpl extends SSLContextSpi {
 
-  /**
-   * The default SSLContextImpl for use with SSLContext.getInstance("Default").
-   * Protected by the DefaultSSLContextImpl.class monitor.
-   */
-  private static DefaultSSLContextImpl DEFAULT_SSL_CONTEXT_IMPL;
+    /**
+     * The default SSLContextImpl for use with
+     * SSLContext.getInstance("Default"). Protected by the
+     * DefaultSSLContextImpl.class monitor.
+     */
+    private static DefaultSSLContextImpl DEFAULT_SSL_CONTEXT_IMPL;
 
-  /** Client session cache. */
-  private final ClientSessionContext clientSessionContext;
+    /** TLS algorithm to initialize all sockets. */
+    private final String[] algorithms;
 
-  /** Server session cache. */
-  private final ServerSessionContext serverSessionContext;
+    /** Client session cache. */
+    private final ClientSessionContext clientSessionContext;
 
-  protected SSLParametersImpl sslParameters;
+    /** Server session cache. */
+    private final ServerSessionContext serverSessionContext;
 
-  /** Allows outside callers to get the preferred SSLContext. */
-  public static OpenSSLContextImpl getPreferred() {
-      return new OpenSSLContextImpl();
-  }
+    protected SSLParametersImpl sslParameters;
 
-  public OpenSSLContextImpl() {
-      clientSessionContext = new ClientSessionContext();
-      serverSessionContext = new ServerSessionContext();
-  }
+    /** Allows outside callers to get the preferred SSLContext. */
+    public static OpenSSLContextImpl getPreferred() {
+        return new TLSv12();
+    }
 
-  /**
-   * Constuctor for the DefaultSSLContextImpl.
-   * @param dummy is null, used to distinguish this case from the
-   * public OpenSSLContextImpl() constructor.
-   */
-  protected OpenSSLContextImpl(DefaultSSLContextImpl dummy)
-          throws GeneralSecurityException, IOException {
-      synchronized (DefaultSSLContextImpl.class) {
-          if (DEFAULT_SSL_CONTEXT_IMPL == null) {
-              clientSessionContext = new ClientSessionContext();
-              serverSessionContext = new ServerSessionContext();
-              DEFAULT_SSL_CONTEXT_IMPL = (DefaultSSLContextImpl)this;
-          } else {
-              clientSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetClientSessionContext();
-              serverSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetServerSessionContext();
-          }
-          sslParameters = new SSLParametersImpl(DEFAULT_SSL_CONTEXT_IMPL.getKeyManagers(),
-                                                DEFAULT_SSL_CONTEXT_IMPL.getTrustManagers(),
-                                                null,
-                                                clientSessionContext,
-                                                serverSessionContext);
-      }
-  }
+    protected OpenSSLContextImpl(String[] algorithms) {
+        this.algorithms = algorithms;
+        clientSessionContext = new ClientSessionContext();
+        serverSessionContext = new ServerSessionContext();
+    }
 
-  /**
-   * Initializes this {@code SSLContext} instance. All of the arguments are
-   * optional, and the security providers will be searched for the required
-   * implementations of the needed algorithms.
-   *
-   * @param kms the key sources or {@code null}
-   * @param tms the trust decision sources or {@code null}
-   * @param sr the randomness source or {@code null}
-   * @throws KeyManagementException if initializing this instance fails
-   */
-  @Override
-  public void engineInit(KeyManager[] kms, TrustManager[] tms,
-          SecureRandom sr) throws KeyManagementException {
-      sslParameters = new SSLParametersImpl(kms, tms, sr,
-                                            clientSessionContext, serverSessionContext);
-  }
+    /**
+     * Constuctor for the DefaultSSLContextImpl.
+     *
+     * @param dummy is null, used to distinguish this case from the public
+     *            OpenSSLContextImpl() constructor.
+     */
+    protected OpenSSLContextImpl() throws GeneralSecurityException, IOException {
+        synchronized (DefaultSSLContextImpl.class) {
+            this.algorithms = null;
+            if (DEFAULT_SSL_CONTEXT_IMPL == null) {
+                clientSessionContext = new ClientSessionContext();
+                serverSessionContext = new ServerSessionContext();
+                DEFAULT_SSL_CONTEXT_IMPL = (DefaultSSLContextImpl) this;
+            } else {
+                clientSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetClientSessionContext();
+                serverSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetServerSessionContext();
+            }
+            sslParameters = new SSLParametersImpl(DEFAULT_SSL_CONTEXT_IMPL.getKeyManagers(),
+                    DEFAULT_SSL_CONTEXT_IMPL.getTrustManagers(), null, clientSessionContext,
+                    serverSessionContext, algorithms);
+        }
+    }
 
-  @Override
-  public SSLSocketFactory engineGetSocketFactory() {
-      if (sslParameters == null) {
-          throw new IllegalStateException("SSLContext is not initialized.");
-      }
-      return new OpenSSLSocketFactoryImpl(sslParameters);
-  }
+    /**
+     * Initializes this {@code SSLContext} instance. All of the arguments are
+     * optional, and the security providers will be searched for the required
+     * implementations of the needed algorithms.
+     *
+     * @param kms the key sources or {@code null}
+     * @param tms the trust decision sources or {@code null}
+     * @param sr the randomness source or {@code null}
+     * @throws KeyManagementException if initializing this instance fails
+     */
+    @Override
+    public void engineInit(KeyManager[] kms, TrustManager[] tms, SecureRandom sr)
+            throws KeyManagementException {
+        sslParameters = new SSLParametersImpl(kms, tms, sr, clientSessionContext,
+                serverSessionContext, algorithms);
+    }
 
-  @Override
-  public SSLServerSocketFactory engineGetServerSocketFactory() {
-      if (sslParameters == null) {
-          throw new IllegalStateException("SSLContext is not initialized.");
-      }
-      return new OpenSSLServerSocketFactoryImpl(sslParameters);
-  }
+    @Override
+    public SSLSocketFactory engineGetSocketFactory() {
+        if (sslParameters == null) {
+            throw new IllegalStateException("SSLContext is not initialized.");
+        }
+        return new OpenSSLSocketFactoryImpl(sslParameters);
+    }
 
-  @Override
-  public SSLEngine engineCreateSSLEngine(String host, int port) {
-      if (sslParameters == null) {
-          throw new IllegalStateException("SSLContext is not initialized.");
-      }
-      SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
-      p.setUseClientMode(false);
-      return new OpenSSLEngineImpl(host, port, p);
-  }
+    @Override
+    public SSLServerSocketFactory engineGetServerSocketFactory() {
+        if (sslParameters == null) {
+            throw new IllegalStateException("SSLContext is not initialized.");
+        }
+        return new OpenSSLServerSocketFactoryImpl(sslParameters);
+    }
 
-  @Override
-  public SSLEngine engineCreateSSLEngine() {
-      if (sslParameters == null) {
-          throw new IllegalStateException("SSLContext is not initialized.");
-      }
-      SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
-      p.setUseClientMode(false);
-      return new OpenSSLEngineImpl(p);
-  }
+    @Override
+    public SSLEngine engineCreateSSLEngine(String host, int port) {
+        if (sslParameters == null) {
+            throw new IllegalStateException("SSLContext is not initialized.");
+        }
+        SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
+        p.setUseClientMode(false);
+        return new OpenSSLEngineImpl(host, port, p);
+    }
 
-  @Override
-  public ServerSessionContext engineGetServerSessionContext() {
-      return serverSessionContext;
-  }
+    @Override
+    public SSLEngine engineCreateSSLEngine() {
+        if (sslParameters == null) {
+            throw new IllegalStateException("SSLContext is not initialized.");
+        }
+        SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
+        p.setUseClientMode(false);
+        return new OpenSSLEngineImpl(p);
+    }
 
-  @Override
-  public ClientSessionContext engineGetClientSessionContext() {
-      return clientSessionContext;
-  }
+    @Override
+    public ServerSessionContext engineGetServerSessionContext() {
+        return serverSessionContext;
+    }
+
+    @Override
+    public ClientSessionContext engineGetClientSessionContext() {
+        return clientSessionContext;
+    }
+
+    public static class TLSv12 extends OpenSSLContextImpl {
+        public TLSv12() {
+            super(NativeCrypto.TLSV12_PROTOCOLS);
+        }
+    }
+
+    public static class TLSv11 extends OpenSSLContextImpl {
+        public TLSv11() {
+            super(NativeCrypto.TLSV11_PROTOCOLS);
+        }
+    }
+
+    public static class TLSv1 extends OpenSSLContextImpl {
+        public TLSv1() {
+            super(NativeCrypto.TLSV1_PROTOCOLS);
+        }
+    }
+
+    public static class SSLv3 extends OpenSSLContextImpl {
+        public SSLv3() {
+            super(NativeCrypto.SSLV3_PROTOCOLS);
+        }
+    }
 }
