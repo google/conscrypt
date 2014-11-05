@@ -47,12 +47,14 @@ public final class OpenSSLProvider extends Provider {
 
         /* === SSL Contexts === */
         final String classOpenSSLContextImpl = prefix + "OpenSSLContextImpl";
-        put("SSLContext.SSL", classOpenSSLContextImpl);
-        put("SSLContext.SSLv3", classOpenSSLContextImpl);
-        put("SSLContext.TLS", classOpenSSLContextImpl);
-        put("SSLContext.TLSv1", classOpenSSLContextImpl);
-        put("SSLContext.TLSv1.1", classOpenSSLContextImpl);
-        put("SSLContext.TLSv1.2", classOpenSSLContextImpl);
+        final String tls12SSLContext = classOpenSSLContextImpl + "$TLSv12";
+        final String ssl3SSLContext = classOpenSSLContextImpl + "$SSLv3";
+        put("SSLContext.SSL", ssl3SSLContext);
+        put("SSLContext.SSLv3", ssl3SSLContext);
+        put("SSLContext.TLS", tls12SSLContext);
+        put("SSLContext.TLSv1", classOpenSSLContextImpl + "$TLSv1");
+        put("SSLContext.TLSv1.1", classOpenSSLContextImpl + "$TLSv11");
+        put("SSLContext.TLSv1.2", tls12SSLContext);
         put("SSLContext.Default", prefix + "DefaultSSLContextImpl");
 
         /* === Message Digests === */

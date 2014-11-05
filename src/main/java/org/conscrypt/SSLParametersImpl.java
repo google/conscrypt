@@ -115,7 +115,7 @@ public class SSLParametersImpl implements Cloneable {
      */
     protected SSLParametersImpl(KeyManager[] kms, TrustManager[] tms,
             SecureRandom sr, ClientSessionContext clientSessionContext,
-            ServerSessionContext serverSessionContext)
+            ServerSessionContext serverSessionContext, String[] protocols)
             throws KeyManagementException {
         this.serverSessionContext = serverSessionContext;
         this.clientSessionContext = clientSessionContext;
@@ -145,7 +145,8 @@ public class SSLParametersImpl implements Cloneable {
         secureRandom = sr;
 
         // initialize the list of cipher suites and protocols enabled by default
-        enabledProtocols = getDefaultProtocols();
+        enabledProtocols = NativeCrypto.checkEnabledProtocols(
+                protocols == null ? NativeCrypto.DEFAULT_PROTOCOLS : protocols).clone();
         boolean x509CipherSuitesNeeded = (x509KeyManager != null) || (x509TrustManager != null);
         boolean pskCipherSuitesNeeded = pskKeyManager != null;
         enabledCipherSuites = getDefaultCipherSuites(
@@ -160,7 +161,8 @@ public class SSLParametersImpl implements Cloneable {
                                                                null,
                                                                null,
                                                                new ClientSessionContext(),
-                                                               new ServerSessionContext());
+                                                               new ServerSessionContext(),
+                                                               null);
         }
         return (SSLParametersImpl) result.clone();
     }
@@ -1040,10 +1042,6 @@ public class SSLParametersImpl implements Cloneable {
             // Neither X.509 nor PSK cipher suites need to be listed.
             return new String[] {NativeCrypto.TLS_EMPTY_RENEGOTIATION_INFO_SCSV};
         }
-    }
-
-    private static String[] getDefaultProtocols() {
-        return NativeCrypto.DEFAULT_PROTOCOLS.clone();
     }
 
     private static String[] concat(String[]... arrays) {

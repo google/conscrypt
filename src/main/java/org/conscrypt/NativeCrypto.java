@@ -918,12 +918,36 @@ public final class NativeCrypto {
 
     public static native void set_SSL_psk_server_callback_enabled(long ssl, boolean enabled);
 
-    public static final String[] DEFAULT_PROTOCOLS = new String[] {
+    /** Protocols to enable by default when "TLSv1.2" is requested. */
+    public static final String[] TLSV12_PROTOCOLS = new String[] {
+        SUPPORTED_PROTOCOL_TLSV1,
+        SUPPORTED_PROTOCOL_TLSV1_1,
+        SUPPORTED_PROTOCOL_TLSV1_2,
+    };
+
+    /** Protocols to enable by default when "TLSv1.1" is requested. */
+    public static final String[] TLSV11_PROTOCOLS = new String[] {
+        SUPPORTED_PROTOCOL_TLSV1,
+        SUPPORTED_PROTOCOL_TLSV1_1,
+        SUPPORTED_PROTOCOL_TLSV1_2,
+    };
+
+    /** Protocols to enable by default when "TLSv1" is requested. */
+    public static final String[] TLSV1_PROTOCOLS  = new String[] {
+        SUPPORTED_PROTOCOL_TLSV1,
+        SUPPORTED_PROTOCOL_TLSV1_1,
+        SUPPORTED_PROTOCOL_TLSV1_2,
+    };
+
+    /** Protocols to enable by default when "SSLv3" is requested. */
+    public static final String[] SSLV3_PROTOCOLS  = new String[] {
         SUPPORTED_PROTOCOL_SSLV3,
         SUPPORTED_PROTOCOL_TLSV1,
         SUPPORTED_PROTOCOL_TLSV1_1,
         SUPPORTED_PROTOCOL_TLSV1_2,
     };
+
+    public static final String[] DEFAULT_PROTOCOLS = TLSV12_PROTOCOLS;
 
     public static String[] getSupportedProtocols() {
         return new String[] { SUPPORTED_PROTOCOL_SSLV3,
