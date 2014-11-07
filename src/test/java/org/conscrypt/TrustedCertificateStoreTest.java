@@ -20,15 +20,26 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.security.KeyStore;
+import java.security.KeyStore.PrivateKeyEntry;
+import java.security.KeyStore.TrustedCertificateEntry;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import javax.security.auth.x500.X500Principal;
+
 import junit.framework.TestCase;
 import libcore.java.security.TestKeyStore;
 
@@ -64,6 +75,13 @@ public class TrustedCertificateStoreTest extends TestCase {
     private static String ALIAS_SYSTEM_CA3_COLLISION;
     private static String ALIAS_USER_CA3;
     private static String ALIAS_USER_CA3_COLLISION;
+
+    private static X509Certificate CERTLOOP_EE;
+    private static X509Certificate CERTLOOP_CA1;
+    private static X509Certificate CERTLOOP_CA2;
+    private static String ALIAS_USER_CERTLOOP_EE;
+    private static String ALIAS_USER_CERTLOOP_CA1;
+    private static String ALIAS_USER_CERTLOOP_CA2;
 
     private static X509Certificate getCa1() {
         initCerts();
@@ -146,6 +164,30 @@ public class TrustedCertificateStoreTest extends TestCase {
         initCerts();
         return ALIAS_USER_CA3_COLLISION;
     }
+    private static X509Certificate getCertLoopEe() {
+        initCerts();
+        return CERTLOOP_EE;
+    }
+    private static X509Certificate getCertLoopCa1() {
+        initCerts();
+        return CERTLOOP_CA1;
+    }
+    private static X509Certificate getCertLoopCa2() {
+        initCerts();
+        return CERTLOOP_CA2;
+    }
+    private static String getAliasCertLoopEe() {
+        initCerts();
+        return ALIAS_USER_CERTLOOP_EE;
+    }
+    private static String getAliasCertLoopCa1() {
+        initCerts();
+        return ALIAS_USER_CERTLOOP_CA1;
+    }
+    private static String getAliasCertLoopCa2() {
+        initCerts();
+        return ALIAS_USER_CERTLOOP_CA2;
+    }
 
     /**
      * Lazily create shared test certificates.
@@ -182,6 +224,64 @@ public class TrustedCertificateStoreTest extends TestCase {
             ALIAS_SYSTEM_CA3_COLLISION = alias(false, CA3_WITH_CA1_SUBJECT, 1);
             ALIAS_USER_CA3 = alias(true, CA3_WITH_CA1_SUBJECT, 0);
             ALIAS_USER_CA3_COLLISION = alias(true, CA3_WITH_CA1_SUBJECT, 1);
+
+            /*
+             * The construction below is to build a certificate chain that has a loop
+             * in it:
+             *
+             *   EE ---> CA1 ---> CA2 ---+
+             *            ^              |
+             *            |              |
+             *            +--------------+
+             */
+            TestKeyStore certLoopTempCa1 = new TestKeyStore.Builder()
+                    .keyAlgorithms("RSA")
+                    .aliasPrefix("certloop-ca1")
+                    .subject("CN=certloop-ca1")
+                    .ca(true)
+                    .build();
+            Certificate certLoopTempCaCert1 = ((TrustedCertificateEntry) certLoopTempCa1
+                    .getEntryByAlias("certloop-ca1-public-RSA")).getTrustedCertificate();
+            PrivateKeyEntry certLoopCaKey1 = (PrivateKeyEntry) certLoopTempCa1
+                    .getEntryByAlias("certloop-ca1-private-RSA");
+
+            TestKeyStore certLoopCa2 = new TestKeyStore.Builder()
+                    .keyAlgorithms("RSA")
+                    .aliasPrefix("certloop-ca2")
+                    .subject("CN=certloop-ca2")
+                    .rootCa(certLoopTempCaCert1)
+                    .signer(certLoopCaKey1)
+                    .ca(true)
+                    .build();
+            CERTLOOP_CA2 = (X509Certificate) ((TrustedCertificateEntry) certLoopCa2
+                    .getEntryByAlias("certloop-ca2-public-RSA")).getTrustedCertificate();
+            ALIAS_USER_CERTLOOP_CA2 = alias(true, CERTLOOP_CA2, 0);
+            PrivateKeyEntry certLoopCaKey2 = (PrivateKeyEntry) certLoopCa2
+                    .getEntryByAlias("certloop-ca2-private-RSA");
+
+            TestKeyStore certLoopCa1 = new TestKeyStore.Builder()
+                    .keyAlgorithms("RSA")
+                    .aliasPrefix("certloop-ca1")
+                    .subject("CN=certloop-ca1")
+                    .privateEntry(certLoopCaKey1)
+                    .rootCa(CERTLOOP_CA2)
+                    .signer(certLoopCaKey2)
+                    .ca(true)
+                    .build();
+            CERTLOOP_CA1 = (X509Certificate) ((TrustedCertificateEntry) certLoopCa1
+                    .getEntryByAlias("certloop-ca1-public-RSA")).getTrustedCertificate();
+            ALIAS_USER_CERTLOOP_CA1 = alias(true, CERTLOOP_CA1, 0);
+
+            TestKeyStore certLoopEe = new TestKeyStore.Builder()
+                    .keyAlgorithms("RSA")
+                    .aliasPrefix("certloop-ee")
+                    .subject("CN=certloop-ee")
+                    .rootCa(CERTLOOP_CA1)
+                    .signer(certLoopCaKey1)
+                    .build();
+            CERTLOOP_EE = (X509Certificate) ((TrustedCertificateEntry) certLoopEe
+                    .getEntryByAlias("certloop-ee-public-RSA")).getTrustedCertificate();
+            ALIAS_USER_CERTLOOP_EE = alias(true, CERTLOOP_EE, 0);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -528,6 +628,33 @@ public class TrustedCertificateStoreTest extends TestCase {
         store.deleteCertificateEntry(getAliasSystemCa1());
         assertEmpty();
         assertDeleted(getCa1(), getAliasSystemCa1());
+    }
+
+    public void testGetLoopedCert() throws Exception {
+        install(getCertLoopEe(), getAliasCertLoopEe());
+        install(getCertLoopCa1(), getAliasCertLoopCa1());
+        install(getCertLoopCa2(), getAliasCertLoopCa2());
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<List<X509Certificate>> future = executor
+                .submit(new Callable<List<X509Certificate>>() {
+                    @Override
+                    public List<X509Certificate> call() throws Exception {
+                        return store.getCertificateChain(getCertLoopEe());
+                    }
+                });
+        executor.shutdown();
+        final List<X509Certificate> certs;
+        try {
+            certs = future.get(10, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            fail("Could not finish building chain; possibly confused by loops");
+            return; // Not actually reached.
+        }
+        assertEquals(3, certs.size());
+        assertEquals(getCertLoopEe(), certs.get(0));
+        assertEquals(getCertLoopCa1(), certs.get(1));
+        assertEquals(getCertLoopCa2(), certs.get(2));
     }
 
     public void testIsUserAddedCertificate() throws Exception {
