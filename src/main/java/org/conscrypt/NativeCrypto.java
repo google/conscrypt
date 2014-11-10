@@ -788,9 +788,9 @@ public final class NativeCrypto {
     public static final int RSA_NO_PADDING    = 3;
 
     // SSL mode from ssl.h
-    public static final long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000080L;
+    public static final long SSL_MODE_SEND_FALLBACK_SCSV   = 0x00000080L;
     public static final long SSL_MODE_CBC_RECORD_SPLITTING = 0x00000100L;
-    public static final long SSL_MODE_SEND_FALLBACK_SCSV   = 0x00000200L;
+    public static final long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000200L;
 
     // SSL options from ssl.h
     public static final long SSL_OP_TLSEXT_PADDING                         = 0x00000010L;
