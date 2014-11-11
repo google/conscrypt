@@ -154,9 +154,9 @@ class Platform {
     }
 
     /**
-     * For the platform-bundled library, we currently don't enable SNI by default.
+     * For the platform-bundled library, we enable SNI by default.
      */
     public static boolean isSniEnabledByDefault() {
-        return false;
+        return true;
     }
 }
