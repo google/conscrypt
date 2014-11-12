@@ -30,6 +30,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import javax.security.auth.x500.X500Principal;
@@ -424,19 +425,20 @@ public final class TrustedCertificateStore {
      */
     public List<X509Certificate> getCertificateChain(X509Certificate leaf)
             throws CertificateException {
-        final List<OpenSSLX509Certificate> chain = new ArrayList<OpenSSLX509Certificate>();
-        chain.add(convertToOpenSSLIfNeeded(leaf));
+        final LinkedHashSet<OpenSSLX509Certificate> chain
+                = new LinkedHashSet<OpenSSLX509Certificate>();
+        OpenSSLX509Certificate cert = convertToOpenSSLIfNeeded(leaf);
+        chain.add(cert);
 
-        for (int i = 0; true; i++) {
-            OpenSSLX509Certificate cert = chain.get(i);
+        while (true) {
             if (isSelfIssuedCertificate(cert)) {
                 break;
             }
-            OpenSSLX509Certificate issuer = convertToOpenSSLIfNeeded(findIssuer(cert));
-            if (issuer == null) {
+            cert = convertToOpenSSLIfNeeded(findIssuer(cert));
+            if (cert == null || chain.contains(cert)) {
                 break;
             }
-            chain.add(issuer);
+            chain.add(cert);
         }
 
         return new ArrayList<X509Certificate>(chain);
