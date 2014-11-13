@@ -655,22 +655,17 @@ public final class NativeCrypto {
         add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",    "ECDHE-RSA-AES256-SHA");
         add("TLS_DHE_RSA_WITH_AES_128_CBC_SHA",      "DHE-RSA-AES128-SHA");
         add("TLS_DHE_RSA_WITH_AES_256_CBC_SHA",      "DHE-RSA-AES256-SHA");
-        add("TLS_DHE_DSS_WITH_AES_128_CBC_SHA",      "DHE-DSS-AES128-SHA");
-        add("TLS_DHE_DSS_WITH_AES_256_CBC_SHA",      "DHE-DSS-AES256-SHA");
         add("SSL_RSA_WITH_3DES_EDE_CBC_SHA",         "DES-CBC3-SHA");
         add("TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",  "ECDH-ECDSA-DES-CBC3-SHA");
         add("TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",    "ECDH-RSA-DES-CBC3-SHA");
         add("TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA", "ECDHE-ECDSA-DES-CBC3-SHA");
         add("TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",   "ECDHE-RSA-DES-CBC3-SHA");
         add("SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",     "EDH-RSA-DES-CBC3-SHA");
-        add("SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",     "EDH-DSS-DES-CBC3-SHA");
         add("SSL_RSA_WITH_DES_CBC_SHA",              "DES-CBC-SHA");
         add("SSL_DHE_RSA_WITH_DES_CBC_SHA",          "EDH-RSA-DES-CBC-SHA");
-        add("SSL_DHE_DSS_WITH_DES_CBC_SHA",          "EDH-DSS-DES-CBC-SHA");
         add("SSL_RSA_EXPORT_WITH_RC4_40_MD5",        "EXP-RC4-MD5");
         add("SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",     "EXP-DES-CBC-SHA");
         add("SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA", "EXP-EDH-RSA-DES-CBC-SHA");
-        add("SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", "EXP-EDH-DSS-DES-CBC-SHA");
         add("SSL_RSA_WITH_NULL_MD5",                 "NULL-MD5");
         add("SSL_RSA_WITH_NULL_SHA",                 "NULL-SHA");
         add("TLS_ECDH_ECDSA_WITH_NULL_SHA",          "ECDH-ECDSA-NULL-SHA");
@@ -700,10 +695,6 @@ public final class NativeCrypto {
         add("TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",     "DHE-RSA-AES256-SHA256");
         add("TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",     "DHE-RSA-AES128-GCM-SHA256");
         add("TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",     "DHE-RSA-AES256-GCM-SHA384");
-        add("TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",     "DHE-DSS-AES128-SHA256");
-        add("TLS_DHE_DSS_WITH_AES_256_CBC_SHA256",     "DHE-DSS-AES256-SHA256");
-        add("TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",     "DHE-DSS-AES128-GCM-SHA256");
-        add("TLS_DHE_DSS_WITH_AES_256_GCM_SHA384",     "DHE-DSS-AES256-GCM-SHA384");
         add("TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",    "ECDH-RSA-AES128-SHA256");
         add("TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384",    "ECDH-RSA-AES256-SHA384");
         add("TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",    "ECDH-RSA-AES128-GCM-SHA256");
@@ -740,6 +731,17 @@ public final class NativeCrypto {
         // not implemented by either RI or OpenSSL
         // add("SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA", null);
         // add("SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA", null);
+
+        // No DSS support in BoringSSL
+        // add("SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", "EXP-EDH-DSS-DES-CBC-SHA");
+        // add("SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",     "EDH-DSS-DES-CBC3-SHA");
+        // add("SSL_DHE_DSS_WITH_DES_CBC_SHA",          "EDH-DSS-DES-CBC-SHA");
+        // add("TLS_DHE_DSS_WITH_AES_128_CBC_SHA",      "DHE-DSS-AES128-SHA");
+        // add("TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",   "DHE-DSS-AES128-SHA256");
+        // add("TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",   "DHE-DSS-AES128-GCM-SHA256");
+        // add("TLS_DHE_DSS_WITH_AES_256_CBC_SHA",      "DHE-DSS-AES256-SHA");
+        // add("TLS_DHE_DSS_WITH_AES_256_CBC_SHA256",   "DHE-DSS-AES256-SHA256");
+        // add("TLS_DHE_DSS_WITH_AES_256_GCM_SHA384",   "DHE-DSS-AES256-GCM-SHA384");
 
         // EXPORT1024 suites were never standardized but were widely implemented.
         // OpenSSL 0.9.8c and later have disabled TLS1_ALLOW_EXPERIMENTAL_CIPHERSUITES
@@ -808,9 +810,7 @@ public final class NativeCrypto {
      * OpenSSL constants from ssl/tls1.h.
      */
     public static final byte TLS_CT_RSA_SIGN = 1;
-    public static final byte TLS_CT_DSS_SIGN = 2;
     public static final byte TLS_CT_RSA_FIXED_DH = 3;
-    public static final byte TLS_CT_DSS_FIXED_DH = 4;
     public static final byte TLS_CT_ECDSA_SIGN = 64;
     public static final byte TLS_CT_RSA_FIXED_ECDH = 65;
     public static final byte TLS_CT_ECDSA_FIXED_ECDH = 66;
@@ -856,8 +856,6 @@ public final class NativeCrypto {
         "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
         "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
         "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
-        "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
-        "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
         "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
         "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
         "TLS_RSA_WITH_AES_128_GCM_SHA256",
@@ -1050,8 +1048,6 @@ public final class NativeCrypto {
      */
     /** RSA auth */
     public static final int SSL_aRSA =    0x00000001;
-    /** DSS auth */
-    public static final int SSL_aDSS =    0x00000002;
     /** no auth (i.e. use ADH or AECDH) */
     public static final int SSL_aNULL =   0x00000004;
     /** Fixed DH auth (kDHd or kDHr) -- no such ciphersuites supported! */
