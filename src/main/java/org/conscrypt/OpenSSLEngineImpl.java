@@ -153,6 +153,8 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
             final long sslCtxNativePointer = sessionContext.sslCtxNativePointer;
             sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
+            sslSession = sslParameters.getSessionToReuse(
+                    sslNativePointer, getPeerHost(), getPeerPort());
             sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this, this,
                     getPeerHost());
             sslParameters.setCertificateValidation(sslNativePointer);

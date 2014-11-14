@@ -35,16 +35,24 @@ public class OpenSSLKey {
 
     private final String alias;
 
+    private final boolean wrapped;
+
     public OpenSSLKey(long ctx) {
+        this(ctx, false);
+    }
+
+    public OpenSSLKey(long ctx, boolean wrapped) {
         this.ctx = ctx;
         engine = null;
         alias = null;
+        this.wrapped = wrapped;
     }
 
     public OpenSSLKey(long ctx, OpenSSLEngine engine, String alias) {
         this.ctx = ctx;
         this.engine = engine;
         this.alias = alias;
+        this.wrapped = false;
     }
 
     /**
@@ -66,6 +74,10 @@ public class OpenSSLKey {
 
     public String getAlias() {
         return alias;
+    }
+
+    public boolean isWrapped() {
+        return wrapped;
     }
 
     public static OpenSSLKey fromPrivateKey(PrivateKey key) throws InvalidKeyException {
