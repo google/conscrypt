@@ -8337,6 +8337,7 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
     }
 
     ret = 0;
+    OpenSslError sslError;
     while (appData->aliveAndKicking) {
         errno = 0;
 
@@ -8363,7 +8364,7 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
             continue;
         }
         // error case
-        OpenSslError sslError(ssl, ret);
+        sslError.reset(ssl, ret);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake ret=%d errno=%d sslError=%d timeout_millis=%d",
                   ssl, ret, errno, sslError.get(), timeout_millis);
 
@@ -8412,7 +8413,6 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
          * completed, but everything is within the bounds of the TLS protocol.
          * We still might want to find out the real reason of the failure.
          */
-        OpenSslError sslError(ssl, ret);
         if (sslError.get() == SSL_ERROR_NONE ||
                 (sslError.get() == SSL_ERROR_SYSCALL && errno == 0)) {
             throwSSLHandshakeExceptionStr(env, "Connection closed by peer");
@@ -8431,7 +8431,6 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
          * Translate the error and throw exception. We are sure it is an error
          * at this point.
          */
-        OpenSslError sslError(ssl, ret);
         throwSSLExceptionWithSslErrors(env, ssl, sslError.release(), "SSL handshake aborted",
                 throwSSLHandshakeExceptionStr);
         SSL_clear(ssl);
