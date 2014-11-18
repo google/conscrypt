@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -1071,7 +1072,7 @@ public class NativeCryptoTest extends TestCase {
 
         assertTrue(clientCallback.clientCertificateRequestedCalled);
         assertNotNull(clientCallback.keyTypes);
-        assertEquals(new HashSet<String>(Arrays.asList("DSA", "EC", "RSA")),
+        assertEquals(new HashSet<String>(Arrays.asList("EC", "RSA")),
                 SSLParametersImpl.getSupportedClientKeyTypes(clientCallback.keyTypes));
         assertEqualPrincipals(getCaPrincipals(),
                               clientCallback.asn1DerEncodedX500Principals);
