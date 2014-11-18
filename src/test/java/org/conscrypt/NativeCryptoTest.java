@@ -42,6 +42,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.ECPrivateKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -1070,12 +1071,8 @@ public class NativeCryptoTest extends TestCase {
 
         assertTrue(clientCallback.clientCertificateRequestedCalled);
         assertNotNull(clientCallback.keyTypes);
-        // this depends on the SSL_set_cipher_lists call in beforeHandshake
-        // the three returned are the non-ephemeral cases.
-        assertEquals(3, clientCallback.keyTypes.length);
-        assertEquals("RSA", SSLParametersImpl.getClientKeyType(clientCallback.keyTypes[0]));
-        assertEquals("DSA", SSLParametersImpl.getClientKeyType(clientCallback.keyTypes[1]));
-        assertEquals("EC", SSLParametersImpl.getClientKeyType(clientCallback.keyTypes[2]));
+        assertEquals(new HashSet<String>(Arrays.asList("DSA", "EC", "RSA")),
+                SSLParametersImpl.getSupportedClientKeyTypes(clientCallback.keyTypes));
         assertEqualPrincipals(getCaPrincipals(),
                               clientCallback.asn1DerEncodedX500Principals);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
