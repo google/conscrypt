@@ -635,10 +635,8 @@ public class SSLParametersImpl implements Cloneable {
     void chooseClientCertificate(byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals,
             long sslNativePointer, AliasChooser chooser) throws SSLException,
             CertificateEncodingException {
-        String[] keyTypes = new String[keyTypeBytes.length];
-        for (int i = 0; i < keyTypeBytes.length; i++) {
-            keyTypes[i] = getClientKeyType(keyTypeBytes[i]);
-        }
+        Set<String> keyTypesSet = getSupportedClientKeyTypes(keyTypeBytes);
+        String[] keyTypes = keyTypesSet.toArray(new String[keyTypesSet.size()]);
 
         X500Principal[] issuers;
         if (asn1DerEncodedPrincipals == null) {
@@ -931,10 +929,10 @@ public class SSLParametersImpl implements Cloneable {
     /** Key type: Elliptic Curve. */
     private static final String KEY_TYPE_EC = "EC";
 
-    /** Key type: Eliiptic Curve with ECDSA signature. */
+    /** Key type: Elliptic Curve with ECDSA signature. */
     private static final String KEY_TYPE_EC_EC = "EC_EC";
 
-    /** Key type: Eliiptic Curve with RSA signature. */
+    /** Key type: Elliptic Curve with RSA signature. */
     private static final String KEY_TYPE_EC_RSA = "EC_RSA";
 
     /**
@@ -989,9 +987,9 @@ public class SSLParametersImpl implements Cloneable {
      * message for use with X509KeyManager.chooseClientAlias or
      * X509ExtendedKeyManager.chooseEngineClientAlias.
      */
-    public static String getClientKeyType(byte keyType) {
+    static String getClientKeyType(byte clientCertificateType) {
         // See also http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
-        switch (keyType) {
+        switch (clientCertificateType) {
             case NativeCrypto.TLS_CT_RSA_SIGN:
                 return KEY_TYPE_RSA; // RFC rsa_sign
             case NativeCrypto.TLS_CT_DSS_SIGN:
@@ -1009,6 +1007,28 @@ public class SSLParametersImpl implements Cloneable {
             default:
                 return null;
         }
+    }
+
+    /**
+     * Gets the supported key types for client certificates based on the
+     * {@code ClientCertificateType} values provided by the server.
+     *
+     * @param clientCertificateTypes {@code ClientCertificateType} values provided by the server.
+     *        See https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml.
+     * @return supported key types that can be used in {@code X509KeyManager.chooseClientAlias} and
+     *         {@code X509ExtendedKeyManager.chooseEngineClientAlias}.
+     */
+    static Set<String> getSupportedClientKeyTypes(byte[] clientCertificateTypes) {
+        Set<String> result = new HashSet<String>(clientCertificateTypes.length);
+        for (byte keyTypeCode : clientCertificateTypes) {
+            String keyType = getClientKeyType(keyTypeCode);
+            if (keyType == null) {
+                // Unsupported client key type -- ignore
+                continue;
+            }
+            result.add(keyType);
+        }
+        return result;
     }
 
     private static String[] getDefaultCipherSuites(
