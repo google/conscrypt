@@ -32,14 +32,8 @@ public class SSLParametersImplTest extends TestCase {
         case 1:
           assertEquals(byteString, "RSA", keyType);
           break;
-        case 2:
-          assertEquals(byteString, "DSA", keyType);
-          break;
         case 3:
           assertEquals(byteString, "DH_RSA", keyType);
-          break;
-        case 4:
-          assertEquals(byteString, "DH_DSA", keyType);
           break;
         case 64:
           assertEquals(byteString, "EC", keyType);
@@ -64,8 +58,7 @@ public class SSLParametersImplTest extends TestCase {
           allClientCertificateTypes[i] = (byte) i;
       }
       assertEquals(
-              new HashSet<String>(Arrays.asList(
-                      "RSA", "DSA", "DH_RSA", "DH_DSA", "EC", "EC_RSA", "EC_EC")),
+              new HashSet<String>(Arrays.asList("RSA", "DH_RSA", "EC", "EC_RSA", "EC_EC")),
               SSLParametersImpl.getSupportedClientKeyTypes(allClientCertificateTypes));
   }
 }
