@@ -4903,11 +4903,32 @@ static void NativeCrypto_EVP_CIPHER_CTX_cleanup(JNIEnv* env, jclass, jlong ctxRe
  * public static native void RAND_seed(byte[]);
  */
 static void NativeCrypto_RAND_seed(JNIEnv* env, jclass, jbyteArray seed) {
+    JNI_TRACE("NativeCrypto_RAND_seed seed=%p", seed);
+#if !defined(OPENSSL_IS_BORINGSSL)
+    ScopedByteArrayRO randseed(env, seed);
+    if (randseed.get() == NULL) {
+        return;
+    }
+    RAND_seed(randseed.get(), randseed.size());
+#else
     return;
+#endif
 }
 
 static jint NativeCrypto_RAND_load_file(JNIEnv* env, jclass, jstring filename, jlong max_bytes) {
-    return 1;
+    JNI_TRACE("NativeCrypto_RAND_load_file filename=%p max_bytes=%lld", filename, max_bytes);
+#if !defined(OPENSSL_IS_BORINGSSL)
+    ScopedUtfChars file(env, filename);
+    if (file.c_str() == NULL) {
+        return -1;
+    }
+    int result = RAND_load_file(file.c_str(), max_bytes);
+    JNI_TRACE("NativeCrypto_RAND_load_file file=%s => %d", file.c_str(), result);
+    return result;
+#else
+    // OpenSSLRandom calls this and checks the return value.
+    return static_cast<jint>(max_bytes);
+#endif
 }
 
 static void NativeCrypto_RAND_bytes(JNIEnv* env, jclass, jbyteArray output) {
