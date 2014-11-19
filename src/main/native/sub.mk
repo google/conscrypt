@@ -9,6 +9,8 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES += \
 	libcore/luni/src/main/native
 
+LOCAL_C_FLAGS += -Wno-unused-parameter -Werror
+
 # Any shared/static libs that are listed here must also
 # be listed in libs/nativehelper/Android.mk.
 # TODO: fix this requirement

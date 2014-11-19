@@ -30,7 +30,7 @@ import java.security.SignatureSpi;
  */
 public class OpenSSLSignature extends SignatureSpi {
     private static enum EngineType {
-        RSA, DSA, EC,
+        RSA, EC,
     };
 
     private OpenSSLDigestContext ctx;
@@ -114,12 +114,6 @@ public class OpenSSLSignature extends SignatureSpi {
                             + " (not RSA)");
                 }
                 break;
-            case DSA:
-                if (pkeyType != NativeCrypto.EVP_PKEY_DSA) {
-                    throw new InvalidKeyException("Signature initialized as " + engineType
-                            + " (not DSA)");
-                }
-                break;
             case EC:
                 if (pkeyType != NativeCrypto.EVP_PKEY_EC) {
                     throw new InvalidKeyException("Signature initialized as " + engineType
@@ -145,23 +139,21 @@ public class OpenSSLSignature extends SignatureSpi {
     }
 
     /**
-     * Enables a mitigation against private key leakage through DSA and ECDSA signatures when weak
-     * nonces (per-message k values) are used. To mitigate the issue, private key and message being
-     * signed is mixed into the randomly generated nonce (k).
+     * Enables a mitigation against private key leakage through ECDSA
+     * signatures when weak nonces (per-message k values) are used. To mitigate
+     * the issue, private key and message being signed is mixed into the
+     * randomly generated nonce (k).
      *
-     * <p>Does nothing for signatures that are neither DSA nor ECDSA.
+     * <p>Does nothing for signatures that are not ECDSA.
      */
     private void enableDSASignatureNonceHardeningIfApplicable() {
         final OpenSSLKey key = this.key;
         switch (engineType) {
-            case DSA:
-                NativeCrypto.set_DSA_flag_nonce_from_hash(key.getPkeyContext());
-                break;
             case EC:
                 NativeCrypto.EC_KEY_set_nonce_from_hash(key.getPkeyContext(), true);
                 break;
             default:
-              // Hardening not applicable
+                // Hardening not applicable
         }
     }
 
@@ -178,7 +170,7 @@ public class OpenSSLSignature extends SignatureSpi {
     protected byte[] engineSign() throws SignatureException {
         if (key == null) {
             // This can't actually happen, but you never know...
-            throw new SignatureException("Need DSA or RSA or EC private key");
+            throw new SignatureException("Need RSA or EC private key");
         }
 
         final OpenSSLDigestContext ctxLocal = ctx;
@@ -206,7 +198,7 @@ public class OpenSSLSignature extends SignatureSpi {
     protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
         if (key == null) {
             // This can't actually happen, but you never know...
-            throw new SignatureException("Need DSA or RSA public key");
+            throw new SignatureException("Need RSA public key");
         }
 
         try {
@@ -225,45 +217,39 @@ public class OpenSSLSignature extends SignatureSpi {
     }
 
     public static final class MD5RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("RSA-MD5");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("MD5");
         public MD5RSA() throws NoSuchAlgorithmException {
             super(EVP_MD, EngineType.RSA);
         }
     }
     public static final class SHA1RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("RSA-SHA1");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA1");
         public SHA1RSA() throws NoSuchAlgorithmException {
             super(EVP_MD, EngineType.RSA);
         }
     }
     public static final class SHA224RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("RSA-SHA224");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA224");
         public SHA224RSA() throws NoSuchAlgorithmException {
             super(EVP_MD, EngineType.RSA);
         }
     }
     public static final class SHA256RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("RSA-SHA256");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA256");
         public SHA256RSA() throws NoSuchAlgorithmException {
             super(EVP_MD, EngineType.RSA);
         }
     }
     public static final class SHA384RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("RSA-SHA384");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA384");
         public SHA384RSA() throws NoSuchAlgorithmException {
             super(EVP_MD, EngineType.RSA);
         }
     }
     public static final class SHA512RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("RSA-SHA512");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA512");
         public SHA512RSA() throws NoSuchAlgorithmException {
             super(EVP_MD, EngineType.RSA);
-        }
-    }
-    public static final class SHA1DSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("DSA-SHA1");
-        public SHA1DSA() throws NoSuchAlgorithmException {
-            super(EVP_MD, EngineType.DSA);
         }
     }
     public static final class SHA1ECDSA extends OpenSSLSignature {
