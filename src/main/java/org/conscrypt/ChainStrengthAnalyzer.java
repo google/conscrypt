@@ -71,6 +71,9 @@ public final class ChainStrengthAnalyzer {
                         "DSA key length is < (" + MIN_DSA_P_LEN_BITS + ", " + MIN_DSA_Q_LEN_BITS
                         + ") bits");
             }
+        } else {
+            // Unknown keys will be of type X509PublicKey.
+            throw new CertificateException("Rejecting unknown key class " + pubkey.getClass().getName());
         }
     }
 

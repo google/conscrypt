@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.NoSuchAlgorithmException;
 import junit.framework.TestCase;
 
 public class ChainStrengthAnalyzerTest extends TestCase {
@@ -50,21 +51,22 @@ public class ChainStrengthAnalyzerTest extends TestCase {
                             "FoAjeos=\n" +
                             "-----END CERTIFICATE-----";
 
-    //ecparam -genkey -name secp160r1 -out eckey.pem && \
+    //openssl ecparam -genkey -name prime256v1 -out eckey.pem && \
     //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
     //-newkey ec:eckey.pem -sha256 -keyout k.pem -out good.pem
     private static final String GOOD_ECDSA_PEM = "" +
                             "-----BEGIN CERTIFICATE-----\n" +
-                            "MIIBozCCAWCgAwIBAgIJAJR/CWJgQNnPMAoGCCqGSM49BAMCMEcxCzAJBgNVBAYT\n" +
+                            "MIIB1jCCAXugAwIBAgIJALhpH2C1lYeaMAoGCCqGSM49BAMCMEcxCzAJBgNVBAYT\n" +
                             "AlVTMREwDwYDVQQIDAhUZXN0c290YTESMBAGA1UEBwwJVGVzdHZpbGxlMREwDwYD\n" +
-                            "VQQDDAh0ZXN0LmNvbTAeFw0xNDA5MDIyMDQ5NDFaFw0xNTA5MDIyMDQ5NDFaMEcx\n" +
+                            "VQQDDAh0ZXN0LmNvbTAeFw0xNDEwMjAyMjUyNDZaFw0xNTEwMjAyMjUyNDZaMEcx\n" +
                             "CzAJBgNVBAYTAlVTMREwDwYDVQQIDAhUZXN0c290YTESMBAGA1UEBwwJVGVzdHZp\n" +
-                            "bGxlMREwDwYDVQQDDAh0ZXN0LmNvbTA+MBAGByqGSM49AgEGBSuBBAAIAyoABOaS\n" +
-                            "Xr6myiJiEh0HEFEKORUaWn5KSQ9neuSqvV/g16gP7FRWNOMvOIGjUDBOMB0GA1Ud\n" +
-                            "DgQWBBSQxtfG1cDUZx/bzlF2rwptvFiVKzAfBgNVHSMEGDAWgBSQxtfG1cDUZx/b\n" +
-                            "zlF2rwptvFiVKzAMBgNVHRMEBTADAQH/MAoGCCqGSM49BAMCAzEAMC4CFQDpEPFS\n" +
-                            "K3zy8/7faP0cpnhPsaiLbwIVAKxu20je3Z2CCYdb+2kldlsPpabt\n" +
-                            "-----END CERTIFICATE-----";
+                            "bGxlMREwDwYDVQQDDAh0ZXN0LmNvbTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IA\n" +
+                            "BNR++2RWKGFUm+1KTLz7qxrJclPhVNM6gqInvAz2bLo7ENsD5KqN9BbmNvT4eg3y\n" +
+                            "u5i+00kiroKcm/35zhNFYamjUDBOMB0GA1UdDgQWBBRJmq9/dKkDW8n8mPzGzuo5\n" +
+                            "LcYUKjAfBgNVHSMEGDAWgBRJmq9/dKkDW8n8mPzGzuo5LcYUKjAMBgNVHRMEBTAD\n" +
+                            "AQH/MAoGCCqGSM49BAMCA0kAMEYCIQDgq5qudvY9zp3ZhVKEfMLbmwybiM15+wrC\n" +
+                            "xp6ipl+GZgIhAKbN/YfYoYlvr6z/xPrZfCZNLEaY/E01PqvD/d91Psa8\n" +
+                            "-----END CERTIFICATE-----\n";
 
     //openssl dsaparam -genkey 1024 -out dsakey.pem && \
     //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
@@ -255,6 +257,8 @@ public class ChainStrengthAnalyzerTest extends TestCase {
             check(createCert(pem));
             fail(msg);
         } catch (CertificateException expected) {
+        } catch (NoSuchAlgorithmException expected) {
+            // Some weak EC groups can no longer be parsed.
         }
     }
 

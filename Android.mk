@@ -45,7 +45,7 @@ local_javac_flags=-encoding UTF-8
 local_javac_flags+=-Xmaxwarns 9999999
 
 core_cflags := -Wall -Wextra -Werror
-core_cppflags := -std=gnu++11
+core_cppflags := -std=gnu++11 -Wno-unused-parameter -Werror
 
 #
 # Build for the target (device).
@@ -95,6 +95,7 @@ endif
 
 # Platform conscrypt crypto JNI library
 include $(CLEAR_VARS)
+include $(TOP)/external/openssl/flavor.mk
 LOCAL_CFLAGS += $(core_cflags)
 LOCAL_CFLAGS += -DJNI_JARJAR_PREFIX="com/android/"
 LOCAL_CPPFLAGS += $(core_cppflags)
@@ -106,6 +107,11 @@ LOCAL_C_INCLUDES += \
         libcore/include \
         libcore/luni/src/main/native
 LOCAL_SHARED_LIBRARIES := libcrypto libjavacore liblog libnativehelper libssl libz
+ifeq ($(OPENSSL_FLAVOR),BoringSSL)
+  LOCAL_SHARED_LIBRARIES += libkeystore-engine
+else
+  LOCAL_SHARED_LIBRARIES += libkeystore
+endif
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libjavacrypto
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
@@ -133,6 +139,9 @@ LOCAL_C_INCLUDES += \
         external/openssl/include \
         external/openssl \
         external/conscrypt/src/compat/native
+# NO_KEYSTORE_ENGINE instructs the BoringSSL build of Conscrypt not to support
+# the keystore ENGINE. It is not available in this build configuration.
+LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
 LOCAL_LDFLAGS := -llog -lz -ldl
 LOCAL_STATIC_LIBRARIES := libssl_static libcrypto_static
 LOCAL_MODULE_TAGS := optional
@@ -213,6 +222,9 @@ LOCAL_LDLIBS += -lpthread
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libjavacrypto
 LOCAL_CFLAGS += -DJNI_JARJAR_PREFIX="com/android/"
+# NO_KEYSTORE_ENGINE instructs the BoringSSL build of Conscrypt not to support
+# the keystore ENGINE. It is not available in this build configuration.
+LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
 LOCAL_MULTILIB := both
@@ -235,6 +247,10 @@ ifeq (,$(TARGET_BUILD_APPS))
     LOCAL_MODULE_TAGS := optional
     LOCAL_MODULE := libconscrypt_jni
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+    # NO_KEYSTORE_ENGINE instructs the BoringSSL build of Conscrypt not to
+    # support the keystore ENGINE. It is not available in this build
+    # configuration.
+    LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
     LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
     LOCAL_MULTILIB := both
     include $(BUILD_HOST_SHARED_LIBRARY)

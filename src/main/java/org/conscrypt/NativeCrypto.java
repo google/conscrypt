@@ -214,8 +214,6 @@ public final class NativeCrypto {
 
     public static native long EC_GROUP_new_by_curve_name(String curveName);
 
-    public static native long EC_GROUP_new_curve(int type, byte[] p, byte[] a, byte[] b);
-
     public static native long EC_GROUP_dup(long groupRef);
 
     public static native void EC_GROUP_set_asn1_flag(long groupRef, int flag);
