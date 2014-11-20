@@ -2086,16 +2086,16 @@ static void locking_function(int mode, int n, const char*, int) {
 
 static void threadid_callback(CRYPTO_THREADID *threadid) {
 #if defined(__APPLE__)
-  uint64_t owner;
-  int rc = pthread_threadid_np(NULL, &owner);  // Requires Mac OS 10.6
-  if (rc == 0) {
-    CRYPTO_THREADID_set_numeric(threadid, owner);
-  } else {
-    ALOGE("Error calling pthread_threadid_np");
-  }
+    uint64_t owner;
+    int rc = pthread_threadid_np(NULL, &owner);  // Requires Mac OS 10.6
+    if (rc == 0) {
+        CRYPTO_THREADID_set_numeric(threadid, owner);
+    } else {
+        ALOGE("Error calling pthread_threadid_np");
+    }
 #else
-  // Neither bionic nor glibc exposes gettid(2).
-  CRYPTO_THREADID_set_numeric(threadid, syscall(__NR_gettid));
+    // bionic exposes gettid(), but glibc doesn't
+    CRYPTO_THREADID_set_numeric(threadid, syscall(__NR_gettid));
 #endif
 }
 
