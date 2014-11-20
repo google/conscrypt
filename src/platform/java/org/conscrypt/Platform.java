@@ -152,11 +152,4 @@ class Platform {
     public static boolean isLiteralIpAddress(String hostname) {
         return InetAddress.isNumeric(hostname);
     }
-
-    /**
-     * For the platform-bundled library, we enable SNI by default.
-     */
-    public static boolean isSniEnabledByDefault() {
-        return true;
-    }
 }
