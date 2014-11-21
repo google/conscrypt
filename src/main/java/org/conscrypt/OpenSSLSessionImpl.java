@@ -358,15 +358,35 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     @Override
     public boolean isValid() {
-        SSLSessionContext context = sessionContext;
-        if (isValid
-                && context != null
-                && context.getSessionTimeout() != 0
-                && getCreationTime() + (context.getSessionTimeout() * 1000)
-                    < System.currentTimeMillis()) {
-            isValid = false;
+        if (!isValid) {
+            return false;
         }
-        return isValid;
+        // The session has't yet been invalidated -- check whether it timed out.
+
+        SSLSessionContext context = sessionContext;
+        if (context == null) {
+            // Session not associated with a context -- no way to tell what its timeout should be.
+            return true;
+        }
+
+        int timeoutSeconds = context.getSessionTimeout();
+        if (timeoutSeconds == 0) {
+            // Infinite timeout -- session still valid
+            return true;
+        }
+
+        long creationTimestampMillis = getCreationTime();
+        long ageSeconds = (System.currentTimeMillis() - creationTimestampMillis) / 1000;
+        // NOTE: The age might be negative if something was/is wrong with the system clock. We time
+        // out such sessions to be safe.
+        if ((ageSeconds >= timeoutSeconds) || (ageSeconds < 0)) {
+            // Session timed out -- no longer valid
+            isValid = false;
+            return false;
+        }
+
+        // Session still valid
+        return true;
     }
 
     /**

@@ -38,8 +38,14 @@ import javax.net.ssl.SSLSessionContext;
  */
 abstract class AbstractSessionContext implements SSLSessionContext {
 
+    /**
+     * Maximum lifetime of a session (in seconds) after which it's considered invalid and should not
+     * be used to for new connections.
+     */
+    private static final int DEFAULT_SESSION_TIMEOUT_SECONDS = 8 * 60 * 60;
+
     volatile int maximumSize;
-    volatile int timeout;
+    volatile int timeout = DEFAULT_SESSION_TIMEOUT_SECONDS;
 
     final long sslCtxNativePointer = NativeCrypto.SSL_CTX_new();
 
@@ -64,11 +70,9 @@ abstract class AbstractSessionContext implements SSLSessionContext {
      * Constructs a new session context.
      *
      * @param maximumSize of cache
-     * @param timeout for cache entries
      */
-    AbstractSessionContext(int maximumSize, int timeout) {
+    AbstractSessionContext(int maximumSize) {
         this.maximumSize = maximumSize;
-        this.timeout = timeout;
     }
 
     /**
