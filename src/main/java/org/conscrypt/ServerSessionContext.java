@@ -27,7 +27,7 @@ public class ServerSessionContext extends AbstractSessionContext {
     private SSLServerSessionCache persistentCache;
 
     public ServerSessionContext() {
-        super(100, 0);
+        super(100);
 
         // TODO make sure SSL_CTX does not automaticaly clear sessions we want it to cache
         // SSL_CTX_set_session_cache_mode(sslCtxNativePointer, SSL_SESS_CACHE_NO_AUTO_CLEAR);

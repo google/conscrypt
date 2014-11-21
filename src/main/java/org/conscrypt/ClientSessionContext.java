@@ -36,7 +36,7 @@ public class ClientSessionContext extends AbstractSessionContext {
     private SSLClientSessionCache persistentCache;
 
     public ClientSessionContext() {
-        super(10, 0);
+        super(10);
     }
 
     public int size() {
