@@ -43,7 +43,6 @@
 #include <jni.h>
 
 #include <openssl/asn1t.h>
-#include <openssl/dsa.h>
 #include <openssl/engine.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -1729,13 +1728,13 @@ void ensure_engine_globals() {
   pthread_once(&g_engine_once, init_engine_globals);
 }
 
-// KeyExData contains the data that is contained in the EX_DATA of the RSA, DSA
+// KeyExData contains the data that is contained in the EX_DATA of the RSA
 // and ECDSA objects that are created to wrap Android system keys.
 struct KeyExData {
   // private_key contains a reference to a Java, private-key object.
   jobject private_key;
   // cached_size contains the "size" of the key. This is the size of the
-  // modulus (in bytes) for RSA, or the group order size for (EC)DSA. This
+  // modulus (in bytes) for RSA, or the group order size for ECDSA. This
   // avoids calling into Java to calculate the size.
   size_t cached_size;
 };
@@ -2425,63 +2424,6 @@ static jlong NativeCrypto_EVP_PKEY_new_DH(JNIEnv* env, jclass,
     OWNERSHIP_TRANSFERRED(dh);
     JNI_TRACE("EVP_PKEY_new_DH(p=%p, g=%p, pub_key=%p, priv_key=%p) => %p",
               p, g, pub_key, priv_key, pkey.get());
-    return reinterpret_cast<jlong>(pkey.release());
-}
-
-/**
- * public static native int EVP_PKEY_new_DSA(byte[] p, byte[] q, byte[] g,
- *                                           byte[] pub_key, byte[] priv_key);
- */
-static jlong NativeCrypto_EVP_PKEY_new_DSA(JNIEnv* env, jclass,
-                                               jbyteArray p, jbyteArray q, jbyteArray g,
-                                               jbyteArray pub_key, jbyteArray priv_key) {
-    JNI_TRACE("EVP_PKEY_new_DSA(p=%p, q=%p, g=%p, pub_key=%p, priv_key=%p)",
-              p, q, g, pub_key, priv_key);
-
-    Unique_DSA dsa(DSA_new());
-    if (dsa.get() == NULL) {
-        jniThrowRuntimeException(env, "DSA_new failed");
-        return 0;
-    }
-
-    if (!arrayToBignum(env, p, &dsa->p)) {
-        return 0;
-    }
-
-    if (!arrayToBignum(env, q, &dsa->q)) {
-        return 0;
-    }
-
-    if (!arrayToBignum(env, g, &dsa->g)) {
-        return 0;
-    }
-
-    if (pub_key != NULL && !arrayToBignum(env, pub_key, &dsa->pub_key)) {
-        return 0;
-    }
-
-    if (priv_key != NULL && !arrayToBignum(env, priv_key, &dsa->priv_key)) {
-        return 0;
-    }
-
-    if (dsa->p == NULL || dsa->q == NULL || dsa->g == NULL
-            || (dsa->pub_key == NULL && dsa->priv_key == NULL)) {
-        jniThrowRuntimeException(env, "Unable to convert BigInteger to BIGNUM");
-        return 0;
-    }
-
-    Unique_EVP_PKEY pkey(EVP_PKEY_new());
-    if (pkey.get() == NULL) {
-        jniThrowRuntimeException(env, "EVP_PKEY_new failed");
-        return 0;
-    }
-    if (EVP_PKEY_assign_DSA(pkey.get(), dsa.get()) != 1) {
-        jniThrowRuntimeException(env, "EVP_PKEY_assign_DSA failed");
-        return 0;
-    }
-    OWNERSHIP_TRANSFERRED(dsa);
-    JNI_TRACE("EVP_PKEY_new_DSA(p=%p, q=%p, g=%p, pub_key=%p, priv_key=%p) => %p",
-              p, q, g, pub_key, priv_key, pkey.get());
     return reinterpret_cast<jlong>(pkey.release());
 }
 
@@ -3250,151 +3192,6 @@ static jobjectArray NativeCrypto_get_RSA_private_params(JNIEnv* env, jclass, jlo
             return NULL;
         }
         env->SetObjectArrayElement(joa, 7, iqmp);
-    }
-
-    return joa;
-}
-
-/*
- * public static native int DSA_generate_key(int, byte[], byte[], byte[], byte[]);
- */
-static jlong NativeCrypto_DSA_generate_key(JNIEnv* env, jclass, jint primeBits,
-        jbyteArray seedJavaBytes, jbyteArray gBytes, jbyteArray pBytes, jbyteArray qBytes) {
-    JNI_TRACE("DSA_generate_key(%d, %p, %p, %p, %p)", primeBits, seedJavaBytes,
-            gBytes, pBytes, qBytes);
-
-    UniquePtr<unsigned char[]> seedPtr;
-    unsigned long seedSize = 0;
-    if (seedJavaBytes != NULL) {
-        ScopedByteArrayRO seed(env, seedJavaBytes);
-        if (seed.get() == NULL) {
-            return 0;
-        }
-
-        seedSize = seed.size();
-        seedPtr.reset(new unsigned char[seedSize]);
-
-        memcpy(seedPtr.get(), seed.get(), seedSize);
-    }
-
-    Unique_DSA dsa(DSA_new());
-    if (dsa.get() == NULL) {
-        JNI_TRACE("DSA_generate_key failed");
-        jniThrowOutOfMemory(env, "Unable to allocate DSA key");
-        freeOpenSslErrorState();
-        return 0;
-    }
-
-    if (gBytes != NULL && pBytes != NULL && qBytes != NULL) {
-        JNI_TRACE("DSA_generate_key parameters specified");
-
-        if (!arrayToBignum(env, gBytes, &dsa->g)) {
-            return 0;
-        }
-
-        if (!arrayToBignum(env, pBytes, &dsa->p)) {
-            return 0;
-        }
-
-        if (!arrayToBignum(env, qBytes, &dsa->q)) {
-            return 0;
-        }
-    } else {
-        JNI_TRACE("DSA_generate_key generating parameters");
-
-        if (!DSA_generate_parameters_ex(dsa.get(), primeBits, seedPtr.get(), seedSize, NULL, NULL, NULL)) {
-            JNI_TRACE("DSA_generate_key => param generation failed");
-            throwExceptionIfNecessary(env, "NativeCrypto_DSA_generate_parameters_ex failed");
-            return 0;
-        }
-    }
-
-    if (!DSA_generate_key(dsa.get())) {
-        JNI_TRACE("DSA_generate_key failed");
-        throwExceptionIfNecessary(env, "NativeCrypto_DSA_generate_key failed");
-        return 0;
-    }
-
-    Unique_EVP_PKEY pkey(EVP_PKEY_new());
-    if (pkey.get() == NULL) {
-        JNI_TRACE("DSA_generate_key failed");
-        jniThrowRuntimeException(env, "NativeCrypto_DSA_generate_key failed");
-        freeOpenSslErrorState();
-        return 0;
-    }
-
-    if (EVP_PKEY_assign_DSA(pkey.get(), dsa.get()) != 1) {
-        JNI_TRACE("DSA_generate_key failed");
-        throwExceptionIfNecessary(env, "NativeCrypto_DSA_generate_key failed");
-        return 0;
-    }
-
-    OWNERSHIP_TRANSFERRED(dsa);
-    JNI_TRACE("DSA_generate_key(n=%d, e=%p) => %p", primeBits, seedPtr.get(), pkey.get());
-    return reinterpret_cast<uintptr_t>(pkey.release());
-}
-
-/*
- * public static native byte[][] get_DSA_params(long);
- */
-static jobjectArray NativeCrypto_get_DSA_params(JNIEnv* env, jclass, jlong pkeyRef) {
-    EVP_PKEY* pkey = reinterpret_cast<EVP_PKEY*>(pkeyRef);
-    JNI_TRACE("get_DSA_params(%p)", pkey);
-
-    if (pkey == NULL) {
-        jniThrowNullPointerException(env, "pkey == null");
-        return NULL;
-    }
-
-    Unique_DSA dsa(EVP_PKEY_get1_DSA(pkey));
-    if (dsa.get() == NULL) {
-        throwExceptionIfNecessary(env, "get_DSA_params failed");
-        return 0;
-    }
-
-    jobjectArray joa = env->NewObjectArray(5, byteArrayClass, NULL);
-    if (joa == NULL) {
-        return NULL;
-    }
-
-    if (dsa->g != NULL) {
-        jbyteArray g = bignumToArray(env, dsa->g, "g");
-        if (env->ExceptionCheck()) {
-            return NULL;
-        }
-        env->SetObjectArrayElement(joa, 0, g);
-    }
-
-    if (dsa->p != NULL) {
-        jbyteArray p = bignumToArray(env, dsa->p, "p");
-        if (env->ExceptionCheck()) {
-            return NULL;
-        }
-        env->SetObjectArrayElement(joa, 1, p);
-    }
-
-    if (dsa->q != NULL) {
-        jbyteArray q = bignumToArray(env, dsa->q, "q");
-        if (env->ExceptionCheck()) {
-            return NULL;
-        }
-        env->SetObjectArrayElement(joa, 2, q);
-    }
-
-    if (dsa->pub_key != NULL) {
-        jbyteArray pub_key = bignumToArray(env, dsa->pub_key, "pub_key");
-        if (env->ExceptionCheck()) {
-            return NULL;
-        }
-        env->SetObjectArrayElement(joa, 3, pub_key);
-    }
-
-    if (dsa->priv_key != NULL) {
-        jbyteArray priv_key = bignumToArray(env, dsa->priv_key, "priv_key");
-        if (env->ExceptionCheck()) {
-            return NULL;
-        }
-        env->SetObjectArrayElement(joa, 4, priv_key);
     }
 
     return joa;
@@ -9982,7 +9779,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, ENGINE_get_id, "(J)Ljava/lang/String;"),
     NATIVE_METHOD(NativeCrypto, ENGINE_ctrl_cmd_string, "(JLjava/lang/String;Ljava/lang/String;I)I"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_DH, "([B[B[B[B)J"),
-    NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_DSA, "([B[B[B[B[B)J"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_RSA, "([B[B[B[B[B[B[B[B)J"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_EC_KEY, "(JJ[B)J"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_mac_key, "(I[B)J"),
@@ -10006,8 +9802,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, RSA_private_decrypt, "(I[B[BJI)I"),
     NATIVE_METHOD(NativeCrypto, get_RSA_private_params, "(J)[[B"),
     NATIVE_METHOD(NativeCrypto, get_RSA_public_params, "(J)[[B"),
-    NATIVE_METHOD(NativeCrypto, DSA_generate_key, "(I[B[B[B[B)J"),
-    NATIVE_METHOD(NativeCrypto, get_DSA_params, "(J)[[B"),
     NATIVE_METHOD(NativeCrypto, DH_generate_parameters_ex, "(IJ)J"),
     NATIVE_METHOD(NativeCrypto, DH_generate_key, "(J)V"),
     NATIVE_METHOD(NativeCrypto, get_DH_params, "(J)[[B"),
