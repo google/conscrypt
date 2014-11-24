@@ -2945,12 +2945,6 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
-static jlong NativeCrypto_getDSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey,
-        jbyteArray qBytes) {
-    jniThrowRuntimeException(env, "DSA keys not supported");
-    return 0;
-}
-
 static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject javaKey, jlong groupRef) {
     const EC_GROUP* group = reinterpret_cast<const EC_GROUP*>(groupRef);
     JNI_TRACE("getECPrivateKeyWrapper(%p, %p)", javaKey, group);
@@ -10003,7 +9997,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, i2d_PUBKEY, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, d2i_PUBKEY, "([B)J"),
     NATIVE_METHOD(NativeCrypto, getRSAPrivateKeyWrapper, "(Ljava/security/interfaces/RSAPrivateKey;[B)J"),
-    NATIVE_METHOD(NativeCrypto, getDSAPrivateKeyWrapper, "(Ljava/security/interfaces/DSAPrivateKey;)J"),
     NATIVE_METHOD(NativeCrypto, getECPrivateKeyWrapper, "(Ljava/security/interfaces/ECPrivateKey;J)J"),
     NATIVE_METHOD(NativeCrypto, RSA_generate_key_ex, "(I[B)J"),
     NATIVE_METHOD(NativeCrypto, RSA_size, "(J)I"),

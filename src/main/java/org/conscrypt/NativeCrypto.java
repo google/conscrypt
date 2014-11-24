@@ -117,7 +117,9 @@ public final class NativeCrypto {
 
     public static native long getRSAPrivateKeyWrapper(RSAPrivateKey key, byte[] modulus);
 
-    public static native long getDSAPrivateKeyWrapper(DSAPrivateKey key);
+    public static long getDSAPrivateKeyWrapper(DSAPrivateKey key) {
+        throw new RuntimeException("DSA keys are not supported");
+    }
 
     public static native long getECPrivateKeyWrapper(ECPrivateKey key, long ecGroupRef);
 
