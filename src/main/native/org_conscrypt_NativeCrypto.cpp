@@ -921,6 +921,7 @@ static bool arrayToBignum(JNIEnv* env, jbyteArray source, BIGNUM** dest) {
     return true;
 }
 
+#if defined(OPENSSL_IS_BORINGSSL)
 /**
  * arrayToBignumSize sets |*out_size| to the size of the big-endian number
  * contained in |source|. It returns true on success and sets an exception and
@@ -956,6 +957,7 @@ static bool arrayToBignumSize(JNIEnv* env, jbyteArray source, size_t* out_size) 
     *out_size = tmpSize;
     return true;
 }
+#endif
 
 /**
  * Converts an OpenSSL BIGNUM to a Java byte[] array in two's complement.
@@ -8166,9 +8168,6 @@ static void NativeCrypto_SSL_set_cipher_lists(JNIEnv* env, jclass,
         jniThrowNullPointerException(env, "cipherSuites == null");
         return;
     }
-
-    const SSL_METHOD* ssl_method = ssl->method;
-    int num_ciphers = ssl_method->num_ciphers();
 
     int length = env->GetArrayLength(cipherSuites);
     static const char noSSLv2[] = "!SSLv2";
