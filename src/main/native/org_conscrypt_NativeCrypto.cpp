@@ -4564,7 +4564,7 @@ static jint NativeCrypto_EVP_CipherUpdate(JNIEnv* env, jclass, jlong ctxRef, jby
         return 0;
     }
 
-    JNI_TRACE("ctx=%p EVP_CipherUpdate in=%p in.length=%d inOffset=%d inLength=%d out=%p out.length=%d outOffset=%d",
+    JNI_TRACE("ctx=%p EVP_CipherUpdate in=%p in.length=%zd inOffset=%zd inLength=%zd out=%p out.length=%zd outOffset=%zd",
             ctx, inBytes.get(), inBytes.size(), inOffset, inLength, outBytes.get(), outBytes.size(), outOffset);
 
     unsigned char* out = reinterpret_cast<unsigned char*>(outBytes.get());
@@ -4716,7 +4716,7 @@ static void NativeCrypto_RAND_seed(JNIEnv* env, jclass, jbyteArray seed) {
 }
 
 static jint NativeCrypto_RAND_load_file(JNIEnv* env, jclass, jstring filename, jlong max_bytes) {
-    JNI_TRACE("NativeCrypto_RAND_load_file filename=%p max_bytes=%lld", filename, max_bytes);
+    JNI_TRACE("NativeCrypto_RAND_load_file filename=%p max_bytes=%lld", filename, (long long) max_bytes);
 #if !defined(OPENSSL_IS_BORINGSSL)
     ScopedUtfChars file(env, filename);
     if (file.c_str() == NULL) {
@@ -5400,7 +5400,7 @@ static jlongArray NativeCrypto_X509_CRL_get_REVOKED(JNIEnv* env, jclass, jlong x
         revoked[i] = reinterpret_cast<uintptr_t>(X509_REVOKED_dup(item));
     }
 
-    JNI_TRACE("X509_CRL_get_REVOKED(%p) => %p [size=%d]", stack, revokedArray.get(), size);
+    JNI_TRACE("X509_CRL_get_REVOKED(%p) => %p [size=%zd]", stack, revokedArray.get(), size);
     return revokedArray.release();
 }
 
@@ -5852,12 +5852,12 @@ static jlong PEM_ASN1Object_to_jlong(JNIEnv* env, jlong bioRef) {
 }
 
 static jlong NativeCrypto_PEM_read_bio_X509(JNIEnv* env, jclass, jlong bioRef) {
-    JNI_TRACE("PEM_read_bio_X509(0x%llx)", bioRef);
+    JNI_TRACE("PEM_read_bio_X509(0x%llx)", (long long) bioRef);
     return PEM_ASN1Object_to_jlong<X509, PEM_read_bio_X509>(env, bioRef);
 }
 
 static jlong NativeCrypto_PEM_read_bio_X509_CRL(JNIEnv* env, jclass, jlong bioRef) {
-    JNI_TRACE("PEM_read_bio_X509_CRL(0x%llx)", bioRef);
+    JNI_TRACE("PEM_read_bio_X509_CRL(0x%llx)", (long long) bioRef);
     return PEM_ASN1Object_to_jlong<X509_CRL, PEM_read_bio_X509_CRL>(env, bioRef);
 }
 
@@ -5909,7 +5909,7 @@ static jbyteArray NativeCrypto_i2d_PKCS7(JNIEnv* env, jclass, jlongArray certsAr
         }
     }
 
-    JNI_TRACE("i2d_PKCS7(%p) => %d certs", certsArray, certs.size());
+    JNI_TRACE("i2d_PKCS7(%p) => %zd certs", certsArray, certs.size());
     return ASN1ToByteArray<PKCS7>(env, pkcs7.get(), i2d_PKCS7);
 #else  // OPENSSL_IS_BORINGSSL
     STACK_OF(X509) *stack = sk_X509_new_null();
@@ -5987,7 +5987,7 @@ static jlongArray NativeCrypto_ASN1_seq_unpack_X509_bio(JNIEnv* env, jclass, jlo
         certs[i] = reinterpret_cast<uintptr_t>(item);
     }
 
-    JNI_TRACE("ASN1_seq_unpack_X509_bio(%p) => returns %d items", bio, size);
+    JNI_TRACE("ASN1_seq_unpack_X509_bio(%p) => returns %zd items", bio, size);
     return certArray.release();
 }
 
@@ -6330,7 +6330,7 @@ static jobjectArray NativeCrypto_get_X509_ex_xkusage(JNIEnv* env, jclass, jlong 
         env->SetObjectArrayElement(exKeyUsage.get(), i, oidStr.get());
     }
 
-    JNI_TRACE("get_X509_ex_xkusage(%p) => success (%d entries)", x509, size);
+    JNI_TRACE("get_X509_ex_xkusage(%p) => success (%zd entries)", x509, size);
     return exKeyUsage.release();
 }
 
@@ -6419,21 +6419,21 @@ static jobjectArray get_X509Type_ext_oids(JNIEnv* env, jlong x509Ref, jint criti
 
 static jobjectArray NativeCrypto_get_X509_ext_oids(JNIEnv* env, jclass, jlong x509Ref,
         jint critical) {
-    JNI_TRACE("get_X509_ext_oids(0x%llx, %d)", x509Ref, critical);
+    JNI_TRACE("get_X509_ext_oids(0x%llx, %d)", (long long) x509Ref, critical);
     return get_X509Type_ext_oids<X509, X509_get_ext_by_critical, X509_get_ext>(env, x509Ref,
             critical);
 }
 
 static jobjectArray NativeCrypto_get_X509_CRL_ext_oids(JNIEnv* env, jclass, jlong x509CrlRef,
         jint critical) {
-    JNI_TRACE("get_X509_CRL_ext_oids(0x%llx, %d)", x509CrlRef, critical);
+    JNI_TRACE("get_X509_CRL_ext_oids(0x%llx, %d)", (long long) x509CrlRef, critical);
     return get_X509Type_ext_oids<X509_CRL, X509_CRL_get_ext_by_critical, X509_CRL_get_ext>(env,
             x509CrlRef, critical);
 }
 
 static jobjectArray NativeCrypto_get_X509_REVOKED_ext_oids(JNIEnv* env, jclass, jlong x509RevokedRef,
         jint critical) {
-    JNI_TRACE("get_X509_CRL_ext_oids(0x%llx, %d)", x509RevokedRef, critical);
+    JNI_TRACE("get_X509_CRL_ext_oids(0x%llx, %d)", (long long) x509RevokedRef, critical);
     return get_X509Type_ext_oids<X509_REVOKED, X509_REVOKED_get_ext_by_critical,
             X509_REVOKED_get_ext>(env, x509RevokedRef, critical);
 }
@@ -7786,7 +7786,7 @@ static jlong NativeCrypto_SSL_get_mode(JNIEnv* env, jclass, jlong ssl_address) {
 static jlong NativeCrypto_SSL_set_mode(JNIEnv* env, jclass,
         jlong ssl_address, jlong mode) {
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_mode mode=0x%llx", ssl, mode);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_mode mode=0x%llx", ssl, (long long) mode);
     if (ssl == NULL) {
       return 0;
     }
@@ -7801,7 +7801,7 @@ static jlong NativeCrypto_SSL_set_mode(JNIEnv* env, jclass,
 static jlong NativeCrypto_SSL_clear_mode(JNIEnv* env, jclass,
         jlong ssl_address, jlong mode) {
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_clear_mode mode=0x%llx", ssl, mode);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_clear_mode mode=0x%llx", ssl, (long long) mode);
     if (ssl == NULL) {
       return 0;
     }
@@ -7831,7 +7831,7 @@ static jlong NativeCrypto_SSL_get_options(JNIEnv* env, jclass,
 static jlong NativeCrypto_SSL_set_options(JNIEnv* env, jclass,
         jlong ssl_address, jlong options) {
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_options options=0x%llx", ssl, options);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_options options=0x%llx", ssl, (long long) options);
     if (ssl == NULL) {
       return 0;
     }
@@ -7846,7 +7846,7 @@ static jlong NativeCrypto_SSL_set_options(JNIEnv* env, jclass,
 static jlong NativeCrypto_SSL_clear_options(JNIEnv* env, jclass,
         jlong ssl_address, jlong options) {
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_clear_options options=0x%llx", ssl, options);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_clear_options options=0x%llx", ssl, (long long) options);
     if (ssl == NULL) {
       return 0;
     }
@@ -8953,7 +8953,7 @@ static jint NativeCrypto_SSL_read_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
     if (destOffset < 0 || destOffset > ssize_t(dest.size()) || destLength < 0
             || destLength > (ssize_t) dest.size() - destOffset) {
         JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO => destOffset=%d, destLength=%d, size=%zd",
-                  destOffset, destLength, dest.size());
+                  ssl, destOffset, destLength, dest.size());
         jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", NULL);
         return -1;
     }
@@ -9659,7 +9659,7 @@ static jlong NativeCrypto_SSL_SESSION_get_time(JNIEnv* env, jclass, jlong ssl_se
     // result must be jlong, not long or *1000 will overflow
     jlong result = SSL_SESSION_get_time(ssl_session);
     result *= 1000; // OpenSSL uses seconds, Java uses milliseconds.
-    JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_get_time => %lld", ssl_session, result);
+    JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_get_time => %lld", ssl_session, (long long) result);
     return result;
 }
 
