@@ -26,7 +26,7 @@ import javax.crypto.MacSpi;
 import javax.crypto.SecretKey;
 
 public abstract class OpenSSLMac extends MacSpi {
-    private OpenSSLDigestContext ctx;
+    private NativeRef.EVP_MD_CTX ctx;
 
     /**
      * Holds the EVP_MD for the hashing algorithm, e.g.
@@ -91,7 +91,7 @@ public abstract class OpenSSLMac extends MacSpi {
     }
 
     private final void resetContext() {
-        OpenSSLDigestContext ctxLocal = new OpenSSLDigestContext(NativeCrypto.EVP_MD_CTX_create());
+        NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         NativeCrypto.EVP_MD_CTX_init(ctxLocal);
 
         final OpenSSLKey macKey = this.macKey;
@@ -110,13 +110,13 @@ public abstract class OpenSSLMac extends MacSpi {
 
     @Override
     protected void engineUpdate(byte[] input, int offset, int len) {
-        final OpenSSLDigestContext ctxLocal = ctx;
+        final NativeRef.EVP_MD_CTX ctxLocal = ctx;
         NativeCrypto.EVP_DigestUpdate(ctxLocal, input, offset, len);
     }
 
     @Override
     protected byte[] engineDoFinal() {
-        final OpenSSLDigestContext ctxLocal = ctx;
+        final NativeRef.EVP_MD_CTX ctxLocal = ctx;
         final byte[] output = NativeCrypto.EVP_DigestSignFinal(ctxLocal);
         resetContext();
         return output;
