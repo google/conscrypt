@@ -44,8 +44,8 @@ local_javac_flags=-encoding UTF-8
 #local_javac_flags+=-Xlint:all -Xlint:-serial,-deprecation,-unchecked
 local_javac_flags+=-Xmaxwarns 9999999
 
-core_cflags := -Wall -Wextra -Werror
-core_cppflags := -std=gnu++11 -Wno-unused-parameter -Werror
+core_cflags := -Wall -Wextra -Werror -Wunused
+core_cppflags := -std=gnu++11 -Wall -Wextra -Werror -Wunused
 
 #
 # Build for the target (device).
@@ -255,3 +255,8 @@ ifeq (,$(TARGET_BUILD_APPS))
     LOCAL_MULTILIB := both
     include $(BUILD_HOST_SHARED_LIBRARY)
 endif
+
+# clear out local variables
+core_cflags :=
+core_cppflags :=
+local_javac_flags :=
