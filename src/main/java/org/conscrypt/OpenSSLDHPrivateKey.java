@@ -72,7 +72,7 @@ public class OpenSSLDHPrivateKey implements DHPrivateKey, OpenSSLKeyHolder {
                 return;
             }
 
-            byte[][] params = NativeCrypto.get_DH_params(key.getPkeyContext());
+            byte[][] params = NativeCrypto.get_DH_params(key.getNativeRef());
 
             p = params[0];
             g = params[1];
@@ -125,7 +125,7 @@ public class OpenSSLDHPrivateKey implements DHPrivateKey, OpenSSLKeyHolder {
             return null;
         }
 
-        return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getPkeyContext());
+        return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getNativeRef());
     }
 
     @Override

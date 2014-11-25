@@ -46,7 +46,7 @@ public class OpenSSLSecretKey implements SecretKey, OpenSSLKeyHolder {
         this.algorithm = algorithm;
         this.key = key;
 
-        type = NativeCrypto.EVP_PKEY_type(key.getPkeyContext());
+        type = NativeCrypto.EVP_PKEY_type(key.getNativeRef());
         encoded = null;
     }
 

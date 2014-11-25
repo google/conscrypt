@@ -94,23 +94,23 @@ public final class NativeCrypto {
 
     public static native long EVP_PKEY_new_mac_key(int type, byte[] key);
 
-    public static native int EVP_PKEY_size(long pkey);
+    public static native int EVP_PKEY_size(NativeRef.EVP_PKEY pkey);
 
-    public static native int EVP_PKEY_type(long pkey);
+    public static native int EVP_PKEY_type(NativeRef.EVP_PKEY pkey);
 
-    public static native String EVP_PKEY_print_public(long pkeyRef);
+    public static native String EVP_PKEY_print_public(NativeRef.EVP_PKEY pkeyRef);
 
-    public static native String EVP_PKEY_print_private(long pkeyRef);
+    public static native String EVP_PKEY_print_private(NativeRef.EVP_PKEY pkeyRef);
 
     public static native void EVP_PKEY_free(long pkey);
 
-    public static native int EVP_PKEY_cmp(long pkey1, long pkey2);
+    public static native int EVP_PKEY_cmp(NativeRef.EVP_PKEY pkey1, NativeRef.EVP_PKEY pkey2);
 
-    public static native byte[] i2d_PKCS8_PRIV_KEY_INFO(long pkey);
+    public static native byte[] i2d_PKCS8_PRIV_KEY_INFO(NativeRef.EVP_PKEY pkey);
 
     public static native long d2i_PKCS8_PRIV_KEY_INFO(byte[] data);
 
-    public static native byte[] i2d_PUBKEY(long pkey);
+    public static native byte[] i2d_PUBKEY(NativeRef.EVP_PKEY pkey);
 
     public static native long d2i_PUBKEY(byte[] data);
 
@@ -120,33 +120,33 @@ public final class NativeCrypto {
 
     public static native long RSA_generate_key_ex(int modulusBits, byte[] publicExponent);
 
-    public static native int RSA_size(long pkey);
+    public static native int RSA_size(NativeRef.EVP_PKEY pkey);
 
-    public static native int RSA_private_encrypt(int flen, byte[] from, byte[] to, long pkey,
-            int padding);
+    public static native int RSA_private_encrypt(int flen, byte[] from, byte[] to,
+            NativeRef.EVP_PKEY pkey, int padding);
 
-    public static native int RSA_public_decrypt(int flen, byte[] from, byte[] to, long pkey,
-            int padding) throws BadPaddingException, SignatureException;
+    public static native int RSA_public_decrypt(int flen, byte[] from, byte[] to,
+            NativeRef.EVP_PKEY pkey, int padding) throws BadPaddingException, SignatureException;
 
-    public static native int RSA_public_encrypt(int flen, byte[] from, byte[] to, long pkey,
-            int padding);
+    public static native int RSA_public_encrypt(int flen, byte[] from, byte[] to,
+            NativeRef.EVP_PKEY pkey, int padding);
 
-    public static native int RSA_private_decrypt(int flen, byte[] from, byte[] to, long pkey,
-            int padding) throws BadPaddingException, SignatureException;
+    public static native int RSA_private_decrypt(int flen, byte[] from, byte[] to,
+            NativeRef.EVP_PKEY pkey, int padding) throws BadPaddingException, SignatureException;
 
     /**
      * @return array of {n, e}
      */
-    public static native byte[][] get_RSA_public_params(long rsa);
+    public static native byte[][] get_RSA_public_params(NativeRef.EVP_PKEY rsa);
 
     /**
      * @return array of {n, e, d, p, q, dmp1, dmq1, iqmp}
      */
-    public static native byte[][] get_RSA_private_params(long rsa);
+    public static native byte[][] get_RSA_private_params(NativeRef.EVP_PKEY rsa);
 
-    public static native byte[] i2d_RSAPublicKey(long rsa);
+    public static native byte[] i2d_RSAPublicKey(NativeRef.EVP_PKEY rsa);
 
-    public static native byte[] i2d_RSAPrivateKey(long rsa);
+    public static native byte[] i2d_RSAPrivateKey(NativeRef.EVP_PKEY rsa);
 
     // --- DH public/private key handling functions ----------------------------
 
@@ -154,12 +154,12 @@ public final class NativeCrypto {
 
     public static native long DH_generate_parameters_ex(int primeBits, long generator);
 
-    public static native void DH_generate_key(long pkeyRef);
+    public static native void DH_generate_key(NativeRef.EVP_PKEY pkeyRef);
 
     /**
      * @return array of {p, g, y(pub), x(priv)}
      */
-    public static native byte[][] get_DH_params(long dh);
+    public static native byte[][] get_DH_params(NativeRef.EVP_PKEY dh);
 
     // --- EC functions --------------------------
 
@@ -236,24 +236,27 @@ public final class NativeCrypto {
 
     public static native long EC_KEY_generate_key(long groupRef);
 
-    public static native long EC_KEY_get0_group(long pkeyRef);
+    // This returns unowned const references
+    public static native long EC_KEY_get0_group(NativeRef.EVP_PKEY pkeyRef);
 
-    public static native byte[] EC_KEY_get_private_key(long keyRef);
+    public static native byte[] EC_KEY_get_private_key(NativeRef.EVP_PKEY keyRef);
 
-    public static native long EC_KEY_get_public_key(long keyRef);
+    public static native long EC_KEY_get_public_key(NativeRef.EVP_PKEY keyRef);
 
-    public static native void EC_KEY_set_nonce_from_hash(long keyRef, boolean enabled);
+    public static native void EC_KEY_set_nonce_from_hash(NativeRef.EVP_PKEY keyRef,
+            boolean enabled);
 
-    public static native int ECDH_compute_key(
-            byte[] out, int outOffset, long publicKeyRef, long privateKeyRef);
+    public static native int ECDH_compute_key(byte[] out, int outOffset,
+            NativeRef.EVP_PKEY publicKeyRef, NativeRef.EVP_PKEY privateKeyRef);
 
     // --- Message digest functions --------------
 
+    // These return const references
     public static native long EVP_get_digestbyname(String name);
 
-    public static native int EVP_MD_size(long evp_md);
+    public static native int EVP_MD_size(long evp_md_const);
 
-    public static native int EVP_MD_block_size(long evp_md);
+    public static native int EVP_MD_block_size(long evp_md_const);
 
     // --- Message digest context functions --------------
 
@@ -279,7 +282,7 @@ public final class NativeCrypto {
     // --- MAC handling functions ----------------------------------------------
 
     public static native void EVP_DigestSignInit(NativeRef.EVP_MD_CTX evp_md_ctx,
-            long evp_md, long evp_pkey);
+            long evp_md, NativeRef.EVP_PKEY evp_pkey);
 
     public static native void EVP_DigestSignUpdate(NativeRef.EVP_MD_CTX evp_md_ctx,
             byte[] in);
@@ -294,7 +297,7 @@ public final class NativeCrypto {
             int offset, int length);
 
     public static native int EVP_SignFinal(NativeRef.EVP_MD_CTX ctx, byte[] signature,
-            int offset, long key);
+            int offset, NativeRef.EVP_PKEY key);
 
     public static native int EVP_VerifyInit(NativeRef.EVP_MD_CTX ctx, long evpRef);
 
@@ -302,7 +305,7 @@ public final class NativeCrypto {
             byte[] buffer, int offset, int length);
 
     public static native int EVP_VerifyFinal(NativeRef.EVP_MD_CTX ctx,
-            byte[] signature, int offset, int length, long key);
+            byte[] signature, int offset, int length, NativeRef.EVP_PKEY key);
 
     // --- Block ciphers -------------------------------------------------------
 
@@ -453,7 +456,8 @@ public final class NativeCrypto {
 
     public static native byte[] X509_get_serialNumber(long x509ctx);
 
-    public static native void X509_verify(long x509ctx, long pkeyCtx) throws BadPaddingException;
+    public static native void X509_verify(long x509ctx, NativeRef.EVP_PKEY pkeyCtx)
+            throws BadPaddingException;
 
     public static native byte[] get_X509_cert_info_enc(long x509ctx);
 
@@ -523,7 +527,7 @@ public final class NativeCrypto {
 
     public static native byte[] get_X509_CRL_signature(long x509ctx);
 
-    public static native void X509_CRL_verify(long x509CrlCtx, long pkeyCtx);
+    public static native void X509_CRL_verify(long x509CrlCtx, NativeRef.EVP_PKEY pkeyCtx);
 
     public static native byte[] get_X509_CRL_crl_enc(long x509CrlCtx);
 
@@ -868,11 +872,11 @@ public final class NativeCrypto {
 
     public static native byte[] SSL_get_tls_channel_id(long ssl) throws SSLException;
 
-    public static native void SSL_set1_tls_channel_id(long ssl, long pkey);
+    public static native void SSL_set1_tls_channel_id(long ssl, NativeRef.EVP_PKEY pkey);
 
     public static native void SSL_use_certificate(long ssl, long[] x509refs);
 
-    public static native void SSL_use_PrivateKey(long ssl, long pkey);
+    public static native void SSL_use_PrivateKey(long ssl, NativeRef.EVP_PKEY pkey);
 
     public static native void SSL_check_private_key(long ssl) throws SSLException;
 

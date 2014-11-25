@@ -67,8 +67,8 @@ public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
         int actualResultLength = NativeCrypto.ECDH_compute_key(
                 buffer,
                 0,
-                openSslPublicKey.getPkeyContext(),
-                mOpenSslPrivateKey.getPkeyContext());
+                openSslPublicKey.getNativeRef(),
+                mOpenSslPrivateKey.getNativeRef());
         byte[] result;
         if (actualResultLength == -1) {
             throw new RuntimeException("Engine returned " + actualResultLength);
@@ -126,7 +126,7 @@ public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
 
         OpenSSLKey openSslKey = OpenSSLKey.fromPrivateKey((PrivateKey) key);
         int fieldSizeBits = NativeCrypto.EC_GROUP_get_degree(NativeCrypto.EC_KEY_get0_group(
-                openSslKey.getPkeyContext()));
+                openSslKey.getNativeRef()));
         mExpectedResultLength = (fieldSizeBits + 7) / 8;
         mOpenSslPrivateKey = openSslKey;
     }

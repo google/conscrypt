@@ -138,7 +138,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         if (key == null) {
             throw new IllegalStateException("cipher is not initialized");
         }
-        return NativeCrypto.RSA_size(this.key.getPkeyContext());
+        return NativeCrypto.RSA_size(this.key.getNativeRef());
     }
 
     @Override
@@ -184,7 +184,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
             throw new InvalidKeyException("Need RSA private or public key");
         }
 
-        buffer = new byte[NativeCrypto.RSA_size(this.key.getPkeyContext())];
+        buffer = new byte[NativeCrypto.RSA_size(this.key.getNativeRef())];
         inputTooLarge = false;
     }
 
@@ -262,19 +262,19 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         if (encrypting) {
             if (usingPrivateKey) {
                 resultSize = NativeCrypto.RSA_private_encrypt(tmpBuf.length, tmpBuf, output,
-                                                              key.getPkeyContext(), padding);
+                                                              key.getNativeRef(), padding);
             } else {
                 resultSize = NativeCrypto.RSA_public_encrypt(tmpBuf.length, tmpBuf, output,
-                                                             key.getPkeyContext(), padding);
+                                                             key.getNativeRef(), padding);
             }
         } else {
             try {
                 if (usingPrivateKey) {
                     resultSize = NativeCrypto.RSA_private_decrypt(tmpBuf.length, tmpBuf, output,
-                                                                  key.getPkeyContext(), padding);
+                                                                  key.getNativeRef(), padding);
                 } else {
                     resultSize = NativeCrypto.RSA_public_decrypt(tmpBuf.length, tmpBuf, output,
-                                                                 key.getPkeyContext(), padding);
+                                                                 key.getNativeRef(), padding);
                 }
             } catch (SignatureException e) {
                 IllegalBlockSizeException newE = new IllegalBlockSizeException();

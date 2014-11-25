@@ -44,7 +44,7 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
     }
 
     public OpenSSLECPrivateKey(OpenSSLKey key) {
-        final long origGroup = NativeCrypto.EC_KEY_get0_group(key.getPkeyContext());
+        final long origGroup = NativeCrypto.EC_KEY_get0_group(key.getNativeRef());
         this.group = new OpenSSLECGroupContext(NativeCrypto.EC_GROUP_dup(origGroup));
         this.key = key;
     }
@@ -127,7 +127,7 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
             return null;
         }
 
-        return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getPkeyContext());
+        return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getNativeRef());
     }
 
     @Override
@@ -145,7 +145,7 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
     }
 
     private BigInteger getPrivateKey() {
-        return new BigInteger(NativeCrypto.EC_KEY_get_private_key(key.getPkeyContext()));
+        return new BigInteger(NativeCrypto.EC_KEY_get_private_key(key.getNativeRef()));
     }
 
     @Override
@@ -184,12 +184,12 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getPkeyContext()));
+        return Arrays.hashCode(NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getNativeRef()));
     }
 
     @Override
     public String toString() {
-        return NativeCrypto.EVP_PKEY_print_private(key.getPkeyContext());
+        return NativeCrypto.EVP_PKEY_print_private(key.getNativeRef());
     }
 
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
@@ -199,7 +199,7 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
 
         key = new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(encoded));
 
-        final long origGroup = NativeCrypto.EC_KEY_get0_group(key.getPkeyContext());
+        final long origGroup = NativeCrypto.EC_KEY_get0_group(key.getNativeRef());
         group = new OpenSSLECGroupContext(NativeCrypto.EC_GROUP_dup(origGroup));
     }
 
