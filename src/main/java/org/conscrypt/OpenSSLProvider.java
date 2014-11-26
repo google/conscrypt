@@ -90,8 +90,6 @@ public final class OpenSSLProvider extends Provider {
         put("KeyPairGenerator.DH", prefix + "OpenSSLDHKeyPairGenerator");
         put("Alg.Alias.KeyPairGenerator.1.2.840.113549.1.3.1", "DH");
 
-        put("KeyPairGenerator.DSA", prefix + "OpenSSLDSAKeyPairGenerator");
-
         put("KeyPairGenerator.EC", prefix + "OpenSSLECKeyPairGenerator");
 
         /* == KeyFactory == */
@@ -100,8 +98,6 @@ public final class OpenSSLProvider extends Provider {
 
         put("KeyFactory.DH", prefix + "OpenSSLDHKeyFactory");
         put("Alg.Alias.KeyFactory.1.2.840.113549.1.3.1", "DH");
-
-        put("KeyFactory.DSA", prefix + "OpenSSLDSAKeyFactory");
 
         put("KeyFactory.EC", prefix + "OpenSSLECKeyFactory");
 
@@ -151,14 +147,6 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Signature.1.2.840.113549.1.1.13", "SHA512WithRSA");
         put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.3with1.2.840.113549.1.1.1",
                 "SHA512WithRSA");
-
-        put("Signature.SHA1withDSA", prefix + "OpenSSLSignature$SHA1DSA");
-        put("Alg.Alias.Signature.SHA/DSA", "SHA1withDSA");
-        put("Alg.Alias.Signature.DSA", "SHA1withDSA");
-        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.10040.4.1", "SHA1withDSA");
-        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.10040.4.3", "SHA1withDSA");
-        put("Alg.Alias.Signature.DSAWithSHA1", "SHA1withDSA");
-        put("Alg.Alias.Signature.1.2.840.10040.4.3", "SHA1withDSA");
 
         put("Signature.NONEwithRSA", prefix + "OpenSSLSignatureRawRSA");
 
