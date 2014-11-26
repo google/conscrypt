@@ -103,8 +103,6 @@ public class OpenSSLKey {
     private static OpenSSLKey wrapPrivateKey(PrivateKey key) throws InvalidKeyException {
         if (key instanceof RSAPrivateKey) {
             return OpenSSLRSAPrivateKey.wrapPlatformKey((RSAPrivateKey) key);
-        } else if (key instanceof DSAPrivateKey) {
-            return OpenSSLDSAPrivateKey.wrapPlatformKey((DSAPrivateKey) key);
         } else if (key instanceof ECPrivateKey) {
             return OpenSSLECPrivateKey.wrapPlatformKey((ECPrivateKey) key);
         } else {
@@ -135,8 +133,6 @@ public class OpenSSLKey {
                 return new OpenSSLRSAPublicKey(this);
             case NativeCrypto.EVP_PKEY_DH:
                 return new OpenSSLDHPublicKey(this);
-            case NativeCrypto.EVP_PKEY_DSA:
-                return new OpenSSLDSAPublicKey(this);
             case NativeCrypto.EVP_PKEY_EC:
                 return new OpenSSLECPublicKey(this);
             default:
@@ -172,8 +168,6 @@ public class OpenSSLKey {
                 return new OpenSSLRSAPrivateKey(this);
             case NativeCrypto.EVP_PKEY_DH:
                 return new OpenSSLDHPrivateKey(this);
-            case NativeCrypto.EVP_PKEY_DSA:
-                return new OpenSSLDSAPrivateKey(this);
             case NativeCrypto.EVP_PKEY_EC:
                 return new OpenSSLECPrivateKey(this);
             default:

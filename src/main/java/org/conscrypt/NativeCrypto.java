@@ -26,7 +26,6 @@ import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
-import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
@@ -117,10 +116,6 @@ public final class NativeCrypto {
 
     public static native long getRSAPrivateKeyWrapper(RSAPrivateKey key, byte[] modulus);
 
-    public static long getDSAPrivateKeyWrapper(DSAPrivateKey key) {
-        throw new RuntimeException("DSA keys are not supported");
-    }
-
     public static native long getECPrivateKeyWrapper(ECPrivateKey key, long ecGroupRef);
 
     public static native long RSA_generate_key_ex(int modulusBits, byte[] publicExponent);
@@ -149,23 +144,9 @@ public final class NativeCrypto {
      */
     public static native byte[][] get_RSA_private_params(long rsa);
 
-    public static native long DSA_generate_key(int primeBits, byte[] seed, byte[] g, byte[] p,
-            byte[] q);
-
-    /**
-     * @return array of {g, p, q, y(pub), x(priv)}
-     */
-    public static native byte[][] get_DSA_params(long dsa);
-
-    public static native void set_DSA_flag_nonce_from_hash(long dsa);
-
     public static native byte[] i2d_RSAPublicKey(long rsa);
 
     public static native byte[] i2d_RSAPrivateKey(long rsa);
-
-    public static native byte[] i2d_DSAPublicKey(long dsa);
-
-    public static native byte[] i2d_DSAPrivateKey(long dsa);
 
     // --- DH public/private key handling functions ----------------------------
 
@@ -779,7 +760,6 @@ public final class NativeCrypto {
 
     // EVP_PKEY types from evp.h and objects.h
     public static final int EVP_PKEY_RSA  = 6;   // NID_rsaEcnryption
-    public static final int EVP_PKEY_DSA  = 116; // NID_dsa
     public static final int EVP_PKEY_DH   = 28;  // NID_dhKeyAgreement
     public static final int EVP_PKEY_EC   = 408; // NID_X9_62_id_ecPublicKey
     public static final int EVP_PKEY_HMAC = 855; // NID_hmac

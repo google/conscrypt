@@ -21,7 +21,6 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.Security;
 import java.security.Signature;
-import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.RSAPrivateKey;
 import javax.crypto.Cipher;
@@ -66,8 +65,6 @@ public final class CryptoUpcalls {
             // on Android 4.0.x and 4.1.x. Fixed in 4.2 and higher.
             // See https://android-review.googlesource.com/#/c/40352/
             algorithm = "NONEwithRSA";
-        } else if (javaKey instanceof DSAPrivateKey) {
-            algorithm = "NONEwithDSA";
         } else if (javaKey instanceof ECPrivateKey) {
             algorithm = "NONEwithECDSA";
         } else {
