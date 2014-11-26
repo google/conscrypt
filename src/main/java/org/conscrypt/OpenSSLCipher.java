@@ -70,7 +70,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
     /**
      * Native pointer for the OpenSSL EVP_CIPHER context.
      */
-    private OpenSSLCipherContext cipherCtx = new OpenSSLCipherContext(
+    private NativeRef.EVP_CIPHER_CTX cipherCtx = new NativeRef.EVP_CIPHER_CTX(
             NativeCrypto.EVP_CIPHER_CTX_new());
 
     /**
@@ -204,7 +204,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         if (modeBlockSize == 1) {
             return inputLen;
         } else {
-            final int buffered = NativeCrypto.get_EVP_CIPHER_CTX_buf_len(cipherCtx.getContext());
+            final int buffered = NativeCrypto.get_EVP_CIPHER_CTX_buf_len(cipherCtx);
             if (padding == Padding.NOPADDING) {
                 return buffered + inputLen;
             } else {
@@ -284,19 +284,16 @@ public abstract class OpenSSLCipher extends CipherSpi {
         this.iv = iv;
 
         if (supportsVariableSizeKey()) {
-            NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), cipherType, null, null,
-                    encrypting);
-            NativeCrypto.EVP_CIPHER_CTX_set_key_length(cipherCtx.getContext(), encodedKey.length);
-            NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), 0, encodedKey, iv, encrypting);
+            NativeCrypto.EVP_CipherInit_ex(cipherCtx, cipherType, null, null, encrypting);
+            NativeCrypto.EVP_CIPHER_CTX_set_key_length(cipherCtx, encodedKey.length);
+            NativeCrypto.EVP_CipherInit_ex(cipherCtx, 0, encodedKey, iv, encrypting);
         } else {
-            NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), cipherType, encodedKey, iv,
-                    encrypting);
+            NativeCrypto.EVP_CipherInit_ex(cipherCtx, cipherType, encodedKey, iv, encrypting);
         }
 
         // OpenSSL only supports PKCS5 Padding.
-        NativeCrypto.EVP_CIPHER_CTX_set_padding(cipherCtx.getContext(),
-                padding == Padding.PKCS5PADDING);
-        modeBlockSize = NativeCrypto.EVP_CIPHER_CTX_block_size(cipherCtx.getContext());
+        NativeCrypto.EVP_CIPHER_CTX_set_padding(cipherCtx, padding == Padding.PKCS5PADDING);
+        modeBlockSize = NativeCrypto.EVP_CIPHER_CTX_block_size(cipherCtx);
         calledUpdate = false;
     }
 
@@ -350,8 +347,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
                     + " < " + maximumLen);
         }
 
-        outputOffset += NativeCrypto.EVP_CipherUpdate(cipherCtx.getContext(), output, outputOffset,
-                input, inputOffset, inputLen);
+        outputOffset += NativeCrypto.EVP_CipherUpdate(cipherCtx, output, outputOffset, input,
+                inputOffset, inputLen);
 
         calledUpdate = true;
 
@@ -398,7 +395,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
      * Reset this Cipher instance state to process a new chunk of data.
      */
     private void reset() {
-        NativeCrypto.EVP_CipherInit_ex(cipherCtx.getContext(), 0, encodedKey, iv, encrypting);
+        NativeCrypto.EVP_CipherInit_ex(cipherCtx, 0, encodedKey, iv, encrypting);
         calledUpdate = false;
     }
 
@@ -427,11 +424,10 @@ public abstract class OpenSSLCipher extends CipherSpi {
         final int bytesLeft = output.length - outputOffset;
         final int writtenBytes;
         if (bytesLeft >= maximumLen) {
-            writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx.getContext(), output,
-                    outputOffset);
+            writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx, output, outputOffset);
         } else {
             final byte[] lastBlock = new byte[maximumLen];
-            writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx.getContext(), lastBlock, 0);
+            writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx, lastBlock, 0);
             if (writtenBytes > bytesLeft) {
                 throw new ShortBufferException("buffer is too short: " + writtenBytes + " > "
                         + bytesLeft);

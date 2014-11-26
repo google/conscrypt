@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import dalvik.system.BaseDexClassLoader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
@@ -49,15 +48,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLProtocolException;
 import javax.security.auth.x500.X500Principal;
+
 import junit.framework.TestCase;
 import libcore.io.IoUtils;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
+
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
-import org.conscrypt.NativeRef.EVP_PKEY;
 import static org.conscrypt.NativeCrypto.SSL_MODE_CBC_RECORD_SPLITTING;
 import static org.conscrypt.NativeCrypto.SSL_MODE_HANDSHAKE_CUTTHROUGH;
 
@@ -67,6 +68,8 @@ public class NativeCryptoTest extends TestCase {
 
     private static final long NULL = 0;
     private static final NativeRef.EVP_PKEY NULL_EVP_PKEY = new NativeRef.EVP_PKEY(0);
+    private static final NativeRef.EVP_CIPHER_CTX NULL_EVP_CIPHER_CTX =
+            new NativeRef.EVP_CIPHER_CTX(0);
     private static final FileDescriptor INVALID_FD = new FileDescriptor();
     private static final SSLHandshakeCallbacks DUMMY_CB
             = new TestSSLHandshakeCallbacks(null, 0, null);
@@ -2569,7 +2572,6 @@ public class NativeCryptoTest extends TestCase {
         }
 
         // Test getting params for the wrong kind of key.
-        final byte[] seed = new byte[20];
         long group = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
         NativeRef.EVP_PKEY ctx = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
         try {
@@ -2591,7 +2593,6 @@ public class NativeCryptoTest extends TestCase {
         }
 
         // Test getting params for the wrong kind of key.
-        final byte[] seed = new byte[20];
         long group = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
         NativeRef.EVP_PKEY ctx = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
         try {
@@ -2783,36 +2784,30 @@ public class NativeCryptoTest extends TestCase {
     }
 
     public void test_EVP_CipherInit_ex_Null_Failure() throws Exception {
-        final long ctx = NativeCrypto.EVP_CIPHER_CTX_new();
+        final NativeRef.EVP_CIPHER_CTX ctx = new NativeRef.EVP_CIPHER_CTX(
+                NativeCrypto.EVP_CIPHER_CTX_new());
+        final long evpCipher = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
+
         try {
-            final long evpCipher = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
-
-            try {
-                NativeCrypto.EVP_CipherInit_ex(NULL, evpCipher, null, null, true);
-                fail("Null context should throw NullPointerException");
-            } catch (NullPointerException expected) {
-            }
-
-            /* Initialize encrypting. */
-            NativeCrypto.EVP_CipherInit_ex(ctx, evpCipher, null, null, true);
-            NativeCrypto.EVP_CipherInit_ex(ctx, NULL, null, null, true);
-
-            /* Initialize decrypting. */
-            NativeCrypto.EVP_CipherInit_ex(ctx, evpCipher, null, null, false);
-            NativeCrypto.EVP_CipherInit_ex(ctx, NULL, null, null, false);
-        } finally {
-            NativeCrypto.EVP_CIPHER_CTX_cleanup(ctx);
+            NativeCrypto.EVP_CipherInit_ex(NULL_EVP_CIPHER_CTX, evpCipher, null, null, true);
+            fail("Null context should throw NullPointerException");
+        } catch (NullPointerException expected) {
         }
+
+        /* Initialize encrypting. */
+        NativeCrypto.EVP_CipherInit_ex(ctx, evpCipher, null, null, true);
+        NativeCrypto.EVP_CipherInit_ex(ctx, NULL, null, null, true);
+
+        /* Initialize decrypting. */
+        NativeCrypto.EVP_CipherInit_ex(ctx, evpCipher, null, null, false);
+        NativeCrypto.EVP_CipherInit_ex(ctx, NULL, null, null, false);
     }
 
     public void test_EVP_CipherInit_ex_Success() throws Exception {
-        final long ctx = NativeCrypto.EVP_CIPHER_CTX_new();
-        try {
-            final long evpCipher = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
-            NativeCrypto.EVP_CipherInit_ex(ctx, evpCipher, AES_128_KEY, null, true);
-        } finally {
-            NativeCrypto.EVP_CIPHER_CTX_cleanup(ctx);
-        }
+        final NativeRef.EVP_CIPHER_CTX ctx = new NativeRef.EVP_CIPHER_CTX(
+                NativeCrypto.EVP_CIPHER_CTX_new());
+        final long evpCipher = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
+        NativeCrypto.EVP_CipherInit_ex(ctx, evpCipher, AES_128_KEY, null, true);
     }
 
     public void test_EVP_CIPHER_iv_length() throws Exception {
