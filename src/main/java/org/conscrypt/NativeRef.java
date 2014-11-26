@@ -31,6 +31,20 @@ public abstract class NativeRef {
         this.context = ctx;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof NativeRef)) {
+            return false;
+        }
+
+        return ((NativeRef) o).context == context;
+    }
+
+    @Override
+    public int hashCode() {
+        return (int) context;
+    }
+
     public static class EVP_MD_CTX extends NativeRef {
         public EVP_MD_CTX(long ctx) {
             super(ctx);
