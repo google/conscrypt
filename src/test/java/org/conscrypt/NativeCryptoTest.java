@@ -2572,7 +2572,9 @@ public class NativeCryptoTest extends TestCase {
         }
 
         // Test getting params for the wrong kind of key.
-        long group = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
+        final long groupCtx = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
+        assertFalse(groupCtx == NULL);
+        NativeRef.EC_GROUP group = new NativeRef.EC_GROUP(groupCtx);
         NativeRef.EVP_PKEY ctx = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
         try {
             NativeCrypto.get_RSA_private_params(ctx);
@@ -2593,7 +2595,9 @@ public class NativeCryptoTest extends TestCase {
         }
 
         // Test getting params for the wrong kind of key.
-        long group = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
+        final long groupCtx = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
+        assertFalse(groupCtx == NULL);
+        NativeRef.EC_GROUP group = new NativeRef.EC_GROUP(groupCtx);
         NativeRef.EVP_PKEY ctx = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
         try {
             NativeCrypto.get_RSA_public_params(ctx);
@@ -2665,73 +2669,62 @@ public class NativeCryptoTest extends TestCase {
 
     private void check_EC_GROUP(int type, String name, String pStr, String aStr, String bStr,
             String xStr, String yStr, String nStr, long hLong) throws Exception {
-        long group = NULL, point = NULL;
-        NativeRef.EVP_PKEY key1;
-        try {
-            group = NativeCrypto.EC_GROUP_new_by_curve_name(name);
-            assertTrue(group != NULL);
-            assertEquals(NativeCrypto.OBJ_txt2nid_longName(name),
-                    NativeCrypto.EC_GROUP_get_curve_name(group));
-            assertEquals(type, NativeCrypto.get_EC_GROUP_type(group));
+        long groupRef = NativeCrypto.EC_GROUP_new_by_curve_name(name);
+        assertFalse(groupRef == NULL);
+        NativeRef.EC_GROUP group = new NativeRef.EC_GROUP(groupRef);
+        assertEquals(NativeCrypto.OBJ_txt2nid_longName(name),
+                NativeCrypto.EC_GROUP_get_curve_name(group));
+        assertEquals(type, NativeCrypto.get_EC_GROUP_type(group));
 
-            // prime
-            BigInteger p = new BigInteger(pStr, 16);
-            // first coefficient
-            BigInteger a = new BigInteger(aStr, 16);
-            // second coefficient
-            BigInteger b = new BigInteger(bStr, 16);
-            // x affine coordinate of generator
-            BigInteger x = new BigInteger(xStr, 16);
-            // y affine coordinate of generator
-            BigInteger y = new BigInteger(yStr, 16);
-            // order of the generator
-            BigInteger n = new BigInteger(nStr, 16);
-            // cofactor of generator
-            BigInteger h = BigInteger.valueOf(hLong);
+        // prime
+        BigInteger p = new BigInteger(pStr, 16);
+        // first coefficient
+        BigInteger a = new BigInteger(aStr, 16);
+        // second coefficient
+        BigInteger b = new BigInteger(bStr, 16);
+        // x affine coordinate of generator
+        BigInteger x = new BigInteger(xStr, 16);
+        // y affine coordinate of generator
+        BigInteger y = new BigInteger(yStr, 16);
+        // order of the generator
+        BigInteger n = new BigInteger(nStr, 16);
+        // cofactor of generator
+        BigInteger h = BigInteger.valueOf(hLong);
 
-            byte[][] pab = NativeCrypto.EC_GROUP_get_curve(group);
-            assertEquals(3, pab.length);
+        byte[][] pab = NativeCrypto.EC_GROUP_get_curve(group);
+        assertEquals(3, pab.length);
 
-            BigInteger p2 = new BigInteger(pab[0]);
-            assertEquals(p, p2);
+        BigInteger p2 = new BigInteger(pab[0]);
+        assertEquals(p, p2);
 
-            BigInteger a2 = new BigInteger(pab[1]);
-            assertEquals(a, a2);
+        BigInteger a2 = new BigInteger(pab[1]);
+        assertEquals(a, a2);
 
-            BigInteger b2 = new BigInteger(pab[2]);
-            assertEquals(b, b2);
+        BigInteger b2 = new BigInteger(pab[2]);
+        assertEquals(b, b2);
 
-            point = NativeCrypto.EC_GROUP_get_generator(group);
+        NativeRef.EC_POINT point = new NativeRef.EC_POINT(
+                NativeCrypto.EC_GROUP_get_generator(group));
 
-            byte[][] xy = NativeCrypto.EC_POINT_get_affine_coordinates(group, point);
-            assertEquals(2, xy.length);
+        byte[][] xy = NativeCrypto.EC_POINT_get_affine_coordinates(group, point);
+        assertEquals(2, xy.length);
 
-            BigInteger x2 = new BigInteger(xy[0]);
-            assertEquals(x, x2);
+        BigInteger x2 = new BigInteger(xy[0]);
+        assertEquals(x, x2);
 
-            BigInteger y2 = new BigInteger(xy[1]);
-            assertEquals(y, y2);
+        BigInteger y2 = new BigInteger(xy[1]);
+        assertEquals(y, y2);
 
-            BigInteger n2 = new BigInteger(NativeCrypto.EC_GROUP_get_order(group));
-            assertEquals(n, n2);
+        BigInteger n2 = new BigInteger(NativeCrypto.EC_GROUP_get_order(group));
+        assertEquals(n, n2);
 
-            BigInteger h2 = new BigInteger(NativeCrypto.EC_GROUP_get_cofactor(group));
-            assertEquals(h, h2);
+        BigInteger h2 = new BigInteger(NativeCrypto.EC_GROUP_get_cofactor(group));
+        assertEquals(h, h2);
 
-            key1 = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
-            long groupTmp = NativeCrypto.EC_KEY_get0_group(key1);
-            assertEquals(NativeCrypto.EC_GROUP_get_curve_name(group),
-                    NativeCrypto.EC_GROUP_get_curve_name(groupTmp));
-
-        } finally {
-            if (group != NULL) {
-                NativeCrypto.EC_GROUP_clear_free(group);
-            }
-
-            if (point != NULL) {
-                NativeCrypto.EC_POINT_clear_free(point);
-            }
-        }
+        NativeRef.EVP_PKEY key1 = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
+        NativeRef.EC_GROUP groupTmp = new NativeRef.EC_GROUP(NativeCrypto.EC_KEY_get1_group(key1));
+        assertEquals(NativeCrypto.EC_GROUP_get_curve_name(group),
+                NativeCrypto.EC_GROUP_get_curve_name(groupTmp));
     }
 
     public void test_EC_KEY_get_private_key_null_key_Failure() throws Exception {
@@ -2749,37 +2742,32 @@ public class NativeCryptoTest extends TestCase {
     }
 
     public void test_ECDH_compute_key_null_key_Failure() throws Exception {
-        long groupRef = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
-        if (groupRef == 0) {
-            fail();
-        }
+        final long groupCtx = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
+        assertFalse(groupCtx == NULL);
+        NativeRef.EC_GROUP groupRef = new NativeRef.EC_GROUP(groupCtx);
+        NativeRef.EVP_PKEY pkey1Ref = new NativeRef.EVP_PKEY(
+                NativeCrypto.EC_KEY_generate_key(groupRef));
+        NativeRef.EVP_PKEY pkey2Ref = new NativeRef.EVP_PKEY(
+                NativeCrypto.EC_KEY_generate_key(groupRef));
+
+        byte[] out = new byte[128];
+        int outOffset = 0;
+        // Assert that the method under test works fine with the two
+        // non-null keys
+        NativeCrypto.ECDH_compute_key(out, outOffset, pkey1Ref, pkey2Ref);
+
+        // Assert that it fails when only the first key is null
         try {
-            NativeRef.EVP_PKEY pkey1Ref = new NativeRef.EVP_PKEY(
-                    NativeCrypto.EC_KEY_generate_key(groupRef));
-            NativeRef.EVP_PKEY pkey2Ref = new NativeRef.EVP_PKEY(
-                    NativeCrypto.EC_KEY_generate_key(groupRef));
+            NativeCrypto.ECDH_compute_key(out, outOffset, NULL_EVP_PKEY, pkey2Ref);
+            fail();
+        } catch (NullPointerException expected) {
+        }
 
-            byte[] out = new byte[128];
-            int outOffset = 0;
-            // Assert that the method under test works fine with the two
-            // non-null keys
-            NativeCrypto.ECDH_compute_key(out, outOffset, pkey1Ref, pkey2Ref);
-
-            // Assert that it fails when only the first key is null
-            try {
-                NativeCrypto.ECDH_compute_key(out, outOffset, NULL_EVP_PKEY, pkey2Ref);
-                fail();
-            } catch (NullPointerException expected) {
-            }
-
-            // Assert that it fails when only the second key is null
-            try {
-                NativeCrypto.ECDH_compute_key(out, outOffset, pkey1Ref, NULL_EVP_PKEY);
-                fail();
-            } catch (NullPointerException expected) {
-            }
-        } finally {
-            NativeCrypto.EC_GROUP_clear_free(groupRef);
+        // Assert that it fails when only the second key is null
+        try {
+            NativeCrypto.ECDH_compute_key(out, outOffset, pkey1Ref, NULL_EVP_PKEY);
+            fail();
+        } catch (NullPointerException expected) {
         }
     }
 
@@ -2825,16 +2813,10 @@ public class NativeCryptoTest extends TestCase {
         key1 = new OpenSSLKey(NativeCrypto.RSA_generate_key_ex(1024, e.toByteArray()));
         assertTrue(key1.getPublicKey() instanceof RSAPublicKey);
 
-        long group1 = NULL;
-        try {
-            group1 = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
-            assertTrue(group1 != NULL);
-            key1 = new OpenSSLKey(NativeCrypto.EC_KEY_generate_key(group1));
-        } finally {
-            if (group1 != NULL) {
-                NativeCrypto.EC_GROUP_clear_free(group1);
-            }
-        }
+        final long groupCtx = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
+        assertFalse(groupCtx == NULL);
+        NativeRef.EC_GROUP group1 = new NativeRef.EC_GROUP(groupCtx);
+        key1 = new OpenSSLKey(NativeCrypto.EC_KEY_generate_key(group1));
         assertTrue(key1.getPublicKey() instanceof ECPublicKey);
     }
 

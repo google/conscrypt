@@ -44,8 +44,8 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
     }
 
     public OpenSSLECPrivateKey(OpenSSLKey key) {
-        final long origGroup = NativeCrypto.EC_KEY_get0_group(key.getNativeRef());
-        this.group = new OpenSSLECGroupContext(NativeCrypto.EC_GROUP_dup(origGroup));
+        this.group = new OpenSSLECGroupContext(new NativeRef.EC_GROUP(
+                NativeCrypto.EC_KEY_get1_group(key.getNativeRef())));
         this.key = key;
     }
 
@@ -53,7 +53,7 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
         try {
             group = OpenSSLECGroupContext.getInstance(ecKeySpec.getParams());
             final BigInteger privKey = ecKeySpec.getS();
-            key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getContext(), 0,
+            key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getNativeRef(), null,
                     privKey.toByteArray()));
         } catch (Exception e) {
             throw new InvalidKeySpecException(e);
@@ -73,7 +73,7 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
     private static OpenSSLKey wrapPlatformKey(ECPrivateKey ecPrivateKey,
             OpenSSLECGroupContext group) throws InvalidKeyException {
         return new OpenSSLKey(NativeCrypto.getECPrivateKeyWrapper(ecPrivateKey,
-                group.getContext()), true);
+                group.getNativeRef()), true);
     }
 
     public static OpenSSLKey getInstance(ECPrivateKey ecPrivateKey) throws InvalidKeyException {
@@ -90,7 +90,7 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
             }
 
             final BigInteger privKey = ecPrivateKey.getS();
-            return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getContext(), 0,
+            return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getNativeRef(), null,
                     privKey.toByteArray()));
         } catch (Exception e) {
             throw new InvalidKeyException(e);
@@ -198,9 +198,8 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
         byte[] encoded = (byte[]) stream.readObject();
 
         key = new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(encoded));
-
-        final long origGroup = NativeCrypto.EC_KEY_get0_group(key.getNativeRef());
-        group = new OpenSSLECGroupContext(NativeCrypto.EC_GROUP_dup(origGroup));
+        group = new OpenSSLECGroupContext(new NativeRef.EC_GROUP(
+                NativeCrypto.EC_KEY_get1_group(key.getNativeRef())));
     }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
