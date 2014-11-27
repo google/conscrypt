@@ -45,6 +45,21 @@ public abstract class NativeRef {
         return (int) context;
     }
 
+    public static class EVP_CIPHER_CTX extends NativeRef {
+        public EVP_CIPHER_CTX(long ctx) {
+            super(ctx);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            try {
+                NativeCrypto.EVP_CIPHER_CTX_cleanup(context);
+            } finally {
+                super.finalize();
+            }
+        }
+    }
+
     public static class EVP_MD_CTX extends NativeRef {
         public EVP_MD_CTX(long ctx) {
             super(ctx);
