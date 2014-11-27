@@ -19,7 +19,6 @@ package org.conscrypt;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
-import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
@@ -125,8 +124,8 @@ public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
         }
 
         OpenSSLKey openSslKey = OpenSSLKey.fromPrivateKey((PrivateKey) key);
-        int fieldSizeBits = NativeCrypto.EC_GROUP_get_degree(NativeCrypto.EC_KEY_get0_group(
-                openSslKey.getNativeRef()));
+        int fieldSizeBits = NativeCrypto.EC_GROUP_get_degree(new NativeRef.EC_GROUP(
+                NativeCrypto.EC_KEY_get1_group(openSslKey.getNativeRef())));
         mExpectedResultLength = (fieldSizeBits + 7) / 8;
         mOpenSslPrivateKey = openSslKey;
     }

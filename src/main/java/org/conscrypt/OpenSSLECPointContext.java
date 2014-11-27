@@ -21,22 +21,11 @@ import java.security.spec.ECPoint;
 
 final class OpenSSLECPointContext {
     private final OpenSSLECGroupContext group;
-    private final long pointCtx;
+    private final NativeRef.EC_POINT pointCtx;
 
-    OpenSSLECPointContext(OpenSSLECGroupContext group, long pointCtx) {
+    OpenSSLECPointContext(OpenSSLECGroupContext group, NativeRef.EC_POINT pointCtx) {
         this.group = group;
         this.pointCtx = pointCtx;
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        try {
-            if (pointCtx != 0) {
-                NativeCrypto.EC_POINT_clear_free(pointCtx);
-            }
-        } finally {
-            super.finalize();
-        }
     }
 
     @Override
@@ -46,16 +35,16 @@ final class OpenSSLECPointContext {
         }
 
         final OpenSSLECPointContext other = (OpenSSLECPointContext) o;
-        if (!NativeCrypto.EC_GROUP_cmp(group.getContext(), other.group.getContext())) {
+        if (!NativeCrypto.EC_GROUP_cmp(group.getNativeRef(), other.group.getNativeRef())) {
             return false;
         }
 
-        return NativeCrypto.EC_POINT_cmp(group.getContext(), pointCtx, other.pointCtx);
+        return NativeCrypto.EC_POINT_cmp(group.getNativeRef(), pointCtx, other.pointCtx);
     }
 
     public ECPoint getECPoint() {
         final byte[][] generatorCoords = NativeCrypto.EC_POINT_get_affine_coordinates(
-                group.getContext(), pointCtx);
+                group.getNativeRef(), pointCtx);
         final BigInteger x = new BigInteger(generatorCoords[0]);
         final BigInteger y = new BigInteger(generatorCoords[1]);
         return new ECPoint(x, y);
@@ -67,16 +56,16 @@ final class OpenSSLECPointContext {
         return super.hashCode();
     }
 
-    public long getContext() {
+    public NativeRef.EC_POINT getNativeRef() {
         return pointCtx;
     }
 
     public static OpenSSLECPointContext getInstance(int curveType, OpenSSLECGroupContext group,
             ECPoint javaPoint) {
-        OpenSSLECPointContext point = new OpenSSLECPointContext(group,
-                NativeCrypto.EC_POINT_new(group.getContext()));
-        NativeCrypto.EC_POINT_set_affine_coordinates(group.getContext(),
-                point.getContext(), javaPoint.getAffineX().toByteArray(),
+        OpenSSLECPointContext point = new OpenSSLECPointContext(group, new NativeRef.EC_POINT(
+                NativeCrypto.EC_POINT_new(group.getNativeRef())));
+        NativeCrypto.EC_POINT_set_affine_coordinates(group.getNativeRef(),
+                point.getNativeRef(), javaPoint.getAffineX().toByteArray(),
                 javaPoint.getAffineY().toByteArray());
         return point;
     }

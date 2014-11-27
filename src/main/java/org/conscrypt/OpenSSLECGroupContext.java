@@ -27,9 +27,9 @@ import java.security.spec.ECPoint;
 import java.security.spec.EllipticCurve;
 
 public final class OpenSSLECGroupContext {
-    private final long groupCtx;
+    private final NativeRef.EC_GROUP groupCtx;
 
-    public OpenSSLECGroupContext(long groupCtx) {
+    public OpenSSLECGroupContext(NativeRef.EC_GROUP groupCtx) {
         this.groupCtx = groupCtx;
     }
 
@@ -46,23 +46,13 @@ public final class OpenSSLECGroupContext {
         if (ctx == 0) {
             return null;
         }
+        NativeRef.EC_GROUP groupRef = new NativeRef.EC_GROUP(ctx);
 
-        NativeCrypto.EC_GROUP_set_point_conversion_form(ctx,
+        NativeCrypto.EC_GROUP_set_point_conversion_form(groupRef,
                 NativeCrypto.POINT_CONVERSION_UNCOMPRESSED);
-        NativeCrypto.EC_GROUP_set_asn1_flag(ctx, NativeCrypto.OPENSSL_EC_NAMED_CURVE);
+        NativeCrypto.EC_GROUP_set_asn1_flag(groupRef, NativeCrypto.OPENSSL_EC_NAMED_CURVE);
 
-        return new OpenSSLECGroupContext(ctx);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        try {
-            if (groupCtx != 0) {
-                NativeCrypto.EC_GROUP_clear_free(groupCtx);
-            }
-        } finally {
-            super.finalize();
-        }
+        return new OpenSSLECGroupContext(groupRef);
     }
 
     @Override
@@ -81,7 +71,7 @@ public final class OpenSSLECGroupContext {
         return super.hashCode();
     }
 
-    public long getContext() {
+    public NativeRef.EC_GROUP getNativeRef() {
         return groupCtx;
     }
 
@@ -171,7 +161,7 @@ public final class OpenSSLECGroupContext {
         final EllipticCurve curve = new EllipticCurve(field, a, b);
 
         final OpenSSLECPointContext generatorCtx = new OpenSSLECPointContext(this,
-                NativeCrypto.EC_GROUP_get_generator(groupCtx));
+                new NativeRef.EC_POINT(NativeCrypto.EC_GROUP_get_generator(groupCtx)));
         final ECPoint generator = generatorCtx.getECPoint();
 
         final BigInteger order = new BigInteger(NativeCrypto.EC_GROUP_get_order(groupCtx));

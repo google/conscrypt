@@ -116,7 +116,8 @@ public final class NativeCrypto {
 
     public static native long getRSAPrivateKeyWrapper(RSAPrivateKey key, byte[] modulus);
 
-    public static native long getECPrivateKeyWrapper(ECPrivateKey key, long ecGroupRef);
+    public static native long getECPrivateKeyWrapper(ECPrivateKey key,
+            NativeRef.EC_GROUP ecGroupRef);
 
     public static native long RSA_generate_key_ex(int modulusBits, byte[] publicExponent);
 
@@ -193,51 +194,50 @@ public final class NativeCrypto {
      */
     public static final int POINT_CONVERSION_HYBRID = 4;
 
-    public static native long EVP_PKEY_new_EC_KEY(long groupRef, long pubkeyRef, byte[] privkey);
+    public static native long EVP_PKEY_new_EC_KEY(NativeRef.EC_GROUP groupRef,
+            NativeRef.EC_POINT pubkeyRef, byte[] privkey);
 
     public static native long EC_GROUP_new_by_curve_name(String curveName);
 
-    public static native long EC_GROUP_dup(long groupRef);
+    public static native void EC_GROUP_set_asn1_flag(NativeRef.EC_GROUP groupRef, int flag);
 
-    public static native void EC_GROUP_set_asn1_flag(long groupRef, int flag);
+    public static native void EC_GROUP_set_point_conversion_form(NativeRef.EC_GROUP groupRef,
+            int form);
 
-    public static native void EC_GROUP_set_point_conversion_form(long groupRef, int form);
+    public static native String EC_GROUP_get_curve_name(NativeRef.EC_GROUP groupRef);
 
-    public static native String EC_GROUP_get_curve_name(long groupRef);
+    public static native byte[][] EC_GROUP_get_curve(NativeRef.EC_GROUP groupRef);
 
-    public static native byte[][] EC_GROUP_get_curve(long groupRef);
+    public static native void EC_GROUP_clear_free(long groupRef);
 
-    public static native void EC_GROUP_clear_free(long ctx);
+    public static native boolean EC_GROUP_cmp(NativeRef.EC_GROUP ctx1, NativeRef.EC_GROUP ctx2);
 
-    public static native boolean EC_GROUP_cmp(long ctx1, long ctx2);
+    public static native long EC_GROUP_get_generator(NativeRef.EC_GROUP groupRef);
 
-    public static native void EC_GROUP_set_generator(long groupCtx, long pointCtx, byte[] n, byte[] h);
+    public static native int get_EC_GROUP_type(NativeRef.EC_GROUP groupRef);
 
-    public static native long EC_GROUP_get_generator(long groupCtx);
+    public static native byte[] EC_GROUP_get_order(NativeRef.EC_GROUP groupRef);
 
-    public static native int get_EC_GROUP_type(long groupCtx);
+    public static native int EC_GROUP_get_degree(NativeRef.EC_GROUP groupRef);
 
-    public static native byte[] EC_GROUP_get_order(long groupCtx);
+    public static native byte[] EC_GROUP_get_cofactor(NativeRef.EC_GROUP groupRef);
 
-    public static native int EC_GROUP_get_degree(long groupCtx);
-
-    public static native byte[] EC_GROUP_get_cofactor(long groupCtx);
-
-    public static native long EC_POINT_new(long groupRef);
+    public static native long EC_POINT_new(NativeRef.EC_GROUP groupRef);
 
     public static native void EC_POINT_clear_free(long pointRef);
 
-    public static native boolean EC_POINT_cmp(long groupRef, long pointRef1, long pointRef2);
+    public static native boolean EC_POINT_cmp(NativeRef.EC_GROUP groupRef,
+            NativeRef.EC_POINT pointRef1, NativeRef.EC_POINT pointRef2);
 
-    public static native byte[][] EC_POINT_get_affine_coordinates(long groupCtx, long pointCtx);
+    public static native byte[][] EC_POINT_get_affine_coordinates(NativeRef.EC_GROUP groupRef,
+            NativeRef.EC_POINT pointRef);
 
-    public static native void EC_POINT_set_affine_coordinates(long groupCtx, long pointCtx, byte[] x,
-            byte[] y);
+    public static native void EC_POINT_set_affine_coordinates(NativeRef.EC_GROUP groupRef,
+            NativeRef.EC_POINT pointRef, byte[] x, byte[] y);
 
-    public static native long EC_KEY_generate_key(long groupRef);
+    public static native long EC_KEY_generate_key(NativeRef.EC_GROUP groupRef);
 
-    // This returns unowned const references
-    public static native long EC_KEY_get0_group(NativeRef.EVP_PKEY pkeyRef);
+    public static native long EC_KEY_get1_group(NativeRef.EVP_PKEY pkeyRef);
 
     public static native byte[] EC_KEY_get_private_key(NativeRef.EVP_PKEY keyRef);
 
