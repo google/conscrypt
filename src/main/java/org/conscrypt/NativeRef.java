@@ -45,6 +45,36 @@ public abstract class NativeRef {
         return (int) context;
     }
 
+    public static class EC_GROUP extends NativeRef {
+        public EC_GROUP(long ctx) {
+            super(ctx);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            try {
+                NativeCrypto.EC_GROUP_clear_free(context);
+            } finally {
+                super.finalize();
+            }
+        }
+    }
+
+    public static class EC_POINT extends NativeRef {
+        public EC_POINT(long ctx) {
+            super(ctx);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            try {
+                NativeCrypto.EC_POINT_clear_free(context);
+            } finally {
+                super.finalize();
+            }
+        }
+    }
+
     public static class EVP_CIPHER_CTX extends NativeRef {
         public EVP_CIPHER_CTX(long ctx) {
             super(ctx);

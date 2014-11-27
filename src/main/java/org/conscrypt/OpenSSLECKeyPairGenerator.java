@@ -56,7 +56,8 @@ public final class OpenSSLECKeyPairGenerator extends KeyPairGenerator {
             group = OpenSSLECGroupContext.getCurveByName(curveName);
         }
 
-        final OpenSSLKey key = new OpenSSLKey(NativeCrypto.EC_KEY_generate_key(group.getContext()));
+        final OpenSSLKey key = new OpenSSLKey(
+                NativeCrypto.EC_KEY_generate_key(group.getNativeRef()));
         return new KeyPair(new OpenSSLECPublicKey(group, key), new OpenSSLECPrivateKey(group, key));
     }
 
