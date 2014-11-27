@@ -23,7 +23,7 @@ import java.security.NoSuchAlgorithmException;
  * Implements the JDK MessageDigest interface using OpenSSL's EVP API.
  */
 public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneable {
-    private OpenSSLDigestContext ctx;
+    private NativeRef.EVP_MD_CTX ctx;
 
     /**
      * Holds the EVP_MD for the hashing algorithm, e.g. EVP_get_digestbyname("sha1");
@@ -50,14 +50,14 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
         resetContext();
     }
 
-    private OpenSSLMessageDigestJDK(long evp_md, int size, OpenSSLDigestContext ctx) {
+    private OpenSSLMessageDigestJDK(long evp_md, int size, NativeRef.EVP_MD_CTX ctx) {
         this.evp_md = evp_md;
         this.size = size;
         this.ctx = ctx;
     }
 
     private final void resetContext() {
-        OpenSSLDigestContext ctxLocal = new OpenSSLDigestContext(NativeCrypto.EVP_MD_CTX_create());
+        NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         NativeCrypto.EVP_MD_CTX_init(ctxLocal);
         NativeCrypto.EVP_DigestInit(ctxLocal, evp_md);
         ctx = ctxLocal;
@@ -142,7 +142,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
 
     @Override
     public Object clone() {
-        OpenSSLDigestContext ctxCopy = new OpenSSLDigestContext(NativeCrypto.EVP_MD_CTX_create());
+        NativeRef.EVP_MD_CTX ctxCopy = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         NativeCrypto.EVP_MD_CTX_init(ctxCopy);
         NativeCrypto.EVP_MD_CTX_copy(ctxCopy, ctx);
         return new OpenSSLMessageDigestJDK(evp_md, size, ctxCopy);

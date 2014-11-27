@@ -20,14 +20,29 @@ package org.conscrypt;
  * Used to hold onto native OpenSSL references and run finalization on those
  * objects. Individual types must subclass this and implement finalizer.
  */
-public abstract class OpenSSLNativeReference {
+public abstract class NativeRef {
     final long context;
 
-    public OpenSSLNativeReference(long ctx) {
+    public NativeRef(long ctx) {
         if (ctx == 0) {
             throw new NullPointerException("ctx == 0");
         }
 
         this.context = ctx;
+    }
+
+    public static class EVP_MD_CTX extends NativeRef {
+        public EVP_MD_CTX(long ctx) {
+            super(ctx);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            try {
+                NativeCrypto.EVP_MD_CTX_destroy(context);
+            } finally {
+                super.finalize();
+            }
+        }
     }
 }

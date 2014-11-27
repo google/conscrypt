@@ -123,7 +123,7 @@
 static JavaVM* gJavaVM;
 static jclass cryptoUpcallsClass;
 static jclass openSslInputStreamClass;
-static jclass openSslNativeReferenceClass;
+static jclass nativeRefClass;
 
 static jclass byteArrayClass;
 static jclass calendarClass;
@@ -134,7 +134,7 @@ static jclass inputStreamClass;
 static jclass outputStreamClass;
 static jclass stringClass;
 
-static jfieldID openSslNativeReference_context;
+static jfieldID nativeRef_context;
 
 static jmethodID calendar_setMethod;
 static jmethodID inputStream_readMethod;
@@ -851,7 +851,7 @@ static SSL_CIPHER* to_SSL_CIPHER(JNIEnv* env, jlong ssl_cipher_address, bool thr
 
 template<typename T>
 static T* fromContextObject(JNIEnv* env, jobject contextObject) {
-    T* ref = reinterpret_cast<T*>(env->GetLongField(contextObject, openSslNativeReference_context));
+    T* ref = reinterpret_cast<T*>(env->GetLongField(contextObject, nativeRef_context));
     if (ref == NULL) {
         JNI_TRACE("ctx == null");
         jniThrowNullPointerException(env, "ctx == null");
@@ -9830,24 +9830,24 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EC_KEY_set_nonce_from_hash, "(JZ)V"),
     NATIVE_METHOD(NativeCrypto, ECDH_compute_key, "([BIJJ)I"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_create, "()J"),
-    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_init, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_init, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)V"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_destroy, "(J)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_copy, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;J)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BII)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BI)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_copy, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BI)I"),
     NATIVE_METHOD(NativeCrypto, EVP_get_digestbyname, "(Ljava/lang/String;)J"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_block_size, "(J)I"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_size, "(J)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_SignInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;J)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_SignUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BII)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_SignFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BIJ)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_VerifyInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;J)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_VerifyUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BII)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_VerifyFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[BIIJ)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestSignInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;JJ)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestSignUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;[B)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestSignFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLDigestContext;)[B"),
+    NATIVE_METHOD(NativeCrypto, EVP_SignInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_SignUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_SignFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BIJ)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_VerifyInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_VerifyUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_VerifyFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BIIJ)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestSignInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;JJ)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestSignUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[B)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestSignFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)[B"),
     NATIVE_METHOD(NativeCrypto, EVP_get_cipherbyname, "(Ljava/lang/String;)J"),
     NATIVE_METHOD(NativeCrypto, EVP_CipherInit_ex, "(JJ[B[BZ)V"),
     NATIVE_METHOD(NativeCrypto, EVP_CipherUpdate, "(J[BI[BII)I"),
@@ -10029,12 +10029,12 @@ static void initialize_conscrypt(JNIEnv* env) {
 
     cryptoUpcallsClass = getGlobalRefToClass(env,
             TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/CryptoUpcalls");
-    openSslNativeReferenceClass = getGlobalRefToClass(env,
-            TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLNativeReference");
+    nativeRefClass = getGlobalRefToClass(env,
+            TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef");
     openSslInputStreamClass = getGlobalRefToClass(env,
             TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream");
 
-    openSslNativeReference_context = getFieldRef(env, openSslNativeReferenceClass, "context", "J");
+    nativeRef_context = getFieldRef(env, nativeRefClass, "context", "J");
 
     calendar_setMethod = getMethodRef(env, calendarClass, "set", "(IIIIII)V");
     inputStream_readMethod = getMethodRef(env, inputStreamClass, "read", "([B)I");
