@@ -105,7 +105,7 @@ public class OpenSSLSignature extends SignatureSpi {
     }
 
     private void checkEngineType(OpenSSLKey pkey) throws InvalidKeyException {
-        final int pkeyType = NativeCrypto.EVP_PKEY_type(pkey.getPkeyContext());
+        final int pkeyType = NativeCrypto.EVP_PKEY_type(pkey.getNativeRef());
 
         switch (engineType) {
             case RSA:
@@ -150,7 +150,7 @@ public class OpenSSLSignature extends SignatureSpi {
         final OpenSSLKey key = this.key;
         switch (engineType) {
             case EC:
-                NativeCrypto.EC_KEY_set_nonce_from_hash(key.getPkeyContext(), true);
+                NativeCrypto.EC_KEY_set_nonce_from_hash(key.getNativeRef(), true);
                 break;
             default:
                 // Hardening not applicable
@@ -175,9 +175,9 @@ public class OpenSSLSignature extends SignatureSpi {
 
         final NativeRef.EVP_MD_CTX ctxLocal = ctx;
         try {
-            byte[] buffer = new byte[NativeCrypto.EVP_PKEY_size(key.getPkeyContext())];
+            byte[] buffer = new byte[NativeCrypto.EVP_PKEY_size(key.getNativeRef())];
             int bytesWritten = NativeCrypto.EVP_SignFinal(ctxLocal, buffer, 0,
-                    key.getPkeyContext());
+                    key.getNativeRef());
 
             byte[] signature = new byte[bytesWritten];
             System.arraycopy(buffer, 0, signature, 0, bytesWritten);
@@ -203,7 +203,7 @@ public class OpenSSLSignature extends SignatureSpi {
 
         try {
             int result = NativeCrypto.EVP_VerifyFinal(ctx, sigBytes, 0, sigBytes.length,
-                    key.getPkeyContext());
+                    key.getNativeRef());
             return result == 1;
         } catch (Exception ex) {
             return false;

@@ -89,7 +89,7 @@ public class OpenSSLRSAPublicKey implements RSAPublicKey, OpenSSLKeyHolder {
 
     @Override
     public byte[] getEncoded() {
-        return NativeCrypto.i2d_PUBKEY(key.getPkeyContext());
+        return NativeCrypto.i2d_PUBKEY(key.getNativeRef());
     }
 
     private void ensureReadParams() {
@@ -97,7 +97,7 @@ public class OpenSSLRSAPublicKey implements RSAPublicKey, OpenSSLKeyHolder {
             return;
         }
 
-        byte[][] params = NativeCrypto.get_RSA_public_params(key.getPkeyContext());
+        byte[][] params = NativeCrypto.get_RSA_public_params(key.getNativeRef());
         modulus = new BigInteger(params[0]);
         publicExponent = new BigInteger(params[1]);
 

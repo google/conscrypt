@@ -57,6 +57,7 @@ import libcore.io.IoUtils;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
+import org.conscrypt.NativeRef.EVP_PKEY;
 import static org.conscrypt.NativeCrypto.SSL_MODE_CBC_RECORD_SPLITTING;
 import static org.conscrypt.NativeCrypto.SSL_MODE_HANDSHAKE_CUTTHROUGH;
 
@@ -65,6 +66,7 @@ public class NativeCryptoTest extends TestCase {
     public static final String TEST_ENGINE_ID = "javacoretests";
 
     private static final long NULL = 0;
+    private static final NativeRef.EVP_PKEY NULL_EVP_PKEY = new NativeRef.EVP_PKEY(0);
     private static final FileDescriptor INVALID_FD = new FileDescriptor();
     private static final SSLHandshakeCallbacks DUMMY_CB
             = new TestSSLHandshakeCallbacks(null, 0, null);
@@ -206,7 +208,7 @@ public class NativeCryptoTest extends TestCase {
 
     public void test_EVP_PKEY_cmp() throws Exception {
         try {
-            NativeCrypto.EVP_PKEY_cmp(NULL, NULL);
+            NativeCrypto.EVP_PKEY_cmp(NULL_EVP_PKEY, NULL_EVP_PKEY);
             fail("Should throw NullPointerException when arguments are NULL");
         } catch (NullPointerException expected) {
         }
@@ -220,69 +222,60 @@ public class NativeCryptoTest extends TestCase {
         KeyPair kp2 = kpg.generateKeyPair();
         RSAPrivateCrtKey privKey2 = (RSAPrivateCrtKey) kp2.getPrivate();
 
-        long pkey1 = 0, pkey1_copy = 0, pkey2 = 0;
+        NativeRef.EVP_PKEY pkey1, pkey1_copy, pkey2;
+        pkey1 = new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_new_RSA(
+                privKey1.getModulus().toByteArray(),
+                privKey1.getPublicExponent().toByteArray(),
+                privKey1.getPrivateExponent().toByteArray(),
+                privKey1.getPrimeP().toByteArray(),
+                privKey1.getPrimeQ().toByteArray(),
+                privKey1.getPrimeExponentP().toByteArray(),
+                privKey1.getPrimeExponentQ().toByteArray(),
+                privKey1.getCrtCoefficient().toByteArray()));
+        assertNotSame(NULL, pkey1);
+
+        pkey1_copy = new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_new_RSA(
+                privKey1.getModulus().toByteArray(),
+                privKey1.getPublicExponent().toByteArray(),
+                privKey1.getPrivateExponent().toByteArray(),
+                privKey1.getPrimeP().toByteArray(),
+                privKey1.getPrimeQ().toByteArray(),
+                privKey1.getPrimeExponentP().toByteArray(),
+                privKey1.getPrimeExponentQ().toByteArray(),
+                privKey1.getCrtCoefficient().toByteArray()));
+        assertNotSame(NULL, pkey1_copy);
+
+        pkey2 = new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_new_RSA(
+                privKey2.getModulus().toByteArray(),
+                privKey2.getPublicExponent().toByteArray(),
+                privKey2.getPrivateExponent().toByteArray(),
+                privKey2.getPrimeP().toByteArray(),
+                privKey2.getPrimeQ().toByteArray(),
+                privKey2.getPrimeExponentP().toByteArray(),
+                privKey2.getPrimeExponentQ().toByteArray(),
+                privKey2.getCrtCoefficient().toByteArray()));
+        assertNotSame(NULL, pkey2);
+
         try {
-            pkey1 = NativeCrypto.EVP_PKEY_new_RSA(privKey1.getModulus().toByteArray(),
-                        privKey1.getPublicExponent().toByteArray(),
-                        privKey1.getPrivateExponent().toByteArray(),
-                        privKey1.getPrimeP().toByteArray(),
-                        privKey1.getPrimeQ().toByteArray(),
-                        privKey1.getPrimeExponentP().toByteArray(),
-                        privKey1.getPrimeExponentQ().toByteArray(),
-                        privKey1.getCrtCoefficient().toByteArray());
-            assertNotSame(NULL, pkey1);
-
-            pkey1_copy = NativeCrypto.EVP_PKEY_new_RSA(privKey1.getModulus().toByteArray(),
-                    privKey1.getPublicExponent().toByteArray(),
-                    privKey1.getPrivateExponent().toByteArray(),
-                    privKey1.getPrimeP().toByteArray(),
-                    privKey1.getPrimeQ().toByteArray(),
-                    privKey1.getPrimeExponentP().toByteArray(),
-                    privKey1.getPrimeExponentQ().toByteArray(),
-                    privKey1.getCrtCoefficient().toByteArray());
-            assertNotSame(NULL, pkey1_copy);
-
-            pkey2 = NativeCrypto.EVP_PKEY_new_RSA(privKey2.getModulus().toByteArray(),
-                    privKey2.getPublicExponent().toByteArray(),
-                    privKey2.getPrivateExponent().toByteArray(),
-                    privKey2.getPrimeP().toByteArray(),
-                    privKey2.getPrimeQ().toByteArray(),
-                    privKey2.getPrimeExponentP().toByteArray(),
-                    privKey2.getPrimeExponentQ().toByteArray(),
-                    privKey2.getCrtCoefficient().toByteArray());
-            assertNotSame(NULL, pkey2);
-
-            try {
-                NativeCrypto.EVP_PKEY_cmp(pkey1, NULL);
-                fail("Should throw NullPointerException when arguments are NULL");
-            } catch (NullPointerException expected) {
-            }
-
-            try {
-                NativeCrypto.EVP_PKEY_cmp(NULL, pkey1);
-                fail("Should throw NullPointerException when arguments are NULL");
-            } catch (NullPointerException expected) {
-            }
-
-            assertEquals("Same keys should be the equal", 1,
-                    NativeCrypto.EVP_PKEY_cmp(pkey1, pkey1));
-
-            assertEquals("Same keys should be the equal", 1,
-                    NativeCrypto.EVP_PKEY_cmp(pkey1, pkey1_copy));
-
-            assertEquals("Different keys should not be equal", 0,
-                    NativeCrypto.EVP_PKEY_cmp(pkey1, pkey2));
-        } finally {
-            if (pkey1 != 0) {
-                NativeCrypto.EVP_PKEY_free(pkey1);
-            }
-            if (pkey1_copy != 0) {
-                NativeCrypto.EVP_PKEY_free(pkey1_copy);
-            }
-            if (pkey2 != 0) {
-                NativeCrypto.EVP_PKEY_free(pkey2);
-            }
+            NativeCrypto.EVP_PKEY_cmp(pkey1, NULL_EVP_PKEY);
+            fail("Should throw NullPointerException when arguments are NULL");
+        } catch (NullPointerException expected) {
         }
+
+        try {
+            NativeCrypto.EVP_PKEY_cmp(NULL_EVP_PKEY, NULL_EVP_PKEY);
+            fail("Should throw NullPointerException when arguments are NULL");
+        } catch (NullPointerException expected) {
+        }
+
+        assertEquals("Same keys should be the equal", 1,
+                NativeCrypto.EVP_PKEY_cmp(pkey1, pkey1));
+
+        assertEquals("Same keys should be the equal", 1,
+                NativeCrypto.EVP_PKEY_cmp(pkey1, pkey1_copy));
+
+        assertEquals("Different keys should not be equal", 0,
+                NativeCrypto.EVP_PKEY_cmp(pkey1, pkey2));
     }
 
     public void test_SSL_CTX_new() throws Exception {
@@ -373,7 +366,7 @@ public class NativeCryptoTest extends TestCase {
         initChannelIdKey();
 
         try {
-            NativeCrypto.SSL_set1_tls_channel_id(NULL, NULL);
+            NativeCrypto.SSL_set1_tls_channel_id(NULL, NULL_EVP_PKEY);
             fail();
         } catch (NullPointerException expected) {
         }
@@ -382,14 +375,14 @@ public class NativeCryptoTest extends TestCase {
         long s = NativeCrypto.SSL_new(c);
 
         try {
-            NativeCrypto.SSL_set1_tls_channel_id(s, NULL);
+            NativeCrypto.SSL_set1_tls_channel_id(s, NULL_EVP_PKEY);
             fail();
         } catch (NullPointerException expected) {
         }
 
         // Use the key natively. This works because the initChannelIdKey method ensures that the
         // key is backed by OpenSSL.
-        NativeCrypto.SSL_set1_tls_channel_id(s, CHANNEL_ID_PRIVATE_KEY.getPkeyContext());
+        NativeCrypto.SSL_set1_tls_channel_id(s, CHANNEL_ID_PRIVATE_KEY.getNativeRef());
 
         NativeCrypto.SSL_free(s);
         NativeCrypto.SSL_CTX_free(c);
@@ -397,7 +390,7 @@ public class NativeCryptoTest extends TestCase {
 
     public void test_SSL_use_PrivateKey() throws Exception {
         try {
-            NativeCrypto.SSL_use_PrivateKey(NULL, NULL);
+            NativeCrypto.SSL_use_PrivateKey(NULL, NULL_EVP_PKEY);
             fail();
         } catch (NullPointerException expected) {
         }
@@ -406,12 +399,12 @@ public class NativeCryptoTest extends TestCase {
         long s = NativeCrypto.SSL_new(c);
 
         try {
-            NativeCrypto.SSL_use_PrivateKey(s, NULL);
+            NativeCrypto.SSL_use_PrivateKey(s, NULL_EVP_PKEY);
             fail();
         } catch (NullPointerException expected) {
         }
 
-        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey().getPkeyContext());
+        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey().getNativeRef());
 
         NativeCrypto.SSL_free(s);
         NativeCrypto.SSL_CTX_free(c);
@@ -453,7 +446,7 @@ public class NativeCryptoTest extends TestCase {
         } catch (SSLException expected) {
         }
 
-        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey().getPkeyContext());
+        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey().getNativeRef());
         NativeCrypto.SSL_check_private_key(s);
 
         NativeCrypto.SSL_free(s);
@@ -464,7 +457,7 @@ public class NativeCryptoTest extends TestCase {
         long s = NativeCrypto.SSL_new(c);
 
         // first private, then certificate
-        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey().getPkeyContext());
+        NativeCrypto.SSL_use_PrivateKey(s, getServerPrivateKey().getNativeRef());
 
         try {
             NativeCrypto.SSL_check_private_key(s);
@@ -675,7 +668,7 @@ public class NativeCryptoTest extends TestCase {
                     s, cipherSuites.toArray(new String[cipherSuites.size()]));
 
             if (channelIdPrivateKey != null) {
-                NativeCrypto.SSL_set1_tls_channel_id(s, channelIdPrivateKey.getPkeyContext());
+                NativeCrypto.SSL_set1_tls_channel_id(s, channelIdPrivateKey.getNativeRef());
             }
             return s;
         }
@@ -890,7 +883,7 @@ public class NativeCryptoTest extends TestCase {
         public long beforeHandshake(long c) throws SSLException {
             long s = super.beforeHandshake(c);
             if (privateKey != null) {
-                NativeCrypto.SSL_use_PrivateKey(s, privateKey.getPkeyContext());
+                NativeCrypto.SSL_use_PrivateKey(s, privateKey.getNativeRef());
             }
             if (certificates != null) {
                 NativeCrypto.SSL_use_certificate(s, certificates);
@@ -1046,7 +1039,7 @@ public class NativeCryptoTest extends TestCase {
             @Override
             public void clientCertificateRequested(long s) {
                 super.clientCertificateRequested(s);
-                NativeCrypto.SSL_use_PrivateKey(s, getClientPrivateKey().getPkeyContext());
+                NativeCrypto.SSL_use_PrivateKey(s, getClientPrivateKey().getNativeRef());
                 NativeCrypto.SSL_use_certificate(s, getClientCertificates());
             }
         };
@@ -2566,95 +2559,83 @@ public class NativeCryptoTest extends TestCase {
 
     public void test_get_RSA_private_params() throws Exception {
         try {
-            NativeCrypto.get_RSA_private_params(NULL);
+            NativeCrypto.get_RSA_private_params(NULL_EVP_PKEY);
         } catch (NullPointerException expected) {
         }
 
         try {
-            NativeCrypto.get_RSA_private_params(NULL);
+            NativeCrypto.get_RSA_private_params(NULL_EVP_PKEY);
         } catch (NullPointerException expected) {
         }
 
         // Test getting params for the wrong kind of key.
         final byte[] seed = new byte[20];
-        long ctx = 0;
+        long group = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
+        NativeRef.EVP_PKEY ctx = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
         try {
-            long group = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
-            ctx = NativeCrypto.EC_KEY_generate_key(group);
-            assertTrue(ctx != NULL);
-            try {
-                NativeCrypto.get_RSA_private_params(ctx);
-                fail();
-            } catch (RuntimeException expected) {
-            }
-        } finally {
-            if (ctx != 0) {
-                NativeCrypto.EVP_PKEY_free(ctx);
-            }
+            NativeCrypto.get_RSA_private_params(ctx);
+            fail();
+        } catch (RuntimeException expected) {
         }
     }
 
     public void test_get_RSA_public_params() throws Exception {
         try {
-            NativeCrypto.get_RSA_public_params(NULL);
+            NativeCrypto.get_RSA_public_params(NULL_EVP_PKEY);
         } catch (NullPointerException expected) {
         }
 
         try {
-            NativeCrypto.get_RSA_public_params(NULL);
+            NativeCrypto.get_RSA_public_params(NULL_EVP_PKEY);
         } catch (NullPointerException expected) {
         }
 
         // Test getting params for the wrong kind of key.
         final byte[] seed = new byte[20];
-        long ctx = 0;
+        long group = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
+        NativeRef.EVP_PKEY ctx = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
         try {
-            long group = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
-            ctx = NativeCrypto.EC_KEY_generate_key(group);
-            assertTrue(ctx != NULL);
-            try {
-                NativeCrypto.get_RSA_public_params(ctx);
-                fail();
-            } catch (RuntimeException expected) {
-            }
-        } finally {
-            if (ctx != 0) {
-                NativeCrypto.EVP_PKEY_free(ctx);
-            }
+            NativeCrypto.get_RSA_public_params(ctx);
+            fail();
+        } catch (RuntimeException expected) {
         }
     }
 
     public void test_RSA_size_null_key_Failure() throws Exception {
         try {
-            NativeCrypto.RSA_size(0);
+            NativeCrypto.RSA_size(NULL_EVP_PKEY);
             fail();
         } catch (NullPointerException expected) {}
     }
 
     public void test_RSA_private_encrypt_null_key_Failure() throws Exception {
         try {
-            NativeCrypto.RSA_private_encrypt(0, new byte[0], new byte[0], 0, 0);
+            NativeCrypto.RSA_private_encrypt(0, new byte[0], new byte[0],
+                    NULL_EVP_PKEY, 0);
             fail();
         } catch (NullPointerException expected) {}
     }
 
     public void test_RSA_private_decrypt_null_key_Failure() throws Exception {
         try {
-            NativeCrypto.RSA_private_decrypt(0, new byte[0], new byte[0], 0, 0);
+            NativeCrypto.RSA_private_decrypt(0, new byte[0], new byte[0],
+ NULL_EVP_PKEY, 0);
             fail();
         } catch (NullPointerException expected) {}
     }
 
     public void test_RSA_public_encrypt_null_key_Failure() throws Exception {
         try {
-            NativeCrypto.RSA_public_encrypt(0, new byte[0], new byte[0], 0, 0);
+            NativeCrypto.RSA_public_encrypt(0, new byte[0], new byte[0], NULL_EVP_PKEY,
+                    0);
             fail();
         } catch (NullPointerException expected) {}
     }
 
     public void test_RSA_public_decrypt_null_key_Failure() throws Exception {
         try {
-            NativeCrypto.RSA_public_decrypt(0, new byte[0], new byte[0], 0, 0);
+            NativeCrypto.RSA_public_decrypt(0, new byte[0], new byte[0], NULL_EVP_PKEY,
+                    0);
             fail();
         } catch (NullPointerException expected) {}
     }
@@ -2683,7 +2664,8 @@ public class NativeCryptoTest extends TestCase {
 
     private void check_EC_GROUP(int type, String name, String pStr, String aStr, String bStr,
             String xStr, String yStr, String nStr, long hLong) throws Exception {
-        long group = NULL, point = NULL, key1 = NULL;
+        long group = NULL, point = NULL;
+        NativeRef.EVP_PKEY key1;
         try {
             group = NativeCrypto.EC_GROUP_new_by_curve_name(name);
             assertTrue(group != NULL);
@@ -2735,7 +2717,7 @@ public class NativeCryptoTest extends TestCase {
             BigInteger h2 = new BigInteger(NativeCrypto.EC_GROUP_get_cofactor(group));
             assertEquals(h, h2);
 
-            key1 = NativeCrypto.EC_KEY_generate_key(group);
+            key1 = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
             long groupTmp = NativeCrypto.EC_KEY_get0_group(key1);
             assertEquals(NativeCrypto.EC_GROUP_get_curve_name(group),
                     NativeCrypto.EC_GROUP_get_curve_name(groupTmp));
@@ -2748,23 +2730,19 @@ public class NativeCryptoTest extends TestCase {
             if (point != NULL) {
                 NativeCrypto.EC_POINT_clear_free(point);
             }
-
-            if (key1 != NULL) {
-                NativeCrypto.EVP_PKEY_free(key1);
-            }
         }
     }
 
     public void test_EC_KEY_get_private_key_null_key_Failure() throws Exception {
         try {
-            NativeCrypto.EC_KEY_get_private_key(0);
+            NativeCrypto.EC_KEY_get_private_key(NULL_EVP_PKEY);
             fail();
         } catch (NullPointerException expected) {}
     }
 
     public void test_EC_KEY_get_public_key_null_key_Failure() throws Exception {
         try {
-            NativeCrypto.EC_KEY_get_public_key(0);
+            NativeCrypto.EC_KEY_get_public_key(NULL_EVP_PKEY);
             fail();
         } catch (NullPointerException expected) {}
     }
@@ -2775,35 +2753,29 @@ public class NativeCryptoTest extends TestCase {
             fail();
         }
         try {
-            long pkey1Ref = NativeCrypto.EC_KEY_generate_key(groupRef);
-            long pkey2Ref = NativeCrypto.EC_KEY_generate_key(groupRef);
+            NativeRef.EVP_PKEY pkey1Ref = new NativeRef.EVP_PKEY(
+                    NativeCrypto.EC_KEY_generate_key(groupRef));
+            NativeRef.EVP_PKEY pkey2Ref = new NativeRef.EVP_PKEY(
+                    NativeCrypto.EC_KEY_generate_key(groupRef));
+
+            byte[] out = new byte[128];
+            int outOffset = 0;
+            // Assert that the method under test works fine with the two
+            // non-null keys
+            NativeCrypto.ECDH_compute_key(out, outOffset, pkey1Ref, pkey2Ref);
+
+            // Assert that it fails when only the first key is null
             try {
-                if (pkey1Ref == 0) {
-                    fail();
-                }
-                if (pkey2Ref == 0) {
-                    fail();
-                }
+                NativeCrypto.ECDH_compute_key(out, outOffset, NULL_EVP_PKEY, pkey2Ref);
+                fail();
+            } catch (NullPointerException expected) {
+            }
 
-                byte[] out = new byte[128];
-                int outOffset = 0;
-                // Assert that the method under test works fine with the two non-null keys
-                NativeCrypto.ECDH_compute_key(out, outOffset, pkey1Ref, pkey2Ref);
-
-                // Assert that it fails when only the first key is null
-                try {
-                    NativeCrypto.ECDH_compute_key(out, outOffset, 0, pkey2Ref);
-                    fail();
-                } catch (NullPointerException expected) {}
-
-                // Assert that it fails when only the second key is null
-                try {
-                    NativeCrypto.ECDH_compute_key(out, outOffset, pkey1Ref, 0);
-                    fail();
-                } catch (NullPointerException expected) {}
-            } finally {
-                NativeCrypto.EVP_PKEY_free(pkey1Ref);
-                NativeCrypto.EVP_PKEY_free(pkey2Ref);
+            // Assert that it fails when only the second key is null
+            try {
+                NativeCrypto.ECDH_compute_key(out, outOffset, pkey1Ref, NULL_EVP_PKEY);
+                fail();
+            } catch (NullPointerException expected) {
             }
         } finally {
             NativeCrypto.EC_GROUP_clear_free(groupRef);

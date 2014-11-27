@@ -59,4 +59,19 @@ public abstract class NativeRef {
             }
         }
     }
+
+    public static class EVP_PKEY extends NativeRef {
+        public EVP_PKEY(long ctx) {
+            super(ctx);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            try {
+                NativeCrypto.EVP_PKEY_free(context);
+            } finally {
+                super.finalize();
+            }
+        }
+    }
 }

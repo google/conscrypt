@@ -48,7 +48,7 @@ public class OpenSSLDHKeyPairGenerator extends KeyPairGeneratorSpi {
                     generator.longValue()));
         }
 
-        NativeCrypto.DH_generate_key(key.getPkeyContext());
+        NativeCrypto.DH_generate_key(key.getNativeRef());
 
         final OpenSSLDHPrivateKey privKey = new OpenSSLDHPrivateKey(key);
         final OpenSSLDHPublicKey pubKey = new OpenSSLDHPublicKey(key);

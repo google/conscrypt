@@ -394,7 +394,7 @@ public class SSLParametersImpl implements Cloneable {
                     throw new SSLHandshakeException("Invalid TLS channel ID key specified");
                 }
                 NativeCrypto.SSL_set1_tls_channel_id(sslNativePointer,
-                        channelIdPrivateKey.getPkeyContext());
+                        channelIdPrivateKey.getNativeRef());
             } else {
                 // Server-side TLS Channel ID
                 NativeCrypto.SSL_enable_tls_channel_id(sslNativePointer);
@@ -442,7 +442,7 @@ public class SSLParametersImpl implements Cloneable {
         final OpenSSLKey key;
         try {
             key = OpenSSLKey.fromPrivateKey(privateKey);
-            NativeCrypto.SSL_use_PrivateKey(sslNativePointer, key.getPkeyContext());
+            NativeCrypto.SSL_use_PrivateKey(sslNativePointer, key.getNativeRef());
         } catch (InvalidKeyException e) {
             throw new SSLException(e);
         }

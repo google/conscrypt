@@ -195,7 +195,7 @@ public class OpenSSLX509CRL extends X509CRL {
 
     private void verifyOpenSSL(OpenSSLKey pkey) throws CRLException, NoSuchAlgorithmException,
             InvalidKeyException, NoSuchProviderException, SignatureException {
-        NativeCrypto.X509_CRL_verify(mContext, pkey.getPkeyContext());
+        NativeCrypto.X509_CRL_verify(mContext, pkey.getNativeRef());
     }
 
     private void verifyInternal(PublicKey key, String sigProvider) throws CRLException,
