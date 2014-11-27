@@ -33,7 +33,7 @@ public class OpenSSLSignature extends SignatureSpi {
         RSA, EC,
     };
 
-    private OpenSSLDigestContext ctx;
+    private NativeRef.EVP_MD_CTX ctx;
 
     /**
      * The current OpenSSL key we're operating on.
@@ -72,7 +72,7 @@ public class OpenSSLSignature extends SignatureSpi {
     }
 
     private final void resetContext() {
-        OpenSSLDigestContext ctxLocal = new OpenSSLDigestContext(NativeCrypto.EVP_MD_CTX_create());
+        NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         NativeCrypto.EVP_MD_CTX_init(ctxLocal);
         if (signing) {
             enableDSASignatureNonceHardeningIfApplicable();
@@ -91,7 +91,7 @@ public class OpenSSLSignature extends SignatureSpi {
 
     @Override
     protected void engineUpdate(byte[] input, int offset, int len) {
-        final OpenSSLDigestContext ctxLocal = ctx;
+        final NativeRef.EVP_MD_CTX ctxLocal = ctx;
         if (signing) {
             NativeCrypto.EVP_SignUpdate(ctxLocal, input, offset, len);
         } else {
@@ -173,7 +173,7 @@ public class OpenSSLSignature extends SignatureSpi {
             throw new SignatureException("Need RSA or EC private key");
         }
 
-        final OpenSSLDigestContext ctxLocal = ctx;
+        final NativeRef.EVP_MD_CTX ctxLocal = ctx;
         try {
             byte[] buffer = new byte[NativeCrypto.EVP_PKEY_size(key.getPkeyContext())];
             int bytesWritten = NativeCrypto.EVP_SignFinal(ctxLocal, buffer, 0,

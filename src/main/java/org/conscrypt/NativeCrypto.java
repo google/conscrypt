@@ -259,49 +259,50 @@ public final class NativeCrypto {
 
     public static native long EVP_MD_CTX_create();
 
-    public static native void EVP_MD_CTX_init(OpenSSLDigestContext ctx);
+    public static native void EVP_MD_CTX_init(NativeRef.EVP_MD_CTX ctx);
 
     public static native void EVP_MD_CTX_destroy(long ctx);
 
-    public static native int EVP_MD_CTX_copy(OpenSSLDigestContext dst_ctx,
-            OpenSSLDigestContext src_ctx);
+    public static native int EVP_MD_CTX_copy(NativeRef.EVP_MD_CTX dst_ctx,
+            NativeRef.EVP_MD_CTX src_ctx);
 
     // --- Digest handling functions -------------------------------------------
 
-    public static native int EVP_DigestInit(OpenSSLDigestContext ctx, long evp_md);
+    public static native int EVP_DigestInit(NativeRef.EVP_MD_CTX ctx, long evp_md);
 
-    public static native void EVP_DigestUpdate(OpenSSLDigestContext ctx, byte[] buffer,
-            int offset, int length);
+    public static native void EVP_DigestUpdate(NativeRef.EVP_MD_CTX ctx,
+            byte[] buffer, int offset, int length);
 
-    public static native int EVP_DigestFinal(OpenSSLDigestContext ctx, byte[] hash, int offset);
+    public static native int EVP_DigestFinal(NativeRef.EVP_MD_CTX ctx, byte[] hash,
+            int offset);
 
     // --- MAC handling functions ----------------------------------------------
 
-    public static native void EVP_DigestSignInit(OpenSSLDigestContext evp_md_ctx, long evp_md,
-            long evp_pkey);
+    public static native void EVP_DigestSignInit(NativeRef.EVP_MD_CTX evp_md_ctx,
+            long evp_md, long evp_pkey);
 
-    public static native void EVP_DigestSignUpdate(OpenSSLDigestContext evp_md_ctx, byte[] in);
+    public static native void EVP_DigestSignUpdate(NativeRef.EVP_MD_CTX evp_md_ctx,
+            byte[] in);
 
-    public static native byte[] EVP_DigestSignFinal(OpenSSLDigestContext evp_md_ctx);
+    public static native byte[] EVP_DigestSignFinal(NativeRef.EVP_MD_CTX evp_md_ctx);
 
     // --- Signature handling functions ----------------------------------------
 
-    public static native int EVP_SignInit(OpenSSLDigestContext ctx, long evpRef);
+    public static native int EVP_SignInit(NativeRef.EVP_MD_CTX ctx, long evpRef);
 
-    public static native void EVP_SignUpdate(OpenSSLDigestContext ctx, byte[] buffer,
-                                               int offset, int length);
+    public static native void EVP_SignUpdate(NativeRef.EVP_MD_CTX ctx, byte[] buffer,
+            int offset, int length);
 
-    public static native int EVP_SignFinal(OpenSSLDigestContext ctx, byte[] signature, int offset,
-            long key);
+    public static native int EVP_SignFinal(NativeRef.EVP_MD_CTX ctx, byte[] signature,
+            int offset, long key);
 
-    public static native int EVP_VerifyInit(OpenSSLDigestContext ctx, long evpRef);
+    public static native int EVP_VerifyInit(NativeRef.EVP_MD_CTX ctx, long evpRef);
 
-    public static native void EVP_VerifyUpdate(OpenSSLDigestContext ctx, byte[] buffer,
-                                               int offset, int length);
+    public static native void EVP_VerifyUpdate(NativeRef.EVP_MD_CTX ctx,
+            byte[] buffer, int offset, int length);
 
-    public static native int EVP_VerifyFinal(OpenSSLDigestContext ctx, byte[] signature,
-                                             int offset, int length, long key);
-
+    public static native int EVP_VerifyFinal(NativeRef.EVP_MD_CTX ctx,
+            byte[] signature, int offset, int length, long key);
 
     // --- Block ciphers -------------------------------------------------------
 

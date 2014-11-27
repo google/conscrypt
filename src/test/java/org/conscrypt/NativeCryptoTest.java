@@ -2553,7 +2553,7 @@ public class NativeCryptoTest extends TestCase {
     }
 
     public void test_EVP_SignInit() throws Exception {
-        final OpenSSLDigestContext ctx = new OpenSSLDigestContext(NativeCrypto.EVP_MD_CTX_create());
+        final NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         assertEquals(1,
                 NativeCrypto.EVP_SignInit(ctx, NativeCrypto.EVP_get_digestbyname("sha256")));
 
