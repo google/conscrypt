@@ -309,28 +309,31 @@ public final class NativeCrypto {
 
     // --- Block ciphers -------------------------------------------------------
 
+    // These return const references
     public static native long EVP_get_cipherbyname(String string);
 
-    public static native void EVP_CipherInit_ex(long ctx, long evpCipher, byte[] key, byte[] iv,
-            boolean encrypting);
+    public static native void EVP_CipherInit_ex(NativeRef.EVP_CIPHER_CTX ctx, long evpCipher,
+            byte[] key, byte[] iv, boolean encrypting);
 
-    public static native int EVP_CipherUpdate(long ctx, byte[] out, int outOffset, byte[] in,
-            int inOffset, int inLength);
+    public static native int EVP_CipherUpdate(NativeRef.EVP_CIPHER_CTX ctx, byte[] out,
+            int outOffset, byte[] in, int inOffset, int inLength);
 
-    public static native int EVP_CipherFinal_ex(long ctx, byte[] out, int outOffset)
-            throws BadPaddingException, IllegalBlockSizeException;
+    public static native int EVP_CipherFinal_ex(NativeRef.EVP_CIPHER_CTX ctx, byte[] out,
+            int outOffset) throws BadPaddingException, IllegalBlockSizeException;
 
     public static native int EVP_CIPHER_iv_length(long evpCipher);
 
     public static native long EVP_CIPHER_CTX_new();
 
-    public static native int EVP_CIPHER_CTX_block_size(long ctx);
+    public static native int EVP_CIPHER_CTX_block_size(NativeRef.EVP_CIPHER_CTX ctx);
 
-    public static native int get_EVP_CIPHER_CTX_buf_len(long ctx);
+    public static native int get_EVP_CIPHER_CTX_buf_len(NativeRef.EVP_CIPHER_CTX ctx);
 
-    public static native void EVP_CIPHER_CTX_set_padding(long ctx, boolean enablePadding);
+    public static native void EVP_CIPHER_CTX_set_padding(NativeRef.EVP_CIPHER_CTX ctx,
+            boolean enablePadding);
 
-    public static native void EVP_CIPHER_CTX_set_key_length(long ctx, int keyBitSize);
+    public static native void EVP_CIPHER_CTX_set_key_length(NativeRef.EVP_CIPHER_CTX ctx,
+            int keyBitSize);
 
     public static native void EVP_CIPHER_CTX_cleanup(long ctx);
 
