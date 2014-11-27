@@ -29,7 +29,7 @@ import java.security.spec.X509EncodedKeySpec;
 import javax.crypto.SecretKey;
 
 public class OpenSSLKey {
-    private final long ctx;
+    private final NativeRef.EVP_PKEY ctx;
 
     private final OpenSSLEngine engine;
 
@@ -42,25 +42,23 @@ public class OpenSSLKey {
     }
 
     public OpenSSLKey(long ctx, boolean wrapped) {
-        this.ctx = ctx;
+        this.ctx = new NativeRef.EVP_PKEY(ctx);
         engine = null;
         alias = null;
         this.wrapped = wrapped;
     }
 
     public OpenSSLKey(long ctx, OpenSSLEngine engine, String alias) {
-        this.ctx = ctx;
+        this.ctx = new NativeRef.EVP_PKEY(ctx);
         this.engine = engine;
         this.alias = alias;
         this.wrapped = false;
     }
 
     /**
-     * Returns the raw pointer to the EVP_PKEY context for use in JNI calls. The
-     * life cycle of this native pointer is managed by the {@code OpenSSLKey}
-     * instance and must not be destroyed or freed by users of this API.
+     * Returns the EVP_PKEY context for use in JNI calls.
      */
-    public long getPkeyContext() {
+    public NativeRef.EVP_PKEY getNativeRef() {
         return ctx;
     }
 
@@ -151,7 +149,7 @@ public class OpenSSLKey {
             throw new InvalidKeySpecException(e);
         }
 
-        if (NativeCrypto.EVP_PKEY_type(key.getPkeyContext()) != type) {
+        if (NativeCrypto.EVP_PKEY_type(key.getNativeRef()) != type) {
             throw new InvalidKeySpecException("Unexpected key type");
         }
 
@@ -186,7 +184,7 @@ public class OpenSSLKey {
             throw new InvalidKeySpecException(e);
         }
 
-        if (NativeCrypto.EVP_PKEY_type(key.getPkeyContext()) != type) {
+        if (NativeCrypto.EVP_PKEY_type(key.getNativeRef()) != type) {
             throw new InvalidKeySpecException("Unexpected key type");
         }
 
@@ -208,17 +206,6 @@ public class OpenSSLKey {
     }
 
     @Override
-    protected void finalize() throws Throwable {
-        try {
-            if (ctx != 0) {
-                NativeCrypto.EVP_PKEY_free(ctx);
-            }
-        } finally {
-            super.finalize();
-        }
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (o == this) {
             return true;
@@ -229,7 +216,7 @@ public class OpenSSLKey {
         }
 
         OpenSSLKey other = (OpenSSLKey) o;
-        if (ctx == other.getPkeyContext()) {
+        if (ctx.equals(other.getNativeRef())) {
             return true;
         }
 
@@ -250,13 +237,13 @@ public class OpenSSLKey {
             }
         }
 
-        return NativeCrypto.EVP_PKEY_cmp(ctx, other.getPkeyContext()) == 1;
+        return NativeCrypto.EVP_PKEY_cmp(ctx, other.getNativeRef()) == 1;
     }
 
     @Override
     public int hashCode() {
         int hash = 1;
-        hash = hash * 17 + (int) ctx;
+        hash = hash * 17 + ctx.hashCode();
         hash = hash * 31 + (int) (engine == null ? 0 : engine.getEngineContext());
         return hash;
     }

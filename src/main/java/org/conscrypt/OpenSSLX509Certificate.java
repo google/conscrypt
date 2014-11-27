@@ -346,7 +346,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
             NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException,
             SignatureException {
         try {
-            NativeCrypto.X509_verify(mContext, pkey.getPkeyContext());
+            NativeCrypto.X509_verify(mContext, pkey.getNativeRef());
         } catch (RuntimeException e) {
             throw new CertificateException(e);
         } catch (BadPaddingException e) {

@@ -82,11 +82,11 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
     }
 
     static OpenSSLRSAPrivateKey getInstance(OpenSSLKey key) {
-      byte[][] params = NativeCrypto.get_RSA_private_params(key.getPkeyContext());
-      if (params[1] != null) {
-          return new OpenSSLRSAPrivateCrtKey(key, params);
-      }
-      return new OpenSSLRSAPrivateKey(key, params);
+        byte[][] params = NativeCrypto.get_RSA_private_params(key.getNativeRef());
+        if (params[1] != null) {
+            return new OpenSSLRSAPrivateCrtKey(key, params);
+        }
+        return new OpenSSLRSAPrivateKey(key, params);
     }
 
     protected static OpenSSLKey wrapPlatformKey(RSAPrivateKey rsaPrivateKey)
@@ -136,7 +136,7 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
         if (fetchedParams) {
             return;
         }
-        readParams(NativeCrypto.get_RSA_private_params(key.getPkeyContext()));
+        readParams(NativeCrypto.get_RSA_private_params(key.getNativeRef()));
         fetchedParams = true;
     }
 
@@ -182,7 +182,7 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
             return null;
         }
 
-        return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getPkeyContext());
+        return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getNativeRef());
     }
 
     @Override
