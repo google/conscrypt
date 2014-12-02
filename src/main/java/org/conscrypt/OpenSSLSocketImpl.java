@@ -432,7 +432,7 @@ public class OpenSSLSocketImpl
 
     @Override
     public int getPort() {
-        return peerHostname == null ? super.getPort() : peerPort;
+        return peerPort == -1 ? super.getPort() : peerPort;
     }
 
     @Override
