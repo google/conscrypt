@@ -310,8 +310,10 @@ public final class TrustedCertificateStore {
      * or where it should be installed if it does not exist. The
      * caller can disambiguate these cases by calling {@code
      * File.exists()} on the result.
+     *
+     * @VisibleForTesting
      */
-    private File getCertificateFile(File dir, final X509Certificate x) {
+    File getCertificateFile(File dir, final X509Certificate x) {
         // compare X509Certificate.getEncoded values
         CertSelector selector = new CertSelector() {
             @Override
