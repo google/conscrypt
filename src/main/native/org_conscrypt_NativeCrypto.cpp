@@ -8585,7 +8585,8 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
         appData->clearCallbackState();
         // cert_verify_callback threw exception
         if (env->ExceptionCheck()) {
-            SSL_clear(ssl);
+            freeOpenSslErrorState();
+            safeSslClear(ssl);
             JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake exception => 0", ssl);
             return 0;
         }
