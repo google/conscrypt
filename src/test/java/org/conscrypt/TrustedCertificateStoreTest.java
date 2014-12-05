@@ -16,8 +16,13 @@
 
 package org.conscrypt;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.KeyStore;
 import java.security.KeyStore.PrivateKeyEntry;
@@ -25,6 +30,7 @@ import java.security.KeyStore.TrustedCertificateEntry;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -675,6 +681,82 @@ public class TrustedCertificateStoreTest extends TestCase {
         store.deleteCertificateEntry(getAliasUserCa2());
         assertFalse(store.isUserAddedCertificate(getCa1()));
         assertFalse(store.isUserAddedCertificate(getCa2()));
+    }
+
+    public void testSystemCaCertsUseCorrectFileNames() throws Exception {
+        TrustedCertificateStore store = new TrustedCertificateStore();
+
+        // Assert that all the certificates in the system cacerts directory are stored in files with
+        // expected names.
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        File dir = new File(System.getenv("ANDROID_ROOT") + "/etc/security/cacerts");
+        int systemCertFileCount = 0;
+        for (File actualFile : listFilesNoNull(dir)) {
+            if (!actualFile.isFile()) {
+                continue;
+            }
+            systemCertFileCount++;
+            X509Certificate cert = (X509Certificate) certificateFactory.generateCertificate(
+                    new ByteArrayInputStream(readFully(actualFile)));
+
+            File expectedFile = store.getCertificateFile(dir, cert);
+            assertEquals("System certificate stored in the wrong file",
+                    expectedFile.getAbsolutePath(), actualFile.getAbsolutePath());
+
+            // The two statements below indirectly assert that the certificate can be looked up
+            // from a file (hopefully the same one as the expectedFile above). As opposed to
+            // getCertifiacteFile above, these are the actual methods used when verifying chain of
+            // trust. Thus, we assert that they work as expected for all system certificates.
+            assertNotNull("Issuer certificate not found for system certificate " + actualFile,
+                    store.findIssuer(cert));
+            assertNotNull("Trust anchor not found for system certificate " + actualFile,
+                    store.getTrustAnchor(cert));
+        }
+
+        // Assert that all files corresponding to all system certs/aliases known to the store are
+        // present.
+        int systemCertAliasCount = 0;
+        for (String alias : store.aliases()) {
+            if (!TrustedCertificateStore.isSystem(alias)) {
+                continue;
+            }
+            systemCertAliasCount++;
+            // Checking that the certificate is stored in a file is extraneous given the current
+            // implementation of the class under test. We do it just in case the implementation
+            // changes.
+            X509Certificate cert = (X509Certificate) store.getCertificate(alias);
+            File expectedFile = store.getCertificateFile(dir, cert);
+            if (!expectedFile.isFile()) {
+                fail("Missing certificate file for alias " + alias
+                        + ": " + expectedFile.getAbsolutePath());
+            }
+        }
+
+        assertEquals("Number of system cert files and aliases doesn't match",
+                systemCertFileCount, systemCertAliasCount);
+    }
+
+    private static File[] listFilesNoNull(File dir) {
+        File[] files = dir.listFiles();
+        return (files != null) ? files : new File[0];
+    }
+
+    private static byte[] readFully(File file) throws IOException {
+        InputStream in = null;
+        try {
+            in = new FileInputStream(file);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buf = new byte[16384];
+            int chunkSize;
+            while ((chunkSize = in.read(buf)) != -1) {
+                out.write(buf, 0, chunkSize);
+            }
+            return out.toByteArray();
+        } finally {
+            if (in != null) {
+                in.close();
+            }
+        }
     }
 
     private void assertRootCa(X509Certificate x, String alias) {
