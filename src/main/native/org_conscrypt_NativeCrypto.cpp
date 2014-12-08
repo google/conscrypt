@@ -4476,8 +4476,12 @@ static jint NativeCrypto_EVP_CipherFinal_ex(JNIEnv* env, jclass, jlong ctxRef, j
 
     int outl;
     if (!EVP_CipherFinal_ex(ctx, out + outOffset, &outl)) {
-        throwExceptionIfNecessary(env, "EVP_CipherFinal_ex");
-        JNI_TRACE("ctx=%p EVP_CipherFinal_ex => threw error", ctx);
+        if (throwExceptionIfNecessary(env, "EVP_CipherFinal_ex")) {
+            JNI_TRACE("ctx=%p EVP_CipherFinal_ex => threw error", ctx);
+        } else {
+            throwBadPaddingException(env, "EVP_CipherFinal_ex");
+            JNI_TRACE("ctx=%p EVP_CipherFinal_ex => threw padding exception", ctx);
+        }
         return 0;
     }
 
