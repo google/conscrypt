@@ -502,6 +502,7 @@ static void throwForRsaError(JNIEnv* env, int reason, const char *message) {
     switch (reason) {
     case RSA_R_BLOCK_TYPE_IS_NOT_01:
     case RSA_R_BLOCK_TYPE_IS_NOT_02:
+    case RSA_R_PKCS_DECODING_ERROR:
         throwBadPaddingException(env, message);
         break;
     case RSA_R_ALGORITHM_MISMATCH:
