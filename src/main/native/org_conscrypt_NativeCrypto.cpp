@@ -5867,6 +5867,22 @@ static jbyteArray NativeCrypto_i2d_PKCS7(JNIEnv* env, jclass, jlongArray certsAr
         return NULL;
     }
 
+    // The EncapsulatedContentInfo must be present in the output, but OpenSSL
+    // will fill in a zero-length OID if you don't call PKCS7_set_content on the
+    // outer PKCS7 container. So we construct an empty PKCS7 data container and
+    // set it as the content.
+    Unique_PKCS7 pkcs7Data(PKCS7_new());
+    if (PKCS7_set_type(pkcs7Data.get(), NID_pkcs7_data) != 1) {
+        throwExceptionIfNecessary(env, "PKCS7_set_type data");
+        return NULL;
+    }
+
+    if (PKCS7_set_content(pkcs7.get(), pkcs7Data.get()) != 1) {
+        throwExceptionIfNecessary(env, "PKCS7_set_content");
+        return NULL;
+    }
+    OWNERSHIP_TRANSFERRED(pkcs7Data);
+
     ScopedLongArrayRO certs(env, certsArray);
     for (size_t i = 0; i < certs.size(); i++) {
         X509* item = reinterpret_cast<X509*>(certs[i]);
