@@ -3121,7 +3121,7 @@ public class NativeCryptoTest extends TestCase {
             NativeCrypto.EVP_CipherInit_ex(ctx, evpCipher, null, null, false);
             NativeCrypto.EVP_CipherInit_ex(ctx, NULL, null, null, false);
         } finally {
-            NativeCrypto.EVP_CIPHER_CTX_cleanup(ctx);
+            NativeCrypto.EVP_CIPHER_CTX_free(ctx);
         }
     }
 
@@ -3131,7 +3131,7 @@ public class NativeCryptoTest extends TestCase {
             final long evpCipher = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
             NativeCrypto.EVP_CipherInit_ex(ctx, evpCipher, AES_128_KEY, null, true);
         } finally {
-            NativeCrypto.EVP_CIPHER_CTX_cleanup(ctx);
+            NativeCrypto.EVP_CIPHER_CTX_free(ctx);
         }
     }
 
