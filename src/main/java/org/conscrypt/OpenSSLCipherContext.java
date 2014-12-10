@@ -30,7 +30,7 @@ class OpenSSLCipherContext {
     @Override
     protected void finalize() throws Throwable {
         try {
-            NativeCrypto.EVP_CIPHER_CTX_cleanup(context);
+            NativeCrypto.EVP_CIPHER_CTX_free(context);
         } finally {
             super.finalize();
         }
