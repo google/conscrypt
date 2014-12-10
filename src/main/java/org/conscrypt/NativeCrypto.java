@@ -335,7 +335,7 @@ public final class NativeCrypto {
     public static native void EVP_CIPHER_CTX_set_key_length(NativeRef.EVP_CIPHER_CTX ctx,
             int keyBitSize);
 
-    public static native void EVP_CIPHER_CTX_cleanup(long ctx);
+    public static native void EVP_CIPHER_CTX_free(long ctx);
 
     // --- RAND seeding --------------------------------------------------------
 
