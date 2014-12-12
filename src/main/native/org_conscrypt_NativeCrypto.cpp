@@ -344,6 +344,13 @@ typedef UniquePtr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENE
     do { typeof (obj.release()) _dummy __attribute__((unused)) = obj.release(); } while(0)
 
 /**
+ * UNUSED_ARGUMENT can be used to mark an, otherwise unused, argument as "used"
+ * for the purposes of -Werror=unused-parameter. This can be needed when an
+ * argument's use is based on an #ifdef.
+ */
+#define UNUSED_ARGUMENT(x) ((void)(x));
+
+/**
  * Frees the SSL error state.
  *
  * OpenSSL keeps an "error stack" per thread, and given that this code
@@ -1752,22 +1759,22 @@ struct KeyExData {
 
 // ExDataDup is called when one of the RSA or EC_KEY objects is duplicated. We
 // don't support this and it should never happen.
-int ExDataDup(CRYPTO_EX_DATA* to,
-              const CRYPTO_EX_DATA* from,
-              void** from_d,
-              int index,
-              long argl,
-              void* argp) {
+int ExDataDup(CRYPTO_EX_DATA* /* to */,
+              const CRYPTO_EX_DATA* /* from */,
+              void** /* from_d */,
+              int /* index */,
+              long /* argl */,
+              void* /* argp */) {
   return 0;
 }
 
 // ExDataFree is called when one of the RSA or EC_KEY objects is freed.
-void ExDataFree(void* parent,
+void ExDataFree(void* /* parent */,
                 void* ptr,
-                CRYPTO_EX_DATA* ad,
-                int index,
-                long argl,
-                void* argp) {
+                CRYPTO_EX_DATA* /* ad */,
+                int /* index */,
+                long /* argl */,
+                void* /* argp */) {
   // Ensure the global JNI reference created with this wrapper is
   // properly destroyed with it.
   KeyExData *ex_data = reinterpret_cast<KeyExData*>(ptr);
@@ -1787,13 +1794,13 @@ size_t RsaMethodSize(const RSA *rsa) {
   return ex_data->cached_size;
 }
 
-int RsaMethodEncrypt(RSA* rsa,
-                     size_t* out_len,
-                     uint8_t* out,
-                     size_t max_out,
-                     const uint8_t* in,
-                     size_t in_len,
-                     int padding) {
+int RsaMethodEncrypt(RSA* /* rsa */,
+                     size_t* /* out_len */,
+                     uint8_t* /* out */,
+                     size_t /* max_out */,
+                     const uint8_t* /* in */,
+                     size_t /* in_len */,
+                     int /* padding */) {
   OPENSSL_PUT_ERROR(RSA, encrypt, RSA_R_UNKNOWN_ALGORITHM_TYPE);
   return 0;
 }
@@ -1864,24 +1871,24 @@ int RsaMethodSignRaw(RSA* rsa,
   return 1;
 }
 
-int RsaMethodDecrypt(RSA* rsa,
-                     size_t* out_len,
-                     uint8_t* out,
-                     size_t max_out,
-                     const uint8_t* in,
-                     size_t in_len,
-                     int padding) {
+int RsaMethodDecrypt(RSA* /* rsa */,
+                     size_t* /* out_len */,
+                     uint8_t* /* out */,
+                     size_t /* max_out */,
+                     const uint8_t* /* in */,
+                     size_t /* in_len */,
+                     int /* padding */) {
   OPENSSL_PUT_ERROR(RSA, decrypt, RSA_R_UNKNOWN_ALGORITHM_TYPE);
   return 0;
 }
 
-int RsaMethodVerifyRaw(RSA* rsa,
-                       size_t* out_len,
-                       uint8_t* out,
-                       size_t max_out,
-                       const uint8_t* in,
-                       size_t in_len,
-                       int padding) {
+int RsaMethodVerifyRaw(RSA* /* rsa */,
+                       size_t* /* out_len */,
+                       uint8_t* /* out */,
+                       size_t /* max_out */,
+                       const uint8_t* /* in */,
+                       size_t /* in_len */,
+                       int /* padding */) {
   OPENSSL_PUT_ERROR(RSA, verify_raw, RSA_R_UNKNOWN_ALGORITHM_TYPE);
   return 0;
 }
@@ -1907,6 +1914,7 @@ const RSA_METHOD android_rsa_method = {
     NULL /* private_transform */,
     RSA_FLAG_OPAQUE,
     NULL /* keygen */,
+    NULL /* supports_digest */,
 };
 
 // Custom ECDSA_METHOD that uses the platform APIs.
@@ -1967,11 +1975,11 @@ int EcdsaMethodSign(const uint8_t* digest,
     return 1;
 }
 
-int EcdsaMethodVerify(const uint8_t* digest,
-                      size_t digest_len,
-                      const uint8_t* sig,
-                      size_t sig_len,
-                      EC_KEY* ec_key) {
+int EcdsaMethodVerify(const uint8_t* /* digest */,
+                      size_t /* digest_len */,
+                      const uint8_t* /* sig */,
+                      size_t /* sig_len */,
+                      EC_KEY* /* ec_key */) {
   OPENSSL_PUT_ERROR(ECDSA, ECDSA_do_verify, ECDSA_R_NOT_IMPLEMENTED);
   return 0;
 }
@@ -2166,8 +2174,8 @@ static void NativeCrypto_ENGINE_load_dynamic(JNIEnv*, jclass) {
 #endif
 }
 
-static jlong NativeCrypto_ENGINE_by_id(JNIEnv* env, jclass, jstring idJava) {
 #if !defined(OPENSSL_IS_BORINGSSL)
+static jlong NativeCrypto_ENGINE_by_id(JNIEnv* env, jclass, jstring idJava) {
     JNI_TRACE("ENGINE_by_id(%p)", idJava);
 
     ScopedUtfChars id(env, idJava);
@@ -2184,13 +2192,15 @@ static jlong NativeCrypto_ENGINE_by_id(JNIEnv* env, jclass, jstring idJava) {
 
     JNI_TRACE("ENGINE_by_id(\"%s\") => %p", id.c_str(), e);
     return reinterpret_cast<uintptr_t>(e);
-#else
-    return 0;
-#endif
 }
+#else
+static jlong NativeCrypto_ENGINE_by_id(JNIEnv*, jclass, jstring) {
+    return 0;
+}
+#endif
 
-static jint NativeCrypto_ENGINE_add(JNIEnv* env, jclass, jlong engineRef) {
 #if !defined(OPENSSL_IS_BORINGSSL)
+static jint NativeCrypto_ENGINE_add(JNIEnv* env, jclass, jlong engineRef) {
     ENGINE* e = reinterpret_cast<ENGINE*>(static_cast<uintptr_t>(engineRef));
     JNI_TRACE("ENGINE_add(%p)", e);
 
@@ -2209,13 +2219,15 @@ static jint NativeCrypto_ENGINE_add(JNIEnv* env, jclass, jlong engineRef) {
 
     JNI_TRACE("ENGINE_add(%p) => %d", e, ret);
     return ret;
-#else
-    return 0;
-#endif
 }
+#else
+static jint NativeCrypto_ENGINE_add(JNIEnv*, jclass, jlong) {
+    return 0;
+}
+#endif
 
-static jint NativeCrypto_ENGINE_init(JNIEnv* env, jclass, jlong engineRef) {
 #if !defined(OPENSSL_IS_BORINGSSL)
+static jint NativeCrypto_ENGINE_init(JNIEnv* env, jclass, jlong engineRef) {
     ENGINE* e = reinterpret_cast<ENGINE*>(static_cast<uintptr_t>(engineRef));
     JNI_TRACE("ENGINE_init(%p)", e);
 
@@ -2227,13 +2239,15 @@ static jint NativeCrypto_ENGINE_init(JNIEnv* env, jclass, jlong engineRef) {
     int ret = ENGINE_init(e);
     JNI_TRACE("ENGINE_init(%p) => %d", e, ret);
     return ret;
-#else
-    return 0;
-#endif
 }
+#else
+static jint NativeCrypto_ENGINE_init(JNIEnv*, jclass, jlong) {
+    return 0;
+}
+#endif
 
-static jint NativeCrypto_ENGINE_finish(JNIEnv* env, jclass, jlong engineRef) {
 #if !defined(OPENSSL_IS_BORINGSSL)
+static jint NativeCrypto_ENGINE_finish(JNIEnv* env, jclass, jlong engineRef) {
     ENGINE* e = reinterpret_cast<ENGINE*>(static_cast<uintptr_t>(engineRef));
     JNI_TRACE("ENGINE_finish(%p)", e);
 
@@ -2245,13 +2259,15 @@ static jint NativeCrypto_ENGINE_finish(JNIEnv* env, jclass, jlong engineRef) {
     int ret = ENGINE_finish(e);
     JNI_TRACE("ENGINE_finish(%p) => %d", e, ret);
     return ret;
-#else
-    return 0;
-#endif
 }
+#else
+static jint NativeCrypto_ENGINE_finish(JNIEnv*, jclass, jlong) {
+    return 0;
+}
+#endif
 
-static jint NativeCrypto_ENGINE_free(JNIEnv* env, jclass, jlong engineRef) {
 #if !defined(OPENSSL_IS_BORINGSSL)
+static jint NativeCrypto_ENGINE_free(JNIEnv* env, jclass, jlong engineRef) {
     ENGINE* e = reinterpret_cast<ENGINE*>(static_cast<uintptr_t>(engineRef));
     JNI_TRACE("ENGINE_free(%p)", e);
 
@@ -2263,10 +2279,12 @@ static jint NativeCrypto_ENGINE_free(JNIEnv* env, jclass, jlong engineRef) {
     int ret = ENGINE_free(e);
     JNI_TRACE("ENGINE_free(%p) => %d", e, ret);
     return ret;
-#else
-    return 0;
-#endif
 }
+#else
+static jint NativeCrypto_ENGINE_free(JNIEnv*, jclass, jlong) {
+    return 0;
+}
+#endif
 
 #if defined(OPENSSL_IS_BORINGSSL)
 extern "C" {
@@ -2296,6 +2314,7 @@ static jlong NativeCrypto_ENGINE_load_private_key(JNIEnv* env, jclass, jlong eng
     JNI_TRACE("ENGINE_load_private_key(%p, %p) => %p", e, idJava, pkey.get());
     return reinterpret_cast<uintptr_t>(pkey.release());
 #else
+    UNUSED_ARGUMENT(engineRef);
 #if defined(NO_KEYSTORE_ENGINE)
     jniThrowRuntimeException(env, "No keystore ENGINE support compiled in");
     return 0;
@@ -2310,9 +2329,9 @@ static jlong NativeCrypto_ENGINE_load_private_key(JNIEnv* env, jclass, jlong eng
 #endif
 }
 
+#if !defined(OPENSSL_IS_BORINGSSL)
 static jstring NativeCrypto_ENGINE_get_id(JNIEnv* env, jclass, jlong engineRef)
 {
-#if !defined(OPENSSL_IS_BORINGSSL)
     ENGINE* e = reinterpret_cast<ENGINE*>(static_cast<uintptr_t>(engineRef));
     JNI_TRACE("ENGINE_get_id(%p)", e);
 
@@ -2327,16 +2346,19 @@ static jstring NativeCrypto_ENGINE_get_id(JNIEnv* env, jclass, jlong engineRef)
 
     JNI_TRACE("ENGINE_get_id(%p) => \"%s\"", e, id);
     return idJava.release();
+}
 #else
+static jstring NativeCrypto_ENGINE_get_id(JNIEnv* env, jclass, jlong)
+{
     ScopedLocalRef<jstring> idJava(env, env->NewStringUTF("keystore"));
     return idJava.release();
-#endif
 }
+#endif
 
+#if !defined(OPENSSL_IS_BORINGSSL)
 static jint NativeCrypto_ENGINE_ctrl_cmd_string(JNIEnv* env, jclass, jlong engineRef,
         jstring cmdJava, jstring argJava, jint cmd_optional)
 {
-#if !defined(OPENSSL_IS_BORINGSSL)
     ENGINE* e = reinterpret_cast<ENGINE*>(static_cast<uintptr_t>(engineRef));
     JNI_TRACE("ENGINE_ctrl_cmd_string(%p, %p, %p, %d)", e, cmdJava, argJava, cmd_optional);
 
@@ -2375,10 +2397,13 @@ static jint NativeCrypto_ENGINE_ctrl_cmd_string(JNIEnv* env, jclass, jlong engin
     JNI_TRACE("ENGINE_ctrl_cmd_string(%p, \"%s\", \"%s\", %d) => %d", e, cmdChars.c_str(),
             arg_c_str, cmd_optional, ret);
     return ret;
-#else
-    return 0;
-#endif
 }
+#else
+static jint NativeCrypto_ENGINE_ctrl_cmd_string(JNIEnv*, jclass, jlong, jstring, jstring, jint)
+{
+    return 0;
+}
+#endif
 
 static jlong NativeCrypto_EVP_PKEY_new_DH(JNIEnv* env, jclass,
                                                jbyteArray p, jbyteArray g,
@@ -3331,9 +3356,9 @@ static jobjectArray NativeCrypto_get_DH_params(JNIEnv* env, jclass, jobject pkey
  * Return group type or 0 if unknown group.
  * EC_GROUP_GFP or EC_GROUP_GF2M
  */
+#if !defined(OPENSSL_IS_BORINGSSL)
 static int get_EC_GROUP_type(const EC_GROUP* group)
 {
-#if !defined(OPENSSL_IS_BORINGSSL)
     const EC_METHOD* method = EC_GROUP_method_of(group);
     if (method == EC_GFp_nist_method()
                 || method == EC_GFp_mont_method()
@@ -3344,10 +3369,13 @@ static int get_EC_GROUP_type(const EC_GROUP* group)
     }
 
     return 0;
-#else
-    return EC_CURVE_GFP;
-#endif
 }
+#else
+static int get_EC_GROUP_type(const EC_GROUP*)
+{
+    return EC_CURVE_GFP;
+}
+#endif
 
 static jlong NativeCrypto_EC_GROUP_new_by_curve_name(JNIEnv* env, jclass, jstring curveNameJava)
 {
@@ -3376,10 +3404,10 @@ static jlong NativeCrypto_EC_GROUP_new_by_curve_name(JNIEnv* env, jclass, jstrin
     return reinterpret_cast<uintptr_t>(group);
 }
 
+#if !defined(OPENSSL_IS_BORINGSSL)
 static void NativeCrypto_EC_GROUP_set_asn1_flag(JNIEnv* env, jclass, jobject groupRef,
         jint flag)
 {
-#if !defined(OPENSSL_IS_BORINGSSL)
     EC_GROUP* group = fromContextObject<EC_GROUP>(env, groupRef);
     JNI_TRACE("EC_GROUP_set_asn1_flag(%p, %d)", group, flag);
 
@@ -3391,9 +3419,14 @@ static void NativeCrypto_EC_GROUP_set_asn1_flag(JNIEnv* env, jclass, jobject gro
 
     EC_GROUP_set_asn1_flag(group, flag);
     JNI_TRACE("EC_GROUP_set_asn1_flag(%p, %d) => success", group, flag);
-#endif
 }
+#else
+static void NativeCrypto_EC_GROUP_set_asn1_flag(JNIEnv*, jclass, jobject, jint)
+{
+}
+#endif
 
+#if !defined(OPENSSL_IS_BORINGSSL)
 static void NativeCrypto_EC_GROUP_set_point_conversion_form(JNIEnv* env, jclass,
         jobject groupRef, jint form)
 {
@@ -3409,6 +3442,11 @@ static void NativeCrypto_EC_GROUP_set_point_conversion_form(JNIEnv* env, jclass,
     EC_GROUP_set_point_conversion_form(group, static_cast<point_conversion_form_t>(form));
     JNI_TRACE("EC_GROUP_set_point_conversion_form(%p, %d) => success", group, form);
 }
+#else
+static void NativeCrypto_EC_GROUP_set_point_conversion_form(JNIEnv*, jclass, jobject, jint)
+{
+}
+#endif
 
 static jstring NativeCrypto_EC_GROUP_get_curve_name(JNIEnv* env, jclass, jobject groupRef) {
     const EC_GROUP* group = fromContextObject<EC_GROUP>(env, groupRef);
@@ -3895,10 +3933,10 @@ static jlong NativeCrypto_EC_KEY_get_public_key(JNIEnv* env, jclass, jobject pke
     return reinterpret_cast<uintptr_t>(dup.release());
 }
 
+#if !defined(OPENSSL_IS_BORINGSSL)
 static void NativeCrypto_EC_KEY_set_nonce_from_hash(JNIEnv* env, jclass, jobject pkeyRef,
         jboolean enabled)
 {
-#if !defined(OPENSSL_IS_BORINGSSL)
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     JNI_TRACE("EC_KEY_set_nonce_from_hash(%p, %d)", pkey, enabled ? 1 : 0);
 
@@ -3914,8 +3952,12 @@ static void NativeCrypto_EC_KEY_set_nonce_from_hash(JNIEnv* env, jclass, jobject
     }
 
     EC_KEY_set_nonce_from_hash(eckey.get(), enabled ? 1 : 0);
-#endif
 }
+#else
+static void NativeCrypto_EC_KEY_set_nonce_from_hash(JNIEnv*, jclass, jobject, jboolean)
+{
+}
+#endif
 
 static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
      jbyteArray outArray, jint outOffset, jobject pubkeyRef, jobject privkeyRef)
@@ -4718,18 +4760,19 @@ static void NativeCrypto_EVP_CIPHER_CTX_free(JNIEnv*, jclass, jlong ctxRef) {
 /**
  * public static native void RAND_seed(byte[]);
  */
+#if !defined(OPENSSL_IS_BORINGSSL)
 static void NativeCrypto_RAND_seed(JNIEnv* env, jclass, jbyteArray seed) {
     JNI_TRACE("NativeCrypto_RAND_seed seed=%p", seed);
-#if !defined(OPENSSL_IS_BORINGSSL)
     ScopedByteArrayRO randseed(env, seed);
     if (randseed.get() == NULL) {
         return;
     }
     RAND_seed(randseed.get(), randseed.size());
-#else
-    return;
-#endif
 }
+#else
+static void NativeCrypto_RAND_seed(JNIEnv*, jclass, jbyteArray) {
+}
+#endif
 
 static jint NativeCrypto_RAND_load_file(JNIEnv* env, jclass, jstring filename, jlong max_bytes) {
     JNI_TRACE("NativeCrypto_RAND_load_file filename=%p max_bytes=%lld", filename, (long long) max_bytes);
@@ -4742,6 +4785,8 @@ static jint NativeCrypto_RAND_load_file(JNIEnv* env, jclass, jstring filename, j
     JNI_TRACE("NativeCrypto_RAND_load_file file=%s => %d", file.c_str(), result);
     return result;
 #else
+    UNUSED_ARGUMENT(env);
+    UNUSED_ARGUMENT(filename);
     // OpenSSLRandom calls this and checks the return value.
     return static_cast<jint>(max_bytes);
 #endif
@@ -7048,9 +7093,9 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
         = env->GetMethodID(cls, "clientCertificateRequested", "([B[[B)V");
 
     // Call Java callback which can use SSL_use_certificate and SSL_use_PrivateKey to set values
-    char ssl2_ctype = SSL3_CT_RSA_SIGN;
     const char* ctype = NULL;
 #if !defined(OPENSSL_IS_BORINGSSL)
+    char ssl2_ctype = SSL3_CT_RSA_SIGN;
     int ctype_num = 0;
     jobjectArray issuers = NULL;
     switch (ssl->version) {
