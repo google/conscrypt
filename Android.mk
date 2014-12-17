@@ -171,6 +171,8 @@ include $(BUILD_STATIC_LIBRARY)
 # Build for the host.
 #
 
+ifeq ($(HOST_OS),linux)
+
 # Make the conscrypt-hostdex library
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
@@ -255,6 +257,8 @@ ifeq (,$(TARGET_BUILD_APPS))
     LOCAL_MULTILIB := both
     include $(BUILD_HOST_SHARED_LIBRARY)
 endif
+
+endif # HOST_OS == linux
 
 # clear out local variables
 core_cflags :=
