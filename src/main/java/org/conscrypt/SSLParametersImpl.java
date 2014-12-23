@@ -531,26 +531,6 @@ public class SSLParametersImpl implements Cloneable {
     }
 
     /**
-     * Returns true when the supplied hostname is valid for SNI purposes.
-     */
-    private static boolean isValidSniHostname(String sniHostname) {
-        if (sniHostname == null) {
-            return false;
-        }
-
-        // Must be a FQDN.
-        if (sniHostname.indexOf('.') == -1) {
-            return false;
-        }
-
-        if (Platform.isLiteralIpAddress(sniHostname)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
      * Returns whether Server Name Indication (SNI) is enabled by default for
      * sockets. For more information on SNI, see RFC 6066 section 3.
      */
