@@ -9382,8 +9382,8 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
         return -1;
     }
 
-    Unique_BIO emptyBio(BIO_new_mem_buf(NULL, 0));
-    ScopedSslBio sslBio(ssl, emptyBio.get(), wbio);
+    Unique_BIO nullBio(BIO_new(BIO_s_null()));
+    ScopedSslBio sslBio(ssl, nullBio.get(), wbio);
 
     int result = SSL_write(ssl, reinterpret_cast<const char*>(source.get()), len);
     appData->clearCallbackState();
