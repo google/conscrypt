@@ -2565,7 +2565,8 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass,
 static jlong NativeCrypto_EVP_PKEY_new_EC_KEY(JNIEnv* env, jclass, jobject groupRef,
         jobject pubkeyRef, jbyteArray keyJavaBytes) {
     const EC_GROUP* group = fromContextObject<EC_GROUP>(env, groupRef);
-    const EC_POINT* pubkey = fromContextObject<EC_POINT>(env, pubkeyRef);
+    const EC_POINT* pubkey = pubkeyRef == NULL ? NULL :
+            fromContextObject<EC_POINT>(env, pubkeyRef);
     JNI_TRACE("EVP_PKEY_new_EC_KEY(%p, %p, %p)", group, pubkey, keyJavaBytes);
 
     Unique_BIGNUM key(NULL);
