@@ -436,7 +436,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                 int bytesWritten = handshakeSink.position();
                 int bytesConsumed = (src.position() - positionBeforeHandshake);
                 return new SSLEngineResult((bytesConsumed > 0) ? Status.OK : Status.BUFFER_UNDERFLOW,
-                        getHandshakeStatus(), 0, bytesWritten);
+                        getHandshakeStatus(), bytesConsumed, bytesWritten);
             } catch (Exception e) {
                 throw (SSLHandshakeException) new SSLHandshakeException("Handshake failed")
                         .initCause(e);
