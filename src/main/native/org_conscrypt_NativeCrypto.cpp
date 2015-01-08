@@ -8538,7 +8538,8 @@ static jlong NativeCrypto_SSL_do_handshake_bio(JNIEnv* env, jclass, jlong ssl_ad
          * the SSLEngine code to wrap or unwrap.
          */
         if (sslError.get() == SSL_ERROR_NONE ||
-                (sslError.get() == SSL_ERROR_SYSCALL && errno == 0)) {
+                (sslError.get() == SSL_ERROR_SYSCALL && errno == 0) ||
+                (sslError.get() == SSL_ERROR_ZERO_RETURN)) {
             throwSSLHandshakeExceptionStr(env, "Connection closed by peer");
             safeSslClear(ssl);
         } else if (sslError.get() != SSL_ERROR_WANT_READ &&
@@ -8709,7 +8710,8 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
          * We still might want to find out the real reason of the failure.
          */
         if (sslError.get() == SSL_ERROR_NONE ||
-                (sslError.get() == SSL_ERROR_SYSCALL && errno == 0)) {
+                (sslError.get() == SSL_ERROR_SYSCALL && errno == 0) ||
+                (sslError.get() == SSL_ERROR_ZERO_RETURN)) {
             throwSSLHandshakeExceptionStr(env, "Connection closed by peer");
         } else {
             throwSSLExceptionWithSslErrors(env, ssl, sslError.release(),
