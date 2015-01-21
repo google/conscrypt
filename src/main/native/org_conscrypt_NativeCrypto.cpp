@@ -9385,7 +9385,11 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
         return -1;
     }
 
+#if defined(OPENSSL_IS_BORINGSSL)
+    Unique_BIO nullBio(BIO_new_mem_buf(NULL, 0));
+#else
     Unique_BIO nullBio(BIO_new(BIO_s_null()));
+#endif
     ScopedSslBio sslBio(ssl, nullBio.get(), wbio);
 
     int result = SSL_write(ssl, reinterpret_cast<const char*>(source.get()), len);
