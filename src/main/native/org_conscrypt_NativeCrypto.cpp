@@ -5603,7 +5603,7 @@ static jbyteArray X509Type_get_ext_oid(JNIEnv* env, T* x509Type, jstring oidStri
     return ASN1ToByteArray<ASN1_OCTET_STRING>(env, ext->value, i2d_ASN1_OCTET_STRING);
 }
 
-static jint NativeCrypto_X509_CRL_get_ext(JNIEnv* env, jclass, jlong x509CrlRef, jstring oid) {
+static jlong NativeCrypto_X509_CRL_get_ext(JNIEnv* env, jclass, jlong x509CrlRef, jstring oid) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_get_ext(%p, %p)", crl, oid);
     X509_EXTENSION* ext = X509Type_get_ext<X509_CRL, X509_CRL_get_ext_by_OBJ, X509_CRL_get_ext>(
@@ -5612,7 +5612,7 @@ static jint NativeCrypto_X509_CRL_get_ext(JNIEnv* env, jclass, jlong x509CrlRef,
     return reinterpret_cast<uintptr_t>(ext);
 }
 
-static jint NativeCrypto_X509_REVOKED_get_ext(JNIEnv* env, jclass, jlong x509RevokedRef,
+static jlong NativeCrypto_X509_REVOKED_get_ext(JNIEnv* env, jclass, jlong x509RevokedRef,
         jstring oid) {
     X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
     JNI_TRACE("X509_REVOKED_get_ext(%p, %p)", revoked, oid);
