@@ -95,7 +95,11 @@ endif
 
 # Platform conscrypt crypto JNI library
 include $(CLEAR_VARS)
-include $(TOP)/external/openssl/flavor.mk
+ifneq (,$(wildcard $(TOP)/external/boringssl/flavor.mk))
+    include $(TOP)/external/boringssl/flavor.mk
+else
+    include $(TOP)/external/openssl/flavor.mk
+endif
 LOCAL_CFLAGS += $(core_cflags)
 LOCAL_CFLAGS += -DJNI_JARJAR_PREFIX="com/android/"
 LOCAL_CPPFLAGS += $(core_cppflags)
