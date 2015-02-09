@@ -26,6 +26,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
@@ -419,6 +420,7 @@ public class SSLParametersImpl implements Cloneable {
         if (certificates == null) {
             return;
         }
+        PublicKey publicKey = (certificates.length > 0) ? certificates[0].getPublicKey() : null;
 
         /*
          * Make sure we keep a reference to the OpenSSLX509Certificate by using
@@ -441,7 +443,7 @@ public class SSLParametersImpl implements Cloneable {
 
         final OpenSSLKey key;
         try {
-            key = OpenSSLKey.fromPrivateKey(privateKey);
+            key = OpenSSLKey.fromPrivateKeyForTLSStackOnly(privateKey, publicKey);
             NativeCrypto.SSL_use_PrivateKey(sslNativePointer, key.getNativeRef());
         } catch (InvalidKeyException e) {
             throw new SSLException(e);
