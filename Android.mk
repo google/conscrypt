@@ -74,7 +74,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
 LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
-LOCAL_JAVA_LIBRARIES := core-libart
+LOCAL_JAVA_LIBRARIES := core-oj core-libart
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
@@ -89,7 +89,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
 LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
-LOCAL_JAVA_LIBRARIES := core-libart
+LOCAL_JAVA_LIBRARIES := core-oj core-libart
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
@@ -103,7 +103,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/test/java)
 LOCAL_JAVA_RESOURCE_DIRS := src/test/resources
 LOCAL_NO_STANDARD_LIBRARIES := true
-LOCAL_JAVA_LIBRARIES := core-libart core-junit bouncycastle
+LOCAL_JAVA_LIBRARIES := core-oj core-libart core-junit bouncycastle
 LOCAL_STATIC_JAVA_LIBRARIES := core-tests-support conscrypt-nojarjar
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
