@@ -3630,11 +3630,7 @@ static jboolean NativeCrypto_EC_GROUP_cmp(JNIEnv* env, jclass, jobject group1Ref
         return false;
     }
 
-#if !defined(OPENSSL_IS_BORINGSSL)
     int ret = EC_GROUP_cmp(group1, group2, NULL);
-#else
-    int ret = EC_GROUP_cmp(group1, group2);
-#endif
 
     JNI_TRACE("ECP_GROUP_cmp(%p, %p) => %d", group1, group2, ret);
     return ret == 0;
