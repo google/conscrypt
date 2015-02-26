@@ -168,6 +168,7 @@ LOCAL_C_INCLUDES += \
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libconscrypt_static
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+LOCAL_STATIC_LIBRARIES := libssl_static libcrypto_static
 LOCAL_SDK_VERSION := 9
 include $(BUILD_STATIC_LIBRARY)
 

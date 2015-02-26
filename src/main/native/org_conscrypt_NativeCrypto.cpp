@@ -5428,7 +5428,7 @@ static jlong NativeCrypto_X509_CRL_get0_by_serial(JNIEnv* env, jclass, jlong x50
 
 
 /* This appears to be missing from OpenSSL. */
-#if !defined(X509_REVOKED_dup)
+#if !defined(X509_REVOKED_dup) && !defined(OPENSSL_IS_BORINGSSL)
 X509_REVOKED* X509_REVOKED_dup(X509_REVOKED* x) {
     return reinterpret_cast<X509_REVOKED*>(ASN1_item_dup(ASN1_ITEM_rptr(X509_REVOKED), x));
 }
