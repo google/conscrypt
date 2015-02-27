@@ -314,6 +314,15 @@ struct sk_X509_Delete {
 };
 typedef UniquePtr<STACK_OF(X509), sk_X509_Delete> Unique_sk_X509;
 
+#if defined(OPENSSL_IS_BORINGSSL)
+struct sk_X509_CRL_Delete {
+    void operator()(STACK_OF(X509_CRL)* p) const {
+        sk_X509_CRL_pop_free(p, X509_CRL_free);
+    }
+};
+typedef UniquePtr<STACK_OF(X509_CRL), sk_X509_CRL_Delete> Unique_sk_X509_CRL;
+#endif
+
 struct sk_X509_NAME_Delete {
     void operator()(STACK_OF(X509_NAME)* p) const {
         sk_X509_NAME_pop_free(p, X509_NAME_free);
@@ -6103,6 +6112,7 @@ static jlongArray NativeCrypto_PEM_read_bio_PKCS7(JNIEnv* env, jclass, jlong bio
         return 0;
     }
 
+#if !defined(OPENSSL_IS_BORINGSSL)
     Unique_PKCS7 pkcs7(PEM_read_bio_PKCS7(bio, NULL, NULL, NULL));
     if (pkcs7.get() == NULL) {
         throwExceptionIfNecessary(env, "PEM_read_bio_PKCS7_CRLs");
@@ -6120,6 +6130,27 @@ static jlongArray NativeCrypto_PEM_read_bio_PKCS7(JNIEnv* env, jclass, jlong bio
         jniThrowRuntimeException(env, "unknown PKCS7 field");
         return NULL;
     }
+#else
+    if (which == PKCS7_CERTS) {
+        Unique_sk_X509 outCerts(sk_X509_new_null());
+        if (!PKCS7_get_PEM_certificates(outCerts.get(), bio)) {
+            throwExceptionIfNecessary(env, "PKCS7_get_PEM_certificates");
+            return 0;
+        }
+        return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, outCerts.get(), X509_dup);
+    } else if (which == PKCS7_CRLS) {
+        Unique_sk_X509_CRL outCRLs(sk_X509_CRL_new_null());
+        if (!PKCS7_get_PEM_CRLs(outCRLs.get(), bio)) {
+            throwExceptionIfNecessary(env, "PKCS7_get_PEM_CRLs");
+            return 0;
+        }
+        return PKCS7_to_ItemArray<X509_CRL, STACK_OF(X509_CRL)>(
+            env, outCRLs.get(), X509_CRL_dup);
+    } else {
+        jniThrowRuntimeException(env, "unknown PKCS7 field");
+        return 0;
+    }
+#endif
 }
 
 static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, jint which) {
@@ -6151,11 +6182,6 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
         return NULL;
     }
 #else
-    if (which != PKCS7_CERTS) {
-        throwExceptionIfNecessary(env, "Only certs supported in PKCS#7");
-        return 0;
-    }
-
     UniquePtr<uint8_t[]> data;
     size_t len;
     if (!readAllFromBIO(bio, &data, &len)) {
@@ -6165,14 +6191,26 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
 
     CBS cbs;
     CBS_init(&cbs, data.get(), len);
-    Unique_sk_X509 outCerts(sk_X509_new_null());
 
-    if (!PKCS7_get_certificates(outCerts.get(), &cbs)) {
-        throwExceptionIfNecessary(env, "PKCS7_get_certificates");
+    if (which == PKCS7_CERTS) {
+        Unique_sk_X509 outCerts(sk_X509_new_null());
+        if (!PKCS7_get_certificates(outCerts.get(), &cbs)) {
+            throwExceptionIfNecessary(env, "PKCS7_get_certificates");
+            return 0;
+        }
+        return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, outCerts.get(), X509_dup);
+    } else if (which == PKCS7_CRLS) {
+        Unique_sk_X509_CRL outCRLs(sk_X509_CRL_new_null());
+        if (!PKCS7_get_CRLs(outCRLs.get(), &cbs)) {
+            throwExceptionIfNecessary(env, "PKCS7_get_CRLs");
+            return 0;
+        }
+        return PKCS7_to_ItemArray<X509_CRL, STACK_OF(X509_CRL)>(
+            env, outCRLs.get(), X509_CRL_dup);
+    } else {
+        jniThrowRuntimeException(env, "unknown PKCS7 field");
         return 0;
     }
-
-    return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, outCerts.get(), X509_dup);
 #endif
 }
 
