@@ -6036,6 +6036,147 @@ static jbyteArray NativeCrypto_i2d_PKCS7(JNIEnv* env, jclass, jlongArray certsAr
 #endif  // OPENSSL_IS_BORINGSSL
 }
 
+#if defined(OPENSSL_IS_BORINGSSL)
+
+/* readAllFromBIO sets |*out_data| to contain an allocated buffer that is
+ * large enough to read |bio| to EOF. The number of bytes read is stored in
+ * |*out_len|. It returns true on success or false on I/O error. */
+static bool readAllFromBIO(BIO *bio, UniquePtr<uint8_t[]> *out_data, size_t *out_len) {
+    size_t size = 1024, offset = 0;
+    out_data->reset(new uint8_t[size]);
+
+    for (;;) {
+        if (offset == size) {
+            uint8_t *next = new uint8_t[size*2];
+            memcpy(next, out_data->get(), size);
+            size *= 2;
+            out_data->reset(next);
+        }
+
+        int n = BIO_read(bio, &out_data->get()[offset], size - offset);
+        if (n < 0) {
+            return false;
+        } else if (n == 0) {
+            break;
+        }
+
+        offset += n;
+    }
+
+    *out_len = offset;
+    return true;
+}
+
+#else
+
+static STACK_OF(X509)* PKCS7_get_certs(PKCS7* pkcs7) {
+    if (PKCS7_type_is_signed(pkcs7)) {
+        return pkcs7->d.sign->cert;
+    } else if (PKCS7_type_is_signedAndEnveloped(pkcs7)) {
+        return pkcs7->d.signed_and_enveloped->cert;
+    } else {
+        JNI_TRACE("PKCS7_get_certs(%p) => unknown PKCS7 type", pkcs7);
+        return NULL;
+    }
+}
+
+static STACK_OF(X509_CRL)* PKCS7_get_CRLs(PKCS7* pkcs7) {
+    if (PKCS7_type_is_signed(pkcs7)) {
+        return pkcs7->d.sign->crl;
+    } else if (PKCS7_type_is_signedAndEnveloped(pkcs7)) {
+        return pkcs7->d.signed_and_enveloped->crl;
+    } else {
+        JNI_TRACE("PKCS7_get_CRLs(%p) => unknown PKCS7 type", pkcs7);
+        return NULL;
+    }
+}
+
+#endif
+
+static jlongArray NativeCrypto_PEM_read_bio_PKCS7(JNIEnv* env, jclass, jlong bioRef, jint which) {
+    BIO* bio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(bioRef));
+    JNI_TRACE("PEM_read_bio_PKCS7_CRLs(%p)", bio);
+
+    if (bio == NULL) {
+        jniThrowNullPointerException(env, "bio == null");
+        JNI_TRACE("PEM_read_bio_PKCS7_CRLs(%p) => bio == null", bio);
+        return 0;
+    }
+
+    Unique_PKCS7 pkcs7(PEM_read_bio_PKCS7(bio, NULL, NULL, NULL));
+    if (pkcs7.get() == NULL) {
+        throwExceptionIfNecessary(env, "PEM_read_bio_PKCS7_CRLs");
+        JNI_TRACE("PEM_read_bio_PKCS7_CRLs(%p) => threw exception", bio);
+        return 0;
+    }
+
+    switch (which) {
+    case PKCS7_CERTS:
+        return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, PKCS7_get_certs(pkcs7.get()), X509_dup);
+    case PKCS7_CRLS:
+        return PKCS7_to_ItemArray<X509_CRL, STACK_OF(X509_CRL)>(env, PKCS7_get_CRLs(pkcs7.get()),
+                X509_CRL_dup);
+    default:
+        jniThrowRuntimeException(env, "unknown PKCS7 field");
+        return NULL;
+    }
+}
+
+static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, jint which) {
+    BIO* bio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(bioRef));
+    JNI_TRACE("d2i_PKCS7_bio(%p, %d)", bio, which);
+
+    if (bio == NULL) {
+        jniThrowNullPointerException(env, "bio == null");
+        JNI_TRACE("d2i_PKCS7_bio(%p, %d) => bio == null", bio, which);
+        return 0;
+    }
+
+#if !defined(OPENSSL_IS_BORINGSSL)
+    Unique_PKCS7 pkcs7(d2i_PKCS7_bio(bio, NULL));
+    if (pkcs7.get() == NULL) {
+        throwExceptionIfNecessary(env, "d2i_PKCS7_bio");
+        JNI_TRACE("d2i_PKCS7_bio(%p, %d) => threw exception", bio, which);
+        return 0;
+    }
+
+    switch (which) {
+    case PKCS7_CERTS:
+        return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, PKCS7_get_certs(pkcs7.get()), X509_dup);
+    case PKCS7_CRLS:
+        return PKCS7_to_ItemArray<X509_CRL, STACK_OF(X509_CRL)>(env, PKCS7_get_CRLs(pkcs7.get()),
+                X509_CRL_dup);
+    default:
+        jniThrowRuntimeException(env, "unknown PKCS7 field");
+        return NULL;
+    }
+#else
+    if (which != PKCS7_CERTS) {
+        throwExceptionIfNecessary(env, "Only certs supported in PKCS#7");
+        return 0;
+    }
+
+    UniquePtr<uint8_t[]> data;
+    size_t len;
+    if (!readAllFromBIO(bio, &data, &len)) {
+        throwExceptionIfNecessary(env, "Error reading from BIO");
+        return 0;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, data.get(), len);
+    Unique_sk_X509 outCerts(sk_X509_new_null());
+
+    if (!PKCS7_get_certificates(outCerts.get(), &cbs)) {
+        throwExceptionIfNecessary(env, "PKCS7_get_certificates");
+        return 0;
+    }
+
+    return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, outCerts.get(), X509_dup);
+#endif
+}
+
+
 typedef STACK_OF(X509) PKIPATH;
 
 ASN1_ITEM_TEMPLATE(PKIPATH) =
@@ -9960,6 +10101,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, i2d_X509, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, i2d_X509_PUBKEY, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, PEM_read_bio_X509, "(J)J"),
+    NATIVE_METHOD(NativeCrypto, PEM_read_bio_PKCS7, "(JI)[J"),
+    NATIVE_METHOD(NativeCrypto, d2i_PKCS7_bio, "(JI)[J"),
     NATIVE_METHOD(NativeCrypto, i2d_PKCS7, "([J)[B"),
     NATIVE_METHOD(NativeCrypto, ASN1_seq_unpack_X509_bio, "(J)[J"),
     NATIVE_METHOD(NativeCrypto, ASN1_seq_pack_X509, "([J)[B"),
