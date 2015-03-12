@@ -121,6 +121,7 @@ public final class CryptoUpcalls {
 
         if (c == null) {
             System.err.println("Unsupported transformation: " + RSA_CRYPTO_ALGORITHM);
+            return null;
         }
 
         try {
