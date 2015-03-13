@@ -56,7 +56,7 @@ public final class CryptoUpcalls {
 
     public static byte[] rawSignDigestWithPrivateKey(PrivateKey javaKey, byte[] message) {
         // Get the raw signature algorithm for this key type.
-        String algorithm = null;
+        String algorithm;
         // Hint: Algorithm names come from:
         // http://docs.oracle.com/javase/6/docs/technotes/guides/security/StandardNames.html
         if (javaKey instanceof RSAPrivateKey) {
@@ -77,15 +77,11 @@ public final class CryptoUpcalls {
         }
 
         // Get the Signature for this key.
-        Signature signature = null;
+        Signature signature;
         try {
             signature = Signature.getInstance(algorithm, p);
         } catch (NoSuchAlgorithmException e) {
-            ;
-        }
-
-        if (signature == null) {
-            System.err.println("Unsupported private key algorithm: " + javaKey.getAlgorithm());
+            System.err.println("Unsupported signature algorithm: " + algorithm);
             return null;
         }
 
@@ -124,7 +120,7 @@ public final class CryptoUpcalls {
         }
 
         if (c == null) {
-            System.err.println("Unsupported private key algorithm: " + javaKey.getAlgorithm());
+            System.err.println("Unsupported transformation: " + RSA_CRYPTO_ALGORITHM);
         }
 
         try {
