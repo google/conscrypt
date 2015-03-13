@@ -957,8 +957,10 @@ public class SSLParametersImpl implements Cloneable {
      * ClientCertificateType byte values from a CertificateRequest
      * message for use with X509KeyManager.chooseClientAlias or
      * X509ExtendedKeyManager.chooseEngineClientAlias.
+     *
+     * Visible for testing.
      */
-    static String getClientKeyType(byte clientCertificateType) {
+    public static String getClientKeyType(byte clientCertificateType) {
         // See also http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
         switch (clientCertificateType) {
             case NativeCrypto.TLS_CT_RSA_SIGN:
@@ -984,8 +986,10 @@ public class SSLParametersImpl implements Cloneable {
      *        See https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml.
      * @return supported key types that can be used in {@code X509KeyManager.chooseClientAlias} and
      *         {@code X509ExtendedKeyManager.chooseEngineClientAlias}.
+     *
+     * Visible for testing.
      */
-    static Set<String> getSupportedClientKeyTypes(byte[] clientCertificateTypes) {
+    public static Set<String> getSupportedClientKeyTypes(byte[] clientCertificateTypes) {
         Set<String> result = new HashSet<String>(clientCertificateTypes.length);
         for (byte keyTypeCode : clientCertificateTypes) {
             String keyType = getClientKeyType(keyTypeCode);
