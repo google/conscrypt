@@ -113,8 +113,6 @@ LOCAL_C_INCLUDES += \
 LOCAL_SHARED_LIBRARIES := libcrypto libjavacore liblog libnativehelper libssl libz
 ifeq ($(OPENSSL_FLAVOR),BoringSSL)
   LOCAL_SHARED_LIBRARIES += libkeystore-engine
-else
-  LOCAL_SHARED_LIBRARIES += libkeystore
 endif
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libjavacrypto
