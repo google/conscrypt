@@ -20,9 +20,9 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.ECParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -96,6 +96,105 @@ public class OpenSSLKey {
         }
 
         return new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(key.getEncoded()));
+    }
+
+    /**
+     * Gets an {@code OpenSSLKey} instance backed by the provided private key. The resulting key is
+     * usable only by this provider's TLS/SSL stack.
+     *
+     * @param privateKey private key.
+     * @param publicKey corresponding public key or {@code null} if not available. Some opaque
+     *        private keys cannot be used by the TLS/SSL stack without the public key.
+     */
+    public static OpenSSLKey fromPrivateKeyForTLSStackOnly(
+            PrivateKey privateKey, PublicKey publicKey) throws InvalidKeyException {
+        OpenSSLKey result = getOpenSSLKey(privateKey);
+        if (result != null) {
+            return result;
+        }
+
+        result = fromKeyMaterial(privateKey);
+        if (result != null) {
+            return result;
+        }
+
+        return wrapJCAPrivateKeyForTLSStackOnly(privateKey, publicKey);
+    }
+
+    /**
+     * Gets an {@code OpenSSLKey} instance backed by the provided EC private key. The resulting key
+     * is usable only by this provider's TLS/SSL stack.
+     *
+     * @param key private key.
+     * @param ecParams EC parameters {@code null} if not available. Some opaque private keys cannot
+     *        be used by the TLS/SSL stack without the parameters because the private key itself
+     *        might not expose the parameters.
+     */
+    public static OpenSSLKey fromECPrivateKeyForTLSStackOnly(
+            PrivateKey key, ECParameterSpec ecParams) throws InvalidKeyException {
+        OpenSSLKey result = getOpenSSLKey(key);
+        if (result != null) {
+            return result;
+        }
+
+        result = fromKeyMaterial(key);
+        if (result != null) {
+            return result;
+        }
+
+        return OpenSSLECPrivateKey.wrapJCAPrivateKeyForTLSStackOnly(key, ecParams);
+    }
+
+    /**
+     * Gets the {@code OpenSSLKey} instance of the provided key.
+     *
+     * @return instance or {@code null} if the {@code key} is not backed by OpenSSL's
+     *         {@code EVP_PKEY}.
+     */
+    private static OpenSSLKey getOpenSSLKey(PrivateKey key) {
+        if (key instanceof OpenSSLKeyHolder) {
+            return ((OpenSSLKeyHolder) key).getOpenSSLKey();
+        }
+
+        if ("RSA".equals(key.getAlgorithm())) {
+            return Platform.wrapRsaKey(key);
+        }
+
+        return null;
+    }
+
+    /**
+     * Gets an {@code OpenSSLKey} instance initialized with the key material of the provided key.
+     *
+     * @return instance or {@code null} if the {@code key} does not export its key material in a
+     *         suitable format.
+     */
+    private static OpenSSLKey fromKeyMaterial(PrivateKey key) {
+        if (!"PKCS#8".equals(key.getFormat())) {
+            return null;
+        }
+        byte[] encoded = key.getEncoded();
+        if (encoded == null) {
+            return null;
+        }
+        return new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(encoded));
+    }
+
+    /**
+     * Wraps the provided private key for use in the TLS/SSL stack only. Sign/decrypt operations
+     * using the key will be delegated to the {@code Signature}/{@code Cipher} implementation of the
+     * provider which accepts the key.
+     */
+    private static OpenSSLKey wrapJCAPrivateKeyForTLSStackOnly(PrivateKey privateKey,
+            PublicKey publicKey) throws InvalidKeyException {
+        String keyAlgorithm = privateKey.getAlgorithm();
+        if ("RSA".equals(keyAlgorithm)) {
+            return OpenSSLRSAPrivateKey.wrapJCAPrivateKeyForTLSStackOnly(privateKey, publicKey);
+        } else if ("EC".equals(keyAlgorithm)) {
+            return OpenSSLECPrivateKey.wrapJCAPrivateKeyForTLSStackOnly(privateKey, publicKey);
+        } else {
+            throw new InvalidKeyException("Unsupported key algorithm: " + keyAlgorithm);
+        }
     }
 
     private static OpenSSLKey wrapPrivateKey(PrivateKey key) throws InvalidKeyException {

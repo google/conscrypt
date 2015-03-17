@@ -21,8 +21,6 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.Security;
 import java.security.Signature;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.RSAPrivateKey;
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 
@@ -59,13 +57,14 @@ public final class CryptoUpcalls {
         String algorithm;
         // Hint: Algorithm names come from:
         // http://docs.oracle.com/javase/6/docs/technotes/guides/security/StandardNames.html
-        if (javaKey instanceof RSAPrivateKey) {
+        String keyAlgorithm = javaKey.getAlgorithm();
+        if ("RSA".equals(keyAlgorithm)) {
             // IMPORTANT: Due to a platform bug, this will throw
             // NoSuchAlgorithmException
             // on Android 4.0.x and 4.1.x. Fixed in 4.2 and higher.
             // See https://android-review.googlesource.com/#/c/40352/
             algorithm = "NONEwithRSA";
-        } else if (javaKey instanceof ECPrivateKey) {
+        } else if ("EC".equals(keyAlgorithm)) {
             algorithm = "NONEwithECDSA";
         } else {
             throw new RuntimeException("Unexpected key type: " + javaKey.toString());
@@ -100,8 +99,9 @@ public final class CryptoUpcalls {
 
     public static byte[] rawCipherWithPrivateKey(PrivateKey javaKey, boolean encrypt,
             byte[] input) {
-        if (!(javaKey instanceof RSAPrivateKey)) {
-            System.err.println("Unexpected key type: " + javaKey.toString());
+        String keyAlgorithm = javaKey.getAlgorithm();
+        if (!"RSA".equals(keyAlgorithm)) {
+            System.err.println("Unexpected key type: " + keyAlgorithm);
             return null;
         }
 

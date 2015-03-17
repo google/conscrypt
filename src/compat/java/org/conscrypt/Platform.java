@@ -171,7 +171,7 @@ public class Platform {
      * builds since we didn't backport, so return null. This code is from
      * Chromium's net/android/java/src/org/chromium/net/DefaultAndroidKeyStore.java
      */
-    public static OpenSSLKey wrapRsaKey(PrivateKey javaKey) throws InvalidKeyException {
+    public static OpenSSLKey wrapRsaKey(PrivateKey javaKey) {
         // This fixup only applies to pre-JB-MR1
         if (Build.VERSION.SDK_INT >= 17) {
             return null;

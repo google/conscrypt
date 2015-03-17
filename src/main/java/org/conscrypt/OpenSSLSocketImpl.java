@@ -31,6 +31,8 @@ import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.interfaces.ECKey;
+import java.security.spec.ECParameterSpec;
 import java.util.ArrayList;
 import javax.crypto.SecretKey;
 import javax.net.ssl.HandshakeCompletedEvent;
@@ -959,7 +961,17 @@ public class OpenSSLSocketImpl
         } else {
             sslParameters.channelIdEnabled = true;
             try {
-                channelIdPrivateKey = OpenSSLKey.fromPrivateKey(privateKey);
+                ECParameterSpec ecParams = null;
+                if (privateKey instanceof ECKey) {
+                    ecParams = ((ECKey) privateKey).getParams();
+                }
+                if (ecParams == null) {
+                    // Assume this is a P-256 key, as specified in the contract of this method.
+                    ecParams =
+                            OpenSSLECGroupContext.getCurveByName("prime256v1").getECParameterSpec();
+                }
+                channelIdPrivateKey =
+                        OpenSSLKey.fromECPrivateKeyForTLSStackOnly(privateKey, ecParams);
             } catch (InvalidKeyException e) {
                 // Will have error in startHandshake
             }

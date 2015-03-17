@@ -23,6 +23,9 @@ import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.interfaces.ECKey;
 import java.security.interfaces.ECPrivateKey;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPrivateKeySpec;
@@ -68,6 +71,53 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
             throw new InvalidKeyException("Unknown group parameters", e);
         }
         return wrapPlatformKey(ecPrivateKey, group);
+    }
+
+    /**
+     * Wraps the provided private key for use in the TLS/SSL stack only. Sign/decrypt operations
+     * using the key will be delegated to the {@code Signature}/{@code Cipher} implementation of the
+     * provider which accepts the key.
+     */
+    static OpenSSLKey wrapJCAPrivateKeyForTLSStackOnly(PrivateKey privateKey,
+            PublicKey publicKey) throws InvalidKeyException {
+        ECParameterSpec params = null;
+        if (privateKey instanceof ECKey) {
+            params = ((ECKey) privateKey).getParams();
+        } else if (publicKey instanceof ECKey) {
+            params = ((ECKey) publicKey).getParams();
+        }
+        if (params == null) {
+            throw new InvalidKeyException("EC parameters not available. Private: " + privateKey
+                    + ", public: " + publicKey);
+        }
+        return wrapJCAPrivateKeyForTLSStackOnly(privateKey, params);
+    }
+
+    /**
+     * Wraps the provided private key for use in the TLS/SSL stack only. Sign/decrypt operations
+     * using the key will be delegated to the {@code Signature}/{@code Cipher} implementation of the
+     * provider which accepts the key.
+     */
+    static OpenSSLKey wrapJCAPrivateKeyForTLSStackOnly(PrivateKey privateKey,
+            ECParameterSpec params) throws InvalidKeyException {
+        if (params == null) {
+            if (privateKey instanceof ECKey) {
+                params = ((ECKey) privateKey).getParams();
+            }
+        }
+        if (params == null) {
+            throw new InvalidKeyException("EC parameters not available: " + privateKey);
+        }
+
+        OpenSSLECGroupContext group;
+        try {
+            group = OpenSSLECGroupContext.getInstance(params);
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new InvalidKeyException("Invalid EC parameters: " + params);
+        }
+
+        return new OpenSSLKey(
+                NativeCrypto.getECPrivateKeyWrapper(privateKey, group.getNativeRef()), true);
     }
 
     private static OpenSSLKey wrapPlatformKey(ECPrivateKey ecPrivateKey,
