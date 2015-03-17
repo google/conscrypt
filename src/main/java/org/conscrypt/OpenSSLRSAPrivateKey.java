@@ -22,6 +22,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.interfaces.RSAKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateKeySpec;
@@ -97,6 +100,27 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
         }
         return new OpenSSLKey(NativeCrypto.getRSAPrivateKeyWrapper(rsaPrivateKey, rsaPrivateKey
                 .getModulus().toByteArray()), true);
+    }
+
+    /**
+     * Wraps the provided private key for use in the TLS/SSL stack only. Sign/decrypt operations
+     * using the key will be delegated to the {@code Signature}/{@code Cipher} implementation of the
+     * provider which accepts the key.
+     */
+    static OpenSSLKey wrapJCAPrivateKeyForTLSStackOnly(PrivateKey privateKey,
+            PublicKey publicKey) throws InvalidKeyException {
+        BigInteger modulus = null;
+        if (privateKey instanceof RSAKey) {
+            modulus = ((RSAKey) privateKey).getModulus();
+        } else if (publicKey instanceof RSAKey) {
+            modulus = ((RSAKey) publicKey).getModulus();
+        }
+        if (modulus == null) {
+            throw new InvalidKeyException("RSA modulus not available. Private: " + privateKey
+                    + ", public: " + publicKey);
+        }
+        return new OpenSSLKey(
+                NativeCrypto.getRSAPrivateKeyWrapper(privateKey, modulus.toByteArray()), true);
     }
 
     static OpenSSLKey getInstance(RSAPrivateKey rsaPrivateKey) throws InvalidKeyException {

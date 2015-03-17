@@ -22,12 +22,11 @@ import java.io.OutputStream;
 import java.net.SocketTimeoutException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -114,9 +113,9 @@ public final class NativeCrypto {
 
     public static native long d2i_PUBKEY(byte[] data);
 
-    public static native long getRSAPrivateKeyWrapper(RSAPrivateKey key, byte[] modulus);
+    public static native long getRSAPrivateKeyWrapper(PrivateKey key, byte[] modulus);
 
-    public static native long getECPrivateKeyWrapper(ECPrivateKey key,
+    public static native long getECPrivateKeyWrapper(PrivateKey key,
             NativeRef.EC_GROUP ecGroupRef);
 
     public static native long RSA_generate_key_ex(int modulusBits, byte[] publicExponent);
