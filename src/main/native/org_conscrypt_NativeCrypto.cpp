@@ -868,10 +868,16 @@ static SSL_CIPHER* to_SSL_CIPHER(JNIEnv* env, jlong ssl_cipher_address, bool thr
 
 template<typename T>
 static T* fromContextObject(JNIEnv* env, jobject contextObject) {
+    if (contextObject == NULL) {
+        JNI_TRACE("contextObject == null");
+        jniThrowNullPointerException(env, "contextObject == null");
+        return NULL;
+    }
     T* ref = reinterpret_cast<T*>(env->GetLongField(contextObject, nativeRef_context));
     if (ref == NULL) {
-        JNI_TRACE("ctx == null");
-        jniThrowNullPointerException(env, "ctx == null");
+        JNI_TRACE("ref == null");
+        jniThrowNullPointerException(env, "ref == null");
+        return NULL;
     }
     return ref;
 }
@@ -3968,8 +3974,19 @@ static void NativeCrypto_EC_KEY_set_nonce_from_hash(JNIEnv*, jclass, jobject, jb
 static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
      jbyteArray outArray, jint outOffset, jobject pubkeyRef, jobject privkeyRef)
 {
+
     EVP_PKEY* pubPkey = fromContextObject<EVP_PKEY>(env, pubkeyRef);
+    if (pubPkey == NULL) {
+        return -1;
+    }
+
     EVP_PKEY* privPkey = fromContextObject<EVP_PKEY>(env, privkeyRef);
+    if (privPkey == NULL) {
+        return -1;
+    }
+
+
+
     JNI_TRACE("ECDH_compute_key(%p, %d, %p, %p)", outArray, outOffset, pubPkey, privPkey);
 
     ScopedByteArrayRW out(env, outArray);
