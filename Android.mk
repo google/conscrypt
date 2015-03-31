@@ -40,9 +40,8 @@
 
 LOCAL_PATH := $(call my-dir)
 
-local_javac_flags=-encoding UTF-8
+local_javac_flags:=-Xmaxwarns 9999999
 #local_javac_flags+=-Xlint:all -Xlint:-serial,-deprecation,-unchecked
-local_javac_flags+=-Xmaxwarns 9999999
 
 core_cflags := -Wall -Wextra -Werror -Wunused
 core_cppflags := -std=gnu++11 -Wall -Wextra -Werror -Wunused
