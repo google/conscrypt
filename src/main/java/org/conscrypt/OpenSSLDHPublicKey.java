@@ -16,9 +16,9 @@
 
 package org.conscrypt;
 
-import java.io.IOException;
+import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.spec.InvalidKeySpecException;
@@ -26,23 +26,22 @@ import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.DHPublicKeySpec;
 
+@SuppressWarnings("serial") // Uses a serialization proxy
 public class OpenSSLDHPublicKey implements DHPublicKey, OpenSSLKeyHolder {
-    private static final long serialVersionUID = 6123717708079837723L;
-
-    private transient OpenSSLKey key;
+    private final OpenSSLKey key;
 
     /** base prime */
-    private transient byte[] p;
+    private byte[] p;
 
     /** generator */
-    private transient byte[] g;
+    private byte[] g;
 
     /** public key */
-    private transient byte[] y;
+    private byte[] y;
 
-    private transient final Object mParamsLock = new Object();
+    private final Object mParamsLock = new Object();
 
-    private transient boolean readParams;
+    private boolean readParams;
 
     OpenSSLDHPublicKey(OpenSSLKey key) {
         this.key = key;
@@ -183,26 +182,36 @@ public class OpenSSLDHPublicKey implements DHPublicKey, OpenSSLKeyHolder {
         return sb.toString();
     }
 
-    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
-        stream.defaultReadObject();
-
-        final BigInteger g = (BigInteger) stream.readObject();
-        final BigInteger p = (BigInteger) stream.readObject();
-        final BigInteger y = (BigInteger) stream.readObject();
-
-        key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_DH(
-                p.toByteArray(),
-                g.toByteArray(),
-                y.toByteArray(),
-                null));
+    private void readObject(ObjectInputStream stream) throws InvalidObjectException {
+        throw new InvalidObjectException("Proxy required to serialize");
     }
 
-    private void writeObject(ObjectOutputStream stream) throws IOException {
-        stream.defaultWriteObject();
+    private Object writeReplace() {
+        return new SerializationProxy(this);
+    }
 
-        ensureReadParams();
-        stream.writeObject(new BigInteger(g));
-        stream.writeObject(new BigInteger(p));
-        stream.writeObject(new BigInteger(y));
+    /**
+     * Serialization proxy ensures that the lock used in the parent can be final
+     * so it is initialized at all times.
+     */
+    private static class SerializationProxy implements Serializable {
+        private static final long serialVersionUID = 6123717708079837723L;
+
+        private final BigInteger g;
+        private final BigInteger p;
+        private final BigInteger y;
+
+        public SerializationProxy(OpenSSLDHPublicKey key) {
+            DHParameterSpec spec = key.getParams();
+
+            g = spec.getG();
+            p = spec.getP();
+            y = key.getY();
+        }
+
+        private Object readResolve() {
+            return new OpenSSLDHPublicKey(new OpenSSLKey(NativeCrypto.EVP_PKEY_new_DH(
+                    p.toByteArray(), g.toByteArray(), y.toByteArray(), null)));
+        }
     }
 }
