@@ -86,6 +86,8 @@
 #include "UniquePtr.h"
 #include "NetFd.h"
 
+#include "macros.h"
+
 #undef WITH_JNI_TRACE
 #undef WITH_JNI_TRACE_MD
 #undef WITH_JNI_TRACE_DATA
@@ -9186,6 +9188,7 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
 
                 // Note that for all other system call errors we fall through
                 // to the default case, which results in an Exception.
+                FALLTHROUGH_INTENDED;
             }
 
             // Everything else is basically an error.
@@ -9311,6 +9314,7 @@ static jint NativeCrypto_SSL_read_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
 
             // Note that for all other system call errors we fall through
             // to the default case, which results in an Exception.
+            FALLTHROUGH_INTENDED;
         }
 
         // Everything else is basically an error.
@@ -9512,6 +9516,7 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
 
                 // Note that for all other system call errors we fall through
                 // to the default case, which results in an Exception.
+                FALLTHROUGH_INTENDED;
             }
 
             // Everything else is basically an error.
@@ -9635,6 +9640,7 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
 
             // Note that for all other system call errors we fall through
             // to the default case, which results in an Exception.
+            FALLTHROUGH_INTENDED;
         }
 
         // Everything else is basically an error.
