@@ -127,6 +127,7 @@ LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt_unbundled
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+LOCAL_JACK_FLAGS := -D jack.classpath.default-libraries=false
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
 # Unbundled Conscrypt crypto JNI library
