@@ -314,7 +314,7 @@ public final class TrustedCertificateStore {
      *
      * @VisibleForTesting
      */
-    File getCertificateFile(File dir, final X509Certificate x) {
+    public File getCertificateFile(File dir, final X509Certificate x) {
         // compare X509Certificate.getEncoded values
         CertSelector selector = new CertSelector() {
             @Override
