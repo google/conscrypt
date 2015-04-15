@@ -28,8 +28,10 @@ import javax.net.ssl.SSLEngine;
  *
  * <p>This is expected to be useful on platforms where there are multiple instances of the
  * {@code PSKKeyManager} interface.
+ *
+ * @VisibleForTesting
  */
-class DuckTypedPSKKeyManager implements PSKKeyManager {
+public class DuckTypedPSKKeyManager implements PSKKeyManager {
 
     private final Object mDelegate;
 
