@@ -4546,7 +4546,6 @@ static jlong NativeCrypto_EVP_get_cipherbyname(JNIEnv* env, jclass, jstring algo
         cipher = EVP_aes_256_gcm();
     } else {
         JNI_TRACE("NativeCrypto_EVP_get_digestbyname(%s) => error", alg);
-        jniThrowRuntimeException(env, "Hash algorithm not found");
         return 0;
     }
 
