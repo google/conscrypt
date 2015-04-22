@@ -37,6 +37,7 @@ import java.security.cert.X509Certificate;
 import java.security.spec.ECParameterSpec;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
 
 class Platform {
@@ -151,5 +152,13 @@ class Platform {
      */
     public static boolean isLiteralIpAddress(String hostname) {
         return InetAddress.isNumeric(hostname);
+    }
+
+    /**
+     * Wrap the SocketFactory with the platform wrapper if needed for compatability.
+     * For the platform-bundled library we never need to wrap.
+     */
+    public static SSLSocketFactory wrapSocketFactoryIfNeeded(OpenSSLSocketFactoryImpl factory) {
+        return factory;
     }
 }
