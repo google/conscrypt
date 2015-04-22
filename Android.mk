@@ -119,7 +119,14 @@ LOCAL_SDK_VERSION := 9
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt_unbundled
+LOCAL_JAVA_LIBRARIES := conscrypt-stubs
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+include $(BUILD_STATIC_JAVA_LIBRARY)
+
+# Stub library for unbundled builds
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := $(call all-java-files-under,src/stub/java)
+LOCAL_MODULE := conscrypt-stubs
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
 # Unbundled Conscrypt crypto JNI library

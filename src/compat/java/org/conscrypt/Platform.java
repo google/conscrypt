@@ -32,6 +32,7 @@ import java.security.spec.ECParameterSpec;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
 
 /**
@@ -293,5 +294,17 @@ public class Platform {
      */
     public static boolean isSniEnabledByDefault() {
         return true;
+    }
+
+    /**
+     * Wrap the SocketFactory with the platform wrapper if needed for compatability.
+     */
+    public static SSLSocketFactory wrapSocketFactoryIfNeeded(OpenSSLSocketFactoryImpl factory) {
+        if (Build.VERSION.SDK_INT < 19) {
+            return new PreKitKatPlatformOpenSSLSocketAdapterFactory(factory);
+        } else if (Build.VERSION.SDK_INT < 22) {
+            return new KitKatPlatformOpenSSLSocketAdapterFactory(factory);
+        }
+        return factory;
     }
 }
