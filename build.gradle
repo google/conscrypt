@@ -1,11 +1,19 @@
 apply plugin: 'java'
 
+sourceSets {
+    stub {
+        java.srcDirs = [
+            'src/stub/java'
+        ]
+    }
+}
 // this is the "Unbundled Conscrypt jar"
 sourceSets.main {
     java.srcDirs = [
         'src/main/java',
         'src/compat/java',
     ]
+    compileClasspath += sourceSets.stub.output
 }
 
 compileJava.options.encoding = 'UTF-8'
