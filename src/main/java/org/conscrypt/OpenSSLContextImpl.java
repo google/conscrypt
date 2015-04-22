@@ -106,7 +106,7 @@ public class OpenSSLContextImpl extends SSLContextSpi {
         if (sslParameters == null) {
             throw new IllegalStateException("SSLContext is not initialized.");
         }
-        return new OpenSSLSocketFactoryImpl(sslParameters);
+        return Platform.wrapSocketFactoryIfNeeded(new OpenSSLSocketFactoryImpl(sslParameters));
     }
 
     @Override
