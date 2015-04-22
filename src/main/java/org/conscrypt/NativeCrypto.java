@@ -43,6 +43,8 @@ import javax.security.auth.x500.X500Principal;
  */
 public final class NativeCrypto {
 
+    public static final boolean isBoringSSL;
+
     // --- OpenSSL library initialization --------------------------------------
     static {
         /*
@@ -58,10 +60,10 @@ public final class NativeCrypto {
             System.loadLibrary("conscrypt_jni");
         }
 
-        clinit();
+        isBoringSSL = clinit();
     }
 
-    private native static void clinit();
+    private native static boolean clinit();
 
     // --- ENGINE functions ----------------------------------------------------
     public static native void ENGINE_load_dynamic();
