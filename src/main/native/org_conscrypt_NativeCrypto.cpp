@@ -2174,13 +2174,18 @@ int THREAD_cleanup(void) {
  * Initialization phase for every OpenSSL job: Loads the Error strings, the
  * crypto algorithms and reset the OpenSSL library
  */
-static void NativeCrypto_clinit(JNIEnv*, jclass)
+static jboolean NativeCrypto_clinit(JNIEnv*, jclass)
 {
     SSL_load_error_strings();
     ERR_load_crypto_strings();
     SSL_library_init();
     OpenSSL_add_all_algorithms();
     THREAD_setup();
+#if !defined(OPENSSL_IS_BORINGSSL)
+    return JNI_FALSE;
+#else
+    return JNI_TRUE;
+#endif
 }
 
 static void NativeCrypto_ENGINE_load_dynamic(JNIEnv*, jclass) {
@@ -10063,7 +10068,7 @@ static jlong NativeCrypto_ERR_peek_last_error(JNIEnv*, jclass) {
 #define REF_EVP_CIPHER_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_CIPHER_CTX;"
 #define REF_EVP_PKEY "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY;"
 static JNINativeMethod sNativeCryptoMethods[] = {
-    NATIVE_METHOD(NativeCrypto, clinit, "()V"),
+    NATIVE_METHOD(NativeCrypto, clinit, "()Z"),
     NATIVE_METHOD(NativeCrypto, ENGINE_load_dynamic, "()V"),
     NATIVE_METHOD(NativeCrypto, ENGINE_by_id, "(Ljava/lang/String;)J"),
     NATIVE_METHOD(NativeCrypto, ENGINE_add, "(J)I"),

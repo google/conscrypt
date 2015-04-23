@@ -23,7 +23,9 @@ import javax.crypto.SecretKey;
 
 public class OpenSSLEngine {
     static {
-        NativeCrypto.ENGINE_load_dynamic();
+        if (!NativeCrypto.isBoringSSL) {
+            NativeCrypto.ENGINE_load_dynamic();
+        }
     }
 
     private static final Object mLoadingLock = new Object();
@@ -31,7 +33,19 @@ public class OpenSSLEngine {
     /** The ENGINE's native handle. */
     private final long ctx;
 
+    /**
+     * BoringSSL doesn't really use ENGINE objects, so we just keep this single
+     * instance around to satisfy API calls.
+     */
+    private static class BoringSSL {
+        public static final OpenSSLEngine INSTANCE = new OpenSSLEngine();
+    }
+
     public static OpenSSLEngine getInstance(String engine) throws IllegalArgumentException {
+        if (NativeCrypto.isBoringSSL) {
+            return BoringSSL.INSTANCE;
+        }
+
         if (engine == null) {
             throw new NullPointerException("engine == null");
         }
@@ -49,6 +63,20 @@ public class OpenSSLEngine {
         return new OpenSSLEngine(engineCtx);
     }
 
+    /**
+     * Used for BoringSSL. It doesn't use ENGINEs so there is no native pointer
+     * to keep track of.
+     */
+    private OpenSSLEngine() {
+        ctx = 0L;
+    }
+
+    /**
+     * Used when OpenSSL is in use. It uses an ENGINE instance so we need to
+     * keep track if the native pointer for later freeing.
+     *
+     * @param engineCtx the ENGINE's native handle
+     */
     private OpenSSLEngine(long engineCtx) {
         ctx = engineCtx;
 
@@ -101,8 +129,10 @@ public class OpenSSLEngine {
     @Override
     protected void finalize() throws Throwable {
         try {
-            NativeCrypto.ENGINE_finish(ctx);
-            NativeCrypto.ENGINE_free(ctx);
+            if (!NativeCrypto.isBoringSSL) {
+                NativeCrypto.ENGINE_finish(ctx);
+                NativeCrypto.ENGINE_free(ctx);
+            }
         } finally {
             super.finalize();
         }
