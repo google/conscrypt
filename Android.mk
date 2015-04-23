@@ -133,7 +133,10 @@ include $(BUILD_STATIC_JAVA_LIBRARY)
 # Stub library for unbundled builds
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/stub/java)
+LOCAL_SDK_VERSION := 9
+LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE := conscrypt-stubs
+LOCAL_JACK_FLAGS := -D jack.classpath.default-libraries=false
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
 # Unbundled Conscrypt crypto JNI library
