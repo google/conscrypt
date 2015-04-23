@@ -26,6 +26,10 @@ public class OpenSSLRandom extends SecureRandomSpi implements Serializable {
 
     @Override
     protected void engineSetSeed(byte[] seed) {
+        if (seed == null) {
+            throw new NullPointerException("seed == null");
+        }
+
         // NOTE: The contract of the SecureRandomSpi does not appear to prohibit self-seeding here
         // (in addition to using the provided seed).
         selfSeedIfNotSeeded();
