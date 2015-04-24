@@ -24,19 +24,20 @@ import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECParameterSpec;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 public final class OpenSSLECKeyPairGenerator extends KeyPairGenerator {
     private static final String ALGORITHM = "EC";
 
-    private static final int DEFAULT_KEY_SIZE = 192;
+    private static final int DEFAULT_KEY_SIZE = 256;
 
     private static final Map<Integer, String> SIZE_TO_CURVE_NAME = new HashMap<Integer, String>();
 
     static {
         /* NIST curves */
-        SIZE_TO_CURVE_NAME.put(192, "prime192v1");
         SIZE_TO_CURVE_NAME.put(224, "secp224r1");
         SIZE_TO_CURVE_NAME.put(256, "prime256v1");
         SIZE_TO_CURVE_NAME.put(384, "secp384r1");
@@ -54,6 +55,9 @@ public final class OpenSSLECKeyPairGenerator extends KeyPairGenerator {
         if (group == null) {
             final String curveName = SIZE_TO_CURVE_NAME.get(DEFAULT_KEY_SIZE);
             group = OpenSSLECGroupContext.getCurveByName(curveName);
+            if (group == null) {
+                throw new RuntimeException("Curve not recognized: " + curveName);
+            }
         }
 
         final OpenSSLKey key = new OpenSSLKey(
@@ -106,6 +110,20 @@ public final class OpenSSLECKeyPairGenerator extends KeyPairGenerator {
         } else {
             throw new InvalidAlgorithmParameterException(
                     "parameter must be ECParameterSpec or ECGenParameterSpec");
+        }
+    }
+
+    /** For testing. */
+    public static void assertCurvesAreValid() {
+        ArrayList<String> invalidCurves = new ArrayList<>();
+        for (String curveName : SIZE_TO_CURVE_NAME.values()) {
+            if (OpenSSLECGroupContext.getCurveByName(curveName) == null) {
+                invalidCurves.add(curveName);
+            }
+        }
+        if (invalidCurves.size() > 0) {
+            throw new AssertionError("Invalid curve names: "
+                    + Arrays.toString(invalidCurves.toArray()));
         }
     }
 }

@@ -2738,6 +2738,10 @@ public class NativeCryptoTest extends TestCase {
         } catch (NullPointerException expected) {}
     }
 
+    public void test_ECKeyPairGenerator_CurvesAreValid() throws Exception {
+        OpenSSLECKeyPairGenerator.assertCurvesAreValid();
+    }
+
     public void test_ECDH_compute_key_null_key_Failure() throws Exception {
         final long groupCtx = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
         assertFalse(groupCtx == NULL);
