@@ -213,7 +213,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
 
     @Override
     public boolean hasUnsupportedCriticalExtension() {
-        return (NativeCrypto.get_X509_ex_flags(mContext) & NativeCrypto.EXFLAG_CRITICAL) != 0;
+        return (NativeCrypto.get_X509_ex_flags(mContext) & NativeConstants.EXFLAG_CRITICAL) != 0;
     }
 
     @Override
@@ -325,7 +325,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
 
     @Override
     public int getBasicConstraints() {
-        if ((NativeCrypto.get_X509_ex_flags(mContext) & NativeCrypto.EXFLAG_CA) == 0) {
+        if ((NativeCrypto.get_X509_ex_flags(mContext) & NativeConstants.EXFLAG_CA) == 0) {
             return -1;
         }
 

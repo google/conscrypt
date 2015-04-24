@@ -44,7 +44,7 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof ECPublicKeySpec) {
             return new OpenSSLECPublicKey((ECPublicKeySpec) keySpec);
         } else if (keySpec instanceof X509EncodedKeySpec) {
-            return OpenSSLKey.getPublicKey((X509EncodedKeySpec) keySpec, NativeCrypto.EVP_PKEY_EC);
+            return OpenSSLKey.getPublicKey((X509EncodedKeySpec) keySpec, NativeConstants.EVP_PKEY_EC);
         }
         throw new InvalidKeySpecException("Must use ECPublicKeySpec or X509EncodedKeySpec; was "
                 + keySpec.getClass().getName());
@@ -60,7 +60,7 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
             return new OpenSSLECPrivateKey((ECPrivateKeySpec) keySpec);
         } else if (keySpec instanceof PKCS8EncodedKeySpec) {
             return OpenSSLKey.getPrivateKey((PKCS8EncodedKeySpec) keySpec,
-                    NativeCrypto.EVP_PKEY_EC);
+                    NativeConstants.EVP_PKEY_EC);
         }
         throw new InvalidKeySpecException("Must use ECPrivateKeySpec or PKCS8EncodedKeySpec; was "
                 + keySpec.getClass().getName());

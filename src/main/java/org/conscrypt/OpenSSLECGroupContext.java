@@ -49,8 +49,8 @@ public final class OpenSSLECGroupContext {
         NativeRef.EC_GROUP groupRef = new NativeRef.EC_GROUP(ctx);
 
         NativeCrypto.EC_GROUP_set_point_conversion_form(groupRef,
-                NativeCrypto.POINT_CONVERSION_UNCOMPRESSED);
-        NativeCrypto.EC_GROUP_set_asn1_flag(groupRef, NativeCrypto.OPENSSL_EC_NAMED_CURVE);
+                NativeConstants.POINT_CONVERSION_UNCOMPRESSED);
+        NativeCrypto.EC_GROUP_set_asn1_flag(groupRef, NativeConstants.OPENSSL_EC_NAMED_CURVE);
 
         return new OpenSSLECGroupContext(groupRef);
     }

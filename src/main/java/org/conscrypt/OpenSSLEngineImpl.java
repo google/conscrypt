@@ -320,7 +320,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
             }
         }
         return (NativeCrypto.SSL_get_shutdown(sslNativePointer)
-                & NativeCrypto.SSL_RECEIVED_SHUTDOWN) != 0;
+                & NativeConstants.SSL_RECEIVED_SHUTDOWN) != 0;
     }
 
     @Override
@@ -332,7 +332,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
             }
         }
         return (NativeCrypto.SSL_get_shutdown(sslNativePointer)
-                & NativeCrypto.SSL_SENT_SHUTDOWN) != 0;
+                & NativeConstants.SSL_SENT_SHUTDOWN) != 0;
     }
 
     @Override
@@ -527,7 +527,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         }
         checkIndex(srcs.length, offset, length);
 
-        if (dst.remaining() < NativeCrypto.SSL3_RT_MAX_PACKET_SIZE) {
+        if (dst.remaining() < NativeConstants.SSL3_RT_MAX_PACKET_SIZE) {
             return new SSLEngineResult(Status.BUFFER_OVERFLOW, getHandshakeStatus(), 0, 0);
         }
 
@@ -624,7 +624,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     public void onSSLStateChange(long sslSessionNativePtr, int type, int val) {
         synchronized (stateLock) {
             switch (type) {
-                case NativeCrypto.SSL_CB_HANDSHAKE_DONE:
+                case NativeConstants.SSL_CB_HANDSHAKE_DONE:
                     if (engineState != EngineState.HANDSHAKE_STARTED &&
                         engineState != EngineState.READY_HANDSHAKE_CUT_THROUGH) {
                         throw new IllegalStateException("Completed handshake while in mode "
@@ -632,7 +632,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                     }
                     engineState = EngineState.HANDSHAKE_COMPLETED;
                     break;
-                case NativeCrypto.SSL_CB_HANDSHAKE_START:
+                case NativeConstants.SSL_CB_HANDSHAKE_START:
                     // For clients, this will allow the NEED_UNWRAP status to be
                     // returned.
                     engineState = EngineState.HANDSHAKE_STARTED;

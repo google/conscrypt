@@ -132,7 +132,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacMD5() {
-            super(EVP_MD, SIZE, NativeCrypto.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
         }
     }
 
@@ -141,7 +141,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA1() {
-            super(EVP_MD, SIZE, NativeCrypto.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
         }
     }
 
@@ -150,7 +150,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA224() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE, NativeCrypto.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
         }
     }
 
@@ -159,7 +159,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA256() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE, NativeCrypto.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
         }
     }
 
@@ -168,7 +168,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA384() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE, NativeCrypto.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
         }
     }
 
@@ -177,7 +177,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA512() {
-            super(EVP_MD, SIZE, NativeCrypto.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
         }
     }
 }
