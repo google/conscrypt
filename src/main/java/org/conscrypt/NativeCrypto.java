@@ -175,26 +175,6 @@ public final class NativeCrypto {
      */
     public static final int EC_CURVE_GF2M = 2;
 
-    /**
-     * EC_GROUP_set_asn1_flag: indicates an EC_GROUP is a NamedCurve.
-     */
-    public static final int OPENSSL_EC_NAMED_CURVE = 0x001;
-
-    /**
-     * EC_GROUP_set_point_conversion_form: indicates compressed ASN.1 format
-     */
-    public static final int POINT_CONVERSION_COMPRESSED = 2;
-
-    /**
-     * EC_GROUP_set_point_conversion_form: indicates uncompressed ASN.1 format
-     */
-    public static final int POINT_CONVERSION_UNCOMPRESSED = 4;
-
-    /**
-     * EC_GROUP_set_point_conversion_form: indicates hybrid ASN.1 format
-     */
-    public static final int POINT_CONVERSION_HYBRID = 4;
-
     public static native long EVP_PKEY_new_EC_KEY(NativeRef.EC_GROUP groupRef,
             NativeRef.EC_POINT pubkeyRef, byte[] privkey);
 
@@ -470,12 +450,6 @@ public final class NativeCrypto {
     public static native int get_X509_ex_flags(long x509ctx);
 
     public static native int X509_check_issued(long ctx, long ctx2);
-
-    // --- X509 EXFLAG ---------------------------------------------------------
-
-    public static final int EXFLAG_CA = 0x10;
-
-    public static final int EXFLAG_CRITICAL = 0x200;
 
     // --- PKCS7 ---------------------------------------------------------------
 
@@ -767,49 +741,6 @@ public final class NativeCrypto {
         SUPPORTED_CIPHER_SUITES[size + 1] = TLS_FALLBACK_SCSV;
     }
 
-    // EVP_PKEY types from evp.h and objects.h
-    public static final int EVP_PKEY_RSA  = 6;   // NID_rsaEcnryption
-    public static final int EVP_PKEY_DH   = 28;  // NID_dhKeyAgreement
-    public static final int EVP_PKEY_EC   = 408; // NID_X9_62_id_ecPublicKey
-    public static final int EVP_PKEY_HMAC = 855; // NID_hmac
-    public static final int EVP_PKEY_CMAC = 894; // NID_cmac
-
-    // RSA padding modes from rsa.h
-    public static final int RSA_PKCS1_PADDING = 1;
-    public static final int RSA_NO_PADDING    = 3;
-
-    // SSL mode from ssl.h
-    public static final long SSL_MODE_SEND_FALLBACK_SCSV   = 0x00000080L;
-    public static final long SSL_MODE_CBC_RECORD_SPLITTING = 0x00000100L;
-    public static final long SSL_MODE_HANDSHAKE_CUTTHROUGH = 0x00000200L;
-
-    // SSL options from ssl.h
-    public static final long SSL_OP_TLSEXT_PADDING                         = 0x00000010L;
-    public static final long SSL_OP_NO_TICKET                              = 0x00004000L;
-    public static final long SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION = 0x00010000L;
-    public static final long SSL_OP_NO_SSLv3                               = 0x02000000L;
-    public static final long SSL_OP_NO_TLSv1                               = 0x04000000L;
-    public static final long SSL_OP_NO_TLSv1_1                             = 0x10000000L;
-    public static final long SSL_OP_NO_TLSv1_2                             = 0x08000000L;
-
-    /*
-     * Client certificate types as defined in
-     * TLS 1.0 spec., 7.4.4. Certificate request.
-     * EC constants from RFC 4492.
-     * OpenSSL constants from ssl/tls1.h.
-     */
-    public static final byte TLS_CT_RSA_SIGN = 1;
-    public static final byte TLS_CT_RSA_FIXED_DH = 3;
-    public static final byte TLS_CT_ECDSA_SIGN = 64;
-    public static final byte TLS_CT_RSA_FIXED_ECDH = 65;
-    public static final byte TLS_CT_ECDSA_FIXED_ECDH = 66;
-
-    /*
-     * Used in the SSL_get_shutdown and SSL_set_shutdown functions.
-     */
-    public static final int SSL_SENT_SHUTDOWN = 1;
-    public static final int SSL_RECEIVED_SHUTDOWN = 2;
-
     public static native long SSL_CTX_new();
 
     // IMPLEMENTATION NOTE: The default list of cipher suites is a trade-off between what we'd like
@@ -949,22 +880,22 @@ public final class NativeCrypto {
         // openssl uses negative logic letting you disable protocols.
         // so first, assume we need to set all (disable all) and clear none (enable none).
         // in the loop, selectively move bits from set to clear (from disable to enable)
-        long optionsToSet = (SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1 | SSL_OP_NO_TLSv1_2);
+        long optionsToSet = (NativeConstants.SSL_OP_NO_SSLv3 | NativeConstants.SSL_OP_NO_TLSv1 | NativeConstants.SSL_OP_NO_TLSv1_1 | NativeConstants.SSL_OP_NO_TLSv1_2);
         long optionsToClear = 0;
         for (int i = 0; i < protocols.length; i++) {
             String protocol = protocols[i];
             if (protocol.equals(SUPPORTED_PROTOCOL_SSLV3)) {
-                optionsToSet &= ~SSL_OP_NO_SSLv3;
-                optionsToClear |= SSL_OP_NO_SSLv3;
+                optionsToSet &= ~NativeConstants.SSL_OP_NO_SSLv3;
+                optionsToClear |= NativeConstants.SSL_OP_NO_SSLv3;
             } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1)) {
-                optionsToSet &= ~SSL_OP_NO_TLSv1;
-                optionsToClear |= SSL_OP_NO_TLSv1;
+                optionsToSet &= ~NativeConstants.SSL_OP_NO_TLSv1;
+                optionsToClear |= NativeConstants.SSL_OP_NO_TLSv1;
             } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1_1)) {
-                optionsToSet &= ~SSL_OP_NO_TLSv1_1;
-                optionsToClear |= SSL_OP_NO_TLSv1_1;
+                optionsToSet &= ~NativeConstants.SSL_OP_NO_TLSv1_1;
+                optionsToClear |= NativeConstants.SSL_OP_NO_TLSv1_1;
             } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1_2)) {
-                optionsToSet &= ~SSL_OP_NO_TLSv1_2;
-                optionsToClear |= SSL_OP_NO_TLSv1_2;
+                optionsToSet &= ~NativeConstants.SSL_OP_NO_TLSv1_2;
+                optionsToClear |= NativeConstants.SSL_OP_NO_TLSv1_2;
             } else {
                 // error checked by checkEnabledProtocols
                 throw new IllegalStateException();
@@ -1004,56 +935,6 @@ public final class NativeCrypto {
      */
     public static native long[] SSL_get_ciphers(long ssl);
 
-    /*
-     * Constants for SSL_CIPHER algorithm_mkey (key exchange algorithm).
-     * OpenSSL constants from ssl/ssl_locl.h.
-     */
-    /** RSA key exchange */
-    public static final int SSL_kRSA =   0x00000001;
-    /** DH cert, RSA CA cert -- no such ciphersuite supported! */
-    public static final int SSL_kDHr =   0x00000002;
-    /** DH cert, DSA CA cert -- no such ciphersuite supported! */
-    public static final int SSL_kDHd =   0x00000004;
-    /** tmp DH key no DH cert */
-    public static final int SSL_kEDH =   0x00000008;
-    /** Kerberos5 key exchange */
-    public static final int SSL_kKRB5 =  0x00000010;
-    /** ECDH cert, RSA CA cert */
-    public static final int SSL_kECDHr = 0x00000020;
-    /** ECDH cert, ECDSA CA cert */
-    public static final int SSL_kECDHe = 0x00000040;
-    /** ephemeral ECDH */
-    public static final int SSL_kEECDH = 0x00000080;
-    /** PSK */
-    public static final int SSL_kPSK =   0x00000100;
-    /** GOST key exchange */
-    public static final int SSL_kGOST =  0x00000200;
-    /** SRP */
-    public static final int SSL_kSRP =   0x00000400;
-
-    /*
-     * Constants for SSL_CIPHER algorithm_auth (server authentication).
-     * OpenSSL constants from ssl/ssl_locl.h.
-     */
-    /** RSA auth */
-    public static final int SSL_aRSA =    0x00000001;
-    /** no auth (i.e. use ADH or AECDH) */
-    public static final int SSL_aNULL =   0x00000004;
-    /** Fixed DH auth (kDHd or kDHr) -- no such ciphersuites supported! */
-    public static final int SSL_aDH =     0x00000008;
-    /** Fixed ECDH auth (kECDHe or kECDHr) */
-    public static final int SSL_aECDH =   0x00000010;
-    /** KRB5 auth */
-    public static final int SSL_aKRB5 =   0x00000020;
-    /** ECDSA auth*/
-    public static final int SSL_aECDSA =  0x00000040;
-    /** PSK auth */
-    public static final int SSL_aPSK =    0x00000080;
-    /** GOST R 34.10-94 signature auth */
-    public static final int SSL_aGOST94 = 0x00000100;
-    /** GOST R 34.10-2001 signature auth */
-    public static final int SSL_aGOST01 = 0x00000200;
-
     public static native int get_SSL_CIPHER_algorithm_mkey(long sslCipher);
     public static native int get_SSL_CIPHER_algorithm_auth(long sslCipher);
 
@@ -1066,7 +947,7 @@ public final class NativeCrypto {
                 continue;
             }
             if (cipherSuite.equals(TLS_FALLBACK_SCSV)) {
-                SSL_set_mode(ssl, SSL_MODE_SEND_FALLBACK_SCSV);
+                SSL_set_mode(ssl, NativeConstants.SSL_MODE_SEND_FALLBACK_SCSV);
                 continue;
             }
             String openssl = STANDARD_TO_OPENSSL_CIPHER_SUITES.get(cipherSuite);
@@ -1332,45 +1213,6 @@ public final class NativeCrypto {
          */
         public void onSSLStateChange(long sslSessionNativePtr, int type, int val);
     }
-
-    // Values used in the SSLHandshakeCallbacks#onSSLStateChange as the {@code type}.
-    public static final int SSL_ST_CONNECT = 0x1000;
-    public static final int SSL_ST_ACCEPT = 0x2000;
-    public static final int SSL_ST_MASK = 0x0FFF;
-    public static final int SSL_ST_INIT = (SSL_ST_CONNECT | SSL_ST_ACCEPT);
-    public static final int SSL_ST_BEFORE = 0x4000;
-    public static final int SSL_ST_OK = 0x03;
-    public static final int SSL_ST_RENEGOTIATE = (0x04 | SSL_ST_INIT);
-
-    public static final int SSL_CB_LOOP = 0x01;
-    public static final int SSL_CB_EXIT = 0x02;
-    public static final int SSL_CB_READ = 0x04;
-    public static final int SSL_CB_WRITE = 0x08;
-    public static final int SSL_CB_ALERT = 0x4000;
-    public static final int SSL_CB_READ_ALERT = (SSL_CB_ALERT | SSL_CB_READ);
-    public static final int SSL_CB_WRITE_ALERT = (SSL_CB_ALERT | SSL_CB_WRITE);
-    public static final int SSL_CB_ACCEPT_LOOP = (SSL_ST_ACCEPT | SSL_CB_LOOP);
-    public static final int SSL_CB_ACCEPT_EXIT = (SSL_ST_ACCEPT | SSL_CB_EXIT);
-    public static final int SSL_CB_CONNECT_LOOP = (SSL_ST_CONNECT | SSL_CB_LOOP);
-    public static final int SSL_CB_CONNECT_EXIT = (SSL_ST_CONNECT | SSL_CB_EXIT);
-    public static final int SSL_CB_HANDSHAKE_START = 0x10;
-    public static final int SSL_CB_HANDSHAKE_DONE = 0x20;
-
-    /*
-     * From ssl/ssl3.h
-     */
-    public static final int SSL3_RT_HEADER_LENGTH = 5;
-    public static final int SSL_RT_MAX_CIPHER_BLOCK_SIZE = 16;
-    public static final int SSL3_RT_MAX_MD_SIZE = 64;
-    public static final int SSL3_RT_MAX_PLAIN_LENGTH = 16384;
-    public static final int SSL3_RT_MAX_ENCRYPTED_OVERHEAD = 256 + SSL3_RT_MAX_MD_SIZE;
-    public static final int SSL3_RT_SEND_MAX_ENCRYPTED_OVERHEAD = SSL_RT_MAX_CIPHER_BLOCK_SIZE
-            + SSL3_RT_MAX_MD_SIZE;
-    public static final int SSL3_RT_MAX_COMPRESSED_LENGTH = SSL3_RT_MAX_PLAIN_LENGTH;
-    public static final int SSL3_RT_MAX_ENCRYPTED_LENGTH = SSL3_RT_MAX_ENCRYPTED_OVERHEAD
-            + SSL3_RT_MAX_COMPRESSED_LENGTH;
-    public static final int SSL3_RT_MAX_PACKET_SIZE = SSL3_RT_MAX_ENCRYPTED_LENGTH
-            + SSL3_RT_HEADER_LENGTH;
 
     public static native long ERR_peek_last_error();
 
