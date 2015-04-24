@@ -59,8 +59,8 @@ import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
 
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
-import static org.conscrypt.NativeCrypto.SSL_MODE_CBC_RECORD_SPLITTING;
-import static org.conscrypt.NativeCrypto.SSL_MODE_HANDSHAKE_CUTTHROUGH;
+import static org.conscrypt.NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING;
+import static org.conscrypt.NativeConstants.SSL_MODE_HANDSHAKE_CUTTHROUGH;
 
 public class NativeCryptoTest extends TestCase {
     /** Corresponds to the native test library "libjavacoretests.so" */
@@ -325,12 +325,10 @@ public class NativeCryptoTest extends TestCase {
 
         assertTrue(s != NULL);
         assertTrue((NativeCrypto.SSL_get_options(s) & 0x01000000L) != 0); // SSL_OP_NO_SSLv2
-        assertTrue((NativeCrypto.SSL_get_options(s) & NativeCrypto.SSL_OP_NO_SSLv3) == 0);
-        assertTrue((NativeCrypto.SSL_get_options(s) & NativeCrypto.SSL_OP_NO_TLSv1) == 0);
-        assertTrue((NativeCrypto.SSL_get_options(s) & NativeCrypto.SSL_OP_NO_TLSv1_1) == 0);
-        assertTrue((NativeCrypto.SSL_get_options(s) & NativeCrypto.SSL_OP_NO_TLSv1_2) == 0);
-
-        assertTrue((NativeCrypto.SSL_get_options(s) & NativeCrypto.SSL_OP_TLSEXT_PADDING) != 0);
+        assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_SSLv3) == 0);
+        assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_TLSv1) == 0);
+        assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_TLSv1_1) == 0);
+        assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_TLSv1_2) == 0);
 
         long s2 = NativeCrypto.SSL_new(c);
         assertTrue(s != s2);
@@ -536,9 +534,9 @@ public class NativeCryptoTest extends TestCase {
 
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
-        assertTrue((NativeCrypto.SSL_get_options(s) & NativeCrypto.SSL_OP_NO_SSLv3) == 0);
-        NativeCrypto.SSL_set_options(s, NativeCrypto.SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s) & NativeCrypto.SSL_OP_NO_SSLv3) != 0);
+        assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_SSLv3) == 0);
+        NativeCrypto.SSL_set_options(s, NativeConstants.SSL_OP_NO_SSLv3);
+        assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_SSLv3) != 0);
         NativeCrypto.SSL_free(s);
         NativeCrypto.SSL_CTX_free(c);
     }
@@ -552,11 +550,11 @@ public class NativeCryptoTest extends TestCase {
 
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
-        assertTrue((NativeCrypto.SSL_get_options(s) & NativeCrypto.SSL_OP_NO_SSLv3) == 0);
-        NativeCrypto.SSL_set_options(s, NativeCrypto.SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s) & NativeCrypto.SSL_OP_NO_SSLv3) != 0);
-        NativeCrypto.SSL_clear_options(s, NativeCrypto.SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s) & NativeCrypto.SSL_OP_NO_SSLv3) == 0);
+        assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_SSLv3) == 0);
+        NativeCrypto.SSL_set_options(s, NativeConstants.SSL_OP_NO_SSLv3);
+        assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_SSLv3) != 0);
+        NativeCrypto.SSL_clear_options(s, NativeConstants.SSL_OP_NO_SSLv3);
+        assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_SSLv3) == 0);
         NativeCrypto.SSL_free(s);
         NativeCrypto.SSL_CTX_free(c);
     }
@@ -1154,7 +1152,7 @@ public class NativeCryptoTest extends TestCase {
                 try {
                     NativeCrypto.SSL_set_verify(s, NativeCrypto.SSL_VERIFY_PEER);
                     NativeCrypto.SSL_set_options(
-                            s, NativeCrypto.SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+                            s, NativeConstants.SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
                     NativeCrypto.SSL_renegotiate(s);
                     NativeCrypto.SSL_write(s, fd, callback, new byte[] { 42 }, 0, 1,
                                            (int) ((TIMEOUT_SECONDS * 1000) / 2));

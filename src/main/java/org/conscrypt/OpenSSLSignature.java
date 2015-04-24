@@ -109,13 +109,13 @@ public class OpenSSLSignature extends SignatureSpi {
 
         switch (engineType) {
             case RSA:
-                if (pkeyType != NativeCrypto.EVP_PKEY_RSA) {
+                if (pkeyType != NativeConstants.EVP_PKEY_RSA) {
                     throw new InvalidKeyException("Signature initialized as " + engineType
                             + " (not RSA)");
                 }
                 break;
             case EC:
-                if (pkeyType != NativeCrypto.EVP_PKEY_EC) {
+                if (pkeyType != NativeConstants.EVP_PKEY_EC) {
                     throw new InvalidKeyException("Signature initialized as " + engineType
                             + " (not EC)");
                 }

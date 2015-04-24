@@ -38,7 +38,7 @@ public class OpenSSLSecretKey implements SecretKey, OpenSSLKeyHolder {
         this.algorithm = algorithm;
         this.encoded = encoded;
 
-        type = NativeCrypto.EVP_PKEY_HMAC;
+        type = NativeConstants.EVP_PKEY_HMAC;
         key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_mac_key(type, encoded));
     }
 
@@ -52,7 +52,7 @@ public class OpenSSLSecretKey implements SecretKey, OpenSSLKeyHolder {
 
     public static OpenSSLKey getInstance(SecretKey key) throws InvalidKeyException {
         try {
-            return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_mac_key(NativeCrypto.EVP_PKEY_HMAC,
+            return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_mac_key(NativeConstants.EVP_PKEY_HMAC,
                     key.getEncoded()));
         } catch (Exception e) {
             throw new InvalidKeyException(e);
