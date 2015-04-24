@@ -226,9 +226,9 @@ public class OpenSSLKey {
 
     public PublicKey getPublicKey() throws NoSuchAlgorithmException {
         switch (NativeCrypto.EVP_PKEY_type(ctx)) {
-            case NativeCrypto.EVP_PKEY_RSA:
+            case NativeConstants.EVP_PKEY_RSA:
                 return new OpenSSLRSAPublicKey(this);
-            case NativeCrypto.EVP_PKEY_EC:
+            case NativeConstants.EVP_PKEY_EC:
                 return new OpenSSLECPublicKey(this);
             default:
                 throw new NoSuchAlgorithmException("unknown PKEY type");
@@ -259,9 +259,9 @@ public class OpenSSLKey {
 
     public PrivateKey getPrivateKey() throws NoSuchAlgorithmException {
         switch (NativeCrypto.EVP_PKEY_type(ctx)) {
-            case NativeCrypto.EVP_PKEY_RSA:
+            case NativeConstants.EVP_PKEY_RSA:
                 return new OpenSSLRSAPrivateKey(this);
-            case NativeCrypto.EVP_PKEY_EC:
+            case NativeConstants.EVP_PKEY_EC:
                 return new OpenSSLECPrivateKey(this);
             default:
                 throw new NoSuchAlgorithmException("unknown PKEY type");
@@ -292,8 +292,7 @@ public class OpenSSLKey {
 
     public SecretKey getSecretKey(String algorithm) throws NoSuchAlgorithmException {
         switch (NativeCrypto.EVP_PKEY_type(ctx)) {
-            case NativeCrypto.EVP_PKEY_HMAC:
-            case NativeCrypto.EVP_PKEY_CMAC:
+            case NativeConstants.EVP_PKEY_HMAC:
                 return new OpenSSLSecretKey(algorithm, this);
             default:
                 throw new NoSuchAlgorithmException("unknown PKEY type");
