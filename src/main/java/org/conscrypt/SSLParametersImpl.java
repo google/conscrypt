@@ -516,7 +516,7 @@ public class SSLParametersImpl implements Cloneable {
         }
 
         if (useSessionTickets) {
-            NativeCrypto.SSL_clear_options(sslNativePointer, NativeCrypto.SSL_OP_NO_TICKET);
+            NativeCrypto.SSL_clear_options(sslNativePointer, NativeConstants.SSL_OP_NO_TICKET);
         }
         if (getUseSni() && AddressUtils.isValidSniHostname(sniHostname)) {
             NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, sniHostname);
@@ -524,7 +524,7 @@ public class SSLParametersImpl implements Cloneable {
 
         // BEAST attack mitigation (1/n-1 record splitting for CBC cipher suites
         // with TLSv1 and SSLv3).
-        NativeCrypto.SSL_set_mode(sslNativePointer, NativeCrypto.SSL_MODE_CBC_RECORD_SPLITTING);
+        NativeCrypto.SSL_set_mode(sslNativePointer, NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING);
 
         boolean enableSessionCreation = getEnableSessionCreation();
         if (!enableSessionCreation) {
@@ -916,42 +916,20 @@ public class SSLParametersImpl implements Cloneable {
      * do not use X.509 for server authentication.
      */
     private static String getServerX509KeyType(long sslCipherNative) throws SSLException {
-        int algorithm_mkey = NativeCrypto.get_SSL_CIPHER_algorithm_mkey(sslCipherNative);
-        int algorithm_auth = NativeCrypto.get_SSL_CIPHER_algorithm_auth(sslCipherNative);
-        switch (algorithm_mkey) {
-            case NativeCrypto.SSL_kRSA:
-                return KEY_TYPE_RSA;
-            case NativeCrypto.SSL_kEDH:
-                switch (algorithm_auth) {
-                    case NativeCrypto.SSL_aRSA:
-                        return KEY_TYPE_RSA;
-                    case NativeCrypto.SSL_aNULL:
-                        return null;
-                }
-                break;
-            case NativeCrypto.SSL_kECDHr:
-                return KEY_TYPE_EC_RSA;
-            case NativeCrypto.SSL_kECDHe:
-                return KEY_TYPE_EC_EC;
-            case NativeCrypto.SSL_kEECDH:
-                switch (algorithm_auth) {
-                    case NativeCrypto.SSL_aECDSA:
-                        return KEY_TYPE_EC_EC;
-                    case NativeCrypto.SSL_aRSA:
-                        return KEY_TYPE_RSA;
-                    case NativeCrypto.SSL_aPSK:
-                        return null;
-                    case NativeCrypto.SSL_aNULL:
-                        return null;
-                }
-                break;
-            case NativeCrypto.SSL_kPSK:
-                return null;
+        String kx_name = NativeCrypto.SSL_CIPHER_get_kx_name(sslCipherNative);
+        if (kx_name.equals("RSA")) {
+            return KEY_TYPE_RSA;
+        } else if (kx_name.equals("DHE_RSA")) {
+            return KEY_TYPE_DH_RSA;
+        } else if (kx_name.equals("ECDHE_ECDSA")) {
+            return KEY_TYPE_EC_EC;
+        } else if (kx_name.equals("ECDHE_RSA")) {
+            return KEY_TYPE_DH_RSA;
+        } else if (kx_name.equals("DHE_RSA")) {
+            return KEY_TYPE_DH_RSA;
+        } else {
+            return null;
         }
-
-        throw new SSLException("Unsupported key exchange. "
-                + "mkey: 0x" + Long.toHexString(algorithm_mkey & 0xffffffffL)
-                + ", auth: 0x" + Long.toHexString(algorithm_auth & 0xffffffffL));
     }
 
     /**
@@ -965,15 +943,15 @@ public class SSLParametersImpl implements Cloneable {
     public static String getClientKeyType(byte clientCertificateType) {
         // See also http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
         switch (clientCertificateType) {
-            case NativeCrypto.TLS_CT_RSA_SIGN:
+            case NativeConstants.TLS_CT_RSA_SIGN:
                 return KEY_TYPE_RSA; // RFC rsa_sign
-            case NativeCrypto.TLS_CT_RSA_FIXED_DH:
+            case NativeConstants.TLS_CT_RSA_FIXED_DH:
                 return KEY_TYPE_DH_RSA; // RFC rsa_fixed_dh
-            case NativeCrypto.TLS_CT_ECDSA_SIGN:
+            case NativeConstants.TLS_CT_ECDSA_SIGN:
                 return KEY_TYPE_EC; // RFC ecdsa_sign
-            case NativeCrypto.TLS_CT_RSA_FIXED_ECDH:
+            case NativeConstants.TLS_CT_RSA_FIXED_ECDH:
                 return KEY_TYPE_EC_RSA; // RFC rsa_fixed_ecdh
-            case NativeCrypto.TLS_CT_ECDSA_FIXED_ECDH:
+            case NativeConstants.TLS_CT_ECDSA_FIXED_ECDH:
                 return KEY_TYPE_EC_EC; // RFC ecdsa_fixed_ecdh
             default:
                 return null;

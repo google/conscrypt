@@ -44,7 +44,7 @@ public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof RSAPublicKeySpec) {
             return new OpenSSLRSAPublicKey((RSAPublicKeySpec) keySpec);
         } else if (keySpec instanceof X509EncodedKeySpec) {
-            return OpenSSLKey.getPublicKey((X509EncodedKeySpec) keySpec, NativeCrypto.EVP_PKEY_RSA);
+            return OpenSSLKey.getPublicKey((X509EncodedKeySpec) keySpec, NativeConstants.EVP_PKEY_RSA);
         }
         throw new InvalidKeySpecException("Must use RSAPublicKeySpec or X509EncodedKeySpec; was "
                 + keySpec.getClass().getName());
@@ -62,7 +62,7 @@ public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
             return new OpenSSLRSAPrivateKey((RSAPrivateKeySpec) keySpec);
         } else if (keySpec instanceof PKCS8EncodedKeySpec) {
             return OpenSSLKey.getPrivateKey((PKCS8EncodedKeySpec) keySpec,
-                    NativeCrypto.EVP_PKEY_RSA);
+                    NativeConstants.EVP_PKEY_RSA);
         }
         throw new InvalidKeySpecException("Must use RSAPublicKeySpec or PKCS8EncodedKeySpec; was "
                 + keySpec.getClass().getName());

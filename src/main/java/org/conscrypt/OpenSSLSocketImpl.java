@@ -459,7 +459,7 @@ public class OpenSSLSocketImpl
     @Override
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / info_callback
     public void onSSLStateChange(long sslSessionNativePtr, int type, int val) {
-        if (type != NativeCrypto.SSL_CB_HANDSHAKE_DONE) {
+        if (type != NativeConstants.SSL_CB_HANDSHAKE_DONE) {
             return;
         }
 
