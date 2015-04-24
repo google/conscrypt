@@ -10086,6 +10086,19 @@ static jlong NativeCrypto_ERR_peek_last_error(JNIEnv*, jclass) {
     return ERR_peek_last_error();
 }
 
+static jstring NativeCrypto_SSL_CIPHER_get_kx_name(JNIEnv* env, jclass, jlong cipher_address) {
+    const SSL_CIPHER* cipher = to_SSL_CIPHER(env, cipher_address, true);
+    const char *kx_name = NULL;
+
+#if defined(OPENSSL_IS_BORINGSSL)
+    kx_name = SSL_CIPHER_get_kx_name(cipher);
+#else
+    kx_name = SSL_CIPHER_authentication_method(cipher);
+#endif
+
+    return env->NewStringUTF(kx_name);
+}
+
 #define FILE_DESCRIPTOR "Ljava/io/FileDescriptor;"
 #define SSL_CALLBACKS "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks;"
 #define REF_EC_GROUP "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_GROUP;"
@@ -10320,6 +10333,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_set_alpn_protos, "(J[B)I"),
     NATIVE_METHOD(NativeCrypto, SSL_get0_alpn_selected, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, ERR_peek_last_error, "()J"),
+    NATIVE_METHOD(NativeCrypto, SSL_CIPHER_get_kx_name, "(J)Ljava/lang/String;"),
 };
 
 static jclass getGlobalRefToClass(JNIEnv* env, const char* className) {

@@ -1373,4 +1373,6 @@ public final class NativeCrypto {
             + SSL3_RT_HEADER_LENGTH;
 
     public static native long ERR_peek_last_error();
+
+    public static native String SSL_CIPHER_get_kx_name(long cipherAddress);
 }
