@@ -145,7 +145,6 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt_unbundled
 LOCAL_JAVA_LIBRARIES := conscrypt-stubs
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-LOCAL_JACK_FLAGS := -D jack.classpath.default-libraries=false
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
 # Stub library for unbundled builds
