@@ -2343,7 +2343,7 @@ static jlong NativeCrypto_ENGINE_load_private_key(JNIEnv* env, jclass, jlong eng
 #else
     Unique_EVP_PKEY pkey(EVP_PKEY_from_keystore(id.c_str()));
     if (pkey.get() == NULL) {
-        jniThrowRuntimeException(env, "Failed to find named key in keystore");
+        throwExceptionIfNecessary(env, "ENGINE_load_private_key");
         return 0;
     }
     return reinterpret_cast<uintptr_t>(pkey.release());
