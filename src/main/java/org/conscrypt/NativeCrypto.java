@@ -31,9 +31,11 @@ import java.security.cert.CertificateParsingException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.net.ssl.SSLException;
@@ -561,12 +563,23 @@ public final class NativeCrypto {
     private static final String SUPPORTED_PROTOCOL_TLSV1_1 = "TLSv1.1";
     private static final String SUPPORTED_PROTOCOL_TLSV1_2 = "TLSv1.2";
 
+    // STANDARD_TO_OPENSSL_CIPHER_SUITES is a map from OpenSSL-style
+    // cipher-suite names to the standard name for the same (i.e. the name that
+    // is registered with IANA).
     public static final Map<String, String> OPENSSL_TO_STANDARD_CIPHER_SUITES
             = new HashMap<String, String>();
+
+    // STANDARD_TO_OPENSSL_CIPHER_SUITES is a map from "standard" cipher suite
+    // names (i.e. the names that are registered with IANA) to the
+    // OpenSSL-style name for the same.
     public static final Map<String, String> STANDARD_TO_OPENSSL_CIPHER_SUITES
             = new LinkedHashMap<String, String>();
 
-    private static void add(String standard, String openssl) {
+    // SUPPORTED_CIPHER_SUITES_SET contains all the cipher suites supported by
+    // OpenSSL, named using "standard" (as opposed to OpenSSL-style) names.
+    public static final Set<String> SUPPORTED_CIPHER_SUITES_SET = new HashSet<String>();
+
+    private static void add(String openssl, String standard) {
         OPENSSL_TO_STANDARD_CIPHER_SUITES.put(openssl, standard);
         STANDARD_TO_OPENSSL_CIPHER_SUITES.put(standard, openssl);
     }
@@ -602,129 +615,93 @@ public final class NativeCrypto {
     public static final String TLS_FALLBACK_SCSV = "TLS_FALLBACK_SCSV";
 
     static {
-        add("SSL_RSA_WITH_RC4_128_MD5",              "RC4-MD5");
-        add("SSL_RSA_WITH_RC4_128_SHA",              "RC4-SHA");
-        add("TLS_RSA_WITH_AES_128_CBC_SHA",          "AES128-SHA");
-        add("TLS_RSA_WITH_AES_256_CBC_SHA",          "AES256-SHA");
-        add("TLS_ECDH_ECDSA_WITH_RC4_128_SHA",       "ECDH-ECDSA-RC4-SHA");
-        add("TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",   "ECDH-ECDSA-AES128-SHA");
-        add("TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA",   "ECDH-ECDSA-AES256-SHA");
-        add("TLS_ECDH_RSA_WITH_RC4_128_SHA",         "ECDH-RSA-RC4-SHA");
-        add("TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",     "ECDH-RSA-AES128-SHA");
-        add("TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",     "ECDH-RSA-AES256-SHA");
-        add("TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",      "ECDHE-ECDSA-RC4-SHA");
-        add("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",  "ECDHE-ECDSA-AES128-SHA");
-        add("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",  "ECDHE-ECDSA-AES256-SHA");
-        add("TLS_ECDHE_RSA_WITH_RC4_128_SHA",        "ECDHE-RSA-RC4-SHA");
-        add("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",    "ECDHE-RSA-AES128-SHA");
-        add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",    "ECDHE-RSA-AES256-SHA");
-        add("TLS_DHE_RSA_WITH_AES_128_CBC_SHA",      "DHE-RSA-AES128-SHA");
-        add("TLS_DHE_RSA_WITH_AES_256_CBC_SHA",      "DHE-RSA-AES256-SHA");
-        add("SSL_RSA_WITH_3DES_EDE_CBC_SHA",         "DES-CBC3-SHA");
-        add("TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",  "ECDH-ECDSA-DES-CBC3-SHA");
-        add("TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",    "ECDH-RSA-DES-CBC3-SHA");
-        add("TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA", "ECDHE-ECDSA-DES-CBC3-SHA");
-        add("TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",   "ECDHE-RSA-DES-CBC3-SHA");
-        add("SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",     "EDH-RSA-DES-CBC3-SHA");
-        add("SSL_RSA_WITH_DES_CBC_SHA",              "DES-CBC-SHA");
-        add("SSL_DHE_RSA_WITH_DES_CBC_SHA",          "EDH-RSA-DES-CBC-SHA");
-        add("SSL_RSA_EXPORT_WITH_RC4_40_MD5",        "EXP-RC4-MD5");
-        add("SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",     "EXP-DES-CBC-SHA");
-        add("SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA", "EXP-EDH-RSA-DES-CBC-SHA");
-        add("SSL_RSA_WITH_NULL_MD5",                 "NULL-MD5");
-        add("SSL_RSA_WITH_NULL_SHA",                 "NULL-SHA");
-        add("TLS_ECDH_ECDSA_WITH_NULL_SHA",          "ECDH-ECDSA-NULL-SHA");
-        add("TLS_ECDH_RSA_WITH_NULL_SHA",            "ECDH-RSA-NULL-SHA");
-        add("TLS_ECDHE_ECDSA_WITH_NULL_SHA",         "ECDHE-ECDSA-NULL-SHA");
-        add("TLS_ECDHE_RSA_WITH_NULL_SHA",           "ECDHE-RSA-NULL-SHA");
-        add("SSL_DH_anon_WITH_RC4_128_MD5",          "ADH-RC4-MD5");
-        add("TLS_DH_anon_WITH_AES_128_CBC_SHA",      "ADH-AES128-SHA");
-        add("TLS_DH_anon_WITH_AES_256_CBC_SHA",      "ADH-AES256-SHA");
-        add("SSL_DH_anon_WITH_3DES_EDE_CBC_SHA",     "ADH-DES-CBC3-SHA");
-        add("SSL_DH_anon_WITH_DES_CBC_SHA",          "ADH-DES-CBC-SHA");
-        add("TLS_ECDH_anon_WITH_RC4_128_SHA",        "AECDH-RC4-SHA");
-        add("TLS_ECDH_anon_WITH_AES_128_CBC_SHA",    "AECDH-AES128-SHA");
-        add("TLS_ECDH_anon_WITH_AES_256_CBC_SHA",    "AECDH-AES256-SHA");
-        add("TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA",   "AECDH-DES-CBC3-SHA");
-        add("SSL_DH_anon_EXPORT_WITH_RC4_40_MD5",    "EXP-ADH-RC4-MD5");
-        add("SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA", "EXP-ADH-DES-CBC-SHA");
-        add("TLS_ECDH_anon_WITH_NULL_SHA",           "AECDH-NULL-SHA");
-
-        // TLSv1.2 cipher suites
-        add("TLS_RSA_WITH_NULL_SHA256",                "NULL-SHA256");
-        add("TLS_RSA_WITH_AES_128_CBC_SHA256",         "AES128-SHA256");
-        add("TLS_RSA_WITH_AES_256_CBC_SHA256",         "AES256-SHA256");
-        add("TLS_RSA_WITH_AES_128_GCM_SHA256",         "AES128-GCM-SHA256");
-        add("TLS_RSA_WITH_AES_256_GCM_SHA384",         "AES256-GCM-SHA384");
-        add("TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",     "DHE-RSA-AES128-SHA256");
-        add("TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",     "DHE-RSA-AES256-SHA256");
-        add("TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",     "DHE-RSA-AES128-GCM-SHA256");
-        add("TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",     "DHE-RSA-AES256-GCM-SHA384");
-        add("TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",    "ECDH-RSA-AES128-SHA256");
-        add("TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384",    "ECDH-RSA-AES256-SHA384");
-        add("TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",    "ECDH-RSA-AES128-GCM-SHA256");
-        add("TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384",    "ECDH-RSA-AES256-GCM-SHA384");
-        add("TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",  "ECDH-ECDSA-AES128-SHA256");
-        add("TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384",  "ECDH-ECDSA-AES256-SHA384");
-        add("TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",  "ECDH-ECDSA-AES128-GCM-SHA256");
-        add("TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384",  "ECDH-ECDSA-AES256-GCM-SHA384");
-        add("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",   "ECDHE-RSA-AES128-SHA256");
-        add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",   "ECDHE-RSA-AES256-SHA384");
-        add("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",   "ECDHE-RSA-AES128-GCM-SHA256");
-        add("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",   "ECDHE-RSA-AES256-GCM-SHA384");
-        add("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256", "ECDHE-ECDSA-AES128-SHA256");
-        add("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384", "ECDHE-ECDSA-AES256-SHA384");
-        add("TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "ECDHE-ECDSA-AES128-GCM-SHA256");
-        add("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "ECDHE-ECDSA-AES256-GCM-SHA384");
-        add("TLS_DH_anon_WITH_AES_128_CBC_SHA256",     "ADH-AES128-SHA256");
-        add("TLS_DH_anon_WITH_AES_256_CBC_SHA256",     "ADH-AES256-SHA256");
-        add("TLS_DH_anon_WITH_AES_128_GCM_SHA256",     "ADH-AES128-GCM-SHA256");
-        add("TLS_DH_anon_WITH_AES_256_GCM_SHA384",     "ADH-AES256-GCM-SHA384");
-
-        // No Kerberos in Android
-        // add("TLS_KRB5_WITH_RC4_128_SHA",           "KRB5-RC4-SHA");
-        // add("TLS_KRB5_WITH_RC4_128_MD5",           "KRB5-RC4-MD5");
-        // add("TLS_KRB5_WITH_3DES_EDE_CBC_SHA",      "KRB5-DES-CBC3-SHA");
-        // add("TLS_KRB5_WITH_3DES_EDE_CBC_MD5",      "KRB5-DES-CBC3-MD5");
-        // add("TLS_KRB5_WITH_DES_CBC_SHA",           "KRB5-DES-CBC-SHA");
-        // add("TLS_KRB5_WITH_DES_CBC_MD5",           "KRB5-DES-CBC-MD5");
-        // add("TLS_KRB5_EXPORT_WITH_RC4_40_SHA",     "EXP-KRB5-RC4-SHA");
-        // add("TLS_KRB5_EXPORT_WITH_RC4_40_MD5",     "EXP-KRB5-RC4-MD5");
-        // add("TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA", "EXP-KRB5-DES-CBC-SHA");
-        // add("TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5", "EXP-KRB5-DES-CBC-MD5");
-
-        // not implemented by either RI or OpenSSL
-        // add("SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA", null);
-        // add("SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA", null);
-
-        // No DSS support in BoringSSL
-        // add("SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", "EXP-EDH-DSS-DES-CBC-SHA");
-        // add("SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",     "EDH-DSS-DES-CBC3-SHA");
-        // add("SSL_DHE_DSS_WITH_DES_CBC_SHA",          "EDH-DSS-DES-CBC-SHA");
-        // add("TLS_DHE_DSS_WITH_AES_128_CBC_SHA",      "DHE-DSS-AES128-SHA");
-        // add("TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",   "DHE-DSS-AES128-SHA256");
-        // add("TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",   "DHE-DSS-AES128-GCM-SHA256");
-        // add("TLS_DHE_DSS_WITH_AES_256_CBC_SHA",      "DHE-DSS-AES256-SHA");
-        // add("TLS_DHE_DSS_WITH_AES_256_CBC_SHA256",   "DHE-DSS-AES256-SHA256");
-        // add("TLS_DHE_DSS_WITH_AES_256_GCM_SHA384",   "DHE-DSS-AES256-GCM-SHA384");
-
-        // EXPORT1024 suites were never standardized but were widely implemented.
-        // OpenSSL 0.9.8c and later have disabled TLS1_ALLOW_EXPERIMENTAL_CIPHERSUITES
-        // add("SSL_RSA_EXPORT1024_WITH_DES_CBC_SHA", "EXP1024-DES-CBC-SHA");
-        // add("SSL_RSA_EXPORT1024_WITH_RC4_56_SHA",  "EXP1024-RC4-SHA");
-
-        // No RC2
-        // add("SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5",  "EXP-RC2-CBC-MD5");
-        // add("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA", "EXP-KRB5-RC2-CBC-SHA");
-        // add("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5", "EXP-KRB5-RC2-CBC-MD5");
-
-        // Pre-Shared Key (PSK) cipher suites
-        add("TLS_PSK_WITH_3DES_EDE_CBC_SHA", "PSK-3DES-EDE-CBC-SHA");
-        add("TLS_PSK_WITH_AES_128_CBC_SHA", "PSK-AES128-CBC-SHA");
-        add("TLS_PSK_WITH_AES_256_CBC_SHA", "PSK-AES256-CBC-SHA");
-        add("TLS_PSK_WITH_RC4_128_SHA", "PSK-RC4-SHA");
-        add("TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA", "ECDHE-PSK-AES128-CBC-SHA");
-        add("TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA", "ECDHE-PSK-AES256-CBC-SHA");
+        add("ADH-AES128-GCM-SHA256",		"TLS_DH_anon_WITH_AES_128_GCM_SHA256");
+        add("ADH-AES128-SHA",			"TLS_DH_anon_WITH_AES_128_CBC_SHA");
+        add("ADH-AES128-SHA256",		"TLS_DH_anon_WITH_AES_128_CBC_SHA256");
+        add("ADH-AES256-GCM-SHA384",		"TLS_DH_anon_WITH_AES_256_GCM_SHA384");
+        add("ADH-AES256-SHA",			"TLS_DH_anon_WITH_AES_256_CBC_SHA");
+        add("ADH-AES256-SHA256",		"TLS_DH_anon_WITH_AES_256_CBC_SHA256");
+        add("ADH-DES-CBC-SHA",			"SSL_DH_anon_WITH_DES_CBC_SHA");
+        add("ADH-DES-CBC3-SHA",			"SSL_DH_anon_WITH_3DES_EDE_CBC_SHA");
+        add("ADH-RC4-MD5",			"SSL_DH_anon_WITH_RC4_128_MD5");
+        add("AECDH-AES128-SHA",			"TLS_ECDH_anon_WITH_AES_128_CBC_SHA");
+        add("AECDH-AES256-SHA",			"TLS_ECDH_anon_WITH_AES_256_CBC_SHA");
+        add("AECDH-DES-CBC3-SHA",		"TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA");
+        add("AECDH-NULL-SHA",			"TLS_ECDH_anon_WITH_NULL_SHA");
+        add("AECDH-RC4-SHA",			"TLS_ECDH_anon_WITH_RC4_128_SHA");
+        add("AES128-GCM-SHA256",		"TLS_RSA_WITH_AES_128_GCM_SHA256");
+        add("AES128-SHA",			"TLS_RSA_WITH_AES_128_CBC_SHA");
+        add("AES128-SHA256",			"TLS_RSA_WITH_AES_128_CBC_SHA256");
+        add("AES256-GCM-SHA384",		"TLS_RSA_WITH_AES_256_GCM_SHA384");
+        add("AES256-SHA",			"TLS_RSA_WITH_AES_256_CBC_SHA");
+        add("AES256-SHA256",			"TLS_RSA_WITH_AES_256_CBC_SHA256");
+        add("DES-CBC-SHA",			"SSL_RSA_WITH_DES_CBC_SHA");
+        add("DES-CBC3-SHA",			"SSL_RSA_WITH_3DES_EDE_CBC_SHA");
+        add("DHE-RSA-AES128-GCM-SHA256",	"TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
+        add("DHE-RSA-AES128-SHA",		"TLS_DHE_RSA_WITH_AES_128_CBC_SHA");
+        add("DHE-RSA-AES128-SHA256",		"TLS_DHE_RSA_WITH_AES_128_CBC_SHA256");
+        add("DHE-RSA-AES256-GCM-SHA384",	"TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
+        add("DHE-RSA-AES256-SHA",		"TLS_DHE_RSA_WITH_AES_256_CBC_SHA");
+        add("DHE-RSA-AES256-SHA256",		"TLS_DHE_RSA_WITH_AES_256_CBC_SHA256");
+        add("DHE-RSA-CHACHA20-POLY1305",	"TLS_DHE_RSA_WITH_CHACHA20_POLY1305");
+        add("ECDH-ECDSA-AES128-GCM-SHA256",    	"TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256");
+        add("ECDH-ECDSA-AES128-SHA",		"TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA");
+        add("ECDH-ECDSA-AES128-SHA256",		"TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256");
+        add("ECDH-ECDSA-AES256-GCM-SHA384",    	"TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384");
+        add("ECDH-ECDSA-AES256-SHA",		"TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA");
+        add("ECDH-ECDSA-AES256-SHA384",		"TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384");
+        add("ECDH-ECDSA-DES-CBC3-SHA",		"TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA");
+        add("ECDH-ECDSA-NULL-SHA",		"TLS_ECDH_ECDSA_WITH_NULL_SHA");
+        add("ECDH-ECDSA-RC4-SHA",		"TLS_ECDH_ECDSA_WITH_RC4_128_SHA");
+        add("ECDH-RSA-AES128-GCM-SHA256",      	"TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256");
+        add("ECDH-RSA-AES128-SHA",		"TLS_ECDH_RSA_WITH_AES_128_CBC_SHA");
+        add("ECDH-RSA-AES128-SHA256",		"TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256");
+        add("ECDH-RSA-AES256-GCM-SHA384",      	"TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384");
+        add("ECDH-RSA-AES256-SHA",		"TLS_ECDH_RSA_WITH_AES_256_CBC_SHA");
+        add("ECDH-RSA-AES256-SHA384",		"TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384");
+        add("ECDH-RSA-DES-CBC3-SHA",		"TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA");
+        add("ECDH-RSA-NULL-SHA",		"TLS_ECDH_RSA_WITH_NULL_SHA");
+        add("ECDH-RSA-RC4-SHA",			"TLS_ECDH_RSA_WITH_RC4_128_SHA");
+        add("ECDHE-ECDSA-AES128-GCM-SHA256",   	"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
+        add("ECDHE-ECDSA-AES128-SHA",		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
+        add("ECDHE-ECDSA-AES128-SHA256",	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
+        add("ECDHE-ECDSA-AES256-GCM-SHA384",   	"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
+        add("ECDHE-ECDSA-AES256-SHA",		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA");
+        add("ECDHE-ECDSA-AES256-SHA384",	"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384");
+        add("ECDHE-ECDSA-CHACHA20-POLY1305",   	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305");
+        add("ECDHE-ECDSA-DES-CBC3-SHA",		"TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA");
+        add("ECDHE-ECDSA-NULL-SHA",		"TLS_ECDHE_ECDSA_WITH_NULL_SHA");
+        add("ECDHE-ECDSA-RC4-SHA",		"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA");
+        add("ECDHE-PSK-AES128-CBC-SHA",		"TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA");
+        add("ECDHE-PSK-AES128-GCM-SHA256",     	"TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256");
+        add("ECDHE-PSK-AES256-CBC-SHA",		"TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA");
+        add("ECDHE-PSK-AES256-GCM-SHA384",     	"TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384");
+        add("ECDHE-RSA-AES128-GCM-SHA256",     	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
+        add("ECDHE-RSA-AES128-SHA",		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
+        add("ECDHE-RSA-AES128-SHA256",		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
+        add("ECDHE-RSA-AES256-GCM-SHA384",     	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
+        add("ECDHE-RSA-AES256-SHA",		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
+        add("ECDHE-RSA-AES256-SHA384",		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
+        add("ECDHE-RSA-CHACHA20-POLY1305",     	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305");
+        add("ECDHE-RSA-DES-CBC3-SHA",		"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA");
+        add("ECDHE-RSA-NULL-SHA",		"TLS_ECDHE_RSA_WITH_NULL_SHA");
+        add("ECDHE-RSA-RC4-SHA",		"TLS_ECDHE_RSA_WITH_RC4_128_SHA");
+        add("EDH-RSA-DES-CBC-SHA",		"SSL_DHE_RSA_WITH_DES_CBC_SHA");
+        add("EDH-RSA-DES-CBC3-SHA",		"SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA");
+        add("EXP-ADH-DES-CBC-SHA",		"SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
+        add("EXP-ADH-RC4-MD5",			"SSL_DH_anon_EXPORT_WITH_RC4_40_MD5");
+        add("EXP-DES-CBC-SHA",			"SSL_RSA_EXPORT_WITH_DES40_CBC_SHA");
+        add("EXP-EDH-RSA-DES-CBC-SHA",		"SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA");
+        add("EXP-RC4-MD5",			"SSL_RSA_EXPORT_WITH_RC4_40_MD5");
+        add("NULL-MD5",				"SSL_RSA_WITH_NULL_MD5");
+        add("NULL-SHA",				"SSL_RSA_WITH_NULL_SHA");
+        add("NULL-SHA256",			"TLS_RSA_WITH_NULL_SHA256");
+        add("PSK-3DES-EDE-CBC-SHA",		"TLS_PSK_WITH_3DES_EDE_CBC_SHA");
+        add("PSK-AES128-CBC-SHA",		"TLS_PSK_WITH_AES_128_CBC_SHA");
+        add("PSK-AES256-CBC-SHA",		"TLS_PSK_WITH_AES_256_CBC_SHA");
+        add("PSK-RC4-SHA",			"TLS_PSK_WITH_RC4_128_SHA");
+        add("RC4-MD5",				"SSL_RSA_WITH_RC4_128_MD5");
+        add("RC4-SHA",				"SSL_RSA_WITH_RC4_128_SHA");
 
         // Signaling Cipher Suite Value for secure renegotiation handled as special case.
         // add("TLS_EMPTY_RENEGOTIATION_INFO_SCSV", null);
@@ -735,9 +712,20 @@ public final class NativeCrypto {
 
     private static final String[] SUPPORTED_CIPHER_SUITES;
     static {
-        int size = STANDARD_TO_OPENSSL_CIPHER_SUITES.size();
+        // Cipher selection string must work with OpenSSL and BoringSSL.
+        String[] allOpenSSLCipherSuites = get_cipher_names("ALL:-EXP:-SRP:-SEED:-CAMELLIA:-DSS:-RC2:-DES-CBC-MD5:-DES-CBC3-MD5");
+
+        int size = allOpenSSLCipherSuites.length;
         SUPPORTED_CIPHER_SUITES = new String[size + 2];
-        STANDARD_TO_OPENSSL_CIPHER_SUITES.keySet().toArray(SUPPORTED_CIPHER_SUITES);
+        for (int i = 0; i < size; i++) {
+            String standardName = OPENSSL_TO_STANDARD_CIPHER_SUITES.get(allOpenSSLCipherSuites[i]);
+            if (standardName == null) {
+                throw new IllegalArgumentException("Unknown cipher suite supported by native code: " +
+                                                   allOpenSSLCipherSuites[i]);
+            }
+            SUPPORTED_CIPHER_SUITES[i] = standardName;
+            SUPPORTED_CIPHER_SUITES_SET.add(standardName);
+        }
         SUPPORTED_CIPHER_SUITES[size] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
         SUPPORTED_CIPHER_SUITES[size + 1] = TLS_FALLBACK_SCSV;
     }
@@ -972,10 +960,14 @@ public final class NativeCrypto {
                     cipherSuite.equals(TLS_FALLBACK_SCSV)) {
                 continue;
             }
-            if (STANDARD_TO_OPENSSL_CIPHER_SUITES.containsKey(cipherSuite)) {
+            if (SUPPORTED_CIPHER_SUITES_SET.contains(cipherSuite)) {
                 continue;
             }
-            if (OPENSSL_TO_STANDARD_CIPHER_SUITES.containsKey(cipherSuite)) {
+
+            // For backwards compatibility, it's allowed for |cipherSuite| to
+            // be an OpenSSL-style cipher-suite name.
+            String standardName = OPENSSL_TO_STANDARD_CIPHER_SUITES.get(cipherSuite);
+            if (standardName != null && SUPPORTED_CIPHER_SUITES_SET.contains(standardName)) {
                 // TODO log warning about using backward compatability
                 continue;
             }
@@ -1218,4 +1210,6 @@ public final class NativeCrypto {
     public static native long ERR_peek_last_error();
 
     public static native String SSL_CIPHER_get_kx_name(long cipherAddress);
+
+    public static native String[] get_cipher_names(String selection);
 }

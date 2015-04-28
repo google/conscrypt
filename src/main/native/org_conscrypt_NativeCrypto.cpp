@@ -10102,6 +10102,40 @@ static jstring NativeCrypto_SSL_CIPHER_get_kx_name(JNIEnv* env, jclass, jlong ci
     return env->NewStringUTF(kx_name);
 }
 
+static jobjectArray NativeCrypto_get_cipher_names(JNIEnv *env, jclass, jstring selectorJava) {
+    ScopedUtfChars selector(env, selectorJava);
+    if (selector.c_str() == NULL) {
+        jniThrowException(env, "java/lang/IllegalArgumentException", "selector == NULL");
+        return 0;
+    }
+
+    JNI_TRACE("NativeCrypto_get_cipher_names %s", selector.c_str());
+
+    Unique_SSL_CTX sslCtx(SSL_CTX_new(SSLv23_method()));
+    Unique_SSL ssl(SSL_new(sslCtx.get()));
+
+    if (!SSL_set_cipher_list(ssl.get(), selector.c_str())) {
+        jniThrowException(env, "java/lang/IllegalArgumentException", "Unable to set SSL cipher list");
+        return 0;
+    }
+    STACK_OF(SSL_CIPHER) *ciphers = SSL_get_ciphers(ssl.get());
+
+    size_t size = sk_SSL_CIPHER_num(ciphers);
+    ScopedLocalRef<jobjectArray> cipherNamesArray(env, env->NewObjectArray(size, stringClass, NULL));
+    if (cipherNamesArray.get() == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < size; i++) {
+        const char *name = SSL_CIPHER_get_name(sk_SSL_CIPHER_value(ciphers, i));
+        ScopedLocalRef<jstring> cipherName(env, env->NewStringUTF(name));
+        env->SetObjectArrayElement(cipherNamesArray.get(), i, cipherName.get());
+    }
+
+    JNI_TRACE("NativeCrypto_get_cipher_names(%s) => success (%zd entries)", selector.c_str(), size);
+    return cipherNamesArray.release();
+}
+
 #define FILE_DESCRIPTOR "Ljava/io/FileDescriptor;"
 #define SSL_CALLBACKS "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks;"
 #define REF_EC_GROUP "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_GROUP;"
@@ -10337,6 +10371,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_get0_alpn_selected, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, ERR_peek_last_error, "()J"),
     NATIVE_METHOD(NativeCrypto, SSL_CIPHER_get_kx_name, "(J)Ljava/lang/String;"),
+    NATIVE_METHOD(NativeCrypto, get_cipher_names, "(Ljava/lang/String;)[Ljava/lang/String;"),
 };
 
 static jclass getGlobalRefToClass(JNIEnv* env, const char* className) {
