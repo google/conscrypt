@@ -1636,7 +1636,7 @@ void ExDataFree(void* /* parent */,
                 CRYPTO_EX_DATA* ad,
                 int idx,
                 long /* argl */,
-                void* /* argp */) {
+                const void* /* argp */) {
     jobject private_key = reinterpret_cast<jobject>(ptr);
     if (private_key == NULL) return;
 
@@ -1650,7 +1650,7 @@ int ExDataDup(CRYPTO_EX_DATA* /* to */,
               void* /* from_d */,
               int /* idx */,
               long /* argl */,
-              void* /* argp */) {
+              const void* /* argp */) {
     // This callback shall never be called with the current OpenSSL
     // implementation (the library only ever duplicates EX_DATA items
     // for SSL and BIO objects). But provide this to catch regressions
