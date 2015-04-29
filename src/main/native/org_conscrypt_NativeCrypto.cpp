@@ -422,51 +422,52 @@ private:
 /**
  * Throws a OutOfMemoryError with the given string as a message.
  */
-static void jniThrowOutOfMemory(JNIEnv* env, const char* message) {
-    jniThrowException(env, "java/lang/OutOfMemoryError", message);
+static int jniThrowOutOfMemory(JNIEnv* env, const char* message) {
+    return jniThrowException(env, "java/lang/OutOfMemoryError", message);
 }
 
 /**
  * Throws a BadPaddingException with the given string as a message.
  */
-static void throwBadPaddingException(JNIEnv* env, const char* message) {
+static int throwBadPaddingException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwBadPaddingException %s", message);
-    jniThrowException(env, "javax/crypto/BadPaddingException", message);
+    return jniThrowException(env, "javax/crypto/BadPaddingException", message);
 }
 
 /**
  * Throws a SignatureException with the given string as a message.
  */
-static void throwSignatureException(JNIEnv* env, const char* message) {
+static int throwSignatureException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSignatureException %s", message);
-    jniThrowException(env, "java/security/SignatureException", message);
+    return jniThrowException(env, "java/security/SignatureException", message);
 }
 
 /**
  * Throws a InvalidKeyException with the given string as a message.
  */
-static void throwInvalidKeyException(JNIEnv* env, const char* message) {
+static int throwInvalidKeyException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwInvalidKeyException %s", message);
-    jniThrowException(env, "java/security/InvalidKeyException", message);
+    return jniThrowException(env, "java/security/InvalidKeyException", message);
 }
 
 /**
  * Throws a SignatureException with the given string as a message.
  */
-static void throwIllegalBlockSizeException(JNIEnv* env, const char* message) {
+static int throwIllegalBlockSizeException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwIllegalBlockSizeException %s", message);
-    jniThrowException(env, "javax/crypto/IllegalBlockSizeException", message);
+    return jniThrowException(env, "javax/crypto/IllegalBlockSizeException", message);
 }
 
 /**
  * Throws a NoSuchAlgorithmException with the given string as a message.
  */
-static void throwNoSuchAlgorithmException(JNIEnv* env, const char* message) {
+static int throwNoSuchAlgorithmException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwUnknownAlgorithmException %s", message);
-    jniThrowException(env, "java/security/NoSuchAlgorithmException", message);
+    return jniThrowException(env, "java/security/NoSuchAlgorithmException", message);
 }
 
-static void throwForAsn1Error(JNIEnv* env, int reason, const char *message) {
+static int throwForAsn1Error(JNIEnv* env, int reason, const char *message,
+                             int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
     case ASN1_R_UNABLE_TO_DECODE_RSA_KEY:
     case ASN1_R_UNABLE_TO_DECODE_RSA_PRIVATE_KEY:
@@ -475,75 +476,74 @@ static void throwForAsn1Error(JNIEnv* env, int reason, const char *message) {
     // These #if sections can be removed once BoringSSL is landed.
 #if defined(ASN1_R_WRONG_PUBLIC_KEY_TYPE)
     case ASN1_R_WRONG_PUBLIC_KEY_TYPE:
-        throwInvalidKeyException(env, message);
-        break;
 #endif
+        return throwInvalidKeyException(env, message);
+        break;
 #if defined(ASN1_R_UNKNOWN_MESSAGE_DIGEST_ALGORITHM)
     case ASN1_R_UNKNOWN_MESSAGE_DIGEST_ALGORITHM:
-        throwNoSuchAlgorithmException(env, message);
+        return throwNoSuchAlgorithmException(env, message);
         break;
 #endif
-    default:
-        jniThrowRuntimeException(env, message);
-        break;
     }
+    return defaultThrow(env, message);
 }
 
 #if defined(OPENSSL_IS_BORINGSSL)
-static void throwForCipherError(JNIEnv* env, int reason, const char *message) {
+static int throwForCipherError(JNIEnv* env, int reason, const char *message,
+                               int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
     case CIPHER_R_BAD_DECRYPT:
-        throwBadPaddingException(env, message);
+        return throwBadPaddingException(env, message);
         break;
     case CIPHER_R_DATA_NOT_MULTIPLE_OF_BLOCK_LENGTH:
     case CIPHER_R_WRONG_FINAL_BLOCK_LENGTH:
-        throwIllegalBlockSizeException(env, message);
+        return throwIllegalBlockSizeException(env, message);
         break;
     case CIPHER_R_AES_KEY_SETUP_FAILED:
     case CIPHER_R_BAD_KEY_LENGTH:
     case CIPHER_R_UNSUPPORTED_KEY_SIZE:
-        throwInvalidKeyException(env, message);
-        break;
-    default:
-        jniThrowRuntimeException(env, message);
+        return throwInvalidKeyException(env, message);
         break;
     }
+    return defaultThrow(env, message);
 }
 
-static void throwForEvpError(JNIEnv* env, int reason, const char *message) {
+static int throwForEvpError(JNIEnv* env, int reason, const char *message,
+                            int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
     case EVP_R_MISSING_PARAMETERS:
-        throwInvalidKeyException(env, message);
+        return throwInvalidKeyException(env, message);
         break;
     case EVP_R_UNSUPPORTED_ALGORITHM:
     case EVP_R_X931_UNSUPPORTED:
-        throwNoSuchAlgorithmException(env, message);
+        return throwNoSuchAlgorithmException(env, message);
         break;
     // These #if sections can be make unconditional once BoringSSL is landed.
 #if defined(EVP_R_WRONG_PUBLIC_KEY_TYPE)
     case EVP_R_WRONG_PUBLIC_KEY_TYPE:
-        throwInvalidKeyException(env, message);
+        return throwInvalidKeyException(env, message);
         break;
 #endif
 #if defined(EVP_R_UNKNOWN_MESSAGE_DIGEST_ALGORITHM)
     case EVP_R_UNKNOWN_MESSAGE_DIGEST_ALGORITHM:
-        throwNoSuchAlgorithmException(env, message);
+        return throwNoSuchAlgorithmException(env, message);
         break;
 #endif
     default:
-        jniThrowRuntimeException(env, message);
+        return defaultThrow(env, message);
         break;
     }
 }
 #else
-static void throwForEvpError(JNIEnv* env, int reason, const char *message) {
+static int throwForEvpError(JNIEnv* env, int reason, const char *message,
+                            int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
     case EVP_R_BAD_DECRYPT:
-        throwBadPaddingException(env, message);
+        return throwBadPaddingException(env, message);
         break;
     case EVP_R_DATA_NOT_MULTIPLE_OF_BLOCK_LENGTH:
     case EVP_R_WRONG_FINAL_BLOCK_LENGTH:
-        throwIllegalBlockSizeException(env, message);
+        return throwIllegalBlockSizeException(env, message);
         break;
     case EVP_R_BAD_KEY_LENGTH:
     case EVP_R_BN_DECODE_ERROR:
@@ -552,27 +552,28 @@ static void throwForEvpError(JNIEnv* env, int reason, const char *message) {
     case EVP_R_MISSING_PARAMETERS:
     case EVP_R_UNSUPPORTED_KEY_SIZE:
     case EVP_R_UNSUPPORTED_KEYLENGTH:
-        throwInvalidKeyException(env, message);
+        return throwInvalidKeyException(env, message);
         break;
     case EVP_R_WRONG_PUBLIC_KEY_TYPE:
-        throwSignatureException(env, message);
+        return throwSignatureException(env, message);
         break;
     case EVP_R_UNSUPPORTED_ALGORITHM:
-        throwNoSuchAlgorithmException(env, message);
+        return throwNoSuchAlgorithmException(env, message);
         break;
     default:
-        jniThrowRuntimeException(env, message);
+        return defaultThrow(env, message);
         break;
     }
 }
 #endif
 
-static void throwForRsaError(JNIEnv* env, int reason, const char *message) {
+static int throwForRsaError(JNIEnv* env, int reason, const char *message,
+                            int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
     case RSA_R_BLOCK_TYPE_IS_NOT_01:
     case RSA_R_BLOCK_TYPE_IS_NOT_02:
     case RSA_R_PKCS_DECODING_ERROR:
-        throwBadPaddingException(env, message);
+        return throwBadPaddingException(env, message);
         break;
     case RSA_R_BAD_SIGNATURE:
     case RSA_R_DATA_TOO_LARGE_FOR_MODULUS:
@@ -582,28 +583,27 @@ static void throwForRsaError(JNIEnv* env, int reason, const char *message) {
     case RSA_R_ALGORITHM_MISMATCH:
     case RSA_R_DATA_GREATER_THAN_MOD_LEN:
 #endif
-        throwSignatureException(env, message);
+        return throwSignatureException(env, message);
         break;
     case RSA_R_UNKNOWN_ALGORITHM_TYPE:
-        throwNoSuchAlgorithmException(env, message);
+        return throwNoSuchAlgorithmException(env, message);
         break;
     case RSA_R_MODULUS_TOO_LARGE:
     case RSA_R_NO_PUBLIC_EXPONENT:
-        throwInvalidKeyException(env, message);
-        break;
-    default:
-        jniThrowRuntimeException(env, message);
+        return throwInvalidKeyException(env, message);
         break;
     }
+    return defaultThrow(env, message);
 }
 
-static void throwForX509Error(JNIEnv* env, int reason, const char *message) {
+static int throwForX509Error(JNIEnv* env, int reason, const char *message,
+                             int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
     case X509_R_UNSUPPORTED_ALGORITHM:
-        throwNoSuchAlgorithmException(env, message);
+        return throwNoSuchAlgorithmException(env, message);
         break;
     default:
-        jniThrowRuntimeException(env, message);
+        return defaultThrow(env, message);
         break;
     }
 }
@@ -614,7 +614,8 @@ static void throwForX509Error(JNIEnv* env, int reason, const char *message) {
  *
  * @return true if an exception was thrown, false if not.
  */
-static bool throwExceptionIfNecessary(JNIEnv* env, const char* location  __attribute__ ((unused))) {
+static bool throwExceptionIfNecessary(JNIEnv* env, const char* location  __attribute__ ((unused)),
+        int (*defaultThrow)(JNIEnv*, const char*) = jniThrowRuntimeException) {
     const char* file;
     int line;
     const char* data;
@@ -632,27 +633,27 @@ static bool throwExceptionIfNecessary(JNIEnv* env, const char* location  __attri
                   (flags & ERR_TXT_STRING) ? data : "(no data)");
         switch (library) {
         case ERR_LIB_RSA:
-            throwForRsaError(env, reason, message);
+            throwForRsaError(env, reason, message, defaultThrow);
             break;
         case ERR_LIB_ASN1:
-            throwForAsn1Error(env, reason, message);
+            throwForAsn1Error(env, reason, message, defaultThrow);
             break;
 #if defined(OPENSSL_IS_BORINGSSL)
         case ERR_LIB_CIPHER:
-            throwForCipherError(env, reason, message);
+            throwForCipherError(env, reason, message, defaultThrow);
             break;
 #endif
         case ERR_LIB_EVP:
-            throwForEvpError(env, reason, message);
+            throwForEvpError(env, reason, message, defaultThrow);
             break;
         case ERR_LIB_X509:
-            throwForX509Error(env, reason, message);
+            throwForX509Error(env, reason, message, defaultThrow);
             break;
         case ERR_LIB_DSA:
             throwInvalidKeyException(env, message);
             break;
         default:
-            jniThrowRuntimeException(env, message);
+            defaultThrow(env, message);
             break;
         }
         result = true;
@@ -665,33 +666,33 @@ static bool throwExceptionIfNecessary(JNIEnv* env, const char* location  __attri
 /**
  * Throws an SocketTimeoutException with the given string as a message.
  */
-static void throwSocketTimeoutException(JNIEnv* env, const char* message) {
+static int throwSocketTimeoutException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSocketTimeoutException %s", message);
-    jniThrowException(env, "java/net/SocketTimeoutException", message);
+    return jniThrowException(env, "java/net/SocketTimeoutException", message);
 }
 
 /**
  * Throws a javax.net.ssl.SSLException with the given string as a message.
  */
-static void throwSSLHandshakeExceptionStr(JNIEnv* env, const char* message) {
+static int throwSSLHandshakeExceptionStr(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSSLExceptionStr %s", message);
-    jniThrowException(env, "javax/net/ssl/SSLHandshakeException", message);
+    return jniThrowException(env, "javax/net/ssl/SSLHandshakeException", message);
 }
 
 /**
  * Throws a javax.net.ssl.SSLException with the given string as a message.
  */
-static void throwSSLExceptionStr(JNIEnv* env, const char* message) {
+static int throwSSLExceptionStr(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSSLExceptionStr %s", message);
-    jniThrowException(env, "javax/net/ssl/SSLException", message);
+    return jniThrowException(env, "javax/net/ssl/SSLException", message);
 }
 
 /**
  * Throws a javax.net.ssl.SSLProcotolException with the given string as a message.
  */
-static void throwSSLProtocolExceptionStr(JNIEnv* env, const char* message) {
+static int throwSSLProtocolExceptionStr(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSSLProtocolExceptionStr %s", message);
-    jniThrowException(env, "javax/net/ssl/SSLProtocolException", message);
+    return jniThrowException(env, "javax/net/ssl/SSLProtocolException", message);
 }
 
 /**
@@ -704,8 +705,8 @@ static void throwSSLProtocolExceptionStr(JNIEnv* env, const char* message) {
  * SSL_ERROR_NONE to probe with ERR_get_error
  * @param message null-ok; general error message
  */
-static void throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCode,
-        const char* message, void (*actualThrow)(JNIEnv*, const char*) = throwSSLExceptionStr) {
+static int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCode,
+        const char* message, int (*actualThrow)(JNIEnv*, const char*) = throwSSLExceptionStr) {
 
     if (message == NULL) {
         message = "SSL error";
@@ -753,10 +754,10 @@ static void throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCo
     char* str;
     if (asprintf(&str, "%s: ssl=%p: %s", message, ssl, sslErrorStr) <= 0) {
         // problem with asprintf, just throw argument message, log everything
-        actualThrow(env, message);
+        int ret = actualThrow(env, message);
         ALOGV("%s: ssl=%p: %s", message, ssl, sslErrorStr);
         freeOpenSslErrorState();
-        return;
+        return ret;
     }
 
     char* allocStr = str;
@@ -806,15 +807,17 @@ static void throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCo
         }
     }
 
+    int ret;
     if (sslErrorCode == SSL_ERROR_SSL) {
-        throwSSLProtocolExceptionStr(env, allocStr);
+        ret = throwSSLProtocolExceptionStr(env, allocStr);
     } else {
-        actualThrow(env, allocStr);
+        ret = actualThrow(env, allocStr);
     }
 
     ALOGV("%s", allocStr);
     free(allocStr);
     freeOpenSslErrorState();
+    return ret;
 }
 
 /**
