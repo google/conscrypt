@@ -75,7 +75,7 @@
 #include "JniException.h"
 #else
 #define NATIVE_METHOD(className, functionName, signature) \
-  { #functionName, signature, reinterpret_cast<void*>(className ## _ ## functionName) }
+  { (char*) #functionName, (char*) signature, reinterpret_cast<void*>(className ## _ ## functionName) }
 #define REGISTER_NATIVE_METHODS(jni_class_name) \
   RegisterNativeMethods(env, jni_class_name, gMethods, arraysize(gMethods))
 #endif
