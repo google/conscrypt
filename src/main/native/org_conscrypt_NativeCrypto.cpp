@@ -65,7 +65,6 @@
 #ifndef CONSCRYPT_UNBUNDLED
 #include "cutils/log.h"
 #else
-#include <android/log.h>
 #include "log_compat.h"
 #endif
 
