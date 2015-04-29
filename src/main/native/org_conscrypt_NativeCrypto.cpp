@@ -2332,7 +2332,7 @@ static jlong NativeCrypto_ENGINE_load_private_key(JNIEnv* env, jclass, jlong eng
 
     Unique_EVP_PKEY pkey(ENGINE_load_private_key(e, id.c_str(), NULL, NULL));
     if (pkey.get() == NULL) {
-        throwExceptionIfNecessary(env, "ENGINE_load_private_key");
+        throwExceptionIfNecessary(env, "ENGINE_load_private_key", throwInvalidKeyException);
         return 0;
     }
 
@@ -2346,7 +2346,7 @@ static jlong NativeCrypto_ENGINE_load_private_key(JNIEnv* env, jclass, jlong eng
 #else
     Unique_EVP_PKEY pkey(EVP_PKEY_from_keystore(id.c_str()));
     if (pkey.get() == NULL) {
-        throwExceptionIfNecessary(env, "ENGINE_load_private_key");
+        throwExceptionIfNecessary(env, "ENGINE_load_private_key", throwInvalidKeyException);
         return 0;
     }
     return reinterpret_cast<uintptr_t>(pkey.release());
