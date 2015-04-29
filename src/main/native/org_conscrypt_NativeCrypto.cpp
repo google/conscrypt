@@ -1149,7 +1149,11 @@ private:
  */
 static JNIEnv* getJNIEnv() {
     JNIEnv* env;
+#ifdef ANDROID
     if (gJavaVM->AttachCurrentThread(&env, NULL) < 0) {
+#else
+    if (gJavaVM->AttachCurrentThread(reinterpret_cast<void**>(&env), NULL) < 0) {
+#endif
         ALOGE("Could not attach JavaVM to find current JNIEnv");
         return NULL;
     }
