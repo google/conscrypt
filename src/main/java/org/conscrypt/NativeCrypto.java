@@ -20,6 +20,7 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.SocketTimeoutException;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -78,7 +79,7 @@ public final class NativeCrypto {
 
     public static native int ENGINE_free(long e);
 
-    public static native long ENGINE_load_private_key(long e, String key_id);
+    public static native long ENGINE_load_private_key(long e, String key_id) throws InvalidKeyException;
 
     public static native String ENGINE_get_id(long engineRef);
 
