@@ -3395,12 +3395,10 @@ static jobjectArray NativeCrypto_get_DH_params(JNIEnv* env, jclass, jobject pkey
 #if !defined(OPENSSL_IS_BORINGSSL)
 static int get_EC_GROUP_type(const EC_GROUP* group)
 {
-    const EC_METHOD* method = EC_GROUP_method_of(group);
-    if (method == EC_GFp_nist_method()
-                || method == EC_GFp_mont_method()
-                || method == EC_GFp_simple_method()) {
+    const int curve_nid = EC_METHOD_get_field_type(EC_GROUP_method_of(group));
+    if (curve_nid == NID_X9_62_prime_field) {
         return EC_CURVE_GFP;
-    } else if (method == EC_GF2m_simple_method()) {
+    } else if (curve_nid == NID_X9_62_characteristic_two_field) {
         return EC_CURVE_GF2M;
     }
 
