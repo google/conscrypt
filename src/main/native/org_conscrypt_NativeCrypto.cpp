@@ -468,13 +468,18 @@ static int throwNoSuchAlgorithmException(JNIEnv* env, const char* message) {
 static int throwForAsn1Error(JNIEnv* env, int reason, const char *message,
                              int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
-    case ASN1_R_UNABLE_TO_DECODE_RSA_KEY:
-    case ASN1_R_UNABLE_TO_DECODE_RSA_PRIVATE_KEY:
-    case ASN1_R_UNKNOWN_PUBLIC_KEY_TYPE:
     case ASN1_R_UNSUPPORTED_PUBLIC_KEY_TYPE:
-    // These #if sections can be removed once BoringSSL is landed.
+#if defined(ASN1_R_UNABLE_TO_DECODE_RSA_KEY)
+    case ASN1_R_UNABLE_TO_DECODE_RSA_KEY:
+#endif
 #if defined(ASN1_R_WRONG_PUBLIC_KEY_TYPE)
     case ASN1_R_WRONG_PUBLIC_KEY_TYPE:
+#endif
+#if defined(ASN1_R_UNABLE_TO_DECODE_RSA_PRIVATE_KEY)
+    case ASN1_R_UNABLE_TO_DECODE_RSA_PRIVATE_KEY:
+#endif
+#if defined(ASN1_R_UNKNOWN_PUBLIC_KEY_TYPE)
+    case ASN1_R_UNKNOWN_PUBLIC_KEY_TYPE:
 #endif
         return throwInvalidKeyException(env, message);
         break;
@@ -514,10 +519,11 @@ static int throwForEvpError(JNIEnv* env, int reason, const char *message,
         return throwInvalidKeyException(env, message);
         break;
     case EVP_R_UNSUPPORTED_ALGORITHM:
+#if defined(EVP_R_X931_UNSUPPORTED)
     case EVP_R_X931_UNSUPPORTED:
+#endif
         return throwNoSuchAlgorithmException(env, message);
         break;
-    // These #if sections can be make unconditional once BoringSSL is landed.
 #if defined(EVP_R_WRONG_PUBLIC_KEY_TYPE)
     case EVP_R_WRONG_PUBLIC_KEY_TYPE:
         return throwInvalidKeyException(env, message);
@@ -570,8 +576,10 @@ static int throwForRsaError(JNIEnv* env, int reason, const char *message,
                             int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
     case RSA_R_BLOCK_TYPE_IS_NOT_01:
-    case RSA_R_BLOCK_TYPE_IS_NOT_02:
     case RSA_R_PKCS_DECODING_ERROR:
+#if defined(RSA_R_BLOCK_TYPE_IS_NOT_02)
+    case RSA_R_BLOCK_TYPE_IS_NOT_02:
+#endif
         return throwBadPaddingException(env, message);
         break;
     case RSA_R_BAD_SIGNATURE:
