@@ -2566,22 +2566,18 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass,
         return 0;
     }
 
-#if !defined(OPENSSL_IS_BORINGSSL)
     /*
      * If the private exponent is available, there is the potential to do signing
-     * operations. If the public exponent is also available, OpenSSL will do RSA
-     * blinding. Enable it if possible.
+     * operations. However, we can only do blinding if the public exponent is also
+     * available. Disable blinding if the public exponent isn't available.
+     *
+     * TODO[kroot]: We should try to recover the public exponent by trying
+     *              some common ones such 3, 17, or 65537.
      */
-    if (rsa->d != NULL) {
-        if (rsa->e != NULL) {
-            JNI_TRACE("EVP_PKEY_new_RSA(...) enabling RSA blinding => %p", rsa.get());
-            RSA_blinding_on(rsa.get(), NULL);
-        } else {
-            JNI_TRACE("EVP_PKEY_new_RSA(...) disabling RSA blinding => %p", rsa.get());
-            RSA_blinding_off(rsa.get());
-        }
+    if (rsa->d != NULL && rsa->e == NULL) {
+        JNI_TRACE("EVP_PKEY_new_RSA(...) disabling RSA blinding => %p", rsa.get());
+        rsa->flags |= RSA_FLAG_NO_BLINDING;
     }
-#endif
 
     Unique_EVP_PKEY pkey(EVP_PKEY_new());
     if (pkey.get() == NULL) {
