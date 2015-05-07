@@ -1,3 +1,4 @@
+#include <android/log.h>
 #define ALOG(priority, tag, ...) \
             __android_log_print(ANDROID_##priority, tag, __VA_ARGS__)
 #define ALOGD(...) \

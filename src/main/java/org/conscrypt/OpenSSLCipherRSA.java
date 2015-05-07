@@ -185,6 +185,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         }
 
         buffer = new byte[NativeCrypto.RSA_size(this.key.getNativeRef())];
+        bufferOffset = 0;
         inputTooLarge = false;
     }
 

@@ -65,7 +65,6 @@
 #ifndef CONSCRYPT_UNBUNDLED
 #include "cutils/log.h"
 #else
-#include <android/log.h>
 #include "log_compat.h"
 #endif
 
@@ -75,7 +74,7 @@
 #include "JniException.h"
 #else
 #define NATIVE_METHOD(className, functionName, signature) \
-  { #functionName, signature, reinterpret_cast<void*>(className ## _ ## functionName) }
+  { (char*) #functionName, (char*) signature, reinterpret_cast<void*>(className ## _ ## functionName) }
 #define REGISTER_NATIVE_METHODS(jni_class_name) \
   RegisterNativeMethods(env, jni_class_name, gMethods, arraysize(gMethods))
 #endif
@@ -1153,7 +1152,11 @@ private:
  */
 static JNIEnv* getJNIEnv() {
     JNIEnv* env;
+#ifdef ANDROID
     if (gJavaVM->AttachCurrentThread(&env, NULL) < 0) {
+#else
+    if (gJavaVM->AttachCurrentThread(reinterpret_cast<void**>(&env), NULL) < 0) {
+#endif
         ALOGE("Could not attach JavaVM to find current JNIEnv");
         return NULL;
     }
@@ -1636,7 +1639,11 @@ void ExDataFree(void* /* parent */,
                 CRYPTO_EX_DATA* ad,
                 int idx,
                 long /* argl */,
+#if defined(OPENSSL_IS_BORINGSSL)
+                const void* /* argp */) {
+#else /* defined(OPENSSL_IS_BORINGSSL) */
                 void* /* argp */) {
+#endif /* defined(OPENSSL_IS_BORINGSSL) */
     jobject private_key = reinterpret_cast<jobject>(ptr);
     if (private_key == NULL) return;
 
@@ -1650,7 +1657,11 @@ int ExDataDup(CRYPTO_EX_DATA* /* to */,
               void* /* from_d */,
               int /* idx */,
               long /* argl */,
+#if defined(OPENSSL_IS_BORINGSSL)
+              const void* /* argp */) {
+#else /* defined(OPENSSL_IS_BORINGSSL) */
               void* /* argp */) {
+#endif /* defined(OPENSSL_IS_BORINGSSL) */
     // This callback shall never be called with the current OpenSSL
     // implementation (the library only ever duplicates EX_DATA items
     // for SSL and BIO objects). But provide this to catch regressions
@@ -3384,12 +3395,10 @@ static jobjectArray NativeCrypto_get_DH_params(JNIEnv* env, jclass, jobject pkey
 #if !defined(OPENSSL_IS_BORINGSSL)
 static int get_EC_GROUP_type(const EC_GROUP* group)
 {
-    const EC_METHOD* method = EC_GROUP_method_of(group);
-    if (method == EC_GFp_nist_method()
-                || method == EC_GFp_mont_method()
-                || method == EC_GFp_simple_method()) {
+    const int curve_nid = EC_METHOD_get_field_type(EC_GROUP_method_of(group));
+    if (curve_nid == NID_X9_62_prime_field) {
         return EC_CURVE_GFP;
-    } else if (method == EC_GF2m_simple_method()) {
+    } else if (curve_nid == NID_X9_62_characteristic_two_field) {
         return EC_CURVE_GF2M;
     }
 
