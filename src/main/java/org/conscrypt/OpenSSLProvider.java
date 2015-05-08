@@ -208,19 +208,25 @@ public final class OpenSSLProvider extends Provider {
          * than 64 bits. We solve this confusion by making PKCS7Padding an
          * alias for PKCS5Padding.
          */
-        putSymmetricCipherImplClass("AES/ECB/NoPadding", "OpenSSLCipher$AES$ECB$NoPadding");
-        putSymmetricCipherImplClass("AES/ECB/PKCS5Padding", "OpenSSLCipher$AES$ECB$PKCS5Padding");
+        putSymmetricCipherImplClass("AES/ECB/NoPadding",
+                "OpenSSLCipher$EVP_CIPHER$AES$ECB$NoPadding");
+        putSymmetricCipherImplClass("AES/ECB/PKCS5Padding",
+                "OpenSSLCipher$EVP_CIPHER$AES$ECB$PKCS5Padding");
         put("Alg.Alias.Cipher.AES/ECB/PKCS7Padding", "AES/ECB/PKCS5Padding");
-        putSymmetricCipherImplClass("AES/CBC/NoPadding", "OpenSSLCipher$AES$CBC$NoPadding");
-        putSymmetricCipherImplClass("AES/CBC/PKCS5Padding", "OpenSSLCipher$AES$CBC$PKCS5Padding");
+        putSymmetricCipherImplClass("AES/CBC/NoPadding",
+                "OpenSSLCipher$EVP_CIPHER$AES$CBC$NoPadding");
+        putSymmetricCipherImplClass("AES/CBC/PKCS5Padding",
+                "OpenSSLCipher$EVP_CIPHER$AES$CBC$PKCS5Padding");
         put("Alg.Alias.Cipher.AES/CBC/PKCS7Padding", "AES/CBC/PKCS5Padding");
-        putSymmetricCipherImplClass("AES/CTR/NoPadding", "OpenSSLCipher$AES$CTR");
+        putSymmetricCipherImplClass("AES/CTR/NoPadding", "OpenSSLCipher$EVP_CIPHER$AES$CTR");
 
-        putSymmetricCipherImplClass("DESEDE/CBC/NoPadding", "OpenSSLCipher$DESEDE$CBC$NoPadding");
-        putSymmetricCipherImplClass("DESEDE/CBC/PKCS5Padding", "OpenSSLCipher$DESEDE$CBC$PKCS5Padding");
+        putSymmetricCipherImplClass("DESEDE/CBC/NoPadding",
+                "OpenSSLCipher$EVP_CIPHER$DESEDE$CBC$NoPadding");
+        putSymmetricCipherImplClass("DESEDE/CBC/PKCS5Padding",
+                "OpenSSLCipher$EVP_CIPHER$DESEDE$CBC$PKCS5Padding");
         put("Alg.Alias.Cipher.DESEDE/CBC/PKCS7Padding", "DESEDE/CBC/PKCS5Padding");
 
-        putSymmetricCipherImplClass("ARC4", "OpenSSLCipher$ARC4");
+        putSymmetricCipherImplClass("ARC4", "OpenSSLCipher$EVP_CIPHER$ARC4");
 
         /* === Mac === */
 
