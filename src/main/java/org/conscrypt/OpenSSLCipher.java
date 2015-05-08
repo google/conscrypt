@@ -17,6 +17,9 @@
 package org.conscrypt;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -41,8 +44,10 @@ import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.conscrypt.util.ArrayUtils;
 import org.conscrypt.util.EmptyArray;
 import org.conscrypt.NativeConstants;
+import org.conscrypt.NativeRef.EVP_AEAD_CTX;
 import org.conscrypt.NativeRef.EVP_CIPHER_CTX;
 
 public abstract class OpenSSLCipher extends CipherSpi {
@@ -54,6 +59,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         CBC,
         CTR,
         ECB,
+        GCM,
     }
 
     /**
@@ -825,6 +831,289 @@ public abstract class OpenSSLCipher extends CipherSpi {
             @Override
             protected boolean supportsVariableSizeKey() {
                 return true;
+            }
+        }
+    }
+
+    public static abstract class EVP_AEAD extends OpenSSLCipher {
+        /**
+         * Keeps track of the last used block size.
+         */
+        private static int lastGlobalMessageSize = 32;
+
+        /**
+         * The byte array containing the bytes written.
+         */
+        protected byte[] buf;
+
+        /**
+         * The number of bytes written.
+         */
+        protected int bufCount;
+
+        /**
+         * AEAD cipher reference.
+         */
+        protected long evpAead;
+
+        /**
+         * Additional authenticated data.
+         */
+        private byte[] aad;
+
+        /**
+         * The length of the AEAD cipher tag in bytes.
+         */
+        private int tagLen;
+
+        public EVP_AEAD(Mode mode) {
+            super(mode, Padding.NOPADDING);
+        }
+
+        private void expand(int i) {
+            /* Can the buffer handle i more bytes, if not expand it */
+            if (bufCount + i <= buf.length) {
+                return;
+            }
+
+            byte[] newbuf = new byte[(bufCount + i) * 2];
+            System.arraycopy(buf, 0, newbuf, 0, bufCount);
+            buf = newbuf;
+        }
+
+        private void reset() {
+            final int lastBufSize = lastGlobalMessageSize;
+            if (buf == null) {
+                buf = new byte[lastBufSize];
+            } else if (bufCount > 0 && bufCount != lastBufSize) {
+                lastGlobalMessageSize = bufCount;
+                if (buf.length != bufCount) {
+                    buf = new byte[bufCount];
+                }
+            }
+            bufCount = 0;
+        }
+
+        @Override
+        protected void engineInitInternal(byte[] encodedKey, AlgorithmParameterSpec params,
+                SecureRandom random) throws InvalidKeyException,
+                InvalidAlgorithmParameterException {
+            byte[] iv;
+            final int tagLenBits;
+            if (params == null) {
+                iv = null;
+                tagLenBits = 0;
+            } else {
+                Class<?> gcmSpecClass;
+                try {
+                    gcmSpecClass = Class.forName("javax.crypto.spec.GCMParameterSpec");
+                } catch (ClassNotFoundException e) {
+                    gcmSpecClass = null;
+                }
+
+                if (gcmSpecClass != null && gcmSpecClass.isAssignableFrom(params.getClass())) {
+                    try {
+                        Method getTLenMethod = gcmSpecClass.getMethod("getTLen");
+                        Method getIVMethod = gcmSpecClass.getMethod("getIV");
+                        tagLenBits = (int) getTLenMethod.invoke(params);
+                        iv = (byte[]) getIVMethod.invoke(params);
+                    } catch (NoSuchMethodException | IllegalAccessException e) {
+                        throw new RuntimeException("GCMParameterSpec lacks expected methods", e);
+                    } catch (InvocationTargetException e) {
+                        throw new RuntimeException("Could not fetch GCM parameters",
+                                e.getTargetException());
+                    }
+                } else if (params instanceof IvParameterSpec) {
+                    IvParameterSpec ivParams = (IvParameterSpec) params;
+                    iv = ivParams.getIV();
+                    tagLenBits = 0;
+                } else {
+                    iv = null;
+                    tagLenBits = 0;
+                }
+            }
+
+            if (tagLenBits % 8 != 0) {
+                throw new InvalidAlgorithmParameterException(
+                        "Tag length must be a multiple of 8; was " + tagLen);
+            }
+
+            tagLen = tagLenBits / 8;
+
+            final boolean encrypting = isEncrypting();
+
+            evpAead = getEVP_AEAD(encodedKey.length);
+
+            final int expectedIvLength = NativeCrypto.EVP_AEAD_nonce_length(evpAead);
+            if (iv == null && expectedIvLength != 0) {
+                if (!encrypting) {
+                    throw new InvalidAlgorithmParameterException("IV must be specified in " + mode
+                            + " mode");
+                }
+
+                iv = new byte[expectedIvLength];
+                if (random == null) {
+                    random = new SecureRandom();
+                }
+                random.nextBytes(iv);
+            } else if (expectedIvLength == 0 && iv != null) {
+                throw new InvalidAlgorithmParameterException("IV not used in " + mode + " mode");
+            } else if (iv != null && iv.length != expectedIvLength) {
+                throw new InvalidAlgorithmParameterException("Expected IV length of "
+                        + expectedIvLength + " but was " + iv.length);
+            }
+
+            this.iv = iv;
+            reset();
+        }
+
+        @Override
+        protected int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
+                int outputOffset, int maximumLen) throws ShortBufferException {
+            if (buf == null) {
+                throw new IllegalStateException("Cipher not initialized");
+            }
+
+            ArrayUtils.checkOffsetAndCount(input.length, inputOffset, inputLen);
+            if (inputLen > 0) {
+                expand(inputLen);
+                System.arraycopy(input, inputOffset, buf, this.bufCount, inputLen);
+                this.bufCount += inputLen;
+            }
+            return 0;
+        }
+
+        @Override
+        protected int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
+                throws IllegalBlockSizeException, BadPaddingException {
+            EVP_AEAD_CTX cipherCtx = new EVP_AEAD_CTX(NativeCrypto.EVP_AEAD_CTX_init(evpAead,
+                    encodedKey, tagLen));
+            final int bytesWritten;
+            try {
+                if (isEncrypting()) {
+                    bytesWritten = NativeCrypto.EVP_AEAD_CTX_seal(cipherCtx, output, outputOffset,
+                            iv, buf, 0, bufCount, aad);
+                } else {
+                    bytesWritten = NativeCrypto.EVP_AEAD_CTX_open(cipherCtx, output, outputOffset,
+                            iv, buf, 0, bufCount, aad);
+                }
+            } catch (BadPaddingException e) {
+                Constructor<?> aeadBadTagConstructor = null;
+                try {
+                    aeadBadTagConstructor = Class.forName("javax.crypto.AEADBadTagException")
+                            .getConstructor(String.class);
+                } catch (ClassNotFoundException | NoSuchMethodException e2) {
+                }
+
+                if (aeadBadTagConstructor != null) {
+                    BadPaddingException badTagException = null;
+                    try {
+                        badTagException = (BadPaddingException) aeadBadTagConstructor.newInstance(e
+                                .getMessage());
+                        badTagException.initCause(e.getCause());
+                    } catch (IllegalAccessException | InstantiationException e2) {
+                        // Fall through
+                    } catch (InvocationTargetException e2) {
+                        throw (BadPaddingException) new BadPaddingException().initCause(e2
+                                .getTargetException());
+                    }
+                    if (badTagException != null) {
+                        throw badTagException;
+                    }
+                }
+                throw e;
+            }
+            reset();
+            return bytesWritten;
+        }
+
+        @Override
+        protected void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
+            if (padding != Padding.NOPADDING) {
+                throw new NoSuchPaddingException("Must be NoPadding for AEAD ciphers");
+            }
+        }
+
+        @Override
+        protected int getOutputSizeForFinal(int inputLen) {
+            return bufCount + inputLen
+                    + (isEncrypting() ? NativeCrypto.EVP_AEAD_max_overhead(evpAead) : 0);
+        }
+
+        /* @Override */
+        protected void engineUpdateAAD(byte[] input, int inputOffset, int inputLen) {
+            if (aad == null) {
+                aad = Arrays.copyOfRange(input, inputOffset, inputLen);
+            } else {
+                int newSize = aad.length + inputLen;
+                byte[] newaad = new byte[newSize];
+                System.arraycopy(aad, 0, newaad, 0, aad.length);
+                System.arraycopy(input, inputOffset, newaad, aad.length, inputLen);
+            }
+        }
+
+        protected abstract long getEVP_AEAD(int keyLength) throws InvalidKeyException;
+
+        public abstract static class AES extends EVP_AEAD {
+            private static final int AES_BLOCK_SIZE = 16;
+
+            protected AES(Mode mode) {
+                super(mode);
+            }
+
+            @Override
+            protected void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
+                switch (keyLength) {
+                    case 16: // AES 128
+                    case 32: // AES 256
+                        return;
+                    default:
+                        throw new InvalidKeyException("Unsupported key size: " + keyLength
+                                + " bytes (must be 16 or 32)");
+                }
+            }
+
+            @Override
+            protected String getBaseCipherName() {
+                return "AES";
+            }
+
+            @Override
+            protected int getCipherBlockSize() {
+                return AES_BLOCK_SIZE;
+            }
+
+            /**
+             * AEAD buffers everything until a final output.
+             */
+            @Override
+            protected int getOutputSizeForUpdate(int inputLen) {
+                return 0;
+            }
+
+            public static class GCM extends AES {
+                public GCM() {
+                    super(Mode.GCM);
+                }
+
+                @Override
+                protected void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
+                    if (mode != Mode.GCM) {
+                        throw new NoSuchAlgorithmException("Mode must be GCM");
+                    }
+                }
+
+                @Override
+                protected long getEVP_AEAD(int keyLength) throws InvalidKeyException {
+                    final long evpAead;
+                    if (keyLength == 16) {
+                        return NativeCrypto.EVP_aead_aes_128_gcm();
+                    } else if (keyLength == 32) {
+                        return NativeCrypto.EVP_aead_aes_256_gcm();
+                    } else {
+                        throw new RuntimeException("Unexpected key length: " + keyLength);
+                    }
+                }
             }
         }
     }
