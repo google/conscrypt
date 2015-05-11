@@ -10480,3 +10480,12 @@ int JNI_OnLoad(JavaVM *vm, void*) {
     initialize_conscrypt(env);
     return JNI_VERSION_1_6;
 }
+
+/* vim: softtabstop=4:shiftwidth=4:expandtab */
+
+/* Local Variables: */
+/* mode: c++ */
+/* tab-width: 4 */
+/* indent-tabs-mode: nil */
+/* c-basic-offset: 4 */
+/* End: */
