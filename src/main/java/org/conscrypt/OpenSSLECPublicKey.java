@@ -117,8 +117,8 @@ public final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
             return true;
         }
 
-        if (o instanceof OpenSSLECPrivateKey) {
-            OpenSSLECPrivateKey other = (OpenSSLECPrivateKey) o;
+        if (o instanceof OpenSSLECPublicKey) {
+            OpenSSLECPublicKey other = (OpenSSLECPublicKey) o;
             return key.equals(other.key);
         }
 
