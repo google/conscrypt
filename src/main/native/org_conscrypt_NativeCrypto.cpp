@@ -8533,7 +8533,7 @@ static jint NativeCrypto_get_SSL_CIPHER_algorithm_mkey(JNIEnv* env, jclass,
         jlong ssl_cipher_address)
 {
     SSL_CIPHER* cipher = to_SSL_CIPHER(env, ssl_cipher_address, true);
-    JNI_TRACE("cipher=%p get_SSL_CIPHER_algorithm_mkey => %ld", cipher, cipher->algorithm_mkey);
+    JNI_TRACE("cipher=%p get_SSL_CIPHER_algorithm_mkey => %ld", cipher, (long) cipher->algorithm_mkey);
     return cipher->algorithm_mkey;
 }
 
@@ -8541,7 +8541,7 @@ static jint NativeCrypto_get_SSL_CIPHER_algorithm_auth(JNIEnv* env, jclass,
         jlong ssl_cipher_address)
 {
     SSL_CIPHER* cipher = to_SSL_CIPHER(env, ssl_cipher_address, true);
-    JNI_TRACE("cipher=%p get_SSL_CIPHER_algorithm_auth => %ld", cipher, cipher->algorithm_auth);
+    JNI_TRACE("cipher=%p get_SSL_CIPHER_algorithm_auth => %ld", cipher, (long) cipher->algorithm_auth);
     return cipher->algorithm_auth;
 }
 
