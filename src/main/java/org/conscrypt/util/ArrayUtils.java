@@ -19,8 +19,8 @@ package org.conscrypt.util;
 /**
  * Compatibility utility for Arrays.
  */
-public final class Arrays {
-    private Arrays() {
+public final class ArrayUtils {
+    private ArrayUtils() {
     }
 
     /**
