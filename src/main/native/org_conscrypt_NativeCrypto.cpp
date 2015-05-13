@@ -168,6 +168,13 @@ struct BIGNUM_Delete {
 };
 typedef UniquePtr<BIGNUM, BIGNUM_Delete> Unique_BIGNUM;
 
+struct BN_CTX_Delete {
+    void operator()(BN_CTX* ctx) const {
+        BN_CTX_free(ctx);
+    }
+};
+typedef UniquePtr<BN_CTX, BN_CTX_Delete> Unique_BN_CTX;
+
 struct ASN1_INTEGER_Delete {
     void operator()(ASN1_INTEGER* p) const {
         ASN1_INTEGER_free(p);
@@ -3466,6 +3473,81 @@ static jlong NativeCrypto_EC_GROUP_new_by_curve_name(JNIEnv* env, jclass, jstrin
 
     JNI_TRACE("EC_GROUP_new_by_curve_name(%s) => %p", curveName.c_str(), group);
     return reinterpret_cast<uintptr_t>(group);
+}
+
+static jlong NativeCrypto_EC_GROUP_new_arbitrary(
+    JNIEnv* env, jclass, jbyteArray pBytes, jbyteArray aBytes,
+    jbyteArray bBytes, jbyteArray xBytes, jbyteArray yBytes,
+    jbyteArray orderBytes, jint cofactorInt)
+{
+    BIGNUM *p = NULL, *a = NULL, *b = NULL, *x = NULL, *y = NULL;
+    BIGNUM *order = NULL, *cofactor = NULL;
+
+    JNI_TRACE("EC_GROUP_new_arbitrary");
+
+    if (cofactorInt < 1) {
+        jniThrowException(env, "java/lang/IllegalArgumentException", "cofactor < 1");
+        return 0;
+    }
+
+    cofactor = BN_new();
+    if (cofactor == NULL) {
+        return 0;
+    }
+
+    int ok = 1;
+
+    if (!arrayToBignum(env, pBytes, &p) ||
+        !arrayToBignum(env, aBytes, &a) ||
+        !arrayToBignum(env, bBytes, &b) ||
+        !arrayToBignum(env, xBytes, &x) ||
+        !arrayToBignum(env, yBytes, &y) ||
+        !arrayToBignum(env, orderBytes, &order) ||
+        !BN_set_word(cofactor, cofactorInt)) {
+        ok = 0;
+    }
+
+    Unique_BIGNUM pStorage(p);
+    Unique_BIGNUM aStorage(a);
+    Unique_BIGNUM bStorage(b);
+    Unique_BIGNUM xStorage(x);
+    Unique_BIGNUM yStorage(y);
+    Unique_BIGNUM orderStorage(order);
+    Unique_BIGNUM cofactorStorage(cofactor);
+
+    if (!ok) {
+        return 0;
+    }
+
+    Unique_BN_CTX ctx(BN_CTX_new());
+    Unique_EC_GROUP group(EC_GROUP_new_curve_GFp(p, a, b, ctx.get()));
+    if (group.get() == NULL) {
+        JNI_TRACE("EC_GROUP_new_curve_GFp => NULL");
+        throwExceptionIfNecessary(env, "EC_GROUP_new_curve_GFp");
+        return 0;
+    }
+
+    Unique_EC_POINT generator(EC_POINT_new(group.get()));
+    if (generator.get() == NULL) {
+        JNI_TRACE("EC_POINT_new => NULL");
+        freeOpenSslErrorState();
+        return 0;
+    }
+
+    if (!EC_POINT_set_affine_coordinates_GFp(group.get(), generator.get(), x, y, ctx.get())) {
+        JNI_TRACE("EC_POINT_set_affine_coordinates_GFp => error");
+        throwExceptionIfNecessary(env, "EC_POINT_set_affine_coordinates_GFp");
+        return 0;
+    }
+
+    if (!EC_GROUP_set_generator(group.get(), generator.get(), order, cofactor)) {
+        JNI_TRACE("EC_GROUP_set_generator => error");
+        throwExceptionIfNecessary(env, "EC_GROUP_set_generator");
+        return 0;
+    }
+
+    JNI_TRACE("EC_GROUP_new_arbitrary => %p", group.get());
+    return reinterpret_cast<uintptr_t>(group.release());
 }
 
 #if !defined(OPENSSL_IS_BORINGSSL)
@@ -10470,6 +10552,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, DH_generate_key, "(" REF_EVP_PKEY ")V"),
     NATIVE_METHOD(NativeCrypto, get_DH_params, "(" REF_EVP_PKEY ")[[B"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_new_by_curve_name, "(Ljava/lang/String;)J"),
+    NATIVE_METHOD(NativeCrypto, EC_GROUP_new_arbitrary, "([B[B[B[B[B[BI)J"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_set_asn1_flag, "(" REF_EC_GROUP "I)V"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_set_point_conversion_form, "(" REF_EC_GROUP "I)V"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_get_curve_name, "(" REF_EC_GROUP ")Ljava/lang/String;"),
