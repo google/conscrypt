@@ -42,6 +42,8 @@ import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.conscrypt.util.EmptyArray;
+import org.conscrypt.NativeConstants;
+import org.conscrypt.NativeRef.EVP_CIPHER_CTX;
 
 public abstract class OpenSSLCipher extends CipherSpi {
 
@@ -64,15 +66,9 @@ public abstract class OpenSSLCipher extends CipherSpi {
     }
 
     /**
-     * Native pointer for the OpenSSL EVP_CIPHER context.
-     */
-    private NativeRef.EVP_CIPHER_CTX cipherCtx = new NativeRef.EVP_CIPHER_CTX(
-            NativeCrypto.EVP_CIPHER_CTX_new());
-
-    /**
      * The current cipher mode.
      */
-    private Mode mode = Mode.ECB;
+    protected Mode mode = Mode.ECB;
 
     /**
      * The current cipher padding.
@@ -83,12 +79,12 @@ public abstract class OpenSSLCipher extends CipherSpi {
      * May be used when reseting the cipher instance after calling
      * {@code doFinal}.
      */
-    private byte[] encodedKey;
+    protected byte[] encodedKey;
 
     /**
      * The Initial Vector (IV) used for the current cipher.
      */
-    private byte[] iv;
+    protected byte[] iv;
 
     /**
      * Current cipher mode: encrypting or decrypting.
@@ -100,17 +96,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
      */
     private int blockSize;
 
-    /**
-     * The block size of the current mode.
-     */
-    private int modeBlockSize;
-
-    /**
-     * Whether the cipher has processed any data yet. OpenSSL doesn't like
-     * calling "doFinal()" in decryption mode without processing any updates.
-     */
-    private boolean calledUpdate;
-
     protected OpenSSLCipher() {
     }
 
@@ -121,15 +106,38 @@ public abstract class OpenSSLCipher extends CipherSpi {
     }
 
     /**
+     * API-specific implementation of initializing the cipher. The
+     * {@link #isEncrypting()} function will tell whether it should be
+     * initialized for encryption or decryption. The {@code encodedKey} will be
+     * the bytes of a supported key size.
+     */
+    protected abstract void engineInitInternal(byte[] encodedKey, AlgorithmParameterSpec params,
+            SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException;
+
+    /**
+     * API-specific implementation of updating the cipher. The
+     * {@code maximumLen} will be the maximum length of the output as returned
+     * by {@link #getOutputSizeForUpdate(int)}. The return value must be the
+     * number of bytes processed and placed into {@code output}. On error, an
+     * exception must be thrown.
+     */
+    protected abstract int updateInternal(byte[] input, int inputOffset, int inputLen,
+            byte[] output, int outputOffset, int maximumLen) throws ShortBufferException;
+
+    /**
+     * API-specific implementation of the final block. The {@code maximumLen}
+     * will be the maximum length of the possible output as returned by
+     * {@link #getOutputSizeForFinal(int)}. The return value must be the number
+     * of bytes processed and placed into {@code output}. On error, an exception
+     * must be thrown.
+     */
+    protected abstract int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
+            throws IllegalBlockSizeException, BadPaddingException, ShortBufferException;
+
+    /**
      * Returns the standard name for the particular algorithm.
      */
     protected abstract String getBaseCipherName();
-
-    /**
-     * Returns the OpenSSL cipher name for the particular {@code keySize} and
-     * cipher {@code mode}.
-     */
-    protected abstract String getCipherName(int keySize, Mode mode);
 
     /**
      * Checks whether the cipher supports this particular {@code keySize} (in
@@ -155,14 +163,17 @@ public abstract class OpenSSLCipher extends CipherSpi {
         return false;
     }
 
+    protected boolean supportsVariableSizeIv() {
+        return false;
+    }
+
     @Override
     protected void engineSetMode(String modeStr) throws NoSuchAlgorithmException {
         final Mode mode;
         try {
             mode = Mode.valueOf(modeStr.toUpperCase(Locale.US));
         } catch (IllegalArgumentException e) {
-            NoSuchAlgorithmException newE = new NoSuchAlgorithmException("No such mode: "
-                    + modeStr);
+            NoSuchAlgorithmException newE = new NoSuchAlgorithmException("No such mode: " + modeStr);
             newE.initCause(e);
             throw newE;
         }
@@ -186,6 +197,13 @@ public abstract class OpenSSLCipher extends CipherSpi {
         this.padding = padding;
     }
 
+    /**
+     * Returns the padding type for which this cipher is initialized.
+     */
+    protected Padding getPadding() {
+        return padding;
+    }
+
     @Override
     protected int engineGetBlockSize() {
         return blockSize;
@@ -196,23 +214,18 @@ public abstract class OpenSSLCipher extends CipherSpi {
      * {@code inputLen}. If padding is enabled and the size of the input puts it
      * right at the block size, it will add another block for the padding.
      */
-    private int getOutputSize(int inputLen) {
-        if (modeBlockSize == 1) {
-            return inputLen;
-        } else {
-            final int buffered = NativeCrypto.get_EVP_CIPHER_CTX_buf_len(cipherCtx);
-            if (padding == Padding.NOPADDING) {
-                return buffered + inputLen;
-            } else {
-                final int totalLen = inputLen + buffered + modeBlockSize;
-                return totalLen - (totalLen % modeBlockSize);
-            }
-        }
-    }
+    protected abstract int getOutputSizeForFinal(int inputLen);
+
+    /**
+     * The size of output if {@code update()} is called with this
+     * {@code inputLen}. If padding is enabled and the size of the input puts it
+     * right at the block size, it will add another block for the padding.
+     */
+    protected abstract int getOutputSizeForUpdate(int inputLen);
 
     @Override
     protected int engineGetOutputSize(int inputLen) {
-        return getOutputSize(inputLen);
+        return getOutputSizeForFinal(inputLen);
     }
 
     @Override
@@ -236,74 +249,13 @@ public abstract class OpenSSLCipher extends CipherSpi {
         return null;
     }
 
-    private void engineInitInternal(int opmode, Key key, byte[] iv, SecureRandom random)
-            throws InvalidKeyException, InvalidAlgorithmParameterException {
-        if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
-            encrypting = true;
-        } else if (opmode == Cipher.DECRYPT_MODE || opmode == Cipher.UNWRAP_MODE) {
-            encrypting = false;
-        } else {
-            throw new InvalidParameterException("Unsupported opmode " + opmode);
-        }
-
-        if (!(key instanceof SecretKey)) {
-            throw new InvalidKeyException("Only SecretKey is supported");
-        }
-
-        final byte[] encodedKey = key.getEncoded();
-        if (encodedKey == null) {
-            throw new InvalidKeyException("key.getEncoded() == null");
-        }
-        checkSupportedKeySize(encodedKey.length);
-        this.encodedKey = encodedKey;
-
-        final long cipherType = NativeCrypto.EVP_get_cipherbyname(getCipherName(encodedKey.length,
-                mode));
-        if (cipherType == 0) {
-            throw new InvalidAlgorithmParameterException("Cannot find name for key length = "
-                    + (encodedKey.length * 8) + " and mode = " + mode);
-        }
-
-        final int expectedIvLength = NativeCrypto.EVP_CIPHER_iv_length(cipherType);
-        if (iv == null && expectedIvLength != 0) {
-            if (!encrypting) {
-                throw new InvalidAlgorithmParameterException("IV must be specified in " + mode
-                        + " mode");
-            }
-
-            iv = new byte[expectedIvLength];
-            if (random == null) {
-                random = new SecureRandom();
-            }
-            random.nextBytes(iv);
-        } else if (expectedIvLength == 0 && iv != null) {
-            throw new InvalidAlgorithmParameterException("IV not used in " + mode + " mode");
-        } else if (iv != null && iv.length != expectedIvLength) {
-            throw new InvalidAlgorithmParameterException("expected IV length of "
-                    + expectedIvLength + " but was " + iv.length);
-        }
-
-        this.iv = iv;
-
-        if (supportsVariableSizeKey()) {
-            NativeCrypto.EVP_CipherInit_ex(cipherCtx, cipherType, null, null, encrypting);
-            NativeCrypto.EVP_CIPHER_CTX_set_key_length(cipherCtx, encodedKey.length);
-            NativeCrypto.EVP_CipherInit_ex(cipherCtx, 0, encodedKey, iv, encrypting);
-        } else {
-            NativeCrypto.EVP_CipherInit_ex(cipherCtx, cipherType, encodedKey, iv, encrypting);
-        }
-
-        // OpenSSL only supports PKCS5 Padding.
-        NativeCrypto.EVP_CIPHER_CTX_set_padding(cipherCtx, padding == Padding.PKCS5PADDING);
-        modeBlockSize = NativeCrypto.EVP_CIPHER_CTX_block_size(cipherCtx);
-        calledUpdate = false;
-    }
-
     @Override
     protected void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
+        checkAndSetEncodedKey(opmode, key);
         try {
-            engineInitInternal(opmode, key, null, random);
+            engineInitInternal(this.encodedKey, null, random);
         } catch (InvalidAlgorithmParameterException e) {
+            // This can't actually happen since we pass in null.
             throw new RuntimeException(e);
         }
     }
@@ -311,26 +263,20 @@ public abstract class OpenSSLCipher extends CipherSpi {
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameterSpec params,
             SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        final byte[] iv;
-        if (params instanceof IvParameterSpec) {
-            IvParameterSpec ivParams = (IvParameterSpec) params;
-            iv = ivParams.getIV();
-        } else {
-            iv = null;
-        }
-
-        engineInitInternal(opmode, key, iv, random);
+        checkAndSetEncodedKey(opmode, key);
+        engineInitInternal(this.encodedKey, params, random);
     }
 
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
-        final AlgorithmParameterSpec spec;
+        AlgorithmParameterSpec spec;
         if (params != null) {
             try {
                 spec = params.getParameterSpec(IvParameterSpec.class);
             } catch (InvalidParameterSpecException e) {
-                throw new InvalidAlgorithmParameterException(e);
+                throw new InvalidAlgorithmParameterException(
+                        "Params must be convertible to IvParameterSpec", e);
             }
         } else {
             spec = null;
@@ -339,27 +285,9 @@ public abstract class OpenSSLCipher extends CipherSpi {
         engineInit(opmode, key, spec, random);
     }
 
-    private final int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset, int maximumLen) throws ShortBufferException {
-        final int intialOutputOffset = outputOffset;
-
-        final int bytesLeft = output.length - outputOffset;
-        if (bytesLeft < maximumLen) {
-            throw new ShortBufferException("output buffer too small during update: " + bytesLeft
-                    + " < " + maximumLen);
-        }
-
-        outputOffset += NativeCrypto.EVP_CipherUpdate(cipherCtx, output, outputOffset, input,
-                inputOffset, inputLen);
-
-        calledUpdate = true;
-
-        return outputOffset - intialOutputOffset;
-    }
-
     @Override
     protected byte[] engineUpdate(byte[] input, int inputOffset, int inputLen) {
-        final int maximumLen = getOutputSize(inputLen);
+        final int maximumLen = getOutputSizeForUpdate(inputLen);
 
         /* See how large our output buffer would need to be. */
         final byte[] output;
@@ -389,79 +317,31 @@ public abstract class OpenSSLCipher extends CipherSpi {
     @Override
     protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output,
             int outputOffset) throws ShortBufferException {
-        final int maximumLen = getOutputSize(inputLen);
+        final int maximumLen = getOutputSizeForUpdate(inputLen);
         return updateInternal(input, inputOffset, inputLen, output, outputOffset, maximumLen);
-    }
-
-    /**
-     * Reset this Cipher instance state to process a new chunk of data.
-     */
-    private void reset() {
-        NativeCrypto.EVP_CipherInit_ex(cipherCtx, 0, encodedKey, iv, encrypting);
-        calledUpdate = false;
-    }
-
-    private int doFinalInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset, int maximumLen) throws IllegalBlockSizeException,
-            BadPaddingException, ShortBufferException {
-        /* Remember this so we can tell how many characters were written. */
-        final int initialOutputOffset = outputOffset;
-
-        if (inputLen > 0) {
-            final int updateBytesWritten = updateInternal(input, inputOffset, inputLen, output,
-                    outputOffset, maximumLen);
-            outputOffset += updateBytesWritten;
-            maximumLen -= updateBytesWritten;
-        }
-
-        /*
-         * If we're decrypting and haven't had any input, we should return null.
-         * Otherwise OpenSSL will complain if we call final.
-         */
-        if (!encrypting && !calledUpdate) {
-            return 0;
-        }
-
-        /* Allow OpenSSL to pad if necessary and clean up state. */
-        final int bytesLeft = output.length - outputOffset;
-        final int writtenBytes;
-        if (bytesLeft >= maximumLen) {
-            writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx, output, outputOffset);
-        } else {
-            final byte[] lastBlock = new byte[maximumLen];
-            writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx, lastBlock, 0);
-            if (writtenBytes > bytesLeft) {
-                throw new ShortBufferException("buffer is too short: " + writtenBytes + " > "
-                        + bytesLeft);
-            } else if (writtenBytes > 0) {
-                System.arraycopy(lastBlock, 0, output, outputOffset, writtenBytes);
-            }
-        }
-        outputOffset += writtenBytes;
-
-        reset();
-
-        return outputOffset - initialOutputOffset;
     }
 
     @Override
     protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
             throws IllegalBlockSizeException, BadPaddingException {
-        /*
-         * Other implementations return null if we've never called update()
-         * while decrypting.
-         */
-        if (!encrypting && !calledUpdate && inputLen == 0) {
-            reset();
-            return null;
-        }
-
-        final int maximumLen = getOutputSize(inputLen);
+        final int maximumLen = getOutputSizeForFinal(inputLen);
         /* Assume that we'll output exactly on a byte boundary. */
         final byte[] output = new byte[maximumLen];
-        final int bytesWritten;
+
+        int bytesWritten;
+        if (inputLen > 0) {
+            try {
+                bytesWritten = updateInternal(input, inputOffset, inputLen, output, 0, maximumLen);
+            } catch (ShortBufferException e) {
+                /* This should not happen since we sized our own buffer. */
+                throw new RuntimeException("our calculated buffer was too small", e);
+            }
+        } else {
+            bytesWritten = 0;
+        }
+
         try {
-            bytesWritten = doFinalInternal(input, inputOffset, inputLen, output, 0, maximumLen);
+            bytesWritten += doFinalInternal(output, bytesWritten, maximumLen - bytesWritten);
         } catch (ShortBufferException e) {
             /* This should not happen since we sized our own buffer. */
             throw new RuntimeException("our calculated buffer was too small", e);
@@ -484,8 +364,19 @@ public abstract class OpenSSLCipher extends CipherSpi {
             throw new NullPointerException("output == null");
         }
 
-        final int maximumLen = getOutputSize(inputLen);
-        return doFinalInternal(input, inputOffset, inputLen, output, outputOffset, maximumLen);
+        int maximumLen = getOutputSizeForFinal(inputLen);
+
+        final int bytesWritten;
+        if (inputLen > 0) {
+            bytesWritten = updateInternal(input, inputOffset, inputLen, output, outputOffset,
+                    maximumLen);
+            outputOffset += bytesWritten;
+            maximumLen -= bytesWritten;
+        } else {
+            bytesWritten = 0;
+        }
+
+        return bytesWritten + doFinalInternal(output, outputOffset, maximumLen);
     }
 
     @Override
@@ -525,218 +416,416 @@ public abstract class OpenSSLCipher extends CipherSpi {
         }
     }
 
-    public static class AES extends OpenSSLCipher {
-        private static final int AES_BLOCK_SIZE = 16;
-
-        protected AES(Mode mode, Padding padding) {
-            super(mode, padding);
+    private byte[] checkAndSetEncodedKey(int opmode, Key key) throws InvalidKeyException {
+        if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+            encrypting = true;
+        } else if (opmode == Cipher.DECRYPT_MODE || opmode == Cipher.UNWRAP_MODE) {
+            encrypting = false;
+        } else {
+            throw new InvalidParameterException("Unsupported opmode " + opmode);
         }
 
-        public static class CBC extends AES {
-            public CBC(Padding padding) {
-                super(Mode.CBC, padding);
-            }
-
-            public static class NoPadding extends CBC {
-                public NoPadding() {
-                    super(Padding.NOPADDING);
-                }
-            }
-
-            public static class PKCS5Padding extends CBC {
-                public PKCS5Padding() {
-                    super(Padding.PKCS5PADDING);
-                }
-            }
+        if (!(key instanceof SecretKey)) {
+            throw new InvalidKeyException("Only SecretKey is supported");
         }
 
-        public static class CTR extends AES {
-            public CTR() {
-                super(Mode.CTR, Padding.NOPADDING);
-            }
+        final byte[] encodedKey = key.getEncoded();
+        if (encodedKey == null) {
+            throw new InvalidKeyException("key.getEncoded() == null");
         }
-
-        public static class ECB extends AES {
-            public ECB(Padding padding) {
-                super(Mode.ECB, padding);
-            }
-
-            public static class NoPadding extends ECB {
-                public NoPadding() {
-                    super(Padding.NOPADDING);
-                }
-            }
-
-            public static class PKCS5Padding extends ECB {
-                public PKCS5Padding() {
-                    super(Padding.PKCS5PADDING);
-                }
-            }
-        }
-
-        @Override
-        protected void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
-            switch (keyLength) {
-                case 16: // AES 128
-                case 24: // AES 192
-                case 32: // AES 256
-                    return;
-                default:
-                    throw new InvalidKeyException("Unsupported key size: " + keyLength + " bytes");
-            }
-        }
-
-        @Override
-        protected void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-            switch (mode) {
-                case CBC:
-                case CTR:
-                case ECB:
-                    return;
-                default:
-                    throw new NoSuchAlgorithmException("Unsupported mode " + mode.toString());
-            }
-        }
-
-        @Override
-        protected void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
-            switch (padding) {
-                case NOPADDING:
-                case PKCS5PADDING:
-                    return;
-                default:
-                    throw new NoSuchPaddingException("Unsupported padding " + padding.toString());
-            }
-        }
-
-        @Override
-        protected String getBaseCipherName() {
-            return "AES";
-        }
-
-        @Override
-        protected String getCipherName(int keyLength, Mode mode) {
-            return "aes-" + (keyLength * 8) + "-" + mode.toString().toLowerCase(Locale.US);
-        }
-
-        @Override
-        protected int getCipherBlockSize() {
-            return AES_BLOCK_SIZE;
-        }
+        checkSupportedKeySize(encodedKey.length);
+        this.encodedKey = encodedKey;
+        return encodedKey;
     }
 
-    public static class DESEDE extends OpenSSLCipher {
-        private static int DES_BLOCK_SIZE = 8;
+    protected boolean isEncrypting() {
+        return encrypting;
+    }
 
-        public DESEDE(Mode mode, Padding padding) {
+    public static abstract class EVP_CIPHER extends OpenSSLCipher {
+        /**
+         * Native pointer for the OpenSSL EVP_CIPHER context.
+         */
+        private final EVP_CIPHER_CTX cipherCtx = new EVP_CIPHER_CTX(
+                NativeCrypto.EVP_CIPHER_CTX_new());
+
+        /**
+         * Whether the cipher has processed any data yet. EVP_CIPHER doesn't
+         * like calling "doFinal()" in decryption mode without processing any
+         * updates.
+         */
+        protected boolean calledUpdate;
+
+        /**
+         * The block size of the current mode.
+         */
+        private int modeBlockSize;
+
+        public EVP_CIPHER(Mode mode, Padding padding) {
             super(mode, padding);
         }
 
-        public static class CBC extends DESEDE {
-            public CBC(Padding padding) {
-                super(Mode.CBC, padding);
-            }
-
-            public static class NoPadding extends CBC {
-                public NoPadding() {
-                    super(Padding.NOPADDING);
-                }
-            }
-
-            public static class PKCS5Padding extends CBC {
-                public PKCS5Padding() {
-                    super(Padding.PKCS5PADDING);
-                }
-            }
-        }
-
         @Override
-        protected String getBaseCipherName() {
-            return "DESede";
-        }
-
-        @Override
-        protected String getCipherName(int keySize, Mode mode) {
-            final String baseCipherName;
-            if (keySize == 16) {
-                baseCipherName = "des-ede";
+        protected void engineInitInternal(byte[] encodedKey, AlgorithmParameterSpec params,
+                SecureRandom random) throws InvalidKeyException,
+                InvalidAlgorithmParameterException {
+            byte[] iv;
+            if (params instanceof IvParameterSpec) {
+                IvParameterSpec ivParams = (IvParameterSpec) params;
+                iv = ivParams.getIV();
             } else {
-                baseCipherName = "des-ede3";
+                iv = null;
             }
 
-            return baseCipherName + "-" + mode.toString().toLowerCase(Locale.US);
+            final long cipherType = NativeCrypto.EVP_get_cipherbyname(getCipherName(
+                    encodedKey.length, mode));
+            if (cipherType == 0) {
+                throw new InvalidAlgorithmParameterException("Cannot find name for key length = "
+                        + (encodedKey.length * 8) + " and mode = " + mode);
+            }
+
+            final boolean encrypting = isEncrypting();
+
+            final int expectedIvLength = NativeCrypto.EVP_CIPHER_iv_length(cipherType);
+            if (iv == null && expectedIvLength != 0) {
+                if (!encrypting) {
+                    throw new InvalidAlgorithmParameterException("IV must be specified in " + mode
+                            + " mode");
+                }
+
+                iv = new byte[expectedIvLength];
+                if (random == null) {
+                    random = new SecureRandom();
+                }
+                random.nextBytes(iv);
+            } else if (expectedIvLength == 0 && iv != null) {
+                throw new InvalidAlgorithmParameterException("IV not used in " + mode + " mode");
+            } else if (iv != null && iv.length != expectedIvLength) {
+                throw new InvalidAlgorithmParameterException("expected IV length of "
+                        + expectedIvLength + " but was " + iv.length);
+            }
+
+            this.iv = iv;
+
+            if (supportsVariableSizeKey()) {
+                NativeCrypto.EVP_CipherInit_ex(cipherCtx, cipherType, null, null, encrypting);
+                NativeCrypto.EVP_CIPHER_CTX_set_key_length(cipherCtx, encodedKey.length);
+                NativeCrypto.EVP_CipherInit_ex(cipherCtx, 0, encodedKey, iv, isEncrypting());
+            } else {
+                NativeCrypto.EVP_CipherInit_ex(cipherCtx, cipherType, encodedKey, iv, encrypting);
+            }
+
+            // OpenSSL only supports PKCS5 Padding.
+            NativeCrypto
+                    .EVP_CIPHER_CTX_set_padding(cipherCtx, getPadding() == Padding.PKCS5PADDING);
+            modeBlockSize = NativeCrypto.EVP_CIPHER_CTX_block_size(cipherCtx);
+            calledUpdate = false;
         }
 
         @Override
-        protected void checkSupportedKeySize(int keySize) throws InvalidKeyException {
-            if (keySize != 16 && keySize != 24) {
-                throw new InvalidKeyException("key size must be 128 or 192 bits");
+        protected int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
+                int outputOffset, int maximumLen) throws ShortBufferException {
+            final int intialOutputOffset = outputOffset;
+
+            final int bytesLeft = output.length - outputOffset;
+            if (bytesLeft < maximumLen) {
+                throw new ShortBufferException("output buffer too small during update: "
+                        + bytesLeft + " < " + maximumLen);
+            }
+
+            outputOffset += NativeCrypto.EVP_CipherUpdate(cipherCtx, output, outputOffset, input,
+                    inputOffset, inputLen);
+
+            calledUpdate = true;
+
+            return outputOffset - intialOutputOffset;
+        }
+
+        @Override
+        protected int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
+                throws IllegalBlockSizeException, BadPaddingException, ShortBufferException {
+            /* Remember this so we can tell how many characters were written. */
+            final int initialOutputOffset = outputOffset;
+
+            /*
+             * If we're decrypting and haven't had any input, we should return
+             * null. Otherwise OpenSSL will complain if we call final.
+             */
+            if (!isEncrypting() && !calledUpdate) {
+                return 0;
+            }
+
+            /* Allow OpenSSL to pad if necessary and clean up state. */
+            final int bytesLeft = output.length - outputOffset;
+            final int writtenBytes;
+            if (bytesLeft >= maximumLen) {
+                writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx, output, outputOffset);
+            } else {
+                final byte[] lastBlock = new byte[maximumLen];
+                writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx, lastBlock, 0);
+                if (writtenBytes > bytesLeft) {
+                    throw new ShortBufferException("buffer is too short: " + writtenBytes + " > "
+                            + bytesLeft);
+                } else if (writtenBytes > 0) {
+                    System.arraycopy(lastBlock, 0, output, outputOffset, writtenBytes);
+                }
+            }
+            outputOffset += writtenBytes;
+
+            reset();
+
+            return outputOffset - initialOutputOffset;
+        }
+
+        @Override
+        protected int getOutputSizeForFinal(int inputLen) {
+            if (modeBlockSize == 1) {
+                return inputLen;
+            } else {
+                final int buffered = NativeCrypto.get_EVP_CIPHER_CTX_buf_len(cipherCtx);
+                if (getPadding() == Padding.NOPADDING) {
+                    return buffered + inputLen;
+                } else {
+                    final int totalLen = inputLen + buffered + modeBlockSize;
+                    return totalLen - (totalLen % modeBlockSize);
+                }
             }
         }
 
         @Override
-        protected void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-            switch (mode) {
-                case CBC:
-                    return;
-                default:
+        protected int getOutputSizeForUpdate(int inputLen) {
+            return getOutputSizeForFinal(inputLen);
+        }
+
+        /**
+         * Returns the OpenSSL cipher name for the particular {@code keySize}
+         * and cipher {@code mode}.
+         */
+        protected abstract String getCipherName(int keySize, Mode mode);
+
+        /**
+         * Reset this Cipher instance state to process a new chunk of data.
+         */
+        private void reset() {
+            NativeCrypto.EVP_CipherInit_ex(cipherCtx, 0, encodedKey, iv, isEncrypting());
+            calledUpdate = false;
+        }
+
+        public static class AES extends EVP_CIPHER {
+            private static final int AES_BLOCK_SIZE = 16;
+
+            protected AES(Mode mode, Padding padding) {
+                super(mode, padding);
+            }
+
+            public static class CBC extends AES {
+                public CBC(Padding padding) {
+                    super(Mode.CBC, padding);
+                }
+
+                public static class NoPadding extends CBC {
+                    public NoPadding() {
+                        super(Padding.NOPADDING);
+                    }
+                }
+
+                public static class PKCS5Padding extends CBC {
+                    public PKCS5Padding() {
+                        super(Padding.PKCS5PADDING);
+                    }
+                }
+            }
+
+            public static class CTR extends AES {
+                public CTR() {
+                    super(Mode.CTR, Padding.NOPADDING);
+                }
+            }
+
+            public static class ECB extends AES {
+                public ECB(Padding padding) {
+                    super(Mode.ECB, padding);
+                }
+
+                public static class NoPadding extends ECB {
+                    public NoPadding() {
+                        super(Padding.NOPADDING);
+                    }
+                }
+
+                public static class PKCS5Padding extends ECB {
+                    public PKCS5Padding() {
+                        super(Padding.PKCS5PADDING);
+                    }
+                }
+            }
+
+            @Override
+            protected void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
+                switch (keyLength) {
+                    case 16: // AES 128
+                    case 24: // AES 192
+                    case 32: // AES 256
+                        return;
+                    default:
+                        throw new InvalidKeyException("Unsupported key size: " + keyLength
+                                + " bytes");
+                }
+            }
+
+            @Override
+            protected void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
+                switch (mode) {
+                    case CBC:
+                    case CTR:
+                    case ECB:
+                        return;
+                    default:
+                        throw new NoSuchAlgorithmException("Unsupported mode " + mode.toString());
+                }
+            }
+
+            @Override
+            protected void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
+                switch (padding) {
+                    case NOPADDING:
+                    case PKCS5PADDING:
+                        return;
+                    default:
+                        throw new NoSuchPaddingException("Unsupported padding "
+                                + padding.toString());
+                }
+            }
+
+            @Override
+            protected String getBaseCipherName() {
+                return "AES";
+            }
+
+            @Override
+            protected String getCipherName(int keyLength, Mode mode) {
+                return "aes-" + (keyLength * 8) + "-" + mode.toString().toLowerCase(Locale.US);
+            }
+
+            @Override
+            protected int getCipherBlockSize() {
+                return AES_BLOCK_SIZE;
+            }
+        }
+
+        public static class DESEDE extends EVP_CIPHER {
+            private static int DES_BLOCK_SIZE = 8;
+
+            public DESEDE(Mode mode, Padding padding) {
+                super(mode, padding);
+            }
+
+            public static class CBC extends DESEDE {
+                public CBC(Padding padding) {
+                    super(Mode.CBC, padding);
+                }
+
+                public static class NoPadding extends CBC {
+                    public NoPadding() {
+                        super(Padding.NOPADDING);
+                    }
+                }
+
+                public static class PKCS5Padding extends CBC {
+                    public PKCS5Padding() {
+                        super(Padding.PKCS5PADDING);
+                    }
+                }
+            }
+
+            @Override
+            protected String getBaseCipherName() {
+                return "DESede";
+            }
+
+            @Override
+            protected String getCipherName(int keySize, Mode mode) {
+                final String baseCipherName;
+                if (keySize == 16) {
+                    baseCipherName = "des-ede";
+                } else {
+                    baseCipherName = "des-ede3";
+                }
+
+                return baseCipherName + "-" + mode.toString().toLowerCase(Locale.US);
+            }
+
+            @Override
+            protected void checkSupportedKeySize(int keySize) throws InvalidKeyException {
+                if (keySize != 16 && keySize != 24) {
+                    throw new InvalidKeyException("key size must be 128 or 192 bits");
+                }
+            }
+
+            @Override
+            protected void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
+                if (mode != Mode.CBC) {
                     throw new NoSuchAlgorithmException("Unsupported mode " + mode.toString());
+                }
+            }
+
+            @Override
+            protected void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
+                switch (padding) {
+                    case NOPADDING:
+                    case PKCS5PADDING:
+                        return;
+                    default:
+                        throw new NoSuchPaddingException("Unsupported padding "
+                                + padding.toString());
+                }
+            }
+
+            @Override
+            protected int getCipherBlockSize() {
+                return DES_BLOCK_SIZE;
             }
         }
 
-        @Override
-        protected void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
-            switch (padding) {
-                case NOPADDING:
-                case PKCS5PADDING:
-                    return;
-                default:
-                    throw new NoSuchPaddingException("Unsupported padding " + padding.toString());
+        public static class ARC4 extends EVP_CIPHER {
+            public ARC4() {
+                // Modes and padding don't make sense for ARC4.
+                super(Mode.ECB, Padding.NOPADDING);
             }
-        }
 
-        @Override
-        protected int getCipherBlockSize() {
-            return DES_BLOCK_SIZE;
-        }
-    }
+            @Override
+            protected String getBaseCipherName() {
+                return "ARCFOUR";
+            }
 
-    public static class ARC4 extends OpenSSLCipher {
-        public ARC4() {
-        }
+            @Override
+            protected String getCipherName(int keySize, Mode mode) {
+                return "rc4";
+            }
 
-        @Override
-        protected String getBaseCipherName() {
-            return "ARCFOUR";
-        }
+            @Override
+            protected void checkSupportedKeySize(int keySize) throws InvalidKeyException {
+            }
 
-        @Override
-        protected String getCipherName(int keySize, Mode mode) {
-            return "rc4";
-        }
+            @Override
+            protected void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
+                throw new NoSuchAlgorithmException("ARC4 does not support modes");
+            }
 
-        @Override
-        protected void checkSupportedKeySize(int keySize) throws InvalidKeyException {
-        }
+            @Override
+            protected void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
+                throw new NoSuchPaddingException("ARC4 does not support padding");
+            }
 
-        @Override
-        protected void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-            throw new NoSuchAlgorithmException("ARC4 does not support modes");
-        }
+            @Override
+            protected int getCipherBlockSize() {
+                return 0;
+            }
 
-        @Override
-        protected void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
-            throw new NoSuchPaddingException("ARC4 does not support padding");
-        }
-
-        @Override
-        protected int getCipherBlockSize() {
-            return 0;
-        }
-
-        @Override
-        protected boolean supportsVariableSizeKey() {
-            return true;
+            @Override
+            protected boolean supportsVariableSizeKey() {
+                return true;
+            }
         }
     }
 }
