@@ -16,7 +16,7 @@
 
 package org.conscrypt;
 
-import org.conscrypt.util.Arrays;
+import org.conscrypt.util.ArrayUtils;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
@@ -683,7 +683,7 @@ public class OpenSSLSocketImpl
             BlockGuard.getThreadPolicy().onNetwork();
 
             checkOpen();
-            Arrays.checkOffsetAndCount(buf.length, offset, byteCount);
+            ArrayUtils.checkOffsetAndCount(buf.length, offset, byteCount);
             if (byteCount == 0) {
                 return 0;
             }
@@ -749,7 +749,7 @@ public class OpenSSLSocketImpl
         public void write(byte[] buf, int offset, int byteCount) throws IOException {
             BlockGuard.getThreadPolicy().onNetwork();
             checkOpen();
-            Arrays.checkOffsetAndCount(buf.length, offset, byteCount);
+            ArrayUtils.checkOffsetAndCount(buf.length, offset, byteCount);
             if (byteCount == 0) {
                 return;
             }
