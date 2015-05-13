@@ -228,6 +228,12 @@ public final class OpenSSLProvider extends Provider {
 
         putSymmetricCipherImplClass("ARC4", "OpenSSLCipher$EVP_CIPHER$ARC4");
 
+        if (NativeCrypto.isBoringSSL) {
+            /* EVP_AEAD is only supported in BoringSSL right now. */
+            putSymmetricCipherImplClass("AES/GCM/NoPadding", "OpenSSLCipher$EVP_AEAD$AES$GCM");
+            put("Alg.Alias.Cipher.GCM", "AES/GCM/NoPadding");
+        }
+
         /* === Mac === */
 
         putMacImplClass("HmacMD5", "OpenSSLMac$HmacMD5");

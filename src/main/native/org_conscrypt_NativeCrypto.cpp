@@ -50,6 +50,9 @@
 #include <openssl/rsa.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
+#if defined(OPENSSL_IS_BORINGSSL)
+#include <openssl/aead.h>
+#endif
 
 #if !defined(OPENSSL_IS_BORINGSSL)
 #include "crypto/ecdsa/ecs_locl.h"
@@ -214,6 +217,16 @@ struct EVP_MD_CTX_Delete {
 };
 typedef UniquePtr<EVP_MD_CTX, EVP_MD_CTX_Delete> Unique_EVP_MD_CTX;
 
+#if defined(OPENSSL_IS_BORINGSSL)
+struct EVP_AEAD_CTX_Delete {
+    void operator()(EVP_AEAD_CTX* p) const {
+        EVP_AEAD_CTX_cleanup(p);
+        delete p;
+    }
+};
+typedef UniquePtr<EVP_AEAD_CTX, EVP_AEAD_CTX_Delete> Unique_EVP_AEAD_CTX;
+#endif
+
 struct EVP_CIPHER_CTX_Delete {
     void operator()(EVP_CIPHER_CTX* p) const {
         EVP_CIPHER_CTX_free(p);
@@ -359,6 +372,19 @@ typedef UniquePtr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENE
  * argument's use is based on an #ifdef.
  */
 #define UNUSED_ARGUMENT(x) ((void)(x));
+
+/**
+ * Check array bounds for arguments when an array and offset are given.
+ */
+#define ARRAY_OFFSET_INVALID(array, offset) (offset < 0 || \
+        offset > static_cast<ssize_t>(array.size()))
+
+/**
+ * Check array bounds for arguments when an array, offset, and length are given.
+ */
+#define ARRAY_OFFSET_LENGTH_INVALID(array, offset, len) (offset < 0 || \
+        offset > static_cast<ssize_t>(array.size()) || len < 0 || \
+        len > static_cast<ssize_t>(array.size()) - offset)
 
 /**
  * Frees the SSL error state.
@@ -4837,6 +4863,223 @@ static void NativeCrypto_EVP_CIPHER_CTX_free(JNIEnv*, jclass, jlong ctxRef) {
     JNI_TRACE("EVP_CIPHER_CTX_free(%p)", ctx);
 
     EVP_CIPHER_CTX_free(ctx);
+}
+
+static jlong NativeCrypto_EVP_aead_aes_128_gcm(JNIEnv*, jclass) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    const EVP_AEAD* ctx = EVP_aead_aes_128_gcm();
+    JNI_TRACE("EVP_aead_aes_128_gcm => ctx=%p", ctx);
+    return reinterpret_cast<jlong>(ctx);
+#else
+    jniThrowRuntimeException("Not supported for OpenSSL");
+    return 0;
+#endif
+}
+
+static jlong NativeCrypto_EVP_aead_aes_256_gcm(JNIEnv*, jclass) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    const EVP_AEAD* ctx = EVP_aead_aes_256_gcm();
+    JNI_TRACE("EVP_aead_aes_256_gcm => ctx=%p", ctx);
+    return reinterpret_cast<jlong>(ctx);
+#else
+    jniThrowRuntimeException("Not supported for OpenSSL");
+    return NULL;
+#endif
+}
+
+static jlong NativeCrypto_EVP_AEAD_CTX_init(JNIEnv* env, jclass, jlong evpAeadRef,
+        jbyteArray keyArray, jint tagLen) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    const EVP_AEAD* evpAead = reinterpret_cast<const EVP_AEAD*>(evpAeadRef);
+    JNI_TRACE("EVP_AEAD_CTX_init(%p, %p, %d)", evpAead, keyArray, tagLen);
+
+    ScopedByteArrayRO keyBytes(env, keyArray);
+    if (keyBytes.get() == NULL) {
+        return 0;
+    }
+
+    Unique_EVP_AEAD_CTX aeadCtx(reinterpret_cast<EVP_AEAD_CTX*>(
+            OPENSSL_malloc(sizeof(EVP_AEAD_CTX))));
+    memset(aeadCtx.get(), 0, sizeof(EVP_AEAD_CTX));
+
+    const uint8_t* tmp = reinterpret_cast<const uint8_t*>(keyBytes.get());
+    int ret = EVP_AEAD_CTX_init(aeadCtx.get(), evpAead, tmp, keyBytes.size(), tagLen, NULL);
+    if (ret != 1) {
+        throwExceptionIfNecessary(env, "EVP_AEAD_CTX_init");
+        JNI_TRACE("EVP_AEAD_CTX_init(%p, %p, %d) => fail EVP_AEAD_CTX_init", evpAead,
+                keyArray, tagLen);
+        return 0;
+    }
+
+    JNI_TRACE("EVP_AEAD_CTX_init(%p, %p, %d) => %p", evpAead, keyArray, tagLen, aeadCtx.get());
+    return reinterpret_cast<jlong>(aeadCtx.release());
+#else
+    jniThrowRuntimeException("Not supported for OpenSSL");
+    return 0;
+#endif
+}
+
+static void NativeCrypto_EVP_AEAD_CTX_cleanup(JNIEnv* env, jclass, jlong evpAeadCtxRef) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    EVP_AEAD_CTX* evpAeadCtx = reinterpret_cast<EVP_AEAD_CTX*>(evpAeadCtxRef);
+    JNI_TRACE("EVP_AEAD_CTX_cleanup(%p)", evpAeadCtx);
+    if (evpAeadCtx == NULL) {
+        jniThrowNullPointerException(env, "evpAead == null");
+        return;
+    }
+
+    EVP_AEAD_CTX_cleanup(evpAeadCtx);
+    OPENSSL_free(evpAeadCtx);
+#else
+    jniThrowRuntimeException("Not supported for OpenSSL");
+#endif
+}
+
+static jint NativeCrypto_EVP_AEAD_max_overhead(JNIEnv* env, jclass, jlong evpAeadRef) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    const EVP_AEAD* evpAead = reinterpret_cast<const EVP_AEAD*>(evpAeadRef);
+    JNI_TRACE("EVP_AEAD_max_overhead(%p)", evpAead);
+    if (evpAead == NULL) {
+        jniThrowNullPointerException(env, "evpAead == null");
+        return 0;
+    }
+    int maxOverhead = EVP_AEAD_max_overhead(evpAead);
+    JNI_TRACE("EVP_AEAD_max_overhead(%p) => %d", evpAead, maxOverhead);
+    return maxOverhead;
+#else
+    jniThrowRuntimeException("Not supported for OpenSSL");
+    return 0;
+#endif
+}
+
+static jint NativeCrypto_EVP_AEAD_nonce_length(JNIEnv* env, jclass, jlong evpAeadRef) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    const EVP_AEAD* evpAead = reinterpret_cast<const EVP_AEAD*>(evpAeadRef);
+    JNI_TRACE("EVP_AEAD_nonce_length(%p)", evpAead);
+    if (evpAead == NULL) {
+        jniThrowNullPointerException(env, "evpAead == null");
+        return 0;
+    }
+    int nonceLength = EVP_AEAD_nonce_length(evpAead);
+    JNI_TRACE("EVP_AEAD_nonce_length(%p) => %d", evpAead, nonceLength);
+    return nonceLength;
+#else
+    jniThrowRuntimeException("Not supported for OpenSSL");
+    return 0;
+#endif
+}
+
+static jint NativeCrypto_EVP_AEAD_max_tag_len(JNIEnv* env, jclass, jlong evpAeadRef) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    const EVP_AEAD* evpAead = reinterpret_cast<const EVP_AEAD*>(evpAeadRef);
+    JNI_TRACE("EVP_AEAD_max_tag_len(%p)", evpAead);
+    if (evpAead == NULL) {
+        jniThrowNullPointerException(env, "evpAead == null");
+        return 0;
+    }
+    int maxTagLen = EVP_AEAD_max_tag_len(evpAead);
+    JNI_TRACE("EVP_AEAD_max_tag_len(%p) => %d", evpAead, maxTagLen);
+    return maxTagLen;
+#else
+    jniThrowRuntimeException("Not supported for OpenSSL");
+    return 0;
+#endif
+}
+
+#if defined(OPENSSL_IS_BORINGSSL)
+typedef int (*evp_aead_ctx_op_func)(const EVP_AEAD_CTX *ctx, uint8_t *out,
+                                    size_t *out_len, size_t max_out_len,
+                                    const uint8_t *nonce, size_t nonce_len,
+                                    const uint8_t *in, size_t in_len,
+                                    const uint8_t *ad, size_t ad_len);
+
+static jint evp_aead_ctx_op(JNIEnv* env, jobject ctxRef, jbyteArray outArray, jint outOffset,
+        jbyteArray nonceArray, jbyteArray inArray, jint inOffset, jint inLength,
+        jbyteArray aadArray, evp_aead_ctx_op_func realFunc) {
+    EVP_AEAD_CTX* ctx = fromContextObject<EVP_AEAD_CTX>(env, ctxRef);
+    JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %d, %d, %p)", ctx, outArray, outOffset,
+            nonceArray, inArray, inOffset, inLength, aadArray);
+
+    ScopedByteArrayRW outBytes(env, outArray);
+    if (outBytes.get() == NULL) {
+        return 0;
+    }
+
+    if (ARRAY_OFFSET_INVALID(outBytes, outOffset)) {
+        JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %d, %d, %p)", ctx, outArray, outOffset,
+                nonceArray, inArray, inOffset, inLength, aadArray);
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "out");
+        return 0;
+    }
+
+    ScopedByteArrayRO inBytes(env, inArray);
+    if (inBytes.get() == NULL) {
+        return 0;
+    }
+
+    if (ARRAY_OFFSET_LENGTH_INVALID(inBytes, inOffset, inLength)) {
+        JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %d, %d, %p)", ctx, outArray, outOffset,
+                nonceArray, inArray, inOffset, inLength, aadArray);
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "in");
+        return 0;
+    }
+
+    UniquePtr<ScopedByteArrayRO> aad;
+    const uint8_t* aad_chars = NULL;
+    size_t aad_chars_size = 0;
+    if (aadArray != NULL) {
+        aad.reset(new ScopedByteArrayRO(env, aadArray));
+        aad_chars = reinterpret_cast<const uint8_t*>(aad->get());
+        if (aad_chars == NULL) {
+            return 0;
+        }
+        aad_chars_size = aad->size();
+    }
+
+    ScopedByteArrayRO nonceBytes(env, nonceArray);
+    if (nonceBytes.get() == NULL) {
+        return 0;
+    }
+
+    uint8_t* outTmp = reinterpret_cast<uint8_t*>(outBytes.get());
+    const uint8_t* inTmp = reinterpret_cast<const uint8_t*>(inBytes.get());
+    const uint8_t* nonceTmp = reinterpret_cast<const uint8_t*>(nonceBytes.get());
+    size_t actualOutLength;
+    int ret = realFunc(ctx, outTmp + outOffset, &actualOutLength, outBytes.size() - outOffset,
+            nonceTmp, nonceBytes.size(), inTmp + inOffset, inLength, aad_chars, aad_chars_size);
+    if (ret != 1) {
+        throwExceptionIfNecessary(env, "evp_aead_ctx_op");
+    }
+
+    JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %d, %d, %p) => ret=%d, outLength=%zd",
+            ctx, outArray, outOffset, nonceArray, inArray, inOffset, inLength, aadArray, ret,
+            actualOutLength);
+    return static_cast<jlong>(actualOutLength);
+}
+#endif
+
+static jint NativeCrypto_EVP_AEAD_CTX_seal(JNIEnv* env, jclass, jobject ctxRef, jbyteArray outArray,
+        jint outOffset, jbyteArray nonceArray, jbyteArray inArray, jint inOffset, jint inLength,
+        jbyteArray aadArray) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    return evp_aead_ctx_op(env, ctxRef, outArray, outOffset, nonceArray, inArray, inOffset,
+                           inLength, aadArray, EVP_AEAD_CTX_seal);
+#else
+    jniThrowRuntimeException("Not supported for OpenSSL");
+    return 0;
+#endif
+}
+
+static jint NativeCrypto_EVP_AEAD_CTX_open(JNIEnv* env, jclass, jobject ctxRef, jbyteArray outArray,
+        jint outOffset, jbyteArray nonceArray, jbyteArray inArray, jint inOffset, jint inLength,
+        jbyteArray aadArray) {
+#if defined(OPENSSL_IS_BORINGSSL)
+    return evp_aead_ctx_op(env, ctxRef, outArray, outOffset, nonceArray, inArray, inOffset,
+                           inLength, aadArray, EVP_AEAD_CTX_open);
+#else
+    jniThrowRuntimeException("Not supported for OpenSSL");
+    return 0;
+#endif
 }
 
 /**
@@ -10153,6 +10396,7 @@ static jobjectArray NativeCrypto_get_cipher_names(JNIEnv *env, jclass, jstring s
 #define SSL_CALLBACKS "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks;"
 #define REF_EC_GROUP "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_GROUP;"
 #define REF_EC_POINT "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_POINT;"
+#define REF_EVP_AEAD_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_AEAD_CTX;"
 #define REF_EVP_CIPHER_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_CIPHER_CTX;"
 #define REF_EVP_PKEY "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY;"
 static JNINativeMethod sNativeCryptoMethods[] = {
@@ -10246,6 +10490,15 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EVP_CIPHER_CTX_set_padding, "(" REF_EVP_CIPHER_CTX "Z)V"),
     NATIVE_METHOD(NativeCrypto, EVP_CIPHER_CTX_set_key_length, "(" REF_EVP_CIPHER_CTX "I)V"),
     NATIVE_METHOD(NativeCrypto, EVP_CIPHER_CTX_free, "(J)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_aead_aes_128_gcm, "()J"),
+    NATIVE_METHOD(NativeCrypto, EVP_aead_aes_256_gcm, "()J"),
+    NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_init, "(J[BI)J"),
+    NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_cleanup, "(J)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_AEAD_max_overhead, "(J)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_AEAD_nonce_length, "(J)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_AEAD_max_tag_len, "(J)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_seal, "(" REF_EVP_AEAD_CTX "[BI[B[BII[B)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_open, "(" REF_EVP_AEAD_CTX "[BI[B[BII[B)I"),
     NATIVE_METHOD(NativeCrypto, RAND_seed, "([B)V"),
     NATIVE_METHOD(NativeCrypto, RAND_load_file, "(Ljava/lang/String;J)I"),
     NATIVE_METHOD(NativeCrypto, RAND_bytes, "([B)V"),
