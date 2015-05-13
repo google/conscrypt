@@ -171,6 +171,9 @@ public final class NativeCrypto {
 
     public static native long EC_GROUP_new_by_curve_name(String curveName);
 
+    public static native long EC_GROUP_new_arbitrary(byte[] p, byte[] a, byte[] b, byte[] x,
+                                                     byte[] y, byte[] order, int cofactor);
+
     public static native void EC_GROUP_set_asn1_flag(NativeRef.EC_GROUP groupRef, int flag);
 
     public static native void EC_GROUP_set_point_conversion_form(NativeRef.EC_GROUP groupRef,
