@@ -3775,26 +3775,6 @@ static void NativeCrypto_EC_GROUP_clear_free(JNIEnv* env, jclass, jlong groupRef
     JNI_TRACE("EC_GROUP_clear_free(%p) => success", group);
 }
 
-static jboolean NativeCrypto_EC_GROUP_cmp(JNIEnv* env, jclass, jobject group1Ref,
-                                          jobject group2Ref)
-{
-    JNI_TRACE("EC_GROUP_cmp(%p, %p)", group1Ref, group2Ref);
-    const EC_GROUP* group1 = fromContextObject<EC_GROUP>(env, group1Ref);
-    if (group1 == NULL) {
-        return JNI_FALSE; 
-    }
-    const EC_GROUP* group2 = fromContextObject<EC_GROUP>(env, group2Ref);
-    if (group2 == NULL) {
-        return JNI_FALSE;
-    }
-    JNI_TRACE("EC_GROUP_cmp(%p, %p) <- ptr", group1, group2);
-
-    int ret = EC_GROUP_cmp(group1, group2, NULL);
-
-    JNI_TRACE("ECP_GROUP_cmp(%p, %p) => %d", group1, group2, ret);
-    return ret == 0;
-}
-
 static jlong NativeCrypto_EC_GROUP_get_generator(JNIEnv* env, jclass, jobject groupRef)
 {
     const EC_GROUP* group = fromContextObject<EC_GROUP>(env, groupRef);
@@ -3849,30 +3829,6 @@ static void NativeCrypto_EC_POINT_clear_free(JNIEnv* env, jclass, jlong groupRef
 
     EC_POINT_free(group);
     JNI_TRACE("EC_POINT_clear_free(%p) => success", group);
-}
-
-static jboolean NativeCrypto_EC_POINT_cmp(JNIEnv* env, jclass, jobject groupRef, jobject point1Ref,
-                                          jobject point2Ref)
-{
-    JNI_TRACE("EC_POINT_cmp(%p, %p, %p)", groupRef, point1Ref, point2Ref);
-    const EC_GROUP* group = fromContextObject<EC_GROUP>(env, groupRef);
-    if (group == NULL) {
-        return JNI_FALSE;
-    }
-    const EC_POINT* point1 = fromContextObject<EC_POINT>(env, point1Ref);
-    if (point1 == NULL) {
-        return JNI_FALSE;
-    }
-    const EC_POINT* point2 = fromContextObject<EC_POINT>(env, point2Ref);
-    if (point2 == NULL) {
-        return JNI_FALSE;
-    }
-    JNI_TRACE("EC_POINT_cmp(%p, %p, %p) <- ptr", group, point1, point2);
-
-    int ret = EC_POINT_cmp(group, point1, point2, (BN_CTX*)NULL);
-
-    JNI_TRACE("ECP_GROUP_cmp(%p, %p) => %d", point1, point2, ret);
-    return ret == 0;
 }
 
 static void NativeCrypto_EC_POINT_set_affine_coordinates(JNIEnv* env, jclass,
@@ -10561,12 +10517,10 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EC_GROUP_get_degree, "(" REF_EC_GROUP ")I"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_get_cofactor, "(" REF_EC_GROUP ")[B"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_clear_free, "(J)V"),
-    NATIVE_METHOD(NativeCrypto, EC_GROUP_cmp, "(" REF_EC_GROUP REF_EC_GROUP ")Z"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_get_generator, "(" REF_EC_GROUP ")J"),
     NATIVE_METHOD(NativeCrypto, get_EC_GROUP_type, "(" REF_EC_GROUP ")I"),
     NATIVE_METHOD(NativeCrypto, EC_POINT_new, "(" REF_EC_GROUP ")J"),
     NATIVE_METHOD(NativeCrypto, EC_POINT_clear_free, "(J)V"),
-    NATIVE_METHOD(NativeCrypto, EC_POINT_cmp, "(" REF_EC_GROUP REF_EC_POINT REF_EC_POINT ")Z"),
     NATIVE_METHOD(NativeCrypto, EC_POINT_set_affine_coordinates, "(" REF_EC_GROUP REF_EC_POINT "[B[B)V"),
     NATIVE_METHOD(NativeCrypto, EC_POINT_get_affine_coordinates, "(" REF_EC_GROUP REF_EC_POINT ")[[B"),
     NATIVE_METHOD(NativeCrypto, EC_KEY_generate_key, "(" REF_EC_GROUP ")J"),

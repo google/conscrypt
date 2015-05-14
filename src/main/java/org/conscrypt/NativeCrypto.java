@@ -185,8 +185,6 @@ public final class NativeCrypto {
 
     public static native void EC_GROUP_clear_free(long groupRef);
 
-    public static native boolean EC_GROUP_cmp(NativeRef.EC_GROUP ctx1, NativeRef.EC_GROUP ctx2);
-
     public static native long EC_GROUP_get_generator(NativeRef.EC_GROUP groupRef);
 
     public static native int get_EC_GROUP_type(NativeRef.EC_GROUP groupRef);
@@ -200,9 +198,6 @@ public final class NativeCrypto {
     public static native long EC_POINT_new(NativeRef.EC_GROUP groupRef);
 
     public static native void EC_POINT_clear_free(long pointRef);
-
-    public static native boolean EC_POINT_cmp(NativeRef.EC_GROUP groupRef,
-            NativeRef.EC_POINT pointRef1, NativeRef.EC_POINT pointRef2);
 
     public static native byte[][] EC_POINT_get_affine_coordinates(NativeRef.EC_GROUP groupRef,
             NativeRef.EC_POINT pointRef);
