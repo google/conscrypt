@@ -44,6 +44,14 @@ int main(int /* argc */, char ** /* argv */) {
   printf("package org.conscrypt;\n\n");
   printf("public final class NativeConstants {\n");
 
+  printf("    public static final boolean IS_BORINGSSL = %s;\n",
+#if defined(OPENSSL_IS_BORINGSSL)
+         "true"
+#else
+         "false"
+#endif
+  );
+
 #define CONST(x) \
   printf("    public static final int %s = %ld;\n", #x, (long int)x)
 #define CONST_MINUS_1(x) printf("    public static final int %s = -1;\n", #x)
