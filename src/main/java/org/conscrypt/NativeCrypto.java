@@ -217,7 +217,8 @@ public final class NativeCrypto {
             boolean enabled);
 
     public static native int ECDH_compute_key(byte[] out, int outOffset,
-            NativeRef.EVP_PKEY publicKeyRef, NativeRef.EVP_PKEY privateKeyRef);
+            NativeRef.EVP_PKEY publicKeyRef, NativeRef.EVP_PKEY privateKeyRef) throws
+            InvalidKeyException;
 
     // --- Message digest functions --------------
 
