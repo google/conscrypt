@@ -92,7 +92,7 @@ public final class NativeCrypto {
 
     public static native String EVP_PKEY_print_public(NativeRef.EVP_PKEY pkeyRef);
 
-    public static native String EVP_PKEY_print_private(NativeRef.EVP_PKEY pkeyRef);
+    public static native String EVP_PKEY_print_params(NativeRef.EVP_PKEY pkeyRef);
 
     public static native void EVP_PKEY_free(long pkey);
 
