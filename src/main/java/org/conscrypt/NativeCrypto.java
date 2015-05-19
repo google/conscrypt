@@ -555,7 +555,7 @@ public final class NativeCrypto {
 
     // --- BIO stream creation -------------------------------------------------
 
-    public static native long create_BIO_InputStream(OpenSSLBIOInputStream is);
+    public static native long create_BIO_InputStream(OpenSSLBIOInputStream is, boolean isFinite);
 
     public static native long create_BIO_OutputStream(OutputStream os);
 

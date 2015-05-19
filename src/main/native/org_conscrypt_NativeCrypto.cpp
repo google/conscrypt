@@ -1261,8 +1261,9 @@ private:
 
 class BIO_InputStream : public BIO_Stream {
 public:
-    BIO_InputStream(jobject stream) :
-            BIO_Stream(stream) {
+    BIO_InputStream(jobject stream, bool isFinite) :
+            BIO_Stream(stream),
+            isFinite_(isFinite) {
     }
 
     int read(char *buf, int len) {
@@ -1280,7 +1281,13 @@ public:
         return read;
     }
 
+    bool isFinite() const {
+        return isFinite_;
+    }
+
 private:
+    const bool isFinite_;
+
     int read_internal(char *buf, int len, jmethodID method) {
         JNIEnv* env = getJNIEnv();
         if (env == NULL) {
@@ -1385,7 +1392,11 @@ static int bio_stream_read(BIO *b, char *buf, int len) {
     BIO_InputStream* stream = static_cast<BIO_InputStream*>(b->ptr);
     int ret = stream->read(buf, len);
     if (ret == 0) {
-        // EOF is indicated by -1 with a BIO flag.
+        if (stream->isFinite()) {
+            return 0;
+        }
+        // If the BIO_InputStream is not finite then EOF doesn't mean that
+        // there's nothing more coming.
         BIO_set_retry_read(b);
         return -1;
     }
@@ -5246,7 +5257,9 @@ static jstring ASN1_OBJECT_to_OID_string(JNIEnv* env, const ASN1_OBJECT* obj) {
     return env->NewStringUTF(output);
 }
 
-static jlong NativeCrypto_create_BIO_InputStream(JNIEnv* env, jclass, jobject streamObj) {
+static jlong NativeCrypto_create_BIO_InputStream(JNIEnv* env, jclass,
+                                                 jobject streamObj,
+                                                 jboolean isFinite) {
     JNI_TRACE("create_BIO_InputStream(%p)", streamObj);
 
     if (streamObj == NULL) {
@@ -5259,7 +5272,7 @@ static jlong NativeCrypto_create_BIO_InputStream(JNIEnv* env, jclass, jobject st
         return 0;
     }
 
-    bio_stream_assign(bio.get(), new BIO_InputStream(streamObj));
+    bio_stream_assign(bio.get(), new BIO_InputStream(streamObj, isFinite));
 
     JNI_TRACE("create_BIO_InputStream(%p) => %p", streamObj, bio.get());
     return static_cast<jlong>(reinterpret_cast<uintptr_t>(bio.release()));
@@ -10560,7 +10573,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, OBJ_txt2nid, "(Ljava/lang/String;)I"),
     NATIVE_METHOD(NativeCrypto, OBJ_txt2nid_longName, "(Ljava/lang/String;)Ljava/lang/String;"),
     NATIVE_METHOD(NativeCrypto, OBJ_txt2nid_oid, "(Ljava/lang/String;)Ljava/lang/String;"),
-    NATIVE_METHOD(NativeCrypto, create_BIO_InputStream, ("(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream;)J")),
+    NATIVE_METHOD(NativeCrypto, create_BIO_InputStream, ("(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream;Z)J")),
     NATIVE_METHOD(NativeCrypto, create_BIO_OutputStream, "(Ljava/io/OutputStream;)J"),
     NATIVE_METHOD(NativeCrypto, BIO_read, "(J[B)I"),
     NATIVE_METHOD(NativeCrypto, BIO_write, "(J[BII)V"),
