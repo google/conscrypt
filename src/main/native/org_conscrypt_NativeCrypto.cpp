@@ -2770,9 +2770,12 @@ static int NativeCrypto_EVP_PKEY_size(JNIEnv* env, jclass, jobject pkeyRef) {
     return result;
 }
 
-static jstring NativeCrypto_EVP_PKEY_print_public(JNIEnv* env, jclass, jobject pkeyRef) {
+typedef int print_func(BIO*, const EVP_PKEY*, int, ASN1_PCTX*);
+
+static jstring evp_print_func(JNIEnv* env, jobject pkeyRef, print_func* func,
+                              const char* debug_name) {
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
-    JNI_TRACE("EVP_PKEY_print_public(%p)", pkey);
+    JNI_TRACE("%s(%p)", debug_name, pkey);
 
     if (pkey == NULL) {
         return NULL;
@@ -2784,8 +2787,8 @@ static jstring NativeCrypto_EVP_PKEY_print_public(JNIEnv* env, jclass, jobject p
         return NULL;
     }
 
-    if (EVP_PKEY_print_public(buffer.get(), pkey, 0, (ASN1_PCTX*) NULL) != 1) {
-        throwExceptionIfNecessary(env, "EVP_PKEY_print_public");
+    if (func(buffer.get(), pkey, 0, (ASN1_PCTX*) NULL) != 1) {
+        throwExceptionIfNecessary(env, debug_name);
         return NULL;
     }
     // Null terminate this
@@ -2795,37 +2798,16 @@ static jstring NativeCrypto_EVP_PKEY_print_public(JNIEnv* env, jclass, jobject p
     BIO_get_mem_data(buffer.get(), &tmp);
     jstring description = env->NewStringUTF(tmp);
 
-    JNI_TRACE("EVP_PKEY_print_public(%p) => \"%s\"", pkey, tmp);
+    JNI_TRACE("%s(%p) => \"%s\"", debug_name, pkey, tmp);
     return description;
 }
 
-static jstring NativeCrypto_EVP_PKEY_print_private(JNIEnv* env, jclass, jobject pkeyRef) {
-    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
-    JNI_TRACE("EVP_PKEY_print_private(%p)", pkey);
+static jstring NativeCrypto_EVP_PKEY_print_public(JNIEnv* env, jclass, jobject pkeyRef) {
+    return evp_print_func(env, pkeyRef, EVP_PKEY_print_public, "EVP_PKEY_print_public");
+}
 
-    if (pkey == NULL) {
-        return NULL;
-    }
-
-    Unique_BIO buffer(BIO_new(BIO_s_mem()));
-    if (buffer.get() == NULL) {
-        jniThrowOutOfMemory(env, "Unable to allocate BIO");
-        return NULL;
-    }
-
-    if (EVP_PKEY_print_private(buffer.get(), pkey, 0, (ASN1_PCTX*) NULL) != 1) {
-        throwExceptionIfNecessary(env, "EVP_PKEY_print_private");
-        return NULL;
-    }
-    // Null terminate this
-    BIO_write(buffer.get(), "\0", 1);
-
-    char *tmp;
-    BIO_get_mem_data(buffer.get(), &tmp);
-    jstring description = env->NewStringUTF(tmp);
-
-    JNI_TRACE("EVP_PKEY_print_private(%p) => \"%s\"", pkey, tmp);
-    return description;
+static jstring NativeCrypto_EVP_PKEY_print_params(JNIEnv* env, jclass, jobject pkeyRef) {
+    return evp_print_func(env, pkeyRef, EVP_PKEY_print_params, "EVP_PKEY_print_params");
 }
 
 static void NativeCrypto_EVP_PKEY_free(JNIEnv*, jclass, jlong pkeyRef) {
@@ -10487,7 +10469,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_type, "(" REF_EVP_PKEY ")I"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_size, "(" REF_EVP_PKEY ")I"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_print_public, "(" REF_EVP_PKEY ")Ljava/lang/String;"),
-    NATIVE_METHOD(NativeCrypto, EVP_PKEY_print_private, "(" REF_EVP_PKEY ")Ljava/lang/String;"),
+    NATIVE_METHOD(NativeCrypto, EVP_PKEY_print_params, "(" REF_EVP_PKEY ")Ljava/lang/String;"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_free, "(J)V"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_cmp, "(" REF_EVP_PKEY REF_EVP_PKEY ")I"),
     NATIVE_METHOD(NativeCrypto, i2d_PKCS8_PRIV_KEY_INFO, "(" REF_EVP_PKEY ")[B"),
