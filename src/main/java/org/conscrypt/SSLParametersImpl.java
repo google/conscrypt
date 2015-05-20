@@ -895,19 +895,19 @@ public class SSLParametersImpl implements Cloneable {
         this.endpointIdentificationAlgorithm = endpointIdentificationAlgorithm;
     }
 
-    /** Key type: RSA. */
+    /** Key type: RSA certificate. */
     private static final String KEY_TYPE_RSA = "RSA";
 
-    /** Key type: Diffie-Hellman with RSA signature. */
+    /** Key type: Diffie-Hellman certificate signed by issuer with RSA signature. */
     private static final String KEY_TYPE_DH_RSA = "DH_RSA";
 
-    /** Key type: Elliptic Curve. */
+    /** Key type: Elliptic Curve certificate. */
     private static final String KEY_TYPE_EC = "EC";
 
-    /** Key type: Elliptic Curve with ECDSA signature. */
+    /** Key type: Elliptic Curve certificate signed by issuer with ECDSA signature. */
     private static final String KEY_TYPE_EC_EC = "EC_EC";
 
-    /** Key type: Elliptic Curve with RSA signature. */
+    /** Key type: Elliptic Curve certificate signed by issuer with RSA signature. */
     private static final String KEY_TYPE_EC_RSA = "EC_RSA";
 
     /**
@@ -917,15 +917,15 @@ public class SSLParametersImpl implements Cloneable {
      */
     private static String getServerX509KeyType(long sslCipherNative) throws SSLException {
         String kx_name = NativeCrypto.SSL_CIPHER_get_kx_name(sslCipherNative);
-        if (kx_name.equals("RSA")) {
+        if (kx_name.equals("RSA") || kx_name.equals("DHE_RSA") || kx_name.equals("ECDHE_RSA")) {
             return KEY_TYPE_RSA;
-        } else if (kx_name.equals("DHE_RSA")) {
-            return KEY_TYPE_DH_RSA;
         } else if (kx_name.equals("ECDHE_ECDSA")) {
+            return KEY_TYPE_EC;
+        } else if (kx_name.equals("ECDH_RSA")) {
+            return KEY_TYPE_EC_RSA;
+        } else if (kx_name.equals("ECDH_ECDSA")) {
             return KEY_TYPE_EC_EC;
-        } else if (kx_name.equals("ECDHE_RSA")) {
-            return KEY_TYPE_DH_RSA;
-        } else if (kx_name.equals("DHE_RSA")) {
+        } else if (kx_name.equals("DH_RSA")) {
             return KEY_TYPE_DH_RSA;
         } else {
             return null;
