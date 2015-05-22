@@ -6431,38 +6431,7 @@ static jbyteArray NativeCrypto_i2d_PKCS7(JNIEnv* env, jclass, jlongArray certsAr
 #endif  // OPENSSL_IS_BORINGSSL
 }
 
-#if defined(OPENSSL_IS_BORINGSSL)
-
-/* readAllFromBIO sets |*out_data| to contain an allocated buffer that is
- * large enough to read |bio| to EOF. The number of bytes read is stored in
- * |*out_len|. It returns true on success or false on I/O error. */
-static bool readAllFromBIO(BIO *bio, UniquePtr<uint8_t[]> *out_data, size_t *out_len) {
-    size_t size = 1024, offset = 0;
-    out_data->reset(new uint8_t[size]);
-
-    for (;;) {
-        if (offset == size) {
-            uint8_t *next = new uint8_t[size*2];
-            memcpy(next, out_data->get(), size);
-            size *= 2;
-            out_data->reset(next);
-        }
-
-        int n = BIO_read(bio, &out_data->get()[offset], size - offset);
-        if (n < 0) {
-            return false;
-        } else if (n == 0) {
-            break;
-        }
-
-        offset += n;
-    }
-
-    *out_len = offset;
-    return true;
-}
-
-#else
+#if !defined(OPENSSL_IS_BORINGSSL)
 
 static STACK_OF(X509)* PKCS7_get_certs(PKCS7* pkcs7) {
     if (PKCS7_type_is_signed(pkcs7)) {
@@ -6568,15 +6537,16 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
         return NULL;
     }
 #else
-    UniquePtr<uint8_t[]> data;
+    uint8_t *data;
     size_t len;
-    if (!readAllFromBIO(bio, &data, &len)) {
+    if (!BIO_read_asn1(bio, &data, &len, 256 * 1024 * 1024 /* max length, 256MB for sanity */)) {
         throwExceptionIfNecessary(env, "Error reading from BIO");
         return 0;
     }
+    Unique_OPENSSL_str data_storage(data);
 
     CBS cbs;
-    CBS_init(&cbs, data.get(), len);
+    CBS_init(&cbs, data, len);
 
     if (which == PKCS7_CERTS) {
         Unique_sk_X509 outCerts(sk_X509_new_null());
