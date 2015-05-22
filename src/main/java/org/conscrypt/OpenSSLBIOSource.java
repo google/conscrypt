@@ -24,7 +24,8 @@ public final class OpenSSLBIOSource {
     private OpenSSLBIOInputStream source;
 
     public static OpenSSLBIOSource wrap(ByteBuffer buffer) {
-        return new OpenSSLBIOSource(new OpenSSLBIOInputStream(new ByteBufferInputStream(buffer)));
+        return new OpenSSLBIOSource(
+            new OpenSSLBIOInputStream(new ByteBufferInputStream(buffer), false));
     }
 
     public OpenSSLBIOSource(OpenSSLBIOInputStream source) {

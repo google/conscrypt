@@ -2824,7 +2824,7 @@ public class NativeCryptoTest extends TestCase {
         ByteArrayInputStream is = new ByteArrayInputStream(actual);
 
         @SuppressWarnings("resource")
-        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is);
+        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
         try {
             byte[] buffer = new byte[1024];
             int numRead = NativeCrypto.BIO_read(bis.getBioContext(), buffer);
