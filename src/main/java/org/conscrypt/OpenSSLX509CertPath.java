@@ -136,7 +136,7 @@ public class OpenSSLX509CertPath extends CertPath {
     }
 
     private static CertPath fromPkiPathEncoding(InputStream inStream) throws CertificateException {
-        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(inStream);
+        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(inStream, true);
 
         final boolean markable = inStream.markSupported();
         if (markable) {
