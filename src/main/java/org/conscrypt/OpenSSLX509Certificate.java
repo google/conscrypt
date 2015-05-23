@@ -61,7 +61,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
     public static OpenSSLX509Certificate fromX509DerInputStream(InputStream is)
             throws ParsingException {
         @SuppressWarnings("resource")
-        final OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is);
+        final OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
 
         try {
             final long certCtx = NativeCrypto.d2i_X509_bio(bis.getBioContext());
@@ -87,7 +87,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
     public static List<OpenSSLX509Certificate> fromPkcs7DerInputStream(InputStream is)
             throws ParsingException {
         @SuppressWarnings("resource")
-        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is);
+        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
 
         final long[] certRefs;
         try {
@@ -116,7 +116,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
     public static OpenSSLX509Certificate fromX509PemInputStream(InputStream is)
             throws ParsingException {
         @SuppressWarnings("resource")
-        final OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is);
+        final OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
 
         try {
             final long certCtx = NativeCrypto.PEM_read_bio_X509(bis.getBioContext());
@@ -134,7 +134,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
     public static List<OpenSSLX509Certificate> fromPkcs7PemInputStream(InputStream is)
             throws ParsingException {
         @SuppressWarnings("resource")
-        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is);
+        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
 
         final long[] certRefs;
         try {

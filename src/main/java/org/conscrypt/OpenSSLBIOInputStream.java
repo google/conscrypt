@@ -28,10 +28,10 @@ import java.io.InputStream;
 public class OpenSSLBIOInputStream extends FilterInputStream {
     private long ctx;
 
-    public OpenSSLBIOInputStream(InputStream is) {
+    public OpenSSLBIOInputStream(InputStream is, boolean isFinite) {
         super(is);
 
-        ctx = NativeCrypto.create_BIO_InputStream(this);
+        ctx = NativeCrypto.create_BIO_InputStream(this, isFinite);
     }
 
     public long getBioContext() {
