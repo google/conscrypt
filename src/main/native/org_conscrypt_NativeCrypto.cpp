@@ -3117,9 +3117,9 @@ static jint NativeCrypto_RSA_size(JNIEnv* env, jclass, jobject pkeyRef) {
 typedef int RSACryptOperation(int flen, const unsigned char* from, unsigned char* to, RSA* rsa,
                               int padding);
 
-static jint RSA_crypt_operation(RSACryptOperation operation,
-        const char* caller __attribute__ ((unused)), JNIEnv* env, jint flen,
-        jbyteArray fromJavaBytes, jbyteArray toJavaBytes, jobject pkeyRef, jint padding) {
+static jint RSA_crypt_operation(RSACryptOperation operation, const char* caller, JNIEnv* env,
+                                jint flen, jbyteArray fromJavaBytes, jbyteArray toJavaBytes,
+                                jobject pkeyRef, jint padding) {
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     JNI_TRACE("%s(%d, %p, %p, %p)", caller, flen, fromJavaBytes, toJavaBytes, pkey);
 
@@ -3146,8 +3146,12 @@ static jint RSA_crypt_operation(RSACryptOperation operation,
             reinterpret_cast<const unsigned char*>(from.get()),
             reinterpret_cast<unsigned char*>(to.get()), rsa.get(), padding);
     if (resultSize == -1) {
-        JNI_TRACE("%s => failed", caller);
-        throwExceptionIfNecessary(env, "RSA_crypt_operation");
+        if (throwExceptionIfNecessary(env, caller)) {
+            JNI_TRACE("%s => threw error", caller);
+        } else {
+            throwBadPaddingException(env, caller);
+            JNI_TRACE("%s => threw padding exception", caller);
+        }
         return -1;
     }
 
