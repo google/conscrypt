@@ -4571,7 +4571,7 @@ static jint NativeCrypto_EVP_SignFinal(JNIEnv* env, jclass, jobject ctxRef, jbyt
                            reinterpret_cast<unsigned char*>(signatureBytes.get() + offset),
                            &bytesWritten,
                            pkey);
-    if (ok == 0) {
+    if (ok != 1) {
         throwExceptionIfNecessary(env, "NativeCrypto_EVP_SignFinal");
     }
     JNI_TRACE("NativeCrypto_EVP_SignFinal(%p, %p, %d, %p) => %u",
@@ -4648,15 +4648,9 @@ static jint NativeCrypto_EVP_VerifyFinal(JNIEnv* env, jclass, jobject ctxRef, jb
                              reinterpret_cast<const unsigned char*>(bufferBytes.get() + offset),
                              length,
                              pkey);
-    if (ok < 0) {
+    if (ok != 1) {
         throwExceptionIfNecessary(env, "NativeCrypto_EVP_VerifyFinal");
     }
-
-    /*
-     * For DSA keys, OpenSSL appears to have a bug where it returns
-     * errors for any result != 1. See dsa_ossl.c in dsa_do_verify
-     */
-    freeOpenSslErrorState();
 
     JNI_TRACE("NativeCrypto_EVP_VerifyFinal(%p, %p, %d, %d, %p) => %d",
               ctx, buffer, offset, length, pkey, ok);
