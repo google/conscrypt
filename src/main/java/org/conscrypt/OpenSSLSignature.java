@@ -198,7 +198,7 @@ public class OpenSSLSignature extends SignatureSpi {
     protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
         if (key == null) {
             // This can't actually happen, but you never know...
-            throw new SignatureException("Need RSA public key");
+            throw new SignatureException("Need RSA or EC public key");
         }
 
         try {
@@ -206,7 +206,7 @@ public class OpenSSLSignature extends SignatureSpi {
                     key.getNativeRef());
             return result == 1;
         } catch (Exception ex) {
-            return false;
+            throw new SignatureException(ex);
         } finally {
             /*
              * Java expects the digest context to be reset completely after
