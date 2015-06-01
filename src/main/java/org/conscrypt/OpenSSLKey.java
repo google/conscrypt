@@ -221,7 +221,11 @@ public class OpenSSLKey {
             throw new InvalidKeyException("Key encoding is null");
         }
 
-        return new OpenSSLKey(NativeCrypto.d2i_PUBKEY(key.getEncoded()));
+        try {
+            return new OpenSSLKey(NativeCrypto.d2i_PUBKEY(key.getEncoded()));
+        } catch (Exception e) {
+            throw new InvalidKeyException(e);
+        }
     }
 
     public PublicKey getPublicKey() throws NoSuchAlgorithmException {
