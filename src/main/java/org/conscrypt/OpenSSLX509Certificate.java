@@ -52,7 +52,7 @@ import org.apache.harmony.security.utils.AlgNameMapper;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 public class OpenSSLX509Certificate extends X509Certificate {
-    private final long mContext;
+    private transient final long mContext;
 
     OpenSSLX509Certificate(long ctx) {
         mContext = ctx;
