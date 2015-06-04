@@ -159,6 +159,13 @@ public class OpenSSLSignatureRawRSA extends SignatureSpi {
             return false;
         }
 
+        // We catch this case here instead of BoringSSL so we can throw an
+        // exception that matches other implementations.
+        if (sigBytes.length > inputBuffer.length) {
+            throw new SignatureException("Input signature length is too large: " + sigBytes.length
+                    + " > " + inputBuffer.length);
+        }
+
         byte[] outputBuffer = new byte[inputBuffer.length];
         try {
             final int resultSize;
