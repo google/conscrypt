@@ -115,7 +115,6 @@ int main(int /* argc */, char ** /* argv */) {
   CONST(SSL_ST_ACCEPT);
   CONST(SSL_ST_MASK);
   CONST(SSL_ST_INIT);
-  CONST(SSL_ST_BEFORE);
   CONST(SSL_ST_OK);
   CONST(SSL_ST_RENEGOTIATE);
   CONST(SSL_CB_LOOP);
