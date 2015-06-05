@@ -592,10 +592,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 if (getPadding() == Padding.NOPADDING) {
                     return buffered + inputLen;
                 } else {
-                    // When encrypting, if the output is a multiple of the block size, one extra
-                    // block of padding is used.
-                    int extraBlockSize = (isEncrypting()) ? modeBlockSize : 0;
-                    final int totalLen = inputLen + buffered + extraBlockSize;
+                    final int totalLen = inputLen + buffered + modeBlockSize;
                     return totalLen - (totalLen % modeBlockSize);
                 }
             }
