@@ -1,0 +1,10 @@
+---
+Language: Cpp
+BasedOnStyle:  Google
+AccessModifierOffset: -4
+AllowShortFunctionsOnASingleLine: Empty
+ColumnLimit: 100
+IndentWidth: 4
+ContinuationIndentWidth: 8
+...
+
