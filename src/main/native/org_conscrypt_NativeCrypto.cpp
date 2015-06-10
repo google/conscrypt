@@ -3039,6 +3039,13 @@ static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject ja
     KeyExData* ex_data = new KeyExData;
     ex_data->private_key = env->NewGlobalRef(javaKey);
 
+    if (!EC_KEY_set_ex_data(ecKey.get(), g_ecdsa_exdata_index, ex_data)) {
+        env->DeleteGlobalRef(ex_data->private_key);
+        delete ex_data;
+        jniThrowRuntimeException(env, "EC_KEY_set_ex_data");
+        return 0;
+    }
+
     BIGNUM order;
     BN_init(&order);
     if (!EC_GROUP_get_order(group, &order, NULL)) {
