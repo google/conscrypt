@@ -589,10 +589,19 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 return inputLen;
             } else {
                 final int buffered = NativeCrypto.get_EVP_CIPHER_CTX_buf_len(cipherCtx);
+
                 if (getPadding() == Padding.NOPADDING) {
                     return buffered + inputLen;
                 } else {
-                    final int totalLen = inputLen + buffered + modeBlockSize;
+                    final boolean finalUsed = NativeCrypto.get_EVP_CIPHER_CTX_final_used(cipherCtx);
+                    // There is an additional buffer containing the possible final block.
+                    int totalLen = inputLen + buffered + (finalUsed ? modeBlockSize : 0);
+                    // Extra block for remainder bytes plus padding.
+                    // In case it's encrypting and there are no remainder bytes, add an extra block
+                    // consisting only of padding.
+                    totalLen += ((totalLen % modeBlockSize != 0) || isEncrypting())
+                            ? modeBlockSize : 0;
+                    // The minimum multiple of {@code modeBlockSize} that can hold all the bytes.
                     return totalLen - (totalLen % modeBlockSize);
                 }
             }

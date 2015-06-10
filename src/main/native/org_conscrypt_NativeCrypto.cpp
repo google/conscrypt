@@ -4867,6 +4867,20 @@ static jint NativeCrypto_get_EVP_CIPHER_CTX_buf_len(JNIEnv* env, jclass, jobject
     return buf_len;
 }
 
+static jboolean NativeCrypto_get_EVP_CIPHER_CTX_final_used(JNIEnv* env, jclass, jobject ctxRef) {
+    EVP_CIPHER_CTX* ctx = fromContextObject<EVP_CIPHER_CTX>(env, ctxRef);
+    JNI_TRACE("get_EVP_CIPHER_CTX_final_used(%p)", ctx);
+
+    if (ctx == NULL) {
+        JNI_TRACE("ctx=%p get_EVP_CIPHER_CTX_final_used => ctx == null", ctx);
+        return 0;
+    }
+
+    bool final_used = ctx->final_used != 0;
+    JNI_TRACE("get_EVP_CIPHER_CTX_final_used(%p) => %d", ctx, final_used);
+    return final_used;
+}
+
 static void NativeCrypto_EVP_CIPHER_CTX_set_padding(JNIEnv* env, jclass, jobject ctxRef,
                                                     jboolean enablePaddingBool) {
     EVP_CIPHER_CTX* ctx = fromContextObject<EVP_CIPHER_CTX>(env, ctxRef);
@@ -10540,6 +10554,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EVP_CIPHER_CTX_new, "()J"),
     NATIVE_METHOD(NativeCrypto, EVP_CIPHER_CTX_block_size, "(" REF_EVP_CIPHER_CTX ")I"),
     NATIVE_METHOD(NativeCrypto, get_EVP_CIPHER_CTX_buf_len, "(" REF_EVP_CIPHER_CTX ")I"),
+    NATIVE_METHOD(NativeCrypto, get_EVP_CIPHER_CTX_final_used, "(" REF_EVP_CIPHER_CTX ")Z"),
     NATIVE_METHOD(NativeCrypto, EVP_CIPHER_CTX_set_padding, "(" REF_EVP_CIPHER_CTX "Z)V"),
     NATIVE_METHOD(NativeCrypto, EVP_CIPHER_CTX_set_key_length, "(" REF_EVP_CIPHER_CTX "I)V"),
     NATIVE_METHOD(NativeCrypto, EVP_CIPHER_CTX_free, "(J)V"),
