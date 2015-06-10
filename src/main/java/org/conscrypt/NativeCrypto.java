@@ -300,6 +300,8 @@ public final class NativeCrypto {
 
     public static native int get_EVP_CIPHER_CTX_buf_len(NativeRef.EVP_CIPHER_CTX ctx);
 
+    public static native boolean get_EVP_CIPHER_CTX_final_used(NativeRef.EVP_CIPHER_CTX ctx);
+
     public static native void EVP_CIPHER_CTX_set_padding(NativeRef.EVP_CIPHER_CTX ctx,
             boolean enablePadding);
 
