@@ -8611,9 +8611,8 @@ static jint NativeCrypto_get_SSL_CIPHER_algorithm_auth(JNIEnv* env, jclass,
 /**
  * Sets the ciphers suites that are enabled in the SSL
  */
-static void NativeCrypto_SSL_set_cipher_lists(JNIEnv* env, jclass,
-        jlong ssl_address, jobjectArray cipherSuites)
-{
+static void NativeCrypto_SSL_set_cipher_lists(JNIEnv* env, jclass, jlong ssl_address,
+                                              jobjectArray cipherSuites) {
     SSL* ssl = to_SSL(env, ssl_address, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set_cipher_lists cipherSuites=%p", ssl, cipherSuites);
     if (ssl == NULL) {
@@ -8625,6 +8624,25 @@ static void NativeCrypto_SSL_set_cipher_lists(JNIEnv* env, jclass,
     }
 
     int length = env->GetArrayLength(cipherSuites);
+
+    /*
+     * Special case for empty cipher list. This is considered an error by the
+     * SSL_set_cipher_list API, but Java allows this silly configuration.
+     * However, the SSL cipher list is still set even when SSL_set_cipher_list
+     * returns 0 in this case. Just to make sure, we check the resulting cipher
+     * list to make sure it's zero length.
+     */
+    if (length == 0) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_cipher_lists cipherSuites=empty", ssl);
+        SSL_set_cipher_list(ssl, "");
+        freeOpenSslErrorState();
+        if (sk_SSL_CIPHER_num(SSL_get_ciphers(ssl)) != 0) {
+            JNI_TRACE("ssl=%p NativeCrypto_SSL_set_cipher_lists cipherSuites=empty => error", ssl);
+            jniThrowRuntimeException(env, "SSL_set_cipher_list did not update ciphers!");
+        }
+        return;
+    }
+
     static const char noSSLv2[] = "!SSLv2";
     size_t cipherStringLen = strlen(noSSLv2);
 
@@ -8683,6 +8701,7 @@ static void NativeCrypto_SSL_set_cipher_lists(JNIEnv* env, jclass,
         return;
     }
 
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_cipher_lists cipherSuites=%s", ssl, cipherString.get());
     if (!SSL_set_cipher_list(ssl, cipherString.get())) {
         freeOpenSslErrorState();
         jniThrowException(env, "java/lang/IllegalArgumentException",
