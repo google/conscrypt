@@ -1487,33 +1487,41 @@ static jbyteArray rawSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey,
             cryptoUpcallsClass, rawSignMethod, privateKey, messageArray.get()));
 }
 
-static jbyteArray rawCipherWithPrivateKey(JNIEnv* env, jobject privateKey, jboolean encrypt,
+// rsaDecryptWithPrivateKey uses privateKey to decrypt |ciphertext_len| bytes
+// from |ciphertext|. The ciphertext is expected to be padded using the scheme
+// given in |padding|, which must be one of |RSA_*_PADDING| constants from
+// OpenSSL.
+static jbyteArray rsaDecryptWithPrivateKey(JNIEnv* env, jobject privateKey, jint padding,
         const char* ciphertext, size_t ciphertext_len) {
     ScopedLocalRef<jbyteArray> ciphertextArray(env, env->NewByteArray(ciphertext_len));
     if (env->ExceptionCheck()) {
-        JNI_TRACE("rawCipherWithPrivateKey(%p) => threw exception", privateKey);
+        JNI_TRACE("rsaDecryptWithPrivateKey(%p) => threw exception", privateKey);
         return NULL;
     }
 
     {
         ScopedByteArrayRW ciphertextBytes(env, ciphertextArray.get());
         if (ciphertextBytes.get() == NULL) {
-            JNI_TRACE("rawCipherWithPrivateKey(%p) => using byte array failed", privateKey);
+            JNI_TRACE("rsaDecryptWithPrivateKey(%p) => using byte array failed", privateKey);
             return NULL;
         }
 
         memcpy(ciphertextBytes.get(), ciphertext, ciphertext_len);
     }
 
-    jmethodID rawCipherMethod = env->GetStaticMethodID(cryptoUpcallsClass,
-            "rawCipherWithPrivateKey", "(Ljava/security/PrivateKey;Z[B)[B");
-    if (rawCipherMethod == NULL) {
-        ALOGE("Could not find rawCipherWithPrivateKey");
+    jmethodID rsaDecryptMethod = env->GetStaticMethodID(cryptoUpcallsClass,
+            "rsaDecryptWithPrivateKey", "(Ljava/security/PrivateKey;I[B)[B");
+    if (rsaDecryptMethod == NULL) {
+        ALOGE("Could not find rsaDecryptWithPrivateKey");
         return NULL;
     }
 
     return reinterpret_cast<jbyteArray>(env->CallStaticObjectMethod(
-            cryptoUpcallsClass, rawCipherMethod, privateKey, encrypt, ciphertextArray.get()));
+            cryptoUpcallsClass,
+            rsaDecryptMethod,
+            privateKey,
+            padding,
+            ciphertextArray.get()));
 }
 
 // *********************************************
@@ -1611,11 +1619,6 @@ int RsaMethodPrivDec(int flen,
                      unsigned char* to,
                      RSA* rsa,
                      int padding) {
-    if (padding != RSA_PKCS1_PADDING) {
-        RSAerr(RSA_F_RSA_PRIVATE_DECRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
-        return -1;
-    }
-
     // Retrieve private key JNI reference.
     jobject private_key = reinterpret_cast<jobject>(RSA_get_app_data(rsa));
     if (!private_key) {
@@ -1629,10 +1632,9 @@ int RsaMethodPrivDec(int flen,
         return -1;
     }
 
-    // For RSA keys, this function behaves as RSA_private_decrypt with
-    // PKCS#1 padding.
-    ScopedLocalRef<jbyteArray> cleartext(env, rawCipherWithPrivateKey(env, private_key, false,
-                                         reinterpret_cast<const char*>(from), flen));
+    // This function behaves as RSA_private_decrypt.
+    ScopedLocalRef<jbyteArray> cleartext(env, rsaDecryptWithPrivateKey(env, private_key,
+                                         padding, reinterpret_cast<const char*>(from), flen));
     if (cleartext.get() == NULL) {
         ALOGE("Could not decrypt message in RsaMethodPrivDec!");
         RSAerr(RSA_F_RSA_PRIVATE_DECRYPT, ERR_R_INTERNAL_ERROR);
@@ -1929,18 +1931,19 @@ int RsaMethodSignRaw(RSA* rsa,
     return 0;
   }
 
-  // For RSA keys, this function behaves as RSA_private_decrypt with
-  // PKCS#1 v1.5 padding.
-  ScopedLocalRef<jbyteArray> cleartext(
-      env, rawCipherWithPrivateKey(env, ex_data->private_key, false,
-                                   reinterpret_cast<const char*>(in), in_len));
+  // For RSA keys, this function behaves as RSA_private_encrypt with
+  // PKCS#1 padding.
+  ScopedLocalRef<jbyteArray> signature(
+      env, rawSignDigestWithPrivateKey(
+          env, ex_data->private_key,
+          reinterpret_cast<const char*>(in), in_len));
 
-  if (cleartext.get() == NULL) {
+  if (signature.get() == NULL) {
     OPENSSL_PUT_ERROR(RSA, sign_raw, ERR_R_INTERNAL_ERROR);
     return 0;
   }
 
-  ScopedByteArrayRO result(env, cleartext.get());
+  ScopedByteArrayRO result(env, signature.get());
 
   size_t expected_size = static_cast<size_t>(RSA_size(rsa));
   if (result.size() > expected_size) {
@@ -1963,15 +1966,48 @@ int RsaMethodSignRaw(RSA* rsa,
   return 1;
 }
 
-int RsaMethodDecrypt(RSA* /* rsa */,
-                     size_t* /* out_len */,
-                     uint8_t* /* out */,
-                     size_t /* max_out */,
-                     const uint8_t* /* in */,
-                     size_t /* in_len */,
-                     int /* padding */) {
-  OPENSSL_PUT_ERROR(RSA, decrypt, RSA_R_UNKNOWN_ALGORITHM_TYPE);
-  return 0;
+int RsaMethodDecrypt(RSA* rsa,
+                     size_t* out_len,
+                     uint8_t* out,
+                     size_t max_out,
+                     const uint8_t* in,
+                     size_t in_len,
+                     int padding) {
+  // Retrieve private key JNI reference.
+  const KeyExData *ex_data = RsaGetExData(rsa);
+  if (!ex_data || !ex_data->private_key) {
+    OPENSSL_PUT_ERROR(RSA, decrypt, ERR_R_INTERNAL_ERROR);
+    return 0;
+  }
+
+  JNIEnv* env = getJNIEnv();
+  if (env == NULL) {
+    OPENSSL_PUT_ERROR(RSA, decrypt, ERR_R_INTERNAL_ERROR);
+    return 0;
+  }
+
+  // This function behaves as RSA_private_decrypt.
+  ScopedLocalRef<jbyteArray> cleartext(
+      env, rsaDecryptWithPrivateKey(
+          env, ex_data->private_key, padding,
+          reinterpret_cast<const char*>(in), in_len));
+  if (cleartext.get() == NULL) {
+    OPENSSL_PUT_ERROR(RSA, decrypt, ERR_R_INTERNAL_ERROR);
+    return 0;
+  }
+
+  ScopedByteArrayRO cleartextBytes(env, cleartext.get());
+
+  if (max_out < cleartextBytes.size()) {
+    OPENSSL_PUT_ERROR(RSA, decrypt, RSA_R_DATA_TOO_LARGE);
+    return 0;
+  }
+
+  // Copy result to OpenSSL-provided buffer.
+  memcpy(out, cleartextBytes.get(), cleartextBytes.size());
+  *out_len = cleartextBytes.size();
+
+  return 1;
 }
 
 int RsaMethodVerifyRaw(RSA* /* rsa */,

@@ -29,7 +29,6 @@ import javax.crypto.NoSuchPaddingException;
  * calls to work on delegated key types from native code.
  */
 public final class CryptoUpcalls {
-    private static final String RSA_CRYPTO_ALGORITHM = "RSA/ECB/PKCS1Padding";
 
     private CryptoUpcalls() {
     }
@@ -97,7 +96,7 @@ public final class CryptoUpcalls {
         }
     }
 
-    public static byte[] rawCipherWithPrivateKey(PrivateKey javaKey, boolean encrypt,
+    public static byte[] rsaDecryptWithPrivateKey(PrivateKey javaKey, int openSSLPadding,
             byte[] input) {
         String keyAlgorithm = javaKey.getAlgorithm();
         if (!"RSA".equals(keyAlgorithm)) {
@@ -105,14 +104,31 @@ public final class CryptoUpcalls {
             return null;
         }
 
-        Provider p = getExternalProvider("Cipher." + RSA_CRYPTO_ALGORITHM);
+        String jcaPadding;
+        switch (openSSLPadding) {
+            case NativeConstants.RSA_PKCS1_PADDING:
+                jcaPadding = "PKCS1Padding";
+                break;
+            case NativeConstants.RSA_NO_PADDING:
+                jcaPadding = "NoPadding";
+                break;
+            case NativeConstants.RSA_PKCS1_OAEP_PADDING:
+                jcaPadding = "OAEPPadding";
+                break;
+            default:
+                System.err.println("Unsupported OpenSSL/BoringSSL padding: " + openSSLPadding);
+                return null;
+        }
+
+        String transformation = "RSA/ECB/" + jcaPadding;
+        Provider p = getExternalProvider("Cipher." + transformation);
         if (p == null) {
             return null;
         }
 
         Cipher c = null;
         try {
-            c = Cipher.getInstance(RSA_CRYPTO_ALGORITHM, p);
+            c = Cipher.getInstance(transformation, p);
         } catch (NoSuchAlgorithmException e) {
             ;
         } catch (NoSuchPaddingException e) {
@@ -120,16 +136,16 @@ public final class CryptoUpcalls {
         }
 
         if (c == null) {
-            System.err.println("Unsupported transformation: " + RSA_CRYPTO_ALGORITHM);
+            System.err.println("Unsupported transformation: " + transformation);
             return null;
         }
 
         try {
-            c.init(encrypt ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, javaKey);
+            c.init(Cipher.DECRYPT_MODE, javaKey);
             return c.doFinal(input);
         } catch (Exception e) {
-            System.err.println("Exception while ciphering message with " + javaKey.getAlgorithm()
-                    + " private key:");
+            System.err.println("Exception while decrypting message with " + javaKey.getAlgorithm()
+                    + " private key using " + transformation + ":");
             e.printStackTrace();
             return null;
         }
