@@ -498,6 +498,16 @@ static int throwNoSuchAlgorithmException(JNIEnv* env, const char* message) {
     return jniThrowException(env, "java/security/NoSuchAlgorithmException", message);
 }
 
+/**
+ * Throws a ParsingException with the given string as a message.
+ */
+static int throwParsingException(JNIEnv* env, const char* message) {
+    return jniThrowException(
+            env,
+            TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509CertificateFactory$ParsingException",
+            message);
+}
+
 static int throwForAsn1Error(JNIEnv* env, int reason, const char *message,
                              int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
@@ -6650,8 +6660,10 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
 
     switch (which) {
     case PKCS7_CERTS:
+        JNI_TRACE("d2i_PKCS7_bio(%p, %d) => returned", bio, which);
         return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, PKCS7_get_certs(pkcs7.get()), X509_dup);
     case PKCS7_CRLS:
+        JNI_TRACE("d2i_PKCS7_bio(%p, %d) => returned", bio, which);
         return PKCS7_to_ItemArray<X509_CRL, STACK_OF(X509_CRL)>(env, PKCS7_get_CRLs(pkcs7.get()),
                 X509_CRL_dup);
     default:
@@ -6662,7 +6674,10 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
     uint8_t *data;
     size_t len;
     if (!BIO_read_asn1(bio, &data, &len, 256 * 1024 * 1024 /* max length, 256MB for sanity */)) {
-        throwExceptionIfNecessary(env, "Error reading from BIO");
+        if (!throwExceptionIfNecessary(env, "Error reading PKCS#7 data")) {
+            throwParsingException(env, "Error reading PKCS#7 data");
+        }
+        JNI_TRACE("d2i_PKCS7_bio(%p, %d) => error reading BIO", bio, which);
         return 0;
     }
     Unique_OPENSSL_str data_storage(data);
@@ -6673,16 +6688,24 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
     if (which == PKCS7_CERTS) {
         Unique_sk_X509 outCerts(sk_X509_new_null());
         if (!PKCS7_get_certificates(outCerts.get(), &cbs)) {
-            throwExceptionIfNecessary(env, "PKCS7_get_certificates");
+            if (!throwExceptionIfNecessary(env, "PKCS7_get_certificates")) {
+                throwParsingException(env, "Error parsing PKCS#7 certificate data");
+            }
+            JNI_TRACE("d2i_PKCS7_bio(%p, %d) => error reading certs", bio, which);
             return 0;
         }
+        JNI_TRACE("d2i_PKCS7_bio(%p, %d) => success certs", bio, which);
         return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, outCerts.get(), X509_dup);
     } else if (which == PKCS7_CRLS) {
         Unique_sk_X509_CRL outCRLs(sk_X509_CRL_new_null());
         if (!PKCS7_get_CRLs(outCRLs.get(), &cbs)) {
-            throwExceptionIfNecessary(env, "PKCS7_get_CRLs");
+            if (!throwExceptionIfNecessary(env, "PKCS7_get_CRLs")) {
+                throwParsingException(env, "Error parsing PKCS#7 CRL data");
+            }
+            JNI_TRACE("d2i_PKCS7_bio(%p, %d) => error reading CRLs", bio, which);
             return 0;
         }
+        JNI_TRACE("d2i_PKCS7_bio(%p, %d) => success CRLs", bio, which);
         return PKCS7_to_ItemArray<X509_CRL, STACK_OF(X509_CRL)>(
             env, outCRLs.get(), X509_CRL_dup);
     } else {
@@ -6706,6 +6729,7 @@ static jlongArray NativeCrypto_ASN1_seq_unpack_X509_bio(JNIEnv* env, jclass, jlo
     Unique_sk_X509 path((PKIPATH*) ASN1_item_d2i_bio(ASN1_ITEM_rptr(PKIPATH), bio, NULL));
     if (path.get() == NULL) {
         throwExceptionIfNecessary(env, "ASN1_seq_unpack_X509_bio");
+        JNI_TRACE("ASN1_seq_unpack_X509_bio(%p) => threw error", bio);
         return NULL;
     }
 
