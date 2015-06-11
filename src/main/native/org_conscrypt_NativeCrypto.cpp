@@ -498,6 +498,7 @@ static int throwNoSuchAlgorithmException(JNIEnv* env, const char* message) {
     return jniThrowException(env, "java/security/NoSuchAlgorithmException", message);
 }
 
+#if defined(OPENSSL_IS_BORINGSSL)
 /**
  * Throws a ParsingException with the given string as a message.
  */
@@ -507,6 +508,7 @@ static int throwParsingException(JNIEnv* env, const char* message) {
             TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509CertificateFactory$ParsingException",
             message);
 }
+#endif
 
 static int throwForAsn1Error(JNIEnv* env, int reason, const char *message,
                              int (*defaultThrow)(JNIEnv*, const char*)) {
