@@ -84,8 +84,6 @@ public final class NativeCrypto {
     public static native long EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q,
             byte[] dmp1, byte[] dmq1, byte[] iqmp);
 
-    public static native long EVP_PKEY_new_mac_key(int type, byte[] key);
-
     public static native int EVP_PKEY_size(NativeRef.EVP_PKEY pkey);
 
     public static native int EVP_PKEY_type(NativeRef.EVP_PKEY pkey);
@@ -332,6 +330,18 @@ public final class NativeCrypto {
     public static native int EVP_AEAD_CTX_open(NativeRef.EVP_AEAD_CTX ctx, byte[] out,
             int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength, byte[] ad)
             throws BadPaddingException;
+
+    // --- HMAC functions ------------------------------------------------------
+
+    public static native long HMAC_CTX_new();
+
+    public static native void HMAC_CTX_free(long ctx);
+
+    public static native void HMAC_Init_ex(NativeRef.HMAC_CTX ctx, byte[] key, long evp_md);
+
+    public static native void HMAC_Update(NativeRef.HMAC_CTX ctx, byte[] in, int inOffset, int inLength);
+
+    public static native byte[] HMAC_Final(NativeRef.HMAC_CTX ctx);
 
     // --- RAND seeding --------------------------------------------------------
 

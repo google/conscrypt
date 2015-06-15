@@ -26,7 +26,7 @@ import javax.crypto.MacSpi;
 import javax.crypto.SecretKey;
 
 public abstract class OpenSSLMac extends MacSpi {
-    private NativeRef.EVP_MD_CTX ctx;
+    private NativeRef.HMAC_CTX ctx;
 
     /**
      * Holds the EVP_MD for the hashing algorithm, e.g.
@@ -35,14 +35,9 @@ public abstract class OpenSSLMac extends MacSpi {
     private final long evp_md;
 
     /**
-     * The key type of the secret key.
-     */
-    private final int evp_pkey_type;
-
-    /**
      * The secret key used in this keyed MAC.
      */
-    private OpenSSLKey macKey;
+    private byte[] keyBytes;
 
     /**
      * Holds the output size of the message digest.
@@ -54,10 +49,9 @@ public abstract class OpenSSLMac extends MacSpi {
      */
     private final byte[] singleByte = new byte[1];
 
-    private OpenSSLMac(long evp_md, int size, int evp_pkey_type) {
+    private OpenSSLMac(long evp_md, int size) {
         this.evp_md = evp_md;
         this.size = size;
-        this.evp_pkey_type = evp_pkey_type;
     }
 
     @Override
@@ -76,27 +70,18 @@ public abstract class OpenSSLMac extends MacSpi {
             throw new InvalidAlgorithmParameterException("unknown parameter type");
         }
 
-        if (key instanceof OpenSSLKeyHolder) {
-            macKey = ((OpenSSLKeyHolder) key).getOpenSSLKey();
-        } else {
-            final byte[] keyBytes = key.getEncoded();
-            if (keyBytes == null) {
-                throw new InvalidKeyException("key cannot be encoded");
-            }
-
-            macKey = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_mac_key(evp_pkey_type, keyBytes));
+        keyBytes = key.getEncoded();
+        if (keyBytes == null) {
+            throw new InvalidKeyException("key cannot be encoded");
         }
 
         resetContext();
     }
 
     private final void resetContext() {
-        NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
-        NativeCrypto.EVP_MD_CTX_init(ctxLocal);
-
-        final OpenSSLKey macKey = this.macKey;
-        if (macKey != null) {
-            NativeCrypto.EVP_DigestSignInit(ctxLocal, evp_md, macKey.getNativeRef());
+        NativeRef.HMAC_CTX ctxLocal = new NativeRef.HMAC_CTX(NativeCrypto.HMAC_CTX_new());
+        if (keyBytes != null) {
+            NativeCrypto.HMAC_Init_ex(ctxLocal, keyBytes, evp_md);
         }
 
         this.ctx = ctxLocal;
@@ -110,14 +95,14 @@ public abstract class OpenSSLMac extends MacSpi {
 
     @Override
     protected void engineUpdate(byte[] input, int offset, int len) {
-        final NativeRef.EVP_MD_CTX ctxLocal = ctx;
-        NativeCrypto.EVP_DigestUpdate(ctxLocal, input, offset, len);
+        final NativeRef.HMAC_CTX ctxLocal = ctx;
+        NativeCrypto.HMAC_Update(ctxLocal, input, offset, len);
     }
 
     @Override
     protected byte[] engineDoFinal() {
-        final NativeRef.EVP_MD_CTX ctxLocal = ctx;
-        final byte[] output = NativeCrypto.EVP_DigestSignFinal(ctxLocal);
+        final NativeRef.HMAC_CTX ctxLocal = ctx;
+        final byte[] output = NativeCrypto.HMAC_Final(ctxLocal);
         resetContext();
         return output;
     }
@@ -132,7 +117,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacMD5() {
-            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE);
         }
     }
 
@@ -141,7 +126,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA1() {
-            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE);
         }
     }
 
@@ -150,7 +135,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA224() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE);
         }
     }
 
@@ -159,7 +144,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA256() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE);
         }
     }
 
@@ -168,7 +153,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA384() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE);
         }
     }
 
@@ -177,7 +162,7 @@ public abstract class OpenSSLMac extends MacSpi {
         private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
 
         public HmacSHA512() {
-            super(EVP_MD, SIZE, NativeConstants.EVP_PKEY_HMAC);
+            super(EVP_MD, SIZE);
         }
     }
 }

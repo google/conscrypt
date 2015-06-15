@@ -134,4 +134,19 @@ public abstract class NativeRef {
             }
         }
     }
+
+    public static class HMAC_CTX extends NativeRef {
+        public HMAC_CTX(long ctx) {
+            super(ctx);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            try {
+                NativeCrypto.HMAC_CTX_free(context);
+            } finally {
+                super.finalize();
+            }
+        }
+    }
 }

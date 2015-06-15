@@ -46,6 +46,7 @@
 #include <openssl/engine.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#include <openssl/hmac.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/ssl.h>
@@ -2787,28 +2788,6 @@ static jlong NativeCrypto_EVP_PKEY_new_EC_KEY(JNIEnv* env, jclass, jobject group
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
-static jlong NativeCrypto_EVP_PKEY_new_mac_key(JNIEnv* env, jclass, jint pkeyType,
-        jbyteArray keyJavaBytes)
-{
-    JNI_TRACE("EVP_PKEY_new_mac_key(%d, %p)", pkeyType, keyJavaBytes);
-
-    ScopedByteArrayRO key(env, keyJavaBytes);
-    if (key.get() == NULL) {
-        return 0;
-    }
-
-    const unsigned char* tmp = reinterpret_cast<const unsigned char*>(key.get());
-    Unique_EVP_PKEY pkey(EVP_PKEY_new_mac_key(pkeyType, (ENGINE *) NULL, tmp, key.size()));
-    if (pkey.get() == NULL) {
-        JNI_TRACE("EVP_PKEY_new_mac_key(%d, %p) => threw error", pkeyType, keyJavaBytes);
-        throwExceptionIfNecessary(env, "ENGINE_load_private_key");
-        return 0;
-    }
-
-    JNI_TRACE("EVP_PKEY_new_mac_key(%d, %p) => %p", pkeyType, keyJavaBytes, pkey.get());
-    return reinterpret_cast<uintptr_t>(pkey.release());
-}
-
 static int NativeCrypto_EVP_PKEY_type(JNIEnv* env, jclass, jobject pkeyRef) {
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     JNI_TRACE("EVP_PKEY_type(%p)", pkey);
@@ -5208,6 +5187,106 @@ static jint NativeCrypto_EVP_AEAD_CTX_open(JNIEnv* env, jclass, jobject ctxRef, 
     jniThrowRuntimeException(env, "Not supported for OpenSSL");
     return 0;
 #endif
+}
+
+static jlong NativeCrypto_HMAC_CTX_new(JNIEnv* env, jclass) {
+    JNI_TRACE("HMAC_CTX_new");
+    HMAC_CTX* hmacCtx = reinterpret_cast<HMAC_CTX*>(OPENSSL_malloc(sizeof(HMAC_CTX)));
+    if (hmacCtx == NULL) {
+        jniThrowOutOfMemory(env, "Unable to allocate HMAC_CTX");
+        return 0;
+    }
+
+    HMAC_CTX_init(hmacCtx);
+    return reinterpret_cast<jlong>(hmacCtx);
+}
+
+static void NativeCrypto_HMAC_CTX_free(JNIEnv*, jclass, jlong hmacCtxRef) {
+    HMAC_CTX* hmacCtx = reinterpret_cast<HMAC_CTX*>(hmacCtxRef);
+    JNI_TRACE("HMAC_CTX_free(%p)", hmacCtx);
+    if (hmacCtx == NULL) {
+        return;
+    }
+    HMAC_CTX_cleanup(hmacCtx);
+    OPENSSL_free(hmacCtx);
+}
+
+static void NativeCrypto_HMAC_Init_ex(JNIEnv* env, jclass, jobject hmacCtxRef, jbyteArray keyArray,
+                                      jobject evpMdRef) {
+    HMAC_CTX* hmacCtx = fromContextObject<HMAC_CTX>(env, hmacCtxRef);
+    const EVP_MD* md = reinterpret_cast<const EVP_MD*>(evpMdRef);
+    JNI_TRACE("HMAC_Init_ex(%p, %p, %p)", hmacCtx, keyArray, md);
+    if (hmacCtx == NULL) {
+        jniThrowNullPointerException(env, "hmacCtx == null");
+        return;
+    }
+    ScopedByteArrayRO keyBytes(env, keyArray);
+    if (keyBytes.get() == NULL) {
+        return;
+    }
+
+    const uint8_t* keyPtr = reinterpret_cast<const uint8_t*>(keyBytes.get());
+    if (!HMAC_Init_ex(hmacCtx, keyPtr, keyBytes.size(), md, NULL)) {
+        throwExceptionIfNecessary(env, "HMAC_Init_ex");
+        JNI_TRACE("HMAC_Init_ex(%p, %p, %p) => fail HMAC_Init_ex", hmacCtx, keyArray, md);
+        return;
+    }
+}
+
+static void NativeCrypto_HMAC_Update(JNIEnv* env, jclass, jobject hmacCtxRef, jbyteArray inArray,
+                                     jint inOffset, int inLength) {
+    HMAC_CTX* hmacCtx = fromContextObject<HMAC_CTX>(env, hmacCtxRef);
+    JNI_TRACE("HMAC_Update(%p, %p, %d, %d)", hmacCtx, inArray, inOffset, inLength);
+
+    if (hmacCtx == NULL) {
+        return;
+    }
+
+    ScopedByteArrayRO inBytes(env, inArray);
+    if (inBytes.get() == NULL) {
+        return;
+    }
+
+    if (ARRAY_OFFSET_LENGTH_INVALID(inBytes, inOffset, inLength)) {
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "inBytes");
+        return;
+    }
+
+    const uint8_t* inPtr = reinterpret_cast<const uint8_t*>(inBytes.get());
+    if (!HMAC_Update(hmacCtx, inPtr + inOffset, inLength)) {
+        JNI_TRACE("HMAC_Update(%p, %p, %d, %d) => threw exception", hmacCtx, inArray, inOffset,
+                  inLength);
+        throwExceptionIfNecessary(env, "HMAC_Update");
+        return;
+    }
+}
+
+static jbyteArray NativeCrypto_HMAC_Final(JNIEnv* env, jclass, jobject hmacCtxRef) {
+    HMAC_CTX* hmacCtx = fromContextObject<HMAC_CTX>(env, hmacCtxRef);
+    JNI_TRACE("HMAC_Final(%p)", hmacCtx);
+
+    if (hmacCtx == NULL) {
+        return NULL;
+    }
+
+    uint8_t result[EVP_MAX_MD_SIZE];
+    unsigned len;
+    if (!HMAC_Final(hmacCtx, result, &len)) {
+        JNI_TRACE("HMAC_Final(%p) => threw exception", hmacCtx);
+        throwExceptionIfNecessary(env, "HMAC_Final");
+        return NULL;
+    }
+
+    ScopedLocalRef<jbyteArray> resultArray(env, env->NewByteArray(len));
+    if (resultArray.get() == NULL) {
+        return NULL;
+    }
+    ScopedByteArrayRW resultBytes(env, resultArray.get());
+    if (resultBytes.get() == NULL) {
+        return NULL;
+    }
+    memcpy(resultBytes.get(), result, len);
+    return resultArray.release();
 }
 
 /**
@@ -10512,6 +10591,7 @@ static jobjectArray NativeCrypto_get_cipher_names(JNIEnv *env, jclass, jstring s
 #define REF_EVP_AEAD_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_AEAD_CTX;"
 #define REF_EVP_CIPHER_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_CIPHER_CTX;"
 #define REF_EVP_PKEY "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY;"
+#define REF_HMAC_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$HMAC_CTX;"
 static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, clinit, "()Z"),
     NATIVE_METHOD(NativeCrypto, ENGINE_load_dynamic, "()V"),
@@ -10526,7 +10606,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_DH, "([B[B[B[B)J"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_RSA, "([B[B[B[B[B[B[B[B)J"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_EC_KEY, "(" REF_EC_GROUP REF_EC_POINT "[B)J"),
-    NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_mac_key, "(I[B)J"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_type, "(" REF_EVP_PKEY ")I"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_size, "(" REF_EVP_PKEY ")I"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_print_public, "(" REF_EVP_PKEY ")Ljava/lang/String;"),
@@ -10612,6 +10691,11 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EVP_AEAD_max_tag_len, "(J)I"),
     NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_seal, "(" REF_EVP_AEAD_CTX "[BI[B[BII[B)I"),
     NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_open, "(" REF_EVP_AEAD_CTX "[BI[B[BII[B)I"),
+    NATIVE_METHOD(NativeCrypto, HMAC_CTX_new, "()J"),
+    NATIVE_METHOD(NativeCrypto, HMAC_CTX_free, "(J)V"),
+    NATIVE_METHOD(NativeCrypto, HMAC_Init_ex, "(" REF_HMAC_CTX "[BJ)V"),
+    NATIVE_METHOD(NativeCrypto, HMAC_Update, "(" REF_HMAC_CTX "[BII)V"),
+    NATIVE_METHOD(NativeCrypto, HMAC_Final, "(" REF_HMAC_CTX ")[B"),
     NATIVE_METHOD(NativeCrypto, RAND_seed, "([B)V"),
     NATIVE_METHOD(NativeCrypto, RAND_load_file, "(Ljava/lang/String;J)I"),
     NATIVE_METHOD(NativeCrypto, RAND_bytes, "([B)V"),
