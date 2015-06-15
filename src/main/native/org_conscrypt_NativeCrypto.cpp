@@ -1193,13 +1193,8 @@ class ScopedSslBio {
 public:
     ScopedSslBio(SSL *ssl, BIO* rbio, BIO* wbio) : ssl_(ssl) {
         SSL_set_bio(ssl_, rbio, wbio);
-#if defined(OPENSSL_IS_BORINGSSL)
         BIO_up_ref(rbio);
         BIO_up_ref(wbio);
-#else
-        CRYPTO_add(&rbio->references,1,CRYPTO_LOCK_BIO);
-        CRYPTO_add(&wbio->references,1,CRYPTO_LOCK_BIO);
-#endif
     }
 
     ~ScopedSslBio() {
@@ -8290,11 +8285,7 @@ static void NativeCrypto_SSL_set1_tls_channel_id(JNIEnv* env, jclass,
     // SSL_set1_tls_channel_id expects to take ownership of the EVP_PKEY, but
     // we have an external reference from the caller such as an OpenSSLKey,
     // so we manually increment the reference count here.
-#if defined(OPENSSL_IS_BORINGSSL)
     EVP_PKEY_up_ref(pkey);
-#else
-    CRYPTO_add(&pkey->references,+1,CRYPTO_LOCK_EVP_PKEY);
-#endif
 
     JNI_TRACE("ssl=%p SSL_set1_tls_channel_id => ok", ssl);
 }
@@ -8324,11 +8315,7 @@ static void NativeCrypto_SSL_use_PrivateKey(JNIEnv* env, jclass, jlong ssl_addre
     // SSL_use_PrivateKey expects to take ownership of the EVP_PKEY,
     // but we have an external reference from the caller such as an
     // OpenSSLKey, so we manually increment the reference count here.
-#if defined(OPENSSL_IS_BORINGSSL)
     EVP_PKEY_up_ref(pkey);
-#else
-    CRYPTO_add(&pkey->references,+1,CRYPTO_LOCK_EVP_PKEY);
-#endif
 
     JNI_TRACE("ssl=%p SSL_use_PrivateKey => ok", ssl);
 }
