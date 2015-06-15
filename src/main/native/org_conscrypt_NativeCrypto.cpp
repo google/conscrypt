@@ -4166,7 +4166,7 @@ static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
         return -1;
     }
 
-    if ((outOffset < 0) || ((size_t) outOffset >= out.size())) {
+    if (ARRAY_OFFSET_INVALID(out, outOffset)) {
         jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", NULL);
         return -1;
     }
@@ -4479,14 +4479,8 @@ static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, 
         return;
     }
 
-    if (inOffset < 0 || size_t(inOffset) > inBytes.size()) {
-        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "inOffset");
-        return;
-    }
-
-    const ssize_t inEnd = inOffset + inLength;
-    if (inLength < 0 || inEnd < 0 || size_t(inEnd) > inBytes.size()) {
-        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "inLength");
+    if (ARRAY_OFFSET_LENGTH_INVALID(inBytes, inOffset, inLength)) {
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "inBytes");
         return;
     }
 
@@ -4601,16 +4595,11 @@ static void NativeCrypto_EVP_VerifyUpdate(JNIEnv* env, jclass, jobject ctxRef,
         return;
     }
 
-    if (offset < 0 || length < 0) {
-        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", NULL);
-        return;
-    }
-
     ScopedByteArrayRO bufferBytes(env, buffer);
     if (bufferBytes.get() == NULL) {
         return;
     }
-    if (bufferBytes.size() < static_cast<size_t>(offset + length)) {
+    if (ARRAY_OFFSET_LENGTH_INVALID(bufferBytes, offset, length)) {
         jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", NULL);
         return;
     }
@@ -4797,10 +4786,8 @@ static jint NativeCrypto_EVP_CipherUpdate(JNIEnv* env, jclass, jobject ctxRef, j
     if (inBytes.get() == NULL) {
         return 0;
     }
-    const size_t inSize = inBytes.size();
-    if (size_t(inOffset + inLength) > inSize) {
-        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException",
-                "in.length < (inSize + inOffset)");
+    if (ARRAY_OFFSET_LENGTH_INVALID(inBytes, inOffset, inLength)) {
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "inBytes");
         return 0;
     }
 
@@ -4808,10 +4795,8 @@ static jint NativeCrypto_EVP_CipherUpdate(JNIEnv* env, jclass, jobject ctxRef, j
     if (outBytes.get() == NULL) {
         return 0;
     }
-    const size_t outSize = outBytes.size();
-    if (size_t(outOffset + inLength) > outSize) {
-        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException",
-                "out.length < inSize + outOffset + blockSize - 1");
+    if (ARRAY_OFFSET_LENGTH_INVALID(outBytes, outOffset, inLength)) {
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "outBytes");
         return 0;
     }
 
@@ -5413,16 +5398,9 @@ static void NativeCrypto_BIO_write(JNIEnv* env, jclass, jlong bioRef, jbyteArray
         return;
     }
 
-    if (offset < 0 || length < 0) {
-        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "offset < 0 || length < 0");
-        JNI_TRACE("BIO_write(%p, %p, %d, %d) => IOOB", bio, inputJavaBytes, offset, length);
-        return;
-    }
-
     int inputSize = env->GetArrayLength(inputJavaBytes);
-    if (inputSize < offset + length) {
-        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException",
-                "input.length < offset + length");
+    if (offset < 0 || offset > inputSize || length < 0 || length > inputSize - offset) {
+        jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "inputJavaBytes");
         JNI_TRACE("BIO_write(%p, %p, %d, %d) => IOOB", bio, inputJavaBytes, offset, length);
         return;
     }
@@ -9679,8 +9657,7 @@ static jint NativeCrypto_SSL_read_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
         JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO => threw exception", ssl);
         return -1;
     }
-    if (destOffset < 0 || destOffset > ssize_t(dest.size()) || destLength < 0
-            || destLength > (ssize_t) dest.size() - destOffset) {
+    if (ARRAY_OFFSET_LENGTH_INVALID(dest, destOffset, destLength)) {
         JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO => destOffset=%d, destLength=%d, size=%zd",
                   ssl, destOffset, destLength, dest.size());
         jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", NULL);
