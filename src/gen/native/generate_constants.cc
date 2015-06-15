@@ -68,7 +68,6 @@ int main(int /* argc */, char ** /* argv */) {
   CONST(EXFLAG_CRITICAL);
 
   CONST(EVP_PKEY_RSA);
-  CONST(EVP_PKEY_HMAC);
   CONST(EVP_PKEY_EC);
 
   CONST(RSA_PKCS1_PADDING);
