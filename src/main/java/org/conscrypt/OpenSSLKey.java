@@ -294,15 +294,6 @@ public class OpenSSLKey {
         }
     }
 
-    public SecretKey getSecretKey(String algorithm) throws NoSuchAlgorithmException {
-        switch (NativeCrypto.EVP_PKEY_type(ctx)) {
-            case NativeConstants.EVP_PKEY_HMAC:
-                return new OpenSSLSecretKey(algorithm, this);
-            default:
-                throw new NoSuchAlgorithmException("unknown PKEY type");
-        }
-    }
-
     @Override
     public boolean equals(Object o) {
         if (o == this) {

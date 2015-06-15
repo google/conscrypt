@@ -104,24 +104,6 @@ public class OpenSSLEngine {
         }
     }
 
-    public SecretKey getSecretKeyById(String id, String algorithm) throws InvalidKeyException {
-        if (id == null) {
-            throw new NullPointerException("id == null");
-        }
-
-        final long keyRef = NativeCrypto.ENGINE_load_private_key(ctx, id);
-        if (keyRef == 0) {
-            return null;
-        }
-
-        OpenSSLKey pkey = new OpenSSLKey(keyRef, this, id);
-        try {
-            return pkey.getSecretKey(algorithm);
-        } catch (NoSuchAlgorithmException e) {
-            throw new InvalidKeyException(e);
-        }
-    }
-
     long getEngineContext() {
         return ctx;
     }
