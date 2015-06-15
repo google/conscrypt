@@ -7316,7 +7316,6 @@ class AppData {
     jbyte* alpnProtocolsData;
     size_t alpnProtocolsLength;
     Unique_RSA ephemeralRsa;
-    Unique_EC_KEY ephemeralEc;
 
     /**
      * Creates the application data context for the SSL*.
@@ -7363,8 +7362,7 @@ class AppData {
             alpnProtocolsArray(NULL),
             alpnProtocolsData(NULL),
             alpnProtocolsLength(-1),
-            ephemeralRsa(NULL),
-            ephemeralEc(NULL) {
+            ephemeralRsa(NULL) {
         fdsEmergency[0] = -1;
         fdsEmergency[1] = -1;
     }
@@ -7976,31 +7974,6 @@ static DH* tmp_dh_callback(SSL* ssl __attribute__ ((unused)),
     return tmp_dh;
 }
 
-static EC_KEY* ecGenerateKey(int keylength __attribute__ ((unused))) {
-    // TODO selected curve based on keylength
-    Unique_EC_KEY ec(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
-    if (ec.get() == NULL) {
-        return NULL;
-    }
-    return ec.release();
-}
-
-/**
- * Call back to ask for an ephemeral EC key for TLS_ECDHE_* cipher suites
- */
-static EC_KEY* tmp_ecdh_callback(SSL* ssl __attribute__ ((unused)),
-                                 int is_export __attribute__ ((unused)),
-                                 int keylength) {
-    JNI_TRACE("ssl=%p tmp_ecdh_callback is_export=%d keylength=%d", ssl, is_export, keylength);
-    AppData* appData = toAppData(ssl);
-    if (appData->ephemeralEc.get() == NULL) {
-        JNI_TRACE("ssl=%p tmp_ecdh_callback generating ephemeral EC key", ssl);
-        appData->ephemeralEc.reset(ecGenerateKey(keylength));
-    }
-    JNI_TRACE("ssl=%p tmp_ecdh_callback => %p", ssl, appData->ephemeralEc.get());
-    return appData->ephemeralEc.get();
-}
-
 /*
  * public static native int SSL_CTX_new();
  */
@@ -8020,7 +7993,7 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
                         | SSL_OP_NO_COMPRESSION
                         // Because dhGenerateParameters uses DSA_generate_parameters_ex
                         | SSL_OP_SINGLE_DH_USE
-                        // Because ecGenerateParameters uses a fixed named curve
+                        // Generate a fresh ECDH keypair for each key exchange.
                         | SSL_OP_SINGLE_ECDH_USE);
 
     int mode = SSL_CTX_get_mode(sslCtx.get());
@@ -8045,7 +8018,14 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_client_cert_cb(sslCtx.get(), client_cert_cb);
     SSL_CTX_set_tmp_rsa_callback(sslCtx.get(), tmp_rsa_callback);
     SSL_CTX_set_tmp_dh_callback(sslCtx.get(), tmp_dh_callback);
-    SSL_CTX_set_tmp_ecdh_callback(sslCtx.get(), tmp_ecdh_callback);
+
+    // If negotiating ECDH, use P-256.
+    Unique_EC_KEY ec(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+    if (ec.get() == NULL) {
+        throwExceptionIfNecessary(env, "EC_KEY_new_by_curve_name");
+        return 0;
+    }
+    SSL_CTX_set_tmp_ecdh(sslCtx.get(), ec.get());
 
     // When TLS Channel ID extension is used, use the new version of it.
     sslCtx.get()->tlsext_channel_id_enabled_new = 1;
