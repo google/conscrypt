@@ -562,7 +562,7 @@ public class NativeCryptoTest extends TestCase {
     public void test_SSL_set_cipher_lists() throws Exception {
         try {
             NativeCrypto.SSL_set_cipher_lists(NULL, null);
-            fail();
+            fail("Exception not thrown for null ssl and null list");
         } catch (NullPointerException expected) {
         }
 
@@ -571,19 +571,17 @@ public class NativeCryptoTest extends TestCase {
 
         try {
             NativeCrypto.SSL_set_cipher_lists(s, null);
-            fail();
+            fail("Exception not thrown for null list");
         } catch (NullPointerException expected) {
         }
 
-        try {
-            NativeCrypto.SSL_set_cipher_lists(s, new String[] {});
-            fail();
-        } catch (IllegalArgumentException expected) {
-        }
+        // Explicitly checking that the empty list is allowed.
+        // b/21816861
+        NativeCrypto.SSL_set_cipher_lists(s, new String[]{});
 
         try {
             NativeCrypto.SSL_set_cipher_lists(s, new String[] { null });
-            fail();
+            fail("Exception not thrown for list with null element");
         } catch (NullPointerException expected) {
         }
 
@@ -600,7 +598,7 @@ public class NativeCryptoTest extends TestCase {
         for (String illegal : illegals) {
             try {
                 NativeCrypto.SSL_set_cipher_lists(s, new String[] { illegal });
-                fail(illegal);
+                fail("Exception now thrown for illegal cipher: " + illegal);
             } catch (IllegalArgumentException expected) {
             }
         }
