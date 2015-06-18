@@ -612,12 +612,12 @@ public final class NativeCrypto {
      * cipher suite. It is just an indication in the default and
      * supported cipher suite lists indicates that the implementation
      * supports secure renegotiation.
-     *
+     * <p>
      * In the RI, its presence means that the SCSV is sent in the
      * cipher suite list to indicate secure renegotiation support and
      * its absense means to send an empty TLS renegotiation info
      * extension instead.
-     *
+     * <p>
      * However, OpenSSL doesn't provide an API to give this level of
      * control, instead always sending the SCSV and always including
      * the empty renegotiation info if TLS is used (as opposed to
