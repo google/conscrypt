@@ -1114,7 +1114,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
                 @Override
                 protected long getEVP_AEAD(int keyLength) throws InvalidKeyException {
-                    final long evpAead;
                     if (keyLength == 16) {
                         return NativeCrypto.EVP_aead_aes_128_gcm();
                     } else if (keyLength == 32) {
