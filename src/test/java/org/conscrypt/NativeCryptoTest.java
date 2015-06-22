@@ -324,7 +324,6 @@ public class NativeCryptoTest extends TestCase {
         long s = NativeCrypto.SSL_new(c);
 
         assertTrue(s != NULL);
-        assertTrue((NativeCrypto.SSL_get_options(s) & 0x01000000L) != 0); // SSL_OP_NO_SSLv2
         assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_SSLv3) == 0);
         assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_TLSv1) == 0);
         assertTrue((NativeCrypto.SSL_get_options(s) & NativeConstants.SSL_OP_NO_TLSv1_1) == 0);
