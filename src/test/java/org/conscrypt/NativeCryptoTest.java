@@ -50,6 +50,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
 import javax.security.auth.x500.X500Principal;
 
@@ -1655,7 +1656,7 @@ public class NativeCryptoTest extends TestCase {
         final ServerSocket listener = new ServerSocket(0);
 
         // negative test case for SSL_set_session_creation_enabled(false) on client
-        try {
+        {
             Hooks cHooks = new Hooks() {
                 @Override
                 public long beforeHandshake(long c) throws SSLException {
@@ -1670,14 +1671,22 @@ public class NativeCryptoTest extends TestCase {
             @SuppressWarnings("unused")
             Future<TestSSLHandshakeCallbacks> server = handshake(listener, 0, false, sHooks, null,
                     null);
-            client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException expected) {
-            assertEquals(SSLProtocolException.class, expected.getCause().getClass());
+            try {
+                client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                fail();
+            } catch (ExecutionException expected) {
+                assertEquals(SSLProtocolException.class, expected.getCause().getClass());
+            }
+            try {
+                server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                fail();
+            } catch (ExecutionException expected) {
+                assertEquals(SSLProtocolException.class, expected.getCause().getClass());
+            }
         }
 
         // negative test case for SSL_set_session_creation_enabled(false) on server
-        try {
+        {
             Hooks cHooks = new Hooks();
             Hooks sHooks = new ServerHooks(getServerPrivateKey(), getServerCertificates()) {
                 @Override
@@ -1692,10 +1701,18 @@ public class NativeCryptoTest extends TestCase {
             @SuppressWarnings("unused")
             Future<TestSSLHandshakeCallbacks> server = handshake(listener, 0, false, sHooks, null,
                     null);
-            client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException expected) {
-            assertEquals(SSLProtocolException.class, expected.getCause().getClass());
+            try {
+                client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                fail();
+            } catch (ExecutionException expected) {
+                assertEquals(SSLHandshakeException.class, expected.getCause().getClass());
+            }
+            try {
+                server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                fail();
+            } catch (ExecutionException expected) {
+                assertEquals(SSLProtocolException.class, expected.getCause().getClass());
+            }
         }
     }
 
