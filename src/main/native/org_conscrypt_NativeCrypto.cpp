@@ -4708,13 +4708,15 @@ static jint NativeCrypto_EVP_VerifyFinal(JNIEnv* env, jclass, jobject ctxRef, jb
     if (bufferBytes.get() == NULL) {
         return -1;
     }
+
     int ok = EVP_VerifyFinal(ctx,
                              reinterpret_cast<const unsigned char*>(bufferBytes.get() + offset),
                              length,
                              pkey);
-    if (ok != 1) {
-        throwExceptionIfNecessary(env, "NativeCrypto_EVP_VerifyFinal");
-    }
+    // The upper (Java language) layer should take care of throwing the
+    // expected exceptions before calling to this, so we just clear
+    // the OpenSSL/BoringSSL error stack here.
+    freeOpenSslErrorState();
 
     JNI_TRACE("NativeCrypto_EVP_VerifyFinal(%p, %p, %d, %d, %p) => %d",
               ctx, buffer, offset, length, pkey, ok);
