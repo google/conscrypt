@@ -1017,6 +1017,9 @@ public final class NativeCrypto {
     public static native void SSL_set_session_creation_enabled(
             long sslNativePointer, boolean creationEnabled) throws SSLException;
 
+    public static native void SSL_set_reject_peer_renegotiations(
+            long sslNativePointer, boolean renegotiationRejected) throws SSLException;
+
     public static native void SSL_set_tlsext_host_name(long sslNativePointer, String hostname)
             throws SSLException;
     public static native String SSL_get_servername(long sslNativePointer);
