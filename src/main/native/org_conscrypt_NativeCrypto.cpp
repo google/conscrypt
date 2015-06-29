@@ -3899,7 +3899,7 @@ static void NativeCrypto_EC_POINT_set_affine_coordinates(JNIEnv* env, jclass,
     case EC_CURVE_GFP:
         ret = EC_POINT_set_affine_coordinates_GFp(group, point, x.get(), y.get(), NULL);
         break;
-#if !defined(OPENSSL_IS_BORINGSSL)
+#if !defined(OPENSSL_NO_EC2M)
     case EC_CURVE_GF2M:
         ret = EC_POINT_set_affine_coordinates_GF2m(group, point, x.get(), y.get(), NULL);
         break;
