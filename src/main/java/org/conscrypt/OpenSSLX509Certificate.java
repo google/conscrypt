@@ -284,7 +284,12 @@ public class OpenSSLX509Certificate extends X509Certificate {
 
     @Override
     public String getSigAlgName() {
-        return AlgNameMapper.map2AlgName(getSigAlgOID());
+        String oid = getSigAlgOID();
+        String algName = AlgNameMapper.map2AlgName(oid);
+        if (algName != null) {
+            return algName;
+        }
+        return oid;
     }
 
     @Override
@@ -357,22 +362,32 @@ public class OpenSSLX509Certificate extends X509Certificate {
     private void verifyInternal(PublicKey key, String sigProvider) throws CertificateException,
             NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException,
             SignatureException {
-        String sigAlg = getSigAlgName();
-        if (sigAlg == null) {
-            sigAlg = getSigAlgOID();
-        }
-
-        final Signature sig;
-        if (sigProvider == null) {
-            sig = Signature.getInstance(sigAlg);
-        } else {
-            sig = Signature.getInstance(sigAlg, sigProvider);
+        Signature sig = getSignatureInstance(getSigAlgName(), sigProvider);
+        if (sig == null) {
+            sig = getSignatureInstance(getSigAlgOID(), sigProvider);
         }
 
         sig.initVerify(key);
         sig.update(getTBSCertificate());
         if (!sig.verify(getSignature())) {
             throw new SignatureException("signature did not verify");
+        }
+    }
+
+    /**
+     * Gets a signature instance or returns {@code null} if there is no
+     * provider.
+     */
+    private Signature getSignatureInstance(String sigAlg, String sigProvider)
+            throws NoSuchProviderException {
+        try {
+            if (sigProvider == null) {
+                return Signature.getInstance(sigAlg);
+            } else {
+                return Signature.getInstance(sigAlg, sigProvider);
+            }
+        } catch (NoSuchAlgorithmException ignored) {
+            return null;
         }
     }
 
