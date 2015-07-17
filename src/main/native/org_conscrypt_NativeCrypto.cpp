@@ -8684,6 +8684,87 @@ static jlong NativeCrypto_SSL_clear_options(JNIEnv* env, jclass,
 }
 
 
+/*
+ * public static native void SSL_enable_ocsp_stapling(long ssl);
+ */
+static void NativeCrypto_SSL_enable_ocsp_stapling(JNIEnv *env, jclass,
+        jlong ssl_address) {
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_enable_ocsp_stapling", ssl);
+    if (ssl == NULL)  {
+        return;
+    }
+
+#if defined(OPENSSL_IS_BORINGSSL)
+    SSL_enable_ocsp_stapling(ssl);
+#endif
+}
+
+/*
+ * public static native byte[] SSL_get_ocsp_response(long ssl);
+ */
+static jbyteArray NativeCrypto_SSL_get_ocsp_response(JNIEnv *env, jclass,
+        jlong ssl_address) {
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_ocsp_response", ssl);
+    if (ssl == NULL)  {
+        return NULL;
+    }
+
+#if defined(OPENSSL_IS_BORINGSSL)
+    const uint8_t *data;
+    size_t data_len;
+    SSL_get0_ocsp_response(ssl, &data, &data_len);
+
+    if (data_len == 0) {
+        JNI_TRACE("NativeCrypto_SSL_get_ocsp_response(%p) => NULL", ssl);
+        return NULL;
+    }
+
+    ScopedLocalRef<jbyteArray> byteArray(env, env->NewByteArray(data_len));
+    if (byteArray.get() == NULL) {
+        JNI_TRACE("NativeCrypto_SSL_get_ocsp_response(%p) => creating byte array failed", ssl);
+        return NULL;
+    }
+
+    env->SetByteArrayRegion(byteArray.get(), 0, data_len, (const jbyte*)data);
+    JNI_TRACE("NativeCrypto_SSL_get_ocsp_response(%p) => %p [size=%zd]",
+              ssl, byteArray.get(), data_len);
+
+    return byteArray.release();
+#else
+    return NULL;
+#endif
+}
+
+/*
+ * public static native void SSL_CTX_set_ocsp_response(long ssl, byte[] response);
+ */
+static void NativeCrypto_SSL_CTX_set_ocsp_response(JNIEnv *env, jclass,
+        jlong ssl_ctx_address, jbyteArray response) {
+    SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
+    JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_ocsp_response", ssl_ctx);
+    if (ssl_ctx == NULL)  {
+        return;
+    }
+
+    ScopedByteArrayRO responseBytes(env, response);
+    if (responseBytes.get() == NULL) {
+        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_ocsp_response => response == NULL", ssl_ctx);
+        return;
+    }
+
+#if defined(OPENSSL_IS_BORINGSSL)
+    if (!SSL_CTX_set_ocsp_response(ssl_ctx,
+                reinterpret_cast<const uint8_t *>(responseBytes.get()),
+                responseBytes.size())) {
+        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_ocsp_response => fail", ssl_ctx);
+    } else {
+        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_ocsp_response => ok", ssl_ctx);
+    }
+#endif
+}
+
 static void NativeCrypto_SSL_use_psk_identity_hint(JNIEnv* env, jclass,
         jlong ssl_address, jstring identityHintJava)
 {
@@ -11156,6 +11237,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_get_options, "(J)J"),
     NATIVE_METHOD(NativeCrypto, SSL_set_options, "(JJ)J"),
     NATIVE_METHOD(NativeCrypto, SSL_clear_options, "(JJ)J"),
+    NATIVE_METHOD(NativeCrypto, SSL_enable_ocsp_stapling, "(J)V"),
+    NATIVE_METHOD(NativeCrypto, SSL_get_ocsp_response, "(J)[B"),
+    NATIVE_METHOD(NativeCrypto, SSL_CTX_set_ocsp_response, "(J[B)V"),
     NATIVE_METHOD(NativeCrypto, SSL_use_psk_identity_hint, "(JLjava/lang/String;)V"),
     NATIVE_METHOD(NativeCrypto, set_SSL_psk_client_callback_enabled, "(JZ)V"),
     NATIVE_METHOD(NativeCrypto, set_SSL_psk_server_callback_enabled, "(JZ)V"),
