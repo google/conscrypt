@@ -96,6 +96,7 @@ ifeq ($(LIBCORE_SKIP_TESTS),)
 # Make the conscrypt-tests library.
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/test/java)
+LOCAL_JAVA_RESOURCE_DIRS := src/test/resources
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVA_LIBRARIES := core-libart core-junit bouncycastle
 LOCAL_STATIC_JAVA_LIBRARIES := core-tests-support conscrypt-nojarjar
@@ -231,6 +232,7 @@ include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 ifeq ($(LIBCORE_SKIP_TESTS),)
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(call all-java-files-under,src/test/java)
+    LOCAL_JAVA_RESOURCE_DIRS := src/test/resources
     LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex core-junit-hostdex core-tests-support-hostdex conscrypt-hostdex-nojarjar
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_MODULE_TAGS := optional
