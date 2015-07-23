@@ -81,7 +81,11 @@ class Platform {
     }
 
     public static FileDescriptor getFileDescriptor(Socket s) {
-        return s.getFileDescriptor$();
+        FileDescriptor ret = s.getFileDescriptor$();
+        if (ret == null) {
+            return new FileDescriptor();
+        }
+        return ret;
     }
 
     public static FileDescriptor getFileDescriptorFromSSLSocket(OpenSSLSocketImpl openSSLSocketImpl) {
@@ -91,7 +95,12 @@ class Platform {
             Object socketImpl = f_impl.get(openSSLSocketImpl);
             Field f_fd = SocketImpl.class.getDeclaredField("fd");
             f_fd.setAccessible(true);
-            return (FileDescriptor) f_fd.get(socketImpl);
+            // OpenJdk sockets start their life with a null FD.
+            FileDescriptor ret = (FileDescriptor) f_fd.get(socketImpl);
+            if (ret == null) {
+                ret = new FileDescriptor();
+            }
+            return ret;
         } catch (Exception e) {
             throw new RuntimeException("Can't get FileDescriptor from socket", e);
         }

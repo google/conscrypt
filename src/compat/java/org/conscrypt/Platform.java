@@ -66,7 +66,12 @@ public class Platform {
             Class<?> c_socketImpl = Class.forName("java.net.SocketImpl");
             Field f_fd = c_socketImpl.getDeclaredField("fd");
             f_fd.setAccessible(true);
-            return (FileDescriptor) f_fd.get(socketImpl);
+            // OpenJdk sockets start their life with a null FD.
+            FileDescriptor ret = (FileDescriptor) f_fd.get(socketImpl);
+            if (ret == null) {
+                ret = new FileDescriptor();
+            }
+            return ret;
         } catch (Exception e) {
             throw new RuntimeException("Can't get FileDescriptor from socket", e);
         }
