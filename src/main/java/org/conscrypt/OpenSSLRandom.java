@@ -55,6 +55,12 @@ public class OpenSSLRandom extends SecureRandomSpi implements Serializable {
      * seeded.
      */
     private void selfSeedIfNotSeeded() {
+        // For BoringSSL, RAND_seed and RAND_load_file are no-ops since the RNG
+        // reads directly from the random device node.
+        if (NativeCrypto.isBoringSSL) {
+            return;
+        }
+
         // NOTE: No need to worry about concurrent access to this field because the worst case is
         // that the code below is executed multiple times (by different threads), which may only
         // increase the entropy of the OpenSSL PRNG.
