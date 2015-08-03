@@ -846,6 +846,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     public static abstract class EVP_AEAD extends OpenSSLCipher {
         /**
+         * The default tag size when one is not specified.
+         */
+        private static final int DEFAULT_TAG_SIZE_BITS = 12 * 8;
+
+        /**
          * Keeps track of the last used block size.
          */
         private static int lastGlobalMessageSize = 32;
@@ -911,7 +916,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
             final int tagLenBits;
             if (params == null) {
                 iv = null;
-                tagLenBits = 0;
+                tagLenBits = DEFAULT_TAG_SIZE_BITS;
             } else {
                 GCMParameters gcmParams = Platform.fromGCMParameterSpec(params);
                 if (gcmParams != null) {
@@ -920,10 +925,10 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 } else if (params instanceof IvParameterSpec) {
                     IvParameterSpec ivParams = (IvParameterSpec) params;
                     iv = ivParams.getIV();
-                    tagLenBits = 0;
+                    tagLenBits = DEFAULT_TAG_SIZE_BITS;
                 } else {
                     iv = null;
-                    tagLenBits = 0;
+                    tagLenBits = DEFAULT_TAG_SIZE_BITS;
                 }
             }
 
