@@ -17,6 +17,8 @@
 package org.conscrypt;
 
 import org.conscrypt.util.ArrayUtils;
+import org.conscrypt.ct.CTVerifier;
+import org.conscrypt.ct.CTVerificationResult;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
@@ -307,6 +309,11 @@ public class OpenSSLSocketImpl
             // certain protocols.
             NativeCrypto.SSL_set_reject_peer_renegotiations(sslNativePointer, false);
 
+            if (client && sslParameters.isCTVerificationEnabled(getHostname())) {
+                NativeCrypto.SSL_enable_signed_cert_timestamps(sslNativePointer);
+                NativeCrypto.SSL_enable_ocsp_stapling(sslNativePointer);
+            }
+
             final OpenSSLSessionImpl sessionToReuse = sslParameters.getSessionToReuse(
                     sslNativePointer, getHostname(), getPort());
             sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this, this,
@@ -563,6 +570,19 @@ public class OpenSSLSocketImpl
             boolean client = sslParameters.getUseClientMode();
             if (client) {
                 Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, getHostname());
+                if (sslParameters.isCTVerificationEnabled(getHostname())) {
+                    byte[] tlsData = NativeCrypto.SSL_get_signed_cert_timestamp_list(
+                                        sslNativePointer);
+                    byte[] ocspData = NativeCrypto.SSL_get_ocsp_response(sslNativePointer);
+
+                    CTVerifier ctVerifier = sslParameters.getCTVerifier();
+                    CTVerificationResult result =
+                        ctVerifier.verifySignedCertificateTimestamps(peerCertChain, tlsData, ocspData);
+
+                    if (result.getValidSCTs().size() == 0) {
+                        throw new CertificateException("No valid SCT found");
+                    }
+                }
             } else {
                 String authType = peerCertChain[0].getPublicKey().getAlgorithm();
                 x509tm.checkClientTrusted(peerCertChain, authType);
