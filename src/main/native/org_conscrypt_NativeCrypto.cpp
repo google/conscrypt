@@ -8861,6 +8861,25 @@ static void NativeCrypto_SSL_set_session_creation_enabled(JNIEnv* env, jclass,
 #endif
 }
 
+static void NativeCrypto_SSL_set_reject_peer_renegotiations(JNIEnv* env, jclass,
+        jlong ssl_address, jboolean reject_renegotiations)
+{
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_reject_peer_renegotiations reject_renegotiations=%d",
+              ssl, reject_renegotiations);
+    if (ssl == NULL) {
+        return;
+    }
+
+#if defined(OPENSSL_IS_BORINGSSL)
+    SSL_set_reject_peer_renegotiations(ssl, reject_renegotiations);
+#else
+    (void) reject_renegotiations;
+    /* OpenSSL doesn't support this call and accepts renegotiation requests by
+     * default. */
+#endif
+}
+
 static void NativeCrypto_SSL_set_tlsext_host_name(JNIEnv* env, jclass,
         jlong ssl_address, jstring hostname)
 {
@@ -10793,6 +10812,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_set_verify, "(JI)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_session, "(JJ)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_session_creation_enabled, "(JZ)V"),
+    NATIVE_METHOD(NativeCrypto, SSL_set_reject_peer_renegotiations, "(JZ)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_tlsext_host_name, "(JLjava/lang/String;)V"),
     NATIVE_METHOD(NativeCrypto, SSL_get_servername, "(J)Ljava/lang/String;"),
     NATIVE_METHOD(NativeCrypto, SSL_do_handshake, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "IZ[B[B)J"),
