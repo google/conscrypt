@@ -1896,6 +1896,13 @@ size_t RsaMethodSize(const RSA *rsa) {
   return ex_data->cached_size;
 }
 
+#if defined(BORINGSSL_201509)
+// Newer versions of BoringSSL have dropped the function code. */
+#undef OPENSSL_PUT_ERROR
+#define OPENSSL_PUT_ERROR(library, func, reason) \
+    ERR_put_error(ERR_LIB_##library, reason, OPENSSL_CURRENT_FUNCTION, __FILE__, __LINE__)
+#endif
+
 int RsaMethodEncrypt(RSA* /* rsa */,
                      size_t* /* out_len */,
                      uint8_t* /* out */,
@@ -2050,6 +2057,9 @@ const RSA_METHOD android_rsa_method = {
     NULL /* private_transform */,
     RSA_FLAG_OPAQUE,
     NULL /* keygen */,
+#if defined(BORINGSSL_201509)
+    NULL /* multi_prime_keygen */,
+#endif
     NULL /* supports_digest */,
 };
 
@@ -7767,8 +7777,8 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
         = env->GetMethodID(cls, "clientCertificateRequested", "([B[[B)V");
 
     // Call Java callback which can use SSL_use_certificate and SSL_use_PrivateKey to set values
-    const char* ctype = NULL;
 #if !defined(OPENSSL_IS_BORINGSSL)
+    const char* ctype = NULL;
     char ssl2_ctype = SSL3_CT_RSA_SIGN;
     int ctype_num = 0;
     jobjectArray issuers = NULL;
@@ -7788,6 +7798,11 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
             break;
     }
 #else
+#if defined(BORINGSSL_201509)
+    const uint8_t* ctype = NULL;
+#else
+    const char* ctype = NULL;
+#endif
     int ctype_num = SSL_get0_certificate_types(ssl, &ctype);
     jobjectArray issuers = getPrincipalBytes(env, ssl->s3->tmp.ca_names);
 #endif
@@ -8103,8 +8118,10 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     }
     SSL_CTX_set_tmp_ecdh(sslCtx.get(), ec.get());
 
+#if !defined(BORINGSSL_201509)
     // When TLS Channel ID extension is used, use the new version of it.
     sslCtx.get()->tlsext_channel_id_enabled_new = 1;
+#endif
 
     JNI_TRACE("NativeCrypto_SSL_CTX_new => %p", sslCtx.get());
     return (jlong) sslCtx.release();
