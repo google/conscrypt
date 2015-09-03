@@ -6419,39 +6419,49 @@ static jbyteArray NativeCrypto_i2d_X509_PUBKEY(JNIEnv* env, jclass, jlong x509Re
 
 
 template<typename T, T* (*PEM_read_func)(BIO*, T**, pem_password_cb*, void*)>
-static jlong PEM_ASN1Object_to_jlong(JNIEnv* env, jlong bioRef) {
+static jlong PEM_to_jlong(JNIEnv* env, jlong bioRef) {
     BIO* bio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(bioRef));
-    JNI_TRACE("PEM_ASN1Object_to_jlong(%p)", bio);
+    JNI_TRACE("PEM_to_jlong(%p)", bio);
 
     if (bio == NULL) {
         jniThrowNullPointerException(env, "bio == null");
-        JNI_TRACE("PEM_ASN1Object_to_jlong(%p) => bio == null", bio);
+        JNI_TRACE("PEM_to_jlong(%p) => bio == null", bio);
         return 0;
     }
 
     T* x = PEM_read_func(bio, NULL, NULL, NULL);
     if (x == NULL) {
-        throwExceptionIfNecessary(env, "PEM_ASN1Object_to_jlong");
+        throwExceptionIfNecessary(env, "PEM_to_jlong");
         // Sometimes the PEM functions fail without pushing an error
         if (!env->ExceptionCheck()) {
             jniThrowRuntimeException(env, "Failure parsing PEM");
         }
-        JNI_TRACE("PEM_ASN1Object_to_jlong(%p) => threw exception", bio);
+        JNI_TRACE("PEM_to_jlong(%p) => threw exception", bio);
         return 0;
     }
 
-    JNI_TRACE("PEM_ASN1Object_to_jlong(%p) => %p", bio, x);
+    JNI_TRACE("PEM_to_jlong(%p) => %p", bio, x);
     return reinterpret_cast<uintptr_t>(x);
 }
 
 static jlong NativeCrypto_PEM_read_bio_X509(JNIEnv* env, jclass, jlong bioRef) {
     JNI_TRACE("PEM_read_bio_X509(0x%llx)", (long long) bioRef);
-    return PEM_ASN1Object_to_jlong<X509, PEM_read_bio_X509>(env, bioRef);
+    return PEM_to_jlong<X509, PEM_read_bio_X509>(env, bioRef);
 }
 
 static jlong NativeCrypto_PEM_read_bio_X509_CRL(JNIEnv* env, jclass, jlong bioRef) {
     JNI_TRACE("PEM_read_bio_X509_CRL(0x%llx)", (long long) bioRef);
-    return PEM_ASN1Object_to_jlong<X509_CRL, PEM_read_bio_X509_CRL>(env, bioRef);
+    return PEM_to_jlong<X509_CRL, PEM_read_bio_X509_CRL>(env, bioRef);
+}
+
+static jlong NativeCrypto_PEM_read_bio_PUBKEY(JNIEnv* env, jclass, jlong bioRef) {
+    JNI_TRACE("PEM_read_bio_PUBKEY(0x%llx)", (long long) bioRef);
+    return PEM_to_jlong<EVP_PKEY, PEM_read_bio_PUBKEY>(env, bioRef);
+}
+
+static jlong NativeCrypto_PEM_read_bio_PrivateKey(JNIEnv* env, jclass, jlong bioRef) {
+    JNI_TRACE("PEM_read_bio_PrivateKey(0x%llx)", (long long) bioRef);
+    return PEM_to_jlong<EVP_PKEY, PEM_read_bio_PrivateKey>(env, bioRef);
 }
 
 template <typename T, typename T_stack>
@@ -10641,6 +10651,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, d2i_PKCS8_PRIV_KEY_INFO, "([B)J"),
     NATIVE_METHOD(NativeCrypto, i2d_PUBKEY, "(" REF_EVP_PKEY ")[B"),
     NATIVE_METHOD(NativeCrypto, d2i_PUBKEY, "([B)J"),
+    NATIVE_METHOD(NativeCrypto, PEM_read_bio_PUBKEY, "(J)J"),
+    NATIVE_METHOD(NativeCrypto, PEM_read_bio_PrivateKey, "(J)J"),
     NATIVE_METHOD(NativeCrypto, getRSAPrivateKeyWrapper, "(Ljava/security/PrivateKey;[B)J"),
     NATIVE_METHOD(NativeCrypto, getECPrivateKeyWrapper, "(Ljava/security/PrivateKey;" REF_EC_GROUP ")J"),
     NATIVE_METHOD(NativeCrypto, RSA_generate_key_ex, "(I[B)J"),
