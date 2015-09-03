@@ -104,6 +104,10 @@ public final class NativeCrypto {
 
     public static native long d2i_PUBKEY(byte[] data);
 
+    public static native long PEM_read_bio_PUBKEY(long bioCtx);
+
+    public static native long PEM_read_bio_PrivateKey(long bioCtx);
+
     public static native long getRSAPrivateKeyWrapper(PrivateKey key, byte[] modulus);
 
     public static native long getECPrivateKeyWrapper(PrivateKey key,
