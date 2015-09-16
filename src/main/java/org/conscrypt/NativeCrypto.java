@@ -426,6 +426,8 @@ public final class NativeCrypto {
 
     public static native void X509_free(long x509ctx);
 
+    public static native long X509_dup(long x509ctx);
+
     public static native int X509_cmp(long x509ctx1, long x509ctx2);
 
     public static native int get_X509_hashCode(long x509ctx);
@@ -527,6 +529,8 @@ public final class NativeCrypto {
     public static native String[] get_X509_CRL_ext_oids(long x509ctx, int critical);
 
     public static native byte[] X509_CRL_get_ext_oid(long x509CrlCtx, String oid);
+
+    public static native void X509_delete_ext(long x509, String oid);
 
     public static native long X509_CRL_get_version(long x509CrlCtx);
 
