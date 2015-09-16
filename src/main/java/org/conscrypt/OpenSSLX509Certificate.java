@@ -522,6 +522,19 @@ public class OpenSSLX509Certificate extends X509Certificate {
         return mContext;
     }
 
+    /**
+     * Delete an extension.
+     *
+     * A modified copy of the certificate is returned. The original object
+     * is unchanged.
+     * If the extension is not present, an unmodified copy is returned.
+     */
+    public OpenSSLX509Certificate withDeletedExtension(String oid) {
+        OpenSSLX509Certificate copy = new OpenSSLX509Certificate(NativeCrypto.X509_dup(mContext));
+        NativeCrypto.X509_delete_ext(copy.getContext(), oid);
+        return copy;
+    }
+
     @Override
     protected void finalize() throws Throwable {
         try {
