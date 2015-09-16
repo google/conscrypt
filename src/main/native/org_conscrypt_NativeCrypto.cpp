@@ -6932,7 +6932,11 @@ static void NativeCrypto_X509_delete_ext(JNIEnv* env, jclass, jlong x509Ref,
         X509_EXTENSION_free(ext);
 
         // Invalidate the cached encoding
+#if defined(OPENSSL_IS_BORINGSSL)
         X509_CINF_set_modified(X509_get_cert_info(x509));
+#else
+        x509->cert_info->enc.modified = 1;
+#endif
     }
 }
 
