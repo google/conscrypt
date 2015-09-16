@@ -6860,6 +6860,19 @@ static void NativeCrypto_X509_free(JNIEnv* env, jclass, jlong x509Ref) {
     X509_free(x509);
 }
 
+static jlong NativeCrypto_X509_dup(JNIEnv* env, jclass, jlong x509Ref) {
+    X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
+    JNI_TRACE("X509_dup(%p)", x509);
+
+    if (x509 == NULL) {
+        jniThrowNullPointerException(env, "x509 == null");
+        JNI_TRACE("X509_dup(%p) => x509 == null", x509);
+        return 0;
+    }
+
+    return reinterpret_cast<uintptr_t>(X509_dup(x509));
+}
+
 static jint NativeCrypto_X509_cmp(JNIEnv* env, jclass, jlong x509Ref1, jlong x509Ref2) {
     X509* x509_1 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref1));
     X509* x509_2 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref2));
@@ -6880,6 +6893,47 @@ static jint NativeCrypto_X509_cmp(JNIEnv* env, jclass, jlong x509Ref1, jlong x50
     int ret = X509_cmp(x509_1, x509_2);
     JNI_TRACE("X509_cmp(%p, %p) => %d", x509_1, x509_2, ret);
     return ret;
+}
+
+static void NativeCrypto_X509_delete_ext(JNIEnv* env, jclass, jlong x509Ref,
+        jstring oidString) {
+    X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
+    JNI_TRACE("X509_delete_ext(%p, %p)", x509, oidString);
+
+    if (x509 == NULL) {
+        jniThrowNullPointerException(env, "x509 == null");
+        JNI_TRACE("X509_delete_ext(%p, %p) => x509 == null", x509, oidString);
+        return;
+    }
+
+    ScopedUtfChars oid(env, oidString);
+    if (oid.c_str() == NULL) {
+        JNI_TRACE("X509_delete_ext(%p, %p) => oidString == null", x509, oidString);
+        return;
+    }
+
+    Unique_ASN1_OBJECT obj(OBJ_txt2obj(oid.c_str(), 1 /* allow numerical form only */));
+    if (obj.get() == NULL) {
+        JNI_TRACE("X509_delete_ext(%p, %s) => oid conversion failed", x509, oid.c_str());
+        freeOpenSslErrorState();
+        jniThrowException(env, "java/lang/IllegalArgumentException",
+                               "Invalid OID.");
+        return;
+    }
+
+    int extIndex = X509_get_ext_by_OBJ(x509, obj.get(), -1);
+    if (extIndex == -1) {
+        JNI_TRACE("X509_delete_ext(%p, %s) => ext not found", x509, oid.c_str());
+        return;
+    }
+
+    X509_EXTENSION* ext = X509_delete_ext(x509, extIndex);
+    if (ext != NULL) {
+        X509_EXTENSION_free(ext);
+
+        // Invalidate the cached encoding
+        X509_CINF_set_modified(X509_get_cert_info(x509));
+    }
 }
 
 static jint NativeCrypto_get_X509_hashCode(JNIEnv* env, jclass, jlong x509Ref) {
@@ -10756,6 +10810,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, ASN1_seq_unpack_X509_bio, "(J)[J"),
     NATIVE_METHOD(NativeCrypto, ASN1_seq_pack_X509, "([J)[B"),
     NATIVE_METHOD(NativeCrypto, X509_free, "(J)V"),
+    NATIVE_METHOD(NativeCrypto, X509_dup, "(J)J"),
     NATIVE_METHOD(NativeCrypto, X509_cmp, "(JJ)I"),
     NATIVE_METHOD(NativeCrypto, get_X509_hashCode, "(J)I"),
     NATIVE_METHOD(NativeCrypto, X509_print_ex, "(JJJJ)V"),
@@ -10772,6 +10827,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, get_X509_ex_pathlen, "(J)I"),
     NATIVE_METHOD(NativeCrypto, X509_get_ext_oid, "(JLjava/lang/String;)[B"),
     NATIVE_METHOD(NativeCrypto, X509_CRL_get_ext_oid, "(JLjava/lang/String;)[B"),
+    NATIVE_METHOD(NativeCrypto, X509_delete_ext, "(JLjava/lang/String;)V"),
     NATIVE_METHOD(NativeCrypto, get_X509_CRL_crl_enc, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, X509_CRL_verify, "(J" REF_EVP_PKEY ")V"),
     NATIVE_METHOD(NativeCrypto, X509_CRL_get_lastUpdate, "(J)J"),
