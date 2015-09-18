@@ -56,7 +56,11 @@
 #endif
 
 #if !defined(OPENSSL_IS_BORINGSSL)
-#include "crypto/ecdsa/ecs_locl.h"
+#if defined(GOOGLE_INTERNAL)
+#include "third_party/openssl/openssl/src/crypto/ecdsa/ecs_locl.h"
+#else
+#include "crypto/ecdsa/esc_locl.h"
+#endif
 #endif
 
 #ifndef CONSCRYPT_UNBUNDLED
@@ -1710,11 +1714,11 @@ void ExDataFree(void* /* parent */,
                 CRYPTO_EX_DATA* ad,
                 int idx,
                 long /* argl */,
-#if defined(OPENSSL_IS_BORINGSSL)
+#if defined(OPENSSL_IS_BORINGSSL) || defined(GOOGLE_INTERNAL)
                 const void* /* argp */) {
-#else /* defined(OPENSSL_IS_BORINGSSL) */
+#else /* defined(OPENSSL_IS_BORINGSSL) || defined(GOOGLE_INTERNAL) */
                 void* /* argp */) {
-#endif /* defined(OPENSSL_IS_BORINGSSL) */
+#endif /* defined(OPENSSL_IS_BORINGSSL) || defined(GOOGLE_INTERNAL) */
     jobject private_key = reinterpret_cast<jobject>(ptr);
     if (private_key == NULL) return;
 
@@ -1728,11 +1732,11 @@ int ExDataDup(CRYPTO_EX_DATA* /* to */,
               void* /* from_d */,
               int /* idx */,
               long /* argl */,
-#if defined(OPENSSL_IS_BORINGSSL)
+#if defined(OPENSSL_IS_BORINGSSL) || defined(GOOGLE_INTERNAL)
               const void* /* argp */) {
-#else /* defined(OPENSSL_IS_BORINGSSL) */
+#else /* defined(OPENSSL_IS_BORINGSSL) || defined(GOOGLE_INTERNAL) */
               void* /* argp */) {
-#endif /* defined(OPENSSL_IS_BORINGSSL) */
+#endif /* defined(OPENSSL_IS_BORINGSSL) || defined(GOOGLE_INTERNAL) */
     // This callback shall never be called with the current OpenSSL
     // implementation (the library only ever duplicates EX_DATA items
     // for SSL and BIO objects). But provide this to catch regressions
