@@ -59,7 +59,7 @@
 #if defined(GOOGLE_INTERNAL)
 #include "third_party/openssl/openssl/src/crypto/ecdsa/ecs_locl.h"
 #else
-#include "crypto/ecdsa/esc_locl.h"
+#include "crypto/ecdsa/ecs_locl.h"
 #endif
 #endif
 
