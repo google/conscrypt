@@ -183,7 +183,11 @@ include $(BUILD_SHARED_LIBRARY)
 # Static unbundled Conscrypt crypto JNI library
 include $(CLEAR_VARS)
 LOCAL_CFLAGS += $(core_cflags)
-LOCAL_CPPFLAGS += $(core_cppflags) -DJNI_JARJAR_PREFIX="com/google/android/gms/" -DCONSCRYPT_UNBUNDLED -DSTATIC_LIB
+LOCAL_CPPFLAGS += $(core_cppflags) \
+        -DJNI_JARJAR_PREFIX="com/google/android/gms/" \
+        -DCONSCRYPT_UNBUNDLED \
+        -DSTATIC_LIB \
+        -DNO_KEYSTORE_ENGINE
 LOCAL_SRC_FILES := \
         src/main/native/org_conscrypt_NativeCrypto.cpp \
         src/compat/native/JNIHelp.cpp
