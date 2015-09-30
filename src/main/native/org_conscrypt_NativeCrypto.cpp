@@ -1907,13 +1907,6 @@ size_t RsaMethodSize(const RSA *rsa) {
   return ex_data->cached_size;
 }
 
-#if defined(BORINGSSL_201509)
-// Newer versions of BoringSSL have dropped the function code. */
-#undef OPENSSL_PUT_ERROR
-#define OPENSSL_PUT_ERROR(library, func, reason) \
-    ERR_put_error(ERR_LIB_##library, reason, OPENSSL_CURRENT_FUNCTION, __FILE__, __LINE__)
-#endif
-
 int RsaMethodEncrypt(RSA* /* rsa */,
                      size_t* /* out_len */,
                      uint8_t* /* out */,
@@ -1921,7 +1914,7 @@ int RsaMethodEncrypt(RSA* /* rsa */,
                      const uint8_t* /* in */,
                      size_t /* in_len */,
                      int /* padding */) {
-  OPENSSL_PUT_ERROR(RSA, encrypt, RSA_R_UNKNOWN_ALGORITHM_TYPE);
+  OPENSSL_PUT_ERROR(RSA, RSA_R_UNKNOWN_ALGORITHM_TYPE);
   return 0;
 }
 
@@ -1940,20 +1933,20 @@ int RsaMethodSignRaw(RSA* rsa,
     // the same Android version as the "NONEwithRSA"
     // java.security.Signature algorithm, so the same version checks
     // for GetRsaLegacyKey should work.
-    OPENSSL_PUT_ERROR(RSA, sign_raw, RSA_R_UNKNOWN_PADDING_TYPE);
+    OPENSSL_PUT_ERROR(RSA, RSA_R_UNKNOWN_PADDING_TYPE);
     return 0;
   }
 
   // Retrieve private key JNI reference.
   const KeyExData *ex_data = RsaGetExData(rsa);
   if (!ex_data || !ex_data->private_key) {
-    OPENSSL_PUT_ERROR(RSA, sign_raw, ERR_R_INTERNAL_ERROR);
+    OPENSSL_PUT_ERROR(RSA, ERR_R_INTERNAL_ERROR);
     return 0;
   }
 
   JNIEnv* env = getJNIEnv();
   if (env == NULL) {
-    OPENSSL_PUT_ERROR(RSA, sign_raw, ERR_R_INTERNAL_ERROR);
+    OPENSSL_PUT_ERROR(RSA, ERR_R_INTERNAL_ERROR);
     return 0;
   }
 
@@ -1965,7 +1958,7 @@ int RsaMethodSignRaw(RSA* rsa,
           reinterpret_cast<const char*>(in), in_len));
 
   if (signature.get() == NULL) {
-    OPENSSL_PUT_ERROR(RSA, sign_raw, ERR_R_INTERNAL_ERROR);
+    OPENSSL_PUT_ERROR(RSA, ERR_R_INTERNAL_ERROR);
     return 0;
   }
 
@@ -1973,12 +1966,12 @@ int RsaMethodSignRaw(RSA* rsa,
 
   size_t expected_size = static_cast<size_t>(RSA_size(rsa));
   if (result.size() > expected_size) {
-    OPENSSL_PUT_ERROR(RSA, sign_raw, ERR_R_INTERNAL_ERROR);
+    OPENSSL_PUT_ERROR(RSA, ERR_R_INTERNAL_ERROR);
     return 0;
   }
 
   if (max_out < expected_size) {
-    OPENSSL_PUT_ERROR(RSA, sign_raw, RSA_R_DATA_TOO_LARGE);
+    OPENSSL_PUT_ERROR(RSA, RSA_R_DATA_TOO_LARGE);
     return 0;
   }
 
@@ -2002,13 +1995,13 @@ int RsaMethodDecrypt(RSA* rsa,
   // Retrieve private key JNI reference.
   const KeyExData *ex_data = RsaGetExData(rsa);
   if (!ex_data || !ex_data->private_key) {
-    OPENSSL_PUT_ERROR(RSA, decrypt, ERR_R_INTERNAL_ERROR);
+    OPENSSL_PUT_ERROR(RSA, ERR_R_INTERNAL_ERROR);
     return 0;
   }
 
   JNIEnv* env = getJNIEnv();
   if (env == NULL) {
-    OPENSSL_PUT_ERROR(RSA, decrypt, ERR_R_INTERNAL_ERROR);
+    OPENSSL_PUT_ERROR(RSA, ERR_R_INTERNAL_ERROR);
     return 0;
   }
 
@@ -2018,14 +2011,14 @@ int RsaMethodDecrypt(RSA* rsa,
           env, ex_data->private_key, padding,
           reinterpret_cast<const char*>(in), in_len));
   if (cleartext.get() == NULL) {
-    OPENSSL_PUT_ERROR(RSA, decrypt, ERR_R_INTERNAL_ERROR);
+    OPENSSL_PUT_ERROR(RSA, ERR_R_INTERNAL_ERROR);
     return 0;
   }
 
   ScopedByteArrayRO cleartextBytes(env, cleartext.get());
 
   if (max_out < cleartextBytes.size()) {
-    OPENSSL_PUT_ERROR(RSA, decrypt, RSA_R_DATA_TOO_LARGE);
+    OPENSSL_PUT_ERROR(RSA, RSA_R_DATA_TOO_LARGE);
     return 0;
   }
 
@@ -2043,7 +2036,7 @@ int RsaMethodVerifyRaw(RSA* /* rsa */,
                        const uint8_t* /* in */,
                        size_t /* in_len */,
                        int /* padding */) {
-  OPENSSL_PUT_ERROR(RSA, verify_raw, RSA_R_UNKNOWN_ALGORITHM_TYPE);
+  OPENSSL_PUT_ERROR(RSA, RSA_R_UNKNOWN_ALGORITHM_TYPE);
   return 0;
 }
 
@@ -2068,9 +2061,7 @@ const RSA_METHOD android_rsa_method = {
     NULL /* private_transform */,
     RSA_FLAG_OPAQUE,
     NULL /* keygen */,
-#if defined(BORINGSSL_201509)
     NULL /* multi_prime_keygen */,
-#endif
     NULL /* supports_digest */,
 };
 
@@ -2137,7 +2128,7 @@ int EcdsaMethodVerify(const uint8_t* /* digest */,
                       const uint8_t* /* sig */,
                       size_t /* sig_len */,
                       EC_KEY* /* ec_key */) {
-  OPENSSL_PUT_ERROR(ECDSA, ECDSA_do_verify, ECDSA_R_NOT_IMPLEMENTED);
+  OPENSSL_PUT_ERROR(ECDSA, ECDSA_R_NOT_IMPLEMENTED);
   return 0;
 }
 
@@ -7911,11 +7902,7 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
             break;
     }
 #else
-#if defined(BORINGSSL_201509)
     const uint8_t* ctype = NULL;
-#else
-    const char* ctype = NULL;
-#endif
     int ctype_num = SSL_get0_certificate_types(ssl, &ctype);
     jobjectArray issuers = getPrincipalBytes(env, ssl->s3->tmp.ca_names);
 #endif
@@ -8230,11 +8217,6 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
         return 0;
     }
     SSL_CTX_set_tmp_ecdh(sslCtx.get(), ec.get());
-
-#if !defined(BORINGSSL_201509)
-    // When TLS Channel ID extension is used, use the new version of it.
-    sslCtx.get()->tlsext_channel_id_enabled_new = 1;
-#endif
 
     JNI_TRACE("NativeCrypto_SSL_CTX_new => %p", sslCtx.get());
     return (jlong) sslCtx.release();
