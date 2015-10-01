@@ -316,6 +316,13 @@ struct X509_NAME_Delete {
 };
 typedef UniquePtr<X509_NAME, X509_NAME_Delete> Unique_X509_NAME;
 
+struct X509_EXTENSIONS_Delete {
+    void operator()(X509_EXTENSIONS* p) const {
+        sk_X509_EXTENSION_pop_free(p, X509_EXTENSION_free);
+    }
+};
+typedef UniquePtr<X509_EXTENSIONS, X509_EXTENSIONS_Delete> Unique_X509_EXTENSIONS;
+
 #if !defined(OPENSSL_IS_BORINGSSL)
 struct PKCS7_Delete {
     void operator()(PKCS7* p) const {
@@ -10681,6 +10688,262 @@ static jobjectArray NativeCrypto_get_cipher_names(JNIEnv *env, jclass, jstring s
     return cipherNamesArray.release();
 }
 
+#if defined(OPENSSL_IS_BORINGSSL)
+
+/**
+ * Compare the given CertID with a certificate and it's issuer.
+ * True is returned if the CertID matches.
+ */
+static bool ocsp_cert_id_matches_certificate(CBS *cert_id, X509 *x509, X509 *issuerX509) {
+    // Get the hash algorithm used by this CertID
+    CBS hash_algorithm, hash;
+    if (!CBS_get_asn1(cert_id, &hash_algorithm, CBS_ASN1_SEQUENCE) ||
+        !CBS_get_asn1(&hash_algorithm, &hash, CBS_ASN1_OBJECT)) {
+        return false;
+    }
+
+    // Get the issuer's name hash from the CertID
+    CBS issuer_name_hash;
+    if (!CBS_get_asn1(cert_id, &issuer_name_hash, CBS_ASN1_OCTETSTRING)) {
+        return false;
+    }
+
+    // Get the issuer's key hash from the CertID
+    CBS issuer_key_hash;
+    if (!CBS_get_asn1(cert_id, &issuer_key_hash, CBS_ASN1_OCTETSTRING)) {
+        return false;
+    }
+
+    // Get the serial number from the CertID
+    CBS serial;
+    if (!CBS_get_asn1(cert_id, &serial, CBS_ASN1_INTEGER)) {
+        return false;
+    }
+
+    // Compare the certificate's serial number with the one from the Cert ID
+    const uint8_t *p = CBS_data(&serial);
+    Unique_ASN1_INTEGER serial_number(c2i_ASN1_INTEGER(NULL, &p, CBS_len(&serial)));
+    ASN1_INTEGER *expected_serial_number = X509_get_serialNumber(x509);
+    if (serial_number.get() == NULL ||
+        ASN1_INTEGER_cmp(expected_serial_number, serial_number.get()) != 0) {
+        return false;
+    }
+
+    // Find the hash algorithm to be used
+    const EVP_MD *digest = EVP_get_digestbynid(OBJ_cbs2nid(&hash));
+    if (digest == NULL) {
+        return false;
+    }
+
+    // Hash the issuer's name and compare the hash with the one from the Cert ID
+    uint8_t md[EVP_MAX_MD_SIZE];
+    X509_NAME *issuer_name = X509_get_subject_name(issuerX509);
+    if (!X509_NAME_digest(issuer_name, digest, md, NULL) ||
+        !CBS_mem_equal(&issuer_name_hash, md, EVP_MD_size(digest))) {
+        return false;
+    }
+
+    // Same thing with the issuer's key
+    ASN1_BIT_STRING *issuer_key = X509_get0_pubkey_bitstr(issuerX509);
+    if (!EVP_Digest(issuer_key->data, issuer_key->length, md, NULL, digest, NULL) ||
+        !CBS_mem_equal(&issuer_key_hash, md, EVP_MD_size(digest))) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Get a SingleResponse whose CertID matches the given certificate and issuer from a
+ * SEQUENCE OF SingleResponse.
+ *
+ * If found, |out_single_response| is set to the response, and true is returned. Otherwise if an
+ * error occured or no response matches the certificate, false is returned and |out_single_response|
+ * is unchanged.
+ */
+static bool find_ocsp_single_response(CBS* responses, X509 *x509, X509 *issuerX509,
+                                      CBS *out_single_response) {
+    // Iterate over all the SingleResponses, until one matches the certificate
+    while (CBS_len(responses) > 0) {
+        // Get the next available SingleResponse from the sequence
+        CBS single_response;
+        if (!CBS_get_asn1(responses, &single_response, CBS_ASN1_SEQUENCE)) {
+            return false;
+        }
+
+        // Make a copy of the stream so we pass it back to the caller
+        CBS single_response_original = single_response;
+
+        // Get the SingleResponse's CertID
+        // If this fails ignore the current response and move to the next one
+        CBS cert_id;
+        if (!CBS_get_asn1(&single_response, &cert_id, CBS_ASN1_SEQUENCE)) {
+            continue;
+        }
+
+        // Compare the CertID with the given certificate and issuer
+        if (ocsp_cert_id_matches_certificate(&cert_id, x509, issuerX509)) {
+            *out_single_response = single_response_original;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Get the BasicOCSPResponse from an OCSPResponse.
+ * If parsing succeeds and the response is of type basic, |basic_response| is set to it, and true is
+ * returned.
+ */
+static bool get_ocsp_basic_response(CBS *ocsp_response, CBS *basic_response) {
+    CBS tagged_response_bytes, response_bytes, response_type, response;
+
+    // Get the ResponseBytes out of the OCSPResponse
+    if (!CBS_get_asn1(ocsp_response, NULL /* responseStatus */, CBS_ASN1_ENUMERATED) ||
+        !CBS_get_asn1(ocsp_response, &tagged_response_bytes,
+            CBS_ASN1_CONTEXT_SPECIFIC | CBS_ASN1_CONSTRUCTED | 0) ||
+        !CBS_get_asn1(&tagged_response_bytes, &response_bytes,
+            CBS_ASN1_SEQUENCE)) {
+        return false;
+    }
+
+    // Parse the response type and data out of the ResponseBytes
+    if (!CBS_get_asn1(&response_bytes, &response_type, CBS_ASN1_OBJECT) ||
+        !CBS_get_asn1(&response_bytes, &response, CBS_ASN1_OCTETSTRING)) {
+        return false;
+    }
+
+    // Only basic OCSP responses are supported
+    if (OBJ_cbs2nid(&response_type) != NID_id_pkix_OCSP_basic) {
+        return false;
+    }
+
+    // Parse the octet string as a BasicOCSPResponse
+    return CBS_get_asn1(&response, basic_response, CBS_ASN1_SEQUENCE);
+}
+
+/**
+ * Get the SEQUENCE OF SingleResponse from a BasicOCSPResponse.
+ * If parsing succeeds, |single_responses| is set to point to the sequence of SingleResponse, and
+ * true is returned.
+ */
+static bool get_ocsp_single_responses(CBS *basic_response, CBS *single_responses) {
+    // Parse the ResponseData out of the BasicOCSPResponse. Ignore the rest.
+    CBS response_data;
+    if (!CBS_get_asn1(basic_response, &response_data, CBS_ASN1_SEQUENCE)) {
+        return false;
+    }
+
+    // Skip the version, responderID and producedAt fields
+    if (!CBS_get_optional_asn1(&response_data, NULL /* version */, NULL,
+            CBS_ASN1_CONTEXT_SPECIFIC | CBS_ASN1_CONSTRUCTED | 0) ||
+        !CBS_get_any_asn1_element(&response_data, NULL /* responderID */, NULL, NULL) ||
+        !CBS_get_any_asn1_element(&response_data, NULL /* producedAt */, NULL, NULL)) {
+        return false;
+    }
+
+    // Extract the list of SingleResponse.
+    return CBS_get_asn1(&response_data, single_responses, CBS_ASN1_SEQUENCE);
+}
+
+/**
+ * Get the SEQUENCE OF Extension from a SingleResponse.
+ * If parsing succeeds, |extensions| is set to point the the extension sequence and true is
+ * returned.
+ */
+static bool get_ocsp_single_response_extensions(CBS *single_response, CBS *extensions) {
+    // Skip the certID, certStatus, thisUpdate and optional nextUpdate fields.
+    if (!CBS_get_any_asn1_element(single_response, NULL /* certID */, NULL, NULL) ||
+        !CBS_get_any_asn1_element(single_response, NULL /* certStatus */, NULL, NULL) ||
+        !CBS_get_any_asn1_element(single_response, NULL /* thisUpdate */, NULL, NULL) ||
+        !CBS_get_optional_asn1(single_response, NULL /* nextUpdate */, NULL,
+            CBS_ASN1_CONTEXT_SPECIFIC | CBS_ASN1_CONSTRUCTED | 0)) {
+        return false;
+    }
+
+    // Get the list of Extension
+    return CBS_get_asn1(single_response, extensions,
+            CBS_ASN1_CONTEXT_SPECIFIC | CBS_ASN1_CONSTRUCTED | 1);
+}
+
+/*
+ * X509v3_get_ext_by_OBJ and X509v3_get_ext take const arguments, unlike the other *_get_ext
+ * functions.
+ * This means they cannot be used with X509Type_get_ext_oid, so these wrapper functions are used
+ * instead.
+ */
+static int _X509v3_get_ext_by_OBJ(X509_EXTENSIONS *exts, ASN1_OBJECT *obj, int lastpos) {
+    return X509v3_get_ext_by_OBJ(exts, obj, lastpos);
+}
+static X509_EXTENSION *_X509v3_get_ext(X509_EXTENSIONS* exts, int loc) {
+    return X509v3_get_ext(exts, loc);
+}
+
+/*
+    public static native byte[] get_ocsp_single_extension(byte[] ocspData, String oid,
+                                                          long x509Ref, long issuerX509Ref);
+*/
+static jbyteArray NativeCrypto_get_ocsp_single_extension(JNIEnv *env, jclass,
+        jbyteArray ocspDataBytes, jstring oid, jlong x509Ref, jlong issuerX509Ref) {
+    ScopedByteArrayRO ocspData(env, ocspDataBytes);
+    if (ocspData.get() == NULL) {
+        return NULL;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(ocspData.get()), ocspData.size());
+
+    // Start parsing the OCSPResponse
+    CBS ocsp_response;
+    if (!CBS_get_asn1(&cbs, &ocsp_response, CBS_ASN1_SEQUENCE)) {
+        return NULL;
+    }
+
+    // Get the BasicOCSPResponse from the OCSP Response
+    CBS basic_response;
+    if (!get_ocsp_basic_response(&ocsp_response, &basic_response)) {
+        return NULL;
+    }
+
+    // Get the list of SingleResponses from the BasicOCSPResponse
+    CBS responses;
+    if (!get_ocsp_single_responses(&basic_response, &responses)) {
+        return NULL;
+    }
+
+    // Find the response matching the certificate
+    X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
+    X509* issuerX509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(issuerX509Ref));
+    CBS single_response;
+    if (!find_ocsp_single_response(&responses, x509, issuerX509, &single_response)) {
+        return NULL;
+    }
+
+    // Get the extensions from the SingleResponse
+    CBS extensions;
+    if (!get_ocsp_single_response_extensions(&single_response, &extensions)) {
+        return NULL;
+    }
+
+    const uint8_t* ptr = CBS_data(&extensions);
+    Unique_X509_EXTENSIONS x509_exts(d2i_X509_EXTENSIONS(NULL, &ptr, CBS_len(&extensions)));
+    if (x509_exts.get() == NULL) {
+        return NULL;
+    }
+
+    return X509Type_get_ext_oid<X509_EXTENSIONS, _X509v3_get_ext_by_OBJ, _X509v3_get_ext>(
+            env, x509_exts.get(), oid);
+}
+
+#else
+
+static jbyteArray NativeCrypto_get_ocsp_single_extension(JNIEnv*, jclass, jbyteArray, jstring,
+                                                         jlong, jlong) {
+    return NULL;
+}
+#endif
+
 #define FILE_DESCRIPTOR "Ljava/io/FileDescriptor;"
 #define SSL_CALLBACKS "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks;"
 #define REF_EC_GROUP "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_GROUP;"
@@ -10937,6 +11200,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, ERR_peek_last_error, "()J"),
     NATIVE_METHOD(NativeCrypto, SSL_CIPHER_get_kx_name, "(J)Ljava/lang/String;"),
     NATIVE_METHOD(NativeCrypto, get_cipher_names, "(Ljava/lang/String;)[Ljava/lang/String;"),
+    NATIVE_METHOD(NativeCrypto, get_ocsp_single_extension, "([BLjava/lang/String;JJ)[B")
 };
 
 static jclass getGlobalRefToClass(JNIEnv* env, const char* className) {
