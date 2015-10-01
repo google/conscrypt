@@ -17,17 +17,19 @@
 package org.conscrypt;
 
 import junit.framework.TestCase;
-import java.io.InputStream;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
+import static org.conscrypt.TestUtils.openTestFile;
+
 public class OpenSSLX509CertificateTest extends TestCase {
     static final String CT_POISON_EXTENSION = "1.3.6.1.4.1.11129.2.4.3";
 
-    private OpenSSLX509Certificate loadTestCertificate(String name) throws ParsingException {
-        InputStream is = getClass().getResourceAsStream("/" + name);
-        return OpenSSLX509Certificate.fromX509PemInputStream(is);
+    private OpenSSLX509Certificate loadTestCertificate(String name)
+            throws FileNotFoundException, ParsingException {
+        return OpenSSLX509Certificate.fromX509PemInputStream(openTestFile(name));
     }
 
     public void test_deletingCTPoisonExtension() throws Exception {
