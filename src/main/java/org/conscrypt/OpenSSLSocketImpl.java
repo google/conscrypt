@@ -147,7 +147,11 @@ public class OpenSSLSocketImpl
     private final int peerPort;
 
     private final SSLParametersImpl sslParameters;
-    private final CloseGuard guard = CloseGuard.get();
+
+    /*
+     * A CloseGuard object on Android. On other platforms, this is nothing.
+     */
+    private final Object guard = Platform.closeGuardGet();
 
     private ArrayList<HandshakeCompletedListener> listeners;
 
@@ -285,7 +289,7 @@ public class OpenSSLSocketImpl
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
             final long sslCtxNativePointer = sessionContext.sslCtxNativePointer;
             sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
-            guard.open("close");
+            Platform.closeGuardOpen(guard, "close");
 
             boolean enableSessionCreation = getEnableSessionCreation();
             if (!enableSessionCreation) {
@@ -685,7 +689,7 @@ public class OpenSSLSocketImpl
          */
         @Override
         public int read(byte[] buf, int offset, int byteCount) throws IOException {
-            BlockGuard.getThreadPolicy().onNetwork();
+            Platform.blockGuardOnNetwork();
 
             checkOpen();
             ArrayUtils.checkOffsetAndCount(buf.length, offset, byteCount);
@@ -752,7 +756,7 @@ public class OpenSSLSocketImpl
          */
         @Override
         public void write(byte[] buf, int offset, int byteCount) throws IOException {
-            BlockGuard.getThreadPolicy().onNetwork();
+            Platform.blockGuardOnNetwork();
             checkOpen();
             ArrayUtils.checkOffsetAndCount(buf.length, offset, byteCount);
             if (byteCount == 0) {
@@ -1128,7 +1132,7 @@ public class OpenSSLSocketImpl
 
     private void shutdownAndFreeSslNative() throws IOException {
         try {
-            BlockGuard.getThreadPolicy().onNetwork();
+            Platform.blockGuardOnNetwork();
             NativeCrypto.SSL_shutdown(sslNativePointer, Platform.getFileDescriptor(socket),
                     this);
         } catch (IOException ignored) {
@@ -1162,7 +1166,7 @@ public class OpenSSLSocketImpl
         }
         NativeCrypto.SSL_free(sslNativePointer);
         sslNativePointer = 0;
-        guard.close();
+        Platform.closeGuardClose(guard);
     }
 
     @Override
@@ -1185,7 +1189,7 @@ public class OpenSSLSocketImpl
              * reader.
              */
             if (guard != null) {
-                guard.warnIfOpen();
+                Platform.closeGuardWarnIfOpen(guard);
             }
             free();
         } finally {
