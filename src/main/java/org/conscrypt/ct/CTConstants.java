@@ -33,6 +33,9 @@ public class CTConstants {
     public static final int LOG_ENTRY_TYPE_LENGTH = 2;
     public static final int CERTIFICATE_LENGTH_BYTES = 3;
 
+    public static final int SERIALIZED_SCT_LENGTH_BYTES = 2;
+    public static final int SCT_LIST_LENGTH_BYTES = 2;
+
     public static final int ISSUER_KEY_HASH_LENGTH = 32;
 }
 

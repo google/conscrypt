@@ -1,0 +1,26 @@
+This repository contains data used in various tests :
+- ca-cert.pem: Root CA certificate
+
+- ct-server-key-public.pem: Public Key of a test Certificate Transparency log
+
+- cert.pem / cert-key.pem: Certificate issued by ca-cert.pem, and its private key
+
+- cert-ct-poisoned.pem: Same certificate as cert.pem, but with an extra CT Poison extension
+
+- cert-ct-embedded.pem: Same certificate as cert.pem, but with an embedded signed certificate
+    timestamp signed by the test CT log
+
+- ct-signed-timestamp-list: TLS-encoded SignedCertificateTimestampList containing one SCT for
+    cert.pem signed by the test CT log
+
+- ct-signed-timestamp-list-invalid: TLS-encoded SignedCertificateTimestampList containing one SCT
+    signed by the test CT log, but for another certificate
+
+- ct-signed-timestamp-list-unknown: TLS-encoded SignedCertificateTimestampList containing one SCT
+    for cert.pem, but signed by a different log
+
+- ocsp-response.der: OCSP response for cert.pem, containing an SCT for cert.pem signed by the test
+    CT log
+
+- ocsp-response-sct-extension.der: The extension from ocsp-response.der which contains the SCT
+
