@@ -18,6 +18,8 @@ package org.conscrypt;
 
 import android.os.Build;
 import android.util.Log;
+import dalvik.system.BlockGuard;
+import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -358,5 +360,52 @@ public class Platform {
             }
         }
         return null;
+    }
+
+    /*
+     * CloseGuard functions.
+     */
+
+    public static CloseGuard closeGuardGet() {
+        if (Build.VERSION.SDK_INT < 14) {
+            return null;
+        }
+
+        return CloseGuard.get();
+    }
+
+    public static void closeGuardOpen(Object guardObj, String message) {
+        if (Build.VERSION.SDK_INT < 14) {
+            return;
+        }
+
+        CloseGuard guard = (CloseGuard) guardObj;
+        guard.open(message);
+    }
+
+    public static void closeGuardClose(Object guardObj) {
+        if (Build.VERSION.SDK_INT < 14) {
+            return;
+        }
+
+        CloseGuard guard = (CloseGuard) guardObj;
+        guard.close();
+    }
+
+    public static void closeGuardWarnIfOpen(Object guardObj) {
+        if (Build.VERSION.SDK_INT < 14) {
+            return;
+        }
+
+        CloseGuard guard = (CloseGuard) guardObj;
+        guard.warnIfOpen();
+    }
+
+    /*
+     * BlockGuard functions.
+     */
+
+    public static void blockGuardOnNetwork() {
+        BlockGuard.getThreadPolicy().onNetwork();
     }
 }
