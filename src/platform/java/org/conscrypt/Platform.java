@@ -19,12 +19,11 @@ package org.conscrypt;
 import static android.system.OsConstants.SOL_SOCKET;
 import static android.system.OsConstants.SO_SNDTIMEO;
 
-import org.apache.harmony.security.utils.AlgNameMapper;
-import org.apache.harmony.security.utils.AlgNameMapperSource;
-import org.conscrypt.GCMParameters;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.StructTimeval;
+import dalvik.system.BlockGuard;
+import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -42,6 +41,9 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
+import org.apache.harmony.security.utils.AlgNameMapper;
+import org.apache.harmony.security.utils.AlgNameMapperSource;
+import org.conscrypt.GCMParameters;
 
 class Platform {
     private static class NoPreloadHolder {
@@ -181,5 +183,36 @@ class Platform {
      */
     public static AlgorithmParameterSpec toGCMParameterSpec(int tagLenInBits, byte[] iv) {
         return new GCMParameterSpec(tagLenInBits, iv);
+    }
+
+    /*
+     * CloseGuard functions.
+     */
+
+    public static CloseGuard closeGuardGet() {
+        return CloseGuard.get();
+    }
+
+    public static void closeGuardOpen(Object guardObj, String message) {
+        CloseGuard guard = (CloseGuard) guardObj;
+        guard.open(message);
+    }
+
+    public static void closeGuardClose(Object guardObj) {
+        CloseGuard guard = (CloseGuard) guardObj;
+        guard.close();
+    }
+
+    public static void closeGuardWarnIfOpen(Object guardObj) {
+        CloseGuard guard = (CloseGuard) guardObj;
+        guard.warnIfOpen();
+    }
+
+    /*
+     * BlockGuard functions.
+     */
+
+    public static void blockGuardOnNetwork() {
+        BlockGuard.getThreadPolicy().onNetwork();
     }
 }
