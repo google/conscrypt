@@ -848,6 +848,12 @@ public final class NativeCrypto {
 
     public static native long SSL_clear_options(long ssl, long options);
 
+    public static native void SSL_enable_signed_cert_timestamps(long ssl);
+
+    public static native byte[] SSL_get_signed_cert_timestamp_list(long ssl);
+
+    public static native void SSL_CTX_set_signed_cert_timestamp_list(long ssl, byte[] list);
+
     public static native void SSL_enable_ocsp_stapling(long ssl);
 
     public static native byte[] SSL_get_ocsp_response(long ssl);

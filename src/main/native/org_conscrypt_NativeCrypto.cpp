@@ -8684,6 +8684,83 @@ static jlong NativeCrypto_SSL_clear_options(JNIEnv* env, jclass,
 }
 
 
+/**
+ * public static native void SSL_enable_signed_cert_timestamps(long ssl);
+ */
+static void NativeCrypto_SSL_enable_signed_cert_timestamps(JNIEnv *env, jclass,
+        jlong ssl_address) {
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_enable_signed_cert_timestamps", ssl);
+    if (ssl == NULL) {
+        return;
+    }
+
+#if defined(OPENSSL_IS_BORINGSSL)
+    SSL_enable_signed_cert_timestamps(ssl);
+#endif
+}
+
+/**
+ * public static native byte[] SSL_get_signed_cert_timestamp_list(long ssl);
+ */
+static jbyteArray NativeCrypto_SSL_get_signed_cert_timestamp_list(JNIEnv *env, jclass,
+        jlong ssl_address) {
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_signed_cert_timestamp_list", ssl);
+    if (ssl == NULL)  {
+        return NULL;
+    }
+
+#if defined(OPENSSL_IS_BORINGSSL)
+    const uint8_t *data;
+    size_t data_len;
+    SSL_get0_signed_cert_timestamp_list(ssl, &data, &data_len);
+
+    if (data_len == 0) {
+        JNI_TRACE("NativeCrypto_SSL_get_signed_cert_timestamp_list(%p) => NULL",
+                ssl);
+        return NULL;
+    }
+
+    jbyteArray result = env->NewByteArray(data_len);
+    if (result != NULL) {
+        env->SetByteArrayRegion(result, 0, data_len, (const jbyte*)data);
+    }
+    return result;
+#else
+    return NULL;
+#endif
+}
+
+/*
+ * public static native void SSL_CTX_set_signed_cert_timestamp_list(long ssl, byte[] response);
+ */
+static void NativeCrypto_SSL_CTX_set_signed_cert_timestamp_list(JNIEnv *env, jclass,
+        jlong ssl_ctx_address, jbyteArray list) {
+    SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
+    JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_signed_cert_timestamp_list", ssl_ctx);
+    if (ssl_ctx == NULL)  {
+        return;
+    }
+
+    ScopedByteArrayRO listBytes(env, list);
+    if (listBytes.get() == NULL) {
+        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_signed_cert_timestamp_list =>"
+                  " list == NULL", ssl_ctx);
+        return;
+    }
+
+#if defined(OPENSSL_IS_BORINGSSL)
+    if (!SSL_CTX_set_signed_cert_timestamp_list(ssl_ctx,
+                reinterpret_cast<const uint8_t *>(listBytes.get()),
+                listBytes.size())) {
+        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_signed_cert_timestamp_list => fail", ssl_ctx);
+    } else {
+        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_signed_cert_timestamp_list => ok", ssl_ctx);
+    }
+#endif
+}
+
 /*
  * public static native void SSL_enable_ocsp_stapling(long ssl);
  */
@@ -11237,6 +11314,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_get_options, "(J)J"),
     NATIVE_METHOD(NativeCrypto, SSL_set_options, "(JJ)J"),
     NATIVE_METHOD(NativeCrypto, SSL_clear_options, "(JJ)J"),
+    NATIVE_METHOD(NativeCrypto, SSL_enable_signed_cert_timestamps, "(J)V"),
+    NATIVE_METHOD(NativeCrypto, SSL_get_signed_cert_timestamp_list, "(J)[B"),
+    NATIVE_METHOD(NativeCrypto, SSL_CTX_set_signed_cert_timestamp_list, "(J[B)V"),
     NATIVE_METHOD(NativeCrypto, SSL_enable_ocsp_stapling, "(J)V"),
     NATIVE_METHOD(NativeCrypto, SSL_get_ocsp_response, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, SSL_CTX_set_ocsp_response, "(J[B)V"),
