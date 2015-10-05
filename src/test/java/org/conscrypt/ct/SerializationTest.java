@@ -161,6 +161,48 @@ public class SerializationTest extends TestCase {
         }, output.toByteArray());
     }
 
+    public void test_readDEROctetString() throws Exception {
+        byte[] in, expected;
+
+        in = new byte[] {
+            0x04, // TAG
+            0x06, // length
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x05 // data
+        };
+        expected = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x05 };
+        assertEqualByteArrays(expected, Serialization.readDEROctetString(in));
+
+        in = new byte[202];
+        in[0] = 0x04; // TAG
+        in[1] = (byte)0x81; // long length flag
+        in[2] = (byte)200; // length
+        in[3] = 0x45; // data, the rest is just zeros
+
+        expected = new byte[200];
+        expected[0] = 0x45;
+        assertEqualByteArrays(expected, Serialization.readDEROctetString(in));
+
+        try {
+            in = new byte[] {
+                0x12, // wrong tag
+                0x06, // length
+                0x01, 0x02, 0x03, 0x04, 0x05, 0x05 // data
+            };
+            Serialization.readDEROctetString(in);
+            fail("SerializationException not thrown on invalid tag.");
+        } catch (SerializationException e) {}
+
+        try {
+            in = new byte[] {
+                0x04, // wrong tag
+                0x06, // length
+                0x01, 0x02 // data
+            };
+            Serialization.readDEROctetString(in);
+            fail("SerializationException not thrown on invalid length.");
+        } catch (SerializationException e) {}
+    }
+
     public static void assertEqualByteArrays(byte[] expected, byte[] actual) {
         assertEquals(Arrays.toString(expected), Arrays.toString(actual));
     }
