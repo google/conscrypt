@@ -21,7 +21,9 @@ import android.util.Log;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -30,6 +32,7 @@ import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
 
 import javax.net.ssl.SSLEngine;
@@ -301,6 +304,62 @@ public class Platform {
             return new KitKatPlatformOpenSSLSocketAdapterFactory(factory);
         }
         return factory;
+    }
+
+    /**
+     * Convert from platform's GCMParameterSpec to our internal version.
+     */
+    public static GCMParameters fromGCMParameterSpec(AlgorithmParameterSpec params) {
+        Class<?> gcmSpecClass;
+        try {
+            gcmSpecClass = Class.forName("javax.crypto.spec.GCMParameterSpec");
+        } catch (ClassNotFoundException e) {
+            gcmSpecClass = null;
+        }
+
+        if (gcmSpecClass != null && gcmSpecClass.isAssignableFrom(params.getClass())) {
+            try {
+                int tLen;
+                byte[] iv;
+
+                Method getTLenMethod = gcmSpecClass.getMethod("getTLen");
+                Method getIVMethod = gcmSpecClass.getMethod("getIV");
+                tLen = (int) getTLenMethod.invoke(params);
+                iv = (byte[]) getIVMethod.invoke(params);
+
+                return new GCMParameters(tLen, iv);
+            } catch (NoSuchMethodException | IllegalAccessException e) {
+                throw new RuntimeException("GCMParameterSpec lacks expected methods", e);
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException("Could not fetch GCM parameters", e.getTargetException());
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Creates a platform version of {@code GCMParameterSpec}.
+     */
+    public static AlgorithmParameterSpec toGCMParameterSpec(int tagLenInBits, byte[] iv) {
+        Class<?> gcmSpecClass;
+        try {
+            gcmSpecClass = Class.forName("javax.crypto.spec.GCMParameterSpec");
+        } catch (ClassNotFoundException e) {
+            gcmSpecClass = null;
+        }
+
+        if (gcmSpecClass != null) {
+            try {
+                Constructor<?> constructor = gcmSpecClass.getConstructor(int.class, byte[].class);
+                return (AlgorithmParameterSpec) constructor.newInstance(tagLenInBits, iv);
+            } catch (NoSuchMethodException | InstantiationException | IllegalAccessException
+                    | IllegalArgumentException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.getCause().printStackTrace();
+            }
+        }
+        return null;
     }
 
     /*

@@ -57,12 +57,7 @@ public final class OpenSSLECGroupContext {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof OpenSSLECGroupContext)) {
-            return false;
-        }
-
-        final OpenSSLECGroupContext other = (OpenSSLECGroupContext) o;
-        return NativeCrypto.EC_GROUP_cmp(groupCtx, other.groupCtx);
+        throw new IllegalArgumentException("OpenSSLECGroupContext.equals is not defined");
     }
 
     @Override

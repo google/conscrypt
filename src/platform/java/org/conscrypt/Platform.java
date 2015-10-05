@@ -34,13 +34,16 @@ import java.net.SocketImpl;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
 import org.apache.harmony.security.utils.AlgNameMapper;
 import org.apache.harmony.security.utils.AlgNameMapperSource;
+import org.conscrypt.GCMParameters;
 
 class Platform {
     private static class NoPreloadHolder {
@@ -162,6 +165,24 @@ class Platform {
      */
     public static SSLSocketFactory wrapSocketFactoryIfNeeded(OpenSSLSocketFactoryImpl factory) {
         return factory;
+    }
+
+    /**
+     * Convert from platform's GCMParameterSpec to our internal version.
+     */
+    public static GCMParameters fromGCMParameterSpec(AlgorithmParameterSpec params) {
+        if (params instanceof GCMParameterSpec) {
+            GCMParameterSpec gcmParams = (GCMParameterSpec) params;
+            return new GCMParameters(gcmParams.getTLen(), gcmParams.getIV());
+        }
+        return null;
+    }
+
+    /**
+     * Creates a platform version of {@code GCMParameterSpec}.
+     */
+    public static AlgorithmParameterSpec toGCMParameterSpec(int tagLenInBits, byte[] iv) {
+        return new GCMParameterSpec(tagLenInBits, iv);
     }
 
     /*

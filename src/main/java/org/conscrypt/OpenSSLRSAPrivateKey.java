@@ -277,13 +277,6 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
         ensureReadParams();
         sb.append("modulus=");
         sb.append(modulus.toString(16));
-        sb.append(',');
-
-        if (!engineBased) {
-            sb.append("privateExponent=");
-            sb.append(privateExponent.toString(16));
-            sb.append(',');
-        }
 
         return sb.toString();
     }

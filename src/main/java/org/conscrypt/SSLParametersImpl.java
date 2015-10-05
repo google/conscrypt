@@ -839,7 +839,7 @@ public class SSLParametersImpl implements Cloneable {
 
     /**
      * Gets the default X.509 trust manager.
-     *
+     * <p>
      * TODO: Move this to a published API under dalvik.system.
      */
     public static X509TrustManager getDefaultX509TrustManager()
@@ -937,7 +937,7 @@ public class SSLParametersImpl implements Cloneable {
      * ClientCertificateType byte values from a CertificateRequest
      * message for use with X509KeyManager.chooseClientAlias or
      * X509ExtendedKeyManager.chooseEngineClientAlias.
-     *
+     * <p>
      * Visible for testing.
      */
     public static String getClientKeyType(byte clientCertificateType) {

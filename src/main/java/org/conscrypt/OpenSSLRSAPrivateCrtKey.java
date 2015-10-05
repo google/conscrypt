@@ -258,56 +258,20 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
         if (engineBased) {
             sb.append("key=");
             sb.append(getOpenSSLKey());
-            sb.append('}');
+            sb.append(',');
         }
 
         ensureReadParams();
         sb.append("modulus=");
         sb.append(getModulus().toString(16));
-        sb.append(',');
 
         if (publicExponent != null) {
+            sb.append(',');
             sb.append("publicExponent=");
             sb.append(publicExponent.toString(16));
-            sb.append(',');
         }
 
-        if (!engineBased) {
-            sb.append("privateExponent=");
-            sb.append(getPrivateExponent().toString(16));
-            sb.append(',');
-        }
-
-        if (primeP != null) {
-            sb.append("primeP=");
-            sb.append(primeP.toString(16));
-            sb.append(',');
-        }
-
-        if (primeQ != null) {
-            sb.append("primeQ=");
-            sb.append(primeQ.toString(16));
-            sb.append(',');
-        }
-
-        if (primeExponentP != null) {
-            sb.append("primeExponentP=");
-            sb.append(primeExponentP.toString(16));
-            sb.append(',');
-        }
-
-        if (primeExponentQ != null) {
-            sb.append("primeExponentQ=");
-            sb.append(primeExponentQ.toString(16));
-            sb.append(',');
-        }
-
-        if (crtCoefficient != null) {
-            sb.append("crtCoefficient=");
-            sb.append(crtCoefficient.toString(16));
-            sb.append(',');
-        }
-
+        sb.append('}');
         return sb.toString();
     }
 

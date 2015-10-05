@@ -63,6 +63,9 @@ import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
 import static org.conscrypt.NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING;
 import static org.conscrypt.NativeConstants.SSL_MODE_HANDSHAKE_CUTTHROUGH;
 
+import static org.conscrypt.TestUtils.openTestFile;
+import static org.conscrypt.TestUtils.readTestFile;
+
 public class NativeCryptoTest extends TestCase {
     /** Corresponds to the native test library "libjavacoretests.so" */
     public static final String TEST_ENGINE_ID = "javacoretests";
@@ -1506,6 +1509,91 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    public void test_SSL_do_handshake_with_ocsp_response() throws Exception {
+        // This is only implemented for BoringSSL
+        if (!NativeCrypto.isBoringSSL) {
+            return;
+        }
+
+        final byte[] OCSP_TEST_DATA = new byte[] { 1, 2, 3, 4};
+
+        final ServerSocket listener = new ServerSocket(0);
+        Hooks cHooks = new Hooks() {
+            @Override
+            public long beforeHandshake(long c) throws SSLException {
+                long s = super.beforeHandshake(c);
+                NativeCrypto.SSL_enable_ocsp_stapling(s);
+                return s;
+            }
+
+            @Override
+            public void afterHandshake(long session, long ssl, long context, Socket socket,
+                    FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
+                assertEqualByteArrays(OCSP_TEST_DATA, NativeCrypto.SSL_get_ocsp_response(ssl));
+                super.afterHandshake(session, ssl, context, socket, fd, callback);
+            }
+        };
+
+        Hooks sHooks = new ServerHooks(getServerPrivateKey(), getServerCertificates()) {
+            @Override
+            public long beforeHandshake(long c) throws SSLException {
+                NativeCrypto.SSL_CTX_set_ocsp_response(c, OCSP_TEST_DATA);
+                return super.beforeHandshake(c);
+            }
+        };
+
+        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
+        Future<TestSSLHandshakeCallbacks> server = handshake(listener, 0, false, sHooks, null, null);
+        TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        TestSSLHandshakeCallbacks serverCallback = server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        assertTrue(clientCallback.handshakeCompletedCalled);
+        assertTrue(serverCallback.handshakeCompletedCalled);
+    }
+
+    public void test_SSL_do_handshake_with_sct_extension() throws Exception {
+        // This is only implemented for BoringSSL
+        if (!NativeCrypto.isBoringSSL) {
+            return;
+        }
+
+        final byte[] SCT_TEST_DATA = new byte[] { 1, 2, 3, 4};
+
+        final ServerSocket listener = new ServerSocket(0);
+        Hooks cHooks = new Hooks() {
+            @Override
+            public long beforeHandshake(long c) throws SSLException {
+                long s = super.beforeHandshake(c);
+                NativeCrypto.SSL_enable_signed_cert_timestamps(s);
+                return s;
+            }
+
+            @Override
+            public void afterHandshake(long session, long ssl, long context, Socket socket,
+                    FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
+                assertEqualByteArrays(SCT_TEST_DATA,
+                        NativeCrypto.SSL_get_signed_cert_timestamp_list(ssl));
+                super.afterHandshake(session, ssl, context, socket, fd, callback);
+            }
+        };
+
+        Hooks sHooks = new ServerHooks(getServerPrivateKey(), getServerCertificates()) {
+            @Override
+            public long beforeHandshake(long c) throws SSLException {
+                NativeCrypto.SSL_CTX_set_signed_cert_timestamp_list(c, SCT_TEST_DATA);
+                return super.beforeHandshake(c);
+            }
+        };
+
+        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
+        Future<TestSSLHandshakeCallbacks> server = handshake(listener, 0, false, sHooks, null, null);
+        TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        TestSSLHandshakeCallbacks serverCallback = server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        assertTrue(clientCallback.handshakeCompletedCalled);
+        assertTrue(serverCallback.handshakeCompletedCalled);
+    }
+
     public void test_SSL_use_psk_identity_hint() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
@@ -2862,6 +2950,28 @@ public class NativeCryptoTest extends TestCase {
         } finally {
             NativeCrypto.BIO_free_all(ctx);
         }
+    }
+
+    public void test_get_ocsp_single_extension() throws Exception {
+        // This is only implemented for BoringSSL
+        if (!NativeCrypto.isBoringSSL) {
+            return;
+        }
+
+        final String OCSP_SCT_LIST_OID = "1.3.6.1.4.1.11129.2.4.5";
+
+        byte[] ocspResponse = readTestFile("ocsp-response.der");
+        byte[] expected = readTestFile("ocsp-response-sct-extension.der");
+        OpenSSLX509Certificate certificate = OpenSSLX509Certificate.fromX509PemInputStream(
+                                                openTestFile("cert-ct-poisoned.pem"));
+        OpenSSLX509Certificate issuer = OpenSSLX509Certificate.fromX509PemInputStream(
+                                                openTestFile("ca-cert.pem"));
+
+        byte[] extension = NativeCrypto.get_ocsp_single_extension(ocspResponse, OCSP_SCT_LIST_OID,
+                                                                  certificate.getContext(),
+                                                                  issuer.getContext());
+
+        assertEqualByteArrays(expected, extension);
     }
 
     private static void assertContains(String actualValue, String expectedSubstring) {

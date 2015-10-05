@@ -846,6 +846,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     public static abstract class EVP_AEAD extends OpenSSLCipher {
         /**
+         * The default tag size when one is not specified.
+         */
+        private static final int DEFAULT_TAG_SIZE_BITS = 12 * 8;
+
+        /**
          * Keeps track of the last used block size.
          */
         private static int lastGlobalMessageSize = 32;
@@ -873,7 +878,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         /**
          * The length of the AEAD cipher tag in bytes.
          */
-        private int tagLen;
+        private int tagLengthInBytes;
 
         public EVP_AEAD(Mode mode) {
             super(mode, Padding.NOPADDING);
@@ -911,43 +916,28 @@ public abstract class OpenSSLCipher extends CipherSpi {
             final int tagLenBits;
             if (params == null) {
                 iv = null;
-                tagLenBits = 0;
+                tagLenBits = DEFAULT_TAG_SIZE_BITS;
             } else {
-                Class<?> gcmSpecClass;
-                try {
-                    gcmSpecClass = Class.forName("javax.crypto.spec.GCMParameterSpec");
-                } catch (ClassNotFoundException e) {
-                    gcmSpecClass = null;
-                }
-
-                if (gcmSpecClass != null && gcmSpecClass.isAssignableFrom(params.getClass())) {
-                    try {
-                        Method getTLenMethod = gcmSpecClass.getMethod("getTLen");
-                        Method getIVMethod = gcmSpecClass.getMethod("getIV");
-                        tagLenBits = (int) getTLenMethod.invoke(params);
-                        iv = (byte[]) getIVMethod.invoke(params);
-                    } catch (NoSuchMethodException | IllegalAccessException e) {
-                        throw new RuntimeException("GCMParameterSpec lacks expected methods", e);
-                    } catch (InvocationTargetException e) {
-                        throw new RuntimeException("Could not fetch GCM parameters",
-                                e.getTargetException());
-                    }
+                GCMParameters gcmParams = Platform.fromGCMParameterSpec(params);
+                if (gcmParams != null) {
+                    iv = gcmParams.getIV();
+                    tagLenBits = gcmParams.getTLen();
                 } else if (params instanceof IvParameterSpec) {
                     IvParameterSpec ivParams = (IvParameterSpec) params;
                     iv = ivParams.getIV();
-                    tagLenBits = 0;
+                    tagLenBits = DEFAULT_TAG_SIZE_BITS;
                 } else {
                     iv = null;
-                    tagLenBits = 0;
+                    tagLenBits = DEFAULT_TAG_SIZE_BITS;
                 }
             }
 
             if (tagLenBits % 8 != 0) {
                 throw new InvalidAlgorithmParameterException(
-                        "Tag length must be a multiple of 8; was " + tagLen);
+                        "Tag length must be a multiple of 8; was " + tagLengthInBytes);
             }
 
-            tagLen = tagLenBits / 8;
+            tagLengthInBytes = tagLenBits / 8;
 
             final boolean encrypting = isEncrypting();
 
@@ -996,7 +986,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         protected int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
                 throws IllegalBlockSizeException, BadPaddingException {
             EVP_AEAD_CTX cipherCtx = new EVP_AEAD_CTX(NativeCrypto.EVP_AEAD_CTX_init(evpAead,
-                    encodedKey, tagLen));
+                    encodedKey, tagLengthInBytes));
             final int bytesWritten;
             try {
                 if (isEncrypting()) {
@@ -1061,6 +1051,31 @@ public abstract class OpenSSLCipher extends CipherSpi {
             }
         }
 
+        @Override
+        protected AlgorithmParameters engineGetParameters() {
+            // iv will be non-null after initialization.
+            if (iv == null) {
+                return null;
+            }
+
+            AlgorithmParameterSpec spec = Platform.toGCMParameterSpec(tagLengthInBytes * 8, iv);
+            if (spec == null) {
+                // The platform doesn't support GCMParameterSpec. Fall back to
+                // the generic AES parameters so at least the caller can get the
+                // IV.
+                return super.engineGetParameters();
+            }
+
+            try {
+                AlgorithmParameters params = AlgorithmParameters.getInstance("GCM");
+                params.init(spec);
+                return params;
+            } catch (NoSuchAlgorithmException | InvalidParameterSpecException e) {
+                // This may happen since Conscrypt doesn't provide this itself.
+                return null;
+            }
+        }
+
         protected abstract long getEVP_AEAD(int keyLength) throws InvalidKeyException;
 
         public abstract static class AES extends EVP_AEAD {
@@ -1114,7 +1129,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
                 @Override
                 protected long getEVP_AEAD(int keyLength) throws InvalidKeyException {
-                    final long evpAead;
                     if (keyLength == 16) {
                         return NativeCrypto.EVP_aead_aes_128_gcm();
                     } else if (keyLength == 32) {

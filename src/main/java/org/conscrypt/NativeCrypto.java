@@ -90,7 +90,7 @@ public final class NativeCrypto {
 
     public static native String EVP_PKEY_print_public(NativeRef.EVP_PKEY pkeyRef);
 
-    public static native String EVP_PKEY_print_private(NativeRef.EVP_PKEY pkeyRef);
+    public static native String EVP_PKEY_print_params(NativeRef.EVP_PKEY pkeyRef);
 
     public static native void EVP_PKEY_free(long pkey);
 
@@ -103,6 +103,10 @@ public final class NativeCrypto {
     public static native byte[] i2d_PUBKEY(NativeRef.EVP_PKEY pkey);
 
     public static native long d2i_PUBKEY(byte[] data);
+
+    public static native long PEM_read_bio_PUBKEY(long bioCtx);
+
+    public static native long PEM_read_bio_PrivateKey(long bioCtx);
 
     public static native long getRSAPrivateKeyWrapper(PrivateKey key, byte[] modulus);
 
@@ -183,8 +187,6 @@ public final class NativeCrypto {
 
     public static native void EC_GROUP_clear_free(long groupRef);
 
-    public static native boolean EC_GROUP_cmp(NativeRef.EC_GROUP ctx1, NativeRef.EC_GROUP ctx2);
-
     public static native long EC_GROUP_get_generator(NativeRef.EC_GROUP groupRef);
 
     public static native int get_EC_GROUP_type(NativeRef.EC_GROUP groupRef);
@@ -198,9 +200,6 @@ public final class NativeCrypto {
     public static native long EC_POINT_new(NativeRef.EC_GROUP groupRef);
 
     public static native void EC_POINT_clear_free(long pointRef);
-
-    public static native boolean EC_POINT_cmp(NativeRef.EC_GROUP groupRef,
-            NativeRef.EC_POINT pointRef1, NativeRef.EC_POINT pointRef2);
 
     public static native byte[][] EC_POINT_get_affine_coordinates(NativeRef.EC_GROUP groupRef,
             NativeRef.EC_POINT pointRef);
@@ -220,7 +219,8 @@ public final class NativeCrypto {
             boolean enabled);
 
     public static native int ECDH_compute_key(byte[] out, int outOffset,
-            NativeRef.EVP_PKEY publicKeyRef, NativeRef.EVP_PKEY privateKeyRef);
+            NativeRef.EVP_PKEY publicKeyRef, NativeRef.EVP_PKEY privateKeyRef) throws
+            InvalidKeyException;
 
     // --- Message digest functions --------------
 
@@ -426,6 +426,8 @@ public final class NativeCrypto {
 
     public static native void X509_free(long x509ctx);
 
+    public static native long X509_dup(long x509ctx);
+
     public static native int X509_cmp(long x509ctx1, long x509ctx2);
 
     public static native int get_X509_hashCode(long x509ctx);
@@ -528,6 +530,8 @@ public final class NativeCrypto {
 
     public static native byte[] X509_CRL_get_ext_oid(long x509CrlCtx, String oid);
 
+    public static native void X509_delete_ext(long x509, String oid);
+
     public static native long X509_CRL_get_version(long x509CrlCtx);
 
     public static native long X509_CRL_get_ext(long x509CrlCtx, String oid);
@@ -616,12 +620,12 @@ public final class NativeCrypto {
      * cipher suite. It is just an indication in the default and
      * supported cipher suite lists indicates that the implementation
      * supports secure renegotiation.
-     *
+     * <p>
      * In the RI, its presence means that the SCSV is sent in the
      * cipher suite list to indicate secure renegotiation support and
      * its absense means to send an empty TLS renegotiation info
      * extension instead.
-     *
+     * <p>
      * However, OpenSSL doesn't provide an API to give this level of
      * control, instead always sending the SCSV and always including
      * the empty renegotiation info if TLS is used (as opposed to
@@ -843,6 +847,18 @@ public final class NativeCrypto {
     public static native long SSL_set_options(long ssl, long options);
 
     public static native long SSL_clear_options(long ssl, long options);
+
+    public static native void SSL_enable_signed_cert_timestamps(long ssl);
+
+    public static native byte[] SSL_get_signed_cert_timestamp_list(long ssl);
+
+    public static native void SSL_CTX_set_signed_cert_timestamp_list(long ssl, byte[] list);
+
+    public static native void SSL_enable_ocsp_stapling(long ssl);
+
+    public static native byte[] SSL_get_ocsp_response(long ssl);
+
+    public static native void SSL_CTX_set_ocsp_response(long ssl, byte[] response);
 
     public static native void SSL_use_psk_identity_hint(long ssl, String identityHint)
             throws SSLException;
@@ -1241,4 +1257,7 @@ public final class NativeCrypto {
     public static native String SSL_CIPHER_get_kx_name(long cipherAddress);
 
     public static native String[] get_cipher_names(String selection);
+
+    public static native byte[] get_ocsp_single_extension(byte[] ocspResponse, String oid,
+                                                          long x509Ref, long issuerX509Ref);
 }
