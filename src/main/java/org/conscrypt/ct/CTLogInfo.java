@@ -68,6 +68,32 @@ public class CTLogInfo {
         return url;
     }
 
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof CTLogInfo)) {
+            return false;
+        }
+
+        CTLogInfo that = (CTLogInfo)other;
+        return
+            this.publicKey.equals(that.publicKey) &&
+            this.description.equals(that.description) &&
+            this.url.equals(that.url);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 1;
+        hash = hash * 31 + publicKey.hashCode();
+        hash = hash * 31 + description.hashCode();
+        hash = hash * 31 + url.hashCode();
+
+        return hash;
+    }
+
     /**
      * Verify the signature of a signed certificate timestamp for the given certificate entry
      * against the log's public key.
