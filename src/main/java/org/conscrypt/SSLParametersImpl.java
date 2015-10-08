@@ -17,6 +17,8 @@
 
 package org.conscrypt;
 
+import org.conscrypt.ct.CTVerifier;
+import org.conscrypt.ct.CTLogStoreImpl;
 import org.conscrypt.util.EmptyArray;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -28,11 +30,14 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import javax.crypto.SecretKey;
 import javax.net.ssl.KeyManager;
@@ -95,6 +100,14 @@ public class SSLParametersImpl implements Cloneable {
     private boolean enable_session_creation = true;
     private String endpointIdentificationAlgorithm;
 
+    // client-side only, bypasses the property based configuration, used for tests
+    private boolean ctVerificationEnabled;
+    private CTVerifier ctVerifier;
+
+    // server-side only. SCT and OCSP data to send to clients which request it
+    private byte[] sctExtension;
+    private byte[] ocspResponse;
+
     byte[] npnProtocols;
     byte[] alpnProtocols;
     boolean useSessionTickets;
@@ -152,6 +165,8 @@ public class SSLParametersImpl implements Cloneable {
         boolean pskCipherSuitesNeeded = pskKeyManager != null;
         enabledCipherSuites = getDefaultCipherSuites(
                 x509CipherSuitesNeeded, pskCipherSuitesNeeded);
+
+        ctVerifier = new CTVerifier(new CTLogStoreImpl());
     }
 
     protected static SSLParametersImpl getDefault() throws KeyManagementException {
@@ -231,6 +246,13 @@ public class SSLParametersImpl implements Cloneable {
      */
     protected SecureRandom getSecureRandomMember() {
         return secureRandom;
+    }
+
+    /**
+     * @return certificate transparency verifier
+     */
+    protected CTVerifier getCTVerifier() {
+        return ctVerifier;
     }
 
     /**
@@ -342,6 +364,22 @@ public class SSLParametersImpl implements Cloneable {
      */
     protected boolean getUseSni() {
         return useSni != null ? useSni.booleanValue() : isSniEnabledByDefault();
+    }
+
+    public void setCTVerifier(CTVerifier verifier) {
+        ctVerifier = verifier;
+    }
+
+    public void setCTVerificationEnabled(boolean enabled) {
+        ctVerificationEnabled = enabled;
+    }
+
+    public void setSCTExtension(byte[] extension) {
+        sctExtension = extension;
+    }
+
+    public void setOCSPResponse(byte[] response) {
+        ocspResponse = response;
     }
 
     static byte[][] encodeIssuerX509Principals(X509Certificate[] certificates)
@@ -491,6 +529,15 @@ public class SSLParametersImpl implements Cloneable {
                         throw new IOException(e);
                     }
                 }
+            }
+
+            if (sctExtension != null) {
+                NativeCrypto.SSL_CTX_set_signed_cert_timestamp_list(sslCtxNativePointer,
+                                                                    sctExtension);
+            }
+
+            if (ocspResponse != null) {
+                NativeCrypto.SSL_CTX_set_ocsp_response(sslCtxNativePointer, ocspResponse);
             }
         }
 
@@ -1027,5 +1074,60 @@ public class SSLParametersImpl implements Cloneable {
             resultOffset += array.length;
         }
         return result;
+    }
+
+    /**
+     * Check if SCT verification is enforced for a given hostname.
+     *
+     * SCT Verification is enabled using {@code Security} properties.
+     * The "conscrypt.ct.enable" property must be true, as well as a per domain property.
+     * The reverse notation of the domain name, prefixed with "conscrypt.ct.enforce."
+     * is used as the property name.
+     * Basic globbing is also supported.
+     *
+     * For example, for the domain foo.bar.com, the following properties will be
+     * looked up, in order of precedence.
+     * - conscrypt.ct.enforce.com.bar.foo
+     * - conscrypt.ct.enforce.com.bar.*
+     * - conscrypt.ct.enforce.com.*
+     * - conscrypt.ct.enforce.*
+     */
+    public boolean isCTVerificationEnabled(String hostname) {
+        if (hostname == null) {
+            return false;
+        }
+
+        // Bypass the normal property based check. This is used for testing only
+        if (ctVerificationEnabled) {
+            return true;
+        }
+
+        String property = Security.getProperty("conscrypt.ct.enable");
+        if (property == null || Boolean.valueOf(property.toLowerCase()) == false) {
+            return false;
+        }
+
+        List<String> parts = Arrays.asList(hostname.split("\\."));
+        Collections.reverse(parts);
+
+        boolean enable = false;
+        String propertyName = "conscrypt.ct.enforce";
+        // The loop keeps going on even once we've found a match
+        // This allows for finer grained settings on subdomains
+        for (String part: parts) {
+            property = Security.getProperty(propertyName + ".*");
+            if (property != null) {
+                enable = Boolean.valueOf(property.toLowerCase());
+            }
+
+            propertyName = propertyName + "." + part;
+        }
+
+        property = Security.getProperty(propertyName);
+        if (property != null) {
+            enable = Boolean.valueOf(property.toLowerCase());
+        }
+
+        return enable;
     }
 }
