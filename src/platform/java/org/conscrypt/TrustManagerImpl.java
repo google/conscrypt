@@ -55,6 +55,8 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509ExtendedTrustManager;
 import org.conscrypt.ct.CTLogStore;
 import org.conscrypt.ct.CTLogStoreImpl;
+import org.conscrypt.ct.CTPolicy;
+import org.conscrypt.ct.CTPolicyImpl;
 import org.conscrypt.ct.CTVerificationResult;
 import org.conscrypt.ct.CTVerifier;
 
@@ -116,6 +118,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private final CertificateFactory factory;
     private final CertBlacklist blacklist;
     private CTVerifier ctVerifier;
+    private CTPolicy ctPolicy;
 
     // Forces CT verification to always to done. For tests.
     private boolean ctEnabledOverride;
@@ -141,7 +144,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
                             TrustedCertificateStore certStore,
                             CertBlacklist blacklist) {
-        this(keyStore, manager, certStore, blacklist, null);
+        this(keyStore, manager, certStore, blacklist, null, null);
     }
 
     /**
@@ -149,7 +152,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      */
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
                             TrustedCertificateStore certStore,
-                            CertBlacklist blacklist, CTLogStore ctLogStore) {
+                            CertBlacklist blacklist, CTLogStore ctLogStore,
+                            CTVerifier ctVerifier) {
         CertPathValidator validatorLocal = null;
         CertificateFactory factoryLocal = null;
         KeyStore rootKeyStoreLocal = null;
@@ -187,7 +191,10 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             ctLogStore = new CTLogStoreImpl();
         }
 
-        this.pinManager = manager;
+        if (ctPolicy == null) {
+            ctPolicy = new CTPolicyImpl(ctLogStore, 2);
+        }
+
         this.rootKeyStore = rootKeyStoreLocal;
         this.trustedCertificateStore = trustedCertificateStoreLocal;
         this.validator = validatorLocal;
@@ -198,6 +205,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         this.err = errLocal;
         this.blacklist = blacklist;
         this.ctVerifier = new CTVerifier(ctLogStore);
+        this.ctPolicy = ctPolicy;
     }
 
     private static X509Certificate[] acceptedIssuers(KeyStore ks) {
@@ -652,7 +660,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         // Check CT (if required).
         if (!clientAuth &&
                 (ctEnabledOverride || (host != null && Platform.isCTVerificationRequired(host)))) {
-            checkCT(wholeChain, ocspData, tlsSctData);
+            checkCT(host, wholeChain, ocspData, tlsSctData);
         }
 
         if (untrustedChain.isEmpty()) {
@@ -694,12 +702,15 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         }
     }
 
-    private void checkCT(List<X509Certificate> chain, byte[] ocspData, byte[] tlsData)
+    private void checkCT(String host, List<X509Certificate> chain, byte[] ocspData, byte[] tlsData)
             throws CertificateException {
         CTVerificationResult result =
                 ctVerifier.verifySignedCertificateTimestamps(chain, tlsData, ocspData);
-        if (result.getValidSCTs().size() == 0) {
-            throw new CertificateException("No valid SCT found");
+
+        if (!ctPolicy.doesResultConformToPolicy(result, host,
+                    chain.toArray(new X509Certificate[chain.size()]))) {
+            throw new CertificateException(
+                    "Certificate chain does not conform to required transparency policy.");
         }
     }
 
@@ -936,5 +947,10 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     // Replace the CTVerifier. For testing only.
     public void setCTVerifier(CTVerifier verifier) {
         this.ctVerifier = verifier;
+    }
+
+    // Replace the CTPolicy. For testing only.
+    public void setCTPolicy(CTPolicy policy) {
+        this.ctPolicy = policy;
     }
 }
