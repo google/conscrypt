@@ -43,7 +43,7 @@ public class TrustManagerImplTest extends TestCase {
         MessageDigest dgst = MessageDigest.getInstance("SHA512");
         byte[] encoded = cert.getPublicKey().getEncoded();
         byte[] fingerprint = dgst.digest(encoded);
-        return IntegralToString.bytesToHexString(fingerprint, false);
+        return Hex.bytesToHexString(fingerprint);
     }
 
     private String writeTmpPinFile(String text) throws Exception {
