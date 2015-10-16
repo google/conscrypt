@@ -20,6 +20,7 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.SocketTimeoutException;
+import java.nio.Buffer;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -248,6 +249,9 @@ public final class NativeCrypto {
 
     public static native void EVP_DigestUpdate(NativeRef.EVP_MD_CTX ctx,
             byte[] buffer, int offset, int length);
+
+    public static native void EVP_DigestUpdateDirect(NativeRef.EVP_MD_CTX ctx,
+            long ptr, int length);
 
     public static native int EVP_DigestFinal(NativeRef.EVP_MD_CTX ctx, byte[] hash,
             int offset);
@@ -1260,4 +1264,13 @@ public final class NativeCrypto {
 
     public static native byte[] get_ocsp_single_extension(byte[] ocspResponse, String oid,
                                                           long x509Ref, long issuerX509Ref);
+
+    /**
+     * Returns the starting address of the memory region referenced by the provided direct
+     * {@link Buffer} or {@code 0} if the provided buffer is not direct or if such access to direct
+     * buffers is not supported by the platform.
+     *
+     * <p>NOTE: This method ignores the buffer's current {@code position}.
+     */
+    public static native long getDirectBufferAddress(Buffer buf);
 }
