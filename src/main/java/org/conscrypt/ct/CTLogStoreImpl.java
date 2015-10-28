@@ -67,9 +67,9 @@ public class CTLogStoreImpl implements CTLogStore {
         defaultSystemLogDir = new File(ANDROID_ROOT + "/etc/security/ct_known_logs/");
     }
 
-    private static File userLogDir;
-    private static File systemLogDir;
-    private static CTLogInfo[] fallbackLogs;
+    private File userLogDir;
+    private File systemLogDir;
+    private CTLogInfo[] fallbackLogs;
 
     private Map<ByteBuffer, CTLogInfo> logCache = new Hashtable();
     private Set<ByteBuffer> missingLogCache = Collections.synchronizedSet(new HashSet());
