@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
 import java.security.NoSuchAlgorithmException;
@@ -97,6 +98,50 @@ public class OpenSSLSignature extends SignatureSpi {
         } else {
             NativeCrypto.EVP_VerifyUpdate(ctxLocal, input, offset, len);
         }
+    }
+
+    @Override
+    protected void engineUpdate(ByteBuffer input) {
+        // Optimization: Avoid copying/allocation for direct buffers because their contents are
+        // stored as a contiguous region in memory and thus can be efficiently accessed from native
+        // code.
+
+        if (!input.hasRemaining()) {
+            return;
+        }
+
+        if (!input.isDirect()) {
+            super.engineUpdate(input);
+            return;
+        }
+
+        long baseAddress = NativeCrypto.getDirectBufferAddress(input);
+        if (baseAddress == 0) {
+            // Direct buffer's contents can't be accessed from JNI  -- superclass's implementation
+            // is good enough to handle this.
+            super.engineUpdate(input);
+            return;
+        }
+
+        // Process the contents between Buffer's position and limit (remaining() number of bytes)
+        int position = input.position();
+        long ptr = baseAddress + position;
+        if (ptr < baseAddress) {
+            throw new RuntimeException("Start pointer overflow");
+        }
+
+        int len = input.remaining();
+        if (ptr + len < ptr) {
+            throw new RuntimeException("End pointer overflow");
+        }
+
+        final NativeRef.EVP_MD_CTX ctxLocal = ctx;
+        if (signing) {
+            NativeCrypto.EVP_SignUpdateDirect(ctxLocal, ptr, len);
+        } else {
+            NativeCrypto.EVP_VerifyUpdateDirect(ctxLocal, ptr, len);
+        }
+        input.position(position + len);
     }
 
     @Override
