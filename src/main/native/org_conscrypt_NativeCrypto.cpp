@@ -4463,19 +4463,24 @@ static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jlong inPtr, jint inLeng
         const char *jniName, int (*update_func)(EVP_MD_CTX*, const void *, size_t))
 {
     EVP_MD_CTX* mdCtx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
-    JNI_TRACE_MD("%s(%p, %p, %d, %d)", jniName, mdCtx, inJavaBytes, inLength);
+    const void *p = reinterpret_cast<const void *>(inPtr);
+    JNI_TRACE_MD("%s(%p, %p, %d)", jniName, mdCtx, p, inLength);
 
     if (mdCtx == NULL) {
          return;
     }
 
-    const void *p = reinterpret_cast<const void *>(inPtr);
+    if (p == NULL) {
+        jniThrowNullPointerException(env, NULL);
+        return;
+    }
+
     if (!update_func(mdCtx, p, inLength)) {
         JNI_TRACE("ctx=%p %s => threw exception", mdCtx, jniName);
         throwExceptionIfNecessary(env, jniName);
     }
 
-    JNI_TRACE_MD("%s(%p, %p, %d) => success", jniName, mdCtx, inPtr, inLength);
+    JNI_TRACE_MD("%s(%p, %p, %d) => success", jniName, mdCtx, p, inLength);
 }
 
 static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, jint inOffset,
@@ -4523,6 +4528,11 @@ static void NativeCrypto_EVP_DigestSignUpdate(JNIEnv* env, jclass, jobject evpMd
         jbyteArray inJavaBytes, jint inOffset, jint inLength) {
     evpUpdate(env, evpMdCtxRef, inJavaBytes, inOffset, inLength, "EVP_DigestSignUpdate",
             EVP_DigestUpdate);
+}
+
+static void NativeCrypto_EVP_SignUpdateDirect(JNIEnv* env, jclass, jobject evpMdCtxRef,
+        jlong inPtr, jint inLength) {
+    evpUpdate(env, evpMdCtxRef, inPtr, inLength, "EVP_SignUpdateDirect", EVP_DigestUpdate);
 }
 
 static void NativeCrypto_EVP_SignUpdate(JNIEnv* env, jclass, jobject evpMdCtxRef,
@@ -4598,6 +4608,30 @@ static jint NativeCrypto_EVP_SignFinal(JNIEnv* env, jclass, jobject ctxRef, jbyt
               ctx, signature, offset, pkey, bytesWritten);
 
     return bytesWritten;
+}
+
+/*
+ * public static native void EVP_VerifyUpdateDirect(long, long, int)
+ */
+static void NativeCrypto_EVP_VerifyUpdateDirect(JNIEnv* env, jclass, jobject ctxRef,
+                                                jlong ptr, jint length) {
+    EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
+    const void *p = reinterpret_cast<const void *>(ptr);
+    JNI_TRACE("NativeCrypto_EVP_VerifyUpdateDirect(%p, %p, %d)", ctx, p, length);
+
+    if (ctx == NULL) {
+        return;
+    }
+
+    if (p == NULL) {
+        jniThrowNullPointerException(env, NULL);
+        return;
+    }
+
+    int ok = EVP_VerifyUpdate(ctx, p, length);
+    if (ok == 0) {
+        throwExceptionIfNecessary(env, "NativeCrypto_EVP_VerifyUpdateDirect");
+    }
 }
 
 /*
@@ -5272,6 +5306,28 @@ static void NativeCrypto_HMAC_Init_ex(JNIEnv* env, jclass, jobject hmacCtxRef, j
     if (!HMAC_Init_ex(hmacCtx, keyPtr, keyBytes.size(), md, NULL)) {
         throwExceptionIfNecessary(env, "HMAC_Init_ex");
         JNI_TRACE("HMAC_Init_ex(%p, %p, %p) => fail HMAC_Init_ex", hmacCtx, keyArray, md);
+        return;
+    }
+}
+
+static void NativeCrypto_HMAC_UpdateDirect(JNIEnv* env, jclass, jobject hmacCtxRef, jlong inPtr,
+                                           int inLength) {
+    HMAC_CTX* hmacCtx = fromContextObject<HMAC_CTX>(env, hmacCtxRef);
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(inPtr);
+    JNI_TRACE("HMAC_UpdateDirect(%p, %p, %d)", hmacCtx, p, inLength);
+
+    if (hmacCtx == NULL) {
+        return;
+    }
+
+    if (p == NULL) {
+        jniThrowNullPointerException(env, NULL);
+        return;
+    }
+
+    if (!HMAC_Update(hmacCtx, p, inLength)) {
+        JNI_TRACE("HMAC_UpdateDirect(%p, %p, %d) => threw exception", hmacCtx, p, inLength);
+        throwExceptionIfNecessary(env, "HMAC_UpdateDirect");
         return;
     }
 }
@@ -11205,9 +11261,11 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EVP_MD_size, "(J)I"),
     NATIVE_METHOD(NativeCrypto, EVP_SignInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J)I"),
     NATIVE_METHOD(NativeCrypto, EVP_SignUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_SignUpdateDirect, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;JI)V"),
     NATIVE_METHOD(NativeCrypto, EVP_SignFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BI" REF_EVP_PKEY ")I"),
     NATIVE_METHOD(NativeCrypto, EVP_VerifyInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J)I"),
     NATIVE_METHOD(NativeCrypto, EVP_VerifyUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_VerifyUpdateDirect, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;JI)V"),
     NATIVE_METHOD(NativeCrypto, EVP_VerifyFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII" REF_EVP_PKEY ")I"),
     NATIVE_METHOD(NativeCrypto, EVP_DigestSignInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J" REF_EVP_PKEY ")V"),
     NATIVE_METHOD(NativeCrypto, EVP_DigestSignUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[B)V"),
@@ -11237,6 +11295,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, HMAC_CTX_free, "(J)V"),
     NATIVE_METHOD(NativeCrypto, HMAC_Init_ex, "(" REF_HMAC_CTX "[BJ)V"),
     NATIVE_METHOD(NativeCrypto, HMAC_Update, "(" REF_HMAC_CTX "[BII)V"),
+    NATIVE_METHOD(NativeCrypto, HMAC_UpdateDirect, "(" REF_HMAC_CTX "JI)V"),
     NATIVE_METHOD(NativeCrypto, HMAC_Final, "(" REF_HMAC_CTX ")[B"),
     NATIVE_METHOD(NativeCrypto, RAND_seed, "([B)V"),
     NATIVE_METHOD(NativeCrypto, RAND_load_file, "(Ljava/lang/String;J)I"),
