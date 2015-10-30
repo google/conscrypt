@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -97,6 +98,46 @@ public abstract class OpenSSLMac extends MacSpi {
     protected void engineUpdate(byte[] input, int offset, int len) {
         final NativeRef.HMAC_CTX ctxLocal = ctx;
         NativeCrypto.HMAC_Update(ctxLocal, input, offset, len);
+    }
+
+    @Override
+    protected void engineUpdate(ByteBuffer input) {
+        // Optimization: Avoid copying/allocation for direct buffers because their contents are
+        // stored as a contiguous region in memory and thus can be efficiently accessed from native
+        // code.
+
+        if (!input.hasRemaining()) {
+            return;
+        }
+
+        if (!input.isDirect()) {
+            super.engineUpdate(input);
+            return;
+        }
+
+        long baseAddress = NativeCrypto.getDirectBufferAddress(input);
+        if (baseAddress == 0) {
+            // Direct buffer's contents can't be accessed from JNI  -- superclass's implementation
+            // is good enough to handle this.
+            super.engineUpdate(input);
+            return;
+        }
+
+        // MAC the contents between Buffer's position and limit (remaining() number of bytes)
+        int position = input.position();
+        long ptr = baseAddress + position;
+        if (ptr < baseAddress) {
+            throw new RuntimeException("Start pointer overflow");
+        }
+
+        int len = input.remaining();
+        if (ptr + len < ptr) {
+            throw new RuntimeException("End pointer overflow");
+        }
+
+        final NativeRef.HMAC_CTX ctxLocal = ctx;
+        NativeCrypto.HMAC_UpdateDirect(ctxLocal, ptr, len);
+        input.position(position + len);
     }
 
     @Override
