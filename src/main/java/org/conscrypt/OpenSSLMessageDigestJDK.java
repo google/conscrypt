@@ -17,7 +17,6 @@
 package org.conscrypt;
 
 import java.nio.ByteBuffer;
-import java.security.DigestException;
 import java.security.MessageDigestSpi;
 import java.security.NoSuchAlgorithmException;
 
@@ -25,7 +24,7 @@ import java.security.NoSuchAlgorithmException;
  * Implements the JDK MessageDigest interface using OpenSSL's EVP API.
  */
 public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneable {
-    private final NativeRef.EVP_MD_CTX ctx;
+    private NativeRef.EVP_MD_CTX ctx;
 
     /**
      * Holds the EVP_MD for the hashing algorithm, e.g. EVP_get_digestbyname("sha1");
@@ -43,40 +42,31 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     private final byte[] singleByte = new byte[1];
 
     /**
-     * Whether the digest struct has been initialized inside EVP_MD_CTX.
-     */
-    private boolean mDigestInitializedInContext;
-
-    /**
      * Creates a new OpenSSLMessageDigest instance for the given algorithm name.
      */
     private OpenSSLMessageDigestJDK(long evp_md, int size) throws NoSuchAlgorithmException {
         this.evp_md = evp_md;
         this.size = size;
-        NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
-        NativeCrypto.EVP_MD_CTX_init(ctxLocal);
-        this.ctx = ctxLocal;
+
+        resetContext();
     }
 
-    private OpenSSLMessageDigestJDK(long evp_md, int size, NativeRef.EVP_MD_CTX ctx,
-            boolean digestInitializedInContext) {
+    private OpenSSLMessageDigestJDK(long evp_md, int size, NativeRef.EVP_MD_CTX ctx) {
         this.evp_md = evp_md;
         this.size = size;
         this.ctx = ctx;
-        this.mDigestInitializedInContext = digestInitializedInContext;
     }
 
-    private void ensureDigestInitializedInContext() {
-        if (!mDigestInitializedInContext) {
-            final NativeRef.EVP_MD_CTX ctxLocal = ctx;
-	    NativeCrypto.EVP_DigestInit(ctxLocal, evp_md);
-            mDigestInitializedInContext = true;
-        }
+    private final void resetContext() {
+        NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        NativeCrypto.EVP_MD_CTX_init(ctxLocal);
+        NativeCrypto.EVP_DigestInit(ctxLocal, evp_md);
+        ctx = ctxLocal;
     }
 
     @Override
     protected void engineReset() {
-        mDigestInitializedInContext = false;
+        resetContext();
     }
 
     @Override
@@ -92,7 +82,6 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
 
     @Override
     protected void engineUpdate(byte[] input, int offset, int len) {
-        ensureDigestInitializedInContext();
         NativeCrypto.EVP_DigestUpdate(ctx, input, offset, len);
     }
 
@@ -131,17 +120,15 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
             throw new RuntimeException("End pointer overflow");
         }
 
-        ensureDigestInitializedInContext();
         NativeCrypto.EVP_DigestUpdateDirect(ctx, ptr, len);
         input.position(position + len);
     }
 
     @Override
     protected byte[] engineDigest() {
-        ensureDigestInitializedInContext();
         final byte[] result = new byte[size];
         NativeCrypto.EVP_DigestFinal(ctx, result, 0);
-        mDigestInitializedInContext = false;
+        resetContext();
         return result;
     }
 
@@ -198,6 +185,6 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
         NativeRef.EVP_MD_CTX ctxCopy = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         NativeCrypto.EVP_MD_CTX_init(ctxCopy);
         NativeCrypto.EVP_MD_CTX_copy(ctxCopy, ctx);
-        return new OpenSSLMessageDigestJDK(evp_md, size, ctxCopy, mDigestInitializedInContext);
+        return new OpenSSLMessageDigestJDK(evp_md, size, ctxCopy);
     }
 }
