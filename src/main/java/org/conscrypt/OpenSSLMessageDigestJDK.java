@@ -24,7 +24,7 @@ import java.security.NoSuchAlgorithmException;
  * Implements the JDK MessageDigest interface using OpenSSL's EVP API.
  */
 public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneable {
-    private NativeRef.EVP_MD_CTX ctx;
+    private final NativeRef.EVP_MD_CTX ctx;
 
     /**
      * Holds the EVP_MD for the hashing algorithm, e.g. EVP_get_digestbyname("sha1");
@@ -42,31 +42,44 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     private final byte[] singleByte = new byte[1];
 
     /**
+     * Whether the digest struct has been initialized inside EVP_MD_CTX.
+     */
+    private boolean digestInitializedInContext;
+
+    /**
      * Creates a new OpenSSLMessageDigest instance for the given algorithm name.
      */
     private OpenSSLMessageDigestJDK(long evp_md, int size) throws NoSuchAlgorithmException {
         this.evp_md = evp_md;
         this.size = size;
-
-        resetContext();
+        NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        this.ctx = ctxLocal;
     }
 
-    private OpenSSLMessageDigestJDK(long evp_md, int size, NativeRef.EVP_MD_CTX ctx) {
+    private OpenSSLMessageDigestJDK(long evp_md, int size, NativeRef.EVP_MD_CTX ctx,
+            boolean digestInitializedInContext) {
         this.evp_md = evp_md;
         this.size = size;
         this.ctx = ctx;
+        this.digestInitializedInContext = digestInitializedInContext;
     }
 
-    private final void resetContext() {
-        NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
-        NativeCrypto.EVP_MD_CTX_init(ctxLocal);
-        NativeCrypto.EVP_DigestInit(ctxLocal, evp_md);
-        ctx = ctxLocal;
+    private void ensureDigestInitializedInContext() {
+        if (!digestInitializedInContext) {
+            final NativeRef.EVP_MD_CTX ctxLocal = ctx;
+            NativeCrypto.EVP_DigestInit(ctxLocal, evp_md);
+            digestInitializedInContext = true;
+        }
     }
 
     @Override
     protected void engineReset() {
-        resetContext();
+        // Reset to the same state as at the end of the <init>(long evp_md, int size). We can avoid
+        // allocating a new EVP_MD_CTX by invoking EVP_MD_CTX_cleanup on the existing one.
+        // EVP_MD_CTX_cleanup cleans up and reinitializes the EVP_MD_CTX.
+        final NativeRef.EVP_MD_CTX ctxLocal = ctx;
+        NativeCrypto.EVP_MD_CTX_cleanup(ctxLocal);
+        digestInitializedInContext = false;
     }
 
     @Override
@@ -82,6 +95,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
 
     @Override
     protected void engineUpdate(byte[] input, int offset, int len) {
+        ensureDigestInitializedInContext();
         NativeCrypto.EVP_DigestUpdate(ctx, input, offset, len);
     }
 
@@ -120,15 +134,24 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
             throw new RuntimeException("End pointer overflow");
         }
 
+        ensureDigestInitializedInContext();
         NativeCrypto.EVP_DigestUpdateDirect(ctx, ptr, len);
         input.position(position + len);
     }
 
     @Override
     protected byte[] engineDigest() {
+        ensureDigestInitializedInContext();
         final byte[] result = new byte[size];
         NativeCrypto.EVP_DigestFinal(ctx, result, 0);
-        resetContext();
+
+        // Optimized reset path:
+        // 1. No need to wipe EVP_MD_CTX because EVP_DigestFinal_ex has already cleansed any
+        //    sensitive state from it.
+        // 2. Require EVP_DigestInit to be invoked before this MessageDigestSpi starts computing a
+        //    new digest.
+        digestInitializedInContext = false;
+
         return result;
     }
 
@@ -183,8 +206,11 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     @Override
     public Object clone() {
         NativeRef.EVP_MD_CTX ctxCopy = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
-        NativeCrypto.EVP_MD_CTX_init(ctxCopy);
-        NativeCrypto.EVP_MD_CTX_copy(ctxCopy, ctx);
-        return new OpenSSLMessageDigestJDK(evp_md, size, ctxCopy);
+        // EVP_MD_CTX_copy requires that the digest struct of source EVP_MD_CTX is initialized.
+        // There's no need to invoke EVP_MD_CTX_copy when the digest struct isn't initialized.
+        if (digestInitializedInContext) {
+            NativeCrypto.EVP_MD_CTX_copy(ctxCopy, ctx);
+        }
+        return new OpenSSLMessageDigestJDK(evp_md, size, ctxCopy, digestInitializedInContext);
     }
 }

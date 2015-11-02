@@ -236,7 +236,7 @@ public final class NativeCrypto {
 
     public static native long EVP_MD_CTX_create();
 
-    public static native void EVP_MD_CTX_init(NativeRef.EVP_MD_CTX ctx);
+    public static native void EVP_MD_CTX_cleanup(NativeRef.EVP_MD_CTX ctx);
 
     public static native void EVP_MD_CTX_destroy(long ctx);
 
