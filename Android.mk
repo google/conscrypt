@@ -46,6 +46,11 @@ local_javac_flags:=-Xmaxwarns 9999999
 core_cflags := -Wall -Wextra -Werror -Wunused
 core_cppflags := -std=gnu++11 -Wall -Wextra -Werror -Wunused
 
+# libnativehelper's UniquePtr is deprecated but changing to std::unique_ptr has
+# been rejected here in the past:
+# https://android-review.googlesource.com/#/c/113096/
+core_cppflags += -Wno-error=deprecated-declarations
+
 #
 # Build for the target (device).
 #
