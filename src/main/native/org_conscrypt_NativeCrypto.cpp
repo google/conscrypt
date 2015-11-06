@@ -4230,12 +4230,12 @@ static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
     return reinterpret_cast<uintptr_t>(ctx.release());
 }
 
-static void NativeCrypto_EVP_MD_CTX_init(JNIEnv* env, jclass, jobject ctxRef) {
+static void NativeCrypto_EVP_MD_CTX_cleanup(JNIEnv* env, jclass, jobject ctxRef) {
     EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
-    JNI_TRACE_MD("EVP_MD_CTX_init(%p)", ctx);
+    JNI_TRACE_MD("EVP_MD_CTX_cleanup(%p)", ctx);
 
     if (ctx != NULL) {
-        EVP_MD_CTX_init(ctx);
+        EVP_MD_CTX_cleanup(ctx);
     }
 }
 
@@ -11239,7 +11239,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EC_KEY_set_nonce_from_hash, "(" REF_EVP_PKEY "Z)V"),
     NATIVE_METHOD(NativeCrypto, ECDH_compute_key, "([BI" REF_EVP_PKEY REF_EVP_PKEY ")I"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_create, "()J"),
-    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_init, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_cleanup, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)V"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_destroy, "(J)V"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_copy, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)I"),
     NATIVE_METHOD(NativeCrypto, EVP_DigestInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J)I"),
