@@ -240,12 +240,12 @@ public final class NativeCrypto {
 
     public static native void EVP_MD_CTX_destroy(long ctx);
 
-    public static native int EVP_MD_CTX_copy(NativeRef.EVP_MD_CTX dst_ctx,
+    public static native int EVP_MD_CTX_copy_ex(NativeRef.EVP_MD_CTX dst_ctx,
             NativeRef.EVP_MD_CTX src_ctx);
 
     // --- Digest handling functions -------------------------------------------
 
-    public static native int EVP_DigestInit(NativeRef.EVP_MD_CTX ctx, long evp_md);
+    public static native int EVP_DigestInit_ex(NativeRef.EVP_MD_CTX ctx, long evp_md);
 
     public static native void EVP_DigestUpdate(NativeRef.EVP_MD_CTX ctx,
             byte[] buffer, int offset, int length);
@@ -253,7 +253,7 @@ public final class NativeCrypto {
     public static native void EVP_DigestUpdateDirect(NativeRef.EVP_MD_CTX ctx,
             long ptr, int length);
 
-    public static native int EVP_DigestFinal(NativeRef.EVP_MD_CTX ctx, byte[] hash,
+    public static native int EVP_DigestFinal_ex(NativeRef.EVP_MD_CTX ctx, byte[] hash,
             int offset);
 
     // --- MAC handling functions ----------------------------------------------

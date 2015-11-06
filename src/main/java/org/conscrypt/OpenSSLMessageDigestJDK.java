@@ -67,7 +67,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     private void ensureDigestInitializedInContext() {
         if (!digestInitializedInContext) {
             final NativeRef.EVP_MD_CTX ctxLocal = ctx;
-            NativeCrypto.EVP_DigestInit(ctxLocal, evp_md);
+            NativeCrypto.EVP_DigestInit_ex(ctxLocal, evp_md);
             digestInitializedInContext = true;
         }
     }
@@ -143,13 +143,13 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     protected byte[] engineDigest() {
         ensureDigestInitializedInContext();
         final byte[] result = new byte[size];
-        NativeCrypto.EVP_DigestFinal(ctx, result, 0);
+        NativeCrypto.EVP_DigestFinal_ex(ctx, result, 0);
 
         // Optimized reset path:
         // 1. No need to wipe EVP_MD_CTX because EVP_DigestFinal_ex has already cleansed any
         //    sensitive state from it.
-        // 2. Require EVP_DigestInit to be invoked before this MessageDigestSpi starts computing a
-        //    new digest.
+        // 2. Require EVP_DigestInit_ex to be invoked before this MessageDigestSpi starts computing
+        //    a new digest.
         digestInitializedInContext = false;
 
         return result;
@@ -206,10 +206,10 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     @Override
     public Object clone() {
         NativeRef.EVP_MD_CTX ctxCopy = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
-        // EVP_MD_CTX_copy requires that the digest struct of source EVP_MD_CTX is initialized.
-        // There's no need to invoke EVP_MD_CTX_copy when the digest struct isn't initialized.
+        // EVP_MD_CTX_copy_ex requires that the digest struct of source EVP_MD_CTX is initialized.
+        // There's no need to invoke EVP_MD_CTX_copy_ex when the digest struct isn't initialized.
         if (digestInitializedInContext) {
-            NativeCrypto.EVP_MD_CTX_copy(ctxCopy, ctx);
+            NativeCrypto.EVP_MD_CTX_copy_ex(ctxCopy, ctx);
         }
         return new OpenSSLMessageDigestJDK(evp_md, size, ctxCopy, digestInitializedInContext);
     }
