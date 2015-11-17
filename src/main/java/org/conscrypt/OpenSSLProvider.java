@@ -180,6 +180,21 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Signature.1.2.840.10045.4.3.4", "SHA512withECDSA");
         put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.3with1.2.840.10045.2.1", "SHA512withECDSA");
 
+        putSignatureImplClass("SHA1withRSA/PSS", "OpenSSLSignature$SHA1RSAPSS");
+        put("Alg.Alias.Signature.SHA1withRSAandMGF1", "SHA1withRSA/PSS");
+
+        putSignatureImplClass("SHA224withRSA/PSS", "OpenSSLSignature$SHA224RSAPSS");
+        put("Alg.Alias.Signature.SHA224withRSAandMGF1", "SHA224withRSA/PSS");
+
+        putSignatureImplClass("SHA256withRSA/PSS", "OpenSSLSignature$SHA256RSAPSS");
+        put("Alg.Alias.Signature.SHA256withRSAandMGF1", "SHA256withRSA/PSS");
+
+        putSignatureImplClass("SHA384withRSA/PSS", "OpenSSLSignature$SHA384RSAPSS");
+        put("Alg.Alias.Signature.SHA384withRSAandMGF1", "SHA384withRSA/PSS");
+
+        putSignatureImplClass("SHA512withRSA/PSS", "OpenSSLSignature$SHA512RSAPSS");
+        put("Alg.Alias.Signature.SHA512withRSAandMGF1", "SHA512withRSA/PSS");
+
         /* === SecureRandom === */
         /*
          * We have to specify SHA1PRNG because various documentation mentions

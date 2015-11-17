@@ -4665,6 +4665,66 @@ static jboolean NativeCrypto_EVP_DigestVerifyFinal(JNIEnv* env, jclass, jobject 
     return result;
 }
 
+static void NativeCrypto_EVP_PKEY_CTX_set_rsa_padding(JNIEnv* env, jclass, jlong ctx, jint pad) {
+    EVP_PKEY_CTX* pkeyCtx = reinterpret_cast<EVP_PKEY_CTX*>(ctx);
+    JNI_TRACE("EVP_PKEY_CTX_set_rsa_padding(%p, %d)", pkeyCtx, pad);
+    if (pkeyCtx == NULL) {
+        jniThrowNullPointerException(env, "ctx == null");
+        return;
+    }
+
+    int result = EVP_PKEY_CTX_set_rsa_padding(pkeyCtx, reinterpret_cast<int>(pad));
+    if (result <= 0) {
+        JNI_TRACE("ctx=%p EVP_PKEY_CTX_set_rsa_padding => threw exception", pkeyCtx);
+        throwExceptionIfNecessary(env, "EVP_PKEY_CTX_set_rsa_padding");
+        return;
+    }
+
+    JNI_TRACE("EVP_PKEY_CTX_set_rsa_padding(%p, %d) => success", pkeyCtx, pad);
+}
+
+static void NativeCrypto_EVP_PKEY_CTX_set_rsa_pss_saltlen(JNIEnv* env, jclass, jlong ctx,
+        jint len) {
+    EVP_PKEY_CTX* pkeyCtx = reinterpret_cast<EVP_PKEY_CTX*>(ctx);
+    JNI_TRACE("EVP_PKEY_CTX_set_rsa_pss_saltlen(%p, %d)", pkeyCtx, len);
+    if (pkeyCtx == NULL) {
+        jniThrowNullPointerException(env, "ctx == null");
+        return;
+    }
+
+    int result = EVP_PKEY_CTX_set_rsa_pss_saltlen(pkeyCtx, reinterpret_cast<int>(len));
+    if (result <= 0) {
+        JNI_TRACE("ctx=%p EVP_PKEY_CTX_set_rsa_pss_saltlen => threw exception", pkeyCtx);
+        throwExceptionIfNecessary(env, "EVP_PKEY_CTX_set_rsa_pss_saltlen");
+        return;
+    }
+
+    JNI_TRACE("EVP_PKEY_CTX_set_rsa_pss_saltlen(%p, %d) => success", pkeyCtx, len);
+}
+
+static void NativeCrypto_EVP_PKEY_CTX_set_rsa_mgf1_md(JNIEnv* env, jclass, jlong ctx, jlong mdCtx) {
+    EVP_PKEY_CTX* pkeyCtx = reinterpret_cast<EVP_PKEY_CTX*>(ctx);
+    EVP_MD* md = reinterpret_cast<EVP_MD*>(mdCtx);
+    JNI_TRACE("EVP_PKEY_CTX_set_rsa_mgf1_md(%p, %p)", pkeyCtx, md);
+    if (pkeyCtx == NULL) {
+        jniThrowNullPointerException(env, "ctx == null");
+        return;
+    }
+    if (md == NULL) {
+        jniThrowNullPointerException(env, "mdCtx == null");
+        return;
+    }
+
+    int result = EVP_PKEY_CTX_set_rsa_mgf1_md(pkeyCtx, md);
+    if (result <= 0) {
+        JNI_TRACE("ctx=%p EVP_PKEY_CTX_set_rsa_mgf1_md => threw exception", pkeyCtx);
+        throwExceptionIfNecessary(env, "EVP_PKEY_CTX_set_rsa_mgf1_md");
+        return;
+    }
+
+    JNI_TRACE("EVP_PKEY_CTX_set_rsa_mgf1_md(%p, %p) => success", pkeyCtx, md);
+}
+
 static jlong NativeCrypto_EVP_get_cipherbyname(JNIEnv* env, jclass, jstring algorithm) {
     JNI_TRACE("EVP_get_cipherbyname(%p)", algorithm);
 
@@ -11212,6 +11272,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EVP_DigestVerifyUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)V"),
     NATIVE_METHOD(NativeCrypto, EVP_DigestVerifyUpdateDirect, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;JI)V"),
     NATIVE_METHOD(NativeCrypto, EVP_DigestVerifyFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)Z"),
+    NATIVE_METHOD(NativeCrypto, EVP_PKEY_CTX_set_rsa_padding, "(JI)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_PKEY_CTX_set_rsa_pss_saltlen, "(JI)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_PKEY_CTX_set_rsa_mgf1_md, "(JJ)V"),
     NATIVE_METHOD(NativeCrypto, EVP_get_cipherbyname, "(Ljava/lang/String;)J"),
     NATIVE_METHOD(NativeCrypto, EVP_CipherInit_ex, "(" REF_EVP_CIPHER_CTX "J[B[BZ)V"),
     NATIVE_METHOD(NativeCrypto, EVP_CipherUpdate, "(" REF_EVP_CIPHER_CTX "[BI[BII)I"),

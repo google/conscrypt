@@ -258,71 +258,148 @@ public class OpenSSLSignature extends SignatureSpi {
         }
     }
 
-    public static final class MD5RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("MD5");
+    protected final long getContentDigest() {
+        return evpMdRef;
+    }
+
+    /**
+     * Returns the public key algorithm context ({@code EVP_PKEY_CTX} reference) associated with
+     * this operation or {@code 0} if operation hasn't been initialized.
+     */
+    protected final long getPublicKeyAlgorithmContext() {
+        return evpPkeyCtx;
+    }
+
+    /**
+     * Base class for {@code RSASSA-PKCS1-v1_5} signatures.
+     */
+    abstract static class RSAPKCS1Padding extends OpenSSLSignature {
+        RSAPKCS1Padding(long evpMdRef) {
+            super(evpMdRef, EngineType.RSA);
+        }
+
+        @Override
+        protected final void configureEVP_PKEY_CTX(long ctx) {
+            NativeCrypto.EVP_PKEY_CTX_set_rsa_padding(ctx, NativeConstants.RSA_PKCS1_PADDING);
+        }
+    }
+
+    public static final class MD5RSA extends RSAPKCS1Padding {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("md5");
         public MD5RSA() {
-            super(EVP_MD, EngineType.RSA);
+            super(EVP_MD);
         }
     }
-    public static final class SHA1RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA1");
+    public static final class SHA1RSA extends RSAPKCS1Padding {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
         public SHA1RSA() {
-            super(EVP_MD, EngineType.RSA);
+            super(EVP_MD);
         }
     }
-    public static final class SHA224RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA224");
+    public static final class SHA224RSA extends RSAPKCS1Padding {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha224");
         public SHA224RSA() {
-            super(EVP_MD, EngineType.RSA);
+            super(EVP_MD);
         }
     }
-    public static final class SHA256RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA256");
+    public static final class SHA256RSA extends RSAPKCS1Padding {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
         public SHA256RSA() {
-            super(EVP_MD, EngineType.RSA);
+            super(EVP_MD);
         }
     }
-    public static final class SHA384RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA384");
+    public static final class SHA384RSA extends RSAPKCS1Padding {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
         public SHA384RSA() {
-            super(EVP_MD, EngineType.RSA);
+            super(EVP_MD);
         }
     }
-    public static final class SHA512RSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA512");
+    public static final class SHA512RSA extends RSAPKCS1Padding {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
         public SHA512RSA() {
-            super(EVP_MD, EngineType.RSA);
+            super(EVP_MD);
         }
     }
+
     public static final class SHA1ECDSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA1");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
         public SHA1ECDSA() {
             super(EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA224ECDSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA224");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha224");
         public SHA224ECDSA() {
             super(EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA256ECDSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA256");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
         public SHA256ECDSA() {
             super(EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA384ECDSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA384");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
         public SHA384ECDSA() {
             super(EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA512ECDSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA512");
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
         public SHA512ECDSA() {
             super(EVP_MD, EngineType.EC);
         }
     }
-}
 
+    /**
+     * Base class for {@code RSASSA-PSS} signatures.
+     */
+    abstract static class RSAPSSPadding extends OpenSSLSignature {
+
+        private int saltSizeBytes;
+
+        public RSAPSSPadding(long evpMdRef, int saltSizeBytes) {
+            super(evpMdRef, EngineType.RSA);
+            this.saltSizeBytes = saltSizeBytes;
+        }
+
+        @Override
+        protected final void configureEVP_PKEY_CTX(long ctx) {
+            NativeCrypto.EVP_PKEY_CTX_set_rsa_padding(ctx, NativeConstants.RSA_PKCS1_PSS_PADDING);
+            NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, getContentDigest());
+            NativeCrypto.EVP_PKEY_CTX_set_rsa_pss_saltlen(ctx, saltSizeBytes);
+        }
+    }
+
+    public static final class SHA1RSAPSS extends RSAPSSPadding {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
+        public SHA1RSAPSS() {
+            super(EVP_MD, 20);
+        }
+    }
+    public static final class SHA224RSAPSS extends RSAPSSPadding {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha224");
+        public SHA224RSAPSS() {
+            super(EVP_MD, 28);
+        }
+    }
+    public static final class SHA256RSAPSS extends RSAPSSPadding {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
+        public SHA256RSAPSS() {
+            super(EVP_MD, 32);
+        }
+    }
+    public static final class SHA384RSAPSS extends RSAPSSPadding {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
+        public SHA384RSAPSS() {
+            super(EVP_MD, 48);
+        }
+    }
+    public static final class SHA512RSAPSS extends RSAPSSPadding {
+        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
+        public SHA512RSAPSS() {
+            super(EVP_MD, 64);
+        }
+    }
+}

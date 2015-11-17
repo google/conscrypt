@@ -281,6 +281,12 @@ public final class NativeCrypto {
     public static native boolean EVP_DigestVerifyFinal(NativeRef.EVP_MD_CTX ctx,
             byte[] signature, int offset, int length);
 
+    public static native void EVP_PKEY_CTX_set_rsa_padding(long ctx, int pad);
+
+    public static native void EVP_PKEY_CTX_set_rsa_pss_saltlen(long ctx, int len);
+
+    public static native void EVP_PKEY_CTX_set_rsa_mgf1_md(long ctx, long evpMdRef);
+
     // --- Block ciphers -------------------------------------------------------
 
     // These return const references
