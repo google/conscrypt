@@ -4598,7 +4598,7 @@ static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject 
     if (actualLen > maxLen)  {
         JNI_TRACE("ctx=%p EVP_DigestSignFinal => signature too long: %d vs %d",
                   actualLen, maxLen);
-        throwExceptionIfNecessary(env, "EVP_DigestSignFinal signature too long");
+        jniThrowRuntimeException(env, "EVP_DigestSignFinal signature too long");
         return NULL;
     }
 
