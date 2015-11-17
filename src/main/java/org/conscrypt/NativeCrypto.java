@@ -256,38 +256,30 @@ public final class NativeCrypto {
     public static native int EVP_DigestFinal_ex(NativeRef.EVP_MD_CTX ctx, byte[] hash,
             int offset);
 
-    // --- MAC handling functions ----------------------------------------------
-
-    public static native void EVP_DigestSignInit(NativeRef.EVP_MD_CTX evp_md_ctx,
-            long evp_md, NativeRef.EVP_PKEY evp_pkey);
-
-    public static native void EVP_DigestSignUpdate(NativeRef.EVP_MD_CTX evp_md_ctx,
-            byte[] in);
-
-    public static native byte[] EVP_DigestSignFinal(NativeRef.EVP_MD_CTX evp_md_ctx);
-
     // --- Signature handling functions ----------------------------------------
 
-    public static native int EVP_SignInit(NativeRef.EVP_MD_CTX ctx, long evpRef);
+    public static native long EVP_DigestSignInit(NativeRef.EVP_MD_CTX ctx,
+            long evpMdRef, NativeRef.EVP_PKEY key);
 
-    public static native void EVP_SignUpdate(NativeRef.EVP_MD_CTX ctx, byte[] buffer,
-            int offset, int length);
+    public static native long EVP_DigestVerifyInit(NativeRef.EVP_MD_CTX ctx,
+            long evpMdRef, NativeRef.EVP_PKEY key);
 
-    public static native void EVP_SignUpdateDirect(NativeRef.EVP_MD_CTX ctx, long ptr, int length);
-
-    public static native int EVP_SignFinal(NativeRef.EVP_MD_CTX ctx, byte[] signature,
-            int offset, NativeRef.EVP_PKEY key);
-
-    public static native int EVP_VerifyInit(NativeRef.EVP_MD_CTX ctx, long evpRef);
-
-    public static native void EVP_VerifyUpdate(NativeRef.EVP_MD_CTX ctx,
+    public static native void EVP_DigestSignUpdate(NativeRef.EVP_MD_CTX ctx,
             byte[] buffer, int offset, int length);
 
-    public static native void EVP_VerifyUpdateDirect(NativeRef.EVP_MD_CTX ctx,
+    public static native void EVP_DigestSignUpdateDirect(NativeRef.EVP_MD_CTX ctx,
             long ptr, int length);
 
-    public static native int EVP_VerifyFinal(NativeRef.EVP_MD_CTX ctx,
-            byte[] signature, int offset, int length, NativeRef.EVP_PKEY key);
+    public static native void EVP_DigestVerifyUpdate(NativeRef.EVP_MD_CTX ctx,
+            byte[] buffer, int offset, int length);
+
+    public static native void EVP_DigestVerifyUpdateDirect(NativeRef.EVP_MD_CTX ctx,
+            long ptr, int length);
+
+    public static native byte[] EVP_DigestSignFinal(NativeRef.EVP_MD_CTX ctx);
+
+    public static native boolean EVP_DigestVerifyFinal(NativeRef.EVP_MD_CTX ctx,
+            byte[] signature, int offset, int length);
 
     // --- Block ciphers -------------------------------------------------------
 
