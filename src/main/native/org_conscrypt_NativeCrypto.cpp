@@ -4616,14 +4616,21 @@ static jboolean NativeCrypto_EVP_DigestVerifyFinal(JNIEnv* env, jclass, jobject 
     int err = EVP_DigestVerifyFinal(mdCtx, sigBuf + offset, len);
     jboolean result;
     if (err == 1) {
+        // Signature verified
         result = 1;
     } else if (err == 0) {
+        // Signature did not verify
         result = 0;
     } else {
+        // Error while verifying signature
         JNI_TRACE("ctx=%p EVP_DigestVerifyFinal => threw exception", mdCtx);
         throwExceptionIfNecessary(env, "EVP_DigestVerifyFinal");
         return 0;
     }
+
+    // If the signature did not verify, BoringSSL error queue contains an error (BAD_SIGNATURE).
+    // Clear the error queue to prevent its state from affecting future operations.
+    freeOpenSslErrorState();
 
     JNI_TRACE("EVP_DigestVerifyFinal(%p) => %d", mdCtx, result);
     return result;
