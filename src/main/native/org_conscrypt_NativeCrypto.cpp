@@ -4531,28 +4531,41 @@ static void NativeCrypto_EVP_DigestUpdate(JNIEnv* env, jclass, jobject evpMdCtxR
             EVP_DigestUpdate);
 }
 
+// EVP_DigestSignUpdate and EVP_DigestVerifyUpdate are functions in BoringSSl but not in OpenSSL.
+// The reason for the two wrapper functions below is that we need a function pointer which can be
+// provided to evpUpdate.
+// TODO: Remove these two wrapper functions once Conscrypt no longer supports OpenSSL or once
+// OpenSSL offers EVP_DigestSignUpdate and EVP_DigestVerifyUpdate as functions rather than macros.
+static int evpDigestSignUpdate(EVP_MD_CTX* ctx, const void* d, size_t cnt) {
+    return EVP_DigestSignUpdate(ctx, d, cnt);
+}
+
+static int evpDigestVerifyUpdate(EVP_MD_CTX* ctx, const void* d, size_t cnt) {
+    return EVP_DigestVerifyUpdate(ctx, d, cnt);
+}
+
 static void NativeCrypto_EVP_DigestSignUpdate(JNIEnv* env, jclass, jobject evpMdCtxRef,
         jbyteArray inJavaBytes, jint inOffset, jint inLength) {
     evpUpdate(env, evpMdCtxRef, inJavaBytes, inOffset, inLength, "EVP_DigestSignUpdate",
-            EVP_DigestSignUpdate);
+            evpDigestSignUpdate);
 }
 
 static void NativeCrypto_EVP_DigestSignUpdateDirect(JNIEnv* env, jclass, jobject evpMdCtxRef,
         jlong inPtr, jint inLength) {
     evpUpdate(env, evpMdCtxRef, inPtr, inLength, "EVP_DigestSignUpdateDirect",
-            EVP_DigestSignUpdate);
+            evpDigestSignUpdate);
 }
 
 static void NativeCrypto_EVP_DigestVerifyUpdate(JNIEnv* env, jclass, jobject evpMdCtxRef,
         jbyteArray inJavaBytes, jint inOffset, jint inLength) {
     evpUpdate(env, evpMdCtxRef, inJavaBytes, inOffset, inLength, "EVP_DigestVerifyUpdate",
-            EVP_DigestVerifyUpdate);
+            evpDigestVerifyUpdate);
 }
 
 static void NativeCrypto_EVP_DigestVerifyUpdateDirect(JNIEnv* env, jclass, jobject evpMdCtxRef,
         jlong inPtr, jint inLength) {
     evpUpdate(env, evpMdCtxRef, inPtr, inLength, "EVP_DigestVerifyUpdateDirect",
-            EVP_DigestVerifyUpdate);
+            evpDigestVerifyUpdate);
 }
 
 static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject evpMdCtxRef)
@@ -4621,7 +4634,14 @@ static jboolean NativeCrypto_EVP_DigestVerifyFinal(JNIEnv* env, jclass, jobject 
         return 0;
     }
 
+#if defined(OPENSSL_IS_BORINGSSL)
     const unsigned char *sigBuf = reinterpret_cast<const unsigned char *>(sigBytes.get());
+#else
+    // Older versions of OpenSSL's EVP_DigestVerifyFinal take a non-const unsigned char *...
+    // TODO: Remove the const_cast and if-else-endif once OpenSSL is upgraded.
+    unsigned char *sigBuf =
+            const_cast<unsigned char *>(reinterpret_cast<const unsigned char *>(sigBytes.get()));
+#endif
     int err = EVP_DigestVerifyFinal(mdCtx, sigBuf + offset, len);
     jboolean result;
     if (err == 1) {
