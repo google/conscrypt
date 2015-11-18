@@ -19,7 +19,6 @@ package org.conscrypt;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SignatureException;
@@ -32,7 +31,7 @@ import java.security.SignatureSpi;
 public class OpenSSLSignature extends SignatureSpi {
     private static enum EngineType {
         RSA, EC,
-    };
+    }
 
     private NativeRef.EVP_MD_CTX ctx;
 
@@ -47,9 +46,9 @@ public class OpenSSLSignature extends SignatureSpi {
     private final EngineType engineType;
 
     /**
-     * Holds the OpenSSL name of the algorithm (lower case, no dashes).
+     * Digest algorithm (reference to {@code EVP_MD}).
      */
-    private final long evpAlgorithm;
+    private final long evpMdRef;
 
     /**
      * Holds a dummy buffer for writing single bytes to the digest.
@@ -62,26 +61,41 @@ public class OpenSSLSignature extends SignatureSpi {
     private boolean signing;
 
     /**
+     * Public key algorithm context (reference to {@code EVP_PKEY_CTX}).
+     */
+    private long evpPkeyCtx;
+
+    /**
      * Creates a new OpenSSLSignature instance for the given algorithm name.
      *
-     * @param algorithm OpenSSL name of the algorithm, e.g. "RSA-SHA1".
+     * @param evpMdRef digest algorithm ({@code EVP_MD} reference).
      */
-    private OpenSSLSignature(long algorithm, EngineType engineType)
-            throws NoSuchAlgorithmException {
+    private OpenSSLSignature(long evpMdRef, EngineType engineType) {
         this.engineType = engineType;
-        this.evpAlgorithm = algorithm;
+        this.evpMdRef = evpMdRef;
     }
 
     private final void resetContext() {
         NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         if (signing) {
             enableDSASignatureNonceHardeningIfApplicable();
-            NativeCrypto.EVP_SignInit(ctxLocal, evpAlgorithm);
+            evpPkeyCtx = NativeCrypto.EVP_DigestSignInit(ctxLocal, evpMdRef, key.getNativeRef());
         } else {
-            NativeCrypto.EVP_VerifyInit(ctxLocal, evpAlgorithm);
+            evpPkeyCtx = NativeCrypto.EVP_DigestVerifyInit(ctxLocal, evpMdRef, key.getNativeRef());
         }
+        configureEVP_PKEY_CTX(evpPkeyCtx);
         this.ctx = ctxLocal;
     }
+
+    /**
+     * Configures the public key algorithm context ({@code EVP_PKEY_CTX}) associated with this
+     * operation.
+     *
+     * <p>The default implementation does nothing.
+     *
+     * @param ctx reference to the context ({@code EVP_PKEY_CTX}).
+     */
+    protected void configureEVP_PKEY_CTX(long ctx) {}
 
     @Override
     protected void engineUpdate(byte input) {
@@ -93,9 +107,9 @@ public class OpenSSLSignature extends SignatureSpi {
     protected void engineUpdate(byte[] input, int offset, int len) {
         final NativeRef.EVP_MD_CTX ctxLocal = ctx;
         if (signing) {
-            NativeCrypto.EVP_SignUpdate(ctxLocal, input, offset, len);
+            NativeCrypto.EVP_DigestSignUpdate(ctxLocal, input, offset, len);
         } else {
-            NativeCrypto.EVP_VerifyUpdate(ctxLocal, input, offset, len);
+            NativeCrypto.EVP_DigestVerifyUpdate(ctxLocal, input, offset, len);
         }
     }
 
@@ -136,13 +150,14 @@ public class OpenSSLSignature extends SignatureSpi {
 
         final NativeRef.EVP_MD_CTX ctxLocal = ctx;
         if (signing) {
-            NativeCrypto.EVP_SignUpdateDirect(ctxLocal, ptr, len);
+            NativeCrypto.EVP_DigestSignUpdateDirect(ctxLocal, ptr, len);
         } else {
-            NativeCrypto.EVP_VerifyUpdateDirect(ctxLocal, ptr, len);
+            NativeCrypto.EVP_DigestVerifyUpdateDirect(ctxLocal, ptr, len);
         }
         input.position(position + len);
     }
 
+    @Deprecated
     @Override
     protected Object engineGetParameter(String param) throws InvalidParameterException {
         return null;
@@ -206,27 +221,16 @@ public class OpenSSLSignature extends SignatureSpi {
         initInternal(OpenSSLKey.fromPublicKey(publicKey), false);
     }
 
+    @Deprecated
     @Override
     protected void engineSetParameter(String param, Object value) throws InvalidParameterException {
     }
 
     @Override
     protected byte[] engineSign() throws SignatureException {
-        if (key == null) {
-            // This can't actually happen, but you never know...
-            throw new SignatureException("Need RSA or EC private key");
-        }
-
         final NativeRef.EVP_MD_CTX ctxLocal = ctx;
         try {
-            byte[] buffer = new byte[NativeCrypto.EVP_PKEY_size(key.getNativeRef())];
-            int bytesWritten = NativeCrypto.EVP_SignFinal(ctxLocal, buffer, 0,
-                    key.getNativeRef());
-
-            byte[] signature = new byte[bytesWritten];
-            System.arraycopy(buffer, 0, signature, 0, bytesWritten);
-
-            return signature;
+            return NativeCrypto.EVP_DigestSignFinal(ctxLocal);
         } catch (Exception ex) {
             throw new SignatureException(ex);
         } finally {
@@ -240,15 +244,9 @@ public class OpenSSLSignature extends SignatureSpi {
 
     @Override
     protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
-        if (key == null) {
-            // This can't actually happen, but you never know...
-            throw new SignatureException("Need RSA or EC public key");
-        }
-
+        final NativeRef.EVP_MD_CTX ctxLocal = ctx;
         try {
-            int result = NativeCrypto.EVP_VerifyFinal(ctx, sigBytes, 0, sigBytes.length,
-                    key.getNativeRef());
-            return result == 1;
+            return NativeCrypto.EVP_DigestVerifyFinal(ctxLocal, sigBytes, 0, sigBytes.length);
         } catch (Exception ex) {
             throw new SignatureException(ex);
         } finally {
@@ -262,67 +260,67 @@ public class OpenSSLSignature extends SignatureSpi {
 
     public static final class MD5RSA extends OpenSSLSignature {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("MD5");
-        public MD5RSA() throws NoSuchAlgorithmException {
+        public MD5RSA() {
             super(EVP_MD, EngineType.RSA);
         }
     }
     public static final class SHA1RSA extends OpenSSLSignature {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA1");
-        public SHA1RSA() throws NoSuchAlgorithmException {
+        public SHA1RSA() {
             super(EVP_MD, EngineType.RSA);
         }
     }
     public static final class SHA224RSA extends OpenSSLSignature {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA224");
-        public SHA224RSA() throws NoSuchAlgorithmException {
+        public SHA224RSA() {
             super(EVP_MD, EngineType.RSA);
         }
     }
     public static final class SHA256RSA extends OpenSSLSignature {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA256");
-        public SHA256RSA() throws NoSuchAlgorithmException {
+        public SHA256RSA() {
             super(EVP_MD, EngineType.RSA);
         }
     }
     public static final class SHA384RSA extends OpenSSLSignature {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA384");
-        public SHA384RSA() throws NoSuchAlgorithmException {
+        public SHA384RSA() {
             super(EVP_MD, EngineType.RSA);
         }
     }
     public static final class SHA512RSA extends OpenSSLSignature {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA512");
-        public SHA512RSA() throws NoSuchAlgorithmException {
+        public SHA512RSA() {
             super(EVP_MD, EngineType.RSA);
         }
     }
     public static final class SHA1ECDSA extends OpenSSLSignature {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA1");
-        public SHA1ECDSA() throws NoSuchAlgorithmException {
+        public SHA1ECDSA() {
             super(EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA224ECDSA extends OpenSSLSignature {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA224");
-        public SHA224ECDSA() throws NoSuchAlgorithmException {
+        public SHA224ECDSA() {
             super(EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA256ECDSA extends OpenSSLSignature {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA256");
-        public SHA256ECDSA() throws NoSuchAlgorithmException {
+        public SHA256ECDSA() {
             super(EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA384ECDSA extends OpenSSLSignature {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA384");
-        public SHA384ECDSA() throws NoSuchAlgorithmException {
+        public SHA384ECDSA() {
             super(EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA512ECDSA extends OpenSSLSignature {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("SHA512");
-        public SHA512ECDSA() throws NoSuchAlgorithmException {
+        public SHA512ECDSA() {
             super(EVP_MD, EngineType.EC);
         }
     }
