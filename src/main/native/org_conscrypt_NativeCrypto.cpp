@@ -3165,7 +3165,7 @@ static jint NativeCrypto_RSA_size(JNIEnv* env, jclass, jobject pkeyRef) {
     return static_cast<jint>(RSA_size(rsa.get()));
 }
 
-#if defined(BORINGSSL_201510)
+#if defined(OPENSSL_IS_BORINGSSL)
 typedef int RSACryptOperation(size_t flen, const unsigned char* from, unsigned char* to, RSA* rsa,
                               int padding);
 #else
@@ -3199,7 +3199,7 @@ static jint RSA_crypt_operation(RSACryptOperation operation, const char* caller,
     }
 
     int resultSize = operation(
-#if defined(BORINGSSL_201510)
+#if defined(OPENSSL_IS_BORINGSSL)
             static_cast<size_t>(flen),
 #else
             static_cast<int>(flen),
