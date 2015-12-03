@@ -60,6 +60,7 @@ LOCAL_CPP_EXTENSION := cc
 LOCAL_SRC_FILES := src/gen/native/generate_constants.cc
 LOCAL_MODULE := conscrypt_generate_constants
 LOCAL_SHARED_LIBRARIES := libcrypto-host libssl-host
+LOCAL_CXX_STL := none
 include $(BUILD_HOST_EXECUTABLE)
 
 conscrypt_generate_constants_exe := $(LOCAL_INSTALLED_MODULE)
@@ -273,6 +274,7 @@ LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
 LOCAL_MULTILIB := both
+LOCAL_CXX_STL := none
 include $(BUILD_HOST_SHARED_LIBRARY)
 
 # Conscrypt native library for nojarjar'd version
@@ -298,6 +300,7 @@ ifeq (,$(TARGET_BUILD_APPS))
     LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
     LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
     LOCAL_MULTILIB := both
+    LOCAL_CXX_STL := none
     include $(BUILD_HOST_SHARED_LIBRARY)
 endif
 
