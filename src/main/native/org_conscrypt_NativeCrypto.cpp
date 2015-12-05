@@ -4238,7 +4238,7 @@ static jlong evpDigestSignVerifyInit(
     const EVP_MD* md = reinterpret_cast<const EVP_MD*>(evpMdRef);
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     if (pkey == nullptr) {
-        JNI_TRACE("ctx=%p $s => pkey == NULL", mdCtx, jniName);
+        JNI_TRACE("ctx=%p %s => pkey == NULL", mdCtx, jniName);
         return 0;
     }
     JNI_TRACE("%s(%p, %p, %p) <- ptr", jniName, mdCtx, md, pkey);
@@ -4402,8 +4402,8 @@ static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject 
         return nullptr;
     }
     if (actualLen > maxLen)  {
-        JNI_TRACE("ctx=%p EVP_DigestSignFinal => signature too long: %d vs %d",
-                  actualLen, maxLen);
+        JNI_TRACE("ctx=%p EVP_DigestSignFinal => signature too long: %zd vs %zd",
+                  mdCtx, actualLen, maxLen);
         jniThrowRuntimeException(env, "EVP_DigestSignFinal signature too long");
         return nullptr;
     }
@@ -9907,7 +9907,7 @@ static jint NativeCrypto_SSL_read_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
         if (n > WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
             n = WITH_JNI_TRACE_DATA_CHUNK_SIZE;
         }
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO data: %d:\n%.*s", ssl, n, n, buf+i);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO data: %d:\n%.*s", ssl, n, n, dest.get() + i);
     }
 #endif
 
@@ -10239,7 +10239,7 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
         if (n > WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
             n = WITH_JNI_TRACE_DATA_CHUNK_SIZE;
         }
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_write_BIO data: %d:\n%.*s", ssl, n, n, buf+i);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_write_BIO data: %d:\n%.*s", ssl, n, n, source.get() + i);
     }
 #endif
 
