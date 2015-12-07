@@ -306,6 +306,41 @@ endif
 
 endif # HOST_OS == linux
 
+# Conscrypt JNI library for host OpenJDK
+include $(CLEAR_VARS)
+LOCAL_CLANG := true
+LOCAL_SRC_FILES += \
+        src/main/native/org_conscrypt_NativeCrypto.cpp \
+        src/openjdk/native/JNIHelp.cpp
+LOCAL_C_INCLUDES += \
+        external/openssl/include \
+        external/openssl \
+        external/conscrypt/src/openjdk/native
+LOCAL_CPPFLAGS += $(core_cppflags)
+LOCAL_LDLIBS += -lpthread
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := libconscrypt_openjdk_jni
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+# NO_KEYSTORE_ENGINE instructs the BoringSSL build of Conscrypt not to
+# support the keystore ENGINE. It is not available in this build
+# configuration.
+LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
+LOCAL_SHARED_LIBRARIES := libcrypto-host libssl-host
+LOCAL_MULTILIB := both
+include $(BUILD_HOST_SHARED_LIBRARY)
+
+# Conscrypt Java library for host OpenJDK
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
+LOCAL_SRC_FILES += $(call all-java-files-under,src/openjdk/java)
+LOCAL_SRC_FILES += $(call all-java-files-under,src/openjdk-host/java)
+LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
+LOCAL_JAVACFLAGS := $(local_javac_flags)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := conscrypt-host
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+include $(BUILD_HOST_JAVA_LIBRARY)
+
 # clear out local variables
 core_cflags :=
 core_cppflags :=
