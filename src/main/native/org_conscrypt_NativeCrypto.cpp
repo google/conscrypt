@@ -4395,7 +4395,7 @@ static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject 
         jniThrowOutOfMemory(env, "Unable to allocate signature buffer");
         return nullptr;
     }
-    size_t actualLen;
+    size_t actualLen(maxLen);
     if (EVP_DigestSignFinal(mdCtx, buffer.get(), &actualLen) != 1) {
         JNI_TRACE("ctx=%p EVP_DigestSignFinal => threw exception", mdCtx);
         throwExceptionIfNecessary(env, "EVP_DigestSignFinal");
