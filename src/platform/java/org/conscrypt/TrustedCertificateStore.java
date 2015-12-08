@@ -79,7 +79,7 @@ import libcore.io.IoUtils;
  * gid and that it is world readable but only writable by the system
  * user.
  */
-public final class TrustedCertificateStore {
+public class TrustedCertificateStore {
 
     private static final String PREFIX_SYSTEM = "system:";
     private static final String PREFIX_USER = "user:";
