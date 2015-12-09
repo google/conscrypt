@@ -95,12 +95,14 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.KeyPairGenerator.1.2.840.113549.1.1.1", "RSA");
 
         put("KeyPairGenerator.EC", PREFIX + "OpenSSLECKeyPairGenerator");
+        put("Alg.Alias.KeyPairGenerator.1.2.840.10045.2.1", "EC");
 
         /* == KeyFactory == */
         put("KeyFactory.RSA", PREFIX + "OpenSSLRSAKeyFactory");
         put("Alg.Alias.KeyFactory.1.2.840.113549.1.1.1", "RSA");
 
         put("KeyFactory.EC", PREFIX + "OpenSSLECKeyFactory");
+        put("Alg.Alias.KeyFactory.1.2.840.10045.2.1", "EC");
 
         /* == KeyAgreement == */
         putECDHKeyAgreementImplClass("OpenSSLECDHKeyAgreement");
