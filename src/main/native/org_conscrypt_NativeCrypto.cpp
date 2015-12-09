@@ -7676,9 +7676,9 @@ static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg __attr
 }
 
 /**
- * Call back to watch for handshake to be completed. This is necessary
- * for SSL_MODE_HANDSHAKE_CUTTHROUGH support, since SSL_do_handshake
- * returns before the handshake is completed in this case.
+ * Call back to watch for handshake to be completed. This is necessary for
+ * False Start support, since SSL_do_handshake returns before the handshake is
+ * completed in this case.
  */
 static void info_callback(const SSL* ssl, int where, int ret) {
     JNI_TRACE("ssl=%p info_callback where=0x%x ret=%d", ssl, where, ret);
@@ -8065,6 +8065,11 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
 
     // Reuse empty buffers within the SSL_CTX to save memory
     mode |= SSL_MODE_RELEASE_BUFFERS;
+
+#if defined(OPENSSL_IS_BORINGSSL)
+    // Enable False Start.
+    mode |= SSL_MODE_ENABLE_FALSE_START;
+#endif
 
     SSL_CTX_set_mode(sslCtx.get(), mode);
 
@@ -9114,9 +9119,12 @@ static int next_proto_select_callback(SSL* ssl, unsigned char** out, unsigned ch
     AppData* appData = toAppData(ssl);
     JNI_TRACE("AppData=%p", appData);
 
-    // Enable False Start on the client if the server understands NPN
+#if !defined(OPENSSL_IS_BORINGSSL)
+    // Enable False Start on the client if the server understands NPN. Unlike BoringSSL,
+    // OpenSSL doesn't implement this check internally.
     // http://www.imperialviolet.org/2012/04/11/falsestart.html
     SSL_set_mode(ssl, SSL_MODE_HANDSHAKE_CUTTHROUGH);
+#endif
 
     return proto_select(ssl, out, outlen, in, inlen,
             reinterpret_cast<unsigned char*>(appData->npnProtocolsData),
