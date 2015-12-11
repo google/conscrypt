@@ -330,6 +330,12 @@ LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
 LOCAL_CXX_STL := libc++_static
 LOCAL_WHOLE_STATIC_LIBRARIES := libcrypto_static libssl_static-host
 LOCAL_MULTILIB := both
+# TODO: b/26097626. ASAN breaks use of this library in JVM.
+# Re-enable sanitization when the issue with making clients of this library
+# preload ASAN runtime is resolved. Without that, clients are getting runtime
+# errors due to unresoled ASAN symbols, such as
+# __asan_option_detect_stack_use_after_return.
+LOCAL_SANITIZE := never
 include $(BUILD_HOST_SHARED_LIBRARY)
 
 # Conscrypt Java library for host OpenJDK
