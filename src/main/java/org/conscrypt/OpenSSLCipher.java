@@ -846,9 +846,10 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     public static abstract class EVP_AEAD extends OpenSSLCipher {
         /**
-         * The default tag size when one is not specified.
+         * The default tag size when one is not specified. Default to
+         * full-length tags (128-bits or 16 octets).
          */
-        private static final int DEFAULT_TAG_SIZE_BITS = 12 * 8;
+        private static final int DEFAULT_TAG_SIZE_BITS = 16 * 8;
 
         /**
          * Keeps track of the last used block size.
