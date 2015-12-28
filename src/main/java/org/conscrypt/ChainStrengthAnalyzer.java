@@ -21,6 +21,7 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.List;
 
 public final class ChainStrengthAnalyzer {
 
@@ -39,11 +40,27 @@ public final class ChainStrengthAnalyzer {
 
     public static final void check(X509Certificate[] chain) throws CertificateException {
         for (X509Certificate cert : chain) {
-            checkCert(cert);
+            try {
+                checkCert(cert);
+            } catch (CertificateException e) {
+                throw new CertificateException("Unacceptable certificate: "
+                        + cert.getSubjectX500Principal(), e);
+            }
         }
     }
 
-    private static final void checkCert(X509Certificate cert) throws CertificateException {
+    public static final void check(List<X509Certificate> chain) throws CertificateException {
+        for (X509Certificate cert : chain) {
+            try {
+                checkCert(cert);
+            } catch (CertificateException e) {
+                throw new CertificateException("Unacceptable certificate: "
+                        + cert.getSubjectX500Principal(), e);
+            }
+        }
+    }
+
+    public static final void checkCert(X509Certificate cert) throws CertificateException {
         checkKeyLength(cert);
         checkSignatureAlgorithm(cert);
     }
