@@ -21,7 +21,9 @@ import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -153,4 +155,35 @@ public final class TrustedCertificateIndex {
         }
         return null;
     }
+
+    public Set<TrustAnchor> findAllByIssuerAndSignature(X509Certificate cert) {
+        X500Principal issuer = cert.getIssuerX500Principal();
+        synchronized (subjectToTrustAnchors) {
+            List<TrustAnchor> anchors = subjectToTrustAnchors.get(issuer);
+            if (anchors == null) {
+                return Collections.<TrustAnchor>emptySet();
+            }
+
+            Set<TrustAnchor> result = new HashSet<TrustAnchor>();
+            for (TrustAnchor anchor : anchors) {
+                try {
+                    PublicKey publicKey;
+                    X509Certificate caCert = anchor.getTrustedCert();
+                    if (caCert != null) {
+                        publicKey = caCert.getPublicKey();
+                    } else {
+                        publicKey = anchor.getCAPublicKey();
+                    }
+                    if (publicKey == null) {
+                        continue;
+                    }
+                    cert.verify(publicKey);
+                    result.add(anchor);
+                } catch (Exception ignored) {
+                }
+            }
+            return result;
+        }
+    }
+
 }
