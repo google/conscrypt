@@ -68,6 +68,15 @@ public final class TrustedCertificateIndex {
             if (anchors == null) {
                 anchors = new ArrayList<TrustAnchor>(1);
                 subjectToTrustAnchors.put(subject, anchors);
+            } else {
+                // Avoid indexing the same certificate multiple times
+                if (cert != null) {
+                    for (TrustAnchor entry : anchors) {
+                        if (cert.equals(entry.getTrustedCert())) {
+                            return;
+                        }
+                    }
+                }
             }
             anchors.add(anchor);
         }
