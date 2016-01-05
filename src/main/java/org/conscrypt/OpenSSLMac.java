@@ -125,14 +125,13 @@ public abstract class OpenSSLMac extends MacSpi {
 
         // MAC the contents between Buffer's position and limit (remaining() number of bytes)
         int position = input.position();
-        long ptr = baseAddress + position;
-        if (ptr < baseAddress) {
-            throw new RuntimeException("Start pointer overflow");
+        if (position < 0) {
+            throw new RuntimeException("Negative position");
         }
-
+        long ptr = baseAddress + position;
         int len = input.remaining();
-        if (ptr + len < ptr) {
-            throw new RuntimeException("End pointer overflow");
+        if (len < 0) {
+            throw new RuntimeException("Negative remaining amount");
         }
 
         final NativeRef.HMAC_CTX ctxLocal = ctx;
