@@ -172,7 +172,7 @@ public class SerializationTest extends TestCase {
         expected = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x05 };
         assertEqualByteArrays(expected, Serialization.readDEROctetString(in));
 
-        in = new byte[202];
+        in = new byte[203];
         in[0] = 0x04; // TAG
         in[1] = (byte)0x81; // long length flag
         in[2] = (byte)200; // length
