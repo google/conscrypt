@@ -69,6 +69,8 @@ public class SSLParametersImpl implements Cloneable {
     private static volatile SecureRandom defaultSecureRandom;
     // default SSL parameters
     private static volatile SSLParametersImpl defaultParameters;
+    // default CT Verifier
+    private static volatile CTVerifier defaultCTVerifier;
 
     // client session context contains the set of reusable
     // client-side SSL sessions
@@ -102,6 +104,7 @@ public class SSLParametersImpl implements Cloneable {
 
     // client-side only, bypasses the property based configuration, used for tests
     private boolean ctVerificationEnabled;
+    // client-side only, if null defaultCTVerifier is used instead. Used for tests
     private CTVerifier ctVerifier;
 
     // server-side only. SCT and OCSP data to send to clients which request it
@@ -165,8 +168,6 @@ public class SSLParametersImpl implements Cloneable {
         boolean pskCipherSuitesNeeded = pskKeyManager != null;
         enabledCipherSuites = getDefaultCipherSuites(
                 x509CipherSuitesNeeded, pskCipherSuitesNeeded);
-
-        ctVerifier = new CTVerifier(new CTLogStoreImpl());
     }
 
     protected static SSLParametersImpl getDefault() throws KeyManagementException {
@@ -252,6 +253,15 @@ public class SSLParametersImpl implements Cloneable {
      * @return certificate transparency verifier
      */
     protected CTVerifier getCTVerifier() {
+        if (ctVerifier != null) {
+            return ctVerifier;
+        }
+        CTVerifier result = defaultCTVerifier;
+        if (result == null) {
+            // single-check idiom
+            defaultCTVerifier = result = new CTVerifier(new CTLogStoreImpl());
+        }
+        ctVerifier = result;
         return ctVerifier;
     }
 
