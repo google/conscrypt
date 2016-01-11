@@ -4248,19 +4248,20 @@ static void NativeCrypto_EVP_MD_CTX_destroy(JNIEnv*, jclass, jlong ctxRef) {
     }
 }
 
-static jint NativeCrypto_EVP_MD_CTX_copy(JNIEnv* env, jclass, jobject dstCtxRef, jobject srcCtxRef) {
-    JNI_TRACE_MD("EVP_MD_CTX_copy(%p. %p)", dstCtxRef, srcCtxRef);
+static jint NativeCrypto_EVP_MD_CTX_copy_ex(JNIEnv* env, jclass, jobject dstCtxRef,
+        jobject srcCtxRef) {
+    JNI_TRACE_MD("EVP_MD_CTX_copy_ex(%p. %p)", dstCtxRef, srcCtxRef);
     EVP_MD_CTX* dst_ctx = fromContextObject<EVP_MD_CTX>(env, dstCtxRef);
     if (dst_ctx == NULL) {
-        JNI_TRACE_MD("EVP_MD_CTX_copy => dst_ctx == NULL");
+        JNI_TRACE_MD("EVP_MD_CTX_copy_ex => dst_ctx == NULL");
         return 0;
     }
     const EVP_MD_CTX* src_ctx = fromContextObject<EVP_MD_CTX>(env, srcCtxRef);
     if (src_ctx == NULL) {
-        JNI_TRACE_MD("EVP_MD_CTX_copy => src_ctx == NULL");
+        JNI_TRACE_MD("EVP_MD_CTX_copy_ex => src_ctx == NULL");
         return 0;
     }
-    JNI_TRACE_MD("EVP_MD_CTX_copy(%p. %p) <- ptr", dst_ctx, src_ctx);
+    JNI_TRACE_MD("EVP_MD_CTX_copy_ex(%p. %p) <- ptr", dst_ctx, src_ctx);
 
     int result = EVP_MD_CTX_copy_ex(dst_ctx, src_ctx);
     if (result == 0) {
@@ -4268,20 +4269,20 @@ static jint NativeCrypto_EVP_MD_CTX_copy(JNIEnv* env, jclass, jobject dstCtxRef,
         freeOpenSslErrorState();
     }
 
-    JNI_TRACE_MD("EVP_MD_CTX_copy(%p, %p) => %d", dst_ctx, src_ctx, result);
+    JNI_TRACE_MD("EVP_MD_CTX_copy_ex(%p, %p) => %d", dst_ctx, src_ctx, result);
     return result;
 }
 
 /*
- * public static native int EVP_DigestFinal(long, byte[], int)
+ * public static native int EVP_DigestFinal_ex(long, byte[], int)
  */
-static jint NativeCrypto_EVP_DigestFinal(JNIEnv* env, jclass, jobject ctxRef, jbyteArray hash,
+static jint NativeCrypto_EVP_DigestFinal_ex(JNIEnv* env, jclass, jobject ctxRef, jbyteArray hash,
         jint offset) {
     EVP_MD_CTX* ctx = fromContextObject<EVP_MD_CTX>(env, ctxRef);
-    JNI_TRACE_MD("EVP_DigestFinal(%p, %p, %d)", ctx, hash, offset);
+    JNI_TRACE_MD("EVP_DigestFinal_ex(%p, %p, %d)", ctx, hash, offset);
 
     if (ctx == NULL) {
-        JNI_TRACE("EVP_DigestFinal => ctx == NULL");
+        JNI_TRACE("EVP_DigestFinal_ex => ctx == NULL");
         return -1;
     } else if (hash == NULL) {
         jniThrowNullPointerException(env, "hash == null");
@@ -4297,10 +4298,10 @@ static jint NativeCrypto_EVP_DigestFinal(JNIEnv* env, jclass, jobject ctxRef, jb
                              reinterpret_cast<unsigned char*>(hashBytes.get() + offset),
                              &bytesWritten);
     if (ok == 0) {
-        throwExceptionIfNecessary(env, "EVP_DigestFinal");
+        throwExceptionIfNecessary(env, "EVP_DigestFinal_ex");
     }
 
-    JNI_TRACE_MD("EVP_DigestFinal(%p, %p, %d) => %d (%d)", ctx, hash, offset, bytesWritten, ok);
+    JNI_TRACE_MD("EVP_DigestFinal_ex(%p, %p, %d) => %d (%d)", ctx, hash, offset, bytesWritten, ok);
     return bytesWritten;
 }
 
@@ -4330,8 +4331,9 @@ static jint evpInit(JNIEnv* env, jobject evpMdCtxRef, jlong evpMdRef, const char
     return ok;
 }
 
-static jint NativeCrypto_EVP_DigestInit(JNIEnv* env, jclass, jobject evpMdCtxRef, jlong evpMdRef) {
-    return evpInit(env, evpMdCtxRef, evpMdRef, "EVP_DigestInit", EVP_DigestInit_ex);
+static jint NativeCrypto_EVP_DigestInit_ex(JNIEnv* env, jclass, jobject evpMdCtxRef,
+        jlong evpMdRef) {
+    return evpInit(env, evpMdCtxRef, evpMdRef, "EVP_DigestInit_ex", EVP_DigestInit_ex);
 }
 
 static jint NativeCrypto_EVP_SignInit(JNIEnv* env, jclass, jobject evpMdCtxRef, jlong evpMdRef) {
@@ -11241,11 +11243,11 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_create, "()J"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_cleanup, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)V"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_destroy, "(J)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_copy, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_copy_ex, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestInit_ex, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J)I"),
     NATIVE_METHOD(NativeCrypto, EVP_DigestUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)V"),
     NATIVE_METHOD(NativeCrypto, EVP_DigestUpdateDirect, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;JI)V"),
-    NATIVE_METHOD(NativeCrypto, EVP_DigestFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BI)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestFinal_ex, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BI)I"),
     NATIVE_METHOD(NativeCrypto, EVP_get_digestbyname, "(Ljava/lang/String;)J"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_block_size, "(J)I"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_size, "(J)I"),
