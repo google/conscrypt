@@ -482,7 +482,11 @@ public class OpenSSLSessionImpl implements SSLSession {
     @Override
     protected void finalize() throws Throwable {
         try {
-            NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
+            // The constructor can throw an exception if this object is constructed from invalid
+            // saved session data.
+            if (sslSessionNativePointer != 0) {
+                NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
+            }
         } finally {
             super.finalize();
         }
