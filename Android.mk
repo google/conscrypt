@@ -307,6 +307,8 @@ endif
 endif # HOST_OS == linux
 
 # Conscrypt JNI library for host OpenJDK
+# To be self-contained, this shared library statically links in all of its
+# Android-specific dependencies.
 include $(CLEAR_VARS)
 LOCAL_CLANG := true
 LOCAL_SRC_FILES += \
@@ -325,7 +327,8 @@ LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 # support the keystore ENGINE. It is not available in this build
 # configuration.
 LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
-LOCAL_SHARED_LIBRARIES := libcrypto-host libssl-host
+LOCAL_CXX_STL := libc++_static
+LOCAL_WHOLE_STATIC_LIBRARIES := libcrypto_static libssl_static-host
 LOCAL_MULTILIB := both
 include $(BUILD_HOST_SHARED_LIBRARY)
 
