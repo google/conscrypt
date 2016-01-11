@@ -41,7 +41,7 @@ public class Serialization {
             throw new SerializationException("Wrong DER tag, expected OCTET STRING, got " + tag);
         }
         int length;
-        int width = readByte(input);
+        int width = readNumber(input, 1);
         if ((width & DER_LENGTH_LONG_FORM_FLAG) != 0) {
             length = readNumber(input, width & ~DER_LENGTH_LONG_FORM_FLAG);
         } else {
