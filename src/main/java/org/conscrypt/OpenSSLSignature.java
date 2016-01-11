@@ -74,7 +74,6 @@ public class OpenSSLSignature extends SignatureSpi {
 
     private final void resetContext() {
         NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
-        NativeCrypto.EVP_MD_CTX_init(ctxLocal);
         if (signing) {
             enableDSASignatureNonceHardeningIfApplicable();
             NativeCrypto.EVP_SignInit(ctxLocal, evpAlgorithm);
