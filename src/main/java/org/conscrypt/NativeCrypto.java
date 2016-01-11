@@ -962,9 +962,6 @@ public final class NativeCrypto {
      */
     public static native long[] SSL_get_ciphers(long ssl);
 
-    public static native int get_SSL_CIPHER_algorithm_mkey(long sslCipher);
-    public static native int get_SSL_CIPHER_algorithm_auth(long sslCipher);
-
     public static void setEnabledCipherSuites(long ssl, String[] cipherSuites) {
         checkEnabledCipherSuites(cipherSuites);
         List<String> opensslSuites = new ArrayList<String>();

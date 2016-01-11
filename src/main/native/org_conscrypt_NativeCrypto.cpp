@@ -7777,7 +7777,7 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
 #else
     const uint8_t* ctype = nullptr;
     int ctype_num = SSL_get0_certificate_types(ssl, &ctype);
-    jobjectArray issuers = getPrincipalBytes(env, ssl->s3->tmp.ca_names);
+    jobjectArray issuers = getPrincipalBytes(env, SSL_get_client_CA_list(ssl));
 #endif
 
 #ifdef WITH_JNI_TRACE
@@ -8257,10 +8257,12 @@ static void NativeCrypto_SSL_set1_tls_channel_id(JNIEnv* env, jclass,
         return;
     }
 
+#if !defined(OPENSSL_IS_BORINGSSL)
     // SSL_set1_tls_channel_id requires ssl->server to be set to 0.
     // Unfortunately, the default value is 1 and it's only changed to 0 just
     // before the handshake starts (see NativeCrypto_SSL_do_handshake).
     ssl->server = 0;
+#endif
     long ret = SSL_set1_tls_channel_id(ssl, pkey);
 
     if (ret != 1L) {
@@ -8803,22 +8805,6 @@ static jlongArray NativeCrypto_SSL_get_ciphers(JNIEnv* env, jclass, jlong ssl_ad
 
     JNI_TRACE("NativeCrypto_SSL_get_ciphers(%p) => %p [size=%d]", ssl, ciphersArray.get(), count);
     return ciphersArray.release();
-}
-
-static jint NativeCrypto_get_SSL_CIPHER_algorithm_mkey(JNIEnv* env, jclass,
-        jlong ssl_cipher_address)
-{
-    SSL_CIPHER* cipher = to_SSL_CIPHER(env, ssl_cipher_address, true);
-    JNI_TRACE("cipher=%p get_SSL_CIPHER_algorithm_mkey => %ld", cipher, (long) cipher->algorithm_mkey);
-    return cipher->algorithm_mkey;
-}
-
-static jint NativeCrypto_get_SSL_CIPHER_algorithm_auth(JNIEnv* env, jclass,
-        jlong ssl_cipher_address)
-{
-    SSL_CIPHER* cipher = to_SSL_CIPHER(env, ssl_cipher_address, true);
-    JNI_TRACE("cipher=%p get_SSL_CIPHER_algorithm_auth => %ld", cipher, (long) cipher->algorithm_auth);
-    return cipher->algorithm_auth;
 }
 
 /**
@@ -9606,7 +9592,7 @@ static void NativeCrypto_SSL_renegotiate(JNIEnv* env, jclass, jlong ssl_address)
         return;
     }
     // if client agrees, set ssl state and perform renegotiation
-    ssl->state = SSL_ST_ACCEPT;
+    SSL_set_state(ssl, SSL_ST_ACCEPT);
     SSL_do_handshake(ssl);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_renegotiate =>", ssl);
 }
@@ -9672,6 +9658,14 @@ static jlongArray NativeCrypto_SSL_get_certificate(JNIEnv* env, jclass, jlong ss
     return refArray;
 }
 
+#if !defined(OPENSSL_IS_BORINGSSL)
+// Compatibility shim for SSL_is_server, available in BoringSSL (and OpenSSL 1.0.2).
+static int SSL_is_server(SSL* ssl)
+{
+    return ssl->server;
+}
+#endif
+
 // Fills a long[] with the peer certificates in the chain.
 static jlongArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlong ssl_address)
 {
@@ -9682,7 +9676,7 @@ static jlongArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlon
     }
     STACK_OF(X509)* chain = SSL_get_peer_cert_chain(ssl);
     Unique_sk_X509 chain_copy(nullptr);
-    if (ssl->server) {
+    if (SSL_is_server(ssl)) {
         X509* x509 = SSL_get_peer_certificate(ssl);
         if (x509 == nullptr) {
             JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => NULL", ssl);
@@ -11225,8 +11219,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, set_SSL_psk_server_callback_enabled, "(JZ)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_cipher_lists, "(J[Ljava/lang/String;)V"),
     NATIVE_METHOD(NativeCrypto, SSL_get_ciphers, "(J)[J"),
-    NATIVE_METHOD(NativeCrypto, get_SSL_CIPHER_algorithm_auth, "(J)I"),
-    NATIVE_METHOD(NativeCrypto, get_SSL_CIPHER_algorithm_mkey, "(J)I"),
     NATIVE_METHOD(NativeCrypto, SSL_set_accept_state, "(J)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_connect_state, "(J)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_verify, "(JI)V"),
