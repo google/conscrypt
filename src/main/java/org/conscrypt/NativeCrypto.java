@@ -273,6 +273,8 @@ public final class NativeCrypto {
     public static native void EVP_SignUpdate(NativeRef.EVP_MD_CTX ctx, byte[] buffer,
             int offset, int length);
 
+    public static native void EVP_SignUpdateDirect(NativeRef.EVP_MD_CTX ctx, long ptr, int length);
+
     public static native int EVP_SignFinal(NativeRef.EVP_MD_CTX ctx, byte[] signature,
             int offset, NativeRef.EVP_PKEY key);
 
@@ -280,6 +282,9 @@ public final class NativeCrypto {
 
     public static native void EVP_VerifyUpdate(NativeRef.EVP_MD_CTX ctx,
             byte[] buffer, int offset, int length);
+
+    public static native void EVP_VerifyUpdateDirect(NativeRef.EVP_MD_CTX ctx,
+            long ptr, int length);
 
     public static native int EVP_VerifyFinal(NativeRef.EVP_MD_CTX ctx,
             byte[] signature, int offset, int length, NativeRef.EVP_PKEY key);
@@ -348,6 +353,8 @@ public final class NativeCrypto {
     public static native void HMAC_Init_ex(NativeRef.HMAC_CTX ctx, byte[] key, long evp_md);
 
     public static native void HMAC_Update(NativeRef.HMAC_CTX ctx, byte[] in, int inOffset, int inLength);
+
+    public static native void HMAC_UpdateDirect(NativeRef.HMAC_CTX ctx, long inPtr, int inLength);
 
     public static native byte[] HMAC_Final(NativeRef.HMAC_CTX ctx);
 
