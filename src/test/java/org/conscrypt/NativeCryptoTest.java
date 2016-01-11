@@ -2645,13 +2645,37 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
-    public void test_EVP_SignInit() throws Exception {
+    public void test_EVP_DigestSignInit() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(512);
+
+        KeyPair kp = kpg.generateKeyPair();
+        RSAPrivateCrtKey privKey = (RSAPrivateCrtKey) kp.getPrivate();
+
+        NativeRef.EVP_PKEY pkey;
+        pkey = new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_new_RSA(
+                privKey.getModulus().toByteArray(),
+                privKey.getPublicExponent().toByteArray(),
+                privKey.getPrivateExponent().toByteArray(),
+                privKey.getPrimeP().toByteArray(),
+                privKey.getPrimeQ().toByteArray(),
+                privKey.getPrimeExponentP().toByteArray(),
+                privKey.getPrimeExponentQ().toByteArray(),
+                privKey.getCrtCoefficient().toByteArray()));
+        assertNotNull(pkey);
+
         final NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
-        assertEquals(1,
-                NativeCrypto.EVP_SignInit(ctx, NativeCrypto.EVP_get_digestbyname("sha256")));
+        long evpMd = NativeCrypto.EVP_get_digestbyname("sha256");
+        NativeCrypto.EVP_DigestSignInit(ctx, evpMd, pkey);
 
         try {
-            NativeCrypto.EVP_SignInit(ctx, 0);
+            NativeCrypto.EVP_DigestSignInit(ctx, 0, pkey);
+            fail();
+        } catch (RuntimeException expected) {
+        }
+
+        try {
+            NativeCrypto.EVP_DigestSignInit(ctx, evpMd, null);
             fail();
         } catch (RuntimeException expected) {
         }
