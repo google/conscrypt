@@ -4458,6 +4458,25 @@ static void NativeCrypto_EVP_DigestSignInit(JNIEnv* env, jclass, jobject evpMdCt
     JNI_TRACE("EVP_DigestSignInit(%p, %p, %p) => success", mdCtx, md, pkey);
 }
 
+static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jlong inPtr, jint inLength,
+        const char *jniName, int (*update_func)(EVP_MD_CTX*, const void *, size_t))
+{
+    EVP_MD_CTX* mdCtx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
+    JNI_TRACE_MD("%s(%p, %p, %d, %d)", jniName, mdCtx, inJavaBytes, inLength);
+
+    if (mdCtx == NULL) {
+         return;
+    }
+
+    const void *p = reinterpret_cast<const void *>(inPtr);
+    if (!update_func(mdCtx, p, inLength)) {
+        JNI_TRACE("ctx=%p %s => threw exception", mdCtx, jniName);
+        throwExceptionIfNecessary(env, jniName);
+    }
+
+    JNI_TRACE_MD("%s(%p, %p, %d) => success", jniName, mdCtx, inPtr, inLength);
+}
+
 static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, jint inOffset,
         jint inLength, const char *jniName, int (*update_func)(EVP_MD_CTX*, const void *,
         size_t))
@@ -4486,6 +4505,11 @@ static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, 
     }
 
     JNI_TRACE_MD("%s(%p, %p, %d, %d) => success", jniName, mdCtx, inJavaBytes, inOffset, inLength);
+}
+
+static void NativeCrypto_EVP_DigestUpdateDirect(JNIEnv* env, jclass, jobject evpMdCtxRef,
+        jlong inPtr, jint inLength) {
+    evpUpdate(env, evpMdCtxRef, inPtr, inLength, "EVP_DigestUpdateDirect", EVP_DigestUpdate);
 }
 
 static void NativeCrypto_EVP_DigestUpdate(JNIEnv* env, jclass, jobject evpMdCtxRef,
@@ -11102,6 +11126,11 @@ static jbyteArray NativeCrypto_get_ocsp_single_extension(JNIEnv*, jclass, jbyteA
 }
 #endif
 
+static jlong NativeCrypto_getDirectBufferAddress(JNIEnv *env, jclass, jobject buffer) {
+    return reinterpret_cast<jlong>(env->GetDirectBufferAddress(buffer));
+}
+
+
 #define FILE_DESCRIPTOR "Ljava/io/FileDescriptor;"
 #define SSL_CALLBACKS "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks;"
 #define REF_EC_GROUP "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_GROUP;"
@@ -11177,6 +11206,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_copy, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)I"),
     NATIVE_METHOD(NativeCrypto, EVP_DigestInit, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J)I"),
     NATIVE_METHOD(NativeCrypto, EVP_DigestUpdate, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_DigestUpdateDirect, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;JI)V"),
     NATIVE_METHOD(NativeCrypto, EVP_DigestFinal, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BI)I"),
     NATIVE_METHOD(NativeCrypto, EVP_get_digestbyname, "(Ljava/lang/String;)J"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_block_size, "(J)I"),
@@ -11364,7 +11394,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, ERR_peek_last_error, "()J"),
     NATIVE_METHOD(NativeCrypto, SSL_CIPHER_get_kx_name, "(J)Ljava/lang/String;"),
     NATIVE_METHOD(NativeCrypto, get_cipher_names, "(Ljava/lang/String;)[Ljava/lang/String;"),
-    NATIVE_METHOD(NativeCrypto, get_ocsp_single_extension, "([BLjava/lang/String;JJ)[B")
+    NATIVE_METHOD(NativeCrypto, get_ocsp_single_extension, "([BLjava/lang/String;JJ)[B"),
+    NATIVE_METHOD(NativeCrypto, getDirectBufferAddress, "(Ljava/nio/Buffer;)J"),
 };
 
 static jclass getGlobalRefToClass(JNIEnv* env, const char* className) {
