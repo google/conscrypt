@@ -144,19 +144,6 @@ public final class NativeCrypto {
 
     public static native byte[] i2d_RSAPrivateKey(NativeRef.EVP_PKEY rsa);
 
-    // --- DH public/private key handling functions ----------------------------
-
-    public static native long EVP_PKEY_new_DH(byte[] p, byte[] g, byte[] pub_key, byte[] priv_key);
-
-    public static native long DH_generate_parameters_ex(int primeBits, long generator);
-
-    public static native void DH_generate_key(NativeRef.EVP_PKEY pkeyRef);
-
-    /**
-     * @return array of {p, g, y(pub), x(priv)}
-     */
-    public static native byte[][] get_DH_params(NativeRef.EVP_PKEY dh);
-
     // --- EC functions --------------------------
 
     /**
