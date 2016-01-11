@@ -17,12 +17,20 @@
 package org.conscrypt;
 
 import java.nio.ByteBuffer;
+import java.security.AlgorithmParameters;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.ProviderException;
 import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.SignatureSpi;
+import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.InvalidParameterSpecException;
+import java.security.spec.MGF1ParameterSpec;
+import java.security.spec.PSSParameterSpec;
 
 /**
  * Implements the subset of the JDK Signature interface needed for
@@ -258,15 +266,11 @@ public class OpenSSLSignature extends SignatureSpi {
         }
     }
 
-    protected final long getContentDigest() {
-        return evpMdRef;
-    }
-
     /**
      * Returns the public key algorithm context ({@code EVP_PKEY_CTX} reference) associated with
      * this operation or {@code 0} if operation hasn't been initialized.
      */
-    protected final long getPublicKeyAlgorithmContext() {
+    protected final long getEVP_PKEY_CTX() {
         return evpPkeyCtx;
     }
 
@@ -357,49 +361,190 @@ public class OpenSSLSignature extends SignatureSpi {
      */
     abstract static class RSAPSSPadding extends OpenSSLSignature {
 
+        private static final String MGF1_ALGORITHM_NAME = "MGF1";
+        private static final String MGF1_OID = "1.2.840.113549.1.1.8";
+        private static final int TRAILER_FIELD_BC_ID = 1;
+
+        private final String contentDigestAlgorithm;
+
+        private String mgf1DigestAlgorithm;
+        private long mgf1EvpMdRef;
         private int saltSizeBytes;
 
-        public RSAPSSPadding(long evpMdRef, int saltSizeBytes) {
-            super(evpMdRef, EngineType.RSA);
+        public RSAPSSPadding(
+                long contentDigestEvpMdRef, String contentDigestAlgorithm, int saltSizeBytes) {
+            super(contentDigestEvpMdRef, EngineType.RSA);
+            this.contentDigestAlgorithm = contentDigestAlgorithm;
+            this.mgf1DigestAlgorithm = contentDigestAlgorithm;
+            this.mgf1EvpMdRef = contentDigestEvpMdRef;
             this.saltSizeBytes = saltSizeBytes;
         }
 
         @Override
         protected final void configureEVP_PKEY_CTX(long ctx) {
             NativeCrypto.EVP_PKEY_CTX_set_rsa_padding(ctx, NativeConstants.RSA_PKCS1_PSS_PADDING);
-            NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, getContentDigest());
+            NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, mgf1EvpMdRef);
             NativeCrypto.EVP_PKEY_CTX_set_rsa_pss_saltlen(ctx, saltSizeBytes);
+        }
+
+        @Override
+        protected final void engineSetParameter(AlgorithmParameterSpec params)
+                throws InvalidAlgorithmParameterException {
+            if (!(params instanceof PSSParameterSpec)) {
+                throw new InvalidAlgorithmParameterException(
+                        "Unsupported parameter: " + params + ". Only "
+                                + PSSParameterSpec.class.getName() + " supported");
+            }
+            PSSParameterSpec spec = (PSSParameterSpec) params;
+            String specContentDigest = getJcaDigestAlgorithmStandardName(spec.getDigestAlgorithm());
+            if (specContentDigest == null) {
+                throw new InvalidAlgorithmParameterException(
+                        "Unsupported content digest algorithm: " + spec.getDigestAlgorithm());
+            } else if (!contentDigestAlgorithm.equalsIgnoreCase(specContentDigest)) {
+                throw new InvalidAlgorithmParameterException(
+                        "Changing content digest algorithm not supported");
+            }
+
+            String specMgfAlgorithm = spec.getMGFAlgorithm();
+            if ((!MGF1_ALGORITHM_NAME.equalsIgnoreCase(specMgfAlgorithm))
+                    && (!MGF1_OID.equals(specMgfAlgorithm))) {
+                throw new InvalidAlgorithmParameterException(
+                        "Unsupported MGF algorithm: " + specMgfAlgorithm + ". Only "
+                                + MGF1_ALGORITHM_NAME + " supported");
+            }
+
+            AlgorithmParameterSpec mgfSpec = spec.getMGFParameters();
+            if (!(mgfSpec instanceof MGF1ParameterSpec)) {
+                throw new InvalidAlgorithmParameterException(
+                        "Unsupported MGF parameters: " + mgfSpec + ". Only "
+                                + MGF1ParameterSpec.class.getName() + " supported");
+            }
+            MGF1ParameterSpec specMgf1Spec = (MGF1ParameterSpec) spec.getMGFParameters();
+
+            String specMgf1Digest =
+                    getJcaDigestAlgorithmStandardName(specMgf1Spec.getDigestAlgorithm());
+            if (specMgf1Digest == null) {
+                throw new InvalidAlgorithmParameterException(
+                        "Unsupported MGF1 digest algorithm: " + specMgf1Spec.getDigestAlgorithm());
+            }
+            long specMgf1EvpMdRef;
+            try {
+                specMgf1EvpMdRef = getEVP_MDByJcaDigestAlgorithmStandardName(specMgf1Digest);
+            } catch (NoSuchAlgorithmException e) {
+                throw new ProviderException("Failed to obtain EVP_MD for " + specMgf1Digest, e);
+            }
+
+            int specSaltSizeBytes = spec.getSaltLength();
+            if (specSaltSizeBytes < 0) {
+                throw new InvalidAlgorithmParameterException(
+                        "Salt length must be non-negative: " + specSaltSizeBytes);
+            }
+
+            int specTrailer = spec.getTrailerField();
+            if (specTrailer != TRAILER_FIELD_BC_ID) {
+                throw new InvalidAlgorithmParameterException(
+                        "Unsupported trailer field: " + specTrailer + ". Only "
+                                + TRAILER_FIELD_BC_ID + " supported");
+            }
+
+            this.mgf1DigestAlgorithm = specMgf1Digest;
+            this.mgf1EvpMdRef = specMgf1EvpMdRef;
+            this.saltSizeBytes = specSaltSizeBytes;
+
+            long ctx = getEVP_PKEY_CTX();
+            if (ctx != 0) {
+                configureEVP_PKEY_CTX(ctx);
+            }
+        }
+
+        @Override
+        protected final AlgorithmParameters engineGetParameters() {
+            try {
+                AlgorithmParameters result = AlgorithmParameters.getInstance("PSS");
+                result.init(
+                        new PSSParameterSpec(
+                                contentDigestAlgorithm,
+                                MGF1_ALGORITHM_NAME,
+                                new MGF1ParameterSpec(mgf1DigestAlgorithm),
+                                saltSizeBytes,
+                                TRAILER_FIELD_BC_ID));
+                return result;
+            } catch (NoSuchAlgorithmException | InvalidParameterSpecException e) {
+                throw new ProviderException("Failed to create PSS AlgorithmParameters", e);
+            }
+        }
+
+        /**
+         * Returns the canonical JCA digest algorithm name for the provided digest algorithm name
+         * or {@code null} if the digest algorithm is not known.
+         */
+        private static String getJcaDigestAlgorithmStandardName(String algorithm) {
+            if (("SHA-256".equalsIgnoreCase(algorithm))
+                    || ("2.16.840.1.101.3.4.2.1".equals(algorithm))) {
+                return "SHA-256";
+            } else if (("SHA-512".equalsIgnoreCase(algorithm))
+                    || ("2.16.840.1.101.3.4.2.3".equals(algorithm))) {
+                return "SHA-512";
+            } else if (("SHA-1".equalsIgnoreCase(algorithm))
+                    || ("1.3.14.3.2.26".equals(algorithm))) {
+                return "SHA-1";
+            } else if (("SHA-384".equalsIgnoreCase(algorithm))
+                    || ("2.16.840.1.101.3.4.2.2".equals(algorithm))) {
+                return "SHA-384";
+            } else if (("SHA-224".equalsIgnoreCase(algorithm))
+                    || ("2.16.840.1.101.3.4.2.4".equals(algorithm))) {
+                return "SHA-224";
+            } else {
+                return null;
+            }
+        }
+
+        private static long getEVP_MDByJcaDigestAlgorithmStandardName(String algorithm)
+                throws NoSuchAlgorithmException {
+            if ("SHA-256".equalsIgnoreCase(algorithm)) {
+                return NativeCrypto.EVP_get_digestbyname("sha256");
+            } else if ("SHA-512".equalsIgnoreCase(algorithm)) {
+                return NativeCrypto.EVP_get_digestbyname("sha512");
+            } else if ("SHA-1".equalsIgnoreCase(algorithm)) {
+                return NativeCrypto.EVP_get_digestbyname("sha1");
+            } else if ("SHA-384".equalsIgnoreCase(algorithm)) {
+                return NativeCrypto.EVP_get_digestbyname("sha384");
+            } else if ("SHA-224".equalsIgnoreCase(algorithm)) {
+                return NativeCrypto.EVP_get_digestbyname("sha224");
+            } else {
+                throw new NoSuchAlgorithmException("Unsupported algorithm: " + algorithm);
+            }
         }
     }
 
     public static final class SHA1RSAPSS extends RSAPSSPadding {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
         public SHA1RSAPSS() {
-            super(EVP_MD, 20);
+            super(EVP_MD, "SHA-1", 20);
         }
     }
     public static final class SHA224RSAPSS extends RSAPSSPadding {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha224");
         public SHA224RSAPSS() {
-            super(EVP_MD, 28);
+            super(EVP_MD, "SHA-224", 28);
         }
     }
     public static final class SHA256RSAPSS extends RSAPSSPadding {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
         public SHA256RSAPSS() {
-            super(EVP_MD, 32);
+            super(EVP_MD, "SHA-256", 32);
         }
     }
     public static final class SHA384RSAPSS extends RSAPSSPadding {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
         public SHA384RSAPSS() {
-            super(EVP_MD, 48);
+            super(EVP_MD, "SHA-384", 48);
         }
     }
     public static final class SHA512RSAPSS extends RSAPSSPadding {
         private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
         public SHA512RSAPSS() {
-            super(EVP_MD, 64);
+            super(EVP_MD, "SHA-512", 64);
         }
     }
 }
