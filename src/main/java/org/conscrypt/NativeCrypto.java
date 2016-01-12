@@ -728,6 +728,9 @@ public final class NativeCrypto {
         add("PSK-RC4-SHA",			"TLS_PSK_WITH_RC4_128_SHA");
         add("RC4-MD5",				"SSL_RSA_WITH_RC4_128_MD5");
         add("RC4-SHA",				"SSL_RSA_WITH_RC4_128_SHA");
+        add("ECDHE-PSK-CHACHA20-POLY1305",	"TLS_PSK_WITH_CHACHA20_POLY1305_SHA256");
+        add("ECDHE-RSA-CHACHA20-POLY1305",	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256");
+        add("ECDHE-ECDSA-CHACHA20-POLY1305",	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256");
 
         // Signaling Cipher Suite Value for secure renegotiation handled as special case.
         // add("TLS_EMPTY_RENEGOTIATION_INFO_SCSV", null);
