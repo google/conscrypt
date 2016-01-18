@@ -174,10 +174,7 @@ public class TrustManagerImplTest extends TestCase {
         KeyStore keyStore = TestKeyStore.createKeyStore();
         keyStore.setCertificateEntry("alias", ca);
 
-        String algorithm = TrustManagerFactory.getDefaultAlgorithm();
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
-        tmf.init(keyStore);
-        return (X509TrustManager) tmf.getTrustManagers()[0];
+        return new TrustManagerImpl(keyStore);
     }
 
     private TrustManagerImpl trustManager(X509Certificate ca, String hostname, X509Certificate pin)
