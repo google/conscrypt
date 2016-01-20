@@ -32,6 +32,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -42,9 +43,8 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
-import org.apache.harmony.security.utils.AlgNameMapper;
-import org.apache.harmony.security.utils.AlgNameMapperSource;
 import org.conscrypt.GCMParameters;
+import sun.security.x509.AlgorithmId;
 
 class Platform {
     private static class NoPreloadHolder {
@@ -65,19 +65,6 @@ class Platform {
     }
 
     private Platform() {
-        AlgNameMapper.setSource(new OpenSSLMapper());
-    }
-
-    private static class OpenSSLMapper implements AlgNameMapperSource {
-        @Override
-        public String mapNameToOid(String algName) {
-            return NativeCrypto.OBJ_txt2nid_oid(algName);
-        }
-
-        @Override
-        public String mapOidToName(String oid) {
-            return NativeCrypto.OBJ_txt2nid_longName(oid);
-        }
     }
 
     public static FileDescriptor getFileDescriptor(Socket s) {
@@ -229,5 +216,16 @@ class Platform {
 
     public static void blockGuardOnNetwork() {
         BlockGuard.getThreadPolicy().onNetwork();
+    }
+
+    /**
+     * OID to Algorithm Name mapping.
+     */
+    public static String oidToAlgorithmName(String oid) {
+        try {
+            return AlgorithmId.get(oid).getName();
+        } catch (NoSuchAlgorithmException e) {
+            return oid;
+        }
     }
 }

@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import org.conscrypt.GCMParameters;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -24,17 +23,18 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
 import javax.crypto.spec.GCMParameterSpec;
-
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
+import sun.security.x509.AlgorithmId;
 
 /**
  *
@@ -198,5 +198,16 @@ public class Platform {
      */
 
     public static void blockGuardOnNetwork() {
+    }
+
+    /**
+     * OID to Algorithm Name mapping.
+     */
+    public static String oidToAlgorithmName(String oid) {
+        try {
+            return AlgorithmId.get(oid).getName();
+        } catch (NoSuchAlgorithmException e) {
+            return oid;
+        }
     }
 }

@@ -340,11 +340,7 @@ include $(BUILD_HOST_SHARED_LIBRARY)
 
 # Conscrypt Java library for host OpenJDK
 include $(CLEAR_VARS)
-local_exclude_src_files := \
-	%/AlgNameMapper.java \
-	%/AlgNameMapperSource.java
 LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
-LOCAL_SRC_FILES := $(filter-out $(local_exclude_src_files), $(LOCAL_SRC_FILES))
 LOCAL_SRC_FILES += $(call all-java-files-under,src/openjdk/java)
 LOCAL_SRC_FILES += $(call all-java-files-under,src/openjdk-host/java)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
@@ -357,5 +353,4 @@ include $(BUILD_HOST_JAVA_LIBRARY)
 # clear out local variables
 core_cflags :=
 core_cppflags :=
-local_exclude_src_files :=
 local_javac_flags :=
