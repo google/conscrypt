@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import org.apache.harmony.security.utils.AlgNameMapper;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -328,7 +327,12 @@ public class OpenSSLX509CRL extends X509CRL {
 
     @Override
     public String getSigAlgName() {
-        return AlgNameMapper.map2AlgName(getSigAlgOID());
+        String oid = getSigAlgOID();
+        String algName = Platform.oidToAlgorithmName(oid);
+        if (algName != null) {
+            return algName;
+        }
+        return oid;
     }
 
     @Override

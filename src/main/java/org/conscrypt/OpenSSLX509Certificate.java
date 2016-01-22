@@ -48,7 +48,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import javax.crypto.BadPaddingException;
 import javax.security.auth.x500.X500Principal;
-import org.apache.harmony.security.utils.AlgNameMapper;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 public class OpenSSLX509Certificate extends X509Certificate {
@@ -285,7 +284,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
     @Override
     public String getSigAlgName() {
         String oid = getSigAlgOID();
-        String algName = AlgNameMapper.map2AlgName(oid);
+        String algName = Platform.oidToAlgorithmName(oid);
         if (algName != null) {
             return algName;
         }
