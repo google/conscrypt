@@ -89,6 +89,15 @@ public class TrustedCertificateStoreTest extends TestCase {
     private static String ALIAS_USER_CERTLOOP_CA1;
     private static String ALIAS_USER_CERTLOOP_CA2;
 
+    private static X509Certificate MULTIPLE_ISSUERS_CA1;
+    private static X509Certificate MULTIPLE_ISSUERS_CA1_CROSS;
+    private static X509Certificate MULTIPLE_ISSUERS_CA2;
+    private static X509Certificate MULTIPLE_ISSUERS_EE;
+    private static String ALIAS_MULTIPLE_ISSUERS_CA1;
+    private static String ALIAS_MULTIPLE_ISSUERS_CA1_CROSS;
+    private static String ALIAS_MULTIPLE_ISSUERS_CA2;
+    private static String ALIAS_MULTIPLE_ISSUERS_EE;
+
     private static X509Certificate getCa1() {
         initCerts();
         return CA1;
@@ -194,6 +203,38 @@ public class TrustedCertificateStoreTest extends TestCase {
         initCerts();
         return ALIAS_USER_CERTLOOP_CA2;
     }
+    private static String getAliasMultipleIssuersCa1() {
+        initCerts();
+        return ALIAS_MULTIPLE_ISSUERS_CA1;
+    }
+    private static String getAliasMultipleIssuersCa2() {
+        initCerts();
+        return ALIAS_MULTIPLE_ISSUERS_CA2;
+    }
+    private static String getAliasMultipleIssuersCa1Cross() {
+        initCerts();
+        return ALIAS_MULTIPLE_ISSUERS_CA1_CROSS;
+    }
+    private static String getAliasMultipleIssuersEe() {
+        initCerts();
+        return ALIAS_MULTIPLE_ISSUERS_EE;
+    }
+    private static X509Certificate getMultipleIssuersCa1() {
+        initCerts();
+        return MULTIPLE_ISSUERS_CA1;
+    }
+    private static X509Certificate getMultipleIssuersCa2() {
+        initCerts();
+        return MULTIPLE_ISSUERS_CA2;
+    }
+    private static X509Certificate getMultipleIssuersCa1Cross() {
+        initCerts();
+        return MULTIPLE_ISSUERS_CA1_CROSS;
+    }
+    private static X509Certificate getMultipleIssuersEe() {
+        initCerts();
+        return MULTIPLE_ISSUERS_EE;
+    }
 
     /**
      * Lazily create shared test certificates.
@@ -288,6 +329,63 @@ public class TrustedCertificateStoreTest extends TestCase {
             CERTLOOP_EE = (X509Certificate) ((TrustedCertificateEntry) certLoopEe
                     .getEntryByAlias("certloop-ee-public-RSA")).getTrustedCertificate();
             ALIAS_USER_CERTLOOP_EE = alias(true, CERTLOOP_EE, 0);
+
+            /*
+             * The construction below creates a certificate with multiple possible issuer certs.
+             *
+             *    EE ----> CA1 ---> CA2
+             *
+             *    Where CA1 also exists in a self-issued form.
+             */
+            TestKeyStore multipleIssuersCa1 = new TestKeyStore.Builder()
+                    .keyAlgorithms("RSA")
+                    .aliasPrefix("multiple-issuers-ca1")
+                    .subject("CN=multiple-issuers-ca1")
+                    .ca(true)
+                    .build();
+            MULTIPLE_ISSUERS_CA1 = (X509Certificate) ((TrustedCertificateEntry) multipleIssuersCa1
+                    .getEntryByAlias("multiple-issuers-ca1-public-RSA")).getTrustedCertificate();
+            ALIAS_MULTIPLE_ISSUERS_CA1 = alias(false, MULTIPLE_ISSUERS_CA1, 0);
+            PrivateKeyEntry multipleIssuersCa1Key = (PrivateKeyEntry) multipleIssuersCa1
+                    .getEntryByAlias("multiple-issuers-ca1-private-RSA");
+
+            TestKeyStore multipleIssuersCa2 = new TestKeyStore.Builder()
+                    .keyAlgorithms("RSA")
+                    .aliasPrefix("multiple-issuers-ca2")
+                    .subject("CN=multiple-issuers-ca2")
+                    .ca(true)
+                    .build();
+            MULTIPLE_ISSUERS_CA2 = (X509Certificate) ((TrustedCertificateEntry) multipleIssuersCa2
+                    .getEntryByAlias("multiple-issuers-ca2-public-RSA")).getTrustedCertificate();
+            ALIAS_MULTIPLE_ISSUERS_CA2 = alias(false, MULTIPLE_ISSUERS_CA2, 0);
+            PrivateKeyEntry multipleIssuersCa2Key = (PrivateKeyEntry) multipleIssuersCa2
+                    .getEntryByAlias("multiple-issuers-ca2-private-RSA");
+
+            TestKeyStore multipleIssuersCa1SignedByCa2 = new TestKeyStore.Builder()
+                    .keyAlgorithms("RSA")
+                    .aliasPrefix("multiple-issuers-ca1")
+                    .subject("CN=multiple-issuers-ca1")
+                    .privateEntry(multipleIssuersCa1Key)
+                    .rootCa(MULTIPLE_ISSUERS_CA2)
+                    .signer(multipleIssuersCa2Key)
+                    .ca(true)
+                    .build();
+            MULTIPLE_ISSUERS_CA1_CROSS =
+                    (X509Certificate) ((TrustedCertificateEntry) multipleIssuersCa1SignedByCa2
+                            .getEntryByAlias("multiple-issuers-ca1-public-RSA"))
+                    .getTrustedCertificate();
+            ALIAS_MULTIPLE_ISSUERS_CA1_CROSS = alias(false, MULTIPLE_ISSUERS_CA1_CROSS, 1);
+
+            TestKeyStore multipleIssuersEe = new TestKeyStore.Builder()
+                    .keyAlgorithms("RSA")
+                    .aliasPrefix("multiple-issuers-ee")
+                    .subject("CN=multiple-issuers-ee")
+                    .rootCa(MULTIPLE_ISSUERS_CA1)
+                    .signer(multipleIssuersCa1Key)
+                    .build();
+            MULTIPLE_ISSUERS_EE = (X509Certificate) ((TrustedCertificateEntry) multipleIssuersEe
+                    .getEntryByAlias("multiple-issuers-ee-public-RSA")).getTrustedCertificate();
+            ALIAS_MULTIPLE_ISSUERS_EE = alias(false, MULTIPLE_ISSUERS_EE, 0);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -734,6 +832,22 @@ public class TrustedCertificateStoreTest extends TestCase {
 
         assertEquals("Number of system cert files and aliases doesn't match",
                 systemCertFileCount, systemCertAliasCount);
+    }
+
+    public void testMultipleIssuers() throws Exception {
+        Set<X509Certificate> result;
+        install(getMultipleIssuersCa1(), getAliasMultipleIssuersCa1());
+        result = store.findAllIssuers(getMultipleIssuersEe());
+        assertEquals("Unexpected number of issuers found", 1, result.size());
+        assertTrue("findAllIssuers does not contain expected issuer",
+                result.contains(getMultipleIssuersCa1()));
+        install(getMultipleIssuersCa1Cross(), getAliasMultipleIssuersCa1Cross());
+        result = store.findAllIssuers(getMultipleIssuersEe());
+        assertEquals("findAllIssuers did not return all issuers", 2, result.size());
+        assertTrue("findAllIssuers does not contain CA1",
+                result.contains(getMultipleIssuersCa1()));
+        assertTrue("findAllIssuers does not contain CA1 signed by CA2",
+                result.contains(getMultipleIssuersCa1Cross()));
     }
 
     private static File[] listFilesNoNull(File dir) {
