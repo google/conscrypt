@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -97,28 +96,6 @@ public class OpenSSLKey {
         }
 
         return new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(key.getEncoded()));
-    }
-
-    /**
-     * Parse a private key in PEM encoding from the provided input stream.
-     *
-     * @throws InvalidKeyException if parsing fails
-     */
-    public static OpenSSLKey fromPrivateKeyPemInputStream(InputStream is)
-            throws InvalidKeyException {
-        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
-        try {
-            long keyCtx = NativeCrypto.PEM_read_bio_PrivateKey(bis.getBioContext());
-            if (keyCtx == 0L) {
-                return null;
-            }
-
-            return new OpenSSLKey(keyCtx);
-        } catch (Exception e) {
-            throw new InvalidKeyException(e);
-        } finally {
-            bis.release();
-        }
     }
 
     /**
@@ -251,28 +228,6 @@ public class OpenSSLKey {
         }
     }
 
-    /**
-     * Parse a public key in PEM encoding from the provided input stream.
-     *
-     * @throws InvalidKeyException if parsing fails
-     */
-    public static OpenSSLKey fromPublicKeyPemInputStream(InputStream is)
-            throws InvalidKeyException {
-        OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
-        try {
-            long keyCtx = NativeCrypto.PEM_read_bio_PUBKEY(bis.getBioContext());
-            if (keyCtx == 0L) {
-                return null;
-            }
-
-            return new OpenSSLKey(keyCtx);
-        } catch (Exception e) {
-            throw new InvalidKeyException(e);
-        } finally {
-            bis.release();
-        }
-    }
-
     public PublicKey getPublicKey() throws NoSuchAlgorithmException {
         switch (NativeCrypto.EVP_PKEY_type(ctx)) {
             case NativeConstants.EVP_PKEY_RSA:
@@ -336,6 +291,15 @@ public class OpenSSLKey {
             return key.getPrivateKey();
         } catch (NoSuchAlgorithmException e) {
             throw new InvalidKeySpecException(e);
+        }
+    }
+
+    public SecretKey getSecretKey(String algorithm) throws NoSuchAlgorithmException {
+        switch (NativeCrypto.EVP_PKEY_type(ctx)) {
+            case NativeConstants.EVP_PKEY_HMAC:
+                return new OpenSSLSecretKey(algorithm, this);
+            default:
+                throw new NoSuchAlgorithmException("unknown PKEY type");
         }
     }
 

@@ -46,11 +46,6 @@ local_javac_flags:=-Xmaxwarns 9999999
 core_cflags := -Wall -Wextra -Werror -Wunused
 core_cppflags := -std=gnu++11 -Wall -Wextra -Werror -Wunused
 
-# libnativehelper's UniquePtr is deprecated but changing to std::unique_ptr has
-# been rejected here in the past:
-# https://android-review.googlesource.com/#/c/113096/
-core_cppflags += -Wno-error=deprecated-declarations
-
 #
 # Build for the target (device).
 #
@@ -60,7 +55,6 @@ LOCAL_CPP_EXTENSION := cc
 LOCAL_SRC_FILES := src/gen/native/generate_constants.cc
 LOCAL_MODULE := conscrypt_generate_constants
 LOCAL_SHARED_LIBRARIES := libcrypto-host libssl-host
-LOCAL_CXX_STL := none
 include $(BUILD_HOST_EXECUTABLE)
 
 conscrypt_generate_constants_exe := $(LOCAL_INSTALLED_MODULE)
@@ -75,7 +69,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
 LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
-LOCAL_JAVA_LIBRARIES := core-oj core-libart
+LOCAL_JAVA_LIBRARIES := core-libart
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
@@ -90,7 +84,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
 LOCAL_SRC_FILES += $(call all-java-files-under,src/platform/java)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
-LOCAL_JAVA_LIBRARIES := core-oj core-libart
+LOCAL_JAVA_LIBRARIES := core-libart
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
@@ -102,9 +96,8 @@ ifeq ($(LIBCORE_SKIP_TESTS),)
 # Make the conscrypt-tests library.
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,src/test/java)
-LOCAL_JAVA_RESOURCE_DIRS := src/test/resources
 LOCAL_NO_STANDARD_LIBRARIES := true
-LOCAL_JAVA_LIBRARIES := core-oj core-libart core-junit bouncycastle
+LOCAL_JAVA_LIBRARIES := core-libart core-junit bouncycastle
 LOCAL_STATIC_JAVA_LIBRARIES := core-tests-support conscrypt-nojarjar
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
@@ -189,11 +182,7 @@ include $(BUILD_SHARED_LIBRARY)
 # Static unbundled Conscrypt crypto JNI library
 include $(CLEAR_VARS)
 LOCAL_CFLAGS += $(core_cflags)
-LOCAL_CPPFLAGS += $(core_cppflags) \
-        -DJNI_JARJAR_PREFIX="com/google/android/gms/" \
-        -DCONSCRYPT_UNBUNDLED \
-        -DSTATIC_LIB \
-        -DNO_KEYSTORE_ENGINE
+LOCAL_CPPFLAGS += $(core_cppflags) -DJNI_JARJAR_PREFIX="com/google/android/gms/" -DCONSCRYPT_UNBUNDLED -DSTATIC_LIB
 LOCAL_SRC_FILES := \
         src/main/native/org_conscrypt_NativeCrypto.cpp \
         src/compat/native/JNIHelp.cpp
@@ -243,7 +232,6 @@ include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 ifeq ($(LIBCORE_SKIP_TESTS),)
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(call all-java-files-under,src/test/java)
-    LOCAL_JAVA_RESOURCE_DIRS := src/test/resources
     LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex core-junit-hostdex core-tests-support-hostdex conscrypt-hostdex-nojarjar
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_MODULE_TAGS := optional
@@ -274,7 +262,6 @@ LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
 LOCAL_MULTILIB := both
-LOCAL_CXX_STL := none
 include $(BUILD_HOST_SHARED_LIBRARY)
 
 # Conscrypt native library for nojarjar'd version
@@ -300,55 +287,10 @@ ifeq (,$(TARGET_BUILD_APPS))
     LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
     LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
     LOCAL_MULTILIB := both
-    LOCAL_CXX_STL := none
     include $(BUILD_HOST_SHARED_LIBRARY)
 endif
 
 endif # HOST_OS == linux
-
-# Conscrypt JNI library for host OpenJDK
-# To be self-contained, this shared library statically links in all of its
-# Android-specific dependencies.
-include $(CLEAR_VARS)
-LOCAL_CLANG := true
-LOCAL_SRC_FILES += \
-        src/main/native/org_conscrypt_NativeCrypto.cpp \
-        src/openjdk/native/JNIHelp.cpp
-LOCAL_C_INCLUDES += \
-        external/openssl/include \
-        external/openssl \
-        external/conscrypt/src/openjdk/native
-LOCAL_CPPFLAGS += $(core_cppflags)
-LOCAL_LDLIBS += -lpthread
-LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := libconscrypt_openjdk_jni
-LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-# NO_KEYSTORE_ENGINE instructs the BoringSSL build of Conscrypt not to
-# support the keystore ENGINE. It is not available in this build
-# configuration.
-LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
-LOCAL_CXX_STL := libc++_static
-LOCAL_WHOLE_STATIC_LIBRARIES := libcrypto_static libssl_static-host
-LOCAL_MULTILIB := both
-# TODO: b/26097626. ASAN breaks use of this library in JVM.
-# Re-enable sanitization when the issue with making clients of this library
-# preload ASAN runtime is resolved. Without that, clients are getting runtime
-# errors due to unresoled ASAN symbols, such as
-# __asan_option_detect_stack_use_after_return.
-LOCAL_SANITIZE := never
-include $(BUILD_HOST_SHARED_LIBRARY)
-
-# Conscrypt Java library for host OpenJDK
-include $(CLEAR_VARS)
-LOCAL_SRC_FILES := $(call all-java-files-under,src/main/java)
-LOCAL_SRC_FILES += $(call all-java-files-under,src/openjdk/java)
-LOCAL_SRC_FILES += $(call all-java-files-under,src/openjdk-host/java)
-LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
-LOCAL_JAVACFLAGS := $(local_javac_flags)
-LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := conscrypt-host
-LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-include $(BUILD_HOST_JAVA_LIBRARY)
 
 # clear out local variables
 core_cflags :=

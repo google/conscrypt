@@ -79,7 +79,7 @@ import libcore.io.IoUtils;
  * gid and that it is world readable but only writable by the system
  * user.
  */
-public class TrustedCertificateStore {
+public final class TrustedCertificateStore {
 
     private static final String PREFIX_SYSTEM = "system:";
     private static final String PREFIX_USER = "user:";
@@ -495,7 +495,7 @@ public class TrustedCertificateStore {
 
     private String hash(X500Principal name) {
         int hash = NativeCrypto.X509_NAME_hash_old(name);
-        return Hex.intToHexString(hash, 8);
+        return IntegralToString.intToHexString(hash, false, 8);
     }
 
     private File file(File dir, String hash, int index) {

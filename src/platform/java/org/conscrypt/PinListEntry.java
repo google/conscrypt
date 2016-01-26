@@ -112,7 +112,7 @@ public class PinListEntry {
             MessageDigest dgst = MessageDigest.getInstance("SHA512");
             byte[] encoded = cert.getPublicKey().getEncoded();
             byte[] fingerprint = dgst.digest(encoded);
-            return Hex.bytesToHexString(fingerprint);
+            return IntegralToString.bytesToHexString(fingerprint, false);
         } catch (NoSuchAlgorithmException e) {
             throw new AssertionError(e);
         }
@@ -154,3 +154,4 @@ public class PinListEntry {
         PinFailureLogger.log(cn, containsUserCert, enforcing, chain);
     }
 }
+

@@ -19,32 +19,26 @@ package org.conscrypt;
 import static android.system.OsConstants.SOL_SOCKET;
 import static android.system.OsConstants.SO_SNDTIMEO;
 
+import org.apache.harmony.security.utils.AlgNameMapper;
+import org.apache.harmony.security.utils.AlgNameMapperSource;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.StructTimeval;
-import dalvik.system.BlockGuard;
-import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
-import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
-import org.conscrypt.GCMParameters;
-import sun.security.x509.AlgorithmId;
 
 class Platform {
     private static class NoPreloadHolder {
@@ -65,6 +59,19 @@ class Platform {
     }
 
     private Platform() {
+        AlgNameMapper.setSource(new OpenSSLMapper());
+    }
+
+    private static class OpenSSLMapper implements AlgNameMapperSource {
+        @Override
+        public String mapNameToOid(String algName) {
+            return NativeCrypto.OBJ_txt2nid_oid(algName);
+        }
+
+        @Override
+        public String mapOidToName(String oid) {
+            return NativeCrypto.OBJ_txt2nid_longName(oid);
+        }
     }
 
     public static FileDescriptor getFileDescriptor(Socket s) {
@@ -107,21 +114,7 @@ class Platform {
             TrustManagerImpl tm = (TrustManagerImpl) x509tm;
             tm.checkServerTrusted(chain, authType, host);
         } else {
-            // Use duck-typing to try and call the hostname aware checkServerTrusted if available.
-            try {
-                Method method = x509tm.getClass().getMethod("checkServerTrusted",
-                        X509Certificate[].class,
-                        String.class,
-                        String.class);
-                method.invoke(x509tm, chain, authType, host);
-            } catch (NoSuchMethodException | IllegalAccessException e) {
-                x509tm.checkServerTrusted(chain, authType);
-            } catch (InvocationTargetException e) {
-                if (e.getCause() instanceof CertificateException) {
-                    throw (CertificateException) e.getCause();
-                }
-                throw new RuntimeException(e.getCause());
-            }
+            x509tm.checkServerTrusted(chain, authType);
         }
     }
 
@@ -167,65 +160,5 @@ class Platform {
      */
     public static SSLSocketFactory wrapSocketFactoryIfNeeded(OpenSSLSocketFactoryImpl factory) {
         return factory;
-    }
-
-    /**
-     * Convert from platform's GCMParameterSpec to our internal version.
-     */
-    public static GCMParameters fromGCMParameterSpec(AlgorithmParameterSpec params) {
-        if (params instanceof GCMParameterSpec) {
-            GCMParameterSpec gcmParams = (GCMParameterSpec) params;
-            return new GCMParameters(gcmParams.getTLen(), gcmParams.getIV());
-        }
-        return null;
-    }
-
-    /**
-     * Creates a platform version of {@code GCMParameterSpec}.
-     */
-    public static AlgorithmParameterSpec toGCMParameterSpec(int tagLenInBits, byte[] iv) {
-        return new GCMParameterSpec(tagLenInBits, iv);
-    }
-
-    /*
-     * CloseGuard functions.
-     */
-
-    public static CloseGuard closeGuardGet() {
-        return CloseGuard.get();
-    }
-
-    public static void closeGuardOpen(Object guardObj, String message) {
-        CloseGuard guard = (CloseGuard) guardObj;
-        guard.open(message);
-    }
-
-    public static void closeGuardClose(Object guardObj) {
-        CloseGuard guard = (CloseGuard) guardObj;
-        guard.close();
-    }
-
-    public static void closeGuardWarnIfOpen(Object guardObj) {
-        CloseGuard guard = (CloseGuard) guardObj;
-        guard.warnIfOpen();
-    }
-
-    /*
-     * BlockGuard functions.
-     */
-
-    public static void blockGuardOnNetwork() {
-        BlockGuard.getThreadPolicy().onNetwork();
-    }
-
-    /**
-     * OID to Algorithm Name mapping.
-     */
-    public static String oidToAlgorithmName(String oid) {
-        try {
-            return AlgorithmId.get(oid).getName();
-        } catch (NoSuchAlgorithmException e) {
-            return oid;
-        }
     }
 }

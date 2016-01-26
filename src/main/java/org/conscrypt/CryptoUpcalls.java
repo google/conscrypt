@@ -28,10 +28,7 @@ import javax.crypto.NoSuchPaddingException;
 
 /**
  * Provides a place where NativeCrypto can call back up to do Java language
- * calls to work on delegated key types from native code. Delegated keys are
- * usually backed by hardware so we don't have access directly to the private
- * key material. If it were a key where we can get to the private key, we
- * would not ever call into this class.
+ * calls to work on delegated key types from native code.
  */
 public final class CryptoUpcalls {
 
@@ -78,9 +75,7 @@ public final class CryptoUpcalls {
 
         Signature signature;
 
-        // Since this is a delegated key, we cannot handle providing a signature using this key.
-        // Otherwise we wouldn't end up in this classs in the first place. The first step is to
-        // try to get the most preferred provider as long as it isn't us.
+        // First try to get the most preferred provider as long as it isn't us.
         try {
             signature = Signature.getInstance(algorithm);
             signature.initSign(javaKey);
@@ -156,9 +151,7 @@ public final class CryptoUpcalls {
         String transformation = "RSA/ECB/" + jcaPadding;
         Cipher c = null;
 
-        // Since this is a delegated key, we cannot handle providing a cipher using this key.
-        // Otherwise we wouldn't end up in this classs in the first place. The first step is to
-        // try to get the most preferred provider as long as it isn't us.
+        // First try to get the most preferred provider as long as it isn't us.
         try {
             c = Cipher.getInstance(transformation);
             c.init(Cipher.DECRYPT_MODE, javaKey);
