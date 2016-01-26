@@ -21,10 +21,6 @@
 #include <openssl/rsa.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
-#include <openssl/evp.h>
-#if defined(OPENSSL_IS_BORINGSSL)
-#include <openssl/aead.h>
-#endif
 
 static const char kCopyright[] =
     "/* Copyright (C) 2015 The Android Open Source Project\n"
@@ -48,8 +44,8 @@ int main(int /* argc */, char ** /* argv */) {
   printf("package org.conscrypt;\n\n");
   printf("public final class NativeConstants {\n");
 
-  printf("    public static final boolean HAS_EVP_AEAD = %s;\n",
-#if defined(EVP_AEAD_DEFAULT_TAG_LENGTH)
+  printf("    public static final boolean IS_BORINGSSL = %s;\n",
+#if defined(OPENSSL_IS_BORINGSSL)
          "true"
 #else
          "false"
@@ -68,12 +64,12 @@ int main(int /* argc */, char ** /* argv */) {
   CONST(EXFLAG_CRITICAL);
 
   CONST(EVP_PKEY_RSA);
+  CONST(EVP_PKEY_HMAC);
   CONST(EVP_PKEY_EC);
 
   CONST(RSA_PKCS1_PADDING);
   CONST(RSA_NO_PADDING);
   CONST(RSA_PKCS1_OAEP_PADDING);
-  CONST(RSA_PKCS1_PSS_PADDING);
 
   CONST(SSL_MODE_SEND_FALLBACK_SCSV);
   CONST(SSL_MODE_CBC_RECORD_SPLITTING);

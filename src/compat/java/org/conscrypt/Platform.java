@@ -18,12 +18,8 @@ package org.conscrypt;
 
 import android.os.Build;
 import android.util.Log;
-import dalvik.system.BlockGuard;
-import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -32,7 +28,6 @@ import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
 
 import javax.net.ssl.SSLEngine;
@@ -159,22 +154,17 @@ public class Platform {
 
     public static void checkServerTrusted(X509TrustManager x509tm, X509Certificate[] chain,
             String authType, String host) throws CertificateException {
-        // Use duck-typing to try and call the hostname aware checkServerTrusted if available.
-        try {
-            Method method = x509tm.getClass().getMethod("checkServerTrusted",
-                    X509Certificate[].class,
-                    String.class,
-                    String.class);
-            method.invoke(x509tm, chain, authType, host);
-        } catch (NoSuchMethodException | IllegalAccessException e) {
+        // TODO: use reflection to find whether we have TrustManagerImpl
+        /*
+        if (x509tm instanceof TrustManagerImpl) {
+            TrustManagerImpl tm = (TrustManagerImpl) x509tm;
+            tm.checkServerTrusted(chain, authType, host);
+        } else {
+        */
             x509tm.checkServerTrusted(chain, authType);
-        } catch (InvocationTargetException e) {
-            if (e.getCause() instanceof CertificateException) {
-                throw (CertificateException) e.getCause();
-            }
-            throw new RuntimeException(e.getCause());
+        /*
         }
-
+        */
     }
 
     /**
@@ -309,155 +299,5 @@ public class Platform {
             return new KitKatPlatformOpenSSLSocketAdapterFactory(factory);
         }
         return factory;
-    }
-
-    /**
-     * Convert from platform's GCMParameterSpec to our internal version.
-     */
-    public static GCMParameters fromGCMParameterSpec(AlgorithmParameterSpec params) {
-        Class<?> gcmSpecClass;
-        try {
-            gcmSpecClass = Class.forName("javax.crypto.spec.GCMParameterSpec");
-        } catch (ClassNotFoundException e) {
-            gcmSpecClass = null;
-        }
-
-        if (gcmSpecClass != null && gcmSpecClass.isAssignableFrom(params.getClass())) {
-            try {
-                int tLen;
-                byte[] iv;
-
-                Method getTLenMethod = gcmSpecClass.getMethod("getTLen");
-                Method getIVMethod = gcmSpecClass.getMethod("getIV");
-                tLen = (int) getTLenMethod.invoke(params);
-                iv = (byte[]) getIVMethod.invoke(params);
-
-                return new GCMParameters(tLen, iv);
-            } catch (NoSuchMethodException | IllegalAccessException e) {
-                throw new RuntimeException("GCMParameterSpec lacks expected methods", e);
-            } catch (InvocationTargetException e) {
-                throw new RuntimeException("Could not fetch GCM parameters", e.getTargetException());
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Creates a platform version of {@code GCMParameterSpec}.
-     */
-    public static AlgorithmParameterSpec toGCMParameterSpec(int tagLenInBits, byte[] iv) {
-        Class<?> gcmSpecClass;
-        try {
-            gcmSpecClass = Class.forName("javax.crypto.spec.GCMParameterSpec");
-        } catch (ClassNotFoundException e) {
-            gcmSpecClass = null;
-        }
-
-        if (gcmSpecClass != null) {
-            try {
-                Constructor<?> constructor = gcmSpecClass.getConstructor(int.class, byte[].class);
-                return (AlgorithmParameterSpec) constructor.newInstance(tagLenInBits, iv);
-            } catch (NoSuchMethodException | InstantiationException | IllegalAccessException
-                    | IllegalArgumentException e) {
-                e.printStackTrace();
-            } catch (InvocationTargetException e) {
-                e.getCause().printStackTrace();
-            }
-        }
-        return null;
-    }
-
-    /*
-     * CloseGuard functions.
-     */
-
-    public static CloseGuard closeGuardGet() {
-        if (Build.VERSION.SDK_INT < 14) {
-            return null;
-        }
-
-        return CloseGuard.get();
-    }
-
-    public static void closeGuardOpen(Object guardObj, String message) {
-        if (Build.VERSION.SDK_INT < 14) {
-            return;
-        }
-
-        CloseGuard guard = (CloseGuard) guardObj;
-        guard.open(message);
-    }
-
-    public static void closeGuardClose(Object guardObj) {
-        if (Build.VERSION.SDK_INT < 14) {
-            return;
-        }
-
-        CloseGuard guard = (CloseGuard) guardObj;
-        guard.close();
-    }
-
-    public static void closeGuardWarnIfOpen(Object guardObj) {
-        if (Build.VERSION.SDK_INT < 14) {
-            return;
-        }
-
-        CloseGuard guard = (CloseGuard) guardObj;
-        guard.warnIfOpen();
-    }
-
-    /*
-     * BlockGuard functions.
-     */
-
-    public static void blockGuardOnNetwork() {
-        BlockGuard.getThreadPolicy().onNetwork();
-    }
-
-    /**
-     * OID to Algorithm Name mapping.
-     */
-    public static String oidToAlgorithmName(String oid) {
-        // Old Harmony style
-        try {
-            Class<?> algNameMapperClass = Class.forName(
-                        "org.apache.harmony.security.utils.AlgNameMapper");
-            Method map2AlgNameMethod = algNameMapperClass.getDeclaredMethod("map2AlgName",
-                        String.class);
-            map2AlgNameMethod.setAccessible(true);
-            return (String) map2AlgNameMethod.invoke(null, oid);
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
-            } else if (cause instanceof Error) {
-                throw (Error) cause;
-            }
-            throw new RuntimeException(e);
-        } catch (Exception ignored) {
-        }
-
-        // Newer OpenJDK style
-        try {
-            Class<?> algorithmIdClass = Class.forName("sun.security.x509.AlgorithmId");
-            Method getMethod = algorithmIdClass.getDeclaredMethod("get", String.class);
-            getMethod.setAccessible(true);
-            Method getNameMethod = algorithmIdClass.getDeclaredMethod("getName");
-            getNameMethod.setAccessible(true);
-
-            Object algIdObj = getMethod.invoke(null, oid);
-            return (String) getNameMethod.invoke(algIdObj);
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
-            } else if (cause instanceof Error) {
-                throw (Error) cause;
-            }
-            throw new RuntimeException(e);
-        } catch (Exception ignored) {
-        }
-
-        return oid;
     }
 }

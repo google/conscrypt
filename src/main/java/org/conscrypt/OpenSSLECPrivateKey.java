@@ -239,11 +239,7 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("OpenSSLECPrivateKey{");
-        sb.append("params={");
-        sb.append(NativeCrypto.EVP_PKEY_print_params(key.getNativeRef()));
-        sb.append("}}");
-        return sb.toString();
+        return NativeCrypto.EVP_PKEY_print_private(key.getNativeRef());
     }
 
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {

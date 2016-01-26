@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import javax.crypto.BadPaddingException;
 import javax.security.auth.x500.X500Principal;
+import org.apache.harmony.security.utils.AlgNameMapper;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 public class OpenSSLX509Certificate extends X509Certificate {
@@ -283,12 +284,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
 
     @Override
     public String getSigAlgName() {
-        String oid = getSigAlgOID();
-        String algName = Platform.oidToAlgorithmName(oid);
-        if (algName != null) {
-            return algName;
-        }
-        return oid;
+        return AlgNameMapper.map2AlgName(getSigAlgOID());
     }
 
     @Override
@@ -361,32 +357,22 @@ public class OpenSSLX509Certificate extends X509Certificate {
     private void verifyInternal(PublicKey key, String sigProvider) throws CertificateException,
             NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException,
             SignatureException {
-        Signature sig = getSignatureInstance(getSigAlgName(), sigProvider);
-        if (sig == null) {
-            sig = getSignatureInstance(getSigAlgOID(), sigProvider);
+        String sigAlg = getSigAlgName();
+        if (sigAlg == null) {
+            sigAlg = getSigAlgOID();
+        }
+
+        final Signature sig;
+        if (sigProvider == null) {
+            sig = Signature.getInstance(sigAlg);
+        } else {
+            sig = Signature.getInstance(sigAlg, sigProvider);
         }
 
         sig.initVerify(key);
         sig.update(getTBSCertificate());
         if (!sig.verify(getSignature())) {
             throw new SignatureException("signature did not verify");
-        }
-    }
-
-    /**
-     * Gets a signature instance or returns {@code null} if there is no
-     * provider.
-     */
-    private Signature getSignatureInstance(String sigAlg, String sigProvider)
-            throws NoSuchProviderException {
-        try {
-            if (sigProvider == null) {
-                return Signature.getInstance(sigAlg);
-            } else {
-                return Signature.getInstance(sigAlg, sigProvider);
-            }
-        } catch (NoSuchAlgorithmException ignored) {
-            return null;
         }
     }
 
@@ -519,19 +505,6 @@ public class OpenSSLX509Certificate extends X509Certificate {
      */
     public long getContext() {
         return mContext;
-    }
-
-    /**
-     * Delete an extension.
-     *
-     * A modified copy of the certificate is returned. The original object
-     * is unchanged.
-     * If the extension is not present, an unmodified copy is returned.
-     */
-    public OpenSSLX509Certificate withDeletedExtension(String oid) {
-        OpenSSLX509Certificate copy = new OpenSSLX509Certificate(NativeCrypto.X509_dup(mContext));
-        NativeCrypto.X509_delete_ext(copy.getContext(), oid);
-        return copy;
     }
 
     @Override

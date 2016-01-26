@@ -827,7 +827,7 @@ public class TrustedCertificateStoreTest extends TestCase {
 
         X500Principal subject = x.getSubjectX500Principal();
         int intHash = NativeCrypto.X509_NAME_hash_old(subject);
-        String strHash = Hex.intToHexString(intHash, 8);
+        String strHash = IntegralToString.intToHexString(intHash, false, 8);
 
         return prefix + strHash + '.' + index;
     }

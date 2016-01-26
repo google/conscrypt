@@ -20,7 +20,6 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.SocketTimeoutException;
-import java.nio.Buffer;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -85,13 +84,15 @@ public final class NativeCrypto {
     public static native long EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q,
             byte[] dmp1, byte[] dmq1, byte[] iqmp);
 
+    public static native long EVP_PKEY_new_mac_key(int type, byte[] key);
+
     public static native int EVP_PKEY_size(NativeRef.EVP_PKEY pkey);
 
     public static native int EVP_PKEY_type(NativeRef.EVP_PKEY pkey);
 
     public static native String EVP_PKEY_print_public(NativeRef.EVP_PKEY pkeyRef);
 
-    public static native String EVP_PKEY_print_params(NativeRef.EVP_PKEY pkeyRef);
+    public static native String EVP_PKEY_print_private(NativeRef.EVP_PKEY pkeyRef);
 
     public static native void EVP_PKEY_free(long pkey);
 
@@ -104,10 +105,6 @@ public final class NativeCrypto {
     public static native byte[] i2d_PUBKEY(NativeRef.EVP_PKEY pkey);
 
     public static native long d2i_PUBKEY(byte[] data);
-
-    public static native long PEM_read_bio_PUBKEY(long bioCtx);
-
-    public static native long PEM_read_bio_PrivateKey(long bioCtx);
 
     public static native long getRSAPrivateKeyWrapper(PrivateKey key, byte[] modulus);
 
@@ -144,6 +141,19 @@ public final class NativeCrypto {
 
     public static native byte[] i2d_RSAPrivateKey(NativeRef.EVP_PKEY rsa);
 
+    // --- DH public/private key handling functions ----------------------------
+
+    public static native long EVP_PKEY_new_DH(byte[] p, byte[] g, byte[] pub_key, byte[] priv_key);
+
+    public static native long DH_generate_parameters_ex(int primeBits, long generator);
+
+    public static native void DH_generate_key(NativeRef.EVP_PKEY pkeyRef);
+
+    /**
+     * @return array of {p, g, y(pub), x(priv)}
+     */
+    public static native byte[][] get_DH_params(NativeRef.EVP_PKEY dh);
+
     // --- EC functions --------------------------
 
     /**
@@ -175,6 +185,8 @@ public final class NativeCrypto {
 
     public static native void EC_GROUP_clear_free(long groupRef);
 
+    public static native boolean EC_GROUP_cmp(NativeRef.EC_GROUP ctx1, NativeRef.EC_GROUP ctx2);
+
     public static native long EC_GROUP_get_generator(NativeRef.EC_GROUP groupRef);
 
     public static native int get_EC_GROUP_type(NativeRef.EC_GROUP groupRef);
@@ -188,6 +200,9 @@ public final class NativeCrypto {
     public static native long EC_POINT_new(NativeRef.EC_GROUP groupRef);
 
     public static native void EC_POINT_clear_free(long pointRef);
+
+    public static native boolean EC_POINT_cmp(NativeRef.EC_GROUP groupRef,
+            NativeRef.EC_POINT pointRef1, NativeRef.EC_POINT pointRef2);
 
     public static native byte[][] EC_POINT_get_affine_coordinates(NativeRef.EC_GROUP groupRef,
             NativeRef.EC_POINT pointRef);
@@ -207,8 +222,7 @@ public final class NativeCrypto {
             boolean enabled);
 
     public static native int ECDH_compute_key(byte[] out, int outOffset,
-            NativeRef.EVP_PKEY publicKeyRef, NativeRef.EVP_PKEY privateKeyRef) throws
-            InvalidKeyException;
+            NativeRef.EVP_PKEY publicKeyRef, NativeRef.EVP_PKEY privateKeyRef);
 
     // --- Message digest functions --------------
 
@@ -223,56 +237,50 @@ public final class NativeCrypto {
 
     public static native long EVP_MD_CTX_create();
 
-    public static native void EVP_MD_CTX_cleanup(NativeRef.EVP_MD_CTX ctx);
+    public static native void EVP_MD_CTX_init(NativeRef.EVP_MD_CTX ctx);
 
     public static native void EVP_MD_CTX_destroy(long ctx);
 
-    public static native int EVP_MD_CTX_copy_ex(NativeRef.EVP_MD_CTX dst_ctx,
+    public static native int EVP_MD_CTX_copy(NativeRef.EVP_MD_CTX dst_ctx,
             NativeRef.EVP_MD_CTX src_ctx);
 
     // --- Digest handling functions -------------------------------------------
 
-    public static native int EVP_DigestInit_ex(NativeRef.EVP_MD_CTX ctx, long evp_md);
+    public static native int EVP_DigestInit(NativeRef.EVP_MD_CTX ctx, long evp_md);
 
     public static native void EVP_DigestUpdate(NativeRef.EVP_MD_CTX ctx,
             byte[] buffer, int offset, int length);
 
-    public static native void EVP_DigestUpdateDirect(NativeRef.EVP_MD_CTX ctx,
-            long ptr, int length);
-
-    public static native int EVP_DigestFinal_ex(NativeRef.EVP_MD_CTX ctx, byte[] hash,
+    public static native int EVP_DigestFinal(NativeRef.EVP_MD_CTX ctx, byte[] hash,
             int offset);
+
+    // --- MAC handling functions ----------------------------------------------
+
+    public static native void EVP_DigestSignInit(NativeRef.EVP_MD_CTX evp_md_ctx,
+            long evp_md, NativeRef.EVP_PKEY evp_pkey);
+
+    public static native void EVP_DigestSignUpdate(NativeRef.EVP_MD_CTX evp_md_ctx,
+            byte[] in);
+
+    public static native byte[] EVP_DigestSignFinal(NativeRef.EVP_MD_CTX evp_md_ctx);
 
     // --- Signature handling functions ----------------------------------------
 
-    public static native long EVP_DigestSignInit(NativeRef.EVP_MD_CTX ctx,
-            long evpMdRef, NativeRef.EVP_PKEY key);
+    public static native int EVP_SignInit(NativeRef.EVP_MD_CTX ctx, long evpRef);
 
-    public static native long EVP_DigestVerifyInit(NativeRef.EVP_MD_CTX ctx,
-            long evpMdRef, NativeRef.EVP_PKEY key);
+    public static native void EVP_SignUpdate(NativeRef.EVP_MD_CTX ctx, byte[] buffer,
+            int offset, int length);
 
-    public static native void EVP_DigestSignUpdate(NativeRef.EVP_MD_CTX ctx,
+    public static native int EVP_SignFinal(NativeRef.EVP_MD_CTX ctx, byte[] signature,
+            int offset, NativeRef.EVP_PKEY key);
+
+    public static native int EVP_VerifyInit(NativeRef.EVP_MD_CTX ctx, long evpRef);
+
+    public static native void EVP_VerifyUpdate(NativeRef.EVP_MD_CTX ctx,
             byte[] buffer, int offset, int length);
 
-    public static native void EVP_DigestSignUpdateDirect(NativeRef.EVP_MD_CTX ctx,
-            long ptr, int length);
-
-    public static native void EVP_DigestVerifyUpdate(NativeRef.EVP_MD_CTX ctx,
-            byte[] buffer, int offset, int length);
-
-    public static native void EVP_DigestVerifyUpdateDirect(NativeRef.EVP_MD_CTX ctx,
-            long ptr, int length);
-
-    public static native byte[] EVP_DigestSignFinal(NativeRef.EVP_MD_CTX ctx);
-
-    public static native boolean EVP_DigestVerifyFinal(NativeRef.EVP_MD_CTX ctx,
-            byte[] signature, int offset, int length);
-
-    public static native void EVP_PKEY_CTX_set_rsa_padding(long ctx, int pad);
-
-    public static native void EVP_PKEY_CTX_set_rsa_pss_saltlen(long ctx, int len);
-
-    public static native void EVP_PKEY_CTX_set_rsa_mgf1_md(long ctx, long evpMdRef);
+    public static native int EVP_VerifyFinal(NativeRef.EVP_MD_CTX ctx,
+            byte[] signature, int offset, int length, NativeRef.EVP_PKEY key);
 
     // --- Block ciphers -------------------------------------------------------
 
@@ -328,20 +336,6 @@ public final class NativeCrypto {
     public static native int EVP_AEAD_CTX_open(NativeRef.EVP_AEAD_CTX ctx, byte[] out,
             int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength, byte[] ad)
             throws BadPaddingException;
-
-    // --- HMAC functions ------------------------------------------------------
-
-    public static native long HMAC_CTX_new();
-
-    public static native void HMAC_CTX_free(long ctx);
-
-    public static native void HMAC_Init_ex(NativeRef.HMAC_CTX ctx, byte[] key, long evp_md);
-
-    public static native void HMAC_Update(NativeRef.HMAC_CTX ctx, byte[] in, int inOffset, int inLength);
-
-    public static native void HMAC_UpdateDirect(NativeRef.HMAC_CTX ctx, long inPtr, int inLength);
-
-    public static native byte[] HMAC_Final(NativeRef.HMAC_CTX ctx);
 
     // --- RAND seeding --------------------------------------------------------
 
@@ -421,8 +415,6 @@ public final class NativeCrypto {
     public static native long[] ASN1_seq_unpack_X509_bio(long bioRef);
 
     public static native void X509_free(long x509ctx);
-
-    public static native long X509_dup(long x509ctx);
 
     public static native int X509_cmp(long x509ctx1, long x509ctx2);
 
@@ -526,8 +518,6 @@ public final class NativeCrypto {
 
     public static native byte[] X509_CRL_get_ext_oid(long x509CrlCtx, String oid);
 
-    public static native void X509_delete_ext(long x509, String oid);
-
     public static native long X509_CRL_get_version(long x509CrlCtx);
 
     public static native long X509_CRL_get_ext(long x509CrlCtx, String oid);
@@ -616,12 +606,12 @@ public final class NativeCrypto {
      * cipher suite. It is just an indication in the default and
      * supported cipher suite lists indicates that the implementation
      * supports secure renegotiation.
-     * <p>
+     *
      * In the RI, its presence means that the SCSV is sent in the
      * cipher suite list to indicate secure renegotiation support and
      * its absense means to send an empty TLS renegotiation info
      * extension instead.
-     * <p>
+     *
      * However, OpenSSL doesn't provide an API to give this level of
      * control, instead always sending the SCSV and always including
      * the empty renegotiation info if TLS is used (as opposed to
@@ -642,13 +632,13 @@ public final class NativeCrypto {
 
     static {
         add("ADH-AES128-GCM-SHA256",		"TLS_DH_anon_WITH_AES_128_GCM_SHA256");
-        add("ADH-AES128-SHA256",		"TLS_DH_anon_WITH_AES_128_CBC_SHA256");
         add("ADH-AES128-SHA",			"TLS_DH_anon_WITH_AES_128_CBC_SHA");
+        add("ADH-AES128-SHA256",		"TLS_DH_anon_WITH_AES_128_CBC_SHA256");
         add("ADH-AES256-GCM-SHA384",		"TLS_DH_anon_WITH_AES_256_GCM_SHA384");
-        add("ADH-AES256-SHA256",		"TLS_DH_anon_WITH_AES_256_CBC_SHA256");
         add("ADH-AES256-SHA",			"TLS_DH_anon_WITH_AES_256_CBC_SHA");
-        add("ADH-DES-CBC3-SHA",			"SSL_DH_anon_WITH_3DES_EDE_CBC_SHA");
+        add("ADH-AES256-SHA256",		"TLS_DH_anon_WITH_AES_256_CBC_SHA256");
         add("ADH-DES-CBC-SHA",			"SSL_DH_anon_WITH_DES_CBC_SHA");
+        add("ADH-DES-CBC3-SHA",			"SSL_DH_anon_WITH_3DES_EDE_CBC_SHA");
         add("ADH-RC4-MD5",			"SSL_DH_anon_WITH_RC4_128_MD5");
         add("AECDH-AES128-SHA",			"TLS_ECDH_anon_WITH_AES_128_CBC_SHA");
         add("AECDH-AES256-SHA",			"TLS_ECDH_anon_WITH_AES_256_CBC_SHA");
@@ -656,37 +646,45 @@ public final class NativeCrypto {
         add("AECDH-NULL-SHA",			"TLS_ECDH_anon_WITH_NULL_SHA");
         add("AECDH-RC4-SHA",			"TLS_ECDH_anon_WITH_RC4_128_SHA");
         add("AES128-GCM-SHA256",		"TLS_RSA_WITH_AES_128_GCM_SHA256");
-        add("AES128-SHA256",			"TLS_RSA_WITH_AES_128_CBC_SHA256");
         add("AES128-SHA",			"TLS_RSA_WITH_AES_128_CBC_SHA");
+        add("AES128-SHA256",			"TLS_RSA_WITH_AES_128_CBC_SHA256");
         add("AES256-GCM-SHA384",		"TLS_RSA_WITH_AES_256_GCM_SHA384");
-        add("AES256-SHA256",			"TLS_RSA_WITH_AES_256_CBC_SHA256");
         add("AES256-SHA",			"TLS_RSA_WITH_AES_256_CBC_SHA");
-        add("DES-CBC3-SHA",			"SSL_RSA_WITH_3DES_EDE_CBC_SHA");
+        add("AES256-SHA256",			"TLS_RSA_WITH_AES_256_CBC_SHA256");
         add("DES-CBC-SHA",			"SSL_RSA_WITH_DES_CBC_SHA");
+        add("DES-CBC3-SHA",			"SSL_RSA_WITH_3DES_EDE_CBC_SHA");
         add("DHE-RSA-AES128-GCM-SHA256",	"TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
-        add("DHE-RSA-AES128-SHA256",		"TLS_DHE_RSA_WITH_AES_128_CBC_SHA256");
         add("DHE-RSA-AES128-SHA",		"TLS_DHE_RSA_WITH_AES_128_CBC_SHA");
+        add("DHE-RSA-AES128-SHA256",		"TLS_DHE_RSA_WITH_AES_128_CBC_SHA256");
         add("DHE-RSA-AES256-GCM-SHA384",	"TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
-        add("DHE-RSA-AES256-SHA256",		"TLS_DHE_RSA_WITH_AES_256_CBC_SHA256");
         add("DHE-RSA-AES256-SHA",		"TLS_DHE_RSA_WITH_AES_256_CBC_SHA");
+        add("DHE-RSA-AES256-SHA256",		"TLS_DHE_RSA_WITH_AES_256_CBC_SHA256");
         add("DHE-RSA-CHACHA20-POLY1305",	"TLS_DHE_RSA_WITH_CHACHA20_POLY1305");
         add("ECDH-ECDSA-AES128-GCM-SHA256",    	"TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256");
-        add("ECDH-ECDSA-AES128-SHA256",		"TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256");
         add("ECDH-ECDSA-AES128-SHA",		"TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA");
+        add("ECDH-ECDSA-AES128-SHA256",		"TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256");
         add("ECDH-ECDSA-AES256-GCM-SHA384",    	"TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384");
-        add("ECDH-ECDSA-AES256-SHA384",		"TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384");
         add("ECDH-ECDSA-AES256-SHA",		"TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA");
+        add("ECDH-ECDSA-AES256-SHA384",		"TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384");
         add("ECDH-ECDSA-DES-CBC3-SHA",		"TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA");
         add("ECDH-ECDSA-NULL-SHA",		"TLS_ECDH_ECDSA_WITH_NULL_SHA");
         add("ECDH-ECDSA-RC4-SHA",		"TLS_ECDH_ECDSA_WITH_RC4_128_SHA");
+        add("ECDH-RSA-AES128-GCM-SHA256",      	"TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256");
+        add("ECDH-RSA-AES128-SHA",		"TLS_ECDH_RSA_WITH_AES_128_CBC_SHA");
+        add("ECDH-RSA-AES128-SHA256",		"TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256");
+        add("ECDH-RSA-AES256-GCM-SHA384",      	"TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384");
+        add("ECDH-RSA-AES256-SHA",		"TLS_ECDH_RSA_WITH_AES_256_CBC_SHA");
+        add("ECDH-RSA-AES256-SHA384",		"TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384");
+        add("ECDH-RSA-DES-CBC3-SHA",		"TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA");
+        add("ECDH-RSA-NULL-SHA",		"TLS_ECDH_RSA_WITH_NULL_SHA");
+        add("ECDH-RSA-RC4-SHA",			"TLS_ECDH_RSA_WITH_RC4_128_SHA");
         add("ECDHE-ECDSA-AES128-GCM-SHA256",   	"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
-        add("ECDHE-ECDSA-AES128-SHA256",	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
         add("ECDHE-ECDSA-AES128-SHA",		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
+        add("ECDHE-ECDSA-AES128-SHA256",	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
         add("ECDHE-ECDSA-AES256-GCM-SHA384",   	"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
-        add("ECDHE-ECDSA-AES256-SHA384",	"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384");
         add("ECDHE-ECDSA-AES256-SHA",		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA");
+        add("ECDHE-ECDSA-AES256-SHA384",	"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384");
         add("ECDHE-ECDSA-CHACHA20-POLY1305",   	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305");
-        add("ECDHE-ECDSA-CHACHA20-POLY1305",	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256");
         add("ECDHE-ECDSA-DES-CBC3-SHA",		"TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA");
         add("ECDHE-ECDSA-NULL-SHA",		"TLS_ECDHE_ECDSA_WITH_NULL_SHA");
         add("ECDHE-ECDSA-RC4-SHA",		"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA");
@@ -694,37 +692,26 @@ public final class NativeCrypto {
         add("ECDHE-PSK-AES128-GCM-SHA256",     	"TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256");
         add("ECDHE-PSK-AES256-CBC-SHA",		"TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA");
         add("ECDHE-PSK-AES256-GCM-SHA384",     	"TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384");
-        add("ECDHE-PSK-CHACHA20-POLY1305",	"TLS_PSK_WITH_CHACHA20_POLY1305_SHA256");
         add("ECDHE-RSA-AES128-GCM-SHA256",     	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
-        add("ECDHE-RSA-AES128-SHA256",		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
         add("ECDHE-RSA-AES128-SHA",		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
+        add("ECDHE-RSA-AES128-SHA256",		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
         add("ECDHE-RSA-AES256-GCM-SHA384",     	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
-        add("ECDHE-RSA-AES256-SHA384",		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
         add("ECDHE-RSA-AES256-SHA",		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
+        add("ECDHE-RSA-AES256-SHA384",		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
         add("ECDHE-RSA-CHACHA20-POLY1305",     	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305");
-        add("ECDHE-RSA-CHACHA20-POLY1305",	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256");
         add("ECDHE-RSA-DES-CBC3-SHA",		"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA");
         add("ECDHE-RSA-NULL-SHA",		"TLS_ECDHE_RSA_WITH_NULL_SHA");
         add("ECDHE-RSA-RC4-SHA",		"TLS_ECDHE_RSA_WITH_RC4_128_SHA");
-        add("ECDH-RSA-AES128-GCM-SHA256",      	"TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256");
-        add("ECDH-RSA-AES128-SHA256",		"TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256");
-        add("ECDH-RSA-AES128-SHA",		"TLS_ECDH_RSA_WITH_AES_128_CBC_SHA");
-        add("ECDH-RSA-AES256-GCM-SHA384",      	"TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384");
-        add("ECDH-RSA-AES256-SHA384",		"TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384");
-        add("ECDH-RSA-AES256-SHA",		"TLS_ECDH_RSA_WITH_AES_256_CBC_SHA");
-        add("ECDH-RSA-DES-CBC3-SHA",		"TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA");
-        add("ECDH-RSA-NULL-SHA",		"TLS_ECDH_RSA_WITH_NULL_SHA");
-        add("ECDH-RSA-RC4-SHA",			"TLS_ECDH_RSA_WITH_RC4_128_SHA");
-        add("EDH-RSA-DES-CBC3-SHA",		"SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA");
         add("EDH-RSA-DES-CBC-SHA",		"SSL_DHE_RSA_WITH_DES_CBC_SHA");
+        add("EDH-RSA-DES-CBC3-SHA",		"SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA");
         add("EXP-ADH-DES-CBC-SHA",		"SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
         add("EXP-ADH-RC4-MD5",			"SSL_DH_anon_EXPORT_WITH_RC4_40_MD5");
         add("EXP-DES-CBC-SHA",			"SSL_RSA_EXPORT_WITH_DES40_CBC_SHA");
         add("EXP-EDH-RSA-DES-CBC-SHA",		"SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA");
         add("EXP-RC4-MD5",			"SSL_RSA_EXPORT_WITH_RC4_40_MD5");
         add("NULL-MD5",				"SSL_RSA_WITH_NULL_MD5");
-        add("NULL-SHA256",			"TLS_RSA_WITH_NULL_SHA256");
         add("NULL-SHA",				"SSL_RSA_WITH_NULL_SHA");
+        add("NULL-SHA256",			"TLS_RSA_WITH_NULL_SHA256");
         add("PSK-3DES-EDE-CBC-SHA",		"TLS_PSK_WITH_3DES_EDE_CBC_SHA");
         add("PSK-AES128-CBC-SHA",		"TLS_PSK_WITH_AES_128_CBC_SHA");
         add("PSK-AES256-CBC-SHA",		"TLS_PSK_WITH_AES_256_CBC_SHA");
@@ -847,18 +834,6 @@ public final class NativeCrypto {
 
     public static native long SSL_clear_options(long ssl, long options);
 
-    public static native void SSL_enable_signed_cert_timestamps(long ssl);
-
-    public static native byte[] SSL_get_signed_cert_timestamp_list(long ssl);
-
-    public static native void SSL_CTX_set_signed_cert_timestamp_list(long ssl, byte[] list);
-
-    public static native void SSL_enable_ocsp_stapling(long ssl);
-
-    public static native byte[] SSL_get_ocsp_response(long ssl);
-
-    public static native void SSL_CTX_set_ocsp_response(long ssl, byte[] response);
-
     public static native void SSL_use_psk_identity_hint(long ssl, String identityHint)
             throws SSLException;
 
@@ -964,6 +939,9 @@ public final class NativeCrypto {
      * @return array of {@code SSL_CIPHER} references.
      */
     public static native long[] SSL_get_ciphers(long ssl);
+
+    public static native int get_SSL_CIPHER_algorithm_mkey(long sslCipher);
+    public static native int get_SSL_CIPHER_algorithm_auth(long sslCipher);
 
     public static void setEnabledCipherSuites(long ssl, String[] cipherSuites) {
         checkEnabledCipherSuites(cipherSuites);
@@ -1253,16 +1231,4 @@ public final class NativeCrypto {
     public static native String SSL_CIPHER_get_kx_name(long cipherAddress);
 
     public static native String[] get_cipher_names(String selection);
-
-    public static native byte[] get_ocsp_single_extension(byte[] ocspResponse, String oid,
-                                                          long x509Ref, long issuerX509Ref);
-
-    /**
-     * Returns the starting address of the memory region referenced by the provided direct
-     * {@link Buffer} or {@code 0} if the provided buffer is not direct or if such access to direct
-     * buffers is not supported by the platform.
-     *
-     * <p>NOTE: This method ignores the buffer's current {@code position}.
-     */
-    public static native long getDirectBufferAddress(Buffer buf);
 }

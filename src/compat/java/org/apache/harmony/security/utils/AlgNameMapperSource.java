@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,14 @@
  * limitations under the License.
  */
 
-package org.conscrypt.ct;
+package org.apache.harmony.security.utils;
 
-public class SerializationException extends Exception {
-    public SerializationException() {
-    }
+/**
+ * Provides a mapping source that the {@link AlgNameMapper} can query for
+ * mapping between algorithm names and OIDs.
+ */
+public interface AlgNameMapperSource {
+    public String mapNameToOid(String algName);
 
-    public SerializationException(String message) {
-        super(message);
-    }
-
-    public SerializationException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public SerializationException(Throwable cause) {
-        super(cause);
-    }
+    public String mapOidToName(String oid);
 }
-

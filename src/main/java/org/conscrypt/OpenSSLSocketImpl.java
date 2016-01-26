@@ -17,8 +17,6 @@
 package org.conscrypt;
 
 import org.conscrypt.util.ArrayUtils;
-import org.conscrypt.ct.CTVerifier;
-import org.conscrypt.ct.CTVerificationResult;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
@@ -149,11 +147,7 @@ public class OpenSSLSocketImpl
     private final int peerPort;
 
     private final SSLParametersImpl sslParameters;
-
-    /*
-     * A CloseGuard object on Android. On other platforms, this is nothing.
-     */
-    private final Object guard = Platform.closeGuardGet();
+    private final CloseGuard guard = CloseGuard.get();
 
     private ArrayList<HandshakeCompletedListener> listeners;
 
@@ -274,18 +268,13 @@ public class OpenSSLSocketImpl
             }
         }
 
-        // For BoringSSL, RAND_seed and RAND_load_file are no-ops since the RNG
-        // reads directly from the random device node.
-        if (!NativeCrypto.isBoringSSL) {
-            // note that this modifies the global seed, not something specific
-            // to the connection
-            final int seedLengthInBytes = NativeCrypto.RAND_SEED_LENGTH_IN_BYTES;
-            final SecureRandom secureRandom = sslParameters.getSecureRandomMember();
-            if (secureRandom == null) {
-                NativeCrypto.RAND_load_file("/dev/urandom", seedLengthInBytes);
-            } else {
-                NativeCrypto.RAND_seed(secureRandom.generateSeed(seedLengthInBytes));
-            }
+        // note that this modifies the global seed, not something specific to the connection
+        final int seedLengthInBytes = NativeCrypto.RAND_SEED_LENGTH_IN_BYTES;
+        final SecureRandom secureRandom = sslParameters.getSecureRandomMember();
+        if (secureRandom == null) {
+            NativeCrypto.RAND_load_file("/dev/urandom", seedLengthInBytes);
+        } else {
+            NativeCrypto.RAND_seed(secureRandom.generateSeed(seedLengthInBytes));
         }
 
         final boolean client = sslParameters.getUseClientMode();
@@ -296,7 +285,7 @@ public class OpenSSLSocketImpl
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
             final long sslCtxNativePointer = sessionContext.sslCtxNativePointer;
             sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
-            Platform.closeGuardOpen(guard, "close");
+            guard.open("close");
 
             boolean enableSessionCreation = getEnableSessionCreation();
             if (!enableSessionCreation) {
@@ -308,11 +297,6 @@ public class OpenSSLSocketImpl
             // configurations cause them to attempt to renegotiate during
             // certain protocols.
             NativeCrypto.SSL_set_reject_peer_renegotiations(sslNativePointer, false);
-
-            if (client && sslParameters.isCTVerificationEnabled(getHostname())) {
-                NativeCrypto.SSL_enable_signed_cert_timestamps(sslNativePointer);
-                NativeCrypto.SSL_enable_ocsp_stapling(sslNativePointer);
-            }
 
             final OpenSSLSessionImpl sessionToReuse = sslParameters.getSessionToReuse(
                     sslNativePointer, getHostname(), getPort());
@@ -569,22 +553,7 @@ public class OpenSSLSocketImpl
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
-                // Use peerHostname instead of getHostName here because we don't want to use
-                // hostnames provided by the fallback reverse DNS lookup.
-                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, peerHostname);
-                if (sslParameters.isCTVerificationEnabled(getHostname())) {
-                    byte[] tlsData = NativeCrypto.SSL_get_signed_cert_timestamp_list(
-                                        sslNativePointer);
-                    byte[] ocspData = NativeCrypto.SSL_get_ocsp_response(sslNativePointer);
-
-                    CTVerifier ctVerifier = sslParameters.getCTVerifier();
-                    CTVerificationResult result =
-                        ctVerifier.verifySignedCertificateTimestamps(peerCertChain, tlsData, ocspData);
-
-                    if (result.getValidSCTs().size() == 0) {
-                        throw new CertificateException("No valid SCT found");
-                    }
-                }
+                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, getHostname());
             } else {
                 String authType = peerCertChain[0].getPublicKey().getAlgorithm();
                 x509tm.checkClientTrusted(peerCertChain, authType);
@@ -716,7 +685,7 @@ public class OpenSSLSocketImpl
          */
         @Override
         public int read(byte[] buf, int offset, int byteCount) throws IOException {
-            Platform.blockGuardOnNetwork();
+            BlockGuard.getThreadPolicy().onNetwork();
 
             checkOpen();
             ArrayUtils.checkOffsetAndCount(buf.length, offset, byteCount);
@@ -783,7 +752,7 @@ public class OpenSSLSocketImpl
          */
         @Override
         public void write(byte[] buf, int offset, int byteCount) throws IOException {
-            Platform.blockGuardOnNetwork();
+            BlockGuard.getThreadPolicy().onNetwork();
             checkOpen();
             ArrayUtils.checkOffsetAndCount(buf.length, offset, byteCount);
             if (byteCount == 0) {
@@ -1159,7 +1128,7 @@ public class OpenSSLSocketImpl
 
     private void shutdownAndFreeSslNative() throws IOException {
         try {
-            Platform.blockGuardOnNetwork();
+            BlockGuard.getThreadPolicy().onNetwork();
             NativeCrypto.SSL_shutdown(sslNativePointer, Platform.getFileDescriptor(socket),
                     this);
         } catch (IOException ignored) {
@@ -1193,7 +1162,7 @@ public class OpenSSLSocketImpl
         }
         NativeCrypto.SSL_free(sslNativePointer);
         sslNativePointer = 0;
-        Platform.closeGuardClose(guard);
+        guard.close();
     }
 
     @Override
@@ -1216,7 +1185,7 @@ public class OpenSSLSocketImpl
              * reader.
              */
             if (guard != null) {
-                Platform.closeGuardWarnIfOpen(guard);
+                guard.warnIfOpen();
             }
             free();
         } finally {

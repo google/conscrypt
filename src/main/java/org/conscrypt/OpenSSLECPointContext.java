@@ -30,7 +30,16 @@ final class OpenSSLECPointContext {
 
     @Override
     public boolean equals(Object o) {
-        throw new IllegalArgumentException("OpenSSLECPointContext.equals is not defined.");
+        if (!(o instanceof OpenSSLECPointContext)) {
+            return false;
+        }
+
+        final OpenSSLECPointContext other = (OpenSSLECPointContext) o;
+        if (!NativeCrypto.EC_GROUP_cmp(group.getNativeRef(), other.group.getNativeRef())) {
+            return false;
+        }
+
+        return NativeCrypto.EC_POINT_cmp(group.getNativeRef(), pointCtx, other.pointCtx);
     }
 
     public ECPoint getECPoint() {
