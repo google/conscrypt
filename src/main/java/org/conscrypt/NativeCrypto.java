@@ -426,8 +426,6 @@ public final class NativeCrypto {
 
     public static native int X509_cmp(long x509ctx1, long x509ctx2);
 
-    public static native int get_X509_hashCode(long x509ctx);
-
     public static native void X509_print_ex(long bioCtx, long x509ctx, long nmflag, long certflag);
 
     public static native byte[] X509_get_issuer_name(long x509ctx);
