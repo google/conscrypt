@@ -6860,25 +6860,6 @@ static void NativeCrypto_X509_delete_ext(JNIEnv* env, jclass, jlong x509Ref,
     }
 }
 
-static jint NativeCrypto_get_X509_hashCode(JNIEnv* env, jclass, jlong x509Ref) {
-    X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
-
-    if (x509 == nullptr) {
-        jniThrowNullPointerException(env, "x509 == null");
-        JNI_TRACE("get_X509_hashCode(%p) => x509 == null", x509);
-        return 0;
-    }
-
-    // Force caching extensions.
-    X509_check_ca(x509);
-
-    jint hashCode = 0L;
-    for (int i = 0; i < SHA_DIGEST_LENGTH; i++) {
-        hashCode = 31 * hashCode + x509->sha1_hash[i];
-    }
-    return hashCode;
-}
-
 static void NativeCrypto_X509_print_ex(JNIEnv* env, jclass, jlong bioRef, jlong x509Ref,
         jlong nmflagJava, jlong certflagJava) {
     BIO* bio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(bioRef));
@@ -11135,7 +11116,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, X509_free, "(J)V"),
     NATIVE_METHOD(NativeCrypto, X509_dup, "(J)J"),
     NATIVE_METHOD(NativeCrypto, X509_cmp, "(JJ)I"),
-    NATIVE_METHOD(NativeCrypto, get_X509_hashCode, "(J)I"),
     NATIVE_METHOD(NativeCrypto, X509_print_ex, "(JJJJ)V"),
     NATIVE_METHOD(NativeCrypto, X509_get_pubkey, "(J)J"),
     NATIVE_METHOD(NativeCrypto, X509_get_issuer_name, "(J)[B"),
