@@ -19,6 +19,7 @@ package org.conscrypt;
 import java.security.PublicKey;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -148,6 +149,19 @@ public final class TrustedCertificateIndex {
                 }
                 if (caPublicKey.equals(certPublicKey)) {
                     return anchor;
+                } else {
+                    // PublicKey.equals is not required to compare keys across providers. Fall back
+                    // to checking using the encoded form.
+                    if ("X.509".equals(caPublicKey.getFormat())
+                            && "X.509".equals(certPublicKey.getFormat())) {
+                        byte[] caPublicKeyEncoded = caPublicKey.getEncoded();
+                        byte[] certPublicKeyEncoded = certPublicKey.getEncoded();
+                        if (certPublicKeyEncoded != null
+                                && caPublicKeyEncoded != null
+                                && Arrays.equals(caPublicKeyEncoded, certPublicKeyEncoded)) {
+                            return anchor;
+                        }
+                    }
                 }
             } catch (Exception e) {
                 // can happen with unsupported public key types
