@@ -432,7 +432,7 @@ public class OpenSSLSocketImpl
      * Returns the hostname that was supplied during socket creation. No DNS resolution is
      * attempted before returning the hostname.
      */
-    private String getHostname() {
+    public String getHostname() {
         return peerHostname;
     }
 
@@ -913,7 +913,6 @@ public class OpenSSLSocketImpl
      *
      * @throws IllegalStateException if this is a client socket or if the handshake has already
      *         started.
-
      */
     public void setChannelIdEnabled(boolean enabled) {
         if (getUseClientMode()) {
@@ -1273,16 +1272,14 @@ public class OpenSSLSocketImpl
     @Override
     public SSLParameters getSSLParameters() {
         SSLParameters params = super.getSSLParameters();
-        Platform.setEndpointIdentificationAlgorithm(params,
-                sslParameters.getEndpointIdentificationAlgorithm());
+        Platform.getSSLParameters(params, sslParameters, this);
         return params;
     }
 
     @Override
     public void setSSLParameters(SSLParameters p) {
         super.setSSLParameters(p);
-        sslParameters.setEndpointIdentificationAlgorithm(
-                Platform.getEndpointIdentificationAlgorithm(p));
+        Platform.setSSLParameters(p, sslParameters, this);
     }
 
     @Override
