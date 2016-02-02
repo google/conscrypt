@@ -37,6 +37,7 @@ import java.security.spec.ECParameterSpec;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
 
@@ -459,5 +460,17 @@ public class Platform {
         }
 
         return oid;
+    }
+
+    /*
+     * Pre-Java 8 backward compatibility.
+     */
+
+    public static SSLSession wrapSSLSession(OpenSSLSessionImpl sslSession) {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
+            return sslSession;
+        } else {
+            return new OpenSSLExtendedSessionImpl(sslSession);
+        }
     }
 }
