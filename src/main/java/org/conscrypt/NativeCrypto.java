@@ -692,7 +692,7 @@ public final class NativeCrypto {
         add("ECDHE-PSK-AES128-GCM-SHA256",     	"TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256");
         add("ECDHE-PSK-AES256-CBC-SHA",		"TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA");
         add("ECDHE-PSK-AES256-GCM-SHA384",     	"TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384");
-        add("ECDHE-PSK-CHACHA20-POLY1305",	"TLS_PSK_WITH_CHACHA20_POLY1305_SHA256");
+        add("ECDHE-PSK-CHACHA20-POLY1305",	"TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256");
         add("ECDHE-RSA-AES128-GCM-SHA256",     	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
         add("ECDHE-RSA-AES128-SHA256",		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
         add("ECDHE-RSA-AES128-SHA",		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
@@ -780,8 +780,10 @@ public final class NativeCrypto {
 
     /** X.509 based cipher suites enabled by default (if requested), in preference order. */
     static final String[] DEFAULT_X509_CIPHER_SUITES = new String[] {
+        "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
         "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
         "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+        "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
         "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
         "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
         "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
@@ -803,6 +805,7 @@ public final class NativeCrypto {
 
     /** TLS-PSK cipher suites enabled by default (if requested), in preference order. */
     static final String[] DEFAULT_PSK_CIPHER_SUITES = new String[] {
+        "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256",
         "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA",
         "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA",
         "TLS_PSK_WITH_AES_128_CBC_SHA",
