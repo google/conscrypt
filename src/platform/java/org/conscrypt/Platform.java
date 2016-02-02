@@ -41,7 +41,6 @@ import java.security.spec.ECParameterSpec;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
 import org.conscrypt.GCMParameters;
@@ -228,13 +227,5 @@ class Platform {
         } catch (NoSuchAlgorithmException e) {
             return oid;
         }
-    }
-
-    /*
-     * Pre-Java 8 backward compatibility.
-     */
-
-    public static SSLSession wrapSSLSession(OpenSSLSessionImpl sslSession) {
-        return new OpenSSLExtendedSessionImpl(sslSession);
     }
 }
