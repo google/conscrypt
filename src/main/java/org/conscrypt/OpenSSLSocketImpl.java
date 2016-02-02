@@ -828,7 +828,7 @@ public class OpenSSLSocketImpl
                 return SSLNullSession.getNullSession();
             }
         }
-        return Platform.wrapSSLSession(sslSession);
+        return sslSession;
     }
 
     @Override
