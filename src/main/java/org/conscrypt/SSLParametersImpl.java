@@ -931,9 +931,11 @@ public class SSLParametersImpl implements Cloneable {
     }
 
     /**
-     * Finds the first {@link X509TrustManager} element in the provided array.
+     * Finds the first {@link X509ExtendedTrustManager} or
+     * {@link X509TrustManager} element in the provided array.
      *
-     * @return the first {@code X509TrustManager} or {@code null} if not found.
+     * @return the first {@code X509ExtendedTrustManager} or
+     *         {@code X509TrustManager} or {@code null} if not found.
      */
     private static X509TrustManager findFirstX509TrustManager(TrustManager[] tms) {
         for (TrustManager tm : tms) {

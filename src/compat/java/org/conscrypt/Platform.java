@@ -170,24 +170,65 @@ public class Platform {
         return null;
     }
 
-    public static void checkServerTrusted(X509TrustManager x509tm, X509Certificate[] chain,
-            String authType, String host) throws CertificateException {
-        // Use duck-typing to try and call the hostname aware checkServerTrusted if available.
+    /**
+     * Helper function to unify calls to the different names used for each function taking a
+     * Socket, SSLEngine, or String (legacy Android).
+     */
+    private static boolean checkTrusted(String methodName, X509TrustManager tm,
+            X509Certificate[] chain, String authType, Class<?> argumentClass,
+            Object argumentInstance) throws CertificateException {
+        // Use duck-typing to try and call the hostname-aware method if available.
         try {
-            Method method = x509tm.getClass().getMethod("checkServerTrusted",
+            Method method = tm.getClass().getMethod(methodName,
                     X509Certificate[].class,
                     String.class,
-                    String.class);
-            method.invoke(x509tm, chain, authType, host);
-        } catch (NoSuchMethodException | IllegalAccessException e) {
-            x509tm.checkServerTrusted(chain, authType);
+                    argumentClass);
+            method.invoke(tm, chain, authType, argumentInstance);
+            return true;
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
         } catch (InvocationTargetException e) {
             if (e.getCause() instanceof CertificateException) {
                 throw (CertificateException) e.getCause();
             }
             throw new RuntimeException(e.getCause());
         }
+        return false;
+    }
 
+    public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
+            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+        if (!checkTrusted("checkClientTrusted", tm, chain, authType, Socket.class, socket)
+                && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
+                                 socket.getHandshakeSession().getPeerHost())) {
+            tm.checkClientTrusted(chain, authType);
+        }
+    }
+
+    public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
+            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+        if (!checkTrusted("checkServerTrusted", tm, chain, authType, Socket.class, socket)
+                && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
+                                 socket.getHandshakeSession().getPeerHost())) {
+            tm.checkServerTrusted(chain, authType);
+        }
+    }
+
+    public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
+            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+        if (!checkTrusted("checkClientTrusted", tm, chain, authType, SSLEngine.class, engine)
+                && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
+                                 engine.getHandshakeSession().getPeerHost())) {
+            tm.checkClientTrusted(chain, authType);
+        }
+    }
+
+    public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
+            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+        if (!checkTrusted("checkServerTrusted", tm, chain, authType, SSLEngine.class, engine)
+                && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
+                                 engine.getHandshakeSession().getPeerHost())) {
+            tm.checkServerTrusted(chain, authType);
+        }
     }
 
     /**

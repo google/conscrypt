@@ -34,6 +34,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 import sun.security.x509.AlgorithmId;
 
@@ -110,18 +111,51 @@ public class Platform {
 
     public static void setEndpointIdentificationAlgorithm(SSLParameters params,
             String endpointIdentificationAlgorithm) {
-        // TODO: implement this for RI
+        params.setEndpointIdentificationAlgorithm(endpointIdentificationAlgorithm);
     }
 
     public static String getEndpointIdentificationAlgorithm(SSLParameters params) {
-        // TODO: implement this for RI
-        return null;
+        return params.getEndpointIdentificationAlgorithm();
     }
 
-    public static void checkServerTrusted(X509TrustManager x509tm, X509Certificate[] chain,
-            String authType, String host) throws CertificateException {
-        // TODO: use the host parameter somehow in RI
-        x509tm.checkServerTrusted(chain, authType);
+    public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
+            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+        if (tm instanceof X509ExtendedTrustManager) {
+            X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
+            x509etm.checkClientTrusted(chain, authType, socket);
+        } else {
+            tm.checkClientTrusted(chain, authType);
+        }
+    }
+
+    public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
+            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+        if (tm instanceof X509ExtendedTrustManager) {
+            X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
+            x509etm.checkServerTrusted(chain, authType, socket);
+        } else {
+            tm.checkServerTrusted(chain, authType);
+        }
+    }
+
+    public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
+            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+        if (tm instanceof X509ExtendedTrustManager) {
+            X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
+            x509etm.checkClientTrusted(chain, authType, engine);
+        } else {
+            tm.checkClientTrusted(chain, authType);
+        }
+    }
+
+    public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
+            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+        if (tm instanceof X509ExtendedTrustManager) {
+            X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
+            x509etm.checkServerTrusted(chain, authType, engine);
+        } else {
+            tm.checkServerTrusted(chain, authType);
+        }
     }
 
     /**
