@@ -663,10 +663,10 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
-                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, getPeerHost());
+                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, this);
             } else {
                 String authType = peerCertChain[0].getPublicKey().getAlgorithm();
-                x509tm.checkClientTrusted(peerCertChain, authType);
+                Platform.checkClientTrusted(x509tm, peerCertChain, authType, this);
             }
         } catch (CertificateException e) {
             throw e;
@@ -720,6 +720,12 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         } finally {
             super.finalize();
         }
+    }
+
+    // Comment annotation to compile Conscrypt unbundled with Java 6.
+    /* @Override */
+    public SSLSession getHandshakeSession() {
+        return handshakeSession;
     }
 
     @Override

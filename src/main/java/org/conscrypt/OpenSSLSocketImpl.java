@@ -41,6 +41,7 @@ import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
@@ -135,12 +136,6 @@ public class OpenSSLSocketImpl
      * The peer's DNS hostname if it was supplied during creation.
      */
     private String peerHostname;
-
-    /**
-     * The DNS hostname from reverse lookup on the socket. Should never be used
-     * for Server Name Indication (SNI).
-     */
-    private String resolvedHostname;
 
     /**
      * The peer's port if it was supplied during creation. Should only be set if
@@ -317,7 +312,7 @@ public class OpenSSLSocketImpl
             final OpenSSLSessionImpl sessionToReuse = sslParameters.getSessionToReuse(
                     sslNativePointer, getHostname(), getPort());
             sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this, this,
-                    peerHostname);
+                    getHostname());
             sslParameters.setCertificateValidation(sslNativePointer);
             sslParameters.setTlsChannelId(sslNativePointer, channelIdPrivateKey);
 
@@ -434,22 +429,11 @@ public class OpenSSLSocketImpl
     }
 
     /**
-     * Returns the hostname that was supplied during socket creation or tries to
-     * look up the hostname via the supplied socket address if possible. This
-     * may result in the return of a IP address and should not be used for
-     * Server Name Indication (SNI).
+     * Returns the hostname that was supplied during socket creation. No DNS resolution is
+     * attempted before returning the hostname.
      */
     private String getHostname() {
-        if (peerHostname != null) {
-            return peerHostname;
-        }
-        if (resolvedHostname == null) {
-            InetAddress inetAddress = super.getInetAddress();
-            if (inetAddress != null) {
-                resolvedHostname = inetAddress.getHostName();
-            }
-        }
-        return resolvedHostname;
+        return peerHostname;
     }
 
     @Override
@@ -569,9 +553,7 @@ public class OpenSSLSocketImpl
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
-                // Use peerHostname instead of getHostName here because we don't want to use
-                // hostnames provided by the fallback reverse DNS lookup.
-                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, peerHostname);
+                Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, this);
                 if (sslParameters.isCTVerificationEnabled(getHostname())) {
                     byte[] tlsData = NativeCrypto.SSL_get_signed_cert_timestamp_list(
                                         sslNativePointer);
@@ -587,7 +569,7 @@ public class OpenSSLSocketImpl
                 }
             } else {
                 String authType = peerCertChain[0].getPublicKey().getAlgorithm();
-                x509tm.checkClientTrusted(peerCertChain, authType);
+                Platform.checkClientTrusted(x509tm, peerCertChain, authType, this);
             }
         } catch (CertificateException e) {
             throw e;
@@ -829,6 +811,12 @@ public class OpenSSLSocketImpl
             }
         }
         return Platform.wrapSSLSession(sslSession);
+    }
+
+    // Comment annotation to compile Conscrypt unbundled with Java 6.
+    /* @Override */
+    public SSLSession getHandshakeSession() {
+        return handshakeSession;
     }
 
     @Override
@@ -1280,6 +1268,21 @@ public class OpenSSLSocketImpl
             throw new IllegalArgumentException("alpnProtocols.length == 0");
         }
         sslParameters.alpnProtocols = alpnProtocols;
+    }
+
+    @Override
+    public SSLParameters getSSLParameters() {
+        SSLParameters params = super.getSSLParameters();
+        Platform.setEndpointIdentificationAlgorithm(params,
+                sslParameters.getEndpointIdentificationAlgorithm());
+        return params;
+    }
+
+    @Override
+    public void setSSLParameters(SSLParameters p) {
+        super.setSSLParameters(p);
+        sslParameters.setEndpointIdentificationAlgorithm(
+                Platform.getEndpointIdentificationAlgorithm(p));
     }
 
     @Override
