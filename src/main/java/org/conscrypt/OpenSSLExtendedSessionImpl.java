@@ -17,8 +17,10 @@ package org.conscrypt;
 
 import java.security.Principal;
 import java.security.cert.Certificate;
+import java.util.Collections;
 import java.util.List;
 import javax.net.ssl.ExtendedSSLSession;
+import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSessionContext;
@@ -44,7 +46,12 @@ public class OpenSSLExtendedSessionImpl extends ExtendedSSLSession {
     }
 
     public List<SNIServerName> getRequestedServerNames() {
-        throw new UnsupportedOperationException();
+        String requestedServerName = delegate.getRequestedServerName();
+        if (requestedServerName == null) {
+            return null;
+        }
+
+        return Collections.<SNIServerName> singletonList(new SNIHostName(requestedServerName));
     }
 
     @Override

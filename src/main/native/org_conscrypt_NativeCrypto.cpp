@@ -10597,6 +10597,19 @@ static jstring NativeCrypto_SSL_SESSION_cipher(JNIEnv* env, jclass, jlong ssl_se
     return env->NewStringUTF(name);
 }
 
+static jstring NativeCrypto_get_SSL_SESSION_tlsext_hostname(JNIEnv* env, jclass, jlong sessionJava) {
+    SSL_SESSION* ssl_session = to_SSL_SESSION(env, sessionJava, true);
+    JNI_TRACE("ssl_session=%p NativeCrypto_get_SSL_SESSION_tlsext_hostname", ssl_session);
+    if (ssl_session == nullptr || ssl_session->tlsext_hostname == nullptr) {
+        JNI_TRACE("ssl_session=%p NativeCrypto_get_SSL_SESSION_tlsext_hostname => null",
+                  ssl_session);
+        return nullptr;
+    }
+    JNI_TRACE("ssl_session=%p NativeCrypto_get_SSL_SESSION_tlsext_hostname => \"%s\"",
+              ssl_session, ssl_session->tlsext_hostname);
+    return env->NewStringUTF(ssl_session->tlsext_hostname);
+}
+
 /**
  * Frees the SSL session.
  */
@@ -11225,6 +11238,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_SESSION_get_time, "(J)J"),
     NATIVE_METHOD(NativeCrypto, SSL_SESSION_get_version, "(J)Ljava/lang/String;"),
     NATIVE_METHOD(NativeCrypto, SSL_SESSION_cipher, "(J)Ljava/lang/String;"),
+    NATIVE_METHOD(NativeCrypto, get_SSL_SESSION_tlsext_hostname, "(J)Ljava/lang/String;"),
     NATIVE_METHOD(NativeCrypto, SSL_SESSION_free, "(J)V"),
     NATIVE_METHOD(NativeCrypto, i2d_SSL_SESSION, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, d2i_SSL_SESSION, "([B)J"),
