@@ -1176,6 +1176,8 @@ public final class NativeCrypto {
 
     public static native String SSL_SESSION_cipher(long sslSessionNativePointer);
 
+    public static native String get_SSL_SESSION_tlsext_hostname(long sslSessionNativePointer);
+
     public static native void SSL_SESSION_free(long sslSessionNativePointer);
 
     public static native byte[] i2d_SSL_SESSION(long sslSessionNativePointer);

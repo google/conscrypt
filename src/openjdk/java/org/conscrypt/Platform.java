@@ -29,11 +29,16 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
+import java.util.Collections;
+import java.util.List;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 import sun.security.x509.AlgorithmId;
@@ -94,6 +99,29 @@ public class Platform {
      */
     public static void setSocketWriteTimeout(Socket s, long timeoutMillis) throws SocketException {
         // TODO: figure this out on the RI
+    }
+
+    public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
+            OpenSSLSocketImpl socket) {
+        impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
+        List<SNIServerName> serverNames = params.getServerNames();
+        if (serverNames != null) {
+            for (SNIServerName serverName : serverNames) {
+                if (serverName.getType() == StandardConstants.SNI_HOST_NAME) {
+                    socket.setHostname(((SNIHostName) serverName).getAsciiName());
+                    break;
+                }
+            }
+        }
+    }
+
+    public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
+            OpenSSLSocketImpl socket) {
+        params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
+        if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
+            params.setServerNames(Collections.<SNIServerName> singletonList(
+                    new SNIHostName(socket.getHostname())));
+        }
     }
 
     /**
