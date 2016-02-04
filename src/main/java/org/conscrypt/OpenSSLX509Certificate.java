@@ -362,32 +362,17 @@ public class OpenSSLX509Certificate extends X509Certificate {
     private void verifyInternal(PublicKey key, String sigProvider) throws CertificateException,
             NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException,
             SignatureException {
-        Signature sig = getSignatureInstance(getSigAlgName(), sigProvider);
-        if (sig == null) {
-            sig = getSignatureInstance(getSigAlgOID(), sigProvider);
+        final Signature sig;
+        if (sigProvider == null) {
+            sig = Signature.getInstance(getSigAlgName());
+        } else {
+            sig = Signature.getInstance(getSigAlgName(), sigProvider);
         }
 
         sig.initVerify(key);
         sig.update(getTBSCertificate());
         if (!sig.verify(getSignature())) {
             throw new SignatureException("signature did not verify");
-        }
-    }
-
-    /**
-     * Gets a signature instance or returns {@code null} if there is no
-     * provider.
-     */
-    private Signature getSignatureInstance(String sigAlg, String sigProvider)
-            throws NoSuchProviderException {
-        try {
-            if (sigProvider == null) {
-                return Signature.getInstance(sigAlg);
-            } else {
-                return Signature.getInstance(sigAlg, sigProvider);
-            }
-        } catch (NoSuchAlgorithmException ignored) {
-            return null;
         }
     }
 
