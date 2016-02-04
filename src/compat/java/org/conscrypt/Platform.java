@@ -147,6 +147,16 @@ public class Platform {
         }
     }
 
+    public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
+            OpenSSLSocketImpl socket) {
+        // TODO fix for newer platform versions
+    }
+
+    public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
+            OpenSSLSocketImpl socket) {
+        // TODO fix for newer platform versions
+    }
+
     /**
      * Tries to return a Class reference of one of the supplied class names.
      */

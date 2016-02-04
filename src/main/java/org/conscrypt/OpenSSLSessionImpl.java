@@ -479,6 +479,13 @@ public class OpenSSLSessionImpl implements SSLSession {
         }
     }
 
+    /**
+     * Returns the name requested by the SNI extension.
+     */
+    public String getRequestedServerName() {
+        return NativeCrypto.get_SSL_SESSION_tlsext_hostname(sslSessionNativePointer);
+    }
+
     @Override
     protected void finalize() throws Throwable {
         try {

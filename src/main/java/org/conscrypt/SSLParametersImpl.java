@@ -100,6 +100,7 @@ public class SSLParametersImpl implements Cloneable {
     private boolean want_client_auth = false;
     // if the peer with this parameters allowed to cteate new SSL session
     private boolean enable_session_creation = true;
+    // Endpoint identification algorithm (e.g., HTTPS)
     private String endpointIdentificationAlgorithm;
 
     // client-side only, bypasses the property based configuration, used for tests
