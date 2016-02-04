@@ -102,6 +102,8 @@ public class SSLParametersImpl implements Cloneable {
     private boolean enable_session_creation = true;
     // Endpoint identification algorithm (e.g., HTTPS)
     private String endpointIdentificationAlgorithm;
+    // Whether to use the local cipher suites order
+    private boolean useCipherSuitesOrder;
 
     // client-side only, bypasses the property based configuration, used for tests
     private boolean ctVerificationEnabled;
@@ -550,6 +552,9 @@ public class SSLParametersImpl implements Cloneable {
             if (ocspResponse != null) {
                 NativeCrypto.SSL_CTX_set_ocsp_response(sslCtxNativePointer, ocspResponse);
             }
+
+            NativeCrypto.SSL_set_options(sslNativePointer,
+                    NativeConstants.SSL_OP_CIPHER_SERVER_PREFERENCE);
         }
 
         // Enable Pre-Shared Key (PSK) key exchange if requested
@@ -953,6 +958,14 @@ public class SSLParametersImpl implements Cloneable {
 
     public void setEndpointIdentificationAlgorithm(String endpointIdentificationAlgorithm) {
         this.endpointIdentificationAlgorithm = endpointIdentificationAlgorithm;
+    }
+
+    public boolean getUseCipherSuitesOrder() {
+        return useCipherSuitesOrder;
+    }
+
+    public void setUseCipherSuitesOrder(boolean useCipherSuitesOrder) {
+        this.useCipherSuitesOrder = useCipherSuitesOrder;
     }
 
     /** Key type: RSA certificate. */
