@@ -104,6 +104,7 @@ public class Platform {
     public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
             OpenSSLSocketImpl socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
+        impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
         List<SNIServerName> serverNames = params.getServerNames();
         if (serverNames != null) {
             for (SNIServerName serverName : serverNames) {
@@ -118,6 +119,7 @@ public class Platform {
     public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
             OpenSSLSocketImpl socket) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
+        params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
             params.setServerNames(Collections.<SNIServerName> singletonList(
                     new SNIHostName(socket.getHostname())));
