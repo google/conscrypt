@@ -20,6 +20,7 @@ import java.io.FileDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.InvalidKeyException;
@@ -277,10 +278,18 @@ public class Platform {
     }
 
     /*
-     * Pre-Java 8 backward compatibility.
+     * Pre-Java-8 backward compatibility.
      */
 
     public static SSLSession wrapSSLSession(OpenSSLSessionImpl sslSession) {
         return new OpenSSLExtendedSessionImpl(sslSession);
+    }
+
+    /*
+     * Pre-Java-7 backward compatibility.
+     */
+
+    public static String getHostStringFromInetSocketAddress(InetSocketAddress addr) {
+        return addr.getHostString();
     }
 }
