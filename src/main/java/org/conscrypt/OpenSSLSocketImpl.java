@@ -309,8 +309,16 @@ public class OpenSSLSocketImpl
             // certain protocols.
             NativeCrypto.SSL_set_reject_peer_renegotiations(sslNativePointer, false);
 
-            if (client && sslParameters.isCTVerificationEnabled(getHostname())) {
-                NativeCrypto.SSL_enable_signed_cert_timestamps(sslNativePointer);
+            // Configure OCSP and CT extensions for client
+            if (client) {
+                NativeCrypto.SSL_enable_ocsp_stapling(sslNativePointer);
+                if (sslParameters.isCTVerificationEnabled(getHostname())) {
+                    NativeCrypto.SSL_enable_signed_cert_timestamps(sslNativePointer);
+                }
+            }
+
+            // Configure OCSP for server
+            if (!client && sslParameters.getOCSPResponse() != null) {
                 NativeCrypto.SSL_enable_ocsp_stapling(sslNativePointer);
             }
 
@@ -570,9 +578,11 @@ public class OpenSSLSocketImpl
                 peerCertChain[i] = new OpenSSLX509Certificate(certRefs[i]);
             }
 
+            byte[] ocspData = NativeCrypto.SSL_get_ocsp_response(sslNativePointer);
+
             // Used for verifyCertificateChain callback
             handshakeSession = new OpenSSLSessionImpl(sslSessionNativePtr, null, peerCertChain,
-                    getHostnameOrIP(), getPort(), null);
+                    ocspData, getHostnameOrIP(), getPort(), null);
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
@@ -580,7 +590,6 @@ public class OpenSSLSocketImpl
                 if (sslParameters.isCTVerificationEnabled(getHostname())) {
                     byte[] tlsData = NativeCrypto.SSL_get_signed_cert_timestamp_list(
                                         sslNativePointer);
-                    byte[] ocspData = NativeCrypto.SSL_get_ocsp_response(sslNativePointer);
 
                     CTVerifier ctVerifier = sslParameters.getCTVerifier();
                     CTVerificationResult result =

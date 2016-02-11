@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import javax.net.ssl.SSLSession;
@@ -51,6 +52,9 @@ abstract class AbstractSessionContext implements SSLSessionContext {
 
     /** Identifies OpenSSL sessions. */
     static final int OPEN_SSL = 1;
+
+    /** Identifies OpenSSL sessions with OCSP stapled data. */
+    static final int OPEN_SSL_WITH_OCSP = 2;
 
     private final Map<ByteArray, SSLSession> sessions
             = new LinkedHashMap<ByteArray, SSLSession>() {
@@ -208,7 +212,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             DataOutputStream daos = new DataOutputStream(baos);
 
-            daos.writeInt(OPEN_SSL); // session type ID
+            daos.writeInt(OPEN_SSL_WITH_OCSP); // session type ID
 
             // Session data.
             byte[] data = sslSession.getEncoded();
@@ -224,6 +228,14 @@ abstract class AbstractSessionContext implements SSLSessionContext {
                 daos.writeInt(data.length);
                 daos.write(data);
             }
+
+            List<byte[]> ocspResponses = sslSession.getStatusResponses();
+            daos.writeInt(ocspResponses.size());
+            for (byte[] ocspResponse : ocspResponses) {
+                daos.writeInt(ocspResponse.length);
+                daos.write(ocspResponse);
+            }
+
             // TODO: local certificates?
 
             return baos.toByteArray();
@@ -246,7 +258,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         DataInputStream dais = new DataInputStream(bais);
         try {
             int type = dais.readInt();
-            if (type != OPEN_SSL) {
+            if (type != OPEN_SSL && type != OPEN_SSL_WITH_OCSP) {
                 log(new AssertionError("Unexpected type ID: " + type));
                 return null;
             }
@@ -264,7 +276,19 @@ abstract class AbstractSessionContext implements SSLSessionContext {
                 certs[i] = OpenSSLX509Certificate.fromX509Der(certData);
             }
 
-            return new OpenSSLSessionImpl(sessionData, host, port, certs, this);
+            byte[] ocspData = null;
+            if (type == OPEN_SSL_WITH_OCSP) {
+                // We only support one OCSP response now, but in the future
+                // we may support RFC 6961 which has multiple.
+                int countOcspResponses = dais.readInt();
+                if (countOcspResponses > 1) {
+                    int ocspLength = dais.readInt();
+                    ocspData = new byte[ocspLength];
+                    dais.readFully(ocspData);
+                }
+            }
+
+            return new OpenSSLSessionImpl(sessionData, host, port, certs, ocspData, this);
         } catch (IOException e) {
             log(e);
             return null;
