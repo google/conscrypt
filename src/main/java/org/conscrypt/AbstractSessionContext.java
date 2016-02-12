@@ -241,7 +241,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
      *
      * @return a session or null if the session can't be converted
      */
-    SSLSession toSession(byte[] data, String host, int port) {
+    OpenSSLSessionImpl toSession(byte[] data, String host, int port) {
         ByteArrayInputStream bais = new ByteArrayInputStream(data);
         DataInputStream dais = new DataInputStream(bais);
         try {
@@ -271,6 +271,14 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
+    protected SSLSession wrapSSLSessionIfNeeded(SSLSession session) {
+        if (session instanceof OpenSSLSessionImpl) {
+            return Platform.wrapSSLSession((OpenSSLSessionImpl) session);
+        } else {
+            return session;
+        }
+    }
+
     @Override
     public SSLSession getSession(byte[] sessionId) {
         if (sessionId == null) {
@@ -282,7 +290,11 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             session = sessions.get(key);
         }
         if (session != null && session.isValid()) {
-            return session;
+            if (session instanceof OpenSSLSessionImpl) {
+                return Platform.wrapSSLSession((OpenSSLSessionImpl) session);
+            } else {
+                return session;
+            }
         }
         return null;
     }
