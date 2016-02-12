@@ -30,8 +30,7 @@ public class ClientSessionContext extends AbstractSessionContext {
      * Sessions indexed by host and port. Protect from concurrent
      * access by holding a lock on sessionsByHostAndPort.
      */
-    final Map<HostAndPort, SSLSession> sessionsByHostAndPort
-        = new HashMap<HostAndPort, SSLSession>();
+    private final HashMap<HostAndPort, SSLSession> sessionsByHostAndPort = new HashMap<>();
 
     private SSLClientSessionCache persistentCache;
 
@@ -77,7 +76,7 @@ public class ClientSessionContext extends AbstractSessionContext {
             session = sessionsByHostAndPort.get(hostAndPortKey);
         }
         if (session != null && session.isValid()) {
-            return session;
+            return wrapSSLSessionIfNeeded(session);
         }
 
         // Look in persistent cache.
@@ -90,7 +89,7 @@ public class ClientSessionContext extends AbstractSessionContext {
                     synchronized (sessionsByHostAndPort) {
                         sessionsByHostAndPort.put(hostAndPortKey, session);
                     }
-                    return session;
+                    return wrapSSLSessionIfNeeded(session);
                 }
             }
         }
