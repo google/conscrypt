@@ -42,11 +42,28 @@ public class OpenSSLExtendedSessionImpl extends ExtendedSSLSession {
     }
 
     public String[] getLocalSupportedSignatureAlgorithms() {
-        throw new UnsupportedOperationException();
+        // From src/ssl/t1_lib.c tls12_sigalgs
+        // TODO: use BoringSSL API to actually fetch the real data
+        return new String[] {
+                "SHA512withRSA",
+                "SHA512withECDSA",
+                "SHA384withRSA",
+                "SHA384withECDSA",
+                "SHA256withRSA",
+                "SHA256withECDSA",
+                "SHA224withRSA",
+                "SHA224withECDSA",
+                "SHA1withRSA",
+                "SHA1withECDSA",
+        };
     }
 
     public String[] getPeerSupportedSignatureAlgorithms() {
-        throw new UnsupportedOperationException();
+        // TODO: use BoringSSL API to actually fetch the real data
+        return new String[] {
+                "SHA1withRSA",
+                "SHA1withECDSA",
+        };
     }
 
     public List<SNIServerName> getRequestedServerNames() {
