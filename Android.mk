@@ -83,6 +83,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt
 LOCAL_REQUIRED_MODULES := libjavacrypto
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_JAVA_LIBRARY)
 
 # Create the conscrypt library without jarjar for tests
@@ -96,6 +97,7 @@ LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt-nojarjar
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
 ifeq ($(LIBCORE_SKIP_TESTS),)
@@ -112,6 +114,7 @@ LOCAL_MODULE := conscrypt-tests
 LOCAL_REQUIRED_MODULES := libjavacrypto
 LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_STATIC_JAVA_LIBRARY)
 endif
 
@@ -153,6 +156,7 @@ LOCAL_MODULE := conscrypt_unbundled
 LOCAL_JAVA_LIBRARIES := conscrypt-stubs
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_JACK_FLAGS := -D jack.classpath.default-libraries=false
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
 # Stub library for unbundled builds
@@ -162,6 +166,7 @@ LOCAL_SDK_VERSION := 9
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE := conscrypt-stubs
 LOCAL_JACK_FLAGS := -D jack.classpath.default-libraries=false
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
 # Unbundled Conscrypt crypto JNI library
@@ -184,6 +189,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libconscrypt_jni
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_SDK_VERSION := 9
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_SHARED_LIBRARY)
 
 # Static unbundled Conscrypt crypto JNI library
@@ -206,6 +212,7 @@ LOCAL_MODULE := libconscrypt_static
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_STATIC_LIBRARIES := libssl_static libcrypto_static
 LOCAL_SDK_VERSION := 9
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_STATIC_LIBRARY)
 
 #
@@ -225,6 +232,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt-hostdex
 LOCAL_REQUIRED_MODULES := libjavacrypto
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 
 # Make the conscrypt-hostdex-nojarjar for tests
@@ -237,6 +245,7 @@ LOCAL_BUILD_HOST_DEX := true
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt-hostdex-nojarjar
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 
 # Make the conscrypt-tests library.
@@ -250,6 +259,7 @@ ifeq ($(LIBCORE_SKIP_TESTS),)
     LOCAL_MODULE := conscrypt-tests-hostdex
     LOCAL_REQUIRED_MODULES := libjavacrypto
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+    LOCAL_JAVA_LANGUAGE_VERSION := 1.7
     include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 endif
 
@@ -348,6 +358,7 @@ LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt-host
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_HOST_JAVA_LIBRARY)
 
 # clear out local variables
