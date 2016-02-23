@@ -770,8 +770,6 @@ public final class NativeCrypto {
     // * Prefer Forward Secrecy (i.e., cipher suites that use ECDHE and DHE for key agreement).
     // * Prefer AES-GCM to AES-CBC whose MAC-pad-then-encrypt approach leads to weaknesses (e.g.,
     //   Lucky 13).
-    // * Prefer AES to RC4 whose foundations are a bit shaky. See http://www.isg.rhul.ac.uk/tls/.
-    //   BEAST and Lucky13 mitigations are enabled.
     // * Prefer 128-bit bulk encryption to 256-bit one, because 128-bit is safe enough while
     //   consuming less CPU/time/energy.
     //
@@ -800,7 +798,6 @@ public final class NativeCrypto {
         "TLS_RSA_WITH_AES_256_GCM_SHA384",
         "TLS_RSA_WITH_AES_128_CBC_SHA",
         "TLS_RSA_WITH_AES_256_CBC_SHA",
-        "SSL_RSA_WITH_RC4_128_SHA",
     };
 
     /** TLS-PSK cipher suites enabled by default (if requested), in preference order. */
