@@ -106,12 +106,6 @@ public class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
     }
 
     @Override
-    public void setSoTimeout(int to) throws SocketException {
-        socket.setSoTimeout(to);
-        super.setSoTimeout(to);
-    }
-
-    @Override
     public void setSendBufferSize(int size) throws SocketException {
         socket.setSendBufferSize(size);
     }
