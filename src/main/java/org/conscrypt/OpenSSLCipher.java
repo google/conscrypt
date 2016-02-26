@@ -1058,6 +1058,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 byte[] newaad = new byte[newSize];
                 System.arraycopy(aad, 0, newaad, 0, aad.length);
                 System.arraycopy(input, inputOffset, newaad, aad.length, inputLen);
+                aad = newaad;
             }
         }
 
