@@ -37,6 +37,10 @@ public class OpenSSLExtendedSessionImpl extends ExtendedSSLSession {
         this.delegate = delegate;
     }
 
+    public OpenSSLSessionImpl getDelegate() {
+        return delegate;
+    }
+
     public String[] getLocalSupportedSignatureAlgorithms() {
         // From src/ssl/t1_lib.c tls12_sigalgs
         // TODO: use BoringSSL API to actually fetch the real data

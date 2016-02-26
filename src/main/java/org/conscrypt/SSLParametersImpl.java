@@ -43,6 +43,7 @@ import javax.crypto.SecretKey;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -422,17 +423,25 @@ public class SSLParametersImpl implements Cloneable {
 
     OpenSSLSessionImpl getSessionToReuse(long sslNativePointer, String hostname, int port)
             throws SSLException {
-        final OpenSSLSessionImpl sessionToReuse;
+        OpenSSLSessionImpl sessionToReuse = null;
+
         if (client_mode) {
             // look for client session to reuse
-            sessionToReuse = getCachedClientSession(clientSessionContext, hostname, port);
-            if (sessionToReuse != null) {
-                NativeCrypto.SSL_set_session(sslNativePointer,
-                        sessionToReuse.sslSessionNativePointer);
+            SSLSession cachedSession = getCachedClientSession(clientSessionContext, hostname, port);
+            if (cachedSession != null) {
+                if (cachedSession instanceof OpenSSLSessionImpl) {
+                    sessionToReuse = (OpenSSLSessionImpl) cachedSession;
+                } else if (cachedSession instanceof OpenSSLExtendedSessionImpl) {
+                    sessionToReuse = ((OpenSSLExtendedSessionImpl) cachedSession).getDelegate();
+                }
+
+                if (sessionToReuse != null) {
+                    NativeCrypto.SSL_set_session(sslNativePointer,
+                            sessionToReuse.sslSessionNativePointer);
+                }
             }
-        } else {
-            sessionToReuse = null;
         }
+
         return sessionToReuse;
     }
 
@@ -766,12 +775,13 @@ public class SSLParametersImpl implements Cloneable {
     /**
      * Gets the suitable session reference from the session cache container.
      */
-    OpenSSLSessionImpl getCachedClientSession(ClientSessionContext sessionContext, String hostName,
+    SSLSession getCachedClientSession(ClientSessionContext sessionContext, String hostName,
             int port) {
         if (hostName == null) {
             return null;
         }
-        OpenSSLSessionImpl session = (OpenSSLSessionImpl) sessionContext.getSession(hostName, port);
+
+        SSLSession session = sessionContext.getSession(hostName, port);
         if (session == null) {
             return null;
         }
