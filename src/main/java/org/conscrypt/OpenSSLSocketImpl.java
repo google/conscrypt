@@ -1049,7 +1049,12 @@ public class OpenSSLSocketImpl
 
     @Override
     public void setSoTimeout(int readTimeoutMilliseconds) throws SocketException {
-        super.setSoTimeout(readTimeoutMilliseconds);
+        if (socket != this) {
+            socket.setSoTimeout(readTimeoutMilliseconds);
+        } else {
+            super.setSoTimeout(readTimeoutMilliseconds);
+        }
+
         this.readTimeoutMilliseconds = readTimeoutMilliseconds;
     }
 

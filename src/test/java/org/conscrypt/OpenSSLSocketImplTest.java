@@ -23,7 +23,9 @@ import org.conscrypt.ct.CTVerifier;
 
 import junit.framework.TestCase;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -176,6 +178,9 @@ public class OpenSSLSocketImplTest extends TestCase {
         ServerHooks serverHooks;
         ClientHooks clientHooks;
 
+        OpenSSLSocketImpl client;
+        OpenSSLSocketImpl server;
+
         public TestConnection(X509Certificate[] chain, PrivateKey key) throws Exception {
             clientHooks = new ClientHooks();
             serverHooks = new ServerHooks();
@@ -208,8 +213,8 @@ public class OpenSSLSocketImplTest extends TestCase {
             Future<OpenSSLSocketImpl> clientFuture = handshake(listener, clientHooks);
             Future<OpenSSLSocketImpl> serverFuture = handshake(listener, serverHooks);
 
-            OpenSSLSocketImpl client = clientFuture.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            OpenSSLSocketImpl server = serverFuture.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            client = clientFuture.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            server = serverFuture.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
 
         Future<OpenSSLSocketImpl> handshake(final ServerSocket listener, final Hooks hooks) {
@@ -320,6 +325,24 @@ public class OpenSSLSocketImplTest extends TestCase {
             assertEquals(SSLHandshakeException.class, e.getCause().getClass());
             assertEquals(CertificateException.class, e.getCause().getCause().getClass());
         }
+    }
+
+    // http://b/27250522
+    public void test_setSoTimeout_doesNotCreateSocketImpl() throws Exception {
+        ServerSocket listening = new ServerSocket(0);
+        Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
+
+        Constructor<OpenSSLSocketImpl> cons = OpenSSLSocketImpl.class.getDeclaredConstructor(
+                Socket.class, String.class, Integer.TYPE, Boolean.TYPE, SSLParametersImpl.class);
+        cons.setAccessible(true);
+        OpenSSLSocketImpl simpl = cons.newInstance(underlying, null, listening.getLocalPort(),
+                false, null);
+        simpl.setSoTimeout(1000);
+        simpl.close();
+
+        Field f = Socket.class.getDeclaredField("created");
+        f.setAccessible(true);
+        assertFalse(f.getBoolean(simpl));
     }
 }
 
