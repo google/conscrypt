@@ -37,6 +37,10 @@ public class OpenSSLExtendedSessionImpl extends ExtendedSSLSession {
         this.delegate = delegate;
     }
 
+    public OpenSSLSessionImpl getDelegate() {
+        return delegate;
+    }
+
     public String[] getLocalSupportedSignatureAlgorithms() {
         throw new UnsupportedOperationException();
     }
