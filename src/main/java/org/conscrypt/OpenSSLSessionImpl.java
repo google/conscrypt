@@ -68,25 +68,16 @@ public class OpenSSLSessionImpl implements SSLSession {
     }
 
     /**
-     * Constructs a session from a byte[] containing DER data. This
-     * allows loading the saved session.
-     * @throws IOException
+     * Constructs a session from a byte[] containing an SSL session serialized with DER encoding.
+     * This allows loading of a previously saved OpenSSLSessionImpl.
+     *
+     * @throws IOException if the serialized session data can not be parsed
      */
-    OpenSSLSessionImpl(byte[] derData,
-            String peerHost, int peerPort,
-            X509Certificate[] peerCertificates,
-            AbstractSessionContext sessionContext)
+    OpenSSLSessionImpl(byte[] derData, String peerHost, int peerPort,
+            X509Certificate[] peerCertificates, AbstractSessionContext sessionContext)
             throws IOException {
-        this(NativeCrypto.d2i_SSL_SESSION(derData),
-             null,
-             peerCertificates,
-             peerHost,
-             peerPort,
+        this(NativeCrypto.d2i_SSL_SESSION(derData), null, peerCertificates, peerHost, peerPort,
              sessionContext);
-        // TODO move this check into native code so we can throw an error with more information
-        if (this.sslSessionNativePointer == 0) {
-            throw new IOException("Invalid session data");
-        }
     }
 
     /**

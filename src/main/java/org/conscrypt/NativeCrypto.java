@@ -1179,7 +1179,7 @@ public final class NativeCrypto {
 
     public static native byte[] i2d_SSL_SESSION(long sslSessionNativePointer);
 
-    public static native long d2i_SSL_SESSION(byte[] data);
+    public static native long d2i_SSL_SESSION(byte[] data) throws IOException;
 
     /**
      * A collection of callbacks from the native OpenSSL code that are

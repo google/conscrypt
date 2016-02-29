@@ -10670,8 +10670,13 @@ static jlong NativeCrypto_d2i_SSL_SESSION(JNIEnv* env, jclass, jbyteArray javaBy
     }
 #endif
 
-    if (ssl_session == nullptr) {
-        freeOpenSslErrorState();
+    if (ssl_session == nullptr ||
+        ucp != (reinterpret_cast<const unsigned char*>(bytes.get()) + bytes.size())) {
+        if (!throwExceptionIfNecessary(env, "d2i_SSL_SESSION")) {
+            jniThrowException(env, "java/io/IOException", "d2i_SSL_SESSION");
+        }
+        JNI_TRACE("NativeCrypto_d2i_SSL_SESSION => failure to convert");
+        return 0L;
     }
 
     JNI_TRACE("NativeCrypto_d2i_SSL_SESSION => %p", ssl_session);
