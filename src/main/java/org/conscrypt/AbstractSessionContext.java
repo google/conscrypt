@@ -228,7 +228,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
 
             return baos.toByteArray();
         } catch (IOException e) {
-            log(e);
+            System.err.println("Failed to convert saved SSL Session: " + e.getMessage());
             return null;
         } catch (CertificateEncodingException e) {
             log(e);
