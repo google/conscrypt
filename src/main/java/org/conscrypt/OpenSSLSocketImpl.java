@@ -26,7 +26,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
@@ -133,7 +135,9 @@ public class OpenSSLSocketImpl
     private final boolean autoClose;
 
     /**
-     * The peer's DNS hostname if it was supplied during creation.
+     * The peer's DNS hostname if it was supplied during creation. Note that
+     * this may be a raw IP address, so it should be checked before use with
+     * extensions that don't use it like Server Name Indication (SNI).
      */
     private String peerHostname;
 
@@ -241,6 +245,24 @@ public class OpenSSLSocketImpl
         // this.timeout is not set intentionally.
         // OpenSSLSocketImplWrapper.getSoTimeout will delegate timeout
         // to wrapped socket
+    }
+
+    @Override
+    public void connect(SocketAddress endpoint) throws IOException {
+        connect(endpoint, 0);
+    }
+
+    /**
+     * Try to extract the peer's hostname if it's available from the endpoint address.
+     */
+    @Override
+    public void connect(SocketAddress endpoint, int timeout) throws IOException {
+        if (peerHostname == null && endpoint instanceof InetSocketAddress) {
+            peerHostname = Platform.getHostStringFromInetSocketAddress(
+                    (InetSocketAddress) endpoint);
+        }
+
+        super.connect(endpoint, timeout);
     }
 
     private void checkOpen() throws SocketException {
