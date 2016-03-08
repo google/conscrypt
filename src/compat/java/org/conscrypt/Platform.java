@@ -26,6 +26,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.InvalidKeyException;
@@ -535,5 +536,23 @@ public class Platform {
         } else {
             return new OpenSSLExtendedSessionImpl(sslSession);
         }
+    }
+
+    /*
+     * Pre-Java-7 backward compatibility.
+     */
+
+    public static String getHostStringFromInetSocketAddress(InetSocketAddress addr) {
+        if (Build.VERSION.SDK_INT > 23) {
+            try {
+                Method m_getHostString = InetSocketAddress.class
+                        .getDeclaredMethod("getHostString");
+                return (String) m_getHostString.invoke(addr);
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
     }
 }
