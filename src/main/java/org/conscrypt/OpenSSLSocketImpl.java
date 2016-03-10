@@ -332,7 +332,7 @@ public class OpenSSLSocketImpl
             }
 
             final OpenSSLSessionImpl sessionToReuse = sslParameters.getSessionToReuse(
-                    sslNativePointer, getHostname(), getPort());
+                    sslNativePointer, getHostnameOrIP(), getPort());
             sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this, this,
                     getHostname());
             sslParameters.setCertificateValidation(sslNativePointer);
@@ -380,7 +380,7 @@ public class OpenSSLSocketImpl
                 // Must match error string of SSL_R_UNEXPECTED_CCS
                 if (message.contains("unexpected CCS")) {
                     String logMessage = String.format("ssl_unexpected_ccs: host=%s",
-                            getHostname());
+                            getHostnameOrIP());
                     Platform.logEvent(logMessage);
                 }
 
@@ -397,7 +397,7 @@ public class OpenSSLSocketImpl
             }
 
             sslSession = sslParameters.setupSession(sslSessionNativePointer, sslNativePointer,
-                    sessionToReuse, getHostname(), getPort(), handshakeCompleted);
+                    sessionToReuse, getHostnameOrIP(), getPort(), handshakeCompleted);
 
             // Restore the original timeout now that the handshake is complete
             if (handshakeTimeoutMilliseconds >= 0) {
@@ -456,6 +456,24 @@ public class OpenSSLSocketImpl
      */
     public String getHostname() {
         return peerHostname;
+    }
+
+    /**
+     * For the purposes of an SSLSession, we want a way to represent the supplied hostname
+     * or the IP address in a textual representation. We do not want to perform reverse DNS
+     * lookups on this address.
+     */
+    public String getHostnameOrIP() {
+        if (peerHostname != null) {
+            return peerHostname;
+        }
+
+        InetAddress peerAddress = getInetAddress();
+        if (peerAddress != null) {
+            return peerAddress.getHostAddress();
+        }
+
+        return null;
     }
 
     @Override
@@ -571,7 +589,7 @@ public class OpenSSLSocketImpl
 
             // Used for verifyCertificateChain callback
             handshakeSession = new OpenSSLSessionImpl(sslSessionNativePtr, null, peerCertChain,
-                    getHostname(), getPort(), null);
+                    getHostnameOrIP(), getPort(), null);
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
