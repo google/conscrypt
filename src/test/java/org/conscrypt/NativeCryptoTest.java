@@ -2621,8 +2621,17 @@ public class NativeCryptoTest extends TestCase {
         } catch (NullPointerException expected) {
         }
 
-        assertEquals(NULL, NativeCrypto.d2i_SSL_SESSION(new byte[0]));
-        assertEquals(NULL, NativeCrypto.d2i_SSL_SESSION(new byte[1]));
+        try {
+            NativeCrypto.d2i_SSL_SESSION(new byte[0]);
+            fail("Should throw IOException with invalid SSL_SESSION data");
+        } catch (IOException expected) {
+        }
+
+        try {
+            NativeCrypto.d2i_SSL_SESSION(new byte[1]);
+            fail("Should throw IOException with invalid SSL_SESSION data");
+        } catch (IOException expected) {
+        }
 
         // positive testing by test_i2d_SSL_SESSION
     }

@@ -504,6 +504,14 @@ static int throwNoSuchAlgorithmException(JNIEnv* env, const char* message) {
     return jniThrowException(env, "java/security/NoSuchAlgorithmException", message);
 }
 
+/**
+ * Throws an IOException with the given string as a message.
+ */
+static int throwIOException(JNIEnv* env, const char* message) {
+    JNI_TRACE("throwIOException %s", message);
+    return jniThrowException(env, "java/io/IOException", message);
+}
+
 #if defined(OPENSSL_IS_BORINGSSL)
 /**
  * Throws a ParsingException with the given string as a message.
@@ -5385,7 +5393,7 @@ static int NativeCrypto_BIO_read(JNIEnv* env, jclass, jlong bioRef, jbyteArray o
 
     int read = BIO_read(bio, buffer.get(), outputSize);
     if (read <= 0) {
-        jniThrowException(env, "java/io/IOException", "BIO_read");
+        throwIOException(env, "BIO_read");
         JNI_TRACE("BIO_read(%p, %p) => threw IO exception", bio, outputJavaBytes);
         return 0;
     }
@@ -5421,7 +5429,7 @@ static void NativeCrypto_BIO_write(JNIEnv* env, jclass, jlong bioRef, jbyteArray
     env->GetByteArrayRegion(inputJavaBytes, offset, length, reinterpret_cast<jbyte*>(buffer.get()));
     if (BIO_write(bio, buffer.get(), length) != length) {
         freeOpenSslErrorState();
-        jniThrowException(env, "java/io/IOException", "BIO_write");
+        throwIOException(env, "BIO_write");
         JNI_TRACE("BIO_write(%p, %p, %d, %d) => IO error", bio, inputJavaBytes, offset, length);
         return;
     }
@@ -10672,8 +10680,8 @@ static jlong NativeCrypto_d2i_SSL_SESSION(JNIEnv* env, jclass, jbyteArray javaBy
 
     if (ssl_session == nullptr ||
         ucp != (reinterpret_cast<const unsigned char*>(bytes.get()) + bytes.size())) {
-        if (!throwExceptionIfNecessary(env, "d2i_SSL_SESSION")) {
-            jniThrowException(env, "java/io/IOException", "d2i_SSL_SESSION");
+        if (!throwExceptionIfNecessary(env, "d2i_SSL_SESSION", throwIOException)) {
+            throwIOException(env, "d2i_SSL_SESSION");
         }
         JNI_TRACE("NativeCrypto_d2i_SSL_SESSION => failure to convert");
         return 0L;
