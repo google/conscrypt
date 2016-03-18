@@ -1053,7 +1053,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         /* @Override */
         protected void engineUpdateAAD(byte[] input, int inputOffset, int inputLen) {
             if (aad == null) {
-                aad = Arrays.copyOfRange(input, inputOffset, inputLen);
+                aad = Arrays.copyOfRange(input, inputOffset, inputOffset + inputLen);
             } else {
                 int newSize = aad.length + inputLen;
                 byte[] newaad = new byte[newSize];
