@@ -8024,6 +8024,15 @@ static DH* tmp_dh_callback(SSL* ssl __attribute__ ((unused)),
     return tmp_dh;
 }
 
+static jint NativeCrypto_EVP_has_aes_hardware(JNIEnv*, jclass) {
+    int ret = 0;
+#if defined(OPENSSL_IS_BORINGSSL)
+    ret = EVP_has_aes_hardware();
+#endif
+    JNI_TRACE("EVP_has_aes_hardware => %d", ret);
+    return ret;
+}
+
 /*
  * public static native int SSL_CTX_new();
  */
@@ -11197,6 +11206,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, i2d_X509_REVOKED, "(J)[B"),
     NATIVE_METHOD(NativeCrypto, X509_supported_extension, "(J)I"),
     NATIVE_METHOD(NativeCrypto, ASN1_TIME_to_Calendar, "(JLjava/util/Calendar;)V"),
+    NATIVE_METHOD(NativeCrypto, EVP_has_aes_hardware, "()I"),
     NATIVE_METHOD(NativeCrypto, SSL_CTX_new, "()J"),
     NATIVE_METHOD(NativeCrypto, SSL_CTX_free, "(J)V"),
     NATIVE_METHOD(NativeCrypto, SSL_CTX_set_session_id_context, "(J[B)V"),

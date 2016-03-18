@@ -757,6 +757,12 @@ public final class NativeCrypto {
         SUPPORTED_CIPHER_SUITES[size + 1] = TLS_FALLBACK_SCSV;
     }
 
+    /**
+     * Returns 1 if the BoringSSL believes the CPU has AES accelerated hardware
+     * instructions. Used to determine cipher suite ordering.
+     */
+    public static native int EVP_has_aes_hardware();
+
     public static native long SSL_CTX_new();
 
     // IMPLEMENTATION NOTE: The default list of cipher suites is a trade-off between what we'd like
@@ -768,6 +774,7 @@ public final class NativeCrypto {
     // servers are not required to honor the order. The key rules governing the preference order
     // are:
     // * Prefer Forward Secrecy (i.e., cipher suites that use ECDHE and DHE for key agreement).
+    // * Prefer ChaCha20-Poly1305 to AES-GCM unless hardware support for AES is available.
     // * Prefer AES-GCM to AES-CBC whose MAC-pad-then-encrypt approach leads to weaknesses (e.g.,
     //   Lucky 13).
     // * Prefer 128-bit bulk encryption to 256-bit one, because 128-bit is safe enough while
@@ -777,26 +784,47 @@ public final class NativeCrypto {
     // prevent apps from connecting to servers they were previously able to connect to.
 
     /** X.509 based cipher suites enabled by default (if requested), in preference order. */
-    static final String[] DEFAULT_X509_CIPHER_SUITES = new String[] {
-        "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-        "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-        "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
-        "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-        "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
-        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
-        "TLS_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_RSA_WITH_AES_256_GCM_SHA384",
-        "TLS_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_RSA_WITH_AES_256_CBC_SHA",
-    };
+    static final String[] DEFAULT_X509_CIPHER_SUITES = EVP_has_aes_hardware() == 1 ?
+            new String[] {
+                    "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+                    "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+                    "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+                    "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                    "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+                    "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+                    "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+                    "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
+                    "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+                    "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+                    "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+                    "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+                    "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+                    "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+                    "TLS_RSA_WITH_AES_128_GCM_SHA256",
+                    "TLS_RSA_WITH_AES_256_GCM_SHA384",
+                    "TLS_RSA_WITH_AES_128_CBC_SHA",
+                    "TLS_RSA_WITH_AES_256_CBC_SHA",
+            } :
+            new String[] {
+                    "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
+                    "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+                    "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+                    "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+                    "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                    "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+                    "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+                    "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
+                    "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+                    "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+                    "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+                    "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+                    "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+                    "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+                    "TLS_RSA_WITH_AES_128_GCM_SHA256",
+                    "TLS_RSA_WITH_AES_256_GCM_SHA384",
+                    "TLS_RSA_WITH_AES_128_CBC_SHA",
+                    "TLS_RSA_WITH_AES_256_CBC_SHA",
+            };
 
     /** TLS-PSK cipher suites enabled by default (if requested), in preference order. */
     static final String[] DEFAULT_PSK_CIPHER_SUITES = new String[] {
