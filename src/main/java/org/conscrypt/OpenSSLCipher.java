@@ -891,6 +891,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         }
 
         private void reset() {
+            aad = null;
             final int lastBufSize = lastGlobalMessageSize;
             if (buf == null) {
                 buf = new byte[lastBufSize];
