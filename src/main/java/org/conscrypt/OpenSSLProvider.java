@@ -153,12 +153,12 @@ public final class OpenSSLProvider extends Provider {
 
         putRAWRSASignatureImplClass("OpenSSLSignatureRawRSA");
 
-        putSignatureImplClass("ECDSA", "OpenSSLSignature$SHA1ECDSA");
-        put("Alg.Alias.Signature.SHA1withECDSA", "ECDSA");
-        put("Alg.Alias.Signature.ECDSAwithSHA1", "ECDSA");
+        putSignatureImplClass("SHA1withECDSA", "OpenSSLSignature$SHA1ECDSA");
+        put("Alg.Alias.Signature.ECDSA", "SHA1withECDSA");
+        put("Alg.Alias.Signature.ECDSAwithSHA1", "SHA1withECDSA");
         // iso(1) member-body(2) us(840) ansi-x962(10045) signatures(4) ecdsa-with-SHA1(1)
-        put("Alg.Alias.Signature.1.2.840.10045.4.1", "ECDSA");
-        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.10045.2.1", "ECDSA");
+        put("Alg.Alias.Signature.1.2.840.10045.4.1", "SHA1withECDSA");
+        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.10045.2.1", "SHA1withECDSA");
 
         // iso(1) member-body(2) us(840) ansi-x962(10045) signatures(4) ecdsa-with-SHA2(3)
         putSignatureImplClass("SHA224withECDSA", "OpenSSLSignature$SHA224ECDSA");
