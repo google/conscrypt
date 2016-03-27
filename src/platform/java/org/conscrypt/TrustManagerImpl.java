@@ -272,9 +272,13 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         return checkTrusted(chain, authType, hostname, false);
     }
 
-    @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket)
-            throws CertificateException {
+    /**
+     * Returns the full trusted certificate chain found from {@code certs}.
+     *
+     * Throws {@link CertificateException} when no trusted chain can be found from {@code certs}.
+     */
+    public List<X509Certificate> getTrustedChainForServer(X509Certificate[] certs,
+            String authType, Socket socket) throws CertificateException {
         SSLSession session = null;
         SSLParameters parameters = null;
         if (socket instanceof SSLSocket) {
@@ -282,17 +286,34 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             session = getHandshakeSessionOrThrow(sslSocket);
             parameters = sslSocket.getSSLParameters();
         }
-        checkTrusted(chain, authType, session, parameters, false /* client auth */);
+        return checkTrusted(certs, authType, session, parameters, false /* client auth */);
+    }
+
+    /**
+     * Returns the full trusted certificate chain found from {@code certs}.
+     *
+     * Throws {@link CertificateException} when no trusted chain can be found from {@code certs}.
+     */
+    public List<X509Certificate> getTrustedChainForServer(X509Certificate[] certs,
+            String authType, SSLEngine engine) throws CertificateException {
+        SSLSession session = engine.getHandshakeSession();
+        if (session == null) {
+            throw new CertificateException("Not in handshake; no session available");
+        }
+        return checkTrusted(certs, authType, session, engine.getSSLParameters(),
+                false /* client auth */);
+    }
+
+    @Override
+    public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket)
+            throws CertificateException {
+        getTrustedChainForServer(chain, authType, socket);
     }
 
     @Override
     public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
             throws CertificateException {
-        SSLSession session = engine.getHandshakeSession();
-        if (session == null) {
-            throw new CertificateException("Not in handshake; no session available");
-        }
-        checkTrusted(chain, authType, session, engine.getSSLParameters(), false /* client auth */);
+        getTrustedChainForServer(chain, authType, engine);
     }
 
     public boolean isUserAddedCertificate(X509Certificate cert) {
