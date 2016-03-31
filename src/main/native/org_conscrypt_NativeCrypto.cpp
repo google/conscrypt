@@ -3350,32 +3350,6 @@ static jlong NativeCrypto_EC_GROUP_new_by_curve_name(JNIEnv* env, jclass, jstrin
     return reinterpret_cast<uintptr_t>(group);
 }
 
-#if !defined(OPENSSL_IS_BORINGSSL) || !defined(BORINGSSL_201512)
-// Compatibility shim for EC_GROUP_new_arbitrary using the old two-step API.
-static EC_GROUP* EC_GROUP_new_arbitrary(
-    const BIGNUM* p, const BIGNUM* a, const BIGNUM* b, const BIGNUM* gx, const BIGNUM* gy,
-    const BIGNUM* order, const BIGNUM* cofactor)
-{
-    Unique_BN_CTX ctx(BN_CTX_new());
-    if (ctx.get() == nullptr) {
-        return nullptr;
-    }
-    Unique_EC_GROUP group(EC_GROUP_new_curve_GFp(p, a, b, ctx.get()));
-    if (group.get() == nullptr) {
-        return nullptr;
-    }
-
-    Unique_EC_POINT generator(EC_POINT_new(group.get()));
-    if (generator.get() == nullptr ||
-        !EC_POINT_set_affine_coordinates_GFp(group.get(), generator.get(), gx, gy, ctx.get()) ||
-        !EC_GROUP_set_generator(group.get(), generator.get(), order, cofactor)) {
-        return nullptr;
-    }
-
-    return group.release();
-}
-#endif
-
 static jlong NativeCrypto_EC_GROUP_new_arbitrary(
     JNIEnv* env, jclass, jbyteArray pBytes, jbyteArray aBytes,
     jbyteArray bBytes, jbyteArray xBytes, jbyteArray yBytes,
@@ -3420,10 +3394,30 @@ static jlong NativeCrypto_EC_GROUP_new_arbitrary(
         return 0;
     }
 
-    Unique_EC_GROUP group(EC_GROUP_new_arbitrary(p, a, b, x, y, order, cofactor));
+    Unique_BN_CTX ctx(BN_CTX_new());
+    Unique_EC_GROUP group(EC_GROUP_new_curve_GFp(p, a, b, ctx.get()));
     if (group.get() == nullptr) {
-        JNI_TRACE("EC_GROUP_new_arbitrary => NULL");
-        throwExceptionIfNecessary(env, "EC_GROUP_new_arbitrary");
+        JNI_TRACE("EC_GROUP_new_curve_GFp => NULL");
+        throwExceptionIfNecessary(env, "EC_GROUP_new_curve_GFp");
+        return 0;
+    }
+
+    Unique_EC_POINT generator(EC_POINT_new(group.get()));
+    if (generator.get() == nullptr) {
+        JNI_TRACE("EC_POINT_new => NULL");
+        freeOpenSslErrorState();
+        return 0;
+    }
+
+    if (!EC_POINT_set_affine_coordinates_GFp(group.get(), generator.get(), x, y, ctx.get())) {
+        JNI_TRACE("EC_POINT_set_affine_coordinates_GFp => error");
+        throwExceptionIfNecessary(env, "EC_POINT_set_affine_coordinates_GFp");
+        return 0;
+    }
+
+    if (!EC_GROUP_set_generator(group.get(), generator.get(), order, cofactor)) {
+        JNI_TRACE("EC_GROUP_set_generator => error");
+        throwExceptionIfNecessary(env, "EC_GROUP_set_generator");
         return 0;
     }
 
