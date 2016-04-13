@@ -328,7 +328,7 @@ LOCAL_C_INCLUDES += \
         external/openssl/include \
         external/openssl \
         external/conscrypt/src/openjdk/native
-LOCAL_CPPFLAGS += $(core_cppflags)
+LOCAL_CPPFLAGS += $(core_cppflags) -DCONSCRYPT_OPENJDK
 LOCAL_LDLIBS += -lpthread
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libconscrypt_openjdk_jni

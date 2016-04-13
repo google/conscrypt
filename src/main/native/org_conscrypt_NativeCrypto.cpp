@@ -2156,7 +2156,7 @@ void init_engine_globals() {
 }  // anonymous namespace
 #endif
 
-#ifdef CONSCRYPT_UNBUNDLED
+#if defined(CONSCRYPT_UNBUNDLED) && !defined(CONSCRYPT_OPENJDK)
 /*
  * This is a big hack; don't learn from this. Basically what happened is we do
  * not have an API way to insert ourselves into the AsynchronousCloseMonitor
@@ -7549,7 +7549,7 @@ static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData, 
         }
 #ifndef CONSCRYPT_UNBUNDLED
         AsynchronousCloseMonitor monitor(intFd);
-#else
+#elif !defined(CONSCRYPT_OPENJDK)
         CompatibilityCloseMonitor monitor(intFd);
 #endif
         result = poll(fds, sizeof(fds)/sizeof(fds[0]), timeout_millis);
@@ -11321,7 +11321,7 @@ static void initialize_conscrypt(JNIEnv* env) {
     outputStream_writeMethod = getMethodRef(env, outputStreamClass, "write", "([B)V");
     outputStream_flushMethod = getMethodRef(env, outputStreamClass, "flush", "()V");
 
-#ifdef CONSCRYPT_UNBUNDLED
+#if defined(CONSCRYPT_UNBUNDLED) && !defined(CONSCRYPT_OPENJDK)
     findAsynchronousCloseMonitorFuncs();
 #endif
 }
