@@ -21,5 +21,10 @@ package javax.net.ssl;
  */
 public final class SNIHostName extends SNIServerName {
     public SNIHostName(String hostname) {
+        throw new UnsupportedOperationException("Stub!");
+    }
+
+    public String getAsciiName() {
+        throw new UnsupportedOperationException("Stub!");
     }
 }
