@@ -7674,7 +7674,7 @@ static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg __attr
 #if !defined(OPENSSL_IS_BORINGSSL)
     const char* authMethod = SSL_authentication_method(ssl);
 #else
-    const SSL_CIPHER *cipher = ssl->s3->tmp.new_cipher;
+    const SSL_CIPHER *cipher = SSL_get_pending_cipher(ssl);
     const char *authMethod = SSL_CIPHER_get_kx_name(cipher);
 #endif
 
