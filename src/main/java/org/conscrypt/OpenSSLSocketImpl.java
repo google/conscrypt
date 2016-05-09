@@ -853,8 +853,8 @@ public class OpenSSLSocketImpl
         return Platform.wrapSSLSession(sslSession);
     }
 
-    // Comment annotation to compile Conscrypt unbundled with Java 6.
     /* @Override */
+    @SuppressWarnings("MissingOverride")  // For compilation with Java 6.
     public SSLSession getHandshakeSession() {
         return handshakeSession;
     }
@@ -1088,7 +1088,7 @@ public class OpenSSLSocketImpl
     }
 
     @Override
-    public void setSoTimeout(int readTimeoutMilliseconds) throws SocketException {
+    public synchronized void setSoTimeout(int readTimeoutMilliseconds) throws SocketException {
         if (socket != this) {
             socket.setSoTimeout(readTimeoutMilliseconds);
         } else {
@@ -1099,7 +1099,7 @@ public class OpenSSLSocketImpl
     }
 
     @Override
-    public int getSoTimeout() throws SocketException {
+    public synchronized int getSoTimeout() throws SocketException {
         return readTimeoutMilliseconds;
     }
 
@@ -1128,7 +1128,7 @@ public class OpenSSLSocketImpl
     }
 
     @Override
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
         // TODO: Close SSL sockets using a background thread so they close gracefully.
 
         SSLInputStream sslInputStream = null;

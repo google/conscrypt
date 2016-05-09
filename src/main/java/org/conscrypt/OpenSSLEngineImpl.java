@@ -722,8 +722,8 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         }
     }
 
-    // Comment annotation to compile Conscrypt unbundled with Java 6.
     /* @Override */
+    @SuppressWarnings("MissingOverride")  // For compilation with Java 6.
     public SSLSession getHandshakeSession() {
         return handshakeSession;
     }
