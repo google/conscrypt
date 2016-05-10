@@ -440,7 +440,8 @@ public final class NativeCrypto {
 
     public static native boolean[] get_X509_subjectUID(long x509ctx);
 
-    public static native long X509_get_pubkey(long x509ctx) throws NoSuchAlgorithmException;
+    public static native long X509_get_pubkey(long x509ctx) throws NoSuchAlgorithmException,
+           InvalidKeyException;
 
     public static native String get_X509_pubkey_oid(long x509ctx);
 
