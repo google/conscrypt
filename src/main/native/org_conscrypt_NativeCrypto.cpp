@@ -6945,7 +6945,7 @@ static jlong NativeCrypto_X509_get_pubkey(JNIEnv* env, jclass, jlong x509Ref) {
         }
 #endif
 
-        throwExceptionIfNecessary(env, "X509_get_pubkey");
+        throwExceptionIfNecessary(env, "X509_get_pubkey", throwInvalidKeyException);
         return 0;
     }
 
