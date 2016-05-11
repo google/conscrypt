@@ -147,7 +147,7 @@ const char* jniStrError(int errnum, char* buf, size_t buflen) {
 
 int jniGetFDFromFileDescriptor(JNIEnv* env, jobject fileDescriptor) {
     scoped_local_ref<jclass> localClass(env, env->FindClass("java/io/FileDescriptor"));
-    static jfieldID fid = env->GetFieldID(localClass.get(), "descriptor", "I");
+    static jfieldID fid = env->GetFieldID(localClass.get(), "fd", "I");
     if (fileDescriptor != NULL) {
         return env->GetIntField(fileDescriptor, fid);
     } else {
