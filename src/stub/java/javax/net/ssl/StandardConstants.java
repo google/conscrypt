@@ -19,12 +19,10 @@ package javax.net.ssl;
 /**
  * Stub class for compiling unbundled.
  */
-public class SNIServerName {
-    protected SNIServerName() {
+public final class StandardConstants {
+    private StandardConstants() {
         throw new UnsupportedOperationException("Stub!");
     }
 
-    public final int getType() {
-        throw new UnsupportedOperationException("Stub!");
-    }
+    public static final int SNI_HOST_NAME = 0;
 }

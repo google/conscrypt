@@ -29,17 +29,21 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Collections;
+import java.util.List;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
-
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509TrustManager;
 
 /**
@@ -150,12 +154,54 @@ public class Platform {
 
     public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
             OpenSSLSocketImpl socket) {
-        // TODO fix for newer platform versions
+        try {
+            Method m_getEndpointIdentificationAlgorithm = params.getClass().getMethod(
+                    "getEndpointIdentificationAlgorithm");
+            impl.setEndpointIdentificationAlgorithm(
+                    (String) m_getEndpointIdentificationAlgorithm.invoke(params));
+
+            Method m_getUseCipherSuitesOrder = params.getClass().getMethod(
+                    "getUseCipherSuitesOrder");
+            impl.setUseCipherSuitesOrder((boolean) m_getUseCipherSuitesOrder.invoke(params));
+
+            Method m_getServerNames = params.getClass().getMethod("getServerNames");
+            List<SNIServerName> serverNames = (List<SNIServerName>) m_getServerNames.invoke(
+                    params);
+            if (serverNames != null) {
+                for (SNIServerName serverName : serverNames) {
+                    if (serverName.getType() == StandardConstants.SNI_HOST_NAME) {
+                        socket.setHostname(((SNIHostName) serverName).getAsciiName());
+                        break;
+                    }
+                }
+            }
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e.getCause());
+        }
     }
 
     public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
             OpenSSLSocketImpl socket) {
-        // TODO fix for newer platform versions
+        try {
+            Method m_setEndpointIdentificationAlgorithm = params.getClass().getMethod(
+                    "setEndpointIdentificationAlgorithm", String.class);
+            m_setEndpointIdentificationAlgorithm.invoke(params,
+                    impl.getEndpointIdentificationAlgorithm());
+
+            Method m_setUseCipherSuitesOrder = params.getClass().getMethod(
+                    "setUseCipherSuitesOrder", boolean.class);
+            m_setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
+
+            if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
+                Method m_setServerNames = params.getClass().getMethod("setServerNames", List.class);
+                m_setServerNames.invoke(params, Collections.<SNIServerName> singletonList(
+                        new SNIHostName(socket.getHostname())));
+            }
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e.getCause());
+        }
     }
 
     /**
