@@ -8895,6 +8895,18 @@ static void NativeCrypto_SSL_set_session_creation_enabled(JNIEnv* env, jclass,
 #endif
 }
 
+static jboolean NativeCrypto_SSL_session_reused(JNIEnv* env, jclass, jlong ssl_address) {
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_session_reused", ssl);
+    if (ssl == nullptr) {
+        return JNI_FALSE;
+    }
+
+    int reused = SSL_session_reused(ssl);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_session_reused => %d", ssl, reused);
+    return reused == 1 ? JNI_TRUE : JNI_FALSE;
+}
+
 static void NativeCrypto_SSL_set_reject_peer_renegotiations(JNIEnv* env, jclass,
         jlong ssl_address, jboolean reject_renegotiations)
 {
@@ -10844,6 +10856,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, SSL_set_verify, "(JI)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_session, "(JJ)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_session_creation_enabled, "(JZ)V"),
+    NATIVE_METHOD(NativeCrypto, SSL_session_reused, "(J)Z"),
     NATIVE_METHOD(NativeCrypto, SSL_set_reject_peer_renegotiations, "(JZ)V"),
     NATIVE_METHOD(NativeCrypto, SSL_set_tlsext_host_name, "(JLjava/lang/String;)V"),
     NATIVE_METHOD(NativeCrypto, SSL_get_servername, "(J)Ljava/lang/String;"),
