@@ -588,8 +588,7 @@ public class SSLParametersImpl implements Cloneable {
             final OpenSSLSessionImpl sessionToReuse, String hostname, int port,
             boolean handshakeCompleted) throws IOException {
         OpenSSLSessionImpl sslSession = null;
-        byte[] sessionId = NativeCrypto.SSL_SESSION_session_id(sslSessionNativePointer);
-        if (sessionToReuse != null && Arrays.equals(sessionToReuse.getId(), sessionId)) {
+        if (sessionToReuse != null && NativeCrypto.SSL_session_reused(sslNativePointer)) {
             sslSession = sessionToReuse;
             sslSession.lastAccessedTime = System.currentTimeMillis();
             NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
