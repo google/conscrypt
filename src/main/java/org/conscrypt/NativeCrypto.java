@@ -1011,6 +1011,8 @@ public final class NativeCrypto {
     public static native void SSL_set_session_creation_enabled(
             long sslNativePointer, boolean creationEnabled) throws SSLException;
 
+    public static native boolean SSL_session_reused(long sslNativePointer);
+
     public static native void SSL_set_reject_peer_renegotiations(
             long sslNativePointer, boolean renegotiationRejected) throws SSLException;
 
