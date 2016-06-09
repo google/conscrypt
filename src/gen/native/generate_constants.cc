@@ -57,7 +57,7 @@ int main(int /* argc */, char ** /* argv */) {
   );
 
 #define CONST(x) \
-  printf("    public static final int %s = %ld;\n", #x, (long int)x)
+  printf("    public static final int %s = %ld;\n", #x, (long int)(x))
 #define CONST_MINUS_1(x) printf("    public static final int %s = -1;\n", #x)
   CONST(OPENSSL_EC_NAMED_CURVE);
 
