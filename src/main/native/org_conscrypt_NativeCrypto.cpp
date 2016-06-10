@@ -79,7 +79,7 @@
 #include "JniException.h"
 #else
 #define NATIVE_METHOD(className, functionName, signature) \
-  { (char*) #functionName, (char*) signature, reinterpret_cast<void*>(className ## _ ## functionName) }
+  { (char*) #functionName, (char*) (signature), reinterpret_cast<void*>(className ## _ ## functionName) }
 #define REGISTER_NATIVE_METHODS(jni_class_name) \
   RegisterNativeMethods(env, jni_class_name, gMethods, arraysize(gMethods))
 #endif
@@ -373,7 +373,7 @@ typedef UniquePtr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENE
  * without triggering a warning by not using the result of release().
  */
 #define OWNERSHIP_TRANSFERRED(obj) \
-    do { typeof (obj.release()) _dummy __attribute__((unused)) = obj.release(); } while(0)
+    do { typeof ((obj).release()) _dummy __attribute__((unused)) = (obj).release(); } while(0)
 
 /**
  * UNUSED_ARGUMENT can be used to mark an, otherwise unused, argument as "used"
@@ -385,15 +385,15 @@ typedef UniquePtr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENE
 /**
  * Check array bounds for arguments when an array and offset are given.
  */
-#define ARRAY_OFFSET_INVALID(array, offset) (offset < 0 || \
-        offset > static_cast<ssize_t>(array.size()))
+#define ARRAY_OFFSET_INVALID(array, offset) ((offset) < 0 || \
+        (offset) > static_cast<ssize_t>((array).size()))
 
 /**
  * Check array bounds for arguments when an array, offset, and length are given.
  */
-#define ARRAY_OFFSET_LENGTH_INVALID(array, offset, len) (offset < 0 || \
-        offset > static_cast<ssize_t>(array.size()) || len < 0 || \
-        len > static_cast<ssize_t>(array.size()) - offset)
+#define ARRAY_OFFSET_LENGTH_INVALID(array, offset, len) ((offset) < 0 || \
+        (offset) > static_cast<ssize_t>((array).size()) || (len) < 0 || \
+        (len) > static_cast<ssize_t>((array).size()) - (offset))
 
 /**
  * Frees the SSL error state.
