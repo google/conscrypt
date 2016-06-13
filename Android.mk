@@ -134,7 +134,8 @@ LOCAL_C_INCLUDES += \
         external/openssl/include \
         external/openssl \
         libcore/include \
-        libcore/luni/src/main/native
+        libcore/luni/src/main/native \
+        $(LOCAL_PATH)/src/platform/native
 LOCAL_SHARED_LIBRARIES := libcrypto libjavacore liblog libnativehelper libssl libz
 ifeq ($(OPENSSL_FLAVOR),BoringSSL)
   LOCAL_SHARED_LIBRARIES += libkeystore-engine
@@ -179,7 +180,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES += \
         external/openssl/include \
         external/openssl \
-        external/conscrypt/src/compat/native
+        $(LOCAL_PATH)/src/compat/native
 # NO_KEYSTORE_ENGINE instructs the BoringSSL build of Conscrypt not to support
 # the keystore ENGINE. It is not available in this build configuration.
 LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
@@ -206,7 +207,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES += \
         external/openssl/include \
         external/openssl \
-        external/conscrypt/src/compat/native
+        $(LOCAL_PATH)/src/compat/native
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libconscrypt_static
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
@@ -272,7 +273,8 @@ LOCAL_C_INCLUDES += \
         external/openssl/include \
         external/openssl \
         libcore/include \
-        libcore/luni/src/main/native
+        libcore/luni/src/main/native \
+        $(LOCAL_PATH)/src/platform/native
 LOCAL_CPPFLAGS += $(core_cppflags)
 LOCAL_LDLIBS += -lpthread
 LOCAL_MODULE_TAGS := optional
@@ -298,7 +300,8 @@ ifeq (,$(TARGET_BUILD_APPS))
             external/openssl/include \
             external/openssl \
             libcore/include \
-            libcore/luni/src/main/native
+            libcore/luni/src/main/native \
+            $(LOCAL_PATH)/src/platform/native
     LOCAL_CPPFLAGS += $(core_cppflags) -DCONSCRYPT_NOT_UNBUNDLED
     LOCAL_LDLIBS += -lpthread
     LOCAL_MODULE_TAGS := optional
@@ -327,7 +330,7 @@ LOCAL_SRC_FILES += \
 LOCAL_C_INCLUDES += \
         external/openssl/include \
         external/openssl \
-        external/conscrypt/src/openjdk/native
+        $(LOCAL_PATH)/src/openjdk/native
 LOCAL_CPPFLAGS += $(core_cppflags) -DCONSCRYPT_OPENJDK
 LOCAL_LDLIBS += -lpthread
 LOCAL_MODULE_TAGS := optional
