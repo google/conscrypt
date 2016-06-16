@@ -107,6 +107,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
     private final Exception err;
     private final CertificateFactory factory;
+    private final CertBlacklist blacklist;
 
     /**
      * Creates X509TrustManager based on a keystore
@@ -129,6 +130,15 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      */
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
                             TrustedCertificateStore certStore) {
+        this(keyStore, manager, certStore, null);
+    }
+
+    /**
+     * For testing only.
+     */
+    public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
+                            TrustedCertificateStore certStore,
+                            CertBlacklist blacklist) {
         CertPathValidator validatorLocal = null;
         CertificateFactory factoryLocal = null;
         KeyStore rootKeyStoreLocal = null;
@@ -169,6 +179,10 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             }
         }
 
+        if (blacklist == null) {
+            blacklist = new CertBlacklist();
+        }
+
         this.rootKeyStore = rootKeyStoreLocal;
         this.trustedCertificateStore = trustedCertificateStoreLocal;
         this.validator = validatorLocal;
@@ -177,6 +191,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         this.intermediateIndex = new TrustedCertificateIndex();
         this.acceptedIssuers = acceptedIssuersLocal;
         this.err = errLocal;
+        this.blacklist = blacklist;
     }
 
     private static X509Certificate[] acceptedIssuers(KeyStore ks) {
@@ -421,6 +436,9 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             current = trustAnchorChain.get(trustAnchorChain.size() - 1).getTrustedCert();
         }
 
+        // Check that the certificate isn't blacklisted.
+        checkBlacklist(current);
+
         // 1. If the current certificate in the chain is self-signed verify the chain as is.
         if (current.getIssuerDN().equals(current.getSubjectDN())) {
             return verifyChain(untrustedChain, trustAnchorChain, host, clientAuth);
@@ -564,6 +582,10 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                         "Certificate path is not properly pinned.", null, certPath, -1));
             }
         }
+        // Check whole chain against the blacklist
+        for (X509Certificate cert : wholeChain) {
+            checkBlacklist(cert);
+        }
 
         if (untrustedChain.isEmpty()) {
             // The chain consists of only trust anchors, skip the validator
@@ -594,6 +616,12 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             intermediateIndex.index(untrustedChain.get(i));
         }
         return wholeChain;
+    }
+
+    private void checkBlacklist(X509Certificate cert) throws CertificateException {
+        if (blacklist.isPublicKeyBlackListed(cert.getPublicKey())) {
+            throw new CertificateException("Certificate blacklisted by public key: " + cert);
+        }
     }
 
     /**
