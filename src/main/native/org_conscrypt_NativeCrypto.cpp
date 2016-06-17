@@ -84,6 +84,7 @@
   RegisterNativeMethods(env, jni_class_name, gMethods, arraysize(gMethods))
 #endif
 
+#include "ByteArray.h"
 #include "ScopedLocalRef.h"
 #include "ScopedPrimitiveArray.h"
 #include "ScopedUtfChars.h"
@@ -394,6 +395,13 @@ typedef UniquePtr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENE
 #define ARRAY_OFFSET_LENGTH_INVALID(array, offset, len) ((offset) < 0 || \
         (offset) > static_cast<ssize_t>((array).size()) || (len) < 0 || \
         (len) > static_cast<ssize_t>((array).size()) - (offset))
+
+/**
+ * Check array bounds for arguments when an array length, chunk offset, and chunk length are given.
+ */
+#define ARRAY_CHUNK_INVALID(array_len, chunk_offset, chunk_len) ((chunk_offset) < 0 || \
+        (chunk_offset) > static_cast<ssize_t>(array_len) || (chunk_len) < 0 || \
+        (chunk_len) > static_cast<ssize_t>(array_len) - (chunk_offset))
 
 /**
  * Frees the SSL error state.
@@ -4345,20 +4353,76 @@ static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, 
         return;
     }
 
-    ScopedByteArrayRO inBytes(env, inJavaBytes);
-    if (inBytes.get() == nullptr) {
+    if (inJavaBytes == nullptr) {
+        jniThrowNullPointerException(env, "inBytes");
         return;
     }
 
-    if (ARRAY_OFFSET_LENGTH_INVALID(inBytes, inOffset, inLength)) {
+    size_t array_size = env->GetArrayLength(inJavaBytes);
+    if (ARRAY_CHUNK_INVALID(array_size, inOffset, inLength)) {
         jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "inBytes");
         return;
     }
+    if (inLength == 0) {
+        return;
+    }
+    size_t in_offset = inOffset;
+    size_t in_size = inLength;
 
-    const unsigned char *tmp = reinterpret_cast<const unsigned char *>(inBytes.get());
-    if (!update_func(mdCtx, tmp + inOffset, inLength)) {
+    int update_func_result = -1;
+    if (isGetByteArrayElementsLikelyToReturnACopy(array_size)) {
+        jbyte buf[1024];
+        // GetByteArrayElements is expected to return a copy. Use GetByteArrayRegion instead, to
+        // avoid copying the whole array.
+        if (in_size <= sizeof(buf)) {
+            // For small chunk, it's more efficient to use a bit more space on the stack instead of
+            // allocating a new buffer.
+            env->GetByteArrayRegion(inJavaBytes, in_offset, in_size, buf);
+            update_func_result =
+                    update_func(mdCtx, reinterpret_cast<const unsigned char*>(buf), in_size);
+        } else {
+            // For large chunk, allocate a 64 kB buffer and stream the chunk into update_func
+            // through the buffer, stopping as soon as update_func fails.
+            size_t remaining = in_size;
+            size_t buf_size = (remaining >= 65536) ? 65536 : remaining;
+            UniquePtr<jbyte[]> buf(new jbyte[buf_size]);
+            if (buf.get() == nullptr) {
+                jniThrowOutOfMemory(env, "Unable to allocate chunk buffer");
+                return;
+            }
+            while (remaining > 0) {
+                size_t chunk_size = (remaining >= buf_size) ? buf_size : remaining;
+                env->GetByteArrayRegion(inJavaBytes, in_offset, chunk_size, buf.get());
+                update_func_result =
+                        update_func(
+                                mdCtx,
+                                reinterpret_cast<const unsigned char*>(buf.get()), chunk_size);
+                if (!update_func_result) {
+                    // update_func failed. This will be handled later in this method.
+                    break;
+                }
+                in_offset += chunk_size;
+                remaining -= chunk_size;
+            }
+        }
+    } else {
+        // GetByteArrayElements is expected to not return a copy. Use GetByteArrayElements.
+        // We're not using ScopedByteArrayRO here because its an implementation detail whether it'll
+        // use GetByteArrayElements or another approach.
+        jbyte* array_elements = env->GetByteArrayElements(inJavaBytes, nullptr);
+        if (array_elements == nullptr) {
+            jniThrowOutOfMemory(env, "Unable to obtain elements of inBytes");
+            return;
+        }
+        const unsigned char* buf = reinterpret_cast<const unsigned char*>(array_elements);
+        update_func_result = update_func(mdCtx, buf + in_offset, in_size);
+        env->ReleaseByteArrayElements(inJavaBytes, array_elements, JNI_ABORT);
+    }
+
+    if (!update_func_result) {
         JNI_TRACE("ctx=%p %s => threw exception", mdCtx, jniName);
         throwExceptionIfNecessary(env, jniName);
+        return;
     }
 
     JNI_TRACE_MD("%s(%p, %p, %d, %d) => success", jniName, mdCtx, inJavaBytes, inOffset, inLength);
