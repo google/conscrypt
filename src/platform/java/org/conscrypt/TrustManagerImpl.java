@@ -180,7 +180,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         }
 
         if (blacklist == null) {
-            blacklist = new CertBlacklist();
+            blacklist = CertBlacklist.getDefault();
         }
 
         this.rootKeyStore = rootKeyStoreLocal;
