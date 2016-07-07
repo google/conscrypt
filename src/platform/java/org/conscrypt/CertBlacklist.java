@@ -35,24 +35,26 @@ import java.util.logging.Logger;
 public class CertBlacklist {
     private static final Logger logger = Logger.getLogger(CertBlacklist.class.getName());
 
-    // public for testing
-    public final Set<BigInteger> serialBlacklist;
-    public final Set<byte[]> pubkeyBlacklist;
+    private final Set<BigInteger> serialBlacklist;
+    private final Set<byte[]> pubkeyBlacklist;
 
-    public CertBlacklist() {
+    /**
+     * public for testing only.
+     */
+    public CertBlacklist(Set<BigInteger> serialBlacklist, Set<byte[]> pubkeyBlacklist) {
+        this.serialBlacklist = serialBlacklist;
+        this.pubkeyBlacklist = pubkeyBlacklist;
+    }
+
+    public static CertBlacklist getDefault() {
         String androidData = System.getenv("ANDROID_DATA");
         String blacklistRoot = androidData + "/misc/keychain/";
         String defaultPubkeyBlacklistPath = blacklistRoot + "pubkey_blacklist.txt";
         String defaultSerialBlacklistPath = blacklistRoot + "serial_blacklist.txt";
 
-        pubkeyBlacklist = readPublicKeyBlackList(defaultPubkeyBlacklistPath);
-        serialBlacklist = readSerialBlackList(defaultSerialBlacklistPath);
-    }
-
-    /** Test only interface, not for public use */
-    public CertBlacklist(String pubkeyBlacklistPath, String serialBlacklistPath) {
-        pubkeyBlacklist = readPublicKeyBlackList(pubkeyBlacklistPath);
-        serialBlacklist = readSerialBlackList(serialBlacklistPath);
+        Set<byte[]> pubkeyBlacklist = readPublicKeyBlackList(defaultPubkeyBlacklistPath);
+        Set<BigInteger> serialBlacklist = readSerialBlackList(defaultSerialBlacklistPath);
+        return new CertBlacklist(serialBlacklist, pubkeyBlacklist);
     }
 
     private static boolean isHex(String value) {
@@ -165,6 +167,10 @@ public class CertBlacklist {
 
         // start out with a base set of known bad values
         Set<byte[]> bl = new HashSet<byte[]>(Arrays.asList(
+            // Blacklist test cert for CTS. The cert and key can be found in
+            // src/test/resources/blacklist_test_ca.pem and
+            // src/test/resources/blacklist_test_ca_key.pem.
+            "bae78e6bed65a2bf60ddedde7fd91e825865e93d".getBytes(),
             // From http://src.chromium.org/viewvc/chrome/branches/782/src/net/base/x509_certificate.cc?r1=98750&r2=98749&pathrev=98750
             // C=NL, O=DigiNotar, CN=DigiNotar Root CA/emailAddress=info@diginotar.nl
             "410f36363258f30b347d12ce4863e433437806a8".getBytes(),
