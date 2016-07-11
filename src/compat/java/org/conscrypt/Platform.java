@@ -65,28 +65,16 @@ public class Platform {
     }
 
     public static FileDescriptor getFileDescriptor(Socket s) {
-        if (Build.VERSION.SDK_INT >= 14) {
-            // Newer style in Android
-            try {
-                Method m_getFileDescriptor = Socket.class.getDeclaredMethod("getFileDescriptor$");
-                m_getFileDescriptor.setAccessible(true);
-                return (FileDescriptor) m_getFileDescriptor.invoke(s);
-            } catch (Exception e) {
-                throw new RuntimeException(e.getCause());
-            }
-        } else {
-            // Older style in Android (pre-ICS)
-            try {
-                Field f_impl = Socket.class.getDeclaredField("impl");
-                f_impl.setAccessible(true);
-                Object socketImpl = f_impl.get(s);
-                Class<?> c_socketImpl = Class.forName("java.net.SocketImpl");
-                Field f_fd = c_socketImpl.getDeclaredField("fd");
-                f_fd.setAccessible(true);
-                return (FileDescriptor) f_fd.get(socketImpl);
-            } catch (Exception e) {
-                throw new RuntimeException("Can't get FileDescriptor from socket", e);
-            }
+        try {
+            Field f_impl = Socket.class.getDeclaredField("impl");
+            f_impl.setAccessible(true);
+            Object socketImpl = f_impl.get(s);
+            Class<?> c_socketImpl = Class.forName("java.net.SocketImpl");
+            Field f_fd = c_socketImpl.getDeclaredField("fd");
+            f_fd.setAccessible(true);
+            return (FileDescriptor) f_fd.get(socketImpl);
+        } catch (Exception e) {
+            throw new RuntimeException("Can't get FileDescriptor from socket", e);
         }
     }
 
