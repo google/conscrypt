@@ -59,7 +59,7 @@ include $(CLEAR_VARS)
 LOCAL_CPP_EXTENSION := cc
 LOCAL_SRC_FILES := src/gen/native/generate_constants.cc
 LOCAL_MODULE := conscrypt_generate_constants
-LOCAL_SHARED_LIBRARIES := libcrypto-host libssl-host
+LOCAL_SHARED_LIBRARIES := libcrypto libssl
 LOCAL_CXX_STL := none
 include $(BUILD_HOST_EXECUTABLE)
 
@@ -185,7 +185,7 @@ LOCAL_C_INCLUDES += \
 # the keystore ENGINE. It is not available in this build configuration.
 LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
 LOCAL_LDFLAGS := -llog -lz -ldl
-LOCAL_STATIC_LIBRARIES := libssl_static libcrypto_static
+LOCAL_STATIC_LIBRARIES := libssl libcrypto
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libconscrypt_jni
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
@@ -211,7 +211,7 @@ LOCAL_C_INCLUDES += \
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libconscrypt_static
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-LOCAL_STATIC_LIBRARIES := libssl_static libcrypto_static
+LOCAL_STATIC_LIBRARIES := libssl libcrypto
 LOCAL_SDK_VERSION := 9
 LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_STATIC_LIBRARY)
@@ -284,7 +284,7 @@ LOCAL_CFLAGS += -DJNI_JARJAR_PREFIX="com/android/"
 # the keystore ENGINE. It is not available in this build configuration.
 LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
+LOCAL_SHARED_LIBRARIES := libcrypto libjavacore liblog libnativehelper libssl
 LOCAL_MULTILIB := both
 LOCAL_CXX_STL := none
 include $(BUILD_HOST_SHARED_LIBRARY)
@@ -311,7 +311,7 @@ ifeq (,$(TARGET_BUILD_APPS))
     # support the keystore ENGINE. It is not available in this build
     # configuration.
     LOCAL_CFLAGS += -DNO_KEYSTORE_ENGINE
-    LOCAL_SHARED_LIBRARIES := libcrypto-host libjavacore liblog libnativehelper libssl-host
+    LOCAL_SHARED_LIBRARIES := libcrypto libjavacore liblog libnativehelper libssl
     LOCAL_MULTILIB := both
     LOCAL_CXX_STL := none
     include $(BUILD_HOST_SHARED_LIBRARY)
