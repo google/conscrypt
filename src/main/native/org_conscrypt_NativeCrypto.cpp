@@ -1976,67 +1976,6 @@ static jboolean NativeCrypto_clinit(JNIEnv*, jclass)
     return JNI_TRUE;
 }
 
-static void NativeCrypto_ENGINE_load_dynamic(JNIEnv*, jclass) {
-}
-
-static jlong NativeCrypto_ENGINE_by_id(JNIEnv*, jclass, jstring) {
-    return 0;
-}
-
-static jint NativeCrypto_ENGINE_add(JNIEnv*, jclass, jlong) {
-    return 0;
-}
-
-static jint NativeCrypto_ENGINE_init(JNIEnv*, jclass, jlong) {
-    return 0;
-}
-
-static jint NativeCrypto_ENGINE_finish(JNIEnv*, jclass, jlong) {
-    return 0;
-}
-
-static jint NativeCrypto_ENGINE_free(JNIEnv*, jclass, jlong) {
-    return 0;
-}
-
-extern "C" {
-/* EVP_PKEY_from_keystore is from system/security/keystore-engine. */
-extern EVP_PKEY* EVP_PKEY_from_keystore(const char *key_id);
-}
-
-static jlong NativeCrypto_ENGINE_load_private_key(JNIEnv* env, jclass, jlong engineRef,
-        jstring idJava) {
-    ScopedUtfChars id(env, idJava);
-    if (id.c_str() == nullptr) {
-        jniThrowException(env, "java/lang/IllegalArgumentException", "id == NULL");
-        return 0;
-    }
-
-    UNUSED_ARGUMENT(engineRef);
-#if defined(NO_KEYSTORE_ENGINE)
-    jniThrowRuntimeException(env, "No keystore ENGINE support compiled in");
-    return 0;
-#else
-    Unique_EVP_PKEY pkey(EVP_PKEY_from_keystore(id.c_str()));
-    if (pkey.get() == nullptr) {
-        throwExceptionIfNecessary(env, "ENGINE_load_private_key", throwInvalidKeyException);
-        return 0;
-    }
-    return reinterpret_cast<uintptr_t>(pkey.release());
-#endif
-}
-
-static jstring NativeCrypto_ENGINE_get_id(JNIEnv* env, jclass, jlong)
-{
-    ScopedLocalRef<jstring> idJava(env, env->NewStringUTF("keystore"));
-    return idJava.release();
-}
-
-static jint NativeCrypto_ENGINE_ctrl_cmd_string(JNIEnv*, jclass, jlong, jstring, jstring, jint)
-{
-    return 0;
-}
-
 /**
  * private static native int EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q);
  */
@@ -2740,18 +2679,6 @@ static jobjectArray NativeCrypto_get_RSA_private_params(JNIEnv* env, jclass, job
     return joa;
 }
 
-#define EC_CURVE_GFP 1
-#define EC_CURVE_GF2M 2
-
-/**
- * Return group type or 0 if unknown group.
- * EC_GROUP_GFP or EC_GROUP_GF2M
- */
-static int get_EC_GROUP_type(const EC_GROUP*)
-{
-    return EC_CURVE_GFP;
-}
-
 static jlong NativeCrypto_EC_GROUP_new_by_curve_name(JNIEnv* env, jclass, jstring curveNameJava)
 {
     JNI_TRACE("EC_GROUP_new_by_curve_name(%p)", curveNameJava);
@@ -2854,14 +2781,6 @@ static jlong NativeCrypto_EC_GROUP_new_arbitrary(
     return reinterpret_cast<uintptr_t>(group.release());
 }
 
-static void NativeCrypto_EC_GROUP_set_asn1_flag(JNIEnv*, jclass, jobject, jint)
-{
-}
-
-static void NativeCrypto_EC_GROUP_set_point_conversion_form(JNIEnv*, jclass, jobject, jint)
-{
-}
-
 static jstring NativeCrypto_EC_GROUP_get_curve_name(JNIEnv* env, jclass, jobject groupRef) {
     const EC_GROUP* group = fromContextObject<EC_GROUP>(env, groupRef);
     JNI_TRACE("EC_GROUP_get_curve_name(%p)", group);
@@ -2894,11 +2813,6 @@ static jobjectArray NativeCrypto_EC_GROUP_get_curve(JNIEnv* env, jclass, jobject
     Unique_BIGNUM p(BN_new());
     Unique_BIGNUM a(BN_new());
     Unique_BIGNUM b(BN_new());
-
-    if (get_EC_GROUP_type(group) != EC_CURVE_GFP) {
-        jniThrowRuntimeException(env, "invalid group");
-        return nullptr;
-    }
 
     int ret = EC_GROUP_get_curve_GFp(group, p.get(), a.get(), b.get(), (BN_CTX*)nullptr);
     if (ret != 1) {
@@ -3012,24 +2926,6 @@ static jbyteArray NativeCrypto_EC_GROUP_get_cofactor(JNIEnv* env, jclass, jobjec
     return cofactorArray;
 }
 
-static jint NativeCrypto_get_EC_GROUP_type(JNIEnv* env, jclass, jobject groupRef)
-{
-    const EC_GROUP* group = fromContextObject<EC_GROUP>(env, groupRef);
-    JNI_TRACE("get_EC_GROUP_type(%p)", group);
-    if (group == nullptr) {
-        return 0;
-    }
-
-    int type = get_EC_GROUP_type(group);
-    if (type == 0) {
-        JNI_TRACE("get_EC_GROUP_type(%p) => curve type", group);
-        jniThrowRuntimeException(env, "unknown curve type");
-    } else {
-        JNI_TRACE("get_EC_GROUP_type(%p) => %d", group, type);
-    }
-    return type;
-}
-
 static void NativeCrypto_EC_GROUP_clear_free(JNIEnv* env, jclass, jlong groupRef)
 {
     EC_GROUP* group = reinterpret_cast<EC_GROUP*>(groupRef);
@@ -3129,21 +3025,7 @@ static void NativeCrypto_EC_POINT_set_affine_coordinates(JNIEnv* env, jclass,
     }
     Unique_BIGNUM y(yRef);
 
-    int ret;
-    switch (get_EC_GROUP_type(group)) {
-    case EC_CURVE_GFP:
-        ret = EC_POINT_set_affine_coordinates_GFp(group, point, x.get(), y.get(), nullptr);
-        break;
-#if !defined(OPENSSL_NO_EC2M)
-    case EC_CURVE_GF2M:
-        ret = EC_POINT_set_affine_coordinates_GF2m(group, point, x.get(), y.get(), NULL);
-        break;
-#endif
-    default:
-        jniThrowRuntimeException(env, "invalid curve type");
-        return;
-    }
-
+    int ret = EC_POINT_set_affine_coordinates_GFp(group, point, x.get(), y.get(), nullptr);
     if (ret != 1) {
         throwExceptionIfNecessary(env, "EC_POINT_set_affine_coordinates");
     }
@@ -3169,15 +3051,7 @@ static jobjectArray NativeCrypto_EC_POINT_get_affine_coordinates(JNIEnv* env, jc
     Unique_BIGNUM x(BN_new());
     Unique_BIGNUM y(BN_new());
 
-    int ret;
-    switch (get_EC_GROUP_type(group)) {
-    case EC_CURVE_GFP:
-        ret = EC_POINT_get_affine_coordinates_GFp(group, point, x.get(), y.get(), nullptr);
-        break;
-    default:
-        jniThrowRuntimeException(env, "invalid curve type");
-        return nullptr;
-    }
+    int ret = EC_POINT_get_affine_coordinates_GFp(group, point, x.get(), y.get(), nullptr);
     if (ret != 1) {
         JNI_TRACE("EC_POINT_get_affine_coordinates(%p, %p)", group, point);
         throwExceptionIfNecessary(env, "EC_POINT_get_affine_coordinates");
@@ -3324,10 +3198,6 @@ static jlong NativeCrypto_EC_KEY_get_public_key(JNIEnv* env, jclass, jobject pke
 
     JNI_TRACE("EC_KEY_get_public_key(%p) => %p", pkey, dup.get());
     return reinterpret_cast<uintptr_t>(dup.release());
-}
-
-static void NativeCrypto_EC_KEY_set_nonce_from_hash(JNIEnv*, jclass, jobject, jboolean)
-{
 }
 
 static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
@@ -4528,19 +4398,6 @@ static jbyteArray NativeCrypto_HMAC_Final(JNIEnv* env, jclass, jobject hmacCtxRe
     }
     memcpy(resultBytes.get(), result, len);
     return resultArray.release();
-}
-
-/**
- * public static native void RAND_seed(byte[]);
- */
-static void NativeCrypto_RAND_seed(JNIEnv*, jclass, jbyteArray) {
-}
-
-static jint NativeCrypto_RAND_load_file(JNIEnv*, jclass, jstring filename, jlong max_bytes) {
-    JNI_TRACE("NativeCrypto_RAND_load_file filename=%p max_bytes=%lld", filename, (long long) max_bytes);
-    UNUSED_ARGUMENT(filename);
-    // OpenSSLRandom calls this and checks the return value.
-    return static_cast<jint>(max_bytes);
 }
 
 static void NativeCrypto_RAND_bytes(JNIEnv* env, jclass, jbyteArray output) {
@@ -9976,15 +9833,6 @@ static jlong NativeCrypto_getDirectBufferAddress(JNIEnv *env, jclass, jobject bu
 #define REF_HMAC_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$HMAC_CTX;"
 static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, clinit, "()Z"),
-    NATIVE_METHOD(NativeCrypto, ENGINE_load_dynamic, "()V"),
-    NATIVE_METHOD(NativeCrypto, ENGINE_by_id, "(Ljava/lang/String;)J"),
-    NATIVE_METHOD(NativeCrypto, ENGINE_add, "(J)I"),
-    NATIVE_METHOD(NativeCrypto, ENGINE_init, "(J)I"),
-    NATIVE_METHOD(NativeCrypto, ENGINE_finish, "(J)I"),
-    NATIVE_METHOD(NativeCrypto, ENGINE_free, "(J)I"),
-    NATIVE_METHOD(NativeCrypto, ENGINE_load_private_key, "(JLjava/lang/String;)J"),
-    NATIVE_METHOD(NativeCrypto, ENGINE_get_id, "(J)Ljava/lang/String;"),
-    NATIVE_METHOD(NativeCrypto, ENGINE_ctrl_cmd_string, "(JLjava/lang/String;Ljava/lang/String;I)I"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_RSA, "([B[B[B[B[B[B[B[B)J"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_EC_KEY, "(" REF_EC_GROUP REF_EC_POINT "[B)J"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_type, "(" REF_EVP_PKEY ")I"),
@@ -10011,8 +9859,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, get_RSA_public_params, "(" REF_EVP_PKEY ")[[B"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_new_by_curve_name, "(Ljava/lang/String;)J"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_new_arbitrary, "([B[B[B[B[B[BI)J"),
-    NATIVE_METHOD(NativeCrypto, EC_GROUP_set_asn1_flag, "(" REF_EC_GROUP "I)V"),
-    NATIVE_METHOD(NativeCrypto, EC_GROUP_set_point_conversion_form, "(" REF_EC_GROUP "I)V"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_get_curve_name, "(" REF_EC_GROUP ")Ljava/lang/String;"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_get_curve, "(" REF_EC_GROUP ")[[B"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_get_order, "(" REF_EC_GROUP ")[B"),
@@ -10020,7 +9866,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EC_GROUP_get_cofactor, "(" REF_EC_GROUP ")[B"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_clear_free, "(J)V"),
     NATIVE_METHOD(NativeCrypto, EC_GROUP_get_generator, "(" REF_EC_GROUP ")J"),
-    NATIVE_METHOD(NativeCrypto, get_EC_GROUP_type, "(" REF_EC_GROUP ")I"),
     NATIVE_METHOD(NativeCrypto, EC_POINT_new, "(" REF_EC_GROUP ")J"),
     NATIVE_METHOD(NativeCrypto, EC_POINT_clear_free, "(J)V"),
     NATIVE_METHOD(NativeCrypto, EC_POINT_set_affine_coordinates, "(" REF_EC_GROUP REF_EC_POINT "[B[B)V"),
@@ -10029,7 +9874,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EC_KEY_get1_group, "(" REF_EVP_PKEY ")J"),
     NATIVE_METHOD(NativeCrypto, EC_KEY_get_private_key, "(" REF_EVP_PKEY ")[B"),
     NATIVE_METHOD(NativeCrypto, EC_KEY_get_public_key, "(" REF_EVP_PKEY ")J"),
-    NATIVE_METHOD(NativeCrypto, EC_KEY_set_nonce_from_hash, "(" REF_EVP_PKEY "Z)V"),
     NATIVE_METHOD(NativeCrypto, ECDH_compute_key, "([BI" REF_EVP_PKEY REF_EVP_PKEY ")I"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_create, "()J"),
     NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_cleanup, "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)V"),
@@ -10080,8 +9924,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, HMAC_Update, "(" REF_HMAC_CTX "[BII)V"),
     NATIVE_METHOD(NativeCrypto, HMAC_UpdateDirect, "(" REF_HMAC_CTX "JI)V"),
     NATIVE_METHOD(NativeCrypto, HMAC_Final, "(" REF_HMAC_CTX ")[B"),
-    NATIVE_METHOD(NativeCrypto, RAND_seed, "([B)V"),
-    NATIVE_METHOD(NativeCrypto, RAND_load_file, "(Ljava/lang/String;J)I"),
     NATIVE_METHOD(NativeCrypto, RAND_bytes, "([B)V"),
     NATIVE_METHOD(NativeCrypto, OBJ_txt2nid, "(Ljava/lang/String;)I"),
     NATIVE_METHOD(NativeCrypto, OBJ_txt2nid_longName, "(Ljava/lang/String;)Ljava/lang/String;"),

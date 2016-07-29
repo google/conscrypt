@@ -291,20 +291,6 @@ public class OpenSSLSocketImpl
             }
         }
 
-        // For BoringSSL, RAND_seed and RAND_load_file are no-ops since the RNG
-        // reads directly from the random device node.
-        if (!NativeCrypto.isBoringSSL) {
-            // note that this modifies the global seed, not something specific
-            // to the connection
-            final int seedLengthInBytes = NativeCrypto.RAND_SEED_LENGTH_IN_BYTES;
-            final SecureRandom secureRandom = sslParameters.getSecureRandomMember();
-            if (secureRandom == null) {
-                NativeCrypto.RAND_load_file("/dev/urandom", seedLengthInBytes);
-            } else {
-                NativeCrypto.RAND_seed(secureRandom.generateSeed(seedLengthInBytes));
-            }
-        }
-
         final boolean client = sslParameters.getUseClientMode();
 
         sslNativePointer = 0;
