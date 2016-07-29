@@ -21,8 +21,10 @@ import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
 
 import javax.crypto.SecretKey;
+import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -762,5 +764,21 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     @Override
     public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
         return keyManager.getKey(identityHint, identity, this);
+    }
+
+    /**
+     * Returns the protocol agreed upon by client and server, or null if no
+     * protocol was agreed upon.
+     */
+    public byte[] getNpnSelectedProtocol() {
+        return NativeCrypto.SSL_get_npn_negotiated_protocol(sslNativePointer);
+    }
+
+    /**
+     * Returns the protocol agreed upon by client and server, or {@code null} if
+     * no protocol was agreed upon.
+     */
+    public byte[] getAlpnSelectedProtocol() {
+        return NativeCrypto.SSL_get0_alpn_selected(sslNativePointer);
     }
 }

@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.Platform.getFileDescriptor;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -99,10 +101,26 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
     @Override
     public Socket createSocket(Socket s, String hostname, int port, boolean autoClose)
             throws IOException {
-        return new OpenSSLSocketImplWrapper(s,
-                                            hostname,
-                                            port,
-                                            autoClose,
-                                            (SSLParametersImpl) sslParameters.clone());
+        boolean socketHasFd = false;
+        try {
+            // If socket has a file descriptor we can use OpenSSLSocketImplWrapper directly
+            // otherwise we need to use the engine.
+            socketHasFd = Platform.getFileDescriptor(s) != null;
+        } catch (RuntimeException re) {
+            // Ignore
+        }
+        if (socketHasFd) {
+            return new OpenSSLSocketImplWrapper(s,
+                hostname,
+                port,
+                autoClose,
+                (SSLParametersImpl) sslParameters.clone());
+        } else {
+            return new OpenSSLEngineSocketImpl(s,
+                hostname,
+                port,
+                autoClose,
+                (SSLParametersImpl) sslParameters.clone());
+        }
     }
 }

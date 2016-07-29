@@ -549,7 +549,7 @@ public class OpenSSLSocketImpl
         }
     }
 
-    private void notifyHandshakeCompletedListeners() {
+    void notifyHandshakeCompletedListeners() {
         if (listeners != null && !listeners.isEmpty()) {
             // notify the listeners
             HandshakeCompletedEvent event =
