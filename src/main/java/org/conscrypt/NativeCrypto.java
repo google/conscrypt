@@ -57,26 +57,6 @@ public final class NativeCrypto {
 
     private native static boolean clinit();
 
-    // --- ENGINE functions ----------------------------------------------------
-    public static native void ENGINE_load_dynamic();
-
-    public static native long ENGINE_by_id(String id);
-
-    public static native int ENGINE_add(long e);
-
-    public static native int ENGINE_init(long e);
-
-    public static native int ENGINE_finish(long e);
-
-    public static native int ENGINE_free(long e);
-
-    public static native long ENGINE_load_private_key(long e, String key_id) throws InvalidKeyException;
-
-    public static native String ENGINE_get_id(long engineRef);
-
-    public static native int ENGINE_ctrl_cmd_string(long engineRef, String cmd, String arg,
-            int cmd_optional);
-
     // --- DSA/RSA public/private key handling functions -----------------------
 
     public static native long EVP_PKEY_new_DSA(byte[] p, byte[] q, byte[] g,
@@ -146,16 +126,6 @@ public final class NativeCrypto {
 
     // --- EC functions --------------------------
 
-    /**
-     * Used to request EC_GROUP_new_curve_GFp to EC_GROUP_new_curve
-     */
-    public static final int EC_CURVE_GFP = 1;
-
-    /**
-     * Used to request EC_GROUP_new_curve_GF2m to EC_GROUP_new_curve
-     */
-    public static final int EC_CURVE_GF2M = 2;
-
     public static native long EVP_PKEY_new_EC_KEY(NativeRef.EC_GROUP groupRef,
             NativeRef.EC_POINT pubkeyRef, byte[] privkey);
 
@@ -164,11 +134,6 @@ public final class NativeCrypto {
     public static native long EC_GROUP_new_arbitrary(byte[] p, byte[] a, byte[] b, byte[] x,
                                                      byte[] y, byte[] order, int cofactor);
 
-    public static native void EC_GROUP_set_asn1_flag(NativeRef.EC_GROUP groupRef, int flag);
-
-    public static native void EC_GROUP_set_point_conversion_form(NativeRef.EC_GROUP groupRef,
-            int form);
-
     public static native String EC_GROUP_get_curve_name(NativeRef.EC_GROUP groupRef);
 
     public static native byte[][] EC_GROUP_get_curve(NativeRef.EC_GROUP groupRef);
@@ -176,8 +141,6 @@ public final class NativeCrypto {
     public static native void EC_GROUP_clear_free(long groupRef);
 
     public static native long EC_GROUP_get_generator(NativeRef.EC_GROUP groupRef);
-
-    public static native int get_EC_GROUP_type(NativeRef.EC_GROUP groupRef);
 
     public static native byte[] EC_GROUP_get_order(NativeRef.EC_GROUP groupRef);
 
@@ -202,9 +165,6 @@ public final class NativeCrypto {
     public static native byte[] EC_KEY_get_private_key(NativeRef.EVP_PKEY keyRef);
 
     public static native long EC_KEY_get_public_key(NativeRef.EVP_PKEY keyRef);
-
-    public static native void EC_KEY_set_nonce_from_hash(NativeRef.EVP_PKEY keyRef,
-            boolean enabled);
 
     public static native int ECDH_compute_key(byte[] out, int outOffset,
             NativeRef.EVP_PKEY publicKeyRef, NativeRef.EVP_PKEY privateKeyRef) throws
@@ -343,13 +303,7 @@ public final class NativeCrypto {
 
     public static native byte[] HMAC_Final(NativeRef.HMAC_CTX ctx);
 
-    // --- RAND seeding --------------------------------------------------------
-
-    public static final int RAND_SEED_LENGTH_IN_BYTES = 1024;
-
-    public static native void RAND_seed(byte[] seed);
-
-    public static native int RAND_load_file(String filename, long max_bytes);
+    // --- RAND ----------------------------------------------------------------
 
     public static native void RAND_bytes(byte[] output);
 

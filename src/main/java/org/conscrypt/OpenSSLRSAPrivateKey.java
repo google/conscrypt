@@ -167,7 +167,7 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
     void readParams(byte[][] params) {
         if (params[0] == null) {
             throw new NullPointerException("modulus == null");
-        } else if (params[2] == null && !key.isEngineBased()) {
+        } else if (params[2] == null) {
             throw new NullPointerException("privateExponent == null");
         }
 
@@ -181,10 +181,6 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
 
     @Override
     public final BigInteger getPrivateExponent() {
-        if (key.isEngineBased()) {
-            throw new UnsupportedOperationException("private exponent cannot be extracted");
-        }
-
         ensureReadParams();
         return privateExponent;
     }
@@ -197,29 +193,11 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
 
     @Override
     public final byte[] getEncoded() {
-        /*
-         * If we're using an OpenSSL ENGINE, there's no guarantee we can export
-         * the key. Returning {@code null} tells the caller that there's no
-         * encoded format.
-         */
-        if (key.isEngineBased()) {
-            return null;
-        }
-
         return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getNativeRef());
     }
 
     @Override
     public final String getFormat() {
-        /*
-         * If we're using an OpenSSL ENGINE, there's no guarantee we can export
-         * the key. Returning {@code null} tells the caller that there's no
-         * encoded format.
-         */
-        if (key.isEngineBased()) {
-            return null;
-        }
-
         return "PKCS#8";
     }
 
@@ -267,13 +245,6 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
     public String toString() {
         final StringBuilder sb = new StringBuilder("OpenSSLRSAPrivateKey{");
 
-        final boolean engineBased = key.isEngineBased();
-        if (engineBased) {
-            sb.append("key=");
-            sb.append(key);
-            sb.append('}');
-        }
-
         ensureReadParams();
         sb.append("modulus=");
         sb.append(modulus.toString(16));
@@ -297,10 +268,6 @@ public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
     }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
-        if (getOpenSSLKey().isEngineBased()) {
-            throw new NotSerializableException("engine-based keys can not be serialized");
-        }
-
         ensureReadParams();
         stream.defaultWriteObject();
     }

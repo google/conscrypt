@@ -32,10 +32,6 @@ import javax.crypto.SecretKey;
 public class OpenSSLKey {
     private final NativeRef.EVP_PKEY ctx;
 
-    private final OpenSSLEngine engine;
-
-    private final String alias;
-
     private final boolean wrapped;
 
     public OpenSSLKey(long ctx) {
@@ -44,16 +40,7 @@ public class OpenSSLKey {
 
     public OpenSSLKey(long ctx, boolean wrapped) {
         this.ctx = new NativeRef.EVP_PKEY(ctx);
-        engine = null;
-        alias = null;
         this.wrapped = wrapped;
-    }
-
-    public OpenSSLKey(long ctx, OpenSSLEngine engine, String alias) {
-        this.ctx = new NativeRef.EVP_PKEY(ctx);
-        this.engine = engine;
-        this.alias = alias;
-        this.wrapped = false;
     }
 
     /**
@@ -61,18 +48,6 @@ public class OpenSSLKey {
      */
     public NativeRef.EVP_PKEY getNativeRef() {
         return ctx;
-    }
-
-    OpenSSLEngine getEngine() {
-        return engine;
-    }
-
-    boolean isEngineBased() {
-        return engine != null;
-    }
-
-    public String getAlias() {
-        return alias;
     }
 
     public boolean isWrapped() {
@@ -354,31 +329,11 @@ public class OpenSSLKey {
             return true;
         }
 
-        /*
-         * ENGINE-based keys must be checked in a special way.
-         */
-        if (engine == null) {
-            if (other.getEngine() != null) {
-                return false;
-            }
-        } else if (!engine.equals(other.getEngine())) {
-            return false;
-        } else {
-            if (alias != null) {
-                return alias.equals(other.getAlias());
-            } else if (other.getAlias() != null) {
-                return false;
-            }
-        }
-
         return NativeCrypto.EVP_PKEY_cmp(ctx, other.getNativeRef()) == 1;
     }
 
     @Override
     public int hashCode() {
-        int hash = 1;
-        hash = hash * 17 + ctx.hashCode();
-        hash = hash * 31 + (int) (engine == null ? 0 : engine.getEngineContext());
-        return hash;
+        return ctx.hashCode();
     }
 }
