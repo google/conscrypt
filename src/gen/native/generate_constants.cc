@@ -22,9 +22,7 @@
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 #include <openssl/evp.h>
-#if defined(OPENSSL_IS_BORINGSSL)
 #include <openssl/aead.h>
-#endif
 
 static const char kCopyright[] =
     "/* Copyright (C) 2015 The Android Open Source Project\n"
