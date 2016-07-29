@@ -51,7 +51,7 @@ final class OpenSSLECPointContext {
         return pointCtx;
     }
 
-    public static OpenSSLECPointContext getInstance(int curveType, OpenSSLECGroupContext group,
+    public static OpenSSLECPointContext getInstance(OpenSSLECGroupContext group,
             ECPoint javaPoint) {
         OpenSSLECPointContext point = new OpenSSLECPointContext(group, new NativeRef.EC_POINT(
                 NativeCrypto.EC_POINT_new(group.getNativeRef())));

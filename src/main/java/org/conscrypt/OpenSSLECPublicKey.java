@@ -51,8 +51,8 @@ public final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
     public OpenSSLECPublicKey(ECPublicKeySpec ecKeySpec) throws InvalidKeySpecException {
         try {
             group = OpenSSLECGroupContext.getInstance(ecKeySpec.getParams());
-            OpenSSLECPointContext pubKey = OpenSSLECPointContext.getInstance(
-                    NativeCrypto.get_EC_GROUP_type(group.getNativeRef()), group, ecKeySpec.getW());
+            OpenSSLECPointContext pubKey = OpenSSLECPointContext.getInstance(group,
+                    ecKeySpec.getW());
             key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getNativeRef(),
                     pubKey.getNativeRef(), null));
         } catch (Exception e) {
@@ -64,8 +64,7 @@ public final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
         try {
             OpenSSLECGroupContext group = OpenSSLECGroupContext
                     .getInstance(ecPublicKey.getParams());
-            OpenSSLECPointContext pubKey = OpenSSLECPointContext.getInstance(
-                    NativeCrypto.get_EC_GROUP_type(group.getNativeRef()), group,
+            OpenSSLECPointContext pubKey = OpenSSLECPointContext.getInstance(group,
                     ecPublicKey.getW());
             return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_EC_KEY(group.getNativeRef(),
                     pubKey.getNativeRef(), null));
@@ -161,10 +160,6 @@ public final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
     }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
-        if (key.isEngineBased()) {
-            throw new NotSerializableException("engine-based keys can not be serialized");
-        }
-
         stream.defaultWriteObject();
         stream.writeObject(getEncoded());
     }

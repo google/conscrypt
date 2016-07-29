@@ -154,29 +154,11 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
 
     @Override
     public String getFormat() {
-        /*
-         * If we're using an OpenSSL ENGINE, there's no guarantee we can export
-         * the key. Returning {@code null} tells the caller that there's no
-         * encoded format.
-         */
-        if (key.isEngineBased()) {
-            return null;
-        }
-
         return "PKCS#8";
     }
 
     @Override
     public byte[] getEncoded() {
-        /*
-         * If we're using an OpenSSL ENGINE, there's no guarantee we can export
-         * the key. Returning {@code null} tells the caller that there's no
-         * encoded format.
-         */
-        if (key.isEngineBased()) {
-            return null;
-        }
-
         return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getNativeRef());
     }
 
@@ -187,10 +169,6 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
 
     @Override
     public BigInteger getS() {
-        if (key.isEngineBased()) {
-            throw new UnsupportedOperationException("private key value S cannot be extracted");
-        }
-
         return getPrivateKey();
     }
 
@@ -257,10 +235,6 @@ public final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder
     }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
-        if (key.isEngineBased()) {
-            throw new NotSerializableException("engine-based keys can not be serialized");
-        }
-
         stream.defaultWriteObject();
         stream.writeObject(getEncoded());
     }
