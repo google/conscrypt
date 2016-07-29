@@ -67,9 +67,6 @@ import static org.conscrypt.TestUtils.openTestFile;
 import static org.conscrypt.TestUtils.readTestFile;
 
 public class NativeCryptoTest extends TestCase {
-    /** Corresponds to the native test library "libjavacoretests.so" */
-    public static final String TEST_ENGINE_ID = "javacoretests";
-
     private static final long NULL = 0;
     private static final FileDescriptor INVALID_FD = new FileDescriptor();
     private static final SSLHandshakeCallbacks DUMMY_CB
