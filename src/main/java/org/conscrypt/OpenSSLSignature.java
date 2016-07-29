@@ -86,7 +86,6 @@ public class OpenSSLSignature extends SignatureSpi {
     private final void resetContext() {
         NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         if (signing) {
-            enableDSASignatureNonceHardeningIfApplicable();
             evpPkeyCtx = NativeCrypto.EVP_DigestSignInit(ctxLocal, evpMdRef, key.getNativeRef());
         } else {
             evpPkeyCtx = NativeCrypto.EVP_DigestVerifyInit(ctxLocal, evpMdRef, key.getNativeRef());
@@ -202,25 +201,6 @@ public class OpenSSLSignature extends SignatureSpi {
     @Override
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
         initInternal(OpenSSLKey.fromPrivateKey(privateKey), true);
-    }
-
-    /**
-     * Enables a mitigation against private key leakage through ECDSA
-     * signatures when weak nonces (per-message k values) are used. To mitigate
-     * the issue, private key and message being signed is mixed into the
-     * randomly generated nonce (k).
-     *
-     * <p>Does nothing for signatures that are not ECDSA.
-     */
-    private void enableDSASignatureNonceHardeningIfApplicable() {
-        final OpenSSLKey key = this.key;
-        switch (engineType) {
-            case EC:
-                NativeCrypto.EC_KEY_set_nonce_from_hash(key.getNativeRef(), true);
-                break;
-            default:
-                // Hardening not applicable
-        }
     }
 
     @Override

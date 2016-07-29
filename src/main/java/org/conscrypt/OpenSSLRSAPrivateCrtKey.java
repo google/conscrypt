@@ -214,28 +214,19 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
             ensureReadParams();
             RSAPrivateCrtKey other = (RSAPrivateCrtKey) o;
 
-            if (getOpenSSLKey().isEngineBased()) {
-                return getModulus().equals(other.getModulus())
-                        && publicExponent.equals(other.getPublicExponent());
-            } else {
-                return getModulus().equals(other.getModulus())
-                        && publicExponent.equals(other.getPublicExponent())
-                        && getPrivateExponent().equals(other.getPrivateExponent())
-                        && primeP.equals(other.getPrimeP()) && primeQ.equals(other.getPrimeQ())
-                        && primeExponentP.equals(other.getPrimeExponentP())
-                        && primeExponentQ.equals(other.getPrimeExponentQ())
-                        && crtCoefficient.equals(other.getCrtCoefficient());
-            }
+            return getModulus().equals(other.getModulus())
+                    && publicExponent.equals(other.getPublicExponent())
+                    && getPrivateExponent().equals(other.getPrivateExponent())
+                    && primeP.equals(other.getPrimeP()) && primeQ.equals(other.getPrimeQ())
+                    && primeExponentP.equals(other.getPrimeExponentP())
+                    && primeExponentQ.equals(other.getPrimeExponentQ())
+                    && crtCoefficient.equals(other.getCrtCoefficient());
         } else if (o instanceof RSAPrivateKey) {
             ensureReadParams();
             RSAPrivateKey other = (RSAPrivateKey) o;
 
-            if (getOpenSSLKey().isEngineBased()) {
-                return getModulus().equals(other.getModulus());
-            } else {
-                return getModulus().equals(other.getModulus())
-                        && getPrivateExponent().equals(other.getPrivateExponent());
-            }
+            return getModulus().equals(other.getModulus())
+                    && getPrivateExponent().equals(other.getPrivateExponent());
         }
 
         return false;
@@ -253,13 +244,6 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("OpenSSLRSAPrivateCrtKey{");
-
-        final boolean engineBased = getOpenSSLKey().isEngineBased();
-        if (engineBased) {
-            sb.append("key=");
-            sb.append(getOpenSSLKey());
-            sb.append(',');
-        }
 
         ensureReadParams();
         sb.append("modulus=");
@@ -291,10 +275,6 @@ public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSA
     }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
-        if (getOpenSSLKey().isEngineBased()) {
-            throw new NotSerializableException("engine-based keys can not be serialized");
-        }
-
         ensureReadParams();
         stream.defaultWriteObject();
     }

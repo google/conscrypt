@@ -48,10 +48,6 @@ public final class OpenSSLECGroupContext {
         }
         NativeRef.EC_GROUP groupRef = new NativeRef.EC_GROUP(ctx);
 
-        NativeCrypto.EC_GROUP_set_point_conversion_form(groupRef,
-                NativeConstants.POINT_CONVERSION_UNCOMPRESSED);
-        NativeCrypto.EC_GROUP_set_asn1_flag(groupRef, NativeConstants.OPENSSL_EC_NAMED_CURVE);
-
         return new OpenSSLECGroupContext(groupRef);
     }
 
@@ -154,8 +150,6 @@ public final class OpenSSLECGroupContext {
         }
 
         NativeRef.EC_GROUP groupRef = new NativeRef.EC_GROUP(group);
-        NativeCrypto.EC_GROUP_set_point_conversion_form(groupRef,
-                NativeConstants.POINT_CONVERSION_UNCOMPRESSED);
 
         return new OpenSSLECGroupContext(groupRef);
     }
@@ -168,15 +162,7 @@ public final class OpenSSLECGroupContext {
         final BigInteger a = new BigInteger(curveParams[1]);
         final BigInteger b = new BigInteger(curveParams[2]);
 
-        final ECField field;
-        final int type = NativeCrypto.get_EC_GROUP_type(groupCtx);
-        if (type == NativeCrypto.EC_CURVE_GFP) {
-            field = new ECFieldFp(p);
-        } else if (type == NativeCrypto.EC_CURVE_GF2M) {
-            field = new ECFieldF2m(p.bitLength() - 1, p);
-        } else {
-            throw new RuntimeException("unknown curve type " + type);
-        }
+        final ECField field = new ECFieldFp(p);
 
         final EllipticCurve curve = new EllipticCurve(field, a, b);
 

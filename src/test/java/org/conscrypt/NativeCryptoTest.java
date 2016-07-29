@@ -2814,7 +2814,7 @@ public class NativeCryptoTest extends TestCase {
 
     public void testEC_GROUP() throws Exception {
         /* Test using NIST's P-256 curve */
-        check_EC_GROUP(NativeCrypto.EC_CURVE_GFP, "prime256v1",
+        check_EC_GROUP("prime256v1",
                 "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF",
                 "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC",
                 "5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b",
@@ -2824,14 +2824,13 @@ public class NativeCryptoTest extends TestCase {
                 1L);
     }
 
-    private void check_EC_GROUP(int type, String name, String pStr, String aStr, String bStr,
+    private void check_EC_GROUP(String name, String pStr, String aStr, String bStr,
             String xStr, String yStr, String nStr, long hLong) throws Exception {
         long groupRef = NativeCrypto.EC_GROUP_new_by_curve_name(name);
         assertFalse(groupRef == NULL);
         NativeRef.EC_GROUP group = new NativeRef.EC_GROUP(groupRef);
         assertEquals(NativeCrypto.OBJ_txt2nid_longName(name),
                 NativeCrypto.EC_GROUP_get_curve_name(group));
-        assertEquals(type, NativeCrypto.get_EC_GROUP_type(group));
 
         // prime
         BigInteger p = new BigInteger(pStr, 16);
