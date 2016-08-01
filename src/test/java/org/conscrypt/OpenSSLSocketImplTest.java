@@ -261,11 +261,6 @@ public class OpenSSLSocketImplTest extends TestCase {
     }
 
     public void test_handshakeWithSCTFromOCSPResponse() throws Exception {
-        // This is only implemented for BoringSSL
-        if (!NativeCrypto.isBoringSSL) {
-            return;
-        }
-
         TestConnection connection = new TestConnection(new X509Certificate[] { cert, ca }, certKey);
 
         connection.clientHooks.ctVerifier = ctVerifier;
@@ -279,11 +274,6 @@ public class OpenSSLSocketImplTest extends TestCase {
     }
 
     public void test_handshakeWithSCTFromTLSExtension() throws Exception {
-        // This is only implemented for BoringSSL
-        if (!NativeCrypto.isBoringSSL) {
-            return;
-        }
-
         TestConnection connection = new TestConnection(new X509Certificate[] { cert, ca }, certKey);
 
         connection.clientHooks.ctVerifier = ctVerifier;
