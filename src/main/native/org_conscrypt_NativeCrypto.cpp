@@ -8123,10 +8123,9 @@ static inline char hex_char(unsigned char in)
     }
 }
 
-static void hex_string(char **dest, unsigned char* input, int len)
-{
-    *dest = (char*) malloc(len * 2 + 1);
-    char *output = *dest;
+static void hex_string(UniquePtr<char[]>& dest, unsigned char* input, int len) {
+    dest.reset(new char[len * 2 + 1]);
+    char* output = dest.get();
     for (int i = 0; i < len; i++) {
         *output++ = hex_char(input[i] >> 4);
         *output++ = hex_char(input[i] & 0xF);
@@ -8134,39 +8133,50 @@ static void hex_string(char **dest, unsigned char* input, int len)
     *output = '\0';
 }
 
-static void debug_print_session_key(SSL_SESSION* session)
-{
-    char *session_id_str;
-    char *master_key_str;
-    const char *key_type;
+static void debug_print_session_key(SSL* ssl, SSL_SESSION* session) {
+    UniquePtr<char[]> session_id_str;
+    UniquePtr<char[]> master_key_str;
+    UniquePtr<char[]> client_random_str;
     char *keyline;
 
-    hex_string(&session_id_str, session->session_id, session->session_id_length);
-    hex_string(&master_key_str, session->master_key, session->master_key_length);
+    hex_string(master_key_str, session->master_key, session->master_key_length);
 
     X509* peer = SSL_SESSION_get0_peer(session);
-    EVP_PKEY* pkey = X509_PUBKEY_get(peer->cert_info->key);
-    switch (EVP_PKEY_type(pkey->type)) {
-    case EVP_PKEY_RSA:
-        key_type = "RSA";
-        break;
-    case EVP_PKEY_DSA:
-        key_type = "DSA";
-        break;
-    case EVP_PKEY_EC:
-        key_type = "EC";
-        break;
-    default:
-        key_type = "Unknown";
-        break;
+    if (peer == nullptr) {
+        JNI_TRACE("no peer in session for JNI_TRACE_KEYS");
+        return;
     }
 
-    asprintf(&keyline, "%s Session-ID:%s Master-Key:%s\n", key_type, session_id_str,
-            master_key_str);
+    EVP_PKEY* pkey = X509_PUBKEY_get(peer->cert_info->key);
+    if (pkey == nullptr) {
+        JNI_TRACE("no peer key for JNI_TRACE_KEYS");
+        return;
+    }
+
+    if (EVP_PKEY_type(pkey->type) == EVP_PKEY_RSA) {
+        hex_string(session_id_str, session->session_id, session->session_id_length);
+        if (asprintf(&keyline, "RSA Session-ID:%s Master-Key:%s\n", session_id_str.get(),
+                     master_key_str.get()) <= 0) {
+            JNI_TRACE("cannot allocate string for JNI_TRACE_KEYS");
+            return;
+        }
+    } else {
+        UniquePtr<uint8_t[]> client_random;
+        size_t max_out;
+
+        max_out = SSL_get_client_random(ssl, nullptr, 0);
+        client_random.reset(new uint8_t[max_out]);
+        SSL_get_client_random(ssl, client_random.get(), max_out);
+        hex_string(client_random_str, client_random.get(), max_out);
+
+        if (asprintf(&keyline, "CLIENT_RANDOM %s %s\n", client_random_str.get(),
+                     master_key_str.get()) <= 0) {
+            JNI_TRACE("cannot allocate string for JNI_TRACE_KEYS");
+            return;
+        }
+    }
     JNI_TRACE("ssl_session=%p %s", session, keyline);
 
-    free(session_id_str);
-    free(master_key_str);
     free(keyline);
 }
 #endif /* WITH_JNI_TRACE_KEYS */
@@ -8263,7 +8273,7 @@ static jlong NativeCrypto_SSL_do_handshake_bio(JNIEnv* env, jclass, jlong ssl_ad
     SSL_SESSION* ssl_session = SSL_get1_session(ssl);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake_bio => ssl_session=%p", ssl, ssl_session);
 #ifdef WITH_JNI_TRACE_KEYS
-    debug_print_session_key(ssl_session);
+    debug_print_session_key(ssl, ssl_session);
 #endif
     return reinterpret_cast<uintptr_t>(ssl_session);
 }
@@ -8444,7 +8454,7 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
     SSL_SESSION* ssl_session = SSL_get1_session(ssl);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake => ssl_session=%p", ssl, ssl_session);
 #ifdef WITH_JNI_TRACE_KEYS
-    debug_print_session_key(ssl_session);
+    debug_print_session_key(ssl, ssl_session);
 #endif
     return (jlong) ssl_session;
 }
