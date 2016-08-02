@@ -57,11 +57,6 @@ public class CTVerifierTest extends TestCase {
     }
 
     public void test_verifySignedCertificateTimestamps_withOCSPResponse() throws Exception {
-        // This is only implemented for BoringSSL
-        if (!NativeCrypto.isBoringSSL) {
-            return;
-        }
-
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
 
         byte[] ocspResponse = readTestFile("ocsp-response.der");
@@ -138,11 +133,6 @@ public class CTVerifierTest extends TestCase {
     }
 
     public void test_verifySignedCertificateTimestamps_withInvalidOCSPResponse() throws Exception {
-        // This is only implemented for BoringSSL
-        if (!NativeCrypto.isBoringSSL) {
-            return;
-        }
-
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
 
         // Just some garbage data which will fail to deserialize
@@ -155,11 +145,6 @@ public class CTVerifierTest extends TestCase {
     }
 
     public void test_verifySignedCertificateTimestamps_withMultipleTimestamps() throws Exception {
-        // This is only implemented for BoringSSL
-        if (!NativeCrypto.isBoringSSL) {
-            return;
-        }
-
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
 
         byte[] tlsExtension = readTestFile("ct-signed-timestamp-list-invalid");

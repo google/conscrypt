@@ -1966,14 +1966,13 @@ int THREAD_cleanup(void) {
  * Initialization phase for every OpenSSL job: Loads the Error strings, the
  * crypto algorithms and reset the OpenSSL library
  */
-static jboolean NativeCrypto_clinit(JNIEnv*, jclass)
+static void NativeCrypto_clinit(JNIEnv*, jclass)
 {
     SSL_load_error_strings();
     ERR_load_crypto_strings();
     SSL_library_init();
     OpenSSL_add_all_algorithms();
     THREAD_setup();
-    return JNI_TRUE;
 }
 
 /**
@@ -9842,7 +9841,7 @@ static jlong NativeCrypto_getDirectBufferAddress(JNIEnv *env, jclass, jobject bu
 #define REF_EVP_PKEY "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY;"
 #define REF_HMAC_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$HMAC_CTX;"
 static JNINativeMethod sNativeCryptoMethods[] = {
-    NATIVE_METHOD(NativeCrypto, clinit, "()Z"),
+    NATIVE_METHOD(NativeCrypto, clinit, "()V"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_RSA, "([B[B[B[B[B[B[B[B)J"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_EC_KEY, "(" REF_EC_GROUP REF_EC_POINT "[B)J"),
     NATIVE_METHOD(NativeCrypto, EVP_PKEY_type, "(" REF_EVP_PKEY ")I"),
