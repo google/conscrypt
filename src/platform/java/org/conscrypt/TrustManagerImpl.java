@@ -17,6 +17,8 @@
 
 package org.conscrypt;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
@@ -30,6 +32,8 @@ import java.security.cert.CertificateParsingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.PKIXCertPathChecker;
 import java.security.cert.PKIXParameters;
+import java.security.cert.PKIXRevocationChecker;
+import java.security.cert.PKIXRevocationChecker.Option;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -37,7 +41,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -238,7 +241,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      */
     public List<X509Certificate> checkClientTrusted(X509Certificate[] chain, String authType,
             String hostname) throws CertificateException {
-        return checkTrusted(chain, authType, hostname, true);
+        return checkTrusted(chain, null /* ocspData */, authType, hostname, true);
     }
 
     private static SSLSession getHandshakeSessionOrThrow(SSLSocket sslSocket)
@@ -284,7 +287,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      */
     public List<X509Certificate> checkServerTrusted(X509Certificate[] chain, String authType,
             String hostname) throws CertificateException {
-        return checkTrusted(chain, authType, hostname, false);
+        return checkTrusted(chain, null /* ocspData */, authType, hostname, false);
     }
 
     /**
@@ -361,7 +364,13 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private List<X509Certificate> checkTrusted(X509Certificate[] certs, String authType,
             SSLSession session, SSLParameters parameters, boolean clientAuth)
                     throws CertificateException {
-        final String hostname = (session != null) ? session.getPeerHost() : null;
+        byte[] ocspData = null;
+        String hostname = null;
+        if (session != null) {
+            hostname = session.getPeerHost();
+            ocspData = getOcspDataFromSession(session);
+        }
+
         if (session != null && parameters != null) {
             String identificationAlgorithm = parameters.getEndpointIdentificationAlgorithm();
             if (identificationAlgorithm != null
@@ -372,11 +381,39 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 }
             }
         }
-        return checkTrusted(certs, authType, hostname, clientAuth);
+        return checkTrusted(certs, ocspData, authType, hostname, clientAuth);
     }
 
-    private List<X509Certificate> checkTrusted(X509Certificate[] certs, String authType,
-            String host, boolean clientAuth) throws CertificateException {
+    private byte[] getOcspDataFromSession(SSLSession session) {
+        List<byte[]> ocspResponses = null;
+        if (session instanceof OpenSSLSessionImpl) {
+            OpenSSLSessionImpl opensslSession = (OpenSSLSessionImpl) session;
+            ocspResponses = opensslSession.getStatusResponses();
+        } else {
+            Method m_getResponses;
+            try {
+                m_getResponses = session.getClass().getDeclaredMethod("getStatusResponses");
+                m_getResponses.setAccessible(true);
+                Object rawResponses = m_getResponses.invoke(session);
+                if (rawResponses instanceof List) {
+                    ocspResponses = (List<byte[]>) rawResponses;
+                }
+            } catch (NoSuchMethodException | SecurityException | IllegalAccessException
+                    | IllegalArgumentException ignored) {
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e.getCause());
+            }
+        }
+
+        if (ocspResponses == null || ocspResponses.size() == 0) {
+            return null;
+        }
+
+        return ocspResponses.get(0);
+    }
+
+    private List<X509Certificate> checkTrusted(X509Certificate[] certs, byte[] ocspData,
+            String authType, String host, boolean clientAuth) throws CertificateException {
         if (certs == null || certs.length == 0 || authType == null || authType.length() == 0) {
             throw new IllegalArgumentException("null or zero-length parameter");
         }
@@ -398,7 +435,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             untrustedChain.add(leaf);
         }
         used.add(leaf);
-        return checkTrustedRecursive(certs, host, clientAuth, untrustedChain, trustedChain, used);
+        return checkTrustedRecursive(certs, ocspData, host, clientAuth, untrustedChain, trustedChain, used);
     }
 
     /**
@@ -424,7 +461,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      * reported in this exception. As such applications MUST NOT use the specifics of this error
      * for trust decisions (e.g. showing the user a click through page based on the specific error).
      */
-    private List<X509Certificate> checkTrustedRecursive(X509Certificate[] certs,
+    private List<X509Certificate> checkTrustedRecursive(X509Certificate[] certs, byte[] ocspData,
             String host, boolean clientAuth, ArrayList<X509Certificate> untrustedChain,
             ArrayList<TrustAnchor> trustAnchorChain,
             Set<X509Certificate> used) throws CertificateException {
@@ -441,7 +478,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
         // 1. If the current certificate in the chain is self-signed verify the chain as is.
         if (current.getIssuerDN().equals(current.getSubjectDN())) {
-            return verifyChain(untrustedChain, trustAnchorChain, host, clientAuth);
+            return verifyChain(ocspData, untrustedChain, trustAnchorChain, host, clientAuth);
         }
 
         // 2. Try building a chain via any trust anchors that issued the current certificate.
@@ -461,7 +498,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             used.add(anchorCert);
             trustAnchorChain.add(anchor);
             try {
-                return checkTrustedRecursive(certs, host, clientAuth, untrustedChain,
+                return checkTrustedRecursive(certs, ocspData, host, clientAuth, untrustedChain,
                         trustAnchorChain, used);
             } catch (CertificateException ex) {
                 lastException = ex;
@@ -476,7 +513,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         // present in the trusted set.
         if (!trustAnchorChain.isEmpty()) {
             if (!seenIssuer) {
-                return verifyChain(untrustedChain, trustAnchorChain, host, clientAuth);
+                return verifyChain(ocspData, untrustedChain, trustAnchorChain, host, clientAuth);
             }
 
             // Otherwise all chains based on the current trust anchor were rejected, fail.
@@ -505,7 +542,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 used.add(candidateIssuer);
                 untrustedChain.add(candidateIssuer);
                 try {
-                    return checkTrustedRecursive(certs, host, clientAuth, untrustedChain,
+                    return checkTrustedRecursive(certs, ocspData, host, clientAuth, untrustedChain,
                             trustAnchorChain, used);
                 } catch (CertificateException ex) {
                     lastException = ex;
@@ -528,7 +565,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             used.add(intermediateCert);
             untrustedChain.add(intermediateCert);
             try {
-                return checkTrustedRecursive(certs, host, clientAuth, untrustedChain,
+                return checkTrustedRecursive(certs, ocspData, host, clientAuth, untrustedChain,
                         trustAnchorChain, used);
             } catch (CertificateException ex) {
                 lastException = ex;
@@ -550,7 +587,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 "Trust anchor for certification path not found.", null, certPath, -1));
     }
 
-    private List<X509Certificate> verifyChain(List<X509Certificate> untrustedChain,
+    private List<X509Certificate> verifyChain(byte[] ocspData, List<X509Certificate> untrustedChain,
             List<TrustAnchor> trustAnchorChain, String host, boolean clientAuth)
             throws CertificateException {
         // build the cert path from the list of certs sans trust anchors
@@ -601,8 +638,10 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             anchorSet.add(trustAnchorChain.get(0));
             PKIXParameters params = new PKIXParameters(anchorSet);
             params.setRevocationEnabled(false);
-            params.addCertPathChecker(new ExtendedKeyUsagePKIXCertPathChecker(clientAuth,
-                        untrustedChain.get(0)));
+            X509Certificate endPointCert = untrustedChain.get(0);
+            setOcspResponses(params, endPointCert, ocspData);
+            params.addCertPathChecker(
+                    new ExtendedKeyUsagePKIXCertPathChecker(clientAuth, endPointCert));
             validator.validate(certPath, params);
         } catch (InvalidAlgorithmParameterException e) {
             throw new CertificateException("Chain validation failed", e);
@@ -622,6 +661,39 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         if (blacklist.isPublicKeyBlackListed(cert.getPublicKey())) {
             throw new CertificateException("Certificate blacklisted by public key: " + cert);
         }
+    }
+
+    /**
+     * Sets the OCSP response data that was possibly stapled to the TLS response.
+     */
+    private void setOcspResponses(PKIXParameters params, X509Certificate cert, byte[] ocspData) {
+        if (ocspData == null) {
+            return;
+        }
+
+        PKIXRevocationChecker revChecker = null;
+        List<PKIXCertPathChecker> checkers = new ArrayList<>(params.getCertPathCheckers());
+        for (PKIXCertPathChecker checker : checkers) {
+            if (checker instanceof PKIXRevocationChecker) {
+                revChecker = (PKIXRevocationChecker) checker;
+                break;
+            }
+        }
+
+        if (revChecker == null) {
+            revChecker = (PKIXRevocationChecker) validator.getRevocationChecker();
+            checkers.add(revChecker);
+
+            /*
+             * If we add a new revocation checker, we should set the option for
+             * end-entity verification only. Otherwise the CertPathValidator will
+             * throw an exception when it can't verify the entire chain.
+             */
+            revChecker.setOptions(Collections.singleton(Option.ONLY_END_ENTITY));
+        }
+
+        revChecker.setOcspResponses(Collections.singletonMap(cert, ocspData));
+        params.setCertPathCheckers(checkers);
     }
 
     /**
