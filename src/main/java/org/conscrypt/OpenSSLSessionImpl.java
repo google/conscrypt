@@ -21,7 +21,9 @@ import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
@@ -44,6 +46,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     private boolean isValid = true;
     private final Map<String, Object> values = new HashMap<String, Object>();
     private volatile javax.security.cert.X509Certificate[] peerCertificateChain;
+    private byte[] peerCertificateOcspData;
     protected long sslSessionNativePointer;
     private String peerHost;
     private int peerPort = -1;
@@ -57,11 +60,12 @@ public class OpenSSLSessionImpl implements SSLSession {
      * SSL parameters.
      */
     protected OpenSSLSessionImpl(long sslSessionNativePointer, X509Certificate[] localCertificates,
-            X509Certificate[] peerCertificates, String peerHost, int peerPort,
-            AbstractSessionContext sessionContext) {
+            X509Certificate[] peerCertificates, byte[] peerCertificateOcspData, String peerHost,
+            int peerPort, AbstractSessionContext sessionContext) {
         this.sslSessionNativePointer = sslSessionNativePointer;
         this.localCertificates = localCertificates;
         this.peerCertificates = peerCertificates;
+        this.peerCertificateOcspData = peerCertificateOcspData;
         this.peerHost = peerHost;
         this.peerPort = peerPort;
         this.sessionContext = sessionContext;
@@ -74,10 +78,11 @@ public class OpenSSLSessionImpl implements SSLSession {
      * @throws IOException if the serialized session data can not be parsed
      */
     OpenSSLSessionImpl(byte[] derData, String peerHost, int peerPort,
-            X509Certificate[] peerCertificates, AbstractSessionContext sessionContext)
+            X509Certificate[] peerCertificates, byte[] peerCertificateOcspData,
+            AbstractSessionContext sessionContext)
             throws IOException {
-        this(NativeCrypto.d2i_SSL_SESSION(derData), null, peerCertificates, peerHost, peerPort,
-             sessionContext);
+        this(NativeCrypto.d2i_SSL_SESSION(derData), null, peerCertificates,
+                peerCertificateOcspData, peerHost, peerPort, sessionContext);
     }
 
     /**
@@ -475,6 +480,17 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     public String getRequestedServerName() {
         return NativeCrypto.get_SSL_SESSION_tlsext_hostname(sslSessionNativePointer);
+    }
+
+    /**
+     * Returns the OCSP stapled response.
+     */
+    public List<byte[]> getStatusResponses() {
+        if (peerCertificateOcspData == null) {
+            return null;
+        }
+
+        return Collections.singletonList(peerCertificateOcspData.clone());
     }
 
     @Override

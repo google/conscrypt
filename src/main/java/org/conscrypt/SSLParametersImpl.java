@@ -396,6 +396,10 @@ public class SSLParametersImpl implements Cloneable {
         ocspResponse = response;
     }
 
+    public byte[] getOCSPResponse() {
+        return ocspResponse;
+    }
+
     static byte[][] encodeIssuerX509Principals(X509Certificate[] certificates)
             throws CertificateEncodingException {
         byte[][] principalBytes = new byte[certificates.length][];
@@ -674,8 +678,9 @@ public class SSLParametersImpl implements Cloneable {
                     .SSL_get_certificate(sslNativePointer));
             X509Certificate[] peerCertificates = createCertChain(NativeCrypto
                     .SSL_get_peer_cert_chain(sslNativePointer));
+            byte[] ocspData = NativeCrypto.SSL_get_ocsp_response(sslNativePointer);
             sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
-                    peerCertificates, hostname, port, getSessionContext());
+                    peerCertificates, ocspData, hostname, port, getSessionContext());
             // if not, putSession later in handshakeCompleted() callback
             if (handshakeCompleted) {
                 getSessionContext().putSession(sslSession);
