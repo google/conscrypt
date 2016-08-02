@@ -16,14 +16,26 @@
 
 #define LOG_TAG "JNIHelp"
 
+// We want the XSI-compliant strerror_r (it's more portable across NDK versions,
+// and the only one available until android-23), not the GNU one. We haven't
+// actually defined _GNU_SOURCE ourselves, but the compiler adds it
+// automatically when building C++.
+//
+// Including this header out of the normal order to make sure we import it the
+// right way.
+#undef _GNU_SOURCE
+#include <string.h>
+
+// OTOH, we need to have _GNU_SOURCE defined to pick up asprintf from stdio.h.
+#define _GNU_SOURCE
+#include <stdio.h>
+
 #include "JNIHelp.h"
 
 #include <android/log.h>
 #include "log_compat.h"
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <assert.h>
 
 /**
