@@ -358,7 +358,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         }
     }
 
-    private List<X509Certificate> checkTrusted(X509Certificate[] chain, String authType,
+    private List<X509Certificate> checkTrusted(X509Certificate[] certs, String authType,
             SSLSession session, SSLParameters parameters, boolean clientAuth)
                     throws CertificateException {
         final String hostname = (session != null) ? session.getPeerHost() : null;
@@ -372,7 +372,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 }
             }
         }
-        return checkTrusted(chain, authType, hostname, clientAuth);
+        return checkTrusted(certs, authType, hostname, clientAuth);
     }
 
     private List<X509Certificate> checkTrusted(X509Certificate[] certs, String authType,
