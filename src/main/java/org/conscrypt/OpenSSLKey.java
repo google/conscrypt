@@ -27,7 +27,6 @@ import java.security.spec.ECParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import javax.crypto.SecretKey;
 
 public class OpenSSLKey {
     private final NativeRef.EVP_PKEY ctx;
