@@ -659,9 +659,11 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                 peerCertChain[i] = new OpenSSLX509Certificate(certRefs[i]);
             }
 
+            byte[] ocspData = NativeCrypto.SSL_get_ocsp_response(sslNativePointer);
+
             // Used for verifyCertificateChain callback
             handshakeSession = new OpenSSLSessionImpl(sslSessionNativePtr, null, peerCertChain,
-                    getPeerHost(), getPeerPort(), null);
+                    ocspData, getPeerHost(), getPeerPort(), null);
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
