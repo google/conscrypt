@@ -47,15 +47,13 @@ import javax.security.auth.x500.X500Principal;
  */
 public final class NativeCrypto {
 
-    public static final boolean isBoringSSL;
-
     // --- OpenSSL library initialization --------------------------------------
     static {
         NativeCryptoJni.init();
-        isBoringSSL = clinit();
+        clinit();
     }
 
-    private native static boolean clinit();
+    private native static void clinit();
 
     // --- DSA/RSA public/private key handling functions -----------------------
 
