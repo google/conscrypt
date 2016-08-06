@@ -1127,7 +1127,8 @@ static X509* X509_dup_nocopy(X509* x509) {
     if (x509 == nullptr) {
         return nullptr;
     }
-    return X509_up_ref(x509);
+    X509_up_ref(x509);
+    return x509;
 }
 
 /*
