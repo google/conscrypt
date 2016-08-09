@@ -33,10 +33,14 @@ import java.util.Collections;
 import java.util.List;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
@@ -588,5 +592,55 @@ public class Platform {
             }
         }
         return null;
+    }
+
+    /**
+     * Check if SCT verification is required for a given hostname.
+     *
+     * SCT Verification is enabled using {@code Security} properties.
+     * The "conscrypt.ct.enable" property must be true, as well as a per domain property.
+     * The reverse notation of the domain name, prefixed with "conscrypt.ct.enforce."
+     * is used as the property name.
+     * Basic globbing is also supported.
+     *
+     * For example, for the domain foo.bar.com, the following properties will be
+     * looked up, in order of precedence.
+     * - conscrypt.ct.enforce.com.bar.foo
+     * - conscrypt.ct.enforce.com.bar.*
+     * - conscrypt.ct.enforce.com.*
+     * - conscrypt.ct.enforce.*
+     */
+    public static boolean isCTVerificationRequired(String hostname) {
+        if (hostname == null) {
+            return false;
+        }
+        // TODO: Use the platform version on platforms that support it
+
+        String property = Security.getProperty("conscrypt.ct.enable");
+        if (property == null || Boolean.valueOf(property.toLowerCase()) == false) {
+            return false;
+        }
+
+        List<String> parts = Arrays.asList(hostname.split("\\."));
+        Collections.reverse(parts);
+
+        boolean enable = false;
+        String propertyName = "conscrypt.ct.enforce";
+        // The loop keeps going on even once we've found a match
+        // This allows for finer grained settings on subdomains
+        for (String part: parts) {
+            property = Security.getProperty(propertyName + ".*");
+            if (property != null) {
+                enable = Boolean.valueOf(property.toLowerCase());
+            }
+
+            propertyName = propertyName + "." + part;
+        }
+
+        property = Security.getProperty(propertyName);
+        if (property != null) {
+            enable = Boolean.valueOf(property.toLowerCase());
+        }
+        return enable;
     }
 }

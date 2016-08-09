@@ -1118,56 +1118,16 @@ public class SSLParametersImpl implements Cloneable {
 
     /**
      * Check if SCT verification is enforced for a given hostname.
-     *
-     * SCT Verification is enabled using {@code Security} properties.
-     * The "conscrypt.ct.enable" property must be true, as well as a per domain property.
-     * The reverse notation of the domain name, prefixed with "conscrypt.ct.enforce."
-     * is used as the property name.
-     * Basic globbing is also supported.
-     *
-     * For example, for the domain foo.bar.com, the following properties will be
-     * looked up, in order of precedence.
-     * - conscrypt.ct.enforce.com.bar.foo
-     * - conscrypt.ct.enforce.com.bar.*
-     * - conscrypt.ct.enforce.com.*
-     * - conscrypt.ct.enforce.*
      */
     public boolean isCTVerificationEnabled(String hostname) {
         if (hostname == null) {
             return false;
         }
 
-        // Bypass the normal property based check. This is used for testing only
+        // Bypass the check. This is used for testing only
         if (ctVerificationEnabled) {
             return true;
         }
-
-        String property = Security.getProperty("conscrypt.ct.enable");
-        if (property == null || Boolean.valueOf(property.toLowerCase()) == false) {
-            return false;
-        }
-
-        List<String> parts = Arrays.asList(hostname.split("\\."));
-        Collections.reverse(parts);
-
-        boolean enable = false;
-        String propertyName = "conscrypt.ct.enforce";
-        // The loop keeps going on even once we've found a match
-        // This allows for finer grained settings on subdomains
-        for (String part: parts) {
-            property = Security.getProperty(propertyName + ".*");
-            if (property != null) {
-                enable = Boolean.valueOf(property.toLowerCase());
-            }
-
-            propertyName = propertyName + "." + part;
-        }
-
-        property = Security.getProperty(propertyName);
-        if (property != null) {
-            enable = Boolean.valueOf(property.toLowerCase());
-        }
-
-        return enable;
+        return Platform.isCTVerificationRequired(hostname);
     }
 }
