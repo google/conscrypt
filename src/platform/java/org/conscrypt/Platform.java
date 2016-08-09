@@ -24,6 +24,7 @@ import android.system.Os;
 import android.system.StructTimeval;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
+import libcore.net.NetworkSecurityPolicy;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -325,5 +326,10 @@ class Platform {
 
     public static String getHostStringFromInetSocketAddress(InetSocketAddress addr) {
         return addr.getHostString();
+    }
+
+    public static boolean isCTVerificationRequired(String hostname) {
+        return NetworkSecurityPolicy.getInstance()
+                .isCertificateTransparencyVerificationRequired(hostname);
     }
 }
