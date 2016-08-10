@@ -405,7 +405,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             }
         }
 
-        if (ocspResponses == null || ocspResponses.size() == 0) {
+        if (ocspResponses == null || ocspResponses.isEmpty()) {
             return null;
         }
 
