@@ -16,12 +16,21 @@
 
 package org.conscrypt;
 
+import java.security.cert.Certificate;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
 import javax.net.ssl.SSLSession;
 import junit.framework.TestCase;
 import libcore.javax.net.ssl.FakeSSLSession;
+import org.mockito.Mockito;
+
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public final class ClientSessionContextTest extends TestCase {
 
@@ -80,6 +89,28 @@ public final class ClientSessionContextTest extends TestCase {
         context.putSession(d);
         assertSessionContextContents(context, new SSLSession[] { c, d }, new SSLSession[] { a, b });
     }
+
+    public void testSerializeSession_NoStatusResponses() throws Exception {
+        OpenSSLSessionImpl mockSession = mock(OpenSSLSessionImpl.class);
+        when(mockSession.getId()).thenReturn(new byte[] { 0x11, 0x09, 0x03, 0x20 });
+        when(mockSession.getPeerHost()).thenReturn("ssl.example.com");
+        when(mockSession.getPeerPort()).thenReturn(443);
+        when(mockSession.getEncoded()).thenReturn(new byte[] { 0x01, 0x02, 0x03 });
+        when(mockSession.getStatusResponses()).thenReturn(Collections.<byte[]>emptyList());
+
+        Certificate mockCert = mock(Certificate.class);
+        when(mockCert.getEncoded()).thenReturn(new byte[] { 0x05, 0x06, 0x07, 0x10 });
+
+        when(mockSession.getPeerCertificates()).thenReturn(new Certificate[] { mockCert });
+
+        SSLClientSessionCache mockCache = mock(SSLClientSessionCache.class);
+        ClientSessionContext context = new ClientSessionContext();
+        context.setPersistentCache(mockCache);
+
+        context.putSession(mockSession);
+        verify(mockCache).putSessionData(eq(mockSession), any(byte[].class));
+    }
+
 
     private static void assertSessionContextContents(ClientSessionContext context,
                                                      SSLSession[] contains,
