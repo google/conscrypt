@@ -94,10 +94,14 @@
 /*
  * How to use this for debugging with Wireshark:
  *
- * 1. Pull lines from logcat to a file that looks like (without quotes):
- *     "RSA Session-ID:... Master-Key:..." <CR>
- *     "RSA Session-ID:... Master-Key:..." <CR>
+ * 1. Pull lines from logcat to a file that have "KEY_LINE:" and remove the
+ *    prefix up to and including "KEY_LINE: " so they look like this
+ *    (without the quotes):
+ *     "RSA 3b8...184 1c5...aa0" <CR>
+ *     "CLIENT_RANDOM 82e...f18b 1c5...aa0" <CR>
  *     <etc>
+ *    Follows the format defined at
+ *    https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format
  * 2. Start Wireshark
  * 3. Go to Edit -> Preferences -> SSL -> (Pre-)Master-Key log and fill in
  *    the file you put the lines in above.
@@ -117,6 +121,12 @@
         ((void)ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__));
 #else
 #define JNI_TRACE_MD(...) ((void)0)
+#endif
+#ifdef WITH_JNI_TRACE_KEYS
+#define JNI_TRACE_KEYS(...) \
+        ((void)ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__));
+#else
+#define JNI_TRACE_KEYS(...) ((void)0)
 #endif
 // don't overwhelm logcat
 #define WITH_JNI_TRACE_DATA_CHUNK_SIZE 512
@@ -6973,6 +6983,12 @@ static jint NativeCrypto_EVP_has_aes_hardware(JNIEnv*, jclass) {
     return ret;
 }
 
+#ifdef WITH_JNI_TRACE_KEYS
+static void debug_print_session_key(const SSL* ssl, const char *line) {
+    JNI_TRACE_KEYS("ssl=%p KEY_LINE: %s", ssl, line);
+}
+#endif /* WITH_JNI_TRACE_KEYS */
+
 /*
  * public static native int SSL_CTX_new();
  */
@@ -7020,6 +7036,9 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_client_cert_cb(sslCtx.get(), client_cert_cb);
     SSL_CTX_set_tmp_rsa_callback(sslCtx.get(), tmp_rsa_callback);
     SSL_CTX_set_tmp_dh_callback(sslCtx.get(), tmp_dh_callback);
+#ifdef WITH_JNI_TRACE_KEYS
+    SSL_CTX_set_keylog_callback(sslCtx.get(), debug_print_session_key);
+#endif
 
     // If negotiating ECDH, use P-256.
     Unique_EC_KEY ec(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
@@ -8111,76 +8130,6 @@ static jbyteArray NativeCrypto_SSL_get0_alpn_selected(JNIEnv* env, jclass,
     return result;
 }
 
-#ifdef WITH_JNI_TRACE_KEYS
-static inline char hex_char(unsigned char in)
-{
-    if (in < 10) {
-        return '0' + in;
-    } else if (in <= 0xF0) {
-        return 'A' + in - 10;
-    } else {
-        return '?';
-    }
-}
-
-static void hex_string(UniquePtr<char[]>& dest, unsigned char* input, int len) {
-    dest.reset(new char[len * 2 + 1]);
-    char* output = dest.get();
-    for (int i = 0; i < len; i++) {
-        *output++ = hex_char(input[i] >> 4);
-        *output++ = hex_char(input[i] & 0xF);
-    }
-    *output = '\0';
-}
-
-static void debug_print_session_key(SSL* ssl, SSL_SESSION* session) {
-    UniquePtr<char[]> session_id_str;
-    UniquePtr<char[]> master_key_str;
-    UniquePtr<char[]> client_random_str;
-    char *keyline;
-
-    hex_string(master_key_str, session->master_key, session->master_key_length);
-
-    X509* peer = SSL_SESSION_get0_peer(session);
-    if (peer == nullptr) {
-        JNI_TRACE("no peer in session for JNI_TRACE_KEYS");
-        return;
-    }
-
-    EVP_PKEY* pkey = X509_PUBKEY_get(peer->cert_info->key);
-    if (pkey == nullptr) {
-        JNI_TRACE("no peer key for JNI_TRACE_KEYS");
-        return;
-    }
-
-    if (EVP_PKEY_type(pkey->type) == EVP_PKEY_RSA) {
-        hex_string(session_id_str, session->session_id, session->session_id_length);
-        if (asprintf(&keyline, "RSA Session-ID:%s Master-Key:%s\n", session_id_str.get(),
-                     master_key_str.get()) <= 0) {
-            JNI_TRACE("cannot allocate string for JNI_TRACE_KEYS");
-            return;
-        }
-    } else {
-        UniquePtr<uint8_t[]> client_random;
-        size_t max_out;
-
-        max_out = SSL_get_client_random(ssl, nullptr, 0);
-        client_random.reset(new uint8_t[max_out]);
-        SSL_get_client_random(ssl, client_random.get(), max_out);
-        hex_string(client_random_str, client_random.get(), max_out);
-
-        if (asprintf(&keyline, "CLIENT_RANDOM %s %s\n", client_random_str.get(),
-                     master_key_str.get()) <= 0) {
-            JNI_TRACE("cannot allocate string for JNI_TRACE_KEYS");
-            return;
-        }
-    }
-    JNI_TRACE("ssl_session=%p %s", session, keyline);
-
-    free(keyline);
-}
-#endif /* WITH_JNI_TRACE_KEYS */
-
 /**
  * Perform SSL handshake
  */
@@ -8272,9 +8221,6 @@ static jlong NativeCrypto_SSL_do_handshake_bio(JNIEnv* env, jclass, jlong ssl_ad
     // success. handshake completed
     SSL_SESSION* ssl_session = SSL_get1_session(ssl);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake_bio => ssl_session=%p", ssl, ssl_session);
-#ifdef WITH_JNI_TRACE_KEYS
-    debug_print_session_key(ssl, ssl_session);
-#endif
     return reinterpret_cast<uintptr_t>(ssl_session);
 }
 
@@ -8453,9 +8399,6 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
     }
     SSL_SESSION* ssl_session = SSL_get1_session(ssl);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake => ssl_session=%p", ssl, ssl_session);
-#ifdef WITH_JNI_TRACE_KEYS
-    debug_print_session_key(ssl, ssl_session);
-#endif
     return (jlong) ssl_session;
 }
 
