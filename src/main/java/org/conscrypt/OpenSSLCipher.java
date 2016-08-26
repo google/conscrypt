@@ -729,7 +729,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         }
 
         public static class DESEDE extends EVP_CIPHER {
-            private static int DES_BLOCK_SIZE = 8;
+            private static final int DES_BLOCK_SIZE = 8;
 
             public DESEDE(Mode mode, Padding padding) {
                 super(mode, padding);
