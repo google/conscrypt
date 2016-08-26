@@ -265,7 +265,7 @@ public final class OpenSSLProvider extends Provider {
 
         // id-hmacWithSHA224 (8)
         putMacImplClass("HmacSHA224", "OpenSSLMac$HmacSHA224");
-        put("Alg.Alias.Mac.1.2.840.113549.2.9", "HmacSHA224");
+        put("Alg.Alias.Mac.1.2.840.113549.2.8", "HmacSHA224");
         put("Alg.Alias.Mac.HMAC-SHA224", "HmacSHA224");
         put("Alg.Alias.Mac.HMAC/SHA224", "HmacSHA224");
 
