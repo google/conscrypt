@@ -139,7 +139,7 @@ public class CTLogStoreImpl implements CTLogStore {
     }
 
     private static CTLogInfo[] createDefaultFallbackLogs() {
-        CTLogInfo logs[] = new CTLogInfo[KnownLogs.LOG_COUNT];
+        CTLogInfo[] logs = new CTLogInfo[KnownLogs.LOG_COUNT];
         for (int i = 0; i < KnownLogs.LOG_COUNT; i++) {
             try {
                 PublicKey key = new OpenSSLKey(NativeCrypto.d2i_PUBKEY(KnownLogs.LOG_KEYS[i]))
