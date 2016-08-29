@@ -171,31 +171,47 @@ public class CTLogStoreImpl implements CTLogStore {
     }
 
     /**
-     * Load a CTLogInfo from a textual representation.
+     * Load a CTLogInfo from a textual representation. Closes {@code input} upon completion
+     * of loading.
+     *
      * @throws InvalidLogFileException if the input could not be parsed properly
      * @return a CTLogInfo or null if the input is empty
      */
     public static CTLogInfo loadLog(InputStream input) throws InvalidLogFileException {
-        Scanner scan = new Scanner(input, "UTF-8").useDelimiter("\n");
-        // If the scanner can't even read one token then the file must be empty/blank
-        if (!scan.hasNext()) {
-            return null;
-        }
+        final Scanner scan = new Scanner(input, "UTF-8");
+        scan.useDelimiter("\n");
 
-        String description = null, url = null, key = null;
-        while (scan.hasNext()) {
-            String[] parts = scan.next().split(":", 2);
-            if (parts.length < 2) {
-                continue;
+        String description = null;
+        String url = null;
+        String key = null;
+        try {
+            // If the scanner can't even read one token then the file must be empty/blank
+            if (!scan.hasNext()) {
+                return null;
             }
 
-            String name = parts[0];
-            String value = parts[1];
-            switch (name) {
-                case "description": description = value; break;
-                case "url": url = value; break;
-                case "key": key = value; break;
+            while (scan.hasNext()) {
+                String[] parts = scan.next().split(":", 2);
+                if (parts.length < 2) {
+                    continue;
+                }
+
+                String name = parts[0];
+                String value = parts[1];
+                switch (name) {
+                    case "description":
+                        description = value;
+                        break;
+                    case "url":
+                        url = value;
+                        break;
+                    case "key":
+                        key = value;
+                        break;
+                }
             }
+        } finally {
+            scan.close();
         }
 
         if (description == null || url == null || key == null) {
