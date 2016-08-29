@@ -19,7 +19,6 @@ package org.conscrypt;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -46,7 +45,6 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.conscrypt.util.ArrayUtils;
 import org.conscrypt.util.EmptyArray;
-import org.conscrypt.NativeConstants;
 import org.conscrypt.NativeRef.EVP_AEAD_CTX;
 import org.conscrypt.NativeRef.EVP_CIPHER_CTX;
 
