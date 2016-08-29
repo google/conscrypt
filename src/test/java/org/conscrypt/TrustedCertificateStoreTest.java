@@ -43,9 +43,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import javax.security.auth.x500.X500Principal;
-
 import junit.framework.TestCase;
 import libcore.java.security.TestKeyStore;
 

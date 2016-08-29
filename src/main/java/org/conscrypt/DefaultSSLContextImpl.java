@@ -25,7 +25,6 @@ import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.SecureRandom;
-
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManager;

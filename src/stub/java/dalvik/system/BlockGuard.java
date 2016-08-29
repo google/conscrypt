@@ -16,7 +16,6 @@
 
 package dalvik.system;
 
-import java.lang.reflect.Method;
 
 public class BlockGuard {
     private BlockGuard() {}

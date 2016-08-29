@@ -16,8 +16,8 @@
 
 package org.conscrypt;
 
-import java.io.Closeable;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
