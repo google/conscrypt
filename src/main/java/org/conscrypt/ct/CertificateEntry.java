@@ -16,13 +16,13 @@
 
 package org.conscrypt.ct;
 
-import org.conscrypt.OpenSSLX509Certificate;
 import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import org.conscrypt.OpenSSLX509Certificate;
 
 /**
  * CertificateEntry structure.

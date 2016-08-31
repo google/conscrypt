@@ -16,10 +16,10 @@
 
 package org.conscrypt;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.io.IOException;
 import javax.net.ssl.SSLSocketFactory;
 
 public abstract class BaseOpenSSLSocketAdapterFactory extends SSLSocketFactory {

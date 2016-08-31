@@ -18,7 +18,6 @@ package org.conscrypt;
 
 import java.lang.reflect.Method;
 import java.net.Socket;
-
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLEngine;
 

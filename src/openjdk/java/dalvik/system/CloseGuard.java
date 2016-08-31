@@ -16,7 +16,6 @@
 
 package dalvik.system;
 
-import java.lang.reflect.Method;
 
 /**
  * Basically empty class since OpenJDK doesn't have the equivalent.

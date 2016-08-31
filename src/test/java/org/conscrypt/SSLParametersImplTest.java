@@ -16,9 +16,9 @@
 
 package org.conscrypt;
 
-import junit.framework.TestCase;
 import java.util.Arrays;
 import java.util.HashSet;
+import junit.framework.TestCase;
 
 public class SSLParametersImplTest extends TestCase {
 

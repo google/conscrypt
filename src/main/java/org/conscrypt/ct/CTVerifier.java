@@ -16,14 +16,13 @@
 
 package org.conscrypt.ct;
 
-import org.conscrypt.NativeCrypto;
-import org.conscrypt.OpenSSLX509Certificate;
-
-import java.security.cert.CertificateException;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.conscrypt.NativeCrypto;
+import org.conscrypt.OpenSSLX509Certificate;
 
 public class CTVerifier {
     private final CTLogStore store;

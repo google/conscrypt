@@ -17,10 +17,7 @@
 
 package org.conscrypt;
 
-import org.conscrypt.util.EmptyArray;
-
 import java.security.Principal;
-import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.util.HashMap;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -28,6 +25,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
+import org.conscrypt.util.EmptyArray;
 
 public final class SSLNullSession implements SSLSession, Cloneable {
 

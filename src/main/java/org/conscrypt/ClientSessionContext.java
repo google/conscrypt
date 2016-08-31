@@ -17,7 +17,6 @@
 package org.conscrypt;
 
 import java.util.HashMap;
-import java.util.Map;
 import javax.net.ssl.SSLSession;
 
 /**

@@ -16,15 +16,12 @@
 
 package org.conscrypt;
 
-import junit.framework.TestCase;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.Socket;
 import java.security.Key;
 import java.util.Arrays;
-
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
@@ -32,6 +29,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import junit.framework.TestCase;
 
 public class DuckTypedPSKKeyManagerTest extends TestCase {
     private SSLSocket mSSLSocket;

@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -42,6 +41,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 public class OpenSSLX509CRL extends X509CRL {
     private final long mContext;

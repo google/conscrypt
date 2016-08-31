@@ -16,9 +16,9 @@
 
 package org.conscrypt.ct;
 
-import junit.framework.TestCase;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
+import junit.framework.TestCase;
 
 public class SerializationTest extends TestCase {
     public void test_decode_SignedCertificateTimestamp() throws Exception {
