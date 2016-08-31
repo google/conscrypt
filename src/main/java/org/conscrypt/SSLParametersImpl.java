@@ -17,9 +17,6 @@
 
 package org.conscrypt;
 
-import org.conscrypt.ct.CTVerifier;
-import org.conscrypt.ct.CTLogStoreImpl;
-import org.conscrypt.util.EmptyArray;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
@@ -40,14 +37,17 @@ import javax.crypto.SecretKey;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.ct.CTLogStoreImpl;
+import org.conscrypt.ct.CTVerifier;
+import org.conscrypt.util.EmptyArray;
 
 /**
  * The instances of this class encapsulate all the info

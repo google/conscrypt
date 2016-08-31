@@ -24,7 +24,6 @@ import android.system.Os;
 import android.system.StructTimeval;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
-import libcore.net.NetworkSecurityPolicy;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -52,7 +51,7 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
-import org.conscrypt.GCMParameters;
+import libcore.net.NetworkSecurityPolicy;
 import sun.security.x509.AlgorithmId;
 
 class Platform {

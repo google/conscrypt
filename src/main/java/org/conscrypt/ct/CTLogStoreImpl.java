@@ -16,24 +16,24 @@
 
 package org.conscrypt.ct;
 
-import org.conscrypt.NativeCrypto;
-import org.conscrypt.OpenSSLKey;
-import java.io.InputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.io.StringBufferInputStream;
 import java.nio.ByteBuffer;
-import java.security.PublicKey;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Hashtable;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Map;
-import java.util.Set;
 import java.util.Scanner;
+import java.util.Set;
+import org.conscrypt.NativeCrypto;
+import org.conscrypt.OpenSSLKey;
 
 public class CTLogStoreImpl implements CTLogStore {
     /**

@@ -16,9 +16,6 @@
 
 package org.conscrypt;
 
-import org.conscrypt.util.ArrayUtils;
-import org.conscrypt.ct.CTVerifier;
-import org.conscrypt.ct.CTVerificationResult;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,6 +43,9 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.ct.CTVerificationResult;
+import org.conscrypt.ct.CTVerifier;
+import org.conscrypt.util.ArrayUtils;
 
 /**
  * Implementation of the class OpenSSLSocketImpl based on OpenSSL.

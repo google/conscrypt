@@ -13,7 +13,6 @@ import java.nio.channels.SocketChannel;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
-
 import javax.crypto.SecretKey;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLEngineResult;

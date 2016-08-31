@@ -16,15 +16,14 @@
 
 package org.conscrypt.ct;
 
-import org.conscrypt.NativeCrypto;
-import org.conscrypt.OpenSSLKey;
-import org.conscrypt.OpenSSLX509Certificate;
-import junit.framework.TestCase;
-import java.security.PublicKey;
-import java.util.Arrays;
-
 import static org.conscrypt.TestUtils.openTestFile;
 import static org.conscrypt.TestUtils.readTestFile;
+
+import java.security.PublicKey;
+import java.util.Arrays;
+import junit.framework.TestCase;
+import org.conscrypt.OpenSSLKey;
+import org.conscrypt.OpenSSLX509Certificate;
 
 public class CTVerifierTest extends TestCase {
     private OpenSSLX509Certificate ca;

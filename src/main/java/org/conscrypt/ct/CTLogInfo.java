@@ -16,13 +16,13 @@
 
 package org.conscrypt.ct;
 
-import java.util.Arrays;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.util.Arrays;
 
 /**
  * Properties about a Certificate Transparency Log.
