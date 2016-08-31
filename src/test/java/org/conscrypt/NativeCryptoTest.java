@@ -16,6 +16,11 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING;
+import static org.conscrypt.NativeConstants.SSL_MODE_HANDSHAKE_CUTTHROUGH;
+import static org.conscrypt.TestUtils.openTestFile;
+import static org.conscrypt.TestUtils.readTestFile;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
@@ -48,23 +53,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
 import javax.security.auth.x500.X500Principal;
-
 import junit.framework.TestCase;
 import libcore.io.IoUtils;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
-
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
-import static org.conscrypt.NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING;
-import static org.conscrypt.NativeConstants.SSL_MODE_HANDSHAKE_CUTTHROUGH;
-
-import static org.conscrypt.TestUtils.openTestFile;
-import static org.conscrypt.TestUtils.readTestFile;
 
 public class NativeCryptoTest extends TestCase {
     private static final long NULL = 0;

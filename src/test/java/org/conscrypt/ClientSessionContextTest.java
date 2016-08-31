@@ -16,6 +16,12 @@
 
 package org.conscrypt;
 
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.security.cert.Certificate;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -24,13 +30,6 @@ import java.util.Set;
 import javax.net.ssl.SSLSession;
 import junit.framework.TestCase;
 import libcore.javax.net.ssl.FakeSSLSession;
-import org.mockito.Mockito;
-
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public final class ClientSessionContextTest extends TestCase {
 

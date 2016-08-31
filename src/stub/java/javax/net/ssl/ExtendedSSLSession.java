@@ -17,8 +17,6 @@
 package javax.net.ssl;
 
 import java.util.List;
-import javax.net.ssl.SNIServerName;
-import javax.net.ssl.SSLSession;
 
 /**
  * This is a stub class used for compiling against.

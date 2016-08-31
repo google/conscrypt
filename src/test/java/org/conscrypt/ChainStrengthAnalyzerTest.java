@@ -18,10 +18,10 @@ package org.conscrypt;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.NoSuchAlgorithmException;
 import junit.framework.TestCase;
 
 public class ChainStrengthAnalyzerTest extends TestCase {

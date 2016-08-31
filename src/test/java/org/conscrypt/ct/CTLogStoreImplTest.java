@@ -16,14 +16,14 @@
 
 package org.conscrypt.ct;
 
-import org.conscrypt.OpenSSLKey;
-import junit.framework.TestCase;
-import java.io.StringBufferInputStream;
-import java.io.PrintWriter;
 import java.io.File;
-import java.io.IOException;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringBufferInputStream;
 import java.security.PublicKey;
+import junit.framework.TestCase;
+import org.conscrypt.OpenSSLKey;
 
 public class CTLogStoreImplTest extends TestCase {
     private static final String[] LOG_KEYS = new String[] {

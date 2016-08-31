@@ -17,13 +17,12 @@
 package org.conscrypt;
 
 import java.io.InputStream;
-import java.util.Collection;
+import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.KeyStore;
-import javax.net.ssl.TrustManagerFactory;
+import java.util.Collection;
 import javax.net.ssl.X509TrustManager;
 import junit.framework.TestCase;
 

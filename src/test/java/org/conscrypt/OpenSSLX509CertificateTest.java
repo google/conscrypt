@@ -16,11 +16,11 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.TestUtils.openTestFile;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
@@ -28,8 +28,6 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import junit.framework.TestCase;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
-
-import static org.conscrypt.TestUtils.openTestFile;
 
 public class OpenSSLX509CertificateTest extends TestCase {
     public void testSerialization_NoContextDeserialization() throws Exception {

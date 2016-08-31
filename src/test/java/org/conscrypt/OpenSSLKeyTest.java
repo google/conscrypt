@@ -16,9 +16,9 @@
 
 package org.conscrypt;
 
-import junit.framework.TestCase;
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
+import junit.framework.TestCase;
 
 public class OpenSSLKeyTest extends TestCase {
     static final String RSA_PUBLIC_KEY =

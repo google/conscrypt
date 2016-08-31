@@ -16,40 +16,38 @@
 
 package org.conscrypt;
 
-import org.conscrypt.ct.CTLogInfo;
-import org.conscrypt.ct.CTLogStore;
-import org.conscrypt.ct.CTLogStoreImpl;
-import org.conscrypt.ct.CTVerifier;
+import static org.conscrypt.TestUtils.openTestFile;
+import static org.conscrypt.TestUtils.readTestFile;
 
-import junit.framework.TestCase;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.lang.reflect.Field;
 import java.security.KeyStore;
-import java.security.PublicKey;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import javax.net.ssl.SSLSocketFactory;
+import java.util.Arrays;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.KeyManager;
-import javax.net.ssl.TrustManager;
 import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.SSLHandshakeException;
-
-import static org.conscrypt.TestUtils.openTestFile;
-import static org.conscrypt.TestUtils.readTestFile;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import junit.framework.TestCase;
+import org.conscrypt.ct.CTLogInfo;
+import org.conscrypt.ct.CTLogStore;
+import org.conscrypt.ct.CTVerifier;
 
 public class OpenSSLSocketImplTest extends TestCase {
     private static final long TIMEOUT_SECONDS = 5;
