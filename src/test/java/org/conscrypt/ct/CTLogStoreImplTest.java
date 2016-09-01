@@ -130,10 +130,12 @@ public class CTLogStoreImplTest extends TestCase {
         writeFile(log1File, LOGS_SERIALIZED[1]);
         writeFile(log3File, "");
 
-        // Logs 012 are present, log 3 is present but masked, log 4 is missing
+        // Logs 01 are present, log 2 is in the fallback and unused, log 3 is present but masked,
+        // log 4 is missing
         assertEquals(LOGS[0], store.getKnownLog(LOGS[0].getID()));
         assertEquals(LOGS[1], store.getKnownLog(LOGS[1].getID()));
-        assertEquals(LOGS[2], store.getKnownLog(LOGS[2].getID()));
+        // Fallback logs are not used if the userDir is present.
+        assertEquals(null, store.getKnownLog(LOGS[2].getID()));
         assertEquals(null, store.getKnownLog(LOGS[3].getID()));
         assertEquals(null, store.getKnownLog(LOGS[4].getID()));
 
@@ -148,6 +150,12 @@ public class CTLogStoreImplTest extends TestCase {
         assertEquals(LOGS[0], store.getKnownLog(LOGS[0].getID()));
         assertEquals(LOGS[1], store.getKnownLog(LOGS[1].getID()));
         assertEquals(null, store.getKnownLog(LOGS[4].getID()));
+
+        // Test that fallback logs are used when the userDir doesn't exist.
+        File doesntExist = new File("/doesnt/exist/");
+        store = new CTLogStoreImpl(doesntExist, doesntExist, fallback);
+        assertEquals(LOGS[2], store.getKnownLog(LOGS[2].getID()));
+        assertEquals(LOGS[3], store.getKnownLog(LOGS[3].getID()));
     }
 
     /**
