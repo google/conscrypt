@@ -63,7 +63,7 @@ public class CTLogStoreImpl implements CTLogStore {
     static {
         String ANDROID_DATA = System.getenv("ANDROID_DATA");
         String ANDROID_ROOT = System.getenv("ANDROID_ROOT");
-        defaultUserLogDir = new File(ANDROID_DATA + "/misc/keychain/ct_known_logs/");
+        defaultUserLogDir = new File(ANDROID_DATA + "/misc/keychain/trusted_ct_logs/current/");
         defaultSystemLogDir = new File(ANDROID_ROOT + "/etc/security/ct_known_logs/");
     }
 
@@ -121,9 +121,12 @@ public class CTLogStoreImpl implements CTLogStore {
             return null;
         } catch (FileNotFoundException e) {}
 
-        for (CTLogInfo log: fallbackLogs) {
-            if (Arrays.equals(logId, log.getID())) {
-                return log;
+        // If the updateable logs dont exist then use the fallback logs.
+        if (!userLogDir.exists()) {
+            for (CTLogInfo log: fallbackLogs) {
+                if (Arrays.equals(logId, log.getID())) {
+                    return log;
+                }
             }
         }
         return null;
@@ -174,7 +177,7 @@ public class CTLogStoreImpl implements CTLogStore {
      * @return a CTLogInfo or null if the input is empty
      */
     public static CTLogInfo loadLog(InputStream input) throws InvalidLogFileException {
-        Scanner scan = new Scanner(input).useDelimiter(",");
+        Scanner scan = new Scanner(input, "UTF-8").useDelimiter("\n");
         // If the scanner can't even read one token then the file must be empty/blank
         if (!scan.hasNext()) {
             return null;
