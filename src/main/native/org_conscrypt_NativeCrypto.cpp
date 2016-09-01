@@ -27,6 +27,10 @@
     #define JNI_JARJAR_PREFIX
 #endif
 
+/* Suppress BoringSSL's C++ APIs. They depend on std::unique_ptr which we
+ * cannot use. */
+#define BORINGSSL_NO_CXX
+
 #define LOG_TAG "NativeCrypto"
 
 #include <arpa/inet.h>
