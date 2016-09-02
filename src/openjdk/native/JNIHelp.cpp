@@ -31,7 +31,7 @@
 template<typename T>
 class scoped_local_ref {
 public:
-    scoped_local_ref(JNIEnv* env, T localRef = NULL)
+    scoped_local_ref(JNIEnv* env, T localRef = nullptr)
     : mEnv(env), mLocalRef(localRef)
     {
     }
@@ -40,8 +40,8 @@ public:
         reset();
     }
 
-    void reset(T localRef = NULL) {
-        if (mLocalRef != NULL) {
+    void reset(T localRef = nullptr) {
+        if (mLocalRef != nullptr) {
             mEnv->DeleteLocalRef(mLocalRef);
             mLocalRef = localRef;
         }
@@ -70,7 +70,7 @@ extern "C" int jniRegisterNativeMethods(JNIEnv* env, const char* className,
     ALOGV("Registering %s's %d native methods...", className, numMethods);
 
     scoped_local_ref<jclass> c(env, findClass(env, className));
-    if (c.get() == NULL) {
+    if (c.get() == nullptr) {
         char* msg;
         (void)asprintf(&msg, "Native registration unable to find class '%s'; aborting...",
                        className);
@@ -92,7 +92,7 @@ extern "C"
 int jniThrowException(JNIEnv* env, const char* className, const char* msg) {
     jclass exceptionClass = env->FindClass(className);
 
-    if (exceptionClass == NULL) {
+    if (exceptionClass == nullptr) {
         ALOGD("Unable to find exception class %s", className);
         /* ClassNotFoundException now pending */
         return -1;
@@ -148,7 +148,7 @@ const char* jniStrError(int errnum, char* buf, size_t buflen) {
 int jniGetFDFromFileDescriptor(JNIEnv* env, jobject fileDescriptor) {
     scoped_local_ref<jclass> localClass(env, env->FindClass("java/io/FileDescriptor"));
     static jfieldID fid = env->GetFieldID(localClass.get(), "fd", "I");
-    if (fileDescriptor != NULL) {
+    if (fileDescriptor != nullptr) {
         return env->GetIntField(fileDescriptor, fid);
     } else {
         return -1;
