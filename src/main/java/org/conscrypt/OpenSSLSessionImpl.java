@@ -47,6 +47,7 @@ public class OpenSSLSessionImpl implements SSLSession {
     private final Map<String, Object> values = new HashMap<String, Object>();
     private volatile javax.security.cert.X509Certificate[] peerCertificateChain;
     private byte[] peerCertificateOcspData;
+    private byte[] peerTlsSctData;
     protected long sslSessionNativePointer;
     private String peerHost;
     private int peerPort = -1;
@@ -60,12 +61,14 @@ public class OpenSSLSessionImpl implements SSLSession {
      * SSL parameters.
      */
     protected OpenSSLSessionImpl(long sslSessionNativePointer, X509Certificate[] localCertificates,
-            X509Certificate[] peerCertificates, byte[] peerCertificateOcspData, String peerHost,
-            int peerPort, AbstractSessionContext sessionContext) {
+            X509Certificate[] peerCertificates, byte[] peerCertificateOcspData,
+            byte[] peerTlsSctData, String peerHost, int peerPort,
+            AbstractSessionContext sessionContext) {
         this.sslSessionNativePointer = sslSessionNativePointer;
         this.localCertificates = localCertificates;
         this.peerCertificates = peerCertificates;
         this.peerCertificateOcspData = peerCertificateOcspData;
+        this.peerTlsSctData = peerTlsSctData;
         this.peerHost = peerHost;
         this.peerPort = peerPort;
         this.sessionContext = sessionContext;
@@ -79,10 +82,10 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     OpenSSLSessionImpl(byte[] derData, String peerHost, int peerPort,
             X509Certificate[] peerCertificates, byte[] peerCertificateOcspData,
-            AbstractSessionContext sessionContext)
+            byte[] peerTlsSctData, AbstractSessionContext sessionContext)
             throws IOException {
         this(NativeCrypto.d2i_SSL_SESSION(derData), null, peerCertificates,
-                peerCertificateOcspData, peerHost, peerPort, sessionContext);
+                peerCertificateOcspData, peerTlsSctData, peerHost, peerPort, sessionContext);
     }
 
     /**
@@ -491,6 +494,13 @@ public class OpenSSLSessionImpl implements SSLSession {
         }
 
         return Collections.singletonList(peerCertificateOcspData.clone());
+    }
+
+    public byte[] getTlsSctData() {
+        if (peerTlsSctData == null) {
+            return null;
+        }
+        return peerTlsSctData.clone();
     }
 
     @Override

@@ -53,6 +53,10 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509ExtendedTrustManager;
+import org.conscrypt.ct.CTLogStore;
+import org.conscrypt.ct.CTLogStoreImpl;
+import org.conscrypt.ct.CTVerificationResult;
+import org.conscrypt.ct.CTVerifier;
 
 /**
  *
@@ -111,6 +115,10 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private final Exception err;
     private final CertificateFactory factory;
     private final CertBlacklist blacklist;
+    private CTVerifier ctVerifier;
+
+    // Forces CT verification to always to done. For tests.
+    private boolean ctEnabledOverride;
 
     /**
      * Creates X509TrustManager based on a keystore
@@ -121,19 +129,19 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         this(keyStore, null);
     }
 
-    /**
-     * For testing only
-     */
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager) {
         this(keyStore, manager, null);
     }
 
-    /**
-     * For testing only.
-     */
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
                             TrustedCertificateStore certStore) {
         this(keyStore, manager, certStore, null);
+    }
+
+    public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
+                            TrustedCertificateStore certStore,
+                            CertBlacklist blacklist) {
+        this(keyStore, manager, certStore, blacklist, null);
     }
 
     /**
@@ -141,7 +149,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      */
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
                             TrustedCertificateStore certStore,
-                            CertBlacklist blacklist) {
+                            CertBlacklist blacklist, CTLogStore ctLogStore) {
         CertPathValidator validatorLocal = null;
         CertificateFactory factoryLocal = null;
         KeyStore rootKeyStoreLocal = null;
@@ -175,6 +183,9 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         if (blacklist == null) {
             blacklist = CertBlacklist.getDefault();
         }
+        if (ctLogStore == null) {
+            ctLogStore = new CTLogStoreImpl();
+        }
 
         this.pinManager = manager;
         this.rootKeyStore = rootKeyStoreLocal;
@@ -186,6 +197,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         this.acceptedIssuers = acceptedIssuersLocal;
         this.err = errLocal;
         this.blacklist = blacklist;
+        this.ctVerifier = new CTVerifier(ctLogStore);
     }
 
     private static X509Certificate[] acceptedIssuers(KeyStore ks) {
@@ -232,7 +244,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      */
     public List<X509Certificate> checkClientTrusted(X509Certificate[] chain, String authType,
             String hostname) throws CertificateException {
-        return checkTrusted(chain, null /* ocspData */, authType, hostname, true);
+        return checkTrusted(chain, null /* ocspData */, null /* tlsSctData */, authType, hostname,
+                true);
     }
 
     private static SSLSession getHandshakeSessionOrThrow(SSLSocket sslSocket)
@@ -278,7 +291,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      */
     public List<X509Certificate> checkServerTrusted(X509Certificate[] chain, String authType,
             String hostname) throws CertificateException {
-        return checkTrusted(chain, null /* ocspData */, authType, hostname, false);
+        return checkTrusted(chain, null /* ocspData */, null /* tlsSctData */, authType, hostname,
+                false);
     }
 
     /**
@@ -356,10 +370,12 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             SSLSession session, SSLParameters parameters, boolean clientAuth)
                     throws CertificateException {
         byte[] ocspData = null;
+        byte[] tlsSctData = null;
         String hostname = null;
         if (session != null) {
             hostname = session.getPeerHost();
             ocspData = getOcspDataFromSession(session);
+            tlsSctData = getTlsSctDataFromSession(session);
         }
 
         if (session != null && parameters != null) {
@@ -372,7 +388,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 }
             }
         }
-        return checkTrusted(certs, ocspData, authType, hostname, clientAuth);
+        return checkTrusted(certs, ocspData, tlsSctData, authType, hostname, clientAuth);
     }
 
     private byte[] getOcspDataFromSession(SSLSession session) {
@@ -403,8 +419,31 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         return ocspResponses.get(0);
     }
 
+    private byte[] getTlsSctDataFromSession(SSLSession session) {
+        if (session instanceof OpenSSLSessionImpl) {
+            OpenSSLSessionImpl opensslSession = (OpenSSLSessionImpl) session;
+            return opensslSession.getTlsSctData();
+        }
+
+        byte[] data = null;
+        try {
+            Method m_getTlsSctData = session.getClass().getDeclaredMethod("getTlsSctData");
+            m_getTlsSctData.setAccessible(true);
+            Object rawData = m_getTlsSctData.invoke(session);
+            if (rawData instanceof byte[]) {
+                data = (byte[]) rawData;
+            }
+        } catch (NoSuchMethodException | SecurityException | IllegalAccessException
+                | IllegalArgumentException ignored) {
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e.getCause());
+        }
+        return data;
+    }
+
     private List<X509Certificate> checkTrusted(X509Certificate[] certs, byte[] ocspData,
-            String authType, String host, boolean clientAuth) throws CertificateException {
+            byte[] tlsSctData, String authType, String host, boolean clientAuth)
+            throws CertificateException {
         if (certs == null || certs.length == 0 || authType == null || authType.length() == 0) {
             throw new IllegalArgumentException("null or zero-length parameter");
         }
@@ -426,7 +465,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             untrustedChain.add(leaf);
         }
         used.add(leaf);
-        return checkTrustedRecursive(certs, ocspData, host, clientAuth, untrustedChain, trustedChain, used);
+        return checkTrustedRecursive(certs, ocspData, tlsSctData, host, clientAuth,
+                untrustedChain, trustedChain, used);
     }
 
     /**
@@ -453,8 +493,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      * for trust decisions (e.g. showing the user a click through page based on the specific error).
      */
     private List<X509Certificate> checkTrustedRecursive(X509Certificate[] certs, byte[] ocspData,
-            String host, boolean clientAuth, ArrayList<X509Certificate> untrustedChain,
-            ArrayList<TrustAnchor> trustAnchorChain,
+            byte[] tlsSctData, String host, boolean clientAuth,
+            ArrayList<X509Certificate> untrustedChain, ArrayList<TrustAnchor> trustAnchorChain,
             Set<X509Certificate> used) throws CertificateException {
         CertificateException lastException = null;
         X509Certificate current;
@@ -469,7 +509,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
         // 1. If the current certificate in the chain is self-signed verify the chain as is.
         if (current.getIssuerDN().equals(current.getSubjectDN())) {
-            return verifyChain(ocspData, untrustedChain, trustAnchorChain, host, clientAuth);
+            return verifyChain(untrustedChain, trustAnchorChain, host, clientAuth, ocspData,
+                    tlsSctData);
         }
 
         // 2. Try building a chain via any trust anchors that issued the current certificate.
@@ -489,8 +530,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             used.add(anchorCert);
             trustAnchorChain.add(anchor);
             try {
-                return checkTrustedRecursive(certs, ocspData, host, clientAuth, untrustedChain,
-                        trustAnchorChain, used);
+                return checkTrustedRecursive(certs, ocspData, tlsSctData, host, clientAuth,
+                        untrustedChain, trustAnchorChain, used);
             } catch (CertificateException ex) {
                 lastException = ex;
             }
@@ -504,7 +545,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         // present in the trusted set.
         if (!trustAnchorChain.isEmpty()) {
             if (!seenIssuer) {
-                return verifyChain(ocspData, untrustedChain, trustAnchorChain, host, clientAuth);
+                return verifyChain(untrustedChain, trustAnchorChain, host, clientAuth, ocspData,
+                        tlsSctData);
             }
 
             // Otherwise all chains based on the current trust anchor were rejected, fail.
@@ -533,8 +575,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 used.add(candidateIssuer);
                 untrustedChain.add(candidateIssuer);
                 try {
-                    return checkTrustedRecursive(certs, ocspData, host, clientAuth, untrustedChain,
-                            trustAnchorChain, used);
+                    return checkTrustedRecursive(certs, ocspData, tlsSctData, host, clientAuth,
+                            untrustedChain, trustAnchorChain, used);
                 } catch (CertificateException ex) {
                     lastException = ex;
                 }
@@ -556,8 +598,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             used.add(intermediateCert);
             untrustedChain.add(intermediateCert);
             try {
-                return checkTrustedRecursive(certs, ocspData, host, clientAuth, untrustedChain,
-                        trustAnchorChain, used);
+                return checkTrustedRecursive(certs, ocspData, tlsSctData, host, clientAuth,
+                        untrustedChain, trustAnchorChain, used);
             } catch (CertificateException ex) {
                 lastException = ex;
             }
@@ -578,8 +620,9 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 "Trust anchor for certification path not found.", null, certPath, -1));
     }
 
-    private List<X509Certificate> verifyChain(byte[] ocspData, List<X509Certificate> untrustedChain,
-            List<TrustAnchor> trustAnchorChain, String host, boolean clientAuth)
+    private List<X509Certificate> verifyChain(List<X509Certificate> untrustedChain,
+            List<TrustAnchor> trustAnchorChain, String host, boolean clientAuth, byte[] ocspData,
+            byte[] tlsSctData)
             throws CertificateException {
         // build the cert path from the list of certs sans trust anchors
         // TODO: check whether this is slow and should be replaced by a minimalistic CertPath impl
@@ -604,6 +647,12 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         // Check whole chain against the blacklist
         for (X509Certificate cert : wholeChain) {
             checkBlacklist(cert);
+        }
+
+        // Check CT (if required).
+        if (!clientAuth &&
+                (ctEnabledOverride || (host != null && Platform.isCTVerificationRequired(host)))) {
+            checkCT(wholeChain, ocspData, tlsSctData);
         }
 
         if (untrustedChain.isEmpty()) {
@@ -642,6 +691,15 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private void checkBlacklist(X509Certificate cert) throws CertificateException {
         if (blacklist.isPublicKeyBlackListed(cert.getPublicKey())) {
             throw new CertificateException("Certificate blacklisted by public key: " + cert);
+        }
+    }
+
+    private void checkCT(List<X509Certificate> chain, byte[] ocspData, byte[] tlsData)
+            throws CertificateException {
+        CTVerificationResult result =
+                ctVerifier.verifySignedCertificateTimestamps(chain, tlsData, ocspData);
+        if (result.getValidSCTs().size() == 0) {
+            throw new CertificateException("No valid SCT found");
         }
     }
 
@@ -869,5 +927,14 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     @Override
     public X509Certificate[] getAcceptedIssuers() {
         return (acceptedIssuers != null) ? acceptedIssuers.clone() : acceptedIssuers(rootKeyStore);
+    }
+
+    public void setCTEnabledOverride(boolean enabled) {
+        this.ctEnabledOverride = enabled;
+    }
+
+    // Replace the CTVerifier. For testing only.
+    public void setCTVerifier(CTVerifier verifier) {
+        this.ctVerifier = verifier;
     }
 }
