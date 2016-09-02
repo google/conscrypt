@@ -27,13 +27,13 @@
     class Scoped ## NAME ## ArrayRO { \
     public: \
         explicit Scoped ## NAME ## ArrayRO(JNIEnv* env) \
-        : mEnv(env), mJavaArray(NULL), mRawArray(NULL) {} \
+        : mEnv(env), mJavaArray(nullptr), mRawArray(nullptr) {} \
         Scoped ## NAME ## ArrayRO(JNIEnv* env, PRIMITIVE_TYPE ## Array javaArray) \
-        : mEnv(env), mJavaArray(javaArray), mRawArray(NULL) { \
-            if (mJavaArray == NULL) { \
-                jniThrowNullPointerException(mEnv, NULL); \
+        : mEnv(env), mJavaArray(javaArray), mRawArray(nullptr) { \
+            if (mJavaArray == nullptr) { \
+                jniThrowNullPointerException(mEnv, nullptr); \
             } else { \
-                mRawArray = mEnv->Get ## NAME ## ArrayElements(mJavaArray, NULL); \
+                mRawArray = mEnv->Get ## NAME ## ArrayElements(mJavaArray, nullptr); \
             } \
         } \
         ~Scoped ## NAME ## ArrayRO() { \
@@ -43,7 +43,7 @@
         } \
         void reset(PRIMITIVE_TYPE ## Array javaArray) { \
             mJavaArray = javaArray; \
-            mRawArray = mEnv->Get ## NAME ## ArrayElements(mJavaArray, NULL); \
+            mRawArray = mEnv->Get ## NAME ## ArrayElements(mJavaArray, nullptr); \
         } \
         const PRIMITIVE_TYPE* get() const { return mRawArray; } \
         PRIMITIVE_TYPE ## Array getJavaArray() const { return mJavaArray; } \
@@ -76,13 +76,13 @@ INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RO(jshort, Short);
     class Scoped ## NAME ## ArrayRW { \
     public: \
         explicit Scoped ## NAME ## ArrayRW(JNIEnv* env) \
-        : mEnv(env), mJavaArray(NULL), mRawArray(NULL) {} \
+        : mEnv(env), mJavaArray(nullptr), mRawArray(nullptr) {} \
         Scoped ## NAME ## ArrayRW(JNIEnv* env, PRIMITIVE_TYPE ## Array javaArray) \
-        : mEnv(env), mJavaArray(javaArray), mRawArray(NULL) { \
-            if (mJavaArray == NULL) { \
-                jniThrowNullPointerException(mEnv, NULL); \
+        : mEnv(env), mJavaArray(javaArray), mRawArray(nullptr) { \
+            if (mJavaArray == nullptr) { \
+                jniThrowNullPointerException(mEnv, nullptr); \
             } else { \
-                mRawArray = mEnv->Get ## NAME ## ArrayElements(mJavaArray, NULL); \
+                mRawArray = mEnv->Get ## NAME ## ArrayElements(mJavaArray, nullptr); \
             } \
         } \
         ~Scoped ## NAME ## ArrayRW() { \
@@ -92,7 +92,7 @@ INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RO(jshort, Short);
         } \
         void reset(PRIMITIVE_TYPE ## Array javaArray) { \
             mJavaArray = javaArray; \
-            mRawArray = mEnv->Get ## NAME ## ArrayElements(mJavaArray, NULL); \
+            mRawArray = mEnv->Get ## NAME ## ArrayElements(mJavaArray, nullptr); \
         } \
         const PRIMITIVE_TYPE* get() const { return mRawArray; } \
         PRIMITIVE_TYPE ## Array getJavaArray() const { return mJavaArray; } \

@@ -105,7 +105,7 @@ jobject jniGetReferent(JNIEnv* env, jobject ref);
 
 /*
  * Log a message and an exception.
- * If exception is NULL, logs the current exception in the JNI environment.
+ * If exception is nullptr, logs the current exception in the JNI environment.
  */
 void jniLogException(JNIEnv* env, int priority, const char* tag, jthrowable exception);
 
