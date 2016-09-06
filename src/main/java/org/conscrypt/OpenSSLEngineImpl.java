@@ -410,7 +410,10 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
             if (engineState == EngineState.CLOSED || engineState == EngineState.CLOSED_INBOUND) {
                 return new SSLEngineResult(Status.CLOSED, getHandshakeStatus(), 0, 0);
             }
-            if (engineState == EngineState.NEW || engineState == EngineState.MODE_SET) {
+            if (engineState == EngineState.NEW) {
+                throw new IllegalStateException("Client/server mode must be set before calling unwrap");
+            }
+            if (engineState == EngineState.MODE_SET) {
                 beginHandshake();
             }
         }
@@ -526,18 +529,21 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         }
         checkIndex(srcs.length, offset, length);
 
-        if (dst.remaining() < NativeConstants.SSL3_RT_MAX_PACKET_SIZE) {
-            return new SSLEngineResult(Status.BUFFER_OVERFLOW, getHandshakeStatus(), 0, 0);
-        }
-
         synchronized (stateLock) {
             // If the outbound direction is closed. we can't send anymore.
             if (engineState == EngineState.CLOSED || engineState == EngineState.CLOSED_OUTBOUND) {
                 return new SSLEngineResult(Status.CLOSED, getHandshakeStatus(), 0, 0);
             }
-            if (engineState == EngineState.NEW || engineState == EngineState.MODE_SET) {
+            if (engineState == EngineState.NEW) {
+                throw new IllegalStateException("Client/server mode must be set before calling wrap");
+            }
+            if (engineState == EngineState.MODE_SET) {
                 beginHandshake();
             }
+        }
+
+        if (dst.remaining() < NativeConstants.SSL3_RT_MAX_PACKET_SIZE) {
+            return new SSLEngineResult(Status.BUFFER_OVERFLOW, getHandshakeStatus(), 0, 0);
         }
 
         // If we haven't completed the handshake yet, just let the caller know.
