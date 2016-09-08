@@ -8113,14 +8113,6 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_tmp_rsa_callback(sslCtx.get(), tmp_rsa_callback);
     SSL_CTX_set_tmp_dh_callback(sslCtx.get(), tmp_dh_callback);
 
-    // If negotiating ECDH, use P-256.
-    Unique_EC_KEY ec(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
-    if (ec.get() == nullptr) {
-        throwExceptionIfNecessary(env, "EC_KEY_new_by_curve_name");
-        return 0;
-    }
-    SSL_CTX_set_tmp_ecdh(sslCtx.get(), ec.get());
-
     JNI_TRACE("NativeCrypto_SSL_CTX_new => %p", sslCtx.get());
     return (jlong) sslCtx.release();
 }
