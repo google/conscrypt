@@ -44,7 +44,7 @@ local_javac_flags:=-Xmaxwarns 9999999
 #local_javac_flags+=-Xlint:all -Xlint:-serial,-deprecation,-unchecked
 
 core_cflags := -Wall -Wextra -Werror -Wunused
-core_cppflags := -std=gnu++11 -Wall -Wextra -Werror -Wunused
+core_cppflags := -Wall -Wextra -Werror -Wunused
 
 # libnativehelper's UniquePtr is deprecated but changing to std::unique_ptr has
 # been rejected here in the past:
@@ -60,7 +60,6 @@ LOCAL_CPP_EXTENSION := cc
 LOCAL_SRC_FILES := src/gen/native/generate_constants.cc
 LOCAL_MODULE := conscrypt_generate_constants
 LOCAL_SHARED_LIBRARIES := libcrypto libssl
-LOCAL_CXX_STL := none
 include $(BUILD_HOST_EXECUTABLE)
 
 conscrypt_generate_constants_exe := $(LOCAL_INSTALLED_MODULE)
@@ -184,6 +183,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libconscrypt_jni
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_SDK_VERSION := 9
+LOCAL_NDK_STL_VARIANT := c++_shared
 LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_SHARED_LIBRARY)
 
@@ -207,6 +207,7 @@ LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_STATIC_LIBRARIES := libssl libcrypto
 LOCAL_SDK_VERSION := 9
 LOCAL_JAVA_LANGUAGE_VERSION := 1.7
+LOCAL_NDK_STL_VARIANT := c++_shared
 include $(BUILD_STATIC_LIBRARY)
 
 #
@@ -276,7 +277,6 @@ LOCAL_CFLAGS += -DJNI_JARJAR_PREFIX="com/android/"
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_SHARED_LIBRARIES := libcrypto libjavacore liblog libnativehelper libssl
 LOCAL_MULTILIB := both
-LOCAL_CXX_STL := none
 include $(BUILD_HOST_SHARED_LIBRARY)
 
 # Conscrypt native library for nojarjar'd version
@@ -299,7 +299,6 @@ ifeq (,$(TARGET_BUILD_APPS))
     LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
     LOCAL_SHARED_LIBRARIES := libcrypto libjavacore liblog libnativehelper libssl
     LOCAL_MULTILIB := both
-    LOCAL_CXX_STL := none
     include $(BUILD_HOST_SHARED_LIBRARY)
 endif
 

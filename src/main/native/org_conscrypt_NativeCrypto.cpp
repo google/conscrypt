@@ -27,10 +27,6 @@
     #define JNI_JARJAR_PREFIX
 #endif
 
-/* Suppress BoringSSL's C++ APIs. They depend on std::unique_ptr which we
- * cannot use. */
-#define BORINGSSL_NO_CXX
-
 #define LOG_TAG "NativeCrypto"
 
 #include <arpa/inet.h>
@@ -40,6 +36,7 @@
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <memory>
 
 #ifdef CONSCRYPT_UNBUNDLED
 #include <dlfcn.h>
@@ -86,7 +83,6 @@
 #include "ScopedLocalRef.h"
 #include "ScopedPrimitiveArray.h"
 #include "ScopedUtfChars.h"
-#include "UniquePtr.h"
 #include "NetFd.h"
 
 #include "macros.h"
@@ -163,70 +159,70 @@ struct OPENSSL_Delete {
         OPENSSL_free(p);
     }
 };
-typedef UniquePtr<unsigned char, OPENSSL_Delete> Unique_OPENSSL_str;
+typedef std::unique_ptr<unsigned char, OPENSSL_Delete> Unique_OPENSSL_str;
 
 struct BIO_Delete {
     void operator()(BIO* p) const {
         BIO_free_all(p);
     }
 };
-typedef UniquePtr<BIO, BIO_Delete> Unique_BIO;
+typedef std::unique_ptr<BIO, BIO_Delete> Unique_BIO;
 
 struct BIGNUM_Delete {
     void operator()(BIGNUM* p) const {
         BN_free(p);
     }
 };
-typedef UniquePtr<BIGNUM, BIGNUM_Delete> Unique_BIGNUM;
+typedef std::unique_ptr<BIGNUM, BIGNUM_Delete> Unique_BIGNUM;
 
 struct BN_CTX_Delete {
     void operator()(BN_CTX* ctx) const {
         BN_CTX_free(ctx);
     }
 };
-typedef UniquePtr<BN_CTX, BN_CTX_Delete> Unique_BN_CTX;
+typedef std::unique_ptr<BN_CTX, BN_CTX_Delete> Unique_BN_CTX;
 
 struct ASN1_INTEGER_Delete {
     void operator()(ASN1_INTEGER* p) const {
         ASN1_INTEGER_free(p);
     }
 };
-typedef UniquePtr<ASN1_INTEGER, ASN1_INTEGER_Delete> Unique_ASN1_INTEGER;
+typedef std::unique_ptr<ASN1_INTEGER, ASN1_INTEGER_Delete> Unique_ASN1_INTEGER;
 
 struct DSA_Delete {
     void operator()(DSA* p) const {
         DSA_free(p);
     }
 };
-typedef UniquePtr<DSA, DSA_Delete> Unique_DSA;
+typedef std::unique_ptr<DSA, DSA_Delete> Unique_DSA;
 
 struct EC_GROUP_Delete {
     void operator()(EC_GROUP* p) const {
         EC_GROUP_free(p);
     }
 };
-typedef UniquePtr<EC_GROUP, EC_GROUP_Delete> Unique_EC_GROUP;
+typedef std::unique_ptr<EC_GROUP, EC_GROUP_Delete> Unique_EC_GROUP;
 
 struct EC_POINT_Delete {
     void operator()(EC_POINT* p) const {
         EC_POINT_clear_free(p);
     }
 };
-typedef UniquePtr<EC_POINT, EC_POINT_Delete> Unique_EC_POINT;
+typedef std::unique_ptr<EC_POINT, EC_POINT_Delete> Unique_EC_POINT;
 
 struct EC_KEY_Delete {
     void operator()(EC_KEY* p) const {
         EC_KEY_free(p);
     }
 };
-typedef UniquePtr<EC_KEY, EC_KEY_Delete> Unique_EC_KEY;
+typedef std::unique_ptr<EC_KEY, EC_KEY_Delete> Unique_EC_KEY;
 
 struct EVP_MD_CTX_Delete {
     void operator()(EVP_MD_CTX* p) const {
         EVP_MD_CTX_destroy(p);
     }
 };
-typedef UniquePtr<EVP_MD_CTX, EVP_MD_CTX_Delete> Unique_EVP_MD_CTX;
+typedef std::unique_ptr<EVP_MD_CTX, EVP_MD_CTX_Delete> Unique_EVP_MD_CTX;
 
 struct EVP_AEAD_CTX_Delete {
     void operator()(EVP_AEAD_CTX* p) const {
@@ -234,91 +230,91 @@ struct EVP_AEAD_CTX_Delete {
         delete p;
     }
 };
-typedef UniquePtr<EVP_AEAD_CTX, EVP_AEAD_CTX_Delete> Unique_EVP_AEAD_CTX;
+typedef std::unique_ptr<EVP_AEAD_CTX, EVP_AEAD_CTX_Delete> Unique_EVP_AEAD_CTX;
 
 struct EVP_CIPHER_CTX_Delete {
     void operator()(EVP_CIPHER_CTX* p) const {
         EVP_CIPHER_CTX_free(p);
     }
 };
-typedef UniquePtr<EVP_CIPHER_CTX, EVP_CIPHER_CTX_Delete> Unique_EVP_CIPHER_CTX;
+typedef std::unique_ptr<EVP_CIPHER_CTX, EVP_CIPHER_CTX_Delete> Unique_EVP_CIPHER_CTX;
 
 struct EVP_PKEY_Delete {
     void operator()(EVP_PKEY* p) const {
         EVP_PKEY_free(p);
     }
 };
-typedef UniquePtr<EVP_PKEY, EVP_PKEY_Delete> Unique_EVP_PKEY;
+typedef std::unique_ptr<EVP_PKEY, EVP_PKEY_Delete> Unique_EVP_PKEY;
 
 struct PKCS8_PRIV_KEY_INFO_Delete {
     void operator()(PKCS8_PRIV_KEY_INFO* p) const {
         PKCS8_PRIV_KEY_INFO_free(p);
     }
 };
-typedef UniquePtr<PKCS8_PRIV_KEY_INFO, PKCS8_PRIV_KEY_INFO_Delete> Unique_PKCS8_PRIV_KEY_INFO;
+typedef std::unique_ptr<PKCS8_PRIV_KEY_INFO, PKCS8_PRIV_KEY_INFO_Delete> Unique_PKCS8_PRIV_KEY_INFO;
 
 struct RSA_Delete {
     void operator()(RSA* p) const {
         RSA_free(p);
     }
 };
-typedef UniquePtr<RSA, RSA_Delete> Unique_RSA;
+typedef std::unique_ptr<RSA, RSA_Delete> Unique_RSA;
 
 struct ASN1_BIT_STRING_Delete {
     void operator()(ASN1_BIT_STRING* p) const {
         ASN1_BIT_STRING_free(p);
     }
 };
-typedef UniquePtr<ASN1_BIT_STRING, ASN1_BIT_STRING_Delete> Unique_ASN1_BIT_STRING;
+typedef std::unique_ptr<ASN1_BIT_STRING, ASN1_BIT_STRING_Delete> Unique_ASN1_BIT_STRING;
 
 struct ASN1_OBJECT_Delete {
     void operator()(ASN1_OBJECT* p) const {
         ASN1_OBJECT_free(p);
     }
 };
-typedef UniquePtr<ASN1_OBJECT, ASN1_OBJECT_Delete> Unique_ASN1_OBJECT;
+typedef std::unique_ptr<ASN1_OBJECT, ASN1_OBJECT_Delete> Unique_ASN1_OBJECT;
 
 struct ASN1_GENERALIZEDTIME_Delete {
     void operator()(ASN1_GENERALIZEDTIME* p) const {
         ASN1_GENERALIZEDTIME_free(p);
     }
 };
-typedef UniquePtr<ASN1_GENERALIZEDTIME, ASN1_GENERALIZEDTIME_Delete> Unique_ASN1_GENERALIZEDTIME;
+typedef std::unique_ptr<ASN1_GENERALIZEDTIME, ASN1_GENERALIZEDTIME_Delete> Unique_ASN1_GENERALIZEDTIME;
 
 struct SSL_Delete {
     void operator()(SSL* p) const {
         SSL_free(p);
     }
 };
-typedef UniquePtr<SSL, SSL_Delete> Unique_SSL;
+typedef std::unique_ptr<SSL, SSL_Delete> Unique_SSL;
 
 struct SSL_CTX_Delete {
     void operator()(SSL_CTX* p) const {
         SSL_CTX_free(p);
     }
 };
-typedef UniquePtr<SSL_CTX, SSL_CTX_Delete> Unique_SSL_CTX;
+typedef std::unique_ptr<SSL_CTX, SSL_CTX_Delete> Unique_SSL_CTX;
 
 struct X509_Delete {
     void operator()(X509* p) const {
         X509_free(p);
     }
 };
-typedef UniquePtr<X509, X509_Delete> Unique_X509;
+typedef std::unique_ptr<X509, X509_Delete> Unique_X509;
 
 struct X509_NAME_Delete {
     void operator()(X509_NAME* p) const {
         X509_NAME_free(p);
     }
 };
-typedef UniquePtr<X509_NAME, X509_NAME_Delete> Unique_X509_NAME;
+typedef std::unique_ptr<X509_NAME, X509_NAME_Delete> Unique_X509_NAME;
 
 struct X509_EXTENSIONS_Delete {
     void operator()(X509_EXTENSIONS* p) const {
         sk_X509_EXTENSION_pop_free(p, X509_EXTENSION_free);
     }
 };
-typedef UniquePtr<X509_EXTENSIONS, X509_EXTENSIONS_Delete> Unique_X509_EXTENSIONS;
+typedef std::unique_ptr<X509_EXTENSIONS, X509_EXTENSIONS_Delete> Unique_X509_EXTENSIONS;
 
 struct sk_SSL_CIPHER_Delete {
     void operator()(STACK_OF(SSL_CIPHER)* p) const {
@@ -326,42 +322,42 @@ struct sk_SSL_CIPHER_Delete {
         sk_SSL_CIPHER_free(p);
     }
 };
-typedef UniquePtr<STACK_OF(SSL_CIPHER), sk_SSL_CIPHER_Delete> Unique_sk_SSL_CIPHER;
+typedef std::unique_ptr<STACK_OF(SSL_CIPHER), sk_SSL_CIPHER_Delete> Unique_sk_SSL_CIPHER;
 
 struct sk_X509_Delete {
     void operator()(STACK_OF(X509)* p) const {
         sk_X509_pop_free(p, X509_free);
     }
 };
-typedef UniquePtr<STACK_OF(X509), sk_X509_Delete> Unique_sk_X509;
+typedef std::unique_ptr<STACK_OF(X509), sk_X509_Delete> Unique_sk_X509;
 
 struct sk_X509_CRL_Delete {
     void operator()(STACK_OF(X509_CRL)* p) const {
         sk_X509_CRL_pop_free(p, X509_CRL_free);
     }
 };
-typedef UniquePtr<STACK_OF(X509_CRL), sk_X509_CRL_Delete> Unique_sk_X509_CRL;
+typedef std::unique_ptr<STACK_OF(X509_CRL), sk_X509_CRL_Delete> Unique_sk_X509_CRL;
 
 struct sk_X509_NAME_Delete {
     void operator()(STACK_OF(X509_NAME)* p) const {
         sk_X509_NAME_pop_free(p, X509_NAME_free);
     }
 };
-typedef UniquePtr<STACK_OF(X509_NAME), sk_X509_NAME_Delete> Unique_sk_X509_NAME;
+typedef std::unique_ptr<STACK_OF(X509_NAME), sk_X509_NAME_Delete> Unique_sk_X509_NAME;
 
 struct sk_ASN1_OBJECT_Delete {
     void operator()(STACK_OF(ASN1_OBJECT)* p) const {
         sk_ASN1_OBJECT_pop_free(p, ASN1_OBJECT_free);
     }
 };
-typedef UniquePtr<STACK_OF(ASN1_OBJECT), sk_ASN1_OBJECT_Delete> Unique_sk_ASN1_OBJECT;
+typedef std::unique_ptr<STACK_OF(ASN1_OBJECT), sk_ASN1_OBJECT_Delete> Unique_sk_ASN1_OBJECT;
 
 struct sk_GENERAL_NAME_Delete {
     void operator()(STACK_OF(GENERAL_NAME)* p) const {
         sk_GENERAL_NAME_pop_free(p, GENERAL_NAME_free);
     }
 };
-typedef UniquePtr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENERAL_NAME;
+typedef std::unique_ptr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENERAL_NAME;
 
 /**
  * Many OpenSSL APIs take ownership of an argument on success but don't free the argument
@@ -369,7 +365,7 @@ typedef UniquePtr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENE
  * without triggering a warning by not using the result of release().
  */
 #define OWNERSHIP_TRANSFERRED(obj) \
-    do { typeof ((obj).release()) _dummy __attribute__((unused)) = (obj).release(); } while(0)
+    do { decltype((obj).release()) _dummy __attribute__((unused)) = (obj).release(); } while(0)
 
 /**
  * UNUSED_ARGUMENT can be used to mark an, otherwise unused, argument as "used"
@@ -937,7 +933,7 @@ static bool arrayToBignum(JNIEnv* env, jbyteArray source, BIGNUM** dest) {
         return true;
     }
 
-    UniquePtr<unsigned char[]> twosComplement;
+    std::unique_ptr<unsigned char[]> twosComplement;
     bool negative = (tmp[0] & 0x80) != 0;
     if (negative) {
         // Need to convert to two's complement.
@@ -3593,7 +3589,7 @@ static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, 
             // through the buffer, stopping as soon as update_func fails.
             size_t remaining = in_size;
             size_t buf_size = (remaining >= 65536) ? 65536 : remaining;
-            UniquePtr<jbyte[]> buf(new jbyte[buf_size]);
+            std::unique_ptr<jbyte[]> buf(new jbyte[buf_size]);
             if (buf.get() == nullptr) {
                 jniThrowOutOfMemory(env, "Unable to allocate chunk buffer");
                 return;
@@ -3700,7 +3696,7 @@ static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject 
         return nullptr;
     }
 
-    UniquePtr<unsigned char[]> buffer(new unsigned char[maxLen]);
+    std::unique_ptr<unsigned char[]> buffer(new unsigned char[maxLen]);
     if (buffer.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate signature buffer");
         return nullptr;
@@ -3894,7 +3890,7 @@ static void NativeCrypto_EVP_CipherInit_ex(JNIEnv* env, jclass, jobject ctxRef, 
     }
 
     // The key can be null if we need to set extra parameters.
-    UniquePtr<unsigned char[]> keyPtr;
+    std::unique_ptr<unsigned char[]> keyPtr;
     if (keyArray != nullptr) {
         ScopedByteArrayRO keyBytes(env, keyArray);
         if (keyBytes.get() == nullptr) {
@@ -3906,7 +3902,7 @@ static void NativeCrypto_EVP_CipherInit_ex(JNIEnv* env, jclass, jobject ctxRef, 
     }
 
     // The IV can be null if we're using ECB.
-    UniquePtr<unsigned char[]> ivPtr;
+    std::unique_ptr<unsigned char[]> ivPtr;
     if (ivArray != nullptr) {
         ScopedByteArrayRO ivBytes(env, ivArray);
         if (ivBytes.get() == nullptr) {
@@ -4245,7 +4241,7 @@ static jint evp_aead_ctx_op(JNIEnv* env, jobject ctxRef, jbyteArray outArray, ji
         return 0;
     }
 
-    UniquePtr<ScopedByteArrayRO> aad;
+    std::unique_ptr<ScopedByteArrayRO> aad;
     const uint8_t* aad_chars = nullptr;
     size_t aad_chars_size = 0;
     if (aadArray != nullptr) {
@@ -4539,7 +4535,7 @@ static int NativeCrypto_BIO_read(JNIEnv* env, jclass, jlong bioRef, jbyteArray o
 
     int outputSize = env->GetArrayLength(outputJavaBytes);
 
-    UniquePtr<unsigned char[]> buffer(new unsigned char[outputSize]);
+    std::unique_ptr<unsigned char[]> buffer(new unsigned char[outputSize]);
     if (buffer.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate buffer for read");
         return 0;
@@ -4574,7 +4570,7 @@ static void NativeCrypto_BIO_write(JNIEnv* env, jclass, jlong bioRef, jbyteArray
         return;
     }
 
-    UniquePtr<unsigned char[]> buffer(new unsigned char[length]);
+    std::unique_ptr<unsigned char[]> buffer(new unsigned char[length]);
     if (buffer.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate buffer for write");
         return;
@@ -4658,7 +4654,7 @@ static jobject GENERAL_NAME_to_jobject(JNIEnv* env, GENERAL_NAME* gen) {
         const void *ip = reinterpret_cast<const void *>(gen->d.ip->data);
         if (gen->d.ip->length == 4) {
             // IPv4
-            UniquePtr<char[]> buffer(new char[INET_ADDRSTRLEN]);
+            std::unique_ptr<char[]> buffer(new char[INET_ADDRSTRLEN]);
             if (inet_ntop(AF_INET, ip, buffer.get(), INET_ADDRSTRLEN) != nullptr) {
                 JNI_TRACE("GENERAL_NAME_to_jobject(%p) => IPv4 %s", gen, buffer.get());
                 return env->NewStringUTF(buffer.get());
@@ -4667,7 +4663,7 @@ static jobject GENERAL_NAME_to_jobject(JNIEnv* env, GENERAL_NAME* gen) {
             }
         } else if (gen->d.ip->length == 16) {
             // IPv6
-            UniquePtr<char[]> buffer(new char[INET6_ADDRSTRLEN]);
+            std::unique_ptr<char[]> buffer(new char[INET6_ADDRSTRLEN]);
             if (inet_ntop(AF_INET6, ip, buffer.get(), INET6_ADDRSTRLEN) != nullptr) {
                 JNI_TRACE("GENERAL_NAME_to_jobject(%p) => IPv6 %s", gen, buffer.get());
                 return env->NewStringUTF(buffer.get());
@@ -5770,7 +5766,7 @@ static jbyteArray NativeCrypto_ASN1_seq_pack_X509(JNIEnv* env, jclass, jlongArra
         CBB_cleanup(&result);
         return nullptr;
     }
-    UniquePtr<uint8_t> out_storage(out);
+    std::unique_ptr<uint8_t> out_storage(out);
 
     ScopedLocalRef<jbyteArray> byteArray(env, env->NewByteArray(out_len));
     if (byteArray.get() == nullptr) {
@@ -6394,7 +6390,7 @@ class AppData {
      */
   public:
     static AppData* create() {
-        UniquePtr<AppData> appData(new AppData());
+        std::unique_ptr<AppData> appData(new AppData());
         if (pipe(appData.get()->fdsEmergency) == -1) {
             ALOGE("AppData::create pipe(2) failed: %s", strerror(errno));
             return nullptr;
@@ -6457,7 +6453,7 @@ class AppData {
      */
     bool setCallbackState(JNIEnv* e, jobject shc, jobject fd, jbyteArray npnProtocols,
             jbyteArray alpnProtocols) {
-        UniquePtr<NetFd> netFd;
+        std::unique_ptr<NetFd> netFd;
         if (fd != nullptr) {
             netFd.reset(new NetFd(e, fd));
             if (netFd->isClosed()) {
@@ -7779,7 +7775,7 @@ static void NativeCrypto_SSL_set_cipher_lists(JNIEnv* env, jclass, jlong ssl_add
     }
     cipherStringLen += 1;  /* For final NUL. */
 
-    UniquePtr<char[]> cipherString(new char[cipherStringLen]);
+    std::unique_ptr<char[]> cipherString(new char[cipherStringLen]);
     if (cipherString.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to alloc cipher string");
         return;
