@@ -323,7 +323,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libconscrypt_openjdk_jni
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 LOCAL_CXX_STL := libc++_static
-LOCAL_WHOLE_STATIC_LIBRARIES := libcrypto_static libssl_static-host
+LOCAL_STATIC_LIBRARIES := libssl_static-host libcrypto_static
 LOCAL_MULTILIB := both
 # TODO: b/26097626. ASAN breaks use of this library in JVM.
 # Re-enable sanitization when the issue with making clients of this library
