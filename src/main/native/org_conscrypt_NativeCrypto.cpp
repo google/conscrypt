@@ -6908,43 +6908,6 @@ static unsigned int psk_server_callback(SSL* ssl, const char *identity,
     return keyLen;
 }
 
-static RSA* rsaGenerateKey(int keylength) {
-    Unique_BIGNUM bn(BN_new());
-    if (bn.get() == nullptr) {
-        return nullptr;
-    }
-    int setWordResult = BN_set_word(bn.get(), RSA_F4);
-    if (setWordResult != 1) {
-        return nullptr;
-    }
-    Unique_RSA rsa(RSA_new());
-    if (rsa.get() == nullptr) {
-        return nullptr;
-    }
-    int generateResult = RSA_generate_key_ex(rsa.get(), keylength, bn.get(), nullptr);
-    if (generateResult != 1) {
-        return nullptr;
-    }
-    return rsa.release();
-}
-
-/**
- * Call back to ask for an ephemeral RSA key for SSL_RSA_EXPORT_WITH_RC4_40_MD5 (aka EXP-RC4-MD5)
- */
-static RSA* tmp_rsa_callback(SSL* ssl __attribute__ ((unused)),
-                             int is_export __attribute__ ((unused)),
-                             int keylength) {
-    JNI_TRACE("ssl=%p tmp_rsa_callback is_export=%d keylength=%d", ssl, is_export, keylength);
-
-    AppData* appData = toAppData(ssl);
-    if (appData->ephemeralRsa.get() == nullptr) {
-        JNI_TRACE("ssl=%p tmp_rsa_callback generating ephemeral RSA key", ssl);
-        appData->ephemeralRsa.reset(rsaGenerateKey(keylength));
-    }
-    JNI_TRACE("ssl=%p tmp_rsa_callback => %p", ssl, appData->ephemeralRsa.get());
-    return appData->ephemeralRsa.get();
-}
-
 static DH* dhGenerateParameters(int keylength) {
     /* At the time of writing, OpenSSL and BoringSSL are hard coded to request
      * a 1024-bit DH. */
@@ -7032,7 +6995,6 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_cert_verify_callback(sslCtx.get(), cert_verify_callback, nullptr);
     SSL_CTX_set_info_callback(sslCtx.get(), info_callback);
     SSL_CTX_set_client_cert_cb(sslCtx.get(), client_cert_cb);
-    SSL_CTX_set_tmp_rsa_callback(sslCtx.get(), tmp_rsa_callback);
     SSL_CTX_set_tmp_dh_callback(sslCtx.get(), tmp_dh_callback);
 #ifdef WITH_JNI_TRACE_KEYS
     SSL_CTX_set_keylog_callback(sslCtx.get(), debug_print_session_key);
