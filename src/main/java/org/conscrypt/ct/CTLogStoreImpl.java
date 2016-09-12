@@ -27,9 +27,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 import org.conscrypt.NativeCrypto;
@@ -71,8 +70,8 @@ public class CTLogStoreImpl implements CTLogStore {
     private File systemLogDir;
     private CTLogInfo[] fallbackLogs;
 
-    private Map<ByteBuffer, CTLogInfo> logCache = new Hashtable();
-    private Set<ByteBuffer> missingLogCache = Collections.synchronizedSet(new HashSet());
+    private HashMap<ByteBuffer, CTLogInfo> logCache = new HashMap<>();
+    private Set<ByteBuffer> missingLogCache = Collections.synchronizedSet(new HashSet<ByteBuffer>());
 
     public CTLogStoreImpl() {
         this(defaultUserLogDir,
