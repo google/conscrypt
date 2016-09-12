@@ -152,7 +152,7 @@ public class CTVerifier {
     private List<SignedCertificateTimestamp> getSCTsFromSCTList(byte[] data,
             SignedCertificateTimestamp.Origin origin) {
         if (data == null) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         byte[][] sctList;
@@ -160,10 +160,10 @@ public class CTVerifier {
             sctList = Serialization.readList(data, CTConstants.SCT_LIST_LENGTH_BYTES,
                                              CTConstants.SERIALIZED_SCT_LENGTH_BYTES);
         } catch (SerializationException e) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
-        List<SignedCertificateTimestamp> scts = new ArrayList();
+        List<SignedCertificateTimestamp> scts = new ArrayList<>();
         for (byte[] encodedSCT: sctList) {
             try  {
                 SignedCertificateTimestamp sct = SignedCertificateTimestamp.decode(encodedSCT, origin);
@@ -199,14 +199,14 @@ public class CTVerifier {
     private List<SignedCertificateTimestamp> getSCTsFromOCSPResponse(byte[] data,
             OpenSSLX509Certificate[] chain) {
         if (data == null || chain.length < 2) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         byte[] extData = NativeCrypto.get_ocsp_single_extension(data, CTConstants.OCSP_SCT_LIST_OID,
                                                                 chain[0].getContext(),
                                                                 chain[1].getContext());
         if (extData == null) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         try {
@@ -215,7 +215,7 @@ public class CTVerifier {
                       Serialization.readDEROctetString(extData)),
                     SignedCertificateTimestamp.Origin.OCSP_RESPONSE);
         } catch (SerializationException e) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
     }
 
@@ -228,7 +228,7 @@ public class CTVerifier {
     private List<SignedCertificateTimestamp> getSCTsFromX509Extension(OpenSSLX509Certificate leaf) {
         byte[] extData = leaf.getExtensionValue(CTConstants.X509_SCT_LIST_OID);
         if (extData == null) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         try {
@@ -237,7 +237,7 @@ public class CTVerifier {
                       Serialization.readDEROctetString(extData)),
                     SignedCertificateTimestamp.Origin.EMBEDDED);
         } catch (SerializationException e) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
     }
 }
