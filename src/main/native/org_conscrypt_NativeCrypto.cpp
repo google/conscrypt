@@ -4139,8 +4139,7 @@ static jlong NativeCrypto_EVP_AEAD_CTX_init(JNIEnv* env, jclass, jlong evpAeadRe
         return 0;
     }
 
-    Unique_EVP_AEAD_CTX aeadCtx(reinterpret_cast<EVP_AEAD_CTX*>(
-            OPENSSL_malloc(sizeof(EVP_AEAD_CTX))));
+    Unique_EVP_AEAD_CTX aeadCtx(new EVP_AEAD_CTX);
     memset(aeadCtx.get(), 0, sizeof(EVP_AEAD_CTX));
 
     const uint8_t* tmp = reinterpret_cast<const uint8_t*>(keyBytes.get());
@@ -4290,7 +4289,7 @@ static jint NativeCrypto_EVP_AEAD_CTX_open(JNIEnv* env, jclass, jobject ctxRef, 
 
 static jlong NativeCrypto_HMAC_CTX_new(JNIEnv* env, jclass) {
     JNI_TRACE("HMAC_CTX_new");
-    HMAC_CTX* hmacCtx = reinterpret_cast<HMAC_CTX*>(OPENSSL_malloc(sizeof(HMAC_CTX)));
+    auto hmacCtx = new HMAC_CTX;
     if (hmacCtx == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate HMAC_CTX");
         return 0;
@@ -4307,7 +4306,7 @@ static void NativeCrypto_HMAC_CTX_free(JNIEnv*, jclass, jlong hmacCtxRef) {
         return;
     }
     HMAC_CTX_cleanup(hmacCtx);
-    OPENSSL_free(hmacCtx);
+    delete hmacCtx;
 }
 
 static void NativeCrypto_HMAC_Init_ex(JNIEnv* env, jclass, jobject hmacCtxRef, jbyteArray keyArray,
