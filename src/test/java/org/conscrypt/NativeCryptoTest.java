@@ -588,7 +588,7 @@ public class NativeCryptoTest extends TestCase {
             // empty
             "",
             // never standardized
-            "EXP1024-DES-CBC-SHA", "EXP1024-RC4-SHA", "DHE-DSS-RC4-SHA",
+            "EXP1024-DES-CBC-SHA",
             // IDEA
             "IDEA-CBC-SHA", "IDEA-CBC-MD5"
         };
@@ -649,7 +649,7 @@ public class NativeCryptoTest extends TestCase {
             // very slow ephemeral RSA key generation
             List<String> cipherSuites = new ArrayList<String>();
             if (enabledCipherSuites == null) {
-                cipherSuites.add("RC4-MD5");
+                cipherSuites.add("RSA-AES128-SHA");
                 if (pskEnabled) {
                     // In TLS-PSK the client indicates that PSK key exchange is desired by offering
                     // at least one PSK cipher suite.
