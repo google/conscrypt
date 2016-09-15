@@ -4757,7 +4757,7 @@ static jlong NativeCrypto_EVP_get_cipherbyname(JNIEnv* env, jclass, jstring algo
     } else if (strcasecmp(alg, "des-cbc") == 0) {
         cipher = EVP_des_cbc();
     } else if (strcasecmp(alg, "des-ede-cbc") == 0) {
-        cipher = EVP_des_cbc();
+        cipher = EVP_des_ede_cbc();
     } else if (strcasecmp(alg, "des-ede3-cbc") == 0) {
         cipher = EVP_des_ede3_cbc();
     } else if (strcasecmp(alg, "aes-128-ecb") == 0) {
