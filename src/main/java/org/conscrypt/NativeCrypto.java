@@ -600,12 +600,10 @@ public final class NativeCrypto {
         add("ADH-AES256-SHA",			"TLS_DH_anon_WITH_AES_256_CBC_SHA");
         add("ADH-DES-CBC3-SHA",			"SSL_DH_anon_WITH_3DES_EDE_CBC_SHA");
         add("ADH-DES-CBC-SHA",			"SSL_DH_anon_WITH_DES_CBC_SHA");
-        add("ADH-RC4-MD5",			"SSL_DH_anon_WITH_RC4_128_MD5");
         add("AECDH-AES128-SHA",			"TLS_ECDH_anon_WITH_AES_128_CBC_SHA");
         add("AECDH-AES256-SHA",			"TLS_ECDH_anon_WITH_AES_256_CBC_SHA");
         add("AECDH-DES-CBC3-SHA",		"TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA");
         add("AECDH-NULL-SHA",			"TLS_ECDH_anon_WITH_NULL_SHA");
-        add("AECDH-RC4-SHA",			"TLS_ECDH_anon_WITH_RC4_128_SHA");
         add("AES128-GCM-SHA256",		"TLS_RSA_WITH_AES_128_GCM_SHA256");
         add("AES128-SHA256",			"TLS_RSA_WITH_AES_128_CBC_SHA256");
         add("AES128-SHA",			"TLS_RSA_WITH_AES_128_CBC_SHA");
@@ -629,7 +627,6 @@ public final class NativeCrypto {
         add("ECDH-ECDSA-AES256-SHA",		"TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA");
         add("ECDH-ECDSA-DES-CBC3-SHA",		"TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA");
         add("ECDH-ECDSA-NULL-SHA",		"TLS_ECDH_ECDSA_WITH_NULL_SHA");
-        add("ECDH-ECDSA-RC4-SHA",		"TLS_ECDH_ECDSA_WITH_RC4_128_SHA");
         add("ECDHE-ECDSA-AES128-GCM-SHA256",   	"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
         add("ECDHE-ECDSA-AES128-SHA256",	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
         add("ECDHE-ECDSA-AES128-SHA",		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
@@ -640,7 +637,6 @@ public final class NativeCrypto {
         add("ECDHE-ECDSA-CHACHA20-POLY1305",	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256");
         add("ECDHE-ECDSA-DES-CBC3-SHA",		"TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA");
         add("ECDHE-ECDSA-NULL-SHA",		"TLS_ECDHE_ECDSA_WITH_NULL_SHA");
-        add("ECDHE-ECDSA-RC4-SHA",		"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA");
         add("ECDHE-PSK-AES128-CBC-SHA",		"TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA");
         add("ECDHE-PSK-AES128-GCM-SHA256",     	"TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256");
         add("ECDHE-PSK-AES256-CBC-SHA",		"TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA");
@@ -656,7 +652,6 @@ public final class NativeCrypto {
         add("ECDHE-RSA-CHACHA20-POLY1305",	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256");
         add("ECDHE-RSA-DES-CBC3-SHA",		"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA");
         add("ECDHE-RSA-NULL-SHA",		"TLS_ECDHE_RSA_WITH_NULL_SHA");
-        add("ECDHE-RSA-RC4-SHA",		"TLS_ECDHE_RSA_WITH_RC4_128_SHA");
         add("ECDH-RSA-AES128-GCM-SHA256",      	"TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256");
         add("ECDH-RSA-AES128-SHA256",		"TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256");
         add("ECDH-RSA-AES128-SHA",		"TLS_ECDH_RSA_WITH_AES_128_CBC_SHA");
@@ -665,23 +660,17 @@ public final class NativeCrypto {
         add("ECDH-RSA-AES256-SHA",		"TLS_ECDH_RSA_WITH_AES_256_CBC_SHA");
         add("ECDH-RSA-DES-CBC3-SHA",		"TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA");
         add("ECDH-RSA-NULL-SHA",		"TLS_ECDH_RSA_WITH_NULL_SHA");
-        add("ECDH-RSA-RC4-SHA",			"TLS_ECDH_RSA_WITH_RC4_128_SHA");
         add("EDH-RSA-DES-CBC3-SHA",		"SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA");
         add("EDH-RSA-DES-CBC-SHA",		"SSL_DHE_RSA_WITH_DES_CBC_SHA");
         add("EXP-ADH-DES-CBC-SHA",		"SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
-        add("EXP-ADH-RC4-MD5",			"SSL_DH_anon_EXPORT_WITH_RC4_40_MD5");
         add("EXP-DES-CBC-SHA",			"SSL_RSA_EXPORT_WITH_DES40_CBC_SHA");
         add("EXP-EDH-RSA-DES-CBC-SHA",		"SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA");
-        add("EXP-RC4-MD5",			"SSL_RSA_EXPORT_WITH_RC4_40_MD5");
         add("NULL-MD5",				"SSL_RSA_WITH_NULL_MD5");
         add("NULL-SHA256",			"TLS_RSA_WITH_NULL_SHA256");
         add("NULL-SHA",				"SSL_RSA_WITH_NULL_SHA");
         add("PSK-3DES-EDE-CBC-SHA",		"TLS_PSK_WITH_3DES_EDE_CBC_SHA");
         add("PSK-AES128-CBC-SHA",		"TLS_PSK_WITH_AES_128_CBC_SHA");
         add("PSK-AES256-CBC-SHA",		"TLS_PSK_WITH_AES_256_CBC_SHA");
-        add("PSK-RC4-SHA",			"TLS_PSK_WITH_RC4_128_SHA");
-        add("RC4-MD5",				"SSL_RSA_WITH_RC4_128_MD5");
-        add("RC4-SHA",				"SSL_RSA_WITH_RC4_128_SHA");
 
         // Signaling Cipher Suite Value for secure renegotiation handled as special case.
         // add("TLS_EMPTY_RENEGOTIATION_INFO_SCSV", null);
@@ -693,7 +682,7 @@ public final class NativeCrypto {
     private static final String[] SUPPORTED_CIPHER_SUITES;
     static {
         // Cipher selection string must work with OpenSSL and BoringSSL.
-        String[] allOpenSSLCipherSuites = get_cipher_names("ALL:-EXP:-SRP:-SEED:-CAMELLIA:-DSS:-RC2:-DES-CBC-MD5:-DES-CBC3-MD5");
+        String[] allOpenSSLCipherSuites = get_cipher_names("ALL:-EXP:-SRP:-SEED:-CAMELLIA:-DSS:-RC2:-DES-CBC-MD5:-DES-CBC3-MD5:-RC4");
 
         int size = allOpenSSLCipherSuites.length;
         SUPPORTED_CIPHER_SUITES = new String[size + 2];
