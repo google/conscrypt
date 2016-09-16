@@ -644,12 +644,10 @@ public class NativeCryptoTest extends TestCase {
         }
         public long beforeHandshake(long context) throws SSLException {
             long s = NativeCrypto.SSL_new(context);
-            // without this SSL_set_cipher_lists call the tests were
-            // negotiating DHE-RSA-AES256-SHA by default which had
-            // very slow ephemeral RSA key generation
+            // Limit cipher suites to a known set so authMethod is known.
             List<String> cipherSuites = new ArrayList<String>();
             if (enabledCipherSuites == null) {
-                cipherSuites.add("RSA-AES128-SHA");
+                cipherSuites.add("ECDHE-RSA-AES128-SHA");
                 if (pskEnabled) {
                     // In TLS-PSK the client indicates that PSK key exchange is desired by offering
                     // at least one PSK cipher suite.
@@ -1013,7 +1011,7 @@ public class NativeCryptoTest extends TestCase {
         assertTrue(clientCallback.verifyCertificateChainCalled);
         assertEqualCertificateChains(getServerCertificates(),
                                      clientCallback.certificateChainRefs);
-        assertEquals("RSA", clientCallback.authMethod);
+        assertEquals("ECDHE_RSA", clientCallback.authMethod);
         assertFalse(serverCallback.verifyCertificateChainCalled);
         assertFalse(clientCallback.clientCertificateRequestedCalled);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
@@ -1053,11 +1051,11 @@ public class NativeCryptoTest extends TestCase {
         assertTrue(clientCallback.verifyCertificateChainCalled);
         assertEqualCertificateChains(getServerCertificates(),
                                      clientCallback.certificateChainRefs);
-        assertEquals("RSA", clientCallback.authMethod);
+        assertEquals("ECDHE_RSA", clientCallback.authMethod);
         assertTrue(serverCallback.verifyCertificateChainCalled);
         assertEqualCertificateChains(getClientCertificates(),
                 serverCallback.certificateChainRefs);
-        assertEquals("RSA", serverCallback.authMethod);
+        assertEquals("ECDHE_RSA", serverCallback.authMethod);
 
         assertTrue(clientCallback.clientCertificateRequestedCalled);
         assertNotNull(clientCallback.keyTypes);
