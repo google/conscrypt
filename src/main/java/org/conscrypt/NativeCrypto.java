@@ -1009,27 +1009,6 @@ public final class NativeCrypto {
     public static native String SSL_get_servername(long sslNativePointer);
 
     /**
-     * Enables NPN for all SSL connections in the context.
-     *
-     * <p>For clients this causes the NPN extension to be included in the
-     * ClientHello message.
-     *
-     * <p>For servers this causes the NPN extension to be included in the
-     * ServerHello message. The NPN extension will not be included in the
-     * ServerHello response if the client didn't include it in the ClientHello
-     * request.
-     *
-     * <p>In either case the caller should pass a non-null byte array of NPN
-     * protocols to {@link #SSL_do_handshake}.
-     */
-    public static native void SSL_CTX_enable_npn(long sslCtxNativePointer);
-
-    /**
-     * Disables NPN for all SSL connections in the context.
-     */
-    public static native void SSL_CTX_disable_npn(long sslCtxNativePointer);
-
-    /**
      * For clients, sets the list of supported ALPN protocols in wire-format
      * (length-prefixed 8-bit strings).
      */
@@ -1051,7 +1030,6 @@ public final class NativeCrypto {
                                                SSLHandshakeCallbacks shc,
                                                int timeoutMillis,
                                                boolean client_mode,
-                                               byte[] npnProtocols,
                                                byte[] alpnProtocols)
         throws SSLException, SocketTimeoutException, CertificateException;
 
@@ -1065,11 +1043,8 @@ public final class NativeCrypto {
                                                    long sinkBioRef,
                                                    SSLHandshakeCallbacks shc,
                                                    boolean client_mode,
-                                                   byte[] npnProtocols,
                                                    byte[] alpnProtocols)
         throws SSLException, SocketTimeoutException, CertificateException;
-
-    public static native byte[] SSL_get_npn_negotiated_protocol(long sslNativePointer);
 
     /**
      * Currently only intended for forcing renegotiation for testing.

@@ -112,7 +112,6 @@ public class SSLParametersImpl implements Cloneable {
     private byte[] sctExtension;
     private byte[] ocspResponse;
 
-    byte[] npnProtocols;
     byte[] alpnProtocols;
     boolean useSessionTickets;
     private Boolean useSni;
@@ -521,10 +520,6 @@ public class SSLParametersImpl implements Cloneable {
 
     void setSSLParameters(long sslCtxNativePointer, long sslNativePointer, AliasChooser chooser,
             PSKCallbacks pskCallbacks, String sniHostname) throws SSLException, IOException {
-        if (npnProtocols != null) {
-            NativeCrypto.SSL_CTX_enable_npn(sslCtxNativePointer);
-        }
-
         if (client_mode && alpnProtocols != null) {
             NativeCrypto.SSL_set_alpn_protos(sslNativePointer, alpnProtocols);
         }

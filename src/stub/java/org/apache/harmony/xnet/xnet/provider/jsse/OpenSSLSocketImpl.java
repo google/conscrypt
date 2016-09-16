@@ -245,23 +245,10 @@ public class OpenSSLSocketImpl
         throw new RuntimeException("Stub!");
     }
 
-    /**
-     * Returns the protocol agreed upon by client and server, or null if no
-     * protocol was agreed upon.
-     */
     public byte[] getNpnSelectedProtocol() {
         throw new RuntimeException("Stub!");
     }
 
-    /**
-     * Sets the list of protocols this peer is interested in. If null no
-     * protocols will be used.
-     *
-     * @param npnProtocols a non-empty array of protocol names. From
-     *     SSL_select_next_proto, "vector of 8-bit, length prefixed byte
-     *     strings. The length byte itself is not included in the length. A byte
-     *     string of length 0 is invalid. No byte string may be truncated.".
-     */
     public void setNpnProtocols(byte[] npnProtocols) {
         throw new RuntimeException("Stub!");
     }
