@@ -43,7 +43,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import org.conscrypt.NativeRef.EVP_AEAD_CTX;
 import org.conscrypt.NativeRef.EVP_CIPHER_CTX;
 import org.conscrypt.util.ArrayUtils;
 import org.conscrypt.util.EmptyArray;
@@ -985,16 +984,14 @@ public abstract class OpenSSLCipher extends CipherSpi {
         @Override
         protected int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
                 throws IllegalBlockSizeException, BadPaddingException {
-            EVP_AEAD_CTX cipherCtx = new EVP_AEAD_CTX(NativeCrypto.EVP_AEAD_CTX_init(evpAead,
-                    encodedKey, tagLengthInBytes));
             final int bytesWritten;
             try {
                 if (isEncrypting()) {
-                    bytesWritten = NativeCrypto.EVP_AEAD_CTX_seal(cipherCtx, output, outputOffset,
-                            iv, buf, 0, bufCount, aad);
+                    bytesWritten = NativeCrypto.EVP_AEAD_CTX_seal(evpAead, encodedKey,
+                            tagLengthInBytes, output, outputOffset, iv, buf, 0, bufCount, aad);
                 } else {
-                    bytesWritten = NativeCrypto.EVP_AEAD_CTX_open(cipherCtx, output, outputOffset,
-                            iv, buf, 0, bufCount, aad);
+                    bytesWritten = NativeCrypto.EVP_AEAD_CTX_open(evpAead, encodedKey,
+                            tagLengthInBytes, output, outputOffset, iv, buf, 0, bufCount, aad);
                 }
             } catch (BadPaddingException e) {
                 Constructor<?> aeadBadTagConstructor = null;
