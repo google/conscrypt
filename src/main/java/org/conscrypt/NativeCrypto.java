@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.SocketTimeoutException;
 import java.nio.Buffer;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -226,11 +227,14 @@ public final class NativeCrypto {
     public static native boolean EVP_DigestVerifyFinal(NativeRef.EVP_MD_CTX ctx,
             byte[] signature, int offset, int length);
 
-    public static native void EVP_PKEY_CTX_set_rsa_padding(long ctx, int pad);
+    public static native void EVP_PKEY_CTX_set_rsa_padding(long ctx, int pad)
+            throws InvalidAlgorithmParameterException;
 
-    public static native void EVP_PKEY_CTX_set_rsa_pss_saltlen(long ctx, int len);
+    public static native void EVP_PKEY_CTX_set_rsa_pss_saltlen(long ctx, int len)
+            throws InvalidAlgorithmParameterException;
 
-    public static native void EVP_PKEY_CTX_set_rsa_mgf1_md(long ctx, long evpMdRef);
+    public static native void EVP_PKEY_CTX_set_rsa_mgf1_md(long ctx, long evpMdRef)
+            throws InvalidAlgorithmParameterException;
 
     // --- Block ciphers -------------------------------------------------------
 
