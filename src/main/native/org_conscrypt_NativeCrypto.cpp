@@ -517,6 +517,11 @@ static int throwParsingException(JNIEnv* env, const char* message) {
             message);
 }
 
+static int throwInvalidAlgorithmParameterException(JNIEnv* env, const char* message) {
+    JNI_TRACE("throwInvalidAlgorithmParameterException %s", message);
+    return jniThrowException(env, "java/security/InvalidAlgorithmParameterException", message);
+}
+
 static int throwForAsn1Error(JNIEnv* env, int reason, const char *message,
                              int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
@@ -3781,7 +3786,8 @@ static void NativeCrypto_EVP_PKEY_CTX_set_rsa_padding(JNIEnv* env, jclass, jlong
     int result = EVP_PKEY_CTX_set_rsa_padding(pkeyCtx, reinterpret_cast<int>(pad));
     if (result <= 0) {
         JNI_TRACE("ctx=%p EVP_PKEY_CTX_set_rsa_padding => threw exception", pkeyCtx);
-        throwExceptionIfNecessary(env, "EVP_PKEY_CTX_set_rsa_padding");
+        throwExceptionIfNecessary(env, "EVP_PKEY_CTX_set_rsa_padding",
+                                  throwInvalidAlgorithmParameterException);
         return;
     }
 
@@ -3800,7 +3806,8 @@ static void NativeCrypto_EVP_PKEY_CTX_set_rsa_pss_saltlen(JNIEnv* env, jclass, j
     int result = EVP_PKEY_CTX_set_rsa_pss_saltlen(pkeyCtx, reinterpret_cast<int>(len));
     if (result <= 0) {
         JNI_TRACE("ctx=%p EVP_PKEY_CTX_set_rsa_pss_saltlen => threw exception", pkeyCtx);
-        throwExceptionIfNecessary(env, "EVP_PKEY_CTX_set_rsa_pss_saltlen");
+        throwExceptionIfNecessary(env, "EVP_PKEY_CTX_set_rsa_pss_saltlen",
+                                  throwInvalidAlgorithmParameterException);
         return;
     }
 
@@ -3823,7 +3830,8 @@ static void NativeCrypto_EVP_PKEY_CTX_set_rsa_mgf1_md(JNIEnv* env, jclass, jlong
     int result = EVP_PKEY_CTX_set_rsa_mgf1_md(pkeyCtx, md);
     if (result <= 0) {
         JNI_TRACE("ctx=%p EVP_PKEY_CTX_set_rsa_mgf1_md => threw exception", pkeyCtx);
-        throwExceptionIfNecessary(env, "EVP_PKEY_CTX_set_rsa_mgf1_md");
+        throwExceptionIfNecessary(env, "EVP_PKEY_CTX_set_rsa_mgf1_md",
+                                  throwInvalidAlgorithmParameterException);
         return;
     }
 

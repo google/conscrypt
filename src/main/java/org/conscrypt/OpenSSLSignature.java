@@ -83,7 +83,7 @@ public class OpenSSLSignature extends SignatureSpi {
         this.evpMdRef = evpMdRef;
     }
 
-    private final void resetContext() {
+    private final void resetContext() throws InvalidAlgorithmParameterException {
         NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         if (signing) {
             evpPkeyCtx = NativeCrypto.EVP_DigestSignInit(ctxLocal, evpMdRef, key.getNativeRef());
@@ -102,7 +102,7 @@ public class OpenSSLSignature extends SignatureSpi {
      *
      * @param ctx reference to the context ({@code EVP_PKEY_CTX}).
      */
-    protected void configureEVP_PKEY_CTX(long ctx) {}
+    protected void configureEVP_PKEY_CTX(long ctx) throws InvalidAlgorithmParameterException {}
 
     @Override
     protected void engineUpdate(byte input) {
@@ -195,7 +195,11 @@ public class OpenSSLSignature extends SignatureSpi {
         key = newKey;
 
         this.signing = signing;
-        resetContext();
+        try {
+            resetContext();
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new InvalidKeyException(e);
+        }
     }
 
     @Override
@@ -225,7 +229,11 @@ public class OpenSSLSignature extends SignatureSpi {
              * Java expects the digest context to be reset completely after sign
              * calls.
              */
-            resetContext();
+            try {
+                resetContext();
+            } catch (InvalidAlgorithmParameterException e) {
+                throw new AssertionError("Reset of context failed after it was successful once");
+            };
         }
     }
 
@@ -241,7 +249,11 @@ public class OpenSSLSignature extends SignatureSpi {
              * Java expects the digest context to be reset completely after
              * verify calls.
              */
-            resetContext();
+            try {
+                resetContext();
+            } catch (InvalidAlgorithmParameterException e) {
+                throw new AssertionError("Reset of context failed after it was successful once");
+            };
         }
     }
 
@@ -262,7 +274,8 @@ public class OpenSSLSignature extends SignatureSpi {
         }
 
         @Override
-        protected final void configureEVP_PKEY_CTX(long ctx) {
+        protected final void configureEVP_PKEY_CTX(long ctx)
+                throws InvalidAlgorithmParameterException {
             NativeCrypto.EVP_PKEY_CTX_set_rsa_padding(ctx, NativeConstants.RSA_PKCS1_PADDING);
         }
     }
@@ -360,7 +373,8 @@ public class OpenSSLSignature extends SignatureSpi {
         }
 
         @Override
-        protected final void configureEVP_PKEY_CTX(long ctx) {
+        protected final void configureEVP_PKEY_CTX(long ctx)
+                throws InvalidAlgorithmParameterException {
             NativeCrypto.EVP_PKEY_CTX_set_rsa_padding(ctx, NativeConstants.RSA_PKCS1_PSS_PADDING);
             NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, mgf1EvpMdRef);
             NativeCrypto.EVP_PKEY_CTX_set_rsa_pss_saltlen(ctx, saltSizeBytes);
