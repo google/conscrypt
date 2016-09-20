@@ -233,7 +233,7 @@ public class OpenSSLSignature extends SignatureSpi {
                 resetContext();
             } catch (InvalidAlgorithmParameterException e) {
                 throw new AssertionError("Reset of context failed after it was successful once");
-            };
+            }
         }
     }
 
@@ -253,7 +253,7 @@ public class OpenSSLSignature extends SignatureSpi {
                 resetContext();
             } catch (InvalidAlgorithmParameterException e) {
                 throw new AssertionError("Reset of context failed after it was successful once");
-            };
+            }
         }
     }
 
