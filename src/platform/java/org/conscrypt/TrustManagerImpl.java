@@ -681,7 +681,14 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         }
 
         if (revChecker == null) {
-            revChecker = (PKIXRevocationChecker) validator.getRevocationChecker();
+            // Only new CertPathValidatorSpi instances will support the
+            // revocation checker API.
+            try {
+                revChecker = (PKIXRevocationChecker) validator.getRevocationChecker();
+            } catch (UnsupportedOperationException e) {
+                return;
+            }
+
             checkers.add(revChecker);
 
             /*
