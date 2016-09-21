@@ -106,12 +106,12 @@ public class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
     }
 
     @Override
-    public synchronized void setSendBufferSize(int size) throws SocketException {
+    public void setSendBufferSize(int size) throws SocketException {
         socket.setSendBufferSize(size);
     }
 
     @Override
-    public synchronized void setReceiveBufferSize(int size) throws SocketException {
+    public void setReceiveBufferSize(int size) throws SocketException {
         socket.setReceiveBufferSize(size);
     }
 
@@ -141,7 +141,7 @@ public class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
     }
 
     @Override
-    public synchronized int getSoTimeout() throws SocketException {
+    public int getSoTimeout() throws SocketException {
         return socket.getSoTimeout();
     }
 
@@ -151,12 +151,12 @@ public class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
     }
 
     @Override
-    public synchronized int getSendBufferSize() throws SocketException {
+    public int getSendBufferSize() throws SocketException {
         return socket.getSendBufferSize();
     }
 
     @Override
-    public synchronized int getReceiveBufferSize() throws SocketException {
+    public int getReceiveBufferSize() throws SocketException {
         return socket.getReceiveBufferSize();
     }
 
