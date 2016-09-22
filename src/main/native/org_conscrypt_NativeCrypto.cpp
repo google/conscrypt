@@ -6213,15 +6213,6 @@ static jobjectArray getPrincipalBytes(JNIEnv* env, const STACK_OF(X509_NAME)* na
  * current code does try to cover these cases by conditionally setting
  * the JNIEnv on calls that can read and write to the SSL such as
  * SSL_do_handshake, SSL_read, SSL_write, and SSL_shutdown.
- *
- * Finally, we have two emphemeral keys setup by OpenSSL callbacks:
- *
- * (8) a set of ephemeral RSA keys that is lazily generated if a peer
- * wants to use an exportable RSA cipher suite.
- *
- * (9) a set of ephemeral EC keys that is lazily generated if a peer
- * wants to use an TLS_ECDHE_* cipher suite.
- *
  */
 class AppData {
   public:
@@ -6234,7 +6225,6 @@ class AppData {
     jbyteArray alpnProtocolsArray;
     jbyte* alpnProtocolsData;
     size_t alpnProtocolsLength;
-    bssl::UniquePtr<RSA> ephemeralRsa;
 
     /**
      * Creates the application data context for the SSL*.
@@ -6277,8 +6267,7 @@ class AppData {
             sslHandshakeCallbacks(nullptr),
             alpnProtocolsArray(nullptr),
             alpnProtocolsData(nullptr),
-            alpnProtocolsLength(-1),
-            ephemeralRsa(nullptr) {
+            alpnProtocolsLength(-1) {
           fdsEmergency[0] = -1;
           fdsEmergency[1] = -1;
     }
