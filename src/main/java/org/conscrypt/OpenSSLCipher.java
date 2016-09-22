@@ -1036,7 +1036,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
                     + (isEncrypting() ? NativeCrypto.EVP_AEAD_max_overhead(evpAead) : 0);
         }
 
-        /* @Override */
+        // Intentionally missing Override to compile on old versions of Android
+        @SuppressWarnings("MissingOverride")
         protected void engineUpdateAAD(byte[] input, int inputOffset, int inputLen) {
             if (aad == null) {
                 aad = Arrays.copyOfRange(input, inputOffset, inputOffset + inputLen);
