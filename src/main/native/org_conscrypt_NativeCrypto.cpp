@@ -44,11 +44,13 @@
 
 #include <jni.h>
 
+#include <openssl/asn1.h>
 #include <openssl/asn1t.h>
 #include <openssl/engine.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <openssl/pkcs8.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/ssl.h>
@@ -161,69 +163,6 @@ struct OPENSSL_Delete {
 };
 typedef std::unique_ptr<unsigned char, OPENSSL_Delete> Unique_OPENSSL_str;
 
-struct BIO_Delete {
-    void operator()(BIO* p) const {
-        BIO_free_all(p);
-    }
-};
-typedef std::unique_ptr<BIO, BIO_Delete> Unique_BIO;
-
-struct BIGNUM_Delete {
-    void operator()(BIGNUM* p) const {
-        BN_free(p);
-    }
-};
-typedef std::unique_ptr<BIGNUM, BIGNUM_Delete> Unique_BIGNUM;
-
-struct BN_CTX_Delete {
-    void operator()(BN_CTX* ctx) const {
-        BN_CTX_free(ctx);
-    }
-};
-typedef std::unique_ptr<BN_CTX, BN_CTX_Delete> Unique_BN_CTX;
-
-struct ASN1_INTEGER_Delete {
-    void operator()(ASN1_INTEGER* p) const {
-        ASN1_INTEGER_free(p);
-    }
-};
-typedef std::unique_ptr<ASN1_INTEGER, ASN1_INTEGER_Delete> Unique_ASN1_INTEGER;
-
-struct DSA_Delete {
-    void operator()(DSA* p) const {
-        DSA_free(p);
-    }
-};
-typedef std::unique_ptr<DSA, DSA_Delete> Unique_DSA;
-
-struct EC_GROUP_Delete {
-    void operator()(EC_GROUP* p) const {
-        EC_GROUP_free(p);
-    }
-};
-typedef std::unique_ptr<EC_GROUP, EC_GROUP_Delete> Unique_EC_GROUP;
-
-struct EC_POINT_Delete {
-    void operator()(EC_POINT* p) const {
-        EC_POINT_clear_free(p);
-    }
-};
-typedef std::unique_ptr<EC_POINT, EC_POINT_Delete> Unique_EC_POINT;
-
-struct EC_KEY_Delete {
-    void operator()(EC_KEY* p) const {
-        EC_KEY_free(p);
-    }
-};
-typedef std::unique_ptr<EC_KEY, EC_KEY_Delete> Unique_EC_KEY;
-
-struct EVP_MD_CTX_Delete {
-    void operator()(EVP_MD_CTX* p) const {
-        EVP_MD_CTX_destroy(p);
-    }
-};
-typedef std::unique_ptr<EVP_MD_CTX, EVP_MD_CTX_Delete> Unique_EVP_MD_CTX;
-
 struct EVP_AEAD_CTX_Delete {
     void operator()(EVP_AEAD_CTX* p) const {
         EVP_AEAD_CTX_cleanup(p);
@@ -232,104 +171,12 @@ struct EVP_AEAD_CTX_Delete {
 };
 typedef std::unique_ptr<EVP_AEAD_CTX, EVP_AEAD_CTX_Delete> Unique_EVP_AEAD_CTX;
 
-struct EVP_CIPHER_CTX_Delete {
-    void operator()(EVP_CIPHER_CTX* p) const {
-        EVP_CIPHER_CTX_free(p);
-    }
-};
-typedef std::unique_ptr<EVP_CIPHER_CTX, EVP_CIPHER_CTX_Delete> Unique_EVP_CIPHER_CTX;
-
-struct EVP_PKEY_Delete {
-    void operator()(EVP_PKEY* p) const {
-        EVP_PKEY_free(p);
-    }
-};
-typedef std::unique_ptr<EVP_PKEY, EVP_PKEY_Delete> Unique_EVP_PKEY;
-
-struct PKCS8_PRIV_KEY_INFO_Delete {
-    void operator()(PKCS8_PRIV_KEY_INFO* p) const {
-        PKCS8_PRIV_KEY_INFO_free(p);
-    }
-};
-typedef std::unique_ptr<PKCS8_PRIV_KEY_INFO, PKCS8_PRIV_KEY_INFO_Delete> Unique_PKCS8_PRIV_KEY_INFO;
-
-struct RSA_Delete {
-    void operator()(RSA* p) const {
-        RSA_free(p);
-    }
-};
-typedef std::unique_ptr<RSA, RSA_Delete> Unique_RSA;
-
-struct ASN1_BIT_STRING_Delete {
-    void operator()(ASN1_BIT_STRING* p) const {
-        ASN1_BIT_STRING_free(p);
-    }
-};
-typedef std::unique_ptr<ASN1_BIT_STRING, ASN1_BIT_STRING_Delete> Unique_ASN1_BIT_STRING;
-
-struct ASN1_OBJECT_Delete {
-    void operator()(ASN1_OBJECT* p) const {
-        ASN1_OBJECT_free(p);
-    }
-};
-typedef std::unique_ptr<ASN1_OBJECT, ASN1_OBJECT_Delete> Unique_ASN1_OBJECT;
-
-struct ASN1_GENERALIZEDTIME_Delete {
-    void operator()(ASN1_GENERALIZEDTIME* p) const {
-        ASN1_GENERALIZEDTIME_free(p);
-    }
-};
-typedef std::unique_ptr<ASN1_GENERALIZEDTIME, ASN1_GENERALIZEDTIME_Delete> Unique_ASN1_GENERALIZEDTIME;
-
-struct SSL_Delete {
-    void operator()(SSL* p) const {
-        SSL_free(p);
-    }
-};
-typedef std::unique_ptr<SSL, SSL_Delete> Unique_SSL;
-
-struct SSL_CTX_Delete {
-    void operator()(SSL_CTX* p) const {
-        SSL_CTX_free(p);
-    }
-};
-typedef std::unique_ptr<SSL_CTX, SSL_CTX_Delete> Unique_SSL_CTX;
-
-struct X509_Delete {
-    void operator()(X509* p) const {
-        X509_free(p);
-    }
-};
-typedef std::unique_ptr<X509, X509_Delete> Unique_X509;
-
-struct X509_NAME_Delete {
-    void operator()(X509_NAME* p) const {
-        X509_NAME_free(p);
-    }
-};
-typedef std::unique_ptr<X509_NAME, X509_NAME_Delete> Unique_X509_NAME;
-
 struct X509_EXTENSIONS_Delete {
     void operator()(X509_EXTENSIONS* p) const {
         sk_X509_EXTENSION_pop_free(p, X509_EXTENSION_free);
     }
 };
 typedef std::unique_ptr<X509_EXTENSIONS, X509_EXTENSIONS_Delete> Unique_X509_EXTENSIONS;
-
-struct sk_SSL_CIPHER_Delete {
-    void operator()(STACK_OF(SSL_CIPHER)* p) const {
-        // We don't own SSL_CIPHER references, so no need for pop_free
-        sk_SSL_CIPHER_free(p);
-    }
-};
-typedef std::unique_ptr<STACK_OF(SSL_CIPHER), sk_SSL_CIPHER_Delete> Unique_sk_SSL_CIPHER;
-
-struct sk_X509_Delete {
-    void operator()(STACK_OF(X509)* p) const {
-        sk_X509_pop_free(p, X509_free);
-    }
-};
-typedef std::unique_ptr<STACK_OF(X509), sk_X509_Delete> Unique_sk_X509;
 
 struct sk_X509_CRL_Delete {
     void operator()(STACK_OF(X509_CRL)* p) const {
@@ -2002,7 +1849,7 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass,
     JNI_TRACE("EVP_PKEY_new_RSA(n=%p, e=%p, d=%p, p=%p, q=%p, dmp1=%p, dmq1=%p, iqmp=%p)",
             n, e, d, p, q, dmp1, dmq1, iqmp);
 
-    Unique_RSA rsa(RSA_new());
+    bssl::UniquePtr<RSA> rsa(RSA_new());
     if (rsa.get() == nullptr) {
         jniThrowRuntimeException(env, "RSA_new failed");
         return 0;
@@ -2071,7 +1918,7 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass,
         rsa->flags |= RSA_FLAG_NO_BLINDING;
     }
 
-    Unique_EVP_PKEY pkey(EVP_PKEY_new());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
         jniThrowRuntimeException(env, "EVP_PKEY_new failed");
         return 0;
@@ -2097,7 +1944,7 @@ static jlong NativeCrypto_EVP_PKEY_new_EC_KEY(JNIEnv* env, jclass, jobject group
             pubkeyRef == nullptr ? nullptr : fromContextObject<EC_POINT>(env, pubkeyRef);
     JNI_TRACE("EVP_PKEY_new_EC_KEY(%p, %p, %p) <- ptr", group, pubkey, keyJavaBytes);
 
-    Unique_BIGNUM key(nullptr);
+    bssl::UniquePtr<BIGNUM> key(nullptr);
     if (keyJavaBytes != nullptr) {
         BIGNUM* keyRef = nullptr;
         if (!arrayToBignum(env, keyJavaBytes, &keyRef)) {
@@ -2106,7 +1953,7 @@ static jlong NativeCrypto_EVP_PKEY_new_EC_KEY(JNIEnv* env, jclass, jobject group
         key.reset(keyRef);
     }
 
-    Unique_EC_KEY eckey(EC_KEY_new());
+    bssl::UniquePtr<EC_KEY> eckey(EC_KEY_new());
     if (eckey.get() == nullptr) {
         jniThrowRuntimeException(env, "EC_KEY_new failed");
         return 0;
@@ -2136,7 +1983,7 @@ static jlong NativeCrypto_EVP_PKEY_new_EC_KEY(JNIEnv* env, jclass, jobject group
             return 0;
         }
         if (pubkey == nullptr) {
-            Unique_EC_POINT calcPubkey(EC_POINT_new(group));
+            bssl::UniquePtr<EC_POINT> calcPubkey(EC_POINT_new(group));
             if (!EC_POINT_mul(group, calcPubkey.get(), key.get(), nullptr, nullptr, nullptr)) {
                 JNI_TRACE("EVP_PKEY_new_EC_KEY(%p, %p, %p) => can't calulate public key", group,
                         pubkey, keyJavaBytes);
@@ -2153,7 +2000,7 @@ static jlong NativeCrypto_EVP_PKEY_new_EC_KEY(JNIEnv* env, jclass, jobject group
         return 0;
     }
 
-    Unique_EVP_PKEY pkey(EVP_PKEY_new());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
         JNI_TRACE("EVP_PKEY_new_EC(%p, %p, %p) => threw error", group, pubkey, keyJavaBytes);
         throwExceptionIfNecessary(env, "EVP_PKEY_new failed");
@@ -2210,7 +2057,7 @@ static jstring evp_print_func(JNIEnv* env, jobject pkeyRef, print_func* func,
         return nullptr;
     }
 
-    Unique_BIO buffer(BIO_new(BIO_s_mem()));
+    bssl::UniquePtr<BIO> buffer(BIO_new(BIO_s_mem()));
     if (buffer.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate BIO");
         return nullptr;
@@ -2278,7 +2125,7 @@ static jbyteArray NativeCrypto_i2d_PKCS8_PRIV_KEY_INFO(JNIEnv* env, jclass, jobj
         return nullptr;
     }
 
-    Unique_PKCS8_PRIV_KEY_INFO pkcs8(EVP_PKEY2PKCS8(pkey));
+    bssl::UniquePtr<PKCS8_PRIV_KEY_INFO> pkcs8(EVP_PKEY2PKCS8(pkey));
     if (pkcs8.get() == nullptr) {
         throwExceptionIfNecessary(env, "NativeCrypto_i2d_PKCS8_PRIV_KEY_INFO");
         JNI_TRACE("key=%p i2d_PKCS8_PRIV_KEY_INFO => error from key to PKCS8", pkey);
@@ -2301,14 +2148,14 @@ static jlong NativeCrypto_d2i_PKCS8_PRIV_KEY_INFO(JNIEnv* env, jclass, jbyteArra
     }
 
     const unsigned char* tmp = reinterpret_cast<const unsigned char*>(bytes.get());
-    Unique_PKCS8_PRIV_KEY_INFO pkcs8(d2i_PKCS8_PRIV_KEY_INFO(nullptr, &tmp, bytes.size()));
+    bssl::UniquePtr<PKCS8_PRIV_KEY_INFO> pkcs8(d2i_PKCS8_PRIV_KEY_INFO(nullptr, &tmp, bytes.size()));
     if (pkcs8.get() == nullptr) {
         throwExceptionIfNecessary(env, "d2i_PKCS8_PRIV_KEY_INFO");
         JNI_TRACE("ssl=%p d2i_PKCS8_PRIV_KEY_INFO => error from DER to PKCS8", keyJavaBytes);
         return 0;
     }
 
-    Unique_EVP_PKEY pkey(EVP_PKCS82PKEY(pkcs8.get()));
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKCS82PKEY(pkcs8.get()));
     if (pkey.get() == nullptr) {
         throwExceptionIfNecessary(env, "d2i_PKCS8_PRIV_KEY_INFO");
         JNI_TRACE("ssl=%p d2i_PKCS8_PRIV_KEY_INFO => error from PKCS8 to key", keyJavaBytes);
@@ -2344,7 +2191,7 @@ static jlong NativeCrypto_d2i_PUBKEY(JNIEnv* env, jclass, jbyteArray javaBytes) 
     }
 
     const unsigned char* tmp = reinterpret_cast<const unsigned char*>(bytes.get());
-    Unique_EVP_PKEY pkey(d2i_PUBKEY(nullptr, &tmp, bytes.size()));
+    bssl::UniquePtr<EVP_PKEY> pkey(d2i_PUBKEY(nullptr, &tmp, bytes.size()));
     if (pkey.get() == nullptr) {
         JNI_TRACE("bytes=%p d2i_PUBKEY => threw exception", javaBytes);
         throwExceptionIfNecessary(env, "d2i_PUBKEY");
@@ -2366,7 +2213,7 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
 
     ensure_engine_globals();
 
-    Unique_RSA rsa(RSA_new_method(g_engine));
+    bssl::UniquePtr<RSA> rsa(RSA_new_method(g_engine));
     if (rsa.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate RSA key");
         return 0;
@@ -2377,7 +2224,7 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
     ex_data->cached_size = cached_size;
     RSA_set_ex_data(rsa.get(), g_rsa_exdata_index, ex_data);
 
-    Unique_EVP_PKEY pkey(EVP_PKEY_new());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
         JNI_TRACE("getRSAPrivateKeyWrapper failed");
         jniThrowRuntimeException(env, "NativeCrypto_getRSAPrivateKeyWrapper failed");
@@ -2403,7 +2250,7 @@ static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject ja
 
     ensure_engine_globals();
 
-    Unique_EC_KEY ecKey(EC_KEY_new_method(g_engine));
+    bssl::UniquePtr<EC_KEY> ecKey(EC_KEY_new_method(g_engine));
     if (ecKey.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate EC key");
         return 0;
@@ -2429,7 +2276,7 @@ static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject ja
     ex_data->cached_size = BN_num_bytes(&order);
     BN_free(&order);
 
-    Unique_EVP_PKEY pkey(EVP_PKEY_new());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
         JNI_TRACE("getECPrivateKeyWrapper failed");
         jniThrowRuntimeException(env, "NativeCrypto_getECPrivateKeyWrapper failed");
@@ -2456,9 +2303,9 @@ static jlong NativeCrypto_RSA_generate_key_ex(JNIEnv* env, jclass, jint modulusB
     if (!arrayToBignum(env, publicExponent, &eRef)) {
         return 0;
     }
-    Unique_BIGNUM e(eRef);
+    bssl::UniquePtr<BIGNUM> e(eRef);
 
-    Unique_RSA rsa(RSA_new());
+    bssl::UniquePtr<RSA> rsa(RSA_new());
     if (rsa.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate RSA key");
         return 0;
@@ -2469,7 +2316,7 @@ static jlong NativeCrypto_RSA_generate_key_ex(JNIEnv* env, jclass, jint modulusB
         return 0;
     }
 
-    Unique_EVP_PKEY pkey(EVP_PKEY_new());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
         jniThrowRuntimeException(env, "RSA_generate_key_ex failed");
         return 0;
@@ -2493,7 +2340,7 @@ static jint NativeCrypto_RSA_size(JNIEnv* env, jclass, jobject pkeyRef) {
         return 0;
     }
 
-    Unique_RSA rsa(EVP_PKEY_get1_RSA(pkey));
+    bssl::UniquePtr<RSA> rsa(EVP_PKEY_get1_RSA(pkey));
     if (rsa.get() == nullptr) {
         jniThrowRuntimeException(env, "RSA_size failed");
         return 0;
@@ -2515,7 +2362,7 @@ static jint RSA_crypt_operation(RSACryptOperation operation, const char* caller,
         return -1;
     }
 
-    Unique_RSA rsa(EVP_PKEY_get1_RSA(pkey));
+    bssl::UniquePtr<RSA> rsa(EVP_PKEY_get1_RSA(pkey));
     if (rsa.get() == nullptr) {
         return -1;
     }
@@ -2581,7 +2428,7 @@ static jobjectArray NativeCrypto_get_RSA_public_params(JNIEnv* env, jclass, jobj
         return nullptr;
     }
 
-    Unique_RSA rsa(EVP_PKEY_get1_RSA(pkey));
+    bssl::UniquePtr<RSA> rsa(EVP_PKEY_get1_RSA(pkey));
     if (rsa.get() == nullptr) {
         throwExceptionIfNecessary(env, "get_RSA_public_params failed");
         return nullptr;
@@ -2618,7 +2465,7 @@ static jobjectArray NativeCrypto_get_RSA_private_params(JNIEnv* env, jclass, job
         return nullptr;
     }
 
-    Unique_RSA rsa(EVP_PKEY_get1_RSA(pkey));
+    bssl::UniquePtr<RSA> rsa(EVP_PKEY_get1_RSA(pkey));
     if (rsa.get() == nullptr) {
         throwExceptionIfNecessary(env, "get_RSA_public_params failed");
         return nullptr;
@@ -2753,27 +2600,27 @@ static jlong NativeCrypto_EC_GROUP_new_arbitrary(
         ok = 0;
     }
 
-    Unique_BIGNUM pStorage(p);
-    Unique_BIGNUM aStorage(a);
-    Unique_BIGNUM bStorage(b);
-    Unique_BIGNUM xStorage(x);
-    Unique_BIGNUM yStorage(y);
-    Unique_BIGNUM orderStorage(order);
-    Unique_BIGNUM cofactorStorage(cofactor);
+    bssl::UniquePtr<BIGNUM> pStorage(p);
+    bssl::UniquePtr<BIGNUM> aStorage(a);
+    bssl::UniquePtr<BIGNUM> bStorage(b);
+    bssl::UniquePtr<BIGNUM> xStorage(x);
+    bssl::UniquePtr<BIGNUM> yStorage(y);
+    bssl::UniquePtr<BIGNUM> orderStorage(order);
+    bssl::UniquePtr<BIGNUM> cofactorStorage(cofactor);
 
     if (!ok) {
         return 0;
     }
 
-    Unique_BN_CTX ctx(BN_CTX_new());
-    Unique_EC_GROUP group(EC_GROUP_new_curve_GFp(p, a, b, ctx.get()));
+    bssl::UniquePtr<BN_CTX> ctx(BN_CTX_new());
+    bssl::UniquePtr<EC_GROUP> group(EC_GROUP_new_curve_GFp(p, a, b, ctx.get()));
     if (group.get() == nullptr) {
         JNI_TRACE("EC_GROUP_new_curve_GFp => null");
         throwExceptionIfNecessary(env, "EC_GROUP_new_curve_GFp");
         return 0;
     }
 
-    Unique_EC_POINT generator(EC_POINT_new(group.get()));
+    bssl::UniquePtr<EC_POINT> generator(EC_POINT_new(group.get()));
     if (generator.get() == nullptr) {
         JNI_TRACE("EC_POINT_new => null");
         freeOpenSslErrorState();
@@ -2825,9 +2672,9 @@ static jobjectArray NativeCrypto_EC_GROUP_get_curve(JNIEnv* env, jclass, jobject
         return nullptr;
     }
 
-    Unique_BIGNUM p(BN_new());
-    Unique_BIGNUM a(BN_new());
-    Unique_BIGNUM b(BN_new());
+    bssl::UniquePtr<BIGNUM> p(BN_new());
+    bssl::UniquePtr<BIGNUM> a(BN_new());
+    bssl::UniquePtr<BIGNUM> b(BN_new());
 
     int ret = EC_GROUP_get_curve_GFp(group, p.get(), a.get(), b.get(), (BN_CTX*)nullptr);
     if (ret != 1) {
@@ -2870,7 +2717,7 @@ static jbyteArray NativeCrypto_EC_GROUP_get_order(JNIEnv* env, jclass, jobject g
         return nullptr;
     }
 
-    Unique_BIGNUM order(BN_new());
+    bssl::UniquePtr<BIGNUM> order(BN_new());
     if (order.get() == nullptr) {
         JNI_TRACE("EC_GROUP_get_order(%p) => can't create BN", group);
         jniThrowOutOfMemory(env, "BN_new");
@@ -2919,7 +2766,7 @@ static jbyteArray NativeCrypto_EC_GROUP_get_cofactor(JNIEnv* env, jclass, jobjec
         return nullptr;
     }
 
-    Unique_BIGNUM cofactor(BN_new());
+    bssl::UniquePtr<BIGNUM> cofactor(BN_new());
     if (cofactor.get() == nullptr) {
         JNI_TRACE("EC_GROUP_get_cofactor(%p) => can't create BN", group);
         jniThrowOutOfMemory(env, "BN_new");
@@ -2968,7 +2815,7 @@ static jlong NativeCrypto_EC_GROUP_get_generator(JNIEnv* env, jclass, jobject gr
 
     const EC_POINT* generator = EC_GROUP_get0_generator(group);
 
-    Unique_EC_POINT dup(EC_POINT_dup(generator, group));
+    bssl::UniquePtr<EC_POINT> dup(EC_POINT_dup(generator, group));
     if (dup.get() == nullptr) {
         JNI_TRACE("EC_GROUP_get_generator(%p) => oom error", group);
         jniThrowOutOfMemory(env, "unable to dupe generator");
@@ -3032,13 +2879,13 @@ static void NativeCrypto_EC_POINT_set_affine_coordinates(JNIEnv* env, jclass,
     if (!arrayToBignum(env, xjavaBytes, &xRef)) {
         return;
     }
-    Unique_BIGNUM x(xRef);
+    bssl::UniquePtr<BIGNUM> x(xRef);
 
     BIGNUM* yRef = nullptr;
     if (!arrayToBignum(env, yjavaBytes, &yRef)) {
         return;
     }
-    Unique_BIGNUM y(yRef);
+    bssl::UniquePtr<BIGNUM> y(yRef);
 
     int ret = EC_POINT_set_affine_coordinates_GFp(group, point, x.get(), y.get(), nullptr);
     if (ret != 1) {
@@ -3063,8 +2910,8 @@ static jobjectArray NativeCrypto_EC_POINT_get_affine_coordinates(JNIEnv* env, jc
     }
     JNI_TRACE("EC_POINT_get_affine_coordinates(%p, %p) <- ptr", group, point);
 
-    Unique_BIGNUM x(BN_new());
-    Unique_BIGNUM y(BN_new());
+    bssl::UniquePtr<BIGNUM> x(BN_new());
+    bssl::UniquePtr<BIGNUM> y(BN_new());
 
     int ret = EC_POINT_get_affine_coordinates_GFp(group, point, x.get(), y.get(), nullptr);
     if (ret != 1) {
@@ -3102,7 +2949,7 @@ static jlong NativeCrypto_EC_KEY_generate_key(JNIEnv* env, jclass, jobject group
         return 0;
     }
 
-    Unique_EC_KEY eckey(EC_KEY_new());
+    bssl::UniquePtr<EC_KEY> eckey(EC_KEY_new());
     if (eckey.get() == nullptr) {
         JNI_TRACE("EC_KEY_generate_key(%p) => EC_KEY_new() oom", group);
         jniThrowOutOfMemory(env, "Unable to create an EC_KEY");
@@ -3121,7 +2968,7 @@ static jlong NativeCrypto_EC_KEY_generate_key(JNIEnv* env, jclass, jobject group
         return 0;
     }
 
-    Unique_EVP_PKEY pkey(EVP_PKEY_new());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
         JNI_TRACE("EC_KEY_generate_key(%p) => threw error", group);
         throwExceptionIfNecessary(env, "EC_KEY_generate_key");
@@ -3169,7 +3016,7 @@ static jbyteArray NativeCrypto_EC_KEY_get_private_key(JNIEnv* env, jclass, jobje
         return nullptr;
     }
 
-    Unique_EC_KEY eckey(EVP_PKEY_get1_EC_KEY(pkey));
+    bssl::UniquePtr<EC_KEY> eckey(EVP_PKEY_get1_EC_KEY(pkey));
     if (eckey.get() == nullptr) {
         throwExceptionIfNecessary(env, "EVP_PKEY_get1_EC_KEY");
         return nullptr;
@@ -3197,13 +3044,13 @@ static jlong NativeCrypto_EC_KEY_get_public_key(JNIEnv* env, jclass, jobject pke
         return 0;
     }
 
-    Unique_EC_KEY eckey(EVP_PKEY_get1_EC_KEY(pkey));
+    bssl::UniquePtr<EC_KEY> eckey(EVP_PKEY_get1_EC_KEY(pkey));
     if (eckey.get() == nullptr) {
         throwExceptionIfNecessary(env, "EVP_PKEY_get1_EC_KEY");
         return 0;
     }
 
-    Unique_EC_POINT dup(EC_POINT_dup(EC_KEY_get0_public_key(eckey.get()),
+    bssl::UniquePtr<EC_POINT> dup(EC_POINT_dup(EC_KEY_get0_public_key(eckey.get()),
             EC_KEY_get0_group(eckey.get())));
     if (dup.get() == nullptr) {
         JNI_TRACE("EC_KEY_get_public_key(%p) => can't dup public key", pkey);
@@ -3249,7 +3096,7 @@ static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
         return -1;
     }
 
-    Unique_EC_KEY pubkey(EVP_PKEY_get1_EC_KEY(pubPkey));
+    bssl::UniquePtr<EC_KEY> pubkey(EVP_PKEY_get1_EC_KEY(pubPkey));
     if (pubkey.get() == nullptr) {
         JNI_TRACE("ECDH_compute_key(%p) => can't get public key", pubPkey);
         throwExceptionIfNecessary(env, "EVP_PKEY_get1_EC_KEY public", throwInvalidKeyException);
@@ -3269,7 +3116,7 @@ static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
         return -1;
     }
 
-    Unique_EC_KEY privkey(EVP_PKEY_get1_EC_KEY(privPkey));
+    bssl::UniquePtr<EC_KEY> privkey(EVP_PKEY_get1_EC_KEY(privPkey));
     if (privkey.get() == nullptr) {
         throwExceptionIfNecessary(env, "EVP_PKEY_get1_EC_KEY private", throwInvalidKeyException);
         return -1;
@@ -3292,7 +3139,7 @@ static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
 static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
     JNI_TRACE_MD("EVP_MD_CTX_create()");
 
-    Unique_EVP_MD_CTX ctx(EVP_MD_CTX_create());
+    bssl::UniquePtr<EVP_MD_CTX> ctx(EVP_MD_CTX_create());
     if (ctx.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable create a EVP_MD_CTX");
         return 0;
@@ -4032,7 +3879,7 @@ static jint NativeCrypto_EVP_CIPHER_iv_length(JNIEnv* env, jclass, jlong evpCiph
 static jlong NativeCrypto_EVP_CIPHER_CTX_new(JNIEnv* env, jclass) {
     JNI_TRACE("EVP_CIPHER_CTX_new()");
 
-    Unique_EVP_CIPHER_CTX ctx(EVP_CIPHER_CTX_new());
+    bssl::UniquePtr<EVP_CIPHER_CTX> ctx(EVP_CIPHER_CTX_new());
     if (ctx.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate cipher context");
         JNI_TRACE("EVP_CipherInit_ex => context allocation error");
@@ -4500,7 +4347,7 @@ static jlong NativeCrypto_create_BIO_InputStream(JNIEnv* env, jclass,
         return 0;
     }
 
-    Unique_BIO bio(BIO_new(&stream_bio_method));
+    bssl::UniquePtr<BIO> bio(BIO_new(&stream_bio_method));
     if (bio.get() == nullptr) {
         return 0;
     }
@@ -4519,7 +4366,7 @@ static jlong NativeCrypto_create_BIO_OutputStream(JNIEnv* env, jclass, jobject s
         return 0;
     }
 
-    Unique_BIO bio(BIO_new(&stream_bio_method));
+    bssl::UniquePtr<BIO> bio(BIO_new(&stream_bio_method));
     if (bio.get() == nullptr) {
         return 0;
     }
@@ -4609,7 +4456,7 @@ static void NativeCrypto_BIO_free_all(JNIEnv* env, jclass, jlong bioRef) {
 static jstring X509_NAME_to_jstring(JNIEnv* env, X509_NAME* name, unsigned long flags) {
     JNI_TRACE("X509_NAME_to_jstring(%p)", name);
 
-    Unique_BIO buffer(BIO_new(BIO_s_mem()));
+    bssl::UniquePtr<BIO> buffer(BIO_new(BIO_s_mem()));
     if (buffer.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate BIO");
         JNI_TRACE("X509_NAME_to_jstring(%p) => threw error", name);
@@ -4837,7 +4684,7 @@ static jbyteArray get_X509Type_serialNumber(JNIEnv* env, T* x509Type, ASN1_INTEG
     }
 
     ASN1_INTEGER* serialNumber = get_serial_func(x509Type);
-    Unique_BIGNUM serialBn(ASN1_INTEGER_to_BN(serialNumber, nullptr));
+    bssl::UniquePtr<BIGNUM> serialBn(ASN1_INTEGER_to_BN(serialNumber, nullptr));
     if (serialBn.get() == nullptr) {
         JNI_TRACE("X509_get_serialNumber(%p) => threw exception", x509Type);
         return nullptr;
@@ -5015,7 +4862,7 @@ static jlong NativeCrypto_X509_CRL_get0_by_serial(JNIEnv* env, jclass, jlong x50
         return 0;
     }
 
-    Unique_BIGNUM serialBn(BN_new());
+    bssl::UniquePtr<BIGNUM> serialBn(BN_new());
     if (serialBn.get() == nullptr) {
         JNI_TRACE("X509_CRL_get0_by_serial(%p, %p) => BN allocation failed", x509crl, serialArray);
         return 0;
@@ -5030,7 +4877,7 @@ static jlong NativeCrypto_X509_CRL_get0_by_serial(JNIEnv* env, jclass, jlong x50
         return 0;
     }
 
-    Unique_ASN1_INTEGER serialInteger(BN_to_ASN1_INTEGER(serialBn.get(), nullptr));
+    bssl::UniquePtr<ASN1_INTEGER> serialInteger(BN_to_ASN1_INTEGER(serialBn.get(), nullptr));
     if (serialInteger.get() == nullptr) {
         JNI_TRACE("X509_CRL_get0_by_serial(%p, %p) => BN conversion failed", x509crl, serialArray);
         return 0;
@@ -5181,7 +5028,7 @@ static X509_EXTENSION *X509Type_get_ext(JNIEnv* env, T* x509Type, jstring oidStr
         return nullptr;
     }
 
-    Unique_ASN1_OBJECT asn1(OBJ_txt2obj(oid.c_str(), 1));
+    bssl::UniquePtr<ASN1_OBJECT> asn1(OBJ_txt2obj(oid.c_str(), 1));
     if (asn1.get() == nullptr) {
         JNI_TRACE("X509Type_get_ext(%p, %s) => oid conversion failed", x509Type, oid.c_str());
         freeOpenSslErrorState();
@@ -5384,7 +5231,7 @@ static void NativeCrypto_ASN1_TIME_to_Calendar(JNIEnv* env, jclass, jlong asn1Ti
         return;
     }
 
-    Unique_ASN1_GENERALIZEDTIME gen(ASN1_TIME_to_generalizedtime(asn1Time, nullptr));
+    bssl::UniquePtr<ASN1_GENERALIZEDTIME> gen(ASN1_TIME_to_generalizedtime(asn1Time, nullptr));
     if (gen.get() == nullptr) {
         jniThrowNullPointerException(env, "asn1Time == null");
         return;
@@ -5626,7 +5473,7 @@ static jlongArray NativeCrypto_PEM_read_bio_PKCS7(JNIEnv* env, jclass, jlong bio
     }
 
     if (which == PKCS7_CERTS) {
-        Unique_sk_X509 outCerts(sk_X509_new_null());
+        bssl::UniquePtr<STACK_OF(X509)> outCerts(sk_X509_new_null());
         if (!PKCS7_get_PEM_certificates(outCerts.get(), bio)) {
             throwExceptionIfNecessary(env, "PKCS7_get_PEM_certificates");
             return nullptr;
@@ -5671,7 +5518,7 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
     CBS_init(&cbs, data, len);
 
     if (which == PKCS7_CERTS) {
-        Unique_sk_X509 outCerts(sk_X509_new_null());
+        bssl::UniquePtr<STACK_OF(X509)> outCerts(sk_X509_new_null());
         if (!PKCS7_get_certificates(outCerts.get(), &cbs)) {
             if (!throwExceptionIfNecessary(env, "PKCS7_get_certificates")) {
                 throwParsingException(env, "Error parsing PKCS#7 certificate data");
@@ -5710,7 +5557,7 @@ static jlongArray NativeCrypto_ASN1_seq_unpack_X509_bio(JNIEnv* env, jclass, jlo
     BIO* bio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(bioRef));
     JNI_TRACE("ASN1_seq_unpack_X509_bio(%p)", bio);
 
-    Unique_sk_X509 path((PKIPATH*)ASN1_item_d2i_bio(ASN1_ITEM_rptr(PKIPATH), bio, nullptr));
+    bssl::UniquePtr<STACK_OF(X509)> path((PKIPATH*)ASN1_item_d2i_bio(ASN1_ITEM_rptr(PKIPATH), bio, nullptr));
     if (path.get() == nullptr) {
         throwExceptionIfNecessary(env, "ASN1_seq_unpack_X509_bio");
         JNI_TRACE("ASN1_seq_unpack_X509_bio(%p) => threw error", bio);
@@ -5738,7 +5585,7 @@ static jbyteArray NativeCrypto_ASN1_seq_pack_X509(JNIEnv* env, jclass, jlongArra
         return nullptr;
     }
 
-    Unique_sk_X509 certStack(sk_X509_new_null());
+    bssl::UniquePtr<STACK_OF(X509)> certStack(sk_X509_new_null());
     if (certStack.get() == nullptr) {
         JNI_TRACE("ASN1_seq_pack_X509(%p) => failed to make cert stack", certs);
         return nullptr;
@@ -5858,7 +5705,7 @@ static void NativeCrypto_X509_delete_ext(JNIEnv* env, jclass, jlong x509Ref,
         return;
     }
 
-    Unique_ASN1_OBJECT obj(OBJ_txt2obj(oid.c_str(), 1 /* allow numerical form only */));
+    bssl::UniquePtr<ASN1_OBJECT> obj(OBJ_txt2obj(oid.c_str(), 1 /* allow numerical form only */));
     if (obj.get() == nullptr) {
         JNI_TRACE("X509_delete_ext(%p, %s) => oid conversion failed", x509, oid.c_str());
         freeOpenSslErrorState();
@@ -5920,7 +5767,7 @@ static jlong NativeCrypto_X509_get_pubkey(JNIEnv* env, jclass, jlong x509Ref) {
         return 0;
     }
 
-    Unique_EVP_PKEY pkey(X509_get_pubkey(x509));
+    bssl::UniquePtr<EVP_PKEY> pkey(X509_get_pubkey(x509));
     if (pkey.get() == nullptr) {
         const uint32_t last_error = ERR_peek_last_error();
         const uint32_t first_error = ERR_peek_error();
@@ -6043,7 +5890,7 @@ static jbooleanArray NativeCrypto_get_X509_ex_kusage(JNIEnv* env, jclass, jlong 
         return nullptr;
     }
 
-    Unique_ASN1_BIT_STRING bitStr(
+    bssl::UniquePtr<ASN1_BIT_STRING> bitStr(
             static_cast<ASN1_BIT_STRING*>(X509_get_ext_d2i(x509, NID_key_usage, nullptr, nullptr)));
     if (bitStr.get() == nullptr) {
         JNI_TRACE("get_X509_ex_kusage(%p) => null", x509);
@@ -6387,7 +6234,7 @@ class AppData {
     jbyteArray alpnProtocolsArray;
     jbyte* alpnProtocolsData;
     size_t alpnProtocolsLength;
-    Unique_RSA ephemeralRsa;
+    bssl::UniquePtr<RSA> ephemeralRsa;
 
     /**
      * Creates the application data context for the SSL*.
@@ -6935,7 +6782,7 @@ static void debug_print_session_key(const SSL* ssl, const char *line) {
  * public static native int SSL_CTX_new();
  */
 static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
-    Unique_SSL_CTX sslCtx(SSL_CTX_new(SSLv23_method()));
+    bssl::UniquePtr<SSL_CTX> sslCtx(SSL_CTX_new(SSLv23_method()));
     if (sslCtx.get() == nullptr) {
         throwExceptionIfNecessary(env, "SSL_CTX_new");
         return 0;
@@ -7040,7 +6887,7 @@ static jlong NativeCrypto_SSL_new(JNIEnv* env, jclass, jlong ssl_ctx_address)
     if (ssl_ctx == nullptr) {
         return 0;
     }
-    Unique_SSL ssl(SSL_new(ssl_ctx));
+    bssl::UniquePtr<SSL> ssl(SSL_new(ssl_ctx));
     if (ssl.get() == nullptr) {
         throwSSLExceptionWithSslErrors(env, nullptr, SSL_ERROR_NONE,
                                        "Unable to create SSL structure");
@@ -7221,7 +7068,7 @@ static void NativeCrypto_SSL_use_certificate(JNIEnv* env, jclass,
         return;
     }
 
-    Unique_X509 serverCert(
+    bssl::UniquePtr<X509> serverCert(
             X509_dup_nocopy(reinterpret_cast<X509*>(static_cast<uintptr_t>(certificates[0]))));
     if (serverCert.get() == nullptr) {
         // Note this shouldn't happen since we checked the number of certificates above.
@@ -7241,7 +7088,7 @@ static void NativeCrypto_SSL_use_certificate(JNIEnv* env, jclass,
     OWNERSHIP_TRANSFERRED(serverCert);
 
     for (size_t i = 1; i < length; i++) {
-        Unique_X509 cert(
+        bssl::UniquePtr<X509> cert(
                 X509_dup_nocopy(reinterpret_cast<X509*>(static_cast<uintptr_t>(certificates[i]))));
         if (cert.get() == nullptr || !SSL_add0_chain_cert(ssl, cert.get())) {
             ALOGE("%s", ERR_error_string(ERR_peek_error(), nullptr));
@@ -7316,7 +7163,7 @@ static void NativeCrypto_SSL_set_client_CA_list(JNIEnv* env, jclass,
             return;
         }
         const unsigned char* tmp = reinterpret_cast<const unsigned char*>(buf.get());
-        Unique_X509_NAME principalX509Name(d2i_X509_NAME(nullptr, &tmp, buf.size()));
+        bssl::UniquePtr<X509_NAME> principalX509Name(d2i_X509_NAME(nullptr, &tmp, buf.size()));
 
         if (principalX509Name.get() == nullptr) {
             ALOGE("%s", ERR_error_string(ERR_peek_error(), nullptr));
@@ -8307,7 +8154,7 @@ static jlongArray NativeCrypto_SSL_get_certificate(JNIEnv* env, jclass, jlong ss
         return nullptr;
     }
 
-    Unique_sk_X509 chain(sk_X509_new_null());
+    bssl::UniquePtr<STACK_OF(X509)> chain(sk_X509_new_null());
     if (chain.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate local certificate chain");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => threw exception", ssl);
@@ -8348,7 +8195,7 @@ static jlongArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlon
         return nullptr;
     }
     STACK_OF(X509)* chain = SSL_get_peer_cert_chain(ssl);
-    Unique_sk_X509 chain_copy(nullptr);
+    bssl::UniquePtr<STACK_OF(X509)> chain_copy(nullptr);
     if (SSL_is_server(ssl)) {
         X509* x509 = SSL_get_peer_certificate(ssl);
         if (x509 == nullptr) {
@@ -8878,7 +8725,7 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
         return -1;
     }
 
-    Unique_BIO nullBio(BIO_new_mem_buf(nullptr, 0));
+    bssl::UniquePtr<BIO> nullBio(BIO_new_mem_buf(nullptr, 0));
     ScopedSslBio sslBio(ssl, nullBio.get(), wbio);
 
     int result = SSL_write(ssl, reinterpret_cast<const char*>(source.get()), len);
@@ -9357,8 +9204,8 @@ static jobjectArray NativeCrypto_get_cipher_names(JNIEnv *env, jclass, jstring s
 
     JNI_TRACE("NativeCrypto_get_cipher_names %s", selector.c_str());
 
-    Unique_SSL_CTX sslCtx(SSL_CTX_new(SSLv23_method()));
-    Unique_SSL ssl(SSL_new(sslCtx.get()));
+    bssl::UniquePtr<SSL_CTX> sslCtx(SSL_CTX_new(SSLv23_method()));
+    bssl::UniquePtr<SSL> ssl(SSL_new(sslCtx.get()));
 
     if (!SSL_set_cipher_list(ssl.get(), selector.c_str())) {
         jniThrowException(env, "java/lang/IllegalArgumentException", "Unable to set SSL cipher list");
@@ -9415,7 +9262,7 @@ static bool ocsp_cert_id_matches_certificate(CBS *cert_id, X509 *x509, X509 *iss
 
     // Compare the certificate's serial number with the one from the Cert ID
     const uint8_t *p = CBS_data(&serial);
-    Unique_ASN1_INTEGER serial_number(c2i_ASN1_INTEGER(nullptr, &p, CBS_len(&serial)));
+    bssl::UniquePtr<ASN1_INTEGER> serial_number(c2i_ASN1_INTEGER(nullptr, &p, CBS_len(&serial)));
     ASN1_INTEGER *expected_serial_number = X509_get_serialNumber(x509);
     if (serial_number.get() == nullptr ||
         ASN1_INTEGER_cmp(expected_serial_number, serial_number.get()) != 0) {
