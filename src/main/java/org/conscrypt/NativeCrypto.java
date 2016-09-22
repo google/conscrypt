@@ -273,23 +273,19 @@ public final class NativeCrypto {
 
     public static native long EVP_aead_aes_256_gcm();
 
-    public static native long EVP_AEAD_CTX_init(long evpAead, byte[] key, int tagLen);
-
-    public static native void EVP_AEAD_CTX_cleanup(long ctx);
-
     public static native int EVP_AEAD_max_overhead(long evpAead);
 
     public static native int EVP_AEAD_nonce_length(long evpAead);
 
     public static native int EVP_AEAD_max_tag_len(long evpAead);
 
-    public static native int EVP_AEAD_CTX_seal(NativeRef.EVP_AEAD_CTX ctx, byte[] out,
-            int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength, byte[] ad)
-            throws BadPaddingException;
+    public static native int EVP_AEAD_CTX_seal(long evpAead, byte[] key, int tagLengthInBytes,
+            byte[] out, int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength,
+            byte[] ad) throws BadPaddingException;
 
-    public static native int EVP_AEAD_CTX_open(NativeRef.EVP_AEAD_CTX ctx, byte[] out,
-            int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength, byte[] ad)
-            throws BadPaddingException;
+    public static native int EVP_AEAD_CTX_open(long evpAead, byte[] key, int tagLengthInBytes,
+            byte[] out, int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength,
+            byte[] ad) throws BadPaddingException;
 
     // --- HMAC functions ------------------------------------------------------
 

@@ -163,14 +163,6 @@ struct OPENSSL_Delete {
 };
 typedef std::unique_ptr<unsigned char, OPENSSL_Delete> Unique_OPENSSL_str;
 
-struct EVP_AEAD_CTX_Delete {
-    void operator()(EVP_AEAD_CTX* p) const {
-        EVP_AEAD_CTX_cleanup(p);
-        delete p;
-    }
-};
-typedef std::unique_ptr<EVP_AEAD_CTX, EVP_AEAD_CTX_Delete> Unique_EVP_AEAD_CTX;
-
 struct X509_EXTENSIONS_Delete {
     void operator()(X509_EXTENSIONS* p) const {
         sk_X509_EXTENSION_pop_free(p, X509_EXTENSION_free);
@@ -3984,44 +3976,6 @@ static jlong NativeCrypto_EVP_aead_aes_256_gcm(JNIEnv*, jclass) {
     return reinterpret_cast<jlong>(ctx);
 }
 
-static jlong NativeCrypto_EVP_AEAD_CTX_init(JNIEnv* env, jclass, jlong evpAeadRef,
-        jbyteArray keyArray, jint tagLen) {
-    const EVP_AEAD* evpAead = reinterpret_cast<const EVP_AEAD*>(evpAeadRef);
-    JNI_TRACE("EVP_AEAD_CTX_init(%p, %p, %d)", evpAead, keyArray, tagLen);
-
-    ScopedByteArrayRO keyBytes(env, keyArray);
-    if (keyBytes.get() == nullptr) {
-        return 0;
-    }
-
-    Unique_EVP_AEAD_CTX aeadCtx(new EVP_AEAD_CTX);
-    memset(aeadCtx.get(), 0, sizeof(EVP_AEAD_CTX));
-
-    const uint8_t* tmp = reinterpret_cast<const uint8_t*>(keyBytes.get());
-    int ret = EVP_AEAD_CTX_init(aeadCtx.get(), evpAead, tmp, keyBytes.size(), tagLen, nullptr);
-    if (ret != 1) {
-        throwExceptionIfNecessary(env, "EVP_AEAD_CTX_init");
-        JNI_TRACE("EVP_AEAD_CTX_init(%p, %p, %d) => fail EVP_AEAD_CTX_init", evpAead,
-                keyArray, tagLen);
-        return 0;
-    }
-
-    JNI_TRACE("EVP_AEAD_CTX_init(%p, %p, %d) => %p", evpAead, keyArray, tagLen, aeadCtx.get());
-    return reinterpret_cast<jlong>(aeadCtx.release());
-}
-
-static void NativeCrypto_EVP_AEAD_CTX_cleanup(JNIEnv* env, jclass, jlong evpAeadCtxRef) {
-    EVP_AEAD_CTX* evpAeadCtx = reinterpret_cast<EVP_AEAD_CTX*>(evpAeadCtxRef);
-    JNI_TRACE("EVP_AEAD_CTX_cleanup(%p)", evpAeadCtx);
-    if (evpAeadCtx == nullptr) {
-        jniThrowNullPointerException(env, "evpAead == null");
-        return;
-    }
-
-    EVP_AEAD_CTX_cleanup(evpAeadCtx);
-    OPENSSL_free(evpAeadCtx);
-}
-
 static jint NativeCrypto_EVP_AEAD_max_overhead(JNIEnv* env, jclass, jlong evpAeadRef) {
     const EVP_AEAD* evpAead = reinterpret_cast<const EVP_AEAD*>(evpAeadRef);
     JNI_TRACE("EVP_AEAD_max_overhead(%p)", evpAead);
@@ -4064,12 +4018,18 @@ typedef int (*evp_aead_ctx_op_func)(const EVP_AEAD_CTX *ctx, uint8_t *out,
                                     const uint8_t *in, size_t in_len,
                                     const uint8_t *ad, size_t ad_len);
 
-static jint evp_aead_ctx_op(JNIEnv* env, jobject ctxRef, jbyteArray outArray, jint outOffset,
-        jbyteArray nonceArray, jbyteArray inArray, jint inOffset, jint inLength,
-        jbyteArray aadArray, evp_aead_ctx_op_func realFunc) {
-    EVP_AEAD_CTX* ctx = fromContextObject<EVP_AEAD_CTX>(env, ctxRef);
-    JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %d, %d, %p)", ctx, outArray, outOffset,
-            nonceArray, inArray, inOffset, inLength, aadArray);
+static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, jint tagLen,
+                            jbyteArray outArray, jint outOffset, jbyteArray nonceArray,
+                            jbyteArray inArray, jint inOffset, jint inLength, jbyteArray aadArray,
+                            evp_aead_ctx_op_func realFunc) {
+    const EVP_AEAD* evpAead = reinterpret_cast<const EVP_AEAD*>(evpAeadRef);
+    JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %d, %p, %p, %d, %d, %p)", evpAead, keyArray, tagLen,
+              outArray, outOffset, nonceArray, inArray, inOffset, inLength, aadArray);
+
+    ScopedByteArrayRO keyBytes(env, keyArray);
+    if (keyBytes.get() == nullptr) {
+        return 0;
+    }
 
     ScopedByteArrayRW outBytes(env, outArray);
     if (outBytes.get() == nullptr) {
@@ -4112,13 +4072,22 @@ static jint evp_aead_ctx_op(JNIEnv* env, jobject ctxRef, jbyteArray outArray, ji
         return 0;
     }
 
+    bssl::ScopedEVP_AEAD_CTX aeadCtx;
+    const uint8_t* keyTmp = reinterpret_cast<const uint8_t*>(keyBytes.get());
+    if (!EVP_AEAD_CTX_init(aeadCtx.get(), evpAead, keyTmp, keyBytes.size(), tagLen, nullptr)) {
+        throwExceptionIfNecessary(env, "failure initializing AEAD context");
+        JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %d, %d, %p) => fail EVP_AEAD_CTX_init", ctx,
+                  outArray, outOffset, nonceArray, inArray, inOffset, inLength, aadArray);
+        return 0;
+    }
+
     uint8_t* outTmp = reinterpret_cast<uint8_t*>(outBytes.get());
     const uint8_t* inTmp = reinterpret_cast<const uint8_t*>(inBytes.get());
     const uint8_t* nonceTmp = reinterpret_cast<const uint8_t*>(nonceBytes.get());
     size_t actualOutLength;
-    int ret = realFunc(ctx, outTmp + outOffset, &actualOutLength, outBytes.size() - outOffset,
-            nonceTmp, nonceBytes.size(), inTmp + inOffset, inLength, aad_chars, aad_chars_size);
-    if (ret != 1) {
+    if (!realFunc(aeadCtx.get(), outTmp + outOffset, &actualOutLength, outBytes.size() - outOffset,
+                   nonceTmp, nonceBytes.size(), inTmp + inOffset, inLength, aad_chars,
+                   aad_chars_size)) {
         throwExceptionIfNecessary(env, "evp_aead_ctx_op");
     }
 
@@ -4128,18 +4097,22 @@ static jint evp_aead_ctx_op(JNIEnv* env, jobject ctxRef, jbyteArray outArray, ji
     return static_cast<jlong>(actualOutLength);
 }
 
-static jint NativeCrypto_EVP_AEAD_CTX_seal(JNIEnv* env, jclass, jobject ctxRef, jbyteArray outArray,
-        jint outOffset, jbyteArray nonceArray, jbyteArray inArray, jint inOffset, jint inLength,
-        jbyteArray aadArray) {
-    return evp_aead_ctx_op(env, ctxRef, outArray, outOffset, nonceArray, inArray, inOffset,
-                           inLength, aadArray, EVP_AEAD_CTX_seal);
+static jint NativeCrypto_EVP_AEAD_CTX_seal(JNIEnv* env, jclass, jlong evpAeadRef,
+                                           jbyteArray keyArray, jint tagLen, jbyteArray outArray,
+                                           jint outOffset, jbyteArray nonceArray,
+                                           jbyteArray inArray, jint inOffset, jint inLength,
+                                           jbyteArray aadArray) {
+    return evp_aead_ctx_op(env, evpAeadRef, keyArray, tagLen, outArray, outOffset, nonceArray,
+                           inArray, inOffset, inLength, aadArray, EVP_AEAD_CTX_seal);
 }
 
-static jint NativeCrypto_EVP_AEAD_CTX_open(JNIEnv* env, jclass, jobject ctxRef, jbyteArray outArray,
-        jint outOffset, jbyteArray nonceArray, jbyteArray inArray, jint inOffset, jint inLength,
-        jbyteArray aadArray) {
-    return evp_aead_ctx_op(env, ctxRef, outArray, outOffset, nonceArray, inArray, inOffset,
-                           inLength, aadArray, EVP_AEAD_CTX_open);
+static jint NativeCrypto_EVP_AEAD_CTX_open(JNIEnv* env, jclass, jlong evpAeadRef,
+                                           jbyteArray keyArray, jint tagLen, jbyteArray outArray,
+                                           jint outOffset, jbyteArray nonceArray,
+                                           jbyteArray inArray, jint inOffset, jint inLength,
+                                           jbyteArray aadArray) {
+    return evp_aead_ctx_op(env, evpAeadRef, keyArray, tagLen, outArray, outOffset, nonceArray,
+                           inArray, inOffset, inLength, aadArray, EVP_AEAD_CTX_open);
 }
 
 static jlong NativeCrypto_HMAC_CTX_new(JNIEnv* env, jclass) {
@@ -9474,7 +9447,6 @@ static jlong NativeCrypto_getDirectBufferAddress(JNIEnv *env, jclass, jobject bu
 #define SSL_CALLBACKS "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks;"
 #define REF_EC_GROUP "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_GROUP;"
 #define REF_EC_POINT "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_POINT;"
-#define REF_EVP_AEAD_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_AEAD_CTX;"
 #define REF_EVP_CIPHER_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_CIPHER_CTX;"
 #define REF_EVP_PKEY "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY;"
 #define REF_HMAC_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$HMAC_CTX;"
@@ -9558,13 +9530,11 @@ static JNINativeMethod sNativeCryptoMethods[] = {
     NATIVE_METHOD(NativeCrypto, EVP_CIPHER_CTX_free, "(J)V"),
     NATIVE_METHOD(NativeCrypto, EVP_aead_aes_128_gcm, "()J"),
     NATIVE_METHOD(NativeCrypto, EVP_aead_aes_256_gcm, "()J"),
-    NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_init, "(J[BI)J"),
-    NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_cleanup, "(J)V"),
     NATIVE_METHOD(NativeCrypto, EVP_AEAD_max_overhead, "(J)I"),
     NATIVE_METHOD(NativeCrypto, EVP_AEAD_nonce_length, "(J)I"),
     NATIVE_METHOD(NativeCrypto, EVP_AEAD_max_tag_len, "(J)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_seal, "(" REF_EVP_AEAD_CTX "[BI[B[BII[B)I"),
-    NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_open, "(" REF_EVP_AEAD_CTX "[BI[B[BII[B)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_seal, "(J[BI[BI[B[BII[B)I"),
+    NATIVE_METHOD(NativeCrypto, EVP_AEAD_CTX_open, "(J[BI[BI[B[BII[B)I"),
     NATIVE_METHOD(NativeCrypto, HMAC_CTX_new, "()J"),
     NATIVE_METHOD(NativeCrypto, HMAC_CTX_free, "(J)V"),
     NATIVE_METHOD(NativeCrypto, HMAC_Init_ex, "(" REF_HMAC_CTX "[BJ)V"),
