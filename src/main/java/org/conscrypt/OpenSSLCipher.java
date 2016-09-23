@@ -1115,8 +1115,91 @@ public abstract class OpenSSLCipher extends CipherSpi {
             }
 
             public static class GCM extends AES {
+                /**
+                 * The previously used key to prevent key + nonce (IV) reuse.
+                 */
+                private byte[] previousKey;
+
+                /**
+                 * The previously used nonce (IV) to prevent key + nonce reuse.
+                 */
+                private byte[] previousIv;
+
+                /**
+                 * When set this instance must be initialized before use again. This prevents key
+                 * and IV reuse.
+                 */
+                private boolean mustInitialize;
+
                 public GCM() {
                     super(Mode.GCM);
+                }
+
+                private void checkInitialization() {
+                    if (mustInitialize) {
+                        throw new IllegalStateException(
+                                "Cannot re-use same key and IV for multiple encryptions");
+                    }
+                }
+
+                /** Constant time array comparison. */
+                private boolean arraysAreEqual(byte[] a, byte[] b) {
+                    if (a.length != b.length) {
+                        return false;
+                    }
+
+                    int diff = 0;
+                    for (int i = 0; i < a.length; i++) {
+                        diff |= a[i] ^ b[i];
+                    }
+                    return diff == 0;
+                }
+
+                @Override
+                protected void engineInitInternal(
+                        byte[] encodedKey, AlgorithmParameterSpec params, SecureRandom random)
+                        throws InvalidKeyException, InvalidAlgorithmParameterException {
+                    super.engineInitInternal(encodedKey, params, random);
+
+                    if (isEncrypting() && iv != null) {
+                        if (previousKey != null && previousIv != null
+                                && arraysAreEqual(previousKey, encodedKey)
+                                && arraysAreEqual(previousIv, iv)) {
+                            mustInitialize = true;
+                            throw new InvalidAlgorithmParameterException(
+                                    "In GCM mode key and IV must not be re-used");
+                        }
+
+                        this.previousKey = encodedKey;
+                        this.previousIv = iv;
+                    }
+                    mustInitialize = false;
+                }
+
+                @Override
+                protected int updateInternal(byte[] input, int inputOffset, int inputLen,
+                        byte[] output, int outputOffset, int maximumLen)
+                        throws ShortBufferException {
+                    checkInitialization();
+                    return super.updateInternal(
+                            input, inputOffset, inputLen, output, outputOffset, maximumLen);
+                }
+
+                @Override
+                protected int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
+                        throws IllegalBlockSizeException, BadPaddingException {
+                    checkInitialization();
+                    int retVal = super.doFinalInternal(output, outputOffset, maximumLen);
+                    if (isEncrypting()) {
+                        mustInitialize = true;
+                    }
+                    return retVal;
+                }
+
+                @Override
+                protected void engineUpdateAAD(byte[] input, int inputOffset, int inputLen) {
+                    checkInitialization();
+                    super.engineUpdateAAD(input, inputOffset, inputLen);
                 }
 
                 @Override
