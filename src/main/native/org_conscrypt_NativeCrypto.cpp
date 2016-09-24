@@ -6585,29 +6585,32 @@ static void info_callback(const SSL* ssl, int where, int ret) {
 }
 
 /**
- * Call back to ask for a client certificate. There are three possible exit codes:
+ * Call back to ask for a certificate. There are three possible exit codes:
  *
- * 1 is success. x509Out and pkeyOut should point to the correct private key and certificate.
- * 0 is unable to find key. x509Out and pkeyOut should be nullptr.
- * -1 is error and it doesn't matter what x509Out and pkeyOut are.
+ * 1 is success.
+ * 0 is error.
+ * -1 is to pause the handshake to continue from the same place later.
  */
-static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
-    JNI_TRACE("ssl=%p client_cert_cb x509Out=%p pkeyOut=%p", ssl, x509Out, pkeyOut);
+static int cert_cb(SSL* ssl, void* arg __attribute__ ((unused))) {
+    JNI_TRACE("ssl=%p cert_cb", ssl);
 
-    /* Clear output of key and certificate in case of early exit due to error. */
-    *x509Out = nullptr;
-    *pkeyOut = nullptr;
+    // cert_cb is called for both clients and servers, but we are only
+    // interested in client certificates.
+    if (SSL_is_server(ssl)) {
+        JNI_TRACE("ssl=%p cert_cb not a client => 1", ssl);
+        return 1;
+    }
 
     AppData* appData = toAppData(ssl);
     JNIEnv* env = appData->env;
     if (env == nullptr) {
-        ALOGE("AppData->env missing in client_cert_cb");
-        JNI_TRACE("ssl=%p client_cert_cb env error => 0", ssl);
+        ALOGE("AppData->env missing in cert_cb");
+        JNI_TRACE("ssl=%p cert_cb env error => 0", ssl);
         return 0;
     }
     if (env->ExceptionCheck()) {
-        JNI_TRACE("ssl=%p client_cert_cb already pending exception => 0", ssl);
-        return -1;
+        JNI_TRACE("ssl=%p cert_cb already pending exception => 0", ssl);
+        return 0;
     }
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
 
@@ -6615,7 +6618,7 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     jmethodID methodID
         = env->GetMethodID(cls, "clientCertificateRequested", "([B[[B)V");
 
-    // Call Java callback which can use SSL_use_certificate and SSL_use_PrivateKey to set values
+    // Call Java callback which can reconfigure the client certificate.
     const uint8_t* ctype = nullptr;
     int ctype_num = SSL_get0_certificate_types(ssl, &ctype);
     jobjectArray issuers = getPrincipalBytes(env, SSL_get_client_CA_list(ssl));
@@ -6628,7 +6631,7 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
 
     jbyteArray keyTypes = env->NewByteArray(ctype_num);
     if (keyTypes == nullptr) {
-        JNI_TRACE("ssl=%p client_cert_cb bytes == null => 0", ssl);
+        JNI_TRACE("ssl=%p cert_cb bytes == null => 0", ssl);
         return 0;
     }
     env->SetByteArrayRegion(keyTypes, 0, ctype_num, reinterpret_cast<const jbyte*>(ctype));
@@ -6638,28 +6641,12 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     env->CallVoidMethod(sslHandshakeCallbacks, methodID, keyTypes, issuers);
 
     if (env->ExceptionCheck()) {
-        JNI_TRACE("ssl=%p client_cert_cb exception => 0", ssl);
-        return -1;
+        JNI_TRACE("ssl=%p cert_cb exception => 0", ssl);
+        return 0;
     }
 
-    // Check for values set from Java
-    X509*     certificate = SSL_get_certificate(ssl);
-    EVP_PKEY* privatekey  = SSL_get_privatekey(ssl);
-    int result = 0;
-    if (certificate != nullptr && privatekey != nullptr) {
-        // The caller takes ownership of these parameters, so bump the
-        // reference count.
-        X509_up_ref(certificate);
-        EVP_PKEY_up_ref(privatekey);
-        *x509Out = certificate;
-        *pkeyOut = privatekey;
-        result = 1;
-    } else {
-        // Some error conditions return nullptr, so make sure it doesn't linger.
-        ERR_clear_error();
-    }
-    JNI_TRACE("ssl=%p client_cert_cb => *x509=%p *pkey=%p %d", ssl, *x509Out, *pkeyOut, result);
-    return result;
+    JNI_TRACE("ssl=%p cert_cb => 1", ssl);
+    return 1;
 }
 
 /**
@@ -6885,7 +6872,7 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
 
     SSL_CTX_set_cert_verify_callback(sslCtx.get(), cert_verify_callback, nullptr);
     SSL_CTX_set_info_callback(sslCtx.get(), info_callback);
-    SSL_CTX_set_client_cert_cb(sslCtx.get(), client_cert_cb);
+    SSL_CTX_set_cert_cb(sslCtx.get(), cert_cb, nullptr);
     SSL_CTX_set_tmp_dh_callback(sslCtx.get(), tmp_dh_callback);
     if (kWithJniTraceKeys) {
         SSL_CTX_set_keylog_callback(sslCtx.get(), debug_print_session_key);
