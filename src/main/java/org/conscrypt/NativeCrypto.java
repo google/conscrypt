@@ -535,7 +535,6 @@ public final class NativeCrypto {
 
     // --- SSL handling --------------------------------------------------------
 
-    private static final String SUPPORTED_PROTOCOL_SSLV3 = "SSLv3";
     private static final String SUPPORTED_PROTOCOL_TLSV1 = "TLSv1";
     private static final String SUPPORTED_PROTOCOL_TLSV1_1 = "TLSv1.1";
     private static final String SUPPORTED_PROTOCOL_TLSV1_2 = "TLSv1.2";
@@ -853,19 +852,10 @@ public final class NativeCrypto {
         SUPPORTED_PROTOCOL_TLSV1_2,
     };
 
-    /** Protocols to enable by default when "SSLv3" is requested. */
-    public static final String[] SSLV3_PROTOCOLS  = new String[] {
-        SUPPORTED_PROTOCOL_SSLV3,
-        SUPPORTED_PROTOCOL_TLSV1,
-        SUPPORTED_PROTOCOL_TLSV1_1,
-        SUPPORTED_PROTOCOL_TLSV1_2,
-    };
-
     public static final String[] DEFAULT_PROTOCOLS = TLSV12_PROTOCOLS;
 
     public static String[] getSupportedProtocols() {
-        return new String[] { SUPPORTED_PROTOCOL_SSLV3,
-                              SUPPORTED_PROTOCOL_TLSV1,
+        return new String[] { SUPPORTED_PROTOCOL_TLSV1,
                               SUPPORTED_PROTOCOL_TLSV1_1,
                               SUPPORTED_PROTOCOL_TLSV1_2,
         };
@@ -880,10 +870,7 @@ public final class NativeCrypto {
         long optionsToClear = 0;
         for (int i = 0; i < protocols.length; i++) {
             String protocol = protocols[i];
-            if (protocol.equals(SUPPORTED_PROTOCOL_SSLV3)) {
-                optionsToSet &= ~NativeConstants.SSL_OP_NO_SSLv3;
-                optionsToClear |= NativeConstants.SSL_OP_NO_SSLv3;
-            } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1)) {
+            if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1)) {
                 optionsToSet &= ~NativeConstants.SSL_OP_NO_TLSv1;
                 optionsToClear |= NativeConstants.SSL_OP_NO_TLSv1;
             } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1_1)) {
@@ -911,8 +898,7 @@ public final class NativeCrypto {
             if (protocol == null) {
                 throw new IllegalArgumentException("protocols[" + i + "] == null");
             }
-            if ((!protocol.equals(SUPPORTED_PROTOCOL_SSLV3))
-                    && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1))
+            if ((!protocol.equals(SUPPORTED_PROTOCOL_TLSV1))
                     && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1_1))
                     && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1_2))) {
                 throw new IllegalArgumentException("protocol " + protocol
