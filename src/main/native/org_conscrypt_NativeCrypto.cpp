@@ -9391,6 +9391,7 @@ static jlong NativeCrypto_getDirectBufferAddress(JNIEnv *env, jclass, jobject bu
 #define REF_EC_GROUP "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_GROUP;"
 #define REF_EC_POINT "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_POINT;"
 #define REF_EVP_CIPHER_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_CIPHER_CTX;"
+#define REF_EVP_MD_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;"
 #define REF_EVP_PKEY "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY;"
 #define REF_HMAC_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$HMAC_CTX;"
 static JNINativeMethod sNativeCryptoMethods[] = {
@@ -9442,48 +9443,24 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         NATIVE_METHOD(NativeCrypto, EC_KEY_get_public_key, "(" REF_EVP_PKEY ")J"),
         NATIVE_METHOD(NativeCrypto, ECDH_compute_key, "([BI" REF_EVP_PKEY REF_EVP_PKEY ")I"),
         NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_create, "()J"),
-        NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_cleanup,
-                      "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)V"),
+        NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_cleanup, "(" REF_EVP_MD_CTX ")V"),
         NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_destroy, "(J)V"),
-        NATIVE_METHOD(
-                NativeCrypto, EVP_MD_CTX_copy_ex,
-                "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;L" TO_STRING(
-                        JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)I"),
-        NATIVE_METHOD(NativeCrypto, EVP_DigestInit_ex,
-                      "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J)I"),
-        NATIVE_METHOD(
-                NativeCrypto, EVP_DigestUpdate,
-                "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)V"),
-        NATIVE_METHOD(NativeCrypto, EVP_DigestUpdateDirect,
-                      "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;JI)V"),
-        NATIVE_METHOD(NativeCrypto, EVP_DigestFinal_ex,
-                      "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BI)I"),
+        NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_copy_ex, "(" REF_EVP_MD_CTX "" REF_EVP_MD_CTX ")I"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestInit_ex, "(" REF_EVP_MD_CTX "J)I"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestUpdate, "(" REF_EVP_MD_CTX "[BII)V"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestUpdateDirect, "(" REF_EVP_MD_CTX "JI)V"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestFinal_ex, "(" REF_EVP_MD_CTX "[BI)I"),
         NATIVE_METHOD(NativeCrypto, EVP_get_digestbyname, "(Ljava/lang/String;)J"),
         NATIVE_METHOD(NativeCrypto, EVP_MD_block_size, "(J)I"),
         NATIVE_METHOD(NativeCrypto, EVP_MD_size, "(J)I"),
-        NATIVE_METHOD(NativeCrypto, EVP_DigestSignInit,
-                      "(L" TO_STRING(
-                              JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J" REF_EVP_PKEY
-                                                 ")J"),
-        NATIVE_METHOD(
-                NativeCrypto, EVP_DigestSignUpdate,
-                "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)V"),
-        NATIVE_METHOD(NativeCrypto, EVP_DigestSignUpdateDirect,
-                      "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;JI)V"),
-        NATIVE_METHOD(NativeCrypto, EVP_DigestSignFinal,
-                      "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;)[B"),
-        NATIVE_METHOD(NativeCrypto, EVP_DigestVerifyInit,
-                      "(L" TO_STRING(
-                              JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;J" REF_EVP_PKEY
-                                                 ")J"),
-        NATIVE_METHOD(
-                NativeCrypto, EVP_DigestVerifyUpdate,
-                "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)V"),
-        NATIVE_METHOD(NativeCrypto, EVP_DigestVerifyUpdateDirect,
-                      "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;JI)V"),
-        NATIVE_METHOD(
-                NativeCrypto, EVP_DigestVerifyFinal,
-                "(L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;[BII)Z"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestSignInit, "(" REF_EVP_MD_CTX "J" REF_EVP_PKEY ")J"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestSignUpdate, "(" REF_EVP_MD_CTX "[BII)V"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestSignUpdateDirect, "(" REF_EVP_MD_CTX "JI)V"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestSignFinal, "(" REF_EVP_MD_CTX ")[B"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestVerifyInit, "(" REF_EVP_MD_CTX "J" REF_EVP_PKEY ")J"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestVerifyUpdate, "(" REF_EVP_MD_CTX "[BII)V"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestVerifyUpdateDirect, "(" REF_EVP_MD_CTX "JI)V"),
+        NATIVE_METHOD(NativeCrypto, EVP_DigestVerifyFinal, "(" REF_EVP_MD_CTX "[BII)Z"),
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_CTX_set_rsa_padding, "(JI)V"),
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_CTX_set_rsa_pss_saltlen, "(JI)V"),
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_CTX_set_rsa_mgf1_md, "(JJ)V"),
