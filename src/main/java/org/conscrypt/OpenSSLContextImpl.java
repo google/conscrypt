@@ -164,10 +164,4 @@ public class OpenSSLContextImpl extends SSLContextSpi {
             super(NativeCrypto.TLSV1_PROTOCOLS);
         }
     }
-
-    public static class SSLv3 extends OpenSSLContextImpl {
-        public SSLv3() {
-            super(NativeCrypto.SSLV3_PROTOCOLS);
-        }
-    }
 }
