@@ -89,9 +89,9 @@
 
 #include "macros.h"
 
-#undef WITH_JNI_TRACE
-#undef WITH_JNI_TRACE_MD
-#undef WITH_JNI_TRACE_DATA
+static constexpr bool kWithJniTrace = false;
+static constexpr bool kWithJniTraceMd = false;
+static constexpr bool kWithJniTraceData = false;
 
 /*
  * How to use this for debugging with Wireshark:
@@ -110,28 +110,22 @@
  * 4. Follow the stream that corresponds to the desired "Session-ID" in
  *    the Server Hello.
  */
-#undef WITH_JNI_TRACE_KEYS
+static constexpr bool kWithJniTraceKeys = false;
 
-#ifdef WITH_JNI_TRACE
-#define JNI_TRACE(...) \
-        ((void)ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__))
-#else
-#define JNI_TRACE(...) ((void)0)
-#endif
-#ifdef WITH_JNI_TRACE_MD
-#define JNI_TRACE_MD(...) \
-        ((void)ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__));
-#else
-#define JNI_TRACE_MD(...) ((void)0)
-#endif
-#ifdef WITH_JNI_TRACE_KEYS
-#define JNI_TRACE_KEYS(...) \
-        ((void)ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__));
-#else
-#define JNI_TRACE_KEYS(...) ((void)0)
-#endif
+#define JNI_TRACE(...)                               \
+    if (kWithJniTrace) {                             \
+        ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
+    }
+#define JNI_TRACE_MD(...)                            \
+    if (kWithJniTraceMd) {                           \
+        ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
+    }
+#define JNI_TRACE_KEYS(...)                          \
+    if (kWithJniTraceKeys) {                         \
+        ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
+    }
 // don't overwhelm logcat
-#define WITH_JNI_TRACE_DATA_CHUNK_SIZE 512
+static constexpr size_t kWithJniTraceDataChunkSize = 512;
 
 static JavaVM* gJavaVM;
 static jclass cryptoUpcallsClass;
@@ -1872,12 +1866,12 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass,
         return 0;
     }
 
-#ifdef WITH_JNI_TRACE
-    if (p != nullptr && q != nullptr) {
-        int check = RSA_check_key(rsa.get());
-        JNI_TRACE("EVP_PKEY_new_RSA(...) RSA_check_key returns %d", check);
+    if (kWithJniTrace) {
+        if (p != nullptr && q != nullptr) {
+            int check = RSA_check_key(rsa.get());
+            JNI_TRACE("EVP_PKEY_new_RSA(...) RSA_check_key returns %d", check);
+        }
     }
-#endif
 
     if (rsa->n == nullptr || (rsa->e == nullptr && rsa->d == nullptr)) {
         jniThrowRuntimeException(env, "Unable to convert BigInteger to BIGNUM");
@@ -6003,7 +5997,6 @@ static jobjectArray NativeCrypto_get_X509_REVOKED_ext_oids(JNIEnv* env, jclass, 
             X509_REVOKED_get_ext>(env, x509RevokedRef, critical);
 }
 
-#ifdef WITH_JNI_TRACE
 /**
  * Based on example logging call back from SSL_CTX_set_info_callback man page
  */
@@ -6055,7 +6048,6 @@ static void info_callback_LOG(const SSL* s __attribute__ ((unused)), int where, 
                   s, str, where, SSL_state_string(s), SSL_state_string_long(s));
     }
 }
-#endif
 
 /**
  * Returns an array containing all the X509 certificate references
@@ -6457,9 +6449,9 @@ static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg __attr
  */
 static void info_callback(const SSL* ssl, int where, int ret) {
     JNI_TRACE("ssl=%p info_callback where=0x%x ret=%d", ssl, where, ret);
-#ifdef WITH_JNI_TRACE
-    info_callback_LOG(ssl, where, ret);
-#endif
+    if (kWithJniTrace) {
+        info_callback_LOG(ssl, where, ret);
+    }
     if (!(where & SSL_CB_HANDSHAKE_DONE) && !(where & SSL_CB_HANDSHAKE_START)) {
         JNI_TRACE("ssl=%p info_callback ignored", ssl);
         return;
@@ -6527,11 +6519,11 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     int ctype_num = SSL_get0_certificate_types(ssl, &ctype);
     jobjectArray issuers = getPrincipalBytes(env, SSL_get_client_CA_list(ssl));
 
-#ifdef WITH_JNI_TRACE
-    for (int i = 0; i < ctype_num; i++) {
-        JNI_TRACE("ssl=%p clientCertificateRequested keyTypes[%d]=%d", ssl, i, ctype[i]);
+    if (kWithJniTrace) {
+        for (int i = 0; i < ctype_num; i++) {
+            JNI_TRACE("ssl=%p clientCertificateRequested keyTypes[%d]=%d", ssl, i, ctype[i]);
+        }
     }
-#endif
 
     jbyteArray keyTypes = env->NewByteArray(ctype_num);
     if (keyTypes == nullptr) {
@@ -6727,11 +6719,9 @@ static jint NativeCrypto_EVP_has_aes_hardware(JNIEnv*, jclass) {
     return ret;
 }
 
-#ifdef WITH_JNI_TRACE_KEYS
 static void debug_print_session_key(const SSL* ssl, const char *line) {
     JNI_TRACE_KEYS("ssl=%p KEY_LINE: %s", ssl, line);
 }
-#endif /* WITH_JNI_TRACE_KEYS */
 
 /*
  * public static native int SSL_CTX_new();
@@ -6779,9 +6769,9 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_info_callback(sslCtx.get(), info_callback);
     SSL_CTX_set_client_cert_cb(sslCtx.get(), client_cert_cb);
     SSL_CTX_set_tmp_dh_callback(sslCtx.get(), tmp_dh_callback);
-#ifdef WITH_JNI_TRACE_KEYS
-    SSL_CTX_set_keylog_callback(sslCtx.get(), debug_print_session_key);
-#endif
+    if (kWithJniTraceKeys) {
+        SSL_CTX_set_keylog_callback(sslCtx.get(), debug_print_session_key);
+    }
 
     JNI_TRACE("NativeCrypto_SSL_CTX_new => %p", sslCtx.get());
     return (jlong) sslCtx.release();
@@ -8227,16 +8217,17 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
             return THROWN_EXCEPTION;
         }
         sslError.reset(ssl, result);
+
         JNI_TRACE("ssl=%p sslRead SSL_read result=%d sslError=%d", ssl, result, sslError.get());
-#ifdef WITH_JNI_TRACE_DATA
-        for (int i = 0; i < result; i+= WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
-            int n = result - i;
-            if (n > WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
-                n = WITH_JNI_TRACE_DATA_CHUNK_SIZE;
+        if (kWithJniTraceData) {
+            for (size_t i = 0; result > 0 && i < (size_t)result; i += kWithJniTraceDataChunkSize) {
+                size_t n = result - i;
+                if (n > kWithJniTraceDataChunkSize) {
+                    n = kWithJniTraceDataChunkSize;
+                }
+                JNI_TRACE("ssl=%p sslRead data: %zu:\n%.*s", ssl, n, (int)n, buf + i);
             }
-            JNI_TRACE("ssl=%p sslRead data: %d:\n%.*s", ssl, n, n, buf+i);
         }
-#endif
 
         // If we have been successful in moving data around, check whether it
         // might make sense to wake up other blocked threads, so they can give
@@ -8374,17 +8365,19 @@ static jint NativeCrypto_SSL_read_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
         return THROWN_EXCEPTION;
     }
     OpenSslError sslError(ssl, result);
+
     JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO SSL_read result=%d sslError=%d", ssl, result,
               sslError.get());
-#ifdef WITH_JNI_TRACE_DATA
-    for (int i = 0; i < result; i+= WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
-        int n = result - i;
-        if (n > WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
-            n = WITH_JNI_TRACE_DATA_CHUNK_SIZE;
+    if (kWithJniTraceData) {
+        for (size_t i = 0; result > 0 && i < (size_t)result; i += kWithJniTraceDataChunkSize) {
+            size_t n = result - i;
+            if (n > kWithJniTraceDataChunkSize) {
+                n = kWithJniTraceDataChunkSize;
+            }
+            JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO data: %zu:\n%.*s", ssl, n, (int)n,
+                      dest.get() + i);
         }
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_read_BIO data: %d:\n%.*s", ssl, n, n, dest.get() + i);
     }
-#endif
 
     switch (sslError.get()) {
         // Successfully read at least one byte.
@@ -8539,17 +8532,18 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
             return THROWN_EXCEPTION;
         }
         sslError.reset(ssl, result);
+
         JNI_TRACE("ssl=%p sslWrite SSL_write result=%d sslError=%d",
                   ssl, result, sslError.get());
-#ifdef WITH_JNI_TRACE_DATA
-        for (int i = 0; i < result; i+= WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
-            int n = result - i;
-            if (n > WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
-                n = WITH_JNI_TRACE_DATA_CHUNK_SIZE;
+        if (kWithJniTraceData) {
+            for (size_t i = 0; result > 0 && i < (size_t)result; i += kWithJniTraceDataChunkSize) {
+                size_t n = result - i;
+                if (n > kWithJniTraceDataChunkSize) {
+                    n = kWithJniTraceDataChunkSize;
+                }
+                JNI_TRACE("ssl=%p sslWrite data: %zu:\n%.*s", ssl, n, (int)n, buf + i);
             }
-            JNI_TRACE("ssl=%p sslWrite data: %d:\n%.*s", ssl, n, n, buf+i);
         }
-#endif
 
         // If we have been successful in moving data around, check whether it
         // might make sense to wake up other blocked threads, so they can give
@@ -8693,17 +8687,19 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
         return -1;
     }
     OpenSslError sslError(ssl, result);
+
     JNI_TRACE("ssl=%p NativeCrypto_SSL_write_BIO SSL_write result=%d sslError=%d",
               ssl, result, sslError.get());
-#ifdef WITH_JNI_TRACE_DATA
-    for (int i = 0; i < result; i+= WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
-        int n = result - i;
-        if (n > WITH_JNI_TRACE_DATA_CHUNK_SIZE) {
-            n = WITH_JNI_TRACE_DATA_CHUNK_SIZE;
+    if (kWithJniTraceData) {
+        for (size_t i = 0; result > 0 && i < (size_t)result; i += kWithJniTraceDataChunkSize) {
+            size_t n = result - i;
+            if (n > kWithJniTraceDataChunkSize) {
+                n = kWithJniTraceDataChunkSize;
+            }
+            JNI_TRACE("ssl=%p NativeCrypto_SSL_write_BIO data: %zu:\n%.*s", ssl, n, (int)n,
+                      source.get() + i);
         }
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_write_BIO data: %d:\n%.*s", ssl, n, n, source.get() + i);
     }
-#endif
 
     switch (sslError.get()) {
         case SSL_ERROR_NONE:
