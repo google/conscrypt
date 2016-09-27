@@ -341,9 +341,6 @@ public class OpenSSLSignature extends SignatureSpi {
      * Base class for {@code RSASSA-PSS} signatures.
      */
     abstract static class RSAPSSPadding extends OpenSSLSignature {
-
-        private static final String MGF1_ALGORITHM_NAME = "MGF1";
-        private static final String MGF1_OID = "1.2.840.113549.1.1.8";
         private static final int TRAILER_FIELD_BC_ID = 1;
 
         private final String contentDigestAlgorithm;
@@ -389,11 +386,11 @@ public class OpenSSLSignature extends SignatureSpi {
             }
 
             String specMgfAlgorithm = spec.getMGFAlgorithm();
-            if ((!MGF1_ALGORITHM_NAME.equalsIgnoreCase(specMgfAlgorithm))
-                    && (!MGF1_OID.equals(specMgfAlgorithm))) {
+            if ((!EvpMdRef.MGF1_ALGORITHM_NAME.equalsIgnoreCase(specMgfAlgorithm))
+                    && (!EvpMdRef.MGF1_OID.equals(specMgfAlgorithm))) {
                 throw new InvalidAlgorithmParameterException(
                         "Unsupported MGF algorithm: " + specMgfAlgorithm + ". Only "
-                                + MGF1_ALGORITHM_NAME + " supported");
+                                + EvpMdRef.MGF1_ALGORITHM_NAME + " supported");
             }
 
             AlgorithmParameterSpec mgfSpec = spec.getMGFParameters();
@@ -448,7 +445,7 @@ public class OpenSSLSignature extends SignatureSpi {
                 result.init(
                         new PSSParameterSpec(
                                 contentDigestAlgorithm,
-                                MGF1_ALGORITHM_NAME,
+                                EvpMdRef.MGF1_ALGORITHM_NAME,
                                 new MGF1ParameterSpec(mgf1DigestAlgorithm),
                                 saltSizeBytes,
                                 TRAILER_FIELD_BC_ID));
