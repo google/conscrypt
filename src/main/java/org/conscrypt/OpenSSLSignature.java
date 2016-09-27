@@ -281,70 +281,59 @@ public class OpenSSLSignature extends SignatureSpi {
     }
 
     public static final class MD5RSA extends RSAPKCS1Padding {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("md5");
         public MD5RSA() {
-            super(EVP_MD);
+            super(EvpMdRef.MD5.EVP_MD);
         }
     }
     public static final class SHA1RSA extends RSAPKCS1Padding {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
         public SHA1RSA() {
-            super(EVP_MD);
+            super(EvpMdRef.SHA1.EVP_MD);
         }
     }
     public static final class SHA224RSA extends RSAPKCS1Padding {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha224");
         public SHA224RSA() {
-            super(EVP_MD);
+            super(EvpMdRef.SHA224.EVP_MD);
         }
     }
     public static final class SHA256RSA extends RSAPKCS1Padding {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
         public SHA256RSA() {
-            super(EVP_MD);
+            super(EvpMdRef.SHA256.EVP_MD);
         }
     }
     public static final class SHA384RSA extends RSAPKCS1Padding {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
         public SHA384RSA() {
-            super(EVP_MD);
+            super(EvpMdRef.SHA384.EVP_MD);
         }
     }
     public static final class SHA512RSA extends RSAPKCS1Padding {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
         public SHA512RSA() {
-            super(EVP_MD);
+            super(EvpMdRef.SHA512.EVP_MD);
         }
     }
 
     public static final class SHA1ECDSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
         public SHA1ECDSA() {
-            super(EVP_MD, EngineType.EC);
+            super(EvpMdRef.SHA1.EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA224ECDSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha224");
         public SHA224ECDSA() {
-            super(EVP_MD, EngineType.EC);
+            super(EvpMdRef.SHA224.EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA256ECDSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
         public SHA256ECDSA() {
-            super(EVP_MD, EngineType.EC);
+            super(EvpMdRef.SHA256.EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA384ECDSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
         public SHA384ECDSA() {
-            super(EVP_MD, EngineType.EC);
+            super(EvpMdRef.SHA384.EVP_MD, EngineType.EC);
         }
     }
     public static final class SHA512ECDSA extends OpenSSLSignature {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
         public SHA512ECDSA() {
-            super(EVP_MD, EngineType.EC);
+            super(EvpMdRef.SHA512.EVP_MD, EngineType.EC);
         }
     }
 
@@ -495,15 +484,15 @@ public class OpenSSLSignature extends SignatureSpi {
         private static long getEVP_MDByJcaDigestAlgorithmStandardName(String algorithm)
                 throws NoSuchAlgorithmException {
             if ("SHA-256".equalsIgnoreCase(algorithm)) {
-                return NativeCrypto.EVP_get_digestbyname("sha256");
+                return EvpMdRef.SHA256.EVP_MD;
             } else if ("SHA-512".equalsIgnoreCase(algorithm)) {
-                return NativeCrypto.EVP_get_digestbyname("sha512");
+                return EvpMdRef.SHA512.EVP_MD;
             } else if ("SHA-1".equalsIgnoreCase(algorithm)) {
-                return NativeCrypto.EVP_get_digestbyname("sha1");
+                return EvpMdRef.SHA1.EVP_MD;
             } else if ("SHA-384".equalsIgnoreCase(algorithm)) {
-                return NativeCrypto.EVP_get_digestbyname("sha384");
+                return EvpMdRef.SHA384.EVP_MD;
             } else if ("SHA-224".equalsIgnoreCase(algorithm)) {
-                return NativeCrypto.EVP_get_digestbyname("sha224");
+                return EvpMdRef.SHA224.EVP_MD;
             } else {
                 throw new NoSuchAlgorithmException("Unsupported algorithm: " + algorithm);
             }
@@ -511,33 +500,28 @@ public class OpenSSLSignature extends SignatureSpi {
     }
 
     public static final class SHA1RSAPSS extends RSAPSSPadding {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
         public SHA1RSAPSS() {
-            super(EVP_MD, "SHA-1", 20);
+            super(EvpMdRef.SHA1.EVP_MD, "SHA-1", 20);
         }
     }
     public static final class SHA224RSAPSS extends RSAPSSPadding {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha224");
         public SHA224RSAPSS() {
-            super(EVP_MD, "SHA-224", 28);
+            super(EvpMdRef.SHA224.EVP_MD, "SHA-224", 28);
         }
     }
     public static final class SHA256RSAPSS extends RSAPSSPadding {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
         public SHA256RSAPSS() {
-            super(EVP_MD, "SHA-256", 32);
+            super(EvpMdRef.SHA256.EVP_MD, "SHA-256", 32);
         }
     }
     public static final class SHA384RSAPSS extends RSAPSSPadding {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
         public SHA384RSAPSS() {
-            super(EVP_MD, "SHA-384", 48);
+            super(EvpMdRef.SHA384.EVP_MD, "SHA-384", 48);
         }
     }
     public static final class SHA512RSAPSS extends RSAPSSPadding {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
         public SHA512RSAPSS() {
-            super(EVP_MD, "SHA-512", 64);
+            super(EvpMdRef.SHA512.EVP_MD, "SHA-512", 64);
         }
     }
 }
