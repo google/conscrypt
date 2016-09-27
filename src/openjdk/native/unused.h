@@ -30,12 +30,13 @@
 #define UNUSED_11(a,b,c,d,e,f,g,h,i,j,k) ((void)(a)),UNUSED_10(b,c,d,e,f,g,h,i,j,k)
 #define UNUSED_12(a,b,c,d,e,f,g,h,i,j,k,l) ((void)(a)),UNUSED_11(b,c,d,e,f,g,h,i,j,k,l)
 #define UNUSED_13(a,b,c,d,e,f,g,h,i,j,k,l,m) ((void)(a)),UNUSED_12(b,c,d,e,f,g,h,i,j,k,l,m)
+#define UNUSED_14(a,b,c,d,e,f,g,h,i,j,k,l,m,n) ((void)(a)),UNUSED_13(b,c,d,e,f,g,h,i,j,k,l,m,n)
 
 #define VA_ARGS_UNUSED_IMPL_(num) UNUSED_ ## num
 #define VA_ARGS_UNUSED_IMPL(num) VA_ARGS_UNUSED_IMPL_(num)
 
-#define VA_NARGS_IMPL(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,N,...) N
-#define VA_NARGS(...) VA_NARGS_IMPL(__VA_ARGS__,13,12,11,10,9,8,7,6,5,4,3,2,1)
+#define VA_NARGS_IMPL(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,N,...) N
+#define VA_NARGS(...) VA_NARGS_IMPL(__VA_ARGS__,14,13,12,11,10,9,8,7,6,5,4,3,2,1)
 
 #define VA_ARGS_UNUSED(...) VA_ARGS_UNUSED_IMPL( VA_NARGS(__VA_ARGS__))(__VA_ARGS__ )
 
