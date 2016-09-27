@@ -234,22 +234,9 @@ typedef std::unique_ptr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_s
         (chunk_len) > static_cast<ssize_t>(array_len) - (chunk_offset))
 
 /**
- * Frees the SSL error state.
- *
- * OpenSSL keeps an "error stack" per thread, and given that this code
- * can be called from arbitrary threads that we don't keep track of,
- * we err on the side of freeing the error state promptly (instead of,
- * say, at thread death).
- */
-static void freeOpenSslErrorState(void) {
-    ERR_clear_error();
-    ERR_remove_thread_state(nullptr);
-}
-
-/**
  * Manages the freeing of the OpenSSL error stack. This allows you to
  * instantiate this object during an SSL call that may fail and not worry
- * about manually calling freeOpenSslErrorState() later.
+ * about manually calling ERR_clear_error() later.
  *
  * As an optimization, you can also call .release() for passing as an
  * argument to things that free the error stack state as a side-effect.
@@ -265,7 +252,7 @@ public:
 
     ~OpenSslError() {
         if (!released_ && sslError_ != SSL_ERROR_NONE) {
-            freeOpenSslErrorState();
+            ERR_clear_error();
         }
     }
 
@@ -523,7 +510,7 @@ static bool throwExceptionIfNecessary(JNIEnv* env, const char* location  __attri
         result = true;
     }
 
-    freeOpenSslErrorState();
+    ERR_clear_error();
     return result;
 }
 
@@ -619,7 +606,7 @@ static int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCod
         // problem with asprintf, just throw argument message, log everything
         int ret = actualThrow(env, message);
         ALOGV("%s: ssl=%p: %s", message, ssl, sslErrorStr);
-        freeOpenSslErrorState();
+        ERR_clear_error();
         return ret;
     }
 
@@ -675,7 +662,7 @@ static int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCod
 
     ALOGV("%s", allocStr);
     free(allocStr);
-    freeOpenSslErrorState();
+    ERR_clear_error();
     return ret;
 }
 
@@ -970,7 +957,7 @@ jbooleanArray ASN1BitStringToBooleanArray(JNIEnv* env, ASN1_BIT_STRING* bitStr) 
  */
 static void safeSslClear(SSL* ssl) {
     if (SSL_clear(ssl) != 1) {
-        freeOpenSslErrorState();
+        ERR_clear_error();
     }
 }
 
@@ -2220,7 +2207,7 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
     if (pkey.get() == nullptr) {
         JNI_TRACE("getRSAPrivateKeyWrapper failed");
         jniThrowRuntimeException(env, "NativeCrypto_getRSAPrivateKeyWrapper failed");
-        freeOpenSslErrorState();
+        ERR_clear_error();
         return 0;
     }
 
@@ -2272,7 +2259,7 @@ static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject ja
     if (pkey.get() == nullptr) {
         JNI_TRACE("getECPrivateKeyWrapper failed");
         jniThrowRuntimeException(env, "NativeCrypto_getECPrivateKeyWrapper failed");
-        freeOpenSslErrorState();
+        ERR_clear_error();
         return 0;
     }
 
@@ -2552,7 +2539,7 @@ static jlong NativeCrypto_EC_GROUP_new_by_curve_name(JNIEnv* env, jclass, jstrin
     EC_GROUP* group = EC_GROUP_new_by_curve_name(nid);
     if (group == nullptr) {
         JNI_TRACE("EC_GROUP_new_by_curve_name(%s) => unknown NID %d", curveName.c_str(), nid);
-        freeOpenSslErrorState();
+        ERR_clear_error();
         return 0;
     }
 
@@ -2615,7 +2602,7 @@ static jlong NativeCrypto_EC_GROUP_new_arbitrary(
     bssl::UniquePtr<EC_POINT> generator(EC_POINT_new(group.get()));
     if (generator.get() == nullptr) {
         JNI_TRACE("EC_POINT_new => null");
-        freeOpenSslErrorState();
+        ERR_clear_error();
         return 0;
     }
 
@@ -3177,7 +3164,7 @@ static jint NativeCrypto_EVP_MD_CTX_copy_ex(JNIEnv* env, jclass, jobject dstCtxR
     int result = EVP_MD_CTX_copy_ex(dst_ctx, src_ctx);
     if (result == 0) {
         jniThrowRuntimeException(env, "Unable to copy EVP_MD_CTX");
-        freeOpenSslErrorState();
+        ERR_clear_error();
     }
 
     JNI_TRACE_MD("EVP_MD_CTX_copy_ex(%p, %p) => %d", dst_ctx, src_ctx, result);
@@ -3608,7 +3595,7 @@ static jboolean NativeCrypto_EVP_DigestVerifyFinal(JNIEnv* env, jclass, jobject 
 
     // If the signature did not verify, BoringSSL error queue contains an error (BAD_SIGNATURE).
     // Clear the error queue to prevent its state from affecting future operations.
-    freeOpenSslErrorState();
+    ERR_clear_error();
 
     JNI_TRACE("EVP_DigestVerifyFinal(%p) => %d", mdCtx, result);
     return result;
@@ -4281,7 +4268,7 @@ static jstring NativeCrypto_OBJ_txt2nid_longName(JNIEnv* env, jclass, jstring oi
     int nid = OBJ_txt2nid(oid.c_str());
     if (nid == NID_undef) {
         JNI_TRACE("OBJ_txt2nid_longName(%s) => NID_undef", oid.c_str());
-        freeOpenSslErrorState();
+        ERR_clear_error();
         return nullptr;
     }
 
@@ -4405,7 +4392,7 @@ static void NativeCrypto_BIO_write(JNIEnv* env, jclass, jlong bioRef, jbyteArray
 
     env->GetByteArrayRegion(inputJavaBytes, offset, length, reinterpret_cast<jbyte*>(buffer.get()));
     if (BIO_write(bio, buffer.get(), length) != length) {
-        freeOpenSslErrorState();
+        ERR_clear_error();
         throwIOException(env, "BIO_write");
         JNI_TRACE("BIO_write(%p, %p, %d, %d) => IO error", bio, inputJavaBytes, offset, length);
         return;
@@ -5004,7 +4991,7 @@ static X509_EXTENSION *X509Type_get_ext(JNIEnv* env, T* x509Type, jstring oidStr
     bssl::UniquePtr<ASN1_OBJECT> asn1(OBJ_txt2obj(oid.c_str(), 1));
     if (asn1.get() == nullptr) {
         JNI_TRACE("X509Type_get_ext(%p, %s) => oid conversion failed", x509Type, oid.c_str());
-        freeOpenSslErrorState();
+        ERR_clear_error();
         return nullptr;
     }
 
@@ -5242,7 +5229,7 @@ static jstring NativeCrypto_OBJ_txt2nid_oid(JNIEnv* env, jclass, jstring oidStr)
     int nid = OBJ_txt2nid(oid.c_str());
     if (nid == NID_undef) {
         JNI_TRACE("OBJ_txt2nid_oid(%s) => NID_undef", oid.c_str());
-        freeOpenSslErrorState();
+        ERR_clear_error();
         return nullptr;
     }
 
@@ -5681,7 +5668,7 @@ static void NativeCrypto_X509_delete_ext(JNIEnv* env, jclass, jlong x509Ref,
     bssl::UniquePtr<ASN1_OBJECT> obj(OBJ_txt2obj(oid.c_str(), 1 /* allow numerical form only */));
     if (obj.get() == nullptr) {
         JNI_TRACE("X509_delete_ext(%p, %s) => oid conversion failed", x509, oid.c_str());
-        freeOpenSslErrorState();
+        ERR_clear_error();
         jniThrowException(env, "java/lang/IllegalArgumentException",
                                "Invalid OID.");
         return;
@@ -5748,7 +5735,7 @@ static jlong NativeCrypto_X509_get_pubkey(JNIEnv* env, jclass, jlong x509Ref) {
              ERR_GET_REASON(last_error) == EVP_R_UNKNOWN_PUBLIC_KEY_TYPE) ||
             (ERR_GET_LIB(first_error) == ERR_LIB_EC &&
              ERR_GET_REASON(first_error) == EC_R_UNKNOWN_GROUP)) {
-            freeOpenSslErrorState();
+            ERR_clear_error();
             throwNoSuchAlgorithmException(env, "X509_get_pubkey");
             return 0;
         }
@@ -6566,7 +6553,7 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
         result = 1;
     } else {
         // Some error conditions return nullptr, so make sure it doesn't linger.
-        freeOpenSslErrorState();
+        ERR_clear_error();
     }
     JNI_TRACE("ssl=%p client_cert_cb => *x509=%p *pkey=%p %d", ssl, *x509Out, *pkeyOut, result);
     return result;
@@ -6863,7 +6850,7 @@ static jlong NativeCrypto_SSL_new(JNIEnv* env, jclass, jlong ssl_ctx_address)
     AppData* appData = AppData::create();
     if (appData == nullptr) {
         throwSSLExceptionStr(env, "Unable to create application data");
-        freeOpenSslErrorState();
+        ERR_clear_error();
         JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_new appData => 0", ssl_ctx);
         return 0;
     }
@@ -7478,7 +7465,7 @@ static void NativeCrypto_SSL_set_cipher_lists(JNIEnv* env, jclass, jlong ssl_add
     if (length == 0) {
         JNI_TRACE("ssl=%p NativeCrypto_SSL_set_cipher_lists cipherSuites=empty", ssl);
         SSL_set_cipher_list(ssl, "");
-        freeOpenSslErrorState();
+        ERR_clear_error();
         if (sk_SSL_CIPHER_num(SSL_get_ciphers(ssl)) != 0) {
             JNI_TRACE("ssl=%p NativeCrypto_SSL_set_cipher_lists cipherSuites=empty => error", ssl);
             jniThrowRuntimeException(env, "SSL_set_cipher_list did not update ciphers!");
@@ -7546,7 +7533,7 @@ static void NativeCrypto_SSL_set_cipher_lists(JNIEnv* env, jclass, jlong ssl_add
 
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set_cipher_lists cipherSuites=%s", ssl, cipherString.get());
     if (!SSL_set_cipher_list(ssl, cipherString.get())) {
-        freeOpenSslErrorState();
+        ERR_clear_error();
         jniThrowException(env, "java/lang/IllegalArgumentException",
                           "Illegal cipher suite strings.");
         return;
@@ -7839,7 +7826,7 @@ static jlong NativeCrypto_SSL_do_handshake_bio(JNIEnv* env, jclass, jlong ssl_ad
     errno = 0;
 
     if (!appData->setCallbackState(env, shc, nullptr, alpnProtocols)) {
-        freeOpenSslErrorState();
+        ERR_clear_error();
         safeSslClear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake_bio setCallbackState => 0", ssl);
         return 0;
@@ -7851,7 +7838,7 @@ static jlong NativeCrypto_SSL_do_handshake_bio(JNIEnv* env, jclass, jlong ssl_ad
     appData->clearCallbackState();
     // cert_verify_callback threw exception
     if (env->ExceptionCheck()) {
-        freeOpenSslErrorState();
+        ERR_clear_error();
         safeSslClear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake_bio exception => 0", ssl);
         return 0;
@@ -7976,7 +7963,7 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
         appData->clearCallbackState();
         // cert_verify_callback threw exception
         if (env->ExceptionCheck()) {
-            freeOpenSslErrorState();
+            ERR_clear_error();
             safeSslClear(ssl);
             JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake exception => 0", ssl);
             return 0;
@@ -8021,7 +8008,7 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
             }
             if (selectResult == 0) {
                 throwSocketTimeoutException(env, "SSL handshake timed out");
-                freeOpenSslErrorState();
+                ERR_clear_error();
                 safeSslClear(ssl);
                 JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake selectResult == 0 => 0", ssl);
                 return 0;
@@ -8112,7 +8099,7 @@ static jlongArray NativeCrypto_SSL_get_certificate(JNIEnv* env, jclass, jlong ss
     if (certificate == nullptr) {
         JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => null", ssl);
         // SSL_get_certificate can return nullptr during an error as well.
-        freeOpenSslErrorState();
+        ERR_clear_error();
         return nullptr;
     }
 
@@ -8131,7 +8118,7 @@ static jlongArray NativeCrypto_SSL_get_certificate(JNIEnv* env, jclass, jlong ss
     STACK_OF(X509)* cert_chain = nullptr;
     if (!SSL_get0_chain_certs(ssl, &cert_chain)) {
         JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_chain_certs => null", ssl);
-        freeOpenSslErrorState();
+        ERR_clear_error();
         return nullptr;
     }
 
@@ -8664,7 +8651,7 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
     if (appData == nullptr) {
         throwSSLExceptionStr(env, "Unable to retrieve application data");
         safeSslClear(ssl);
-        freeOpenSslErrorState();
+        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_SSL_write_BIO appData => null", ssl);
         return -1;
     }
@@ -8675,7 +8662,7 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
 
     if (!appData->setCallbackState(env, shc, nullptr, nullptr)) {
         throwSSLExceptionStr(env, "Unable to set appdata callback");
-        freeOpenSslErrorState();
+        ERR_clear_error();
         safeSslClear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_write_BIO => appData can't set callback", ssl);
         return -1;
@@ -8694,7 +8681,7 @@ static int NativeCrypto_SSL_write_BIO(JNIEnv* env, jclass, jlong sslRef, jbyteAr
     appData->clearCallbackState();
     // callbacks can happen if server requests renegotiation
     if (env->ExceptionCheck()) {
-        freeOpenSslErrorState();
+        ERR_clear_error();
         safeSslClear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_write_BIO exception => exception pending (reneg)", ssl);
         return -1;
@@ -8848,7 +8835,7 @@ static void NativeCrypto_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_address,
     if (appData != nullptr) {
         if (!appData->setCallbackState(env, shc, fdObject, nullptr)) {
             // SocketException thrown by NetFd.isClosed
-            freeOpenSslErrorState();
+            ERR_clear_error();
             safeSslClear(ssl);
             return;
         }
@@ -8899,7 +8886,7 @@ static void NativeCrypto_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_address,
         }
     }
 
-    freeOpenSslErrorState();
+    ERR_clear_error();
     safeSslClear(ssl);
 }
 
@@ -8932,7 +8919,7 @@ static void NativeCrypto_SSL_shutdown_BIO(JNIEnv* env, jclass, jlong ssl_address
 
         if (!appData->setCallbackState(env, shc, nullptr, nullptr)) {
             // SocketException thrown by NetFd.isClosed
-            freeOpenSslErrorState();
+            ERR_clear_error();
             safeSslClear(ssl);
             return;
         }
@@ -8976,7 +8963,7 @@ static void NativeCrypto_SSL_shutdown_BIO(JNIEnv* env, jclass, jlong ssl_address
         }
     }
 
-    freeOpenSslErrorState();
+    ERR_clear_error();
     safeSslClear(ssl);
 }
 
