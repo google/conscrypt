@@ -155,50 +155,38 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     }
 
     public static class MD5 extends OpenSSLMessageDigestJDK {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("md5");
-        private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
         public MD5() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE);
+            super(EvpMdRef.MD5.EVP_MD, EvpMdRef.MD5.SIZE);
         }
     }
 
     public static class SHA1 extends OpenSSLMessageDigestJDK {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
-        private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
         public SHA1() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE);
+            super(EvpMdRef.SHA1.EVP_MD, EvpMdRef.SHA1.SIZE);
         }
     }
 
     public static class SHA224 extends OpenSSLMessageDigestJDK {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha224");
-        private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
         public SHA224() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE);
+            super(EvpMdRef.SHA224.EVP_MD, EvpMdRef.SHA224.SIZE);
         }
     }
 
     public static class SHA256 extends OpenSSLMessageDigestJDK {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
-        private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
         public SHA256() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE);
+            super(EvpMdRef.SHA256.EVP_MD, EvpMdRef.SHA256.SIZE);
         }
     }
 
     public static class SHA384 extends OpenSSLMessageDigestJDK {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
-        private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
         public SHA384() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE);
+            super(EvpMdRef.SHA384.EVP_MD, EvpMdRef.SHA384.SIZE);
         }
     }
 
     public static class SHA512 extends OpenSSLMessageDigestJDK {
-        private static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
-        private static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
         public SHA512() throws NoSuchAlgorithmException {
-            super(EVP_MD, SIZE);
+            super(EvpMdRef.SHA512.EVP_MD, EvpMdRef.SHA512.SIZE);
         }
     }
 
