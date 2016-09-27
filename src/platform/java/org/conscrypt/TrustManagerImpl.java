@@ -172,20 +172,11 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             errLocal = e;
         }
 
-        if (manager != null) {
-            this.pinManager = manager;
-        } else {
-            try {
-                pinManager = new CertPinManager(trustedCertificateStoreLocal);
-            } catch (PinManagerException e) {
-                throw new SecurityException("Could not initialize CertPinManager", e);
-            }
-        }
-
         if (blacklist == null) {
             blacklist = CertBlacklist.getDefault();
         }
 
+        this.pinManager = manager;
         this.rootKeyStore = rootKeyStoreLocal;
         this.trustedCertificateStore = trustedCertificateStoreLocal;
         this.validator = validatorLocal;
@@ -607,17 +598,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             wholeChain.add(anchor.getTrustedCert());
         }
 
-        if (host != null) {
-            boolean chainValid = false;
-            try {
-                chainValid = pinManager.isChainValid(host, wholeChain);
-            } catch (PinManagerException e) {
-                throw new CertificateException("Failed to check pinning", e);
-            }
-            if (!chainValid) {
-                throw new CertificateException("Pinning failure", new CertPathValidatorException(
-                        "Certificate path is not properly pinned.", null, certPath, -1));
-            }
+        if (pinManager != null) {
+            pinManager.checkChainPinning(host, wholeChain);
         }
         // Check whole chain against the blacklist
         for (X509Certificate cert : wholeChain) {
