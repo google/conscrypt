@@ -4024,8 +4024,9 @@ static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, 
     }
 
     if (ARRAY_OFFSET_INVALID(outBytes, outOffset)) {
-        JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %d, %d, %p)", ctx, outArray, outOffset,
-                  nonceArray, inArray, inOffset, inLength, aadArray);
+        JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %d, %p, %p, %d, %d, %p) => out offset invalid",
+                  evpAead, keyArray, tagLen, outArray, outOffset, nonceArray, inArray, inOffset,
+                  inLength, aadArray);
         jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "out");
         return 0;
     }
@@ -4036,8 +4037,11 @@ static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, 
     }
 
     if (ARRAY_OFFSET_LENGTH_INVALID(inBytes, inOffset, inLength)) {
-        JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %d, %d, %p)", ctx, outArray, outOffset,
-                  nonceArray, inArray, inOffset, inLength, aadArray);
+        JNI_TRACE(
+                "evp_aead_ctx_op(%p, %p, %d, %p, %d, %p, %p, %d, %d, %p) => in offset/length "
+                "invalid",
+                evpAead, keyArray, tagLen, outArray, outOffset, nonceArray, inArray, inOffset,
+                inLength, aadArray);
         jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", "in");
         return 0;
     }
@@ -4063,8 +4067,10 @@ static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, 
     const uint8_t* keyTmp = reinterpret_cast<const uint8_t*>(keyBytes.get());
     if (!EVP_AEAD_CTX_init(aeadCtx.get(), evpAead, keyTmp, keyBytes.size(), tagLen, nullptr)) {
         throwExceptionIfNecessary(env, "failure initializing AEAD context");
-        JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %d, %d, %p) => fail EVP_AEAD_CTX_init", ctx,
-                  outArray, outOffset, nonceArray, inArray, inOffset, inLength, aadArray);
+        JNI_TRACE(
+                "evp_aead_ctx_op(%p, %p, %d, %p, %d, %p, %p, %d, %d, %p) => fail EVP_AEAD_CTX_init",
+                evpAead, keyArray, tagLen, outArray, outOffset, nonceArray, inArray, inOffset,
+                inLength, aadArray);
         return 0;
     }
 
@@ -4078,9 +4084,9 @@ static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, 
         throwExceptionIfNecessary(env, "evp_aead_ctx_op");
     }
 
-    JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %d, %d, %p) => ret=%d, outLength=%zd",
-            ctx, outArray, outOffset, nonceArray, inArray, inOffset, inLength, aadArray, ret,
-            actualOutLength);
+    JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %d, %p, %p, %d, %d, %p) => success outlength=%zd",
+              evpAead, keyArray, tagLen, outArray, outOffset, nonceArray, inArray, inOffset,
+              inLength, aadArray, actualOutLength);
     return static_cast<jlong>(actualOutLength);
 }
 
