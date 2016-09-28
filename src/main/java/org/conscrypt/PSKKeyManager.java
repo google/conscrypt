@@ -93,8 +93,10 @@ import javax.net.ssl.SSLEngine;
  *
  * SSLSocket sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(...);
  * }</pre>
+ *
+ * @deprecated This abstraction is deprecated because it does not work with TLS 1.3.
  */
-public interface PSKKeyManager extends KeyManager {
+@Deprecated public interface PSKKeyManager extends KeyManager {
 
     /**
      * Maximum supported length (in bytes) for PSK identity hint (in modified UTF-8 representation).
