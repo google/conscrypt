@@ -378,7 +378,8 @@ public class OpenSSLSignature extends SignatureSpi {
                                 + PSSParameterSpec.class.getName() + " supported");
             }
             PSSParameterSpec spec = (PSSParameterSpec) params;
-            String specContentDigest = getJcaDigestAlgorithmStandardName(spec.getDigestAlgorithm());
+            String specContentDigest = EvpMdRef
+                    .getJcaDigestAlgorithmStandardName(spec.getDigestAlgorithm());
             if (specContentDigest == null) {
                 throw new InvalidAlgorithmParameterException(
                         "Unsupported content digest algorithm: " + spec.getDigestAlgorithm());
@@ -403,15 +404,16 @@ public class OpenSSLSignature extends SignatureSpi {
             }
             MGF1ParameterSpec specMgf1Spec = (MGF1ParameterSpec) spec.getMGFParameters();
 
-            String specMgf1Digest =
-                    getJcaDigestAlgorithmStandardName(specMgf1Spec.getDigestAlgorithm());
+            String specMgf1Digest = EvpMdRef
+                    .getJcaDigestAlgorithmStandardName(specMgf1Spec.getDigestAlgorithm());
             if (specMgf1Digest == null) {
                 throw new InvalidAlgorithmParameterException(
                         "Unsupported MGF1 digest algorithm: " + specMgf1Spec.getDigestAlgorithm());
             }
             long specMgf1EvpMdRef;
             try {
-                specMgf1EvpMdRef = getEVP_MDByJcaDigestAlgorithmStandardName(specMgf1Digest);
+                specMgf1EvpMdRef = EvpMdRef
+                        .getEVP_MDByJcaDigestAlgorithmStandardName(specMgf1Digest);
             } catch (NoSuchAlgorithmException e) {
                 throw new ProviderException("Failed to obtain EVP_MD for " + specMgf1Digest, e);
             }
@@ -453,48 +455,6 @@ public class OpenSSLSignature extends SignatureSpi {
                 return result;
             } catch (NoSuchAlgorithmException | InvalidParameterSpecException e) {
                 throw new ProviderException("Failed to create PSS AlgorithmParameters", e);
-            }
-        }
-
-        /**
-         * Returns the canonical JCA digest algorithm name for the provided digest algorithm name
-         * or {@code null} if the digest algorithm is not known.
-         */
-        private static String getJcaDigestAlgorithmStandardName(String algorithm) {
-            if (("SHA-256".equalsIgnoreCase(algorithm))
-                    || ("2.16.840.1.101.3.4.2.1".equals(algorithm))) {
-                return "SHA-256";
-            } else if (("SHA-512".equalsIgnoreCase(algorithm))
-                    || ("2.16.840.1.101.3.4.2.3".equals(algorithm))) {
-                return "SHA-512";
-            } else if (("SHA-1".equalsIgnoreCase(algorithm))
-                    || ("1.3.14.3.2.26".equals(algorithm))) {
-                return "SHA-1";
-            } else if (("SHA-384".equalsIgnoreCase(algorithm))
-                    || ("2.16.840.1.101.3.4.2.2".equals(algorithm))) {
-                return "SHA-384";
-            } else if (("SHA-224".equalsIgnoreCase(algorithm))
-                    || ("2.16.840.1.101.3.4.2.4".equals(algorithm))) {
-                return "SHA-224";
-            } else {
-                return null;
-            }
-        }
-
-        private static long getEVP_MDByJcaDigestAlgorithmStandardName(String algorithm)
-                throws NoSuchAlgorithmException {
-            if ("SHA-256".equalsIgnoreCase(algorithm)) {
-                return EvpMdRef.SHA256.EVP_MD;
-            } else if ("SHA-512".equalsIgnoreCase(algorithm)) {
-                return EvpMdRef.SHA512.EVP_MD;
-            } else if ("SHA-1".equalsIgnoreCase(algorithm)) {
-                return EvpMdRef.SHA1.EVP_MD;
-            } else if ("SHA-384".equalsIgnoreCase(algorithm)) {
-                return EvpMdRef.SHA384.EVP_MD;
-            } else if ("SHA-224".equalsIgnoreCase(algorithm)) {
-                return EvpMdRef.SHA224.EVP_MD;
-            } else {
-                throw new NoSuchAlgorithmException("Unsupported algorithm: " + algorithm);
             }
         }
     }
