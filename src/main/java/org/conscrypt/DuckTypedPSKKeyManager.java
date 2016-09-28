@@ -29,8 +29,9 @@ import javax.net.ssl.SSLEngine;
  * {@code PSKKeyManager} interface.
  *
  * @VisibleForTesting
+ * @deprecated This abstraction is deprecated because it does not work with TLS 1.3.
  */
-public class DuckTypedPSKKeyManager implements PSKKeyManager {
+@Deprecated public class DuckTypedPSKKeyManager implements PSKKeyManager {
 
     private final Object mDelegate;
 
