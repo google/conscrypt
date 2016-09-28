@@ -461,31 +461,31 @@ public class OpenSSLSignature extends SignatureSpi {
 
     public static final class SHA1RSAPSS extends RSAPSSPadding {
         public SHA1RSAPSS() {
-            super(EvpMdRef.SHA1.EVP_MD, EvpMdRef.SHA1.JCA_NAME, EvpMdRef.SHA1.SIZE);
+            super(EvpMdRef.SHA1.EVP_MD, EvpMdRef.SHA1.JCA_NAME, EvpMdRef.SHA1.SIZE_BYTES);
         }
     }
 
     public static final class SHA224RSAPSS extends RSAPSSPadding {
         public SHA224RSAPSS() {
-            super(EvpMdRef.SHA224.EVP_MD, EvpMdRef.SHA224.JCA_NAME, EvpMdRef.SHA224.SIZE);
+            super(EvpMdRef.SHA224.EVP_MD, EvpMdRef.SHA224.JCA_NAME, EvpMdRef.SHA224.SIZE_BYTES);
         }
     }
 
     public static final class SHA256RSAPSS extends RSAPSSPadding {
         public SHA256RSAPSS() {
-            super(EvpMdRef.SHA256.EVP_MD, EvpMdRef.SHA256.JCA_NAME, EvpMdRef.SHA256.SIZE);
+            super(EvpMdRef.SHA256.EVP_MD, EvpMdRef.SHA256.JCA_NAME, EvpMdRef.SHA256.SIZE_BYTES);
         }
     }
 
     public static final class SHA384RSAPSS extends RSAPSSPadding {
         public SHA384RSAPSS() {
-            super(EvpMdRef.SHA384.EVP_MD, EvpMdRef.SHA384.JCA_NAME, EvpMdRef.SHA384.SIZE);
+            super(EvpMdRef.SHA384.EVP_MD, EvpMdRef.SHA384.JCA_NAME, EvpMdRef.SHA384.SIZE_BYTES);
         }
     }
 
     public static final class SHA512RSAPSS extends RSAPSSPadding {
         public SHA512RSAPSS() {
-            super(EvpMdRef.SHA512.EVP_MD, EvpMdRef.SHA512.JCA_NAME, EvpMdRef.SHA512.SIZE);
+            super(EvpMdRef.SHA512.EVP_MD, EvpMdRef.SHA512.JCA_NAME, EvpMdRef.SHA512.SIZE_BYTES);
         }
     }
 }

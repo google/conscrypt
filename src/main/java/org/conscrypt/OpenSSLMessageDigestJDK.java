@@ -156,37 +156,37 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
 
     public static class MD5 extends OpenSSLMessageDigestJDK {
         public MD5() throws NoSuchAlgorithmException {
-            super(EvpMdRef.MD5.EVP_MD, EvpMdRef.MD5.SIZE);
+            super(EvpMdRef.MD5.EVP_MD, EvpMdRef.MD5.SIZE_BYTES);
         }
     }
 
     public static class SHA1 extends OpenSSLMessageDigestJDK {
         public SHA1() throws NoSuchAlgorithmException {
-            super(EvpMdRef.SHA1.EVP_MD, EvpMdRef.SHA1.SIZE);
+            super(EvpMdRef.SHA1.EVP_MD, EvpMdRef.SHA1.SIZE_BYTES);
         }
     }
 
     public static class SHA224 extends OpenSSLMessageDigestJDK {
         public SHA224() throws NoSuchAlgorithmException {
-            super(EvpMdRef.SHA224.EVP_MD, EvpMdRef.SHA224.SIZE);
+            super(EvpMdRef.SHA224.EVP_MD, EvpMdRef.SHA224.SIZE_BYTES);
         }
     }
 
     public static class SHA256 extends OpenSSLMessageDigestJDK {
         public SHA256() throws NoSuchAlgorithmException {
-            super(EvpMdRef.SHA256.EVP_MD, EvpMdRef.SHA256.SIZE);
+            super(EvpMdRef.SHA256.EVP_MD, EvpMdRef.SHA256.SIZE_BYTES);
         }
     }
 
     public static class SHA384 extends OpenSSLMessageDigestJDK {
         public SHA384() throws NoSuchAlgorithmException {
-            super(EvpMdRef.SHA384.EVP_MD, EvpMdRef.SHA384.SIZE);
+            super(EvpMdRef.SHA384.EVP_MD, EvpMdRef.SHA384.SIZE_BYTES);
         }
     }
 
     public static class SHA512 extends OpenSSLMessageDigestJDK {
         public SHA512() throws NoSuchAlgorithmException {
-            super(EvpMdRef.SHA512.EVP_MD, EvpMdRef.SHA512.SIZE);
+            super(EvpMdRef.SHA512.EVP_MD, EvpMdRef.SHA512.SIZE_BYTES);
         }
     }
 

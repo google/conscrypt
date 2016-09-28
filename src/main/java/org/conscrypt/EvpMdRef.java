@@ -66,41 +66,41 @@ public final class EvpMdRef {
         public static final String JCA_NAME = "MD5";
         public static final String OID = "1.2.840.113549.2.5";
         public static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("md5");
-        public static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
+        public static final int SIZE_BYTES = NativeCrypto.EVP_MD_size(EVP_MD);
     }
 
     public static final class SHA1 {
         public static final String JCA_NAME = "SHA-1";
         public static final String OID = "1.3.14.3.2.26";
         public static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha1");
-        public static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
+        public static final int SIZE_BYTES = NativeCrypto.EVP_MD_size(EVP_MD);
     }
 
     public static final class SHA224 {
         public static final String JCA_NAME = "SHA-224";
         public static final String OID = "2.16.840.1.101.3.4.2.4";
         public static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha224");
-        public static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
+        public static final int SIZE_BYTES = NativeCrypto.EVP_MD_size(EVP_MD);
     }
 
     public static final class SHA256 {
         public static final String JCA_NAME = "SHA-256";
         public static final String OID = "2.16.840.1.101.3.4.2.1";
         public static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha256");
-        public static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
+        public static final int SIZE_BYTES = NativeCrypto.EVP_MD_size(EVP_MD);
     }
 
     public static final class SHA384 {
         public static final String JCA_NAME = "SHA-384";
         public static final String OID = "2.16.840.1.101.3.4.2.2";
         public static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha384");
-        public static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
+        public static final int SIZE_BYTES = NativeCrypto.EVP_MD_size(EVP_MD);
     }
 
     public static final class SHA512 {
         public static final String JCA_NAME = "SHA-512";
         public static final String OID = "2.16.840.1.101.3.4.2.3";
         public static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("sha512");
-        public static final int SIZE = NativeCrypto.EVP_MD_size(EVP_MD);
+        public static final int SIZE_BYTES = NativeCrypto.EVP_MD_size(EVP_MD);
     }
 }
