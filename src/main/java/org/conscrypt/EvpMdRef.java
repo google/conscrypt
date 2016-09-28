@@ -20,6 +20,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 
 public final class EvpMdRef {
+    public static final String MGF1_ALGORITHM_NAME = "MGF1";
+    public static final String MGF1_OID = "1.2.840.113549.1.1.8";
+
     /**
      * Returns the canonical JCA digest algorithm name for the provided digest
      * algorithm name or {@code null} if the digest algorithm is not known.
