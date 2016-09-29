@@ -150,48 +150,6 @@ static jmethodID openSslInputStream_readLineMethod;
 static jmethodID outputStream_writeMethod;
 static jmethodID outputStream_flushMethod;
 
-struct OPENSSL_Delete {
-    void operator()(void* p) const {
-        OPENSSL_free(p);
-    }
-};
-typedef std::unique_ptr<unsigned char, OPENSSL_Delete> Unique_OPENSSL_str;
-
-struct X509_EXTENSIONS_Delete {
-    void operator()(X509_EXTENSIONS* p) const {
-        sk_X509_EXTENSION_pop_free(p, X509_EXTENSION_free);
-    }
-};
-typedef std::unique_ptr<X509_EXTENSIONS, X509_EXTENSIONS_Delete> Unique_X509_EXTENSIONS;
-
-struct sk_X509_CRL_Delete {
-    void operator()(STACK_OF(X509_CRL)* p) const {
-        sk_X509_CRL_pop_free(p, X509_CRL_free);
-    }
-};
-typedef std::unique_ptr<STACK_OF(X509_CRL), sk_X509_CRL_Delete> Unique_sk_X509_CRL;
-
-struct sk_X509_NAME_Delete {
-    void operator()(STACK_OF(X509_NAME)* p) const {
-        sk_X509_NAME_pop_free(p, X509_NAME_free);
-    }
-};
-typedef std::unique_ptr<STACK_OF(X509_NAME), sk_X509_NAME_Delete> Unique_sk_X509_NAME;
-
-struct sk_ASN1_OBJECT_Delete {
-    void operator()(STACK_OF(ASN1_OBJECT)* p) const {
-        sk_ASN1_OBJECT_pop_free(p, ASN1_OBJECT_free);
-    }
-};
-typedef std::unique_ptr<STACK_OF(ASN1_OBJECT), sk_ASN1_OBJECT_Delete> Unique_sk_ASN1_OBJECT;
-
-struct sk_GENERAL_NAME_Delete {
-    void operator()(STACK_OF(GENERAL_NAME)* p) const {
-        sk_GENERAL_NAME_pop_free(p, GENERAL_NAME_free);
-    }
-};
-typedef std::unique_ptr<STACK_OF(GENERAL_NAME), sk_GENERAL_NAME_Delete> Unique_sk_GENERAL_NAME;
-
 /**
  * Many OpenSSL APIs take ownership of an argument on success but don't free the argument
  * on failure. This means we need to tell our scoped pointers when we've transferred ownership,
@@ -4517,7 +4475,7 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
     X509_check_ca(x509);
 
     STACK_OF(GENERAL_NAME)* gn_stack;
-    Unique_sk_GENERAL_NAME stackHolder;
+    bssl::UniquePtr<STACK_OF(GENERAL_NAME)> stackHolder;
     if (type == GN_STACK_SUBJECT_ALT_NAME) {
         gn_stack = x509->altname;
     } else if (type == GN_STACK_ISSUER_ALT_NAME) {
@@ -5440,7 +5398,7 @@ static jlongArray NativeCrypto_PEM_read_bio_PKCS7(JNIEnv* env, jclass, jlong bio
         }
         return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, outCerts.get(), X509_dup);
     } else if (which == PKCS7_CRLS) {
-        Unique_sk_X509_CRL outCRLs(sk_X509_CRL_new_null());
+        bssl::UniquePtr<STACK_OF(X509_CRL)> outCRLs(sk_X509_CRL_new_null());
         if (!PKCS7_get_PEM_CRLs(outCRLs.get(), bio)) {
             throwExceptionIfNecessary(env, "PKCS7_get_PEM_CRLs");
             return nullptr;
@@ -5472,7 +5430,7 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
         JNI_TRACE("d2i_PKCS7_bio(%p, %d) => error reading BIO", bio, which);
         return nullptr;
     }
-    Unique_OPENSSL_str data_storage(data);
+    bssl::UniquePtr<uint8_t> data_storage(data);
 
     CBS cbs;
     CBS_init(&cbs, data, len);
@@ -5489,7 +5447,7 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
         JNI_TRACE("d2i_PKCS7_bio(%p, %d) => success certs", bio, which);
         return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, outCerts.get(), X509_dup);
     } else if (which == PKCS7_CRLS) {
-        Unique_sk_X509_CRL outCRLs(sk_X509_CRL_new_null());
+        bssl::UniquePtr<STACK_OF(X509_CRL)> outCRLs(sk_X509_CRL_new_null());
         if (!PKCS7_get_CRLs(outCRLs.get(), &cbs)) {
             if (!throwExceptionIfNecessary(env, "PKCS7_get_CRLs")) {
                 throwParsingException(env, "Error parsing PKCS#7 CRL data");
@@ -5870,7 +5828,7 @@ static jobjectArray NativeCrypto_get_X509_ex_xkusage(JNIEnv* env, jclass, jlong 
         return nullptr;
     }
 
-    Unique_sk_ASN1_OBJECT objArray(static_cast<STACK_OF(ASN1_OBJECT)*>(
+    bssl::UniquePtr<STACK_OF(ASN1_OBJECT)> objArray(static_cast<STACK_OF(ASN1_OBJECT)*>(
             X509_get_ext_d2i(x509, NID_ext_key_usage, nullptr, nullptr)));
     if (objArray.get() == nullptr) {
         JNI_TRACE("get_X509_ex_xkusage(%p) => null", x509);
@@ -7087,7 +7045,7 @@ static void NativeCrypto_SSL_set_client_CA_list(JNIEnv* env, jclass,
         return;
     }
 
-    Unique_sk_X509_NAME principalsStack(sk_X509_NAME_new_null());
+    bssl::UniquePtr<STACK_OF(X509_NAME)> principalsStack(sk_X509_NAME_new_null());
     if (principalsStack.get() == nullptr) {
         jniThrowOutOfMemory(env, "Unable to allocate principal stack");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_set_client_CA_list => stack allocation error", ssl);
@@ -9417,7 +9375,8 @@ static jbyteArray NativeCrypto_get_ocsp_single_extension(JNIEnv *env, jclass,
     }
 
     const uint8_t* ptr = CBS_data(&extensions);
-    Unique_X509_EXTENSIONS x509_exts(d2i_X509_EXTENSIONS(nullptr, &ptr, CBS_len(&extensions)));
+    bssl::UniquePtr<X509_EXTENSIONS> x509_exts(
+            d2i_X509_EXTENSIONS(nullptr, &ptr, CBS_len(&extensions)));
     if (x509_exts.get() == nullptr) {
         return nullptr;
     }
