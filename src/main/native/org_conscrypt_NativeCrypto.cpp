@@ -5973,12 +5973,7 @@ static void info_callback_LOG(const SSL* s, int where, int ret) {
         JNI_TRACE("ssl=%p %s:%s %s", s, str, SSL_state_string(s), SSL_state_string_long(s));
     } else if (where & SSL_CB_ALERT) {
         str = (where & SSL_CB_READ) ? "read" : "write";
-        JNI_TRACE("ssl=%p SSL3 alert %s:%s:%s %s %s",
-                  s,
-                  str,
-                  SSL_alert_type_string(ret),
-                  SSL_alert_desc_string(ret),
-                  SSL_alert_type_string_long(ret),
+        JNI_TRACE("ssl=%p SSL3 alert %s %s %s", s, str, SSL_alert_type_string_long(ret),
                   SSL_alert_desc_string_long(ret));
     } else if (where & SSL_CB_EXIT) {
         if (ret == 0) {
@@ -7581,17 +7576,14 @@ static jboolean NativeCrypto_SSL_session_reused(JNIEnv* env, jclass, jlong ssl_a
     return reused == 1 ? JNI_TRUE : JNI_FALSE;
 }
 
-static void NativeCrypto_SSL_set_reject_peer_renegotiations(JNIEnv* env, jclass,
-        jlong ssl_address, jboolean reject_renegotiations)
-{
+static void NativeCrypto_SSL_accept_renegotiations(JNIEnv* env, jclass, jlong ssl_address) {
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_reject_peer_renegotiations reject_renegotiations=%d",
-              ssl, reject_renegotiations);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_accept_renegotiations", ssl);
     if (ssl == nullptr) {
         return;
     }
 
-    SSL_set_reject_peer_renegotiations(ssl, reject_renegotiations);
+    SSL_set_renegotiate_mode(ssl, ssl_renegotiate_freely);
 }
 
 static void NativeCrypto_SSL_set_tlsext_host_name(JNIEnv* env, jclass,
@@ -8149,8 +8141,8 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
 
         UniqueMutex appDataLock(&appData->mutex);
 
-        if (!SSL_is_init_finished(ssl) && !SSL_cutthrough_complete(ssl) &&
-               !SSL_renegotiate_pending(ssl)) {
+        if (!SSL_is_init_finished(ssl) && !SSL_in_false_start(ssl) &&
+            !SSL_renegotiate_pending(ssl)) {
             JNI_TRACE("ssl=%p sslRead => init is not finished (state=0x%x)", ssl,
                     SSL_get_state(ssl));
             return THROW_SSLEXCEPTION;
@@ -8463,8 +8455,8 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
 
         UniqueMutex appDataLock(&appData->mutex);
 
-        if (!SSL_is_init_finished(ssl) && !SSL_cutthrough_complete(ssl) &&
-               !SSL_renegotiate_pending(ssl)) {
+        if (!SSL_is_init_finished(ssl) && !SSL_in_false_start(ssl) &&
+            !SSL_renegotiate_pending(ssl)) {
             JNI_TRACE("ssl=%p sslWrite => init is not finished (state=0x%x)", ssl,
                     SSL_get_state(ssl));
             return THROW_SSLEXCEPTION;
@@ -9603,7 +9595,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         NATIVE_METHOD(NativeCrypto, SSL_set_session, "(JJ)V"),
         NATIVE_METHOD(NativeCrypto, SSL_set_session_creation_enabled, "(JZ)V"),
         NATIVE_METHOD(NativeCrypto, SSL_session_reused, "(J)Z"),
-        NATIVE_METHOD(NativeCrypto, SSL_set_reject_peer_renegotiations, "(JZ)V"),
+        NATIVE_METHOD(NativeCrypto, SSL_accept_renegotiations, "(J)V"),
         NATIVE_METHOD(NativeCrypto, SSL_set_tlsext_host_name, "(JLjava/lang/String;)V"),
         NATIVE_METHOD(NativeCrypto, SSL_get_servername, "(J)Ljava/lang/String;"),
         NATIVE_METHOD(NativeCrypto, SSL_do_handshake, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "IZ[B)J"),

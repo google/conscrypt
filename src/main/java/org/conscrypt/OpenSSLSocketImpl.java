@@ -305,7 +305,7 @@ public class OpenSSLSocketImpl
             // Allow servers to trigger renegotiation. Some inadvisable server
             // configurations cause them to attempt to renegotiate during
             // certain protocols.
-            NativeCrypto.SSL_set_reject_peer_renegotiations(sslNativePointer, false);
+            NativeCrypto.SSL_accept_renegotiations(sslNativePointer);
 
             // Configure OCSP and CT extensions for client
             if (client) {
