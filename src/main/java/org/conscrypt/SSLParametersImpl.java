@@ -45,8 +45,6 @@ import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.ct.CTLogStoreImpl;
-import org.conscrypt.ct.CTVerifier;
 import org.conscrypt.util.EmptyArray;
 
 /**
@@ -67,8 +65,6 @@ public class SSLParametersImpl implements Cloneable {
     private static volatile SecureRandom defaultSecureRandom;
     // default SSL parameters
     private static volatile SSLParametersImpl defaultParameters;
-    // default CT Verifier
-    private static volatile CTVerifier defaultCTVerifier;
 
     // client session context contains the set of reusable
     // client-side SSL sessions
@@ -105,8 +101,6 @@ public class SSLParametersImpl implements Cloneable {
 
     // client-side only, bypasses the property based configuration, used for tests
     private boolean ctVerificationEnabled;
-    // client-side only, if null defaultCTVerifier is used instead. Used for tests
-    private CTVerifier ctVerifier;
 
     // server-side only. SCT and OCSP data to send to clients which request it
     private byte[] sctExtension;
@@ -250,22 +244,6 @@ public class SSLParametersImpl implements Cloneable {
     }
 
     /**
-     * @return certificate transparency verifier
-     */
-    protected CTVerifier getCTVerifier() {
-        if (ctVerifier != null) {
-            return ctVerifier;
-        }
-        CTVerifier result = defaultCTVerifier;
-        if (result == null) {
-            // single-check idiom
-            defaultCTVerifier = result = new CTVerifier(new CTLogStoreImpl());
-        }
-        ctVerifier = result;
-        return ctVerifier;
-    }
-
-    /**
      * @return the names of enabled cipher suites
      */
     protected String[] getEnabledCipherSuites() {
@@ -374,10 +352,6 @@ public class SSLParametersImpl implements Cloneable {
      */
     protected boolean getUseSni() {
         return useSni != null ? useSni.booleanValue() : isSniEnabledByDefault();
-    }
-
-    public void setCTVerifier(CTVerifier verifier) {
-        ctVerifier = verifier;
     }
 
     public void setCTVerificationEnabled(boolean enabled) {
@@ -671,8 +645,9 @@ public class SSLParametersImpl implements Cloneable {
             X509Certificate[] peerCertificates = createCertChain(NativeCrypto
                     .SSL_get_peer_cert_chain(sslNativePointer));
             byte[] ocspData = NativeCrypto.SSL_get_ocsp_response(sslNativePointer);
+            byte[] tlsSctData = NativeCrypto.SSL_get_signed_cert_timestamp_list(sslNativePointer);
             sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
-                    peerCertificates, ocspData, hostname, port, getSessionContext());
+                    peerCertificates, ocspData, tlsSctData, hostname, port, getSessionContext());
             // if not, putSession later in handshakeCompleted() callback
             if (handshakeCompleted) {
                 getSessionContext().putSession(sslSession);
