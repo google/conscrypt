@@ -47,6 +47,8 @@ import javax.net.ssl.TrustManagerFactory;
 import junit.framework.TestCase;
 import org.conscrypt.ct.CTLogInfo;
 import org.conscrypt.ct.CTLogStore;
+import org.conscrypt.ct.CTPolicy;
+import org.conscrypt.ct.CTPolicyImpl;
 import org.conscrypt.ct.CTVerifier;
 
 public class OpenSSLSocketImplTest extends TestCase {
@@ -56,7 +58,8 @@ public class OpenSSLSocketImplTest extends TestCase {
     private X509Certificate cert;
     private X509Certificate certEmbedded;
     private PrivateKey certKey;
-    private CTVerifier ctVerifier;
+    private CTVerifier defaultCTVerifier;
+    private CTPolicy defaultCTPolicy;
 
     private Field contextSSLParameters;
     private Field sslParamtersTrustManager;
@@ -90,7 +93,8 @@ public class OpenSSLSocketImplTest extends TestCase {
                 }
             }
         };
-        ctVerifier = new CTVerifier(store);
+        defaultCTVerifier = new CTVerifier(store);
+        defaultCTPolicy = new CTPolicyImpl(store, 1);
     }
 
     abstract class Hooks implements HandshakeCompletedListener {
@@ -128,7 +132,8 @@ public class OpenSSLSocketImplTest extends TestCase {
     }
 
     class ClientHooks extends Hooks {
-        CTVerifier ctVerifier;
+        CTVerifier ctVerifier = defaultCTVerifier;
+        CTPolicy ctPolicy = defaultCTPolicy;
         boolean ctVerificationEnabled;
         String hostname = "example.com";
 
@@ -140,6 +145,9 @@ public class OpenSSLSocketImplTest extends TestCase {
                 TrustManagerImpl trustManager = getSSLParametersTrustManager(sslParameters);
                 if (ctVerifier != null) {
                     trustManager.setCTVerifier(ctVerifier);
+                }
+                if (ctPolicy != null) {
+                    trustManager.setCTPolicy(ctPolicy);
                 }
                 sslParameters.setCTVerificationEnabled(ctVerificationEnabled);
                 trustManager.setCTEnabledOverride(ctVerificationEnabled);
@@ -274,7 +282,6 @@ public class OpenSSLSocketImplTest extends TestCase {
     public void test_handshakeWithEmbeddedSCT() throws Exception {
         TestConnection connection = new TestConnection(new X509Certificate[] { certEmbedded, ca }, certKey, true);
 
-        connection.clientHooks.ctVerifier = ctVerifier;
         connection.clientHooks.ctVerificationEnabled = true;
 
         connection.doHandshake();
@@ -286,7 +293,6 @@ public class OpenSSLSocketImplTest extends TestCase {
     public void test_handshakeWithSCTFromOCSPResponse() throws Exception {
         TestConnection connection = new TestConnection(new X509Certificate[] { cert, ca }, certKey, true);
 
-        connection.clientHooks.ctVerifier = ctVerifier;
         connection.clientHooks.ctVerificationEnabled = true;
         connection.serverHooks.ocspResponse = readTestFile("ocsp-response.der");
 
@@ -299,7 +305,6 @@ public class OpenSSLSocketImplTest extends TestCase {
     public void test_handshakeWithSCTFromTLSExtension() throws Exception {
         TestConnection connection = new TestConnection(new X509Certificate[] { cert, ca }, certKey, true);
 
-        connection.clientHooks.ctVerifier = ctVerifier;
         connection.clientHooks.ctVerificationEnabled = true;
         connection.serverHooks.sctTLSExtension = readTestFile("ct-signed-timestamp-list");
 
@@ -312,7 +317,6 @@ public class OpenSSLSocketImplTest extends TestCase {
     public void test_handshake_failsWithMissingSCT() throws Exception {
         TestConnection connection = new TestConnection(new X509Certificate[] { cert, ca }, certKey, true);
 
-        connection.clientHooks.ctVerifier = ctVerifier;
         connection.clientHooks.ctVerificationEnabled = true;
 
         try {
@@ -327,7 +331,6 @@ public class OpenSSLSocketImplTest extends TestCase {
     public void test_handshake_failsWithInvalidSCT() throws Exception {
         TestConnection connection = new TestConnection(new X509Certificate[] { cert, ca }, certKey, true);
 
-        connection.clientHooks.ctVerifier = ctVerifier;
         connection.clientHooks.ctVerificationEnabled = true;
         connection.serverHooks.sctTLSExtension = readTestFile("ct-signed-timestamp-list-invalid");
 
