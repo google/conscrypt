@@ -56,6 +56,9 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     /** Identifies OpenSSL sessions with OCSP stapled data. */
     static final int OPEN_SSL_WITH_OCSP = 2;
 
+    /** Identifies OpenSSL sessions with TLS SCT data. */
+    static final int OPEN_SSL_WITH_TLS_SCT = 3;
+
     private final Map<ByteArray, SSLSession> sessions
             = new LinkedHashMap<ByteArray, SSLSession>() {
         @Override
@@ -212,7 +215,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             DataOutputStream daos = new DataOutputStream(baos);
 
-            daos.writeInt(OPEN_SSL_WITH_OCSP); // session type ID
+            daos.writeInt(OPEN_SSL_WITH_TLS_SCT); // session type ID
 
             // Session data.
             byte[] data = sslSession.getEncoded();
@@ -234,6 +237,14 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             for (byte[] ocspResponse : ocspResponses) {
                 daos.writeInt(ocspResponse.length);
                 daos.write(ocspResponse);
+            }
+
+            byte[] tlsSctData = sslSession.getTlsSctData();
+            if (tlsSctData != null) {
+                daos.writeInt(tlsSctData.length);
+                daos.write(tlsSctData);
+            } else {
+                daos.writeInt(0);
             }
 
             // TODO: local certificates?
@@ -258,7 +269,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         DataInputStream dais = new DataInputStream(bais);
         try {
             int type = dais.readInt();
-            if (type != OPEN_SSL && type != OPEN_SSL_WITH_OCSP) {
+            if (type != OPEN_SSL && type != OPEN_SSL_WITH_OCSP && type != OPEN_SSL_WITH_TLS_SCT) {
                 log(new AssertionError("Unexpected type ID: " + type));
                 return null;
             }
@@ -277,7 +288,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             }
 
             byte[] ocspData = null;
-            if (type == OPEN_SSL_WITH_OCSP) {
+            if (type >= OPEN_SSL_WITH_OCSP) {
                 // We only support one OCSP response now, but in the future
                 // we may support RFC 6961 which has multiple.
                 int countOcspResponses = dais.readInt();
@@ -288,7 +299,17 @@ abstract class AbstractSessionContext implements SSLSessionContext {
                 }
             }
 
-            return new OpenSSLSessionImpl(sessionData, host, port, certs, ocspData, this);
+            byte[] tlsSctData = null;
+            if (type == OPEN_SSL_WITH_TLS_SCT) {
+                int tlsSctDataLength = dais.readInt();
+                if (tlsSctDataLength > 0) {
+                    tlsSctData = new byte[tlsSctDataLength];
+                    dais.readFully(tlsSctData);
+                }
+            }
+
+            return new OpenSSLSessionImpl(sessionData, host, port, certs, ocspData, tlsSctData,
+                    this);
         } catch (IOException e) {
             log(e);
             return null;

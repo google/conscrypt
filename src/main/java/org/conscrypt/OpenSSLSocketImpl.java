@@ -43,8 +43,6 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.ct.CTVerificationResult;
-import org.conscrypt.ct.CTVerifier;
 import org.conscrypt.util.ArrayUtils;
 
 /**
@@ -579,26 +577,15 @@ public class OpenSSLSocketImpl
             }
 
             byte[] ocspData = NativeCrypto.SSL_get_ocsp_response(sslNativePointer);
+            byte[] tlsSctData = NativeCrypto.SSL_get_signed_cert_timestamp_list(sslNativePointer);
 
             // Used for verifyCertificateChain callback
             handshakeSession = new OpenSSLSessionImpl(sslSessionNativePtr, null, peerCertChain,
-                    ocspData, getHostnameOrIP(), getPort(), null);
+                    ocspData, tlsSctData, getHostnameOrIP(), getPort(), null);
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
                 Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, this);
-                if (sslParameters.isCTVerificationEnabled(getHostname())) {
-                    byte[] tlsData = NativeCrypto.SSL_get_signed_cert_timestamp_list(
-                                        sslNativePointer);
-
-                    CTVerifier ctVerifier = sslParameters.getCTVerifier();
-                    CTVerificationResult result =
-                        ctVerifier.verifySignedCertificateTimestamps(peerCertChain, tlsData, ocspData);
-
-                    if (result.getValidSCTs().size() == 0) {
-                        throw new CertificateException("No valid SCT found");
-                    }
-                }
             } else {
                 String authType = peerCertChain[0].getPublicKey().getAlgorithm();
                 Platform.checkClientTrusted(x509tm, peerCertChain, authType, this);
