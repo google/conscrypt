@@ -18,6 +18,7 @@ package org.conscrypt.ct;
 
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,6 +30,16 @@ public class CTVerifier {
 
     public CTVerifier(CTLogStore store) {
         this.store = store;
+    }
+
+    public CTVerificationResult verifySignedCertificateTimestamps(List<X509Certificate> chain,
+            byte[] tlsData, byte[] ocspData) throws CertificateEncodingException {
+        OpenSSLX509Certificate[] certs = new OpenSSLX509Certificate[chain.size()];
+        int i = 0;
+        for(X509Certificate cert : chain) {
+            certs[i++] = OpenSSLX509Certificate.fromCertificate(cert);
+        }
+        return verifySignedCertificateTimestamps(certs, tlsData, ocspData);
     }
 
     /**
