@@ -28,10 +28,6 @@ cc_defaults {
         "src/main/native/org_conscrypt_NativeCrypto.cpp",
     ],
 
-    shared_libs: [
-        "liblog",
-    ],
-
     compile_multilib: "both",
     stl: "c++_static",
 }
@@ -48,6 +44,10 @@ cc_defaults {
     ],
 
     host_ldlibs: ["-ldl"],
+
+    shared_libs: [
+        "liblog",
+    ],
 
     static_libs: [
         "libssl",
@@ -94,5 +94,5 @@ cc_library_host_shared {
         never: true,
     },
 
-    stl: "libc++",
+    stl: "libc++_static",
 }
