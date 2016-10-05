@@ -20,6 +20,13 @@ import static org.conscrypt.NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING;
 import static org.conscrypt.NativeConstants.SSL_MODE_HANDSHAKE_CUTTHROUGH;
 import static org.conscrypt.TestUtils.openTestFile;
 import static org.conscrypt.TestUtils.readTestFile;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -57,13 +64,14 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
 import javax.security.auth.x500.X500Principal;
-import junit.framework.TestCase;
 import libcore.io.IoUtils;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
+import org.junit.After;
+import org.junit.Test;
 
-public class NativeCryptoTest extends TestCase {
+public class NativeCryptoTest {
     private static final long NULL = 0;
     private static final FileDescriptor INVALID_FD = new FileDescriptor();
     private static final SSLHandshakeCallbacks DUMMY_CB
@@ -81,8 +89,8 @@ public class NativeCryptoTest extends TestCase {
     private static OpenSSLKey CHANNEL_ID_PRIVATE_KEY;
     private static byte[] CHANNEL_ID;
 
-    @Override
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         assertEquals(0, NativeCrypto.ERR_peek_last_error());
     }
 
@@ -204,6 +212,7 @@ public class NativeCryptoTest extends TestCase {
         assertEquals(Arrays.deepToString(expected), Arrays.deepToString(actual));
     }
 
+    @Test
     public void test_EVP_PKEY_cmp() throws Exception {
         try {
             NativeCrypto.EVP_PKEY_cmp(null, null);
@@ -276,6 +285,7 @@ public class NativeCryptoTest extends TestCase {
                 NativeCrypto.EVP_PKEY_cmp(pkey1, pkey2));
     }
 
+    @Test
     public void test_SSL_CTX_new() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         assertTrue(c != NULL);
@@ -285,6 +295,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c2);
     }
 
+    @Test
     public void test_SSL_CTX_free() throws Exception {
         try {
             NativeCrypto.SSL_CTX_free(NULL);
@@ -295,6 +306,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(NativeCrypto.SSL_CTX_new());
     }
 
+    @Test
     public void test_SSL_CTX_set_session_id_context() throws Exception {
         byte[] empty = new byte[0];
         try {
@@ -317,6 +329,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_new() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
@@ -335,6 +348,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_use_certificate() throws Exception {
         try {
             NativeCrypto.SSL_use_certificate(NULL, null);
@@ -357,6 +371,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_use_PrivateKey_for_tls_channel_id() throws Exception {
         initChannelIdKey();
 
@@ -383,6 +398,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_use_PrivateKey() throws Exception {
         try {
             NativeCrypto.SSL_use_PrivateKey(NULL, null);
@@ -405,6 +421,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_check_private_key_null() throws Exception {
         try {
             NativeCrypto.SSL_check_private_key(NULL);
@@ -413,6 +430,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_check_private_key_no_key_no_cert() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
@@ -428,6 +446,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_check_private_key_cert_then_key() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
@@ -447,6 +466,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_free(s);
         NativeCrypto.SSL_CTX_free(c);
     }
+    @Test
     public void test_SSL_check_private_key_key_then_cert() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
@@ -467,6 +487,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_get_mode() throws Exception {
         try {
             NativeCrypto.SSL_get_mode(NULL);
@@ -481,6 +502,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_set_mode_and_clear_mode() throws Exception {
         try {
             NativeCrypto.SSL_set_mode(NULL, 0);
@@ -509,6 +531,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_get_options() throws Exception {
         try {
             NativeCrypto.SSL_get_options(NULL);
@@ -523,6 +546,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_set_options() throws Exception {
         try {
             NativeCrypto.SSL_set_options(NULL, 0);
@@ -539,6 +563,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_clear_options() throws Exception {
         try {
             NativeCrypto.SSL_clear_options(NULL, 0);
@@ -557,6 +582,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_set_cipher_lists() throws Exception {
         try {
             NativeCrypto.SSL_set_cipher_lists(NULL, null);
@@ -609,6 +635,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_set_verify() throws Exception {
         try {
             NativeCrypto.SSL_set_verify(NULL, 0);
@@ -971,6 +998,7 @@ public class NativeCryptoTest extends TestCase {
         return future;
     }
 
+    @Test
     public void test_SSL_do_handshake_NULL_SSL() throws Exception {
         try {
             NativeCrypto.SSL_do_handshake(NULL, null, null, 0, false, null);
@@ -979,6 +1007,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_do_handshake_null_args() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
@@ -999,6 +1028,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.SSL_CTX_free(c);
     }
 
+    @Test
     public void test_SSL_do_handshake_normal() throws Exception {
         // normal client and server case
         final ServerSocket listener = new ServerSocket(0);
@@ -1023,6 +1053,7 @@ public class NativeCryptoTest extends TestCase {
         assertTrue(serverCallback.handshakeCompletedCalled);
     }
 
+    @Test
     public void test_SSL_do_handshake_optional_client_certificate() throws Exception {
         // optional client certificate case
         final ServerSocket listener = new ServerSocket(0);
@@ -1074,6 +1105,7 @@ public class NativeCryptoTest extends TestCase {
         assertTrue(serverCallback.handshakeCompletedCalled);
     }
 
+    @Test
     public void test_SSL_do_handshake_missing_required_certificate() throws Exception {
         // required client certificate negative case
         final ServerSocket listener = new ServerSocket(0);
@@ -1109,6 +1141,7 @@ public class NativeCryptoTest extends TestCase {
      * be able to deliver the callback's exception in cases like
      * SSL_read, SSL_write, and SSL_shutdown.
      */
+    @Test
     public void test_SSL_do_handshake_clientCertificateRequested_throws_after_renegotiate()
             throws Exception {
         final ServerSocket listener = new ServerSocket(0);
@@ -1166,6 +1199,7 @@ public class NativeCryptoTest extends TestCase {
         server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
+    @Test
     public void test_SSL_do_handshake_client_timeout() throws Exception {
         // client timeout
         final ServerSocket listener = new ServerSocket(0);
@@ -1189,6 +1223,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_do_handshake_server_timeout() throws Exception {
         // server timeout
         final ServerSocket listener = new ServerSocket(0);
@@ -1209,6 +1244,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_do_handshake_with_channel_id_normal() throws Exception {
         initChannelIdKey();
 
@@ -1242,6 +1278,7 @@ public class NativeCryptoTest extends TestCase {
         assertEqualByteArrays(CHANNEL_ID, sHooks.channelIdAfterHandshake);
     }
 
+    @Test
     public void test_SSL_do_handshake_with_channel_id_not_supported_by_server() throws Exception {
         initChannelIdKey();
 
@@ -1275,6 +1312,7 @@ public class NativeCryptoTest extends TestCase {
         assertNull(sHooks.channelIdAfterHandshake);
     }
 
+    @Test
     public void test_SSL_do_handshake_with_channel_id_not_enabled_by_client() throws Exception {
         initChannelIdKey();
 
@@ -1308,6 +1346,7 @@ public class NativeCryptoTest extends TestCase {
         assertNull(sHooks.channelIdAfterHandshake);
     }
 
+    @Test
     public void test_SSL_do_handshake_with_psk_normal() throws Exception {
         // normal TLS-PSK client and server case
         final ServerSocket listener = new ServerSocket(0);
@@ -1338,6 +1377,7 @@ public class NativeCryptoTest extends TestCase {
         assertEquals("", serverCallback.serverPSKKeyRequestedIdentity);
     }
 
+    @Test
     public void test_SSL_do_handshake_with_psk_with_identity_and_hint() throws Exception {
         // normal TLS-PSK client and server case where the server provides the client with a PSK
         // identity hint, and the client provides the server with a PSK identity.
@@ -1371,6 +1411,7 @@ public class NativeCryptoTest extends TestCase {
         assertEquals(cHooks.pskIdentity, serverCallback.serverPSKKeyRequestedIdentity);
     }
 
+    @Test
     public void test_SSL_do_handshake_with_psk_with_identity_and_hint_of_max_length()
             throws Exception {
         // normal TLS-PSK client and server case where the server provides the client with a PSK
@@ -1409,6 +1450,7 @@ public class NativeCryptoTest extends TestCase {
         assertEquals(cHooks.pskIdentity, serverCallback.serverPSKKeyRequestedIdentity);
     }
 
+    @Test
     public void test_SSL_do_handshake_with_psk_key_mismatch() throws Exception {
         final ServerSocket listener = new ServerSocket(0);
         ClientHooks cHooks = new ClientHooks();
@@ -1428,6 +1470,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_do_handshake_with_psk_with_no_client_key() throws Exception {
         final ServerSocket listener = new ServerSocket(0);
         ClientHooks cHooks = new ClientHooks();
@@ -1447,6 +1490,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_do_handshake_with_psk_with_no_server_key() throws Exception {
         final ServerSocket listener = new ServerSocket(0);
         ClientHooks cHooks = new ClientHooks();
@@ -1466,6 +1510,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_do_handshake_with_psk_key_too_long() throws Exception {
         final ServerSocket listener = new ServerSocket(0);
         ClientHooks cHooks = new ClientHooks() {
@@ -1491,6 +1536,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_do_handshake_with_ocsp_response() throws Exception {
         final byte[] OCSP_TEST_DATA = new byte[] { 1, 2, 3, 4};
 
@@ -1528,6 +1574,7 @@ public class NativeCryptoTest extends TestCase {
         assertTrue(serverCallback.handshakeCompletedCalled);
     }
 
+    @Test
     public void test_SSL_do_handshake_with_sct_extension() throws Exception {
         final byte[] SCT_TEST_DATA = new byte[] { 1, 2, 3, 4};
 
@@ -1566,6 +1613,7 @@ public class NativeCryptoTest extends TestCase {
         assertTrue(serverCallback.handshakeCompletedCalled);
     }
 
+    @Test
     public void test_SSL_use_psk_identity_hint() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
@@ -1590,6 +1638,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_set_session() throws Exception {
         try {
             NativeCrypto.SSL_set_session(NULL, NULL);
@@ -1697,6 +1746,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_set_session_creation_enabled() throws Exception {
         try {
             NativeCrypto.SSL_set_session_creation_enabled(NULL, false);
@@ -1772,6 +1822,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_set_tlsext_host_name() throws Exception {
         // NULL SSL
         try {
@@ -1837,6 +1888,7 @@ public class NativeCryptoTest extends TestCase {
         server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
+    @Test
     public void test_SSL_AlpnNegotiateSuccess() throws Exception {
         final byte[] clientAlpnProtocols = new byte[] {
                 8, 'h', 't', 't', 'p', '/', '1', '.', '1',
@@ -1880,6 +1932,7 @@ public class NativeCryptoTest extends TestCase {
         server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
+    @Test
     public void test_SSL_get_servername_null() throws Exception {
         // NULL SSL
         try {
@@ -1897,6 +1950,7 @@ public class NativeCryptoTest extends TestCase {
         // additional positive testing by test_SSL_set_tlsext_host_name
     }
 
+    @Test
     public void test_SSL_renegotiate() throws Exception {
         try {
             NativeCrypto.SSL_renegotiate(NULL);
@@ -1934,6 +1988,7 @@ public class NativeCryptoTest extends TestCase {
         server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
+    @Test
     public void test_SSL_get_certificate() throws Exception {
         try {
             NativeCrypto.SSL_get_certificate(NULL);
@@ -1970,6 +2025,7 @@ public class NativeCryptoTest extends TestCase {
         server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
+    @Test
     public void test_SSL_get_peer_cert_chain() throws Exception {
         try {
             NativeCrypto.SSL_get_peer_cert_chain(NULL);
@@ -2002,8 +2058,8 @@ public class NativeCryptoTest extends TestCase {
 
     final byte[] BYTES = new byte[] { 2, -3, 5, 127, 0, -128 };
 
+    @Test
     public void test_SSL_read() throws Exception {
-
         // NULL ssl
         try {
             NativeCrypto.SSL_read(NULL, null, null, null, 0, 0, 0);
@@ -2136,6 +2192,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_write() throws Exception {
         try {
             NativeCrypto.SSL_write(NULL, null, null, null, 0, 0, 0);
@@ -2198,6 +2255,7 @@ public class NativeCryptoTest extends TestCase {
         // positively tested by test_SSL_read
     }
 
+    @Test
     public void test_SSL_interrupt() throws Exception {
         // SSL_interrupt is a rare case that tolerates a null SSL argument
         NativeCrypto.SSL_interrupt(NULL);
@@ -2264,8 +2322,8 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_shutdown() throws Exception {
-
         // null FileDescriptor
         wrapWithSSLSession(new SSLSessionWrappedTask() {
             @Override
@@ -2309,6 +2367,7 @@ public class NativeCryptoTest extends TestCase {
         // SSL_shutdown to ensure SSL_SESSIONs are reused.
     }
 
+    @Test
     public void test_SSL_free() throws Exception {
         try {
             NativeCrypto.SSL_free(NULL);
@@ -2324,6 +2383,7 @@ public class NativeCryptoTest extends TestCase {
         // uses use SSL_free to cleanup in afterHandshake.
     }
 
+    @Test
     public void test_SSL_SESSION_session_id() throws Exception {
         try {
             NativeCrypto.SSL_SESSION_session_id(NULL);
@@ -2352,6 +2412,7 @@ public class NativeCryptoTest extends TestCase {
         server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
+    @Test
     public void test_SSL_SESSION_get_time() throws Exception {
         try {
             NativeCrypto.SSL_SESSION_get_time(NULL);
@@ -2382,6 +2443,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_SSL_SESSION_get_version() throws Exception {
         try {
             NativeCrypto.SSL_SESSION_get_version(NULL);
@@ -2409,6 +2471,7 @@ public class NativeCryptoTest extends TestCase {
         server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
+    @Test
     public void test_SSL_SESSION_cipher() throws Exception {
         try {
             NativeCrypto.SSL_SESSION_cipher(NULL);
@@ -2436,6 +2499,7 @@ public class NativeCryptoTest extends TestCase {
         server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
+    @Test
     public void test_SSL_SESSION_free() throws Exception {
         try {
             NativeCrypto.SSL_SESSION_free(NULL);
@@ -2447,6 +2511,7 @@ public class NativeCryptoTest extends TestCase {
         // uses use SSL_SESSION_free to cleanup in afterHandshake.
     }
 
+    @Test
     public void test_i2d_SSL_SESSION() throws Exception {
         try {
             NativeCrypto.i2d_SSL_SESSION(NULL);
@@ -2483,6 +2548,7 @@ public class NativeCryptoTest extends TestCase {
         server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
+    @Test
     public void test_d2i_SSL_SESSION() throws Exception {
         try {
             NativeCrypto.d2i_SSL_SESSION(null);
@@ -2505,6 +2571,7 @@ public class NativeCryptoTest extends TestCase {
         // positive testing by test_i2d_SSL_SESSION
     }
 
+    @Test
     public void test_X509_NAME_hashes() {
         // ensure these hash functions are stable over time since the
         // /system/etc/security/cacerts CA filenames have to be
@@ -2514,6 +2581,7 @@ public class NativeCryptoTest extends TestCase {
         assertEquals(-1626170662, NativeCrypto.X509_NAME_hash_old(name)); // MD5
     }
 
+    @Test
     public void test_RAND_bytes_Success() throws Exception {
         byte[] output = new byte[128];
         NativeCrypto.RAND_bytes(output);
@@ -2527,6 +2595,7 @@ public class NativeCryptoTest extends TestCase {
                 + "and probably indicates an error.", isZero);
     }
 
+    @Test
     public void test_RAND_bytes_Null_Failure() throws Exception {
         byte[] output = null;
         try {
@@ -2536,6 +2605,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_EVP_get_digestbyname() throws Exception {
         assertTrue(NativeCrypto.EVP_get_digestbyname("sha256") != NULL);
 
@@ -2553,6 +2623,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_EVP_DigestSignInit() throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
         kpg.initialize(512);
@@ -2589,6 +2660,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_get_RSA_private_params() throws Exception {
         try {
             NativeCrypto.get_RSA_private_params(null);
@@ -2612,6 +2684,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_get_RSA_public_params() throws Exception {
         try {
             NativeCrypto.get_RSA_public_params(null);
@@ -2635,6 +2708,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_RSA_size_null_key_Failure() throws Exception {
         try {
             NativeCrypto.RSA_size(null);
@@ -2642,6 +2716,7 @@ public class NativeCryptoTest extends TestCase {
         } catch (NullPointerException expected) {}
     }
 
+    @Test
     public void test_RSA_private_encrypt_null_key_Failure() throws Exception {
         try {
             NativeCrypto.RSA_private_encrypt(0, new byte[0], new byte[0],
@@ -2650,6 +2725,7 @@ public class NativeCryptoTest extends TestCase {
         } catch (NullPointerException expected) {}
     }
 
+    @Test
     public void test_RSA_private_decrypt_null_key_Failure() throws Exception {
         try {
             NativeCrypto.RSA_private_decrypt(0, new byte[0], new byte[0],
@@ -2658,6 +2734,7 @@ public class NativeCryptoTest extends TestCase {
         } catch (NullPointerException expected) {}
     }
 
+    @Test
     public void test_RSA_public_encrypt_null_key_Failure() throws Exception {
         try {
             NativeCrypto.RSA_public_encrypt(0, new byte[0], new byte[0], null,
@@ -2666,6 +2743,7 @@ public class NativeCryptoTest extends TestCase {
         } catch (NullPointerException expected) {}
     }
 
+    @Test
     public void test_RSA_public_decrypt_null_key_Failure() throws Exception {
         try {
             NativeCrypto.RSA_public_decrypt(0, new byte[0], new byte[0], null,
@@ -2684,6 +2762,7 @@ public class NativeCryptoTest extends TestCase {
             (byte) 0x8a, (byte) 0x41, (byte) 0x55, (byte) 0x5f,
     };
 
+    @Test
     public void testEC_GROUP() throws Exception {
         /* Test using NIST's P-256 curve */
         check_EC_GROUP("prime256v1",
@@ -2755,6 +2834,7 @@ public class NativeCryptoTest extends TestCase {
                 NativeCrypto.EC_GROUP_get_curve_name(groupTmp));
     }
 
+    @Test
     public void test_EC_KEY_get_private_key_null_key_Failure() throws Exception {
         try {
             NativeCrypto.EC_KEY_get_private_key(null);
@@ -2762,6 +2842,7 @@ public class NativeCryptoTest extends TestCase {
         } catch (NullPointerException expected) {}
     }
 
+    @Test
     public void test_EC_KEY_get_public_key_null_key_Failure() throws Exception {
         try {
             NativeCrypto.EC_KEY_get_public_key(null);
@@ -2769,10 +2850,12 @@ public class NativeCryptoTest extends TestCase {
         } catch (NullPointerException expected) {}
     }
 
+    @Test
     public void test_ECKeyPairGenerator_CurvesAreValid() throws Exception {
         OpenSSLECKeyPairGenerator.assertCurvesAreValid();
     }
 
+    @Test
     public void test_ECDH_compute_key_null_key_Failure() throws Exception {
         final long groupCtx = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
         assertFalse(groupCtx == NULL);
@@ -2803,6 +2886,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_EVP_CipherInit_ex_Null_Failure() throws Exception {
         final NativeRef.EVP_CIPHER_CTX ctx = new NativeRef.EVP_CIPHER_CTX(
                 NativeCrypto.EVP_CIPHER_CTX_new());
@@ -2823,6 +2907,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.EVP_CipherInit_ex(ctx, NULL, null, null, false);
     }
 
+    @Test
     public void test_EVP_CipherInit_ex_Success() throws Exception {
         final NativeRef.EVP_CIPHER_CTX ctx = new NativeRef.EVP_CIPHER_CTX(
                 NativeCrypto.EVP_CIPHER_CTX_new());
@@ -2830,6 +2915,7 @@ public class NativeCryptoTest extends TestCase {
         NativeCrypto.EVP_CipherInit_ex(ctx, evpCipher, AES_128_KEY, null, true);
     }
 
+    @Test
     public void test_EVP_CIPHER_iv_length() throws Exception {
         long aes128ecb = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
         assertEquals(0, NativeCrypto.EVP_CIPHER_iv_length(aes128ecb));
@@ -2838,6 +2924,7 @@ public class NativeCryptoTest extends TestCase {
         assertEquals(16, NativeCrypto.EVP_CIPHER_iv_length(aes128cbc));
     }
 
+    @Test
     public void test_OpenSSLKey_toJava() throws Exception {
         OpenSSLKey key1;
 
@@ -2852,6 +2939,7 @@ public class NativeCryptoTest extends TestCase {
         assertTrue(key1.getPublicKey() instanceof ECPublicKey);
     }
 
+    @Test
     public void test_create_BIO_InputStream() throws Exception {
         byte[] actual = "Test".getBytes();
         ByteArrayInputStream is = new ByteArrayInputStream(actual);
@@ -2869,6 +2957,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_create_BIO_OutputStream() throws Exception {
         byte[] actual = "Test".getBytes();
         ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -2883,6 +2972,7 @@ public class NativeCryptoTest extends TestCase {
         }
     }
 
+    @Test
     public void test_get_ocsp_single_extension() throws Exception {
         final String OCSP_SCT_LIST_OID = "1.3.6.1.4.1.11129.2.4.5";
 
