@@ -151,26 +151,6 @@ LOCAL_JACK_FLAGS := -D jack.classpath.default-libraries=false
 LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
-# Unbundled Conscrypt crypto JNI library
-include $(CLEAR_VARS)
-LOCAL_CFLAGS += $(core_cflags)
-LOCAL_CPPFLAGS += $(core_cppflags)
-LOCAL_SRC_FILES := \
-        src/main/native/org_conscrypt_NativeCrypto.cpp \
-        src/compat/native/JNIHelp.cpp
-LOCAL_C_INCLUDES += \
-        external/openssl/include \
-        external/openssl \
-        $(LOCAL_PATH)/src/compat/native
-LOCAL_LDFLAGS := -llog -ldl
-LOCAL_STATIC_LIBRARIES := libssl libcrypto
-LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := libconscrypt_jni
-LOCAL_SDK_VERSION := 9
-LOCAL_NDK_STL_VARIANT := c++_shared
-LOCAL_JAVA_LANGUAGE_VERSION := 1.7
-include $(BUILD_SHARED_LIBRARY)
-
 # Static unbundled Conscrypt crypto JNI library
 include $(CLEAR_VARS)
 LOCAL_CFLAGS += $(core_cflags)
@@ -258,56 +238,7 @@ LOCAL_SHARED_LIBRARIES := libcrypto libjavacore liblog libnativehelper libssl
 LOCAL_MULTILIB := both
 include $(BUILD_HOST_SHARED_LIBRARY)
 
-# Conscrypt native library for nojarjar'd version
-# Don't build this for unbundled conscrypt build
-ifeq (,$(TARGET_BUILD_APPS))
-    include $(CLEAR_VARS)
-    LOCAL_CLANG := true
-    LOCAL_SRC_FILES += \
-            src/main/native/org_conscrypt_NativeCrypto.cpp
-    LOCAL_C_INCLUDES += \
-            external/openssl/include \
-            external/openssl \
-            libcore/include \
-            libcore/luni/src/main/native \
-            $(LOCAL_PATH)/src/platform/native
-    LOCAL_CPPFLAGS += $(core_cppflags) -DCONSCRYPT_NOT_UNBUNDLED
-    LOCAL_LDLIBS += -lpthread
-    LOCAL_MODULE_TAGS := optional
-    LOCAL_MODULE := libconscrypt_jni
-    LOCAL_SHARED_LIBRARIES := libcrypto libjavacore liblog libnativehelper libssl
-    LOCAL_MULTILIB := both
-    include $(BUILD_HOST_SHARED_LIBRARY)
-endif
-
 endif # HOST_OS == linux
-
-# Conscrypt JNI library for host OpenJDK
-# To be self-contained, this shared library statically links in all of its
-# Android-specific dependencies.
-include $(CLEAR_VARS)
-LOCAL_CLANG := true
-LOCAL_SRC_FILES += \
-        src/main/native/org_conscrypt_NativeCrypto.cpp \
-        src/openjdk/native/JNIHelp.cpp
-LOCAL_C_INCLUDES += \
-        external/openssl/include \
-        external/openssl \
-        $(LOCAL_PATH)/src/openjdk/native
-LOCAL_CPPFLAGS += $(core_cppflags) -DCONSCRYPT_OPENJDK
-LOCAL_LDLIBS += -lpthread
-LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := libconscrypt_openjdk_jni
-LOCAL_CXX_STL := libc++_static
-LOCAL_STATIC_LIBRARIES := libssl_static-host libcrypto_static
-LOCAL_MULTILIB := both
-# TODO: b/26097626. ASAN breaks use of this library in JVM.
-# Re-enable sanitization when the issue with making clients of this library
-# preload ASAN runtime is resolved. Without that, clients are getting runtime
-# errors due to unresoled ASAN symbols, such as
-# __asan_option_detect_stack_use_after_return.
-LOCAL_SANITIZE := never
-include $(BUILD_HOST_SHARED_LIBRARY)
 
 # Conscrypt Java library for host OpenJDK
 include $(CLEAR_VARS)

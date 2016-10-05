@@ -1,0 +1,98 @@
+//
+// Copyright (C) 2016 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+cc_defaults {
+    name: "conscrypt_global",
+
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wunused",
+    ],
+
+    srcs: [
+        "src/main/native/org_conscrypt_NativeCrypto.cpp",
+    ],
+
+    shared_libs: [
+        "liblog",
+    ],
+
+    compile_multilib: "both",
+    stl: "c++_static",
+}
+
+cc_defaults {
+    name: "conscrypt_unbundled",
+
+    srcs: [
+        "src/compat/native/JNIHelp.cpp",
+    ],
+
+    local_include_dirs: [
+        "src/compat/native",
+    ],
+
+    host_ldlibs: ["-ldl"],
+
+    static_libs: [
+        "libssl",
+        "libcrypto",
+    ],
+
+    sdk_version: "9",
+}
+
+cc_library {
+    name: "libconscrypt_jni",
+    defaults: ["conscrypt_global", "conscrypt_unbundled"],
+}
+
+cc_library_host_shared {
+    name: "libconscrypt_openjdk_jni",
+    defaults: ["conscrypt_global"],
+
+    cflags: [
+        "-DCONSCRYPT_OPENJDK",
+    ],
+
+    srcs: [
+        "src/openjdk/native/JNIHelp.cpp",
+    ],
+
+    local_include_dirs: [
+        "src/openjdk/native",
+    ],
+
+    host_ldlibs: ["-lpthread"],
+
+    static_libs: [
+        "libssl_static-host",
+        "libcrypto_static",
+    ],
+
+    // TODO: b/26097626. ASAN breaks use of this library in JVM.
+    // Re-enable sanitization when the issue with making clients of this library
+    // preload ASAN runtime is resolved. Without that, clients are getting runtime
+    // errors due to unresolved ASAN symbols, such as
+    // __asan_option_detect_stack_use_after_return.
+    sanitize: {
+        never: true,
+    },
+
+    stl: "libc++",
+}
