@@ -5958,8 +5958,7 @@ static jobjectArray NativeCrypto_get_X509_REVOKED_ext_oids(JNIEnv* env, jclass, 
 /**
  * Based on example logging call back from SSL_CTX_set_info_callback man page
  */
-static void info_callback_LOG(const SSL* s __attribute__ ((unused)), int where, int ret)
-{
+static void info_callback_LOG(const SSL* s, int where, int ret) {
     int w = where & ~SSL_ST_MASK;
     const char* str;
     if (w & SSL_ST_CONNECT) {
@@ -6363,8 +6362,7 @@ static AppData* toAppData(const SSL* ssl) {
 /**
  * Verify the X509 certificate via SSL_CTX_set_cert_verify_callback
  */
-static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg __attribute__ ((unused)))
-{
+static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg) {
     /* Get the correct index to the SSLobject stored into X509_STORE_CTX. */
     SSL* ssl = reinterpret_cast<SSL*>(X509_STORE_CTX_get_ex_data(x509_store_ctx,
             SSL_get_ex_data_X509_STORE_CTX_idx()));
@@ -6661,9 +6659,7 @@ static DH* dhGenerateParameters(int keylength) {
 /**
  * Call back to ask for Diffie-Hellman parameters
  */
-static DH* tmp_dh_callback(SSL* ssl __attribute__ ((unused)),
-                           int is_export __attribute__ ((unused)),
-                           int keylength) {
+static DH* tmp_dh_callback(SSL* ssl, int is_export, int keylength) {
     JNI_TRACE("ssl=%p tmp_dh_callback is_export=%d keylength=%d", ssl, is_export, keylength);
     DH* tmp_dh = dhGenerateParameters(keylength);
     JNI_TRACE("ssl=%p tmp_dh_callback => %p", ssl, tmp_dh);
@@ -7640,10 +7636,9 @@ static jstring NativeCrypto_SSL_get_servername(JNIEnv* env, jclass, jlong ssl_ad
  * Selects the ALPN protocol to use. The list of protocols in "primary" is considered the order
  * which should take precedence.
  */
-static int proto_select(SSL* ssl __attribute__ ((unused)),
-        unsigned char **out, unsigned char *outLength,
-        const unsigned char *primary, const unsigned int primaryLength,
-        const unsigned char *secondary, const unsigned int secondaryLength) {
+static int proto_select(SSL* ssl, unsigned char** out, unsigned char* outLength,
+                        const unsigned char* primary, const unsigned int primaryLength,
+                        const unsigned char* secondary, const unsigned int secondaryLength) {
     if (primary != nullptr && secondary != nullptr) {
         JNI_TRACE("primary=%p, length=%d", primary, primaryLength);
 
