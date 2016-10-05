@@ -195,6 +195,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             ctPolicy = new CTPolicyImpl(ctLogStore, 2);
         }
 
+        this.pinManager = manager;
         this.rootKeyStore = rootKeyStoreLocal;
         this.trustedCertificateStore = trustedCertificateStoreLocal;
         this.validator = validatorLocal;
