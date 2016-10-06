@@ -128,7 +128,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         return paddedBlockSizeBytes();
     }
 
-    private int paddedBlockSizeBytes() {
+    protected int paddedBlockSizeBytes() {
         int paddedBlockSizeBytes = keySizeBytes();
         if (padding == NativeConstants.RSA_PKCS1_PADDING) {
             paddedBlockSizeBytes--;  // for 0 prefix
@@ -137,7 +137,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         return paddedBlockSizeBytes;
     }
 
-    private int keySizeBytes() {
+    protected int keySizeBytes() {
         if (key == null) {
             throw new IllegalStateException("cipher is not initialized");
         }
@@ -385,14 +385,17 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
     }
 
     public static class OAEP extends OpenSSLCipherRSA {
-        private long oaepMd = EvpMdRef.SHA256.EVP_MD;
+        private long oaepMd;
+        private int oaepMdSizeBytes;
 
-        private long mgf1Md = EvpMdRef.SHA256.EVP_MD;
+        private long mgf1Md;
 
         private NativeRef.EVP_PKEY_CTX pkeyCtx;
 
-        public OAEP() {
+        public OAEP(long defaultMd, int defaultMdSizeBytes) {
             super(NativeConstants.RSA_PKCS1_OAEP_PADDING);
+            oaepMd = mgf1Md = defaultMd;
+            oaepMdSizeBytes = defaultMdSizeBytes;
         }
 
         @Override
@@ -452,6 +455,15 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
             NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(pkeyCtx.context, mgf1Md);
         }
 
+        @Override
+        protected int paddedBlockSizeBytes() {
+            int paddedBlockSizeBytes = keySizeBytes();
+            // Size described in step 2 of decoding algorithm, but extra byte
+            // needed to make sure it's smaller than the RSA key modulus size.
+            // https://tools.ietf.org/html/rfc2437#section-9.1.1.2
+            return paddedBlockSizeBytes - (2 * oaepMdSizeBytes + 2);
+        }
+
         private void readOAEPParameters(OAEPParameterSpec spec)
                 throws InvalidAlgorithmParameterException {
             String mgfAlgUpper = spec.getMGFAlgorithm().toUpperCase(Locale.US);
@@ -464,9 +476,11 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
             }
 
             MGF1ParameterSpec mgf1spec = (MGF1ParameterSpec) mgfSpec;
+            String oaepAlgUpper = spec.getDigestAlgorithm().toUpperCase(Locale.US);
             try {
-                oaepMd = EvpMdRef.getEVP_MDByJcaDigestAlgorithmStandardName(
-                        spec.getDigestAlgorithm());
+                oaepMd = EvpMdRef.getEVP_MDByJcaDigestAlgorithmStandardName(oaepAlgUpper);
+                oaepMdSizeBytes =
+                        EvpMdRef.getDigestSizeBytesByJcaDigestAlgorithmStandardName(oaepAlgUpper);
                 mgf1Md = EvpMdRef.getEVP_MDByJcaDigestAlgorithmStandardName(
                         mgf1spec.getDigestAlgorithm());
             } catch (NoSuchAlgorithmException e) {
@@ -481,6 +495,36 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
                 return NativeCrypto.EVP_PKEY_encrypt(pkeyCtx, output, 0, tmpBuf, 0, tmpBuf.length);
             } else {
                 return NativeCrypto.EVP_PKEY_decrypt(pkeyCtx, output, 0, tmpBuf, 0, tmpBuf.length);
+            }
+        }
+
+        public static class SHA1 extends OAEP {
+            public SHA1() {
+                super(EvpMdRef.SHA1.EVP_MD, EvpMdRef.SHA1.SIZE_BYTES);
+            }
+        }
+
+        public static class SHA224 extends OAEP {
+            public SHA224() {
+                super(EvpMdRef.SHA224.EVP_MD, EvpMdRef.SHA224.SIZE_BYTES);
+            }
+        }
+
+        public static class SHA256 extends OAEP {
+            public SHA256() {
+                super(EvpMdRef.SHA256.EVP_MD, EvpMdRef.SHA256.SIZE_BYTES);
+            }
+        }
+
+        public static class SHA384 extends OAEP {
+            public SHA384() {
+                super(EvpMdRef.SHA384.EVP_MD, EvpMdRef.SHA384.SIZE_BYTES);
+            }
+        }
+
+        public static class SHA512 extends OAEP {
+            public SHA512() {
+                super(EvpMdRef.SHA512.EVP_MD, EvpMdRef.SHA512.SIZE_BYTES);
             }
         }
     }

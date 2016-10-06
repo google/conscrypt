@@ -65,6 +65,24 @@ public final class EvpMdRef {
         }
     }
 
+    public static int getDigestSizeBytesByJcaDigestAlgorithmStandardName(String algorithm)
+            throws NoSuchAlgorithmException {
+        String algorithmUpper = algorithm.toUpperCase(Locale.US);
+        if (SHA256.JCA_NAME.equals(algorithmUpper)) {
+            return EvpMdRef.SHA256.SIZE_BYTES;
+        } else if (SHA512.JCA_NAME.equals(algorithmUpper)) {
+            return EvpMdRef.SHA512.SIZE_BYTES;
+        } else if (SHA1.JCA_NAME.equals(algorithmUpper)) {
+            return EvpMdRef.SHA1.SIZE_BYTES;
+        } else if (SHA384.JCA_NAME.equals(algorithmUpper)) {
+            return EvpMdRef.SHA384.SIZE_BYTES;
+        } else if (SHA224.JCA_NAME.equals(algorithmUpper)) {
+            return EvpMdRef.SHA224.SIZE_BYTES;
+        } else {
+            throw new NoSuchAlgorithmException("Unsupported algorithm: " + algorithm);
+        }
+    }
+
     public static final class MD5 {
         public static final String JCA_NAME = "MD5";
         public static final String OID = "1.2.840.113549.2.5";
