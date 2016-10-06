@@ -202,18 +202,20 @@ LOCAL_BUILD_HOST_DEX := true
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt-hostdex-nojarjar
 LOCAL_JAVA_LANGUAGE_VERSION := 1.7
-include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
+include $(BUILD_HOST_DALVIK_STATIC_JAVA_LIBRARY)
 
 # Make the conscrypt-tests library.
 ifeq ($(LIBCORE_SKIP_TESTS),)
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(call all-java-files-under,src/test/java)
     LOCAL_JAVA_RESOURCE_DIRS := src/test/resources
-    LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex core-junit-hostdex core-tests-support-hostdex conscrypt-hostdex-nojarjar junit4-target-hostdex mockito-api-hostdex
+    LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex core-junit-hostdex core-tests-support-hostdex junit4-target-hostdex mockito-api-hostdex
+    LOCAL_STATIC_JAVA_LIBRARIES := conscrypt-hostdex-nojarjar
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_MODULE_TAGS := optional
     LOCAL_MODULE := conscrypt-tests-hostdex
     LOCAL_REQUIRED_MODULES := libjavacrypto
+    LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
     LOCAL_JAVA_LANGUAGE_VERSION := 1.7
     include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 endif
