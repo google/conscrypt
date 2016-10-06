@@ -680,8 +680,9 @@ public final class NativeCrypto {
 
     private static final String[] SUPPORTED_CIPHER_SUITES;
     static {
-        // Cipher selection string must work with OpenSSL and BoringSSL.
-        String[] allOpenSSLCipherSuites = get_cipher_names("ALL:-EXP:-SRP:-SEED:-CAMELLIA:-DSS:-RC2:-DES-CBC-MD5:-DES-CBC3-MD5:-RC4");
+        // Suppress TLS 1.3's generic AEAD-only ciphers for now. They will be restored once TLS 1.3
+        // support is enabled.
+        String[] allOpenSSLCipherSuites = get_cipher_names("ALL:-GENERIC");
 
         int size = allOpenSSLCipherSuites.length;
         SUPPORTED_CIPHER_SUITES = new String[size + 2];
