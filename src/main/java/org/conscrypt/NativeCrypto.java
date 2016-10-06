@@ -988,8 +988,7 @@ public final class NativeCrypto {
 
     public static native boolean SSL_session_reused(long sslNativePointer);
 
-    public static native void SSL_set_reject_peer_renegotiations(
-            long sslNativePointer, boolean renegotiationRejected) throws SSLException;
+    public static native void SSL_accept_renegotiations(long sslNativePointer) throws SSLException;
 
     public static native void SSL_set_tlsext_host_name(long sslNativePointer, String hostname)
             throws SSLException;
