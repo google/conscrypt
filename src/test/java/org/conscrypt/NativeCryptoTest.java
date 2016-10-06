@@ -17,7 +17,7 @@
 package org.conscrypt;
 
 import static org.conscrypt.NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING;
-import static org.conscrypt.NativeConstants.SSL_MODE_HANDSHAKE_CUTTHROUGH;
+import static org.conscrypt.NativeConstants.SSL_MODE_ENABLE_FALSE_START;
 import static org.conscrypt.TestUtils.openTestFile;
 import static org.conscrypt.TestUtils.readTestFile;
 import static org.junit.Assert.assertEquals;
@@ -508,20 +508,18 @@ public class NativeCryptoTest {
 
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
-        // check SSL_MODE_HANDSHAKE_CUTTHROUGH on by default for BoringSSL
-        assertEquals(SSL_MODE_HANDSHAKE_CUTTHROUGH,
-                NativeCrypto.SSL_get_mode(s) & SSL_MODE_HANDSHAKE_CUTTHROUGH);
+        // check SSL_MODE_ENABLE_FALSE_START on by default for BoringSSL
+        assertEquals(SSL_MODE_ENABLE_FALSE_START,
+                NativeCrypto.SSL_get_mode(s) & SSL_MODE_ENABLE_FALSE_START);
         // check SSL_MODE_CBC_RECORD_SPLITTING off by default
         assertEquals(0, NativeCrypto.SSL_get_mode(s) & SSL_MODE_CBC_RECORD_SPLITTING);
 
-        // set SSL_MODE_HANDSHAKE_CUTTHROUGH on
-        NativeCrypto.SSL_set_mode(s, SSL_MODE_HANDSHAKE_CUTTHROUGH);
-        assertTrue((NativeCrypto.SSL_get_mode(s)
-                & SSL_MODE_HANDSHAKE_CUTTHROUGH) != 0);
-        // clear SSL_MODE_HANDSHAKE_CUTTHROUGH off
-        NativeCrypto.SSL_clear_mode(s, SSL_MODE_HANDSHAKE_CUTTHROUGH);
-        assertTrue((NativeCrypto.SSL_get_mode(s)
-                    & SSL_MODE_HANDSHAKE_CUTTHROUGH) == 0);
+        // set SSL_MODE_ENABLE_FALSE_START on
+        NativeCrypto.SSL_set_mode(s, SSL_MODE_ENABLE_FALSE_START);
+        assertTrue((NativeCrypto.SSL_get_mode(s) & SSL_MODE_ENABLE_FALSE_START) != 0);
+        // clear SSL_MODE_ENABLE_FALSE_START off
+        NativeCrypto.SSL_clear_mode(s, SSL_MODE_ENABLE_FALSE_START);
+        assertTrue((NativeCrypto.SSL_get_mode(s) & SSL_MODE_ENABLE_FALSE_START) == 0);
 
         NativeCrypto.SSL_free(s);
         NativeCrypto.SSL_CTX_free(c);
@@ -1142,7 +1140,7 @@ public class NativeCryptoTest {
             @Override
             public long beforeHandshake(long context) throws SSLException {
                 long s = super.beforeHandshake(context);
-                NativeCrypto.SSL_clear_mode(s, SSL_MODE_HANDSHAKE_CUTTHROUGH);
+                NativeCrypto.SSL_clear_mode(s, SSL_MODE_ENABLE_FALSE_START);
                 return s;
             }
             @Override
