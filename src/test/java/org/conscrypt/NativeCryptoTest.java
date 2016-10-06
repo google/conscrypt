@@ -189,6 +189,23 @@ public class NativeCryptoTest {
                 16).toByteArray();
     }
 
+    private static RSAPrivateCrtKey generateRsaKey() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(512);
+
+        KeyPair keyPair = kpg.generateKeyPair();
+        return (RSAPrivateCrtKey) keyPair.getPrivate();
+    }
+
+    private static NativeRef.EVP_PKEY getRsaPkey(RSAPrivateCrtKey privKey) throws Exception {
+        return new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_new_RSA(
+                privKey.getModulus().toByteArray(), privKey.getPublicExponent().toByteArray(),
+                privKey.getPrivateExponent().toByteArray(), privKey.getPrimeP().toByteArray(),
+                privKey.getPrimeQ().toByteArray(), privKey.getPrimeExponentP().toByteArray(),
+                privKey.getPrimeExponentQ().toByteArray(),
+                privKey.getCrtCoefficient().toByteArray()));
+    }
+
     public static void assertEqualSessions(long expected, long actual) {
         assertEqualByteArrays(NativeCrypto.SSL_SESSION_session_id(expected),
                               NativeCrypto.SSL_SESSION_session_id(actual));
@@ -219,47 +236,15 @@ public class NativeCryptoTest {
 
     @Test
     public void test_EVP_PKEY_cmp() throws Exception {
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-        kpg.initialize(512);
+        RSAPrivateCrtKey privKey1 = generateRsaKey();
 
-        KeyPair kp1 = kpg.generateKeyPair();
-        RSAPrivateCrtKey privKey1 = (RSAPrivateCrtKey) kp1.getPrivate();
-
-        KeyPair kp2 = kpg.generateKeyPair();
-        RSAPrivateCrtKey privKey2 = (RSAPrivateCrtKey) kp2.getPrivate();
-
-        NativeRef.EVP_PKEY pkey1, pkey1_copy, pkey2;
-        pkey1 = new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_new_RSA(
-                privKey1.getModulus().toByteArray(),
-                privKey1.getPublicExponent().toByteArray(),
-                privKey1.getPrivateExponent().toByteArray(),
-                privKey1.getPrimeP().toByteArray(),
-                privKey1.getPrimeQ().toByteArray(),
-                privKey1.getPrimeExponentP().toByteArray(),
-                privKey1.getPrimeExponentQ().toByteArray(),
-                privKey1.getCrtCoefficient().toByteArray()));
+        NativeRef.EVP_PKEY pkey1 = getRsaPkey(privKey1);
         assertNotSame(NULL, pkey1);
 
-        pkey1_copy = new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_new_RSA(
-                privKey1.getModulus().toByteArray(),
-                privKey1.getPublicExponent().toByteArray(),
-                privKey1.getPrivateExponent().toByteArray(),
-                privKey1.getPrimeP().toByteArray(),
-                privKey1.getPrimeQ().toByteArray(),
-                privKey1.getPrimeExponentP().toByteArray(),
-                privKey1.getPrimeExponentQ().toByteArray(),
-                privKey1.getCrtCoefficient().toByteArray()));
+        NativeRef.EVP_PKEY pkey1_copy = getRsaPkey(privKey1);
         assertNotSame(NULL, pkey1_copy);
 
-        pkey2 = new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_new_RSA(
-                privKey2.getModulus().toByteArray(),
-                privKey2.getPublicExponent().toByteArray(),
-                privKey2.getPrivateExponent().toByteArray(),
-                privKey2.getPrimeP().toByteArray(),
-                privKey2.getPrimeQ().toByteArray(),
-                privKey2.getPrimeExponentP().toByteArray(),
-                privKey2.getPrimeExponentQ().toByteArray(),
-                privKey2.getCrtCoefficient().toByteArray()));
+        NativeRef.EVP_PKEY pkey2 = getRsaPkey(generateRsaKey());
         assertNotSame(NULL, pkey2);
 
         try {
