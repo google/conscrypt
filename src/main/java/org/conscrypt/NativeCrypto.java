@@ -227,6 +227,18 @@ public final class NativeCrypto {
     public static native boolean EVP_DigestVerifyFinal(NativeRef.EVP_MD_CTX ctx,
             byte[] signature, int offset, int length);
 
+    public static native long EVP_PKEY_encrypt_init(NativeRef.EVP_PKEY pkey);
+
+    public static native int EVP_PKEY_encrypt(NativeRef.EVP_PKEY_CTX ctx, byte[] out, int outOffset,
+            byte[] input, int inOffset, int inLength);
+
+    public static native long EVP_PKEY_decrypt_init(NativeRef.EVP_PKEY pkey);
+
+    public static native int EVP_PKEY_decrypt(NativeRef.EVP_PKEY_CTX ctx, byte[] out, int outOffset,
+            byte[] input, int inOffset, int inLength);
+
+    public static native void EVP_PKEY_CTX_free(long pkeyCtx);
+
     public static native void EVP_PKEY_CTX_set_rsa_padding(long ctx, int pad)
             throws InvalidAlgorithmParameterException;
 

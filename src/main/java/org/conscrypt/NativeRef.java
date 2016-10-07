@@ -120,6 +120,21 @@ public abstract class NativeRef {
         }
     }
 
+    public static class EVP_PKEY_CTX extends NativeRef {
+        public EVP_PKEY_CTX(long ctx) {
+            super(ctx);
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            try {
+                NativeCrypto.EVP_PKEY_CTX_free(context);
+            } finally {
+                super.finalize();
+            }
+        }
+    }
+
     public static class HMAC_CTX extends NativeRef {
         public HMAC_CTX(long ctx) {
             super(ctx);
