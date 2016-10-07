@@ -251,6 +251,9 @@ public final class NativeCrypto {
     public static native void EVP_PKEY_CTX_set_rsa_oaep_md(long ctx, long evpMdRef)
             throws InvalidAlgorithmParameterException;
 
+    public static native void EVP_PKEY_CTX_set_rsa_oaep_label(long ctx, byte[] label)
+            throws InvalidAlgorithmParameterException;
+
     // --- Block ciphers -------------------------------------------------------
 
     // These return const references

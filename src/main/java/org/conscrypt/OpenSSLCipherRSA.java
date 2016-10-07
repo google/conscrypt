@@ -43,6 +43,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
 import org.conscrypt.util.EmptyArray;
 
@@ -390,6 +391,8 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
 
         private long mgf1Md;
 
+        private byte[] label;
+
         private NativeRef.EVP_PKEY_CTX pkeyCtx;
 
         public OAEP(long defaultMd, int defaultMdSizeBytes) {
@@ -453,6 +456,9 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
                     pkeyCtx.context, NativeConstants.RSA_PKCS1_OAEP_PADDING);
             NativeCrypto.EVP_PKEY_CTX_set_rsa_oaep_md(pkeyCtx.context, oaepMd);
             NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(pkeyCtx.context, mgf1Md);
+            if (label != null && label.length > 0) {
+                NativeCrypto.EVP_PKEY_CTX_set_rsa_oaep_label(pkeyCtx.context, label);
+            }
         }
 
         @Override
@@ -486,6 +492,14 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
             } catch (NoSuchAlgorithmException e) {
                 throw new InvalidAlgorithmParameterException(e);
             }
+
+            PSource pSource = spec.getPSource();
+            if (!"PSpecified".equals(pSource.getAlgorithm())
+                    || !(pSource instanceof PSource.PSpecified)) {
+                throw new InvalidAlgorithmParameterException(
+                        "Only PSpecified accepted for PSource");
+            }
+            label = ((PSource.PSpecified) pSource).getValue();
         }
 
         @Override
