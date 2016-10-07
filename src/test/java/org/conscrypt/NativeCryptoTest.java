@@ -2918,6 +2918,62 @@ public class NativeCryptoTest {
         assertEqualByteArrays(expected, extension);
     }
 
+    private static NativeRef.EVP_PKEY_CTX getPkeyCtxForEncrypt() throws Exception {
+        return new NativeRef.EVP_PKEY_CTX(
+                NativeCrypto.EVP_PKEY_encrypt_init(getRsaPkey(generateRsaKey())));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void EVP_PKEY_encrypt_NullKeyArgument() throws Exception {
+        NativeCrypto.EVP_PKEY_encrypt(null, new byte[128], 0, new byte[128], 0, 128);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void EVP_PKEY_encrypt_NullOutputArgument() throws Exception {
+        NativeCrypto.EVP_PKEY_encrypt(getPkeyCtxForEncrypt(), null, 0, new byte[128], 0, 128);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void EVP_PKEY_encrypt_NullInputArgument() throws Exception {
+        NativeCrypto.EVP_PKEY_encrypt(getPkeyCtxForEncrypt(), new byte[128], 0, null, 0, 128);
+    }
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    public void EVP_PKEY_encrypt_OutputIndexOOBUnder() throws Exception {
+        NativeCrypto.EVP_PKEY_encrypt(
+                getPkeyCtxForEncrypt(), new byte[128], -1, new byte[128], 0, 128);
+    }
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    public void EVP_PKEY_encrypt_OutputIndexOOBOver() throws Exception {
+        NativeCrypto.EVP_PKEY_encrypt(
+                getPkeyCtxForEncrypt(), new byte[128], 129, new byte[128], 0, 128);
+    }
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    public void EVP_PKEY_encrypt_InputIndexOOBUnder() throws Exception {
+        NativeCrypto.EVP_PKEY_encrypt(
+                getPkeyCtxForEncrypt(), new byte[128], 0, new byte[128], -1, 128);
+    }
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    public void EVP_PKEY_encrypt_InputIndexOOBOver() throws Exception {
+        NativeCrypto.EVP_PKEY_encrypt(
+                getPkeyCtxForEncrypt(), new byte[128], 0, new byte[128], 128, 128);
+    }
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    public void EVP_PKEY_encrypt_InputLengthNegative() throws Exception {
+        NativeCrypto.EVP_PKEY_encrypt(
+                getPkeyCtxForEncrypt(), new byte[128], 0, new byte[128], 0, -1);
+    }
+
+    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    public void EVP_PKEY_encrypt_InputIndexLengthOOB() throws Exception {
+        NativeCrypto.EVP_PKEY_encrypt(
+                getPkeyCtxForEncrypt(), new byte[128], 0, new byte[128], 100, 29);
+    }
+
     private static void assertContains(String actualValue, String expectedSubstring) {
         if (actualValue == null) {
             return;
