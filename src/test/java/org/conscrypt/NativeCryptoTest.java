@@ -67,6 +67,7 @@ import javax.security.auth.x500.X500Principal;
 import libcore.io.IoUtils;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
+import org.conscrypt.EvpMdRef;
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
 import org.junit.After;
 import org.junit.Test;
@@ -2918,9 +2919,12 @@ public class NativeCryptoTest {
         assertEqualByteArrays(expected, extension);
     }
 
+    private static long getRawPkeyCtxForEncrypt() throws Exception {
+        return NativeCrypto.EVP_PKEY_encrypt_init(getRsaPkey(generateRsaKey()));
+    }
+
     private static NativeRef.EVP_PKEY_CTX getPkeyCtxForEncrypt() throws Exception {
-        return new NativeRef.EVP_PKEY_CTX(
-                NativeCrypto.EVP_PKEY_encrypt_init(getRsaPkey(generateRsaKey())));
+        return new NativeRef.EVP_PKEY_CTX(getRawPkeyCtxForEncrypt());
     }
 
     @Test(expected = NullPointerException.class)
@@ -2972,6 +2976,30 @@ public class NativeCryptoTest {
     public void EVP_PKEY_encrypt_InputIndexLengthOOB() throws Exception {
         NativeCrypto.EVP_PKEY_encrypt(
                 getPkeyCtxForEncrypt(), new byte[128], 0, new byte[128], 100, 29);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void EVP_PKEY_CTX_set_rsa_mgf1_md_NullPkeyCtx() throws Exception {
+        NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(NULL, EvpMdRef.SHA256.EVP_MD);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void EVP_PKEY_CTX_set_rsa_mgf1_md_NullMdCtx() throws Exception {
+        long pkeyCtx = getRawPkeyCtxForEncrypt();
+        NativeRef.EVP_PKEY_CTX holder = new NativeRef.EVP_PKEY_CTX(pkeyCtx);
+        NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(pkeyCtx, NULL);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void EVP_PKEY_CTX_set_rsa_oaep_md_NullPkeyCtx() throws Exception {
+        NativeCrypto.EVP_PKEY_CTX_set_rsa_oaep_md(NULL, EvpMdRef.SHA256.EVP_MD);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void EVP_PKEY_CTX_set_rsa_oaep_md_NullMdCtx() throws Exception {
+        long pkeyCtx = getRawPkeyCtxForEncrypt();
+        NativeRef.EVP_PKEY_CTX holder = new NativeRef.EVP_PKEY_CTX(pkeyCtx);
+        NativeCrypto.EVP_PKEY_CTX_set_rsa_oaep_md(pkeyCtx, NULL);
     }
 
     private static void assertContains(String actualValue, String expectedSubstring) {
