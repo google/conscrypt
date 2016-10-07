@@ -47,17 +47,17 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
     /**
      * The current OpenSSL key we're operating on.
      */
-    private OpenSSLKey key;
+    protected OpenSSLKey key;
 
     /**
      * Current key type: private or public.
      */
-    private boolean usingPrivateKey;
+    protected boolean usingPrivateKey;
 
     /**
      * Current cipher mode: encrypting or decrypting.
      */
-    private boolean encrypting;
+    protected boolean encrypting;
 
     /**
      * Buffer for operations
@@ -78,7 +78,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
     /**
      * Current padding mode
      */
-    private int padding = NativeConstants.RSA_PKCS1_PADDING;
+    protected int padding = NativeConstants.RSA_PKCS1_PADDING;
 
     protected OpenSSLCipherRSA(int padding) {
         this.padding = padding;
@@ -259,30 +259,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         }
 
         byte[] output = new byte[buffer.length];
-        int resultSize;
-        if (encrypting) {
-            if (usingPrivateKey) {
-                resultSize = NativeCrypto.RSA_private_encrypt(tmpBuf.length, tmpBuf, output,
-                                                              key.getNativeRef(), padding);
-            } else {
-                resultSize = NativeCrypto.RSA_public_encrypt(tmpBuf.length, tmpBuf, output,
-                                                             key.getNativeRef(), padding);
-            }
-        } else {
-            try {
-                if (usingPrivateKey) {
-                    resultSize = NativeCrypto.RSA_private_decrypt(tmpBuf.length, tmpBuf, output,
-                                                                  key.getNativeRef(), padding);
-                } else {
-                    resultSize = NativeCrypto.RSA_public_decrypt(tmpBuf.length, tmpBuf, output,
-                                                                 key.getNativeRef(), padding);
-                }
-            } catch (SignatureException e) {
-                IllegalBlockSizeException newE = new IllegalBlockSizeException();
-                newE.initCause(e);
-                throw newE;
-            }
-        }
+        int resultSize = doCryptoOperation(tmpBuf, output);
         if (!encrypting && resultSize != output.length) {
             output = Arrays.copyOf(output, resultSize);
         }
@@ -290,6 +267,9 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         bufferOffset = 0;
         return output;
     }
+
+    protected abstract int doCryptoOperation(final byte[] tmpBuf, byte[] output)
+            throws BadPaddingException, IllegalBlockSizeException;
 
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
@@ -344,13 +324,48 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         }
     }
 
-    public static class PKCS1 extends OpenSSLCipherRSA {
+    public abstract static class DirectRSA extends OpenSSLCipherRSA {
+        public DirectRSA(int padding) {
+            super(padding);
+        }
+
+        protected int doCryptoOperation(final byte[] tmpBuf, byte[] output)
+                throws BadPaddingException, IllegalBlockSizeException {
+            int resultSize;
+            if (encrypting) {
+                if (usingPrivateKey) {
+                    resultSize = NativeCrypto.RSA_private_encrypt(
+                            tmpBuf.length, tmpBuf, output, key.getNativeRef(), padding);
+                } else {
+                    resultSize = NativeCrypto.RSA_public_encrypt(
+                            tmpBuf.length, tmpBuf, output, key.getNativeRef(), padding);
+                }
+            } else {
+                try {
+                    if (usingPrivateKey) {
+                        resultSize = NativeCrypto.RSA_private_decrypt(
+                                tmpBuf.length, tmpBuf, output, key.getNativeRef(), padding);
+                    } else {
+                        resultSize = NativeCrypto.RSA_public_decrypt(
+                                tmpBuf.length, tmpBuf, output, key.getNativeRef(), padding);
+                    }
+                } catch (SignatureException e) {
+                    IllegalBlockSizeException newE = new IllegalBlockSizeException();
+                    newE.initCause(e);
+                    throw newE;
+                }
+            }
+            return resultSize;
+        }
+    }
+
+    public static class PKCS1 extends DirectRSA {
         public PKCS1() {
             super(NativeConstants.RSA_PKCS1_PADDING);
         }
     }
 
-    public static class Raw extends OpenSSLCipherRSA {
+    public static class Raw extends DirectRSA {
         public Raw() {
             super(NativeConstants.RSA_NO_PADDING);
         }
