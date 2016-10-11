@@ -30,6 +30,7 @@ import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -83,6 +84,8 @@ public class SSLParametersImpl implements Cloneable {
 
     // protocols enabled for SSL connection
     private String[] enabledProtocols;
+    // set to indicate when obsolete protocols are filtered
+    private boolean isEnabledProtocolsFiltered;
     // cipher suites enabled for SSL connection
     private String[] enabledCipherSuites;
 
@@ -265,11 +268,17 @@ public class SSLParametersImpl implements Cloneable {
     }
 
     /**
-     * Sets the set of available protocols for use in SSL connection.
-     * @param protocols String[]
+     * Sets the list of available protocols for use in SSL connection.
+     * @throws IllegalArgumentException if {@code protocols == null}
      */
     protected void setEnabledProtocols(String[] protocols) {
-        enabledProtocols = NativeCrypto.checkEnabledProtocols(protocols).clone();
+        if (protocols == null) {
+            throw new IllegalArgumentException("protocols == null");
+        }
+        String[] filteredProtocols =
+                filterFomProtocols(protocols, NativeCrypto.OBSOLETE_PROTOCOL_SSLV3);
+        isEnabledProtocolsFiltered = protocols.length != filteredProtocols.length;
+        enabledProtocols = NativeCrypto.checkEnabledProtocols(filteredProtocols).clone();
     }
 
     /**
@@ -492,10 +501,36 @@ public class SSLParametersImpl implements Cloneable {
         }
     }
 
+    /**
+     * This filters {@code obsoleteProtocol} from the list of {@code protocols}
+     * down to help with app compatibility.
+     */
+    private static String[] filterFomProtocols(String[] protocols, String obsoleteProtocol) {
+        if (protocols.length == 1 && obsoleteProtocol.equals(protocols[0])) {
+            return EMPTY_STRING_ARRAY;
+        }
+
+        ArrayList<String> newProtocols = new ArrayList<>();
+        for (String protocol : protocols) {
+            if (!obsoleteProtocol.equals(protocol)) {
+                newProtocols.add(protocol);
+            }
+        }
+        return newProtocols.toArray(EMPTY_STRING_ARRAY);
+    }
+
+    private static final String[] EMPTY_STRING_ARRAY = new String[0];
+
     void setSSLParameters(long sslCtxNativePointer, long sslNativePointer, AliasChooser chooser,
             PSKCallbacks pskCallbacks, String sniHostname) throws SSLException, IOException {
         if (client_mode && alpnProtocols != null) {
             NativeCrypto.SSL_set_alpn_protos(sslNativePointer, alpnProtocols);
+        }
+
+        if (enabledProtocols.length == 0 && isEnabledProtocolsFiltered) {
+            throw new SSLHandshakeException("No enabled protocols; "
+                    + NativeCrypto.OBSOLETE_PROTOCOL_SSLV3
+                    + " is no longer supported and was filtered from the list");
         }
 
         NativeCrypto.setEnabledProtocols(sslNativePointer, enabledProtocols);

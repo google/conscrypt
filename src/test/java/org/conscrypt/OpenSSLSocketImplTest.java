@@ -200,6 +200,9 @@ public class OpenSSLSocketImplTest extends TestCase {
         OpenSSLSocketImpl client;
         OpenSSLSocketImpl server;
 
+        Exception clientException;
+        Exception serverException;
+
         public TestConnection(X509Certificate[] chain, PrivateKey key) throws Exception {
             this(chain, key, false);
         }
@@ -239,13 +242,35 @@ public class OpenSSLSocketImplTest extends TestCase {
             serverHooks.trustManagers = tms;
         }
 
+        private <T> T getOrThrowCause(Future<T> future, long timeout, TimeUnit timeUnit)
+                throws Exception {
+            try {
+                return future.get(timeout, timeUnit);
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof Exception) {
+                    throw(Exception) e.getCause();
+                } else {
+                    throw e;
+                }
+            }
+        }
+
         public void doHandshake() throws Exception {
             ServerSocket listener = new ServerSocket(0);
             Future<OpenSSLSocketImpl> clientFuture = handshake(listener, clientHooks);
             Future<OpenSSLSocketImpl> serverFuture = handshake(listener, serverHooks);
 
-            client = clientFuture.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            server = serverFuture.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            Exception cause = null;
+            try {
+                client = getOrThrowCause(clientFuture, TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                clientException = e;
+            }
+            try {
+                server = getOrThrowCause(serverFuture, TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                serverException = e;
+            }
         }
 
         Future<OpenSSLSocketImpl> handshake(final ServerSocket listener, final Hooks hooks) {
@@ -319,13 +344,9 @@ public class OpenSSLSocketImplTest extends TestCase {
 
         connection.clientHooks.ctVerificationEnabled = true;
 
-        try {
-            connection.doHandshake();
-            fail("SSLHandshakeException not thrown");
-        } catch (ExecutionException e) {
-            assertEquals(SSLHandshakeException.class, e.getCause().getClass());
-            assertEquals(CertificateException.class, e.getCause().getCause().getClass());
-        }
+        connection.doHandshake();
+        assertTrue(connection.clientException instanceof SSLHandshakeException);
+        assertTrue(connection.clientException.getCause() instanceof CertificateException);
     }
 
     public void test_handshake_failsWithInvalidSCT() throws Exception {
@@ -334,13 +355,9 @@ public class OpenSSLSocketImplTest extends TestCase {
         connection.clientHooks.ctVerificationEnabled = true;
         connection.serverHooks.sctTLSExtension = readTestFile("ct-signed-timestamp-list-invalid");
 
-        try {
-            connection.doHandshake();
-            fail("SSLHandshakeException not thrown");
-        } catch (ExecutionException e) {
-            assertEquals(SSLHandshakeException.class, e.getCause().getClass());
-            assertEquals(CertificateException.class, e.getCause().getCause().getClass());
-        }
+        connection.doHandshake();
+        assertTrue(connection.clientException instanceof SSLHandshakeException);
+        assertTrue(connection.clientException.getCause() instanceof CertificateException);
     }
 
     // http://b/27250522
@@ -360,5 +377,30 @@ public class OpenSSLSocketImplTest extends TestCase {
         f.setAccessible(true);
         assertFalse(f.getBoolean(simpl));
     }
-}
 
+    public void test_setEnabledProtocols_FiltersSSLv3_HandshakeException() throws Exception {
+        TestConnection connection =
+                new TestConnection(new X509Certificate[] {cert, ca}, certKey, true);
+
+        connection.clientHooks = new ClientHooks() {
+            @Override
+            public OpenSSLSocketImpl createSocket(SSLSocketFactory factory, ServerSocket listener)
+                    throws IOException {
+                OpenSSLSocketImpl socket = super.createSocket(factory, listener);
+                socket.setEnabledProtocols(new String[] {"SSLv3"});
+                assertEquals(
+                        "SSLv3 should be filtered out", 0, socket.getEnabledProtocols().length);
+                return socket;
+            }
+        };
+
+        connection.doHandshake();
+        assertTrue(connection.clientException instanceof SSLHandshakeException);
+        assertTrue(
+                connection.clientException.getMessage().contains("SSLv3 is no longer supported"));
+        assertTrue(connection.serverException instanceof SSLHandshakeException);
+
+        assertFalse(connection.clientHooks.isHandshakeCompleted);
+        assertFalse(connection.serverHooks.isHandshakeCompleted);
+    }
+}

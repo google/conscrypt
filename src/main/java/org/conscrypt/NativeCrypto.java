@@ -550,6 +550,7 @@ public final class NativeCrypto {
 
     // --- SSL handling --------------------------------------------------------
 
+    static final String OBSOLETE_PROTOCOL_SSLV3 = "SSLv3";
     private static final String SUPPORTED_PROTOCOL_TLSV1 = "TLSv1";
     private static final String SUPPORTED_PROTOCOL_TLSV1_1 = "TLSv1.1";
     private static final String SUPPORTED_PROTOCOL_TLSV1_2 = "TLSv1.2";
@@ -882,10 +883,10 @@ public final class NativeCrypto {
         // openssl uses negative logic letting you disable protocols.
         // so first, assume we need to set all (disable all) and clear none (enable none).
         // in the loop, selectively move bits from set to clear (from disable to enable)
-        long optionsToSet = (NativeConstants.SSL_OP_NO_SSLv3 | NativeConstants.SSL_OP_NO_TLSv1 | NativeConstants.SSL_OP_NO_TLSv1_1 | NativeConstants.SSL_OP_NO_TLSv1_2);
+        long optionsToSet = (NativeConstants.SSL_OP_NO_SSLv3 | NativeConstants.SSL_OP_NO_TLSv1
+                | NativeConstants.SSL_OP_NO_TLSv1_1 | NativeConstants.SSL_OP_NO_TLSv1_2);
         long optionsToClear = 0;
-        for (int i = 0; i < protocols.length; i++) {
-            String protocol = protocols[i];
+        for (String protocol : protocols) {
             if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1)) {
                 optionsToSet &= ~NativeConstants.SSL_OP_NO_TLSv1;
                 optionsToClear |= NativeConstants.SSL_OP_NO_TLSv1;
@@ -895,6 +896,10 @@ public final class NativeCrypto {
             } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1_2)) {
                 optionsToSet &= ~NativeConstants.SSL_OP_NO_TLSv1_2;
                 optionsToClear |= NativeConstants.SSL_OP_NO_TLSv1_2;
+            } else if (protocol.equals(OBSOLETE_PROTOCOL_SSLV3)) {
+                // Do nothing since we no longer support this protocol, but
+                // allow it in the list of protocols so we can give an error
+                // message about it if the handshake fails.
             } else {
                 // error checked by checkEnabledProtocols
                 throw new IllegalStateException();
@@ -909,16 +914,15 @@ public final class NativeCrypto {
         if (protocols == null) {
             throw new IllegalArgumentException("protocols == null");
         }
-        for (int i = 0; i < protocols.length; i++) {
-            String protocol = protocols[i];
+        for (String protocol : protocols) {
             if (protocol == null) {
-                throw new IllegalArgumentException("protocols[" + i + "] == null");
+                throw new IllegalArgumentException("protocols contains null");
             }
-            if ((!protocol.equals(SUPPORTED_PROTOCOL_TLSV1))
-                    && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1_1))
-                    && (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1_2))) {
-                throw new IllegalArgumentException("protocol " + protocol
-                                                   + " is not supported");
+            if (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1)
+                    && !protocol.equals(SUPPORTED_PROTOCOL_TLSV1_1)
+                    && !protocol.equals(SUPPORTED_PROTOCOL_TLSV1_2)
+                    && !protocol.equals(OBSOLETE_PROTOCOL_SSLV3)) {
+                throw new IllegalArgumentException("protocol " + protocol + " is not supported");
             }
         }
         return protocols;
