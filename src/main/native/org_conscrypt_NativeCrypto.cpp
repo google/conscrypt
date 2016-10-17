@@ -3734,6 +3734,35 @@ static void NativeCrypto_EVP_PKEY_CTX_set_rsa_oaep_md(JNIEnv* env, jclass, jlong
                        EVP_PKEY_CTX_set_rsa_oaep_md);
 }
 
+static void NativeCrypto_EVP_PKEY_CTX_set_rsa_oaep_label(JNIEnv* env, jclass, jlong pkeyCtxRef,
+                                                         jbyteArray labelJava) {
+    EVP_PKEY_CTX* pkeyCtx = reinterpret_cast<EVP_PKEY_CTX*>(pkeyCtxRef);
+    JNI_TRACE("EVP_PKEY_CTX_set_rsa_oaep_label(%p, %p)", pkeyCtx, labelJava);
+    if (pkeyCtx == nullptr) {
+        jniThrowNullPointerException(env, "pkeyCtx == null");
+        return;
+    }
+
+    ScopedByteArrayRO labelBytes(env, labelJava);
+    if (labelBytes.get() == nullptr) {
+        return;
+    }
+
+    bssl::UniquePtr<uint8_t> label((uint8_t*)OPENSSL_malloc(labelBytes.size()));
+    memcpy(label.get(), labelBytes.get(), labelBytes.size());
+
+    int result = EVP_PKEY_CTX_set0_rsa_oaep_label(pkeyCtx, label.get(), labelBytes.size());
+    if (result <= 0) {
+        JNI_TRACE("ctx=%p EVP_PKEY_CTX_set_rsa_oaep_label => threw exception", pkeyCtx);
+        throwExceptionIfNecessary(env, "EVP_PKEY_CTX_set_rsa_oaep_label",
+                                  throwInvalidAlgorithmParameterException);
+        return;
+    }
+    OWNERSHIP_TRANSFERRED(label);
+
+    JNI_TRACE("EVP_PKEY_CTX_set_rsa_oaep_label(%p, %p) => success", pkeyCtx, labelJava);
+}
+
 static jlong NativeCrypto_EVP_get_cipherbyname(JNIEnv* env, jclass, jstring algorithm) {
     JNI_TRACE("EVP_get_cipherbyname(%p)", algorithm);
 
@@ -9582,6 +9611,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_CTX_set_rsa_pss_saltlen, "(JI)V"),
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_CTX_set_rsa_mgf1_md, "(JJ)V"),
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_CTX_set_rsa_oaep_md, "(JJ)V"),
+        NATIVE_METHOD(NativeCrypto, EVP_PKEY_CTX_set_rsa_oaep_label, "(J[B)V"),
         NATIVE_METHOD(NativeCrypto, EVP_get_cipherbyname, "(Ljava/lang/String;)J"),
         NATIVE_METHOD(NativeCrypto, EVP_CipherInit_ex, "(" REF_EVP_CIPHER_CTX "J[B[BZ)V"),
         NATIVE_METHOD(NativeCrypto, EVP_CipherUpdate, "(" REF_EVP_CIPHER_CTX "[BI[BII)I"),
