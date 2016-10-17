@@ -3748,7 +3748,7 @@ static void NativeCrypto_EVP_PKEY_CTX_set_rsa_oaep_label(JNIEnv* env, jclass, jl
         return;
     }
 
-    bssl::UniquePtr<uint8_t> label((uint8_t*)OPENSSL_malloc(labelBytes.size()));
+    bssl::UniquePtr<uint8_t> label(reinterpret_cast<uint8_t*>(OPENSSL_malloc(labelBytes.size())));
     memcpy(label.get(), labelBytes.get(), labelBytes.size());
 
     int result = EVP_PKEY_CTX_set0_rsa_oaep_label(pkeyCtx, label.get(), labelBytes.size());

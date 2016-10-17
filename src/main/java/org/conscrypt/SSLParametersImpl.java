@@ -276,7 +276,7 @@ public class SSLParametersImpl implements Cloneable {
             throw new IllegalArgumentException("protocols == null");
         }
         String[] filteredProtocols =
-                filterFomProtocols(protocols, NativeCrypto.OBSOLETE_PROTOCOL_SSLV3);
+                filterFromProtocols(protocols, NativeCrypto.OBSOLETE_PROTOCOL_SSLV3);
         isEnabledProtocolsFiltered = protocols.length != filteredProtocols.length;
         enabledProtocols = NativeCrypto.checkEnabledProtocols(filteredProtocols).clone();
     }
@@ -505,7 +505,7 @@ public class SSLParametersImpl implements Cloneable {
      * This filters {@code obsoleteProtocol} from the list of {@code protocols}
      * down to help with app compatibility.
      */
-    private static String[] filterFomProtocols(String[] protocols, String obsoleteProtocol) {
+    private static String[] filterFromProtocols(String[] protocols, String obsoleteProtocol) {
         if (protocols.length == 1 && obsoleteProtocol.equals(protocols[0])) {
             return EMPTY_STRING_ARRAY;
         }

@@ -343,6 +343,7 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
             super(padding);
         }
 
+        @Override
         protected int doCryptoOperation(final byte[] tmpBuf, byte[] output)
                 throws BadPaddingException, IllegalBlockSizeException {
             int resultSize;
