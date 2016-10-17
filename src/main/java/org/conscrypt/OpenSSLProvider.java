@@ -209,8 +209,27 @@ public final class OpenSSLProvider extends Provider {
         putRSACipherImplClass("RSA/ECB/PKCS1Padding", "OpenSSLCipherRSA$PKCS1");
         put("Alg.Alias.Cipher.RSA/None/PKCS1Padding", "RSA/ECB/PKCS1Padding");
 
-        putRSACipherImplClass("RSA/ECB/OAEPPadding", "OpenSSLCipherRSA$OAEP");
+        putRSACipherImplClass("RSA/ECB/OAEPPadding", "OpenSSLCipherRSA$OAEP$SHA1");
         put("Alg.Alias.Cipher.RSA/None/OAEPPadding", "RSA/ECB/OAEPPadding");
+        putRSACipherImplClass("RSA/ECB/OAEPWithSHA-1AndMGF1Padding", "OpenSSLCipherRSA$OAEP$SHA1");
+        put("Alg.Alias.Cipher.RSA/None/OAEPWithSHA-1AndMGF1Padding",
+                "RSA/ECB/OAEPWithSHA-1AndMGF1Padding");
+        putRSACipherImplClass(
+                "RSA/ECB/OAEPWithSHA-224AndMGF1Padding", "OpenSSLCipherRSA$OAEP$SHA224");
+        put("Alg.Alias.Cipher.RSA/None/OAEPWithSHA-224AndMGF1Padding",
+                "RSA/ECB/OAEPWithSHA-224AndMGF1Padding");
+        putRSACipherImplClass(
+                "RSA/ECB/OAEPWithSHA-256AndMGF1Padding", "OpenSSLCipherRSA$OAEP$SHA256");
+        put("Alg.Alias.Cipher.RSA/None/OAEPWithSHA-256AndMGF1Padding",
+                "RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+        putRSACipherImplClass(
+                "RSA/ECB/OAEPWithSHA-384AndMGF1Padding", "OpenSSLCipherRSA$OAEP$SHA384");
+        put("Alg.Alias.Cipher.RSA/None/OAEPWithSHA-384AndMGF1Padding",
+                "RSA/ECB/OAEPWithSHA-384AndMGF1Padding");
+        putRSACipherImplClass(
+                "RSA/ECB/OAEPWithSHA-512AndMGF1Padding", "OpenSSLCipherRSA$OAEP$SHA512");
+        put("Alg.Alias.Cipher.RSA/None/OAEPWithSHA-512AndMGF1Padding",
+                "RSA/ECB/OAEPWithSHA-512AndMGF1Padding");
 
         /*
          * OpenSSL only supports a subset of modes, so we'll name them
