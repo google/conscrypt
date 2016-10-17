@@ -30,6 +30,8 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.InvalidParameterSpecException;
+import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
@@ -40,6 +42,7 @@ import javax.crypto.CipherSpi;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.ShortBufferException;
+import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.conscrypt.util.EmptyArray;
 
@@ -151,7 +154,11 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         return null;
     }
 
-    private void engineInitInternal(int opmode, Key key) throws InvalidKeyException {
+    protected void doCryptoInit(AlgorithmParameterSpec spec)
+            throws InvalidAlgorithmParameterException {}
+
+    protected void engineInitInternal(int opmode, Key key, AlgorithmParameterSpec spec)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
         if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
             encrypting = true;
         } else if (opmode == Cipher.DECRYPT_MODE || opmode == Cipher.UNWRAP_MODE) {
@@ -187,11 +194,17 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         buffer = new byte[NativeCrypto.RSA_size(this.key.getNativeRef())];
         bufferOffset = 0;
         inputTooLarge = false;
+
+        doCryptoInit(spec);
     }
 
     @Override
     protected void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
-        engineInitInternal(opmode, key);
+        try {
+            engineInitInternal(opmode, key, null);
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new InvalidKeyException("Algorithm parameters rejected when none supplied", e);
+        }
     }
 
     @Override
@@ -202,7 +215,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
                     + params.getClass().getName());
         }
 
-        engineInitInternal(opmode, key);
+        engineInitInternal(opmode, key, params);
     }
 
     @Override
@@ -213,7 +226,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
                     + params.getClass().getName());
         }
 
-        engineInitInternal(opmode, key);
+        engineInitInternal(opmode, key, null);
     }
 
     @Override
@@ -368,6 +381,107 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
     public static class Raw extends DirectRSA {
         public Raw() {
             super(NativeConstants.RSA_NO_PADDING);
+        }
+    }
+
+    public static class OAEP extends OpenSSLCipherRSA {
+        private long oaepMd = EvpMdRef.SHA256.EVP_MD;
+
+        private long mgf1Md = EvpMdRef.SHA256.EVP_MD;
+
+        private NativeRef.EVP_PKEY_CTX pkeyCtx;
+
+        public OAEP() {
+            super(NativeConstants.RSA_PKCS1_OAEP_PADDING);
+        }
+
+        @Override
+        protected void engineSetPadding(String padding) throws NoSuchPaddingException {
+            String paddingUpper = padding.toUpperCase(Locale.US);
+            if (paddingUpper.equals("OAEPPadding")) {
+                this.padding = NativeConstants.RSA_PKCS1_OAEP_PADDING;
+                return;
+            }
+
+            throw new NoSuchPaddingException("Only OAEP padding is supported");
+        }
+
+        @Override
+        protected void engineInit(
+                int opmode, Key key, AlgorithmParameterSpec spec, SecureRandom random)
+                throws InvalidKeyException, InvalidAlgorithmParameterException {
+            if (spec != null && !(spec instanceof OAEPParameterSpec)) {
+                throw new InvalidAlgorithmParameterException(
+                        "Only OAEPParameterSpec accepted in OAEP mode");
+            }
+
+            engineInitInternal(opmode, key, spec);
+        }
+
+        @Override
+        protected void engineInit(
+                int opmode, Key key, AlgorithmParameters params, SecureRandom random)
+                throws InvalidKeyException, InvalidAlgorithmParameterException {
+            OAEPParameterSpec spec = null;
+            if (params != null) {
+                try {
+                    spec = params.getParameterSpec(OAEPParameterSpec.class);
+                } catch (InvalidParameterSpecException e) {
+                    throw new InvalidAlgorithmParameterException(
+                            "Only OAEP parameters are supported", e);
+                }
+            }
+
+            engineInitInternal(opmode, key, spec);
+        }
+
+        @Override
+        protected void doCryptoInit(AlgorithmParameterSpec spec)
+                throws InvalidAlgorithmParameterException {
+            pkeyCtx = new NativeRef.EVP_PKEY_CTX(encrypting
+                            ? NativeCrypto.EVP_PKEY_encrypt_init(key.getNativeRef())
+                            : NativeCrypto.EVP_PKEY_decrypt_init(key.getNativeRef()));
+
+            if (spec instanceof OAEPParameterSpec) {
+                readOAEPParameters((OAEPParameterSpec) spec);
+            }
+
+            NativeCrypto.EVP_PKEY_CTX_set_rsa_padding(
+                    pkeyCtx.context, NativeConstants.RSA_PKCS1_OAEP_PADDING);
+            NativeCrypto.EVP_PKEY_CTX_set_rsa_oaep_md(pkeyCtx.context, oaepMd);
+            NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(pkeyCtx.context, mgf1Md);
+        }
+
+        private void readOAEPParameters(OAEPParameterSpec spec)
+                throws InvalidAlgorithmParameterException {
+            String mgfAlgUpper = spec.getMGFAlgorithm().toUpperCase(Locale.US);
+            AlgorithmParameterSpec mgfSpec = spec.getMGFParameters();
+            if ((!EvpMdRef.MGF1_ALGORITHM_NAME.equals(mgfAlgUpper)
+                        && !EvpMdRef.MGF1_OID.equals(mgfAlgUpper))
+                    || !(mgfSpec instanceof MGF1ParameterSpec)) {
+                throw new InvalidAlgorithmParameterException(
+                        "Only MGF1 supported as mask generation function");
+            }
+
+            MGF1ParameterSpec mgf1spec = (MGF1ParameterSpec) mgfSpec;
+            try {
+                oaepMd = EvpMdRef.getEVP_MDByJcaDigestAlgorithmStandardName(
+                        spec.getDigestAlgorithm());
+                mgf1Md = EvpMdRef.getEVP_MDByJcaDigestAlgorithmStandardName(
+                        mgf1spec.getDigestAlgorithm());
+            } catch (NoSuchAlgorithmException e) {
+                throw new InvalidAlgorithmParameterException(e);
+            }
+        }
+
+        @Override
+        protected int doCryptoOperation(byte[] tmpBuf, byte[] output)
+                throws BadPaddingException, IllegalBlockSizeException {
+            if (encrypting) {
+                return NativeCrypto.EVP_PKEY_encrypt(pkeyCtx, output, 0, tmpBuf, 0, tmpBuf.length);
+            } else {
+                return NativeCrypto.EVP_PKEY_decrypt(pkeyCtx, output, 0, tmpBuf, 0, tmpBuf.length);
+            }
         }
     }
 }

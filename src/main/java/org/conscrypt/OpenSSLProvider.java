@@ -209,6 +209,9 @@ public final class OpenSSLProvider extends Provider {
         putRSACipherImplClass("RSA/ECB/PKCS1Padding", "OpenSSLCipherRSA$PKCS1");
         put("Alg.Alias.Cipher.RSA/None/PKCS1Padding", "RSA/ECB/PKCS1Padding");
 
+        putRSACipherImplClass("RSA/ECB/OAEPPadding", "OpenSSLCipherRSA$OAEP");
+        put("Alg.Alias.Cipher.RSA/None/OAEPPadding", "RSA/ECB/OAEPPadding");
+
         /*
          * OpenSSL only supports a subset of modes, so we'll name them
          * explicitly here.
