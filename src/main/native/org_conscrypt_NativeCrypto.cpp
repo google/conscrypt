@@ -397,6 +397,9 @@ static int throwForRsaError(JNIEnv* env, int reason, const char *message,
     case RSA_R_NO_PUBLIC_EXPONENT:
         return throwInvalidKeyException(env, message);
         break;
+    case RSA_R_DATA_TOO_LARGE_FOR_KEY_SIZE:
+        return throwIllegalBlockSizeException(env, message);
+        break;
     }
     return defaultThrow(env, message);
 }
