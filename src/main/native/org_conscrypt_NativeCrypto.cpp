@@ -6820,6 +6820,21 @@ static void debug_print_session_key(const SSL* ssl, const char *line) {
 }
 
 /*
+ * Make sure we don't inadvertently have RSA-PSS here for now
+ * since we don't support this with wrapped RSA keys yet.
+ * Remove this once CryptoUpcalls supports it.
+ */
+static const uint16_t kDefaultSignatureAlgorithms[] = {
+        SSL_SIGN_RSA_PKCS1_SHA512, SSL_SIGN_ECDSA_SECP521R1_SHA512,
+
+        SSL_SIGN_RSA_PKCS1_SHA384, SSL_SIGN_ECDSA_SECP384R1_SHA384,
+
+        SSL_SIGN_RSA_PKCS1_SHA256, SSL_SIGN_ECDSA_SECP256R1_SHA256,
+
+        SSL_SIGN_RSA_PKCS1_SHA1,   SSL_SIGN_ECDSA_SHA1,
+};
+
+/*
  * public static native int SSL_CTX_new();
  */
 static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
@@ -6867,6 +6882,14 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_tmp_dh_callback(sslCtx.get(), tmp_dh_callback);
     if (kWithJniTraceKeys) {
         SSL_CTX_set_keylog_callback(sslCtx.get(), debug_print_session_key);
+    }
+
+    // Disable RSA-PSS deliberately until CryptoUpcalls supports it.
+    if (!SSL_CTX_set_signing_algorithm_prefs(
+                sslCtx.get(), kDefaultSignatureAlgorithms,
+                sizeof(kDefaultSignatureAlgorithms) / sizeof(kDefaultSignatureAlgorithms[0]))) {
+        jniThrowOutOfMemory(env, "Unable set signing algorithms");
+        return 0;
     }
 
     JNI_TRACE("NativeCrypto_SSL_CTX_new => %p", sslCtx.get());
