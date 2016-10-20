@@ -6647,6 +6647,10 @@ static int client_cert_cb(SSL* ssl, X509** x509Out, EVP_PKEY** pkeyOut) {
     EVP_PKEY* privatekey  = SSL_get_privatekey(ssl);
     int result = 0;
     if (certificate != nullptr && privatekey != nullptr) {
+        // The caller takes ownership of these parameters, so bump the
+        // reference count.
+        X509_up_ref(certificate);
+        EVP_PKEY_up_ref(privatekey);
         *x509Out = certificate;
         *pkeyOut = privatekey;
         result = 1;
@@ -7069,10 +7073,6 @@ static void NativeCrypto_SSL_set1_tls_channel_id(JNIEnv* env, jclass,
         JNI_TRACE("ssl=%p SSL_set1_tls_channel_id => error", ssl);
         return;
     }
-    // SSL_set1_tls_channel_id expects to take ownership of the EVP_PKEY, but
-    // we have an external reference from the caller such as an OpenSSLKey,
-    // so we manually increment the reference count here.
-    EVP_PKEY_up_ref(pkey);
 
     JNI_TRACE("ssl=%p SSL_set1_tls_channel_id => ok", ssl);
 }
@@ -7099,10 +7099,6 @@ static void NativeCrypto_SSL_use_PrivateKey(JNIEnv* env, jclass, jlong ssl_addre
         JNI_TRACE("ssl=%p SSL_use_PrivateKey => error", ssl);
         return;
     }
-    // SSL_use_PrivateKey expects to take ownership of the EVP_PKEY,
-    // but we have an external reference from the caller such as an
-    // OpenSSLKey, so we manually increment the reference count here.
-    EVP_PKEY_up_ref(pkey);
 
     JNI_TRACE("ssl=%p SSL_use_PrivateKey => ok", ssl);
 }
@@ -7135,16 +7131,15 @@ static void NativeCrypto_SSL_use_certificate(JNIEnv* env, jclass,
         return;
     }
 
-    bssl::UniquePtr<X509> serverCert(
-            X509_dup_nocopy(reinterpret_cast<X509*>(static_cast<uintptr_t>(certificates[0]))));
-    if (serverCert.get() == nullptr) {
+    X509* serverCert = reinterpret_cast<X509*>(static_cast<uintptr_t>(certificates[0]));
+    if (serverCert == nullptr) {
         // Note this shouldn't happen since we checked the number of certificates above.
         jniThrowOutOfMemory(env, "Unable to allocate local certificate chain");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => chain allocation error", ssl);
         return;
     }
 
-    int ret = SSL_use_certificate(ssl, serverCert.get());
+    int ret = SSL_use_certificate(ssl, serverCert);
     if (ret != 1) {
         ALOGE("%s", ERR_error_string(ERR_peek_error(), nullptr));
         throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "Error setting certificate");
@@ -7152,19 +7147,16 @@ static void NativeCrypto_SSL_use_certificate(JNIEnv* env, jclass,
         JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => SSL_use_certificate error", ssl);
         return;
     }
-    OWNERSHIP_TRANSFERRED(serverCert);
 
     for (size_t i = 1; i < length; i++) {
-        bssl::UniquePtr<X509> cert(
-                X509_dup_nocopy(reinterpret_cast<X509*>(static_cast<uintptr_t>(certificates[i]))));
-        if (cert.get() == nullptr || !SSL_add0_chain_cert(ssl, cert.get())) {
+        X509* cert = reinterpret_cast<X509*>(static_cast<uintptr_t>(certificates[i]));
+        if (cert == nullptr || !SSL_add1_chain_cert(ssl, cert)) {
             ALOGE("%s", ERR_error_string(ERR_peek_error(), nullptr));
             throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "Error parsing certificate");
             safeSslClear(ssl);
             JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificates parsing error", ssl);
             return;
         }
-        OWNERSHIP_TRANSFERRED(cert);
     }
 
     JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => ok", ssl);
