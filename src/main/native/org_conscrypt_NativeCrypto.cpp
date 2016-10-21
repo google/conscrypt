@@ -8243,7 +8243,7 @@ static jlongArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlon
     STACK_OF(X509)* chain = SSL_get_peer_cert_chain(ssl);
     bssl::UniquePtr<STACK_OF(X509)> chain_copy(nullptr);
     if (SSL_is_server(ssl)) {
-        X509* x509 = SSL_get_peer_certificate(ssl);
+        bssl::UniquePtr<X509> x509(SSL_get_peer_certificate(ssl));
         if (x509 == nullptr) {
             JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => null", ssl);
             return nullptr;
@@ -8264,12 +8264,12 @@ static jlongArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlon
             }
             X509_up_ref(chain_cert);
         }
-        if (!sk_X509_push(chain_copy.get(), x509)) {
+        if (!sk_X509_push(chain_copy.get(), x509.get())) {
             jniThrowOutOfMemory(env, "Unable to push server's peer certificate");
             JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate push error", ssl);
             return nullptr;
         }
-        X509_up_ref(x509);
+        OWNERSHIP_TRANSFERRED(x509);
         chain = chain_copy.get();
     }
     jlongArray refArray = getCertificateRefs(env, chain);
