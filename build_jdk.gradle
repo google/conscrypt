@@ -1,0 +1,179 @@
+// Note: Requires BoringSSL!
+// Checkout to a directory of your choice and then build as follows:
+//
+// linux/mac:
+// cd $BORINGSSL_HOME
+// mkdir build
+// cd build
+// cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS=-Wa,--noexecstack -GNinja ..
+// ninja
+//
+// windows:
+// cd $BORINGSSL_HOME
+// mkdir build
+// cd build
+// cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+// ninja
+
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+    dependencies {
+        classpath 'com.google.gradle:osdetector-gradle-plugin:1.4.0'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'cpp'
+apply plugin: 'maven'
+// TODO(nathanmittler): add classifiers to artifacts.
+apply plugin: 'com.google.osdetector'
+
+// Maven properties.
+group = "org.conscrypt"
+version = "0.0.1-SNAPSHOT"
+description = 'Conscrypt is an alternate Java Security Provider that uses BoringSSL'
+
+ext {
+    boringsslHome = "$System.env.BORINGSSL_HOME"
+    boringsslIncludeDir = "$boringsslHome/include"
+    boringsslSslBuildDir = "$boringsslHome/build/ssl"
+    boringsslCryptoBuildDir = "$boringsslHome/build/crypto"
+    jdkHome = "$System.env.JAVA_HOME"
+    jniIncludeDir = "$jdkHome/include"
+    genDir = "${project.buildDir}/gen"
+    genConstExecutable = 'exe/generateNativeConstants/generateNativeConstants'
+    jniLibName = "conscrypt_openjdk_jni-$osdetector.classifier"
+    jniLibTaskName = "${jniLibName}SharedLibrary"
+
+    // Ensure the environment is configured properly.
+    assert file("$boringsslHome").exists()
+    assert file("$boringsslIncludeDir").exists()
+    assert file("$boringsslSslBuildDir").exists()
+    assert file("$boringsslCryptoBuildDir").exists()
+    assert file("$jdkHome").exists()
+    assert file("$jniIncludeDir").exists()
+}
+
+// this is the "Unbundled Conscrypt jar"
+sourceSets.main {
+    java {
+        srcDirs = [
+                'src/main/java',
+                'src/openjdk/java',
+                'src/openjdk-host/java',
+                "${genDir}",
+        ]
+        exclude '**/android/**'
+        exclude '**/dalvik/**'
+    }
+}
+
+// Exclude all tests
+sourceSets.test {
+    java {
+        srcDirs = []
+    }
+}
+
+compileJava.options.encoding = 'UTF-8'
+compileJava.options.compilerArgs += ['-Xmaxwarns', '9999999']
+
+// Need to run these tasks before we compile the Java code
+compileJava.dependsOn "${jniLibTaskName}"
+compileJava.dependsOn 'copyNativeLib'
+dependencies {
+    compile files("${genDir}") {
+        builtBy 'runGenerateNativeConstants'
+    }
+}
+
+// Set the platform-specific classifier on the artifact.
+jar {
+    classifier = osdetector.classifier
+}
+
+model {
+    components {
+        // Builds the JNI library.
+        "$jniLibName"(NativeLibrarySpec) {
+            sources {
+                cpp {
+                    source {
+                        srcDirs = [
+                                'src/main/native',
+                                'src/openjdk/native',
+                        ]
+                        include "**/*.cpp"
+                    }
+                }
+            }
+
+            binaries {
+                // Build the JNI lib as a shared library.
+                withType(SharedLibraryBinarySpec) {
+                    if (toolChain in Gcc) {
+                        cppCompiler.args "-Wall",
+                                "-fPIC",
+                                "-O2",
+                                "-std=c++11",
+                                "-I$projectDir/src/main/native",
+                                "-I$projectDir/src/openjdk/native",
+                                "-I$boringsslIncludeDir",
+                                "-I$jniIncludeDir",
+                                // TODO(nathanmittler): support non-linux (e.g. /darwin)
+                                "-I$jniIncludeDir/linux"
+
+                        // Static link to BoringSSL
+                        linker.args "-O2",
+                                "-L$boringsslSslBuildDir",
+                                "-L$boringsslCryptoBuildDir",
+                                "-lstdc++",
+                                "-lssl",
+                                "-lcrypto"
+                    }
+                }
+
+                // Never build a static library.
+                withType(StaticLibraryBinarySpec) {
+                    buildable = false
+                }
+            }
+        }
+
+        // Builds exe/ which generates the content of NativeConstants.java
+        generateNativeConstants(NativeExecutableSpec) {
+            sources {
+                cpp {
+                    source {
+                        srcDir "src/gen/native"
+                    }
+                    exportedHeaders {
+                        srcDirs "${boringsslIncludeDir}"
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Copies the native library to a resource location that will be included in the jar.
+task copyNativeLib(type: Copy, dependsOn: "$jniLibTaskName") {
+    from "build/libs/${jniLibName}/shared"
+    // This location will automatically be included in the jar.
+    into 'build/resources/main/META-INF/native'
+}
+
+// Runs generateNativeConstants to create build/gen/NativeConstants.java
+task runGenerateNativeConstants(type:Exec)  {
+    File genDir = new File("${genDir}")
+    genDir.mkdirs()
+
+    workingDir new File("${project.buildDir}")
+    executable "${genConstExecutable}"
+    standardOutput = new FileOutputStream(new File(genDir, "NativeConstants.java"))
+}
+
+runGenerateNativeConstants.dependsOn 'generateNativeConstantsExecutable'
