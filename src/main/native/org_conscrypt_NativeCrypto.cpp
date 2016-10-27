@@ -6819,13 +6819,14 @@ static void debug_print_session_key(const SSL* ssl, const char *line) {
  * Remove this once CryptoUpcalls supports it.
  */
 static const uint16_t kDefaultSignatureAlgorithms[] = {
-        SSL_SIGN_RSA_PKCS1_SHA512, SSL_SIGN_ECDSA_SECP521R1_SHA512,
-
-        SSL_SIGN_RSA_PKCS1_SHA384, SSL_SIGN_ECDSA_SECP384R1_SHA384,
-
-        SSL_SIGN_RSA_PKCS1_SHA256, SSL_SIGN_ECDSA_SECP256R1_SHA256,
-
-        SSL_SIGN_RSA_PKCS1_SHA1,   SSL_SIGN_ECDSA_SHA1,
+        SSL_SIGN_ECDSA_SECP256R1_SHA256,
+        SSL_SIGN_RSA_PKCS1_SHA256,
+        SSL_SIGN_ECDSA_SECP384R1_SHA384,
+        SSL_SIGN_RSA_PKCS1_SHA384,
+        SSL_SIGN_ECDSA_SECP521R1_SHA512,
+        SSL_SIGN_RSA_PKCS1_SHA512,
+        SSL_SIGN_ECDSA_SHA1,
+        SSL_SIGN_RSA_PKCS1_SHA1,
 };
 
 /*
