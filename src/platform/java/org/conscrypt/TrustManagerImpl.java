@@ -152,7 +152,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      */
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
             TrustedCertificateStore certStore, CertBlacklist blacklist, CTLogStore ctLogStore,
-            CTVerifier ctVerifier, CTPolicy policy) {
+            CTVerifier ctVerifier, CTPolicy ctPolicy) {
         CertPathValidator validatorLocal = null;
         CertificateFactory factoryLocal = null;
         KeyStore rootKeyStoreLocal = null;
