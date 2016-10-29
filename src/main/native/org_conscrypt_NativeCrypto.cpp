@@ -45,7 +45,6 @@
 #include <jni.h>
 
 #include <openssl/asn1.h>
-#include <openssl/asn1t.h>
 #include <openssl/engine.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -5605,21 +5604,53 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
 }
 
 
-typedef STACK_OF(X509) PKIPATH;
-
-ASN1_ITEM_TEMPLATE(PKIPATH) =
-    ASN1_EX_TEMPLATE_TYPE(ASN1_TFLG_SEQUENCE_OF, 0, PkiPath, X509)
-ASN1_ITEM_TEMPLATE_END(PKIPATH)
-
 static jlongArray NativeCrypto_ASN1_seq_unpack_X509_bio(JNIEnv* env, jclass, jlong bioRef) {
     BIO* bio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(bioRef));
     JNI_TRACE("ASN1_seq_unpack_X509_bio(%p)", bio);
 
-    bssl::UniquePtr<STACK_OF(X509)> path((PKIPATH*)ASN1_item_d2i_bio(ASN1_ITEM_rptr(PKIPATH), bio, nullptr));
-    if (path.get() == nullptr) {
-        throwExceptionIfNecessary(env, "ASN1_seq_unpack_X509_bio");
-        JNI_TRACE("ASN1_seq_unpack_X509_bio(%p) => threw error", bio);
+    uint8_t* data;
+    size_t len;
+    if (!BIO_read_asn1(bio, &data, &len, 256 * 1024 * 1024 /* max length, 256MB for sanity */)) {
+        if (!throwExceptionIfNecessary(env, "Error reading X.509 data")) {
+            throwParsingException(env, "Error reading X.509 data");
+        }
+        JNI_TRACE("ASN1_seq_unpack_X509_bio(%p) => error reading BIO", bio);
         return nullptr;
+    }
+    bssl::UniquePtr<uint8_t> data_storage(data);
+
+    bssl::UniquePtr<STACK_OF(X509)> path(sk_X509_new_null());
+    if (path.get() == nullptr) {
+        JNI_TRACE("ASN1_seq_unpack_X509_bio(%p) => failed to make cert stack", bio);
+        return nullptr;
+    }
+
+    CBS cbs, sequence;
+    CBS_init(&cbs, data, len);
+    if (!CBS_get_asn1(&cbs, &sequence, CBS_ASN1_SEQUENCE)) {
+        throwParsingException(env, "Error reading X.509 data");
+        return nullptr;
+    }
+
+    while (CBS_len(&sequence) > 0) {
+        CBS child;
+        if (!CBS_get_asn1_element(&sequence, &child, CBS_ASN1_SEQUENCE)) {
+            throwParsingException(env, "Error reading X.509 data");
+            return nullptr;
+        }
+
+        const uint8_t* tmp = CBS_data(&child);
+        bssl::UniquePtr<X509> cert(d2i_X509(nullptr, &tmp, CBS_len(&child)));
+        if (!cert || tmp != CBS_data(&child) + CBS_len(&child)) {
+            throwParsingException(env, "Error reading X.509 data");
+            return nullptr;
+        }
+
+        if (!sk_X509_push(path.get(), cert.get())) {
+            jniThrowOutOfMemory(env, "Unable to push local certificate");
+            return nullptr;
+        }
+        OWNERSHIP_TRANSFERRED(cert);
     }
 
     size_t size = sk_X509_num(path.get());
@@ -5640,12 +5671,6 @@ static jbyteArray NativeCrypto_ASN1_seq_pack_X509(JNIEnv* env, jclass, jlongArra
     ScopedLongArrayRO certsArray(env, certs);
     if (certsArray.get() == nullptr) {
         JNI_TRACE("ASN1_seq_pack_X509(%p) => failed to get certs array", certs);
-        return nullptr;
-    }
-
-    bssl::UniquePtr<STACK_OF(X509)> certStack(sk_X509_new_null());
-    if (certStack.get() == nullptr) {
-        JNI_TRACE("ASN1_seq_pack_X509(%p) => failed to make cert stack", certs);
         return nullptr;
     }
 
