@@ -1506,12 +1506,6 @@ jobject EcKeyGetKey(const EC_KEY* ec_key) {
   return ex_data->private_key;
 }
 
-size_t EcdsaMethodGroupOrderSize(const EC_KEY* ec_key) {
-  KeyExData* ex_data = reinterpret_cast<KeyExData*>(EC_KEY_get_ex_data(
-      ec_key, g_ecdsa_exdata_index));
-  return ex_data->cached_size;
-}
-
 int EcdsaMethodSign(const uint8_t* digest,
                     size_t digest_len,
                     uint8_t* sig,
@@ -1571,7 +1565,7 @@ const ECDSA_METHOD android_ecdsa_method = {
 
         nullptr /* init */,
         nullptr /* finish */,
-        EcdsaMethodGroupOrderSize,
+        nullptr /* group order size */,
         EcdsaMethodSign,
         EcdsaMethodVerify,
         ECDSA_FLAG_OPAQUE,
@@ -2190,6 +2184,12 @@ static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject ja
         return 0;
     }
 
+    if (EC_KEY_set_group(ecKey.get(), group) != 1) {
+        JNI_TRACE("getECPrivateKeyWrapper(%p, %p) => EC_KEY_set_group error", javaKey, group);
+        throwExceptionIfNecessary(env, "EC_KEY_set_group");
+        return 0;
+    }
+
     auto ex_data = new KeyExData;
     ex_data->private_key = env->NewGlobalRef(javaKey);
 
@@ -2199,16 +2199,6 @@ static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject ja
         jniThrowRuntimeException(env, "EC_KEY_set_ex_data");
         return 0;
     }
-
-    BIGNUM order;
-    BN_init(&order);
-    if (!EC_GROUP_get_order(group, &order, nullptr)) {
-        BN_free(&order);
-        jniThrowRuntimeException(env, "EC_GROUP_get_order failed");
-        return 0;
-    }
-    ex_data->cached_size = BN_num_bytes(&order);
-    BN_free(&order);
 
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
