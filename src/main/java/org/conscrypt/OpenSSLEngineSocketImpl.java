@@ -2,6 +2,7 @@ package org.conscrypt;
 
 import static javax.net.ssl.SSLEngineResult.Status.OK;
 
+import java.io.EOFException;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,70 +13,71 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
 import javax.crypto.SecretKey;
-import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.util.EmptyArray;
 
 /**
  * Implements crypto handling by delegating to OpenSSLEngine. Used for socket implementations
  * that are not backed by a real OS socket.
  */
 public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
+    private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
 
-    private final OpenSSLEngineImpl openSSLEngine;
+    private final OpenSSLEngineImpl engine;
     private final Socket socket;
     private final OutputStreamWrapper outputStreamWrapper;
     private final InputStreamWrapper inputStreamWrapper;
-    private ArrayList<HandshakeCompletedListener> listeners;
+    private boolean handshakeComplete;
 
     public OpenSSLEngineSocketImpl(Socket socket, String hostname, int port, boolean autoClose,
-                                   SSLParametersImpl sslParameters) throws IOException {
+            SSLParametersImpl sslParameters) throws IOException {
         super(socket, hostname, port, autoClose, sslParameters);
         this.socket = socket;
-        openSSLEngine = new OpenSSLEngineImpl(hostname, port, sslParameters);
+        engine = new OpenSSLEngineImpl(hostname, port, sslParameters);
         outputStreamWrapper = new OutputStreamWrapper();
         inputStreamWrapper = new InputStreamWrapper();
-        openSSLEngine.setUseClientMode(sslParameters.getUseClientMode());
+        engine.setUseClientMode(sslParameters.getUseClientMode());
     }
 
     @Override
     public void startHandshake() throws IOException {
         // Trigger the handshake
         boolean beginHandshakeCalled = false;
-        for (; ; ) {
-            switch (openSSLEngine.getHandshakeStatus()) {
+        while (!handshakeComplete) {
+            switch (engine.getHandshakeStatus()) {
                 case NOT_HANDSHAKING: {
                     if (!beginHandshakeCalled) {
                         beginHandshakeCalled = true;
-                        openSSLEngine.beginHandshake();
+                        engine.beginHandshake();
                         break;
-                    } else {
-                        // Notify handshake completion even though handshaking is being skipped.
-                        notifyHandshakeCompletedListeners();
-                        return;
                     }
+                    // Fall through to FINISHED processing.
+                }
+                case FINISHED: {
+                    completeHandshake();
+                    return;
                 }
                 case NEED_WRAP: {
-                    outputStreamWrapper.write(new byte[]{});
+                    outputStreamWrapper.write(EMPTY_BUFFER);
                     break;
                 }
                 case NEED_UNWRAP: {
-                    inputStreamWrapper.read(new byte[]{});
+                    if (inputStreamWrapper.read(EmptyArray.BYTE) == -1) {
+                        // Can't complete the handshake due to EOF.
+                        throw new EOFException();
+                    }
                     break;
                 }
                 case NEED_TASK: {
-                    openSSLEngine.getDelegatedTask().run();
-                    break;
+                    throw new IllegalStateException("OpenSSLEngineImpl returned NEED_TASK");
                 }
-                case FINISHED: {
-                    notifyHandshakeCompletedListeners();
-                    return;
-                }
+                default: { break; }
             }
         }
     }
@@ -103,7 +105,7 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
 
     @Override
     public SSLSession getSession() {
-        return openSSLEngine.getSession();
+        return engine.getSession();
     }
 
     @Override
@@ -178,7 +180,7 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
 
     @Override
     public void setUseClientMode(boolean mode) {
-        openSSLEngine.setUseClientMode(mode);
+        engine.setUseClientMode(mode);
     }
 
     @Override
@@ -229,8 +231,9 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
 
     @Override
     public synchronized void close() throws IOException {
-        openSSLEngine.closeInbound();
-        openSSLEngine.closeOutbound();
+        // Closing Socket.
+        engine.closeInbound();
+        engine.closeOutbound();
         socket.close();
     }
 
@@ -251,12 +254,12 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
 
     @Override
     public byte[] getNpnSelectedProtocol() {
-        return openSSLEngine.getNpnSelectedProtocol();
+        return engine.getNpnSelectedProtocol();
     }
 
     @Override
     public byte[] getAlpnSelectedProtocol() {
-        return openSSLEngine.getAlpnSelectedProtocol();
+        return engine.getAlpnSelectedProtocol();
     }
 
     @Override
@@ -271,65 +274,125 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
 
     @Override
     public String chooseServerAlias(X509KeyManager keyManager, String keyType) {
-        return openSSLEngine.chooseServerAlias(keyManager, keyType);
+        return engine.chooseServerAlias(keyManager, keyType);
     }
 
     @Override
-    public String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
-                                    String[] keyTypes) {
-        return openSSLEngine.chooseClientAlias(keyManager, issuers, keyTypes);
+    public String chooseClientAlias(
+            X509KeyManager keyManager, X500Principal[] issuers, String[] keyTypes) {
+        return engine.chooseClientAlias(keyManager, issuers, keyTypes);
     }
 
     @Override
     public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
-        return openSSLEngine.chooseServerPSKIdentityHint(keyManager);
+        return engine.chooseServerPSKIdentityHint(keyManager);
     }
 
     @Override
     public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
-        return openSSLEngine.chooseClientPSKIdentity(keyManager, identityHint);
+        return engine.chooseClientPSKIdentity(keyManager, identityHint);
     }
 
     @Override
     public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
-        return openSSLEngine.getPSKKey(keyManager, identityHint, identity);
+        return engine.getPSKKey(keyManager, identityHint, identity);
+    }
+
+    private void completeHandshake() {
+        if (!handshakeComplete) {
+            handshakeComplete = true;
+            super.notifyHandshakeCompletedListeners();
+        }
     }
 
     /**
      * Wrap bytes written to the underlying socket.
      */
-    private class OutputStreamWrapper extends OutputStream {
+    private final class OutputStreamWrapper extends OutputStream {
+        private final Object stateLock = new Object();
+        private ByteBuffer target;
+        private OutputStream socketOutputStream;
+        private SocketChannel socketChannel;
 
-        private final ByteBuffer target;
+        OutputStreamWrapper() {}
 
-        public OutputStreamWrapper() {
-            target = ByteBuffer.allocate(openSSLEngine.getSession().getPacketBufferSize());
+        @Override
+        public void write(int b) throws IOException {
+            write(new byte[] {(byte) b});
         }
 
         @Override
         public void write(byte[] b) throws IOException {
-            write(b, 0, b.length);
+            write(ByteBuffer.wrap(b));
         }
 
         @Override
-        public synchronized void write(byte[] b, int off, int len) throws IOException {
-            ByteBuffer wrap = ByteBuffer.wrap(b, off, len);
-            // Need to loop through at least once to enable handshaking where no application bytes are
-            // processed.
-            do {
-                SSLEngineResult engineResult = openSSLEngine.wrap(wrap, target);
-                len -= engineResult.bytesConsumed();
-                socket.getOutputStream().write(target.array(), 0, target.position());
-                target.clear();
-                if (engineResult.getStatus() != OK) {
-                    throw new IllegalStateException("Unexpected engine result " + engineResult.getStatus());
+        public void write(byte[] b, int off, int len) throws IOException {
+            write(ByteBuffer.wrap(b, off, len));
+        }
+
+        private void write(ByteBuffer buffer) throws IOException {
+            synchronized (stateLock) {
+                try {
+                    init();
+
+                    // Need to loop through at least once to enable handshaking where no application
+                    // bytes are
+                    // processed.
+                    int len = buffer.remaining();
+                    SSLEngineResult engineResult;
+                    do {
+                        target.clear();
+                        engineResult = engine.wrap(buffer, target);
+                        if (engineResult.getStatus() != OK) {
+                            throw new SSLException(
+                                    "Unexpected engine result " + engineResult.getStatus());
+                        }
+                        if (target.position() != engineResult.bytesProduced()) {
+                            throw new SSLException("Engine bytesProduced "
+                                    + engineResult.bytesProduced()
+                                    + " does not match bytes written " + target.position());
+                        }
+                        len -= engineResult.bytesConsumed();
+                        if (len != buffer.remaining()) {
+                            throw new SSLException(
+                                    "Engine did not read the correct number of bytes");
+                        }
+
+                        target.flip();
+
+                        // Write the data to the socket.
+                        if (socketChannel != null) {
+                            // Loop until all of the data is written to the channel. Typically,
+                            // SocketChannel writes will return only after all bytes are written,
+                            // so we won't really loop here.
+                            while (target.hasRemaining()) {
+                                socketChannel.write(target);
+                            }
+                        } else {
+                            // Target is a heap buffer.
+                            socketOutputStream.write(target.array(), 0, target.position());
+                        }
+                        if (engineResult.getHandshakeStatus() == HandshakeStatus.FINISHED) {
+                            completeHandshake();
+                        }
+                    } while (len > 0);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    throw e;
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
+                    throw e;
                 }
-            } while (len > 0);
+            }
         }
 
         @Override
         public void flush() throws IOException {
-            socket.getOutputStream().flush();
+            synchronized (stateLock) {
+                init();
+                socketOutputStream.flush();
+            }
         }
 
         @Override
@@ -337,26 +400,52 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
             socket.close();
         }
 
-        @Override
-        public void write(int b) throws IOException {
-            write(new byte[]{(byte) b});
+        private void init() throws IOException {
+            if (socketOutputStream == null) {
+                socketOutputStream = socket.getOutputStream();
+                socketChannel = socket.getChannel();
+                if (socketChannel != null) {
+                    // Optimization. Using direct buffers wherever possible to avoid passing
+                    // arrays to JNI.
+                    target = ByteBuffer.allocateDirect(engine.getSession().getPacketBufferSize());
+                } else {
+                    target = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+                }
+            }
         }
     }
 
     /**
      * Unwrap bytes read from the underlying socket.
      */
-    private class InputStreamWrapper extends InputStream {
-
+    private final class InputStreamWrapper extends InputStream {
+        private final Object stateLock = new Object();
         private final byte[] singleByte = new byte[1];
-        private final ByteBuffer fromSocket;
         private final ByteBuffer fromEngine;
+        private ByteBuffer fromSocket;
         private InputStream socketInputStream;
+        private SocketChannel socketChannel;
 
-        public InputStreamWrapper() {
-            fromSocket = ByteBuffer.allocate(openSSLEngine.getSession().getPacketBufferSize());
-            fromEngine = ByteBuffer.allocate(openSSLEngine.getSession().getApplicationBufferSize());
+        InputStreamWrapper() {
+            fromEngine = ByteBuffer.allocateDirect(engine.getSession().getApplicationBufferSize());
+            // Initially fromEngine.remaining() == 0.
             fromEngine.flip();
+        }
+
+        @Override
+        public int read() throws IOException {
+            synchronized (stateLock) {
+                // Handle returning of -1 if EOF is reached.
+                int count = read(singleByte, 0, 1);
+                if (count == -1) {
+                    // Handle EOF.
+                    return -1;
+                }
+                if (count != 1) {
+                    throw new SSLException("read incorrect number of bytes " + count);
+                }
+                return (int) singleByte[0];
+            }
         }
 
         @Override
@@ -365,47 +454,108 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
         }
 
         @Override
-        public synchronized int read(byte[] b, int off, int len) throws IOException {
-            if (socketInputStream == null) {
-                socketInputStream = socket.getInputStream();
-            }
-            for (; ; ) {
-                // Consume bytes we have already passed through the engine and return them immediately
-                if (fromEngine.remaining() > 0) {
-                    int readFromEngine = Math.min(fromEngine.remaining(), len);
-                    fromEngine.get(b, off, readFromEngine);
-                    return readFromEngine;
-                }
-                // Clear the buffer so we can process more bytes through the engine
-                fromEngine.clear();
+        public int read(byte[] b, int off, int len) throws IOException {
+            synchronized (stateLock) {
+                try {
+                    // Make sure the input stream has been created.
+                    init();
 
-                // Otherwise read more bytes from the socket and process them with the engine
+                    for (;;) {
+                        // Serve any remaining data from the engine first.
+                        if (fromEngine.remaining() > 0) {
+                            int readFromEngine = Math.min(fromEngine.remaining(), len);
+                            fromEngine.get(b, off, readFromEngine);
+                            return readFromEngine;
+                        }
 
-                int read = socketInputStream.read(fromSocket.array(), fromSocket.position(),
-                        fromSocket.remaining());
-                if (read == -1 && fromSocket.position() == 0) {
-                    // No bytes left to process and socket is now unreadable.
-                    return -1;
-                }
-                fromSocket.position(fromSocket.position() + read);
-                fromSocket.flip();
-                SSLEngineResult engineResult = openSSLEngine.unwrap(fromSocket, fromEngine);
-                fromEngine.flip();
-                fromSocket.compact();
-                if (engineResult.getStatus() == OK) {
-                    if (engineResult.bytesProduced() == 0) {
-                        return 0;
+                        // Try to unwrap any data already in the socket buffer.
+                        boolean needMoreData = true;
+                        if (fromSocket.position() > 0) {
+                            // Unwrap the unencrypted bytes into the engine buffer.
+                            fromSocket.flip();
+                            fromEngine.clear();
+                            SSLEngineResult engineResult = engine.unwrap(fromSocket, fromEngine);
+
+                            // Shift any remaining data to the beginning of the buffer so that
+                            // we can accommodate the next full packet. After this is called,
+                            // limit will be restored to capacity and position will point just
+                            // past the end of the data.
+                            fromSocket.compact();
+                            fromEngine.flip();
+
+                            switch (engineResult.getStatus()) {
+                                case BUFFER_UNDERFLOW: {
+                                    if (engineResult.bytesProduced() == 0) {
+                                        // Need to read more data from the socket.
+                                        break;
+                                    }
+                                    // Fall-through and serve the data that was produced.
+                                }
+                                case OK: {
+                                    // We processed the entire packet successfully.
+                                    needMoreData = false;
+                                    break;
+                                }
+                                default: {
+                                    // Anything else is an error.
+                                    throw new SSLException(
+                                            "Unexpected engine result " + engineResult.getStatus());
+                                }
+                            }
+
+                            if (engineResult.getHandshakeStatus() == HandshakeStatus.FINISHED) {
+                                completeHandshake();
+                            }
+                            if (engineResult.bytesProduced() == 0) {
+                                // Read successfully, but produced no data. Possibly part of a
+                                // handshake.
+                                return 0;
+                            }
+                        }
+
+                        // Read more data from the socket.
+                        if (needMoreData && readFromSocket() == -1) {
+                            // Failed to read the next encrypted packet before reaching EOF.
+                            return -1;
+                        }
+
+                        // Continue the loop and return the data from the engine buffer.
                     }
-                } else {
-                    throw new IllegalStateException("Unexpected engine result " + engineResult.getStatus());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    throw e;
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
+                    throw e;
                 }
             }
         }
 
-        @Override
-        public synchronized int read() throws IOException {
-            int count = read(singleByte, 0, 1);
-            return count != 1 ? count : (int) singleByte[0];
+        private void init() throws IOException {
+            if (socketInputStream == null) {
+                socketInputStream = socket.getInputStream();
+                socketChannel = socket.getChannel();
+                if (socketChannel != null) {
+                    fromSocket =
+                            ByteBuffer.allocateDirect(engine.getSession().getPacketBufferSize());
+                } else {
+                    fromSocket = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+                }
+            }
+        }
+
+        private int readFromSocket() throws IOException {
+            if (socketChannel != null) {
+                return socketChannel.read(fromSocket);
+            }
+            // Read directly to the underlying array and increment the buffer position if
+            // appropriate.
+            int read = socketInputStream.read(
+                    fromSocket.array(), fromSocket.position(), fromSocket.remaining());
+            if (read > 0) {
+                fromSocket.position(fromSocket.position() + read);
+            }
+            return read;
         }
     }
 }

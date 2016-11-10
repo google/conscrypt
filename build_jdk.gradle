@@ -95,6 +95,15 @@ jar {
     classifier = osdetector.classifier
 }
 
+// Add a source jar to the distribution.
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+artifacts {
+    archives sourcesJar
+}
+
 model {
     components {
         // Builds the JNI library.

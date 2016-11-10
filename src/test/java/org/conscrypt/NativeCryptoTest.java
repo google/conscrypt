@@ -960,8 +960,8 @@ public class NativeCryptoTest {
                 }
                 long session = NULL;
                 try {
-                    session = NativeCrypto.SSL_do_handshake(s, fd, callback, timeout, client,
-                                                            alpnProtocols);
+                    NativeCrypto.SSL_configure_alpn(s, client, alpnProtocols);
+                    session = NativeCrypto.SSL_do_handshake(s, fd, callback, timeout, client);
                     if (DEBUG) {
                         System.out.println("ssl=0x" + Long.toString(s, 16)
                                            + " handshake"
@@ -980,7 +980,7 @@ public class NativeCryptoTest {
 
     @Test(expected = NullPointerException.class)
     public void test_SSL_do_handshake_NULL_SSL() throws Exception {
-        NativeCrypto.SSL_do_handshake(NULL, null, null, 0, false, null);
+        NativeCrypto.SSL_do_handshake(NULL, null, null, 0, false);
     }
 
     @Test
@@ -989,13 +989,13 @@ public class NativeCryptoTest {
         long s = NativeCrypto.SSL_new(c);
 
         try {
-            NativeCrypto.SSL_do_handshake(s, null, null, 0, true, null);
+            NativeCrypto.SSL_do_handshake(s, null, null, 0, true);
             fail();
         } catch (NullPointerException expected) {
         }
 
         try {
-            NativeCrypto.SSL_do_handshake(s, INVALID_FD, null, 0, true, null);
+            NativeCrypto.SSL_do_handshake(s, INVALID_FD, null, 0, true);
             fail();
         } catch (NullPointerException expected) {
         }
@@ -1878,11 +1878,6 @@ public class NativeCryptoTest {
         };
 
         Hooks cHooks = new Hooks() {
-            @Override public long beforeHandshake(long context) throws SSLException {
-                long sslContext = super.beforeHandshake(context);
-                NativeCrypto.SSL_set_alpn_protos(sslContext, clientAlpnProtocols);
-                return sslContext;
-            }
             @Override public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                 byte[] negotiated = NativeCrypto.SSL_get0_alpn_selected(ssl);
@@ -1900,8 +1895,8 @@ public class NativeCryptoTest {
         };
 
         ServerSocket listener = new ServerSocket(0);
-        Future<TestSSLHandshakeCallbacks> client
-                = handshake(listener, 0, true, cHooks, null);
+        Future<TestSSLHandshakeCallbacks> client =
+                handshake(listener, 0, true, cHooks, clientAlpnProtocols);
         Future<TestSSLHandshakeCallbacks> server
                 = handshake(listener, 0, false, sHooks, serverAlpnProtocols);
         client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);

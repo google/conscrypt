@@ -344,8 +344,7 @@ public class OpenSSLSocketImpl
             long sslSessionNativePointer;
             try {
                 sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer,
-                        Platform.getFileDescriptor(socket), this, getSoTimeout(), client,
-                        client ? null : sslParameters.alpnProtocols);
+                        Platform.getFileDescriptor(socket), this, getSoTimeout(), client);
             } catch (CertificateException e) {
                 SSLHandshakeException wrapper = new SSLHandshakeException(e.getMessage());
                 wrapper.initCause(e);
