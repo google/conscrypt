@@ -139,10 +139,17 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
     }
 
     protected int keySizeBytes() {
-        if (key == null) {
+        if (!isInitialized()) {
             throw new IllegalStateException("cipher is not initialized");
         }
         return NativeCrypto.RSA_size(this.key.getNativeRef());
+    }
+
+    /**
+     * Returns {@code true} if the cipher has been initialized.
+     */
+    protected boolean isInitialized() {
+        return key != null;
     }
 
     @Override
@@ -400,6 +407,34 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
             super(NativeConstants.RSA_PKCS1_OAEP_PADDING);
             oaepMd = mgf1Md = defaultMd;
             oaepMdSizeBytes = defaultMdSizeBytes;
+        }
+
+        @Override
+        protected AlgorithmParameters engineGetParameters() {
+            if (!isInitialized()) {
+                return null;
+            }
+
+            try {
+                AlgorithmParameters params = AlgorithmParameters.getInstance("OAEP");
+
+                final PSource pSrc;
+                if (label == null) {
+                    pSrc = PSource.PSpecified.DEFAULT;
+                } else {
+                    pSrc = new PSource.PSpecified(label);
+                }
+
+                params.init(new OAEPParameterSpec(
+                        EvpMdRef.getJcaDigestAlgorithmStandardNameFromEVP_MD(oaepMd),
+                        EvpMdRef.MGF1_ALGORITHM_NAME,
+                        new MGF1ParameterSpec(
+                                EvpMdRef.getJcaDigestAlgorithmStandardNameFromEVP_MD(mgf1Md)),
+                        pSrc));
+                return params;
+            } catch (NoSuchAlgorithmException | InvalidParameterSpecException e) {
+                throw new RuntimeException("No providers of AlgorithmParameters.OAEP available");
+            }
         }
 
         @Override

@@ -83,6 +83,24 @@ public final class EvpMdRef {
         }
     }
 
+    public static String getJcaDigestAlgorithmStandardNameFromEVP_MD(long evpMdRef) {
+        if (evpMdRef == MD5.EVP_MD) {
+            return MD5.JCA_NAME;
+        } else if (evpMdRef == SHA1.EVP_MD) {
+            return SHA1.JCA_NAME;
+        } else if (evpMdRef == SHA224.EVP_MD) {
+            return SHA224.JCA_NAME;
+        } else if (evpMdRef == SHA256.EVP_MD) {
+            return SHA256.JCA_NAME;
+        } else if (evpMdRef == SHA384.EVP_MD) {
+            return SHA384.JCA_NAME;
+        } else if (evpMdRef == SHA512.EVP_MD) {
+            return SHA512.JCA_NAME;
+        } else {
+            throw new IllegalArgumentException("Unknown EVP_MD reference");
+        }
+    }
+
     public static final class MD5 {
         public static final String JCA_NAME = "MD5";
         public static final String OID = "1.2.840.113549.2.5";
