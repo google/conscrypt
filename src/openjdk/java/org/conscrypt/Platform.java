@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.channels.SocketChannel;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Security;
@@ -62,6 +63,17 @@ public class Platform {
     }
 
     public static FileDescriptor getFileDescriptor(Socket s) {
+        try {
+            SocketChannel channel = s.getChannel();
+            if (channel != null) {
+                Field f_fd = channel.getClass().getDeclaredField("fd");
+                f_fd.setAccessible(true);
+                return (FileDescriptor) f_fd.get(channel);
+            }
+        } catch (Exception e) {
+            // Try socket class below...
+        }
+
         try {
             Field f_impl = Socket.class.getDeclaredField("impl");
             f_impl.setAccessible(true);

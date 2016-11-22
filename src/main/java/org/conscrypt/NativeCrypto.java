@@ -992,6 +992,7 @@ public final class NativeCrypto {
     /*
      * See the OpenSSL ssl.h header file for more information.
      */
+    // TODO(nathanmittler): Should these move to NativeConstants.java?
     public static final int SSL_VERIFY_NONE =                 0x00;
     public static final int SSL_VERIFY_PEER =                 0x01;
     public static final int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = 0x02;
@@ -1017,42 +1018,17 @@ public final class NativeCrypto {
     public static native String SSL_get_servername(long sslNativePointer);
 
     /**
-     * For clients, sets the list of supported ALPN protocols in wire-format
-     * (length-prefixed 8-bit strings).
-     */
-    public static native int SSL_set_alpn_protos(long sslPointer, byte[] protos);
-
-    /**
      * Returns the selected ALPN protocol. If the server did not select a
      * protocol, {@code null} will be returned.
      */
     public static native byte[] SSL_get0_alpn_selected(long sslPointer);
 
     /**
-     * Returns the sslSessionNativePointer of the negotiated session. If this is
-     * a server negotiation, supplying the {@code alpnProtocols} will enable
-     * ALPN negotiation.
+     * Returns the sslSessionNativePointer of the negotiated session.
      */
-    public static native long SSL_do_handshake(long sslNativePointer,
-                                               FileDescriptor fd,
-                                               SSLHandshakeCallbacks shc,
-                                               int timeoutMillis,
-                                               boolean client_mode,
-                                               byte[] alpnProtocols)
-        throws SSLException, SocketTimeoutException, CertificateException;
-
-    /**
-     * Returns the sslSessionNativePointer of the negotiated session. If this is
-     * a server negotiation, supplying the {@code alpnProtocols} will enable
-     * ALPN negotiation.
-     */
-    public static native long SSL_do_handshake_bio(long sslNativePointer,
-                                                   long sourceBioRef,
-                                                   long sinkBioRef,
-                                                   SSLHandshakeCallbacks shc,
-                                                   boolean client_mode,
-                                                   byte[] alpnProtocols)
-        throws SSLException, SocketTimeoutException, CertificateException;
+    public static native long SSL_do_handshake(long sslNativePointer, FileDescriptor fd,
+            SSLHandshakeCallbacks shc, int timeoutMillis, boolean client_mode)
+            throws SSLException, SocketTimeoutException, CertificateException;
 
     /**
      * Currently only intended for forcing renegotiation for testing.
@@ -1080,15 +1056,6 @@ public final class NativeCrypto {
                                       byte[] b, int off, int len, int readTimeoutMillis)
         throws IOException;
 
-    public static native int SSL_read_BIO(long sslNativePointer,
-                                          byte[] dest,
-                                          int destOffset,
-                                          int destLength,
-                                          long sourceBioRef,
-                                          long sinkBioRef,
-                                          SSLHandshakeCallbacks shc)
-        throws IOException;
-
     /**
      * Writes with the native SSL_write function to the encrypted data stream.
      */
@@ -1096,13 +1063,6 @@ public final class NativeCrypto {
                                         FileDescriptor fd,
                                         SSLHandshakeCallbacks shc,
                                         byte[] b, int off, int len, int writeTimeoutMillis)
-        throws IOException;
-
-    public static native int SSL_write_BIO(long sslNativePointer,
-                                           byte[] source,
-                                           int length,
-                                           long sinkBioRef,
-                                           SSLHandshakeCallbacks shc)
         throws IOException;
 
     public static native void SSL_interrupt(long sslNativePointer);
@@ -1148,7 +1108,7 @@ public final class NativeCrypto {
          *
          * @throws CertificateException if the certificate is untrusted
          */
-        public void verifyCertificateChain(long sslSessionNativePtr, long[] certificateChainRefs,
+        void verifyCertificateChain(long sslSessionNativePtr, long[] certificateChainRefs,
                 String authMethod) throws CertificateException;
 
         /**
@@ -1162,9 +1122,8 @@ public final class NativeCrypto {
          * convertible to strings with #keyType
          * @param asn1DerEncodedX500Principals CAs known to the server
          */
-        public void clientCertificateRequested(byte[] keyTypes,
-                                               byte[][] asn1DerEncodedX500Principals)
-            throws CertificateEncodingException, SSLException;
+        void clientCertificateRequested(byte[] keyTypes, byte[][] asn1DerEncodedX500Principals)
+                throws CertificateEncodingException, SSLException;
 
         /**
          * Gets the key to be used in client mode for this connection in Pre-Shared Key (PSK) key
@@ -1179,7 +1138,7 @@ public final class NativeCrypto {
          * @return number of bytes this method stored in the {@code key} buffer or {@code 0} if an
          *         error occurred in which case the handshake will be aborted.
          */
-        public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key);
+        int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key);
 
         /**
          * Gets the key to be used in server mode for this connection in Pre-Shared Key (PSK) key
@@ -1193,12 +1152,12 @@ public final class NativeCrypto {
          * @return number of bytes this method stored in the {@code key} buffer or {@code 0} if an
          *         error occurred in which case the handshake will be aborted.
          */
-        public int serverPSKKeyRequested(String identityHint, String identity, byte[] key);
+        int serverPSKKeyRequested(String identityHint, String identity, byte[] key);
 
         /**
          * Called when SSL state changes. This could be handshake completion.
          */
-        public void onSSLStateChange(long sslSessionNativePtr, int type, int val);
+        void onSSLStateChange(long sslSessionNativePtr, int type, int val);
     }
 
     public static native long ERR_peek_last_error();
@@ -1218,4 +1177,93 @@ public final class NativeCrypto {
      * <p>NOTE: This method ignores the buffer's current {@code position}.
      */
     public static native long getDirectBufferAddress(Buffer buf);
+
+    public static native long SSL_BIO_new(long ssl) throws SSLException;
+
+    public static native int SSL_get_last_error_number();
+
+    public static native int SSL_get_error(long ssl, int ret);
+
+    public static native String SSL_get_error_string(long errorNumber);
+
+    public static native void SSL_clear_error();
+
+    public static native int SSL_pending_readable_bytes(long ssl);
+
+    public static native int SSL_pending_written_bytes_in_BIO(long bio);
+
+    public static native long SSL_get0_session(long ssl);
+
+    public static native long SSL_get1_session(long ssl);
+
+    /**
+     * Sets the list of supported ALPN protocols in wire-format (length-prefixed 8-bit strings).
+     */
+    public static native void SSL_configure_alpn(
+            long sslNativePointer, boolean clientMode, byte[] alpnProtocols) throws IOException;
+
+    /**
+     * Variant of the {@link #SSL_do_handshake} used by {@link OpenSSLEngineImpl}. This version
+     * does not lock and does no error preprocessing.
+     */
+    public static native int ENGINE_SSL_do_handshake(long ssl, SSLHandshakeCallbacks shc);
+
+    /**
+     * Variant of the {@link #SSL_read} for a direct {@link java.nio.ByteBuffer} used by {@link
+     * OpenSSLEngineImpl}. This version does not lock or and does no error pre-processing.
+     */
+    public static native int ENGINE_SSL_read_direct(long sslNativePointer, long address, int length,
+            SSLHandshakeCallbacks shc) throws IOException;
+
+    /**
+     * Variant of the {@link #SSL_read} for a heap {@link java.nio.ByteBuffer} used by {@link
+     * OpenSSLEngineImpl}. This version does not lock or and does no error pre-processing.
+     */
+    public static native int ENGINE_SSL_read_heap(long sslNativePointer, byte[] destJava,
+            int destOffset, int destLength, SSLHandshakeCallbacks shc) throws IOException;
+
+    /**
+     * Variant of the {@link #SSL_write} for a direct {@link java.nio.ByteBuffer} used by {@link
+     * OpenSSLEngineImpl}. This version does not lock or and does no error pre-processing.
+     */
+    public static native int ENGINE_SSL_write_direct(long sslNativePointer, long address,
+            int length, SSLHandshakeCallbacks shc) throws IOException;
+
+    /**
+     * Variant of the {@link #SSL_write} for a heap {@link java.nio.ByteBuffer} used by {@link
+     * OpenSSLEngineImpl}. This version does not lock or and does no error pre-processing.
+     */
+    public static native int ENGINE_SSL_write_heap(long sslNativePointer, byte[] sourceJava,
+            int sourceOffset, int sourceLength, SSLHandshakeCallbacks shc) throws IOException;
+
+    /**
+     * Writes data from the given direct {@link ByteBuffer} to the BIO.
+     */
+    public static native int ENGINE_SSL_write_BIO_direct(long sslRef, long bioRef, long pos,
+            int length, SSLHandshakeCallbacks shc) throws IOException;
+
+    /**
+     * Writes data from the given array to the BIO.
+     */
+    public static native int ENGINE_SSL_write_BIO_heap(long sslRef, long bioRef, byte[] sourceJava,
+            int sourceOffset, int sourceLength, SSLHandshakeCallbacks shc) throws IOException;
+
+    /**
+     * Reads data from the given BIO into a direct {@link java.nio.ByteBuffer}.
+     */
+    public static native int ENGINE_SSL_read_BIO_direct(long sslRef, long bioRef, long address,
+            int len, SSLHandshakeCallbacks shc) throws IOException;
+
+    /**
+     * Reads data from the given BIO into an array.
+     */
+    public static native int ENGINE_SSL_read_BIO_heap(long sslRef, long bioRef, byte[] destJava,
+            int destOffset, int destLength, SSLHandshakeCallbacks shc) throws IOException;
+
+    /**
+     * Variant of the {@link #SSL_shutdown} used by {@link OpenSSLEngineImpl}. This version does not
+     * lock.
+     */
+    public static native void ENGINE_SSL_shutdown(long sslNativePointer, SSLHandshakeCallbacks shc)
+            throws IOException;
 }

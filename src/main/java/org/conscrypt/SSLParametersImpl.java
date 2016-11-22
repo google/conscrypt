@@ -523,16 +523,12 @@ public class SSLParametersImpl implements Cloneable {
 
     void setSSLParameters(long sslCtxNativePointer, long sslNativePointer, AliasChooser chooser,
             PSKCallbacks pskCallbacks, String sniHostname) throws SSLException, IOException {
-        if (client_mode && alpnProtocols != null) {
-            NativeCrypto.SSL_set_alpn_protos(sslNativePointer, alpnProtocols);
-        }
-
         if (enabledProtocols.length == 0 && isEnabledProtocolsFiltered) {
             throw new SSLHandshakeException("No enabled protocols; "
                     + NativeCrypto.OBSOLETE_PROTOCOL_SSLV3
                     + " is no longer supported and was filtered from the list");
         }
-
+        NativeCrypto.SSL_configure_alpn(sslNativePointer, client_mode, alpnProtocols);
         NativeCrypto.setEnabledProtocols(sslNativePointer, enabledProtocols);
         NativeCrypto.setEnabledCipherSuites(sslNativePointer, enabledCipherSuites);
 

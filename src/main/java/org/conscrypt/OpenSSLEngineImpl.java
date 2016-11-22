@@ -16,6 +16,26 @@
 
 package org.conscrypt;
 
+import static javax.net.ssl.SSLEngineResult.HandshakeStatus.FINISHED;
+import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NEED_UNWRAP;
+import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NEED_WRAP;
+import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING;
+import static javax.net.ssl.SSLEngineResult.Status.BUFFER_OVERFLOW;
+import static javax.net.ssl.SSLEngineResult.Status.BUFFER_UNDERFLOW;
+import static javax.net.ssl.SSLEngineResult.Status.CLOSED;
+import static javax.net.ssl.SSLEngineResult.Status.OK;
+import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
+import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
+import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PLAIN_LENGTH;
+import static org.conscrypt.NativeConstants.SSL_CB_HANDSHAKE_DONE;
+import static org.conscrypt.NativeConstants.SSL_CB_HANDSHAKE_START;
+import static org.conscrypt.NativeConstants.SSL_ERROR_NONE;
+import static org.conscrypt.NativeConstants.SSL_ERROR_WANT_READ;
+import static org.conscrypt.NativeConstants.SSL_ERROR_WANT_WRITE;
+import static org.conscrypt.NativeConstants.SSL_ERROR_ZERO_RETURN;
+import static org.conscrypt.NativeConstants.SSL_RECEIVED_SHUTDOWN;
+import static org.conscrypt.NativeConstants.SSL_SENT_SHUTDOWN;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
@@ -37,8 +57,21 @@ import javax.security.auth.x500.X500Principal;
 /**
  * Implements the {@link SSLEngine} API using OpenSSL's non-blocking interfaces.
  */
-public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHandshakeCallbacks,
-        SSLParametersImpl.AliasChooser, SSLParametersImpl.PSKCallbacks {
+public final class OpenSSLEngineImpl extends SSLEngine
+        implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.AliasChooser,
+                   SSLParametersImpl.PSKCallbacks {
+    private static final SSLEngineResult NEED_UNWRAP_OK =
+            new SSLEngineResult(OK, NEED_UNWRAP, 0, 0);
+    private static final SSLEngineResult NEED_UNWRAP_CLOSED =
+            new SSLEngineResult(CLOSED, NEED_UNWRAP, 0, 0);
+    private static final SSLEngineResult NEED_WRAP_OK = new SSLEngineResult(OK, NEED_WRAP, 0, 0);
+    private static final SSLEngineResult NEED_WRAP_CLOSED =
+            new SSLEngineResult(CLOSED, NEED_WRAP, 0, 0);
+    private static final SSLEngineResult CLOSED_NOT_HANDSHAKING =
+            new SSLEngineResult(CLOSED, NOT_HANDSHAKING, 0, 0);
+    private static final ByteBuffer EMPTY = ByteBuffer.allocateDirect(0);
+    private static final long EMPTY_ADDR = NativeCrypto.getDirectBufferAddress(EMPTY);
+
     private final SSLParametersImpl sslParameters;
 
     /**
@@ -46,10 +79,10 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
      */
     private final Object stateLock = new Object();
 
-    private static enum EngineState {
+    private enum EngineState {
         /**
-         * The {@link OpenSSLSocketImpl} object is constructed, but {@link #beginHandshake()}
-         * has not yet been called.
+         * The {@link OpenSSLSocketImpl} object is constructed, but {@link #beginHandshake()} has
+         * not yet been called.
          */
         NEW,
         /**
@@ -69,9 +102,9 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
          */
         HANDSHAKE_COMPLETED,
         /**
-         * {@link #beginHandshake()} has completed but the task hasn't
-         * been called. This is expected behaviour in cut-through mode, where SSL_do_handshake
-         * returns before the handshake is complete. We can now start writing data to the socket.
+         * {@link #beginHandshake()} has completed but the task hasn't been called. This is expected
+         * behaviour in cut-through mode, where SSL_do_handshake returns before the handshake is
+         * complete. We can now start writing data to the socket.
          */
         READY_HANDSHAKE_CUT_THROUGH,
         /**
@@ -88,35 +121,40 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
 
     // @GuardedBy("stateLock");
     private EngineState engineState = EngineState.NEW;
+    private boolean handshakeFinished;
 
     /**
-     * Protected by synchronizing on stateLock. Starts as 0, set by
-     * startHandshake, reset to 0 on close.
+     * Protected by synchronizing on stateLock. Starts as 0, set by startHandshake, reset to 0 on
+     * close.
      */
     // @GuardedBy("stateLock");
     private long sslNativePointer;
 
-    /** Used during handshake when {@link #wrap(ByteBuffer, ByteBuffer)} is called. */
-    // TODO: make this use something similar to BIO_s_null() in native code
-    private static OpenSSLBIOSource nullSource = OpenSSLBIOSource.wrap(ByteBuffer.allocate(0));
+    /**
+     * Protected by synchronizing on stateLock. Starts as 0, set by startHandshake, reset to 0 on
+     * close.
+     */
+    // @GuardedBy("stateLock");
+    private long networkBio;
 
-    /** A BIO sink written to only during handshakes. */
-    private OpenSSLBIOSink handshakeSink;
-
-    /** A BIO sink written to during regular operation. */
-    private final OpenSSLBIOSink localToRemoteSink = OpenSSLBIOSink.create();
-
-    /** Set during startHandshake. */
+    /**
+     * Set during startHandshake.
+     */
     private OpenSSLSessionImpl sslSession;
 
-    /** Used during handshake callbacks. */
+    /**
+     * Used during handshake callbacks.
+     */
     private OpenSSLSessionImpl handshakeSession;
 
     /**
-     * Private key for the TLS Channel ID extension. This field is client-side
-     * only. Set during startHandshake.
+     * Private key for the TLS Channel ID extension. This field is client-side only. Set during
+     * startHandshake.
      */
     OpenSSLKey channelIdPrivateKey;
+
+    private final ByteBuffer[] singleSrcBuffer = new ByteBuffer[1];
+    private final ByteBuffer[] singleDstBuffer = new ByteBuffer[1];
 
     public OpenSSLEngineImpl(SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
@@ -130,21 +168,29 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     @Override
     public void beginHandshake() throws SSLException {
         synchronized (stateLock) {
-            if (engineState == EngineState.CLOSED || engineState == EngineState.CLOSED_OUTBOUND
-                    || engineState == EngineState.CLOSED_INBOUND) {
-                throw new IllegalStateException("Engine has already been closed");
-            }
-            if (engineState == EngineState.HANDSHAKE_STARTED) {
+            beginHandshakeInternal();
+        }
+    }
+
+    private void beginHandshakeInternal() throws SSLException {
+        switch (engineState) {
+            case MODE_SET:
+                // This is the only allowed state.
+                break;
+            case HANDSHAKE_STARTED:
                 throw new IllegalStateException("Handshake has already been started");
-            }
-            if (engineState != EngineState.MODE_SET) {
+            case CLOSED_INBOUND:
+            case CLOSED_OUTBOUND:
+            case CLOSED:
+                throw new IllegalStateException("Engine has already been closed");
+            default:
                 throw new IllegalStateException("Client/server mode must be set before handshake");
-            }
-            if (getUseClientMode()) {
-                engineState = EngineState.HANDSHAKE_WANTED;
-            } else {
-                engineState = EngineState.HANDSHAKE_STARTED;
-            }
+        }
+
+        if (getUseClientMode()) {
+            engineState = EngineState.HANDSHAKE_WANTED;
+        } else {
+            engineState = EngineState.HANDSHAKE_STARTED;
         }
 
         boolean releaseResources = true;
@@ -152,10 +198,11 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
             final long sslCtxNativePointer = sessionContext.sslCtxNativePointer;
             sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
-            sslSession = sslParameters.getSessionToReuse(
-                    sslNativePointer, getPeerHost(), getPeerPort());
-            sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this, this,
-                    getPeerHost());
+            networkBio = NativeCrypto.SSL_BIO_new(sslNativePointer);
+            sslSession =
+                    sslParameters.getSessionToReuse(sslNativePointer, getPeerHost(), getPeerPort());
+            sslParameters.setSSLParameters(
+                    sslCtxNativePointer, sslNativePointer, this, this, getPeerHost());
             sslParameters.setCertificateValidation(sslNativePointer);
             sslParameters.setTlsChannelId(sslNativePointer, channelIdPrivateKey);
             if (getUseClientMode()) {
@@ -163,7 +210,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
             } else {
                 NativeCrypto.SSL_set_accept_state(sslNativePointer);
             }
-            handshakeSink = OpenSSLBIOSink.create();
+            handshake();
             releaseResources = false;
         } catch (IOException e) {
             // Write CCS errors to EventLog
@@ -176,9 +223,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
             throw new SSLException(e);
         } finally {
             if (releaseResources) {
-                synchronized (stateLock) {
-                    engineState = EngineState.CLOSED;
-                }
+                engineState = EngineState.CLOSED;
                 shutdownAndFreeSslNative();
             }
         }
@@ -219,7 +264,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
 
     @Override
     public Runnable getDelegatedTask() {
-        /* This implementation doesn't use any delegated tasks. */
+        // This implementation doesn't use any delegated tasks.
         return null;
     }
 
@@ -241,40 +286,56 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     @Override
     public HandshakeStatus getHandshakeStatus() {
         synchronized (stateLock) {
-            switch (engineState) {
-                case HANDSHAKE_WANTED:
-                    if (getUseClientMode()) {
-                        return HandshakeStatus.NEED_WRAP;
-                    } else {
-                        return HandshakeStatus.NEED_UNWRAP;
-                    }
-                case HANDSHAKE_STARTED:
-                    if (handshakeSink.available() > 0) {
-                        return HandshakeStatus.NEED_WRAP;
-                    } else {
-                        return HandshakeStatus.NEED_UNWRAP;
-                    }
-                case HANDSHAKE_COMPLETED:
-                    if (handshakeSink.available() == 0) {
-                        handshakeSink = null;
-                        engineState = EngineState.READY;
-                        return HandshakeStatus.FINISHED;
-                    } else {
-                        return HandshakeStatus.NEED_WRAP;
-                    }
-                case NEW:
-                case MODE_SET:
-                case CLOSED:
-                case CLOSED_INBOUND:
-                case CLOSED_OUTBOUND:
-                case READY:
-                case READY_HANDSHAKE_CUT_THROUGH:
-                    return HandshakeStatus.NOT_HANDSHAKING;
-                default:
-                    break;
-            }
-            throw new IllegalStateException("Unexpected engine state: " + engineState);
+            return getHandshakeStatusInternal();
         }
+    }
+
+    private HandshakeStatus getHandshakeStatusInternal() {
+        if (handshakeFinished) {
+            return HandshakeStatus.NOT_HANDSHAKING;
+        }
+        switch (engineState) {
+            case HANDSHAKE_WANTED:
+                if (getUseClientMode()) {
+                    return HandshakeStatus.NEED_WRAP;
+                } else {
+                    return HandshakeStatus.NEED_UNWRAP;
+                }
+            case HANDSHAKE_STARTED:
+                return pendingStatus(pendingOutboundEncryptedBytes());
+            case HANDSHAKE_COMPLETED:
+                return HandshakeStatus.NEED_WRAP;
+            case NEW:
+            case MODE_SET:
+            case CLOSED:
+            case CLOSED_INBOUND:
+            case CLOSED_OUTBOUND:
+            case READY:
+            case READY_HANDSHAKE_CUT_THROUGH:
+                return HandshakeStatus.NOT_HANDSHAKING;
+            default:
+                break;
+        }
+        throw new IllegalStateException("Unexpected engine state: " + engineState);
+    }
+
+    private int pendingOutboundEncryptedBytes() {
+        return NativeCrypto.SSL_pending_written_bytes_in_BIO(networkBio);
+    }
+
+    private int pendingInboundCleartextBytes() {
+        return NativeCrypto.SSL_pending_readable_bytes(sslNativePointer);
+    }
+
+    private int pendingInboundCleartextBytes(HandshakeStatus handshakeStatus) {
+        // There won't be any application data until we're done handshaking.
+        // We first check handshakeFinished to eliminate the overhead of extra JNI call if possible.
+        return handshakeStatus == HandshakeStatus.FINISHED ? pendingInboundCleartextBytes() : 0;
+    }
+
+    private static SSLEngineResult.HandshakeStatus pendingStatus(int pendingOutboundBytes) {
+        // Depending on if there is something left in the BIO we need to WRAP or UNWRAP
+        return pendingOutboundBytes > 0 ? NEED_WRAP : NEED_UNWRAP;
     }
 
     @Override
@@ -285,7 +346,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     @Override
     public SSLSession getSession() {
         if (sslSession == null) {
-            return SSLNullSession.getNullSession();
+            return handshakeSession != null ? handshakeSession : SSLNullSession.getNullSession();
         }
         return sslSession;
     }
@@ -318,8 +379,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                         || engineState == EngineState.CLOSED_INBOUND;
             }
         }
-        return (NativeCrypto.SSL_get_shutdown(sslNativePointer)
-                & NativeConstants.SSL_RECEIVED_SHUTDOWN) != 0;
+        return (NativeCrypto.SSL_get_shutdown(sslNativePointer) & SSL_RECEIVED_SHUTDOWN) != 0;
     }
 
     @Override
@@ -330,8 +390,7 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
                         || engineState == EngineState.CLOSED_OUTBOUND;
             }
         }
-        return (NativeCrypto.SSL_get_shutdown(sslNativePointer)
-                & NativeConstants.SSL_SENT_SHUTDOWN) != 0;
+        return (NativeCrypto.SSL_get_shutdown(sslNativePointer) & SSL_SENT_SHUTDOWN) != 0;
     }
 
     @Override
@@ -371,247 +430,675 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
         sslParameters.setWantClientAuth(want);
     }
 
-    private static void checkIndex(int length, int offset, int count) {
-        if (offset < 0) {
-            throw new IndexOutOfBoundsException("offset < 0");
-        } else if (count < 0) {
-            throw new IndexOutOfBoundsException("count < 0");
-        } else if (offset > length) {
-            throw new IndexOutOfBoundsException("offset > length");
-        } else if (offset > length - count) {
-            throw new IndexOutOfBoundsException("offset + count > length");
+    @Override
+    public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
+        synchronized (stateLock) {
+            try {
+                return unwrap(singleSrcBuffer(src), singleDstBuffer(dst));
+            } finally {
+                resetSingleSrcBuffer();
+                resetSingleDstBuffer();
+            }
         }
     }
 
     @Override
-    public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer[] dsts, int offset, int length)
-            throws SSLException {
-        if (src == null) {
-            throw new IllegalArgumentException("src == null");
-        } else if (dsts == null) {
-            throw new IllegalArgumentException("dsts == null");
-        }
-        checkIndex(dsts.length, offset, length);
-        int dstRemaining = 0;
-        for (int i = 0; i < dsts.length; i++) {
-            ByteBuffer dst = dsts[i];
-            if (dst == null) {
-                throw new IllegalArgumentException("one of the dst == null");
-            } else if (dst.isReadOnly()) {
-                throw new ReadOnlyBufferException();
-            }
-            if (i >= offset && i < offset + length) {
-                dstRemaining += dst.remaining();
-            }
-        }
-
+    public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer[] dsts) throws SSLException {
         synchronized (stateLock) {
-            // If the inbound direction is closed. we can't send anymore.
-            if (engineState == EngineState.CLOSED || engineState == EngineState.CLOSED_INBOUND) {
-                return new SSLEngineResult(Status.CLOSED, getHandshakeStatus(), 0, 0);
-            }
-            if (engineState == EngineState.NEW) {
-                throw new IllegalStateException("Client/server mode must be set before calling unwrap");
-            }
-            if (engineState == EngineState.MODE_SET) {
-                beginHandshake();
-            }
-        }
-
-        // If we haven't completed the handshake yet, just let the caller know.
-        HandshakeStatus handshakeStatus = getHandshakeStatus();
-        if (handshakeStatus == HandshakeStatus.NEED_UNWRAP) {
-            int positionBeforeHandshake = src.position();
-            OpenSSLBIOSource source = OpenSSLBIOSource.wrap(src);
-            long sslSessionCtx = 0L;
             try {
-                sslSessionCtx = NativeCrypto.SSL_do_handshake_bio(sslNativePointer,
-                        source.getContext(), handshakeSink.getContext(), this, getUseClientMode(),
-                        sslParameters.alpnProtocols);
-                if (sslSessionCtx != 0) {
-                    if (sslSession != null && engineState == EngineState.HANDSHAKE_STARTED) {
-                        engineState = EngineState.READY_HANDSHAKE_CUT_THROUGH;
-                    }
-                    sslSession = sslParameters.setupSession(sslSessionCtx, sslNativePointer, sslSession,
-                            getPeerHost(), getPeerPort(), true);
-                }
-                int bytesWritten = handshakeSink.position();
-                int bytesConsumed = (src.position() - positionBeforeHandshake);
-                return new SSLEngineResult((bytesConsumed > 0) ? Status.OK : Status.BUFFER_UNDERFLOW,
-                        getHandshakeStatus(), bytesConsumed, bytesWritten);
-            } catch (Exception e) {
-                throw (SSLHandshakeException) new SSLHandshakeException("Handshake failed")
-                        .initCause(e);
+                return unwrap(singleSrcBuffer(src), dsts);
             } finally {
-                if (sslSession == null && sslSessionCtx != 0) {
-                    NativeCrypto.SSL_SESSION_free(sslSessionCtx);
-                }
-                source.release();
+                resetSingleSrcBuffer();
             }
-        } else if (handshakeStatus != HandshakeStatus.NOT_HANDSHAKING) {
-            return new SSLEngineResult(Status.OK, handshakeStatus, 0, 0);
-        }
-
-        if (dstRemaining == 0) {
-            return new SSLEngineResult(Status.BUFFER_OVERFLOW, getHandshakeStatus(), 0, 0);
-        }
-
-        ByteBuffer srcDuplicate = src.duplicate();
-        OpenSSLBIOSource source = OpenSSLBIOSource.wrap(srcDuplicate);
-        try {
-            int positionBeforeRead = srcDuplicate.position();
-            int produced = 0;
-            boolean shouldStop = false;
-
-            while (!shouldStop) {
-                ByteBuffer dst = getNextAvailableByteBuffer(dsts, offset, length);
-                if (dst == null) {
-                    shouldStop = true;
-                    continue;
-                }
-                ByteBuffer arrayDst = dst;
-                if (dst.isDirect()) {
-                    arrayDst = ByteBuffer.allocate(dst.remaining());
-                }
-
-                int dstOffset = arrayDst.arrayOffset() + arrayDst.position();
-
-                int internalProduced = NativeCrypto.SSL_read_BIO(sslNativePointer,
-                        arrayDst.array(), dstOffset, dst.remaining(), source.getContext(),
-                        localToRemoteSink.getContext(), this);
-                if (internalProduced <= 0) {
-                    shouldStop = true;
-                    continue;
-                }
-                arrayDst.position(arrayDst.position() + internalProduced);
-                produced += internalProduced;
-                if (dst != arrayDst) {
-                    arrayDst.flip();
-                    dst.put(arrayDst);
-                }
-            }
-
-            int consumed = srcDuplicate.position() - positionBeforeRead;
-            src.position(srcDuplicate.position());
-            return new SSLEngineResult((consumed > 0) ? Status.OK : Status.BUFFER_UNDERFLOW,
-                    getHandshakeStatus(), consumed, produced);
-        } catch (IOException e) {
-            throw new SSLException(e);
-        } finally {
-            source.release();
         }
     }
 
-    /** Returns the next non-empty ByteBuffer. */
-    private ByteBuffer getNextAvailableByteBuffer(ByteBuffer[] buffers, int offset, int length) {
-        for (int i = offset; i < length; ++i) {
-            if (buffers[i].remaining() > 0) {
-                return buffers[i];
+    @Override
+    public SSLEngineResult unwrap(final ByteBuffer src, final ByteBuffer[] dsts, final int offset,
+            final int length) throws SSLException {
+        synchronized (stateLock) {
+            try {
+                return unwrap(singleSrcBuffer(src), 0, 1, dsts, offset, length);
+            } finally {
+                resetSingleSrcBuffer();
             }
         }
+    }
+
+    public SSLEngineResult unwrap(final ByteBuffer[] srcs, final ByteBuffer[] dsts)
+            throws SSLException {
+        checkNotNull(srcs, "srcs");
+        checkNotNull(dsts, "dsts");
+        return unwrap(srcs, 0, srcs.length, dsts, 0, dsts.length);
+    }
+
+    public SSLEngineResult unwrap(final ByteBuffer[] srcs, int srcsOffset, final int srcsLength,
+            final ByteBuffer[] dsts, final int dstsOffset, final int dstsLength)
+            throws SSLException {
+        checkNotNull(srcs, "srcs");
+        checkNotNull(dsts, "dsts");
+
+        checkIndex(srcs.length, srcsOffset, srcsLength, "srcs");
+        checkIndex(dsts.length, dstsOffset, dstsLength, "dsts");
+
+        // Determine the output capacity.
+        int capacity = 0;
+        final int endOffset = dstsOffset + dstsLength;
+        for (int i = 0; i < dsts.length; i++) {
+            ByteBuffer dst = dsts[i];
+            checkNotNull(dst, "one of the dst");
+            if (dst.isReadOnly()) {
+                throw new ReadOnlyBufferException();
+            }
+            if (i >= dstsOffset && i < dstsOffset + dstsLength) {
+                capacity += dst.remaining();
+            }
+        }
+
+        final int srcsEndOffset = srcsOffset + srcsLength;
+        long len = 0;
+        for (int i = srcsOffset; i < srcsEndOffset; i++) {
+            ByteBuffer src = srcs[i];
+            if (src == null) {
+                throw new IllegalArgumentException("srcs[" + i + "] is null");
+            }
+            len += src.remaining();
+        }
+
+        // Protect against protocol overflow attack vector
+        if (len > SSL3_RT_MAX_PACKET_SIZE) {
+            throw new SSLException("encrypted packet oversized");
+        }
+
+        synchronized (stateLock) {
+            switch (engineState) {
+                case MODE_SET:
+                    // Begin the handshake implicitly.
+                    beginHandshakeInternal();
+                    break;
+                case CLOSED_INBOUND:
+                case CLOSED:
+                    // If the inbound direction is closed. we can't send anymore.
+                    return new SSLEngineResult(Status.CLOSED, getHandshakeStatusInternal(), 0, 0);
+                case NEW:
+                    throw new IllegalStateException(
+                            "Client/server mode must be set before calling unwrap");
+            }
+
+            HandshakeStatus handshakeStatus = HandshakeStatus.NOT_HANDSHAKING;
+            if (!handshakeFinished) {
+                handshakeStatus = handshake();
+                if (handshakeStatus == NEED_WRAP) {
+                    return NEED_WRAP_OK;
+                }
+                if (engineState == EngineState.CLOSED) {
+                    return NEED_WRAP_CLOSED;
+                }
+                // NEED_UNWRAP - just fall through to perform the unwrap.
+            }
+
+            if (len < SSL3_RT_HEADER_LENGTH) {
+                return new SSLEngineResult(BUFFER_UNDERFLOW, getHandshakeStatus(), 0, 0);
+            }
+
+            int packetLength = SSLUtils.getEncryptedPacketLength(srcs, srcsOffset);
+            if (packetLength < 0) {
+                throw new SSLException("Unable to parse TLS packet header");
+            }
+
+            if (packetLength - SSL3_RT_HEADER_LENGTH > capacity) {
+                // No enough space in the destination buffer so signal the caller
+                // that the buffer needs to be increased.
+                return new SSLEngineResult(BUFFER_OVERFLOW, getHandshakeStatus(), 0, 0);
+            }
+
+            if (len < packetLength) {
+                // We either have not enough data to read the packet header or not enough for
+                // reading
+                // the whole packet.
+                return new SSLEngineResult(BUFFER_UNDERFLOW, getHandshakeStatus(), 0, 0);
+            }
+
+            // Write all of the source data to the networkBio
+            int bytesConsumed = 0;
+            if (srcsOffset < srcsEndOffset) {
+                int packetLengthRemaining = packetLength;
+                do {
+                    ByteBuffer src = srcs[srcsOffset];
+                    int remaining = src.remaining();
+                    if (remaining == 0) {
+                        // We must skip empty buffers as BIO_write will return 0 if asked to write
+                        // something
+                        // with length 0.
+                        srcsOffset++;
+                        continue;
+                    }
+                    // Write the source encrypted data to the networkBio.
+                    int written =
+                            writeEncryptedData(src, Math.min(packetLengthRemaining, remaining));
+                    if (written > 0) {
+                        packetLengthRemaining -= written;
+                        if (packetLengthRemaining == 0) {
+                            // A whole packet has been consumed.
+                            break;
+                        }
+
+                        if (written == remaining) {
+                            srcsOffset++;
+                        } else {
+                            // We were not able to write everything into the BIO so break the write
+                            // loop as otherwise
+                            // we will produce an error on the next write attempt, which will
+                            // trigger a SSL.clearError()
+                            // later.
+                            break;
+                        }
+                    } else {
+                        // BIO_write returned a negative or zero number, this means we could not
+                        // complete the write
+                        // operation and should retry later.
+                        // We ignore BIO_* errors here as we use in memory BIO anyway and will do
+                        // another SSL_* call
+                        // later on in which we will produce an exception in case of an error
+                        NativeCrypto.SSL_clear_error();
+                        break;
+                    }
+                } while (srcsOffset < srcsEndOffset);
+                bytesConsumed = packetLength - packetLengthRemaining;
+            }
+
+            // Now read any available plaintext data.
+            int bytesProduced = 0;
+            if (capacity > 0) {
+                // Write decrypted data to dsts buffers
+                for (int idx = dstsOffset; idx < endOffset; ++idx) {
+                    ByteBuffer dst = dsts[idx];
+                    if (!dst.hasRemaining()) {
+                        continue;
+                    }
+
+                    int bytesRead = readPlaintextData(dst);
+
+                    if (bytesRead > 0) {
+                        bytesProduced += bytesRead;
+                        if (!dst.hasRemaining()) {
+                            continue;
+                        }
+
+                        // We read everything return now.
+                        return newResult(bytesConsumed, bytesProduced, handshakeStatus);
+                    }
+
+                    // Return an appropriate result based on the error code.
+                    int sslError = NativeCrypto.SSL_get_error(sslNativePointer, bytesRead);
+                    switch (sslError) {
+                        case SSL_ERROR_ZERO_RETURN:
+                            // This means the connection was shutdown correctly, close inbound and
+                            // outbound
+                            closeAll();
+                        // fall-trough!
+                        case SSL_ERROR_WANT_READ:
+                        case SSL_ERROR_WANT_WRITE:
+                            return newResult(bytesConsumed, bytesProduced, handshakeStatus);
+                        default:
+                            return sslReadErrorResult(NativeCrypto.SSL_get_last_error_number(),
+                                    bytesConsumed, bytesProduced);
+                    }
+                }
+            } else {
+                // If the capacity of all destination buffers is 0 we need to trigger a SSL_read
+                // anyway to ensure
+                // everything is flushed in the BIO pair and so we can detect it in the
+                // pendingInboundCleartextBytes() call.
+                try {
+                    if (NativeCrypto.ENGINE_SSL_read_direct(sslNativePointer, EMPTY_ADDR, 0, this)
+                            <= 0) {
+                        // We do not check SSL_get_error as we are not interested in any error that
+                        // is not fatal.
+                        int err = NativeCrypto.SSL_get_last_error_number();
+                        if (err != SSL_ERROR_NONE) {
+                            return sslReadErrorResult(err, bytesConsumed, bytesProduced);
+                        }
+                    }
+                } catch (IOException e) {
+                    throw new SSLException(e);
+                }
+            }
+            if (pendingInboundCleartextBytes(handshakeStatus) > 0) {
+                // We filled all buffers but there is still some data pending in the BIO buffer,
+                // return BUFFER_OVERFLOW.
+                return new SSLEngineResult(BUFFER_OVERFLOW,
+                        mayFinishHandshake(handshakeStatus == FINISHED
+                                        ? handshakeStatus
+                                        : getHandshakeStatusInternal()),
+                        bytesConsumed, bytesProduced);
+            }
+
+            return newResult(bytesConsumed, bytesProduced, handshakeStatus);
+        }
+    }
+
+    private SSLEngineResult.HandshakeStatus handshake() throws SSLException {
+        long sslSessionCtx = 0L;
+        try {
+            // Only actually perform the handshake if we haven't already just completed it
+            // via BIO operations.
+            int code = NativeCrypto.ENGINE_SSL_do_handshake(sslNativePointer, this);
+            if (code <= 0) {
+                int sslError = NativeCrypto.SSL_get_error(sslNativePointer, code);
+                switch (sslError) {
+                    case SSL_ERROR_WANT_READ:
+                    case SSL_ERROR_WANT_WRITE:
+                        return pendingStatus(pendingOutboundEncryptedBytes());
+                    default:
+                        // Everything else is considered as error
+                        throw shutdownWithError("SSL_do_handshake");
+                }
+            }
+
+            // Handshake is finished!
+            sslSessionCtx = NativeCrypto.SSL_get1_session(sslNativePointer);
+            if (sslSessionCtx == 0) {
+                // TODO(nathanmittler): Should we throw here?
+                // return pendingStatus(pendingOutboundBytes());
+                throw shutdownWithError("Failed to obtain session after handshake completed");
+            }
+            sslSession = sslParameters.setupSession(sslSessionCtx, sslNativePointer, sslSession,
+                    getPeerHost(), getPeerPort(), true);
+            if (sslSession != null && engineState == EngineState.HANDSHAKE_STARTED) {
+                engineState = EngineState.READY_HANDSHAKE_CUT_THROUGH;
+            } else {
+                engineState = EngineState.READY;
+            }
+            handshakeSession = null;
+            handshakeFinished = true;
+            return FINISHED;
+        } catch (Exception e) {
+            throw(SSLHandshakeException) new SSLHandshakeException("Handshake failed").initCause(e);
+        } finally {
+            if (sslSession == null && sslSessionCtx != 0) {
+                NativeCrypto.SSL_SESSION_free(sslSessionCtx);
+            }
+        }
+    }
+
+    /**
+     * Write plaintext data to the OpenSSL internal BIO
+     *
+     * Calling this function with src.remaining == 0 is undefined.
+     */
+    private int writePlaintextData(final ByteBuffer src, int len) throws SSLException {
+        try {
+            final int pos = src.position();
+            final int sslWrote;
+
+            if (src.isDirect()) {
+                long addr = NativeCrypto.getDirectBufferAddress(src) + pos;
+                sslWrote = NativeCrypto.ENGINE_SSL_write_direct(sslNativePointer, addr, len, this);
+            } else {
+                ByteBuffer heapSrc = toHeapBuffer(src, len);
+                sslWrote = NativeCrypto.ENGINE_SSL_write_heap(sslNativePointer, heapSrc.array(),
+                        heapSrc.arrayOffset() + heapSrc.position(), len, this);
+            }
+            if (sslWrote > 0) {
+                src.position(pos + sslWrote);
+            }
+            return sslWrote;
+        } catch (IOException e) {
+            throw new SSLException(e);
+        }
+    }
+
+    /**
+     * Read plaintext data from the OpenSSL internal BIO
+     */
+    private int readPlaintextData(final ByteBuffer dst) throws SSLException {
+        try {
+            final int sslRead;
+            final int pos = dst.position();
+            final int limit = dst.limit();
+            final int len = Math.min(SSL3_RT_MAX_PACKET_SIZE, limit - pos);
+            if (dst.isDirect()) {
+                long addr = NativeCrypto.getDirectBufferAddress(dst) + pos;
+                sslRead = NativeCrypto.ENGINE_SSL_read_direct(sslNativePointer, addr, len, this);
+                if (sslRead > 0) {
+                    dst.position(pos + sslRead);
+                }
+            } else if (dst.hasArray()) {
+                sslRead = NativeCrypto.ENGINE_SSL_read_heap(
+                        sslNativePointer, dst.array(), dst.arrayOffset() + pos, len, this);
+                if (sslRead > 0) {
+                    dst.position(pos + sslRead);
+                }
+            } else {
+                byte[] data = new byte[len];
+                sslRead = NativeCrypto.ENGINE_SSL_read_heap(sslNativePointer, data, 0, len, this);
+                if (sslRead > 0) {
+                    dst.put(data, 0, sslRead);
+                }
+            }
+            return sslRead;
+        } catch (IOException e) {
+            throw new SSLException(e);
+        }
+    }
+
+    /**
+     * Write encrypted data to the OpenSSL network BIO.
+     */
+    private int writeEncryptedData(final ByteBuffer src, int len) throws SSLException {
+        try {
+            final int pos = src.position();
+            final int netWrote;
+            if (src.isDirect()) {
+                long addr = NativeCrypto.getDirectBufferAddress(src) + pos;
+                netWrote = NativeCrypto.ENGINE_SSL_write_BIO_direct(
+                        sslNativePointer, networkBio, addr, len, this);
+            } else {
+                ByteBuffer heapSrc = toHeapBuffer(src, len);
+                netWrote = NativeCrypto.ENGINE_SSL_write_BIO_heap(sslNativePointer, networkBio,
+                        heapSrc.array(), heapSrc.arrayOffset() + heapSrc.position(), len, this);
+            }
+
+            if (netWrote >= 0) {
+                src.position(pos + netWrote);
+            }
+
+            return netWrote;
+        } catch (IOException e) {
+            throw new SSLException(e);
+        }
+    }
+
+    private SSLEngineResult readPendingBytesFromBIO(ByteBuffer dst, int bytesConsumed,
+            int bytesProduced, SSLEngineResult.HandshakeStatus status) throws SSLException {
+        // Check to see if the engine wrote data into the network BIO
+        int pendingNet = pendingOutboundEncryptedBytes();
+        if (pendingNet > 0) {
+            // Do we have enough room in dst to write encrypted data?
+            int capacity = dst.remaining();
+            if (capacity < pendingNet) {
+                return new SSLEngineResult(BUFFER_OVERFLOW,
+                        mayFinishHandshake(
+                                status == FINISHED ? status : getHandshakeStatus(pendingNet)),
+                        bytesConsumed, bytesProduced);
+            }
+
+            // Write the pending data from the network BIO into the dst buffer
+            int produced = readEncryptedData(dst, pendingNet);
+
+            if (produced <= 0) {
+                // We ignore BIO_* errors here as we use in memory BIO anyway and will do another
+                // SSL_* call later
+                // on in which we will produce an exception in case of an error
+                NativeCrypto.SSL_clear_error();
+            } else {
+                bytesProduced += produced;
+                pendingNet -= produced;
+            }
+
+            return new SSLEngineResult(getEngineStatus(),
+                    mayFinishHandshake(
+                            status == FINISHED ? status : getHandshakeStatus(pendingNet)),
+                    bytesConsumed, bytesProduced);
+        }
         return null;
+    }
+
+    /**
+     * Read encrypted data from the OpenSSL network BIO
+     */
+    private int readEncryptedData(final ByteBuffer dst, final int pending) throws SSLException {
+        try {
+            int bioRead = 0;
+            if (dst.remaining() >= pending) {
+                final int pos = dst.position();
+                final int limit = dst.limit();
+                final int len = Math.min(pending, limit - pos);
+                if (dst.isDirect()) {
+                    long addr = NativeCrypto.getDirectBufferAddress(dst) + pos;
+                    bioRead = NativeCrypto.ENGINE_SSL_read_BIO_direct(
+                            sslNativePointer, networkBio, addr, len, this);
+                    if (bioRead > 0) {
+                        dst.position(pos + bioRead);
+                        return bioRead;
+                    }
+                } else if (dst.hasArray()) {
+                    bioRead = NativeCrypto.ENGINE_SSL_read_BIO_heap(sslNativePointer, networkBio,
+                            dst.array(), dst.arrayOffset() + pos, pending, this);
+                    if (bioRead > 0) {
+                        dst.position(pos + bioRead);
+                        return bioRead;
+                    }
+                } else {
+                    byte[] data = new byte[len];
+                    bioRead = NativeCrypto.ENGINE_SSL_read_BIO_heap(
+                            sslNativePointer, networkBio, data, 0, pending, this);
+                    if (bioRead > 0) {
+                        dst.put(data, 0, bioRead);
+                        return bioRead;
+                    }
+                }
+            }
+            return bioRead;
+        } catch (IOException e) {
+            throw new SSLException(e);
+        }
+    }
+
+    private SSLEngineResult.HandshakeStatus mayFinishHandshake(
+            SSLEngineResult.HandshakeStatus status) throws SSLException {
+        if (!handshakeFinished
+                && status
+                        == NOT_HANDSHAKING /*|| engineState == EngineState.HANDSHAKE_COMPLETED)*/) {
+            // If the status was NOT_HANDSHAKING and we not finished the handshake we need to call
+            // SSL_do_handshake() again
+            return handshake();
+        }
+        return status;
+    }
+
+    private SSLEngineResult.HandshakeStatus getHandshakeStatus(int pending) {
+        // Check if we are in the initial handshake phase or shutdown phase
+        return !handshakeFinished ? pendingStatus(pending) : NOT_HANDSHAKING;
+    }
+
+    private SSLEngineResult.Status getEngineStatus() {
+        switch (engineState) {
+            case CLOSED_INBOUND:
+            case CLOSED_OUTBOUND:
+            case CLOSED:
+                return CLOSED;
+            default:
+                return OK;
+        }
+    }
+
+    private void closeAll() throws SSLException {
+        closeOutbound();
+        closeInbound();
+    }
+
+    private SSLEngineResult sslReadErrorResult(int err, int bytesConsumed, int bytesProduced)
+            throws SSLException {
+        if (pendingOutboundEncryptedBytes() > 0) {
+            return new SSLEngineResult(OK, NEED_WRAP, bytesConsumed, bytesProduced);
+        }
+        throw shutdownWithError(NativeCrypto.SSL_get_error_string(err));
+    }
+
+    private SSLException shutdownWithError(String err) {
+        // There was an internal error -- shutdown
+        shutdown();
+        if (getHandshakeStatusInternal() == HandshakeStatus.FINISHED) {
+            return new SSLException(err);
+        }
+        return new SSLHandshakeException(err);
+    }
+
+    private SSLEngineResult newResult(int bytesConsumed, int bytesProduced,
+            SSLEngineResult.HandshakeStatus status) throws SSLException {
+        return new SSLEngineResult(getEngineStatus(),
+                mayFinishHandshake(status == FINISHED ? status : getHandshakeStatusInternal()),
+                bytesConsumed, bytesProduced);
+    }
+
+    @Override
+    public final SSLEngineResult wrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
+        synchronized (stateLock) {
+            try {
+                return wrap(singleSrcBuffer(src), dst);
+            } finally {
+                resetSingleSrcBuffer();
+            }
+        }
     }
 
     @Override
     public SSLEngineResult wrap(ByteBuffer[] srcs, int offset, int length, ByteBuffer dst)
             throws SSLException {
-        if (srcs == null) {
-            throw new IllegalArgumentException("srcs == null");
-        } else if (dst == null) {
-            throw new IllegalArgumentException("dst == null");
-        } else if (dst.isReadOnly()) {
+        checkNotNull(srcs, "srcs");
+        checkNotNull(dst, "dst");
+        if (dst.isReadOnly()) {
             throw new ReadOnlyBufferException();
         }
-        for (ByteBuffer src : srcs) {
-            if (src == null) {
-                throw new IllegalArgumentException("one of the src == null");
-            }
+        final int endOffset = offset + length;
+        for (int i = offset; i < endOffset; ++i) {
+            checkNotNull(srcs[i], "one of the src");
         }
-        checkIndex(srcs.length, offset, length);
+        checkIndex(srcs.length, offset, length, "srcs");
 
         synchronized (stateLock) {
-            // If the outbound direction is closed. we can't send anymore.
-            if (engineState == EngineState.CLOSED || engineState == EngineState.CLOSED_OUTBOUND) {
-                return new SSLEngineResult(Status.CLOSED, getHandshakeStatus(), 0, 0);
+            switch (engineState) {
+                case MODE_SET:
+                    // Begin the handshake implicitly.
+                    beginHandshakeInternal();
+                    break;
+                case CLOSED_OUTBOUND:
+                case CLOSED:
+                    return new SSLEngineResult(Status.CLOSED, getHandshakeStatusInternal(), 0, 0);
+                case NEW:
+                    throw new IllegalStateException(
+                            "Client/server mode must be set before calling wrap");
             }
-            if (engineState == EngineState.NEW) {
-                throw new IllegalStateException("Client/server mode must be set before calling wrap");
-            }
-            if (engineState == EngineState.MODE_SET) {
-                beginHandshake();
-            }
-        }
 
-        if (dst.remaining() < NativeConstants.SSL3_RT_MAX_PACKET_SIZE) {
-            return new SSLEngineResult(Status.BUFFER_OVERFLOW, getHandshakeStatus(), 0, 0);
-        }
+            // If we haven't completed the handshake yet, just let the caller know.
+            HandshakeStatus handshakeStatus = HandshakeStatus.NOT_HANDSHAKING;
+            // Prepare OpenSSL to work in server mode and receive handshake
+            if (!handshakeFinished) {
+                handshakeStatus = handshake();
+                if (handshakeStatus == NEED_UNWRAP) {
+                    return NEED_UNWRAP_OK;
+                }
 
-        // If we haven't completed the handshake yet, just let the caller know.
-        HandshakeStatus handshakeStatus = getHandshakeStatus();
-        if (handshakeStatus == HandshakeStatus.NEED_WRAP) {
-            if (handshakeSink.available() == 0) {
-                long sslSessionCtx = 0L;
-                try {
-                    sslSessionCtx = NativeCrypto.SSL_do_handshake_bio(sslNativePointer,
-                            nullSource.getContext(), handshakeSink.getContext(), this,
-                            getUseClientMode(), sslParameters.alpnProtocols);
-                    if (sslSessionCtx != 0) {
-                        if (sslSession != null && engineState == EngineState.HANDSHAKE_STARTED) {
-                            engineState = EngineState.READY_HANDSHAKE_CUT_THROUGH;
+                if (engineState == EngineState.CLOSED) {
+                    return NEED_UNWRAP_CLOSED;
+                }
+                // NEED_WRAP - just fall through to perform the wrap.
+            }
+
+            if (dst.remaining() < SSL3_RT_MAX_PACKET_SIZE) {
+                return new SSLEngineResult(
+                        Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0, 0);
+            }
+
+            int bytesProduced = 0;
+            int bytesConsumed = 0;
+        loop:
+            for (int i = offset; i < endOffset; ++i) {
+                final ByteBuffer src = srcs[i];
+                checkNotNull(src, "srcs[%d] is null", i);
+                while (src.hasRemaining()) {
+                    final SSLEngineResult pendingNetResult;
+                    // Write plaintext application data to the SSL engine
+                    int result = writePlaintextData(src,
+                            Math.min(src.remaining(), SSL3_RT_MAX_PLAIN_LENGTH - bytesConsumed));
+                    if (result > 0) {
+                        bytesConsumed += result;
+
+                        pendingNetResult = readPendingBytesFromBIO(
+                                dst, bytesConsumed, bytesProduced, handshakeStatus);
+                        if (pendingNetResult != null) {
+                            if (pendingNetResult.getStatus() != OK) {
+                                return pendingNetResult;
+                            }
+                            bytesProduced = pendingNetResult.bytesProduced();
                         }
-                        sslSession = sslParameters.setupSession(sslSessionCtx, sslNativePointer, sslSession,
-                                getPeerHost(), getPeerPort(), true);
-                    }
-                } catch (Exception e) {
-                    throw (SSLHandshakeException) new SSLHandshakeException("Handshake failed")
-                            .initCause(e);
-                } finally {
-                    if (sslSession == null && sslSessionCtx != 0) {
-                        NativeCrypto.SSL_SESSION_free(sslSessionCtx);
+                        if (bytesConsumed == SSL3_RT_MAX_PLAIN_LENGTH) {
+                            // If we consumed the maximum amount of bytes for the plaintext length
+                            // break out of the loop and start to fill the dst buffer.
+                            break loop;
+                        }
+                    } else {
+                        int sslError = NativeCrypto.SSL_get_error(sslNativePointer, result);
+                        switch (sslError) {
+                            case SSL_ERROR_ZERO_RETURN:
+                                // This means the connection was shutdown correctly, close inbound
+                                // and outbound
+                                closeAll();
+                                pendingNetResult = readPendingBytesFromBIO(
+                                        dst, bytesConsumed, bytesProduced, handshakeStatus);
+                                return pendingNetResult != null ? pendingNetResult
+                                                                : CLOSED_NOT_HANDSHAKING;
+                            case SSL_ERROR_WANT_READ:
+                                // If there is no pending data to read from BIO we should go back to
+                                // event loop and try
+                                // to read more data [1]. It is also possible that event loop will
+                                // detect the socket
+                                // has been closed. [1]
+                                // https://www.openssl.org/docs/manmaster/ssl/SSL_write.html
+                                pendingNetResult = readPendingBytesFromBIO(
+                                        dst, bytesConsumed, bytesProduced, handshakeStatus);
+                                return pendingNetResult != null
+                                        ? pendingNetResult
+                                        : new SSLEngineResult(getEngineStatus(), NEED_UNWRAP,
+                                                  bytesConsumed, bytesProduced);
+                            case SSL_ERROR_WANT_WRITE:
+                                // SSL_ERROR_WANT_WRITE typically means that the underlying
+                                // transport is not writable
+                                // and we should set the "want write" flag on the selector and try
+                                // again when the
+                                // underlying transport is writable [1]. However we are not directly
+                                // writing to the
+                                // underlying transport and instead writing to a BIO buffer. The
+                                // OpenSsl documentation
+                                // says we should do the following [1]:
+                                //
+                                // "When using a buffering BIO, like a BIO pair, data must be
+                                // written into or retrieved
+                                // out of the BIO before being able to continue."
+                                //
+                                // So we attempt to drain the BIO buffer below, but if there is no
+                                // data this condition
+                                // is undefined and we assume their is a fatal error with the
+                                // openssl engine and close.
+                                // [1] https://www.openssl.org/docs/manmaster/ssl/SSL_write.html
+                                pendingNetResult = readPendingBytesFromBIO(
+                                        dst, bytesConsumed, bytesProduced, handshakeStatus);
+                                return pendingNetResult != null ? pendingNetResult
+                                                                : NEED_WRAP_CLOSED;
+                            default:
+                                // Everything else is considered as error
+                                throw shutdownWithError("SSL_write");
+                        }
                     }
                 }
             }
-            int bytesWritten = writeSinkToByteBuffer(handshakeSink, dst);
-            return new SSLEngineResult(Status.OK, getHandshakeStatus(), 0, bytesWritten);
-        } else if (handshakeStatus != HandshakeStatus.NOT_HANDSHAKING) {
-            return new SSLEngineResult(Status.OK, handshakeStatus, 0, 0);
-        }
-
-        try {
-            int totalRead = 0;
-            byte[] buffer = null;
-
-            for (ByteBuffer src : srcs) {
-                int toRead = src.remaining();
-                if (buffer == null || toRead > buffer.length) {
-                    buffer = new byte[toRead];
-                }
-                /*
-                 * We can't just use .mark() here because the caller might be
-                 * using it.
-                 */
-                src.duplicate().get(buffer, 0, toRead);
-                int numRead = NativeCrypto.SSL_write_BIO(sslNativePointer, buffer, toRead,
-                        localToRemoteSink.getContext(), this);
-                if (numRead > 0) {
-                    src.position(src.position() + numRead);
-                    totalRead += numRead;
+            // We need to check if pendingWrittenBytesInBIO was checked yet, as we may not checked
+            // if the srcs was
+            // empty, or only contained empty buffers.
+            if (bytesConsumed == 0) {
+                SSLEngineResult pendingNetResult =
+                        readPendingBytesFromBIO(dst, 0, bytesProduced, handshakeStatus);
+                if (pendingNetResult != null) {
+                    return pendingNetResult;
                 }
             }
 
-            return new SSLEngineResult(Status.OK, getHandshakeStatus(), totalRead,
-                    writeSinkToByteBuffer(localToRemoteSink, dst));
-        } catch (IOException e) {
-            throw new SSLException(e);
+            // return new SSLEngineResult(OK, getHandshakeStatusInternal(), bytesConsumed,
+            // bytesProduced);
+            return newResult(bytesConsumed, bytesProduced, handshakeStatus);
         }
-    }
-
-    /** Writes data available in a BIO sink to a ByteBuffer. */
-    private static int writeSinkToByteBuffer(OpenSSLBIOSink sink, ByteBuffer dst) {
-        int toWrite = Math.min(sink.available(), dst.remaining());
-        dst.put(sink.toByteArray(), sink.position(), toWrite);
-        sink.skip(toWrite);
-        return toWrite;
     }
 
     @Override
@@ -628,15 +1115,15 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     public void onSSLStateChange(long sslSessionNativePtr, int type, int val) {
         synchronized (stateLock) {
             switch (type) {
-                case NativeConstants.SSL_CB_HANDSHAKE_DONE:
+                case SSL_CB_HANDSHAKE_DONE:
                     if (engineState != EngineState.HANDSHAKE_STARTED &&
                         engineState != EngineState.READY_HANDSHAKE_CUT_THROUGH) {
-                        throw new IllegalStateException("Completed handshake while in mode "
-                                + engineState);
+                        throw new IllegalStateException(
+                                "Completed handshake while in mode " + engineState);
                     }
                     engineState = EngineState.HANDSHAKE_COMPLETED;
                     break;
-                case NativeConstants.SSL_CB_HANDSHAKE_START:
+                case SSL_CB_HANDSHAKE_START:
                     // For clients, this will allow the NEED_UNWRAP status to be
                     // returned.
                     engineState = EngineState.HANDSHAKE_STARTED;
@@ -646,8 +1133,8 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     }
 
     @Override
-    public void verifyCertificateChain(long sslSessionNativePtr, long[] certRefs,
-            String authMethod) throws CertificateException {
+    public void verifyCertificateChain(long sslSessionNativePtr, long[] certRefs, String authMethod)
+            throws CertificateException {
         try {
             X509TrustManager x509tm = sslParameters.getX509TrustManager();
             if (x509tm == null) {
@@ -679,28 +1166,22 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
             throw e;
         } catch (Exception e) {
             throw new CertificateException(e);
-        } finally {
-            // Clear this before notifying handshake completed listeners
-            handshakeSession = null;
         }
     }
 
     @Override
     public void clientCertificateRequested(byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals)
             throws CertificateEncodingException, SSLException {
-        sslParameters.chooseClientCertificate(keyTypeBytes, asn1DerEncodedPrincipals,
-                sslNativePointer, this);
+        sslParameters.chooseClientCertificate(
+                keyTypeBytes, asn1DerEncodedPrincipals, sslNativePointer, this);
     }
 
     private void shutdown() {
         try {
-            NativeCrypto.SSL_shutdown_BIO(sslNativePointer, nullSource.getContext(),
-                    localToRemoteSink.getContext(), this);
+            NativeCrypto.ENGINE_SSL_shutdown(sslNativePointer, this);
         } catch (IOException ignored) {
-            /*
-             * TODO: The RI ignores close failures in SSLSocket, but need to
-             * investigate whether it does for SSLEngine.
-             */
+            // TODO: The RI ignores close failures in SSLSocket, but need to
+            // investigate whether it does for SSLEngine.
         }
     }
 
@@ -717,7 +1198,9 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
             return;
         }
         NativeCrypto.SSL_free(sslNativePointer);
+        NativeCrypto.BIO_free_all(networkBio);
         sslNativePointer = 0;
+        networkBio = 0;
     }
 
     @Override
@@ -746,8 +1229,8 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     }
 
     @Override
-    public String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
-            String[] keyTypes) {
+    public String chooseClientAlias(
+            X509KeyManager keyManager, X500Principal[] issuers, String[] keyTypes) {
         if (keyManager instanceof X509ExtendedKeyManager) {
             X509ExtendedKeyManager ekm = (X509ExtendedKeyManager) keyManager;
             return ekm.chooseEngineClientAlias(keyTypes, issuers, this);
@@ -772,6 +1255,35 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     }
 
     /**
+     * This method enables session ticket support.
+     *
+     * @param useSessionTickets True to enable session tickets
+     */
+    public void setUseSessionTickets(boolean useSessionTickets) {
+        sslParameters.useSessionTickets = useSessionTickets;
+    }
+
+    /**
+     * This method does nothing and is kept for backward compatibility.
+     */
+    public void setNpnProtocols(byte[] npnProtocols) {}
+
+    /**
+     * Sets the list of protocols this peer is interested in. If the list is {@code null}, no
+     * protocols will be used.
+     *
+     * @param alpnProtocols a non-empty array of protocol names. From SSL_select_next_proto, "vector
+     * of 8-bit, length prefixed byte strings. The length byte itself is not included in the length.
+     * A byte string of length 0 is invalid. No byte string may be truncated.".
+     */
+    public void setAlpnProtocols(byte[] alpnProtocols) {
+        if (alpnProtocols != null && alpnProtocols.length == 0) {
+            throw new IllegalArgumentException("alpnProtocols.length == 0");
+        }
+        sslParameters.alpnProtocols = alpnProtocols;
+    }
+
+    /**
      * Returns null always for backward compatibility.
      */
     public byte[] getNpnSelectedProtocol() {
@@ -779,10 +1291,63 @@ public class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHand
     }
 
     /**
-     * Returns the protocol agreed upon by client and server, or {@code null} if
-     * no protocol was agreed upon.
+     * Returns the protocol agreed upon by client and server, or {@code null} if no protocol was
+     * agreed upon.
      */
     public byte[] getAlpnSelectedProtocol() {
         return NativeCrypto.SSL_get0_alpn_selected(sslNativePointer);
+    }
+
+    private ByteBuffer toHeapBuffer(ByteBuffer buffer, int len) {
+        if (buffer.hasArray()) {
+            return buffer;
+        }
+
+        // Need to copy to a heap buffer.
+        final ByteBuffer heapBuffer = ByteBuffer.allocate(len);
+        final int pos = buffer.position();
+        final int limit = buffer.limit();
+        buffer.limit(pos + len);
+        try {
+            heapBuffer.put(buffer);
+            heapBuffer.flip();
+            return heapBuffer;
+        } finally {
+            buffer.limit(limit);
+            buffer.position(pos);
+        }
+    }
+
+    private ByteBuffer[] singleSrcBuffer(ByteBuffer src) {
+        singleSrcBuffer[0] = src;
+        return singleSrcBuffer;
+    }
+
+    private void resetSingleSrcBuffer() {
+        singleSrcBuffer[0] = null;
+    }
+
+    private ByteBuffer[] singleDstBuffer(ByteBuffer src) {
+        singleDstBuffer[0] = src;
+        return singleDstBuffer;
+    }
+
+    private void resetSingleDstBuffer() {
+        singleDstBuffer[0] = null;
+    }
+
+    private static void checkIndex(int arrayLength, int offset, int length, String arrayName) {
+        if ((offset | length) < 0 || offset + length > arrayLength) {
+            throw new IndexOutOfBoundsException("offset: " + offset + ", length: " + length
+                    + " (expected: offset <= offset + length <= " + arrayName + ".length ("
+                    + arrayLength + "))");
+        }
+    }
+
+    private static <T> T checkNotNull(T obj, String fmt, Object... args) {
+        if (obj == null) {
+            throw new IllegalArgumentException(String.format(fmt, args));
+        }
+        return obj;
     }
 }

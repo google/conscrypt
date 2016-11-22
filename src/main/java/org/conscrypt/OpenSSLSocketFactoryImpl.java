@@ -25,6 +25,8 @@ import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 
 public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
+    private static boolean alwaysUseSocketEngine =
+            Boolean.parseBoolean(System.getProperty("org.conscrypt.alwaysUseEngineSocket"));
 
     private final SSLParametersImpl sslParameters;
     private final IOException instantiationException;
@@ -45,6 +47,10 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
     public OpenSSLSocketFactoryImpl(SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
         this.instantiationException = null;
+    }
+
+    public static void setAlwaysUseEngineSocket(boolean enable) {
+        alwaysUseSocketEngine = enable;
     }
 
     @Override
@@ -109,7 +115,7 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
         } catch (RuntimeException re) {
             // Ignore
         }
-        if (socketHasFd) {
+        if (socketHasFd && !alwaysUseSocketEngine) {
             return new OpenSSLSocketImplWrapper(s,
                 hostname,
                 port,
