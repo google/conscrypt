@@ -25,7 +25,11 @@ cc_defaults {
     ],
 
     srcs: [
-        "src/main/native/org_conscrypt_NativeCrypto.cpp",
+        "common/src/jni/main/cpp/org_conscrypt_NativeCrypto.cpp",
+    ],
+
+    local_include_dirs: [
+        "common/src/jni/main/include",
     ],
 
     compile_multilib: "both",
@@ -36,11 +40,11 @@ cc_defaults {
     name: "conscrypt_unbundled",
 
     srcs: [
-        "src/compat/native/JNIHelp.cpp",
+        "common/src/jni/unbundled/cpp/JNIHelp.cpp",
     ],
 
     local_include_dirs: [
-        "src/compat/native",
+        "common/src/jni/unbundled/include",
     ],
 
     host_ldlibs: ["-ldl"],
@@ -71,11 +75,11 @@ cc_library_host_shared {
     ],
 
     srcs: [
-        "src/openjdk/native/JNIHelp.cpp",
+        "common/src/jni/unbundled/cpp/JNIHelp.cpp",
     ],
 
     local_include_dirs: [
-        "src/openjdk/native",
+        "common/src/jni/unbundled/include",
     ],
 
     host_ldlibs: ["-lpthread"],

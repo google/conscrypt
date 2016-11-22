@@ -1,57 +1,249 @@
-apply plugin: 'java'
-apply plugin: 'cpp'
+// Note: Requires BoringSSL and the Android SDK
+//
+// Android SDK
+// ============
+// Download and install the latest Android SDK from https://developer.android.com/studio/install.html
+// and set the ANDROID_HOME environment variable to point to the root of the SDK.
+//
+// BoringSSL
+// =========
+// Checkout to a directory of your choice and then build as follows:
+//
+// linux/mac:
+// cd $BORINGSSL_HOME
+// mkdir build
+// cd build
+// cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS=-Wa,--noexecstack -GNinja ..
+// ninja
+//
+// windows:
+// cd $BORINGSSL_HOME
+// mkdir build
+// cd build
+// cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+// ninja
+//
+// Note: Also requires Android SDK and the environment variable ANDROID_HOME.
 
-sourceSets {
-    stub {
-        java.srcDirs = [
-            'src/stub/java'
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.google.gradle:osdetector-gradle-plugin:1.4.0'
+        classpath 'com.android.tools.build:gradle:2.2.2' // jcenter has the latest
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+    }
+}
+
+subprojects {
+    def androidProject = project.name == 'conscrypt-android'
+    if (androidProject) {
+        apply plugin: 'com.android.library'
+    } else {
+        apply plugin: 'java'
+        apply plugin: 'cpp'
+        apply plugin: "signing"
+        apply plugin: "checkstyle"
+    }
+    apply plugin: "maven"
+    apply plugin: "idea"
+    apply plugin: "jacoco"
+
+    group = "org.conscrypt"
+    description = 'Conscrypt is an alternate Java Security Provider that uses BoringSSL'
+    version = "0.0.1-SNAPSHOT"
+
+    ext {
+        androidHome = "$System.env.ANDROID_HOME"
+        androidJreHome = "$System.env.ANDROID_JRE_HOME"
+        boringsslHome = "$System.env.BORINGSSL_HOME"
+        boringsslIncludeDir = "$boringsslHome/include"
+        boringsslSslBuildDir = "$boringsslHome/build/ssl"
+        boringsslCryptoBuildDir = "$boringsslHome/build/crypto"
+        jdkHome = "$System.env.JAVA_HOME"
+        jdkIncludeDir = "$jdkHome/include"
+        androidVersionCode = 1
+        androidVersionName = "$version"
+        androidMinSdkVersion = 9
+        // Needs to be binary compatible with androidMinSdkVersion
+        androidMinJavaVersion = JavaVersion.VERSION_1_7
+        androidTargetSdkVersion = 25
+        androidBuildToolsVersion = "25.0.0"
+
+        // Ensure the environment is configured properly.
+        assert file("$androidHome").exists()
+        assert file("$androidJreHome").exists()
+        assert file("$boringsslHome").exists()
+        assert file("$boringsslIncludeDir").exists()
+        assert file("$boringsslSslBuildDir").exists()
+        assert file("$boringsslCryptoBuildDir").exists()
+        assert file("$jdkHome").exists()
+        assert file("$jdkIncludeDir").exists()
+
+        libraries = [
+                //android: 'com.google.android:android:4.1.1.4',
+                roboelectric: 'org.robolectric:android-all:5.0.0_r2-robolectric-1',
+
+                // Test dependencies.
+                junit  : 'junit:junit:4.11',
+                mockito: 'org.mockito:mockito-core:1.9.5',
+                truth  : 'com.google.truth:truth:0.28'
         ]
     }
-}
-// this is the "Unbundled Conscrypt jar"
-sourceSets.main {
-    java.srcDirs = [
-        'src/main/java',
-        'src/compat/java',
-        "${project.buildDir}/gen",
-    ]
-    compileClasspath += sourceSets.stub.output
-}
 
-compileJava.options.encoding = 'UTF-8'
-compileJava.options.compilerArgs += ['-Xmaxwarns', '9999999']
-
-dependencies {
-    compile getAndroidPrebuilt('9')
-    compile files("${project.buildDir}/gen") {
-        builtBy 'gen_constants'
+    repositories {
+        mavenCentral()
+        mavenLocal()
+        jcenter()
     }
-}
 
-model {
-    components {
-        genconst(NativeExecutableSpec) {
-            sources {
-                cpp {
-                    source {
-                        srcDir "src/gen/native"
+    dependencies {
+        testCompile libraries.junit,
+                    libraries.mockito
+    }
+
+    if (!androidProject) {
+        [compileJava, compileTestJava].each() {
+            it.options.compilerArgs += ["-Xlint:all", "-Xlint:-options", '-Xmaxwarns', '9999999']
+            it.options.encoding = "UTF-8"
+            if (rootProject.hasProperty('failOnWarnings') && rootProject.failOnWarnings.toBoolean()) {
+                it.options.compilerArgs += ["-Werror"]
+            }
+        }
+
+        compileTestJava {
+            // serialVersionUID is basically guaranteed to be useless in our tests
+            options.compilerArgs += ["-Xlint:-serial"]
+        }
+
+        jar.manifest {
+            attributes('Implementation-Title': name,
+                    'Implementation-Version': version,
+                    'Built-By': System.getProperty('user.name'),
+                    'Built-JDK': System.getProperty('java.version'),
+                    'Source-Compatibility': sourceCompatibility,
+                    'Target-Compatibility': targetCompatibility)
+        }
+
+        javadoc.options {
+            encoding = 'UTF-8'
+            links 'https://docs.oracle.com/javase/8/docs/api/'
+        }
+
+        // Disable JavaDoc doclint on Java 8. It's annoying.
+        if (JavaVersion.current().isJava8Compatible()) {
+            allprojects {
+                tasks.withType(Javadoc) {
+                    options.addStringOption('Xdoclint:none', '-quiet')
+                }
+            }
+        }
+
+        signing {
+            required false
+            sign configurations.archives
+        }
+
+        task javadocJar(type: Jar) {
+            classifier = 'javadoc'
+            from javadoc
+        }
+
+        task sourcesJar(type: Jar) {
+            classifier = 'sources'
+            from sourceSets.main.allSource
+        }
+
+        artifacts {
+            archives sourcesJar
+        }
+
+        checkstyle {
+            configFile = file("$rootDir/checkstyle.xml")
+            toolVersion = "6.17"
+            ignoreFailures = false
+            if (rootProject.hasProperty("checkstyle.ignoreFailures")) {
+                ignoreFailures = rootProject.properties["checkstyle.ignoreFailures"].toBoolean()
+            }
+            configProperties["rootDir"] = rootDir
+        }
+
+        checkstyleMain {
+            source = fileTree(dir: "src/main", include: "**/*.java")
+        }
+
+        checkstyleTest {
+            source = fileTree(dir: "src/test", include: "**/*.java")
+        }
+
+        uploadArchives.repositories.mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+            String stagingUrl
+            if (rootProject.hasProperty('repositoryId')) {
+                stagingUrl = 'https://oss.sonatype.org/service/local/staging/deployByRepositoryId/' +
+                        rootProject.repositoryId
+            } else {
+                stagingUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            }
+            def configureAuth = {
+                if (rootProject.hasProperty('ossrhUsername') && rootProject.hasProperty('ossrhPassword')) {
+                    authentication(userName: rootProject.ossrhUsername, password: rootProject.ossrhPassword)
+                }
+            }
+            repository(url: stagingUrl, configureAuth)
+            snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots/', configureAuth)
+        }
+
+        [
+                install.repositories.mavenInstaller,
+                uploadArchives.repositories.mavenDeployer,
+        ]*.pom*.whenConfigured { pom ->
+            pom.project {
+                name "$project.group:$project.name"
+                description project.description
+                url 'https://conscrypt.org/'
+
+                scm {
+                    connection 'scm:git:https://android.googlesource.com/platform/external/conscrypt'
+                    developerConnection 'scm:git:https://android.googlesource.com/platform/external/conscrypt'
+                    url 'https://android.googlesource.com/platform/external/conscrypt'
+                }
+
+                licenses {
+                    license {
+                        name 'Apache 2'
+                        url 'https://android.googlesource.com/platform/external/conscrypt/+/master/NOTICE'
                     }
-                    exportedHeaders {
-                        srcDirs "../openssl/include", "../boringssl/include"
+                }
+
+                developers {
+                    developer {
+                        // TODO(nathanmittler): TBD...
+                        id "org.conscrypt"
+                        name "Conscrypt Contributors"
+                        //email "grpc-io@googlegroups.com"
+                        url "https://conscrypt.org/"
+                        // https://issues.gradle.org/browse/GRADLE-2719
+                        organization = "Google, Inc."
+                        organizationUrl "https://www.google.com"
                     }
                 }
             }
         }
+
+        // At a test failure, log the stack trace to the console so that we don't
+        // have to open the HTML in a browser.
+        test {
+            testLogging {
+                exceptionFormat = 'full'
+                showExceptions true
+                showCauses true
+                showStackTraces true
+            }
+            maxHeapSize = '1500m'
+        }
     }
 }
-
-task gen_constants(type:Exec)  {
-    File genDir = new File("${project.buildDir}", "gen")
-    genDir.mkdirs()
-
-    workingDir new File("${project.buildDir}")
-    executable 'binaries/genconstExecutable/genconst'
-    standardOutput = new FileOutputStream(new File(genDir, "NativeConstants.java"))
-}
-
-gen_constants.dependsOn 'genconstExecutable'
