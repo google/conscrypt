@@ -1552,7 +1552,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_sct_extension() throws Exception {
-        final byte[] SCT_TEST_DATA = new byte[] { 1, 2, 3, 4};
+        // Fake SCT extension has a length of overall extension (unsigned 16-bit).
+        // Each SCT entry has a length (unsigned 16-bit) and data.
+        final byte[] SCT_TEST_DATA = new byte[] {0, 6, 0, 4, 1, 2, 3, 4};
 
         final ServerSocket listener = new ServerSocket(0);
         Hooks cHooks = new Hooks() {
