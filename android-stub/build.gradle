@@ -1,0 +1,6 @@
+description = 'Conscrypt: Android-Stub'
+
+// Needs to be binary-compatible with Android minSdkVersion.
+sourceCompatibility = androidMinJavaVersion
+targetCompatibility = androidMinJavaVersion
+

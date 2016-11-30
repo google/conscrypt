@@ -1,0 +1,82 @@
+apply plugin: "com.google.osdetector"
+
+description = 'Conscrypt: OpenJdk'
+
+ext {
+    jniSourceDir = project(":conscrypt-common").projectDir.absolutePath + "/src/jni"
+    jniLibName = "conscrypt_openjdk_jni-$osdetector.classifier"
+    jniLibTaskName = "${jniLibName}SharedLibrary"
+
+    assert file("$jniSourceDir").exists()
+}
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+dependencies {
+    compile project(':conscrypt-common')
+}
+
+// Make sure we build and copy the native library to the output directory.
+compileJava.dependsOn 'copyNativeLib'
+
+// Set the platform-specific classifier on the artifact.
+jar {
+    classifier = osdetector.classifier
+}
+
+model {
+    components {
+        // Builds the JNI library.
+        "$jniLibName"(NativeLibrarySpec) {
+            sources {
+                cpp {
+                    source {
+                        srcDirs = [
+                                "$jniSourceDir/unbundled/cpp",
+                                "$jniSourceDir/main/cpp"
+                        ]
+                    }
+                }
+            }
+
+            binaries {
+                // Build the JNI lib as a shared library.
+                withType(SharedLibraryBinarySpec) {
+                    if (toolChain in Gcc) {
+                        cppCompiler.args "-Wall",
+                                "-fPIC",
+                                "-O2",
+                                "-std=c++11",
+                                "-I$jniSourceDir/main/include",
+                                "-I$jniSourceDir/unbundled/include",
+                                "-I$boringsslIncludeDir",
+                                "-I$jdkIncludeDir",
+                                // TODO(nathanmittler): support non-linux (e.g. /darwin)
+                                "-I$jdkIncludeDir/linux"
+
+                        // Static link to BoringSSL
+                        linker.args "-O2",
+                                "-L$boringsslSslBuildDir",
+                                "-L$boringsslCryptoBuildDir",
+                                "-lstdc++",
+                                "-lssl",
+                                "-lcrypto"
+                    }
+                }
+
+                // Never build a static library.
+                withType(StaticLibraryBinarySpec) {
+                    buildable = false
+                }
+            }
+        }
+    }
+}
+
+// Copies the native library to a resource location that will be included in the jar.
+task copyNativeLib(type: Copy, dependsOn: "$jniLibTaskName") {
+    from "build/libs/${jniLibName}/shared"
+    // This location will automatically be included in the jar.
+    into 'build/resources/main/META-INF/native'
+}
