@@ -219,7 +219,7 @@ ifeq ($(LIBCORE_SKIP_TESTS),)
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(call all-java-files-under,platform/src/test/java)
     LOCAL_JAVA_RESOURCE_DIRS := platform/src/test/resources
-    LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex core-junit-hostdex core-tests-support-hostdex junit4-target-hostdex mockito-api-hostdex
+    LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex junit-hostdex core-tests-support-hostdex mockito-api-hostdex
     LOCAL_STATIC_JAVA_LIBRARIES := conscrypt-hostdex-nojarjar
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_MODULE_TAGS := optional
