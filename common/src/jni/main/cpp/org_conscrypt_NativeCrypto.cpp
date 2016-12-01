@@ -5491,10 +5491,9 @@ static jbyteArray NativeCrypto_i2d_PKCS7(JNIEnv* env, jclass, jlongArray certsAr
         }
     }
 
-    CBB out;
-    CBB_init(&out, 1024 * certs.size());
-    if (!PKCS7_bundle_certificates(&out, stack)) {
-        CBB_cleanup(&out);
+    bssl::ScopedCBB out;
+    CBB_init(out.get(), 1024 * certs.size());
+    if (!PKCS7_bundle_certificates(out.get(), stack)) {
         sk_X509_free(stack);
         throwExceptionIfNecessary(env, "PKCS7_bundle_certificates");
         return nullptr;
@@ -5504,8 +5503,7 @@ static jbyteArray NativeCrypto_i2d_PKCS7(JNIEnv* env, jclass, jlongArray certsAr
 
     uint8_t *derBytes;
     size_t derLen;
-    if (!CBB_finish(&out, &derBytes, &derLen)) {
-        CBB_cleanup(&out);
+    if (!CBB_finish(out.get(), &derBytes, &derLen)) {
         throwExceptionIfNecessary(env, "CBB_finish");
         return nullptr;
     }
@@ -5683,13 +5681,13 @@ static jbyteArray NativeCrypto_ASN1_seq_pack_X509(JNIEnv* env, jclass, jlongArra
         return nullptr;
     }
 
-    CBB result, seq_contents;
-    if (!CBB_init(&result, 2048 * certsArray.size())) {
+    bssl::ScopedCBB result;
+    CBB seq_contents;
+    if (!CBB_init(result.get(), 2048 * certsArray.size())) {
         JNI_TRACE("ASN1_seq_pack_X509(%p) => CBB_init failed", certs);
         return nullptr;
     }
-    if (!CBB_add_asn1(&result, &seq_contents, CBS_ASN1_SEQUENCE)) {
-        CBB_cleanup(&result);
+    if (!CBB_add_asn1(result.get(), &seq_contents, CBS_ASN1_SEQUENCE)) {
         return nullptr;
     }
 
@@ -5698,18 +5696,14 @@ static jbyteArray NativeCrypto_ASN1_seq_pack_X509(JNIEnv* env, jclass, jlongArra
         uint8_t *buf;
         int len = i2d_X509(x509, nullptr);
 
-        if (len < 0 ||
-            !CBB_add_space(&seq_contents, &buf, len) ||
-            i2d_X509(x509, &buf) < 0) {
-            CBB_cleanup(&result);
+        if (len < 0 || !CBB_add_space(&seq_contents, &buf, len) || i2d_X509(x509, &buf) < 0) {
             return nullptr;
         }
     }
 
     uint8_t *out;
     size_t out_len;
-    if (!CBB_finish(&result, &out, &out_len)) {
-        CBB_cleanup(&result);
+    if (!CBB_finish(result.get(), &out, &out_len)) {
         return nullptr;
     }
     std::unique_ptr<uint8_t> out_storage(out);
