@@ -1026,8 +1026,8 @@ public final class NativeCrypto {
     /**
      * Returns the sslSessionNativePointer of the negotiated session.
      */
-    public static native long SSL_do_handshake(long sslNativePointer, FileDescriptor fd,
-            SSLHandshakeCallbacks shc, int timeoutMillis, boolean client_mode)
+    public static native long SSL_do_handshake(
+            long sslNativePointer, FileDescriptor fd, SSLHandshakeCallbacks shc, int timeoutMillis)
             throws SSLException, SocketTimeoutException, CertificateException;
 
     /**

@@ -960,8 +960,13 @@ public class NativeCryptoTest {
                 }
                 long session = NULL;
                 try {
+                    if (client) {
+                        NativeCrypto.SSL_set_connect_state(s);
+                    } else {
+                        NativeCrypto.SSL_set_accept_state(s);
+                    }
                     NativeCrypto.SSL_configure_alpn(s, client, alpnProtocols);
-                    session = NativeCrypto.SSL_do_handshake(s, fd, callback, timeout, client);
+                    session = NativeCrypto.SSL_do_handshake(s, fd, callback, timeout);
                     if (DEBUG) {
                         System.out.println("ssl=0x" + Long.toString(s, 16)
                                            + " handshake"
@@ -980,22 +985,23 @@ public class NativeCryptoTest {
 
     @Test(expected = NullPointerException.class)
     public void test_SSL_do_handshake_NULL_SSL() throws Exception {
-        NativeCrypto.SSL_do_handshake(NULL, null, null, 0, false);
+        NativeCrypto.SSL_do_handshake(NULL, null, null, 0);
     }
 
     @Test
     public void test_SSL_do_handshake_null_args() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
+        NativeCrypto.SSL_set_connect_state(s);
 
         try {
-            NativeCrypto.SSL_do_handshake(s, null, null, 0, true);
+            NativeCrypto.SSL_do_handshake(s, null, null, 0);
             fail();
         } catch (NullPointerException expected) {
         }
 
         try {
-            NativeCrypto.SSL_do_handshake(s, INVALID_FD, null, 0, true);
+            NativeCrypto.SSL_do_handshake(s, INVALID_FD, null, 0);
             fail();
         } catch (NullPointerException expected) {
         }
