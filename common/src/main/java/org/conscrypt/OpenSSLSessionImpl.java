@@ -151,7 +151,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     @Override
     public int getApplicationBufferSize() {
-        return SSLRecordProtocol.MAX_DATA_LENGTH;
+        return NativeConstants.SSL3_RT_MAX_PLAIN_LENGTH;
     }
 
     /**
@@ -161,7 +161,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      */
     @Override
     public int getPacketBufferSize() {
-        return SSLRecordProtocol.MAX_SSL_PACKET_SIZE;
+        return NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
     }
 
     /**
