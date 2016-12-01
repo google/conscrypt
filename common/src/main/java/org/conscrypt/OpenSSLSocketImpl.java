@@ -307,17 +307,21 @@ public class OpenSSLSocketImpl
             // certain protocols.
             NativeCrypto.SSL_accept_renegotiations(sslNativePointer);
 
-            // Configure OCSP and CT extensions for client
             if (client) {
+                NativeCrypto.SSL_set_connect_state(sslNativePointer);
+
+                // Configure OCSP and CT extensions for client
                 NativeCrypto.SSL_enable_ocsp_stapling(sslNativePointer);
                 if (sslParameters.isCTVerificationEnabled(getHostname())) {
                     NativeCrypto.SSL_enable_signed_cert_timestamps(sslNativePointer);
                 }
-            }
+            } else {
+                NativeCrypto.SSL_set_accept_state(sslNativePointer);
 
-            // Configure OCSP for server
-            if (!client && sslParameters.getOCSPResponse() != null) {
-                NativeCrypto.SSL_enable_ocsp_stapling(sslNativePointer);
+                // Configure OCSP for server
+                if (sslParameters.getOCSPResponse() != null) {
+                    NativeCrypto.SSL_enable_ocsp_stapling(sslNativePointer);
+                }
             }
 
             final OpenSSLSessionImpl sessionToReuse = sslParameters.getSessionToReuse(
@@ -343,8 +347,8 @@ public class OpenSSLSocketImpl
 
             long sslSessionNativePointer;
             try {
-                sslSessionNativePointer = NativeCrypto.SSL_do_handshake(sslNativePointer,
-                        Platform.getFileDescriptor(socket), this, getSoTimeout(), client);
+                sslSessionNativePointer = NativeCrypto.SSL_do_handshake(
+                        sslNativePointer, Platform.getFileDescriptor(socket), this, getSoTimeout());
             } catch (CertificateException e) {
                 SSLHandshakeException wrapper = new SSLHandshakeException(e.getMessage());
                 wrapper.initCause(e);

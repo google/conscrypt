@@ -7890,10 +7890,10 @@ static jbyteArray NativeCrypto_SSL_get0_alpn_selected(JNIEnv* env, jclass,
  * Perform SSL handshake
  */
 static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_address, jobject fdObject,
-                                           jobject shc, jint timeout_millis, jboolean client_mode) {
+                                           jobject shc, jint timeout_millis) {
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake fd=%p shc=%p timeout_millis=%d client_mode=%d",
-              ssl, fdObject, shc, timeout_millis, client_mode);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake fd=%p shc=%p timeout_millis=%d", ssl, fdObject,
+              shc, timeout_millis);
     if (ssl == nullptr) {
         return 0;
     }
@@ -7944,14 +7944,6 @@ static jlong NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_addres
         safeSslClear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake appData => 0", ssl);
         return 0;
-    }
-
-    // TODO(nathanmittler): Should this just be called by SSLParametersImpl directly beforehand?
-    // That way we don't need to pass client_mode here at all. This should be one-time config.
-    if (client_mode) {
-        SSL_set_connect_state(ssl);
-    } else {
-        SSL_set_accept_state(ssl);
     }
 
     ret = 0;
@@ -10036,7 +10028,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         NATIVE_METHOD(NativeCrypto, SSL_accept_renegotiations, "(J)V"),
         NATIVE_METHOD(NativeCrypto, SSL_set_tlsext_host_name, "(JLjava/lang/String;)V"),
         NATIVE_METHOD(NativeCrypto, SSL_get_servername, "(J)Ljava/lang/String;"),
-        NATIVE_METHOD(NativeCrypto, SSL_do_handshake, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "IZ)J"),
+        NATIVE_METHOD(NativeCrypto, SSL_do_handshake, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "I)J"),
         NATIVE_METHOD(NativeCrypto, SSL_renegotiate, "(J)V"),
         NATIVE_METHOD(NativeCrypto, SSL_get_certificate, "(J)[J"),
         NATIVE_METHOD(NativeCrypto, SSL_get_peer_cert_chain, "(J)[J"),
