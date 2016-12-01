@@ -17,35 +17,26 @@
 package org.conscrypt;
 
 import java.io.IOException;
-import java.security.Principal;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
-import javax.net.ssl.SSLSessionContext;
-import javax.security.cert.CertificateException;
 
 /**
  * Implementation of the class OpenSSLSessionImpl
  * based on OpenSSL.
  */
-public class OpenSSLSessionImpl implements SSLSession {
-
+public class OpenSSLSessionImpl extends AbstractOpenSSLSession {
     private long creationTime = 0;
     long lastAccessedTime = 0;
     final X509Certificate[] localCertificates;
     final X509Certificate[] peerCertificates;
 
-    private boolean isValid = true;
     private final Map<String, Object> values = new HashMap<String, Object>();
-    private volatile javax.security.cert.X509Certificate[] peerCertificateChain;
     private byte[] peerCertificateOcspData;
     private byte[] peerTlsSctData;
     protected long sslSessionNativePointer;
@@ -53,7 +44,6 @@ public class OpenSSLSessionImpl implements SSLSession {
     private int peerPort = -1;
     private String cipherSuite;
     private String protocol;
-    private AbstractSessionContext sessionContext;
     private byte[] id;
 
     /**
@@ -64,6 +54,7 @@ public class OpenSSLSessionImpl implements SSLSession {
             X509Certificate[] peerCertificates, byte[] peerCertificateOcspData,
             byte[] peerTlsSctData, String peerHost, int peerPort,
             AbstractSessionContext sessionContext) {
+        super(sessionContext);
         this.sslSessionNativePointer = sslSessionNativePointer;
         this.localCertificates = localCertificates;
         this.peerCertificates = peerCertificates;
@@ -71,7 +62,6 @@ public class OpenSSLSessionImpl implements SSLSession {
         this.peerTlsSctData = peerTlsSctData;
         this.peerHost = peerHost;
         this.peerPort = peerPort;
-        this.sessionContext = sessionContext;
     }
 
     /**
@@ -108,6 +98,7 @@ public class OpenSSLSessionImpl implements SSLSession {
      * before we have read the session ticket from the server side and
      * therefore have computed no id based on the SHA of the ticket.
      */
+    @Override
     void resetId() {
         id = NativeCrypto.SSL_SESSION_session_id(sslSessionNativePointer);
     }
@@ -144,141 +135,22 @@ public class OpenSSLSessionImpl implements SSLSession {
         return (lastAccessedTime == 0) ? getCreationTime() : lastAccessedTime;
     }
 
-    /**
-     * Returns the largest buffer size for the application's data bound to this
-     * concrete SSL session.
-     * @return the largest buffer size
-     */
     @Override
-    public int getApplicationBufferSize() {
-        return NativeConstants.SSL3_RT_MAX_PLAIN_LENGTH;
+    public void setLastAccessedTime(long accessTimeMillis) {
+        lastAccessedTime = accessTimeMillis;
     }
 
-    /**
-     * Returns the largest SSL/TLS packet size one can expect for this concrete
-     * SSL session.
-     * @return the largest packet size
-     */
     @Override
-    public int getPacketBufferSize() {
-        return NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
-    }
-
-    /**
-     * Returns the principal (subject) of this concrete SSL session used in the
-     * handshaking phase of the connection.
-     * @return a X509 certificate or null if no principal was defined
-     */
-    @Override
-    public Principal getLocalPrincipal() {
-        if (localCertificates != null && localCertificates.length > 0) {
-            return localCertificates[0].getSubjectX500Principal();
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Returns the certificate(s) of the principal (subject) of this concrete SSL
-     * session used in the handshaking phase of the connection. The OpenSSL
-     * native method supports only RSA certificates.
-     * @return an array of certificates (the local one first and then eventually
-     *         that of the certification authority) or null if no certificate
-     *         were used during the handshaking phase.
-     */
-    @Override
-    public Certificate[] getLocalCertificates() {
+    protected X509Certificate[] getX509LocalCertificates() {
         return localCertificates;
     }
 
-    /**
-     * Returns the certificate(s) of the peer in this SSL session
-     * used in the handshaking phase of the connection.
-     * Please notice hat this method is superseded by
-     * <code>getPeerCertificates()</code>.
-     * @return an array of X509 certificates (the peer's one first and then
-     *         eventually that of the certification authority) or null if no
-     *         certificate were used during the SSL connection.
-     * @throws SSLPeerUnverifiedException if either a non-X.509 certificate
-     *         was used (i.e. Kerberos certificates) or the peer could not
-     *         be verified.
-     */
     @Override
-    public javax.security.cert.X509Certificate[] getPeerCertificateChain()
-            throws SSLPeerUnverifiedException {
-        checkPeerCertificatesPresent();
-        javax.security.cert.X509Certificate[] result = peerCertificateChain;
-        if (result == null) {
-            // single-check idiom
-            peerCertificateChain = result = createPeerCertificateChain();
-        }
-        return result;
-    }
-
-    /**
-     * Provide a value to initialize the volatile peerCertificateChain
-     * field based on the native SSL_SESSION
-     */
-    private javax.security.cert.X509Certificate[] createPeerCertificateChain()
-            throws SSLPeerUnverifiedException {
-        try {
-            javax.security.cert.X509Certificate[] chain
-                    = new javax.security.cert.X509Certificate[peerCertificates.length];
-
-            for (int i = 0; i < peerCertificates.length; i++) {
-                byte[] encoded = peerCertificates[i].getEncoded();
-                chain[i] = javax.security.cert.X509Certificate.getInstance(encoded);
-            }
-            return chain;
-        } catch (CertificateEncodingException e) {
-            SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
-            exception.initCause(exception);
-            throw exception;
-        } catch (CertificateException e) {
-            SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
-            exception.initCause(exception);
-            throw exception;
-        }
-    }
-
-    /**
-     * Return the identity of the peer in this SSL session
-     * determined via certificate(s).
-     * @return an array of X509 certificates (the peer's one first and then
-     *         eventually that of the certification authority) or null if no
-     *         certificate were used during the SSL connection.
-     * @throws SSLPeerUnverifiedException if either a non-X.509 certificate
-     *         was used (i.e. Kerberos certificates) or the peer could not
-     *         be verified.
-     */
-    @Override
-    public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
-        checkPeerCertificatesPresent();
-        return peerCertificates;
-    }
-
-    /**
-     * Throw SSLPeerUnverifiedException on null or empty peerCertificates array
-     */
-    private void checkPeerCertificatesPresent() throws SSLPeerUnverifiedException {
+    protected X509Certificate[] getX509PeerCertificates() throws SSLPeerUnverifiedException {
         if (peerCertificates == null || peerCertificates.length == 0) {
             throw new SSLPeerUnverifiedException("No peer certificates");
         }
-    }
-
-    /**
-     * The identity of the principal that was used by the peer during the SSL
-     * handshake phase is returned by this method.
-     * @return a X500Principal of the last certificate for X509-based
-     *         cipher suites.
-     * @throws SSLPeerUnverifiedException if either a non-X.509 certificate
-     *         was used (i.e. Kerberos certificates) or the peer does not exist.
-     *
-     */
-    @Override
-    public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
-        checkPeerCertificatesPresent();
-        return peerCertificates[0].getSubjectX500Principal();
+        return peerCertificates;
     }
 
     /**
@@ -335,66 +207,6 @@ public class OpenSSLSessionImpl implements SSLSession {
             protocol = NativeCrypto.SSL_SESSION_get_version(sslSessionNativePointer);
         }
         return protocol;
-    }
-
-    /**
-     * Returns the context to which the actual SSL session is bound. A SSL
-     * context consists of (1) a possible delegate, (2) a provider and (3) a
-     * protocol.
-     * @return the SSL context used for this session, or null if it is
-     * unavailable.
-     */
-    @Override
-    public SSLSessionContext getSessionContext() {
-        return sessionContext;
-    }
-
-    /**
-     * Returns a boolean flag signaling whether a SSL session is valid
-     * and available for resuming or joining or not.
-     *
-     * @return true if this session may be resumed.
-     */
-    @Override
-    public boolean isValid() {
-        if (!isValid) {
-            return false;
-        }
-        // The session has't yet been invalidated -- check whether it timed out.
-
-        SSLSessionContext context = sessionContext;
-        if (context == null) {
-            // Session not associated with a context -- no way to tell what its timeout should be.
-            return true;
-        }
-
-        int timeoutSeconds = context.getSessionTimeout();
-        if (timeoutSeconds == 0) {
-            // Infinite timeout -- session still valid
-            return true;
-        }
-
-        long creationTimestampMillis = getCreationTime();
-        long ageSeconds = (System.currentTimeMillis() - creationTimestampMillis) / 1000;
-        // NOTE: The age might be negative if something was/is wrong with the system clock. We time
-        // out such sessions to be safe.
-        if ((ageSeconds >= timeoutSeconds) || (ageSeconds < 0)) {
-            // Session timed out -- no longer valid
-            isValid = false;
-            return false;
-        }
-
-        // Session still valid
-        return true;
-    }
-
-    /**
-     * It invalidates a SSL session forbidding any resumption.
-     */
-    @Override
-    public void invalidate() {
-        isValid = false;
-        sessionContext = null;
     }
 
     /**

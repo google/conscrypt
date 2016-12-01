@@ -190,7 +190,8 @@ final class Platform {
      * Pre-Java-8 backward compatibility.
      */
 
-    static SSLSession wrapSSLSession(@SuppressWarnings("unused") OpenSSLSessionImpl sslSession) {
+    static SSLSession wrapSSLSession(
+            @SuppressWarnings("unused") AbstractOpenSSLSession sslSession) {
         throw new UnsupportedOperationException();
     }
 

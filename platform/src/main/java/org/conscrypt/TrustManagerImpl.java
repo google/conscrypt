@@ -401,8 +401,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
     private byte[] getOcspDataFromSession(SSLSession session) {
         List<byte[]> ocspResponses = null;
-        if (session instanceof OpenSSLSessionImpl) {
-            OpenSSLSessionImpl opensslSession = (OpenSSLSessionImpl) session;
+        if (session instanceof AbstractOpenSSLSession) {
+            AbstractOpenSSLSession opensslSession = (AbstractOpenSSLSession) session;
             ocspResponses = opensslSession.getStatusResponses();
         } else {
             Method m_getResponses;
@@ -428,8 +428,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     }
 
     private byte[] getTlsSctDataFromSession(SSLSession session) {
-        if (session instanceof OpenSSLSessionImpl) {
-            OpenSSLSessionImpl opensslSession = (OpenSSLSessionImpl) session;
+        if (session instanceof AbstractOpenSSLSession) {
+            AbstractOpenSSLSession opensslSession = (AbstractOpenSSLSession) session;
             return opensslSession.getTlsSctData();
         }
 

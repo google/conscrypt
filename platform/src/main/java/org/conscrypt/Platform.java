@@ -315,7 +315,7 @@ class Platform {
      * Pre-Java 8 backward compatibility.
      */
 
-    public static SSLSession wrapSSLSession(OpenSSLSessionImpl sslSession) {
+    public static SSLSession wrapSSLSession(AbstractOpenSSLSession sslSession) {
         return new OpenSSLExtendedSessionImpl(sslSession);
     }
 
