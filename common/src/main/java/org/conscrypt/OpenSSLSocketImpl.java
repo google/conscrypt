@@ -347,8 +347,9 @@ public class OpenSSLSocketImpl
 
             long sslSessionNativePointer;
             try {
-                sslSessionNativePointer = NativeCrypto.SSL_do_handshake(
+                NativeCrypto.SSL_do_handshake(
                         sslNativePointer, Platform.getFileDescriptor(socket), this, getSoTimeout());
+                sslSessionNativePointer = NativeCrypto.SSL_get1_session(sslNativePointer);
             } catch (CertificateException e) {
                 SSLHandshakeException wrapper = new SSLHandshakeException(e.getMessage());
                 wrapper.initCause(e);
@@ -495,7 +496,7 @@ public class OpenSSLSocketImpl
 
     @Override
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / info_callback
-    public void onSSLStateChange(long sslSessionNativePtr, int type, int val) {
+    public void onSSLStateChange(int type, int val) {
         if (type != NativeConstants.SSL_CB_HANDSHAKE_DONE) {
             return;
         }
@@ -564,7 +565,7 @@ public class OpenSSLSocketImpl
 
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks
     @Override
-    public void verifyCertificateChain(long sslSessionNativePtr, long[] certRefs, String authMethod)
+    public void verifyCertificateChain(long[] certRefs, String authMethod)
             throws CertificateException {
         try {
             X509TrustManager x509tm = sslParameters.getX509TrustManager();
@@ -581,8 +582,9 @@ public class OpenSSLSocketImpl
             byte[] tlsSctData = NativeCrypto.SSL_get_signed_cert_timestamp_list(sslNativePointer);
 
             // Used for verifyCertificateChain callback
-            handshakeSession = new OpenSSLSessionImpl(sslSessionNativePtr, null, peerCertChain,
-                    ocspData, tlsSctData, getHostnameOrIP(), getPort(), null);
+            handshakeSession = new OpenSSLSessionImpl(
+                    NativeCrypto.SSL_get1_session(sslNativePointer), null, peerCertChain, ocspData,
+                    tlsSctData, getHostnameOrIP(), getPort(), null);
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {

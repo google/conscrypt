@@ -1022,11 +1022,7 @@ public final class NativeCrypto {
      * protocol, {@code null} will be returned.
      */
     public static native byte[] SSL_get0_alpn_selected(long sslPointer);
-
-    /**
-     * Returns the sslSessionNativePointer of the negotiated session.
-     */
-    public static native long SSL_do_handshake(
+    public static native void SSL_do_handshake(
             long sslNativePointer, FileDescriptor fd, SSLHandshakeCallbacks shc, int timeoutMillis)
             throws SSLException, SocketTimeoutException, CertificateException;
 
@@ -1102,14 +1098,13 @@ public final class NativeCrypto {
         /**
          * Verify that we trust the certificate chain is trusted.
          *
-         * @param sslSessionNativePtr pointer to a reference of the SSL_SESSION
          * @param certificateChainRefs chain of X.509 certificate references
          * @param authMethod auth algorithm name
          *
          * @throws CertificateException if the certificate is untrusted
          */
-        void verifyCertificateChain(long sslSessionNativePtr, long[] certificateChainRefs,
-                String authMethod) throws CertificateException;
+        void verifyCertificateChain(long[] certificateChainRefs, String authMethod)
+                throws CertificateException;
 
         /**
          * Called on an SSL client when the server requests (or
@@ -1157,7 +1152,7 @@ public final class NativeCrypto {
         /**
          * Called when SSL state changes. This could be handshake completion.
          */
-        void onSSLStateChange(long sslSessionNativePtr, int type, int val);
+        void onSSLStateChange(int type, int val);
     }
 
     public static native long ERR_peek_last_error();

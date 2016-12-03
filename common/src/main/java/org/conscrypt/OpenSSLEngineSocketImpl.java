@@ -83,12 +83,12 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
     }
 
     @Override
-    public void onSSLStateChange(long sslSessionNativePtr, int type, int val) {
+    public void onSSLStateChange(int type, int val) {
         throw new AssertionError("Should be handled by engine");
     }
 
     @Override
-    public void verifyCertificateChain(long sslSessionNativePtr, long[] certRefs, String authMethod)
+    public void verifyCertificateChain(long[] certRefs, String authMethod)
             throws CertificateException {
         throw new AssertionError("Should be handled by engine");
     }

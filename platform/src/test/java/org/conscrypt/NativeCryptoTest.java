@@ -716,15 +716,13 @@ public class NativeCryptoTest {
         public boolean verifyCertificateChainCalled;
 
         @Override
-        public void verifyCertificateChain(long sslSessionNativePtr, long[] certChainRefs,
-                String authMethod) throws CertificateException {
+        public void verifyCertificateChain(long[] certChainRefs, String authMethod)
+                throws CertificateException {
             if (DEBUG) {
                 System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
-                                   + " verifyCertificateChain"
-                                   + " sessionPtr=0x" + Long.toString(sslSessionNativePtr, 16)
-                                   + " asn1DerEncodedCertificateChain="
-                                   + Arrays.toString(certChainRefs)
-                                   + " authMethod=" + authMethod);
+                        + " verifyCertificateChain"
+                        + " asn1DerEncodedCertificateChain=" + Arrays.toString(certChainRefs)
+                        + " authMethod=" + authMethod);
             }
             this.certificateChainRefs = certChainRefs;
             this.authMethod = authMethod;
@@ -756,7 +754,7 @@ public class NativeCryptoTest {
         public boolean handshakeCompletedCalled;
 
         @Override
-        public void onSSLStateChange(long sslSessionNativePtr, int type, int val) {
+        public void onSSLStateChange(int type, int val) {
             if (DEBUG) {
                 System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
                                    + " onSSLStateChange");
@@ -966,7 +964,8 @@ public class NativeCryptoTest {
                         NativeCrypto.SSL_set_accept_state(s);
                     }
                     NativeCrypto.SSL_configure_alpn(s, client, alpnProtocols);
-                    session = NativeCrypto.SSL_do_handshake(s, fd, callback, timeout);
+                    NativeCrypto.SSL_do_handshake(s, fd, callback, timeout);
+                    session = NativeCrypto.SSL_get1_session(s);
                     if (DEBUG) {
                         System.out.println("ssl=0x" + Long.toString(s, 16)
                                            + " handshake"

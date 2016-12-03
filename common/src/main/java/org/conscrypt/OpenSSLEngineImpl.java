@@ -1099,7 +1099,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
     }
 
     @Override
-    public void onSSLStateChange(long sslSessionNativePtr, int type, int val) {
+    public void onSSLStateChange(int type, int val) {
         synchronized (stateLock) {
             switch (type) {
                 case SSL_CB_HANDSHAKE_DONE:
@@ -1120,7 +1120,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
     }
 
     @Override
-    public void verifyCertificateChain(long sslSessionNativePtr, long[] certRefs, String authMethod)
+    public void verifyCertificateChain(long[] certRefs, String authMethod)
             throws CertificateException {
         try {
             X509TrustManager x509tm = sslParameters.getX509TrustManager();
@@ -1137,8 +1137,9 @@ public final class OpenSSLEngineImpl extends SSLEngine
             byte[] tlsSctData = NativeCrypto.SSL_get_signed_cert_timestamp_list(sslNativePointer);
 
             // Used for verifyCertificateChain callback
-            handshakeSession = new OpenSSLSessionImpl(sslSessionNativePtr, null, peerCertChain,
-                    ocspData, tlsSctData, getPeerHost(), getPeerPort(), null);
+            handshakeSession = new OpenSSLSessionImpl(
+                    NativeCrypto.SSL_get1_session(sslNativePointer), null, peerCertChain, ocspData,
+                    tlsSctData, getPeerHost(), getPeerPort(), null);
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {
