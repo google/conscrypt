@@ -574,10 +574,8 @@ public class OpenSSLSocketImpl
             if (certRefs == null || certRefs.length == 0) {
                 throw new SSLException("Peer sent no certificate");
             }
-            OpenSSLX509Certificate[] peerCertChain = new OpenSSLX509Certificate[certRefs.length];
-            for (int i = 0; i < certRefs.length; i++) {
-                peerCertChain[i] = new OpenSSLX509Certificate(certRefs[i]);
-            }
+            OpenSSLX509Certificate[] peerCertChain =
+                    OpenSSLX509Certificate.createCertChain(certRefs);
 
             byte[] ocspData = NativeCrypto.SSL_get_ocsp_response(sslNativePointer);
             byte[] tlsSctData = NativeCrypto.SSL_get_signed_cert_timestamp_list(sslNativePointer);

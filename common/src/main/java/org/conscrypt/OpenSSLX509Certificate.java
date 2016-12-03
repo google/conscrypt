@@ -532,4 +532,19 @@ public class OpenSSLX509Certificate extends X509Certificate {
             super.finalize();
         }
     }
+
+    /**
+     * Return a possibly null array of X509Certificates given the possibly null
+     * array of DER encoded bytes.
+     */
+    static OpenSSLX509Certificate[] createCertChain(long[] certificateRefs) {
+        if (certificateRefs == null) {
+            return null;
+        }
+        OpenSSLX509Certificate[] certificates = new OpenSSLX509Certificate[certificateRefs.length];
+        for (int i = 0; i < certificateRefs.length; i++) {
+            certificates[i] = new OpenSSLX509Certificate(certificateRefs[i]);
+        }
+        return certificates;
+    }
 }
