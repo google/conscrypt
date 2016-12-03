@@ -523,6 +523,8 @@ public final class OpenSSLEngineImpl extends SSLEngine
                 case NEW:
                     throw new IllegalStateException(
                             "Client/server mode must be set before calling unwrap");
+                default:
+                    break;
             }
 
             HandshakeStatus handshakeStatus = HandshakeStatus.NOT_HANDSHAKING;
