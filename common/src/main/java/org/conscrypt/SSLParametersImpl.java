@@ -388,22 +388,6 @@ public class SSLParametersImpl implements Cloneable {
         return principalBytes;
     }
 
-    /**
-     * Return a possibly null array of X509Certificates given the possibly null
-     * array of DER encoded bytes.
-     */
-    private static OpenSSLX509Certificate[] createCertChain(long[] certificateRefs)
-            throws IOException {
-        if (certificateRefs == null) {
-            return null;
-        }
-        OpenSSLX509Certificate[] certificates = new OpenSSLX509Certificate[certificateRefs.length];
-        for (int i = 0; i < certificateRefs.length; i++) {
-            certificates[i] = new OpenSSLX509Certificate(certificateRefs[i]);
-        }
-        return certificates;
-    }
-
     OpenSSLSessionImpl getSessionToReuse(long sslNativePointer, String hostname, int port)
             throws SSLException {
         OpenSSLSessionImpl sessionToReuse = null;
@@ -671,10 +655,10 @@ public class SSLParametersImpl implements Cloneable {
                 // NativeCrypto.SSL_set_session_creation_enabled
                 throw new IllegalStateException("SSL Session may not be created");
             }
-            X509Certificate[] localCertificates = createCertChain(NativeCrypto
-                    .SSL_get_certificate(sslNativePointer));
-            X509Certificate[] peerCertificates = createCertChain(NativeCrypto
-                    .SSL_get_peer_cert_chain(sslNativePointer));
+            X509Certificate[] localCertificates = OpenSSLX509Certificate.createCertChain(
+                    NativeCrypto.SSL_get_certificate(sslNativePointer));
+            X509Certificate[] peerCertificates = OpenSSLX509Certificate.createCertChain(
+                    NativeCrypto.SSL_get_peer_cert_chain(sslNativePointer));
             byte[] ocspData = NativeCrypto.SSL_get_ocsp_response(sslNativePointer);
             byte[] tlsSctData = NativeCrypto.SSL_get_signed_cert_timestamp_list(sslNativePointer);
             sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
