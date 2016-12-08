@@ -9325,6 +9325,8 @@ static jint NativeCrypto_ENGINE_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_
     if (ssl == nullptr) {
         return 0;
     }
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake shc=%p", ssl, shc);
+
     if (shc == nullptr) {
         jniThrowNullPointerException(env, "sslHandshakeCallbacks == null");
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake => sslHandshakeCallbacks == null",
@@ -9355,10 +9357,11 @@ static jint NativeCrypto_ENGINE_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_
         // cert_verify_callback threw exception
         ERR_clear_error();
         safeSslClear(ssl);
-        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake exception => 0", ssl);
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake => exception", ssl);
         return 0;
     }
 
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake shc=%p => ret=%d", ssl, shc, ret);
     return ret;
 }
 
@@ -9367,6 +9370,8 @@ static void NativeCrypto_ENGINE_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_addr
     if (ssl == nullptr) {
         return;
     }
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_shutdown", ssl);
+
     if (shc == nullptr) {
         jniThrowNullPointerException(env, "sslHandshakeCallbacks == null");
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_shutdown => sslHandshakeCallbacks == null", ssl);
@@ -9401,11 +9406,13 @@ static void NativeCrypto_ENGINE_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_addr
                  * as we close the underlying socket, which we actually
                  * do, because that's where we are just coming from.
                  */
+                JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_shutdown => 0", ssl);
                 break;
             case 1:
                 /*
                  * Shutdown was successful. We can safely return. Hooray!
                  */
+                JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_shutdown => 1", ssl);
                 break;
             default:
                 /*
@@ -9414,6 +9421,7 @@ static void NativeCrypto_ENGINE_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_addr
                  * exception.
                  */
                 int sslError = SSL_get_error(ssl, ret);
+                JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_shutdown => sslError=%d", ssl, sslError);
                 throwSSLExceptionWithSslErrors(env, ssl, sslError, "SSL shutdown failed");
                 break;
         }
@@ -9430,6 +9438,9 @@ static jint NativeCrypto_ENGINE_SSL_read_direct(JNIEnv* env, jclass, jlong sslRe
     if (ssl == nullptr) {
         return -1;
     }
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct address=%p length=%d shc=%p", ssl,
+              destPtr, length, shc);
+
     if (shc == nullptr) {
         jniThrowNullPointerException(env, "sslHandshakeCallbacks == null");
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct => sslHandshakeCallbacks == null",
@@ -9457,6 +9468,8 @@ static jint NativeCrypto_ENGINE_SSL_read_direct(JNIEnv* env, jclass, jlong sslRe
     int result = SSL_read(ssl, destPtr, length);
     appData->clearCallbackState();
 
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct address=%p length=%d shc=%p result=%d",
+              ssl, destPtr, length, shc, result);
     return result;
 }
 
@@ -9507,6 +9520,10 @@ static jint NativeCrypto_ENGINE_SSL_read_heap(JNIEnv* env, jclass, jlong sslRef,
     int result = SSL_read(ssl, reinterpret_cast<char*>(dest.get()) + destOffset, destLength);
     appData->clearCallbackState();
 
+    JNI_TRACE(
+            "ssl=%p NativeCrypto_ENGINE_SSL_read_heap dest=%p destOffset=%d destLength=%d shc=%p "
+            "=> ret=%d",
+            ssl, dest.get(), destOffset, destLength, shc, result);
     return result;
 }
 
@@ -9550,6 +9567,10 @@ static int NativeCrypto_ENGINE_SSL_write_BIO_direct(JNIEnv* env, jclass, jlong s
 
     int result = BIO_write(bio, reinterpret_cast<const char*>(sourcePtr), len);
     appData->clearCallbackState();
+    JNI_TRACE(
+            "ssl=%p NativeCrypto_ENGINE_SSL_write_BIO_direct bio=%p sourcePtr=%p len=%d shc=%p => "
+            "ret=%d",
+            ssl, bio, sourcePtr, len, shc, result);
     return result;
 }
 
@@ -9605,6 +9626,10 @@ static int NativeCrypto_ENGINE_SSL_write_BIO_heap(JNIEnv* env, jclass, jlong ssl
     int result = BIO_write(bio, reinterpret_cast<const char*>(source.get()) + sourceOffset,
                            sourceLength);
     appData->clearCallbackState();
+    JNI_TRACE(
+            "ssl=%p NativeCrypto_ENGINE_SSL_write_BIO_heap bio=%p source=%p sourceOffset=%d "
+            "sourceLength=%d shc=%p => ret=%d",
+            ssl, bio, source.get(), sourceOffset, sourceLength, shc, result);
     return result;
 }
 
@@ -9650,6 +9675,10 @@ static int NativeCrypto_ENGINE_SSL_read_BIO_direct(JNIEnv* env, jclass, jlong ss
 
     int result = BIO_read(bio, destPtr, outputSize);
     appData->clearCallbackState();
+    JNI_TRACE(
+            "ssl=%p NativeCrypto_ENGINE_SSL_read_BIO_direct bio=%p destPtr=%p outputSize=%d shc=%p "
+            "=> ret=%d",
+            ssl, bio, destPtr, outputSize, shc, result);
     return result;
 }
 
@@ -9704,6 +9733,10 @@ static int NativeCrypto_ENGINE_SSL_read_BIO_heap(JNIEnv* env, jclass, jlong sslR
 
     int result = BIO_read(bio, reinterpret_cast<char*>(dest.get()) + destOffset, destLength);
     appData->clearCallbackState();
+    JNI_TRACE(
+            "ssl=%p NativeCrypto_ENGINE_SSL_read_BIO_heap bio=%p dest=%p destOffset=%d "
+            "destLength=%d shc=%p => ret=%d",
+            ssl, bio, dest.get(), destOffset, destLength, shc, result);
     return result;
 }
 
@@ -9717,6 +9750,8 @@ static int NativeCrypto_ENGINE_SSL_write_direct(JNIEnv* env, jclass, jlong sslRe
     if (ssl == nullptr) {
         return -1;
     }
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_direct address=%p length=%d shc=%p", ssl,
+              sourcePtr, len, shc);
     if (shc == nullptr) {
         jniThrowNullPointerException(env, "sslHandshakeCallbacks == null");
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_direct => sslHandshakeCallbacks == null",
@@ -9744,6 +9779,8 @@ static int NativeCrypto_ENGINE_SSL_write_direct(JNIEnv* env, jclass, jlong sslRe
 
     int result = SSL_write(ssl, sourcePtr, len);
     appData->clearCallbackState();
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_direct address=%p length=%d shc=%p => ret=%d",
+              ssl, sourcePtr, len, shc, result);
     return result;
 }
 
@@ -9795,6 +9832,10 @@ static int NativeCrypto_ENGINE_SSL_write_heap(JNIEnv* env, jclass, jlong sslRef,
     int result = SSL_write(ssl, reinterpret_cast<const char*>(source.get()) + sourceOffset,
                            sourceLength);
     appData->clearCallbackState();
+    JNI_TRACE(
+            "ssl=%p NativeCrypto_ENGINE_SSL_write_heap source=%p sourceOffset=%d sourceLength=%d "
+            "shc=%p => ret=%d",
+            ssl, source.get(), sourceOffset, sourceLength, shc, result);
     return result;
 }
 
