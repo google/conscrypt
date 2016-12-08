@@ -90,10 +90,6 @@ public final class OpenSSLEngineImpl extends SSLEngine
          */
         MODE_SET,
         /**
-         * {@link #beginHandshake()} has been called at least once.
-         */
-        HANDSHAKE_WANTED,
-        /**
          * Handshake task has been started.
          */
         HANDSHAKE_STARTED,
@@ -187,11 +183,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
                 throw new IllegalStateException("Client/server mode must be set before handshake");
         }
 
-        if (getUseClientMode()) {
-            engineState = EngineState.HANDSHAKE_WANTED;
-        } else {
-            engineState = EngineState.HANDSHAKE_STARTED;
-        }
+        engineState = EngineState.HANDSHAKE_STARTED;
 
         boolean releaseResources = true;
         try {
@@ -295,12 +287,6 @@ public final class OpenSSLEngineImpl extends SSLEngine
             return HandshakeStatus.NOT_HANDSHAKING;
         }
         switch (engineState) {
-            case HANDSHAKE_WANTED:
-                if (getUseClientMode()) {
-                    return HandshakeStatus.NEED_WRAP;
-                } else {
-                    return HandshakeStatus.NEED_UNWRAP;
-                }
             case HANDSHAKE_STARTED:
                 return pendingStatus(pendingOutboundEncryptedBytes());
             case HANDSHAKE_COMPLETED:
