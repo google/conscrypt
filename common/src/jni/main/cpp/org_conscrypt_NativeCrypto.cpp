@@ -35,6 +35,7 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <memory>
 
@@ -93,6 +94,17 @@ static constexpr bool kWithJniTraceMd = false;
 static constexpr bool kWithJniTraceData = false;
 
 /*
+ * To print create a pcap-style dump you can take the log output and
+ * pipe it through text2pcap.
+ *
+ * For example, if you were interested in ssl=0x12345678, you would do:
+ *
+ *  address=0x12345678
+ *  awk "match(\$0,/ssl=$address SSL_DATA: (.*)\$/,a){print a[1]}" | text2pcap -T 443,1337 -t '%s.' -n -D - $address.pcapng
+ */
+static constexpr bool kWithJniTracePackets = false;
+
+/*
  * How to use this for debugging with Wireshark:
  *
  * 1. Pull lines from logcat to a file that have "KEY_LINE:" and remove the
@@ -123,6 +135,11 @@ static constexpr bool kWithJniTraceKeys = false;
     if (kWithJniTraceKeys) {                         \
         ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
     }
+#define JNI_TRACE_PACKET_DATA(ssl, dir, data, len)    \
+    if (kWithJniTracePackets) {                       \
+        debug_print_packet_data(ssl, dir, data, len); \
+    }
+
 // don't overwhelm logcat
 static constexpr size_t kWithJniTraceDataChunkSize = 512;
 
@@ -6841,6 +6858,39 @@ static void debug_print_session_key(const SSL* ssl, const char *line) {
     JNI_TRACE_KEYS("ssl=%p KEY_LINE: %s", ssl, line);
 }
 
+static void debug_print_packet_data(const SSL* ssl, char direction, const char* data, size_t len) {
+    static constexpr size_t kDataWidth = 16;
+
+    struct timeval tv;
+    if (gettimeofday(&tv, NULL)) {
+        ALOG(LOG_INFO, LOG_TAG "-jni", "debug_print_packet_data: could not get time of day");
+        return;
+    }
+
+    // Packet preamble for text2pcap
+    ALOG(LOG_INFO, LOG_TAG "-jni", "ssl=%p SSL_DATA: %c %ld.%06ld", ssl, direction, tv.tv_sec,
+         tv.tv_usec);
+
+    char out[kDataWidth * 3 + 1];
+    for (size_t i = 0; i < len; i += kDataWidth) {
+        size_t n = len - i < kDataWidth ? len - i : kDataWidth;
+
+        for (size_t j = 0, offset = 0; j < n; j++, offset += 3) {
+            int ret = snprintf(out + offset, sizeof(out) - offset, "%02x ", data[i + j] & 0xFF);
+            if (ret < 0 || static_cast<size_t>(ret) >= sizeof(out) - offset) {
+                ALOG(LOG_INFO, LOG_TAG "-jni", "debug_print_packet_data failed to output %d", ret);
+                return;
+            }
+        }
+
+        // Print out packet data in format understood by text2pcap
+        ALOG(LOG_INFO, LOG_TAG "-jni", "ssl=%p SSL_DATA: %06zx %s", ssl, i, out);
+    }
+
+    // Conclude the packet data
+    ALOG(LOG_INFO, LOG_TAG "-jni", "ssl=%p SSL_DATA: %06zx", ssl, len);
+}
+
 /*
  * Make sure we don't inadvertently have RSA-PSS here for now
  * since we don't support this with wrapped RSA keys yet.
@@ -9571,6 +9621,7 @@ static int NativeCrypto_ENGINE_SSL_write_BIO_direct(JNIEnv* env, jclass, jlong s
             "ssl=%p NativeCrypto_ENGINE_SSL_write_BIO_direct bio=%p sourcePtr=%p len=%d shc=%p => "
             "ret=%d",
             ssl, bio, sourcePtr, len, shc, result);
+    JNI_TRACE_PACKET_DATA(ssl, 'O', reinterpret_cast<const char*>(sourcePtr), result);
     return result;
 }
 
@@ -9630,6 +9681,8 @@ static int NativeCrypto_ENGINE_SSL_write_BIO_heap(JNIEnv* env, jclass, jlong ssl
             "ssl=%p NativeCrypto_ENGINE_SSL_write_BIO_heap bio=%p source=%p sourceOffset=%d "
             "sourceLength=%d shc=%p => ret=%d",
             ssl, bio, source.get(), sourceOffset, sourceLength, shc, result);
+    JNI_TRACE_PACKET_DATA(ssl, 'O', reinterpret_cast<const char*>(source.get()) + sourceOffset,
+                          result);
     return result;
 }
 
@@ -9679,6 +9732,7 @@ static int NativeCrypto_ENGINE_SSL_read_BIO_direct(JNIEnv* env, jclass, jlong ss
             "ssl=%p NativeCrypto_ENGINE_SSL_read_BIO_direct bio=%p destPtr=%p outputSize=%d shc=%p "
             "=> ret=%d",
             ssl, bio, destPtr, outputSize, shc, result);
+    JNI_TRACE_PACKET_DATA(ssl, 'I', destPtr, result);
     return result;
 }
 
@@ -9737,6 +9791,7 @@ static int NativeCrypto_ENGINE_SSL_read_BIO_heap(JNIEnv* env, jclass, jlong sslR
             "ssl=%p NativeCrypto_ENGINE_SSL_read_BIO_heap bio=%p dest=%p destOffset=%d "
             "destLength=%d shc=%p => ret=%d",
             ssl, bio, dest.get(), destOffset, destLength, shc, result);
+    JNI_TRACE_PACKET_DATA(ssl, 'I', reinterpret_cast<char*>(dest.get()) + destOffset, result);
     return result;
 }
 
