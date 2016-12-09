@@ -396,13 +396,12 @@ public class SSLParametersImpl implements Cloneable {
             // look for client session to reuse
             SSLSession cachedSession = getCachedClientSession(clientSessionContext, hostname, port);
             if (cachedSession != null) {
-                if (cachedSession instanceof OpenSSLSessionImpl) {
-                    sessionToReuse = (OpenSSLSessionImpl) cachedSession;
-                } else if (cachedSession instanceof OpenSSLExtendedSessionImpl) {
-                    sessionToReuse = ((OpenSSLExtendedSessionImpl) cachedSession).getDelegate();
+                if (cachedSession instanceof OpenSSLExtendedSessionImpl) {
+                    cachedSession = ((OpenSSLExtendedSessionImpl) cachedSession).getDelegate();
                 }
 
-                if (sessionToReuse != null) {
+                if (cachedSession instanceof OpenSSLSessionImpl) {
+                    sessionToReuse = (OpenSSLSessionImpl) cachedSession;
                     NativeCrypto.SSL_set_session(sslNativePointer,
                             sessionToReuse.sslSessionNativePointer);
                 }
