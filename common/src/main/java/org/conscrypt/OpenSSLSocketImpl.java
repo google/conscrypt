@@ -158,10 +158,10 @@ public class OpenSSLSocketImpl
     OpenSSLKey channelIdPrivateKey;
 
     /** Set during startHandshake. */
-    private OpenSSLSessionImpl sslSession;
+    private AbstractOpenSSLSession sslSession;
 
     /** Used during handshake callbacks. */
-    private OpenSSLSessionImpl handshakeSession;
+    private AbstractOpenSSLSession handshakeSession;
 
     /**
      * Local cache of timeout to avoid getsockopt on every read and
@@ -324,8 +324,8 @@ public class OpenSSLSocketImpl
                 }
             }
 
-            final OpenSSLSessionImpl sessionToReuse = sslParameters.getSessionToReuse(
-                    sslNativePointer, getHostnameOrIP(), getPort());
+            final AbstractOpenSSLSession sessionToReuse =
+                    sslParameters.getSessionToReuse(sslNativePointer, getHostnameOrIP(), getPort());
             sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this, this,
                     getHostname());
             sslParameters.setCertificateValidation(sslNativePointer);

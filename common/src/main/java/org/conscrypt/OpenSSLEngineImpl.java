@@ -136,12 +136,12 @@ public final class OpenSSLEngineImpl extends SSLEngine
     /**
      * Set during startHandshake.
      */
-    private OpenSSLSessionImpl sslSession;
+    private AbstractOpenSSLSession sslSession;
 
     /**
      * Used during handshake callbacks.
      */
-    private OpenSSLSessionImpl handshakeSession;
+    private AbstractOpenSSLSession handshakeSession;
 
     /**
      * Private key for the TLS Channel ID extension. This field is client-side only. Set during

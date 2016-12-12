@@ -564,7 +564,7 @@ final class Platform {
      * Pre-Java 8 backward compatibility.
      */
 
-    public static SSLSession wrapSSLSession(OpenSSLSessionImpl sslSession) {
+    public static SSLSession wrapSSLSession(AbstractOpenSSLSession sslSession) {
         if (Build.VERSION.SDK_INT <= 23) {
             return sslSession;
         } else {
