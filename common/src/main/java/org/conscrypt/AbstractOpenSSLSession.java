@@ -330,6 +330,7 @@ public abstract class AbstractOpenSSLSession implements SSLSession {
     @Override
     public void invalidate() {
         isValid = false;
+        sessionContext = null;
     }
 
     /**
