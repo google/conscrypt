@@ -396,9 +396,9 @@ public class SSLParametersImpl implements Cloneable {
             // look for client session to reuse
             SSLSession cachedSession = getCachedClientSession(clientSessionContext, hostname, port);
             if (cachedSession != null) {
-                if (cachedSession instanceof OpenSSLExtendedSessionImpl) {
-                    cachedSession = ((OpenSSLExtendedSessionImpl) cachedSession).getDelegate();
-                }
+                // The native pointer is used here, so we have to make sure it's not a delegate
+                // SSLSession class.
+                cachedSession = Platform.unwrapSSLSession(cachedSession);
 
                 if (cachedSession instanceof OpenSSLSessionImpl) {
                     sessionToReuse = (OpenSSLSessionImpl) cachedSession;

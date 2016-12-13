@@ -319,6 +319,13 @@ class Platform {
         return new OpenSSLExtendedSessionImpl(sslSession);
     }
 
+    public static SSLSession unwrapSSLSession(SSLSession sslSession) {
+        if (sslSession instanceof OpenSSLExtendedSessionImpl) {
+            return ((OpenSSLExtendedSessionImpl) sslSession).getDelegate();
+        }
+        return sslSession;
+    }
+
     /*
      * Pre-Java-7 backward compatibility.
      */

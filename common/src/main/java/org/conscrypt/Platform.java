@@ -195,6 +195,10 @@ final class Platform {
         throw new UnsupportedOperationException();
     }
 
+    static SSLSession unwrapSSLSession(@SuppressWarnings("unused") SSLSession sslSession) {
+        throw new UnsupportedOperationException();
+    }
+
     /*
      * Pre-Java-7 backward compatibility.
      */

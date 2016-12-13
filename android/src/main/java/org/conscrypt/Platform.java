@@ -567,9 +567,20 @@ final class Platform {
     public static SSLSession wrapSSLSession(AbstractOpenSSLSession sslSession) {
         if (Build.VERSION.SDK_INT <= 23) {
             return sslSession;
-        } else {
-            return new OpenSSLExtendedSessionImpl(sslSession);
         }
+
+        return new OpenSSLExtendedSessionImpl(sslSession);
+    }
+
+    public static SSLSession unwrapSSLSession(SSLSession sslSession) {
+        if (Build.VERSION.SDK_INT <= 23) {
+            return sslSession;
+        }
+
+        if (sslSession instanceof OpenSSLExtendedSessionImpl) {
+            return ((OpenSSLExtendedSessionImpl) sslSession).getDelegate();
+        }
+        return sslSession;
     }
 
     /*
