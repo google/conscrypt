@@ -166,7 +166,11 @@ final class Platform {
                     }
                 }
             }
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e.getCause());
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e.getCause());
+        } catch (InvocationTargetException e) {
             throw new RuntimeException(e.getCause());
         }
     }
@@ -188,7 +192,11 @@ final class Platform {
                 m_setServerNames.invoke(params, Collections.<SNIServerName>singletonList(
                                                         new SNIHostName(socket.getHostname())));
             }
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e.getCause());
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e.getCause());
+        } catch (InvocationTargetException e) {
             throw new RuntimeException(e.getCause());
         }
     }
@@ -229,7 +237,8 @@ final class Platform {
                     methodName, X509Certificate[].class, String.class, argumentClass);
             method.invoke(tm, chain, authType, argumentInstance);
             return true;
-        } catch (NoSuchMethodException | IllegalAccessException ignored) {
+        } catch (NoSuchMethodException ignored) {
+        } catch (IllegalAccessException ignored) {
         } catch (InvocationTargetException e) {
             if (e.getCause() instanceof CertificateException) {
                 throw(CertificateException) e.getCause();
@@ -431,7 +440,9 @@ final class Platform {
                 iv = (byte[]) getIVMethod.invoke(params);
 
                 return new GCMParameters(tLen, iv);
-            } catch (NoSuchMethodException | IllegalAccessException e) {
+            } catch (NoSuchMethodException e) {
+                throw new RuntimeException("GCMParameterSpec lacks expected methods", e);
+            } catch (IllegalAccessException e) {
                 throw new RuntimeException("GCMParameterSpec lacks expected methods", e);
             } catch (InvocationTargetException e) {
                 throw new RuntimeException(
