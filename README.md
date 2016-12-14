@@ -1,26 +1,39 @@
 Conscrypt - A Java Security Provider
 ========================================
 
-Conscrypt is a fast, native alternative to the default security provider of the JDK based on [BoringSSL](https://boringssl.googlesource.com/boringssl/). It was originally developed for Android, but has since been repurposed for any Java platform.
+Conscrypt is a Java Security Provider (JSP) that implements parts of the
+Java Cryptography Extension (JCE) and Java Secure Socket Extension (JSSE).
+It uses BoringSSL to provide cryptograhpic primitives and Transport Layer
+Security (TLS) for Java applications on Android and OpenJDK.
 
-The core SSL engine has borrowed liberally from the [Netty](http://netty.io/) project and their work on [netty-tcnative](http://netty.io/wiki/forked-tomcat-native.html), giving `Conscrypt` similar performance. You can think of Conscrypt as `netty-tcnative` + full Java security provider.    
+The core SSL engine has borrowed liberally from the [Netty](http://netty.io/) project and their
+work on [netty-tcnative](http://netty.io/wiki/forked-tomcat-native.html), giving `Conscrypt`
+similar performance.
 
 <table>
   <tr>
     <td><b>Homepage:</b></td>
-    <td><a href="http://conscrypt.org/">conscrypt.org</a></td>
+    <td>
+      <a href="https://conscrypt.org/">conscrypt.org</a>
+    </td>
   </tr>
   <tr>
     <td><b>Mailing List:</b></td>
-    <td><a href="https://groups.google.com/forum/#!forum/conscrypt">conscrypt@googlegroups.com</a></td>
+    <td>
+      <a href="https://groups.google.com/forum/#!forum/conscrypt">conscrypt@googlegroups.com</a>
+    </td>
   </tr>
 </table>
 
 Download
 -------------
+<font color="red" size="20"><b><u>NOTE:</u></b> This section is under construction! Artifacts have
+not yet been published to the public Maven repositories.</font>
 
 #### Download JARs
-You can download [the JARs](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.conscrypt%22%20AND%20v%3A%221.0.1%22) directly from the Maven repositories.
+You can download
+[the JARs](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.conscrypt%22%20AND%20v%3A%221.0.1%22)
+directly from the Maven repositories.
 
 #### OpenJDK (i.e. non-Android)
 
@@ -47,7 +60,8 @@ Use the [os-maven-plugin](https://github.com/trustin/os-maven-plugin) to add the
 ```
 
 ##### Gradle
-Use the [osdetector-gradle-plugin](https://github.com/google/osdetector-gradle-plugin) (which is a wrapper around the os-maven-plugin) to add the dependency:
+Use the [osdetector-gradle-plugin](https://github.com/google/osdetector-gradle-plugin)
+(which is a wrapper around the os-maven-plugin) to add the dependency:
 
 ```gradle
 buildscript {
