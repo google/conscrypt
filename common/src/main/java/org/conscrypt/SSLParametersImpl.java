@@ -504,8 +504,21 @@ public class SSLParametersImpl implements Cloneable {
 
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
-    void setSSLParameters(long sslCtxNativePointer, long sslNativePointer, AliasChooser chooser,
-            PSKCallbacks pskCallbacks, String sniHostname) throws SSLException, IOException {
+    void setSSLCtxParameters(long sslCtxNativePointer) throws SSLException, IOException {
+        if (!client_mode) {
+            if (sctExtension != null) {
+                NativeCrypto.SSL_CTX_set_signed_cert_timestamp_list(
+                        sslCtxNativePointer, sctExtension);
+            }
+
+            if (ocspResponse != null) {
+                NativeCrypto.SSL_CTX_set_ocsp_response(sslCtxNativePointer, ocspResponse);
+            }
+        }
+    }
+
+    void setSSLParameters(long sslNativePointer, AliasChooser chooser, PSKCallbacks pskCallbacks,
+            String sniHostname) throws SSLException, IOException {
         if (enabledProtocols.length == 0 && isEnabledProtocolsFiltered) {
             throw new SSLHandshakeException("No enabled protocols; "
                     + NativeCrypto.OBSOLETE_PROTOCOL_SSLV3
@@ -535,15 +548,6 @@ public class SSLParametersImpl implements Cloneable {
                         throw new IOException(e);
                     }
                 }
-            }
-
-            if (sctExtension != null) {
-                NativeCrypto.SSL_CTX_set_signed_cert_timestamp_list(sslCtxNativePointer,
-                                                                    sctExtension);
-            }
-
-            if (ocspResponse != null) {
-                NativeCrypto.SSL_CTX_set_ocsp_response(sslCtxNativePointer, ocspResponse);
             }
 
             NativeCrypto.SSL_set_options(sslNativePointer,
