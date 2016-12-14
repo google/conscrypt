@@ -46,7 +46,6 @@ subprojects {
         apply plugin: 'java'
         apply plugin: 'cpp'
         apply plugin: "signing"
-        apply plugin: "checkstyle"
     }
     apply plugin: "maven"
     apply plugin: "idea"
@@ -88,7 +87,9 @@ subprojects {
                 // Test dependencies.
                 junit  : 'junit:junit:4.11',
                 mockito: 'org.mockito:mockito-core:1.9.5',
-                truth  : 'com.google.truth:truth:0.28'
+                truth  : 'com.google.truth:truth:0.28',
+                bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.55',
+                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.55'
         ]
     }
 
@@ -96,11 +97,6 @@ subprojects {
         mavenCentral()
         mavenLocal()
         jcenter()
-    }
-
-    dependencies {
-        testCompile libraries.junit,
-                    libraries.mockito
     }
 
     if (!androidProject) {
@@ -157,24 +153,6 @@ subprojects {
 
         artifacts {
             archives sourcesJar
-        }
-
-        checkstyle {
-            configFile = file("$rootDir/checkstyle.xml")
-            toolVersion = "6.17"
-            ignoreFailures = false
-            if (rootProject.hasProperty("checkstyle.ignoreFailures")) {
-                ignoreFailures = rootProject.properties["checkstyle.ignoreFailures"].toBoolean()
-            }
-            configProperties["rootDir"] = rootDir
-        }
-
-        checkstyleMain {
-            source = fileTree(dir: "src/main", include: "**/*.java")
-        }
-
-        checkstyleTest {
-            source = fileTree(dir: "src/test", include: "**/*.java")
         }
 
         uploadArchives.repositories.mavenDeployer {
