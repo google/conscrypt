@@ -207,26 +207,24 @@ subprojects {
                 url 'https://conscrypt.org/'
 
                 scm {
-                    connection 'scm:git:https://android.googlesource.com/platform/external/conscrypt'
-                    developerConnection 'scm:git:https://android.googlesource.com/platform/external/conscrypt'
-                    url 'https://android.googlesource.com/platform/external/conscrypt'
+                    connection 'scm:git:https://github.com/google/conscrypt.git'
+                    developerConnection 'scm:git:git@github.com:google/conscrypt.git'
+                    url 'https://github.com/google/conscrypt'
                 }
 
                 licenses {
                     license {
                         name 'Apache 2'
-                        url 'https://android.googlesource.com/platform/external/conscrypt/+/master/NOTICE'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0'
                     }
                 }
 
                 developers {
                     developer {
-                        // TODO(nathanmittler): TBD...
-                        id "org.conscrypt"
+                        id "conscrypt"
                         name "Conscrypt Contributors"
-                        //email "grpc-io@googlegroups.com"
+                        email "conscrypt@googlegroups.com"
                         url "https://conscrypt.org/"
-                        // https://issues.gradle.org/browse/GRADLE-2719
                         organization = "Google, Inc."
                         organizationUrl "https://www.google.com"
                     }
