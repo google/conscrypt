@@ -189,12 +189,12 @@ public final class OpenSSLEngineImpl extends SSLEngine
         try {
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
             final long sslCtxNativePointer = sessionContext.sslCtxNativePointer;
+            sslParameters.setSSLCtxParameters(sslCtxNativePointer);
             sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
             networkBio = NativeCrypto.SSL_BIO_new(sslNativePointer);
             sslSession =
                     sslParameters.getSessionToReuse(sslNativePointer, getPeerHost(), getPeerPort());
-            sslParameters.setSSLParameters(
-                    sslCtxNativePointer, sslNativePointer, this, this, getPeerHost());
+            sslParameters.setSSLParameters(sslNativePointer, this, this, getPeerHost());
             sslParameters.setCertificateValidation(sslNativePointer);
             sslParameters.setTlsChannelId(sslNativePointer, channelIdPrivateKey);
             if (getUseClientMode()) {

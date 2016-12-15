@@ -293,6 +293,7 @@ public class OpenSSLSocketImpl
         try {
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
             final long sslCtxNativePointer = sessionContext.sslCtxNativePointer;
+            sslParameters.setSSLCtxParameters(sslCtxNativePointer);
             sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
             Platform.closeGuardOpen(guard, "close");
 
@@ -326,8 +327,7 @@ public class OpenSSLSocketImpl
 
             final AbstractOpenSSLSession sessionToReuse =
                     sslParameters.getSessionToReuse(sslNativePointer, getHostnameOrIP(), getPort());
-            sslParameters.setSSLParameters(sslCtxNativePointer, sslNativePointer, this, this,
-                    getHostname());
+            sslParameters.setSSLParameters(sslNativePointer, this, this, getHostname());
             sslParameters.setCertificateValidation(sslNativePointer);
             sslParameters.setTlsChannelId(sslNativePointer, channelIdPrivateKey);
 
