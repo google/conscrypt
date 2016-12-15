@@ -58,7 +58,6 @@ subprojects {
 
     ext {
         androidHome = "$System.env.ANDROID_HOME"
-        androidJreHome = "$System.env.ANDROID_JRE_HOME"
         boringsslHome = "$System.env.BORINGSSL_HOME"
         boringsslIncludeDir = "$boringsslHome/include"
         boringsslSslBuildDir = "$boringsslHome/build/ssl"
@@ -75,7 +74,6 @@ subprojects {
 
         // Ensure the environment is configured properly.
         assert file("$androidHome").exists()
-        assert file("$androidJreHome").exists()
         assert file("$boringsslHome").exists()
         assert file("$boringsslIncludeDir").exists()
         assert file("$boringsslSslBuildDir").exists()
