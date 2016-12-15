@@ -20,7 +20,7 @@
 // Returns true if the VM's JNI GetByteArrayElements method is likely to create a copy when invoked
 // on an array of the provided size.
 bool isGetByteArrayElementsLikelyToReturnACopy(size_t size) {
-#ifdef ANDROID
+#if defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)
     // ART's GetByteArrayElements creates copies only for arrays smaller than 12 kB.
     return size <= 12 * 1024;
 #else
