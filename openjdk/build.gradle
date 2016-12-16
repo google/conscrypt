@@ -33,7 +33,47 @@ jar {
     classifier = osdetector.classifier
 }
 
+void configureGcc(GccCommandLineToolConfiguration cppCompiler, GccCommandLineToolConfiguration linker) {
+    cppCompiler.withArguments { args ->
+        args << "-Wall"
+        args << "-fPIC"
+        args << "-O2"
+        args << "-std=c++11"
+        args << "-I$jniSourceDir/main/include"
+        args << "-I$jniSourceDir/unbundled/include"
+        args << "-I$boringsslIncludeDir"
+        args << "-I$jdkIncludeDir"
+        if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
+            args << "-I$jdkIncludeDir/linux"
+        } else if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+            args << "-I$jdkIncludeDir/darwin"
+        } else if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+            args << "-I$jdkIncludeDir/win32"
+        }
+    }
+    linker.withArguments { args ->
+        args << "-O2"
+        args << "-L$boringsslSslBuildDir"
+        args << "-L$boringsslCryptoBuildDir"
+        args << "-lstdc++"
+        args << "-lssl"
+        args << "-lcrypto"
+    }
+}
+
 model {
+    toolChains {
+        clang(Clang) {
+            eachPlatform {
+                configureGcc(cppCompiler, linker)
+            }
+        }
+        gcc(Gcc) {
+            eachPlatform {
+                configureGcc(cppCompiler, linker)
+            }
+        }
+    }
     components {
         // Builds the JNI library.
         "$jniLibName"(NativeLibrarySpec) {
@@ -49,30 +89,6 @@ model {
             }
 
             binaries {
-                // Build the JNI lib as a shared library.
-                withType(SharedLibraryBinarySpec) {
-                    if (toolChain in Gcc) {
-                        cppCompiler.args "-Wall",
-                                "-fPIC",
-                                "-O2",
-                                "-std=c++11",
-                                "-I$jniSourceDir/main/include",
-                                "-I$jniSourceDir/unbundled/include",
-                                "-I$boringsslIncludeDir",
-                                "-I$jdkIncludeDir",
-                                // TODO(nathanmittler): support non-linux (e.g. /darwin)
-                                "-I$jdkIncludeDir/linux"
-
-                        // Static link to BoringSSL
-                        linker.args "-O2",
-                                "-L$boringsslSslBuildDir",
-                                "-L$boringsslCryptoBuildDir",
-                                "-lstdc++",
-                                "-lssl",
-                                "-lcrypto"
-                    }
-                }
-
                 // Never build a static library.
                 withType(StaticLibraryBinarySpec) {
                     buildable = false
