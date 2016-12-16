@@ -16,11 +16,11 @@
 
 package org.conscrypt;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
@@ -259,31 +259,45 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
+    private static void checkRemaining(ByteBuffer buf, int length) throws IOException {
+        if (length < 0) {
+            throw new IOException("Length is negative: " + length);
+        }
+        if (length > buf.remaining()) {
+            throw new IOException(
+                    "Length of blob is longer than available: " + length + " > " + buf.remaining());
+        }
+    }
+
     /**
      * Creates a session from the given bytes.
      *
      * @return a session or null if the session can't be converted
      */
-    OpenSSLSessionImpl toSession(byte[] data, String host, int port) {
-        ByteArrayInputStream bais = new ByteArrayInputStream(data);
-        DataInputStream dais = new DataInputStream(bais);
+    public OpenSSLSessionImpl toSession(byte[] data, String host, int port) {
+        ByteBuffer buf = ByteBuffer.wrap(data);
         try {
-            int type = dais.readInt();
+            int type = buf.get();
             if (type != OPEN_SSL && type != OPEN_SSL_WITH_OCSP && type != OPEN_SSL_WITH_TLS_SCT) {
-                log(new AssertionError("Unexpected type ID: " + type));
-                return null;
+                throw new IOException("Unexpected type ID: " + type);
             }
 
-            int length = dais.readInt();
-            byte[] sessionData = new byte[length];
-            dais.readFully(sessionData);
+            int length = buf.getInt();
+            checkRemaining(buf, length);
 
-            int count = dais.readInt();
+            byte[] sessionData = new byte[length];
+            buf.get(sessionData);
+
+            int count = buf.getInt();
+            checkRemaining(buf, count);
+
             X509Certificate[] certs = new X509Certificate[count];
             for (int i = 0; i < count; i++) {
-                length = dais.readInt();
+                length = buf.getInt();
+                checkRemaining(buf, length);
+
                 byte[] certData = new byte[length];
-                dais.readFully(certData);
+                buf.get(certData);
                 certs[i] = OpenSSLX509Certificate.fromX509Der(certData);
             }
 
@@ -291,26 +305,47 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             if (type >= OPEN_SSL_WITH_OCSP) {
                 // We only support one OCSP response now, but in the future
                 // we may support RFC 6961 which has multiple.
-                int countOcspResponses = dais.readInt();
-                if (countOcspResponses > 1) {
-                    int ocspLength = dais.readInt();
+                int countOcspResponses = buf.getInt();
+                checkRemaining(buf, countOcspResponses);
+
+                if (countOcspResponses >= 1) {
+                    int ocspLength = buf.getInt();
+                    checkRemaining(buf, ocspLength);
+
                     ocspData = new byte[ocspLength];
-                    dais.readFully(ocspData);
+                    buf.get(ocspData);
+
+                    // Skip the rest of the responses.
+                    for (int i = 1; i < countOcspResponses; i++) {
+                        ocspLength = buf.getInt();
+                        checkRemaining(buf, ocspLength);
+                        buf.position(buf.position() + ocspLength);
+                    }
                 }
             }
 
             byte[] tlsSctData = null;
             if (type == OPEN_SSL_WITH_TLS_SCT) {
-                int tlsSctDataLength = dais.readInt();
+                int tlsSctDataLength = buf.getInt();
+                checkRemaining(buf, tlsSctDataLength);
+
                 if (tlsSctDataLength > 0) {
                     tlsSctData = new byte[tlsSctDataLength];
-                    dais.readFully(tlsSctData);
+                    buf.get(tlsSctData);
                 }
+            }
+
+            if (buf.remaining() != 0) {
+                log(new AssertionError("Read entire session, but data still remains; rejecting"));
+                return null;
             }
 
             return new OpenSSLSessionImpl(sessionData, host, port, certs, ocspData, tlsSctData,
                     this);
         } catch (IOException e) {
+            log(e);
+            return null;
+        } catch (BufferUnderflowException e) {
             log(e);
             return null;
         }
@@ -352,7 +387,8 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     }
 
     static void log(Throwable t) {
-        new Exception("Error converting session", t).printStackTrace();
+        System.out.println("Error inflating SSL session: "
+                + (t.getMessage() != null ? t.getMessage() : t.getClass().getName()));
     }
 
     @Override
