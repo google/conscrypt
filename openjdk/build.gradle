@@ -13,9 +13,6 @@ ext {
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
-// Use the test resources under platform.
-sourceSets.test.resources.srcDirs = ["$rootDir/platform/src/test/resources"]
-
 dependencies {
     compile project(':conscrypt-common')
 

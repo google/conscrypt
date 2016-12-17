@@ -35,11 +35,13 @@
 #       src/main/java       # Java source for unbundled Android.
 #   openjdk/
 #       src/main/java       # Java source for OpenJDK.
+#       src/test
+#            java/          # Java source for common tests.
+#            resources/     # Support files for tests
 #   platform/
 #       src/main/java       # Java source for bundled Android.
 #       src/test
 #            java/          # Java source for bundled tests.
-#            resources/     # Support files for bundled tests.
 #
 # All subdirectories are optional (hence the "2> /dev/null"s below).
 
@@ -101,11 +103,18 @@ LOCAL_MODULE := conscrypt-nojarjar
 LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
+platform_test_java_files := $(filter-out \
+	%/org/conscrypt/NativeCryptoTest.java \
+	%/org/conscrypt/OpenSSLSocketImplTest.java \
+	, $(call all-java-files-under,openjdk/src/test/java)) \
+	$(call all-java-files-under,platform/src/test/java)
+platform_test_java_files := $(foreach j,$(platform_java_test_files),$(if $(findstring /libcore/,$(j)),,$(j))))
+
 ifeq ($(LIBCORE_SKIP_TESTS),)
 # Make the conscrypt-tests library.
 include $(CLEAR_VARS)
-LOCAL_SRC_FILES := $(call all-java-files-under,platform/src/test/java)
-LOCAL_JAVA_RESOURCE_DIRS := platform/src/test/resources
+LOCAL_SRC_FILES := $(platform_test_java_files)
+LOCAL_JAVA_RESOURCE_DIRS := openjdk/src/test/resources
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVA_LIBRARIES := core-oj core-libart junit bouncycastle mockito-target-minus-junit4
 LOCAL_STATIC_JAVA_LIBRARIES := core-tests-support conscrypt-nojarjar
@@ -217,8 +226,8 @@ include $(BUILD_HOST_DALVIK_STATIC_JAVA_LIBRARY)
 # Make the conscrypt-tests library.
 ifeq ($(LIBCORE_SKIP_TESTS),)
     include $(CLEAR_VARS)
-    LOCAL_SRC_FILES := $(call all-java-files-under,platform/src/test/java)
-    LOCAL_JAVA_RESOURCE_DIRS := platform/src/test/resources
+    LOCAL_SRC_FILES := $(platform_test_java_files)
+    LOCAL_JAVA_RESOURCE_DIRS := openjdk/src/test/resources
     LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex junit-hostdex core-tests-support-hostdex mockito-api-hostdex
     LOCAL_STATIC_JAVA_LIBRARIES := conscrypt-hostdex-nojarjar
     LOCAL_JAVACFLAGS := $(local_javac_flags)

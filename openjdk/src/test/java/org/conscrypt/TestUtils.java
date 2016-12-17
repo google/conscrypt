@@ -16,15 +16,15 @@
 
 package org.conscrypt;
 
-import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import libcore.io.Streams;
 
-final class TestUtils {
+public class TestUtils {
     private TestUtils() {}
 
-    static InputStream openTestFile(String name) throws FileNotFoundException {
+    public static InputStream openTestFile(String name) throws FileNotFoundException {
         InputStream is = TestUtils.class.getResourceAsStream("/" + name);
         if (is == null) {
             throw new FileNotFoundException(name);
@@ -32,31 +32,7 @@ final class TestUtils {
         return is;
     }
 
-    static byte[] readTestFile(String name) throws IOException {
-        return readFully(openTestFile(name));
-    }
-
-    /**
-     * Returns a byte[] containing the remainder of 'in', closing it when done.
-     */
-    private static byte[] readFully(InputStream in) throws IOException {
-        try {
-            return readFullyNoClose(in);
-        } finally {
-            in.close();
-        }
-    }
-
-    /**
-     * Returns a byte[] containing the remainder of 'in'.
-     */
-    private static byte[] readFullyNoClose(InputStream in) throws IOException {
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        byte[] buffer = new byte[1024];
-        int count;
-        while ((count = in.read(buffer)) != -1) {
-            bytes.write(buffer, 0, count);
-        }
-        return bytes.toByteArray();
+    public static byte[] readTestFile(String name) throws IOException {
+        return Streams.readFully(openTestFile(name));
     }
 }
