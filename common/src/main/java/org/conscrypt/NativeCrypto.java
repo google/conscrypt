@@ -700,9 +700,7 @@ public final class NativeCrypto {
 
     private static final String[] SUPPORTED_CIPHER_SUITES;
     static {
-        // Suppress TLS 1.3's generic AEAD-only ciphers for now. They will be restored once TLS 1.3
-        // support is enabled.
-        String[] allOpenSSLCipherSuites = get_cipher_names("ALL:-GENERIC");
+        String[] allOpenSSLCipherSuites = get_cipher_names("ALL");
 
         int size = allOpenSSLCipherSuites.length;
         SUPPORTED_CIPHER_SUITES = new String[size + 2];
