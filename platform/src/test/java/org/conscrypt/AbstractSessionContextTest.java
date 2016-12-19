@@ -16,9 +16,11 @@
 
 package org.conscrypt;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -386,6 +388,11 @@ public class AbstractSessionContextTest {
     @BeforeClass
     public static void setup() {
         clientCtx = new ClientSessionContext();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        assertEquals(0, NativeCrypto.ERR_peek_last_error());
     }
 
     private static TestSessionBuilder getType1() {
