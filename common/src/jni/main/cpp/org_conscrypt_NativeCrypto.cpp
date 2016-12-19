@@ -897,18 +897,6 @@ jbyteArray ASN1ToByteArray(JNIEnv* env, T* obj, int (*i2d_func)(T*, unsigned cha
     return byteArray.release();
 }
 
-template<typename T, T* (*d2i_func)(T**, const unsigned char**, long)>
-T* ByteArrayToASN1(JNIEnv* env, jbyteArray byteArray) {
-    ScopedByteArrayRO bytes(env, byteArray);
-    if (bytes.get() == nullptr) {
-        JNI_TRACE("ByteArrayToASN1(%p) => using byte array failed", byteArray);
-        return nullptr;
-    }
-
-    const unsigned char* tmp = reinterpret_cast<const unsigned char*>(bytes.get());
-    return d2i_func(nullptr, &tmp, bytes.size());
-}
-
 /**
  * Converts ASN.1 BIT STRING to a jbooleanArray.
  */
@@ -5409,7 +5397,18 @@ static jlong NativeCrypto_d2i_X509_bio(JNIEnv* env, jclass, jlong bioRef) {
 }
 
 static jlong NativeCrypto_d2i_X509(JNIEnv* env, jclass, jbyteArray certBytes) {
-    X509* x = ByteArrayToASN1<X509, d2i_X509>(env, certBytes);
+    ScopedByteArrayRO bytes(env, certBytes);
+    if (bytes.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_d2i_X509(%p) => using byte array failed", certBytes);
+        return 0;
+    }
+
+    const unsigned char* tmp = reinterpret_cast<const unsigned char*>(bytes.get());
+    X509* x = d2i_X509(nullptr, &tmp, bytes.size());
+    if (x == nullptr) {
+        throwExceptionIfNecessary(env, "Error reading X.509 data", throwParsingException);
+        return 0;
+    }
     return reinterpret_cast<uintptr_t>(x);
 }
 

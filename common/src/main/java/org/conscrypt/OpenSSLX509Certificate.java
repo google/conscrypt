@@ -76,12 +76,13 @@ public class OpenSSLX509Certificate extends X509Certificate {
         }
     }
 
-    public static OpenSSLX509Certificate fromX509Der(byte[] encoded) {
-        final long certCtx = NativeCrypto.d2i_X509(encoded);
-        if (certCtx == 0) {
-            return null;
+    public static OpenSSLX509Certificate fromX509Der(byte[] encoded)
+            throws CertificateEncodingException {
+        try {
+            return new OpenSSLX509Certificate(NativeCrypto.d2i_X509(encoded));
+        } catch (ParsingException e) {
+            throw new CertificateEncodingException(e);
         }
-        return new OpenSSLX509Certificate(certCtx);
     }
 
     public static List<OpenSSLX509Certificate> fromPkcs7DerInputStream(InputStream is)

@@ -298,7 +298,11 @@ abstract class AbstractSessionContext implements SSLSessionContext {
 
                 byte[] certData = new byte[length];
                 buf.get(certData);
-                certs[i] = OpenSSLX509Certificate.fromX509Der(certData);
+                try {
+                    certs[i] = OpenSSLX509Certificate.fromX509Der(certData);
+                } catch (Exception e) {
+                    throw new IOException("Can not read certificate " + i + "/" + count);
+                }
             }
 
             byte[] ocspData = null;

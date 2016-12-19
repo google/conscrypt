@@ -42,6 +42,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * Provides the Java side of our JNI glue for OpenSSL.
@@ -377,7 +378,7 @@ public final class NativeCrypto {
 
     public static native long d2i_X509_bio(long bioCtx);
 
-    public static native long d2i_X509(byte[] encoded);
+    public static native long d2i_X509(byte[] encoded) throws ParsingException;
 
     public static native long PEM_read_bio_X509(long bioCtx);
 
