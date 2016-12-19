@@ -318,17 +318,17 @@ public class AbstractSessionContextTest {
 
     @Test
     public void toSession_Type1_Valid_Success() throws Exception {
-        assertNotNull(clientCtx.toSession(getType1().build(), "www.google.com", 443));
+        assertValidSession(getType1().build());
     }
 
     @Test
     public void toSession_Type2_Valid_Success() throws Exception {
-        assertNotNull(clientCtx.toSession(getType2().build(), "www.google.com", 443));
+        assertValidSession(getType2().build());
     }
 
     @Test
     public void toSession_Type3_Valid_Success() throws Exception {
-        assertNotNull(clientCtx.toSession(getType3().build(), "www.google.com", 443));
+        assertValidSession(getType3().build());
     }
 
     private void assertTruncatedSessionFails(byte[] validSession) {
@@ -344,6 +344,10 @@ public class AbstractSessionContextTest {
     @Test
     public void toSession_Type3_Truncated_Failure() throws Exception {
         assertTruncatedSessionFails(getType3().build());
+    }
+
+    private static void assertValidSession(byte[] data) {
+        assertNotNull(clientCtx.toSession(data, "www.google.com", 443));
     }
 
     private static void assertInvalidSession(byte[] data) {
@@ -413,6 +417,22 @@ public class AbstractSessionContextTest {
     @Test
     public void toSession_TlsSctDataSizeTooLarge_Failure() throws Exception {
         assertInvalidSession(getType3().setTlsSctDataLength(931148).build());
+    }
+
+    @Test
+    public void toSession_Type2OcspDataEmpty_Success() throws Exception {
+        assertValidSession(getType1().setType(0x02).setOcspDataEmpty().build());
+    }
+
+    @Test
+    public void toSession_Type3TlsSctDataEmpty_Success() throws Exception {
+        assertValidSession(getType2().setType(0x03).setTlsSctDataEmpty().build());
+    }
+
+    @Test
+    public void toSession_Type3OcspAndTlsSctDataEmpty_Success() throws Exception {
+        assertValidSession(
+                getType1().setType(0x03).setOcspDataEmpty().setTlsSctDataEmpty().build());
     }
 
     private static void assertTrailingDataFails(byte[] validSession) {

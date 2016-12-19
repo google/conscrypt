@@ -148,8 +148,12 @@ public class TestSessionBuilder {
             }
 
             if (tlsSctDataSet) {
-                buf.putInt(tlsSctDataLength);
-                buf.put(tlsSctData);
+                if (tlsSctData == null) {
+                    buf.putInt(0);
+                } else {
+                    buf.putInt(tlsSctDataLength);
+                    buf.put(tlsSctData);
+                }
             }
         } else {
             assertFalse("If ocspData is not set, then tlsSctData must not be set", tlsSctDataSet);

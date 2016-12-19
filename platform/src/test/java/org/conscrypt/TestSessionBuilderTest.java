@@ -69,8 +69,7 @@ public class TestSessionBuilderTest {
         assertArrayEquals(
                 new byte[] {
                         0x11, 0x00, 0x00, 0x00, 0x01, 0x22, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                        0x00, 0x01, 0x33, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00,
+                        0x00, 0x01, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 },
                 new TestSessionBuilder()
                         .setType(0x11)
@@ -80,6 +79,7 @@ public class TestSessionBuilderTest {
                         .setTlsSctDataEmpty()
                         .build());
     }
+
     @Test
     public void buildsInvalidOcspAndTlsSctSession() {
         assertArrayEquals(
