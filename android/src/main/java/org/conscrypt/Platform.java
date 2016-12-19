@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import android.annotation.TargetApi;
 import android.os.Build;
 import android.util.Log;
 import dalvik.system.BlockGuard;
@@ -155,23 +156,29 @@ final class Platform {
                     params.getClass().getMethod("getUseCipherSuitesOrder");
             impl.setUseCipherSuitesOrder((boolean) m_getUseCipherSuitesOrder.invoke(params));
 
-            Method m_getServerNames = params.getClass().getMethod("getServerNames");
-            @SuppressWarnings("unchecked")
-            List<SNIServerName> serverNames = (List<SNIServerName>) m_getServerNames.invoke(params);
-            if (serverNames != null) {
-                for (SNIServerName serverName : serverNames) {
-                    if (serverName.getType() == StandardConstants.SNI_HOST_NAME) {
-                        socket.setHostname(((SNIHostName) serverName).getAsciiName());
-                        break;
-                    }
-                }
+            if (Build.VERSION.SDK_INT >= 24) {
+                setSocketSniHostname(params, socket);
             }
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e.getCause());
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e.getCause());
+        } catch (NoSuchMethodException ignored) {
+        } catch (IllegalAccessException ignored) {
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e.getCause());
+        }
+    }
+
+    @TargetApi(24)
+    private static void setSocketSniHostname(SSLParameters params, OpenSSLSocketImpl socket)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        Method m_getServerNames = params.getClass().getMethod("getServerNames");
+        @SuppressWarnings("unchecked")
+        List<SNIServerName> serverNames = (List<SNIServerName>) m_getServerNames.invoke(params);
+        if (serverNames != null) {
+            for (SNIServerName serverName : serverNames) {
+                if (serverName.getType() == StandardConstants.SNI_HOST_NAME) {
+                    socket.setHostname(((SNIHostName) serverName).getAsciiName());
+                    break;
+                }
+            }
         }
     }
 
@@ -187,17 +194,24 @@ final class Platform {
                     params.getClass().getMethod("setUseCipherSuitesOrder", boolean.class);
             m_setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
 
-            if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
-                Method m_setServerNames = params.getClass().getMethod("setServerNames", List.class);
-                m_setServerNames.invoke(params, Collections.<SNIServerName>singletonList(
-                                                        new SNIHostName(socket.getHostname())));
+            if (Build.VERSION.SDK_INT >= 24) {
+                setParametersSniHostname(params, impl, socket);
             }
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e.getCause());
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e.getCause());
+        } catch (NoSuchMethodException ignored) {
+        } catch (IllegalAccessException ignored) {
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e.getCause());
+        }
+    }
+
+    @TargetApi(24)
+    private static void setParametersSniHostname(
+            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket)
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
+            Method m_setServerNames = params.getClass().getMethod("setServerNames", List.class);
+            m_setServerNames.invoke(params, Collections.<SNIServerName>singletonList(
+                                                    new SNIHostName(socket.getHostname())));
         }
     }
 

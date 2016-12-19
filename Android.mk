@@ -150,7 +150,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(common_java_files)
 LOCAL_SRC_FILES += $(call all-java-files-under,android/src/main/java)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
-LOCAL_SDK_VERSION := 9
+LOCAL_SDK_VERSION := 16
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt_unbundled
@@ -162,7 +162,7 @@ include $(BUILD_STATIC_JAVA_LIBRARY)
 # Stub library for unbundled builds
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,android-stub/src/main/java)
-LOCAL_SDK_VERSION := 9
+LOCAL_SDK_VERSION := 16
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE := conscrypt-stubs
 LOCAL_JACK_FLAGS := -D jack.classpath.default-libraries=false
