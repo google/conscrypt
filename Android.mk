@@ -106,9 +106,10 @@ include $(BUILD_STATIC_JAVA_LIBRARY)
 platform_test_java_files := $(filter-out \
 	%/org/conscrypt/NativeCryptoTest.java \
 	%/org/conscrypt/OpenSSLSocketImplTest.java \
-	, $(call all-java-files-under,openjdk/src/test/java)) \
-	$(call all-java-files-under,platform/src/test/java)
-platform_test_java_files := $(foreach j,$(platform_java_test_files),$(if $(findstring /libcore/,$(j)),,$(j))))
+	, $(call all-java-files-under,openjdk/src/test/java))
+platform_test_java_files := $(foreach j,$(platform_test_java_files),\
+	$(if $(findstring openjdk/src/test/java/libcore/,$(j)),,$(j)))
+platform_test_java_files += $(call all-java-files-under,platform/src/test/java)
 
 ifeq ($(LIBCORE_SKIP_TESTS),)
 # Make the conscrypt-tests library.
@@ -273,7 +274,10 @@ LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_HOST_JAVA_LIBRARY)
 
 # clear out local variables
+common_java_files :=
+conscrypt_gen_java_files :=
+conscrypt_generate_constants_exe :=
 core_cflags :=
 core_cppflags :=
 local_javac_flags :=
-common_java_files :=
+platform_test_java_files :=
