@@ -27,15 +27,21 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    sourceSets.main {
+        java {
+            srcDirs = [
+                    "${rootDir}/common/src/main/java",
+                    "src/main/java"
+            ]
+        }
+    }
 }
-
-tasks.build.dependsOn project(":conscrypt-common").build
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    compile project(':conscrypt-common')
+    compile project(':conscrypt-constants')
     provided project(':conscrypt-android-stub')
 }
