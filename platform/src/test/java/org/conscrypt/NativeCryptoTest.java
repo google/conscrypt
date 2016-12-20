@@ -68,6 +68,7 @@ import libcore.io.IoUtils;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import org.junit.After;
 import org.junit.Test;
 
@@ -2914,6 +2915,11 @@ public class NativeCryptoTest {
         long pkeyCtx = getRawPkeyCtxForEncrypt();
         NativeRef.EVP_PKEY_CTX holder = new NativeRef.EVP_PKEY_CTX(pkeyCtx);
         NativeCrypto.EVP_PKEY_CTX_set_rsa_oaep_md(pkeyCtx, NULL);
+    }
+
+    @Test(expected = ParsingException.class)
+    public void d2i_X509_InvalidFailure() throws Exception {
+        NativeCrypto.d2i_X509(new byte[1]);
     }
 
     private static void assertContains(String actualValue, String expectedSubstring) {
