@@ -113,7 +113,7 @@ platform-specific modules will include this source in their builds.
 ### Android
 
 This module provides the `Platform` class for Android and also adds compatibility classes for
-supporting various versions of Android. This generates an `apk` library artifact.
+supporting various versions of Android. This generates an `aar` library artifact.
 
 ### OpenJDK
 
