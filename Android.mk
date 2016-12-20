@@ -26,6 +26,8 @@
 #
 # The structure is:
 #
+#   constants/
+#       src/gen             # Generates NativeConstants.java.
 #   common/
 #       src/main/java       # Common Java source for all platforms.
 #       src/jni/
@@ -58,7 +60,7 @@ core_cppflags := -Wall -Wextra -Werror -Wunused
 #
 
 include $(CLEAR_VARS)
-LOCAL_SRC_FILES := common/src/gen/cpp/generate_constants.cpp
+LOCAL_SRC_FILES := constants/src/gen/cpp/generate_constants.cpp
 LOCAL_MODULE := conscrypt_generate_constants
 LOCAL_SHARED_LIBRARIES := libcrypto libssl
 include $(BUILD_HOST_EXECUTABLE)

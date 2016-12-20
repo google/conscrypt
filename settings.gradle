@@ -1,10 +1,10 @@
 rootProject.name = "conscrypt"
-include ":conscrypt-common"
+include ":conscrypt-constants"
 include ":conscrypt-openjdk"
 include ":conscrypt-android"
 include ":conscrypt-android-stub"
 
-project(':conscrypt-common').projectDir = "$rootDir/common" as File
+project(':conscrypt-constants').projectDir = "$rootDir/constants" as File
 project(':conscrypt-openjdk').projectDir = "$rootDir/openjdk" as File
 project(':conscrypt-android').projectDir = "$rootDir/android" as File
 project(':conscrypt-android-stub').projectDir = "$rootDir/android-stub" as File

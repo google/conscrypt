@@ -3,7 +3,7 @@ apply plugin: "com.google.osdetector"
 description = 'Conscrypt: OpenJdk'
 
 ext {
-    jniSourceDir = project(":conscrypt-common").projectDir.absolutePath + "/src/jni"
+    jniSourceDir = "$rootDir/common/src/jni"
     jniLibName = "conscrypt_openjdk_jni-$osdetector.classifier"
     jniLibTaskName = "${jniLibName}SharedLibrary"
 
@@ -13,8 +13,17 @@ ext {
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
+sourceSets.main {
+    java {
+        srcDirs = [
+                "${rootDir}/common/src/main/java",
+                "src/main/java"
+        ]
+    }
+}
+
 dependencies {
-    compile project(':conscrypt-common')
+    compile project(':conscrypt-constants')
 
     testCompile libraries.bouncycastle_provider,
                 libraries.bouncycastle_apis,

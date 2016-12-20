@@ -1,4 +1,4 @@
-description = 'Conscrypt: Common'
+description = 'Conscrypt: Constants'
 
 ext {
     genDir = "${project.buildDir}/generated-sources"
@@ -12,7 +12,6 @@ targetCompatibility = androidMinJavaVersion
 sourceSets.main {
     java {
         srcDirs = [
-            "src/main/java",
             "${genDir}"
         ]
     }
@@ -22,12 +21,6 @@ dependencies {
     compile files("${genDir}") {
         builtBy 'runGen'
     }
-}
-
-// Exclude the platform-specific stubs from the generated jar.
-jar {
-    exclude('org/conscrypt/Platform.class')
-    exclude('org/conscrypt/NativeCryptoJni.class')
 }
 
 // Generate javadoc and sources JAR
