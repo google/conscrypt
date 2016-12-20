@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- ExtendedSSLSession only gets instantiated in new APIs on Android. -->
+    <issue id="NewApi">
+        <ignore path="**/org/conscrypt/OpenSSLExtendedSessionImpl.java" />
+    </issue>
+</lint>
