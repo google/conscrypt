@@ -41,10 +41,13 @@ public class OpenSSLX509CertificateTest extends TestCase {
             Field targetUID = ZpenSSLX509Certificate.class.getDeclaredField("serialVersionUID");
             targetUID.setAccessible(true);
 
-            // Mark the field as non-final.
-            Field modifiersField = Field.class.getDeclaredField("modifiers");
-            modifiersField.setAccessible(true);
-            modifiersField.setInt(targetUID, targetUID.getModifiers() & ~Modifier.FINAL);
+            // Mark the field as non-final on JVM that need it.
+            try {
+                Field modifiersField = Field.class.getDeclaredField("modifiers");
+                modifiersField.setAccessible(true);
+                modifiersField.setInt(targetUID, targetUID.getModifiers() & ~Modifier.FINAL);
+            } catch (NoSuchFieldException ignored) {
+            }
 
             targetUID.set(null, clDesc.getSerialVersionUID());
         }

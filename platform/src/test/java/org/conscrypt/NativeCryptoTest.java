@@ -33,6 +33,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -70,6 +71,7 @@ import libcore.java.security.TestKeyStore;
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class NativeCryptoTest {
@@ -89,6 +91,14 @@ public class NativeCryptoTest {
     private static byte[][] CA_PRINCIPALS;
     private static OpenSSLKey CHANNEL_ID_PRIVATE_KEY;
     private static byte[] CHANNEL_ID;
+    private static Method m_Platform_getFileDescriptor;
+
+    @BeforeClass
+    public static void getPlatformMethods() throws Exception {
+        m_Platform_getFileDescriptor =
+                Platform.class.getDeclaredMethod("getFileDescriptor", Socket.class);
+        m_Platform_getFileDescriptor.setAccessible(true);
+    }
 
     @After
     public void tearDown() throws Exception {
@@ -924,7 +934,8 @@ public class NativeCryptoTest {
                         if (timeout == -1) {
                             return new TestSSLHandshakeCallbacks(socket, 0, null);
                         }
-                        FileDescriptor fd = Platform.getFileDescriptor(socket);
+                        FileDescriptor fd =
+                                (FileDescriptor) m_Platform_getFileDescriptor.invoke(null, socket);
                         long c = hooks.getContext();
                         long s = hooks.beforeHandshake(c);
                         TestSSLHandshakeCallbacks callback =
