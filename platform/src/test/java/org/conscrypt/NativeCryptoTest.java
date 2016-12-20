@@ -73,7 +73,10 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class NativeCryptoTest {
     private static final long NULL = 0;
     private static final FileDescriptor INVALID_FD = new FileDescriptor();
@@ -95,8 +98,10 @@ public class NativeCryptoTest {
 
     @BeforeClass
     public static void getPlatformMethods() throws Exception {
+        Class<?> c_Platform =
+                Class.forName(NativeCryptoTest.class.getPackage().getName() + ".Platform");
         m_Platform_getFileDescriptor =
-                Platform.class.getDeclaredMethod("getFileDescriptor", Socket.class);
+                c_Platform.getDeclaredMethod("getFileDescriptor", Socket.class);
         m_Platform_getFileDescriptor.setAccessible(true);
     }
 
