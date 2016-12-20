@@ -7607,6 +7607,9 @@ static jlongArray NativeCrypto_SSL_get_ciphers(JNIEnv* env, jclass, jlong ssl_ad
 {
     SSL* ssl = to_SSL(env, ssl_address, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_ciphers", ssl);
+    if (ssl == nullptr) {
+        return nullptr;
+    }
 
     STACK_OF(SSL_CIPHER)* cipherStack = SSL_get_ciphers(ssl);
     int count = (cipherStack != nullptr) ? sk_SSL_CIPHER_num(cipherStack) : 0;
@@ -7761,9 +7764,14 @@ static void NativeCrypto_SSL_set_session(JNIEnv* env, jclass,
         jlong ssl_address, jlong ssl_session_address)
 {
     SSL* ssl = to_SSL(env, ssl_address, true);
+    if (ssl == nullptr) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_session => exception", ssl);
+        return;
+    }
+
     SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, false);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set_session ssl_session=%p", ssl, ssl_session);
-    if (ssl == nullptr) {
+    if (ssl_session == nullptr) {
         return;
     }
 
@@ -7779,6 +7787,8 @@ static void NativeCrypto_SSL_set_session(JNIEnv* env, jclass,
             safeSslClear(ssl);
         }
     }
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_session ssl_session=%p => ret=%d", ssl, ssl_session,
+              ret);
 }
 
 /**
@@ -9257,6 +9267,9 @@ static int NativeCrypto_SSL_get_last_error_number(JNIEnv*, jclass) {
 
 static jint NativeCrypto_SSL_get_error(JNIEnv* env, jclass, jlong ssl_address, jint ret) {
     SSL* ssl = to_SSL(env, ssl_address, true);
+    if (ssl == nullptr) {
+        return 0;
+    }
     return SSL_get_error(ssl, ret);
 }
 
@@ -9273,7 +9286,6 @@ static void NativeCrypto_SSL_clear_error(JNIEnv*, jclass) {
 static jint NativeCrypto_SSL_pending_readable_bytes(JNIEnv* env, jclass, jlong ssl_address) {
     SSL* ssl = to_SSL(env, ssl_address, true);
     if (ssl == nullptr) {
-        jniThrowNullPointerException(env, "ssl == null");
         return 0;
     }
     return SSL_pending(ssl);
@@ -9282,7 +9294,6 @@ static jint NativeCrypto_SSL_pending_readable_bytes(JNIEnv* env, jclass, jlong s
 static jint NativeCrypto_SSL_pending_written_bytes_in_BIO(JNIEnv* env, jclass, jlong bio_address) {
     BIO* bio = to_SSL_BIO(env, bio_address, true);
     if (bio == nullptr) {
-        jniThrowNullPointerException(env, "bio == null");
         return 0;
     }
     return BIO_ctrl_pending(bio);
@@ -9309,17 +9320,23 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
  */
 static jlong NativeCrypto_SSL_BIO_new(JNIEnv* env, jclass, jlong ssl_address) {
     SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_BIO_new", ssl);
+    if (ssl == nullptr) {
+        return 0;
+    }
 
     BIO* internal_bio;
     BIO* network_bio;
     if (BIO_new_bio_pair(&internal_bio, 0, &network_bio, 0) != 1) {
         throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "BIO_new_bio_pair failed");
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_BIO_new => BIO_new_bio_pair exception", ssl);
         return 0;
     }
 
     SSL_set_bio(ssl, internal_bio, internal_bio);
 
-    return (jlong)network_bio;
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_BIO_new => network_bio=%p", ssl, network_bio);
+    return reinterpret_cast<uintptr_t>(network_bio);
 }
 
 static void NativeCrypto_SSL_configure_alpn(JNIEnv* env, jclass, jlong ssl_address,
