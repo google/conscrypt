@@ -998,7 +998,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 try {
                     aeadBadTagConstructor = Class.forName("javax.crypto.AEADBadTagException")
                             .getConstructor(String.class);
-                } catch (ClassNotFoundException | NoSuchMethodException e2) {
+                } catch (Exception e2) {
                 }
 
                 if (aeadBadTagConstructor != null) {
@@ -1007,7 +1007,9 @@ public abstract class OpenSSLCipher extends CipherSpi {
                         badTagException = (BadPaddingException) aeadBadTagConstructor.newInstance(e
                                 .getMessage());
                         badTagException.initCause(e.getCause());
-                    } catch (IllegalAccessException | InstantiationException e2) {
+                    } catch (IllegalAccessException e2) {
+                        // Fall through
+                    } catch (InstantiationException e2) {
                         // Fall through
                     } catch (InvocationTargetException e2) {
                         throw (BadPaddingException) new BadPaddingException().initCause(e2
