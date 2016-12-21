@@ -53,7 +53,7 @@ subprojects {
 
     group = "org.conscrypt"
     description = 'Conscrypt is an alternate Java Security Provider that uses BoringSSL'
-    version = "0.0.1-SNAPSHOT"
+    version = "1.0.0-SNAPSHOT"
 
     ext {
         androidHome = "$System.env.ANDROID_HOME"
