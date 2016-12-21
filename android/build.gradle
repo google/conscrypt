@@ -3,6 +3,18 @@ description = 'Conscrypt: Android'
 apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 
+ext {
+    androidHome = "$System.env.ANDROID_HOME"
+    androidVersionCode = 1
+    androidVersionName = "$version"
+    androidMinSdkVersion = 9
+    androidTargetSdkVersion = 25
+    androidBuildToolsVersion = "25.0.0"
+
+    // Ensure the environment is configured properly.
+    assert file("$androidHome").exists()
+}
+
 android {
     compileSdkVersion androidTargetSdkVersion
     buildToolsVersion androidBuildToolsVersion
