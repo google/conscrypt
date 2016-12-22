@@ -40,12 +40,6 @@ jar {
 }
 
 model {
-    toolChains {
-        visualCpp(VisualCpp)
-        // Prefer Clang over Gcc (order here matters!)
-        clang(Clang)
-        gcc(Gcc)
-    }
     components {
         // Builds the JNI library.
         "$jniLibName"(NativeLibrarySpec) {
@@ -73,14 +67,27 @@ model {
                                 "-I$boringsslIncludeDir",
                                 "-I$jdkIncludeDir",
                                 "-I$jdkIncludeDir/linux",
-                                "-I$jdkIncludeDir/darwin",
-                                "-I$jdkIncludeDir/win32"
+                                "-I$jdkIncludeDir/darwin"
 
                         // Static link to BoringSSL
                         linker.args "-O2",
                                 "-L$boringsslSslBuildDir",
                                 "-L$boringsslCryptoBuildDir",
                                 "-lstdc++",
+                                "-lssl",
+                                "-lcrypto"
+                    } else if (toolChain in VisualCpp) {
+                        cppCompiler.args "/O2",
+                                "-I$jniSourceDir/main/include",
+                                "-I$jniSourceDir/unbundled/include",
+                                "-I$boringsslIncludeDir",
+                                "-I$jdkIncludeDir",
+                                "-I$jdkIncludeDir/win32"
+
+                        // Static link to BoringSSL
+                        linker.args "-O2",
+                                "-L$boringsslSslBuildDir",
+                                "-L$boringsslCryptoBuildDir",
                                 "-lssl",
                                 "-lcrypto"
                     }
