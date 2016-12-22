@@ -22,7 +22,7 @@ subprojects {
             toolChains {
                 visualCpp(VisualCpp) {
                     // Temporary hack for https://github.com/gradle/gradle/issues/929
-                    installDir "file:///C:/Program%20Files%20(x86)/Microsoft%20Visual Studio 14.0"
+                    installDir "file:///C:/Program%20Files%20(x86)/Microsoft%20Visual%20Studio%2014.0"
                     windowsSdkDir "file:///C:/Program%20Files%20(x86)/Microsoft%20SDKs/Windows/v7.1A"
                 }
                 // Prefer Clang over Gcc (order here matters!)
