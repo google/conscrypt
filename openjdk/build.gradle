@@ -67,7 +67,8 @@ model {
                                 "-I$boringsslIncludeDir",
                                 "-I$jdkIncludeDir",
                                 "-I$jdkIncludeDir/linux",
-                                "-I$jdkIncludeDir/darwin"
+                                "-I$jdkIncludeDir/darwin",
+                                "-I$jdkIncludeDir/win32"
 
                         // Static link to BoringSSL
                         linker.args "-O2",

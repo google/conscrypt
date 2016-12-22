@@ -30,7 +30,7 @@
 #define LOG_TAG "NativeCrypto"
 
 #ifdef _WIN32
-    #include <Winsock2.h>
+    #include <winsock2.h>
 #else
     #include <arpa/inet.h>
 #endif
