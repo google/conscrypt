@@ -13,12 +13,23 @@ buildscript {
 
 subprojects {
     def androidProject = project.name == 'conscrypt-android'
-    if (androidProject) {
-        apply plugin: 'com.android.library'
-    } else {
+    if (!androidProject) {
         apply plugin: 'java'
         apply plugin: 'cpp'
         apply plugin: "signing"
+
+        model {
+            toolChains {
+                visualCpp(VisualCpp) {
+                    // Temporary hack for https://github.com/gradle/gradle/issues/929
+                    installDir "file:///C:/Program%20Files%20(x86)/Microsoft%20Visual%20Studio%2014.0"
+                    windowsSdkDir "file:///C:/Program%20Files%20(x86)/Microsoft%20SDKs/Windows/v7.1A"
+                }
+                // Prefer Clang over Gcc (order here matters!)
+                clang(Clang)
+                gcc(Gcc)
+            }
+        }
     }
     apply plugin: "maven"
     apply plugin: "idea"
