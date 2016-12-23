@@ -37,12 +37,12 @@
 #endif
 
 #include <fcntl.h>
-#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <memory>
+#include <mutex>
 
 #ifdef CONSCRYPT_UNBUNDLED
 #include <dlfcn.h>
@@ -1301,12 +1301,12 @@ namespace {
 ENGINE *g_engine;
 int g_rsa_exdata_index;
 int g_ecdsa_exdata_index;
-pthread_once_t g_engine_once = PTHREAD_ONCE_INIT;
+std::once_flag g_engine_once;
 
 void init_engine_globals();
 
 void ensure_engine_globals() {
-  pthread_once(&g_engine_once, init_engine_globals);
+  std::call_once(g_engine_once, init_engine_globals);
 }
 
 // KeyExData contains the data that is contained in the EX_DATA of the RSA
@@ -1663,126 +1663,9 @@ static bool setBlocking(int fd, bool blocking) {
     return (rc != -1);
 }
 
-/**
- * OpenSSL locking support. Taken from the O'Reilly book by Viega et al., but I
- * suppose there are not many other ways to do this on a Linux system (modulo
- * isomorphism).
- */
-#define MUTEX_TYPE pthread_mutex_t
-#define MUTEX_SETUP(x) pthread_mutex_init(&(x), nullptr)
-#define MUTEX_CLEANUP(x) pthread_mutex_destroy(&(x))
-#define MUTEX_LOCK(x) pthread_mutex_lock(&(x))
-#define MUTEX_UNLOCK(x) pthread_mutex_unlock(&(x))
-#define THREAD_ID pthread_self()
 #define THROW_SSLEXCEPTION (-2)
 #define THROW_SOCKETTIMEOUTEXCEPTION (-3)
 #define THROWN_EXCEPTION (-4)
-
-static MUTEX_TYPE* mutex_buf = nullptr;
-
-static void locking_function(int mode, int n, const char*, int) {
-    if (mode & CRYPTO_LOCK) {
-        MUTEX_LOCK(mutex_buf[n]);
-    } else {
-        MUTEX_UNLOCK(mutex_buf[n]);
-    }
-}
-
-/*
- * Wrapper for pthread_mutex_t to assist in unlocking in all paths.
- */
-class UniqueMutex {
-public:
-    explicit UniqueMutex(pthread_mutex_t* mutex) : mutex_(mutex) {
-        int err = pthread_mutex_lock(mutex_);
-        if (err != 0) {
-            ALOGE("failure obtaining mutex in %s: %d", __func__, err);
-            abort();
-        }
-        owns_ = true;
-    }
-
-    void unlock() {
-        if (owns_) {
-            owns_ = false;
-            int err = pthread_mutex_unlock(mutex_);
-            if (err != 0) {
-                ALOGE("failure releasing mutex in %s: %d", __func__, err);
-                abort();
-            }
-        }
-    }
-
-    ~UniqueMutex() {
-        unlock();
-    }
-
-private:
-    pthread_mutex_t* const mutex_;
-    bool owns_;
-};
-
-static void threadid_callback(CRYPTO_THREADID *threadid) {
-#if defined(__APPLE__)
-    uint64_t owner;
-    int rc = pthread_threadid_np(nullptr, &owner);  // Requires Mac OS 10.6
-    if (rc == 0) {
-        CRYPTO_THREADID_set_numeric(threadid, owner);
-    } else {
-        ALOGE("Error calling pthread_threadid_np");
-    }
-#else
-    // bionic exposes gettid(), but glibc doesn't
-    CRYPTO_THREADID_set_numeric(threadid, syscall(__NR_gettid));
-#endif
-}
-
-int THREAD_setup(void) {
-    mutex_buf = new MUTEX_TYPE[CRYPTO_num_locks()];
-    if (!mutex_buf) {
-        return 0;
-    }
-
-    for (int i = 0; i < CRYPTO_num_locks(); ++i) {
-        MUTEX_SETUP(mutex_buf[i]);
-    }
-
-    CRYPTO_THREADID_set_callback(threadid_callback);
-    CRYPTO_set_locking_callback(locking_function);
-
-    return 1;
-}
-
-int THREAD_cleanup(void) {
-    if (!mutex_buf) {
-        return 0;
-    }
-
-    CRYPTO_THREADID_set_callback(nullptr);
-    CRYPTO_set_locking_callback(nullptr);
-
-    for (int i = 0; i < CRYPTO_num_locks( ); i++) {
-        MUTEX_CLEANUP(mutex_buf[i]);
-    }
-
-    free(mutex_buf);
-    mutex_buf = nullptr;
-
-    return 1;
-}
-
-/**
- * Initialization phase for every OpenSSL job: Loads the Error strings, the
- * crypto algorithms and reset the OpenSSL library
- */
-static void NativeCrypto_clinit(JNIEnv*, jclass)
-{
-    SSL_load_error_strings();
-    ERR_load_crypto_strings();
-    SSL_library_init();
-    OpenSSL_add_all_algorithms();
-    THREAD_setup();
-}
 
 /**
  * private static native int EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q);
@@ -6318,7 +6201,7 @@ class AppData {
     volatile int aliveAndKicking;
     int waitingThreads;
     int fdsEmergency[2];
-    MUTEX_TYPE mutex;
+    std::mutex mutex;
     JNIEnv* env;
     jobject sslHandshakeCallbacks;
     char* alpnProtocolsData;
@@ -6338,10 +6221,6 @@ class AppData {
             ALOGE("AppData::create fcntl(2) failed: %s", strerror(errno));
             return nullptr;
         }
-        if (MUTEX_SETUP(appData.get()->mutex) == -1) {
-            ALOGE("pthread_mutex_init(3) failed: %s", strerror(errno));
-            return nullptr;
-        }
         return appData.release();
     }
 
@@ -6355,7 +6234,6 @@ class AppData {
         }
         clearCallbackState();
         clearAlpnCallbackState();
-        MUTEX_CLEANUP(mutex);
     }
 
   private:
@@ -6624,7 +6502,7 @@ static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData, 
         }
     } while (result == -1);
 
-    UniqueMutex appDataLock(&appData->mutex);
+    std::lock_guard<std::mutex> appDataLock(appData->mutex);
 
     if (result > 0) {
         // We have been woken up by a token in the emergency pipe. We
@@ -8382,7 +8260,7 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
     while (appData->aliveAndKicking) {
         errno = 0;
 
-        UniqueMutex appDataLock(&appData->mutex);
+        std::unique_lock<std::mutex> appDataLock(appData->mutex);
 
         if (!SSL_is_init_finished(ssl) && !SSL_in_false_start(ssl) &&
             !SSL_renegotiate_pending(ssl)) {
@@ -8574,7 +8452,7 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
     while (appData->aliveAndKicking && len > 0) {
         errno = 0;
 
-        UniqueMutex appDataLock(&appData->mutex);
+        std::unique_lock<std::mutex> appDataLock(appData->mutex);
 
         if (!SSL_is_init_finished(ssl) && !SSL_in_false_start(ssl) &&
             !SSL_renegotiate_pending(ssl)) {
@@ -8869,7 +8747,7 @@ static void NativeCrypto_SSL_shutdown_BIO(JNIEnv* env, jclass, jlong ssl_address
 
     AppData* appData = toAppData(ssl);
     if (appData != nullptr) {
-        UniqueMutex appDataLock(&appData->mutex);
+        std::lock_guard<std::mutex> appDataLock(appData->mutex);
 
         if (!appData->setCallbackState(env, shc, nullptr)) {
             // SocketException thrown by NetFd.isClosed
@@ -10044,7 +9922,6 @@ static int NativeCrypto_ENGINE_SSL_write_heap(JNIEnv* env, jclass, jlong sslRef,
 #define REF_HMAC_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$HMAC_CTX;"
 #define REF_BIO_IN_STREAM "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream;"
 static JNINativeMethod sNativeCryptoMethods[] = {
-        NATIVE_METHOD(NativeCrypto, clinit, "()V"),
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_RSA, "([B[B[B[B[B[B[B[B)J"),
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_EC_KEY, "(" REF_EC_GROUP REF_EC_POINT "[B)J"),
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_type, "(" REF_EVP_PKEY ")I"),

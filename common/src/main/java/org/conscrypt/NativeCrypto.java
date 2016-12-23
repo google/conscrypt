@@ -52,10 +52,7 @@ public final class NativeCrypto {
     // --- OpenSSL library initialization --------------------------------------
     static {
         NativeCryptoJni.init();
-        clinit();
     }
-
-    private native static void clinit();
 
     // --- DSA/RSA public/private key handling functions -----------------------
 
