@@ -1668,6 +1668,15 @@ static bool setBlocking(int fd, bool blocking) {
 #define THROWN_EXCEPTION (-4)
 
 /**
+ * Initialization phase for every OpenSSL job: Loads the Error strings, the
+ * crypto algorithms and reset the OpenSSL library
+ */
+static void NativeCrypto_clinit(JNIEnv*, jclass)
+{
+    CRYPTO_library_init();
+}
+
+/**
  * private static native int EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q);
  */
 static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass,
@@ -9922,6 +9931,7 @@ static int NativeCrypto_ENGINE_SSL_write_heap(JNIEnv* env, jclass, jlong sslRef,
 #define REF_HMAC_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$HMAC_CTX;"
 #define REF_BIO_IN_STREAM "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream;"
 static JNINativeMethod sNativeCryptoMethods[] = {
+        NATIVE_METHOD(NativeCrypto, clinit, "()V"),
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_RSA, "([B[B[B[B[B[B[B[B)J"),
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_EC_KEY, "(" REF_EC_GROUP REF_EC_POINT "[B)J"),
         NATIVE_METHOD(NativeCrypto, EVP_PKEY_type, "(" REF_EVP_PKEY ")I"),
