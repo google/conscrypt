@@ -56,7 +56,16 @@
 #endif
 
 #ifndef FALLTHROUGH_INTENDED
-#define FALLTHROUGH_INTENDED do { } while (0)
+#define FALLTHROUGH_INTENDED \
+    do {                     \
+    } while (0)
+#endif
+
+#ifdef _WIN32
+// Ignore attributes on Windows
+#define CONSCRYPT_ATTRIBUTE_1(value)
+#else
+#define CONSCRYPT_ATTRIBUTE_1(value) __attribute__(value)
 #endif
 
 #endif  // CONSCRYPT_SRC_MAIN_NATIVE_MACROS_H_

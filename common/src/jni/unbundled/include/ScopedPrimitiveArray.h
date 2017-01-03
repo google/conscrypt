@@ -48,7 +48,7 @@
         const PRIMITIVE_TYPE* get() const { return mRawArray; } \
         PRIMITIVE_TYPE ## Array getJavaArray() const { return mJavaArray; } \
         const PRIMITIVE_TYPE& operator[](size_t n) const { return mRawArray[n]; } \
-        size_t size() const { return mEnv->GetArrayLength(mJavaArray); } \
+        size_t size() const { return static_cast<size_t>(mEnv->GetArrayLength(mJavaArray)); } \
     private: \
         JNIEnv* mEnv; \
         PRIMITIVE_TYPE ## Array mJavaArray; \
@@ -99,7 +99,7 @@ INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RO(jshort, Short);
         const PRIMITIVE_TYPE& operator[](size_t n) const { return mRawArray[n]; } \
         PRIMITIVE_TYPE* get() { return mRawArray; } \
         PRIMITIVE_TYPE& operator[](size_t n) { return mRawArray[n]; } \
-        size_t size() const { return mEnv->GetArrayLength(mJavaArray); } \
+        size_t size() const { return static_cast<size_t>(mEnv->GetArrayLength(mJavaArray)); } \
     private: \
         JNIEnv* mEnv; \
         PRIMITIVE_TYPE ## Array mJavaArray; \

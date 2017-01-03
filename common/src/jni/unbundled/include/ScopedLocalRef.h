@@ -18,6 +18,7 @@
 #define SCOPED_LOCAL_REF_H_included
 
 #include "jni.h"
+#include <macros.h>
 
 #include <stddef.h>
 
@@ -41,7 +42,7 @@ public:
         }
     }
 
-    T release() __attribute__((warn_unused_result)) {
+    T release() CONSCRYPT_ATTRIBUTE_1((warn_unused_result)) {
         T localRef = mLocalRef;
         mLocalRef = nullptr;
         return localRef;
