@@ -52,8 +52,8 @@ LOCAL_PATH := $(call my-dir)
 local_javac_flags:=-Xmaxwarns 9999999
 #local_javac_flags+=-Xlint:all -Xlint:-serial,-deprecation,-unchecked
 
-core_cflags := -Wall -Wextra -Werror -Wunused
-core_cppflags := -Wall -Wextra -Werror -Wunused
+core_cflags := -Wall -Wextra -Werror -Wunused -fvisibility=hidden
+core_cppflags := -Wall -Wextra -Werror -Wunused -fvisibility=hidden
 
 #
 # Build for the target (device).

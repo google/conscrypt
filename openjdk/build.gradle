@@ -72,6 +72,7 @@ model {
 
                         // Static link to BoringSSL
                         linker.args "-O2",
+                                "-fvisibility=hidden",
                                 "-L$boringsslSslBuildDir",
                                 "-L$boringsslCryptoBuildDir",
                                 "-lstdc++",

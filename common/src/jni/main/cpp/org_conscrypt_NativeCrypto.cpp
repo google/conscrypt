@@ -18,24 +18,13 @@
  * Native glue for Java class org.conscrypt.NativeCrypto
  */
 
-#ifdef JNI_JARJAR_PREFIX
-    #define TO_STRING(x) #x
-    #define CONSCRYPT_SYMBOL_PREFIX TO_STRING(JNI_JARJAR_PREFIX)
-#else
-    #define CONSCRYPT_SYMBOL_PREFIX ""
-    #ifndef CONSCRYPT_NOT_UNBUNDLED
-        #define CONSCRYPT_UNBUNDLED
-    #endif
-#endif
-
 #define LOG_TAG "NativeCrypto"
 
+#include "macros.h"
 #include "compat.h"
 
 #ifdef _WIN32
     #include <winsock2.h>
-    //#include <windows.h>
-    //#include <io.h>
 #else
     #include <arpa/inet.h>
     #include <poll.h>
@@ -5082,7 +5071,7 @@ static jlong NativeCrypto_get_X509_REVOKED_revocationDate(JNIEnv* env, jclass, j
     return reinterpret_cast<uintptr_t>(revoked->revocationDate);
 }
 
-#ifndef _WIN32
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 #endif
@@ -10271,7 +10260,7 @@ static jclass findClass(JNIEnv* env, const char* name) {
 jint libconscrypt_JNI_OnLoad(JavaVM *vm, void*) {
 #else
 // Use JNI_OnLoad for when we're standalone
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void*) {
+CONSCRYPT_PUBLIC jint JNICALL JNI_OnLoad(JavaVM *vm, void*) {
     JNI_TRACE("JNI_OnLoad NativeCrypto");
 #endif
     gJavaVM = vm;

@@ -17,6 +17,16 @@
 #ifndef CONSCRYPT_SRC_MAIN_NATIVE_MACROS_H_
 #define CONSCRYPT_SRC_MAIN_NATIVE_MACROS_H_
 
+#ifdef JNI_JARJAR_PREFIX
+    #define TO_STRING(x) #x
+    #define CONSCRYPT_SYMBOL_PREFIX TO_STRING(JNI_JARJAR_PREFIX)
+#else
+    #define CONSCRYPT_SYMBOL_PREFIX ""
+    #ifndef CONSCRYPT_NOT_UNBUNDLED
+        #define CONSCRYPT_UNBUNDLED
+    #endif
+#endif
+
 // The FALLTHROUGH_INTENDED macro can be used to annotate implicit fall-through
 // between switch labels:
 //  switch (x) {
@@ -61,11 +71,27 @@
     } while (0)
 #endif
 
-#ifdef _WIN32
-// Ignore attributes on Windows
-#define CONSCRYPT_ATTRIBUTE_1(value)
+#if defined _WIN32 || defined __CYGWIN__
+    #ifdef __GNUC__
+        #define CONSCRYPT_PUBLIC __attribute__ ((dllexport))
+    #else
+        #define CONSCRYPT_PUBLIC __declspec(dllexport)
+    #endif
+    #define CONSCRYPT_LOCAL
 #else
-#define CONSCRYPT_ATTRIBUTE_1(value) __attribute__(value)
+    #if __GNUC__ >= 4
+        #define CONSCRYPT_PUBLIC __attribute__ ((visibility ("default")))
+        #define CONSCRYPT_LOCAL  __attribute__ ((visibility ("hidden")))
+    #else
+        #define CONSCRYPT_PUBLIC
+        #define CONSCRYPT_LOCAL
+    #endif
+#endif
+
+#ifdef __GNUC__
+    #define CONSCRYPT_ATTRIBUTE_1(value) __attribute__(value)
+#else
+    #define CONSCRYPT_ATTRIBUTE_1(value)
 #endif
 
 #endif  // CONSCRYPT_SRC_MAIN_NATIVE_MACROS_H_
