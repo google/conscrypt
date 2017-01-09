@@ -146,7 +146,7 @@
 
 #ifndef CONSCRYPT_UNBUNDLED
 
-#include "android/log.h"
+#include <log/log.h>
 
 #elif defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)
 
