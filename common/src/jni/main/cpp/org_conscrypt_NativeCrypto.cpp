@@ -18,11 +18,12 @@
  * Native glue for Java class org.conscrypt.NativeCrypto
  */
 
-#define LOG_TAG "NativeCrypto"
-
 #include "macros.h"
 #include "compat.h"
 #include "CompatibilityCloseMonitor.h"
+#include "OpenSslError.h"
+#include "ScopedSslBio.h"
+#include "Trace.h"
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -57,12 +58,6 @@
 #include <openssl/aead.h>
 
 #ifndef CONSCRYPT_UNBUNDLED
-#include "android/log.h"
-#else
-#include "log_compat.h"
-#endif
-
-#ifndef CONSCRYPT_UNBUNDLED
 #include "JNIHelp.h"
 #include "JniConstants.h"
 #include "JniException.h"
@@ -83,56 +78,6 @@
 
 using namespace conscrypt;
 
-static constexpr bool kWithJniTrace = false;
-static constexpr bool kWithJniTraceMd = false;
-static constexpr bool kWithJniTraceData = false;
-
-/*
- * To print create a pcap-style dump you can take the log output and
- * pipe it through text2pcap.
- *
- * For example, if you were interested in ssl=0x12345678, you would do:
- *
- *  address=0x12345678
- *  awk "match(\$0,/ssl=$address SSL_DATA: (.*)\$/,a){print a[1]}" | text2pcap -T 443,1337 -t '%s.' -n -D - $address.pcapng
- */
-static constexpr bool kWithJniTracePackets = false;
-
-/*
- * How to use this for debugging with Wireshark:
- *
- * 1. Pull lines from logcat to a file that have "KEY_LINE:" and remove the
- *    prefix up to and including "KEY_LINE: " so they look like this
- *    (without the quotes):
- *     "RSA 3b8...184 1c5...aa0" <CR>
- *     "CLIENT_RANDOM 82e...f18b 1c5...aa0" <CR>
- *     <etc>
- *    Follows the format defined at
- *    https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format
- * 2. Start Wireshark
- * 3. Go to Edit -> Preferences -> SSL -> (Pre-)Master-Key log and fill in
- *    the file you put the lines in above.
- * 4. Follow the stream that corresponds to the desired "Session-ID" in
- *    the Server Hello.
- */
-static constexpr bool kWithJniTraceKeys = false;
-
-#define JNI_TRACE(...)                               \
-    if (kWithJniTrace) {                             \
-        ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
-    }
-#define JNI_TRACE_MD(...)                            \
-    if (kWithJniTraceMd) {                           \
-        ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
-    }
-#define JNI_TRACE_KEYS(...)                          \
-    if (kWithJniTraceKeys) {                         \
-        ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
-    }
-#define JNI_TRACE_PACKET_DATA(ssl, dir, data, len)    \
-    if (kWithJniTracePackets) {                       \
-        debug_print_packet_data(ssl, dir, data, len); \
-    }
 
 // don't overwhelm logcat
 static constexpr size_t kWithJniTraceDataChunkSize = 512;
@@ -194,51 +139,6 @@ static jmethodID outputStream_flushMethod;
 #define ARRAY_CHUNK_INVALID(array_len, chunk_offset, chunk_len) ((chunk_offset) < 0 || \
         (chunk_offset) > static_cast<ssize_t>(array_len) || (chunk_len) < 0 || \
         (chunk_len) > static_cast<ssize_t>(array_len) - (chunk_offset))
-
-/**
- * Manages the freeing of the OpenSSL error stack. This allows you to
- * instantiate this object during an SSL call that may fail and not worry
- * about manually calling ERR_clear_error() later.
- *
- * As an optimization, you can also call .release() for passing as an
- * argument to things that free the error stack state as a side-effect.
- */
-class OpenSslError {
-public:
-    OpenSslError() : sslError_(SSL_ERROR_NONE), released_(false) {
-    }
-
-    OpenSslError(SSL* ssl, int returnCode) : sslError_(SSL_ERROR_NONE), released_(false) {
-        reset(ssl, returnCode);
-    }
-
-    ~OpenSslError() {
-        if (!released_ && sslError_ != SSL_ERROR_NONE) {
-            ERR_clear_error();
-        }
-    }
-
-    int get() const {
-        return sslError_;
-    }
-
-    void reset(SSL* ssl, int returnCode) {
-        if (returnCode <= 0) {
-            sslError_ = SSL_get_error(ssl, returnCode);
-        } else {
-            sslError_ = SSL_ERROR_NONE;
-        }
-    }
-
-    int release() {
-        released_ = true;
-        return sslError_;
-    }
-
-private:
-    int sslError_;
-    bool released_;
-};
 
 /**
  * Throws a OutOfMemoryError with the given string as a message.
@@ -933,26 +833,6 @@ static X509* X509_dup_nocopy(X509* x509) {
     X509_up_ref(x509);
     return x509;
 }
-
-/*
- * Sets the read and write BIO for an SSL connection and removes it when it goes out of scope.
- * We hang on to BIO with a JNI GlobalRef and we want to remove them as soon as possible.
- */
-class ScopedSslBio {
-public:
-    ScopedSslBio(SSL *ssl, BIO* rbio, BIO* wbio) : ssl_(ssl) {
-        SSL_set_bio(ssl_, rbio, wbio);
-        BIO_up_ref(rbio);
-        BIO_up_ref(wbio);
-    }
-
-    ~ScopedSslBio() {
-        SSL_set_bio(ssl_, nullptr, nullptr);
-    }
-
-private:
-    SSL* const ssl_;
-};
 
 /**
  * Obtains the current thread's JNIEnv
@@ -1678,7 +1558,7 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass,
         return 0;
     }
 
-    if (kWithJniTrace) {
+    if (Trace::kWithJniTrace) {
         if (p != nullptr && q != nullptr) {
             int check = RSA_check_key(rsa.get());
             JNI_TRACE("EVP_PKEY_new_RSA(...) RSA_check_key returns %d", check);
@@ -6548,7 +6428,7 @@ static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg) {
  */
 static void info_callback(const SSL* ssl, int where, int ret) {
     JNI_TRACE("ssl=%p info_callback where=0x%x ret=%d", ssl, where, ret);
-    if (kWithJniTrace) {
+    if (Trace::kWithJniTrace) {
         info_callback_LOG(ssl, where, ret);
     }
     if (!(where & SSL_CB_HANDSHAKE_DONE) && !(where & SSL_CB_HANDSHAKE_START)) {
@@ -6621,7 +6501,7 @@ static int cert_cb(SSL* ssl, void* arg CONSCRYPT_ATTRIBUTE_1 ((unused))) {
     size_t ctype_num = SSL_get0_certificate_types(ssl, &ctype);
     jobjectArray issuers = getPrincipalBytes(env, SSL_get_client_CA_list(ssl));
 
-    if (kWithJniTrace) {
+    if (Trace::kWithJniTrace) {
         for (size_t i = 0; i < ctype_num; i++) {
             JNI_TRACE("ssl=%p clientCertificateRequested keyTypes[%d]=%d", ssl, i, ctype[i]);
         }
@@ -6912,7 +6792,7 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_info_callback(sslCtx.get(), info_callback);
     SSL_CTX_set_cert_cb(sslCtx.get(), cert_cb, nullptr);
     SSL_CTX_set_tmp_dh_callback(sslCtx.get(), tmp_dh_callback);
-    if (kWithJniTraceKeys) {
+    if (Trace::kWithJniTraceKeys) {
         SSL_CTX_set_keylog_callback(sslCtx.get(), debug_print_session_key);
     }
 
@@ -8238,7 +8118,7 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
         sslError.reset(ssl, result);
 
         JNI_TRACE("ssl=%p sslRead SSL_read result=%d sslError=%d", ssl, result, sslError.get());
-        if (kWithJniTraceData) {
+        if (Trace::kWithJniTraceData) {
             for (size_t i = 0; result > 0 && i < static_cast<size_t>(result); i += kWithJniTraceDataChunkSize) {
                 size_t n = result - i;
                 if (n > kWithJniTraceDataChunkSize) {
@@ -8432,7 +8312,7 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
 
         JNI_TRACE("ssl=%p sslWrite SSL_write result=%d sslError=%d",
                   ssl, result, sslError.get());
-        if (kWithJniTraceData) {
+        if (Trace::kWithJniTraceData) {
             for (size_t i = 0; result > 0 && i < static_cast<size_t>(result); i += kWithJniTraceDataChunkSize) {
                 size_t n = result - i;
                 if (n > kWithJniTraceDataChunkSize) {

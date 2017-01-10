@@ -41,7 +41,7 @@
 #endif /* !ANDROID || CONSCRYPT_OPENJDK */
 
 #include "JNIHelp.h"
-#include "log_compat.h"
+#include "macros.h"
 
 #include <stdlib.h>
 #include <assert.h>
