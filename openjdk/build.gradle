@@ -57,6 +57,8 @@ model {
             binaries {
                 // Build the JNI lib as a shared library.
                 withType (SharedLibraryBinarySpec) {
+                    cppCompiler.define "CONSCRYPT_OPENJDK"
+
                     if (toolChain in Clang || toolChain in Gcc) {
                         cppCompiler.args "-Wall",
                                 "-fPIC",

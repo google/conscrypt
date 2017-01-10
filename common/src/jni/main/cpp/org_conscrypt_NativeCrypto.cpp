@@ -22,6 +22,7 @@
 
 #include "macros.h"
 #include "compat.h"
+#include "CompatibilityCloseMonitor.h"
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -56,13 +57,6 @@
 #include <openssl/aead.h>
 
 #ifndef CONSCRYPT_UNBUNDLED
-/* If we're compiled unbundled from Android system image, we use the
- * CompatibilityCloseMonitor
- */
-#include "AsynchronousCloseMonitor.h"
-#endif
-
-#ifndef CONSCRYPT_UNBUNDLED
 #include "android/log.h"
 #else
 #include "log_compat.h"
@@ -86,6 +80,8 @@
 #include "NetFd.h"
 
 #include "macros.h"
+
+using namespace conscrypt;
 
 static constexpr bool kWithJniTrace = false;
 static constexpr bool kWithJniTraceMd = false;
@@ -1594,48 +1590,6 @@ void init_engine_globals() {
 }
 
 }  // anonymous namespace
-
-#if defined(CONSCRYPT_UNBUNDLED) && !defined(CONSCRYPT_OPENJDK)
-/*
- * This is a big hack; don't learn from this. Basically what happened is we do
- * not have an API way to insert ourselves into the AsynchronousCloseMonitor
- * that's compiled into the native libraries for libcore when we're unbundled.
- * So we try to look up the symbol from the main library to find it.
- */
-typedef void (*acm_ctor_func)(void*, int);
-typedef void (*acm_dtor_func)(void*);
-static acm_ctor_func async_close_monitor_ctor = nullptr;
-static acm_dtor_func async_close_monitor_dtor = nullptr;
-
-class CompatibilityCloseMonitor {
-public:
-    CompatibilityCloseMonitor(int fd) {
-        if (async_close_monitor_ctor != nullptr) {
-            async_close_monitor_ctor(objBuffer, fd);
-        }
-    }
-
-    ~CompatibilityCloseMonitor() {
-        if (async_close_monitor_dtor != nullptr) {
-            async_close_monitor_dtor(objBuffer);
-        }
-    }
-private:
-    char objBuffer[256];
-#if 0
-    static_assert(sizeof(objBuffer) > 2*sizeof(AsynchronousCloseMonitor),
-                  "CompatibilityCloseMonitor must be larger than the actual object");
-#endif
-};
-
-static void findAsynchronousCloseMonitorFuncs() {
-    void *lib = dlopen("libjavacore.so", RTLD_NOW);
-    if (lib != nullptr) {
-        async_close_monitor_ctor = (acm_ctor_func) dlsym(lib, "_ZN24AsynchronousCloseMonitorC1Ei");
-        async_close_monitor_dtor = (acm_dtor_func) dlsym(lib, "_ZN24AsynchronousCloseMonitorD1Ev");
-    }
-}
-#endif
 
 /**
  * Copied from libnativehelper NetworkUtilites.cpp
@@ -6386,11 +6340,8 @@ static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData, 
             ptv = NULL;
         }
 
-#ifndef CONSCRYPT_UNBUNDLED
-        AsynchronousCloseMonitor monitor(intFd);
-#else
         CompatibilityCloseMonitor monitor(intFd);
-#endif
+
         result = select(maxFd + 1, &rfds, &wfds, NULL, ptv);
         JNI_TRACE("sslSelect %s fd=%d appData=%p timeout_millis=%d => %d",
                   (type == SSL_ERROR_WANT_READ) ? "READ" : "WRITE",
@@ -6486,11 +6437,9 @@ static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData, 
         if (timeout_millis <= 0) {
             timeout_millis = -1;
         }
-#ifndef CONSCRYPT_UNBUNDLED
-        AsynchronousCloseMonitor monitor(intFd);
-#elif !defined(CONSCRYPT_OPENJDK)
+
         CompatibilityCloseMonitor monitor(intFd);
-#endif
+
         result = poll(fds, sizeof(fds)/sizeof(fds[0]), timeout_millis);
         JNI_TRACE("sslSelect %s fd=%d appData=%p timeout_millis=%d => %d",
                   (type == SSL_ERROR_WANT_READ) ? "READ" : "WRITE",
@@ -10240,9 +10189,7 @@ static void initialize_conscrypt(JNIEnv* env) {
     outputStream_writeMethod = getMethodRef(env, outputStreamClass, "write", "([B)V");
     outputStream_flushMethod = getMethodRef(env, outputStreamClass, "flush", "()V");
 
-#if defined(CONSCRYPT_UNBUNDLED) && !defined(CONSCRYPT_OPENJDK)
-    findAsynchronousCloseMonitorFuncs();
-#endif
+    CompatibilityCloseMonitor::init();
 }
 
 static jclass findClass(JNIEnv* env, const char* name) {
