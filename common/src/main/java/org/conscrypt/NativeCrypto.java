@@ -59,9 +59,6 @@ public final class NativeCrypto {
 
     // --- DSA/RSA public/private key handling functions -----------------------
 
-    public static native long EVP_PKEY_new_DSA(byte[] p, byte[] q, byte[] g,
-                                               byte[] pub_key, byte[] priv_key);
-
     public static native long EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q,
             byte[] dmp1, byte[] dmq1, byte[] iqmp);
 
