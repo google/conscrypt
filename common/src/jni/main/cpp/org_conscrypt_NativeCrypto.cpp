@@ -31,6 +31,13 @@
 #include "macros.h"
 
 #ifdef _WIN32
+// Needed for inet_ntop
+#define _WIN32_WINNT _WIN32_WINNT_WIN8
+#include <ws2ipdef.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
+
+#include <io.h>
 #include <winsock2.h>
 #else
 #include <arpa/inet.h>
@@ -993,6 +1000,14 @@ void init_engine_globals() {
  * Copied from libnativehelper NetworkUtilites.cpp
  */
 static bool setBlocking(int fd, bool blocking) {
+#ifdef _WIN32
+    unsigned long flag = blocking ? 0UL : 1UL;
+    int res = ioctlsocket(fd, FIONBIO, &flag);
+    if (res != NO_ERROR) {
+        JNI_TRACE("ioctlsocket %d failed with error: %d", fd, WSAGetLastError());
+    }
+    return res == NO_ERROR;
+#else
     int flags = fcntl(fd, F_GETFL);
     if (flags == -1) {
         return false;
@@ -1004,8 +1019,8 @@ static bool setBlocking(int fd, bool blocking) {
         flags &= ~O_NONBLOCK;
     }
 
-    int rc = fcntl(fd, F_SETFL, flags);
-    return (rc != -1);
+    return fcntl(fd, F_SETFL, flags) != -1;
+#endif
 }
 
 #define THROW_SSLEXCEPTION (-2)
@@ -3818,7 +3833,11 @@ static jobject GENERAL_NAME_to_jobject(JNIEnv* env, GENERAL_NAME* gen) {
         /* Write in RFC 2253 format */
         return X509_NAME_to_jstring(env, gen->d.directoryName, XN_FLAG_RFC2253);
     case GEN_IPADD: {
+#ifdef _WIN32
+        void* ip = reinterpret_cast<void*>(gen->d.ip->data);
+#else
         const void *ip = reinterpret_cast<const void *>(gen->d.ip->data);
+#endif
         if (gen->d.ip->length == 4) {
             // IPv4
             std::unique_ptr<char[]> buffer(new char[INET_ADDRSTRLEN]);
@@ -5566,7 +5585,11 @@ class AppData {
   public:
     volatile int aliveAndKicking;
     int waitingThreads;
+#ifdef _WIN32
+    HANDLE interruptEvent;
+#else
     int fdsEmergency[2];
+#endif
     std::mutex mutex;
     JNIEnv* env;
     jobject sslHandshakeCallbacks;
@@ -5579,6 +5602,14 @@ class AppData {
   public:
     static AppData* create() {
         std::unique_ptr<AppData> appData(new AppData());
+#ifdef _WIN32
+        HANDLE interruptEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        if (interruptEvent == nullptr) {
+            JNI_TRACE("AppData::create WSACreateEvent failed: %d", WSAGetLastError());
+            return nullptr;
+        }
+        appData.get()->interruptEvent = interruptEvent;
+#else
         if (pipe(appData.get()->fdsEmergency) == -1) {
             ALOGE("AppData::create pipe(2) failed: %s", strerror(errno));
             return nullptr;
@@ -5587,31 +5618,42 @@ class AppData {
             ALOGE("AppData::create fcntl(2) failed: %s", strerror(errno));
             return nullptr;
         }
+#endif
         return appData.release();
     }
 
     ~AppData() {
         aliveAndKicking = 0;
+#ifdef _WIN32
+        if (interruptEvent != nullptr) {
+            CloseHandle(interruptEvent);
+        }
+#else
         if (fdsEmergency[0] != -1) {
             close(fdsEmergency[0]);
         }
         if (fdsEmergency[1] != -1) {
             close(fdsEmergency[1]);
         }
+#endif
         clearCallbackState();
         clearAlpnCallbackState();
     }
 
-  private:
-      AppData()
-          : aliveAndKicking(1),
-            waitingThreads(0),
-            env(nullptr),
-            sslHandshakeCallbacks(nullptr),
-            alpnProtocolsData(nullptr),
-            alpnProtocolsLength(static_cast<size_t>(-1)) {
-          fdsEmergency[0] = -1;
-          fdsEmergency[1] = -1;
+private:
+    AppData()
+        : aliveAndKicking(1),
+          waitingThreads(0),
+          env(nullptr),
+          sslHandshakeCallbacks(nullptr),
+          alpnProtocolsData(nullptr),
+          alpnProtocolsLength(static_cast<size_t>(-1)) {
+#ifdef _WIN32
+        interruptEvent = nullptr;
+#else
+        fdsEmergency[0] = -1;
+        fdsEmergency[1] = -1;
+#endif
     }
 
 public:
@@ -5698,90 +5740,55 @@ public:
  *                0 meaning no timeout at all (wait indefinitely). Note: This is
  *                the Java semantics of the timeout value, not the usual
  *                select() semantics.
- * @return The result of the inner select() call,
- * THROW_SOCKETEXCEPTION if a SocketException was thrown, -1 on
- * additional errors
+ * @return THROWN_EXCEPTION on close socket, 0 on timeout, -1 on error, and 1 on success
  */
 static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData,
                      int timeout_millis) {
-    // This loop is an expanded version of the NET_FAILURE_RETRY
-    // macro. It cannot simply be used in this case because select
-    // cannot be restarted without recreating the fd_sets and timeout
-    // structure.
-    int result;
-    fd_set rfds;
-    fd_set wfds;
+    int result = -1;
+
+    NetFd fd(env, fdObject);
     do {
-        NetFd fd(env, fdObject);
         if (fd.isClosed()) {
             result = THROWN_EXCEPTION;
             break;
         }
-        int intFd = fd.get();
+
+        WSAEVENT events[2];
+        events[0] = appData->interruptEvent;
+        events[1] = WSACreateEvent();
+        if (events[1] == WSA_INVALID_EVENT) {
+            JNI_TRACE("sslSelect failure in WSACreateEvent: %d", WSAGetLastError());
+            break;
+        }
+
+        if (WSAEventSelect(fd.get(), events[1],
+                           (type == SSL_ERROR_WANT_READ ? FD_READ : FD_WRITE) | FD_CLOSE) ==
+            SOCKET_ERROR) {
+            JNI_TRACE("sslSelect failure in WSAEventSelect: %d", WSAGetLastError());
+            break;
+        }
+
         JNI_TRACE("sslSelect type=%s fd=%d appData=%p timeout_millis=%d",
-                  (type == SSL_ERROR_WANT_READ) ? "READ" : "WRITE", intFd, appData, timeout_millis);
-
-        FD_ZERO(&rfds);
-        FD_ZERO(&wfds);
-
-        if (type == SSL_ERROR_WANT_READ) {
-            FD_SET(static_cast<SOCKET>(intFd), &rfds);
-        } else {
-            FD_SET(static_cast<SOCKET>(intFd), &wfds);
-        }
-
-        FD_SET(static_cast<SOCKET>(appData->fdsEmergency[0]), &rfds);
-
-        int maxFd = (intFd > appData->fdsEmergency[0]) ? intFd : appData->fdsEmergency[0];
-
-        // Build a struct for the timeout data if we actually want a timeout.
-        timeval tv;
-        timeval* ptv;
-        if (timeout_millis > 0) {
-            tv.tv_sec = timeout_millis / 1000;
-            tv.tv_usec = (timeout_millis % 1000) * 1000;
-            ptv = &tv;
-        } else {
-            ptv = NULL;
-        }
-
-        CompatibilityCloseMonitor monitor(intFd);
-
-        result = select(maxFd + 1, &rfds, &wfds, NULL, ptv);
-        JNI_TRACE("sslSelect %s fd=%d appData=%p timeout_millis=%d => %d",
                   (type == SSL_ERROR_WANT_READ) ? "READ" : "WRITE", fd.get(), appData,
-                  timeout_millis, result);
-        if (result == -1) {
-            if (fd.isClosed()) {
-                result = THROWN_EXCEPTION;
-                break;
-            }
-            if (errno != EINTR) {
-                break;
-            }
+                  timeout_millis);
+
+        int rc = WSAWaitForMultipleEvents(
+                2, events, FALSE, timeout_millis == 0 ? WSA_INFINITE : timeout_millis, FALSE);
+        if (rc == WSA_WAIT_FAILED) {
+            JNI_TRACE("WSAWaitForMultipleEvents failed: %d", WSAGetLastError());
+            result = -1;
+        } else if (rc == WSA_WAIT_TIMEOUT) {
+            result = 0;
+        } else {
+            result = 1;
         }
-    } while (result == -1);
+    } while (0);
+
+    JNI_TRACE("sslSelect type=%s fd=%d appData=%p timeout_millis=%d => %d",
+              (type == SSL_ERROR_WANT_READ) ? "READ" : "WRITE", fd.get(), appData, timeout_millis,
+              result);
 
     std::lock_guard<std::mutex> appDataLock(appData->mutex);
-
-    if (result > 0) {
-        // We have been woken up by a token in the emergency pipe. We
-        // can't be sure the token is still in the pipe at this point
-        // because it could have already been read by the thread that
-        // originally wrote it if it entered sslSelect and acquired
-        // the mutex before we did. Thus we cannot safely read from
-        // the pipe in a blocking way (so we make the pipe
-        // non-blocking at creation).
-        if (FD_ISSET(appData->fdsEmergency[0], &rfds)) {
-            char token;
-            do {
-                (void)read(appData->fdsEmergency[0], &token, 1);
-            } while (errno == EINTR);
-        }
-    }
-
-    // Tell the world that there is now one thread less waiting for the
-    // underlying network.
     appData->waitingThreads--;
 
     return result;
@@ -5894,6 +5901,9 @@ static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData, 
  * @param data The application data structure with mutex info etc.
  */
 static void sslNotify(AppData* appData) {
+#ifdef _WIN32
+    SetEvent(appData->interruptEvent);
+#else
     // Write a byte to the emergency pipe, so a concurrent select() can return.
     // Note we have to restore the errno of the original system call, since the
     // caller relies on it for generating error messages.
@@ -5904,6 +5914,7 @@ static void sslNotify(AppData* appData) {
         (void) write(appData->fdsEmergency[1], &token, 1);
     } while (errno == EINTR);
     errno = errnoBackup;
+#endif
 }
 
 static AppData* toAppData(const SSL* ssl) {
@@ -8040,9 +8051,11 @@ static void NativeCrypto_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_address,
          */
         int fd = SSL_get_fd(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_shutdown s=%d", ssl, fd);
+#ifndef _WIN32
         if (fd != -1) {
             setBlocking(fd, true);
         }
+#endif
 
         int ret = SSL_shutdown(ssl);
         appData->clearCallbackState();
