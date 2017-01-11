@@ -18,9 +18,7 @@
 #define CONSCRYPT_JNICONSTANTS_H_
 
 #include <jni.h>
-#include <stdlib.h>
-#include "ScopedLocalRef.h"
-#include "macros.h"
+#include "JniUtil.h"
 
 namespace conscrypt {
 
@@ -39,56 +37,7 @@ public:
      * Obtains the current thread's JNIEnv
      */
     static inline JNIEnv* getJNIEnv() {
-        JNIEnv* env;
-#ifdef ANDROID
-        if (gJavaVM->AttachCurrentThread(&env, nullptr) < 0) {
-#else
-        if (gJavaVM->AttachCurrentThread(reinterpret_cast<void**>(&env), nullptr) < 0) {
-#endif
-            ALOGE("Could not attach JavaVM to find current JNIEnv");
-            return nullptr;
-        }
-        return env;
-    }
-
-    static inline jclass getGlobalRefToClass(JNIEnv* env, const char* className) {
-        ScopedLocalRef<jclass> localClass(env, env->FindClass(className));
-        jclass globalRef = reinterpret_cast<jclass>(env->NewGlobalRef(localClass.get()));
-        if (globalRef == nullptr) {
-            ALOGE("failed to find class %s", className);
-            abort();
-        }
-        return globalRef;
-    }
-
-    static inline jmethodID getMethodRef(JNIEnv* env, jclass clazz, const char* name,
-                                         const char* sig) {
-        jmethodID localMethod = env->GetMethodID(clazz, name, sig);
-        if (localMethod == nullptr) {
-            ALOGE("could not find method %s", name);
-            abort();
-        }
-        return localMethod;
-    }
-
-    static inline jfieldID getFieldRef(JNIEnv* env, jclass clazz, const char* name,
-                                       const char* sig) {
-        jfieldID localField = env->GetFieldID(clazz, name, sig);
-        if (localField == nullptr) {
-            ALOGE("could not find field %s", name);
-            abort();
-        }
-        return localField;
-    }
-
-    static inline jclass findClass(JNIEnv* env, const char* name) {
-        ScopedLocalRef<jclass> localClass(env, env->FindClass(name));
-        jclass result = reinterpret_cast<jclass>(env->NewGlobalRef(localClass.get()));
-        if (result == nullptr) {
-            ALOGE("failed to find class '%s'", name);
-            abort();
-        }
-        return result;
+        return JniUtil::getJNIEnv(gJavaVM);
     }
 
 public:

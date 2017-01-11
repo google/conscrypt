@@ -44,28 +44,30 @@ jmethodID JniConstants::outputStream_flushMethod;
 void JniConstants::init(JavaVM *vm, JNIEnv *env) {
     gJavaVM = vm;
 
-    byteArrayClass = findClass(env, "[B");
-    calendarClass = findClass(env, "java/util/Calendar");
-    inputStreamClass = findClass(env, "java/io/InputStream");
-    integerClass = findClass(env, "java/lang/Integer");
-    objectClass = findClass(env, "java/lang/Object");
-    objectArrayClass = findClass(env, "[Ljava/lang/Object;");
-    outputStreamClass = findClass(env, "java/io/OutputStream");
-    stringClass = findClass(env, "java/lang/String");
+    byteArrayClass = JniUtil::findClass(env, "[B");
+    calendarClass = JniUtil::findClass(env, "java/util/Calendar");
+    inputStreamClass = JniUtil::findClass(env, "java/io/InputStream");
+    integerClass = JniUtil::findClass(env, "java/lang/Integer");
+    objectClass = JniUtil::findClass(env, "java/lang/Object");
+    objectArrayClass = JniUtil::findClass(env, "[Ljava/lang/Object;");
+    outputStreamClass = JniUtil::findClass(env, "java/io/OutputStream");
+    stringClass = JniUtil::findClass(env, "java/lang/String");
 
-    cryptoUpcallsClass =
-            getGlobalRefToClass(env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/CryptoUpcalls");
-    nativeRefClass = getGlobalRefToClass(env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef");
-    openSslInputStreamClass =
-            getGlobalRefToClass(env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/OpenSSLBIOInputStream");
+    cryptoUpcallsClass = JniUtil::getGlobalRefToClass(
+            env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/CryptoUpcalls");
+    nativeRefClass =
+            JniUtil::getGlobalRefToClass(env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef");
+    openSslInputStreamClass = JniUtil::getGlobalRefToClass(
+            env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/OpenSSLBIOInputStream");
 
-    nativeRef_context = getFieldRef(env, nativeRefClass, "context", "J");
+    nativeRef_context = JniUtil::getFieldRef(env, nativeRefClass, "context", "J");
 
-    calendar_setMethod = getMethodRef(env, calendarClass, "set", "(IIIIII)V");
-    inputStream_readMethod = getMethodRef(env, inputStreamClass, "read", "([B)I");
+    calendar_setMethod = JniUtil::getMethodRef(env, calendarClass, "set", "(IIIIII)V");
+    inputStream_readMethod = JniUtil::getMethodRef(env, inputStreamClass, "read", "([B)I");
     integer_valueOfMethod =
             env->GetStaticMethodID(integerClass, "valueOf", "(I)Ljava/lang/Integer;");
-    openSslInputStream_readLineMethod = getMethodRef(env, openSslInputStreamClass, "gets", "([B)I");
-    outputStream_writeMethod = getMethodRef(env, outputStreamClass, "write", "([B)V");
-    outputStream_flushMethod = getMethodRef(env, outputStreamClass, "flush", "()V");
+    openSslInputStream_readLineMethod =
+            JniUtil::getMethodRef(env, openSslInputStreamClass, "gets", "([B)I");
+    outputStream_writeMethod = JniUtil::getMethodRef(env, outputStreamClass, "write", "([B)V");
+    outputStream_flushMethod = JniUtil::getMethodRef(env, outputStreamClass, "flush", "()V");
 }
