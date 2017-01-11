@@ -24,6 +24,7 @@
 #include "OpenSslError.h"
 #include "ScopedSslBio.h"
 #include "Trace.h"
+#include "JniConstants.h"
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -77,68 +78,6 @@
 #include "macros.h"
 
 using namespace conscrypt;
-
-
-// don't overwhelm logcat
-static constexpr size_t kWithJniTraceDataChunkSize = 512;
-
-static JavaVM* gJavaVM;
-static jclass cryptoUpcallsClass;
-static jclass openSslInputStreamClass;
-static jclass nativeRefClass;
-
-static jclass byteArrayClass;
-static jclass calendarClass;
-static jclass objectClass;
-static jclass objectArrayClass;
-static jclass integerClass;
-static jclass inputStreamClass;
-static jclass outputStreamClass;
-static jclass stringClass;
-
-static jfieldID nativeRef_context;
-
-static jmethodID calendar_setMethod;
-static jmethodID inputStream_readMethod;
-static jmethodID integer_valueOfMethod;
-static jmethodID openSslInputStream_readLineMethod;
-static jmethodID outputStream_writeMethod;
-static jmethodID outputStream_flushMethod;
-
-/**
- * Many OpenSSL APIs take ownership of an argument on success but don't free the argument
- * on failure. This means we need to tell our scoped pointers when we've transferred ownership,
- * without triggering a warning by not using the result of release().
- */
-#define OWNERSHIP_TRANSFERRED(obj) \
-    do { decltype((obj).release()) _dummy CONSCRYPT_ATTRIBUTE_1((unused)) = (obj).release(); } while(0)
-
-/**
- * UNUSED_ARGUMENT can be used to mark an, otherwise unused, argument as "used"
- * for the purposes of -Werror=unused-parameter. This can be needed when an
- * argument's use is based on an #ifdef.
- */
-#define UNUSED_ARGUMENT(x) ((void)(x));
-
-/**
- * Check array bounds for arguments when an array and offset are given.
- */
-#define ARRAY_OFFSET_INVALID(array, offset) ((offset) < 0 || \
-        (offset) > static_cast<ssize_t>((array).size()))
-
-/**
- * Check array bounds for arguments when an array, offset, and length are given.
- */
-#define ARRAY_OFFSET_LENGTH_INVALID(array, offset, len) ((offset) < 0 || \
-        (offset) > static_cast<ssize_t>((array).size()) || (len) < 0 || \
-        (len) > static_cast<ssize_t>((array).size()) - (offset))
-
-/**
- * Check array bounds for arguments when an array length, chunk offset, and chunk length are given.
- */
-#define ARRAY_CHUNK_INVALID(array_len, chunk_offset, chunk_len) ((chunk_offset) < 0 || \
-        (chunk_offset) > static_cast<ssize_t>(array_len) || (chunk_len) < 0 || \
-        (chunk_len) > static_cast<ssize_t>(array_len) - (chunk_offset))
 
 /**
  * Throws a OutOfMemoryError with the given string as a message.
@@ -598,7 +537,7 @@ static T* fromContextObject(JNIEnv* env, jobject contextObject) {
         jniThrowNullPointerException(env, "contextObject == null");
         return nullptr;
     }
-    T* ref = reinterpret_cast<T*>(env->GetLongField(contextObject, nativeRef_context));
+    T* ref = reinterpret_cast<T*>(env->GetLongField(contextObject, JniConstants::nativeRef_context));
     if (ref == nullptr) {
         JNI_TRACE("ref == null");
         jniThrowNullPointerException(env, "ref == null");
@@ -835,34 +774,18 @@ static X509* X509_dup_nocopy(X509* x509) {
 }
 
 /**
- * Obtains the current thread's JNIEnv
- */
-static JNIEnv* getJNIEnv() {
-    JNIEnv* env;
-#ifdef ANDROID
-    if (gJavaVM->AttachCurrentThread(&env, nullptr) < 0) {
-#else
-    if (gJavaVM->AttachCurrentThread(reinterpret_cast<void**>(&env), nullptr) < 0) {
-#endif
-        ALOGE("Could not attach JavaVM to find current JNIEnv");
-        return nullptr;
-    }
-    return env;
-}
-
-/**
  * BIO for InputStream
  */
 class BIO_Stream {
 public:
     BIO_Stream(jobject stream) :
             mEof(false) {
-        JNIEnv* env = getJNIEnv();
+        JNIEnv* env = JniConstants::getJNIEnv();
         mStream = env->NewGlobalRef(stream);
     }
 
     ~BIO_Stream() {
-        JNIEnv* env = getJNIEnv();
+        JNIEnv* env = JniConstants::getJNIEnv();
 
         env->DeleteGlobalRef(mStream);
     }
@@ -873,7 +796,7 @@ public:
     }
 
     int flush() {
-        JNIEnv* env = getJNIEnv();
+        JNIEnv* env = JniConstants::getJNIEnv();
         if (env == nullptr) {
             return -1;
         }
@@ -883,7 +806,7 @@ public:
             return -1;
         }
 
-        env->CallVoidMethod(mStream, outputStream_flushMethod);
+        env->CallVoidMethod(mStream, JniConstants::outputStream_flushMethod);
         if (env->ExceptionCheck()) {
             return -1;
         }
@@ -913,7 +836,7 @@ public:
     }
 
     int read(char *buf, int len) {
-        return read_internal(buf, len, inputStream_readMethod);
+        return read_internal(buf, len, JniConstants::inputStream_readMethod);
     }
 
     int gets(char *buf, int len) {
@@ -921,7 +844,7 @@ public:
             len = PEM_LINE_LENGTH;
         }
 
-        int read = read_internal(buf, len - 1, openSslInputStream_readLineMethod);
+        int read = read_internal(buf, len - 1, JniConstants::openSslInputStream_readLineMethod);
         buf[read] = '\0';
         JNI_TRACE("BIO::gets \"%s\"", buf);
         return read;
@@ -935,7 +858,7 @@ private:
     const bool isFinite_;
 
     int read_internal(char *buf, int len, jmethodID method) {
-        JNIEnv* env = getJNIEnv();
+        JNIEnv* env = JniConstants::getJNIEnv();
         if (env == nullptr) {
             JNI_TRACE("BIO_InputStream::read could not get JNIEnv");
             return -1;
@@ -981,7 +904,7 @@ public:
     }
 
     int write(const char *buf, int len) {
-        JNIEnv* env = getJNIEnv();
+        JNIEnv* env = JniConstants::getJNIEnv();
         if (env == nullptr) {
             JNI_TRACE("BIO_OutputStream::write => could not get JNIEnv");
             return -1;
@@ -1000,7 +923,7 @@ public:
 
         env->SetByteArrayRegion(javaBytes.get(), 0, len, reinterpret_cast<const jbyte*>(buf));
 
-        env->CallVoidMethod(getStream(), outputStream_writeMethod, javaBytes.get());
+        env->CallVoidMethod(getStream(), JniConstants::outputStream_writeMethod, javaBytes.get());
         if (env->ExceptionCheck()) {
             JNI_TRACE("BIO_OutputStream::write => failed call to OutputStream#write");
             return -1;
@@ -1113,7 +1036,7 @@ static jbyteArray rawSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey,
         memcpy(messageBytes.get(), message, message_len);
     }
 
-    jmethodID rawSignMethod = env->GetStaticMethodID(cryptoUpcallsClass,
+    jmethodID rawSignMethod = env->GetStaticMethodID(JniConstants::cryptoUpcallsClass,
             "rawSignDigestWithPrivateKey", "(Ljava/security/PrivateKey;[B)[B");
     if (rawSignMethod == nullptr) {
         ALOGE("Could not find rawSignDigestWithPrivateKey");
@@ -1121,7 +1044,7 @@ static jbyteArray rawSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey,
     }
 
     return reinterpret_cast<jbyteArray>(env->CallStaticObjectMethod(
-            cryptoUpcallsClass, rawSignMethod, privateKey, messageArray.get()));
+            JniConstants::cryptoUpcallsClass, rawSignMethod, privateKey, messageArray.get()));
 }
 
 // rsaDecryptWithPrivateKey uses privateKey to decrypt |ciphertext_len| bytes
@@ -1146,7 +1069,7 @@ static jbyteArray rsaDecryptWithPrivateKey(JNIEnv* env, jobject privateKey, jint
         memcpy(ciphertextBytes.get(), ciphertext, ciphertext_len);
     }
 
-    jmethodID rsaDecryptMethod = env->GetStaticMethodID(cryptoUpcallsClass,
+    jmethodID rsaDecryptMethod = env->GetStaticMethodID(JniConstants::cryptoUpcallsClass,
             "rsaDecryptWithPrivateKey", "(Ljava/security/PrivateKey;I[B)[B");
     if (rsaDecryptMethod == nullptr) {
         ALOGE("Could not find rsaDecryptWithPrivateKey");
@@ -1154,7 +1077,7 @@ static jbyteArray rsaDecryptWithPrivateKey(JNIEnv* env, jobject privateKey, jint
     }
 
     return reinterpret_cast<jbyteArray>(env->CallStaticObjectMethod(
-            cryptoUpcallsClass,
+            JniConstants::cryptoUpcallsClass,
             rsaDecryptMethod,
             privateKey,
             padding,
@@ -1211,7 +1134,7 @@ void ExDataFree(void* /* parent */,
   // properly destroyed with it.
   KeyExData *ex_data = reinterpret_cast<KeyExData*>(ptr);
   if (ex_data != nullptr) {
-      JNIEnv* env = getJNIEnv();
+      JNIEnv* env = JniConstants::getJNIEnv();
       env->DeleteGlobalRef(ex_data->private_key);
       delete ex_data;
   }
@@ -1263,7 +1186,7 @@ int RsaMethodSignRaw(RSA* rsa,
     return 0;
   }
 
-  JNIEnv* env = getJNIEnv();
+  JNIEnv* env = JniConstants::getJNIEnv();
   if (env == nullptr) {
       OPENSSL_PUT_ERROR(RSA, ERR_R_INTERNAL_ERROR);
       return 0;
@@ -1318,7 +1241,7 @@ int RsaMethodDecrypt(RSA* rsa,
     return 0;
   }
 
-  JNIEnv* env = getJNIEnv();
+  JNIEnv* env = JniConstants::getJNIEnv();
   if (env == nullptr) {
       OPENSSL_PUT_ERROR(RSA, ERR_R_INTERNAL_ERROR);
       return 0;
@@ -1405,7 +1328,7 @@ int EcdsaMethodSign(const uint8_t* digest,
         return 0;
     }
 
-    JNIEnv* env = getJNIEnv();
+    JNIEnv* env = JniConstants::getJNIEnv();
     if (env == nullptr) {
         return 0;
     }
@@ -2095,7 +2018,7 @@ static jobjectArray NativeCrypto_get_RSA_public_params(JNIEnv* env, jclass, jobj
         return nullptr;
     }
 
-    jobjectArray joa = env->NewObjectArray(2, byteArrayClass, nullptr);
+    jobjectArray joa = env->NewObjectArray(2, JniConstants::byteArrayClass, nullptr);
     if (joa == nullptr) {
         return nullptr;
     }
@@ -2132,7 +2055,7 @@ static jobjectArray NativeCrypto_get_RSA_private_params(JNIEnv* env, jclass, job
         return nullptr;
     }
 
-    jobjectArray joa = env->NewObjectArray(8, byteArrayClass, nullptr);
+    jobjectArray joa = env->NewObjectArray(8, JniConstants::byteArrayClass, nullptr);
     if (joa == nullptr) {
         return nullptr;
     }
@@ -2343,7 +2266,7 @@ static jobjectArray NativeCrypto_EC_GROUP_get_curve(JNIEnv* env, jclass, jobject
         return nullptr;
     }
 
-    jobjectArray joa = env->NewObjectArray(3, byteArrayClass, nullptr);
+    jobjectArray joa = env->NewObjectArray(3, JniConstants::byteArrayClass, nullptr);
     if (joa == nullptr) {
         return nullptr;
     }
@@ -2581,7 +2504,7 @@ static jobjectArray NativeCrypto_EC_POINT_get_affine_coordinates(JNIEnv* env, jc
         return nullptr;
     }
 
-    jobjectArray joa = env->NewObjectArray(2, byteArrayClass, nullptr);
+    jobjectArray joa = env->NewObjectArray(2, JniConstants::byteArrayClass, nullptr);
     if (joa == nullptr) {
         return nullptr;
     }
@@ -4378,7 +4301,7 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
      */
     const int origCount = count;
 
-    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count, objectArrayClass, nullptr));
+    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count, JniConstants::objectArrayClass, nullptr));
     for (int i = 0, j = 0; i < origCount; i++, j++) {
         GENERAL_NAME* gen = sk_GENERAL_NAME_value(gn_stack, static_cast<size_t>(i));
         ScopedLocalRef<jobject> val(env, GENERAL_NAME_to_jobject(env, gen));
@@ -4398,10 +4321,10 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
             continue;
         }
 
-        ScopedLocalRef<jobjectArray> item(env, env->NewObjectArray(2, objectClass, nullptr));
+        ScopedLocalRef<jobjectArray> item(env, env->NewObjectArray(2, JniConstants::objectClass, nullptr));
 
-        ScopedLocalRef<jobject> parsedType(env, env->CallStaticObjectMethod(integerClass,
-                integer_valueOfMethod, gen->type));
+        ScopedLocalRef<jobject> parsedType(env, env->CallStaticObjectMethod(JniConstants::integerClass,
+                JniConstants::integer_valueOfMethod, gen->type));
         env->SetObjectArrayElement(item.get(), 0, parsedType.get());
         env->SetObjectArrayElement(item.get(), 1, val.get());
 
@@ -4417,7 +4340,7 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
                 origCount, count);
 
         ScopedLocalRef<jobjectArray> joa_copy(
-                env, env->NewObjectArray(count, objectArrayClass, nullptr));
+                env, env->NewObjectArray(count, JniConstants::objectArrayClass, nullptr));
 
         for (int i = 0; i < count; i++) {
             ScopedLocalRef<jobject> item(env, env->GetObjectArrayElement(joa.get(), i));
@@ -5054,7 +4977,7 @@ static void NativeCrypto_ASN1_TIME_to_Calendar(JNIEnv* env, jclass, jlong asn1Ti
     get_ASN1_TIME_data(&p, &mon, 2);
     get_ASN1_TIME_data(&p, &year, 4);
 
-    env->CallVoidMethod(calendar, calendar_setMethod, year, mon - 1, mday, hour, min, sec);
+    env->CallVoidMethod(calendar, JniConstants::calendar_setMethod, year, mon - 1, mday, hour, min, sec);
 }
 
 static jstring NativeCrypto_OBJ_txt2nid_oid(JNIEnv* env, jclass, jstring oidStr) {
@@ -5750,7 +5673,9 @@ static jobjectArray NativeCrypto_get_X509_ex_xkusage(JNIEnv* env, jclass, jlong 
     }
 
     size_t size = sk_ASN1_OBJECT_num(objArray.get());
-    ScopedLocalRef<jobjectArray> exKeyUsage(env, env->NewObjectArray(static_cast<jsize>(size), stringClass, nullptr));
+    ScopedLocalRef<jobjectArray> exKeyUsage(env, env->NewObjectArray(static_cast<jsize>(size),
+                                                                     JniConstants::stringClass,
+                                                                     nullptr));
     if (exKeyUsage.get() == nullptr) {
         return nullptr;
     }
@@ -5824,7 +5749,7 @@ static jobjectArray get_X509Type_ext_oids(JNIEnv* env, jlong x509Ref, jint criti
 
     JNI_TRACE("get_X509Type_ext_oids(%p, %d) has %d entries", x509, critical, count);
 
-    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count, stringClass, nullptr));
+    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count, JniConstants::stringClass, nullptr));
     if (joa.get() == nullptr) {
         JNI_TRACE("get_X509Type_ext_oids(%p, %d) => fail to allocate result array", x509, critical);
         return nullptr;
@@ -5953,7 +5878,7 @@ static jobjectArray getPrincipalBytes(JNIEnv* env, const STACK_OF(X509_NAME)* na
         return nullptr;
     }
 
-    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count, byteArrayClass, nullptr));
+    ScopedLocalRef<jobjectArray> joa(env, env->NewObjectArray(count, JniConstants::byteArrayClass, nullptr));
     if (joa.get() == nullptr) {
         return nullptr;
     }
@@ -8119,10 +8044,10 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
 
         JNI_TRACE("ssl=%p sslRead SSL_read result=%d sslError=%d", ssl, result, sslError.get());
         if (Trace::kWithJniTraceData) {
-            for (size_t i = 0; result > 0 && i < static_cast<size_t>(result); i += kWithJniTraceDataChunkSize) {
+            for (size_t i = 0; result > 0 && i < static_cast<size_t>(result); i += Trace::kWithJniTraceDataChunkSize) {
                 size_t n = result - i;
-                if (n > kWithJniTraceDataChunkSize) {
-                    n = kWithJniTraceDataChunkSize;
+                if (n > Trace::kWithJniTraceDataChunkSize) {
+                    n = Trace::kWithJniTraceDataChunkSize;
                 }
                 JNI_TRACE("ssl=%p sslRead data: %zu:\n%.*s", ssl, n, (int)n, buf + i);
             }
@@ -8313,10 +8238,10 @@ static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const 
         JNI_TRACE("ssl=%p sslWrite SSL_write result=%d sslError=%d",
                   ssl, result, sslError.get());
         if (Trace::kWithJniTraceData) {
-            for (size_t i = 0; result > 0 && i < static_cast<size_t>(result); i += kWithJniTraceDataChunkSize) {
+            for (size_t i = 0; result > 0 && i < static_cast<size_t>(result); i += Trace::kWithJniTraceDataChunkSize) {
                 size_t n = result - i;
-                if (n > kWithJniTraceDataChunkSize) {
-                    n = kWithJniTraceDataChunkSize;
+                if (n > Trace::kWithJniTraceDataChunkSize) {
+                    n = Trace::kWithJniTraceDataChunkSize;
                 }
                 JNI_TRACE("ssl=%p sslWrite data: %zu:\n%.*s", ssl, n, (int)n, buf + i);
             }
@@ -8829,7 +8754,9 @@ static jobjectArray NativeCrypto_get_cipher_names(JNIEnv *env, jclass, jstring s
 
     size_t size = sk_SSL_CIPHER_num(ciphers);
     ScopedLocalRef<jobjectArray> cipherNamesArray(env,
-                                                  env->NewObjectArray(static_cast<jsize>(size), stringClass, nullptr));
+                                                  env->NewObjectArray(static_cast<jsize>(size),
+                                                                      JniConstants::stringClass,
+                                                                      nullptr));
     if (cipherNamesArray.get() == nullptr) {
         return nullptr;
     }
@@ -10019,69 +9946,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         NATIVE_METHOD(NativeCrypto, ENGINE_SSL_shutdown, "(J" SSL_CALLBACKS ")V"),
 };
 
-static jclass getGlobalRefToClass(JNIEnv* env, const char* className) {
-    ScopedLocalRef<jclass> localClass(env, env->FindClass(className));
-    jclass globalRef = reinterpret_cast<jclass>(env->NewGlobalRef(localClass.get()));
-    if (globalRef == nullptr) {
-        ALOGE("failed to find class %s", className);
-        abort();
-    }
-    return globalRef;
-}
-
-static jmethodID getMethodRef(JNIEnv* env, jclass clazz, const char* name, const char* sig) {
-    jmethodID localMethod = env->GetMethodID(clazz, name, sig);
-    if (localMethod == nullptr) {
-        ALOGE("could not find method %s", name);
-        abort();
-    }
-    return localMethod;
-}
-
-static jfieldID getFieldRef(JNIEnv* env, jclass clazz, const char* name, const char* sig) {
-    jfieldID localField = env->GetFieldID(clazz, name, sig);
-    if (localField == nullptr) {
-        ALOGE("could not find field %s", name);
-        abort();
-    }
-    return localField;
-}
-
-static void initialize_conscrypt(JNIEnv* env) {
-    jniRegisterNativeMethods(env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeCrypto",
-                             sNativeCryptoMethods, NELEM(sNativeCryptoMethods));
-
-    cryptoUpcallsClass = getGlobalRefToClass(env,
-            CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/CryptoUpcalls");
-    nativeRefClass = getGlobalRefToClass(env,
-            CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef");
-    openSslInputStreamClass = getGlobalRefToClass(env,
-            CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/OpenSSLBIOInputStream");
-
-    nativeRef_context = getFieldRef(env, nativeRefClass, "context", "J");
-
-    calendar_setMethod = getMethodRef(env, calendarClass, "set", "(IIIIII)V");
-    inputStream_readMethod = getMethodRef(env, inputStreamClass, "read", "([B)I");
-    integer_valueOfMethod = env->GetStaticMethodID(integerClass, "valueOf",
-            "(I)Ljava/lang/Integer;");
-    openSslInputStream_readLineMethod = getMethodRef(env, openSslInputStreamClass, "gets",
-            "([B)I");
-    outputStream_writeMethod = getMethodRef(env, outputStreamClass, "write", "([B)V");
-    outputStream_flushMethod = getMethodRef(env, outputStreamClass, "flush", "()V");
-
-    CompatibilityCloseMonitor::init();
-}
-
-static jclass findClass(JNIEnv* env, const char* name) {
-    ScopedLocalRef<jclass> localClass(env, env->FindClass(name));
-    jclass result = reinterpret_cast<jclass>(env->NewGlobalRef(localClass.get()));
-    if (result == nullptr) {
-        ALOGE("failed to find class '%s'", name);
-        abort();
-    }
-    return result;
-}
-
 #ifdef STATIC_LIB
 // Give client libs everything they need to initialize our JNI
 jint libconscrypt_JNI_OnLoad(JavaVM *vm, void*) {
@@ -10090,24 +9954,18 @@ jint libconscrypt_JNI_OnLoad(JavaVM *vm, void*) {
 CONSCRYPT_PUBLIC jint JNICALL JNI_OnLoad(JavaVM *vm, void*) {
     JNI_TRACE("JNI_OnLoad NativeCrypto");
 #endif
-    gJavaVM = vm;
-
     JNIEnv *env;
     if (vm->GetEnv((void**)&env, JNI_VERSION_1_6) != JNI_OK) {
         ALOGE("Could not get JNIEnv");
         return JNI_ERR;
     }
 
-    byteArrayClass = findClass(env, "[B");
-    calendarClass = findClass(env, "java/util/Calendar");
-    inputStreamClass = findClass(env, "java/io/InputStream");
-    integerClass = findClass(env, "java/lang/Integer");
-    objectClass = findClass(env, "java/lang/Object");
-    objectArrayClass = findClass(env, "[Ljava/lang/Object;");
-    outputStreamClass = findClass(env, "java/io/OutputStream");
-    stringClass = findClass(env, "java/lang/String");
+    JniConstants::init(vm, env);
 
-    initialize_conscrypt(env);
+    jniRegisterNativeMethods(env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeCrypto",
+                             sNativeCryptoMethods, NELEM(sNativeCryptoMethods));
+
+    CompatibilityCloseMonitor::init();
     return JNI_VERSION_1_6;
 }
 

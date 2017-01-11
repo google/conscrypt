@@ -18,6 +18,7 @@
 #define CONSCRYPT_TRACE_H_
 
 #include "macros.h"
+#include <cstddef>
 
 namespace conscrypt {
 
@@ -61,6 +62,9 @@ public:
      *    the Server Hello.
      */
     static constexpr bool kWithJniTraceKeys = false;
+
+    // don't overwhelm logcat
+    static constexpr std::size_t kWithJniTraceDataChunkSize = 512;
 }; // class Trace
 
 } // namespace conscrypt

@@ -94,6 +94,41 @@
     #define CONSCRYPT_ATTRIBUTE_1(value)
 #endif
 
+/**
+ * Many OpenSSL APIs take ownership of an argument on success but don't free the argument
+ * on failure. This means we need to tell our scoped pointers when we've transferred ownership,
+ * without triggering a warning by not using the result of release().
+ */
+#define OWNERSHIP_TRANSFERRED(obj) \
+    do { decltype((obj).release()) _dummy CONSCRYPT_ATTRIBUTE_1((unused)) = (obj).release(); } while(0)
+
+/**
+ * UNUSED_ARGUMENT can be used to mark an, otherwise unused, argument as "used"
+ * for the purposes of -Werror=unused-parameter. This can be needed when an
+ * argument's use is based on an #ifdef.
+ */
+#define UNUSED_ARGUMENT(x) ((void)(x));
+
+/**
+ * Check array bounds for arguments when an array and offset are given.
+ */
+#define ARRAY_OFFSET_INVALID(array, offset) ((offset) < 0 || \
+        (offset) > static_cast<ssize_t>((array).size()))
+
+/**
+ * Check array bounds for arguments when an array, offset, and length are given.
+ */
+#define ARRAY_OFFSET_LENGTH_INVALID(array, offset, len) ((offset) < 0 || \
+        (offset) > static_cast<ssize_t>((array).size()) || (len) < 0 || \
+        (len) > static_cast<ssize_t>((array).size()) - (offset))
+
+/**
+ * Check array bounds for arguments when an array length, chunk offset, and chunk length are given.
+ */
+#define ARRAY_CHUNK_INVALID(array_len, chunk_offset, chunk_len) ((chunk_offset) < 0 || \
+        (chunk_offset) > static_cast<ssize_t>(array_len) || (chunk_len) < 0 || \
+        (chunk_len) > static_cast<ssize_t>(array_len) - (chunk_offset))
+
 // Define logging macros...
 
 #define LOG_TAG "NativeCrypto"
