@@ -42,18 +42,20 @@ subprojects {
     ext {
         boringsslHome = "$System.env.BORINGSSL_HOME"
         boringsslIncludeDir = "$boringsslHome/include"
-        boringsslSslBuildDir = "$boringsslHome/build/ssl"
-        boringsslCryptoBuildDir = "$boringsslHome/build/crypto"
+        boringssl32BuildDir = "$boringsslHome/build32"
+        boringssl64BuildDir = "$boringsslHome/build64"
         jdkHome = "$System.env.JAVA_HOME"
         jdkIncludeDir = "$jdkHome/include"
         // Needs to be binary compatible with androidMinSdkVersion
         androidMinJavaVersion = JavaVersion.VERSION_1_7
 
+        build32Bit = file("$boringssl32BuildDir").exists()
+        build64Bit = file("$boringssl64BuildDir").exists()
+
         // Ensure the environment is configured properly.
         assert file("$boringsslHome").exists()
         assert file("$boringsslIncludeDir").exists()
-        assert file("$boringsslSslBuildDir").exists()
-        assert file("$boringsslCryptoBuildDir").exists()
+        assert build32Bit || build64Bit
         assert file("$jdkHome").exists()
         assert file("$jdkIncludeDir").exists()
 
