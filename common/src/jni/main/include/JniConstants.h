@@ -17,10 +17,10 @@
 #ifndef CONSCRYPT_JNICONSTANTS_H_
 #define CONSCRYPT_JNICONSTANTS_H_
 
-#include "macros.h"
-#include "ScopedLocalRef.h"
 #include <jni.h>
 #include <stdlib.h>
+#include "ScopedLocalRef.h"
+#include "macros.h"
 
 namespace conscrypt {
 
@@ -30,22 +30,21 @@ private:
     ~JniConstants() {}
 
 public:
-
     /**
      * Initializes the JNI constants from the environment.
      */
-    static void init(JavaVM *vm, JNIEnv *env);
+    static void init(JavaVM* vm, JNIEnv* env);
 
     /**
      * Obtains the current thread's JNIEnv
      */
     static inline JNIEnv* getJNIEnv() {
         JNIEnv* env;
-    #ifdef ANDROID
+#ifdef ANDROID
         if (gJavaVM->AttachCurrentThread(&env, nullptr) < 0) {
-    #else
+#else
         if (gJavaVM->AttachCurrentThread(reinterpret_cast<void**>(&env), nullptr) < 0) {
-    #endif
+#endif
             ALOGE("Could not attach JavaVM to find current JNIEnv");
             return nullptr;
         }
@@ -62,7 +61,8 @@ public:
         return globalRef;
     }
 
-    static inline jmethodID getMethodRef(JNIEnv* env, jclass clazz, const char* name, const char* sig) {
+    static inline jmethodID getMethodRef(JNIEnv* env, jclass clazz, const char* name,
+                                         const char* sig) {
         jmethodID localMethod = env->GetMethodID(clazz, name, sig);
         if (localMethod == nullptr) {
             ALOGE("could not find method %s", name);
@@ -71,7 +71,8 @@ public:
         return localMethod;
     }
 
-    static inline jfieldID getFieldRef(JNIEnv* env, jclass clazz, const char* name, const char* sig) {
+    static inline jfieldID getFieldRef(JNIEnv* env, jclass clazz, const char* name,
+                                       const char* sig) {
         jfieldID localField = env->GetFieldID(clazz, name, sig);
         if (localField == nullptr) {
             ALOGE("could not find field %s", name);
@@ -91,7 +92,6 @@ public:
     }
 
 public:
-
     static JavaVM* gJavaVM;
     static jclass cryptoUpcallsClass;
     static jclass openSslInputStreamClass;
@@ -116,6 +116,6 @@ public:
     static jmethodID outputStream_flushMethod;
 };
 
-} // namespace conscrypt
+}  // namespace conscrypt
 
 #endif  // CONSCRYPT_JNICONSTANTS_H_

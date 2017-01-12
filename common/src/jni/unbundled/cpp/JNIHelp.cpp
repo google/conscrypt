@@ -47,40 +47,38 @@
 #include <assert.h>
 
 #ifdef _WIN32
-    // Windows uses strerror_s instead of strerror_r.
-    #define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
+// Windows uses strerror_s instead of strerror_r.
+#define strerror_r(errno, buf, len) strerror_s(buf, len, errno)
 
-    // Windows doesn't define this either *sigh*...
-    int vasprintf(char **ret, const char *format, va_list args)
-    {
-        va_list copy;
-        va_copy(copy, args);
+// Windows doesn't define this either *sigh*...
+int vasprintf(char** ret, const char* format, va_list args) {
+    va_list copy;
+    va_copy(copy, args);
 
-        *ret = NULL;
+    *ret = NULL;
 
-        int count = vsnprintf(NULL, 0, format, args);
-        if (count >= 0)
-        {
-            char* buffer = (char*) malloc(count + 1);
-            if (buffer == NULL)
-                count = -1;
-            else if ((count = vsnprintf(buffer, count + 1, format, copy)) < 0)
-                free(buffer);
-            else
-                *ret = buffer;
-        }
-        va_end(copy);  // Each va_start() or va_copy() needs a va_end()
-
-        return count;
+    int count = vsnprintf(NULL, 0, format, args);
+    if (count >= 0) {
+        char* buffer = (char*)malloc(count + 1);
+        if (buffer == NULL)
+            count = -1;
+        else if ((count = vsnprintf(buffer, count + 1, format, copy)) < 0)
+            free(buffer);
+        else
+            *ret = buffer;
     }
+    va_end(copy);  // Each va_start() or va_copy() needs a va_end()
 
-    int asprintf(char **strp, const char *fmt, ...) {
-        va_list ap;
-        va_start(ap, fmt);
-        int r = vasprintf(strp, fmt, ap);
-        va_end(ap);
-        return r;
-    }
+    return count;
+}
+
+int asprintf(char** strp, const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    int r = vasprintf(strp, fmt, ap);
+    va_end(ap);
+    return r;
+}
 #endif
 
 /**

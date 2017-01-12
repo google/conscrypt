@@ -31,8 +31,7 @@ namespace conscrypt {
  */
 class OpenSslError {
 public:
-    OpenSslError() : sslError_(SSL_ERROR_NONE), released_(false) {
-    }
+    OpenSslError() : sslError_(SSL_ERROR_NONE), released_(false) {}
 
     OpenSslError(SSL* ssl, int returnCode) : sslError_(SSL_ERROR_NONE), released_(false) {
         reset(ssl, returnCode);
@@ -66,6 +65,6 @@ private:
     bool released_;
 };
 
-} // namespace conscrypt
+}  // namespace conscrypt
 
 #endif  // CONSCRYPT_OPENSSLERROR_H_

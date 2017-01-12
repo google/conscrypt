@@ -17,8 +17,8 @@
 #ifndef SCOPED_LOCAL_REF_H_included
 #define SCOPED_LOCAL_REF_H_included
 
-#include "jni.h"
 #include <macros.h>
+#include "jni.h"
 
 #include <stddef.h>
 
