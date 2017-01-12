@@ -48,9 +48,10 @@ addons:
       - kalakris-cmake
       - ubuntu-toolchain-r-test
     packages:
-      - cmake
-      - ninja-build
       - clang
+      - cmake
+      - gcc-multilib
+      - ninja-build
 
 android:
   components:
