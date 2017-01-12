@@ -50,7 +50,9 @@ addons:
     packages:
       - clang
       - cmake
+      - g++-multilib
       - gcc-multilib
+      - libc6-dev-i386
       - ninja-build
 
 android:
