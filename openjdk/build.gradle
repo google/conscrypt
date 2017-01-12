@@ -4,8 +4,7 @@ description = 'Conscrypt: OpenJdk'
 
 ext {
     jniSourceDir = "$rootDir/common/src/jni"
-    jniLibName = "conscrypt_openjdk_jni-$osdetector.classifier"
-    jniLibTaskName = "${jniLibName}SharedLibrary"
+    jniLibPrefix = "conscrypt_openjdk_jni-${osdetector.os}"
 
     assert file("$jniSourceDir").exists()
 }
@@ -31,18 +30,27 @@ dependencies {
                 libraries.mockito
 }
 
-// Make sure we build and copy the native library to the output directory.
-compileJava.dependsOn 'copyNativeLib'
-
 // Set the platform-specific classifier on the artifact.
 jar {
     classifier = osdetector.classifier
 }
 
 model {
+    platforms {
+        x86 {
+            architecture "x86"
+        }
+        x86_64 {
+            architecture "x86_64"
+        }
+    }
+
     components {
         // Builds the JNI library.
-        "$jniLibName"(NativeLibrarySpec) {
+        "$jniLibPrefix"(NativeLibrarySpec) {
+            if (build32Bit) { targetPlatform "x86" }
+            if (build64Bit) { targetPlatform "x86_64" }
+
             sources {
                 cpp {
                     source {
@@ -59,6 +67,19 @@ model {
                 withType (SharedLibraryBinarySpec) {
                     cppCompiler.define "CONSCRYPT_OPENJDK"
 
+                    // Set up 32-bit vs 64-bit build
+                    def libPaths
+                    if (targetPlatform.getArchitecture().getName() == "x86") {
+                        libPaths = ["$boringssl32BuildDir/ssl",
+                            "$boringssl32BuildDir/crypto"]
+                    } else if (targetPlatform.getArchitecture().getName() == "x86-64") {
+                        libPaths = ["$boringssl64BuildDir/ssl",
+                            "$boringssl64BuildDir/crypto"]
+                    } else {
+                        throw new GradleException("Unknown architecture: " +
+                                targetPlatform.getArchitecture().getName())
+                    }
+
                     if (toolChain in Clang || toolChain in Gcc) {
                         cppCompiler.args "-Wall",
                                 "-fPIC",
@@ -73,10 +94,9 @@ model {
                                 "-I$jdkIncludeDir/win32"
 
                         // Static link to BoringSSL
+                        libPaths.each { linker.args.add("-L" + it) }
                         linker.args "-O2",
                                 "-fvisibility=hidden",
-                                "-L$boringsslSslBuildDir",
-                                "-L$boringsslCryptoBuildDir",
                                 "-lstdc++",
                                 "-lssl",
                                 "-lcrypto"
@@ -114,13 +134,12 @@ model {
                                 "-I$jdkIncludeDir/win32"
 
                         // Static link to BoringSSL
-                        linker.args "/O2",
-                                "-WX",
-                                "-L$boringsslSslBuildDir",
-                                "-L$boringsslCryptoBuildDir",
-                                "-lssl",
-                                "-lcrypto",
-                                "-lWs2_32.lib"
+                        libPaths.each { linker.args.add("/LIBPATH:" + it) }
+                        linker.args "-WX",
+                                "ws2_32.lib",
+                                "advapi32.lib",
+                                "ssl.lib",
+                                "crypto.lib"
                     }
                 }
 
@@ -131,11 +150,27 @@ model {
             }
         }
     }
+
+    tasks {
+        $.binaries.withType(SharedLibraryBinarySpec).each {
+            def archName = it.targetPlatform.architecture.name.replaceAll('-', '_')
+            def source = it.sharedLibraryFile
+
+            // Copies the native library to a resource location that will be included in the jar.
+            task "copyNativeLib${archName}"(type: Copy) {
+                from source
+                rename '(.+)(\\.[^\\.]+)', "\$1-$archName\$2"
+                // This location will automatically be included in the jar.
+                into "build/resources/main/META-INF/native"
+            }
+
+            // Make sure we build and copy the native library to the output directory.
+            compileJava.dependsOn "copyNativeLib${archName}"
+        }
+    }
 }
 
-// Copies the native library to a resource location that will be included in the jar.
-task copyNativeLib(type: Copy, dependsOn: "$jniLibTaskName") {
-    from "build/libs/${jniLibName}/shared"
-    // This location will automatically be included in the jar.
-    into 'build/resources/main/META-INF/native'
+def getFileExtension(File f) {
+    String name = f.getName()
+    return new String(name.substring(name.lastIndexOf('.')))
 }

@@ -25,11 +25,17 @@ before_script:
   - curl https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux-x86_64.zip -z $HOME/.cache/ndk/ndk-${NDK_VERSION}.zip -o $HOME/.cache/ndk/ndk-${NDK_VERSION}.zip
   - unzip -q $HOME/.cache/ndk/ndk-$NDK_VERSION.zip -d $HOME
   - echo "ndk.dir=$HOME/android-ndk-$NDK_VERSION" >> local.properties
-  # get and build BoringSSL
+  # get BoringSSL
   - mkdir $BORINGSSL_HOME
   - git clone --depth 1 https://boringssl.googlesource.com/boringssl $BORINGSSL_HOME
-  - mkdir $BORINGSSL_HOME/build && pushd $BORINGSSL_HOME/build
+  # Build BoringSSL for 64-bit
+  - mkdir $BORINGSSL_HOME/build64 && pushd $BORINGSSL_HOME/build64
   - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS=-Wa,--noexecstack -GNinja ..
+  - ninja
+  - popd
+  # Build BoringSSL for 32-bit
+  - mkdir $BORINGSSL_HOME/build32 && pushd $BORINGSSL_HOME/build32
+  - cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS="-Wa,--noexecstack -m32 -msse2" -GNinja ..
   - ninja
   - popd
 
@@ -42,9 +48,13 @@ addons:
       - kalakris-cmake
       - ubuntu-toolchain-r-test
     packages:
-      - cmake
-      - ninja-build
       - clang
+      - cmake
+      - g++-multilib
+      - gcc-multilib
+      - libc6-dev-i386
+      - libc6-dev:i386
+      - ninja-build
 
 android:
   components:
