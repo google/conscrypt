@@ -78,7 +78,8 @@ common_java_files := $(filter-out \
 	, $(call all-java-files-under,common/src/main/java))
 
 bundled_main_cpp_files := common/src/jni/main/cpp/org_conscrypt_NativeCrypto.cpp \
-                          common/src/jni/main/cpp/CompatibilityCloseMonitor.cpp
+                          common/src/jni/main/cpp/CompatibilityCloseMonitor.cpp \
+                          common/src/jni/main/cpp/JniConstants.cpp
 unbundled_main_cpp_files := $(bundled_main_cpp_files)
 unbundled_main_cpp_files += common/src/jni/unbundled/cpp/JNIHelp.cpp
 

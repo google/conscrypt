@@ -94,6 +94,16 @@
 #define CONSCRYPT_ATTRIBUTE_1(value)
 #endif
 
+#define CONSCRYPT_NATIVE_METHOD(className, functionName, signature) \
+    {                                                               \
+        (char*)#functionName, (char*)(signature),                   \
+                reinterpret_cast<void*>(className##_##functionName) \
+    }
+
+#ifndef NELEM
+#define NELEM(x) ((int)(sizeof(x) / sizeof((x)[0])))
+#endif
+
 /**
  * Many OpenSSL APIs take ownership of an argument on success but don't free the argument
  * on failure. This means we need to tell our scoped pointers when we've transferred ownership,
