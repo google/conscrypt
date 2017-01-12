@@ -41,7 +41,7 @@ public:
     ~CompatibilityCloseMonitor() {}
 
     static void init() {}
-}
+};
 
 }  // namespace conscrypt
 
