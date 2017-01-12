@@ -18,7 +18,7 @@
 
 using namespace conscrypt;
 
-JavaVM* JniConstants::gJavaVM;
+JavaVM *JniConstants::gJavaVM;
 jclass JniConstants::cryptoUpcallsClass;
 jclass JniConstants::openSslInputStreamClass;
 jclass JniConstants::nativeRefClass;
@@ -53,21 +53,19 @@ void JniConstants::init(JavaVM *vm, JNIEnv *env) {
     outputStreamClass = findClass(env, "java/io/OutputStream");
     stringClass = findClass(env, "java/lang/String");
 
-    cryptoUpcallsClass = getGlobalRefToClass(env,
-                CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/CryptoUpcalls");
-    nativeRefClass = getGlobalRefToClass(env,
-            CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef");
-    openSslInputStreamClass = getGlobalRefToClass(env,
-            CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/OpenSSLBIOInputStream");
+    cryptoUpcallsClass =
+            getGlobalRefToClass(env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/CryptoUpcalls");
+    nativeRefClass = getGlobalRefToClass(env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef");
+    openSslInputStreamClass =
+            getGlobalRefToClass(env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/OpenSSLBIOInputStream");
 
     nativeRef_context = getFieldRef(env, nativeRefClass, "context", "J");
 
     calendar_setMethod = getMethodRef(env, calendarClass, "set", "(IIIIII)V");
     inputStream_readMethod = getMethodRef(env, inputStreamClass, "read", "([B)I");
-    integer_valueOfMethod = env->GetStaticMethodID(integerClass, "valueOf",
-            "(I)Ljava/lang/Integer;");
-    openSslInputStream_readLineMethod = getMethodRef(env, openSslInputStreamClass, "gets",
-            "([B)I");
+    integer_valueOfMethod =
+            env->GetStaticMethodID(integerClass, "valueOf", "(I)Ljava/lang/Integer;");
+    openSslInputStream_readLineMethod = getMethodRef(env, openSslInputStreamClass, "gets", "([B)I");
     outputStream_writeMethod = getMethodRef(env, outputStreamClass, "write", "([B)V");
     outputStream_flushMethod = getMethodRef(env, outputStreamClass, "flush", "()V");
 }

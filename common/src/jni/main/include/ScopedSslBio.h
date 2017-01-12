@@ -27,7 +27,7 @@ namespace conscrypt {
  */
 class ScopedSslBio {
 public:
-    ScopedSslBio(SSL *ssl, BIO* rbio, BIO* wbio) : ssl_(ssl) {
+    ScopedSslBio(SSL* ssl, BIO* rbio, BIO* wbio) : ssl_(ssl) {
         SSL_set_bio(ssl_, rbio, wbio);
         BIO_up_ref(rbio);
         BIO_up_ref(wbio);
@@ -41,6 +41,6 @@ private:
     SSL* const ssl_;
 };
 
-} // namespace conscrypt
+}  // namespace conscrypt
 
 #endif  // CONSCRYPT_SCOPEDSSLBIO_H_

@@ -22,15 +22,19 @@
 
 using namespace conscrypt;
 
-CompatibilityCloseMonitor::acm_ctor_func CompatibilityCloseMonitor::asyncCloseMonitorConstructor = nullptr;
-CompatibilityCloseMonitor::acm_dtor_func CompatibilityCloseMonitor::asyncCloseMonitorDestructor = nullptr;
+CompatibilityCloseMonitor::acm_ctor_func CompatibilityCloseMonitor::asyncCloseMonitorConstructor =
+        nullptr;
+CompatibilityCloseMonitor::acm_dtor_func CompatibilityCloseMonitor::asyncCloseMonitorDestructor =
+        nullptr;
 
 void CompatibilityCloseMonitor::init() {
     void *lib = dlopen("libjavacore.so", RTLD_NOW);
     if (lib != nullptr) {
-        asyncCloseMonitorConstructor = (acm_ctor_func) dlsym(lib, "_ZN24AsynchronousCloseMonitorC1Ei");
-        asyncCloseMonitorDestructor = (acm_dtor_func) dlsym(lib, "_ZN24AsynchronousCloseMonitorD1Ev");
+        asyncCloseMonitorConstructor =
+                (acm_ctor_func)dlsym(lib, "_ZN24AsynchronousCloseMonitorC1Ei");
+        asyncCloseMonitorDestructor =
+                (acm_dtor_func)dlsym(lib, "_ZN24AsynchronousCloseMonitorD1Ev");
     }
 }
 
-#endif // CONSCRYPT_UNBUNDLED && !CONSCRYPT_OPENJDK
+#endif  // CONSCRYPT_UNBUNDLED && !CONSCRYPT_OPENJDK

@@ -17,8 +17,8 @@
 #ifndef CONSCRYPT_TRACE_H_
 #define CONSCRYPT_TRACE_H_
 
-#include "macros.h"
 #include <cstddef>
+#include "macros.h"
 
 namespace conscrypt {
 
@@ -28,7 +28,6 @@ private:
     ~Trace() {}
 
 public:
-
     static constexpr bool kWithJniTrace = false;
     static constexpr bool kWithJniTraceMd = false;
     static constexpr bool kWithJniTraceData = false;
@@ -40,7 +39,8 @@ public:
      * For example, if you were interested in ssl=0x12345678, you would do:
      *
      *  address=0x12345678
-     *  awk "match(\$0,/ssl=$address SSL_DATA: (.*)\$/,a){print a[1]}" | text2pcap -T 443,1337 -t '%s.' -n -D - $address.pcapng
+     *  awk "match(\$0,/ssl=$address SSL_DATA: (.*)\$/,a){print a[1]}" | text2pcap -T 443,1337 -t
+     * '%s.' -n -D - $address.pcapng
      */
     static constexpr bool kWithJniTracePackets = false;
 
@@ -65,9 +65,9 @@ public:
 
     // don't overwhelm logcat
     static constexpr std::size_t kWithJniTraceDataChunkSize = 512;
-}; // class Trace
+};  // class Trace
 
-} // namespace conscrypt
+}  // namespace conscrypt
 
 #define JNI_TRACE(...)                               \
     if (conscrypt::Trace::kWithJniTrace) {           \

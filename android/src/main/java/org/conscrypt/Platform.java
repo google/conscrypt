@@ -263,7 +263,7 @@ final class Platform {
         return false;
     }
 
-    @SuppressLint("NewApi")  // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
     public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
             String authType, OpenSSLSocketImpl socket) throws CertificateException {
         if (!checkTrusted("checkClientTrusted", tm, chain, authType, Socket.class, socket)
@@ -273,7 +273,7 @@ final class Platform {
         }
     }
 
-    @SuppressLint("NewApi")  // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
     public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
             String authType, OpenSSLSocketImpl socket) throws CertificateException {
         if (!checkTrusted("checkServerTrusted", tm, chain, authType, Socket.class, socket)
@@ -283,7 +283,7 @@ final class Platform {
         }
     }
 
-    @SuppressLint("NewApi")  // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
     public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
             String authType, OpenSSLEngineImpl engine) throws CertificateException {
         if (!checkTrusted("checkClientTrusted", tm, chain, authType, SSLEngine.class, engine)
@@ -293,7 +293,7 @@ final class Platform {
         }
     }
 
-    @SuppressLint("NewApi")  // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
     public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
             String authType, OpenSSLEngineImpl engine) throws CertificateException {
         if (!checkTrusted("checkServerTrusted", tm, chain, authType, SSLEngine.class, engine)

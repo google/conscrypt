@@ -36,19 +36,16 @@ private:
     AsynchronousCloseMonitor monitor;
 
 public:
-    CompatibilityCloseMonitor(int fd) : monitor(fd) {
-    }
+    CompatibilityCloseMonitor(int fd) : monitor(fd) {}
 
-    ~CompatibilityCloseMonitor() {
-    }
+    ~CompatibilityCloseMonitor() {}
 
-    static void init() {
-    }
+    static void init() {}
 }
 
-} // namespace conscrypt
+}  // namespace conscrypt
 
-#elif !defined(CONSCRYPT_OPENJDK) // && CONSCRYPT_UNBUNDLED
+#elif !defined(CONSCRYPT_OPENJDK)  // && CONSCRYPT_UNBUNDLED
 
 namespace conscrypt {
 
@@ -88,9 +85,9 @@ private:
 #endif
 };
 
-} // namespace conscrypt
+}  // namespace conscrypt
 
-#else // CONSCRYPT_UNBUNDLED && CONSCRYPT_OPENJDK
+#else  // CONSCRYPT_UNBUNDLED && CONSCRYPT_OPENJDK
 
 namespace conscrypt {
 
@@ -99,17 +96,15 @@ namespace conscrypt {
  */
 class CompatibilityCloseMonitor {
 public:
-    CompatibilityCloseMonitor(int) {
-    }
+    CompatibilityCloseMonitor(int) {}
 
-    ~CompatibilityCloseMonitor() {
-    }
+    ~CompatibilityCloseMonitor() {}
 
     static void init() {}
 };
 
-} // namespace conscrypt
+}  // namespace conscrypt
 
-#endif // CONSCRYPT_UNBUNDLED && CONSCRYPT_OPENJDK
+#endif  // CONSCRYPT_UNBUNDLED && CONSCRYPT_OPENJDK
 
-#endif // CONSCRYPT_COMPATIBILITYCLOSEMONITOR_H_
+#endif  // CONSCRYPT_COMPATIBILITYCLOSEMONITOR_H_
