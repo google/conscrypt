@@ -6435,7 +6435,7 @@ static int cert_cb(SSL* ssl, void* arg CONSCRYPT_ATTRIBUTE_1((unused))) {
 
     if (Trace::kWithJniTrace) {
         for (size_t i = 0; i < ctype_num; i++) {
-            JNI_TRACE("ssl=%p clientCertificateRequested keyTypes[%d]=%d", ssl, i, ctype[i]);
+            JNI_TRACE("ssl=%p clientCertificateRequested keyTypes[%zu]=%d", ssl, i, ctype[i]);
         }
     }
 
@@ -7388,7 +7388,7 @@ static jlongArray NativeCrypto_SSL_get_ciphers(JNIEnv* env, jclass, jlong ssl_ad
         ciphers[i] = reinterpret_cast<jlong>(sk_SSL_CIPHER_value(cipherStack, i));
     }
 
-    JNI_TRACE("NativeCrypto_SSL_get_ciphers(%p) => %p [size=%d]", ssl, ciphersArray.get(), count);
+    JNI_TRACE("NativeCrypto_SSL_get_ciphers(%p) => %p [size=%zu]", ssl, ciphersArray.get(), count);
     return ciphersArray.release();
 }
 
