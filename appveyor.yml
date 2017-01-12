@@ -92,10 +92,26 @@ install:
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t extra-android-m2repository
 
 build_script:
-  - gradlew.bat --stacktrace --info build
+  - gradlew.bat --info assemble
+
+test_script:
+  - gradlew.bat --info check
+
+after_test:
+  - ps: |
+      $url = "https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)"
+      $files = Get-ChildItem '.\openjdk\build\test-results\test\TEST-*.xml'
+      ForEach ($file in $files) {
+          (New-Object 'System.Net.WebClient').UploadFile($url, (Resolve-Path $file))
+      }
 
 artifacts:
-  - path: "build\\reports\\"
+  - path: openjdk\build\reports\
+    name: Test reports
+  - path: openjdk\build\libs\*.jar
+    name: OpenJDK binaries
+  - path: android\build\outputs\aar\*.aar
+    name: Android binaries
 
 cache:
   - "%USERPROFILE%\\.m2"
