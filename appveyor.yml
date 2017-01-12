@@ -1,0 +1,124 @@
+environment:
+  ANDROID_HOME: "C:\\android-sdk-windows"
+  ANDROID_NDK_HOME: "C:\\android-ndk-r11c"
+  JAVA_HOME: "C:\\Program Files\\Java\\jdk1.8.0"
+  BORINGSSL_HOME: "C:\\boringssl"
+  ANDROID_TOOLS_URL: "https://dl.google.com/android/repository/tools_r25.2.3-windows.zip"
+  ANDROID_NDK_URL: "https://dl.google.com/android/repository/android-ndk-r11c-windows-x86_64.zip"
+  NINJA_URL: "https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-win.zip"
+  CMAKE_URL: "https://cmake.org/files/v3.4/cmake-3.4.0-win32-x86.zip"
+  MSVC: "14.0"
+
+clone_folder: "C:\\projects\\conscrypt"
+shallow_clone: true
+
+os: Visual Studio 2015
+
+platform:
+  - x86
+  - x64
+
+version: '{branch}.{build}'
+
+pull_requests:
+    do_not_increment_build_number: true
+
+build:
+    verbosity: minimal
+
+init:
+  # Download the Android SDK
+  - appveyor DownloadFile %ANDROID_TOOLS_URL% -FileName android-tools.zip
+  - 7z x android-tools.zip -o"%ANDROID_HOME%" > nul
+
+  # Download the Android NDK
+  - appveyor DownloadFile %ANDROID_NDK_URL% -FileName android-ndk.zip
+  - 7z x android-ndk.zip > nul
+
+  # Get Ninja
+  - appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
+  - 7z x ninja.zip -oC:\ninja > nul
+  - set PATH=C:\ninja;%PATH%
+  - ninja --version
+
+  # Get CMake
+  - appveyor DownloadFile %CMAKE_URL% -FileName cmake.zip
+  - 7z x cmake.zip -oC:\cmake > nul
+  - set PATH=C:\cmake\bin;%PATH%
+  - cmake --version
+
+  # Install yasm
+  - choco install -y yasm
+
+  # Clone BoringSSL
+  - git clone --depth 1 https://boringssl.googlesource.com/boringssl.git "%BORINGSSL_HOME%"
+
+  # Work around gradle bug https://github.com/gradle/gradle/issues/929
+  - set PATH=C:\Program Files (x86)\Windows Kits\8.1\bin\x86;%PATH%
+
+before_build:
+  # Set up Visual Studio in 64-bit mode
+  - call "C:\Program Files (x86)\Microsoft Visual Studio %MSVC%\VC\vcvarsall.bat" x64
+
+  # Build BoringSSL in 64-bit
+  - cd "%BORINGSSL_HOME%"
+  - mkdir build64
+  - cd build64
+  - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+  - ninja
+
+  # Set up Visual Studio in 32-bit mode
+  - call "C:\Program Files (x86)\Microsoft Visual Studio %MSVC%\VC\vcvarsall.bat"
+
+  # Build BoringSSL in 32-bit
+  - cd "%BORINGSSL_HOME%"
+  - mkdir build32
+  - cd build32
+  - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+  - ninja
+
+  # Go to project directory
+  - cd C:\projects\conscrypt
+
+  # Work around bug in Android build scripts:
+  # https://code.google.com/p/android/issues/detail?id=212688#c10
+  - ps: (echo "ndk.dir=$ANDROID_NDK_HOME") -replace '\\', '\\\\' > local.properties
+
+install:
+  - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t tools
+  - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t platform-tools
+  - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t build-tools-25.0.0
+  - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t android-25
+  - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t extra-android-m2repository
+
+build_script:
+  - gradlew.bat --info assemble
+
+test_script:
+  - gradlew.bat --info check
+
+after_test:
+  - ps: |
+      $url = "https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)"
+      $files = Get-ChildItem '.\openjdk\build\test-results\test\TEST-*.xml'
+      ForEach ($file in $files) {
+          (New-Object 'System.Net.WebClient').UploadFile($url, (Resolve-Path $file))
+      }
+
+artifacts:
+  - path: openjdk\build\reports\
+    name: Test reports
+  - path: openjdk\build\libs\*.jar
+    name: OpenJDK binaries
+  - path: android\build\outputs\aar\*.aar
+    name: Android binaries
+
+cache:
+  - "%USERPROFILE%\\.m2"
+  - "%USERPROFILE%\\.gradle"
+  - C:\ProgramData\chocolatey\bin
+  - C:\ProgramData\chocolatey\lib
+
+# Debug
+#on_finish:
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
