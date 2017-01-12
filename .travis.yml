@@ -1,7 +1,4 @@
 language: android
-jdk: oraclejdk8
-
-sudo: false
 
 env:
   global:
@@ -15,58 +12,86 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/dists/
     - $HOME/.cache/ndk
+
+matrix:
+  include:
+    ###
+    ### Linux build is the only platform that builds Android here.
+    ###
+    - os: linux
+      jdk: oraclejdk8
+      sudo: false
+      android:
+        components:
+          - tools
+          - tools # https://github.com/travis-ci/travis-ci/issues/6040
+          - platform-tools
+          - extra-android-m2repository
+          - build-tools-25.0.0
+          - android-25
+        license:
+          - 'android-sdk-license-.+'
+
+      addons:
+        apt:
+          sources:
+            - kalakris-cmake
+            - ubuntu-toolchain-r-test
+          packages:
+            - clang
+            - cmake
+            - g++-multilib
+            - gcc-multilib
+            - libc6-dev-i386
+            - libc6-dev:i386
+            - ninja-build
+
+    ###
+    ### MacOS build only does x86-64.
+    ###
+    - os: osx
+      osx_image: xcode8
+      before_install:
+        - brew update
+        - brew install ninja
+        - export JAVA_HOME=`/usr/libexec/java_home -v 1.8`
+
 before_cache:
   - find $HOME/.gradle -name "*.lock" -exec rm {} \;
   - rm -rf $HOME/.gradle/caches/[1-9]*
 
 before_script:
-  # newest Android NDK
-  - mkdir -p $HOME/.cache/ndk
-  - curl https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux-x86_64.zip -z $HOME/.cache/ndk/ndk-${NDK_VERSION}.zip -o $HOME/.cache/ndk/ndk-${NDK_VERSION}.zip
-  - unzip -q $HOME/.cache/ndk/ndk-$NDK_VERSION.zip -d $HOME
-  - echo "ndk.dir=$HOME/android-ndk-$NDK_VERSION" >> local.properties
   # get BoringSSL
   - mkdir $BORINGSSL_HOME
   - git clone --depth 1 https://boringssl.googlesource.com/boringssl $BORINGSSL_HOME
+
   # Build BoringSSL for 64-bit
   - mkdir $BORINGSSL_HOME/build64 && pushd $BORINGSSL_HOME/build64
   - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS=-Wa,--noexecstack -GNinja ..
   - ninja
   - popd
+
   # Build BoringSSL for 32-bit
-  - mkdir $BORINGSSL_HOME/build32 && pushd $BORINGSSL_HOME/build32
-  - cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS="-Wa,--noexecstack -m32 -msse2" -GNinja ..
-  - ninja
-  - popd
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
+    then
+        mkdir $BORINGSSL_HOME/build32;
+        pushd $BORINGSSL_HOME/build32;
+        cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS="-Wa,--noexecstack -m32 -msse2" -GNinja ..;
+        ninja;
+        popd;
+    fi
 
-before_install:
+  # newest Android NDK
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
+    then
+        mkdir -p $HOME/.cache/ndk;
+        curl https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux-x86_64.zip -z $HOME/.cache/ndk/ndk-${NDK_VERSION}.zip -o $HOME/.cache/ndk/ndk-${NDK_VERSION}.zip;
+        unzip -q $HOME/.cache/ndk/ndk-$NDK_VERSION.zip -d $HOME;
+        echo "ndk.dir=$HOME/android-ndk-$NDK_VERSION" >> local.properties;
+    fi
+
+  # Don't let the Android build download extra packages.
   - echo 'android.builder.sdkDownload=false' > gradle.properties
-
-addons:
-  apt:
-    sources:
-      - kalakris-cmake
-      - ubuntu-toolchain-r-test
-    packages:
-      - clang
-      - cmake
-      - g++-multilib
-      - gcc-multilib
-      - libc6-dev-i386
-      - libc6-dev:i386
-      - ninja-build
-
-android:
-  components:
-    - tools
-    - tools # https://github.com/travis-ci/travis-ci/issues/6040
-    - platform-tools
-    - extra-android-m2repository
-    - build-tools-25.0.0
-    - android-25
-
-  license:
-    - 'android-sdk-license-.+'
 
 script:
   - ./gradlew --stacktrace --info build
