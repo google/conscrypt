@@ -54,9 +54,35 @@ typedef long ssize_t;
 #define strcasecmp _stricmp
 
 // Windows doesn't define this either *sigh*...
-int vasprintf(char **ret, const char *format, va_list args);
+inline int vasprintf(char **ret, const char *format, va_list args) {
+    va_list copy;
+    va_copy(copy, args);
+    *ret = nullptr;
 
-int asprintf(char **strp, const char *fmt, ...);
+    int count = vsnprintf(nullptr, 0, format, args);
+    if (count >= 0) {
+        char *buffer = static_cast<char *>(malloc((std::size_t)count + 1));
+        if (buffer == nullptr) {
+            count = -1;
+        } else if ((count = vsnprintf(buffer, static_cast<std::size_t>(count + 1), format, copy)) <
+                   0) {
+            free(buffer);
+        } else {
+            *ret = buffer;
+        }
+    }
+    va_end(copy);  // Each va_start() or va_copy() needs a va_end()
+
+    return count;
+}
+
+inline int asprintf(char **strp, const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    int r = vasprintf(strp, fmt, ap);
+    va_end(ap);
+    return r;
+}
 
 inline int gettimeofday(struct timeval *tp, struct timezone *) {
     // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing
