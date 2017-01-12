@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-/**
- * Native glue for Java class org.conscrypt.NativeCrypto
- */
-
+#include "BioInputStream.h"
+#include "BioOutputStream.h"
+#include "BioStream.h"
 #include "CompatibilityCloseMonitor.h"
 #include "Errors.h"
 #include "JniConstants.h"
@@ -368,166 +367,6 @@ static X509* X509_dup_nocopy(X509* x509) {
     return x509;
 }
 
-/**
- * BIO for InputStream
- */
-class BIO_Stream {
-public:
-    BIO_Stream(jobject stream) :
-            mEof(false) {
-        JNIEnv* env = JniConstants::getJNIEnv();
-        mStream = env->NewGlobalRef(stream);
-    }
-
-    ~BIO_Stream() {
-        JNIEnv* env = JniConstants::getJNIEnv();
-
-        env->DeleteGlobalRef(mStream);
-    }
-
-    bool isEof() const {
-        JNI_TRACE("isEof? %s", mEof ? "yes" : "no");
-        return mEof;
-    }
-
-    int flush() {
-        JNIEnv* env = JniConstants::getJNIEnv();
-        if (env == nullptr) {
-            return -1;
-        }
-
-        if (env->ExceptionCheck()) {
-            JNI_TRACE("BIO_Stream::flush called with pending exception");
-            return -1;
-        }
-
-        env->CallVoidMethod(mStream, JniConstants::outputStream_flushMethod);
-        if (env->ExceptionCheck()) {
-            return -1;
-        }
-
-        return 1;
-    }
-
-protected:
-    jobject getStream() {
-        return mStream;
-    }
-
-    void setEof(bool eof) {
-        mEof = eof;
-    }
-
-private:
-    jobject mStream;
-    bool mEof;
-};
-
-class BIO_InputStream : public BIO_Stream {
-public:
-    BIO_InputStream(jobject stream, bool isFinite) :
-            BIO_Stream(stream),
-            isFinite_(isFinite) {
-    }
-
-    int read(char *buf, int len) {
-        return read_internal(buf, len, JniConstants::inputStream_readMethod);
-    }
-
-    int gets(char *buf, int len) {
-        if (len > PEM_LINE_LENGTH) {
-            len = PEM_LINE_LENGTH;
-        }
-
-        int read = read_internal(buf, len - 1, JniConstants::openSslInputStream_readLineMethod);
-        buf[read] = '\0';
-        JNI_TRACE("BIO::gets \"%s\"", buf);
-        return read;
-    }
-
-    bool isFinite() const {
-        return isFinite_;
-    }
-
-private:
-    const bool isFinite_;
-
-    int read_internal(char *buf, int len, jmethodID method) {
-        JNIEnv* env = JniConstants::getJNIEnv();
-        if (env == nullptr) {
-            JNI_TRACE("BIO_InputStream::read could not get JNIEnv");
-            return -1;
-        }
-
-        if (env->ExceptionCheck()) {
-            JNI_TRACE("BIO_InputStream::read called with pending exception");
-            return -1;
-        }
-
-        ScopedLocalRef<jbyteArray> javaBytes(env, env->NewByteArray(len));
-        if (javaBytes.get() == nullptr) {
-            JNI_TRACE("BIO_InputStream::read failed call to NewByteArray");
-            return -1;
-        }
-
-        jint read = env->CallIntMethod(getStream(), method, javaBytes.get());
-        if (env->ExceptionCheck()) {
-            JNI_TRACE("BIO_InputStream::read failed call to InputStream#read");
-            return -1;
-        }
-
-        /* Java uses -1 to indicate EOF condition. */
-        if (read == -1) {
-            setEof(true);
-            read = 0;
-        } else if (read > 0) {
-            env->GetByteArrayRegion(javaBytes.get(), 0, read, reinterpret_cast<jbyte*>(buf));
-        }
-
-        return read;
-    }
-
-public:
-    /** Length of PEM-encoded line (64) plus CR plus NUL */
-    static const int PEM_LINE_LENGTH = 66;
-};
-
-class BIO_OutputStream : public BIO_Stream {
-public:
-    BIO_OutputStream(jobject stream) :
-            BIO_Stream(stream) {
-    }
-
-    int write(const char *buf, int len) {
-        JNIEnv* env = JniConstants::getJNIEnv();
-        if (env == nullptr) {
-            JNI_TRACE("BIO_OutputStream::write => could not get JNIEnv");
-            return -1;
-        }
-
-        if (env->ExceptionCheck()) {
-            JNI_TRACE("BIO_OutputStream::write => called with pending exception");
-            return -1;
-        }
-
-        ScopedLocalRef<jbyteArray> javaBytes(env, env->NewByteArray(len));
-        if (javaBytes.get() == nullptr) {
-            JNI_TRACE("BIO_OutputStream::write => failed call to NewByteArray");
-            return -1;
-        }
-
-        env->SetByteArrayRegion(javaBytes.get(), 0, len, reinterpret_cast<const jbyte*>(buf));
-
-        env->CallVoidMethod(getStream(), JniConstants::outputStream_writeMethod, javaBytes.get());
-        if (env->ExceptionCheck()) {
-            JNI_TRACE("BIO_OutputStream::write => failed call to OutputStream#write");
-            return -1;
-        }
-
-        return len;
-    }
-};
-
 static int bio_stream_create(BIO *b) {
     b->init = 1;
     b->num = 0;
@@ -542,7 +381,7 @@ static int bio_stream_destroy(BIO *b) {
     }
 
     if (b->ptr != nullptr) {
-        delete static_cast<BIO_Stream*>(b->ptr);
+        delete static_cast<BioStream*>(b->ptr);
         b->ptr = nullptr;
     }
 
@@ -553,13 +392,13 @@ static int bio_stream_destroy(BIO *b) {
 
 static int bio_stream_read(BIO *b, char *buf, int len) {
     BIO_clear_retry_flags(b);
-    BIO_InputStream* stream = static_cast<BIO_InputStream*>(b->ptr);
+    BioInputStream* stream = static_cast<BioInputStream*>(b->ptr);
     int ret = stream->read(buf, len);
     if (ret == 0) {
         if (stream->isFinite()) {
             return 0;
         }
-        // If the BIO_InputStream is not finite then EOF doesn't mean that
+        // If the BioInputStream is not finite then EOF doesn't mean that
         // there's nothing more coming.
         BIO_set_retry_read(b);
         return -1;
@@ -569,26 +408,26 @@ static int bio_stream_read(BIO *b, char *buf, int len) {
 
 static int bio_stream_write(BIO *b, const char *buf, int len) {
     BIO_clear_retry_flags(b);
-    BIO_OutputStream* stream = static_cast<BIO_OutputStream*>(b->ptr);
+    BioOutputStream* stream = static_cast<BioOutputStream*>(b->ptr);
     return stream->write(buf, len);
 }
 
 static int bio_stream_puts(BIO *b, const char *buf) {
-    BIO_OutputStream* stream = static_cast<BIO_OutputStream*>(b->ptr);
+    BioOutputStream* stream = static_cast<BioOutputStream*>(b->ptr);
     return stream->write(buf, static_cast<int>(strlen(buf)));
 }
 
 static int bio_stream_gets(BIO *b, char *buf, int len) {
-    BIO_InputStream* stream = static_cast<BIO_InputStream*>(b->ptr);
+    BioInputStream* stream = static_cast<BioInputStream*>(b->ptr);
     return stream->gets(buf, len);
 }
 
-static void bio_stream_assign(BIO *b, BIO_Stream* stream) {
+static void bio_stream_assign(BIO *b, BioStream* stream) {
     b->ptr = static_cast<void*>(stream);
 }
 
 static long bio_stream_ctrl(BIO *b, int cmd, long, void *) {
-    BIO_Stream* stream = static_cast<BIO_Stream*>(b->ptr);
+    BioStream* stream = static_cast<BioStream*>(b->ptr);
 
     switch (cmd) {
     case BIO_CTRL_EOF:
@@ -3664,7 +3503,7 @@ static jlong NativeCrypto_create_BIO_InputStream(JNIEnv* env, jclass,
         return 0;
     }
 
-    bio_stream_assign(bio.get(), new BIO_InputStream(streamObj, isFinite == JNI_TRUE));
+    bio_stream_assign(bio.get(), new BioInputStream(streamObj, isFinite == JNI_TRUE));
 
     JNI_TRACE("create_BIO_InputStream(%p) => %p", streamObj, bio.get());
     return static_cast<jlong>(reinterpret_cast<uintptr_t>(bio.release()));
@@ -3683,7 +3522,7 @@ static jlong NativeCrypto_create_BIO_OutputStream(JNIEnv* env, jclass, jobject s
         return 0;
     }
 
-    bio_stream_assign(bio.get(), new BIO_OutputStream(streamObj));
+    bio_stream_assign(bio.get(), new BioOutputStream(streamObj));
 
     JNI_TRACE("create_BIO_OutputStream(%p) => %p", streamObj, bio.get());
     return static_cast<jlong>(reinterpret_cast<uintptr_t>(bio.release()));
