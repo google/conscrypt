@@ -17,14 +17,13 @@
 #ifndef CONSCRYPT_SRC_MAIN_NATIVE_MACROS_H_
 #define CONSCRYPT_SRC_MAIN_NATIVE_MACROS_H_
 
-#ifdef JNI_JARJAR_PREFIX
-#define TO_STRING(x) #x
-#define CONSCRYPT_SYMBOL_PREFIX TO_STRING(JNI_JARJAR_PREFIX)
-#else
-#define CONSCRYPT_SYMBOL_PREFIX ""
+#define TO_STRING1(x) #x
+#define TO_STRING(x) TO_STRING1(x)
+#ifndef JNI_JARJAR_PREFIX
 #ifndef CONSCRYPT_NOT_UNBUNDLED
 #define CONSCRYPT_UNBUNDLED
 #endif
+#define JNI_JARJAR_PREFIX
 #endif
 
 // The FALLTHROUGH_INTENDED macro can be used to annotate implicit fall-through

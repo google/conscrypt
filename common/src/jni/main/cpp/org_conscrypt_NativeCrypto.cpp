@@ -9132,15 +9132,16 @@ static int NativeCrypto_ENGINE_SSL_write_heap(JNIEnv* env, jclass, jlong sslRef,
 
 #define FILE_DESCRIPTOR "Ljava/io/FileDescriptor;"
 #define SSL_CALLBACKS \
-    "L" CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks;"
-#define REF_EC_GROUP "L" CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef$EC_GROUP;"
-#define REF_EC_POINT "L" CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef$EC_POINT;"
-#define REF_EVP_CIPHER_CTX "L" CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef$EVP_CIPHER_CTX;"
-#define REF_EVP_MD_CTX "L" CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef$EVP_MD_CTX;"
-#define REF_EVP_PKEY "L" CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef$EVP_PKEY;"
-#define REF_EVP_PKEY_CTX "L" CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef$EVP_PKEY_CTX;"
-#define REF_HMAC_CTX "L" CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef$HMAC_CTX;"
-#define REF_BIO_IN_STREAM "L" CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/OpenSSLBIOInputStream;"
+    "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks;"
+#define REF_EC_GROUP "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_GROUP;"
+#define REF_EC_POINT "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_POINT;"
+#define REF_EVP_CIPHER_CTX \
+    "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_CIPHER_CTX;"
+#define REF_EVP_MD_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;"
+#define REF_EVP_PKEY "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY;"
+#define REF_EVP_PKEY_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY_CTX;"
+#define REF_HMAC_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$HMAC_CTX;"
+#define REF_BIO_IN_STREAM "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream;"
 static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, clinit, "()V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_PKEY_new_RSA, "([B[B[B[B[B[B[B[B)J"),
@@ -9422,8 +9423,9 @@ CONSCRYPT_PUBLIC jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
 
     JniConstants::init(vm, env);
 
-    JniUtil::jniRegisterNativeMethods(env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeCrypto",
-                             sNativeCryptoMethods, NELEM(sNativeCryptoMethods));
+    JniUtil::jniRegisterNativeMethods(env,
+                                      TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto",
+                                      sNativeCryptoMethods, NELEM(sNativeCryptoMethods));
 
     CompatibilityCloseMonitor::init();
     return JNI_VERSION_1_6;
