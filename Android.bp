@@ -40,7 +40,8 @@ cc_defaults {
     name: "conscrypt_unbundled",
 
     srcs: [
-        "common/src/jni/unbundled/cpp/JNIHelp.cpp",
+        "common/src/jni/main/cpp/CompatibilityCloseMonitor.cpp",
+        "common/src/jni/main/cpp/JniConstants.cpp",
     ],
 
     local_include_dirs: [
@@ -75,7 +76,8 @@ cc_library_host_shared {
     ],
 
     srcs: [
-        "common/src/jni/unbundled/cpp/JNIHelp.cpp",
+        "common/src/jni/main/cpp/CompatibilityCloseMonitor.cpp",
+        "common/src/jni/main/cpp/JniConstants.cpp",
     ],
 
     local_include_dirs: [
