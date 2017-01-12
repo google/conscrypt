@@ -35,7 +35,7 @@ before_script:
   - popd
   # Build BoringSSL for 32-bit
   - mkdir $BORINGSSL_HOME/build32 && pushd $BORINGSSL_HOME/build32
-  - cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS=-Wa,--noexecstack -GNinja ..
+  - cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake -DCMAKE_ASM_FLAGS="-m32 -msse2" -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS=-Wa,--noexecstack -GNinja ..
   - ninja
   - popd
 

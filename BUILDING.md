@@ -63,6 +63,7 @@ To make a 32-bit build on a 64-bit machine:
 mkdir build32
 cd build32
 cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake \
+      -DCMAKE_ASM_FLAGS="-m32 -msse2" \
       -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_ASM_FLAGS=-Wa,--noexecstack \
