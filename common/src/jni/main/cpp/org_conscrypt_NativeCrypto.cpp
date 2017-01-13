@@ -3336,7 +3336,6 @@ static void NativeCrypto_HMAC_Init_ex(JNIEnv* env, jclass, jobject hmacCtxRef, j
     const EVP_MD* md = reinterpret_cast<const EVP_MD*>(evpMdRef);
     JNI_TRACE("HMAC_Init_ex(%p, %p, %p)", hmacCtx, keyArray, md);
     if (hmacCtx == nullptr) {
-        Errors::jniThrowNullPointerException(env, "hmacCtx == null");
         return;
     }
     ScopedByteArrayRO keyBytes(env, keyArray);
@@ -3898,14 +3897,14 @@ static void NativeCrypto_X509_verify(JNIEnv* env, jclass, jlong x509Ref, jobject
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     JNI_TRACE("X509_verify(%p, %p)", x509, pkey);
 
-    if (x509 == nullptr) {
-        Errors::jniThrowNullPointerException(env, "x509 == null");
-        JNI_TRACE("X509_verify(%p, %p) => x509 == null", x509, pkey);
+    if (pkey == nullptr) {
+        JNI_TRACE("X509_verify(%p, %p) => pkey == null", x509, pkey);
         return;
     }
 
-    if (pkey == nullptr) {
-        JNI_TRACE("X509_verify(%p, %p) => pkey == null", x509, pkey);
+    if (x509 == nullptr) {
+        Errors::jniThrowNullPointerException(env, "x509 == null");
+        JNI_TRACE("X509_verify(%p, %p) => x509 == null", x509, pkey);
         return;
     }
 
@@ -4325,14 +4324,14 @@ static void NativeCrypto_X509_CRL_verify(JNIEnv* env, jclass, jlong x509CrlRef, 
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     JNI_TRACE("X509_CRL_verify(%p, %p)", crl, pkey);
 
-    if (crl == nullptr) {
-        Errors::jniThrowNullPointerException(env, "crl == null");
-        JNI_TRACE("X509_CRL_verify(%p, %p) => crl == null", crl, pkey);
+    if (pkey == nullptr) {
+        JNI_TRACE("X509_CRL_verify(%p, %p) => pkey == null", crl, pkey);
         return;
     }
 
-    if (pkey == nullptr) {
-        JNI_TRACE("X509_CRL_verify(%p, %p) => pkey == null", crl, pkey);
+    if (crl == nullptr) {
+        Errors::jniThrowNullPointerException(env, "crl == null");
+        JNI_TRACE("X509_CRL_verify(%p, %p) => crl == null", crl, pkey);
         return;
     }
 
@@ -6334,12 +6333,12 @@ static void NativeCrypto_SSL_set1_tls_channel_id(JNIEnv* env, jclass,
         jlong ssl_address, jobject pkeyRef)
 {
     SSL* ssl = to_SSL(env, ssl_address, true);
-    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
-    JNI_TRACE("ssl=%p SSL_set1_tls_channel_id privatekey=%p", ssl, pkey);
+    JNI_TRACE("ssl=%p SSL_set1_tls_channel_id privatekey=%p", ssl, pkeyRef);
     if (ssl == nullptr) {
         return;
     }
 
+    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     if (pkey == nullptr) {
         JNI_TRACE("ssl=%p SSL_set1_tls_channel_id => pkey == null", ssl);
         return;
@@ -6362,12 +6361,12 @@ static void NativeCrypto_SSL_set1_tls_channel_id(JNIEnv* env, jclass,
 static void NativeCrypto_SSL_use_PrivateKey(JNIEnv* env, jclass, jlong ssl_address,
                                             jobject pkeyRef) {
     SSL* ssl = to_SSL(env, ssl_address, true);
-    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
-    JNI_TRACE("ssl=%p SSL_use_PrivateKey privatekey=%p", ssl, pkey);
+    JNI_TRACE("ssl=%p SSL_use_PrivateKey privatekey=%p", ssl, pkeyRef);
     if (ssl == nullptr) {
         return;
     }
 
+    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     if (pkey == nullptr) {
         JNI_TRACE("ssl=%p SSL_use_PrivateKey => pkey == null", ssl);
         return;
@@ -8018,7 +8017,6 @@ static jint NativeCrypto_SSL_get_shutdown(JNIEnv* env, jclass, jlong ssl_address
     const SSL* ssl = to_SSL(env, ssl_address, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_shutdown", ssl);
     if (ssl == nullptr) {
-        Errors::jniThrowNullPointerException(env, "ssl == null");
         return 0;
     }
 
