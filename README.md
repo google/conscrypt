@@ -27,8 +27,8 @@ similar performance.
 
 Download
 -------------
-<font color="red" size="20"><b><u>NOTE:</u></b> This section is under construction! Artifacts have
-not yet been published to the public Maven repositories.</font>
+<b><u>NOTE:</u> This section is under construction! Artifacts have
+not yet been published to the public Maven repositories.</b>
 
 #### Download JARs
 You can download
@@ -98,24 +98,25 @@ instructions](BUILDING.md).
 Source Overview
 ----------------------------
 
-Here's a quick readers' guide to the code to help folks get started. At a high
-level there are three distinct modules: __Common__, __Android__ &
-__OpenJDK__.
+Here's a quick readers' guide to the code to help folks get started. The high-level modules are __Common__, __Android__,
+__OpenJDK__, and __Platform__.
 
 ### Common
 
-This contains the bulk of the code. It contains stub classes for platform-specific functions, which
-are stripped out of the final JAR.
-
-It also contains all of the native code, but does not build any native artifacts. Instead, the
-platform-specific modules will include this source in their builds.
+This contains the bulk of the code for both Java and C. This isn't an actual module and builds no
+artifacts. Rather, the other modules just point to this directory as source.
 
 ### Android
 
 This module provides the `Platform` class for Android and also adds compatibility classes for
-supporting various versions of Android. This generates an `apk` library artifact.
+supporting various versions of Android. This generates an `aar` library artifact.
 
 ### OpenJDK
 
 This modules provides the `Platform` class for non-Android (OpenJDK-based) systems. It also provides
 a native library loader supports bundling the shared library with the JAR.
+
+### Platform
+
+This is not an actual module and is not part of the default build. This is used for building
+ Conscrypt as an embedded component of the Android platform.

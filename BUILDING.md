@@ -43,27 +43,54 @@ git clone https://boringssl.googlesource.com/boringssl
 cd boringssl
 
 # Also need to set an environment variable to point to the installation location.
-export BORINGSSL_HOME $PWD
+export BORINGSSL_HOME=$PWD
 ```
 
 ##### Building on Linux/OS-X
+To build in the 64-bit version on a 64-bit machine:
 ```bash
-mkdir build
-cd build
+mkdir build64
+cd build64
 cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
       -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_ASM_FLAGS=-Wa,\
-      --noexecstack \
+      -DCMAKE_ASM_FLAGS=-Wa,--noexecstack \
+      -GNinja ..
+ninja
+```
+
+To make a 32-bit build on a 64-bit machine:
+```base
+mkdir build32
+cd build32
+cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake \
+      -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_ASM_FLAGS="-Wa,--noexecstack -m32 -msse2" \
       -GNinja ..
 ninja
 ```
 
 ##### Building on Windows
-This assumes that you have
+This assumes that you have Microsoft Visual Studio 2015 in `MSVCDIR` and are
+running on a 64-bit machine. Set up with this command line:
 
 ```bash
-mkdir build
-cd build
+call %MSCVDIR%\vc\vcvarsall.bat x64
+mkdir build64
+cd build64
+```
+
+To build in 32-bit mode, set up with this command line:
+
+```bash
+call %MSCVDIR%\vc\vcvarsall.bat x64
+mkdir build32
+cd build32
+```
+
+In either the 64-bit or 32-bit case, run this afterward:
+
+```bash
 cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_C_FLAGS_RELEASE=/MT \

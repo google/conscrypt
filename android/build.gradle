@@ -1,47 +1,64 @@
 description = 'Conscrypt: Android'
 
-apply plugin: 'com.android.library'
-apply plugin: 'com.github.dcendents.android-maven'
-
-android {
-    compileSdkVersion androidTargetSdkVersion
-    buildToolsVersion androidBuildToolsVersion
-
-    compileOptions {
-        sourceCompatibility androidMinJavaVersion;
-        targetCompatibility androidMinJavaVersion
-    }
-
-    defaultConfig {
-        minSdkVersion androidMinSdkVersion
-        targetSdkVersion androidTargetSdkVersion
-        versionCode androidVersionCode
-        versionName androidVersionName
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-    }
-    sourceSets.main {
-        java {
-            srcDirs = [
-                    "${rootDir}/common/src/main/java",
-                    "src/main/java"
-            ]
-        }
-    }
+ext {
+    androidHome = "$System.env.ANDROID_HOME"
+    androidSdkInstalled = file("$androidHome").exists()
+    androidVersionCode = 1
+    androidVersionName = "$version"
+    androidMinSdkVersion = 9
+    androidTargetSdkVersion = 25
+    androidBuildToolsVersion = "25.0.0"
 }
 
-dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    compile project(':conscrypt-constants')
-    provided project(':conscrypt-android-stub')
+if (!androidSdkInstalled) {
+    logger.warn('Android SDK has not been detected. The Android module will not be built.')
+} else {
+    apply plugin: 'com.android.library'
+    apply plugin: 'com.github.dcendents.android-maven'
+
+    android {
+        compileSdkVersion androidTargetSdkVersion
+        buildToolsVersion androidBuildToolsVersion
+
+        compileOptions {
+            sourceCompatibility androidMinJavaVersion;
+            targetCompatibility androidMinJavaVersion
+        }
+
+        defaultConfig {
+            minSdkVersion androidMinSdkVersion
+            targetSdkVersion androidTargetSdkVersion
+            versionCode androidVersionCode
+            versionName androidVersionName
+
+            testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        }
+        buildTypes {
+            release {
+                minifyEnabled false
+                proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            }
+        }
+        sourceSets.main {
+            java {
+                srcDirs = [
+                        "${rootDir}/common/src/main/java",
+                        "src/main/java"
+                ]
+            }
+        }
+        lintOptions {
+            lintConfig file('lint.xml')
+        }
+    }
+
+    dependencies {
+        compile fileTree(dir: 'libs', include: ['*.jar'])
+        androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+            exclude group: 'com.android.support', module: 'support-annotations'
+        })
+        compile project(':conscrypt-constants')
+        provided project(':conscrypt-android-stub')
+    }
 }

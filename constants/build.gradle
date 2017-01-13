@@ -2,7 +2,12 @@ description = 'Conscrypt: Constants'
 
 ext {
     genDir = "${project.buildDir}/generated-sources"
-    genConstExecutable = 'exe/gen/gen'
+    // TODO(nmittler): There must be a better way to do this.
+    if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+        genConstExecutable = 'gen.exe'
+    } else {
+        genConstExecutable = 'gen'
+    }
 }
 
 // Needs to be binary-compatible with Android minSdkVersion.
@@ -49,8 +54,14 @@ task runGen(type:Exec)  {
     File genDir = new File("${genDir}/org/conscrypt")
     genDir.mkdirs()
 
-    workingDir new File("${project.buildDir}")
-    executable "${genConstExecutable}"
-    standardOutput = new FileOutputStream(new File(genDir, "NativeConstants.java"))
+    executable "${project.buildDir}/exe/gen/${genConstExecutable}"
+    doFirst {
+        standardOutput = new FileOutputStream(new File(genDir, "NativeConstants.java"))
+    }
+    doLast {
+        if (standardOutput != null) {
+            standardOutput.close();
+        }
+    }
 }
 runGen.dependsOn 'genExecutable'
