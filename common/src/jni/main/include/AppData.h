@@ -19,6 +19,8 @@
 
 #include "NetFd.h"
 #include "NetworkUtil.h"
+#include "Trace.h"
+#include "compat.h"
 
 #include <jni.h>
 #include <mutex>
