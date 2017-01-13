@@ -168,11 +168,12 @@ public:
 #endif
                 return throwInvalidKeyException(env, message);
                 break;
+            case ASN1_R_UNKNOWN_SIGNATURE_ALGORITHM:
 #if defined(ASN1_R_UNKNOWN_MESSAGE_DIGEST_ALGORITHM)
             case ASN1_R_UNKNOWN_MESSAGE_DIGEST_ALGORITHM:
+#endif
                 return throwNoSuchAlgorithmException(env, message);
                 break;
-#endif
         }
         return defaultThrow(env, message);
     }
