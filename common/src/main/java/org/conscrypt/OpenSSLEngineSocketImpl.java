@@ -387,7 +387,7 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                             }
                         } else {
                             // Target is a heap buffer.
-                            socketOutputStream.write(target.array(), 0, target.position());
+                            socketOutputStream.write(target.array(), 0, target.limit());
                         }
                         if (engineResult.getHandshakeStatus() == HandshakeStatus.FINISHED) {
                             completeHandshake();
