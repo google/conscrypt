@@ -141,8 +141,7 @@ public:
      * Throws a ParsingException with the given string as a message.
      */
     static int throwParsingException(JNIEnv* env, const char* message) {
-        return jniThrowException(env, CONSCRYPT_SYMBOL_PREFIX
-                                 "org/conscrypt/OpenSSLX509CertificateFactory$ParsingException",
+        return jniThrowException(env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509CertificateFactory$ParsingException",
                                  message);
     }
 

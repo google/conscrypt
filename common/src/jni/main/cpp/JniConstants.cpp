@@ -54,11 +54,11 @@ void JniConstants::init(JavaVM *vm, JNIEnv *env) {
     stringClass = JniUtil::findClass(env, "java/lang/String");
 
     cryptoUpcallsClass = JniUtil::getGlobalRefToClass(
-            env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/CryptoUpcalls");
-    nativeRefClass =
-            JniUtil::getGlobalRefToClass(env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/NativeRef");
+            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/CryptoUpcalls");
+    nativeRefClass = JniUtil::getGlobalRefToClass(
+            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef");
     openSslInputStreamClass = JniUtil::getGlobalRefToClass(
-            env, CONSCRYPT_SYMBOL_PREFIX "org/conscrypt/OpenSSLBIOInputStream");
+            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream");
 
     nativeRef_context = JniUtil::getFieldRef(env, nativeRefClass, "context", "J");
 
