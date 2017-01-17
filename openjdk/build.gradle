@@ -68,13 +68,11 @@ model {
                     cppCompiler.define "CONSCRYPT_OPENJDK"
 
                     // Set up 32-bit vs 64-bit build
-                    def libPaths
+                    def libPath
                     if (targetPlatform.getArchitecture().getName() == "x86") {
-                        libPaths = ["$boringssl32BuildDir/ssl",
-                            "$boringssl32BuildDir/crypto"]
+                        libPath = "$boringssl32BuildDir"
                     } else if (targetPlatform.getArchitecture().getName() == "x86-64") {
-                        libPaths = ["$boringssl64BuildDir/ssl",
-                            "$boringssl64BuildDir/crypto"]
+                        libPath = "$boringssl64BuildDir"
                     } else {
                         throw new GradleException("Unknown architecture: " +
                                 targetPlatform.getArchitecture().getName())
@@ -94,12 +92,11 @@ model {
                                 "-I$jdkIncludeDir/win32"
 
                         // Static link to BoringSSL
-                        libPaths.each { linker.args.add("-L" + it) }
                         linker.args "-O2",
                                 "-fvisibility=hidden",
                                 "-lstdc++",
-                                "-lssl",
-                                "-lcrypto"
+                                libPath + "/ssl/libssl.a",
+                                libPath + "/crypto/libcrypto.a"
                     } else if (toolChain in VisualCpp) {
                         cppCompiler.define "DLL_EXPORT"
                         cppCompiler.define "WIN32_LEAN_AND_MEAN"
@@ -134,12 +131,11 @@ model {
                                 "-I$jdkIncludeDir/win32"
 
                         // Static link to BoringSSL
-                        libPaths.each { linker.args.add("/LIBPATH:" + it) }
                         linker.args "-WX",
                                 "ws2_32.lib",
                                 "advapi32.lib",
-                                "ssl.lib",
-                                "crypto.lib"
+                                libPath + "\\ssl\\ssl.lib",
+                                libPath + "\\crypto\\crypto.lib"
                     }
                 }
 
