@@ -22,6 +22,7 @@ package org.conscrypt;
  */
 class NativeCryptoJni {
     public static void init() {
+        // GmsCore loads its native libraries before this point in ProviderInstallerImpl.
         if (!"com.google.android.gms.org.conscrypt".equals(NativeCrypto.class.getPackage().getName())) {
             System.loadLibrary("conscrypt_jni");
         }
