@@ -93,12 +93,6 @@
 #define CONSCRYPT_ATTRIBUTE_1(value)
 #endif
 
-#define CONSCRYPT_NATIVE_METHOD(className, functionName, signature) \
-    {                                                               \
-        (char*)#functionName, (char*)(signature),                   \
-                reinterpret_cast<void*>(className##_##functionName) \
-    }
-
 #ifndef NELEM
 #define NELEM(x) ((int)(sizeof(x) / sizeof((x)[0])))
 #endif

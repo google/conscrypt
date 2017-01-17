@@ -25,7 +25,7 @@ import java.util.Set;
  * build.
  */
 final class NativeCryptoJni {
-    private static final String LIB_NAME = "conscrypt_openjdk_jni";
+    private static final String LIB_NAME = "conscrypt";
     private static final String UNKNOWN = "unknown";
     private static final String LINUX = "linux";
 
