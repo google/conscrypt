@@ -277,7 +277,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     public OpenSSLSessionImpl toSession(byte[] data, String host, int port) {
         ByteBuffer buf = ByteBuffer.wrap(data);
         try {
-            int type = buf.get();
+            int type = buf.getInt();
             if (type != OPEN_SSL && type != OPEN_SSL_WITH_OCSP && type != OPEN_SSL_WITH_TLS_SCT) {
                 throw new IOException("Unexpected type ID: " + type);
             }
