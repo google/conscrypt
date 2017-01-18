@@ -129,7 +129,7 @@ public class TestSessionBuilder {
         assertTrue("Must call addCertificate at least once", certificatesSet);
 
         ByteBuffer buf = ByteBuffer.allocate(4096);
-        buf.put((byte) (type & 0xFF));
+        buf.putInt(type);
 
         buf.putInt(sessionDataLength);
         buf.put(sessionData);
