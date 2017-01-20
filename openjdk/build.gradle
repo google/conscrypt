@@ -17,7 +17,7 @@ ext {
     }
     arch32Name = 'x86'
     arch64Name = 'x86_64'
-    jmvArgs32 = '-d32'
+    jvmArgs32 = '-d32'
     jvmArgs64 = '-d64'
     nativeClassifiers = []
     if (build32Bit) {
