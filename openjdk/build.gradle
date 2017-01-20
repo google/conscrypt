@@ -19,6 +19,9 @@ ext {
     arch64Name = 'x86_64'
     jvmArgs32 = '-d32'
     jvmArgs64 = '-d64'
+    // Allow the java executable to be specified via env/property for each architecture.
+    javaExecutable32 = properties['javaExecutable32'] ?: System.env.CONSCRYPT_JAVA_EXECUTABLE_32
+    javaExecutable64 = properties['javaExecutable64'] ?: System.env.CONSCRYPT_JAVA_EXECUTABLE_64
     nativeClassifiers = []
     if (build32Bit) {
         nativeClassifiers += "${osName}-$arch32Name"
@@ -71,7 +74,17 @@ nativeClassifiers.each { nativeClassifier ->
     task "$testTaskName"(type: Test) {
         testClassesDir = test.testClassesDir
         classpath = test.classpath + nativeFiles
-        jvmArgs nativeClassifier.endsWith(arch32Name) ? jvmArgs32 : jvmArgs64
+        if (nativeClassifier.endsWith(arch32Name)) {
+            jvmArgs jvmArgs32
+            if (javaExecutable32 != null) {
+                executable = javaExecutable32
+            }
+        } else {
+            jvmArgs jvmArgs64
+            if (javaExecutable64 != null) {
+                executable = javaExecutable64
+            }
+        }
     }
     test.dependsOn "$testTaskName"
 }
