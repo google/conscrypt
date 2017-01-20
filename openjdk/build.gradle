@@ -15,12 +15,16 @@ ext {
     } else {
         throw new GradleException("Unsupported os: " + os.name)
     }
+    arch32Name = 'x86'
+    arch64Name = 'x86_64'
+    jmvArgs32 = '-d32'
+    jvmArgs64 = '-d64'
     nativeClassifiers = []
     if (build32Bit) {
-        nativeClassifiers += "${osName}-x86"
+        nativeClassifiers += "${osName}-$arch32Name"
     }
     if (build64Bit) {
-        nativeClassifiers += "${osName}-x86_64"
+        nativeClassifiers += "${osName}-$arch64Name"
     }
 }
 
@@ -67,6 +71,7 @@ nativeClassifiers.each { nativeClassifier ->
     task "$testTaskName"(type: Test) {
         testClassesDir = test.testClassesDir
         classpath = test.classpath + nativeFiles
+        jvmArgs nativeClassifier.endsWith(arch32Name) ? jvmArgs32 : jvmArgs64
     }
     test.dependsOn "$testTaskName"
 }
@@ -78,18 +83,18 @@ test.exclude("**")
 model {
     platforms {
         x86 {
-            architecture "x86"
+            architecture arch32Name
         }
         x86_64 {
-            architecture "x86_64"
+            architecture arch64Name
         }
     }
 
     components {
         // Builds the JNI library.
         conscrypt(NativeLibrarySpec) {
-            if (build32Bit) { targetPlatform "x86" }
-            if (build64Bit) { targetPlatform "x86_64" }
+            if (build32Bit) { targetPlatform arch32Name }
+            if (build64Bit) { targetPlatform arch64Name }
 
             sources {
                 cpp {
