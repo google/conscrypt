@@ -105,7 +105,7 @@ model {
 
     components {
         // Builds the JNI library.
-        conscrypt(NativeLibrarySpec) {
+        conscrypt_openjdk_jni(NativeLibrarySpec) {
             if (build32Bit) { targetPlatform arch32Name }
             if (build64Bit) { targetPlatform arch64Name }
 
