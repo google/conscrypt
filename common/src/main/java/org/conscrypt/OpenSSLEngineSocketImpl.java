@@ -522,7 +522,7 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                             if (engineResult.getHandshakeStatus() == HandshakeStatus.FINISHED) {
                                 completeHandshake();
                             }
-                            if (engineResult.bytesProduced() == 0) {
+                            if (!needMoreData && engineResult.bytesProduced() == 0) {
                                 // Read successfully, but produced no data. Possibly part of a
                                 // handshake.
                                 return 0;
