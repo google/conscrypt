@@ -71,15 +71,16 @@ before_script:
   - ninja
   - popd
 
+  # TODO(nathanmittler): Need to figure out how to make 32-bit builds work
   # Build BoringSSL for 32-bit
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
-    then
-        mkdir $BORINGSSL_HOME/build32;
-        pushd $BORINGSSL_HOME/build32;
-        cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS="-Wa,--noexecstack -m32 -msse2" -GNinja ..;
-        ninja;
-        popd;
-    fi
+  # - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
+  #  then
+  #      mkdir $BORINGSSL_HOME/build32;
+  #      pushd $BORINGSSL_HOME/build32;
+  #      cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS="-Wa,--noexecstack -m32 -msse2" -GNinja ..;
+  #      ninja;
+  #      popd;
+  #  fi
 
   # newest Android NDK
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]];

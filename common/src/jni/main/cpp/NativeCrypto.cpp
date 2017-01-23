@@ -22,6 +22,7 @@
 #include "Errors.h"
 #include "JniConstants.h"
 #include "JniUtil.h"
+#include "NativeCrypto.h"
 #include "NetFd.h"
 #include "NetworkUtil.h"
 #include "OpenSslError.h"
@@ -8871,6 +8872,12 @@ static int NativeCrypto_ENGINE_SSL_write_heap(JNIEnv* env, jclass, jlong sslRef,
     return result;
 }
 
+#define CONSCRYPT_NATIVE_METHOD(className, functionName, signature) \
+    {                                                               \
+        (char*)#functionName, (char*)(signature),                   \
+                reinterpret_cast<void*>(className##_##functionName) \
+    }
+
 #define FILE_DESCRIPTOR "Ljava/io/FileDescriptor;"
 #define SSL_CALLBACKS \
     "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks;"
@@ -9148,28 +9155,10 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_shutdown, "(J" SSL_CALLBACKS ")V"),
 };
 
-#ifdef STATIC_LIB
-// Give client libs everything they need to initialize our JNI
-jint libconscrypt_JNI_OnLoad(JavaVM* vm, void*) {
-#else
-// Use JNI_OnLoad for when we're standalone
-CONSCRYPT_PUBLIC jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
-    JNI_TRACE("JNI_OnLoad NativeCrypto");
-#endif
-    JNIEnv *env;
-    if (vm->GetEnv((void**)&env, JNI_VERSION_1_6) != JNI_OK) {
-        ALOGE("Could not get JNIEnv");
-        return JNI_ERR;
-    }
-
-    JniConstants::init(vm, env);
-
+void NativeCrypto::registerNativeMethods(JNIEnv* env) {
     JniUtil::jniRegisterNativeMethods(env,
                                       TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto",
                                       sNativeCryptoMethods, NELEM(sNativeCryptoMethods));
-
-    CompatibilityCloseMonitor::init();
-    return JNI_VERSION_1_6;
 }
 
 /* Local Variables: */
