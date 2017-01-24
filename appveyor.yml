@@ -31,10 +31,6 @@ init:
   - appveyor DownloadFile %ANDROID_TOOLS_URL% -FileName android-tools.zip
   - 7z x android-tools.zip -o"%ANDROID_HOME%" > nul
 
-  # Download the Android NDK
-  - appveyor DownloadFile %ANDROID_NDK_URL% -FileName android-ndk.zip
-  - 7z x android-ndk.zip > nul
-
   # Get Ninja
   - appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
   - 7z x ninja.zip -oC:\ninja > nul
@@ -81,16 +77,14 @@ before_build:
   # Go to project directory
   - cd C:\projects\conscrypt
 
-  # Work around bug in Android build scripts:
-  # https://code.google.com/p/android/issues/detail?id=212688#c10
-  - ps: (echo "ndk.dir=$ANDROID_NDK_HOME") -replace '\\', '\\\\' > local.properties
-
 install:
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t tools
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t platform-tools
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t build-tools-25.0.0
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t android-25
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t extra-android-m2repository
+  - echo y | "%ANDROID_HOME%\\tools\bin\sdkmanager.bat" --channel=1 ndk-bundle
+  - echo y | "%ANDROID_HOME%\\tools\bin\sdkmanager.bat" cmake;3.6.3155560
 
 build_script:
   - gradlew.bat --info assemble
