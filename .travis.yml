@@ -110,8 +110,16 @@ before_script:
   - echo 'android.builder.sdkDownload=false' > gradle.properties
 
 script:
-  - git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git clang-format --binary=$(which clang-format-3.8) --style=file {} && git diff --exit-code || { git reset --hard; false; }
-  - git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git diff-tree --no-commit-id --name-only -r {} | grep -E '\.java$' | xargs -r git ls-files | xargs -r java -jar $HOME/gjf.jar -a -i --fix-imports-only && git diff --exit-code || { git reset --hard; false; }
+  # MacOS (BSD) xargs is missing some nice features that make this easy, so skip it.
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
+    then
+        git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git clang-format --binary=$(which clang-format-3.8) --style=file {} && git diff --exit-code || { git reset --hard; false; }
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
+    then
+        git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git diff-tree --no-commit-id --name-only -r {} | grep -E '\.java$' | xargs -r git ls-files | xargs -r java -jar $HOME/gjf.jar -a -i --fix-imports-only && git diff --exit-code || { git reset --hard; false; }
+    fi
+
   - ./gradlew --stacktrace --info build
 
 after_script:
