@@ -1,0 +1,61 @@
+description = 'Conscrypt: OpenJdk UberJAR'
+
+ext {
+    buildUberJar = Boolean.parseBoolean(System.getProperty('org.conscrypt.openjdk.buildUberJar', 'false'))
+    uberJarClassifiers = (System.getProperty('org.conscrypt.openjdk.uberJarClassifiers',
+            'osx-x86_64,linux-x86_64,windows-x86_64')).split(',')
+    classesDir = "${buildDir}/classes"
+    resourcesDir = "${buildDir}/resources"
+}
+
+if (buildUberJar) {
+    configurations {
+        uberJar
+    }
+
+    // Point the jar task to the copied classes and resources directories.
+    jar {
+        from classesDir
+        from resourcesDir
+    }
+
+    // Add the dependencies for the uber jar.
+    uberJarClassifiers.each { uberJarClassifier ->
+        dependencies.uberJar "${group}:conscrypt-openjdk:${version}:${uberJarClassifier}"
+    }
+
+    /**
+     * Copy the native libraries to the resources directory.
+     */
+    task copySharedLibs(type: Copy, dependsOn: configurations.uberJar) {
+        from {
+            configurations.uberJar.collect {
+                zipTree(it)
+            }
+        }
+        include '/META-INF/native/**'
+        into file(resourcesDir)
+    }
+    jar.dependsOn copySharedLibs
+
+    /**
+     * Copy the object files to the classes directory.
+     */
+    task copyClasses(type: Copy, dependsOn: configurations.uberJar) {
+        from {
+            configurations.uberJar.collect {
+                zipTree(it)
+            }
+        }
+        exclude '/META-INF/**'
+        into file(classesDir)
+    }
+    jar.dependsOn copyClasses
+
+} else {
+    // Not building an uber jar - disable all tasks.
+    tasks.collect {
+        it.enabled = false
+    }
+}
+
