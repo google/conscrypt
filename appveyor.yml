@@ -1,6 +1,6 @@
 environment:
   ANDROID_HOME: "C:\\android-sdk-windows"
-  ANDROID_NDK_HOME: "C:\\android-ndk-r11c"
+  ANDROID_NDK_HOME: "C:\\android-sdk-windows\\ndk-bundle"
   JAVA_HOME: "C:\\Program Files\\Java\\jdk1.8.0"
   BORINGSSL_HOME: "C:\\boringssl"
   ANDROID_TOOLS_URL: "https://dl.google.com/android/repository/tools_r25.2.3-windows.zip"
@@ -83,8 +83,10 @@ install:
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t build-tools-25.0.0
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t android-25
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t extra-android-m2repository
-  - echo y | "%ANDROID_HOME%\\tools\bin\sdkmanager.bat" --channel=1 ndk-bundle
-  - echo y | "%ANDROID_HOME%\\tools\bin\sdkmanager.bat" cmake;3.6.3155560
+  - mkdir %ANDROID_HOME%\licenses
+  - ps: '"8933bad161af4178b1185d1a37fbf41ea5269c55" | Out-File $env:ANDROID_HOME\licenses\android-sdk-license -Encoding UTF8'
+  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat --channel=1 ndk-bundle'
+  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat cmake;3.6.3155560'
 
 build_script:
   - gradlew.bat --info assemble
