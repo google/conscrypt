@@ -19,7 +19,13 @@ package org.conscrypt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import javax.net.ssl.SSLSession;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -562,5 +568,98 @@ public class AbstractSessionContextTest {
     @Test
     public void toSession_Type3TrailingData_Failure() throws Exception {
         assertTrailingDataFails(getType3().build());
+    }
+
+    @Test
+    public void test_reserializableFromByteArray_roundTrip_type1() throws Exception {
+        // Converting OPEN_SSL (type 1) -> OPEN_SSL_WITH_TLS_SCT (type 3) adds
+        // eight zero-bytes:
+        //  1.) 4 bytes for int32 value 0 == countOcspResponses
+        //  2.) 4 bytes for int32 value 0 == tlsSctDataLength
+        // since OPEN_SSL (type 1) cannot contain OSCP or TLS SCT data.
+        check_reserializableFromByteArray_roundTrip(getType1().build(), new byte[8]);
+    }
+
+    @Test
+    public void test_reserializableFromByteArray_roundTrip_type2() throws Exception {
+        // Converting OPEN_SSL_WITH_OCSP (type 2) -> OPEN_SSL_WITH_TLS_SCT (type 3) adds
+        // four zero-bytes for int32 value 0 == tlsSctDataLength
+        // since OPEN_SSL_WITH_OCSP (type 2) cannot contain TLS SCT data.
+        check_reserializableFromByteArray_roundTrip(getType2().build(), new byte[4]);
+    }
+
+    @Test
+    public void test_reserializableFromByteArray_roundTrip_type3() throws Exception {
+        check_reserializableFromByteArray_roundTrip(getType3().build(), new byte[0]);
+    }
+
+    private static void check_reserializableFromByteArray_roundTrip(
+            byte[] data, byte[] expectedTrailingBytesAfterReserialization) throws Exception {
+        SSLSession session = clientCtx.toSession(data, "www.example.com", 12345);
+        byte[] sessionBytes = clientCtx.toBytes(session);
+
+        SSLSession session2 = clientCtx.toSession(sessionBytes, "www.example.com", 12345);
+        byte[] sessionBytes2 = clientCtx.toBytes(session);
+
+        assertSSLSessionEquals(session, session2);
+        assertByteArrayEquals(sessionBytes, sessionBytes2);
+
+        assertEquals("www.example.com", session.getPeerHost());
+        assertEquals(12345, session.getPeerPort());
+        assertTrue(sessionBytes.length >= data.length);
+
+        byte[] expectedReserializedData = concat(data, expectedTrailingBytesAfterReserialization);
+        // AbstractSessionContext.toBytes() always writes type 3 == OPEN_SSL_WITH_TLS_SCT
+        expectedReserializedData[3] = 3;
+        assertByteArrayEquals(expectedReserializedData, sessionBytes);
+    }
+
+    private static byte[] concat(byte[] a, byte[] b) {
+        byte[] result = new byte[a.length + b.length];
+        System.arraycopy(a, 0, result, 0, a.length);
+        System.arraycopy(b, 0, result, a.length, b.length);
+        return result;
+    }
+
+    private static void assertSSLSessionEquals(SSLSession a, SSLSession b) throws Exception {
+        assertEquals(a.getApplicationBufferSize(), b.getApplicationBufferSize());
+        assertEquals(a.getCipherSuite(), b.getCipherSuite());
+        assertEquals(a.getCreationTime(), b.getCreationTime());
+        assertByteArrayEquals(a.getId(), b.getId());
+        assertEquals(a.getLastAccessedTime(), b.getLastAccessedTime());
+        assertArrayEquals(a.getLocalCertificates(), b.getLocalCertificates());
+        assertEquals(a.getLocalPrincipal(), b.getLocalPrincipal());
+        assertArrayEquals(a.getPeerCertificateChain(), b.getPeerCertificateChain());
+        assertArrayEquals(a.getPeerCertificates(), b.getPeerCertificates());
+        assertEquals(a.getPeerHost(), b.getPeerHost());
+        assertEquals(a.getPeerPort(), b.getPeerPort());
+        assertEquals(a.getPeerPrincipal(), b.getPeerPrincipal());
+        assertEquals(a.getProtocol(), b.getProtocol());
+        assertEquals(getValueMap(a), getValueMap(b));
+        assertEquals(a.isValid(), b.isValid());
+
+        assertEquals(a.getClass(), b.getClass());
+
+        // Could potentially cast to AbstractOpenSSLSession here and compare additional fields.
+    }
+
+    private static Map<String, Object> getValueMap(SSLSession sslSession) {
+        Map<String, Object> result = new HashMap<>();
+        for (String valueName : sslSession.getValueNames()) {
+            result.put(valueName, sslSession.getValue(valueName));
+        }
+        return Collections.unmodifiableMap(result);
+    }
+
+    private static <T> void assertArrayEquals(T[] expected, T[] actual) {
+        assertTrue("Expected " + Arrays.toString(expected) + ", got " + Arrays.toString(actual),
+                Arrays.equals(expected, actual));
+    }
+
+    private static void assertByteArrayEquals(byte[] expected, byte[] actual) {
+        // If running on OpenJDK 8+, could use java.util.Base64 for better failure messages:
+        // assertEquals(Base64.encode(expected), Base64.encode(actual));
+        assertTrue("Expected " + Arrays.toString(expected) + ", got " + Arrays.toString(actual),
+                Arrays.equals(expected, actual));
     }
 }
