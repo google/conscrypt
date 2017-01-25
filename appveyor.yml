@@ -84,7 +84,8 @@ install:
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t android-25
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t extra-android-m2repository
   - mkdir %ANDROID_HOME%\licenses
-  - ps: '"8933bad161af4178b1185d1a37fbf41ea5269c55" | Out-File $env:ANDROID_HOME\licenses\android-sdk-license -Encoding UTF8'
+  - ps: 'Add-Content -Value "`n8933bad161af4178b1185d1a37fbf41ea5269c55" -Path $env:ANDROID_HOME\licenses\android-sdk-license -Encoding ASCII'
+  - ps: 'Add-Content -Value "`n84831b9409646a918e30573bab4c9c91346d8abd" -Path $env:ANDROID_HOME\licenses\android-sdk-preview-license -Encoding ASCII'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat --channel=1 ndk-bundle'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat cmake;3.6.3155560'
 
