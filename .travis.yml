@@ -81,9 +81,6 @@ before_script:
   - chmod 0755 $HOME/bin/git-clang-format
   - export PATH="$HOME/bin:$PATH"
 
-  # We need this to find the merge-base
-  - git fetch origin +refs/heads/master:refs/remotes/origin/master
-
   # TODO(nathanmittler): Need to figure out how to make 32-bit builds work
   # Build BoringSSL for 32-bit
   # - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
@@ -105,13 +102,19 @@ before_script:
   # Don't let the Android build download extra packages.
   - echo 'android.builder.sdkDownload=false' > gradle.properties
 
+  # We need this to find the merge-base
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
+    then
+        git fetch origin +refs/heads/${TRAVIS_BRANCH}:refs/remotes/origin/${TRAVIS_BRANCH};
+    fi
+
 script:
   # MacOS (BSD) xargs is missing some nice features that make this easy, so skip it.
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
-        git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git clang-format --binary=$(which clang-format-3.8) --style=file {} && git diff --exit-code || { git reset --hard; false; }
+        git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git clang-format --binary=$(which clang-format-3.8) --style=file --diff {}^ {} | ( git apply; true ) && git diff --exit-code || { git reset --hard; false; }
     fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
         git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git diff-tree --no-commit-id --name-only -r {} | grep -E '\.java$' | xargs -r git ls-files | xargs -r java -jar $HOME/gjf.jar -a -i --fix-imports-only && git diff --exit-code || { git reset --hard; false; }
     fi
