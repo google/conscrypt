@@ -228,7 +228,3 @@ model {
     }
 }
 
-def getFileExtension(File f) {
-    String name = f.getName()
-    return new String(name.substring(name.lastIndexOf('.')))
-}
