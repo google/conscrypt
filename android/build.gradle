@@ -33,6 +33,15 @@ if (!androidSdkInstalled) {
 
             testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
+            externalNativeBuild {
+                cmake {
+                    arguments '-DANDROID=True', '-DANDROID_STL=c++_static', '-DBORINGSSL_HOME=' + boringsslHome
+                    cFlags '-fvisibility=hidden', '-DBORINGSSL_SHARED_LIBRARY', '-DBORINGSSL_IMPLEMENTATION', '-DOPENSSL_SMALL', '-D_XOPEN_SOURCE=700', '-Wno-unused-parameter'
+                }
+            }
+            ndk {
+                abiFilters 'x86', 'x86_64', 'armeabi-v7a'
+            }
         }
         buildTypes {
             release {
@@ -46,6 +55,11 @@ if (!androidSdkInstalled) {
                         "${rootDir}/common/src/main/java",
                         "src/main/java"
                 ]
+            }
+        }
+        externalNativeBuild {
+            cmake {
+                path 'CMakeLists.txt'
             }
         }
         lintOptions {
