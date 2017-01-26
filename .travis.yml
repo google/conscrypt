@@ -81,9 +81,6 @@ before_script:
   - chmod 0755 $HOME/bin/git-clang-format
   - export PATH="$HOME/bin:$PATH"
 
-  # We need this to find the merge-base
-  - git fetch origin +refs/heads/master:refs/remotes/origin/master
-
   # TODO(nathanmittler): Need to figure out how to make 32-bit builds work
   # Build BoringSSL for 32-bit
   # - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
@@ -104,6 +101,12 @@ before_script:
 
   # Don't let the Android build download extra packages.
   - echo 'android.builder.sdkDownload=false' > gradle.properties
+
+  # We need this to find the merge-base
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
+    then
+        git fetch origin +refs/heads/${TRAVIS_BRANCH}:refs/remotes/origin/${TRAVIS_BRANCH};
+    fi
 
 script:
   # MacOS (BSD) xargs is missing some nice features that make this easy, so skip it.
