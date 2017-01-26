@@ -77,9 +77,10 @@ common_java_files := $(filter-out \
 	%/org/conscrypt/NativeCryptoJni.java \
 	, $(call all-java-files-under,common/src/main/java))
 
-bundled_main_cpp_files := common/src/jni/main/cpp/org_conscrypt_NativeCrypto.cpp \
-                          common/src/jni/main/cpp/CompatibilityCloseMonitor.cpp \
-                          common/src/jni/main/cpp/JniConstants.cpp
+bundled_main_cpp_files := \
+	common/src/jni/main/cpp/CompatibilityCloseMonitor.cpp \
+	common/src/jni/main/cpp/JniConstants.cpp \
+	common/src/jni/main/cpp/NativeCrypto.cpp
 
 # Create the conscrypt library
 include $(CLEAR_VARS)

@@ -25,7 +25,7 @@ cc_defaults {
     ],
 
     srcs: [
-        "common/src/jni/main/cpp/org_conscrypt_NativeCrypto.cpp",
+        "common/src/jni/main/cpp/NativeCrypto.cpp",
     ],
 
     local_include_dirs: [
