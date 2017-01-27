@@ -204,7 +204,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
      *
      * @return session data as bytes or null if the session can't be converted
      */
-    byte[] toBytes(SSLSession session) {
+    public byte[] toBytes(SSLSession session) {
         // TODO: Support SSLSessionImpl, too.
         if (!(session instanceof OpenSSLSessionImpl)) {
             return null;
