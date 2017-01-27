@@ -7156,38 +7156,7 @@ static jlongArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlon
     if (ssl == nullptr) {
         return nullptr;
     }
-    STACK_OF(X509)* chain = SSL_get_peer_cert_chain(ssl);
-    bssl::UniquePtr<STACK_OF(X509)> chain_copy(nullptr);
-    if (SSL_is_server(ssl)) {
-        bssl::UniquePtr<X509> x509(SSL_get_peer_certificate(ssl));
-        if (x509 == nullptr) {
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => null", ssl);
-            return nullptr;
-        }
-        chain_copy.reset(sk_X509_new_null());
-        if (chain_copy.get() == nullptr) {
-            Errors::jniThrowOutOfMemory(env, "Unable to allocate peer certificate chain");
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate dup error", ssl);
-            return nullptr;
-        }
-        size_t chain_size = sk_X509_num(chain);
-        for (size_t i = 0; i < chain_size; i++) {
-            X509* chain_cert = sk_X509_value(chain, i);
-            if (!sk_X509_push(chain_copy.get(), chain_cert)) {
-                Errors::jniThrowOutOfMemory(env, "Unable to push server's peer certificate chain");
-                JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate chain push error", ssl);
-                return nullptr;
-            }
-            X509_up_ref(chain_cert);
-        }
-        if (!sk_X509_push(chain_copy.get(), x509.get())) {
-            Errors::jniThrowOutOfMemory(env, "Unable to push server's peer certificate");
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate push error", ssl);
-            return nullptr;
-        }
-        OWNERSHIP_TRANSFERRED(x509);
-        chain = chain_copy.get();
-    }
+    STACK_OF(X509)* chain = SSL_get_peer_full_cert_chain(ssl);
     jlongArray refArray = getCertificateRefs(env, chain);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => %p", ssl, refArray);
     return refArray;
