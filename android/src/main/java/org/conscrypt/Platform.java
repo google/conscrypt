@@ -114,34 +114,72 @@ final class Platform {
             Class<?> c_structTimeval =
                     getClass("android.system.StructTimeval", "libcore.io.StructTimeval");
             if (c_structTimeval == null) {
-                Log.w(TAG, "Cannot find StructTimeval; not setting socket write timeout");
+                Log.w(TAG, "StructTimeval == null; not setting socket write timeout");
                 return;
             }
 
             Method m_fromMillis = c_structTimeval.getDeclaredMethod("fromMillis", long.class);
+            if (m_fromMillis == null) {
+                Log.w(TAG, "fromMillis == null; not setting socket write timeout");
+                return;
+            }
+
             Object timeval = m_fromMillis.invoke(null, timeoutMillis);
 
             Class<?> c_Libcore = Class.forName("libcore.io.Libcore");
             if (c_Libcore == null) {
-                Log.w(TAG, "Cannot find libcore.os.Libcore; not setting socket write timeout");
+                Log.w(TAG, "Libcore == null; not setting socket write timeout");
                 return;
             }
 
             Field f_os = c_Libcore.getField("os");
+            if (f_os == null) {
+                Log.w(TAG, "os == null; not setting socket write timeout");
+                return;
+            }
+
             Object instance_os = f_os.get(null);
+            if (instance_os == null) {
+                Log.w(TAG, "instance_os == null; not setting socket write timeout");
+                return;
+            }
 
             Class<?> c_osConstants =
                     getClass("android.system.OsConstants", "libcore.io.OsConstants");
+            if (c_osConstants == null) {
+                Log.w(TAG, "OsConstants == null; not setting socket write timeout");
+                return;
+            }
+
             Field f_SOL_SOCKET = c_osConstants.getField("SOL_SOCKET");
+            if (f_SOL_SOCKET == null) {
+                Log.w(TAG, "SOL_SOCKET == null; not setting socket write timeout");
+                return;
+            }
+
             Field f_SO_SNDTIMEO = c_osConstants.getField("SO_SNDTIMEO");
+            if (f_SO_SNDTIMEO == null) {
+                Log.w(TAG, "SO_SNDTIMEO == null; not setting socket write timeout");
+                return;
+            }
 
             Method m_setsockoptTimeval = instance_os.getClass().getMethod("setsockoptTimeval",
                     FileDescriptor.class, int.class, int.class, c_structTimeval);
+            if (m_setsockoptTimeval == null) {
+                Log.w(TAG, "setsockoptTimeval == null; not setting socket write timeout");
+                return;
+            }
 
             m_setsockoptTimeval.invoke(instance_os, getFileDescriptor(s), f_SOL_SOCKET.get(null),
                     f_SO_SNDTIMEO.get(null), timeval);
         } catch (Exception e) {
-            Log.w(TAG, "Could not set socket write timeout: " + e.getMessage());
+            // We don't want to spam the logcat since this isn't a fatal error, but we want to know
+            // why this might be happening.
+            Log.w(TAG, "Could not set socket write timeout:");
+            StackTraceElement[] elements = e.getStackTrace();
+            for (int i = 0; i < 2 && i < elements.length; i++) {
+                Log.w(TAG, "   " + elements[i].toString());
+            }
         }
     }
 

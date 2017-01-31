@@ -22,6 +22,7 @@
 #include "Errors.h"
 #include "JniConstants.h"
 #include "JniUtil.h"
+#include "NativeCrypto.h"
 #include "NetFd.h"
 #include "NetworkUtil.h"
 #include "OpenSslError.h"
@@ -7155,38 +7156,7 @@ static jlongArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlon
     if (ssl == nullptr) {
         return nullptr;
     }
-    STACK_OF(X509)* chain = SSL_get_peer_cert_chain(ssl);
-    bssl::UniquePtr<STACK_OF(X509)> chain_copy(nullptr);
-    if (SSL_is_server(ssl)) {
-        bssl::UniquePtr<X509> x509(SSL_get_peer_certificate(ssl));
-        if (x509 == nullptr) {
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => null", ssl);
-            return nullptr;
-        }
-        chain_copy.reset(sk_X509_new_null());
-        if (chain_copy.get() == nullptr) {
-            Errors::jniThrowOutOfMemory(env, "Unable to allocate peer certificate chain");
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate dup error", ssl);
-            return nullptr;
-        }
-        size_t chain_size = sk_X509_num(chain);
-        for (size_t i = 0; i < chain_size; i++) {
-            X509* chain_cert = sk_X509_value(chain, i);
-            if (!sk_X509_push(chain_copy.get(), chain_cert)) {
-                Errors::jniThrowOutOfMemory(env, "Unable to push server's peer certificate chain");
-                JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate chain push error", ssl);
-                return nullptr;
-            }
-            X509_up_ref(chain_cert);
-        }
-        if (!sk_X509_push(chain_copy.get(), x509.get())) {
-            Errors::jniThrowOutOfMemory(env, "Unable to push server's peer certificate");
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => certificate push error", ssl);
-            return nullptr;
-        }
-        OWNERSHIP_TRANSFERRED(x509);
-        chain = chain_copy.get();
-    }
+    STACK_OF(X509)* chain = SSL_get_peer_full_cert_chain(ssl);
     jlongArray refArray = getCertificateRefs(env, chain);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => %p", ssl, refArray);
     return refArray;
@@ -8871,6 +8841,12 @@ static int NativeCrypto_ENGINE_SSL_write_heap(JNIEnv* env, jclass, jlong sslRef,
     return result;
 }
 
+#define CONSCRYPT_NATIVE_METHOD(className, functionName, signature) \
+    {                                                               \
+        (char*)#functionName, (char*)(signature),                   \
+                reinterpret_cast<void*>(className##_##functionName) \
+    }
+
 #define FILE_DESCRIPTOR "Ljava/io/FileDescriptor;"
 #define SSL_CALLBACKS \
     "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks;"
@@ -9148,28 +9124,10 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_shutdown, "(J" SSL_CALLBACKS ")V"),
 };
 
-#ifdef STATIC_LIB
-// Give client libs everything they need to initialize our JNI
-jint libconscrypt_JNI_OnLoad(JavaVM* vm, void*) {
-#else
-// Use JNI_OnLoad for when we're standalone
-CONSCRYPT_PUBLIC jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
-    JNI_TRACE("JNI_OnLoad NativeCrypto");
-#endif
-    JNIEnv *env;
-    if (vm->GetEnv((void**)&env, JNI_VERSION_1_6) != JNI_OK) {
-        ALOGE("Could not get JNIEnv");
-        return JNI_ERR;
-    }
-
-    JniConstants::init(vm, env);
-
+void NativeCrypto::registerNativeMethods(JNIEnv* env) {
     JniUtil::jniRegisterNativeMethods(env,
                                       TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto",
                                       sNativeCryptoMethods, NELEM(sNativeCryptoMethods));
-
-    CompatibilityCloseMonitor::init();
-    return JNI_VERSION_1_6;
 }
 
 /* Local Variables: */

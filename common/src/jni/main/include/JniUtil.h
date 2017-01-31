@@ -93,9 +93,8 @@ public:
     /**
      * Register one or more native methods with a particular class.
      * "className" looks like "java/lang/String". Aborts on failure.
-     * TODO: fix all callers and change the return type to void.
      */
-    static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
+    static void jniRegisterNativeMethods(JNIEnv* env, const char* className,
                                         const JNINativeMethod* gMethods, int numMethods) {
         ALOGV("Registering %s's %d native methods...", className, numMethods);
 
@@ -112,8 +111,6 @@ public:
             (void)asprintf(&msg, "RegisterNatives failed for '%s'; aborting...", className);
             env->FatalError(msg);
         }
-
-        return 0;
     }
 
     /**

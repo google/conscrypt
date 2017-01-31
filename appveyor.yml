@@ -1,6 +1,6 @@
 environment:
   ANDROID_HOME: "C:\\android-sdk-windows"
-  ANDROID_NDK_HOME: "C:\\android-ndk-r11c"
+  ANDROID_NDK_HOME: "C:\\android-sdk-windows\\ndk-bundle"
   JAVA_HOME: "C:\\Program Files\\Java\\jdk1.8.0"
   BORINGSSL_HOME: "C:\\boringssl"
   ANDROID_TOOLS_URL: "https://dl.google.com/android/repository/tools_r25.2.3-windows.zip"
@@ -15,7 +15,7 @@ shallow_clone: true
 os: Visual Studio 2015
 
 platform:
-  - x86
+  # - x86
   - x64
 
 version: '{branch}.{build}'
@@ -30,10 +30,6 @@ init:
   # Download the Android SDK
   - appveyor DownloadFile %ANDROID_TOOLS_URL% -FileName android-tools.zip
   - 7z x android-tools.zip -o"%ANDROID_HOME%" > nul
-
-  # Download the Android NDK
-  - appveyor DownloadFile %ANDROID_NDK_URL% -FileName android-ndk.zip
-  - 7z x android-ndk.zip > nul
 
   # Get Ninja
   - appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
@@ -70,19 +66,16 @@ before_build:
   # Set up Visual Studio in 32-bit mode
   - call "C:\Program Files (x86)\Microsoft Visual Studio %MSVC%\VC\vcvarsall.bat"
 
+  # TODO(nathanmittler): Need to figure out how to make 32-bit builds work
   # Build BoringSSL in 32-bit
-  - cd "%BORINGSSL_HOME%"
-  - mkdir build32
-  - cd build32
-  - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
-  - ninja
+  # - cd "%BORINGSSL_HOME%"
+  # - mkdir build32
+  # - cd build32
+  # - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+  # - ninja
 
   # Go to project directory
   - cd C:\projects\conscrypt
-
-  # Work around bug in Android build scripts:
-  # https://code.google.com/p/android/issues/detail?id=212688#c10
-  - ps: (echo "ndk.dir=$ANDROID_NDK_HOME") -replace '\\', '\\\\' > local.properties
 
 install:
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t tools
@@ -90,6 +83,11 @@ install:
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t build-tools-25.0.0
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t android-25
   - echo y | "%ANDROID_HOME%\tools\android.bat" update sdk -u -a -t extra-android-m2repository
+  - mkdir %ANDROID_HOME%\licenses
+  - ps: 'Add-Content -Value "`n8933bad161af4178b1185d1a37fbf41ea5269c55" -Path $env:ANDROID_HOME\licenses\android-sdk-license -Encoding ASCII'
+  - ps: 'Add-Content -Value "`n84831b9409646a918e30573bab4c9c91346d8abd`n504667f4c0de7af1a06de9f4b1727b84351f2910" -Path $env:ANDROID_HOME\licenses\android-sdk-preview-license -Encoding ASCII'
+  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat --channel=1 ndk-bundle'
+  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat cmake;3.6.3155560'
 
 build_script:
   - gradlew.bat --info assemble
@@ -100,7 +98,7 @@ test_script:
 after_test:
   - ps: |
       $url = "https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)"
-      $files = Get-ChildItem '.\openjdk\build\test-results\test\TEST-*.xml'
+      $files = Get-ChildItem '.\openjdk\build\test-results\windows_x86_64Test\TEST-*.xml'
       ForEach ($file in $files) {
           (New-Object 'System.Net.WebClient').UploadFile($url, (Resolve-Path $file))
       }

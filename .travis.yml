@@ -2,16 +2,15 @@ language: android
 
 env:
   global:
-    - NDK_VERSION=r11c
     - BORINGSSL_HOME="$HOME/boringssl"
     - CC=clang
     - CXX=clang++
+    - GOOGLE_JAVA_FORMAT_VERSION=1.1
 
 cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/dists/
-    - $HOME/.cache/ndk
 
 matrix:
   include:
@@ -36,9 +35,11 @@ matrix:
         apt:
           sources:
             - kalakris-cmake
+            - llvm-toolchain-precise-3.8  # for clang-format-3.8
             - ubuntu-toolchain-r-test
           packages:
             - clang
+            - clang-format-3.8  # for style checks
             - cmake
             - g++-multilib
             - gcc-multilib
@@ -61,6 +62,9 @@ before_cache:
   - rm -rf $HOME/.gradle/caches/[1-9]*
 
 before_script:
+  # Get Google Java Format
+  - curl -L https://github.com/google/google-java-format/releases/download/google-java-format-1.1/google-java-format-${GOOGLE_JAVA_FORMAT_VERSION}-all-deps.jar -o $HOME/gjf.jar
+
   # get BoringSSL
   - mkdir $BORINGSSL_HOME
   - git clone --depth 1 https://boringssl.googlesource.com/boringssl $BORINGSSL_HOME
@@ -71,29 +75,50 @@ before_script:
   - ninja
   - popd
 
+  # Get git-clang-format
+  - mkdir $HOME/bin
+  - curl -L https://llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format -o $HOME/bin/git-clang-format
+  - chmod 0755 $HOME/bin/git-clang-format
+  - export PATH="$HOME/bin:$PATH"
+
+  # TODO(nathanmittler): Need to figure out how to make 32-bit builds work
   # Build BoringSSL for 32-bit
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
-    then
-        mkdir $BORINGSSL_HOME/build32;
-        pushd $BORINGSSL_HOME/build32;
-        cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS="-Wa,--noexecstack -m32 -msse2" -GNinja ..;
-        ninja;
-        popd;
-    fi
+  # - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
+  #  then
+  #      mkdir $BORINGSSL_HOME/build32;
+  #      pushd $BORINGSSL_HOME/build32;
+  #      cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS="-Wa,--noexecstack -m32 -msse2" -GNinja ..;
+  #      ninja;
+  #      popd;
+  #  fi
 
   # newest Android NDK
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
     then
-        mkdir -p $HOME/.cache/ndk;
-        curl https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux-x86_64.zip -z $HOME/.cache/ndk/ndk-${NDK_VERSION}.zip -o $HOME/.cache/ndk/ndk-${NDK_VERSION}.zip;
-        unzip -q $HOME/.cache/ndk/ndk-$NDK_VERSION.zip -d $HOME;
-        echo "ndk.dir=$HOME/android-ndk-$NDK_VERSION" >> local.properties;
+        yes | $ANDROID_HOME/tools/bin/sdkmanager --channel=1 ndk-bundle 'cmake;3.6.3155560';
+        export ANDROID_NDK_HOME=$ANDROID_HOME/ndk-bundle;
     fi
 
   # Don't let the Android build download extra packages.
   - echo 'android.builder.sdkDownload=false' > gradle.properties
 
+  # We need this to find the merge-base
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
+    then
+        git fetch origin +refs/heads/${TRAVIS_BRANCH}:refs/remotes/origin/${TRAVIS_BRANCH};
+    fi
+
 script:
+  # MacOS (BSD) xargs is missing some nice features that make this easy, so skip it.
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
+    then
+        git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git clang-format --binary=$(which clang-format-3.8) --style=file --diff {}^ {} | ( git apply; true ) && git diff --exit-code || { git reset --hard; false; }
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
+    then
+        git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git diff-tree --no-commit-id --name-only -r {} | grep -E '\.java$' | xargs -r git ls-files | xargs -r java -jar $HOME/gjf.jar -a -i --fix-imports-only && git diff --exit-code || { git reset --hard; false; }
+    fi
+
   - ./gradlew --stacktrace --info build
 
 after_script:

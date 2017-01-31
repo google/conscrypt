@@ -77,10 +77,6 @@ common_java_files := $(filter-out \
 	%/org/conscrypt/NativeCryptoJni.java \
 	, $(call all-java-files-under,common/src/main/java))
 
-bundled_main_cpp_files := common/src/jni/main/cpp/org_conscrypt_NativeCrypto.cpp \
-                          common/src/jni/main/cpp/CompatibilityCloseMonitor.cpp \
-                          common/src/jni/main/cpp/JniConstants.cpp
-
 # Create the conscrypt library
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(common_java_files)
@@ -139,7 +135,7 @@ include $(CLEAR_VARS)
 LOCAL_CFLAGS += $(core_cflags)
 LOCAL_CFLAGS += -DJNI_JARJAR_PREFIX="com/android/"
 LOCAL_CPPFLAGS += $(core_cppflags)
-LOCAL_SRC_FILES := $(bundled_main_cpp_files)
+LOCAL_SRC_FILES := $(call all-cpp-files-under,common/src/jni/main/cpp)
 LOCAL_C_INCLUDES += \
         external/openssl/include \
         external/openssl \
@@ -182,7 +178,7 @@ LOCAL_CPPFLAGS += $(core_cppflags) \
         -DJNI_JARJAR_PREFIX="com/google/android/gms/" \
         -DCONSCRYPT_UNBUNDLED \
         -DSTATIC_LIB
-LOCAL_SRC_FILES := $(bundled_main_cpp_files)
+LOCAL_SRC_FILES := $(call all-cpp-files-under,common/src/jni/main/cpp)
 LOCAL_C_INCLUDES += \
         external/openssl/include \
         external/openssl \
@@ -246,7 +242,7 @@ endif
 # Conscrypt native library for host
 include $(CLEAR_VARS)
 LOCAL_CLANG := true
-LOCAL_SRC_FILES += $(bundled_main_cpp_files)
+LOCAL_SRC_FILES := $(call all-cpp-files-under,common/src/jni/main/cpp)
 LOCAL_C_INCLUDES += \
         external/openssl/include \
         external/openssl \
@@ -282,5 +278,4 @@ conscrypt_generate_constants_exe :=
 core_cflags :=
 core_cppflags :=
 local_javac_flags :=
-bundled_main_cpp_files :=
 bundled_test_java_files :=

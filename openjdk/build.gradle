@@ -1,23 +1,44 @@
-apply plugin: "com.google.osdetector"
-
 description = 'Conscrypt: OpenJdk'
 
 ext {
     jniSourceDir = "$rootDir/common/src/jni"
-    jniLibPrefix = "conscrypt_openjdk_jni-${osdetector.os}"
-
     assert file("$jniSourceDir").exists()
+
+    // Build the list of classifiers that will be used in the build.
+    os = org.gradle.internal.os.OperatingSystem.current();
+    if (os.isLinux()) {
+        osName = "linux"
+    } else if (os.isMacOsX()) {
+        osName = "osx"
+    } else if (os.isWindows()) {
+        osName = "windows"
+    } else {
+        throw new GradleException("Unsupported os: " + os.name)
+    }
+    arch32Name = 'x86'
+    arch64Name = 'x86_64'
+    jvmArgs32 = '-d32'
+    jvmArgs64 = '-d64'
+    // Allow the java executable to be specified via env/property for each architecture.
+    javaExecutable32 = properties['javaExecutable32'] ?: System.env.CONSCRYPT_JAVA_EXECUTABLE_32
+    javaExecutable64 = properties['javaExecutable64'] ?: System.env.CONSCRYPT_JAVA_EXECUTABLE_64
+    nativeClassifiers = []
+    if (build32Bit) {
+        nativeClassifiers += "${osName}-$arch32Name"
+    }
+    if (build64Bit) {
+        nativeClassifiers += "${osName}-$arch64Name"
+    }
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
-sourceSets.main {
-    java {
-        srcDirs = [
-                "${rootDir}/common/src/main/java",
-                "src/main/java"
-        ]
+sourceSets {
+    main {
+        java {
+            srcDirs += "${rootDir}/common/src/main/java"
+        }
     }
 }
 
@@ -30,26 +51,63 @@ dependencies {
                 libraries.mockito
 }
 
-// Set the platform-specific classifier on the artifact.
-jar {
-    classifier = osdetector.classifier
+/**
+ * Create Jar and Test tasks for each native classifier.
+ */
+nativeClassifiers.each { nativeClassifier ->
+    // Normalize the classifier so that it may be used in task names. We'll also use
+    // the normalized name for the resource directory.
+    def normalizedClassifier = "${nativeClassifier}".replaceAll("-", "_")
+    def nativeFiles = files("${buildDir}/${normalizedClassifier}/resources/main")
+
+    // Create a JAR for this configuration and add it to the output archives.
+    def jarTaskName = "create${normalizedClassifier}Jar"
+    task "$jarTaskName"(type: Jar, dependsOn: classes) {
+        from sourceSets.main.output + nativeFiles
+        manifest = jar.manifest
+        classifier = nativeClassifier
+    }
+    artifacts.add('archives', tasks["$jarTaskName"])
+
+    // Create the test task and have it auto run whenever the test task runs.
+    def testTaskName = "${normalizedClassifier}Test"
+    task "$testTaskName"(type: Test) {
+        testClassesDir = test.testClassesDir
+        classpath = test.classpath + nativeFiles
+        if (nativeClassifier.endsWith(arch32Name)) {
+            jvmArgs jvmArgs32
+            if (javaExecutable32 != null) {
+                executable = javaExecutable32
+            }
+        } else {
+            jvmArgs jvmArgs64
+            if (javaExecutable64 != null) {
+                executable = javaExecutable64
+            }
+        }
+    }
+    test.dependsOn "$testTaskName"
 }
+
+// Exclude all test classes from the default test suite.
+// We will test each available native artifact separately (see nativeClassifiers).
+test.exclude("**")
 
 model {
     platforms {
         x86 {
-            architecture "x86"
+            architecture arch32Name
         }
         x86_64 {
-            architecture "x86_64"
+            architecture arch64Name
         }
     }
 
     components {
         // Builds the JNI library.
-        "$jniLibPrefix"(NativeLibrarySpec) {
-            if (build32Bit) { targetPlatform "x86" }
-            if (build64Bit) { targetPlatform "x86_64" }
+        conscrypt_openjdk_jni(NativeLibrarySpec) {
+            if (build32Bit) { targetPlatform arch32Name }
+            if (build64Bit) { targetPlatform arch64Name }
 
             sources {
                 cpp {
@@ -75,7 +133,7 @@ model {
                         libPath = "$boringssl64BuildDir"
                     } else {
                         throw new GradleException("Unknown architecture: " +
-                                targetPlatform.getArchitecture().getName())
+                                targetPlatform.getArchitecture().name)
                     }
 
                     if (toolChain in Clang || toolChain in Gcc) {
@@ -149,24 +207,24 @@ model {
 
     tasks {
         $.binaries.withType(SharedLibraryBinarySpec).each {
+            // Build the native artifact classifier from the OS and architecture.
             def archName = it.targetPlatform.architecture.name.replaceAll('-', '_')
+            def classifier = "${osName}-${archName}"
+            def normalizedClassifier = "$classifier".replaceAll('-', '_')
             def source = it.sharedLibraryFile
 
             // Copies the native library to a resource location that will be included in the jar.
-            task "copyNativeLib${archName}"(type: Copy) {
+            task "copyNativeLib${normalizedClassifier}"(type: Copy) {
                 from source
-                rename '(.+)(\\.[^\\.]+)', "\$1-$archName\$2"
+                // Rename the artifact to include the generated classifier
+                rename '(.+)(\\.[^\\.]+)', "\$1-$classifier\$2"
                 // This location will automatically be included in the jar.
-                into "build/resources/main/META-INF/native"
+                into "${buildDir}/${normalizedClassifier}/resources/main/META-INF/native"
             }
 
             // Make sure we build and copy the native library to the output directory.
-            compileJava.dependsOn "copyNativeLib${archName}"
+            compileJava.dependsOn "copyNativeLib${normalizedClassifier}"
         }
     }
 }
 
-def getFileExtension(File f) {
-    String name = f.getName()
-    return new String(name.substring(name.lastIndexOf('.')))
-}

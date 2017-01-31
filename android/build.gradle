@@ -1,3 +1,15 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.2.3' // jcenter has the latest
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+    }
+}
+
 description = 'Conscrypt: Android'
 
 ext {
@@ -10,9 +22,7 @@ ext {
     androidBuildToolsVersion = "25.0.0"
 }
 
-if (!androidSdkInstalled) {
-    logger.warn('Android SDK has not been detected. The Android module will not be built.')
-} else {
+if (androidSdkInstalled) {
     apply plugin: 'com.android.library'
     apply plugin: 'com.github.dcendents.android-maven'
 
@@ -33,6 +43,22 @@ if (!androidSdkInstalled) {
 
             testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
+            externalNativeBuild {
+                cmake {
+                    arguments '-DANDROID=True',
+                            '-DANDROID_STL=c++_static',
+                            "-DBORINGSSL_HOME=$boringsslHome"
+                    cFlags '-fvisibility=hidden',
+                            '-DBORINGSSL_SHARED_LIBRARY',
+                            '-DBORINGSSL_IMPLEMENTATION',
+                            '-DOPENSSL_SMALL',
+                            '-D_XOPEN_SOURCE=700',
+                            '-Wno-unused-parameter'
+                }
+            }
+            ndk {
+                abiFilters 'x86', 'x86_64', 'armeabi-v7a'
+            }
         }
         buildTypes {
             release {
@@ -48,6 +74,11 @@ if (!androidSdkInstalled) {
                 ]
             }
         }
+        externalNativeBuild {
+            cmake {
+                path 'CMakeLists.txt'
+            }
+        }
         lintOptions {
             lintConfig file('lint.xml')
         }
@@ -60,5 +91,12 @@ if (!androidSdkInstalled) {
         })
         compile project(':conscrypt-constants')
         provided project(':conscrypt-android-stub')
+    }
+} else {
+    logger.warn('Android SDK has not been detected. The Android module will not be built.')
+
+    // Disable all tasks
+    tasks.collect {
+        it.enabled = false
     }
 }

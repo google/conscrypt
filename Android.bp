@@ -25,7 +25,10 @@ cc_defaults {
     ],
 
     srcs: [
-        "common/src/jni/main/cpp/org_conscrypt_NativeCrypto.cpp",
+        "common/src/jni/main/cpp/CompatibilityCloseMonitor.cpp",
+        "common/src/jni/main/cpp/JniConstants.cpp",
+        "common/src/jni/main/cpp/NativeCrypto.cpp",
+        "common/src/jni/main/cpp/jni_load.cpp",
     ],
 
     local_include_dirs: [
@@ -38,11 +41,6 @@ cc_defaults {
 
 cc_defaults {
     name: "conscrypt_unbundled",
-
-    srcs: [
-        "common/src/jni/main/cpp/CompatibilityCloseMonitor.cpp",
-        "common/src/jni/main/cpp/JniConstants.cpp",
-    ],
 
     local_include_dirs: [
         "common/src/jni/unbundled/include",
@@ -73,11 +71,6 @@ cc_library_host_shared {
 
     cflags: [
         "-DCONSCRYPT_OPENJDK",
-    ],
-
-    srcs: [
-        "common/src/jni/main/cpp/CompatibilityCloseMonitor.cpp",
-        "common/src/jni/main/cpp/JniConstants.cpp",
     ],
 
     local_include_dirs: [
