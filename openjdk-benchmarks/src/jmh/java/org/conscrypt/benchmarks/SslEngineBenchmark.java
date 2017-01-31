@@ -177,7 +177,7 @@ public class SslEngineBenchmark {
 
     @Param public BufferType bufferType;
 
-    @Param({"10"}) public int messageSize;
+    @Param({"64", "128", "512", "1024", "4096"}) public int messageSize;
 
     @Param({"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"}) public String cipher;
 
