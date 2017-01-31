@@ -162,6 +162,12 @@ public class SslEngineBenchmark {
             ByteBuffer newBuffer(int size) {
                 return ByteBuffer.allocate(size);
             }
+        },
+        DIRECT {
+            @Override
+            ByteBuffer newBuffer(int size) {
+                return ByteBuffer.allocateDirect(size);
+            }
         };
 
         abstract ByteBuffer newBuffer(int size);
