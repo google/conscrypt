@@ -16,27 +16,26 @@
 
 package org.conscrypt.benchmarks;
 
+import static java.lang.Math.max;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLException;
 import org.conscrypt.OpenSSLProvider;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLException;
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.security.NoSuchAlgorithmException;
-
-import static java.lang.Math.max;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 /**
  * Benchmark comparing performance of various engine implementations to conscrypt.
