@@ -34,6 +34,17 @@ subprojects {
     version = "1.0.0-SNAPSHOT"
 
     ext {
+        os = org.gradle.internal.os.OperatingSystem.current();
+        if (os.isLinux()) {
+            osName = "linux"
+        } else if (os.isMacOsX()) {
+            osName = "osx"
+        } else if (os.isWindows()) {
+            osName = "windows"
+        } else {
+            throw new GradleException("Unsupported os: " + os.name)
+        }
+
         boringsslHome = "$System.env.BORINGSSL_HOME"
         boringsslIncludeDir = "$boringsslHome/include"
         boringssl32BuildDir = "$boringsslHome/build32"
@@ -53,15 +64,22 @@ subprojects {
         assert file("$jdkHome").exists()
         assert file("$jdkIncludeDir").exists()
 
+        jmhVersion = '1.17.4'
         libraries = [
                 roboelectric: 'org.robolectric:android-all:5.0.0_r2-robolectric-1',
 
                 // Test dependencies.
+                guava : 'com.google.guava:guava:19.0',
                 junit  : 'junit:junit:4.11',
                 mockito: 'org.mockito:mockito-core:1.9.5',
                 truth  : 'com.google.truth:truth:0.28',
                 bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.55',
-                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.55'
+                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.55',
+
+                // Benchmark dependencies
+                jmh_generator_annprocess : "org.openjdk.jmh:jmh-generator-annprocess:$jmhVersion",
+                netty: 'io.netty:netty-codec-http2:4.1.8.Final',
+                netty_tcnative: 'io.netty:netty-tcnative-boringssl-static:1.1.33.Fork26',
         ]
     }
 
@@ -72,6 +90,9 @@ subprojects {
     }
 
     if (!androidProject) {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+
         [compileJava, compileTestJava].each() {
             it.options.compilerArgs += ["-Xlint:all", "-Xlint:-options", '-Xmaxwarns', '9999999']
             it.options.encoding = "UTF-8"
