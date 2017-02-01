@@ -113,7 +113,6 @@ model {
                 cpp {
                     source {
                         srcDirs = [
-                                "$jniSourceDir/unbundled/cpp",
                                 "$jniSourceDir/main/cpp"
                         ]
                     }
@@ -175,9 +174,12 @@ model {
                                 "/GS",
                                 "/Gy",
                                 "/fp:precise",
+                                "-wd4514", // Unreferenced inline function removed
                                 "-wd4548", // Expression before comma has no effect
                                 "-wd4625", // Copy constructor was implicitly defined as deleted
                                 "-wd4626", // Assignment operator was implicitly defined as deleted
+                                "-wd4710", // function not inlined
+                                "-wd4711", // function inlined
                                 "-wd4820", // Extra padding added to struct
                                 "-wd4946", // reinterpret_cast used between related classes:
                                 "-wd4996", // Thread safety for strerror

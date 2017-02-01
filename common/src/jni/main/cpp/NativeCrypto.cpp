@@ -5587,7 +5587,7 @@ static void info_callback(const SSL* ssl, int where, int ret) {
  * 0 is error.
  * -1 is to pause the handshake to continue from the same place later.
  */
-static int cert_cb(SSL* ssl, void* arg CONSCRYPT_ATTRIBUTE_1((unused))) {
+static int cert_cb(SSL* ssl, CONSCRYPT_UNUSED void* arg) {
     JNI_TRACE("ssl=%p cert_cb", ssl);
 
     // cert_cb is called for both clients and servers, but we are only

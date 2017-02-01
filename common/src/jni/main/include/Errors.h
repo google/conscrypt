@@ -272,7 +272,7 @@ public:
      * @return true if an exception was thrown, false if not.
      */
     static bool throwExceptionIfNecessary(
-            JNIEnv* env, const char* location CONSCRYPT_ATTRIBUTE_1((unused)),
+            JNIEnv* env, CONSCRYPT_UNUSED const char* location,
             int (*defaultThrow)(JNIEnv*, const char*) = jniThrowRuntimeException) {
         const char* file;
         int line;

@@ -88,9 +88,14 @@
 #endif
 
 #ifdef __GNUC__
-#define CONSCRYPT_ATTRIBUTE_1(value) __attribute__(value)
+#define CONSCRYPT_UNUSED __attribute__((unused))
+#define CONSCRYPT_WARN_UNUSED __attribute__((warn_unused_result))
+#elif defined(_WIN32)
+#define CONSCRYPT_UNUSED __pragma(warning(suppress : 4100))
+#define CONSCRYPT_WARN_UNUSED _Check_return_
 #else
-#define CONSCRYPT_ATTRIBUTE_1(value)
+#define CONSCRYPT_UNUSED
+#define CONSCRYPT_WARN_UNUSED
 #endif
 
 #ifndef NELEM
@@ -102,9 +107,9 @@
  * on failure. This means we need to tell our scoped pointers when we've transferred ownership,
  * without triggering a warning by not using the result of release().
  */
-#define OWNERSHIP_TRANSFERRED(obj)                                                          \
-    do {                                                                                    \
-        decltype((obj).release()) _dummy CONSCRYPT_ATTRIBUTE_1((unused)) = (obj).release(); \
+#define OWNERSHIP_TRANSFERRED(obj)                                           \
+    do {                                                                     \
+        decltype((obj).release()) CONSCRYPT_UNUSED _dummy = (obj).release(); \
     } while (0)
 
 /**
