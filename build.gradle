@@ -77,7 +77,6 @@ subprojects {
                 bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.55',
 
                 // Benchmark dependencies
-                jmh_generator_annprocess : "org.openjdk.jmh:jmh-generator-annprocess:$jmhVersion",
                 netty_handler: 'io.netty:netty-handler:4.1.8.Final',
                 netty_tcnative: 'io.netty:netty-tcnative-boringssl-static:1.1.33.Fork26',
         ]
