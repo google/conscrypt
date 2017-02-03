@@ -27,6 +27,8 @@ dependencies {
             libraries.junit,
             libraries.netty_handler,
             libraries.netty_tcnative
+
+    jmh libraries.jmh_core
 }
 
 // Running benchmarks in IntelliJ seems broken without this.
