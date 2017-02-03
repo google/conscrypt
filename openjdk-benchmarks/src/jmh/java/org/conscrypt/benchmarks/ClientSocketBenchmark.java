@@ -25,9 +25,6 @@ import static org.conscrypt.benchmarks.Util.pickUnusedPort;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
@@ -98,43 +95,11 @@ public class ClientSocketBenchmark {
         abstract SSLSocket newSslSocket(String host, int port);
     }
 
-    /**
-     * Various factories for the raw socket that backs the SSL socket.
-     */
-    public enum SocketType {
-        DEFAULT {
-            @Override
-            Socket newSocket(String host, int port) {
-                try {
-                    return SocketFactory.getDefault().createSocket(host, port);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        },
-        CHANNEL {
-            @Override
-            Socket newSocket(String host, int port) {
-                try {
-                    SocketChannel socketChannel =
-                            SocketChannel.open(new InetSocketAddress(host, port));
-                    return socketChannel.socket();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
-
-        abstract Socket newSocket(String host, int port);
-    }
-
     @Param public SslSocketType sslSocketType;
 
     @Param({"64", "128", "512", "1024", "4096"}) public int messageSize;
 
     @Param({"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"}) public String cipher;
-
-    @Param SocketType socketType;
 
     private TestClient client;
     private NettyEchoServer server;
@@ -168,7 +133,6 @@ public class ClientSocketBenchmark {
     public static void main(String[] args) throws Exception {
         ClientSocketBenchmark bm = new ClientSocketBenchmark();
         bm.sslSocketType = SslSocketType.CONSCRYPT_ENGINE;
-        bm.socketType = SocketType.DEFAULT;
         bm.messageSize = 1024;
         bm.cipher = "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256";
         bm.setup();
