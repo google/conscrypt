@@ -22,10 +22,12 @@ jmh {
 }
 
 dependencies {
-    compile project(path: ':conscrypt-openjdk', configuration: "$openJdkConfiguration"), libraries.guava
+    compile project(path: ':conscrypt-openjdk', configuration: "$openJdkConfiguration"),
+            libraries.guava,
+            libraries.netty_handler,
+            libraries.netty_tcnative
+
     jmh libraries.junit,
-            libraries.netty,
-            libraries.netty_tcnative,
             // JMH plugin doesn't seem to include this dependency by default. This version of the JMH
             // plugin seems to require the use of v1.12 for all other JMH dependencies, so not overriding
             // them here.
