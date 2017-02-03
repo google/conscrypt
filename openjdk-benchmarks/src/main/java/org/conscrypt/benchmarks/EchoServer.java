@@ -16,10 +16,8 @@
 
 package org.conscrypt.benchmarks;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,7 +34,6 @@ final class EchoServer {
     private final int messageSize;
     private final byte[] buffer;
     private SSLSocket socket;
-    private final BlockingQueue<byte[]> messageQueue = new ArrayBlockingQueue<>(4);
     private volatile boolean stopping;
 
     EchoServer(SSLServerSocket serverSocket, int messageSize) {
@@ -109,17 +106,16 @@ final class EchoServer {
 
     private byte[] readMessage() {
         try {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream(messageSize);
             int totalBytesRead = 0;
             while (totalBytesRead < messageSize) {
-                int bytesRead = socket.getInputStream().read(buffer, 0, buffer.length);
+                int remaining = messageSize - totalBytesRead;
+                int bytesRead = socket.getInputStream().read(buffer, totalBytesRead, remaining);
                 if (bytesRead == -1) {
                     break;
                 }
                 totalBytesRead += bytesRead;
-                bos.write(buffer, 0, bytesRead);
             }
-            return bos.toByteArray();
+            return Arrays.copyOfRange(buffer, 0, totalBytesRead);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

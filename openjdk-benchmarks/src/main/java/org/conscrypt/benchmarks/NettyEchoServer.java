@@ -96,8 +96,12 @@ final class NettyEchoServer {
         protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
                 throws Exception {
             if (in.readableBytes() >= messageSize) {
-                ByteBuf message = in.readSlice(messageSize).retain();
-                ctx.writeAndFlush(message);
+                // Copy the input to a new direct buffer.
+                ByteBuf response = ctx.alloc().directBuffer(messageSize);
+                response.writeBytes(in, in.readerIndex(), messageSize);
+                in.skipBytes(messageSize);
+
+                ctx.writeAndFlush(response);
             }
         }
     }

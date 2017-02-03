@@ -22,15 +22,13 @@ import static org.conscrypt.benchmarks.Util.getJdkSocketFactory;
 import static org.conscrypt.benchmarks.Util.getProtocols;
 import static org.conscrypt.benchmarks.Util.newTextMessage;
 import static org.conscrypt.benchmarks.Util.pickUnusedPort;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import com.google.common.util.concurrent.Futures;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.Future;
+import java.util.Arrays;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -51,20 +49,44 @@ public class ClientSocketBenchmark {
      * Various factories for SSL sockets.
      */
     public enum SslSocketType {
-        JDK(getJdkSocketFactory()),
-        CONSCRYPT(getConscryptSocketFactory(false)),
-        CONSCRYPT_ENGINE(getConscryptSocketFactory(true));
+        JDK {
+            private final SSLSocketFactory socketFactory = getJdkSocketFactory();
+            @Override
+            SSLSocket newSslSocket(String host, int port) {
+                try {
+                    return (SSLSocket) socketFactory.createSocket(host, port);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        },
+        CONSCRYPT {
+            private final SSLSocketFactory socketFactory = getConscryptSocketFactory(false);
+            @Override
+            SSLSocket newSslSocket(String host, int port) {
+                try {
+                    return (SSLSocket) socketFactory.createSocket(host, port);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        },
+        CONSCRYPT_ENGINE {
+            private final SSLSocketFactory socketFactory = getConscryptSocketFactory(true);
+            @Override
+            SSLSocket newSslSocket(String host, int port) {
+                try {
+                    return (SSLSocket) socketFactory.createSocket(
+                            SocketFactory.getDefault().createSocket(host, port), host, port, true);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
 
-        private final SSLSocketFactory socketFactory;
-
-        SslSocketType(SSLSocketFactory socketFactory) {
-            this.socketFactory = socketFactory;
-        }
-
-        final SSLSocket newClientSocket(Socket socket, String host, int port, String cipher) {
+        final SSLSocket newSslSocket(String host, int port, String cipher) {
             try {
-                SSLSocket sslSocket =
-                        (SSLSocket) socketFactory.createSocket(socket, host, port, true);
+                SSLSocket sslSocket = newSslSocket(host, port);
                 sslSocket.setEnabledProtocols(getProtocols());
                 sslSocket.setEnabledCipherSuites(new String[] {cipher});
                 return sslSocket;
@@ -72,6 +94,8 @@ public class ClientSocketBenchmark {
                 throw new RuntimeException(e);
             }
         }
+
+        abstract SSLSocket newSslSocket(String host, int port);
     }
 
     /**
@@ -138,7 +162,7 @@ public class ClientSocketBenchmark {
     public void pingPong() throws IOException {
         client.sendMessage(message);
         byte[] output = client.readMessage();
-        assertEquals(message.length, output.length);
+        assertTrue(Arrays.equals(message, output));
     }
 
     /**
@@ -146,18 +170,16 @@ public class ClientSocketBenchmark {
      * socket.
      */
     private final class Client {
-        private final byte[] buffer = new byte[messageSize];
+        private byte[] buffer = new byte[messageSize];
         private final SSLSocket socket;
 
         Client(int port) {
-            socket = sslSocketType.newClientSocket(
-                    socketType.newSocket(LOCALHOST, port), LOCALHOST, port, cipher);
+            socket = sslSocketType.newSslSocket(LOCALHOST, port, cipher);
         }
 
-        Future<?> start() {
+        void start() {
             try {
                 socket.startHandshake();
-                return Futures.immediateFuture(null);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -173,17 +195,16 @@ public class ClientSocketBenchmark {
 
         byte[] readMessage() {
             try {
-                ByteArrayOutputStream bos = new ByteArrayOutputStream(messageSize);
                 int totalBytesRead = 0;
                 while (totalBytesRead < messageSize) {
-                    int bytesRead = socket.getInputStream().read(buffer, 0, buffer.length);
+                    int remaining = messageSize - totalBytesRead;
+                    int bytesRead = socket.getInputStream().read(buffer, totalBytesRead, remaining);
                     if (bytesRead == -1) {
                         break;
                     }
                     totalBytesRead += bytesRead;
-                    bos.write(buffer, 0, bytesRead);
                 }
-                return bos.toByteArray();
+                return Arrays.copyOfRange(buffer, 0, totalBytesRead);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
