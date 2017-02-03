@@ -19,8 +19,6 @@ package org.conscrypt.benchmarks;
 import static org.conscrypt.benchmarks.Util.getProtocols;
 import static org.junit.Assert.assertEquals;
 
-import com.google.common.util.concurrent.Futures;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -74,7 +72,7 @@ public class ServerSocketBenchmark {
 
     @Param({"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"}) public String cipher;
 
-    private Client client;
+    private TestClient client;
     private EchoServer server;
     private byte[] message;
 
@@ -85,7 +83,17 @@ public class ServerSocketBenchmark {
 
         Future connectedFuture = server.start();
 
-        client = new Client(server.port());
+        SSLSocket socket;
+        try {
+            SSLSocketFactory socketFactory = Util.getJdkSocketFactory();
+            socket = (SSLSocket) socketFactory.createSocket(Util.LOCALHOST, server.port());
+            socket.setEnabledProtocols(getProtocols());
+            socket.setEnabledCipherSuites(new String[] {cipher});
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        client = new TestClient(socket, messageSize);
         client.start();
 
         // Wait for the initial connection to complete.
@@ -103,69 +111,5 @@ public class ServerSocketBenchmark {
         client.sendMessage(message);
         byte[] response = client.readMessage();
         assertEquals(message.length, response.length);
-    }
-
-    /**
-     * Client-side endpoint. Provides basic services for sending/receiving messages from the client
-     * socket.
-     */
-    private final class Client {
-        private final byte[] buffer = new byte[messageSize];
-        private final SSLSocket socket;
-
-        Client(int port) {
-            try {
-                SSLSocketFactory socketFactory = Util.getJdkSocketFactory();
-                socket = (SSLSocket) socketFactory.createSocket(Util.LOCALHOST, port);
-                socket.setEnabledProtocols(getProtocols());
-                socket.setEnabledCipherSuites(new String[] {cipher});
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        Future<?> start() {
-            try {
-                socket.startHandshake();
-                return Futures.immediateFuture(null);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        void stop() {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        byte[] readMessage() {
-            try {
-                ByteArrayOutputStream bos = new ByteArrayOutputStream(messageSize);
-                int totalBytesRead = 0;
-                while (totalBytesRead < messageSize) {
-                    int bytesRead = socket.getInputStream().read(buffer, 0, buffer.length);
-                    if (bytesRead == -1) {
-                        break;
-                    }
-                    totalBytesRead += bytesRead;
-                    bos.write(buffer, 0, bytesRead);
-                }
-                return bos.toByteArray();
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        void sendMessage(byte[] data) {
-            try {
-                socket.getOutputStream().write(data);
-                socket.getOutputStream().flush();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 }

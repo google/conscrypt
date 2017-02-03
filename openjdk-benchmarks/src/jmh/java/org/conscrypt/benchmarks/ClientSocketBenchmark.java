@@ -136,7 +136,7 @@ public class ClientSocketBenchmark {
 
     @Param SocketType socketType;
 
-    private Client client;
+    private TestClient client;
     private NettyEchoServer server;
     private byte[] message;
 
@@ -148,7 +148,7 @@ public class ClientSocketBenchmark {
         server = new NettyEchoServer(port, messageSize, cipher);
         server.start();
 
-        client = new Client(port);
+        client = new TestClient(sslSocketType.newSslSocket(LOCALHOST, port, cipher), messageSize);
         client.start();
     }
 
@@ -165,58 +165,22 @@ public class ClientSocketBenchmark {
         assertTrue(Arrays.equals(message, output));
     }
 
-    /**
-     * Client-side endpoint. Provides basic services for sending/receiving messages from the client
-     * socket.
-     */
-    private final class Client {
-        private byte[] buffer = new byte[messageSize];
-        private final SSLSocket socket;
-
-        Client(int port) {
-            socket = sslSocketType.newSslSocket(LOCALHOST, port, cipher);
-        }
-
-        void start() {
-            try {
-                socket.startHandshake();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        void stop() {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        byte[] readMessage() {
-            try {
-                int totalBytesRead = 0;
-                while (totalBytesRead < messageSize) {
-                    int remaining = messageSize - totalBytesRead;
-                    int bytesRead = socket.getInputStream().read(buffer, totalBytesRead, remaining);
-                    if (bytesRead == -1) {
-                        break;
-                    }
-                    totalBytesRead += bytesRead;
+    public static void main(String[] args) throws Exception {
+        ClientSocketBenchmark bm = new ClientSocketBenchmark();
+        bm.sslSocketType = SslSocketType.CONSCRYPT_ENGINE;
+        bm.socketType = SocketType.DEFAULT;
+        bm.messageSize = 1024;
+        bm.cipher = "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256";
+        bm.setup();
+        try {
+            while (true) {
+                if (Thread.interrupted()) {
+                    break;
                 }
-                return Arrays.copyOfRange(buffer, 0, totalBytesRead);
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
+                bm.pingPong();
             }
-        }
-
-        void sendMessage(byte[] data) {
-            try {
-                socket.getOutputStream().write(data);
-                socket.getOutputStream().flush();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+        } finally {
+            bm.teardown();
         }
     }
 }
