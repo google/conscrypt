@@ -22,14 +22,13 @@ jmh {
 }
 
 dependencies {
-    compile project(path: ':conscrypt-openjdk', configuration: "$openJdkConfiguration"), libraries.guava
-    jmh libraries.junit,
-            libraries.netty,
-            libraries.netty_tcnative,
-            // JMH plugin doesn't seem to include this dependency by default. This version of the JMH
-            // plugin seems to require the use of v1.12 for all other JMH dependencies, so not overriding
-            // them here.
-            libraries.jmh_generator_annprocess
+    compile project(path: ':conscrypt-openjdk', configuration: "$openJdkConfiguration"),
+            libraries.guava,
+            libraries.junit,
+            libraries.netty_handler,
+            libraries.netty_tcnative
+
+    jmh libraries.jmh_core
 }
 
 // Running benchmarks in IntelliJ seems broken without this.

@@ -14,16 +14,37 @@
  * limitations under the License.
  */
 
+/*
+ * Copyright 2017 The Netty Project
+ *
+ * The Netty Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.conscrypt.benchmarks;
 
 import static java.lang.Math.max;
+import static org.conscrypt.benchmarks.Util.PROTOCOL_TLS_V1_2;
+import static org.conscrypt.benchmarks.Util.initClientSslContext;
+import static org.conscrypt.benchmarks.Util.initEngine;
+import static org.conscrypt.benchmarks.Util.initServerContext;
+import static org.conscrypt.benchmarks.Util.newNettyClientContext;
+import static org.conscrypt.benchmarks.Util.newNettyServerContext;
+import static org.conscrypt.benchmarks.Util.newTextMessage;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import java.io.File;
 import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import javax.net.ssl.SSLContext;
@@ -42,14 +63,10 @@ import org.openjdk.jmh.annotations.State;
  */
 @State(Scope.Benchmark)
 public class SslEngineBenchmark {
-    private static final byte[] CHARS =
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".getBytes();
-    private static final String PROTOCOL_TLS_V1_2 = "TLSv1.2";
-
     public enum SslProvider {
         JDK {
-            private final SSLContext clientContext = initContext(newContext(), true);
-            private final SSLContext serverContext = initContext(newContext(), false);
+            private final SSLContext clientContext = initClientSslContext(newContext());
+            private final SSLContext serverContext = initServerContext(newContext());
 
             @Override
             SSLEngine newClientEngine(String cipher) {
@@ -70,8 +87,8 @@ public class SslEngineBenchmark {
             }
         },
         CONSCRYPT {
-            private final SSLContext clientContext = initContext(newContext(), true);
-            private final SSLContext serverContext = initContext(newContext(), false);
+            private final SSLContext clientContext = initClientSslContext(newContext());
+            private final SSLContext serverContext = initServerContext(newContext());
 
             @Override
             SSLEngine newClientEngine(String cipher) {
@@ -92,8 +109,8 @@ public class SslEngineBenchmark {
             }
         },
         NETTY {
-            private final SslContext clientContext = newClientContext();
-            private final SslContext serverContext = newServerContext();
+            private final SslContext clientContext = newNettyClientContext(null);
+            private final SslContext serverContext = newNettyServerContext(null);
 
             @Override
             SSLEngine newClientEngine(String cipher) {
@@ -106,53 +123,10 @@ public class SslEngineBenchmark {
                 return initEngine(
                         serverContext.newEngine(UnpooledByteBufAllocator.DEFAULT), cipher, false);
             }
-
-            private SslContext newClientContext() {
-                try {
-                    File clientCert = Util.loadCert("ca.pem");
-                    return SslContextBuilder.forClient()
-                            .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL)
-                            .trustManager(clientCert)
-                            .build();
-                } catch (SSLException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            private SslContext newServerContext() {
-                try {
-                    File serverCert = Util.loadCert("server1.pem");
-                    File serverKey = Util.loadCert("server1.key");
-                    return SslContextBuilder.forServer(serverCert, serverKey)
-                            .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL)
-                            .build();
-                } catch (SSLException e) {
-                    throw new RuntimeException(e);
-                }
-            }
         };
 
         abstract SSLEngine newClientEngine(String cipher);
         abstract SSLEngine newServerEngine(String cipher);
-
-        final SSLContext initContext(SSLContext context, boolean client) {
-            if (client) {
-                File cert = Util.loadCert("ca.pem");
-                context = Util.initClientSslContext(context, cert);
-            } else {
-                File cert = Util.loadCert("server1.pem");
-                File key = Util.loadCert("server1.key");
-                context = Util.initServerContext(context, cert, key);
-            }
-            return context;
-        }
-
-        final SSLEngine initEngine(SSLEngine engine, String cipher, boolean client) {
-            engine.setEnabledProtocols(new String[] {PROTOCOL_TLS_V1_2});
-            engine.setEnabledCipherSuites(new String[] {cipher});
-            engine.setUseClientMode(client);
-            return engine;
-        }
     }
 
     public enum BufferType {
@@ -195,12 +169,10 @@ public class SslEngineBenchmark {
         encryptedBuffer = bufferType.newBuffer(clientEngine.getSession().getPacketBufferSize());
 
         // Generate the message to be sent from the client.
-        clientCleartextBuffer = bufferType.newBuffer(messageSize);
         serverCleartextBuffer = bufferType.newBuffer(
                 max(messageSize, serverEngine.getSession().getApplicationBufferSize()));
-        for (int i = 0; clientCleartextBuffer.hasRemaining(); i = (i + 1) % CHARS.length) {
-            clientCleartextBuffer.put(CHARS[i]);
-        }
+        clientCleartextBuffer = bufferType.newBuffer(messageSize);
+        clientCleartextBuffer.put(newTextMessage(messageSize));
         clientCleartextBuffer.flip();
 
         // Complete the initial TLS handshake.
