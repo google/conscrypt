@@ -22,10 +22,9 @@ import static org.conscrypt.benchmarks.Util.getJdkSocketFactory;
 import static org.conscrypt.benchmarks.Util.getProtocols;
 import static org.conscrypt.benchmarks.Util.newTextMessage;
 import static org.conscrypt.benchmarks.Util.pickUnusedPort;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.util.Arrays;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -104,16 +103,18 @@ public class ClientSocketBenchmark {
     private TestClient client;
     private NettyEchoServer server;
     private byte[] message;
+    private byte[] response;
 
     @Setup
     public void setup() throws Exception {
         message = newTextMessage(messageSize);
+        response = new byte[messageSize];
 
         int port = pickUnusedPort();
         server = new NettyEchoServer(port, messageSize, cipher);
         server.start();
 
-        client = new TestClient(sslSocketType.newSslSocket(LOCALHOST, port, cipher), messageSize);
+        client = new TestClient(sslSocketType.newSslSocket(LOCALHOST, port, cipher));
         client.start();
     }
 
@@ -126,8 +127,8 @@ public class ClientSocketBenchmark {
     @Benchmark
     public void pingPong() throws IOException {
         client.sendMessage(message);
-        byte[] output = client.readMessage();
-        assertTrue(Arrays.equals(message, output));
+        int numBytes = client.readMessage(response);
+        assertEquals(messageSize, numBytes);
     }
 
     public static void main(String[] args) throws Exception {

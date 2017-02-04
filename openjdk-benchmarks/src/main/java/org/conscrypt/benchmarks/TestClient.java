@@ -17,7 +17,6 @@
 package org.conscrypt.benchmarks;
 
 import java.io.IOException;
-import java.util.Arrays;
 import javax.net.ssl.SSLSocket;
 
 /**
@@ -25,12 +24,10 @@ import javax.net.ssl.SSLSocket;
  * socket.
  */
 final class TestClient {
-    private byte[] buffer;
     private final SSLSocket socket;
 
-    TestClient(SSLSocket socket, int messageSize) {
+    TestClient(SSLSocket socket) {
         this.socket = socket;
-        buffer = new byte[messageSize];
     }
 
     void start() {
@@ -49,7 +46,7 @@ final class TestClient {
         }
     }
 
-    byte[] readMessage() {
+    int readMessage(byte[] buffer) {
         try {
             int totalBytesRead = 0;
             while (totalBytesRead < buffer.length) {
@@ -60,7 +57,7 @@ final class TestClient {
                 }
                 totalBytesRead += bytesRead;
             }
-            return Arrays.copyOfRange(buffer, 0, totalBytesRead);
+            return totalBytesRead;
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

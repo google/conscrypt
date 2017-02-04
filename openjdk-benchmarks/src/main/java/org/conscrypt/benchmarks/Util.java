@@ -173,9 +173,11 @@ final class Util {
      */
     static byte[] newTextMessage(int length) {
         byte[] msg = new byte[length];
-        for (int charsIndex = 0, msgIndex = 0; msgIndex < length;
-                msgIndex++, charsIndex = (charsIndex + 1) % CHARS.length) {
-            msg[msgIndex] = CHARS[charsIndex];
+        for (int msgIndex = 0; msgIndex < length; ) {
+            int remaining = length - msgIndex;
+            int numChars = Math.min(remaining, CHARS.length);
+            System.arraycopy(CHARS, 0, msg, msgIndex, numChars);
+            msgIndex += numChars;
         }
         return msg;
     }

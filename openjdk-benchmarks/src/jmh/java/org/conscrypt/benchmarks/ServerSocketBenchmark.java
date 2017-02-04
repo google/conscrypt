@@ -75,10 +75,13 @@ public class ServerSocketBenchmark {
     private TestClient client;
     private EchoServer server;
     private byte[] message;
+    private byte[] response;
 
     @Setup
     public void setup() throws Exception {
         message = Util.newTextMessage(messageSize);
+        response = new byte[messageSize];
+
         server = new EchoServer(sslSocketType.newServerSocket(cipher), messageSize);
 
         Future connectedFuture = server.start();
@@ -93,7 +96,7 @@ public class ServerSocketBenchmark {
             throw new RuntimeException(e);
         }
 
-        client = new TestClient(socket, messageSize);
+        client = new TestClient(socket);
         client.start();
 
         // Wait for the initial connection to complete.
@@ -109,7 +112,7 @@ public class ServerSocketBenchmark {
     @Benchmark
     public void pingPong() throws IOException {
         client.sendMessage(message);
-        byte[] response = client.readMessage();
-        assertEquals(message.length, response.length);
+        int numBytes = client.readMessage(response);
+        assertEquals(messageSize, numBytes);
     }
 }
