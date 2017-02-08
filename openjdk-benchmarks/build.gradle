@@ -23,6 +23,7 @@ jmh {
 
 dependencies {
     compile project(path: ':conscrypt-openjdk', configuration: "$openJdkConfiguration"),
+            project(':conscrypt-openjdk-testing'),
             libraries.guava,
             libraries.junit,
             libraries.netty_handler,

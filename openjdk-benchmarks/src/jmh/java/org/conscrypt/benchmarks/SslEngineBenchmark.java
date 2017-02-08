@@ -33,13 +33,14 @@
 package org.conscrypt.benchmarks;
 
 import static java.lang.Math.max;
-import static org.conscrypt.benchmarks.Util.PROTOCOL_TLS_V1_2;
-import static org.conscrypt.benchmarks.Util.initClientSslContext;
-import static org.conscrypt.benchmarks.Util.initEngine;
-import static org.conscrypt.benchmarks.Util.initServerContext;
-import static org.conscrypt.benchmarks.Util.newNettyClientContext;
-import static org.conscrypt.benchmarks.Util.newNettyServerContext;
-import static org.conscrypt.benchmarks.Util.newTextMessage;
+import static org.conscrypt.testing.TestUtil.PROTOCOL_TLS_V1_2;
+import static org.conscrypt.testing.TestUtil.doEngineHandshake;
+import static org.conscrypt.testing.TestUtil.initClientSslContext;
+import static org.conscrypt.testing.TestUtil.initEngine;
+import static org.conscrypt.testing.TestUtil.initServerContext;
+import static org.conscrypt.testing.TestUtil.newNettyClientContext;
+import static org.conscrypt.testing.TestUtil.newNettyServerContext;
+import static org.conscrypt.testing.TestUtil.newTextMessage;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -176,7 +177,7 @@ public class SslEngineBenchmark {
         clientCleartextBuffer.flip();
 
         // Complete the initial TLS handshake.
-        handshake();
+        doEngineHandshake(clientEngine, serverEngine);
     }
 
     /**
@@ -205,107 +206,5 @@ public class SslEngineBenchmark {
 
         // Lightweight comparison - just make sure the unencrypted data length is correct.
         assertEquals(clientCleartextBuffer.limit(), serverCleartextBuffer.limit());
-    }
-
-    private void handshake() throws SSLException {
-        ByteBuffer cTOs = allocateBuffer(clientEngine.getSession().getPacketBufferSize());
-        ByteBuffer sTOc = allocateBuffer(serverEngine.getSession().getPacketBufferSize());
-
-        ByteBuffer serverAppReadBuffer =
-                allocateBuffer(serverEngine.getSession().getApplicationBufferSize());
-        ByteBuffer clientAppReadBuffer =
-                allocateBuffer(clientEngine.getSession().getApplicationBufferSize());
-
-        clientEngine.beginHandshake();
-        serverEngine.beginHandshake();
-
-        ByteBuffer empty = allocateBuffer(0);
-
-        SSLEngineResult clientResult;
-        SSLEngineResult serverResult;
-
-        boolean clientHandshakeFinished = false;
-        boolean serverHandshakeFinished = false;
-
-        do {
-            int cTOsPos = cTOs.position();
-            int sTOcPos = sTOc.position();
-
-            clientResult = clientEngine.wrap(empty, cTOs);
-            runDelegatedTasks(clientResult, clientEngine);
-            serverResult = serverEngine.wrap(empty, sTOc);
-            runDelegatedTasks(serverResult, serverEngine);
-
-            // Verify that the consumed and produced number match what is in the buffers now.
-            assertEquals(empty.remaining(), clientResult.bytesConsumed());
-            assertEquals(empty.remaining(), serverResult.bytesConsumed());
-            assertEquals(cTOs.position() - cTOsPos, clientResult.bytesProduced());
-            assertEquals(sTOc.position() - sTOcPos, serverResult.bytesProduced());
-
-            cTOs.flip();
-            sTOc.flip();
-
-            // Verify that we only had one SSLEngineResult.HandshakeStatus.FINISHED
-            if (isHandshakeFinished(clientResult)) {
-                assertFalse(clientHandshakeFinished);
-                clientHandshakeFinished = true;
-            }
-            if (isHandshakeFinished(serverResult)) {
-                assertFalse(serverHandshakeFinished);
-                serverHandshakeFinished = true;
-            }
-
-            cTOsPos = cTOs.position();
-            sTOcPos = sTOc.position();
-
-            int clientAppReadBufferPos = clientAppReadBuffer.position();
-            int serverAppReadBufferPos = serverAppReadBuffer.position();
-
-            clientResult = clientEngine.unwrap(sTOc, clientAppReadBuffer);
-            runDelegatedTasks(clientResult, clientEngine);
-            serverResult = serverEngine.unwrap(cTOs, serverAppReadBuffer);
-            runDelegatedTasks(serverResult, serverEngine);
-
-            // Verify that the consumed and produced number match what is in the buffers now.
-            assertEquals(sTOc.position() - sTOcPos, clientResult.bytesConsumed());
-            assertEquals(cTOs.position() - cTOsPos, serverResult.bytesConsumed());
-            assertEquals(clientAppReadBuffer.position() - clientAppReadBufferPos,
-                    clientResult.bytesProduced());
-            assertEquals(serverAppReadBuffer.position() - serverAppReadBufferPos,
-                    serverResult.bytesProduced());
-
-            cTOs.compact();
-            sTOc.compact();
-
-            // Verify that we only had one SSLEngineResult.HandshakeStatus.FINISHED
-            if (isHandshakeFinished(clientResult)) {
-                assertFalse(clientHandshakeFinished);
-                clientHandshakeFinished = true;
-            }
-            if (isHandshakeFinished(serverResult)) {
-                assertFalse(serverHandshakeFinished);
-                serverHandshakeFinished = true;
-            }
-        } while (!clientHandshakeFinished || !serverHandshakeFinished);
-    }
-
-    private ByteBuffer allocateBuffer(int size) {
-        return bufferType.newBuffer(size);
-    }
-
-    private static boolean isHandshakeFinished(SSLEngineResult result) {
-        return result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.FINISHED;
-    }
-
-    private static void runDelegatedTasks(SSLEngineResult result, SSLEngine engine) {
-        if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_TASK) {
-            for (;;) {
-                Runnable task = engine.getDelegatedTask();
-                if (task == null) {
-                    break;
-                }
-                task.run();
-            }
-        }
     }
 }

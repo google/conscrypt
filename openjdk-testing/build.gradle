@@ -1,0 +1,21 @@
+description = 'Conscrypt: OpenJdk Testing'
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+    }
+}
+
+dependencies {
+    compile project(':conscrypt-constants'),
+            libraries.guava,
+            libraries.junit,
+            libraries.netty_handler
+}
+
+jar {
+    // Only include the testing files in the jar.
+    include 'org/conscrypt/testing/**'
+}

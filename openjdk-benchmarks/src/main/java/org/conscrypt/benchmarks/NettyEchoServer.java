@@ -19,6 +19,7 @@ package org.conscrypt.benchmarks;
 import static io.netty.channel.ChannelOption.SO_BACKLOG;
 import static io.netty.channel.ChannelOption.SO_KEEPALIVE;
 
+import org.conscrypt.testing.TestUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -61,7 +62,7 @@ final class NettyEchoServer {
         b.childHandler(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) throws Exception {
-                SslContext context = Util.newNettyServerContext(cipher);
+                SslContext context = TestUtil.newNettyServerContext(cipher);
                 SSLEngine sslEngine = context.newEngine(ch.alloc());
                 ch.pipeline().addFirst(new SslHandler(sslEngine));
                 ch.pipeline().addLast(new EchoService());

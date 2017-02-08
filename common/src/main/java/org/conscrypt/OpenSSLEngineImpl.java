@@ -491,11 +491,6 @@ public final class OpenSSLEngineImpl extends SSLEngine
             len += src.remaining();
         }
 
-        // Protect against protocol overflow attack vector
-        if (len > SSL3_RT_MAX_PACKET_SIZE) {
-            throw new SSLException("encrypted packet oversized");
-        }
-
         synchronized (stateLock) {
             switch (engineState) {
                 case MODE_SET:
@@ -908,7 +903,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
 
     private SSLEngineResult sslReadErrorResult(int err, int bytesConsumed, int bytesProduced)
             throws SSLException {
-        if (pendingOutboundEncryptedBytes() > 0) {
+        if (!handshakeFinished && pendingOutboundEncryptedBytes() > 0) {
             return new SSLEngineResult(OK, NEED_WRAP, bytesConsumed, bytesProduced);
         }
         throw shutdownWithError(NativeCrypto.SSL_get_error_string(err));

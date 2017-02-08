@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-package org.conscrypt.benchmarks;
+package org.conscrypt.testing;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
@@ -30,7 +33,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
+import java.nio.ByteBuffer;
 import java.security.KeyException;
 import java.security.KeyFactory;
 import java.security.KeyStore;
@@ -49,20 +54,19 @@ import java.util.regex.Pattern;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.OpenSSLProvider;
-import org.conscrypt.OpenSSLSocketFactoryImpl;
 
 /**
  * Utility methods to support testing.
  */
-final class Util {
+public final class TestUtil {
     private static final Provider JDK_PROVIDER = getDefaultTlsProvider();
-    private static final Provider CONSCRYPT_PROVIDER = new OpenSSLProvider();
+    private static final Provider CONSCRYPT_PROVIDER = getConscryptProvider();
     private static final byte[] CHARS =
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".getBytes();
     private static final Pattern KEY_PATTERN =
@@ -71,35 +75,40 @@ final class Util {
                             "-+END\\s+.*PRIVATE\\s+KEY[^-]*-+", // Footer
                     Pattern.CASE_INSENSITIVE);
 
-    static final String PROTOCOL_TLS_V1_2 = "TLSv1.2";
-    static final String PROVIDER_PROPERTY = "SSLContext.TLSv1.2";
-    static final String LOCALHOST = "localhost";
+    public static final String PROTOCOL_TLS_V1_2 = "TLSv1.2";
+    public static final String PROVIDER_PROPERTY = "SSLContext.TLSv1.2";
+    public static final String LOCALHOST = "localhost";
 
-    private Util() {}
+    private TestUtil() {}
 
     /**
      * Returns an array containing only {@link #PROTOCOL_TLS_V1_2}.
      */
-    static String[] getProtocols() {
+    public static String[] getProtocols() {
         return new String[] {PROTOCOL_TLS_V1_2};
     }
 
-    static SSLSocketFactory getJdkSocketFactory() {
+    public static SSLSocketFactory getJdkSocketFactory() {
         return getSocketFactory(JDK_PROVIDER);
     }
 
-    static SSLServerSocketFactory getJdkServerSocketFactory() {
+    public static SSLServerSocketFactory getJdkServerSocketFactory() {
         return getServerSocketFactory(JDK_PROVIDER);
     }
 
-    static SSLSocketFactory getConscryptSocketFactory(boolean useEngineSocket) {
-        OpenSSLSocketFactoryImpl socketFactory =
-                (OpenSSLSocketFactoryImpl) getSocketFactory(CONSCRYPT_PROVIDER);
-        socketFactory.setUseEngineSocket(useEngineSocket);
-        return socketFactory;
+    public static SSLSocketFactory getConscryptSocketFactory(boolean useEngineSocket) {
+        try {
+            Class<?> clazz = Class.forName("org.conscrypt.OpenSSLSocketFactoryImpl");
+            Method method = clazz.getMethod("setUseEngineSocket", boolean.class);
+            SSLSocketFactory socketFactory = getSocketFactory(CONSCRYPT_PROVIDER);
+            method.invoke(socketFactory, useEngineSocket);
+            return socketFactory;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    static SSLServerSocketFactory getConscryptServerSocketFactory() {
+    public static SSLServerSocketFactory getConscryptServerSocketFactory() {
         return getServerSocketFactory(CONSCRYPT_PROVIDER);
     }
 
@@ -113,7 +122,7 @@ final class Util {
         return serverContext.getServerSocketFactory();
     }
 
-    static SSLContext newContext(Provider provider) {
+    public static SSLContext newContext(Provider provider) {
         try {
             return SSLContext.getInstance("TLS", provider);
         } catch (NoSuchAlgorithmException e) {
@@ -121,7 +130,7 @@ final class Util {
         }
     }
 
-    static SslContext newNettyClientContext(String cipher) {
+    public static SslContext newNettyClientContext(String cipher) {
         try {
             File clientCert = loadCert("ca.pem");
             SslContextBuilder ctx = SslContextBuilder.forClient()
@@ -136,7 +145,7 @@ final class Util {
         }
     }
 
-    static SslContext newNettyServerContext(String cipher) {
+    public static SslContext newNettyServerContext(String cipher) {
         try {
             File serverCert = loadCert("server1.pem");
             File serverKey = loadCert("server1.key");
@@ -157,7 +166,7 @@ final class Util {
      * returned port to create a new server socket when other threads/processes are concurrently
      * creating new sockets without a specific port.
      */
-    static int pickUnusedPort() {
+    public static int pickUnusedPort() {
         try {
             ServerSocket serverSocket = new ServerSocket(0);
             int port = serverSocket.getLocalPort();
@@ -171,9 +180,9 @@ final class Util {
     /**
      * Creates a text message of the given length.
      */
-    static byte[] newTextMessage(int length) {
+    public static byte[] newTextMessage(int length) {
         byte[] msg = new byte[length];
-        for (int msgIndex = 0; msgIndex < length; ) {
+        for (int msgIndex = 0; msgIndex < length;) {
             int remaining = length - msgIndex;
             int numChars = Math.min(remaining, CHARS.length);
             System.arraycopy(CHARS, 0, msg, msgIndex, numChars);
@@ -185,7 +194,7 @@ final class Util {
     /**
      * Initializes the given engine with the cipher and client mode.
      */
-    static SSLEngine initEngine(SSLEngine engine, String cipher, boolean client) {
+    public static SSLEngine initEngine(SSLEngine engine, String cipher, boolean client) {
         engine.setEnabledProtocols(getProtocols());
         engine.setEnabledCipherSuites(new String[] {cipher});
         engine.setUseClientMode(client);
@@ -197,9 +206,10 @@ final class Util {
      *
      * @param name  name of a file in src/main/resources/certs.
      */
-    static File loadCert(String name) {
+    public static File loadCert(String name) {
         try {
-            InputStream in = Util.class.getResourceAsStream("/certs/" + name);
+            InputStream in =
+                    TestUtil.class.getResourceAsStream("/org/conscrypt/testing/certs/" + name);
             File tmpFile = File.createTempFile(name, "");
             tmpFile.deleteOnExit();
 
@@ -222,7 +232,7 @@ final class Util {
     /**
      * Initializes the given client-side {@code context} with a default cert.
      */
-    static SSLContext initClientSslContext(SSLContext context) {
+    public static SSLContext initClientSslContext(SSLContext context) {
         File cert = loadCert("ca.pem");
         return initClientSslContext(context, cert);
     }
@@ -231,7 +241,7 @@ final class Util {
      * Initializes the given client-side {@code context} with an appropriate trust manager based on
      * the {@code certChainFile} as its only root certificate.
      */
-    static SSLContext initClientSslContext(SSLContext context, File certChainFile) {
+    public static SSLContext initClientSslContext(SSLContext context, File certChainFile) {
         try {
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
             ks.load(null, null);
@@ -255,7 +265,7 @@ final class Util {
     /**
      * Initializes the given server-side {@code context} with the default cert chain and key.
      */
-    static SSLContext initServerContext(SSLContext context) {
+    public static SSLContext initServerContext(SSLContext context) {
         File cert = loadCert("server1.pem");
         File key = loadCert("server1.key");
         return initServerContext(context, cert, key);
@@ -264,7 +274,8 @@ final class Util {
     /**
      * Initializes the given server-side {@code context} with the given cert chain and private key.
      */
-    static SSLContext initServerContext(SSLContext context, File certChainFile, File keyFile) {
+    public static SSLContext initServerContext(
+            SSLContext context, File certChainFile, File keyFile) {
         try {
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
             ks.load(null, null);
@@ -292,6 +303,108 @@ final class Util {
             return context;
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Performs the intial TLS handshake between the two {@link SSLEngine} instances.
+     */
+    public static void doEngineHandshake(SSLEngine clientEngine, SSLEngine serverEngine)
+            throws SSLException {
+        ByteBuffer cTOs = ByteBuffer.allocate(clientEngine.getSession().getPacketBufferSize());
+        ByteBuffer sTOc = ByteBuffer.allocate(serverEngine.getSession().getPacketBufferSize());
+
+        ByteBuffer serverAppReadBuffer =
+                ByteBuffer.allocate(serverEngine.getSession().getApplicationBufferSize());
+        ByteBuffer clientAppReadBuffer =
+                ByteBuffer.allocate(clientEngine.getSession().getApplicationBufferSize());
+
+        clientEngine.beginHandshake();
+        serverEngine.beginHandshake();
+
+        ByteBuffer empty = ByteBuffer.allocate(0);
+
+        SSLEngineResult clientResult;
+        SSLEngineResult serverResult;
+
+        boolean clientHandshakeFinished = false;
+        boolean serverHandshakeFinished = false;
+
+        do {
+            int cTOsPos = cTOs.position();
+            int sTOcPos = sTOc.position();
+
+            clientResult = clientEngine.wrap(empty, cTOs);
+            runDelegatedTasks(clientResult, clientEngine);
+            serverResult = serverEngine.wrap(empty, sTOc);
+            runDelegatedTasks(serverResult, serverEngine);
+
+            // Verify that the consumed and produced number match what is in the buffers now.
+            assertEquals(empty.remaining(), clientResult.bytesConsumed());
+            assertEquals(empty.remaining(), serverResult.bytesConsumed());
+            assertEquals(cTOs.position() - cTOsPos, clientResult.bytesProduced());
+            assertEquals(sTOc.position() - sTOcPos, serverResult.bytesProduced());
+
+            cTOs.flip();
+            sTOc.flip();
+
+            // Verify that we only had one SSLEngineResult.HandshakeStatus.FINISHED
+            if (isHandshakeFinished(clientResult)) {
+                assertFalse(clientHandshakeFinished);
+                clientHandshakeFinished = true;
+            }
+            if (isHandshakeFinished(serverResult)) {
+                assertFalse(serverHandshakeFinished);
+                serverHandshakeFinished = true;
+            }
+
+            cTOsPos = cTOs.position();
+            sTOcPos = sTOc.position();
+
+            int clientAppReadBufferPos = clientAppReadBuffer.position();
+            int serverAppReadBufferPos = serverAppReadBuffer.position();
+
+            clientResult = clientEngine.unwrap(sTOc, clientAppReadBuffer);
+            runDelegatedTasks(clientResult, clientEngine);
+            serverResult = serverEngine.unwrap(cTOs, serverAppReadBuffer);
+            runDelegatedTasks(serverResult, serverEngine);
+
+            // Verify that the consumed and produced number match what is in the buffers now.
+            assertEquals(sTOc.position() - sTOcPos, clientResult.bytesConsumed());
+            assertEquals(cTOs.position() - cTOsPos, serverResult.bytesConsumed());
+            assertEquals(clientAppReadBuffer.position() - clientAppReadBufferPos,
+                    clientResult.bytesProduced());
+            assertEquals(serverAppReadBuffer.position() - serverAppReadBufferPos,
+                    serverResult.bytesProduced());
+
+            cTOs.compact();
+            sTOc.compact();
+
+            // Verify that we only had one SSLEngineResult.HandshakeStatus.FINISHED
+            if (isHandshakeFinished(clientResult)) {
+                assertFalse(clientHandshakeFinished);
+                clientHandshakeFinished = true;
+            }
+            if (isHandshakeFinished(serverResult)) {
+                assertFalse(serverHandshakeFinished);
+                serverHandshakeFinished = true;
+            }
+        } while (!clientHandshakeFinished || !serverHandshakeFinished);
+    }
+
+    private static boolean isHandshakeFinished(SSLEngineResult result) {
+        return result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.FINISHED;
+    }
+
+    private static void runDelegatedTasks(SSLEngineResult result, SSLEngine engine) {
+        if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_TASK) {
+            for (;;) {
+                Runnable task = engine.getDelegatedTask();
+                if (task == null) {
+                    break;
+                }
+                task.run();
+            }
         }
     }
 
@@ -338,5 +451,15 @@ final class Util {
             }
         }
         throw new RuntimeException("Unable to find a default provider for " + PROVIDER_PROPERTY);
+    }
+
+    private static final Provider getConscryptProvider() {
+        try {
+            return (Provider) Class.forName("org.conscrypt.OpenSSLProvider")
+                    .getConstructor()
+                    .newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
