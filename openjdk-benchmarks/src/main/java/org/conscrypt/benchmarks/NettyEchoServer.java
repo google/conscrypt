@@ -19,7 +19,6 @@ package org.conscrypt.benchmarks;
 import static io.netty.channel.ChannelOption.SO_BACKLOG;
 import static io.netty.channel.ChannelOption.SO_KEEPALIVE;
 
-import org.conscrypt.testing.TestUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -35,6 +34,7 @@ import io.netty.handler.ssl.SslHandler;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLEngine;
+import org.conscrypt.testing.TestUtil;
 
 /**
  * A test server based on Netty and Netty-tcnative that auto-replies with every message

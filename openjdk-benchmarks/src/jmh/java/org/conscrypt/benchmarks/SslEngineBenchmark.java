@@ -42,7 +42,6 @@ import static org.conscrypt.testing.TestUtil.newNettyClientContext;
 import static org.conscrypt.testing.TestUtil.newNettyServerContext;
 import static org.conscrypt.testing.TestUtil.newTextMessage;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.ssl.SslContext;
