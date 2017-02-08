@@ -623,9 +623,54 @@ public abstract class OpenSSLCipher extends CipherSpi {
             calledUpdate = false;
         }
 
-        public static class AES extends EVP_CIPHER {
+        protected abstract static class AES_BASE extends EVP_CIPHER {
             private static final int AES_BLOCK_SIZE = 16;
 
+            protected AES_BASE(Mode mode, Padding padding) {
+                super(mode, padding);
+            }
+
+            @Override
+            protected void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
+                switch (mode) {
+                    case CBC:
+                    case CTR:
+                    case ECB:
+                        return;
+                    default:
+                        throw new NoSuchAlgorithmException("Unsupported mode " + mode.toString());
+                }
+            }
+
+            @Override
+            protected void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
+                switch (padding) {
+                    case NOPADDING:
+                    case PKCS5PADDING:
+                        return;
+                    default:
+                        throw new NoSuchPaddingException(
+                                "Unsupported padding " + padding.toString());
+                }
+            }
+
+            @Override
+            protected String getBaseCipherName() {
+                return "AES";
+            }
+
+            @Override
+            protected String getCipherName(int keyLength, Mode mode) {
+                return "aes-" + (keyLength * 8) + "-" + mode.toString().toLowerCase(Locale.US);
+            }
+
+            @Override
+            protected int getCipherBlockSize() {
+                return AES_BLOCK_SIZE;
+            }
+        }
+
+        public static class AES extends AES_BASE {
             protected AES(Mode mode, Padding padding) {
                 super(mode, padding);
             }
@@ -684,44 +729,115 @@ public abstract class OpenSSLCipher extends CipherSpi {
                                 + " bytes");
                 }
             }
+        }
 
-            @Override
-            protected void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-                switch (mode) {
-                    case CBC:
-                    case CTR:
-                    case ECB:
-                        return;
-                    default:
-                        throw new NoSuchAlgorithmException("Unsupported mode " + mode.toString());
+        public static class AES_128 extends AES_BASE {
+            protected AES_128(Mode mode, Padding padding) {
+                super(mode, padding);
+            }
+
+            public static class CBC extends AES {
+                public CBC(Padding padding) {
+                    super(Mode.CBC, padding);
+                }
+
+                public static class NoPadding extends CBC {
+                    public NoPadding() {
+                        super(Padding.NOPADDING);
+                    }
+                }
+
+                public static class PKCS5Padding extends CBC {
+                    public PKCS5Padding() {
+                        super(Padding.PKCS5PADDING);
+                    }
+                }
+            }
+
+            public static class CTR extends AES {
+                public CTR() {
+                    super(Mode.CTR, Padding.NOPADDING);
+                }
+            }
+
+            public static class ECB extends AES {
+                public ECB(Padding padding) {
+                    super(Mode.ECB, padding);
+                }
+
+                public static class NoPadding extends ECB {
+                    public NoPadding() {
+                        super(Padding.NOPADDING);
+                    }
+                }
+
+                public static class PKCS5Padding extends ECB {
+                    public PKCS5Padding() {
+                        super(Padding.PKCS5PADDING);
+                    }
                 }
             }
 
             @Override
-            protected void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
-                switch (padding) {
-                    case NOPADDING:
-                    case PKCS5PADDING:
-                        return;
-                    default:
-                        throw new NoSuchPaddingException("Unsupported padding "
-                                + padding.toString());
+            protected void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
+                if (keyLength != 16) { // 128 bits
+                    throw new InvalidKeyException("Unsupported key size: " + keyLength + " bytes");
+                }
+            }
+        }
+
+        public static class AES_256 extends AES_BASE {
+            protected AES_256(Mode mode, Padding padding) {
+                super(mode, padding);
+            }
+
+            public static class CBC extends AES {
+                public CBC(Padding padding) {
+                    super(Mode.CBC, padding);
+                }
+
+                public static class NoPadding extends CBC {
+                    public NoPadding() {
+                        super(Padding.NOPADDING);
+                    }
+                }
+
+                public static class PKCS5Padding extends CBC {
+                    public PKCS5Padding() {
+                        super(Padding.PKCS5PADDING);
+                    }
+                }
+            }
+
+            public static class CTR extends AES {
+                public CTR() {
+                    super(Mode.CTR, Padding.NOPADDING);
+                }
+            }
+
+            public static class ECB extends AES {
+                public ECB(Padding padding) {
+                    super(Mode.ECB, padding);
+                }
+
+                public static class NoPadding extends ECB {
+                    public NoPadding() {
+                        super(Padding.NOPADDING);
+                    }
+                }
+
+                public static class PKCS5Padding extends ECB {
+                    public PKCS5Padding() {
+                        super(Padding.PKCS5PADDING);
+                    }
                 }
             }
 
             @Override
-            protected String getBaseCipherName() {
-                return "AES";
-            }
-
-            @Override
-            protected String getCipherName(int keyLength, Mode mode) {
-                return "aes-" + (keyLength * 8) + "-" + mode.toString().toLowerCase(Locale.US);
-            }
-
-            @Override
-            protected int getCipherBlockSize() {
-                return AES_BLOCK_SIZE;
+            protected void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
+                if (keyLength != 32) { // 256 bits
+                    throw new InvalidKeyException("Unsupported key size: " + keyLength + " bytes");
+                }
             }
         }
 
@@ -1219,6 +1335,26 @@ public abstract class OpenSSLCipher extends CipherSpi {
                         return NativeCrypto.EVP_aead_aes_256_gcm();
                     } else {
                         throw new RuntimeException("Unexpected key length: " + keyLength);
+                    }
+                }
+
+                public static class AES_128 extends GCM {
+                    @Override
+                    protected void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
+                        if (keyLength != 16) { // 128 bits
+                            throw new InvalidKeyException(
+                                    "Unsupported key size: " + keyLength + " bytes (must be 16)");
+                        }
+                    }
+                }
+
+                public static class AES_256 extends GCM {
+                    @Override
+                    protected void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
+                        if (keyLength != 32) { // 256 bits
+                            throw new InvalidKeyException(
+                                    "Unsupported key size: " + keyLength + " bytes (must be 32)");
+                        }
                     }
                 }
             }
