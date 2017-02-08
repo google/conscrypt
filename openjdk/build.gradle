@@ -32,7 +32,8 @@ sourceSets {
 dependencies {
     compile project(':conscrypt-constants')
 
-    testCompile libraries.bouncycastle_provider,
+    testCompile project(':conscrypt-openjdk-testing'),
+                libraries.bouncycastle_provider,
                 libraries.bouncycastle_apis,
                 libraries.junit,
                 libraries.mockito

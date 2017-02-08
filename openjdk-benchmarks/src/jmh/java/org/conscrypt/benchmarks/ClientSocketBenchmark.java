@@ -16,12 +16,12 @@
 
 package org.conscrypt.benchmarks;
 
-import static org.conscrypt.benchmarks.Util.LOCALHOST;
-import static org.conscrypt.benchmarks.Util.getConscryptSocketFactory;
-import static org.conscrypt.benchmarks.Util.getJdkSocketFactory;
-import static org.conscrypt.benchmarks.Util.getProtocols;
-import static org.conscrypt.benchmarks.Util.newTextMessage;
-import static org.conscrypt.benchmarks.Util.pickUnusedPort;
+import static org.conscrypt.testing.TestUtil.LOCALHOST;
+import static org.conscrypt.testing.TestUtil.getConscryptSocketFactory;
+import static org.conscrypt.testing.TestUtil.getJdkSocketFactory;
+import static org.conscrypt.testing.TestUtil.getProtocols;
+import static org.conscrypt.testing.TestUtil.newTextMessage;
+import static org.conscrypt.testing.TestUtil.pickUnusedPort;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;

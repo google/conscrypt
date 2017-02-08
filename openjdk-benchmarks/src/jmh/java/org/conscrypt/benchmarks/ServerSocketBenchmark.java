@@ -16,7 +16,13 @@
 
 package org.conscrypt.benchmarks;
 
-import static org.conscrypt.benchmarks.Util.getProtocols;
+import static org.conscrypt.testing.TestUtil.LOCALHOST;
+import static org.conscrypt.testing.TestUtil.getConscryptServerSocketFactory;
+import static org.conscrypt.testing.TestUtil.getJdkServerSocketFactory;
+import static org.conscrypt.testing.TestUtil.getJdkSocketFactory;
+import static org.conscrypt.testing.TestUtil.getProtocols;
+import static org.conscrypt.testing.TestUtil.newTextMessage;
+import static org.conscrypt.testing.TestUtil.pickUnusedPort;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -43,8 +49,8 @@ public class ServerSocketBenchmark {
      * Various factories for SSL server sockets.
      */
     public enum SslSocketType {
-        JDK(Util.getJdkServerSocketFactory()),
-        CONSCRYPT(Util.getConscryptServerSocketFactory());
+        JDK(getJdkServerSocketFactory()),
+        CONSCRYPT(getConscryptServerSocketFactory());
 
         private final SSLServerSocketFactory serverSocketFactory;
 
@@ -54,10 +60,10 @@ public class ServerSocketBenchmark {
 
         final SSLServerSocket newServerSocket(String cipher) {
             try {
-                int port = Util.pickUnusedPort();
+                int port = pickUnusedPort();
                 SSLServerSocket sslSocket =
                         (SSLServerSocket) serverSocketFactory.createServerSocket(port);
-                sslSocket.setEnabledProtocols(Util.getProtocols());
+                sslSocket.setEnabledProtocols(getProtocols());
                 sslSocket.setEnabledCipherSuites(new String[] {cipher});
                 return sslSocket;
             } catch (IOException e) {
@@ -79,7 +85,7 @@ public class ServerSocketBenchmark {
 
     @Setup
     public void setup() throws Exception {
-        message = Util.newTextMessage(messageSize);
+        message = newTextMessage(messageSize);
         response = new byte[messageSize];
 
         server = new EchoServer(sslSocketType.newServerSocket(cipher), messageSize);
@@ -88,8 +94,8 @@ public class ServerSocketBenchmark {
 
         SSLSocket socket;
         try {
-            SSLSocketFactory socketFactory = Util.getJdkSocketFactory();
-            socket = (SSLSocket) socketFactory.createSocket(Util.LOCALHOST, server.port());
+            SSLSocketFactory socketFactory = getJdkSocketFactory();
+            socket = (SSLSocket) socketFactory.createSocket(LOCALHOST, server.port());
             socket.setEnabledProtocols(getProtocols());
             socket.setEnabledCipherSuites(new String[] {cipher});
         } catch (IOException e) {
