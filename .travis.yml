@@ -20,16 +20,25 @@ matrix:
     - os: linux
       jdk: oraclejdk8
       sudo: false
-      android:
-        components:
-          - tools
-          - tools # https://github.com/travis-ci/travis-ci/issues/6040
-          - platform-tools
-          - extra-android-m2repository
-          - build-tools-25.0.0
-          - android-25
-        license:
-          - 'android-sdk-license-.+'
+
+      env:
+        - ANDROID_TOOLS_URL="https://dl.google.com/android/repository/tools_r25.2.3-linux.zip"
+        - ANDROID_HOME="$HOME/android-sdk-linux"
+        - ANDROID_NDK_HOME="$ANDROID_HOME/ndk-bundle"
+
+      before_install:
+        - curl -L $ANDROID_TOOLS_URL -o $HOME/tools.zip
+        - unzip -q $HOME/tools.zip -d $ANDROID_HOME
+        - mkdir $ANDROID_HOME/licenses
+        - echo -ne "\n8933bad161af4178b1185d1a37fbf41ea5269c55" >> $ANDROID_HOME/licenses/android-sdk-license
+        - echo -ne "\n84831b9409646a918e30573bab4c9c91346d8abd\n504667f4c0de7af1a06de9f4b1727b84351f2910" >> $ANDROID_HOME/licenses/android-sdk-preview-license
+        - $ANDROID_HOME/tools/bin/sdkmanager tools
+        - $ANDROID_HOME/tools/bin/sdkmanager platform-tools
+        - $ANDROID_HOME/tools/bin/sdkmanager 'build-tools;25.0.0'
+        - $ANDROID_HOME/tools/bin/sdkmanager 'platforms;android-25'
+        - $ANDROID_HOME/tools/bin/sdkmanager 'extras;android;m2repository'
+        - $ANDROID_HOME/tools/bin/sdkmanager --channel=1 ndk-bundle
+        - $ANDROID_HOME/tools/bin/sdkmanager 'cmake;3.6.3155560'
 
       addons:
         apt:
@@ -92,16 +101,6 @@ before_script:
   #      popd;
   #  fi
 
-  # newest Android NDK
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
-    then
-        yes | $ANDROID_HOME/tools/bin/sdkmanager --channel=1 ndk-bundle 'cmake;3.6.3155560';
-        export ANDROID_NDK_HOME=$ANDROID_HOME/ndk-bundle;
-    fi
-
-  # Don't let the Android build download extra packages.
-  - echo 'android.builder.sdkDownload=false' > gradle.properties
-
   # We need this to find the merge-base
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
@@ -119,7 +118,7 @@ script:
         git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git diff-tree --no-commit-id --name-only -r {} | grep -E '\.java$' | xargs -r git ls-files | xargs -r java -jar $HOME/gjf.jar -a -i --fix-imports-only && git diff --exit-code || { git reset --hard; false; }
     fi
 
-  - ./gradlew --stacktrace --info build
+  - ./gradlew build
 
 after_script:
   - "[ -f android/build/outputs/lint-results-debug.xml ] && cat android/build/outputs/lint-results-debug.xml"
