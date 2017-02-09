@@ -119,7 +119,7 @@ script:
         git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git diff-tree --no-commit-id --name-only -r {} | grep -E '\.java$' | xargs -r git ls-files | xargs -r java -jar $HOME/gjf.jar -a -i --fix-imports-only && git diff --exit-code || { git reset --hard; false; }
     fi
 
-  - ./gradlew --stacktrace --info build
+  - ./gradlew build
 
 after_script:
   - "[ -f android/build/outputs/lint-results-debug.xml ] && cat android/build/outputs/lint-results-debug.xml"

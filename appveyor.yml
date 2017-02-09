@@ -90,10 +90,10 @@ install:
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat cmake;3.6.3155560'
 
 build_script:
-  - gradlew.bat --info assemble
+  - gradlew.bat assemble
 
 test_script:
-  - gradlew.bat --info check
+  - gradlew.bat check
 
 after_test:
   - ps: |
