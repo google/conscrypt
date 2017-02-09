@@ -73,7 +73,9 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                         engine.beginHandshake();
                         break;
                     }
-                    // Fall through to FINISHED processing.
+                    // Finish processing as well
+                    completeHandshake();
+                    break;
                 }
                 case FINISHED: {
                     completeHandshake();
@@ -300,16 +302,19 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
         return engine.chooseServerPSKIdentityHint(keyManager);
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
         return engine.chooseClientPSKIdentity(keyManager, identityHint);
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
         return engine.getPSKKey(keyManager, identityHint, identity);
     }
@@ -505,7 +510,9 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                                         // Need to read more data from the socket.
                                         break;
                                     }
-                                    // Fall-through and serve the data that was produced.
+                                    // Also serve the data that was produced.
+                                    needMoreData = false;
+                                    break;
                                 }
                                 case OK: {
                                     // We processed the entire packet successfully.

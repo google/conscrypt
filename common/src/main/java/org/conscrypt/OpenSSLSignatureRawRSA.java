@@ -77,6 +77,7 @@ public class OpenSSLSignatureRawRSA extends SignatureSpi {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     protected Object engineGetParameter(String param) throws InvalidParameterException {
         return null;
     }
@@ -121,6 +122,7 @@ public class OpenSSLSignatureRawRSA extends SignatureSpi {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     protected void engineSetParameter(String param, Object value) throws InvalidParameterException {
     }
 

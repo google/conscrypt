@@ -1310,16 +1310,19 @@ public class OpenSSLSocketImpl
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
         return keyManager.chooseServerKeyIdentityHint(this);
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
         return keyManager.chooseClientKeyIdentity(identityHint, this);
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
         return keyManager.getKey(identityHint, identity, this);
     }
