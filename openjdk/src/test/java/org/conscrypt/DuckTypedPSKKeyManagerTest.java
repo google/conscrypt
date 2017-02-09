@@ -57,6 +57,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public void testDuckTypingFailsWhenOneMethodMissing() throws Exception {
         try {
             DuckTypedPSKKeyManager.getInstance(new AlmostPSKKeyManager());
@@ -64,8 +65,8 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         } catch (NoSuchMethodException expected) {}
     }
 
-    public void testDuckTypingFailsWhenOneMethodReturnTypeIncompatible()
-            throws Exception {
+    @SuppressWarnings("deprecation")
+    public void testDuckTypingFailsWhenOneMethodReturnTypeIncompatible() throws Exception {
         try {
             assertNotNull(DuckTypedPSKKeyManager.getInstance(
                     new KeyManagerOfferingAllPSKKeyManagerMethodsWithIncompatibleReturnTypes()));
@@ -73,11 +74,13 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         } catch (NoSuchMethodException expected) {}
     }
 
+    @SuppressWarnings("deprecation")
     public void testDuckTypingSucceedsWhenAllMethodsPresentWithExactReturnTypes() throws Exception {
         assertNotNull(DuckTypedPSKKeyManager.getInstance(
                 new KeyManagerOfferingAllPSKKeyManagerMethodsWithExactReturnTypes()));
     }
 
+    @SuppressWarnings("deprecation")
     public void testDuckTypingSucceedsWhenAllMethodsPresentWithDifferentButCompatibleReturnTypes()
             throws Exception {
         assertNotNull(DuckTypedPSKKeyManager.getInstance(
@@ -91,10 +94,11 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         // Proxy are returned to us.
 
         MockInvocationHandler mockInvocationHandler = new MockInvocationHandler();
+        @SuppressWarnings("deprecation")
         PSKKeyManager delegate = (PSKKeyManager) Proxy.newProxyInstance(
-                DuckTypedPSKKeyManager.class.getClassLoader(),
-                new Class[] {PSKKeyManager.class},
+                DuckTypedPSKKeyManager.class.getClassLoader(), new Class<?>[] {PSKKeyManager.class},
                 mockInvocationHandler);
+        @SuppressWarnings("deprecation")
         PSKKeyManager pskKeyManager = DuckTypedPSKKeyManager.getInstance(delegate);
         String identityHint = "hint";
         String identity = "identity";
@@ -103,7 +107,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         assertSame(identityHint, pskKeyManager.chooseServerKeyIdentityHint(mSSLSocket));
         assertEquals("chooseServerKeyIdentityHint",
                 mockInvocationHandler.lastInvokedMethod.getName());
-        assertEquals(Arrays.asList(new Class[] {Socket.class}),
+        assertEquals(Arrays.asList(new Class<?>[] {Socket.class}),
                 Arrays.asList(mockInvocationHandler.lastInvokedMethod.getParameterTypes()));
         assertEquals(1, mockInvocationHandler.lastInvokedMethodArgs.length);
         assertSame(mSSLSocket, mockInvocationHandler.lastInvokedMethodArgs[0]);
@@ -112,7 +116,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         assertSame(identityHint, pskKeyManager.chooseServerKeyIdentityHint(mSSLEngine));
         assertEquals("chooseServerKeyIdentityHint",
                 mockInvocationHandler.lastInvokedMethod.getName());
-        assertEquals(Arrays.asList(new Class[] {SSLEngine.class}),
+        assertEquals(Arrays.asList(new Class<?>[] {SSLEngine.class}),
                 Arrays.asList(mockInvocationHandler.lastInvokedMethod.getParameterTypes()));
         assertEquals(1, mockInvocationHandler.lastInvokedMethodArgs.length);
         assertSame(mSSLEngine, mockInvocationHandler.lastInvokedMethodArgs[0]);
@@ -120,7 +124,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         mockInvocationHandler.returnValue = identity;
         assertSame(identity, pskKeyManager.chooseClientKeyIdentity(identityHint, mSSLSocket));
         assertEquals("chooseClientKeyIdentity", mockInvocationHandler.lastInvokedMethod.getName());
-        assertEquals(Arrays.asList(new Class[] {String.class, Socket.class}),
+        assertEquals(Arrays.asList(new Class<?>[] {String.class, Socket.class}),
                 Arrays.asList(mockInvocationHandler.lastInvokedMethod.getParameterTypes()));
         assertEquals(2, mockInvocationHandler.lastInvokedMethodArgs.length);
         assertSame(identityHint, mockInvocationHandler.lastInvokedMethodArgs[0]);
@@ -129,7 +133,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         mockInvocationHandler.returnValue = identity;
         assertSame(identity, pskKeyManager.chooseClientKeyIdentity(identityHint, mSSLEngine));
         assertEquals("chooseClientKeyIdentity", mockInvocationHandler.lastInvokedMethod.getName());
-        assertEquals(Arrays.asList(new Class[] {String.class, SSLEngine.class}),
+        assertEquals(Arrays.asList(new Class<?>[] {String.class, SSLEngine.class}),
                 Arrays.asList(mockInvocationHandler.lastInvokedMethod.getParameterTypes()));
         assertEquals(2, mockInvocationHandler.lastInvokedMethodArgs.length);
         assertSame(identityHint, mockInvocationHandler.lastInvokedMethodArgs[0]);
@@ -139,7 +143,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         mockInvocationHandler.returnValue = key;
         assertSame(key, pskKeyManager.getKey(identityHint, identity, mSSLSocket));
         assertEquals("getKey", mockInvocationHandler.lastInvokedMethod.getName());
-        assertEquals(Arrays.asList(new Class[] {String.class, String.class, Socket.class}),
+        assertEquals(Arrays.asList(new Class<?>[] {String.class, String.class, Socket.class}),
                 Arrays.asList(mockInvocationHandler.lastInvokedMethod.getParameterTypes()));
         assertEquals(3, mockInvocationHandler.lastInvokedMethodArgs.length);
         assertSame(identityHint, mockInvocationHandler.lastInvokedMethodArgs[0]);
@@ -149,7 +153,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         mockInvocationHandler.returnValue = key;
         assertSame(key, pskKeyManager.getKey(identityHint, identity, mSSLEngine));
         assertEquals("getKey", mockInvocationHandler.lastInvokedMethod.getName());
-        assertEquals(Arrays.asList(new Class[] {String.class, String.class, SSLEngine.class}),
+        assertEquals(Arrays.asList(new Class<?>[] {String.class, String.class, SSLEngine.class}),
                 Arrays.asList(mockInvocationHandler.lastInvokedMethod.getParameterTypes()));
         assertEquals(3, mockInvocationHandler.lastInvokedMethodArgs.length);
         assertSame(identityHint, mockInvocationHandler.lastInvokedMethodArgs[0]);
@@ -161,6 +165,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
             throws Exception {
         // Check that nothing blows up when we invoke getKey which is declared to return
         // SecretKeySpec rather than SecretKey as declared in the PSKKeyManager interface.
+        @SuppressWarnings("deprecation")
         PSKKeyManager pskKeyManager = DuckTypedPSKKeyManager.getInstance(
                 new KeyManagerOfferingAllPSKKeyManagerMethodsWithCompatibleReturnTypes());
         pskKeyManager.getKey(null, "", mSSLSocket);

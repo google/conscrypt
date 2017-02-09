@@ -1378,6 +1378,7 @@ public class NativeCryptoTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void test_SSL_do_handshake_with_psk_with_identity_and_hint_of_max_length()
             throws Exception {
         // normal TLS-PSK client and server case where the server provides the client with a PSK
@@ -1477,6 +1478,7 @@ public class NativeCryptoTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void test_SSL_do_handshake_with_psk_key_too_long() throws Exception {
         final ServerSocket listener = new ServerSocket(0);
         ClientHooks cHooks = new ClientHooks() {
@@ -1582,6 +1584,7 @@ public class NativeCryptoTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void test_SSL_use_psk_identity_hint() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
