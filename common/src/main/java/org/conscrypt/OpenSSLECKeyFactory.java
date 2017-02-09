@@ -83,18 +83,24 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
 
         if (key instanceof ECPublicKey && ECPublicKeySpec.class.isAssignableFrom(keySpec)) {
             ECPublicKey ecKey = (ECPublicKey) key;
-            return (T) new ECPublicKeySpec(ecKey.getW(), ecKey.getParams());
+            @SuppressWarnings("unchecked")
+            T result = (T) new ECPublicKeySpec(ecKey.getW(), ecKey.getParams());
+            return result;
         } else if (key instanceof PublicKey && ECPublicKeySpec.class.isAssignableFrom(keySpec)) {
             final byte[] encoded = key.getEncoded();
             if (!"X.509".equals(key.getFormat()) || encoded == null) {
                 throw new InvalidKeySpecException("Not a valid X.509 encoding");
             }
             ECPublicKey ecKey = (ECPublicKey) engineGeneratePublic(new X509EncodedKeySpec(encoded));
-            return (T) new ECPublicKeySpec(ecKey.getW(), ecKey.getParams());
+            @SuppressWarnings("unchecked")
+            T result = (T) new ECPublicKeySpec(ecKey.getW(), ecKey.getParams());
+            return result;
         } else if (key instanceof ECPrivateKey
                 && ECPrivateKeySpec.class.isAssignableFrom(keySpec)) {
             ECPrivateKey ecKey = (ECPrivateKey) key;
-            return (T) new ECPrivateKeySpec(ecKey.getS(), ecKey.getParams());
+            @SuppressWarnings("unchecked")
+            T result = (T) new ECPrivateKeySpec(ecKey.getS(), ecKey.getParams());
+            return result;
         } else if (key instanceof PrivateKey && ECPrivateKeySpec.class.isAssignableFrom(keySpec)) {
             final byte[] encoded = key.getEncoded();
             if (!"PKCS#8".equals(key.getFormat()) || encoded == null) {
@@ -102,7 +108,9 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
             }
             ECPrivateKey ecKey =
                     (ECPrivateKey) engineGeneratePrivate(new PKCS8EncodedKeySpec(encoded));
-            return (T) new ECPrivateKeySpec(ecKey.getS(), ecKey.getParams());
+            @SuppressWarnings("unchecked")
+            T result = (T) new ECPrivateKeySpec(ecKey.getS(), ecKey.getParams());
+            return result;
         } else if (key instanceof PrivateKey
                 && PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
             final byte[] encoded = key.getEncoded();
@@ -112,7 +120,8 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
             } else if (encoded == null) {
                 throw new InvalidKeySpecException("Key is not encodable");
             }
-            return (T) new PKCS8EncodedKeySpec(encoded);
+            @SuppressWarnings("unchecked") T result = (T) new PKCS8EncodedKeySpec(encoded);
+            return result;
         } else if (key instanceof PublicKey && X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
             final byte[] encoded = key.getEncoded();
             if (!"X.509".equals(key.getFormat())) {
@@ -121,7 +130,8 @@ public class OpenSSLECKeyFactory extends KeyFactorySpi {
             } else if (encoded == null) {
                 throw new InvalidKeySpecException("Key is not encodable");
             }
-            return (T) new X509EncodedKeySpec(encoded);
+            @SuppressWarnings("unchecked") T result = (T) new X509EncodedKeySpec(encoded);
+            return result;
         } else {
             throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
                     + key.getClass().getName() + ", keySpec=" + keySpec.getName());
