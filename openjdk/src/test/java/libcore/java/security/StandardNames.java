@@ -16,6 +16,10 @@
 
 package libcore.java.security;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.security.Security;
 import java.security.spec.DSAPrivateKeySpec;
 import java.security.spec.DSAPublicKeySpec;
@@ -36,7 +40,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.crypto.spec.DHPrivateKeySpec;
 import javax.crypto.spec.DHPublicKeySpec;
-import junit.framework.Assert;
 
 /**
  * This class defines expected string names for protocols, key types,
@@ -63,7 +66,7 @@ import junit.framework.Assert;
  * Java &trade; PKCS#11 Reference Guide
  * </a>.
  */
-public final class StandardNames extends Assert {
+public final class StandardNames {
     public static final boolean IS_RI =
             !"Dalvik Core Library".equals(System.getProperty("java.specification.name"));
     public static final String JSSE_PROVIDER_NAME = (IS_RI) ? "SunJSSE" : "AndroidOpenSSL";
@@ -91,28 +94,29 @@ public final class StandardNames extends Assert {
     /**
      * A map from algorithm type (e.g. Cipher) to a set of algorithms (e.g. AES, DES, ...)
      */
-    public static final Map<String, Set<String>> PROVIDER_ALGORITHMS =
-            new HashMap<String, Set<String>>();
+    public static final HashMap<String, HashSet<String>> PROVIDER_ALGORITHMS =
+            new HashMap<String, HashSet<String>>();
 
-    public static final Map<String, Set<String>> CIPHER_MODES = new HashMap<String, Set<String>>();
+    public static final HashMap<String, HashSet<String>> CIPHER_MODES =
+            new HashMap<String, HashSet<String>>();
 
-    public static final Map<String, Set<String>> CIPHER_PADDINGS =
-            new HashMap<String, Set<String>>();
+    public static final HashMap<String, HashSet<String>> CIPHER_PADDINGS =
+            new HashMap<String, HashSet<String>>();
 
-    private static final Map<String, String[]> SSL_CONTEXT_PROTOCOLS_ENABLED =
+    private static final HashMap<String, String[]> SSL_CONTEXT_PROTOCOLS_ENABLED =
             new HashMap<String, String[]>();
 
     private static void provide(String type, String algorithm) {
-        Set<String> algorithms = PROVIDER_ALGORITHMS.get(type);
+        HashSet<String> algorithms = PROVIDER_ALGORITHMS.get(type);
         if (algorithms == null) {
-            algorithms = new HashSet();
+            algorithms = new HashSet<String>();
             PROVIDER_ALGORITHMS.put(type, algorithms);
         }
         assertTrue("Duplicate " + type + " " + algorithm,
                 algorithms.add(algorithm.toUpperCase(Locale.ROOT)));
     }
     private static void unprovide(String type, String algorithm) {
-        Set<String> algorithms = PROVIDER_ALGORITHMS.get(type);
+        HashSet<String> algorithms = PROVIDER_ALGORITHMS.get(type);
         assertNotNull(algorithms);
         assertTrue(algorithm, algorithms.remove(algorithm.toUpperCase(Locale.ROOT)));
         if (algorithms.isEmpty()) {
@@ -120,7 +124,7 @@ public final class StandardNames extends Assert {
         }
     }
     private static void provideCipherModes(String algorithm, String newModes[]) {
-        Set<String> modes = CIPHER_MODES.get(algorithm);
+        HashSet<String> modes = CIPHER_MODES.get(algorithm);
         if (modes == null) {
             modes = new HashSet<String>();
             CIPHER_MODES.put(algorithm, modes);
@@ -128,7 +132,7 @@ public final class StandardNames extends Assert {
         modes.addAll(Arrays.asList(newModes));
     }
     private static void provideCipherPaddings(String algorithm, String newPaddings[]) {
-        Set<String> paddings = CIPHER_PADDINGS.get(algorithm);
+        HashSet<String> paddings = CIPHER_PADDINGS.get(algorithm);
         if (paddings == null) {
             paddings = new HashSet<String>();
             CIPHER_PADDINGS.put(algorithm, paddings);
@@ -970,8 +974,8 @@ public final class StandardNames extends Assert {
         assertTrue(cipherSuites.length != 0);
 
         // Make sure all cipherSuites names are expected
-        Set remainingCipherSuites = new HashSet<String>(expected);
-        Set unknownCipherSuites = new HashSet<String>();
+        HashSet<String> remainingCipherSuites = new HashSet<String>(expected);
+        HashSet<String> unknownCipherSuites = new HashSet<String>();
         for (String cipherSuite : cipherSuites) {
             boolean removed = remainingCipherSuites.remove(cipherSuite);
             if (!removed) {
@@ -1005,8 +1009,8 @@ public final class StandardNames extends Assert {
         assertTrue(protocols.length != 0);
 
         // Make sure all protocols names are expected
-        Set remainingProtocols = new HashSet<String>(expected);
-        Set unknownProtocols = new HashSet<String>();
+        HashSet<String> remainingProtocols = new HashSet<String>(expected);
+        HashSet<String> unknownProtocols = new HashSet<String>();
         for (String protocol : protocols) {
             if (!remainingProtocols.remove(protocol)) {
                 unknownProtocols.add(protocol);
