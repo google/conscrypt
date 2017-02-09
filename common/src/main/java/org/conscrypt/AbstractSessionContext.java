@@ -59,8 +59,8 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     /** Identifies OpenSSL sessions with TLS SCT data. */
     static final int OPEN_SSL_WITH_TLS_SCT = 3;
 
-    private final Map<ByteArray, SSLSession> sessions
-            = new LinkedHashMap<ByteArray, SSLSession>() {
+    @SuppressWarnings("serial")
+    private final Map<ByteArray, SSLSession> sessions = new LinkedHashMap<ByteArray, SSLSession>() {
         @Override
         protected boolean removeEldestEntry(
                 Map.Entry<ByteArray, SSLSession> eldest) {
