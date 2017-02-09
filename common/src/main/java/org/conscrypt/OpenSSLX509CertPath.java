@@ -32,6 +32,8 @@ import java.util.List;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 public class OpenSSLX509CertPath extends CertPath {
+    private static final long serialVersionUID = -3249106005255170761L;
+
     private static final byte[] PKCS7_MARKER = new byte[] {
             '-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'
     };

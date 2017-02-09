@@ -51,6 +51,8 @@ import javax.security.auth.x500.X500Principal;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 public class OpenSSLX509Certificate extends X509Certificate {
+    private static final long serialVersionUID = 1992239142393372128L;
+
     private transient final long mContext;
     private transient Integer mHashCode;
 

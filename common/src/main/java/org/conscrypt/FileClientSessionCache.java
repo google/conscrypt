@@ -341,8 +341,8 @@ public class FileClientSessionCache {
     }
 
     /** A file containing a piece of cached data. */
+    @SuppressWarnings("serial")
     static class CacheFile extends File {
-
         final String name;
 
         CacheFile(File dir, String name) {
