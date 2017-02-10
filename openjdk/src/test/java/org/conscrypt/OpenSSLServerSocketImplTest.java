@@ -88,7 +88,7 @@ public class OpenSSLServerSocketImplTest {
     public void setup() throws Exception {
         // Create and start the server.
         server = new EchoServer(socketType.newServerSocket(CIPHER), MESSAGE_SIZE);
-        Future connectedFuture = server.start();
+        Future<?> connectedFuture = server.start();
 
         // Create and start the client.
         SSLSocketFactory socketFactory = getJdkSocketFactory();
