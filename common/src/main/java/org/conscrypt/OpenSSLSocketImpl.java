@@ -1070,6 +1070,7 @@ public class OpenSSLSocketImpl
     }
 
     @Override
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public void setSoTimeout(int readTimeoutMilliseconds) throws SocketException {
         if (socket != this) {
             socket.setSoTimeout(readTimeoutMilliseconds);
@@ -1081,6 +1082,7 @@ public class OpenSSLSocketImpl
     }
 
     @Override
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public int getSoTimeout() throws SocketException {
         return readTimeoutMilliseconds;
     }
@@ -1110,6 +1112,7 @@ public class OpenSSLSocketImpl
     }
 
     @Override
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public void close() throws IOException {
         // TODO: Close SSL sockets using a background thread so they close gracefully.
 

@@ -326,7 +326,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
             return kusage;
         }
 
-        final boolean resized[] = new boolean[9];
+        final boolean[] resized = new boolean[9];
         System.arraycopy(kusage, 0, resized, 0, kusage.length);
         return resized;
     }
