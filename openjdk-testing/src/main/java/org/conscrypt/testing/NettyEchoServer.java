@@ -34,7 +34,6 @@ import io.netty.handler.ssl.SslHandler;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLEngine;
-import org.conscrypt.testing.TestUtil;
 
 /**
  * A test server based on Netty and Netty-tcnative that auto-replies with every message
