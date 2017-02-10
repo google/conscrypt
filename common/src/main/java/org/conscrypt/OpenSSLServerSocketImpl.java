@@ -26,6 +26,7 @@ import java.net.Socket;
 public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     private final SSLParametersImpl sslParameters;
     private boolean channelIdEnabled;
+    private boolean useEngineSocket;
 
     protected OpenSSLServerSocketImpl(SSLParametersImpl sslParameters) throws IOException {
         this.sslParameters = sslParameters;
@@ -50,6 +51,14 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
         throws IOException {
         super(port, backlog, iAddress);
         this.sslParameters = sslParameters;
+    }
+
+    /**
+     * Configures the socket to be created for this instance.
+     */
+    public OpenSSLServerSocketImpl setUseEngineSocket(boolean useEngineSocket) {
+        this.useEngineSocket = useEngineSocket;
+        return this;
     }
 
     @Override
@@ -165,9 +174,21 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
-        OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters);
-        socket.setChannelIdEnabled(channelIdEnabled);
-        implAccept(socket);
-        return socket;
+        if (useEngineSocket) {
+            Socket rawSocket = new Socket();
+            implAccept(rawSocket);
+
+            // Enable channel ID.
+            OpenSSLEngineSocketImpl socket =
+                    new OpenSSLEngineSocketImpl(rawSocket, null, -1, true, sslParameters);
+            socket.setChannelIdEnabled(channelIdEnabled);
+            socket.startHandshake();
+            return socket;
+        } else {
+            OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters);
+            socket.setChannelIdEnabled(channelIdEnabled);
+            implAccept(socket);
+            return socket;
+        }
     }
 }

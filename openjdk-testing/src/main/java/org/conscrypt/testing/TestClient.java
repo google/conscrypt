@@ -14,31 +14,38 @@
  * limitations under the License.
  */
 
-package org.conscrypt.benchmarks;
+package org.conscrypt.testing;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import javax.net.ssl.SSLSocket;
 
 /**
  * Client-side endpoint. Provides basic services for sending/receiving messages from the client
  * socket.
  */
-final class TestClient {
+public final class TestClient {
     private final SSLSocket socket;
+    private InputStream input;
+    private OutputStream output;
 
-    TestClient(SSLSocket socket) {
+    public TestClient(SSLSocket socket) {
         this.socket = socket;
     }
 
-    void start() {
+    public void start() {
         try {
             socket.startHandshake();
+            input = new BufferedInputStream(socket.getInputStream());
+            output = socket.getOutputStream();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    void stop() {
+    public void stop() {
         try {
             socket.close();
         } catch (IOException e) {
@@ -46,7 +53,7 @@ final class TestClient {
         }
     }
 
-    int readMessage(byte[] buffer) {
+    public int readMessage(byte[] buffer) {
         try {
             int totalBytesRead = 0;
             while (totalBytesRead < buffer.length) {
@@ -63,7 +70,7 @@ final class TestClient {
         }
     }
 
-    void sendMessage(byte[] data) {
+    public void sendMessage(byte[] data) {
         try {
             socket.getOutputStream().write(data);
             socket.getOutputStream().flush();

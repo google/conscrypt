@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.conscrypt.benchmarks;
+package org.conscrypt.testing;
 
 import static io.netty.channel.ChannelOption.SO_BACKLOG;
 import static io.netty.channel.ChannelOption.SO_KEEPALIVE;
@@ -34,26 +34,25 @@ import io.netty.handler.ssl.SslHandler;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLEngine;
-import org.conscrypt.testing.TestUtil;
 
 /**
  * A test server based on Netty and Netty-tcnative that auto-replies with every message
  * it receives.
  */
-final class NettyEchoServer {
+public final class NettyEchoServer {
     private final EventLoopGroup group = new NioEventLoopGroup();
     private final int port;
     private final int messageSize;
     private Channel channel;
     private String cipher;
 
-    NettyEchoServer(int port, int messageSize, String cipher) {
+    public NettyEchoServer(int port, int messageSize, String cipher) {
         this.port = port;
         this.messageSize = messageSize;
         this.cipher = cipher;
     }
 
-    void start() {
+    public void start() {
         ServerBootstrap b = new ServerBootstrap();
         b.group(group);
         b.channel(NioServerSocketChannel.class);
@@ -82,7 +81,7 @@ final class NettyEchoServer {
         channel = future.channel();
     }
 
-    void stop() {
+    public void stop() {
         if (channel != null) {
             channel.close().awaitUninterruptibly();
             group.shutdownGracefully(1, 5, TimeUnit.SECONDS);

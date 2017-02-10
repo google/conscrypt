@@ -28,6 +28,8 @@ import java.io.IOException;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import org.conscrypt.testing.NettyEchoServer;
+import org.conscrypt.testing.TestClient;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
@@ -44,7 +46,7 @@ public class ClientSocketBenchmark {
     /**
      * Various factories for SSL sockets.
      */
-    public enum SslSocketType {
+    public enum SslProvider {
         JDK {
             private final SSLSocketFactory socketFactory = getJdkSocketFactory();
             @Override
@@ -94,7 +96,7 @@ public class ClientSocketBenchmark {
         abstract SSLSocket newSslSocket(String host, int port);
     }
 
-    @Param public SslSocketType sslSocketType;
+    @Param public SslProvider sslProvider;
 
     @Param({"64", "128", "512", "1024", "4096"}) public int messageSize;
 
@@ -114,7 +116,7 @@ public class ClientSocketBenchmark {
         server = new NettyEchoServer(port, messageSize, cipher);
         server.start();
 
-        client = new TestClient(sslSocketType.newSslSocket(LOCALHOST, port, cipher));
+        client = new TestClient(sslProvider.newSslSocket(LOCALHOST, port, cipher));
         client.start();
     }
 
@@ -129,23 +131,5 @@ public class ClientSocketBenchmark {
         client.sendMessage(message);
         int numBytes = client.readMessage(response);
         assertEquals(messageSize, numBytes);
-    }
-
-    public static void main(String[] args) throws Exception {
-        ClientSocketBenchmark bm = new ClientSocketBenchmark();
-        bm.sslSocketType = SslSocketType.CONSCRYPT_ENGINE;
-        bm.messageSize = 1024;
-        bm.cipher = "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256";
-        bm.setup();
-        try {
-            while (true) {
-                if (Thread.interrupted()) {
-                    break;
-                }
-                bm.pingPong();
-            }
-        } finally {
-            bm.teardown();
-        }
     }
 }

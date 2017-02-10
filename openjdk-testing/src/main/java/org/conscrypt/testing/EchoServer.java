@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.conscrypt.benchmarks;
+package org.conscrypt.testing;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -28,7 +28,7 @@ import javax.net.ssl.SSLSocket;
 /**
  * Simple echo server that responds with an identical message to the one received.
  */
-final class EchoServer {
+public final class EchoServer {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final SSLServerSocket serverSocket;
     private final int messageSize;
@@ -36,31 +36,33 @@ final class EchoServer {
     private SSLSocket socket;
     private volatile boolean stopping;
 
-    EchoServer(SSLServerSocket serverSocket, int messageSize) {
+    public EchoServer(SSLServerSocket serverSocket, int messageSize) {
         this.serverSocket = serverSocket;
         this.messageSize = messageSize;
         buffer = new byte[messageSize];
     }
 
-    Future<?> start() {
+    public Future<?> start() {
         return executor.submit(new AcceptTask());
     }
 
-    void stop() {
+    public void stop() {
         try {
             stopping = true;
+            executor.shutdown();
+
             if (socket != null) {
                 socket.close();
             }
             serverSocket.close();
-            executor.shutdown();
+
             executor.awaitTermination(5, TimeUnit.SECONDS);
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
-    int port() {
+    public int port() {
         return serverSocket.getLocalPort();
     }
 
@@ -76,36 +78,29 @@ final class EchoServer {
                 if (stopping) {
                     return;
                 }
-                executor.execute(new ReadTask());
+                executor.execute(new EchoTask());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
     }
 
-    private final class ReadTask implements Runnable {
+    private final class EchoTask implements Runnable {
         @Override
         public void run() {
             try {
-                if (stopping) {
-                    return;
+                while (!stopping) {
+                    byte[] output = readMessage();
+                    if (!stopping) {
+                        sendMessage(output);
+                    }
                 }
-                byte[] output = readMessage();
-                sendMessage(output);
-
-                if (stopping) {
-                    return;
-                }
-                // Keep running the task until it's being shut down.
-                executor.execute(this);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
         }
-    }
 
-    private byte[] readMessage() {
-        try {
+        private byte[] readMessage() throws IOException {
             int totalBytesRead = 0;
             while (totalBytesRead < messageSize) {
                 int remaining = messageSize - totalBytesRead;
@@ -116,17 +111,15 @@ final class EchoServer {
                 totalBytesRead += bytesRead;
             }
             return Arrays.copyOfRange(buffer, 0, totalBytesRead);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
         }
-    }
 
-    private void sendMessage(byte[] data) {
-        try {
-            socket.getOutputStream().write(data);
-            socket.getOutputStream().flush();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        private void sendMessage(byte[] data) {
+            try {
+                socket.getOutputStream().write(data);
+                socket.getOutputStream().flush();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }

@@ -44,18 +44,21 @@ import java.nio.ByteBuffer;
  * Utility methods for SSL packet processing. Copied from the Netty project.
  */
 final class SSLUtils {
+    static final boolean USE_ENGINE_SOCKET_BY_DEFAULT =
+            Boolean.parseBoolean(System.getProperty("org.conscrypt.useEngineSocketByDefault"));
+
     /**
      * Return how much bytes can be read out of the encrypted data. Be aware that this method will
      * not
      * increase the readerIndex of the given {@link ByteBuffer}.
      *
      * @param buffers The {@link ByteBuffer}s to read from. Be aware that they must have at least
-     * {@link #SSL3_RT_HEADER_LENGTH} bytes to read, otherwise it will throw an {@link
-     * IllegalArgumentException}.
+     * {@link org.conscrypt.NativeConstants#SSL3_RT_HEADER_LENGTH} bytes to read, otherwise it will
+     * throw an {@link IllegalArgumentException}.
      * @return length The length of the encrypted packet that is included in the buffer. This will
      * return {@code -1} if the given {@link ByteBuffer} is not encrypted at all.
      * @throws IllegalArgumentException Is thrown if the given {@link ByteBuffer} has not at least
-     * {@link #SSL3_RT_HEADER_LENGTH} bytes to read.
+     * {@link org.conscrypt.NativeConstants#SSL3_RT_HEADER_LENGTH} bytes to read.
      */
     static int getEncryptedPacketLength(ByteBuffer[] buffers, int offset) {
         ByteBuffer buffer = buffers[offset];
