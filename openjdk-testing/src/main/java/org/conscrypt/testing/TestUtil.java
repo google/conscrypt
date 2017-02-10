@@ -108,8 +108,17 @@ public final class TestUtil {
         }
     }
 
-    public static SSLServerSocketFactory getConscryptServerSocketFactory() {
-        return getServerSocketFactory(CONSCRYPT_PROVIDER);
+    public static SSLServerSocketFactory getConscryptServerSocketFactory(boolean useEngineSocket) {
+        try {
+            Class<?> clazz = Class.forName("org.conscrypt.OpenSSLServerSocketFactoryImpl");
+            Method method = clazz.getMethod("setUseEngineSocket", boolean.class);
+
+            SSLServerSocketFactory socketFactory = getServerSocketFactory(CONSCRYPT_PROVIDER);
+            method.invoke(socketFactory, useEngineSocket);
+            return socketFactory;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static SSLSocketFactory getSocketFactory(Provider provider) {

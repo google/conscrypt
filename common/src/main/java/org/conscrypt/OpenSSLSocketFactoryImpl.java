@@ -23,8 +23,7 @@ import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 
 public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
-    private static boolean useEngineSocketByDefault =
-            Boolean.parseBoolean(System.getProperty("org.conscrypt.useEngineSocketByDefault"));
+    private static boolean useEngineSocketByDefault = SSLUtils.USE_ENGINE_SOCKET_BY_DEFAULT;
 
     private final SSLParametersImpl sslParameters;
     private final IOException instantiationException;

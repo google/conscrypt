@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package org.conscrypt.benchmarks;
+package org.conscrypt;
 
 import static org.conscrypt.testing.TestUtil.LOCALHOST;
 import static org.conscrypt.testing.TestUtil.getConscryptServerSocketFactory;
-import static org.conscrypt.testing.TestUtil.getJdkServerSocketFactory;
 import static org.conscrypt.testing.TestUtil.getJdkSocketFactory;
 import static org.conscrypt.testing.TestUtil.getProtocols;
 import static org.conscrypt.testing.TestUtil.newTextMessage;
 import static org.conscrypt.testing.TestUtil.pickUnusedPort;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLServerSocket;
@@ -34,30 +34,29 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import org.conscrypt.testing.EchoServer;
 import org.conscrypt.testing.TestClient;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Param;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-/**
- * Benchmark for comparing performance of server socket implementations. All benchmarks use the
- * standard JDK TLS implementation.
- */
-@State(Scope.Benchmark)
-public class ServerSocketBenchmark {
+@RunWith(Parameterized.class)
+public class OpenSSLServerSocketImplTest {
+    private static final String CIPHER = "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256";
+    private static final int MESSAGE_SIZE = 4096;
+
     /**
      * Various factories for SSL server sockets.
      */
-    public enum SslProvider {
-        JDK(getJdkServerSocketFactory()),
-        CONSCRYPT(getConscryptServerSocketFactory(false)),
-        CONSCRYPT_ENGINE(getConscryptServerSocketFactory(true));
+    public enum SocketType {
+        DEFAULT(getConscryptServerSocketFactory(false)),
+        ENGINE(getConscryptServerSocketFactory(true));
 
         private final SSLServerSocketFactory serverSocketFactory;
 
-        SslProvider(SSLServerSocketFactory serverSocketFactory) {
+        SocketType(SSLServerSocketFactory serverSocketFactory) {
             this.serverSocketFactory = serverSocketFactory;
         }
 
@@ -75,36 +74,27 @@ public class ServerSocketBenchmark {
         }
     }
 
-    @Param public SslProvider sslProvider;
+    @Parameters(name = "{0}")
+    public static Iterable<Object> data() {
+        return Arrays.asList(SocketType.DEFAULT, SocketType.ENGINE);
+    }
 
-    @Param({"64", "128", "512", "1024", "4096"}) public int messageSize;
-
-    @Param({"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"}) public String cipher;
+    @Parameter public SocketType socketType;
 
     private TestClient client;
     private EchoServer server;
-    private byte[] message;
-    private byte[] response;
 
-    @Setup
+    @Before
     public void setup() throws Exception {
-        message = newTextMessage(messageSize);
-        response = new byte[messageSize];
-
-        server = new EchoServer(sslProvider.newServerSocket(cipher), messageSize);
-
+        // Create and start the server.
+        server = new EchoServer(socketType.newServerSocket(CIPHER), MESSAGE_SIZE);
         Future connectedFuture = server.start();
 
-        SSLSocket socket;
-        try {
-            SSLSocketFactory socketFactory = getJdkSocketFactory();
-            socket = (SSLSocket) socketFactory.createSocket(LOCALHOST, server.port());
-            socket.setEnabledProtocols(getProtocols());
-            socket.setEnabledCipherSuites(new String[] {cipher});
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
+        // Create and start the client.
+        SSLSocketFactory socketFactory = getJdkSocketFactory();
+        SSLSocket socket = (SSLSocket) socketFactory.createSocket(LOCALHOST, server.port());
+        socket.setEnabledProtocols(getProtocols());
+        socket.setEnabledCipherSuites(new String[] {CIPHER});
         client = new TestClient(socket);
         client.start();
 
@@ -112,16 +102,19 @@ public class ServerSocketBenchmark {
         connectedFuture.get(5, TimeUnit.SECONDS);
     }
 
-    @TearDown
+    @After
     public void teardown() throws Exception {
         client.stop();
         server.stop();
     }
 
-    @Benchmark
+    @Test
     public void pingPong() throws IOException {
-        client.sendMessage(message);
-        int numBytes = client.readMessage(response);
-        assertEquals(messageSize, numBytes);
+        byte[] request = newTextMessage(MESSAGE_SIZE);
+        byte[] responseBuffer = new byte[MESSAGE_SIZE];
+        client.sendMessage(request);
+        int numBytes = client.readMessage(responseBuffer);
+        byte[] response = Arrays.copyOfRange(responseBuffer, 0, numBytes);
+        assertArrayEquals(request, response);
     }
 }

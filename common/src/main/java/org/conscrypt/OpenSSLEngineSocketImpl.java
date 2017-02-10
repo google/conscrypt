@@ -178,17 +178,17 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
 
     @Override
     public void setChannelIdEnabled(boolean enabled) {
-        throw new UnsupportedOperationException("Not supported");
+        super.setChannelIdEnabled(enabled);
     }
 
     @Override
     public byte[] getChannelId() throws SSLException {
-        throw new UnsupportedOperationException("Not supported");
+        return super.getChannelId();
     }
 
     @Override
     public void setChannelIdPrivateKey(PrivateKey privateKey) {
-        throw new UnsupportedOperationException("FIXME");
+        super.setChannelIdPrivateKey(privateKey);
     }
 
     @Override
@@ -239,7 +239,6 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
     @Override
     public int getSoWriteTimeout() throws SocketException {
         return 0;
-        //throw new UnsupportedOperationException("Not supported");
     }
 
     @Override
@@ -518,6 +517,10 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                                     // We processed the entire packet successfully.
                                     needMoreData = false;
                                     break;
+                                }
+                                case CLOSED: {
+                                    // EOF
+                                    return -1;
                                 }
                                 default: {
                                     // Anything else is an error.
