@@ -205,7 +205,7 @@ final class NativeLibraryLoader {
         OutputStream out = null;
         File tmpFile = null;
         try {
-            tmpFile = File.createTempFile(prefix, suffix, WORKDIR);
+            tmpFile = createTempFile(prefix, suffix, WORKDIR);
             in = url.openStream();
             out = new FileOutputStream(tmpFile);
 
@@ -364,6 +364,38 @@ final class NativeLibraryLoader {
             } catch (IOException ignore) {
                 // ignore
             }
+        }
+    }
+
+    // Approximates the behavior of File.createTempFile without depending on SecureRandom.
+    private static File createTempFile(String prefix, String suffix, File directory)
+            throws IOException {
+        if (directory == null) {
+            throw new NullPointerException();
+        }
+        long time = System.currentTimeMillis();
+        prefix = new File(prefix).getName();
+        IOException suppressed = null;
+        for (int i = 0; i < 10000; i++) {
+            String tempName = String.format("%s%d%04d%s", prefix, time, i, suffix);
+            File tempFile = new File(directory, tempName);
+            if (!tempName.equals(tempFile.getName())) {
+                // The given prefix or suffix contains path separators.
+                throw new IOException("Unable to create temporary file: " + tempFile);
+            }
+            try {
+                if (tempFile.createNewFile()) {
+                    return tempFile.getCanonicalFile();
+                }
+            } catch (IOException e) {
+                // This may just be a transient error; store it just in case.
+                suppressed = e;
+            }
+        }
+        if (suppressed != null) {
+            throw suppressed;
+        } else {
+            throw new IOException("Unable to create temporary file");
         }
     }
 
