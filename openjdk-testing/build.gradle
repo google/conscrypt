@@ -10,12 +10,9 @@ sourceSets {
 
 dependencies {
     compile project(':conscrypt-constants'),
+            libraries.bouncycastle_provider,
+            libraries.bouncycastle_apis,
             libraries.guava,
             libraries.junit,
             libraries.netty_handler
-}
-
-jar {
-    // Only include the testing files in the jar.
-    include 'org/conscrypt/testing/**'
 }
