@@ -17,6 +17,7 @@
 package org.conscrypt.testing;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -39,7 +40,7 @@ public final class TestClient {
         try {
             socket.startHandshake();
             input = new BufferedInputStream(socket.getInputStream());
-            output = socket.getOutputStream();
+            output = new BufferedOutputStream(socket.getOutputStream());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -58,7 +59,7 @@ public final class TestClient {
             int totalBytesRead = 0;
             while (totalBytesRead < buffer.length) {
                 int remaining = buffer.length - totalBytesRead;
-                int bytesRead = socket.getInputStream().read(buffer, totalBytesRead, remaining);
+                int bytesRead = input.read(buffer, totalBytesRead, remaining);
                 if (bytesRead == -1) {
                     break;
                 }
@@ -72,8 +73,15 @@ public final class TestClient {
 
     public void sendMessage(byte[] data) {
         try {
-            socket.getOutputStream().write(data);
-            socket.getOutputStream().flush();
+            output.write(data);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void flush() {
+        try {
+            output.flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

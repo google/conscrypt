@@ -36,23 +36,56 @@ import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLEngine;
 
 /**
- * A test server based on Netty and Netty-tcnative that auto-replies with every message
- * it receives.
+ * A test server based on Netty and Netty-tcnative.
  */
-public final class NettyEchoServer {
-    private final EventLoopGroup group = new NioEventLoopGroup();
+public final class NettyServer {
     private final int port;
     private final int messageSize;
+    private EventLoopGroup group;
     private Channel channel;
     private String cipher;
+    private volatile MessageProcessor messageProcessor = new BatchMessageProcessor(1);
 
-    public NettyEchoServer(int port, int messageSize, String cipher) {
+    /**
+     * A processor for receipt of a single message.
+     */
+    public interface MessageProcessor {
+        void processMessage(ChannelHandlerContext ctx, ByteBuf request);
+    }
+
+    /**
+     * A {@link MessageProcessor} that waits for receipt of a number of messages in a
+     * batch before replying with the last received message.
+     */
+    static final class BatchMessageProcessor implements MessageProcessor {
+        private final int batchSize;
+        private int messageCount;
+
+        BatchMessageProcessor(int batchSize) {
+            this.batchSize = batchSize;
+        }
+
+        @Override
+        public void processMessage(ChannelHandlerContext ctx, ByteBuf request) {
+            if (messageCount == batchSize - 1) {
+                ctx.writeAndFlush(request);
+            }
+            messageCount = (messageCount + 1) % batchSize;
+        }
+    }
+
+    public NettyServer(int port, int messageSize, String cipher) {
         this.port = port;
         this.messageSize = messageSize;
         this.cipher = cipher;
     }
 
+    public void setMessageProcessor(MessageProcessor messageProcessor) {
+        this.messageProcessor = messageProcessor;
+    }
+
     public void start() {
+        group = new NioEventLoopGroup();
         ServerBootstrap b = new ServerBootstrap();
         b.group(group);
         b.channel(NioServerSocketChannel.class);
@@ -64,7 +97,7 @@ public final class NettyEchoServer {
                 SslContext context = TestUtil.newNettyServerContext(cipher);
                 SSLEngine sslEngine = context.newEngine(ch.alloc());
                 ch.pipeline().addFirst(new SslHandler(sslEngine));
-                ch.pipeline().addLast(new EchoService());
+                ch.pipeline().addLast(new MessageDecoder());
             }
         });
         // Bind and start to accept incoming connections.
@@ -84,24 +117,26 @@ public final class NettyEchoServer {
     public void stop() {
         if (channel != null) {
             channel.close().awaitUninterruptibly();
-            group.shutdownGracefully(1, 5, TimeUnit.SECONDS);
+        }
+        if (group != null) {
+            try {
+                // Wait for the shutdown to complete.
+                group.shutdownGracefully(1, 5, TimeUnit.SECONDS).get();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
     /**
      * Handler that automatically responds with ever message it receives.
      */
-    private final class EchoService extends ByteToMessageDecoder {
+    private final class MessageDecoder extends ByteToMessageDecoder {
         @Override
         protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
                 throws Exception {
             if (in.readableBytes() >= messageSize) {
-                // Copy the input to a new direct buffer.
-                ByteBuf response = ctx.alloc().directBuffer(messageSize);
-                response.writeBytes(in, in.readerIndex(), messageSize);
-                in.skipBytes(messageSize);
-
-                ctx.writeAndFlush(response);
+                messageProcessor.processMessage(ctx, in.readSlice(messageSize));
             }
         }
     }

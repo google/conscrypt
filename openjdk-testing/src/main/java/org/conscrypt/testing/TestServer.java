@@ -16,7 +16,11 @@
 
 package org.conscrypt.testing;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,37 +30,69 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 
 /**
- * Simple echo server that responds with an identical message to the one received.
+ * A simple socket-based test server.
  */
-public final class EchoServer {
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+public final class TestServer {
+    /**
+     * A processor for receipt of a single message.
+     */
+    public interface MessageProcessor { void processMessage(byte[] message, OutputStream os); }
+
+    /**
+     * A {@link MessageProcessor} that simply echos back the received message to the client.
+     */
+    public static final class EchoProcessor implements MessageProcessor {
+        @Override
+        public void processMessage(byte[] message, OutputStream os) {
+            try {
+                os.write(message);
+                os.flush();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     private final SSLServerSocket serverSocket;
     private final int messageSize;
     private final byte[] buffer;
     private SSLSocket socket;
+    private ExecutorService executor;
+    private InputStream inputStream;
+    private OutputStream outputStream;
     private volatile boolean stopping;
+    private volatile MessageProcessor messageProcessor = new EchoProcessor();
 
-    public EchoServer(SSLServerSocket serverSocket, int messageSize) {
+    public TestServer(SSLServerSocket serverSocket, int messageSize) {
         this.serverSocket = serverSocket;
         this.messageSize = messageSize;
         buffer = new byte[messageSize];
     }
 
+    public void setMessageProcessor(MessageProcessor messageProcessor) {
+        this.messageProcessor = messageProcessor;
+    }
+
     public Future<?> start() {
+        executor = Executors.newSingleThreadExecutor();
         return executor.submit(new AcceptTask());
     }
 
     public void stop() {
         try {
             stopping = true;
-            executor.shutdown();
 
             if (socket != null) {
                 socket.close();
+                socket = null;
             }
             serverSocket.close();
 
-            executor.awaitTermination(5, TimeUnit.SECONDS);
+            if (executor != null) {
+                executor.shutdown();
+                executor.awaitTermination(5, TimeUnit.SECONDS);
+                executor = null;
+            }
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -74,25 +110,28 @@ public final class EchoServer {
                     return;
                 }
                 socket = (SSLSocket) serverSocket.accept();
+                inputStream = new BufferedInputStream(socket.getInputStream());
+                outputStream = new BufferedOutputStream(socket.getOutputStream());
 
                 if (stopping) {
                     return;
                 }
-                executor.execute(new EchoTask());
+                executor.execute(new ProcessTask());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
     }
 
-    private final class EchoTask implements Runnable {
+    private final class ProcessTask implements Runnable {
         @Override
         public void run() {
             try {
-                while (!stopping) {
-                    byte[] output = readMessage();
-                    if (!stopping) {
-                        sendMessage(output);
+                Thread thread = Thread.currentThread();
+                while (!stopping && !thread.isInterrupted()) {
+                    byte[] message = readMessage();
+                    if (!stopping && !thread.isInterrupted()) {
+                        messageProcessor.processMessage(message, outputStream);
                     }
                 }
             } catch (Throwable e) {
@@ -104,22 +143,13 @@ public final class EchoServer {
             int totalBytesRead = 0;
             while (totalBytesRead < messageSize) {
                 int remaining = messageSize - totalBytesRead;
-                int bytesRead = socket.getInputStream().read(buffer, totalBytesRead, remaining);
+                int bytesRead = inputStream.read(buffer, totalBytesRead, remaining);
                 if (bytesRead == -1) {
                     break;
                 }
                 totalBytesRead += bytesRead;
             }
             return Arrays.copyOfRange(buffer, 0, totalBytesRead);
-        }
-
-        private void sendMessage(byte[] data) {
-            try {
-                socket.getOutputStream().write(data);
-                socket.getOutputStream().flush();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
     }
 }

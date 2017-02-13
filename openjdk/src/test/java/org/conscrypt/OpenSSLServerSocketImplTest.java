@@ -32,8 +32,8 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import org.conscrypt.testing.EchoServer;
 import org.conscrypt.testing.TestClient;
+import org.conscrypt.testing.TestServer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,12 +82,12 @@ public class OpenSSLServerSocketImplTest {
     @Parameter public SocketType socketType;
 
     private TestClient client;
-    private EchoServer server;
+    private TestServer server;
 
     @Before
     public void setup() throws Exception {
         // Create and start the server.
-        server = new EchoServer(socketType.newServerSocket(CIPHER), MESSAGE_SIZE);
+        server = new TestServer(socketType.newServerSocket(CIPHER), MESSAGE_SIZE);
         Future<?> connectedFuture = server.start();
 
         // Create and start the client.
@@ -113,6 +113,7 @@ public class OpenSSLServerSocketImplTest {
         byte[] request = newTextMessage(MESSAGE_SIZE);
         byte[] responseBuffer = new byte[MESSAGE_SIZE];
         client.sendMessage(request);
+        client.flush();
         int numBytes = client.readMessage(responseBuffer);
         byte[] response = Arrays.copyOfRange(responseBuffer, 0, numBytes);
         assertArrayEquals(request, response);
