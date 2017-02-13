@@ -737,7 +737,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 super(mode, padding);
             }
 
-            public static class CBC extends AES {
+            public static class CBC extends AES_128 {
                 public CBC(Padding padding) {
                     super(Mode.CBC, padding);
                 }
@@ -755,13 +755,13 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 }
             }
 
-            public static class CTR extends AES {
+            public static class CTR extends AES_128 {
                 public CTR() {
                     super(Mode.CTR, Padding.NOPADDING);
                 }
             }
 
-            public static class ECB extends AES {
+            public static class ECB extends AES_128 {
                 public ECB(Padding padding) {
                     super(Mode.ECB, padding);
                 }
@@ -792,7 +792,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 super(mode, padding);
             }
 
-            public static class CBC extends AES {
+            public static class CBC extends AES_256 {
                 public CBC(Padding padding) {
                     super(Mode.CBC, padding);
                 }
@@ -810,13 +810,13 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 }
             }
 
-            public static class CTR extends AES {
+            public static class CTR extends AES_256 {
                 public CTR() {
                     super(Mode.CTR, Padding.NOPADDING);
                 }
             }
 
-            public static class ECB extends AES {
+            public static class ECB extends AES_256 {
                 public ECB(Padding padding) {
                     super(Mode.ECB, padding);
                 }
