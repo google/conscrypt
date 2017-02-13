@@ -7317,15 +7317,18 @@ static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address, jobjec
         return 0;
     }
 
-    ScopedByteArrayRW bytes(env, b);
-    if (bytes.get() == nullptr) {
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_read => threw exception", ssl);
-        return 0;
-    }
-
+    int ret;
     OpenSslError sslError;
-    int ret = sslRead(env, ssl, fdObject, shc, reinterpret_cast<char*>(bytes.get() + offset), len,
+    {
+        ScopedCriticalByteArrayRW bytes(env, b, len);
+        if (bytes.get() == nullptr) {
+            JNI_TRACE("ssl=%p NativeCrypto_SSL_read => threw exception", ssl);
+            return 0;
+        }
+
+        ret = sslRead(env, ssl, fdObject, shc, reinterpret_cast<char*>(bytes.get() + offset), len,
                       sslError, read_timeout_millis);
+    }
 
     int result;
     switch (ret) {
@@ -7518,14 +7521,17 @@ static void NativeCrypto_SSL_write(JNIEnv* env, jclass, jlong ssl_address, jobje
         return;
     }
 
-    ScopedByteArrayRO bytes(env, b);
-    if (bytes.get() == nullptr) {
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_write => threw exception", ssl);
-        return;
-    }
+    int ret;
     OpenSslError sslError;
-    int ret = sslWrite(env, ssl, fdObject, shc, reinterpret_cast<const char*>(bytes.get() + offset),
+    {
+        ScopedCriticalByteArrayRO bytes(env, b, len);
+        if (bytes.get() == nullptr) {
+            JNI_TRACE("ssl=%p NativeCrypto_SSL_write => threw exception", ssl);
+            return;
+        }
+        ret = sslWrite(env, ssl, fdObject, shc, reinterpret_cast<const char*>(bytes.get() + offset),
                        len, sslError, write_timeout_millis);
+    }
 
     switch (ret) {
         case THROW_SSLEXCEPTION:
