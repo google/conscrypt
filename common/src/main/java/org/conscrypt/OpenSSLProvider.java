@@ -258,6 +258,28 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Cipher.AES/CBC/PKCS7Padding", "AES/CBC/PKCS5Padding");
         putSymmetricCipherImplClass("AES/CTR/NoPadding", "OpenSSLCipher$EVP_CIPHER$AES$CTR");
 
+        putSymmetricCipherImplClass(
+                "AES_128/ECB/NoPadding", "OpenSSLCipher$EVP_CIPHER$AES_128$ECB$NoPadding");
+        putSymmetricCipherImplClass(
+                "AES_128/ECB/PKCS5Padding", "OpenSSLCipher$EVP_CIPHER$AES_128$ECB$PKCS5Padding");
+        put("Alg.Alias.Cipher.AES_128/ECB/PKCS7Padding", "AES_128/ECB/PKCS5Padding");
+        putSymmetricCipherImplClass(
+                "AES_128/CBC/NoPadding", "OpenSSLCipher$EVP_CIPHER$AES_128$CBC$NoPadding");
+        putSymmetricCipherImplClass(
+                "AES_128/CBC/PKCS5Padding", "OpenSSLCipher$EVP_CIPHER$AES_128$CBC$PKCS5Padding");
+        put("Alg.Alias.Cipher.AES_128/CBC/PKCS7Padding", "AES_128/CBC/PKCS5Padding");
+
+        putSymmetricCipherImplClass(
+                "AES_256/ECB/NoPadding", "OpenSSLCipher$EVP_CIPHER$AES_256$ECB$NoPadding");
+        putSymmetricCipherImplClass(
+                "AES_256/ECB/PKCS5Padding", "OpenSSLCipher$EVP_CIPHER$AES_256$ECB$PKCS5Padding");
+        put("Alg.Alias.Cipher.AES_256/ECB/PKCS7Padding", "AES_256/ECB/PKCS5Padding");
+        putSymmetricCipherImplClass(
+                "AES_256/CBC/NoPadding", "OpenSSLCipher$EVP_CIPHER$AES_256$CBC$NoPadding");
+        putSymmetricCipherImplClass(
+                "AES_256/CBC/PKCS5Padding", "OpenSSLCipher$EVP_CIPHER$AES_256$CBC$PKCS5Padding");
+        put("Alg.Alias.Cipher.AES_256/CBC/PKCS7Padding", "AES_256/CBC/PKCS5Padding");
+
         putSymmetricCipherImplClass("DESEDE/CBC/NoPadding",
                 "OpenSSLCipher$EVP_CIPHER$DESEDE$CBC$NoPadding");
         putSymmetricCipherImplClass("DESEDE/CBC/PKCS5Padding",
@@ -269,6 +291,10 @@ public final class OpenSSLProvider extends Provider {
         if (NativeConstants.HAS_EVP_AEAD) {
             putSymmetricCipherImplClass("AES/GCM/NoPadding", "OpenSSLCipher$EVP_AEAD$AES$GCM");
             put("Alg.Alias.Cipher.GCM", "AES/GCM/NoPadding");
+            putSymmetricCipherImplClass(
+                    "AES_128/GCM/NoPadding", "OpenSSLCipher$EVP_AEAD$AES$GCM$AES_128");
+            putSymmetricCipherImplClass(
+                    "AES_256/GCM/NoPadding", "OpenSSLCipher$EVP_AEAD$AES$GCM$AES_256");
         }
 
         /* === Mac === */
