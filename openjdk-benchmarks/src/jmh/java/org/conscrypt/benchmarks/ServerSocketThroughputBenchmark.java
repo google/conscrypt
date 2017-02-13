@@ -26,15 +26,23 @@ import static org.conscrypt.testing.TestUtil.pickUnusedPort;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import org.conscrypt.testing.EchoServer;
+import org.conscrypt.testing.TestServer;
 import org.conscrypt.testing.TestClient;
+import org.conscrypt.testing.TestServer.MessageProcessor;
+import org.openjdk.jmh.annotations.AuxCounters;
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
@@ -46,7 +54,24 @@ import org.openjdk.jmh.annotations.TearDown;
  * standard JDK TLS implementation.
  */
 @State(Scope.Benchmark)
-public class ServerSocketBenchmark {
+public class ServerSocketThroughputBenchmark {
+    /**
+     * Use an AuxCounter so we can measure that messages per second as they occur without consuming
+     * CPU in the benchmark method.
+     */
+    @AuxCounters
+    @State(Scope.Thread)
+    public static class MessagesPerSecondCounter {
+        @Setup(Level.Iteration)
+        public void clean() {
+            messageCounter.set(0);
+        }
+
+        public long messagesPerSecond() {
+            return messageCounter.get();
+        }
+    }
+
     /**
      * Various factories for SSL server sockets.
      */
@@ -77,21 +102,37 @@ public class ServerSocketBenchmark {
 
     @Param public SslProvider sslProvider;
 
-    @Param({"64", "128", "512", "1024", "4096"}) public int messageSize;
+    @Param({"64", "1024"}) public int messageSize;
 
     @Param({"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"}) public String cipher;
 
     private TestClient client;
-    private EchoServer server;
+    private TestServer server;
     private byte[] message;
-    private byte[] response;
+    private ExecutorService executor;
+    private volatile boolean stopping;
+    private static final AtomicLong messageCounter = new AtomicLong();
+    private AtomicBoolean recording = new AtomicBoolean();
 
     @Setup
     public void setup() throws Exception {
-        message = newTextMessage(messageSize);
-        response = new byte[messageSize];
+        recording.set(false);
 
-        server = new EchoServer(sslProvider.newServerSocket(cipher), messageSize);
+        message = newTextMessage(messageSize);
+
+        server = new TestServer(sslProvider.newServerSocket(cipher), messageSize);
+        server.setMessageProcessor(new MessageProcessor() {
+            @Override
+            public void processMessage(byte[] message, OutputStream os) {
+                try {
+                    while (!stopping) {
+                        os.write(message);
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
 
         Future connectedFuture = server.start();
 
@@ -110,18 +151,44 @@ public class ServerSocketBenchmark {
 
         // Wait for the initial connection to complete.
         connectedFuture.get(5, TimeUnit.SECONDS);
+
+        // Start the server-side streaming by sending a message to the server.
+        client.sendMessage(message);
+        client.flush();
+
+        executor = Executors.newSingleThreadExecutor();
+        executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                Thread thread = Thread.currentThread();
+                byte[] buffer = new byte[messageSize];
+                while (!stopping && !thread.isInterrupted()) {
+                    int numBytes = client.readMessage(buffer);
+                    assertEquals(messageSize, numBytes);
+
+                    // Increment the message counter if we're recording.
+                    if (recording.get()) {
+                        messageCounter.incrementAndGet();
+                    }
+                }
+            }
+        });
     }
 
     @TearDown
     public void teardown() throws Exception {
+        stopping = true;
         client.stop();
         server.stop();
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 
     @Benchmark
-    public void pingPong() throws IOException {
-        client.sendMessage(message);
-        int numBytes = client.readMessage(response);
-        assertEquals(messageSize, numBytes);
+    public final void throughput(MessagesPerSecondCounter counter) throws Exception {
+        recording.set(true);
+        // No need to do anything, just sleep here.
+        Thread.sleep(1001);
+        recording.set(false);
     }
 }
