@@ -24,6 +24,7 @@ import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Principal;
+import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
@@ -349,8 +350,8 @@ public class OpenSSLX509Certificate extends X509Certificate {
     }
 
     private void verifyOpenSSL(OpenSSLKey pkey) throws CertificateException,
-            NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException,
-            SignatureException {
+                                                       NoSuchAlgorithmException,
+                                                       InvalidKeyException, SignatureException {
         try {
             NativeCrypto.X509_verify(mContext, pkey.getNativeRef());
         } catch (RuntimeException e) {
@@ -386,7 +387,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
             return;
         }
 
-        verifyInternal(key, null);
+        verifyInternal(key, (String) null);
     }
 
     @Override
@@ -394,6 +395,30 @@ public class OpenSSLX509Certificate extends X509Certificate {
             NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException,
             SignatureException {
         verifyInternal(key, sigProvider);
+    }
+
+    @Override
+    public void verify(PublicKey key, Provider sigProvider)
+            throws CertificateException, NoSuchAlgorithmException, InvalidKeyException,
+                   SignatureException {
+        if (key instanceof OpenSSLKeyHolder && sigProvider instanceof OpenSSLProvider) {
+            OpenSSLKey pkey = ((OpenSSLKeyHolder) key).getOpenSSLKey();
+            verifyOpenSSL(pkey);
+            return;
+        }
+
+        final Signature sig;
+        if (sigProvider == null) {
+            sig = Signature.getInstance(getSigAlgName());
+        } else {
+            sig = Signature.getInstance(getSigAlgName(), sigProvider);
+        }
+
+        sig.initVerify(key);
+        sig.update(getTBSCertificate());
+        if (!sig.verify(getSignature())) {
+            throw new SignatureException("signature did not verify");
+        }
     }
 
     @Override
