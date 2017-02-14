@@ -21,17 +21,15 @@ import static org.junit.Assert.assertFalse;
 
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
+import java.security.KeyStore.PrivateKeyEntry;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
+import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
@@ -122,10 +120,12 @@ public final class TestUtil {
 
     public static SslContext newNettyClientContext(String cipher) {
         try {
-            File clientCert = loadCert("ca.pem");
-            SslContextBuilder ctx = SslContextBuilder.forClient()
-                                            .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL)
-                                            .trustManager(clientCert);
+            TestKeyStore server = TestKeyStore.getServer();
+            SslContextBuilder ctx =
+                    SslContextBuilder.forClient()
+                            .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL)
+                            .trustManager((X509Certificate[]) server.getPrivateKey("RSA", "RSA")
+                                                  .getCertificateChain());
             if (cipher != null) {
                 ctx.ciphers(Collections.singletonList(cipher));
             }
@@ -137,10 +137,12 @@ public final class TestUtil {
 
     public static SslContext newNettyServerContext(String cipher) {
         try {
-            File serverCert = loadCert("server1.pem");
-            File serverKey = loadCert("server1.key");
-            SslContextBuilder ctx = SslContextBuilder.forServer(serverCert, serverKey)
-                                            .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL);
+            PrivateKeyEntry server = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
+            SslContextBuilder ctx =
+                    SslContextBuilder
+                            .forServer(server.getPrivateKey(),
+                                    (X509Certificate[]) server.getCertificateChain())
+                            .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL);
             if (cipher != null) {
                 ctx.ciphers(Collections.singletonList(cipher));
             }
@@ -192,40 +194,12 @@ public final class TestUtil {
     }
 
     /**
-     * Load a file from the resources folder.
-     *
-     * @param name  name of a file in src/main/resources/certs.
-     */
-    public static File loadCert(String name) {
-        try {
-            InputStream in =
-                    TestUtil.class.getResourceAsStream("/org/conscrypt/testing/certs/" + name);
-            File tmpFile = File.createTempFile(name, "");
-            tmpFile.deleteOnExit();
-
-            BufferedWriter writer = new BufferedWriter(new FileWriter(tmpFile));
-            try {
-                int b;
-                while ((b = in.read()) != -1) {
-                    writer.write(b);
-                }
-            } finally {
-                writer.close();
-            }
-
-            return tmpFile;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
      * Initializes the given client-side {@code context} with a default cert.
      */
     public static SSLContext initClientSslContext(SSLContext context) {
         try {
             TestKeyStore client = TestKeyStore.getClient();
-            context.init(null, client.trustManagers, null);
+            context.init(client.keyManagers, client.trustManagers, null);
             return context;
         } catch (Exception e) {
             throw new RuntimeException(e);
