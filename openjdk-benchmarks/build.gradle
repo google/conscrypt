@@ -29,7 +29,11 @@ dependencies {
             libraries.netty_handler,
             libraries.netty_tcnative
 
-    jmh libraries.jmh_core
+    jmh libraries.jmh_core,
+            libraries.jmh_generator_asm, 
+            libraries.jmh_generator_bytecode,
+            libraries.jmh_generator_reflection,
+            libraries.jmh_generator_annprocess
 }
 
 // Running benchmarks in IntelliJ seems broken without this.

@@ -78,6 +78,10 @@ subprojects {
 
                 // Benchmark dependencies
                 jmh_core: "org.openjdk.jmh:jmh-core:${jmhVersion}",
+                jmh_generator_annprocess: "org.openjdk.jmh:jmh-generator-annprocess:${jmhVersion}",
+                jmh_generator_asm: "org.openjdk.jmh:jmh-generator-asm:${jmhVersion}",
+                jmh_generator_bytecode: "org.openjdk.jmh:jmh-generator-bytecode:${jmhVersion}",
+                jmh_generator_reflection: "org.openjdk.jmh:jmh-generator-reflection:${jmhVersion}",
                 netty_handler: 'io.netty:netty-handler:4.1.8.Final',
                 netty_tcnative: 'io.netty:netty-tcnative-boringssl-static:1.1.33.Fork26',
         ]
