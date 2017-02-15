@@ -21,6 +21,10 @@ jmh {
     duplicateClassesStrategy = 'warn'
 }
 
+configurations {
+    jmhGenerators
+}
+
 dependencies {
     compile project(path: ':conscrypt-openjdk', configuration: "$openJdkConfiguration"),
             project(':conscrypt-openjdk-testing'),
@@ -29,8 +33,9 @@ dependencies {
             libraries.netty_handler,
             libraries.netty_tcnative
 
-    jmh libraries.jmh_core,
-            libraries.jmh_generator_asm, 
+    jmh libraries.jmh_core
+
+    jmhGenerators libraries.jmh_generator_asm,
             libraries.jmh_generator_bytecode,
             libraries.jmh_generator_reflection,
             libraries.jmh_generator_annprocess
@@ -39,7 +44,7 @@ dependencies {
 // Running benchmarks in IntelliJ seems broken without this.
 // See https://github.com/melix/jmh-gradle-plugin/issues/39
 idea.module {
-    scopes.PROVIDED.plus += [ configurations.jmh ]
+    scopes.PROVIDED.plus += [ configurations.jmh, configurations.jmhGenerators ]
 }
 
 static classifierFor(osName, archName) {
