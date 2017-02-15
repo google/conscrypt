@@ -16,8 +16,6 @@
 
 package org.conscrypt.testing;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -109,8 +107,8 @@ public final class TestServer {
                     return;
                 }
                 socket = (SSLSocket) serverSocket.accept();
-                inputStream = new BufferedInputStream(socket.getInputStream());
-                outputStream = new BufferedOutputStream(socket.getOutputStream());
+                inputStream = socket.getInputStream();
+                outputStream = socket.getOutputStream();
 
                 if (stopping) {
                     return;
