@@ -16,8 +16,6 @@
 
 package org.conscrypt.testing;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -39,8 +37,8 @@ public final class TestClient {
     public void start() {
         try {
             socket.startHandshake();
-            input = new BufferedInputStream(socket.getInputStream());
-            output = new BufferedOutputStream(socket.getOutputStream());
+            input = socket.getInputStream();
+            output = socket.getOutputStream();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
