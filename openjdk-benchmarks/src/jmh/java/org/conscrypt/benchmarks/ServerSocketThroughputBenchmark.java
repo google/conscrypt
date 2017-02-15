@@ -123,10 +123,10 @@ public class ServerSocketThroughputBenchmark {
         server = new TestServer(sslProvider.newServerSocket(cipher), messageSize);
         server.setMessageProcessor(new MessageProcessor() {
             @Override
-            public void processMessage(byte[] message, OutputStream os) {
+            public void processMessage(byte[] inMessage, int numBytes, OutputStream os) {
                 try {
                     while (!stopping) {
-                        os.write(message);
+                        os.write(inMessage, 0, numBytes);
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -134,7 +134,7 @@ public class ServerSocketThroughputBenchmark {
             }
         });
 
-        Future connectedFuture = server.start();
+        Future<?> connectedFuture = server.start();
 
         SSLSocket socket;
         try {

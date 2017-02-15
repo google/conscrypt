@@ -21,7 +21,6 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,16 +35,16 @@ public final class TestServer {
     /**
      * A processor for receipt of a single message.
      */
-    public interface MessageProcessor { void processMessage(byte[] message, OutputStream os); }
+    public interface MessageProcessor { void processMessage(byte[] message, int numBytes, OutputStream os); }
 
     /**
      * A {@link MessageProcessor} that simply echos back the received message to the client.
      */
     public static final class EchoProcessor implements MessageProcessor {
         @Override
-        public void processMessage(byte[] message, OutputStream os) {
+        public void processMessage(byte[] message, int numBytes, OutputStream os) {
             try {
-                os.write(message);
+                os.write(message, 0, numBytes);
                 os.flush();
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -129,9 +128,9 @@ public final class TestServer {
             try {
                 Thread thread = Thread.currentThread();
                 while (!stopping && !thread.isInterrupted()) {
-                    byte[] message = readMessage();
+                    int bytesRead = readMessage();
                     if (!stopping && !thread.isInterrupted()) {
-                        messageProcessor.processMessage(message, outputStream);
+                        messageProcessor.processMessage(buffer, bytesRead, outputStream);
                     }
                 }
             } catch (Throwable e) {
@@ -139,7 +138,7 @@ public final class TestServer {
             }
         }
 
-        private byte[] readMessage() throws IOException {
+        private int readMessage() throws IOException {
             int totalBytesRead = 0;
             while (totalBytesRead < messageSize) {
                 int remaining = messageSize - totalBytesRead;
@@ -149,7 +148,7 @@ public final class TestServer {
                 }
                 totalBytesRead += bytesRead;
             }
-            return Arrays.copyOfRange(buffer, 0, totalBytesRead);
+            return totalBytesRead;
         }
     }
 }
