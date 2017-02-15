@@ -78,35 +78,23 @@ public class ClientSocketThroughputBenchmark {
         JDK {
             private final SSLSocketFactory socketFactory = getJdkSocketFactory();
             @Override
-            SSLSocket newSslSocket(String host, int port) {
-                try {
+            SSLSocket newSslSocket(String host, int port) throws IOException  {
                     return (SSLSocket) socketFactory.createSocket(host, port);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
             }
         },
         CONSCRYPT {
             private final SSLSocketFactory socketFactory = getConscryptSocketFactory(false);
             @Override
-            SSLSocket newSslSocket(String host, int port) {
-                try {
+            SSLSocket newSslSocket(String host, int port)  throws IOException {
                     return (SSLSocket) socketFactory.createSocket(host, port);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
             }
         },
         CONSCRYPT_ENGINE {
             private final SSLSocketFactory socketFactory = getConscryptSocketFactory(true);
             @Override
-            SSLSocket newSslSocket(String host, int port) {
-                try {
+            SSLSocket newSslSocket(String host, int port)  throws IOException {
                     return (SSLSocket) socketFactory.createSocket(
                             SocketFactory.getDefault().createSocket(host, port), host, port, true);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
             }
         };
 
@@ -121,7 +109,7 @@ public class ClientSocketThroughputBenchmark {
             }
         }
 
-        abstract SSLSocket newSslSocket(String host, int port);
+        abstract SSLSocket newSslSocket(String host, int port) throws IOException;
     }
 
     @Param public SslProvider sslProvider;
