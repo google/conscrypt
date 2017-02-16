@@ -7343,12 +7343,11 @@ static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address, jobjec
             }
         } else {
             // Allocate larger buffers on the heap.
-            // TODO: Enforce that len >= 0? If not, the cast below could result in a memory
-            // allocation error/attack.
+            // ARRAY_CHUNK_INVALID above ensures that len >= 0.
             jint remaining = len;
             jint buf_size = (remaining >= 65536) ? 65536 : remaining;
             std::unique_ptr<jbyte[]> buf(new jbyte[static_cast<unsigned int>(buf_size)]);
-            // TODO: Doesn't the following condition require new(std::nothrow)?
+            // TODO: Use new(std::nothrow).
             if (buf.get() == nullptr) {
                 Errors::jniThrowOutOfMemory(env, "Unable to allocate chunk buffer");
                 return 0;
@@ -7364,7 +7363,6 @@ static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address, jobjec
             while (remaining > 0) {
                 jint temp_ret;
                 jint chunk_size = (remaining >= buf_size) ? buf_size : remaining;
-                // TODO: Make sure it's safe to reuse same callbacks repeatedly.
                 temp_ret = sslRead(env, ssl, fdObject, shc, reinterpret_cast<char*>(buf.get()),
                                    chunk_size, sslError, read_timeout_millis);
                 if ((temp_ret == THROWN_EXCEPTION || temp_ret == -1) && ret > 0) {
@@ -7373,8 +7371,6 @@ static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address, jobjec
                 }
                 if (temp_ret < 0) {
                     // An error was encountered. Handle below.
-                    // TODO: Apparently we need to check for all negative values to cover all error
-                    // cases. Is this correct?
                     ret = temp_ret;
                     break;
                 }
