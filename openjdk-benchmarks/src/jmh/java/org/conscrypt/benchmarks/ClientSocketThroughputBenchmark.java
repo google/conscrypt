@@ -17,26 +17,29 @@
 package org.conscrypt.benchmarks;
 
 import static org.conscrypt.testing.TestUtil.LOCALHOST;
+import static org.conscrypt.testing.TestUtil.getConscryptServerSocketFactory;
 import static org.conscrypt.testing.TestUtil.getConscryptSocketFactory;
+import static org.conscrypt.testing.TestUtil.getJdkServerSocketFactory;
 import static org.conscrypt.testing.TestUtil.getJdkSocketFactory;
 import static org.conscrypt.testing.TestUtil.getProtocols;
 import static org.conscrypt.testing.TestUtil.newTextMessage;
 import static org.conscrypt.testing.TestUtil.pickUnusedPort;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.net.SocketFactory;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import org.conscrypt.testing.NettyServer;
-import org.conscrypt.testing.NettyServer.MessageProcessor;
 import org.conscrypt.testing.TestClient;
+import org.conscrypt.testing.TestServer;
 import org.openjdk.jmh.annotations.AuxCounters;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
@@ -75,32 +78,27 @@ public class ClientSocketThroughputBenchmark {
      * Various factories for SSL sockets.
      */
     public enum SslProvider {
-        JDK {
-            private final SSLSocketFactory socketFactory = getJdkSocketFactory();
+        JDK(getJdkSocketFactory(), getJdkServerSocketFactory()),
+        CONSCRYPT(getConscryptSocketFactory(false), getConscryptServerSocketFactory(false)),
+        CONSCRYPT_ENGINE(getConscryptSocketFactory(true), getConscryptServerSocketFactory(true)) {
             @Override
-            SSLSocket newSslSocket(String host, int port) throws IOException  {
-                    return (SSLSocket) socketFactory.createSocket(host, port);
-            }
-        },
-        CONSCRYPT {
-            private final SSLSocketFactory socketFactory = getConscryptSocketFactory(false);
-            @Override
-            SSLSocket newSslSocket(String host, int port)  throws IOException {
-                    return (SSLSocket) socketFactory.createSocket(host, port);
-            }
-        },
-        CONSCRYPT_ENGINE {
-            private final SSLSocketFactory socketFactory = getConscryptSocketFactory(true);
-            @Override
-            SSLSocket newSslSocket(String host, int port)  throws IOException {
-                    return (SSLSocket) socketFactory.createSocket(
-                            SocketFactory.getDefault().createSocket(host, port), host, port, true);
+            SSLSocket newClientSocket(String host, int port, SSLSocketFactory socketFactory)  throws IOException {
+                return (SSLSocket) socketFactory.createSocket(
+                    SocketFactory.getDefault().createSocket(host, port), host, port, true);
             }
         };
 
-        final SSLSocket newSslSocket(String host, int port, String cipher) {
+        private final SSLSocketFactory clientSocketFactory;
+        private final SSLServerSocketFactory serverSocketFactory;
+
+        SslProvider(SSLSocketFactory clientSocketFactory, SSLServerSocketFactory serverSocketFactory) {
+            this.clientSocketFactory = clientSocketFactory;
+            this.serverSocketFactory = serverSocketFactory;
+        }
+
+        final SSLSocket newClientSocket(String host, int port, String cipher) {
             try {
-                SSLSocket sslSocket = newSslSocket(host, port);
+                SSLSocket sslSocket = newClientSocket(host, port, clientSocketFactory);
                 sslSocket.setEnabledProtocols(getProtocols());
                 sslSocket.setEnabledCipherSuites(new String[] {cipher});
                 return sslSocket;
@@ -109,7 +107,22 @@ public class ClientSocketThroughputBenchmark {
             }
         }
 
-        abstract SSLSocket newSslSocket(String host, int port) throws IOException;
+        SSLSocket newClientSocket(String host, int port, SSLSocketFactory socketFactory)  throws IOException {
+            return (SSLSocket) socketFactory.createSocket(host, port);
+        }
+
+        final SSLServerSocket newServerSocket(String cipher) {
+            try {
+                int port = pickUnusedPort();
+                SSLServerSocket sslSocket =
+                    (SSLServerSocket) serverSocketFactory.createServerSocket(port);
+                sslSocket.setEnabledProtocols(getProtocols());
+                sslSocket.setEnabledCipherSuites(new String[] {cipher});
+                return sslSocket;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     @Param public SslProvider sslProvider;
@@ -119,7 +132,7 @@ public class ClientSocketThroughputBenchmark {
     @Param({"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}) public String cipher;
 
     private TestClient client;
-    private NettyServer server;
+    private TestServer server;
     private byte[] message;
     private ExecutorService executor;
     private volatile boolean stopping;
@@ -133,21 +146,23 @@ public class ClientSocketThroughputBenchmark {
 
         message = newTextMessage(messageSize);
 
-        int port = pickUnusedPort();
-        server = new NettyServer(port, messageSize, cipher);
-        server.setMessageProcessor(new MessageProcessor() {
+        server = new TestServer(sslProvider.newServerSocket(cipher), messageSize);
+        server.setMessageProcessor(new TestServer.MessageProcessor() {
             @Override
-            public void processMessage(ChannelHandlerContext ctx, ByteBuf request) {
+            public void processMessage(byte[] inMessage, int numBytes, OutputStream os) {
                 if (recording.get()) {
                     // Server received a message, increment the count.
                     messageCounter.incrementAndGet();
                 }
             }
         });
-        server.start();
+        Future<?> connectedFuture = server.start();
 
-        client = new TestClient(sslProvider.newSslSocket(LOCALHOST, port, cipher));
+        client = new TestClient(sslProvider.newClientSocket(LOCALHOST, server.port(), cipher));
         client.start();
+
+        // Wait for the initial connection to complete.
+        connectedFuture.get(5, TimeUnit.SECONDS);
 
         executor = Executors.newSingleThreadExecutor();
         executor.submit(new Runnable() {
