@@ -7370,16 +7370,15 @@ static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address, jobjec
                 if (temp_ret == THROW_SSLEXCEPTION || temp_ret == THROW_SOCKETTIMEOUTEXCEPTION ||
                     temp_ret == THROWN_EXCEPTION) {
                     // An error was encountered. Handle below.
-                    // TODO: Is it sufficient to check for negative (or even non-positive) values? 0
-                    // itself appears to be an error code.
+                    // TODO: Is it sufficient to check for negative values?
                     ret = temp_ret;
                     break;
                 }
                 env->SetByteArrayRegion(b, offset, temp_ret, buf.get());
                 // Accumulate bytes read.
                 ret += temp_ret;
-                offset += chunk_size;
-                remaining -= chunk_size;
+                offset += temp_ret;
+                remaining -= temp_ret;
             }
         }
     } else {
@@ -7623,8 +7622,8 @@ static void NativeCrypto_SSL_write(JNIEnv* env, jclass, jlong ssl_address, jobje
                     // Encountered an error. Terminate early and handle below.
                     break;
                 }
-                offset += chunk_size;
-                remaining -= chunk_size;
+                offset += ret;
+                remaining -= ret;
             }
         }
     } else {
