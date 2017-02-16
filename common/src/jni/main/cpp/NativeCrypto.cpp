@@ -7367,6 +7367,9 @@ static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address, jobjec
                 // TODO: Make sure it's safe to reuse same callbacks repeatedly.
                 temp_ret = sslRead(env, ssl, fdObject, shc, reinterpret_cast<char*>(buf.get()),
                                    chunk_size, sslError, read_timeout_millis);
+                if (temp_ret == THROWN_EXCEPTION && ret > 0) {
+                    return ret;
+                }
                 if (temp_ret == THROW_SSLEXCEPTION || temp_ret == THROW_SOCKETTIMEOUTEXCEPTION ||
                     temp_ret == THROWN_EXCEPTION) {
                     // An error was encountered. Handle below.
