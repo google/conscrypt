@@ -529,16 +529,9 @@ public final class OpenSSLEngineImpl extends SSLEngine
                 throw new SSLException("Unable to parse TLS packet header");
             }
 
-            if (packetLength - SSL3_RT_HEADER_LENGTH > capacity) {
-                // No enough space in the destination buffer so signal the caller
-                // that the buffer needs to be increased.
-                return new SSLEngineResult(BUFFER_OVERFLOW, getHandshakeStatus(), 0, 0);
-            }
-
             if (len < packetLength) {
                 // We either have not enough data to read the packet header or not enough for
-                // reading
-                // the whole packet.
+                // reading the whole packet.
                 return new SSLEngineResult(BUFFER_UNDERFLOW, getHandshakeStatus(), 0, 0);
             }
 
