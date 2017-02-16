@@ -7379,6 +7379,10 @@ static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address, jobjec
                 ret += temp_ret;
                 offset += temp_ret;
                 remaining -= temp_ret;
+                if (temp_ret < chunk_size) {
+                    // sslRead isn't able to fulfill our request right now.
+                    break;
+                }
             }
         }
     } else {
