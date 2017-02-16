@@ -49,11 +49,11 @@ model {
 
             dependsOn gen
             File genDir = new File("${genDir}/org/conscrypt")
-            genDir.mkdirs()
 
             executable gen.executable.file
 
             doFirst {
+                genDir.mkdirs()
                 standardOutput = new FileOutputStream(new File(genDir, "NativeConstants.java"))
             }
             doLast {
