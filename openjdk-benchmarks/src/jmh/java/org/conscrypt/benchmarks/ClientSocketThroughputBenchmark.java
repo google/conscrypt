@@ -116,7 +116,7 @@ public class ClientSocketThroughputBenchmark {
 
     @Param({"64", "1024"}) public int messageSize;
 
-    @Param({"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"}) public String cipher;
+    @Param({"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}) public String cipher;
 
     private TestClient client;
     private NettyServer server;
