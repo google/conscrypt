@@ -58,19 +58,19 @@ import org.openjdk.jmh.annotations.TearDown;
 @Fork(1)
 public class ClientSocketThroughputBenchmark {
     /**
-     * Use an AuxCounter so we can measure that messages per second as they occur without consuming
-     * CPU in the benchmark method.
+     * Use an AuxCounter so we can measure that bytes per second as they accumulate without
+     * consuming CPU in the benchmark method.
      */
     @AuxCounters
     @State(Scope.Thread)
-    public static class MessagesPerSecondCounter {
+    public static class BytesPerSecondCounter {
         @Setup(Level.Iteration)
         public void clean() {
-            messageCounter.set(0);
+            bytesCounter.set(0);
         }
 
-        public long messagesPerSecond() {
-            return messageCounter.get();
+        public long bytesPerSecond() {
+            return bytesCounter.get();
         }
     }
 
@@ -137,7 +137,7 @@ public class ClientSocketThroughputBenchmark {
     private ExecutorService executor;
     private volatile boolean stopping;
 
-    private static final AtomicLong messageCounter = new AtomicLong();
+    private static final AtomicLong bytesCounter = new AtomicLong();
     private AtomicBoolean recording = new AtomicBoolean();
 
     @Setup(Level.Trial)
@@ -152,7 +152,7 @@ public class ClientSocketThroughputBenchmark {
             public void processMessage(byte[] inMessage, int numBytes, OutputStream os) {
                 if (recording.get()) {
                     // Server received a message, increment the count.
-                    messageCounter.incrementAndGet();
+                    bytesCounter.addAndGet(numBytes);
                 }
             }
         });
@@ -186,7 +186,7 @@ public class ClientSocketThroughputBenchmark {
     }
 
     @Benchmark
-    public final void throughput(MessagesPerSecondCounter counter) throws Exception {
+    public final void throughput(BytesPerSecondCounter counter) throws Exception {
         recording.set(true);
         // No need to do anything, just sleep here.
         Thread.sleep(1001);

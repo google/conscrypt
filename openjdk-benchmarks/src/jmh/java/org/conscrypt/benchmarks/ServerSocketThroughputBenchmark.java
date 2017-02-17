@@ -56,19 +56,19 @@ import org.openjdk.jmh.annotations.TearDown;
 @State(Scope.Benchmark)
 public class ServerSocketThroughputBenchmark {
     /**
-     * Use an AuxCounter so we can measure that messages per second as they occur without consuming
-     * CPU in the benchmark method.
+     * Use an AuxCounter so we can measure that bytes per second as they accumulate without
+     * consuming CPU in the benchmark method.
      */
     @AuxCounters
     @State(Scope.Thread)
-    public static class MessagesPerSecondCounter {
+    public static class BytesPerSecondCounter {
         @Setup(Level.Iteration)
         public void clean() {
-            messageCounter.set(0);
+            bytesCounter.set(0);
         }
 
-        public long messagesPerSecond() {
-            return messageCounter.get();
+        public long bytesPerSecond() {
+            return bytesCounter.get();
         }
     }
 
@@ -111,7 +111,7 @@ public class ServerSocketThroughputBenchmark {
     private byte[] message;
     private ExecutorService executor;
     private volatile boolean stopping;
-    private static final AtomicLong messageCounter = new AtomicLong();
+    private static final AtomicLong bytesCounter = new AtomicLong();
     private AtomicBoolean recording = new AtomicBoolean();
 
     @Setup
@@ -168,7 +168,7 @@ public class ServerSocketThroughputBenchmark {
 
                     // Increment the message counter if we're recording.
                     if (recording.get()) {
-                        messageCounter.incrementAndGet();
+                        bytesCounter.addAndGet(numBytes);
                     }
                 }
             }
@@ -185,7 +185,7 @@ public class ServerSocketThroughputBenchmark {
     }
 
     @Benchmark
-    public final void throughput(MessagesPerSecondCounter counter) throws Exception {
+    public final void throughput(BytesPerSecondCounter counter) throws Exception {
         recording.set(true);
         // No need to do anything, just sleep here.
         Thread.sleep(1001);
