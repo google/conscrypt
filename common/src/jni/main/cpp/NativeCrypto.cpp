@@ -7365,11 +7365,20 @@ static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address, jobjec
                 jint chunk_size = (remaining >= buf_size) ? buf_size : remaining;
                 temp_ret = sslRead(env, ssl, fdObject, shc, reinterpret_cast<char*>(buf.get()),
                                    chunk_size, sslError, read_timeout_millis);
-                if ((temp_ret == THROWN_EXCEPTION || temp_ret == -1) && ret > 0) {
-                    // TODO: Should we only check for -1 above?
-                    return ret;
-                }
                 if (temp_ret < 0) {
+                    if (ret > 0) {
+                        // We've already read some bytes; attempt to preserve them if this is an
+                        // "expected" error.
+                        if (temp_ret == -1) {
+                            // EOF
+                            break;
+                        } else if (temp_ret == THROWN_EXCEPTION) {
+                            // FD closed. Subsequent calls to sslRead should reproduce the
+                            // exception.
+                            env->ExceptionClear();
+                            break;
+                        }
+                    }
                     // An error was encountered. Handle below.
                     ret = temp_ret;
                     break;
