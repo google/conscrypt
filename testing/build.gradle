@@ -1,4 +1,4 @@
-description = 'Conscrypt: OpenJdk Testing'
+description = 'Conscrypt: Testing'
 
 sourceSets {
     main {
