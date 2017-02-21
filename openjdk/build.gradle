@@ -32,7 +32,7 @@ sourceSets {
 dependencies {
     compile project(':conscrypt-constants')
 
-    testCompile project(':conscrypt-openjdk-testing'),
+    testCompile project(':conscrypt-testing'),
                 libraries.junit,
                 libraries.mockito
 }
