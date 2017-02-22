@@ -141,4 +141,74 @@ INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RW(jshort, Short);
 
 #undef INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RW
 
+class ScopedCriticalByteArrayRO {
+public:
+    ScopedCriticalByteArrayRO(JNIEnv* env, jbyteArray java_array, jint size)
+        : env_(env), java_array_(java_array), size_(size) {
+        if (java_array_ == nullptr) {
+            conscrypt::Errors::jniThrowNullPointerException(env_, nullptr);
+        } else {
+            raw_array_ = static_cast<char*>(env_->GetPrimitiveArrayCritical(java_array_, nullptr));
+            if (raw_array_ == nullptr) {
+                conscrypt::Errors::jniThrowNullPointerException(env_, nullptr);
+            }
+        }
+    }
+
+    ~ScopedCriticalByteArrayRO() {
+        env_->ReleasePrimitiveArrayCritical(java_array_, static_cast<void*>(raw_array_), JNI_ABORT);
+    }
+
+    const char* get() const {
+        return raw_array_;
+    }
+
+    size_t size() const {
+        return size_;
+    }
+
+private:
+    JNIEnv* env_;
+    jbyteArray java_array_;
+    char* raw_array_;
+    size_t size_;
+};
+
+class ScopedCriticalByteArrayRW {
+public:
+    ScopedCriticalByteArrayRW(JNIEnv* env, jbyteArray java_array, jint size)
+        : env_(env), java_array_(java_array), size_(size) {
+        if (java_array_ == nullptr) {
+            conscrypt::Errors::jniThrowNullPointerException(env_, nullptr);
+        } else {
+            raw_array_ = static_cast<char*>(env_->GetPrimitiveArrayCritical(java_array_, nullptr));
+            if (raw_array_ == nullptr) {
+                conscrypt::Errors::jniThrowNullPointerException(env_, nullptr);
+            }
+        }
+    }
+
+    ~ScopedCriticalByteArrayRW() {
+        env_->ReleasePrimitiveArrayCritical(java_array_, static_cast<void*>(raw_array_), JNI_ABORT);
+    }
+
+    const char* get() const {
+        return raw_array_;
+    }
+
+    char* get() {
+        return raw_array_;
+    }
+
+    size_t size() const {
+        return size_;
+    }
+
+private:
+    JNIEnv* env_;
+    jbyteArray java_array_;
+    char* raw_array_;
+    size_t size_;
+};
+
 #endif  // SCOPED_PRIMITIVE_ARRAY_H_included
