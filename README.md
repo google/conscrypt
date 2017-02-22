@@ -32,15 +32,27 @@ not yet been published to the public Maven repositories.</b>
 
 #### Download JARs
 You can download
-[the JARs](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.conscrypt%22%20AND%20v%3A%221.0.1%22)
+[the JARs](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.conscrypt%22%20AND%20v%3A%221.1.0%22)
 directly from the Maven repositories.
 
 #### OpenJDK (i.e. non-Android)
 
+##### Native Classifiers
+
+The OpenJDK artifacts are platform-dependent, since each embeds a native library for a particular
+platform. We publish artifacts to Maven Central for the following platforms:
+
+Classifier | Description
+---------------- | -----------
+windows-x86_64 | Windows distribution
+osx-x86_64 | Mac distribution
+linux-x86_64 | Used for Linux
+
 ##### Maven
+
 Use the [os-maven-plugin](https://github.com/trustin/os-maven-plugin) to add the dependency:
 
-```
+```xml
 <build>
   <extensions>
     <extension>
@@ -54,7 +66,7 @@ Use the [os-maven-plugin](https://github.com/trustin/os-maven-plugin) to add the
 <dependency>
   <groupId>org.conscrypt</groupId>
   <artifactId>conscrypt-openjdk</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.1.0-SNAPSHOT</version>
   <classifier>${os.detected.classifier}</classifier>
 </dependency>
 ```
@@ -77,17 +89,35 @@ buildscript {
 apply plugin: "com.google.osdetector"
 
 dependencies {
-  compile 'org.conscrypt:conscrypt-jdk:0.0.1-SNAPSHOT:' + osdetector.classifier
+  compile 'org.conscrypt:conscrypt-jdk:1.1.0-SNAPSHOT:' + osdetector.classifier
 }
 ```
 
-Artifacts are available for the following platforms:
+##### Uber JAR
 
-Classifier | Description
----------------- | -----------
-windows-x86_64 | Windows distribution
-osx-x86_64 | Mac distribution
-linux-x86_64 | Used for Linux
+For convenience, we also publish an Uber JAR to Maven Central that contains the shared
+libraries for all of the published platforms. While the overall size of the JAR is
+larger than depending on a platform-specific artifact, it greatly simplifies the task of
+dependency management for most platforms.
+
+To depend on the uber jar, simply use the `conscrypt-openjdk-uber` artifacts.
+
+###### Maven
+```xml
+<dependency>
+  <groupId>org.conscrypt</groupId>
+  <artifactId>conscrypt-openjdk-uber</artifactId>
+  <version>1.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+###### Gradle
+```gradle
+dependencies {
+  compile 'org.conscrypt:conscrypt-jdk-uber:1.1.0-SNAPSHOT'
+}
+```
+
 
 How to Build
 ------------
