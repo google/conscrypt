@@ -5773,33 +5773,6 @@ static unsigned int psk_server_callback(SSL* ssl, const char *identity,
     return static_cast<unsigned int>(keyLen);
 }
 
-static DH* dhGenerateParameters(int keylength) {
-    /* At the time of writing, OpenSSL and BoringSSL are hard coded to request
-     * a 1024-bit DH. */
-    if (keylength <= 1024) {
-        return DH_get_1024_160(nullptr);
-    }
-
-    if (keylength <= 2048) {
-        return DH_get_2048_224(nullptr);
-    }
-
-    /* In the case of a large request, return the strongest DH group that
-     * we have predefined. Generating a group takes far too long to be
-     * reasonable. */
-    return DH_get_2048_256(nullptr);
-}
-
-/**
- * Call back to ask for Diffie-Hellman parameters
- */
-static DH* tmp_dh_callback(SSL* ssl, int is_export, int keylength) {
-    JNI_TRACE("ssl=%p tmp_dh_callback is_export=%d keylength=%d", ssl, is_export, keylength);
-    DH* tmp_dh = dhGenerateParameters(keylength);
-    JNI_TRACE("ssl=%p tmp_dh_callback => %p", ssl, tmp_dh);
-    return tmp_dh;
-}
-
 static jint NativeCrypto_EVP_has_aes_hardware(JNIEnv*, jclass) {
     int ret = 0;
     ret = EVP_has_aes_hardware();
@@ -5877,8 +5850,6 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
                         | SSL_OP_NO_TICKET
                         // We also disable compression for better compatibility b/2710492 b/2710497
                         | SSL_OP_NO_COMPRESSION
-                        // Because dhGenerateParameters uses DSA_generate_parameters_ex
-                        | SSL_OP_SINGLE_DH_USE
                         // Generate a fresh ECDH keypair for each key exchange.
                         | SSL_OP_SINGLE_ECDH_USE);
 
@@ -5911,7 +5882,6 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_cert_verify_callback(sslCtx.get(), cert_verify_callback, nullptr);
     SSL_CTX_set_info_callback(sslCtx.get(), info_callback);
     SSL_CTX_set_cert_cb(sslCtx.get(), cert_cb, nullptr);
-    SSL_CTX_set_tmp_dh_callback(sslCtx.get(), tmp_dh_callback);
     if (Trace::kWithJniTraceKeys) {
         SSL_CTX_set_keylog_callback(sslCtx.get(), debug_print_session_key);
     }
