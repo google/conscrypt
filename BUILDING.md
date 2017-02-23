@@ -71,30 +71,34 @@ ninja
 ```
 
 ##### Building on Windows
-This assumes that you have Microsoft Visual Studio 2015 in `MSVCDIR` and are
-running on a 64-bit machine. Set up with this command line:
+This assumes that you have Microsoft Visual Studio 2015 installed along
+with Windows 8.1 SDK and your machine is capable of compiling 64-bit.
+Visual Studio 2015 sets the `VS140COMNTOOLS` environment variable upon
+installation.
 
-```bash
-call %MSCVDIR%\vc\vcvarsall.bat x64
+To build in 64-bit mode, set up with this command line:
+
+```bat
+call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" amd64 8.1
 mkdir build64
 cd build64
 ```
 
 To build in 32-bit mode, set up with this command line:
 
-```bash
-call %MSCVDIR%\vc\vcvarsall.bat x64
+```bat
+call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x86 8.1
 mkdir build32
 cd build32
 ```
 
 In either the 64-bit or 32-bit case, run this afterward:
 
-```bash
-cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_C_FLAGS_RELEASE=/MT \
-      -DCMAKE_CXX_FLAGS_RELEASE=/MT \
+```bat
+cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE ^
+      -DCMAKE_BUILD_TYPE=Release ^
+      -DCMAKE_C_FLAGS_RELEASE=/MT ^
+      -DCMAKE_CXX_FLAGS_RELEASE=/MT ^
       -GNinja ..
 ninja
 ```
