@@ -3610,8 +3610,6 @@ static jobject GENERAL_NAME_to_jobject(JNIEnv* env, GENERAL_NAME* gen) {
             JNI_TRACE("GENERAL_NAME_to_jobject(%p) => Email/DNS/URI \"%s\"", gen, data);
             return env->NewStringUTF(data);
         } else {
-            Errors::jniThrowException(env, "java/security/cert/CertificateParsingException",
-                    "Invalid dNSName encoding");
             JNI_TRACE("GENERAL_NAME_to_jobject(%p) => Email/DNS/URI invalid", gen);
             return nullptr;
         }
