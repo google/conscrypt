@@ -78,7 +78,7 @@ installation.
 
 To build in 64-bit mode, set up with this command line:
 
-```dos
+```bat
 call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" amd64 8.1
 mkdir build64
 cd build64
@@ -86,7 +86,7 @@ cd build64
 
 To build in 32-bit mode, set up with this command line:
 
-```dos
+```bat
 call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x86 8.1
 mkdir build32
 cd build32
@@ -94,7 +94,7 @@ cd build32
 
 In either the 64-bit or 32-bit case, run this afterward:
 
-```dos
+```bat
 cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DCMAKE_C_FLAGS_RELEASE=/MT ^
