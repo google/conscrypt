@@ -111,9 +111,8 @@ model {
             sources {
                 cpp {
                     source {
-                        srcDirs = [
-                                "$jniSourceDir/main/cpp"
-                        ]
+                        srcDirs "$jniSourceDir/main/cpp"
+                        include "**/*.cpp"
                     }
                 }
             }
