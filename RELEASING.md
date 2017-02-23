@@ -199,6 +199,26 @@ conscrypt$ ./gradlew build uploadArchives -PtargetArch=<arch> \
     -PrepositoryId=<repository-id> -Dorg.gradle.parallel=false
 ```
 
+Now finish [Releasing on Maven Central](#releasing-on-maven-central).
+
+### Deploy the Uber JAR (Release Deployment Only)
+Once all of the native JARs appear on Maven Central, you can build and deploy
+the Uber JAR that contains all of them.
+
+```bash
+conscrypt$ ./gradlew conscrypt-openjdk-uber:build \
+           -Dorg.conscrypt.openjdk.buildUberJar=true
+
+conscrypt$ ./gradlew conscrypt-openjdk-uber:uploadArchives \
+           -Dorg.gradle.parallel=false \
+           -Dorg.conscrypt.openjdk.buildUberJar=true
+```
+
+This will create
+[a new staging repository](https://oss.sonatype.org/#stagingRepositories),
+so you'll need to [close and release](#releasing-on-maven-central) the
+repository via the OSSRH UI, as you did in the previous step.
+
 Releasing on Maven Central
 --------------------------
 Once all of the artifacts have been pushed to the staging repository, the
