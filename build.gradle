@@ -149,7 +149,7 @@ subprojects {
         }
 
         artifacts {
-            archives sourcesJar
+            archives sourcesJar, javadocJar
         }
 
         uploadArchives.repositories.mavenDeployer {
