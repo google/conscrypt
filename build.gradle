@@ -31,7 +31,7 @@ subprojects {
 
     group = "org.conscrypt"
     description = 'Conscrypt is an alternate Java Security Provider that uses BoringSSL'
-    version = "1.0.0.RC1"
+    version = "1.0.1-SNAPSHOT"
 
     ext {
         os = org.gradle.internal.os.OperatingSystem.current();
