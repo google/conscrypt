@@ -71,14 +71,15 @@ ninja
 ```
 
 ##### Building on Windows
-This assumes that you have Microsoft Visual Studio 2015 in `MSVCDIR` and are
-running on a 64-bit machine. Currently Conscrypt is compiled against the
-Windows 8.1 SDK.
+This assumes that you have Microsoft Visual Studio 2015 installed along
+with Windows 8.1 SDK and your machine is capable of compiling 64-bit.
+Visual Studio 2015 sets the `VS140COMNTOOLS` environment variable upon
+installation.
 
 To build in 64-bit mode, set up with this command line:
 
 ```bash
-call %MSCVDIR%\vc\vcvarsall.bat amd64 8.1
+call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" amd64 8.1
 mkdir build64
 cd build64
 ```
@@ -86,7 +87,7 @@ cd build64
 To build in 32-bit mode, set up with this command line:
 
 ```bash
-call %MSCVDIR%\vc\vcvarsall.bat x86 8.1
+call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x86 8.1
 mkdir build32
 cd build32
 ```
