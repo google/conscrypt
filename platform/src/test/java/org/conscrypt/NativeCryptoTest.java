@@ -1103,69 +1103,6 @@ public class NativeCryptoTest {
         }
     }
 
-    /**
-     * Usually if a RuntimeException is thrown by the
-     * clientCertificateRequestedCalled callback, the caller sees it
-     * during the call to NativeCrypto_SSL_do_handshake.  However, IIS
-     * does not request client certs until after the initial
-     * handshake. It does an SSL renegotiation, which means we need to
-     * be able to deliver the callback's exception in cases like
-     * SSL_read, SSL_write, and SSL_shutdown.
-     */
-    @Test
-    public void test_SSL_do_handshake_clientCertificateRequested_throws_after_renegotiate()
-            throws Exception {
-        final ServerSocket listener = new ServerSocket(0);
-
-        Hooks cHooks = new Hooks() {
-            @Override
-            public long beforeHandshake(long context) throws SSLException {
-                long s = super.beforeHandshake(context);
-                NativeCrypto.SSL_clear_mode(s, SSL_MODE_ENABLE_FALSE_START);
-                return s;
-            }
-            @Override
-            public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
-                    SSLHandshakeCallbacks callback) throws Exception {
-                NativeCrypto.SSL_read(s, fd, callback, new byte[1], 0, 1, 0);
-                fail();
-                super.afterHandshake(session, s, c, sock, fd, callback);
-            }
-            @Override
-            public void clientCertificateRequested(long s) {
-                super.clientCertificateRequested(s);
-                throw new RuntimeException("expected");
-            }
-        };
-        Hooks sHooks = new ServerHooks(getServerPrivateKey(), getServerCertificates()) {
-            @Override
-            public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
-                    SSLHandshakeCallbacks callback) throws Exception {
-                try {
-                    NativeCrypto.SSL_set_verify(s, NativeCrypto.SSL_VERIFY_PEER);
-                    NativeCrypto.SSL_set_options(
-                            s, NativeConstants.SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
-                    NativeCrypto.SSL_renegotiate(s);
-                    NativeCrypto.SSL_write(s, fd, callback, new byte[] {42}, 0, 1,
-                            (int) ((TIMEOUT_SECONDS * 1000) / 2));
-                } catch (IOException expected) {
-                } finally {
-                    super.afterHandshake(session, s, c, sock, fd, callback);
-                }
-            }
-        };
-        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null);
-        Future<TestSSLHandshakeCallbacks> server = handshake(listener, 0, false, sHooks, null);
-        try {
-            client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (ExecutionException e) {
-            if (!"expected".equals(e.getCause().getMessage())) {
-                throw e;
-            }
-        }
-        server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-    }
-
     @Test
     public void test_SSL_do_handshake_client_timeout() throws Exception {
         // client timeout
@@ -1901,7 +1838,7 @@ public class NativeCryptoTest {
     }
 
     @Test
-    public void test_SSL_renegotiate() throws Exception {
+    public void test_SSL_renegotiate_fails() throws Exception {
         try {
             NativeCrypto.SSL_renegotiate(NULL);
             fail();
@@ -1923,7 +1860,16 @@ public class NativeCryptoTest {
             @Override
             public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
                     SSLHandshakeCallbacks callback) throws Exception {
-                NativeCrypto.SSL_renegotiate(s);
+                try {
+                    // Ensure that BoringSSL throws an exception if you try to manually trigger
+                    // SSL renegotiation, which is what we expect.  The fail() may not directly
+                    // cause the test to fail, because we may be in a separate thread from the main
+                    // test thread, but the SSL_write() call that follows is required for the
+                    // test to pass.
+                    NativeCrypto.SSL_renegotiate(s);
+                    fail();
+                } catch (SSLException expected) {
+                }
                 NativeCrypto.SSL_write(s, fd, callback, new byte[] {42}, 0, 1, 0);
                 super.afterHandshake(session, s, c, sock, fd, callback);
             }
