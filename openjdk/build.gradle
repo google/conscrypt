@@ -102,6 +102,10 @@ model {
         }
     }
 
+    buildTypes {
+        release
+    }
+
     components {
         // Builds the JNI library.
         conscrypt_openjdk_jni(NativeLibrarySpec) {
@@ -206,13 +210,13 @@ model {
         }
     }
 
-    tasks {
-        $.binaries.withType(SharedLibraryBinarySpec).each {
+    tasks { t ->
+        $.binaries.withType(SharedLibraryBinarySpec).each { binary ->
             // Build the native artifact classifier from the OS and architecture.
-            def archName = it.targetPlatform.architecture.name.replaceAll('-', '_')
+            def archName = binary.targetPlatform.architecture.name.replaceAll('-', '_')
             def classifier = classifierFor(osName, archName)
             def normalizedClassifier = normalizeClassifier("$classifier")
-            def source = it.sharedLibraryFile
+            def source = binary.sharedLibraryFile
 
             // Copies the native library to a resource location that will be included in the jar.
             task "copyNativeLib${normalizedClassifier}"(type: Copy) {
@@ -226,6 +230,18 @@ model {
 
             // Make sure we build and copy the native library to the output directory.
             compileJava.dependsOn "copyNativeLib${normalizedClassifier}"
+
+            // Now define a task to strip the release binary (linux only)
+            def stripTask = binary.tasks.taskName("strip")
+            t.create(stripTask) {
+                dependsOn binary.tasks.link
+                doFirst {
+                    if (osName == 'linux') {
+                        ["strip", binary.tasks.link.outputFile].execute().waitForOrKill(1000)
+                    }
+                }
+            }
+            binary.tasks.build.dependsOn stripTask
         }
     }
 }
