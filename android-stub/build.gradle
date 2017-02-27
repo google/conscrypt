@@ -4,3 +4,7 @@ description = 'Conscrypt: Android-Stub'
 sourceCompatibility = androidMinJavaVersion
 targetCompatibility = androidMinJavaVersion
 
+// Don't include this artifact in the distribution.
+tasks.install.enabled = false
+tasks.uploadArchives.enabled = false;
+
