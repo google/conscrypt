@@ -10,6 +10,22 @@ We deploy Conscrypt to Maven Central under the following systems:
 
 Other systems may also work, but we haven't verified them.
 
+BoringSSL Version
+-----------------
+
+Each build environment for a particular release *MUST* use the same version
+of BoringSSL. This is necessary in order to maintain consistency across
+platforms as well as to allow the Uber JAR to specify a single version for
+BoringSSL in its MANIFEST.MF.
+
+When deploying, it may be useful to begin with Linux (via Docker),
+taking note of the BoringSSL version used, and then deploying
+Mac and Windows with that version via:
+
+```bash
+boringssl$ git checkout <commit id>
+```
+
 Prerequisites
 -------------
 

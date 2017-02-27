@@ -29,6 +29,11 @@ sourceSets {
     }
 }
 
+// Append the BoringSSL-Version to the manifest.
+jar.manifest {
+    attributes 'BoringSSL-Version' : boringSslVersion
+}
+
 dependencies {
     compile project(':conscrypt-constants')
 

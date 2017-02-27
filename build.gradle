@@ -2,6 +2,13 @@ buildscript {
     repositories {
         mavenCentral()
         mavenLocal()
+        jcenter()
+    }
+    dependencies {
+        // Add dependency for build script,
+        // so we can access Git from our
+        // build script.
+        classpath 'org.ajoberstar:grgit:1.1.0'
     }
 }
 
@@ -63,6 +70,10 @@ subprojects {
         assert build32Bit || build64Bit
         assert file("$jdkHome").exists()
         assert file("$jdkIncludeDir").exists()
+
+        // Get the commit hash for BoringSSL.
+        boringSslGit = org.ajoberstar.grgit.Grgit.open(file("$boringsslHome"))
+        boringSslVersion = boringSslGit.head().id
 
         jmhVersion = '1.17.4'
         libraries = [
