@@ -52,6 +52,12 @@ if (buildUberJar) {
     }
     jar.dependsOn copyClasses
 
+    // Append the BoringSSL-Version to the manifest. Note that this assumes that the
+    // version of BoringSSL for each artifact exactly matches the one on the
+    // current system.
+    jar.manifest {
+        attributes 'BoringSSL-Version': boringSslVersion
+    }
 } else {
     // Not building an uber jar - disable all tasks.
     tasks.collect {
