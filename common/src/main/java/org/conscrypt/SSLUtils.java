@@ -38,7 +38,7 @@ import static org.conscrypt.NativeConstants.SSL3_RT_APPLICATION_DATA;
 import static org.conscrypt.NativeConstants.SSL3_RT_CHANGE_CIPHER_SPEC;
 import static org.conscrypt.NativeConstants.SSL3_RT_HANDSHAKE;
 import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
-import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PLAIN_LENGTH;
+import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
 import java.nio.ByteBuffer;
 
@@ -66,9 +66,6 @@ final class SSLUtils {
      */
     private static final int MAX_ENCRYPTION_OVERHEAD_LENGTH = 15 + 48 + 1 + 16 + 1 + 2 + 2;
 
-    private static final int MAX_ENCRYPTED_PACKET_LENGTH =
-            SSL3_RT_MAX_PLAIN_LENGTH + MAX_ENCRYPTION_OVERHEAD_LENGTH;
-
     private static final int MAX_ENCRYPTION_OVERHEAD_DIFF =
             Integer.MAX_VALUE - MAX_ENCRYPTION_OVERHEAD_LENGTH;
 
@@ -77,7 +74,7 @@ final class SSLUtils {
      * plaintext source bytes.
      */
     static int calculateOutNetBufSize(int pendingBytes) {
-        return min(MAX_ENCRYPTED_PACKET_LENGTH,
+        return min(SSL3_RT_MAX_PACKET_SIZE,
                 MAX_ENCRYPTION_OVERHEAD_LENGTH + min(MAX_ENCRYPTION_OVERHEAD_DIFF, pendingBytes));
     }
 
