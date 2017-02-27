@@ -102,6 +102,10 @@ model {
         }
     }
 
+    buildTypes {
+        release
+    }
+
     components {
         // Builds the JNI library.
         conscrypt_openjdk_jni(NativeLibrarySpec) {
@@ -226,7 +230,7 @@ model {
             // Make sure we build and copy the native library to the output directory.
             compileJava.dependsOn "copyNativeLib${normalizedClassifier}"
 
-            // Now define a task to strip the binary (linux only)
+            // Now define a task to strip the release binary (linux only)
             def stripTask = binary.tasks.taskName("strip")
             t.create(stripTask) {
                 dependsOn binary.tasks.link
