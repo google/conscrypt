@@ -32,11 +32,13 @@
 
 package org.conscrypt;
 
+import static java.lang.Math.min;
 import static org.conscrypt.NativeConstants.SSL3_RT_ALERT;
 import static org.conscrypt.NativeConstants.SSL3_RT_APPLICATION_DATA;
 import static org.conscrypt.NativeConstants.SSL3_RT_CHANGE_CIPHER_SPEC;
 import static org.conscrypt.NativeConstants.SSL3_RT_HANDSHAKE;
 import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
+import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PLAIN_LENGTH;
 
 import java.nio.ByteBuffer;
 
@@ -46,6 +48,38 @@ import java.nio.ByteBuffer;
 final class SSLUtils {
     static final boolean USE_ENGINE_SOCKET_BY_DEFAULT =
             Boolean.parseBoolean(System.getProperty("org.conscrypt.useEngineSocketByDefault"));
+
+    /**
+     * This is the maximum overhead when encrypting plaintext as defined by
+     * <a href="https://www.ietf.org/rfc/rfc5246.txt">rfc5264</a>,
+     * <a href="https://www.ietf.org/rfc/rfc5289.txt">rfc5289</a> and openssl implementation itself.
+     *
+     * Please note that we use a padding of 16 here as openssl uses PKC#5 which uses 16 bytes
+     * whilethe spec itself allow up to 255 bytes. 16 bytes is the max for PKC#5 (which handles it
+     * the same way as PKC#7) as we use a block size of 16. See <a
+     * href="https://tools.ietf.org/html/rfc5652#section-6.3">rfc5652#section-6.3</a>.
+     *
+     * 16 (IV) + 48 (MAC) + 1 (Padding_length field) + 15 (Padding) + 1 (ContentType) + 2
+     * (ProtocolVersion) + 2 (Length)
+     *
+     * TODO: We may need to review this calculation once TLS 1.3 becomes available.
+     */
+    private static final int MAX_ENCRYPTION_OVERHEAD_LENGTH = 15 + 48 + 1 + 16 + 1 + 2 + 2;
+
+    private static final int MAX_ENCRYPTED_PACKET_LENGTH =
+            SSL3_RT_MAX_PLAIN_LENGTH + MAX_ENCRYPTION_OVERHEAD_LENGTH;
+
+    private static final int MAX_ENCRYPTION_OVERHEAD_DIFF =
+            Integer.MAX_VALUE - MAX_ENCRYPTION_OVERHEAD_LENGTH;
+
+    /**
+     * Calculates the minimum bytes required in the encrypted output buffer for the given number of
+     * plaintext source bytes.
+     */
+    static int calculateOutNetBufSize(int pendingBytes) {
+        return min(MAX_ENCRYPTED_PACKET_LENGTH,
+                MAX_ENCRYPTION_OVERHEAD_LENGTH + min(MAX_ENCRYPTION_OVERHEAD_DIFF, pendingBytes));
+    }
 
     /**
      * Return how much bytes can be read out of the encrypted data. Be aware that this method will
