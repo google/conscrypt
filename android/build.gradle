@@ -106,7 +106,7 @@ if (androidSdkInstalled) {
         failOnError false
         options {
             encoding = 'UTF-8'
-            links "http://docs.oracle.com/javase/7/docs/api/"
+            links "https://docs.oracle.com/javase/7/docs/api/"
         }
     }
 
@@ -161,7 +161,7 @@ if (androidSdkInstalled) {
             licenses {
                 license {
                     name 'Apache 2'
-                    url 'http://www.apache.org/licenses/LICENSE-2.0'
+                    url 'https://www.apache.org/licenses/LICENSE-2.0'
                 }
             }
 
