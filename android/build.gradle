@@ -26,6 +26,11 @@ if (androidSdkInstalled) {
     apply plugin: 'com.android.library'
     apply plugin: 'com.github.dcendents.android-maven'
 
+    // Since we're not taking a direct dependency on the constants module, we need to add an
+    // explicit task dependency to make sure the code is generated.
+    evaluationDependsOn(':conscrypt-constants')
+    preBuild.dependsOn project(':conscrypt-constants').build
+
     android {
         compileSdkVersion androidTargetSdkVersion
         buildToolsVersion androidBuildToolsVersion
@@ -72,6 +77,8 @@ if (androidSdkInstalled) {
                         "${rootDir}/common/src/main/java",
                         "src/main/java"
                 ]
+                // Requires evaluationDependsOn(':conscrypt-constants') above.
+                srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
             }
         }
         externalNativeBuild {
@@ -89,7 +96,6 @@ if (androidSdkInstalled) {
         androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
             exclude group: 'com.android.support', module: 'support-annotations'
         })
-        compile project(':conscrypt-constants')
         provided project(':conscrypt-android-stub')
     }
 } else {

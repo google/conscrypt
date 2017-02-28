@@ -25,6 +25,7 @@ sourceSets {
     main {
         java {
             srcDirs += "${rootDir}/common/src/main/java"
+            srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
         }
     }
 }
@@ -34,9 +35,11 @@ jar.manifest {
     attributes 'BoringSSL-Version' : boringSslVersion
 }
 
-dependencies {
-    compile project(':conscrypt-constants')
+// Since we're not taking a direct dependency on the constants module, we need to add an
+// explicit task dependency to make sure the code is generated.
+compileJava.dependsOn project(':conscrypt-constants').build
 
+dependencies {
     testCompile project(':conscrypt-testing'),
                 libraries.junit,
                 libraries.mockito
