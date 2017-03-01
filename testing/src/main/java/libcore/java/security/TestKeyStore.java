@@ -980,7 +980,7 @@ public final class TestKeyStore {
     }
 
     /**
-     * Return an {@code X509Certificate that matches the given {@code alias}.
+     * Return an {@code X509Certificate} that matches the given {@code alias}.
      */
     public KeyStore.Entry getEntryByAlias(String alias) {
         return entryByAlias(keyStore, alias);

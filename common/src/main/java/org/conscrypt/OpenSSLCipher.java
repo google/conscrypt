@@ -44,8 +44,6 @@ import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.conscrypt.NativeRef.EVP_CIPHER_CTX;
-import org.conscrypt.util.ArrayUtils;
-import org.conscrypt.util.EmptyArray;
 
 public abstract class OpenSSLCipher extends CipherSpi {
 

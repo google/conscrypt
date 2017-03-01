@@ -1210,7 +1210,7 @@ public final class NativeCrypto {
             int sourceOffset, int sourceLength, SSLHandshakeCallbacks shc) throws IOException;
 
     /**
-     * Writes data from the given direct {@link ByteBuffer} to the BIO.
+     * Writes data from the given direct {@link java.nio.ByteBuffer} to the BIO.
      */
     public static native int ENGINE_SSL_write_BIO_direct(long sslRef, long bioRef, long pos,
             int length, SSLHandshakeCallbacks shc) throws IOException;

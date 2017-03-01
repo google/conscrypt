@@ -46,7 +46,6 @@ import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.util.EmptyArray;
 
 /**
  * The instances of this class encapsulate all the info
