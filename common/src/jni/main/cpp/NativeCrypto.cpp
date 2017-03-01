@@ -7320,13 +7320,8 @@ static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address, jobjec
                 Errors::jniThrowOutOfMemory(env, "Unable to allocate chunk buffer");
                 return 0;
             }
-            jint expected_reads = len / buf_size;
-            if (expected_reads > 0) {
-                // TODO: Fix cumulative read timeout? This currently ensures that the cumulative
-                // timeout does not exceed the given timeout, but it is overly strict in that it
-                // allocates uniformly-sized time slots for each call.
-                read_timeout_millis = read_timeout_millis / expected_reads;
-            }
+            // TODO: Fix cumulative read timeout? The effective timeout is the multiplied by the
+            // number of internal calls to sslRead() below.
             ret = 0;
             while (remaining > 0) {
                 jint temp_ret;
