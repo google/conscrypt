@@ -292,9 +292,7 @@ public class OpenSSLSocketImpl
         boolean releaseResources = true;
         try {
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
-            final long sslCtxNativePointer = sessionContext.sslCtxNativePointer;
-            sslParameters.setSSLCtxParameters(sslCtxNativePointer);
-            sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
+            sslNativePointer = NativeCrypto.SSL_new(sessionContext.sslCtxNativePointer);
             Platform.closeGuardOpen(guard, "close");
 
             boolean enableSessionCreation = getEnableSessionCreation();

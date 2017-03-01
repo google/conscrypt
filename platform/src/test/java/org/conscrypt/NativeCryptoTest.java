@@ -1461,8 +1461,9 @@ public class NativeCryptoTest {
         Hooks sHooks = new ServerHooks(getServerPrivateKey(), getServerCertificates()) {
             @Override
             public long beforeHandshake(long c) throws SSLException {
-                NativeCrypto.SSL_CTX_set_ocsp_response(c, OCSP_TEST_DATA);
-                return super.beforeHandshake(c);
+                long s = super.beforeHandshake(c);
+                NativeCrypto.SSL_set_ocsp_response(s, OCSP_TEST_DATA);
+                return s;
             }
         };
 
@@ -1502,8 +1503,9 @@ public class NativeCryptoTest {
         Hooks sHooks = new ServerHooks(getServerPrivateKey(), getServerCertificates()) {
             @Override
             public long beforeHandshake(long c) throws SSLException {
-                NativeCrypto.SSL_CTX_set_signed_cert_timestamp_list(c, SCT_TEST_DATA);
-                return super.beforeHandshake(c);
+                long s = super.beforeHandshake(c);
+                NativeCrypto.SSL_set_signed_cert_timestamp_list(s, SCT_TEST_DATA);
+                return s;
             }
         };
 

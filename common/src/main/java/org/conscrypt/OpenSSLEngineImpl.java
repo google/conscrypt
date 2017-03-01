@@ -245,9 +245,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
         boolean releaseResources = true;
         try {
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
-            final long sslCtxNativePointer = sessionContext.sslCtxNativePointer;
-            sslParameters.setSSLCtxParameters(sslCtxNativePointer);
-            sslNativePointer = NativeCrypto.SSL_new(sslCtxNativePointer);
+            sslNativePointer = NativeCrypto.SSL_new(sessionContext.sslCtxNativePointer);
             networkBio = NativeCrypto.SSL_BIO_new(sslNativePointer);
             sslSession =
                     sslParameters.getSessionToReuse(sslNativePointer, getPeerHost(), getPeerPort());
