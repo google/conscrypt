@@ -535,19 +535,6 @@ public class SSLParametersImpl implements Cloneable {
 
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
-    void setSSLCtxParameters(long sslCtxNativePointer) throws SSLException, IOException {
-        if (!client_mode) {
-            if (sctExtension != null) {
-                NativeCrypto.SSL_CTX_set_signed_cert_timestamp_list(
-                        sslCtxNativePointer, sctExtension);
-            }
-
-            if (ocspResponse != null) {
-                NativeCrypto.SSL_CTX_set_ocsp_response(sslCtxNativePointer, ocspResponse);
-            }
-        }
-    }
-
     void setSSLParameters(long sslNativePointer, AliasChooser chooser, PSKCallbacks pskCallbacks,
             String sniHostname) throws SSLException, IOException {
         if (enabledProtocols.length == 0 && isEnabledProtocolsFiltered) {
@@ -583,6 +570,14 @@ public class SSLParametersImpl implements Cloneable {
 
             NativeCrypto.SSL_set_options(sslNativePointer,
                     NativeConstants.SSL_OP_CIPHER_SERVER_PREFERENCE);
+
+            if (sctExtension != null) {
+                NativeCrypto.SSL_set_signed_cert_timestamp_list(sslNativePointer, sctExtension);
+            }
+
+            if (ocspResponse != null) {
+                NativeCrypto.SSL_set_ocsp_response(sslNativePointer, ocspResponse);
+            }
         }
 
         enablePSKKeyManagerIfRequested(sslNativePointer, pskCallbacks);
