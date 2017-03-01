@@ -17,7 +17,6 @@ subprojects {
     if (!androidProject) {
         apply plugin: 'java'
         apply plugin: 'cpp'
-        apply plugin: "signing"
 
         model {
             toolChains {
@@ -33,6 +32,7 @@ subprojects {
         }
     }
     apply plugin: "maven"
+    apply plugin: "signing"
     apply plugin: "idea"
     apply plugin: "jacoco"
 
@@ -104,6 +104,11 @@ subprojects {
         jcenter()
     }
 
+    signing {
+        required false
+        sign configurations.archives
+    }
+
     if (!androidProject) {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
@@ -144,11 +149,6 @@ subprojects {
             }
         }
 
-        signing {
-            required false
-            sign configurations.archives
-        }
-
         task javadocJar(type: Jar) {
             classifier = 'javadoc'
             from javadoc
@@ -160,7 +160,8 @@ subprojects {
         }
 
         artifacts {
-            archives sourcesJar, javadocJar
+            archives sourcesJar
+            archives javadocJar
         }
 
         uploadArchives.repositories.mavenDeployer {
@@ -199,7 +200,7 @@ subprojects {
                 licenses {
                     license {
                         name 'Apache 2'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0'
+                        url 'https://www.apache.org/licenses/LICENSE-2.0'
                     }
                 }
 
