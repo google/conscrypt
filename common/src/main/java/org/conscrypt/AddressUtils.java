@@ -20,8 +20,11 @@ import java.util.regex.Pattern;
 
 /**
  * Utilities to check whether IP addresses meet some criteria.
+ *
+ * Visible for testing only.
  */
-final class AddressUtils {
+@Internal
+public final class AddressUtils {
     /*
      * Regex that matches valid IPv4 and IPv6 addresses.
      */
@@ -36,7 +39,7 @@ final class AddressUtils {
     /**
      * Returns true when the supplied hostname is valid for SNI purposes.
      */
-    static boolean isValidSniHostname(String sniHostname) {
+    public static boolean isValidSniHostname(String sniHostname) {
         if (sniHostname == null) {
             return false;
         }
@@ -56,7 +59,7 @@ final class AddressUtils {
     /**
      * Returns true if the supplied hostname is an literal IP address.
      */
-    static boolean isLiteralIpAddress(String hostname) {
+    public static boolean isLiteralIpAddress(String hostname) {
         /* This is here for backwards compatibility for pre-Honeycomb devices. */
         Pattern ipPattern = AddressUtils.ipPattern;
         if (ipPattern == null) {
