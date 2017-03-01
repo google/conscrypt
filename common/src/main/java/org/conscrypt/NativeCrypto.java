@@ -814,13 +814,13 @@ public final class NativeCrypto {
 
     public static native byte[] SSL_get_signed_cert_timestamp_list(long ssl);
 
-    public static native void SSL_CTX_set_signed_cert_timestamp_list(long ssl, byte[] list);
+    public static native void SSL_set_signed_cert_timestamp_list(long ssl, byte[] list);
 
     public static native void SSL_enable_ocsp_stapling(long ssl);
 
     public static native byte[] SSL_get_ocsp_response(long ssl);
 
-    public static native void SSL_CTX_set_ocsp_response(long ssl, byte[] response);
+    public static native void SSL_set_ocsp_response(long ssl, byte[] response);
 
     public static native void SSL_use_psk_identity_hint(long ssl, String identityHint)
             throws SSLException;

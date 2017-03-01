@@ -6372,29 +6372,28 @@ static jbyteArray NativeCrypto_SSL_get_signed_cert_timestamp_list(JNIEnv *env, j
 }
 
 /*
- * public static native void SSL_CTX_set_signed_cert_timestamp_list(long ssl, byte[] response);
+ * public static native void SSL_set_signed_cert_timestamp_list(long ssl, byte[] response);
  */
-static void NativeCrypto_SSL_CTX_set_signed_cert_timestamp_list(JNIEnv *env, jclass,
-        jlong ssl_ctx_address, jbyteArray list) {
-    SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
-    JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_signed_cert_timestamp_list", ssl_ctx);
-    if (ssl_ctx == nullptr) {
+static void NativeCrypto_SSL_set_signed_cert_timestamp_list(JNIEnv *env, jclass,
+        jlong ssl_address, jbyteArray list) {
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_signed_cert_timestamp_list", ssl);
+    if (ssl == nullptr) {
         return;
     }
 
     ScopedByteArrayRO listBytes(env, list);
     if (listBytes.get() == nullptr) {
-        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_signed_cert_timestamp_list =>"
-                  " list == null", ssl_ctx);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_signed_cert_timestamp_list => list == null", ssl);
         return;
     }
 
-    if (!SSL_CTX_set_signed_cert_timestamp_list(ssl_ctx,
+    if (!SSL_set_signed_cert_timestamp_list(ssl,
                 reinterpret_cast<const uint8_t *>(listBytes.get()),
                 listBytes.size())) {
-        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_signed_cert_timestamp_list => fail", ssl_ctx);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_signed_cert_timestamp_list => fail", ssl);
     } else {
-        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_signed_cert_timestamp_list => ok", ssl_ctx);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_signed_cert_timestamp_list => ok", ssl);
     }
 }
 
@@ -6446,28 +6445,28 @@ static jbyteArray NativeCrypto_SSL_get_ocsp_response(JNIEnv *env, jclass,
 }
 
 /*
- * public static native void SSL_CTX_set_ocsp_response(long ssl, byte[] response);
+ * public static native void SSL_set_ocsp_response(long ssl, byte[] response);
  */
-static void NativeCrypto_SSL_CTX_set_ocsp_response(JNIEnv *env, jclass,
-        jlong ssl_ctx_address, jbyteArray response) {
-    SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
-    JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_ocsp_response", ssl_ctx);
-    if (ssl_ctx == nullptr) {
+static void NativeCrypto_SSL_set_ocsp_response(JNIEnv *env, jclass,
+        jlong ssl_address, jbyteArray response) {
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_ocsp_response", ssl);
+    if (ssl == nullptr) {
         return;
     }
 
     ScopedByteArrayRO responseBytes(env, response);
     if (responseBytes.get() == nullptr) {
-        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_ocsp_response => response == null", ssl_ctx);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_ocsp_response => response == null", ssl);
         return;
     }
 
-    if (!SSL_CTX_set_ocsp_response(ssl_ctx,
+    if (!SSL_set_ocsp_response(ssl,
                 reinterpret_cast<const uint8_t *>(responseBytes.get()),
                 responseBytes.size())) {
-        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_ocsp_response => fail", ssl_ctx);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_ocsp_response => fail", ssl);
     } else {
-        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_set_ocsp_response => ok", ssl_ctx);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_ocsp_response => ok", ssl);
     }
 }
 
@@ -9156,10 +9155,10 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_clear_options, "(JJ)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_enable_signed_cert_timestamps, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_signed_cert_timestamp_list, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_CTX_set_signed_cert_timestamp_list, "(J[B)V"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_set_signed_cert_timestamp_list, "(J[B)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_enable_ocsp_stapling, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_ocsp_response, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_CTX_set_ocsp_response, "(J[B)V"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_set_ocsp_response, "(J[B)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_use_psk_identity_hint, "(JLjava/lang/String;)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, set_SSL_psk_client_callback_enabled, "(JZ)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, set_SSL_psk_server_callback_enabled, "(JZ)V"),
