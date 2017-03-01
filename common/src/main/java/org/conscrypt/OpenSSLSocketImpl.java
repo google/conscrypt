@@ -43,7 +43,6 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.util.ArrayUtils;
 
 /**
  * Implementation of the class OpenSSLSocketImpl based on OpenSSL.
@@ -79,21 +78,22 @@ public class OpenSSLSocketImpl
     private static final int STATE_HANDSHAKE_STARTED = 1;
 
     /**
-     * {@link #handshakeCompleted()} has been called, but {@link #startHandshake()} hasn't
-     * returned yet.
+     * {@link HandshakeCompletedListener#handshakeCompleted} has been called, but
+     * {@link #startHandshake()} hasn't returned yet.
      */
     private static final int STATE_HANDSHAKE_COMPLETED = 2;
 
     /**
-     * {@link #startHandshake()} has completed but {@link #handshakeCompleted()} hasn't
-     * been called. This is expected behaviour in cut-through mode, where SSL_do_handshake
-     * returns before the handshake is complete. We can now start writing data to the socket.
+     * {@link #startHandshake()} has completed but
+     * {@link HandshakeCompletedListener#handshakeCompleted} hasn't been called. This is expected
+     * behaviour in cut-through mode, where SSL_do_handshake returns before the handshake is
+     * complete. We can now start writing data to the socket.
      */
     private static final int STATE_READY_HANDSHAKE_CUT_THROUGH = 3;
 
     /**
-     * {@link #startHandshake()} has completed and {@link #handshakeCompleted()} has been
-     * called.
+     * {@link #startHandshake()} has completed and
+     * {@link HandshakeCompletedListener#handshakeCompleted} has been called.
      */
     private static final int STATE_READY = 4;
 
