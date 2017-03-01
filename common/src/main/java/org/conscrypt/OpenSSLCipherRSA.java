@@ -45,7 +45,6 @@ import javax.crypto.ShortBufferException;
 import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
-import org.conscrypt.util.EmptyArray;
 
 abstract class OpenSSLCipherRSA extends CipherSpi {
     /**

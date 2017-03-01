@@ -101,12 +101,16 @@ if (androidSdkInstalled) {
 
     task javadocs(type: Javadoc) {
         source = android.sourceSets.main.java.srcDirs
-        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+        classpath += project.files(android.getBootClasspath().join(File.pathSeparator)) + project(':conscrypt-android-stub').sourceSets.main.output
         // TODO(nmittler): Fix the javadoc errors.
         failOnError false
         options {
             encoding = 'UTF-8'
             links "https://docs.oracle.com/javase/7/docs/api/"
+            // Disable JavaDoc doclint on Java 8. It's annoying.
+            if (JavaVersion.current().isJava8Compatible()) {
+                addStringOption('Xdoclint:none', '-quiet')
+            }
         }
     }
 

@@ -63,9 +63,6 @@ public class OpenSSLContextImpl extends SSLContextSpi {
 
     /**
      * Constuctor for the DefaultSSLContextImpl.
-     *
-     * @param dummy is null, used to distinguish this case from the public
-     *            OpenSSLContextImpl() constructor.
      */
     protected OpenSSLContextImpl() throws GeneralSecurityException, IOException {
         synchronized (DefaultSSLContextImpl.class) {

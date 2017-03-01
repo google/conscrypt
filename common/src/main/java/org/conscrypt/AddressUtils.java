@@ -20,7 +20,10 @@ import java.util.regex.Pattern;
 
 /**
  * Utilities to check whether IP addresses meet some criteria.
+ *
+ * Visible for testing only.
  */
+@Internal
 public final class AddressUtils {
     /*
      * Regex that matches valid IPv4 and IPv6 addresses.

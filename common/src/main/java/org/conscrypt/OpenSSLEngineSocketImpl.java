@@ -36,7 +36,6 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.util.EmptyArray;
 
 /**
  * Implements crypto handling by delegating to OpenSSLEngine. Used for socket implementations
