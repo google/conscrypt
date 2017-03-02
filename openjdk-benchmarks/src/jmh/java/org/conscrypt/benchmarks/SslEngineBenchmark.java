@@ -38,19 +38,22 @@ import static org.conscrypt.testing.TestUtil.doEngineHandshake;
 import static org.conscrypt.testing.TestUtil.initClientSslContext;
 import static org.conscrypt.testing.TestUtil.initEngine;
 import static org.conscrypt.testing.TestUtil.initServerContext;
-import static org.conscrypt.testing.TestUtil.newNettyClientContext;
-import static org.conscrypt.testing.TestUtil.newNettyServerContext;
 import static org.conscrypt.testing.TestUtil.newTextMessage;
 import static org.junit.Assert.assertEquals;
 
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 import java.nio.ByteBuffer;
+import java.security.KeyStore.PrivateKeyEntry;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
+import java.util.Collections;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
+import libcore.java.security.TestKeyStore;
 import org.conscrypt.OpenSSLProvider;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Param;
@@ -109,8 +112,8 @@ public class SslEngineBenchmark {
             }
         },
         NETTY {
-            private final SslContext clientContext = newNettyClientContext(null);
-            private final SslContext serverContext = newNettyServerContext(null);
+            private final SslContext clientContext = newClientContext(null);
+            private final SslContext serverContext = newServerContext(null);
 
             @Override
             SSLEngine newClientEngine(String cipher) {
@@ -178,6 +181,41 @@ public class SslEngineBenchmark {
         // Complete the initial TLS handshake.
         doEngineHandshake(clientEngine, serverEngine);
     }
+
+    private static SslContext newClientContext(String cipher) {
+        try {
+            TestKeyStore server = TestKeyStore.getServer();
+            SslContextBuilder ctx =
+                    SslContextBuilder.forClient()
+                            .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL)
+                            .trustManager((X509Certificate[]) server.getPrivateKey("RSA", "RSA")
+                                                  .getCertificateChain());
+            if (cipher != null) {
+                ctx.ciphers(Collections.singletonList(cipher));
+            }
+            return ctx.build();
+        } catch (SSLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static SslContext newServerContext(String cipher) {
+        try {
+            PrivateKeyEntry server = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
+            SslContextBuilder ctx =
+                    SslContextBuilder
+                            .forServer(server.getPrivateKey(),
+                                    (X509Certificate[]) server.getCertificateChain())
+                           .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL);
+            if (cipher != null) {
+                ctx.ciphers(Collections.singletonList(cipher));
+            }
+            return ctx.build();
+        } catch (SSLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     /**
      * Simple benchmark that sends a single message from client to server.
