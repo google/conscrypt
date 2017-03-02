@@ -5,11 +5,20 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# Add any project specific keep options here:
+# Many of the Conscrypt classes are referenced indirectly via JNI or
+# reflection.
+# This could probably be tightened up, but this will get it building for now.
+# TODO(kroot): Need anything special to prevent obfuscation?
+-keep class org.conscrypt.** { *; }
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Backward compatibility code.
+-dontnote libcore.io.Libcore
+-dontnote org.apache.harmony.xnet.provider.jsse.OpenSSLRSAPrivateKey
+-dontnote org.apache.harmony.security.utils.AlgNameMapper
+-dontnote sun.security.x509.AlgorithmId
+
+-dontwarn dalvik.system.BlockGuard
+-dontwarn dalvik.system.BlockGuard$Policy
+-dontwarn dalvik.system.CloseGuard
+-dontwarn com.android.org.conscrypt.OpenSSLSocketImpl
+-dontwarn org.apache.harmony.xnet.provider.jsse.OpenSSLSocketImpl
