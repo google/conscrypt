@@ -19,18 +19,13 @@ package org.conscrypt.testing;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
-import java.security.KeyStore.PrivateKeyEntry;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
-import java.security.cert.X509Certificate;
-import java.util.Collections;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -114,40 +109,6 @@ public final class TestUtil {
         try {
             return SSLContext.getInstance("TLS", provider);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static SslContext newNettyClientContext(String cipher) {
-        try {
-            TestKeyStore server = TestKeyStore.getServer();
-            SslContextBuilder ctx =
-                    SslContextBuilder.forClient()
-                            .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL)
-                            .trustManager((X509Certificate[]) server.getPrivateKey("RSA", "RSA")
-                                                  .getCertificateChain());
-            if (cipher != null) {
-                ctx.ciphers(Collections.singletonList(cipher));
-            }
-            return ctx.build();
-        } catch (SSLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static SslContext newNettyServerContext(String cipher) {
-        try {
-            PrivateKeyEntry server = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
-            SslContextBuilder ctx =
-                    SslContextBuilder
-                            .forServer(server.getPrivateKey(),
-                                    (X509Certificate[]) server.getCertificateChain())
-                            .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL);
-            if (cipher != null) {
-                ctx.ciphers(Collections.singletonList(cipher));
-            }
-            return ctx.build();
-        } catch (SSLException e) {
             throw new RuntimeException(e);
         }
     }
