@@ -342,6 +342,28 @@ final class Platform {
         return ExtendedSessionAdapter.getDelegate(sslSession);
     }
 
+    public static String getOriginalHostNameFromInetAddress(InetAddress addr) {
+        try {
+            Method getHolder = InetAddress.class.getDeclaredMethod("holder");
+            getHolder.setAccessible(true);
+
+            Method getOriginalHostName = Class.forName("java.net.InetAddress$InetAddressHolder")
+                                                 .getDeclaredMethod("getOriginalHostName");
+            getOriginalHostName.setAccessible(true);
+
+            String originalHostName = (String) getOriginalHostName.invoke(getHolder.invoke(addr));
+            if (originalHostName == null) {
+                return addr.getHostAddress();
+            }
+            return originalHostName;
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException("Failed to get originalHostName", e);
+        } catch (ReflectiveOperationException ignore) {
+            // passthrough and return addr.getHostAddress()
+        }
+        return addr.getHostAddress();
+    }
+
     /*
      * Pre-Java-7 backward compatibility.
      */
