@@ -1,0 +1,80 @@
+[
+  {
+    "operation": "modify-overwrite-beta",
+    "spec": {
+      "*": {
+        "key-name": "=concat(@(1,params.sslProvider),' ',@(1,params.bufferType))"
+      }
+    }
+  },
+  {
+    "operation": "shift",
+    "spec": {
+      // pivot the data by benchmark name
+      "*": {
+        "key-name": {
+          "*": { // match any value of name
+            // go up the tree 3 levels
+            // grab the whole array element and
+            // write it to the output in an array
+            // aka benchmark1[] or benchmark2[]
+            "@(3,[&2])": "&.[]"
+          }
+        }
+      }
+    }
+  },
+  {
+    "operation": "shift",
+    "spec": {
+      // now group the relevant data
+      "*": { // benchmark 1 or 2
+        "$": "&.name",
+        "*": { // array of benchmark1 or 2
+          "params": {
+            "messageSize": "&3.x[]"
+          },
+          "primaryMetric": {
+            "score": "&3.y[]",
+            "scoreError": "&3.error_y.array[]"
+          }
+        }
+      }
+    }
+  },
+  {
+    // now convert from a map to a top level list
+    "operation": "shift",
+    "spec": {
+      // benchmark1 or benchmark2
+      "*": "data.[#1]"
+    }
+  },
+  {
+    // add graph default stuff
+    "operation": "modify-default-beta",
+    "spec": {
+      "data": {
+        "*": {
+          "mode": "lines+markers",
+          "type": "scatter"
+        }
+      },
+      "layout": {
+        "autosize": true,
+        "yaxis": {
+          "type": "linear",
+          "autorange": true,
+          "title": "messages/sec"
+        },
+        "title": "SslEngineBenchmark.sendMessage",
+        "showlegend": true,
+        "xaxis": {
+          "title": "size of message",
+          "type": "category",
+          "autorange": true
+        }
+      }
+    }
+  }
+]
