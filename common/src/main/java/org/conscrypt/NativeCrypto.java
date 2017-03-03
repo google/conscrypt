@@ -1170,6 +1170,11 @@ public final class NativeCrypto {
     public static native long SSL_get1_session(long ssl);
 
     /**
+     * Returns the maximum overhead, in bytes, of sealing a record with ssl.
+     */
+    public static native int SSL_max_seal_overhead(long ssl);
+
+    /**
      * Sets the list of supported ALPN protocols in wire-format (length-prefixed 8-bit strings).
      */
     public static native void SSL_configure_alpn(
