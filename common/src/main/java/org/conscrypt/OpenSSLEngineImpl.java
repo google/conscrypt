@@ -89,10 +89,22 @@ public final class OpenSSLEngineImpl extends SSLEngine
     private static final ByteBuffer EMPTY = ByteBuffer.allocateDirect(0);
     private static final long EMPTY_ADDR = NativeCrypto.getDirectBufferAddress(EMPTY);
 
+    /**
+     * Similar in concept to {@link javax.net.ssl.HandshakeCompletedListener}. Allows the caller to be
+     * notified immediately upon completion of the TLS handshake.
+     */
+    public interface HandshakeListener {
+
+        /**
+         * Called by the engine when the TLS handshake has completed.
+         */
+        void onHandshakeFinished();
+    }
+
     private final SSLParametersImpl sslParameters;
 
     /**
-     * Protects handshakeStarted and handshakeCompleted.
+     * Protects {@link #engineState} and {@link #handshakeFinished}.
      */
     private final Object stateLock = new Object();
 
@@ -168,6 +180,8 @@ public final class OpenSSLEngineImpl extends SSLEngine
 
     private int maxWrapOverhead;
 
+    private HandshakeListener handshakeListener;
+
     private final ByteBuffer[] singleSrcBuffer = new ByteBuffer[1];
     private final ByteBuffer[] singleDstBuffer = new ByteBuffer[1];
 
@@ -187,6 +201,16 @@ public final class OpenSSLEngineImpl extends SSLEngine
     public final int calculateMaxLengthForWrap(int plaintextLength) {
         int amt = maxWrapOverhead + plaintextLength;
         return amt < 0 ? Integer.MAX_VALUE : amt;
+    }
+
+    /**
+     * Sets the listener for the completion of the TLS handshake.
+     */
+    public void setHandshakeListener(HandshakeListener handshakeListener) {
+        if (engineState != EngineState.NEW) {
+            throw new IllegalStateException("Handshake listener must be set before starting the handshake.");
+        }
+        this.handshakeListener = handshakeListener;
     }
 
     @Override
@@ -715,7 +739,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
             } else {
                 engineState = EngineState.READY;
             }
-            handshakeFinished = true;
+            finishHandshake();
             return FINISHED;
         } catch (Exception e) {
             throw(SSLHandshakeException) new SSLHandshakeException("Handshake failed").initCause(e);
@@ -726,6 +750,13 @@ public final class OpenSSLEngineImpl extends SSLEngine
         }
     }
 
+    private void finishHandshake() {
+        handshakeFinished = true;
+        // Notify the listener, if provided.
+        if (handshakeListener != null) {
+            handshakeListener.onHandshakeFinished();
+        }
+    }
     /**
      * Write plaintext data to the OpenSSL internal BIO
      *
