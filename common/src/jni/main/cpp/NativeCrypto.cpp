@@ -8333,6 +8333,14 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
     return reinterpret_cast<uintptr_t>(SSL_get1_session(ssl));
 }
 
+static jint NativeCrypto_SSL_max_seal_overhead(JNIEnv* env, jclass, jlong ssl_address) {
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    if (ssl == nullptr) {
+        return 0;
+    }
+    return (jint) SSL_max_seal_overhead(ssl);
+}
+
 /**
  * public static native int SSL_new_BIO(long ssl) throws SSLException;
  */
@@ -9194,6 +9202,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_BIO_new, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get0_session, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get1_session, "(J)J"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_max_seal_overhead, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_clear_error, "()V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_pending_readable_bytes, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_pending_written_bytes_in_BIO, "(J)I"),

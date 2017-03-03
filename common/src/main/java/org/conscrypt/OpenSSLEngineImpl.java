@@ -166,6 +166,8 @@ public final class OpenSSLEngineImpl extends SSLEngine
      */
     OpenSSLKey channelIdPrivateKey;
 
+    private int maxWrapOverhead;
+
     private final ByteBuffer[] singleSrcBuffer = new ByteBuffer[1];
     private final ByteBuffer[] singleDstBuffer = new ByteBuffer[1];
 
@@ -176,6 +178,15 @@ public final class OpenSSLEngineImpl extends SSLEngine
     public OpenSSLEngineImpl(String host, int port, SSLParametersImpl sslParameters) {
         super(host, port);
         this.sslParameters = sslParameters;
+    }
+
+    /**
+     * Calculates the maximum size of the buffer required to store the encrypted result of
+     * wrapping the given plaintext bytes.
+     */
+    public final int calculateMaxLengthForWrap(int plaintextLength) {
+        int amt = maxWrapOverhead + plaintextLength;
+        return amt < 0 ? Integer.MAX_VALUE : amt;
     }
 
     @Override
@@ -219,6 +230,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
             } else {
                 NativeCrypto.SSL_set_accept_state(sslNativePointer);
             }
+            maxWrapOverhead = NativeCrypto.SSL_max_seal_overhead(sslNativePointer);
             handshake();
             releaseResources = false;
         } catch (IOException e) {
