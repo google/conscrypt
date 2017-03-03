@@ -31,11 +31,11 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.OpenSSLEngineImpl.HandshakeListener;
 
 /**
  * Implements crypto handling by delegating to OpenSSLEngine. Used for socket implementations
@@ -55,6 +55,17 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
         super(socket, hostname, port, autoClose, sslParameters);
         this.socket = socket;
         engine = new OpenSSLEngineImpl(hostname, port, sslParameters);
+
+        // When the handshake completes, notify any listeners.
+        engine.setHandshakeListener(new HandshakeListener() {
+            @Override
+            public void onHandshakeFinished() {
+                if (!handshakeComplete) {
+                    handshakeComplete = true;
+                    OpenSSLEngineSocketImpl.this.notifyHandshakeCompletedListeners();
+                }
+            }
+        });
         outputStreamWrapper = new OutputStreamWrapper();
         inputStreamWrapper = new InputStreamWrapper();
         engine.setUseClientMode(sslParameters.getUseClientMode());
@@ -72,12 +83,9 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                         engine.beginHandshake();
                         break;
                     }
-                    // Finish processing as well
-                    completeHandshake();
                     break;
                 }
                 case FINISHED: {
-                    completeHandshake();
                     return;
                 }
                 case NEED_WRAP: {
@@ -317,13 +325,6 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
         return engine.getPSKKey(keyManager, identityHint, identity);
     }
 
-    private void completeHandshake() {
-        if (!handshakeComplete) {
-            handshakeComplete = true;
-            super.notifyHandshakeCompletedListeners();
-        }
-    }
-
     /**
      * Wrap bytes written to the underlying socket.
      */
@@ -391,9 +392,6 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                         } else {
                             // Target is a heap buffer.
                             socketOutputStream.write(target.array(), 0, target.limit());
-                        }
-                        if (engineResult.getHandshakeStatus() == HandshakeStatus.FINISHED) {
-                            completeHandshake();
                         }
                     } while (len > 0);
                 } catch (IOException e) {
@@ -528,9 +526,6 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                                 }
                             }
 
-                            if (engineResult.getHandshakeStatus() == HandshakeStatus.FINISHED) {
-                                completeHandshake();
-                            }
                             if (!needMoreData && engineResult.bytesProduced() == 0) {
                                 // Read successfully, but produced no data. Possibly part of a
                                 // handshake.
