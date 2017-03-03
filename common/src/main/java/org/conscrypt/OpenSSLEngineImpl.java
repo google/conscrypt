@@ -98,7 +98,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
         /**
          * Called by the engine when the TLS handshake has completed.
          */
-        void onHandshakeFinished();
+        void onHandshakeFinished() throws SSLException;
     }
 
     private final SSLParametersImpl sslParameters;
@@ -206,11 +206,18 @@ public final class OpenSSLEngineImpl extends SSLEngine
     /**
      * Sets the listener for the completion of the TLS handshake.
      */
-    public void setHandshakeListener(HandshakeListener handshakeListener) {
-        if (engineState != EngineState.NEW) {
-            throw new IllegalStateException("Handshake listener must be set before starting the handshake.");
+    public OpenSSLEngineImpl setHandshakeListener(HandshakeListener handshakeListener) {
+        switch(engineState) {
+            case NEW:
+            case MODE_SET:
+                // Allowed.
+                break;
+            default:
+                // Disallow anything else.
+                throw new IllegalStateException("Handshake listener must be set before starting the handshake.");
         }
         this.handshakeListener = handshakeListener;
+        return this;
     }
 
     @Override
@@ -741,7 +748,10 @@ public final class OpenSSLEngineImpl extends SSLEngine
             }
             finishHandshake();
             return FINISHED;
+        } catch (SSLHandshakeException e) {
+            throw e;
         } catch (Exception e) {
+            // Wrap all other exceptions.
             throw(SSLHandshakeException) new SSLHandshakeException("Handshake failed").initCause(e);
         } finally {
             if (sslSession == null && sslSessionCtx != 0) {
@@ -750,7 +760,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
         }
     }
 
-    private void finishHandshake() {
+    private void finishHandshake() throws SSLException {
         handshakeFinished = true;
         // Notify the listener, if provided.
         if (handshakeListener != null) {
