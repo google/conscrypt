@@ -9,6 +9,7 @@ include ":conscrypt-android-stub"
 include ":conscrypt-android-platform"
 include ":conscrypt-libcore-stub"
 include ":conscrypt-api-doclet"
+include ":conscrypt-benchmark-graphs"
 
 project(':conscrypt-constants').projectDir = "$rootDir/constants" as File
 project(':conscrypt-openjdk').projectDir = "$rootDir/openjdk" as File
@@ -20,3 +21,4 @@ project(':conscrypt-android-stub').projectDir = "$rootDir/android-stub" as File
 project(':conscrypt-libcore-stub').projectDir = "$rootDir/libcore-stub" as File
 project(':conscrypt-android-platform').projectDir = "$rootDir/platform" as File
 project(':conscrypt-api-doclet').projectDir = "$rootDir/api-doclet" as File
+project(':conscrypt-benchmark-graphs').projectDir = "$rootDir/benchmark-graphs" as File
