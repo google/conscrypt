@@ -41,6 +41,7 @@ import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
 import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 
 /**
  * Utility methods for SSL packet processing. Copied from the Netty project.
@@ -48,6 +49,7 @@ import java.nio.ByteBuffer;
 final class SSLUtils {
     static final boolean USE_ENGINE_SOCKET_BY_DEFAULT =
             Boolean.parseBoolean(System.getProperty("org.conscrypt.useEngineSocketByDefault"));
+    static final int MAX_PROTOCOL_LENGTH = 255;
 
     /**
      * This is the maximum overhead when encrypting plaintext as defined by
@@ -121,6 +123,50 @@ final class SSLUtils {
         // Done, flip the buffer so we can read from it.
         tmp.flip();
         return getEncryptedPacketLength(tmp);
+    }
+
+    /**
+     * Encodes a list of protocols into the wire-format (length-prefixed 8-bit strings).
+     * Requires that all strings be encoded with US-ASCII.
+     *
+     * @param protocols the list of protocols to be encoded
+     * @return the encoded form of the protocol list.
+     */
+    static byte[] toLengthPrefixedList(String... protocols) {
+        // Calculate the encoded length.
+        int length = 0;
+        for (int i = 0; i < protocols.length; ++i) {
+            int protocolLength = protocols[i].length();
+
+            // Verify that the length is valid here, so that we don't attempt to allocate an array
+            // below if the threshold is violated.
+            if (protocolLength == 0 || protocolLength > MAX_PROTOCOL_LENGTH) {
+                throw new IllegalArgumentException("Protocol has invalid length ("
+                        + protocolLength + "): " + protocols[i]);
+            }
+
+            // Include a 1-byte prefix for each protocol.
+            length += 1 + protocolLength;
+        }
+
+        byte[] data = new byte[length];
+        for (int dataIndex = 0, i = 0; i < protocols.length; ++i) {
+            String protocol = protocols[i];
+            int protocolLength = protocol.length();
+
+            // Add the length prefix.
+            data[dataIndex++] = (byte) protocolLength;
+            for (int ci = 0; ci < protocolLength; ++ci) {
+                char c = protocol.charAt(ci);
+                if (c > Byte.MAX_VALUE) {
+                    // Enforce US-ASCII
+                    throw new IllegalArgumentException("Protocol contains invalid character: "
+                            + c + "(protocol=" + protocol + ")");
+                }
+                data[dataIndex++] = (byte) c;
+            }
+        }
+        return data;
     }
 
     private static int getEncryptedPacketLength(ByteBuffer buffer) {

@@ -178,7 +178,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
      */
     OpenSSLKey channelIdPrivateKey;
 
-    private int maxWrapOverhead;
+    private int maxSealOverhead;
 
     private HandshakeListener handshakeListener;
 
@@ -195,12 +195,10 @@ public final class OpenSSLEngineImpl extends SSLEngine
     }
 
     /**
-     * Calculates the maximum size of the buffer required to store the encrypted result of
-     * wrapping the given plaintext bytes.
+     * Returns the maximum overhead, in bytes, of sealing a record with SSL.
      */
-    public final int calculateMaxLengthForWrap(int plaintextLength) {
-        int amt = maxWrapOverhead + plaintextLength;
-        return amt < 0 ? Integer.MAX_VALUE : amt;
+    public final int maxSealOverhead() {
+        return maxSealOverhead;
     }
 
     /**
@@ -261,7 +259,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
             } else {
                 NativeCrypto.SSL_set_accept_state(sslNativePointer);
             }
-            maxWrapOverhead = NativeCrypto.SSL_max_seal_overhead(sslNativePointer);
+            maxSealOverhead = NativeCrypto.SSL_max_seal_overhead(sslNativePointer);
             handshake();
             releaseResources = false;
         } catch (IOException e) {
@@ -1325,7 +1323,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
      * @param useSessionTickets True to enable session tickets
      */
     public void setUseSessionTickets(boolean useSessionTickets) {
-        sslParameters.useSessionTickets = useSessionTickets;
+        sslParameters.setUseSessionTickets(useSessionTickets);
     }
 
     /**
@@ -1334,18 +1332,26 @@ public final class OpenSSLEngineImpl extends SSLEngine
     public void setNpnProtocols(byte[] npnProtocols) {}
 
     /**
-     * Sets the list of protocols this peer is interested in. If the list is {@code null}, no
-     * protocols will be used.
+     * Sets the list of ALPN protocols. This method internally converts the protocols to their
+     * wire-format form.
      *
-     * @param alpnProtocols a non-empty array of protocol names. From SSL_select_next_proto, "vector
-     * of 8-bit, length prefixed byte strings. The length byte itself is not included in the length.
-     * A byte string of length 0 is invalid. No byte string may be truncated.".
+     * @param alpnProtocols the list of ALPN protocols
+     * @see #setAlpnProtocols(byte[])
+     */
+    public void setAlpnProtocols(String[] alpnProtocols) {
+        sslParameters.setAlpnProtocols(alpnProtocols);
+    }
+
+    /**
+     * Alternate version of {@link #setAlpnProtocols(String[])} that directly sets the list of
+     * ALPN in the wire-format form used by BoringSSL (length-prefixed 8-bit strings).
+     * Requires that all strings be encoded with US-ASCII.
+     *
+     * @param alpnProtocols the encoded form of the ALPN protocol list
+     * @see #setAlpnProtocols(String[])
      */
     public void setAlpnProtocols(byte[] alpnProtocols) {
-        if (alpnProtocols != null && alpnProtocols.length == 0) {
-            throw new IllegalArgumentException("alpnProtocols.length == 0");
-        }
-        sslParameters.alpnProtocols = alpnProtocols;
+        sslParameters.setAlpnProtocols(alpnProtocols);
     }
 
     /**
