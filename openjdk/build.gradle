@@ -35,11 +35,9 @@ jar.manifest {
     attributes 'BoringSSL-Version' : boringSslVersion
 }
 
-// Since we're not taking a direct dependency on the constants module, we need to add an
-// explicit task dependency to make sure the code is generated.
-compileJava.dependsOn project(':conscrypt-constants').build
-
 dependencies {
+    compileOnly project(':conscrypt-constants')
+
     testCompile project(':conscrypt-testing'),
                 libraries.junit,
                 libraries.mockito

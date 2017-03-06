@@ -29,7 +29,6 @@ if (androidSdkInstalled) {
     // Since we're not taking a direct dependency on the constants module, we need to add an
     // explicit task dependency to make sure the code is generated.
     evaluationDependsOn(':conscrypt-constants')
-    preBuild.dependsOn project(':conscrypt-constants').build
 
     android {
         compileSdkVersion androidTargetSdkVersion
@@ -99,6 +98,9 @@ if (androidSdkInstalled) {
             exclude group: 'com.android.support', module: 'support-annotations'
         })
         provided project(':conscrypt-android-stub')
+
+        // Adds the constants module as a dependency so that we can include its generated source
+        provided project(':conscrypt-constants')
     }
 
     task javadocs(type: Javadoc) {
