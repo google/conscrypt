@@ -16,34 +16,8 @@
 
 package libcore.java.security;
 
-import org.bouncycastle.asn1.DEROctetString;
-import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.asn1.x509.CRLReason;
-import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
-import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.asn1.x509.GeneralNames;
-import org.bouncycastle.asn1.x509.GeneralSubtree;
-import org.bouncycastle.asn1.x509.KeyPurposeId;
-import org.bouncycastle.asn1.x509.KeyUsage;
-import org.bouncycastle.asn1.x509.NameConstraints;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.asn1.x509.X509Extensions;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
-import org.bouncycastle.cert.ocsp.BasicOCSPResp;
-import org.bouncycastle.cert.ocsp.BasicOCSPRespBuilder;
-import org.bouncycastle.cert.ocsp.CertificateID;
-import org.bouncycastle.cert.ocsp.CertificateStatus;
-import org.bouncycastle.cert.ocsp.OCSPException;
-import org.bouncycastle.cert.ocsp.OCSPResp;
-import org.bouncycastle.cert.ocsp.OCSPRespBuilder;
-import org.bouncycastle.cert.ocsp.RevokedStatus;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.operator.DigestCalculatorProvider;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.bouncycastle.x509.X509V3CertificateGenerator;
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -78,9 +52,36 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
-import junit.framework.Assert;
 import libcore.javax.net.ssl.TestKeyManager;
 import libcore.javax.net.ssl.TestTrustManager;
+import org.bouncycastle.asn1.DEROctetString;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.CRLReason;
+import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.GeneralSubtree;
+import org.bouncycastle.asn1.x509.KeyPurposeId;
+import org.bouncycastle.asn1.x509.KeyUsage;
+import org.bouncycastle.asn1.x509.NameConstraints;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
+import org.bouncycastle.cert.ocsp.BasicOCSPResp;
+import org.bouncycastle.cert.ocsp.BasicOCSPRespBuilder;
+import org.bouncycastle.cert.ocsp.CertificateID;
+import org.bouncycastle.cert.ocsp.CertificateStatus;
+import org.bouncycastle.cert.ocsp.OCSPResp;
+import org.bouncycastle.cert.ocsp.OCSPRespBuilder;
+import org.bouncycastle.cert.ocsp.RevokedStatus;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.DigestCalculatorProvider;
+import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 /**
  * TestKeyStore is a convenience class for other tests that
@@ -89,7 +90,7 @@ import libcore.javax.net.ssl.TestTrustManager;
  * Creating a key store is relatively slow, so a singleton instance is
  * accessible via TestKeyStore.get().
  */
-public final class TestKeyStore extends Assert {
+public final class TestKeyStore {
     /** Size of DSA keys to generate for testing. */
     private static final int DSA_KEY_SIZE_BITS = 1024;
 
@@ -100,31 +101,31 @@ public final class TestKeyStore extends Assert {
     private static final int RSA_KEY_SIZE_BITS = 1024;
 
     // Generated with: openssl dhparam -C 1024
-    private static final BigInteger DH_PARAMS_P = new BigInteger(
-            1, new byte[] {
-                       (byte) 0xA2, (byte) 0x31, (byte) 0xB4, (byte) 0xB3, (byte) 0x6D, (byte) 0x9B,
-                       (byte) 0x7E, (byte) 0xF4, (byte) 0xE7, (byte) 0x21, (byte) 0x51, (byte) 0x40,
-                       (byte) 0xEB, (byte) 0xC6, (byte) 0xB6, (byte) 0xD6, (byte) 0x54, (byte) 0x56,
-                       (byte) 0x72, (byte) 0xBE, (byte) 0x43, (byte) 0x18, (byte) 0x30, (byte) 0x5C,
-                       (byte) 0x15, (byte) 0x5A, (byte) 0xF9, (byte) 0x19, (byte) 0x62, (byte) 0xAD,
-                       (byte) 0xF4, (byte) 0x29, (byte) 0xCB, (byte) 0xC6, (byte) 0xF6, (byte) 0x64,
-                       (byte) 0x0B, (byte) 0x9D, (byte) 0x23, (byte) 0x80, (byte) 0xF9, (byte) 0x5B,
-                       (byte) 0x1C, (byte) 0x1C, (byte) 0x6A, (byte) 0xB4, (byte) 0xEA, (byte) 0xB9,
-                       (byte) 0x80, (byte) 0x98, (byte) 0x8B, (byte) 0xAF, (byte) 0x15, (byte) 0xA8,
-                       (byte) 0x5C, (byte) 0xC4, (byte) 0xB0, (byte) 0x41, (byte) 0x29, (byte) 0x66,
-                       (byte) 0x9F, (byte) 0x9F, (byte) 0x1F, (byte) 0x88, (byte) 0x50, (byte) 0x97,
-                       (byte) 0x38, (byte) 0x0B, (byte) 0x01, (byte) 0x16, (byte) 0xD6, (byte) 0x84,
-                       (byte) 0x1D, (byte) 0x48, (byte) 0x6F, (byte) 0x7C, (byte) 0x06, (byte) 0x8C,
-                       (byte) 0x6E, (byte) 0x68, (byte) 0xCD, (byte) 0x38, (byte) 0xE6, (byte) 0x22,
-                       (byte) 0x30, (byte) 0x61, (byte) 0x37, (byte) 0x02, (byte) 0x3D, (byte) 0x47,
-                       (byte) 0x62, (byte) 0xCE, (byte) 0xB9, (byte) 0x1A, (byte) 0x69, (byte) 0x9D,
-                       (byte) 0xA1, (byte) 0x9F, (byte) 0x10, (byte) 0xA1, (byte) 0xAA, (byte) 0x70,
-                       (byte) 0xF7, (byte) 0x27, (byte) 0x9C, (byte) 0xD4, (byte) 0xA5, (byte) 0x15,
-                       (byte) 0xE2, (byte) 0x15, (byte) 0x0C, (byte) 0x20, (byte) 0x90, (byte) 0x08,
-                       (byte) 0xB6, (byte) 0xF5, (byte) 0xDF, (byte) 0x1C, (byte) 0xCB, (byte) 0x82,
-                       (byte) 0x6D, (byte) 0xC0, (byte) 0xE1, (byte) 0xBD, (byte) 0xCC, (byte) 0x4A,
-                       (byte) 0x76, (byte) 0xE3,
-               });
+    private static final BigInteger DH_PARAMS_P = new BigInteger(1,
+            new byte[] {
+                    (byte) 0xA2, (byte) 0x31, (byte) 0xB4, (byte) 0xB3, (byte) 0x6D, (byte) 0x9B,
+                    (byte) 0x7E, (byte) 0xF4, (byte) 0xE7, (byte) 0x21, (byte) 0x51, (byte) 0x40,
+                    (byte) 0xEB, (byte) 0xC6, (byte) 0xB6, (byte) 0xD6, (byte) 0x54, (byte) 0x56,
+                    (byte) 0x72, (byte) 0xBE, (byte) 0x43, (byte) 0x18, (byte) 0x30, (byte) 0x5C,
+                    (byte) 0x15, (byte) 0x5A, (byte) 0xF9, (byte) 0x19, (byte) 0x62, (byte) 0xAD,
+                    (byte) 0xF4, (byte) 0x29, (byte) 0xCB, (byte) 0xC6, (byte) 0xF6, (byte) 0x64,
+                    (byte) 0x0B, (byte) 0x9D, (byte) 0x23, (byte) 0x80, (byte) 0xF9, (byte) 0x5B,
+                    (byte) 0x1C, (byte) 0x1C, (byte) 0x6A, (byte) 0xB4, (byte) 0xEA, (byte) 0xB9,
+                    (byte) 0x80, (byte) 0x98, (byte) 0x8B, (byte) 0xAF, (byte) 0x15, (byte) 0xA8,
+                    (byte) 0x5C, (byte) 0xC4, (byte) 0xB0, (byte) 0x41, (byte) 0x29, (byte) 0x66,
+                    (byte) 0x9F, (byte) 0x9F, (byte) 0x1F, (byte) 0x88, (byte) 0x50, (byte) 0x97,
+                    (byte) 0x38, (byte) 0x0B, (byte) 0x01, (byte) 0x16, (byte) 0xD6, (byte) 0x84,
+                    (byte) 0x1D, (byte) 0x48, (byte) 0x6F, (byte) 0x7C, (byte) 0x06, (byte) 0x8C,
+                    (byte) 0x6E, (byte) 0x68, (byte) 0xCD, (byte) 0x38, (byte) 0xE6, (byte) 0x22,
+                    (byte) 0x30, (byte) 0x61, (byte) 0x37, (byte) 0x02, (byte) 0x3D, (byte) 0x47,
+                    (byte) 0x62, (byte) 0xCE, (byte) 0xB9, (byte) 0x1A, (byte) 0x69, (byte) 0x9D,
+                    (byte) 0xA1, (byte) 0x9F, (byte) 0x10, (byte) 0xA1, (byte) 0xAA, (byte) 0x70,
+                    (byte) 0xF7, (byte) 0x27, (byte) 0x9C, (byte) 0xD4, (byte) 0xA5, (byte) 0x15,
+                    (byte) 0xE2, (byte) 0x15, (byte) 0x0C, (byte) 0x20, (byte) 0x90, (byte) 0x08,
+                    (byte) 0xB6, (byte) 0xF5, (byte) 0xDF, (byte) 0x1C, (byte) 0xCB, (byte) 0x82,
+                    (byte) 0x6D, (byte) 0xC0, (byte) 0xE1, (byte) 0xBD, (byte) 0xCC, (byte) 0x4A,
+                    (byte) 0x76, (byte) 0xE3,
+            });
 
     // generator of 2
     private static final BigInteger DH_PARAMS_G = BigInteger.valueOf(2);
@@ -156,7 +157,6 @@ public final class TestKeyStore extends Assert {
         }
     }
 
-    private static final boolean TEST_MANAGERS = true;
     private static final byte[] LOCAL_HOST_ADDRESS = {127, 0, 0, 1};
     private static final String LOCAL_HOST_NAME = "localhost";
 
@@ -687,37 +687,34 @@ public final class TestKeyStore extends Assert {
             throw new IllegalArgumentException("Unknown key algorithm " + keyAlgorithm);
         }
 
-        X509V3CertificateGenerator x509cg = new X509V3CertificateGenerator();
-        x509cg.setSubjectDN(subject);
-        x509cg.setIssuerDN(issuer);
-        x509cg.setNotBefore(start);
-        x509cg.setNotAfter(end);
-        x509cg.setPublicKey(publicKey);
-        x509cg.setSignatureAlgorithm(signatureAlgorithm);
         if (serialNumber == null) {
             byte[] serialBytes = new byte[16];
             new SecureRandom().nextBytes(serialBytes);
             serialNumber = new BigInteger(1, serialBytes);
         }
-        x509cg.setSerialNumber(serialNumber);
+
+        X509v3CertificateBuilder x509cg =
+                new X509v3CertificateBuilder(X500Name.getInstance(issuer.getEncoded()),
+                        serialNumber, start, end, X500Name.getInstance(subject.getEncoded()),
+                        SubjectPublicKeyInfo.getInstance(publicKey.getEncoded()));
         if (keyUsage != 0) {
-            x509cg.addExtension(X509Extensions.KeyUsage, true, new KeyUsage(keyUsage));
+            x509cg.addExtension(Extension.keyUsage, true, new KeyUsage(keyUsage));
         }
         if (ca) {
-            x509cg.addExtension(X509Extensions.BasicConstraints, true, new BasicConstraints(true));
+            x509cg.addExtension(Extension.basicConstraints, true, new BasicConstraints(true));
         }
         for (int i = 0; i < extendedKeyUsages.size(); i++) {
             KeyPurposeId keyPurposeId = extendedKeyUsages.get(i);
             boolean critical = criticalExtendedKeyUsages.get(i);
             x509cg.addExtension(
-                    X509Extensions.ExtendedKeyUsage, critical, new ExtendedKeyUsage(keyPurposeId));
+                    Extension.extendedKeyUsage, critical, new ExtendedKeyUsage(keyPurposeId));
         }
         for (GeneralName subjectAltName : subjectAltNames) {
-            x509cg.addExtension(X509Extensions.SubjectAlternativeName, false,
+            x509cg.addExtension(Extension.subjectAlternativeName, false,
                     new GeneralNames(subjectAltName).getEncoded());
         }
         if (!permittedNameConstraints.isEmpty() || !excludedNameConstraints.isEmpty()) {
-            x509cg.addExtension(X509Extensions.NameConstraints, true,
+            x509cg.addExtension(Extension.nameConstraints, true,
                     new NameConstraints(
                             permittedNameConstraints.toArray(
                                     new GeneralSubtree[permittedNameConstraints.size()]),
@@ -725,7 +722,9 @@ public final class TestKeyStore extends Assert {
                                     new GeneralSubtree[excludedNameConstraints.size()])));
         }
 
-        X509Certificate x509c = x509cg.generateX509Certificate(privateKey);
+        X509CertificateHolder x509holder =
+                x509cg.build(new JcaContentSignerBuilder(signatureAlgorithm).build(privateKey));
+        X509Certificate x509c = new JcaX509CertificateConverter().getCertificate(x509holder);
         if (StandardNames.IS_RI) {
             /*
              * The RI can't handle the BC EC signature algorithm
@@ -824,8 +823,8 @@ public final class TestKeyStore extends Assert {
             }
             if (found == null) {
                 throw new IllegalStateException("KeyStore contained no private key for"
-                        + " keyAlgorithm: " + keyAlgorithm + " signatureAlgorithm: "
-                        + signatureAlgorithm);
+                        + " keyAlgorithm: " + keyAlgorithm
+                        + " signatureAlgorithm: " + signatureAlgorithm);
             }
             return found;
         } catch (Exception e) {
@@ -981,7 +980,7 @@ public final class TestKeyStore extends Assert {
     }
 
     /**
-     * Return an {@code X509Certificate that matches the given {@code alias}.
+     * Return an {@code X509Certificate} that matches the given {@code alias}.
      */
     public KeyStore.Entry getEntryByAlias(String alias) {
         return entryByAlias(keyStore, alias);

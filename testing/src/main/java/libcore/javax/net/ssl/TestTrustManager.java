@@ -18,12 +18,12 @@ package libcore.javax.net.ssl;
 
 import java.io.PrintStream;
 import java.net.Socket;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import libcore.java.io.NullPrintStream;
 import libcore.java.security.StandardNames;
 

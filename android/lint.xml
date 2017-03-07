@@ -4,4 +4,14 @@
     <issue id="NewApi">
         <ignore path="**/org/conscrypt/OpenSSLExtendedSessionImpl.java" />
     </issue>
+
+    <!-- Android SparseArrays can't be used in common directory. -->
+    <issue id="UseSparseArrays">
+        <ignore path="**/common/src/main/java/**/*.java" />
+    </issue>
+
+    <!-- TrulyRandom flips out over KeyPairGenerator. -->
+    <issue id="TrulyRandom">
+        <ignore path="**/common/src/main/java/org/conscrypt/OpenSSLECKeyPairGenerator.java" />
+    </issue>
 </lint>

@@ -36,6 +36,7 @@ model {
                     // Sources assumed to be in src/gen/cpp by default.
                     exportedHeaders {
                         srcDirs "${boringsslIncludeDir}"
+                        include "**/*.cpp"
                     }
                 }
             }
@@ -49,11 +50,11 @@ model {
 
             dependsOn gen
             File genDir = new File("${genDir}/org/conscrypt")
-            genDir.mkdirs()
 
             executable gen.executable.file
 
             doFirst {
+                genDir.mkdirs()
                 standardOutput = new FileOutputStream(new File(genDir, "NativeConstants.java"))
             }
             doLast {
@@ -64,3 +65,8 @@ model {
         }
     }
 }
+
+
+// Don't include this artifact in the distribution.
+tasks.install.enabled = false
+tasks.uploadArchives.enabled = false;

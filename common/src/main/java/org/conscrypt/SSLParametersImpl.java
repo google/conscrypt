@@ -46,7 +46,6 @@ import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.util.EmptyArray;
 
 /**
  * The instances of this class encapsulate all the info
@@ -76,6 +75,7 @@ public class SSLParametersImpl implements Cloneable {
     // source of X.509 certificate based authentication keys or null if not provided
     private final X509KeyManager x509KeyManager;
     // source of Pre-Shared Key (PSK) authentication keys or null if not provided.
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     private final PSKKeyManager pskKeyManager;
     // source of X.509 certificate based authentication trust decisions or null if not provided
     private final X509TrustManager x509TrustManager;
@@ -109,8 +109,8 @@ public class SSLParametersImpl implements Cloneable {
     private byte[] sctExtension;
     private byte[] ocspResponse;
 
-    byte[] alpnProtocols;
-    boolean useSessionTickets;
+    private byte[] alpnProtocols;
+    private boolean useSessionTickets;
     private Boolean useSni;
 
     /**
@@ -212,6 +212,7 @@ public class SSLParametersImpl implements Cloneable {
     /**
      * @return Pre-Shared Key (PSK) key manager or {@code null} for none.
      */
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     protected PSKKeyManager getPSKKeyManager() {
         return pskKeyManager;
     }
@@ -282,6 +283,32 @@ public class SSLParametersImpl implements Cloneable {
     }
 
     /**
+     * Sets the list of ALPN protocols. This method internally converts the protocols to their
+     * wire-format form.
+     *
+     * @param alpnProtocols the list of ALPN protocols
+     * @see #setAlpnProtocols(byte[])
+     */
+    void setAlpnProtocols(String[] alpnProtocols) {
+        setAlpnProtocols(SSLUtils.toLengthPrefixedList(alpnProtocols));
+    }
+
+    /**
+     * Alternate version of {@link #setAlpnProtocols(String[])} that directly sets the list of
+     * ALPN in the wire-format form used by BoringSSL (length-prefixed 8-bit strings).
+     * Requires that all strings be encoded with US-ASCII.
+     *
+     * @param alpnProtocols the encoded form of the ALPN protocol list
+     * @see #setAlpnProtocols(String[])
+     */
+    void setAlpnProtocols(byte[] alpnProtocols) {
+        if (alpnProtocols != null && alpnProtocols.length == 0) {
+            throw new IllegalArgumentException("alpnProtocols.length == 0");
+        }
+        this.alpnProtocols = alpnProtocols;
+    }
+
+    /**
      * Tunes the peer holding this parameters to work in client mode.
      * @param   mode if the peer is configured to work in client mode
      */
@@ -345,6 +372,10 @@ public class SSLParametersImpl implements Cloneable {
      */
     protected boolean getEnableSessionCreation() {
         return enable_session_creation;
+    }
+
+    void setUseSessionTickets(boolean useSessionTickets) {
+        this.useSessionTickets = useSessionTickets;
     }
 
     /**
@@ -554,6 +585,28 @@ public class SSLParametersImpl implements Cloneable {
                     NativeConstants.SSL_OP_CIPHER_SERVER_PREFERENCE);
         }
 
+        enablePSKKeyManagerIfRequested(sslNativePointer, pskCallbacks);
+
+        if (useSessionTickets) {
+            NativeCrypto.SSL_clear_options(sslNativePointer, NativeConstants.SSL_OP_NO_TICKET);
+        }
+        if (getUseSni() && AddressUtils.isValidSniHostname(sniHostname)) {
+            NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, sniHostname);
+        }
+
+        // BEAST attack mitigation (1/n-1 record splitting for CBC cipher suites
+        // with TLSv1 and SSLv3).
+        NativeCrypto.SSL_set_mode(sslNativePointer, NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING);
+
+        boolean enableSessionCreation = getEnableSessionCreation();
+        if (!enableSessionCreation) {
+            NativeCrypto.SSL_set_session_creation_enabled(sslNativePointer, enableSessionCreation);
+        }
+    }
+
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
+    private void enablePSKKeyManagerIfRequested(long sslNativePointer, PSKCallbacks pskCallbacks)
+            throws SSLException {
         // Enable Pre-Shared Key (PSK) key exchange if requested
         PSKKeyManager pskKeyManager = getPSKKeyManager();
         if (pskKeyManager != null) {
@@ -573,22 +626,6 @@ public class SSLParametersImpl implements Cloneable {
                     NativeCrypto.SSL_use_psk_identity_hint(sslNativePointer, identityHint);
                 }
             }
-        }
-
-        if (useSessionTickets) {
-            NativeCrypto.SSL_clear_options(sslNativePointer, NativeConstants.SSL_OP_NO_TICKET);
-        }
-        if (getUseSni() && AddressUtils.isValidSniHostname(sniHostname)) {
-            NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, sniHostname);
-        }
-
-        // BEAST attack mitigation (1/n-1 record splitting for CBC cipher suites
-        // with TLSv1 and SSLv3).
-        NativeCrypto.SSL_set_mode(sslNativePointer, NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING);
-
-        boolean enableSessionCreation = getEnableSessionCreation();
-        if (!enableSessionCreation) {
-            NativeCrypto.SSL_set_session_creation_enabled(sslNativePointer, enableSessionCreation);
         }
     }
 
@@ -698,6 +735,7 @@ public class SSLParametersImpl implements Cloneable {
     /**
      * @see NativeCrypto.SSLHandshakeCallbacks#clientPSKKeyRequested(String, byte[], byte[])
      */
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     int clientPSKKeyRequested(
             String identityHint, byte[] identityBytesOut, byte[] key, PSKCallbacks pskCallbacks) {
         PSKKeyManager pskKeyManager = getPSKKeyManager();
@@ -744,6 +782,7 @@ public class SSLParametersImpl implements Cloneable {
     /**
      * @see NativeCrypto.SSLHandshakeCallbacks#serverPSKKeyRequested(String, String, byte[])
      */
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     int serverPSKKeyRequested(
             String identityHint, String identity, byte[] key, PSKCallbacks pskCallbacks) {
         PSKKeyManager pskKeyManager = getPSKKeyManager();
@@ -819,6 +858,7 @@ public class SSLParametersImpl implements Cloneable {
      * For abstracting the {@code PSKKeyManager} calls between those taking an {@code SSLSocket} and
      * those taking an {@code SSLEngine}.
      */
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public interface PSKCallbacks {
         String chooseServerPSKIdentityHint(PSKKeyManager keyManager);
         String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint);
@@ -886,6 +926,7 @@ public class SSLParametersImpl implements Cloneable {
      *
      * @return the first {@code PSKKeyManager} or {@code null} if not found.
      */
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     private static PSKKeyManager findFirstPSKKeyManager(KeyManager[] kms) {
         for (KeyManager km : kms) {
             if (km instanceof PSKKeyManager) {

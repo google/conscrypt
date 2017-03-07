@@ -31,12 +31,11 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.util.EmptyArray;
+import org.conscrypt.OpenSSLEngineImpl.HandshakeListener;
 
 /**
  * Implements crypto handling by delegating to OpenSSLEngine. Used for socket implementations
@@ -56,6 +55,17 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
         super(socket, hostname, port, autoClose, sslParameters);
         this.socket = socket;
         engine = new OpenSSLEngineImpl(hostname, port, sslParameters);
+
+        // When the handshake completes, notify any listeners.
+        engine.setHandshakeListener(new HandshakeListener() {
+            @Override
+            public void onHandshakeFinished() {
+                if (!handshakeComplete) {
+                    handshakeComplete = true;
+                    OpenSSLEngineSocketImpl.this.notifyHandshakeCompletedListeners();
+                }
+            }
+        });
         outputStreamWrapper = new OutputStreamWrapper();
         inputStreamWrapper = new InputStreamWrapper();
         engine.setUseClientMode(sslParameters.getUseClientMode());
@@ -73,10 +83,9 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                         engine.beginHandshake();
                         break;
                     }
-                    // Fall through to FINISHED processing.
+                    break;
                 }
                 case FINISHED: {
-                    completeHandshake();
                     return;
                 }
                 case NEED_WRAP: {
@@ -176,17 +185,17 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
 
     @Override
     public void setChannelIdEnabled(boolean enabled) {
-        throw new UnsupportedOperationException("Not supported");
+        super.setChannelIdEnabled(enabled);
     }
 
     @Override
     public byte[] getChannelId() throws SSLException {
-        throw new UnsupportedOperationException("Not supported");
+        return super.getChannelId();
     }
 
     @Override
     public void setChannelIdPrivateKey(PrivateKey privateKey) {
-        throw new UnsupportedOperationException("FIXME");
+        super.setChannelIdPrivateKey(privateKey);
     }
 
     @Override
@@ -237,7 +246,6 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
     @Override
     public int getSoWriteTimeout() throws SocketException {
         return 0;
-        //throw new UnsupportedOperationException("Not supported");
     }
 
     @Override
@@ -300,25 +308,21 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
         return engine.chooseServerPSKIdentityHint(keyManager);
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
         return engine.chooseClientPSKIdentity(keyManager, identityHint);
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
         return engine.getPSKKey(keyManager, identityHint, identity);
-    }
-
-    private void completeHandshake() {
-        if (!handshakeComplete) {
-            handshakeComplete = true;
-            super.notifyHandshakeCompletedListeners();
-        }
     }
 
     /**
@@ -388,9 +392,6 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                         } else {
                             // Target is a heap buffer.
                             socketOutputStream.write(target.array(), 0, target.limit());
-                        }
-                        if (engineResult.getHandshakeStatus() == HandshakeStatus.FINISHED) {
-                            completeHandshake();
                         }
                     } while (len > 0);
                 } catch (IOException e) {
@@ -505,12 +506,18 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                                         // Need to read more data from the socket.
                                         break;
                                     }
-                                    // Fall-through and serve the data that was produced.
+                                    // Also serve the data that was produced.
+                                    needMoreData = false;
+                                    break;
                                 }
                                 case OK: {
                                     // We processed the entire packet successfully.
                                     needMoreData = false;
                                     break;
+                                }
+                                case CLOSED: {
+                                    // EOF
+                                    return -1;
                                 }
                                 default: {
                                     // Anything else is an error.
@@ -519,9 +526,6 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                                 }
                             }
 
-                            if (engineResult.getHandshakeStatus() == HandshakeStatus.FINISHED) {
-                                completeHandshake();
-                            }
                             if (!needMoreData && engineResult.bytesProduced() == 0) {
                                 // Read successfully, but produced no data. Possibly part of a
                                 // handshake.

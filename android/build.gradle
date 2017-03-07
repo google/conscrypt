@@ -26,6 +26,10 @@ if (androidSdkInstalled) {
     apply plugin: 'com.android.library'
     apply plugin: 'com.github.dcendents.android-maven'
 
+    // Since we're not taking a direct dependency on the constants module, we need to add an
+    // explicit task dependency to make sure the code is generated.
+    evaluationDependsOn(':conscrypt-constants')
+
     android {
         compileSdkVersion androidTargetSdkVersion
         buildToolsVersion androidBuildToolsVersion
@@ -43,6 +47,8 @@ if (androidSdkInstalled) {
 
             testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
+            consumerProguardFiles 'proguard-rules.pro'
+
             externalNativeBuild {
                 cmake {
                     arguments '-DANDROID=True',
@@ -57,7 +63,7 @@ if (androidSdkInstalled) {
                 }
             }
             ndk {
-                abiFilters 'x86', 'x86_64', 'armeabi-v7a'
+                abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
             }
         }
         buildTypes {
@@ -72,6 +78,8 @@ if (androidSdkInstalled) {
                         "${rootDir}/common/src/main/java",
                         "src/main/java"
                 ]
+                // Requires evaluationDependsOn(':conscrypt-constants') above.
+                srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
             }
         }
         externalNativeBuild {
@@ -89,9 +97,95 @@ if (androidSdkInstalled) {
         androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
             exclude group: 'com.android.support', module: 'support-annotations'
         })
-        compile project(':conscrypt-constants')
         provided project(':conscrypt-android-stub')
+
+        // Adds the constants module as a dependency so that we can include its generated source
+        provided project(':conscrypt-constants')
     }
+
+    task javadocs(type: Javadoc) {
+        source = android.sourceSets.main.java.srcDirs
+        classpath += project.files(android.getBootClasspath().join(File.pathSeparator)) + project(':conscrypt-android-stub').sourceSets.main.output
+        // TODO(nmittler): Fix the javadoc errors.
+        failOnError false
+        options {
+            encoding = 'UTF-8'
+            links "https://docs.oracle.com/javase/7/docs/api/"
+            // Disable JavaDoc doclint on Java 8. It's annoying.
+            if (JavaVersion.current().isJava8Compatible()) {
+                addStringOption('Xdoclint:none', '-quiet')
+            }
+        }
+    }
+
+    task javadocsJar(type: Jar, dependsOn: javadocs) {
+        classifier = 'javadoc'
+        from javadocs.destinationDir
+    }
+
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from android.sourceSets.main.java.srcDirs
+    }
+
+    artifacts {
+        archives sourcesJar
+        archives javadocsJar
+    }
+
+    uploadArchives.repositories.mavenDeployer {
+        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+        String stagingUrl
+        if (rootProject.hasProperty('repositoryId')) {
+            stagingUrl = 'https://oss.sonatype.org/service/local/staging/deployByRepositoryId/' +
+                    rootProject.repositoryId
+        } else {
+            stagingUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+        }
+        def configureAuth = {
+            if (rootProject.hasProperty('ossrhUsername') && rootProject.hasProperty('ossrhPassword')) {
+                authentication(userName: rootProject.ossrhUsername, password: rootProject.ossrhPassword)
+            }
+        }
+        repository(url: stagingUrl, configureAuth)
+        snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots/', configureAuth)
+    }
+
+    [
+            install.repositories.mavenInstaller,
+            uploadArchives.repositories.mavenDeployer,
+    ]*.pom*.whenConfigured { pom ->
+        pom.project {
+            name "$project.group:$project.name"
+            description project.description
+            url 'https://conscrypt.org/'
+
+            scm {
+                connection 'scm:git:https://github.com/google/conscrypt.git'
+                developerConnection 'scm:git:git@github.com:google/conscrypt.git'
+                url 'https://github.com/google/conscrypt'
+            }
+
+            licenses {
+                license {
+                    name 'Apache 2'
+                    url 'https://www.apache.org/licenses/LICENSE-2.0'
+                }
+            }
+
+            developers {
+                developer {
+                    id "conscrypt"
+                    name "Conscrypt Contributors"
+                    email "conscrypt@googlegroups.com"
+                    url "https://conscrypt.org/"
+                    organization = "Google, Inc."
+                    organizationUrl "https://www.google.com"
+                }
+            }
+        }
+    }
+
 } else {
     logger.warn('Android SDK has not been detected. The Android module will not be built.')
 

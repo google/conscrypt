@@ -5,16 +5,6 @@ ext {
     assert file("$jniSourceDir").exists()
 
     // Build the list of classifiers that will be used in the build.
-    os = org.gradle.internal.os.OperatingSystem.current();
-    if (os.isLinux()) {
-        osName = "linux"
-    } else if (os.isMacOsX()) {
-        osName = "osx"
-    } else if (os.isWindows()) {
-        osName = "windows"
-    } else {
-        throw new GradleException("Unsupported os: " + os.name)
-    }
     arch32Name = 'x86'
     arch64Name = 'x86_64'
     jvmArgs32 = '-d32'
@@ -24,29 +14,31 @@ ext {
     javaExecutable64 = properties['javaExecutable64'] ?: System.env.CONSCRYPT_JAVA_EXECUTABLE_64
     nativeClassifiers = []
     if (build32Bit) {
-        nativeClassifiers += "${osName}-$arch32Name"
+        nativeClassifiers += classifierFor(osName, arch32Name)
     }
     if (build64Bit) {
-        nativeClassifiers += "${osName}-$arch64Name"
+        nativeClassifiers += classifierFor(osName, arch64Name)
     }
 }
-
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
 
 sourceSets {
     main {
         java {
             srcDirs += "${rootDir}/common/src/main/java"
+            srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
         }
     }
 }
 
-dependencies {
-    compile project(':conscrypt-constants')
+// Append the BoringSSL-Version to the manifest.
+jar.manifest {
+    attributes 'BoringSSL-Version' : boringSslVersion
+}
 
-    testCompile libraries.bouncycastle_provider,
-                libraries.bouncycastle_apis,
+dependencies {
+    compileOnly project(':conscrypt-constants')
+
+    testCompile project(':conscrypt-testing'),
                 libraries.junit,
                 libraries.mockito
 }
@@ -57,17 +49,30 @@ dependencies {
 nativeClassifiers.each { nativeClassifier ->
     // Normalize the classifier so that it may be used in task names. We'll also use
     // the normalized name for the resource directory.
-    def normalizedClassifier = "${nativeClassifier}".replaceAll("-", "_")
+    def normalizedClassifier = normalizeClassifier("${nativeClassifier}")
     def nativeFiles = files("${buildDir}/${normalizedClassifier}/resources/main")
+
+    // Create a configuration for the native JAR.
+    configurations.create("$normalizedClassifier")
+    def sources = sourceSets.create("$normalizedClassifier")
+    sources.resources {
+        srcDirs += nativeFiles
+    }
 
     // Create a JAR for this configuration and add it to the output archives.
     def jarTaskName = "create${normalizedClassifier}Jar"
-    task "$jarTaskName"(type: Jar, dependsOn: classes) {
+    task "$jarTaskName"(type: Jar) {
+        dependsOn classes
+        dependsOn compileJava
         from sourceSets.main.output + nativeFiles
         manifest = jar.manifest
         classifier = nativeClassifier
     }
+    // Add it to the 'archives' configuration so that the artifact will be automatically built and
+    // installed/deployed.
     artifacts.add('archives', tasks["$jarTaskName"])
+    // Also add the artifact to its own configuration so that it can be referenced from other projects.
+    artifacts.add("$normalizedClassifier", tasks["$jarTaskName"])
 
     // Create the test task and have it auto run whenever the test task runs.
     def testTaskName = "${normalizedClassifier}Test"
@@ -103,6 +108,10 @@ model {
         }
     }
 
+    buildTypes {
+        release
+    }
+
     components {
         // Builds the JNI library.
         conscrypt_openjdk_jni(NativeLibrarySpec) {
@@ -112,10 +121,8 @@ model {
             sources {
                 cpp {
                     source {
-                        srcDirs = [
-                                "$jniSourceDir/unbundled/cpp",
-                                "$jniSourceDir/main/cpp"
-                        ]
+                        srcDirs "$jniSourceDir/main/cpp"
+                        include "**/*.cpp"
                     }
                 }
             }
@@ -175,9 +182,12 @@ model {
                                 "/GS",
                                 "/Gy",
                                 "/fp:precise",
+                                "-wd4514", // Unreferenced inline function removed
                                 "-wd4548", // Expression before comma has no effect
                                 "-wd4625", // Copy constructor was implicitly defined as deleted
                                 "-wd4626", // Assignment operator was implicitly defined as deleted
+                                "-wd4710", // function not inlined
+                                "-wd4711", // function inlined
                                 "-wd4820", // Extra padding added to struct
                                 "-wd4946", // reinterpret_cast used between related classes:
                                 "-wd4996", // Thread safety for strerror
@@ -205,16 +215,17 @@ model {
         }
     }
 
-    tasks {
-        $.binaries.withType(SharedLibraryBinarySpec).each {
+    tasks { t ->
+        $.binaries.withType(SharedLibraryBinarySpec).each { binary ->
             // Build the native artifact classifier from the OS and architecture.
-            def archName = it.targetPlatform.architecture.name.replaceAll('-', '_')
-            def classifier = "${osName}-${archName}"
-            def normalizedClassifier = "$classifier".replaceAll('-', '_')
-            def source = it.sharedLibraryFile
+            def archName = binary.targetPlatform.architecture.name.replaceAll('-', '_')
+            def classifier = classifierFor(osName, archName)
+            def normalizedClassifier = normalizeClassifier("$classifier")
+            def source = binary.sharedLibraryFile
 
             // Copies the native library to a resource location that will be included in the jar.
             task "copyNativeLib${normalizedClassifier}"(type: Copy) {
+                dependsOn "conscrypt_openjdk_jniSharedLibrary"
                 from source
                 // Rename the artifact to include the generated classifier
                 rename '(.+)(\\.[^\\.]+)', "\$1-$classifier\$2"
@@ -224,7 +235,26 @@ model {
 
             // Make sure we build and copy the native library to the output directory.
             compileJava.dependsOn "copyNativeLib${normalizedClassifier}"
+
+            // Now define a task to strip the release binary (linux only)
+            def stripTask = binary.tasks.taskName("strip")
+            t.create(stripTask) {
+                dependsOn binary.tasks.link
+                doFirst {
+                    if (osName == 'linux') {
+                        ["strip", binary.tasks.link.outputFile].execute().waitForOrKill(1000)
+                    }
+                }
+            }
+            binary.tasks.build.dependsOn stripTask
         }
     }
 }
 
+static classifierFor(osName, archName) {
+    return "${osName}-${archName}"
+}
+
+static normalizeClassifier(classifier) {
+    return classifier.replaceAll("-", "_")
+}

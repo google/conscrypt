@@ -42,7 +42,8 @@ public:
         }
     }
 
-    T release() CONSCRYPT_ATTRIBUTE_1((warn_unused_result)) {
+    CONSCRYPT_WARN_UNUSED
+    T release() {
         T localRef = mLocalRef;
         mLocalRef = nullptr;
         return localRef;

@@ -1,0 +1,20 @@
+description = 'Conscrypt: Testing'
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+    }
+}
+
+dependencies {
+    // Only compile against this. Other modules will embed the generated code directly.
+    compileOnly project(':conscrypt-constants')
+
+    compile libraries.bouncycastle_provider,
+            libraries.bouncycastle_apis,
+            libraries.guava,
+            libraries.junit,
+            libraries.netty_handler
+}

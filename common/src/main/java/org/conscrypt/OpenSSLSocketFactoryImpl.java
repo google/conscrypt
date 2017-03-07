@@ -16,8 +16,6 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.Platform.getFileDescriptor;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -25,11 +23,11 @@ import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 
 public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
-    private static boolean alwaysUseSocketEngine =
-            Boolean.parseBoolean(System.getProperty("org.conscrypt.alwaysUseEngineSocket"));
+    private static boolean useEngineSocketByDefault = SSLUtils.USE_ENGINE_SOCKET_BY_DEFAULT;
 
     private final SSLParametersImpl sslParameters;
     private final IOException instantiationException;
+    private boolean useEngineSocket = useEngineSocketByDefault;
 
     public OpenSSLSocketFactoryImpl() {
         SSLParametersImpl sslParametersLocal = null;
@@ -49,8 +47,19 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
         this.instantiationException = null;
     }
 
-    public static void setAlwaysUseEngineSocket(boolean enable) {
-        alwaysUseSocketEngine = enable;
+    /**
+     * Configures the default socket to be created for all instances.
+     */
+    public static void setUseEngineSocketByDefault(boolean useEngineSocket) {
+        useEngineSocketByDefault = useEngineSocket;
+    }
+
+    /**
+     * Configures the socket to be created for this instance. If not called,
+     * {@link #useEngineSocketByDefault} will be used.
+     */
+    public void setUseEngineSocket(boolean useEngineSocket) {
+        this.useEngineSocket = useEngineSocket;
     }
 
     @Override
@@ -115,18 +124,12 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
         } catch (RuntimeException re) {
             // Ignore
         }
-        if (socketHasFd && !alwaysUseSocketEngine) {
-            return new OpenSSLSocketImplWrapper(s,
-                hostname,
-                port,
-                autoClose,
-                (SSLParametersImpl) sslParameters.clone());
+        if (socketHasFd && !useEngineSocket) {
+            return new OpenSSLSocketImplWrapper(
+                    s, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
         } else {
-            return new OpenSSLEngineSocketImpl(s,
-                hostname,
-                port,
-                autoClose,
-                (SSLParametersImpl) sslParameters.clone());
+            return new OpenSSLEngineSocketImpl(
+                    s, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
         }
     }
 }

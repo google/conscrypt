@@ -14,6 +14,22 @@
  * limitations under the License.
  */
 
+/*
+ * Copyright 2016 The Netty Project
+ *
+ * The Netty Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.conscrypt;
 
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.FINISHED;
@@ -35,6 +51,7 @@ import static org.conscrypt.NativeConstants.SSL_ERROR_WANT_WRITE;
 import static org.conscrypt.NativeConstants.SSL_ERROR_ZERO_RETURN;
 import static org.conscrypt.NativeConstants.SSL_RECEIVED_SHUTDOWN;
 import static org.conscrypt.NativeConstants.SSL_SENT_SHUTDOWN;
+import static org.conscrypt.SSLUtils.calculateOutNetBufSize;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -72,10 +89,22 @@ public final class OpenSSLEngineImpl extends SSLEngine
     private static final ByteBuffer EMPTY = ByteBuffer.allocateDirect(0);
     private static final long EMPTY_ADDR = NativeCrypto.getDirectBufferAddress(EMPTY);
 
+    /**
+     * Similar in concept to {@link javax.net.ssl.HandshakeCompletedListener}. Allows the caller to be
+     * notified immediately upon completion of the TLS handshake.
+     */
+    public interface HandshakeListener {
+
+        /**
+         * Called by the engine when the TLS handshake has completed.
+         */
+        void onHandshakeFinished() throws SSLException;
+    }
+
     private final SSLParametersImpl sslParameters;
 
     /**
-     * Protects handshakeStarted and handshakeCompleted.
+     * Protects {@link #engineState} and {@link #handshakeFinished}.
      */
     private final Object stateLock = new Object();
 
@@ -149,6 +178,10 @@ public final class OpenSSLEngineImpl extends SSLEngine
      */
     OpenSSLKey channelIdPrivateKey;
 
+    private int maxSealOverhead;
+
+    private HandshakeListener handshakeListener;
+
     private final ByteBuffer[] singleSrcBuffer = new ByteBuffer[1];
     private final ByteBuffer[] singleDstBuffer = new ByteBuffer[1];
 
@@ -159,6 +192,30 @@ public final class OpenSSLEngineImpl extends SSLEngine
     public OpenSSLEngineImpl(String host, int port, SSLParametersImpl sslParameters) {
         super(host, port);
         this.sslParameters = sslParameters;
+    }
+
+    /**
+     * Returns the maximum overhead, in bytes, of sealing a record with SSL.
+     */
+    public final int maxSealOverhead() {
+        return maxSealOverhead;
+    }
+
+    /**
+     * Sets the listener for the completion of the TLS handshake.
+     */
+    public OpenSSLEngineImpl setHandshakeListener(HandshakeListener handshakeListener) {
+        switch(engineState) {
+            case NEW:
+            case MODE_SET:
+                // Allowed.
+                break;
+            default:
+                // Disallow anything else.
+                throw new IllegalStateException("Handshake listener must be set before starting the handshake.");
+        }
+        this.handshakeListener = handshakeListener;
+        return this;
     }
 
     @Override
@@ -202,6 +259,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
             } else {
                 NativeCrypto.SSL_set_accept_state(sslNativePointer);
             }
+            maxSealOverhead = NativeCrypto.SSL_max_seal_overhead(sslNativePointer);
             handshake();
             releaseResources = false;
         } catch (IOException e) {
@@ -491,11 +549,6 @@ public final class OpenSSLEngineImpl extends SSLEngine
             len += src.remaining();
         }
 
-        // Protect against protocol overflow attack vector
-        if (len > SSL3_RT_MAX_PACKET_SIZE) {
-            throw new SSLException("encrypted packet oversized");
-        }
-
         synchronized (stateLock) {
             switch (engineState) {
                 case MODE_SET:
@@ -534,16 +587,9 @@ public final class OpenSSLEngineImpl extends SSLEngine
                 throw new SSLException("Unable to parse TLS packet header");
             }
 
-            if (packetLength - SSL3_RT_HEADER_LENGTH > capacity) {
-                // No enough space in the destination buffer so signal the caller
-                // that the buffer needs to be increased.
-                return new SSLEngineResult(BUFFER_OVERFLOW, getHandshakeStatus(), 0, 0);
-            }
-
             if (len < packetLength) {
                 // We either have not enough data to read the packet header or not enough for
-                // reading
-                // the whole packet.
+                // reading the whole packet.
                 return new SSLEngineResult(BUFFER_UNDERFLOW, getHandshakeStatus(), 0, 0);
             }
 
@@ -624,7 +670,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
                             // This means the connection was shutdown correctly, close inbound and
                             // outbound
                             closeAll();
-                        // fall-trough!
+                            return newResult(bytesConsumed, bytesProduced, handshakeStatus);
                         case SSL_ERROR_WANT_READ:
                         case SSL_ERROR_WANT_WRITE:
                             return newResult(bytesConsumed, bytesProduced, handshakeStatus);
@@ -698,9 +744,12 @@ public final class OpenSSLEngineImpl extends SSLEngine
             } else {
                 engineState = EngineState.READY;
             }
-            handshakeFinished = true;
+            finishHandshake();
             return FINISHED;
+        } catch (SSLHandshakeException e) {
+            throw e;
         } catch (Exception e) {
+            // Wrap all other exceptions.
             throw(SSLHandshakeException) new SSLHandshakeException("Handshake failed").initCause(e);
         } finally {
             if (sslSession == null && sslSessionCtx != 0) {
@@ -709,6 +758,13 @@ public final class OpenSSLEngineImpl extends SSLEngine
         }
     }
 
+    private void finishHandshake() throws SSLException {
+        handshakeFinished = true;
+        // Notify the listener, if provided.
+        if (handshakeListener != null) {
+            handshakeListener.onHandshakeFinished();
+        }
+    }
     /**
      * Write plaintext data to the OpenSSL internal BIO
      *
@@ -908,7 +964,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
 
     private SSLEngineResult sslReadErrorResult(int err, int bytesConsumed, int bytesProduced)
             throws SSLException {
-        if (pendingOutboundEncryptedBytes() > 0) {
+        if (!handshakeFinished && pendingOutboundEncryptedBytes() > 0) {
             return new SSLEngineResult(OK, NEED_WRAP, bytesConsumed, bytesProduced);
         }
         throw shutdownWithError(NativeCrypto.SSL_get_error_string(err));
@@ -946,14 +1002,10 @@ public final class OpenSSLEngineImpl extends SSLEngine
             throws SSLException {
         checkNotNull(srcs, "srcs");
         checkNotNull(dst, "dst");
+        checkIndex(srcs.length, offset, length, "srcs");
         if (dst.isReadOnly()) {
             throw new ReadOnlyBufferException();
         }
-        final int endOffset = offset + length;
-        for (int i = offset; i < endOffset; ++i) {
-            checkNotNull(srcs[i], "one of the src");
-        }
-        checkIndex(srcs.length, offset, length, "srcs");
 
         synchronized (stateLock) {
             switch (engineState) {
@@ -984,7 +1036,27 @@ public final class OpenSSLEngineImpl extends SSLEngine
                 // NEED_WRAP - just fall through to perform the wrap.
             }
 
-            if (dst.remaining() < SSL3_RT_MAX_PACKET_SIZE) {
+            int srcsLen = 0;
+            final int endOffset = offset + length;
+            for (int i = offset; i < endOffset; ++i) {
+                final ByteBuffer src = srcs[i];
+                if (src == null) {
+                    throw new IllegalArgumentException("srcs[" + i + "] is null");
+                }
+                if (srcsLen == SSL3_RT_MAX_PLAIN_LENGTH) {
+                    continue;
+                }
+
+                srcsLen += src.remaining();
+                if (srcsLen > SSL3_RT_MAX_PLAIN_LENGTH || srcsLen < 0) {
+                    // If srcLen > MAX_PLAINTEXT_LENGTH or secLen < 0 just set it to MAX_PLAINTEXT_LENGTH.
+                    // This also help us to guard against overflow.
+                    // We not break out here as we still need to check for null entries in srcs[].
+                    srcsLen = SSL3_RT_MAX_PLAIN_LENGTH;
+                }
+            }
+
+            if (dst.remaining() < calculateOutNetBufSize(srcsLen)) {
                 return new SSLEngineResult(
                         Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0, 0);
             }
@@ -1228,16 +1300,19 @@ public final class OpenSSLEngineImpl extends SSLEngine
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
         return keyManager.chooseServerKeyIdentityHint(this);
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
         return keyManager.chooseClientKeyIdentity(identityHint, this);
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
         return keyManager.getKey(identityHint, identity, this);
     }
@@ -1248,7 +1323,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
      * @param useSessionTickets True to enable session tickets
      */
     public void setUseSessionTickets(boolean useSessionTickets) {
-        sslParameters.useSessionTickets = useSessionTickets;
+        sslParameters.setUseSessionTickets(useSessionTickets);
     }
 
     /**
@@ -1257,18 +1332,26 @@ public final class OpenSSLEngineImpl extends SSLEngine
     public void setNpnProtocols(byte[] npnProtocols) {}
 
     /**
-     * Sets the list of protocols this peer is interested in. If the list is {@code null}, no
-     * protocols will be used.
+     * Sets the list of ALPN protocols. This method internally converts the protocols to their
+     * wire-format form.
      *
-     * @param alpnProtocols a non-empty array of protocol names. From SSL_select_next_proto, "vector
-     * of 8-bit, length prefixed byte strings. The length byte itself is not included in the length.
-     * A byte string of length 0 is invalid. No byte string may be truncated.".
+     * @param alpnProtocols the list of ALPN protocols
+     * @see #setAlpnProtocols(byte[])
+     */
+    public void setAlpnProtocols(String[] alpnProtocols) {
+        sslParameters.setAlpnProtocols(alpnProtocols);
+    }
+
+    /**
+     * Alternate version of {@link #setAlpnProtocols(String[])} that directly sets the list of
+     * ALPN in the wire-format form used by BoringSSL (length-prefixed 8-bit strings).
+     * Requires that all strings be encoded with US-ASCII.
+     *
+     * @param alpnProtocols the encoded form of the ALPN protocol list
+     * @see #setAlpnProtocols(String[])
      */
     public void setAlpnProtocols(byte[] alpnProtocols) {
-        if (alpnProtocols != null && alpnProtocols.length == 0) {
-            throw new IllegalArgumentException("alpnProtocols.length == 0");
-        }
-        sslParameters.alpnProtocols = alpnProtocols;
+        sslParameters.setAlpnProtocols(alpnProtocols);
     }
 
     /**

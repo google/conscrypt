@@ -1,12 +1,16 @@
 rootProject.name = "conscrypt"
 include ":conscrypt-constants"
 include ":conscrypt-openjdk"
+include ":conscrypt-openjdk-benchmarks"
+include ":conscrypt-testing"
 include ":conscrypt-openjdk-uber"
 include ":conscrypt-android"
 include ":conscrypt-android-stub"
 
 project(':conscrypt-constants').projectDir = "$rootDir/constants" as File
 project(':conscrypt-openjdk').projectDir = "$rootDir/openjdk" as File
+project(':conscrypt-openjdk-benchmarks').projectDir = "$rootDir/openjdk-benchmarks" as File
+project(':conscrypt-testing').projectDir = "$rootDir/testing" as File
 project(':conscrypt-openjdk-uber').projectDir = "$rootDir/openjdk-uber" as File
 project(':conscrypt-android').projectDir = "$rootDir/android" as File
 project(':conscrypt-android-stub').projectDir = "$rootDir/android-stub" as File

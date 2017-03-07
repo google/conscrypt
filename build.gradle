@@ -2,6 +2,13 @@ buildscript {
     repositories {
         mavenCentral()
         mavenLocal()
+        jcenter()
+    }
+    dependencies {
+        // Add dependency for build script,
+        // so we can access Git from our
+        // build script.
+        classpath 'org.ajoberstar:grgit:1.1.0'
     }
 }
 
@@ -10,7 +17,6 @@ subprojects {
     if (!androidProject) {
         apply plugin: 'java'
         apply plugin: 'cpp'
-        apply plugin: "signing"
 
         model {
             toolChains {
@@ -26,14 +32,26 @@ subprojects {
         }
     }
     apply plugin: "maven"
+    apply plugin: "signing"
     apply plugin: "idea"
     apply plugin: "jacoco"
 
     group = "org.conscrypt"
     description = 'Conscrypt is an alternate Java Security Provider that uses BoringSSL'
-    version = "1.0.0-SNAPSHOT"
+    version = "1.1.0-SNAPSHOT"
 
     ext {
+        os = org.gradle.internal.os.OperatingSystem.current();
+        if (os.isLinux()) {
+            osName = "linux"
+        } else if (os.isMacOsX()) {
+            osName = "osx"
+        } else if (os.isWindows()) {
+            osName = "windows"
+        } else {
+            throw new GradleException("Unsupported os: " + os.name)
+        }
+
         boringsslHome = "$System.env.BORINGSSL_HOME"
         boringsslIncludeDir = "$boringsslHome/include"
         boringssl32BuildDir = "$boringsslHome/build32"
@@ -53,15 +71,30 @@ subprojects {
         assert file("$jdkHome").exists()
         assert file("$jdkIncludeDir").exists()
 
+        // Get the commit hash for BoringSSL.
+        boringSslGit = org.ajoberstar.grgit.Grgit.open(file("$boringsslHome"))
+        boringSslVersion = boringSslGit.head().id
+
+        jmhVersion = '1.17.4'
         libraries = [
                 roboelectric: 'org.robolectric:android-all:5.0.0_r2-robolectric-1',
 
                 // Test dependencies.
-                junit  : 'junit:junit:4.11',
+                guava : 'com.google.guava:guava:19.0',
+                junit  : 'junit:junit:4.12',
                 mockito: 'org.mockito:mockito-core:1.9.5',
                 truth  : 'com.google.truth:truth:0.28',
                 bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.55',
-                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.55'
+                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.55',
+
+                // Benchmark dependencies
+                jmh_core: "org.openjdk.jmh:jmh-core:${jmhVersion}",
+                jmh_generator_annprocess: "org.openjdk.jmh:jmh-generator-annprocess:${jmhVersion}",
+                jmh_generator_asm: "org.openjdk.jmh:jmh-generator-asm:${jmhVersion}",
+                jmh_generator_bytecode: "org.openjdk.jmh:jmh-generator-bytecode:${jmhVersion}",
+                jmh_generator_reflection: "org.openjdk.jmh:jmh-generator-reflection:${jmhVersion}",
+                netty_handler: 'io.netty:netty-handler:4.1.8.Final',
+                netty_tcnative: 'io.netty:netty-tcnative-boringssl-static:1.1.33.Fork26',
         ]
     }
 
@@ -71,7 +104,15 @@ subprojects {
         jcenter()
     }
 
+    signing {
+        required false
+        sign configurations.archives
+    }
+
     if (!androidProject) {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+
         [compileJava, compileTestJava].each() {
             it.options.compilerArgs += ["-Xlint:all", "-Xlint:-options", '-Xmaxwarns', '9999999']
             it.options.encoding = "UTF-8"
@@ -108,11 +149,6 @@ subprojects {
             }
         }
 
-        signing {
-            required false
-            sign configurations.archives
-        }
-
         task javadocJar(type: Jar) {
             classifier = 'javadoc'
             from javadoc
@@ -125,6 +161,7 @@ subprojects {
 
         artifacts {
             archives sourcesJar
+            archives javadocJar
         }
 
         uploadArchives.repositories.mavenDeployer {
@@ -163,7 +200,7 @@ subprojects {
                 licenses {
                     license {
                         name 'Apache 2'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0'
+                        url 'https://www.apache.org/licenses/LICENSE-2.0'
                     }
                 }
 

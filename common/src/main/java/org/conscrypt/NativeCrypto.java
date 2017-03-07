@@ -628,13 +628,6 @@ public final class NativeCrypto {
         add("AES256-SHA",			"TLS_RSA_WITH_AES_256_CBC_SHA");
         add("DES-CBC3-SHA",			"SSL_RSA_WITH_3DES_EDE_CBC_SHA");
         add("DES-CBC-SHA",			"SSL_RSA_WITH_DES_CBC_SHA");
-        add("DHE-RSA-AES128-GCM-SHA256",	"TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
-        add("DHE-RSA-AES128-SHA256",		"TLS_DHE_RSA_WITH_AES_128_CBC_SHA256");
-        add("DHE-RSA-AES128-SHA",		"TLS_DHE_RSA_WITH_AES_128_CBC_SHA");
-        add("DHE-RSA-AES256-GCM-SHA384",	"TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
-        add("DHE-RSA-AES256-SHA256",		"TLS_DHE_RSA_WITH_AES_256_CBC_SHA256");
-        add("DHE-RSA-AES256-SHA",		"TLS_DHE_RSA_WITH_AES_256_CBC_SHA");
-        add("DHE-RSA-CHACHA20-POLY1305",	"TLS_DHE_RSA_WITH_CHACHA20_POLY1305");
         add("ECDH-ECDSA-AES128-GCM-SHA256",    	"TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256");
         add("ECDH-ECDSA-AES128-SHA256",		"TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256");
         add("ECDH-ECDSA-AES128-SHA",		"TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA");
@@ -676,11 +669,8 @@ public final class NativeCrypto {
         add("ECDH-RSA-AES256-SHA",		"TLS_ECDH_RSA_WITH_AES_256_CBC_SHA");
         add("ECDH-RSA-DES-CBC3-SHA",		"TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA");
         add("ECDH-RSA-NULL-SHA",		"TLS_ECDH_RSA_WITH_NULL_SHA");
-        add("EDH-RSA-DES-CBC3-SHA",		"SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA");
-        add("EDH-RSA-DES-CBC-SHA",		"SSL_DHE_RSA_WITH_DES_CBC_SHA");
         add("EXP-ADH-DES-CBC-SHA",		"SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
         add("EXP-DES-CBC-SHA",			"SSL_RSA_EXPORT_WITH_DES40_CBC_SHA");
-        add("EXP-EDH-RSA-DES-CBC-SHA",		"SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA");
         add("NULL-MD5",				"SSL_RSA_WITH_NULL_MD5");
         add("NULL-SHA256",			"TLS_RSA_WITH_NULL_SHA256");
         add("NULL-SHA",				"SSL_RSA_WITH_NULL_SHA");
@@ -697,7 +687,7 @@ public final class NativeCrypto {
 
     private static final String[] SUPPORTED_CIPHER_SUITES;
     static {
-        String[] allOpenSSLCipherSuites = get_cipher_names("ALL");
+        String[] allOpenSSLCipherSuites = get_cipher_names("ALL:!DHE");
 
         int size = allOpenSSLCipherSuites.length;
         SUPPORTED_CIPHER_SUITES = new String[size + 2];
@@ -749,14 +739,10 @@ public final class NativeCrypto {
                     "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
                     "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
                     "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
-                    "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-                    "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
                     "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
                     "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
                     "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
                     "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-                    "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-                    "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
                     "TLS_RSA_WITH_AES_128_GCM_SHA256",
                     "TLS_RSA_WITH_AES_256_GCM_SHA384",
                     "TLS_RSA_WITH_AES_128_CBC_SHA",
@@ -769,14 +755,10 @@ public final class NativeCrypto {
                     "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
                     "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
                     "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-                    "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-                    "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
                     "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
                     "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
                     "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
                     "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-                    "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-                    "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
                     "TLS_RSA_WITH_AES_128_GCM_SHA256",
                     "TLS_RSA_WITH_AES_256_GCM_SHA384",
                     "TLS_RSA_WITH_AES_128_CBC_SHA",
@@ -1188,6 +1170,11 @@ public final class NativeCrypto {
     public static native long SSL_get1_session(long ssl);
 
     /**
+     * Returns the maximum overhead, in bytes, of sealing a record with SSL.
+     */
+    public static native int SSL_max_seal_overhead(long ssl);
+
+    /**
      * Sets the list of supported ALPN protocols in wire-format (length-prefixed 8-bit strings).
      */
     public static native void SSL_configure_alpn(
@@ -1228,7 +1215,7 @@ public final class NativeCrypto {
             int sourceOffset, int sourceLength, SSLHandshakeCallbacks shc) throws IOException;
 
     /**
-     * Writes data from the given direct {@link ByteBuffer} to the BIO.
+     * Writes data from the given direct {@link java.nio.ByteBuffer} to the BIO.
      */
     public static native int ENGINE_SSL_write_BIO_direct(long sslRef, long bioRef, long pos,
             int length, SSLHandshakeCallbacks shc) throws IOException;

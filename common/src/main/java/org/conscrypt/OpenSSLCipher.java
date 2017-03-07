@@ -44,8 +44,6 @@ import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.conscrypt.NativeRef.EVP_CIPHER_CTX;
-import org.conscrypt.util.ArrayUtils;
-import org.conscrypt.util.EmptyArray;
 
 public abstract class OpenSSLCipher extends CipherSpi {
 
@@ -497,10 +495,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 }
 
                 iv = new byte[expectedIvLength];
-                if (random == null) {
-                    random = new SecureRandom();
+                if (random != null) {
+                    random.nextBytes(iv);
+                } else {
+                    NativeCrypto.RAND_bytes(iv);
                 }
-                random.nextBytes(iv);
             } else if (expectedIvLength == 0 && iv != null) {
                 throw new InvalidAlgorithmParameterException("IV not used in " + mode + " mode");
             } else if (iv != null && iv.length != expectedIvLength) {
@@ -1066,10 +1065,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 }
 
                 iv = new byte[expectedIvLength];
-                if (random == null) {
-                    random = new SecureRandom();
+                if (random != null) {
+                    random.nextBytes(iv);
+                } else {
+                    NativeCrypto.RAND_bytes(iv);
                 }
-                random.nextBytes(iv);
             } else if (expectedIvLength == 0 && iv != null) {
                 throw new InvalidAlgorithmParameterException("IV not used in " + mode + " mode");
             } else if (iv != null && iv.length != expectedIvLength) {

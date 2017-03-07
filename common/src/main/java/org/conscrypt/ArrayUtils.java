@@ -14,22 +14,20 @@
  * limitations under the License.
  */
 
-package org.conscrypt.util;
+package org.conscrypt;
 
 /**
  * Compatibility utility for Arrays.
  */
-public final class ArrayUtils {
+final class ArrayUtils {
     private ArrayUtils() {
     }
 
     /**
      * Checks that the range described by {@code offset} and {@code count}
      * doesn't exceed {@code arrayLength}.
-     *
-     * @hide
      */
-    public static final void checkOffsetAndCount(int arrayLength, int offset, int count) {
+    static void checkOffsetAndCount(int arrayLength, int offset, int count) {
         if ((offset | count) < 0 || offset > arrayLength || arrayLength - offset < count) {
             throw new ArrayIndexOutOfBoundsException("length=" + arrayLength + "; regionStart="
                     + offset + "; regionLength=" + count);

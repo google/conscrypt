@@ -16,10 +16,8 @@
 
 package libcore.io;
 
-import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 
 public final class IoUtils {
     private IoUtils() {}

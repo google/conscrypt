@@ -43,7 +43,6 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.util.ArrayUtils;
 
 /**
  * Implementation of the class OpenSSLSocketImpl based on OpenSSL.
@@ -79,21 +78,22 @@ public class OpenSSLSocketImpl
     private static final int STATE_HANDSHAKE_STARTED = 1;
 
     /**
-     * {@link #handshakeCompleted()} has been called, but {@link #startHandshake()} hasn't
-     * returned yet.
+     * {@link HandshakeCompletedListener#handshakeCompleted} has been called, but
+     * {@link #startHandshake()} hasn't returned yet.
      */
     private static final int STATE_HANDSHAKE_COMPLETED = 2;
 
     /**
-     * {@link #startHandshake()} has completed but {@link #handshakeCompleted()} hasn't
-     * been called. This is expected behaviour in cut-through mode, where SSL_do_handshake
-     * returns before the handshake is complete. We can now start writing data to the socket.
+     * {@link #startHandshake()} has completed but
+     * {@link HandshakeCompletedListener#handshakeCompleted} hasn't been called. This is expected
+     * behaviour in cut-through mode, where SSL_do_handshake returns before the handshake is
+     * complete. We can now start writing data to the socket.
      */
     private static final int STATE_READY_HANDSHAKE_CUT_THROUGH = 3;
 
     /**
-     * {@link #startHandshake()} has completed and {@link #handshakeCompleted()} has been
-     * called.
+     * {@link #startHandshake()} has completed and
+     * {@link HandshakeCompletedListener#handshakeCompleted} has been called.
      */
     private static final int STATE_READY = 4;
 
@@ -915,7 +915,7 @@ public class OpenSSLSocketImpl
      * @param useSessionTickets True to enable session tickets
      */
     public void setUseSessionTickets(boolean useSessionTickets) {
-        sslParameters.useSessionTickets = useSessionTickets;
+        sslParameters.setUseSessionTickets(useSessionTickets);
     }
 
     /**
@@ -1070,6 +1070,7 @@ public class OpenSSLSocketImpl
     }
 
     @Override
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public void setSoTimeout(int readTimeoutMilliseconds) throws SocketException {
         if (socket != this) {
             socket.setSoTimeout(readTimeoutMilliseconds);
@@ -1081,6 +1082,7 @@ public class OpenSSLSocketImpl
     }
 
     @Override
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public int getSoTimeout() throws SocketException {
         return readTimeoutMilliseconds;
     }
@@ -1110,6 +1112,7 @@ public class OpenSSLSocketImpl
     }
 
     @Override
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public void close() throws IOException {
         // TODO: Close SSL sockets using a background thread so they close gracefully.
 
@@ -1269,20 +1272,26 @@ public class OpenSSLSocketImpl
     }
 
     /**
-     * Sets the list of protocols this peer is interested in. If the list is
-     * {@code null}, no protocols will be used.
+     * Sets the list of ALPN protocols. This method internally converts the protocols to their
+     * wire-format form.
      *
-     * @param alpnProtocols a non-empty array of protocol names. From
-     *            SSL_select_next_proto, "vector of 8-bit, length prefixed byte
-     *            strings. The length byte itself is not included in the length.
-     *            A byte string of length 0 is invalid. No byte string may be
-     *            truncated.".
+     * @param alpnProtocols the list of ALPN protocols
+     * @see #setAlpnProtocols(byte[])
+     */
+    public void setAlpnProtocols(String[] alpnProtocols) {
+        sslParameters.setAlpnProtocols(alpnProtocols);
+    }
+
+    /**
+     * Alternate version of {@link #setAlpnProtocols(String[])} that directly sets the list of
+     * ALPN in the wire-format form used by BoringSSL (length-prefixed 8-bit strings).
+     * Requires that all strings be encoded with US-ASCII.
+     *
+     * @param alpnProtocols the encoded form of the ALPN protocol list
+     * @see #setAlpnProtocols(String[])
      */
     public void setAlpnProtocols(byte[] alpnProtocols) {
-        if (alpnProtocols != null && alpnProtocols.length == 0) {
-            throw new IllegalArgumentException("alpnProtocols.length == 0");
-        }
-        sslParameters.alpnProtocols = alpnProtocols;
+        sslParameters.setAlpnProtocols(alpnProtocols);
     }
 
     @Override
@@ -1310,16 +1319,19 @@ public class OpenSSLSocketImpl
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
         return keyManager.chooseServerKeyIdentityHint(this);
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
         return keyManager.chooseClientKeyIdentity(identityHint, this);
     }
 
     @Override
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
         return keyManager.getKey(identityHint, identity, this);
     }
