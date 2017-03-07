@@ -41,7 +41,6 @@ import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
 import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
 import java.nio.ByteBuffer;
-import java.util.List;
 
 /**
  * Utility methods for SSL packet processing. Copied from the Netty project.
