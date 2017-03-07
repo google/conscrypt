@@ -1170,7 +1170,7 @@ public final class NativeCrypto {
     public static native long SSL_get1_session(long ssl);
 
     /**
-     * Returns the maximum overhead, in bytes, of sealing a record with ssl.
+     * Returns the maximum overhead, in bytes, of sealing a record with SSL.
      */
     public static native int SSL_max_seal_overhead(long ssl);
 

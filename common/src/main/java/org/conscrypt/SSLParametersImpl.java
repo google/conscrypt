@@ -109,8 +109,8 @@ public class SSLParametersImpl implements Cloneable {
     private byte[] sctExtension;
     private byte[] ocspResponse;
 
-    byte[] alpnProtocols;
-    boolean useSessionTickets;
+    private byte[] alpnProtocols;
+    private boolean useSessionTickets;
     private Boolean useSni;
 
     /**
@@ -283,6 +283,32 @@ public class SSLParametersImpl implements Cloneable {
     }
 
     /**
+     * Sets the list of ALPN protocols. This method internally converts the protocols to their
+     * wire-format form.
+     *
+     * @param alpnProtocols the list of ALPN protocols
+     * @see #setAlpnProtocols(byte[])
+     */
+    void setAlpnProtocols(String[] alpnProtocols) {
+        setAlpnProtocols(SSLUtils.toLengthPrefixedList(alpnProtocols));
+    }
+
+    /**
+     * Alternate version of {@link #setAlpnProtocols(String[])} that directly sets the list of
+     * ALPN in the wire-format form used by BoringSSL (length-prefixed 8-bit strings).
+     * Requires that all strings be encoded with US-ASCII.
+     *
+     * @param alpnProtocols the encoded form of the ALPN protocol list
+     * @see #setAlpnProtocols(String[])
+     */
+    void setAlpnProtocols(byte[] alpnProtocols) {
+        if (alpnProtocols != null && alpnProtocols.length == 0) {
+            throw new IllegalArgumentException("alpnProtocols.length == 0");
+        }
+        this.alpnProtocols = alpnProtocols;
+    }
+
+    /**
      * Tunes the peer holding this parameters to work in client mode.
      * @param   mode if the peer is configured to work in client mode
      */
@@ -346,6 +372,10 @@ public class SSLParametersImpl implements Cloneable {
      */
     protected boolean getEnableSessionCreation() {
         return enable_session_creation;
+    }
+
+    void setUseSessionTickets(boolean useSessionTickets) {
+        this.useSessionTickets = useSessionTickets;
     }
 
     /**

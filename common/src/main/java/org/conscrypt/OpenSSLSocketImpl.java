@@ -915,7 +915,7 @@ public class OpenSSLSocketImpl
      * @param useSessionTickets True to enable session tickets
      */
     public void setUseSessionTickets(boolean useSessionTickets) {
-        sslParameters.useSessionTickets = useSessionTickets;
+        sslParameters.setUseSessionTickets(useSessionTickets);
     }
 
     /**
@@ -1272,20 +1272,26 @@ public class OpenSSLSocketImpl
     }
 
     /**
-     * Sets the list of protocols this peer is interested in. If the list is
-     * {@code null}, no protocols will be used.
+     * Sets the list of ALPN protocols. This method internally converts the protocols to their
+     * wire-format form.
      *
-     * @param alpnProtocols a non-empty array of protocol names. From
-     *            SSL_select_next_proto, "vector of 8-bit, length prefixed byte
-     *            strings. The length byte itself is not included in the length.
-     *            A byte string of length 0 is invalid. No byte string may be
-     *            truncated.".
+     * @param alpnProtocols the list of ALPN protocols
+     * @see #setAlpnProtocols(byte[])
+     */
+    public void setAlpnProtocols(String[] alpnProtocols) {
+        sslParameters.setAlpnProtocols(alpnProtocols);
+    }
+
+    /**
+     * Alternate version of {@link #setAlpnProtocols(String[])} that directly sets the list of
+     * ALPN in the wire-format form used by BoringSSL (length-prefixed 8-bit strings).
+     * Requires that all strings be encoded with US-ASCII.
+     *
+     * @param alpnProtocols the encoded form of the ALPN protocol list
+     * @see #setAlpnProtocols(String[])
      */
     public void setAlpnProtocols(byte[] alpnProtocols) {
-        if (alpnProtocols != null && alpnProtocols.length == 0) {
-            throw new IllegalArgumentException("alpnProtocols.length == 0");
-        }
-        sslParameters.alpnProtocols = alpnProtocols;
+        sslParameters.setAlpnProtocols(alpnProtocols);
     }
 
     @Override
