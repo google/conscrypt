@@ -24,8 +24,7 @@ import java.lang.annotation.Target;
 
 /**
  * Annotates a program element (class, method, package etc) which is internal to Conscrypt, not part
- * of
- * the public API, and should not be used by users of Conscrypt.
+ * of the public API, and should not be used by users of Conscrypt.
  */
 @Internal
 @Retention(RetentionPolicy.SOURCE)

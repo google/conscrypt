@@ -44,8 +44,11 @@ import java.nio.ByteBuffer;
 
 /**
  * Utility methods for SSL packet processing. Copied from the Netty project.
+ * <p>
+ * This is a public class to allow testing to occur on Android via CTS.
  */
-final class SSLUtils {
+@Internal
+public final class SSLUtils {
     static final boolean USE_ENGINE_SOCKET_BY_DEFAULT =
             Boolean.parseBoolean(System.getProperty("org.conscrypt.useEngineSocketByDefault"));
     static final int MAX_PROTOCOL_LENGTH = 255;
@@ -74,7 +77,7 @@ final class SSLUtils {
      * Calculates the minimum bytes required in the encrypted output buffer for the given number of
      * plaintext source bytes.
      */
-    static int calculateOutNetBufSize(int pendingBytes) {
+    public static int calculateOutNetBufSize(int pendingBytes) {
         return min(SSL3_RT_MAX_PACKET_SIZE,
                 MAX_ENCRYPTION_OVERHEAD_LENGTH + min(MAX_ENCRYPTION_OVERHEAD_DIFF, pendingBytes));
     }
@@ -92,7 +95,7 @@ final class SSLUtils {
      * @throws IllegalArgumentException Is thrown if the given {@link ByteBuffer} has not at least
      * {@link org.conscrypt.NativeConstants#SSL3_RT_HEADER_LENGTH} bytes to read.
      */
-    static int getEncryptedPacketLength(ByteBuffer[] buffers, int offset) {
+    public static int getEncryptedPacketLength(ByteBuffer[] buffers, int offset) {
         ByteBuffer buffer = buffers[offset];
 
         // Check if everything we need is in one ByteBuffer. If so we can make use of the fast-path.
@@ -131,7 +134,7 @@ final class SSLUtils {
      * @param protocols the list of protocols to be encoded
      * @return the encoded form of the protocol list.
      */
-    static byte[] toLengthPrefixedList(String... protocols) {
+    public static byte[] toLengthPrefixedList(String... protocols) {
         // Calculate the encoded length.
         int length = 0;
         for (int i = 0; i < protocols.length; ++i) {
