@@ -52,6 +52,7 @@ import static org.conscrypt.NativeConstants.SSL_ERROR_ZERO_RETURN;
 import static org.conscrypt.NativeConstants.SSL_RECEIVED_SHUTDOWN;
 import static org.conscrypt.NativeConstants.SSL_SENT_SHUTDOWN;
 import static org.conscrypt.SSLUtils.calculateOutNetBufSize;
+import static org.conscrypt.SSLUtils.toSSLHandshakeException;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -746,11 +747,8 @@ public final class OpenSSLEngineImpl extends SSLEngine
             }
             finishHandshake();
             return FINISHED;
-        } catch (SSLHandshakeException e) {
-            throw e;
         } catch (Exception e) {
-            // Wrap all other exceptions.
-            throw(SSLHandshakeException) new SSLHandshakeException("Handshake failed").initCause(e);
+            throw toSSLHandshakeException(e);
         } finally {
             if (sslSession == null && sslSessionCtx != 0) {
                 NativeCrypto.SSL_SESSION_free(sslSessionCtx);
@@ -787,8 +785,8 @@ public final class OpenSSLEngineImpl extends SSLEngine
                 src.position(pos + sslWrote);
             }
             return sslWrote;
-        } catch (IOException e) {
-            throw new SSLException(e);
+        } catch (Exception e) {
+            throw convertException(e);
         }
     }
 
@@ -821,9 +819,16 @@ public final class OpenSSLEngineImpl extends SSLEngine
                 }
             }
             return sslRead;
-        } catch (IOException e) {
-            throw new SSLException(e);
+        } catch (Exception e) {
+            throw convertException(e);
         }
+    }
+
+    private SSLException convertException(Throwable e) {
+        if (e instanceof SSLHandshakeException || !handshakeFinished) {
+            return SSLUtils.toSSLHandshakeException(e);
+        }
+        return SSLUtils.toSSLException(e);
     }
 
     /**
@@ -855,37 +860,41 @@ public final class OpenSSLEngineImpl extends SSLEngine
 
     private SSLEngineResult readPendingBytesFromBIO(ByteBuffer dst, int bytesConsumed,
             int bytesProduced, SSLEngineResult.HandshakeStatus status) throws SSLException {
-        // Check to see if the engine wrote data into the network BIO
-        int pendingNet = pendingOutboundEncryptedBytes();
-        if (pendingNet > 0) {
-            // Do we have enough room in dst to write encrypted data?
-            int capacity = dst.remaining();
-            if (capacity < pendingNet) {
-                return new SSLEngineResult(BUFFER_OVERFLOW,
+        try {
+            // Check to see if the engine wrote data into the network BIO
+            int pendingNet = pendingOutboundEncryptedBytes();
+            if (pendingNet > 0) {
+                // Do we have enough room in dst to write encrypted data?
+                int capacity = dst.remaining();
+                if (capacity < pendingNet) {
+                    return new SSLEngineResult(BUFFER_OVERFLOW,
+                            mayFinishHandshake(
+                                    status == FINISHED ? status : getHandshakeStatus(pendingNet)),
+                            bytesConsumed, bytesProduced);
+                }
+
+                // Write the pending data from the network BIO into the dst buffer
+                int produced = readEncryptedData(dst, pendingNet);
+
+                if (produced <= 0) {
+                    // We ignore BIO_* errors here as we use in memory BIO anyway and will do another
+                    // SSL_* call later
+                    // on in which we will produce an exception in case of an error
+                    NativeCrypto.SSL_clear_error();
+                } else {
+                    bytesProduced += produced;
+                    pendingNet -= produced;
+                }
+
+                return new SSLEngineResult(getEngineStatus(),
                         mayFinishHandshake(
                                 status == FINISHED ? status : getHandshakeStatus(pendingNet)),
                         bytesConsumed, bytesProduced);
             }
-
-            // Write the pending data from the network BIO into the dst buffer
-            int produced = readEncryptedData(dst, pendingNet);
-
-            if (produced <= 0) {
-                // We ignore BIO_* errors here as we use in memory BIO anyway and will do another
-                // SSL_* call later
-                // on in which we will produce an exception in case of an error
-                NativeCrypto.SSL_clear_error();
-            } else {
-                bytesProduced += produced;
-                pendingNet -= produced;
-            }
-
-            return new SSLEngineResult(getEngineStatus(),
-                    mayFinishHandshake(
-                            status == FINISHED ? status : getHandshakeStatus(pendingNet)),
-                    bytesConsumed, bytesProduced);
+            return null;
+        } catch (Exception e) {
+            throw convertException(e);
         }
-        return null;
     }
 
     /**
@@ -924,8 +933,8 @@ public final class OpenSSLEngineImpl extends SSLEngine
                 }
             }
             return bioRead;
-        } catch (IOException e) {
-            throw new SSLException(e);
+        } catch (Exception e) {
+            throw convertException(e);
         }
     }
 
