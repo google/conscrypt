@@ -399,7 +399,8 @@ public class OpenSSLX509Certificate extends X509Certificate {
         verifyInternal(key, sigProvider);
     }
 
-    @Override
+    /* @Override */
+    @SuppressWarnings("MissingOverride")  // For compilation with Java 7.
     public void verify(PublicKey key, Provider sigProvider)
             throws CertificateException, NoSuchAlgorithmException, InvalidKeyException,
                    SignatureException {
