@@ -38,7 +38,8 @@ jar.manifest {
 dependencies {
     compileOnly project(':conscrypt-constants')
 
-    testCompile project(':conscrypt-testing'),
+    testCompile project(':conscrypt-constants'),
+                project(':conscrypt-testing'),
                 libraries.junit,
                 libraries.mockito
 }
@@ -258,4 +259,10 @@ static classifierFor(osName, archName) {
 
 static normalizeClassifier(classifier) {
     return classifier.replaceAll("-", "_")
+}
+
+// Manually add the native library to help IntelliJ run tests.
+idea.module {
+    def classifier = normalizeClassifier(classifierFor(osName, 'x86_64'))
+    scopes.PROVIDED.plus += [ configurations["$classifier"] ]
 }

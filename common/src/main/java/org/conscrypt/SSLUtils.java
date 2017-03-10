@@ -41,6 +41,8 @@ import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
 import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
 import java.nio.ByteBuffer;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLHandshakeException;
 
 /**
  * Utility methods for SSL packet processing. Copied from the Netty project.
@@ -77,6 +79,27 @@ final class SSLUtils {
     static int calculateOutNetBufSize(int pendingBytes) {
         return min(SSL3_RT_MAX_PACKET_SIZE,
                 MAX_ENCRYPTION_OVERHEAD_LENGTH + min(MAX_ENCRYPTION_OVERHEAD_DIFF, pendingBytes));
+    }
+
+    /**
+     * Wraps the given exception if it's not already a {@link SSLHandshakeException}.
+     */
+    static SSLHandshakeException toSSLHandshakeException(Throwable e) {
+        if (e instanceof SSLHandshakeException) {
+            return (SSLHandshakeException) e;
+        }
+
+        return (SSLHandshakeException) new SSLHandshakeException(e.getMessage()).initCause(e);
+    }
+
+    /**
+     * Wraps the given exception if it's not already a {@link SSLException}.
+     */
+    static SSLException toSSLException(Throwable e) {
+        if (e instanceof SSLException) {
+            return (SSLException) e;
+        }
+        return new SSLException(e);
     }
 
     /**

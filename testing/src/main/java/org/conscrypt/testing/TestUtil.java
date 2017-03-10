@@ -101,7 +101,7 @@ public final class TestUtil {
     }
 
     private static SSLServerSocketFactory getServerSocketFactory(Provider provider) {
-        SSLContext serverContext = initServerContext(newContext(provider));
+        SSLContext serverContext = initServerSslContext(newContext(provider));
         return serverContext.getServerSocketFactory();
     }
 
@@ -158,22 +158,22 @@ public final class TestUtil {
      * Initializes the given client-side {@code context} with a default cert.
      */
     public static SSLContext initClientSslContext(SSLContext context) {
-        try {
-            TestKeyStore client = TestKeyStore.getClient();
-            context.init(client.keyManagers, client.trustManagers, null);
-            return context;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return initSslContext(context, TestKeyStore.getClient());
     }
 
     /**
      * Initializes the given server-side {@code context} with the given cert chain and private key.
      */
-    public static SSLContext initServerContext(SSLContext context) {
+    public static SSLContext initServerSslContext(SSLContext context) {
+        return initSslContext(context, TestKeyStore.getServer());
+    }
+
+    /**
+     * Initializes the given {@code context} from the {@code keyStore}.
+     */
+    public static SSLContext initSslContext(SSLContext context, TestKeyStore keyStore) {
         try {
-            TestKeyStore server = TestKeyStore.getServer();
-            context.init(server.keyManagers, server.trustManagers, null);
+            context.init(keyStore.keyManagers, keyStore.trustManagers, null);
             return context;
         } catch (Exception e) {
             throw new RuntimeException(e);

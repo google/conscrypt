@@ -37,7 +37,7 @@ import static org.conscrypt.testing.TestUtil.PROTOCOL_TLS_V1_2;
 import static org.conscrypt.testing.TestUtil.doEngineHandshake;
 import static org.conscrypt.testing.TestUtil.initClientSslContext;
 import static org.conscrypt.testing.TestUtil.initEngine;
-import static org.conscrypt.testing.TestUtil.initServerContext;
+import static org.conscrypt.testing.TestUtil.initServerSslContext;
 import static org.conscrypt.testing.TestUtil.newTextMessage;
 import static org.junit.Assert.assertEquals;
 
@@ -69,7 +69,7 @@ public class SslEngineBenchmark {
     public enum SslProvider {
         JDK {
             private final SSLContext clientContext = initClientSslContext(newContext());
-            private final SSLContext serverContext = initServerContext(newContext());
+            private final SSLContext serverContext = initServerSslContext(newContext());
 
             @Override
             SSLEngine newClientEngine(String cipher) {
@@ -91,7 +91,7 @@ public class SslEngineBenchmark {
         },
         CONSCRYPT {
             private final SSLContext clientContext = initClientSslContext(newContext());
-            private final SSLContext serverContext = initServerContext(newContext());
+            private final SSLContext serverContext = initServerSslContext(newContext());
 
             @Override
             SSLEngine newClientEngine(String cipher) {
