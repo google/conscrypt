@@ -55,7 +55,6 @@ import org.conscrypt.ct.CTPolicy;
 import org.conscrypt.ct.CTPolicyImpl;
 import org.conscrypt.ct.CTVerifier;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class OpenSSLSocketImplTest {
