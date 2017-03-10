@@ -143,16 +143,6 @@ public class OpenSSLEngineImplTest {
     }
 
     @Test
-    public void mutualNeedClientAuthShouldSucceed() throws Exception {
-        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
-        serverEngine.setNeedClientAuth(true);
-
-        TestUtil.doEngineHandshake(clientEngine, serverEngine);
-        assertEquals(HandshakeStatus.NOT_HANDSHAKING, clientEngine.getHandshakeStatus());
-        assertEquals(HandshakeStatus.NOT_HANDSHAKING, serverEngine.getHandshakeStatus());
-    }
-
-    @Test
     public void exchangeMessages() throws Exception {
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
         TestUtil.doEngineHandshake(clientEngine, serverEngine);
