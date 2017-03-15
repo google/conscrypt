@@ -18,6 +18,11 @@ package org.conscrypt;
 
 import java.io.ByteArrayOutputStream;
 
+/**
+ * Wraps a BoringSSL BIO to act as a place to write out data.
+ *
+ * @hide
+ */
 public final class OpenSSLBIOSink {
     private final long ctx;
     private final ByteArrayOutputStream buffer;

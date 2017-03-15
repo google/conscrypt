@@ -20,6 +20,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
+/**
+ * Wrapped by a BoringSSL BIO to act as a source of bytes.
+ *
+ * @hide
+ */
 public final class OpenSSLBIOSource {
     private OpenSSLBIOInputStream source;
 

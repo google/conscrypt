@@ -1,0 +1,5 @@
+description = 'Conscrypt: API Doclet'
+
+dependencies {
+    compile fileTree(dir: "${System.properties['java.home']}/../lib", include: '*tools.jar')
+}

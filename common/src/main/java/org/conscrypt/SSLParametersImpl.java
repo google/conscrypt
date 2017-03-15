@@ -54,6 +54,8 @@ import javax.security.auth.x500.X500Principal;
  * ssl socket, whether it require/want client authentication or not,
  * and controls whether new SSL sessions may be established by this
  * socket or not.
+ *
+ * @hide
  */
 public class SSLParametersImpl implements Cloneable {
 

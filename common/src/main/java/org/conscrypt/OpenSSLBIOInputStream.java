@@ -24,6 +24,8 @@ import java.io.InputStream;
  * Provides an interface to OpenSSL's BIO system directly from a Java
  * InputStream. It allows an OpenSSL API to read directly from something more
  * flexible interface than a byte array.
+ *
+ * @hide
  */
 public class OpenSSLBIOInputStream extends FilterInputStream {
     private long ctx;

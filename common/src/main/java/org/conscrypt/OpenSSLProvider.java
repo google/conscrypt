@@ -19,18 +19,24 @@ package org.conscrypt;
 import java.security.Provider;
 
 /**
- * Provider that goes through OpenSSL for operations.
+ * Provider that uses BoringSSL to perform the actual cryptographic operations.
  * <p>
- * Every algorithm should have its IANA assigned OID as an alias. See the following URLs for each type:
- * <ul>
- * <li><a href="http://www.iana.org/assignments/hash-function-text-names/hash-function-text-names.xml">Hash functions</a></li>
- * <li><a href="http://www.iana.org/assignments/dssc/dssc.xml">Signature algorithms</a></li>
- * <li><a href="http://csrc.nist.gov/groups/ST/crypto_apps_infra/csor/algorithms.html">NIST cryptographic algorithms</a></li>
+ * Every algorithm should have its IANA assigned OID as an alias. See the following URLs for each
+ * type: <ul> <li><a
+ * href="http://www.iana.org/assignments/hash-function-text-names/hash-function-text-names.xml">Hash
+ * functions</a></li> <li><a href="http://www.iana.org/assignments/dssc/dssc.xml">Signature
+ * algorithms</a></li> <li><a
+ * href="http://csrc.nist.gov/groups/ST/crypto_apps_infra/csor/algorithms.html">NIST cryptographic
+ * algorithms</a></li>
  * </ul>
  */
 public final class OpenSSLProvider extends Provider {
     private static final long serialVersionUID = 2996752495318905136L;
 
+    /**
+     * Default name used in the {@link java.security.Security JCE system} by {@code OpenSSLProvider}
+     * if the {@link #OpenSSLProvider() default constructor} is used.
+     */
     public static final String PROVIDER_NAME = "AndroidOpenSSL";
 
     private static final String PREFIX = OpenSSLProvider.class.getPackage().getName() + ".";

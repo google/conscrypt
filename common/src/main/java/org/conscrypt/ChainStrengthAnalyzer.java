@@ -23,6 +23,11 @@ import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.List;
 
+/**
+ * Analyzes the cryptographic strength of a chain of X.509 certificates.
+ *
+ * @hide
+ */
 public final class ChainStrengthAnalyzer {
 
     private static final int MIN_RSA_MODULUS_LEN_BITS = 1024;

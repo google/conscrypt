@@ -16,6 +16,9 @@
 
 package org.conscrypt;
 
-public interface OpenSSLKeyHolder {
-    public OpenSSLKey getOpenSSLKey();
-}
+/**
+ * Marker interface for classes that hold an {@link OpenSSLKey}.
+ *
+ * @hide
+ */
+public interface OpenSSLKeyHolder { OpenSSLKey getOpenSSLKey(); }

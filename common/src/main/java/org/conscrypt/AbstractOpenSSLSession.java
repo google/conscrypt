@@ -32,6 +32,8 @@ import javax.security.cert.CertificateException;
 
 /**
  * Extends the base SSLSession with some methods used exclusively in Conscrypt.
+ *
+ * @hide
  */
 public abstract class AbstractOpenSSLSession implements SSLSession {
     private final Map<String, Object> values = new HashMap<String, Object>();

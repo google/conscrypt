@@ -28,6 +28,11 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
+/**
+ * Represents a BoringSSL {@code EVP_PKEY}.
+ *
+ * @hide
+ */
 public class OpenSSLKey {
     private final NativeRef.EVP_PKEY ctx;
 

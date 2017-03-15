@@ -25,6 +25,8 @@ import java.net.SocketException;
 
 /**
  * This class wraps the SSL functionality over an existing connected socket.
+ *
+ * @hide
  */
 public class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
 

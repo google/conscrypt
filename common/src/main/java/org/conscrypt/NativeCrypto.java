@@ -46,6 +46,8 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * Provides the Java side of our JNI glue for OpenSSL.
+ *
+ * @hide
  */
 public final class NativeCrypto {
 

@@ -21,7 +21,9 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 /**
- * OpenSSL-based implementation of server sockets.
+ * BoringSSL-based implementation of server sockets.
+ *
+ * @hide
  */
 public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     private final SSLParametersImpl sslParameters;

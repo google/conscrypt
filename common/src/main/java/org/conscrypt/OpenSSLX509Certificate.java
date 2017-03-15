@@ -51,6 +51,11 @@ import javax.crypto.BadPaddingException;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
+/**
+ * An implementation of {@link X509Certificate} based on BoringSSL.
+ *
+ * @hide
+ */
 public class OpenSSLX509Certificate extends X509Certificate {
     private static final long serialVersionUID = 1992239142393372128L;
 
