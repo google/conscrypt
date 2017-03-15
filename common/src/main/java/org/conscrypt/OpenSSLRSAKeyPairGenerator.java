@@ -26,6 +26,12 @@ import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.RSAKeyGenParameterSpec;
 
+/**
+ * An implementation of {@link java.security.KeyPairGenerator} which uses BoringSSL to perform all
+ * the operations.
+ *
+ * @hide
+ */
 public class OpenSSLRSAKeyPairGenerator extends KeyPairGeneratorSpi {
     /**
      * Default modulus size is 0x10001 (65537)

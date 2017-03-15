@@ -32,6 +32,8 @@ import javax.crypto.NoSuchPaddingException;
  * usually backed by hardware so we don't have access directly to the private
  * key material. If it were a key where we can get to the private key, we
  * would not ever call into this class.
+ *
+ * @hide
  */
 public final class CryptoUpcalls {
 

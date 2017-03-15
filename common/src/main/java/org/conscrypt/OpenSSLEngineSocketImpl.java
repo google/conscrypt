@@ -40,6 +40,8 @@ import org.conscrypt.OpenSSLEngineImpl.HandshakeListener;
 /**
  * Implements crypto handling by delegating to OpenSSLEngine. Used for socket implementations
  * that are not backed by a real OS socket.
+ *
+ * @hide
  */
 public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);

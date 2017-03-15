@@ -43,6 +43,11 @@ import java.util.TimeZone;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
+/**
+ * An implementation of {@link X509CRL} based on BoringSSL.
+ *
+ * @hide
+ */
 public class OpenSSLX509CRL extends X509CRL {
     private final long mContext;
 

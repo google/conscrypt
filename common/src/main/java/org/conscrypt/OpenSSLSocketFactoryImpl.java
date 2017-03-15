@@ -22,6 +22,11 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 
+/**
+ * An implementation of {@link javax.net.ssl.SSLSocketFactory} based on BoringSSL.
+ *
+ * @hide
+ */
 public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
     private static boolean useEngineSocketByDefault = SSLUtils.USE_ENGINE_SOCKET_BY_DEFAULT;
 

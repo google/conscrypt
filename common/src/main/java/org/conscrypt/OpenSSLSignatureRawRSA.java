@@ -28,7 +28,9 @@ import java.security.interfaces.RSAPublicKey;
 
 /**
  * Implements the JDK Signature interface needed for RAW RSA signature
- * generation and verification using OpenSSL.
+ * generation and verification using BoringSSL.
+ *
+ * @hide
  */
 public class OpenSSLSignatureRawRSA extends SignatureSpi {
     /**

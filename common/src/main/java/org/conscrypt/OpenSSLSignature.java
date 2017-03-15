@@ -35,6 +35,8 @@ import java.security.spec.PSSParameterSpec;
 /**
  * Implements the subset of the JDK Signature interface needed for
  * signature verification using OpenSSL.
+ *
+ * @hide
  */
 public class OpenSSLSignature extends SignatureSpi {
     private static enum EngineType {

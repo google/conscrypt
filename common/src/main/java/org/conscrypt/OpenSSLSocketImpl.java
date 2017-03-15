@@ -53,6 +53,8 @@ import javax.security.auth.x500.X500Principal;
  * <li>session tickets
  * <li>Server Name Indication
  * </ul>
+ *
+ * @hide
  */
 public class OpenSSLSocketImpl
         extends javax.net.ssl.SSLSocket

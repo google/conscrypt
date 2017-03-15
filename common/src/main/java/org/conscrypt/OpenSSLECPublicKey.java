@@ -27,6 +27,11 @@ import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
+/**
+ * An implementation of a {@link java.security.PublicKey} for EC keys based on BoringSSL.
+ *
+ * @hide
+ */
 public final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 3215842926808298020L;
 

@@ -20,6 +20,8 @@ package org.conscrypt;
  * GCM parameters used during an ciphering operation with {@link OpenSSLCipher}.
  * This class exists solely for backward compatibility with Android versions
  * that did not have the {@code GCMParameterSpec} class.
+ *
+ * @hide
  */
 public class GCMParameters {
     /** The tag length in bits. */

@@ -33,6 +33,11 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * An implementation of {@link java.security.cert.CertificateFactory} based on BoringSSL.
+ *
+ * @hide
+ */
 public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
     private static final byte[] PKCS7_MARKER = new byte[] {
             '-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'

@@ -25,6 +25,11 @@ import java.security.spec.AlgorithmParameterSpec;
 import javax.crypto.MacSpi;
 import javax.crypto.SecretKey;
 
+/**
+ * An implementation of {@link javax.crypto.Mac} which uses BoringSSL to perform all the operations.
+ *
+ * @hide
+ */
 public abstract class OpenSSLMac extends MacSpi {
     private NativeRef.HMAC_CTX ctx;
 

@@ -31,6 +31,11 @@ import java.util.Iterator;
 import java.util.List;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
+/**
+ * An implementation of {@link CertPath} based on BoringSSL.
+ *
+ * @hide
+ */
 public class OpenSSLX509CertPath extends CertPath {
     private static final long serialVersionUID = -3249106005255170761L;
 
