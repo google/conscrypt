@@ -7,18 +7,20 @@ ext {
     // Build the list of classifiers that will be used in the build.
     arch32Name = 'x86'
     arch64Name = 'x86_64'
-    jvmArgs32 = '-d32'
-    jvmArgs64 = '-d64'
     // Allow the java executable to be specified via env/property for each architecture.
     javaExecutable32 = properties['javaExecutable32'] ?: System.env.CONSCRYPT_JAVA_EXECUTABLE_32
     javaExecutable64 = properties['javaExecutable64'] ?: System.env.CONSCRYPT_JAVA_EXECUTABLE_64
     nativeClassifiers = []
+    if (build64Bit) {
+        // Add the 64-Bit classifier first, as the preferred classifier.
+        nativeClassifiers += classifierFor(osName, arch64Name)
+    }
     if (build32Bit) {
         nativeClassifiers += classifierFor(osName, arch32Name)
     }
-    if (build64Bit) {
-        nativeClassifiers += classifierFor(osName, arch64Name)
-    }
+
+    // Create a "preferred" configuration that can be used by other modules (e.g. tests/benchmarks)
+    preferredNativeConfiguration = normalizeClassifier(nativeClassifiers[0])
 }
 
 sourceSets {
@@ -48,51 +50,97 @@ dependencies {
  * Create Jar and Test tasks for each native classifier.
  */
 nativeClassifiers.each { nativeClassifier ->
-    // Normalize the classifier so that it may be used in task names. We'll also use
-    // the normalized name for the resource directory.
-    def normalizedClassifier = normalizeClassifier("${nativeClassifier}")
-    def nativeFiles = files("${buildDir}/${normalizedClassifier}/resources/main")
+    // Create all native configurations
+    addNativeSourceSet(nativeClassifier)
+    addNativeSourceSet("${nativeClassifier}Test")
 
-    // Create a configuration for the native JAR.
-    configurations.create("$normalizedClassifier")
-    def sources = sourceSets.create("$normalizedClassifier")
+    // Create the JAR task and add it's output to the published archives for this project
+    addNativeJar(nativeClassifier)
+
+    // Create the test task and have it auto run whenever the test task runs.
+    addNativeTest(nativeClassifier)
+}
+
+def nativeFileDir(nativeClassifier) {
+    def normalizedClassifier = normalizeClassifier(nativeClassifier)
+    "${buildDir}/${normalizedClassifier}/resources/main"
+}
+
+// Creates a source set (and resulting configurations) containing only the
+// native shared library.
+def addNativeSourceSet(nativeClassifier) {
+    def normalizedClassifier = normalizeClassifier(nativeClassifier)
+
+    // Create a configuration which will contain the artifact.
+    configurations.create(normalizedClassifier)
+
+    // Create a new source set. This will automatically create configurations for:
+    // ${normalizedClassifier}Compile
+    // ${normalizedClassifier}Runtime
+    def sources = sourceSets.create(normalizedClassifier)
     sources.resources {
-        srcDirs += nativeFiles
+        srcDirs += files(nativeFileDir(nativeClassifier))
     }
+}
 
+// Adds a JAR task for the native library.
+def addNativeJar(nativeClassifier) {
+    def normalizedClassifier = normalizeClassifier(nativeClassifier)
     // Create a JAR for this configuration and add it to the output archives.
     def jarTaskName = "create${normalizedClassifier}Jar"
+    // The testRuntime configuration is created automatically when we created the source set.
+    def testRuntimeConfigName = "${normalizedClassifier}TestRuntime"
     task "$jarTaskName"(type: Jar) {
         dependsOn classes
-        dependsOn compileJava
-        from sourceSets.main.output + nativeFiles
+        dependsOn configurations[testRuntimeConfigName]
+        from sourceSets.main.output + files(nativeFileDir(nativeClassifier))
         manifest = jar.manifest
         classifier = nativeClassifier
     }
     // Add it to the 'archives' configuration so that the artifact will be automatically built and
     // installed/deployed.
     artifacts.add('archives', tasks["$jarTaskName"])
-    // Also add the artifact to its own configuration so that it can be referenced from other projects.
-    artifacts.add("$normalizedClassifier", tasks["$jarTaskName"])
 
-    // Create the test task and have it auto run whenever the test task runs.
-    def testTaskName = "${normalizedClassifier}Test"
-    task "$testTaskName"(type: Test) {
-        testClassesDir = test.testClassesDir
-        classpath = test.classpath + nativeFiles
-        if (nativeClassifier.endsWith(arch32Name)) {
-            jvmArgs jvmArgs32
-            if (javaExecutable32 != null) {
-                executable = javaExecutable32
-            }
-        } else {
-            jvmArgs jvmArgs64
-            if (javaExecutable64 != null) {
-                executable = javaExecutable64
-            }
-        }
+    // Also add the artifact to its own configuration so that it can be referenced from other projects.
+    artifacts.add(normalizedClassifier, tasks["$jarTaskName"])
+}
+
+// Optionally adds a test task for the given platform
+def addNativeTest(nativeClassifier) {
+    def normalizedClassifier = normalizeClassifier(nativeClassifier)
+    def testTaskName = "${normalizedClassifier}TestTask"
+    def javaExecutable
+    def javaArchFlag
+    if (normalizedClassifier.endsWith(arch32Name)) {
+        // 32-bit test
+        javaExecutable = javaExecutable32 != null ? javaExecutable32 : test.executable
+        javaArchFlag = '-d32'
+    } else {
+        // 64-bit test
+        javaExecutable = javaExecutable64 != null ? javaExecutable64 : test.executable
+        javaArchFlag = '-d64'
     }
-    test.dependsOn "$testTaskName"
+
+    // Execute the java executable to see if it supports the architecture flag.
+    def javaError = new ByteArrayOutputStream()
+    exec {
+        executable javaExecutable
+        args = ["$javaArchFlag", '-version']
+        ignoreExitValue true
+        errorOutput = javaError
+    }
+
+    // Only add the test if the javaArchFlag is supported for the selected JVM
+    def archSupported = !javaError.toString().toLowerCase().contains('error')
+    if (archSupported) {
+        task "$testTaskName"(type: Test) {
+            testClassesDir = test.testClassesDir
+            classpath = test.classpath + files(nativeFileDir(nativeClassifier))
+            jvmArgs javaArchFlag
+            executable = javaExecutable
+        }
+        test.dependsOn "$testTaskName"
+    }
 }
 
 // Exclude all test classes from the default test suite.
@@ -225,8 +273,8 @@ model {
             def source = binary.sharedLibraryFile
 
             // Copies the native library to a resource location that will be included in the jar.
-            task "copyNativeLib${normalizedClassifier}"(type: Copy) {
-                dependsOn "conscrypt_openjdk_jniSharedLibrary"
+            def copyTaskName = "copyNativeLib${normalizedClassifier}"
+            task "$copyTaskName"(type: Copy, dependsOn: binary.buildTask) {
                 from source
                 // Rename the artifact to include the generated classifier
                 rename '(.+)(\\.[^\\.]+)', "\$1-$classifier\$2"
@@ -235,7 +283,7 @@ model {
             }
 
             // Make sure we build and copy the native library to the output directory.
-            compileJava.dependsOn "copyNativeLib${normalizedClassifier}"
+            compileJava.dependsOn "$copyTaskName"
 
             // Now define a task to strip the release binary (linux only)
             def stripTask = binary.tasks.taskName("strip")
@@ -262,6 +310,5 @@ static normalizeClassifier(classifier) {
 
 // Manually add the native library to help IntelliJ run tests.
 idea.module {
-    def classifier = normalizeClassifier(classifierFor(osName, 'x86_64'))
-    scopes.PROVIDED.plus += [ configurations["$classifier"] ]
+    scopes.PROVIDED.plus += [ configurations["$preferredNativeConfiguration"] ]
 }
