@@ -74,6 +74,8 @@ import javax.security.auth.x500.X500Principal;
 
 /**
  * Implements the {@link SSLEngine} API using OpenSSL's non-blocking interfaces.
+ *
+ * @hide
  */
 public final class OpenSSLEngineImpl extends SSLEngine
         implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.AliasChooser,

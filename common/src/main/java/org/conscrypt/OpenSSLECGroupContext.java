@@ -25,6 +25,11 @@ import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.EllipticCurve;
 
+/**
+ * Represents a BoringSSL EC_GROUP object.
+ *
+ * @hide
+ */
 public final class OpenSSLECGroupContext {
     private final NativeRef.EC_GROUP groupCtx;
 

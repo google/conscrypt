@@ -25,6 +25,12 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
 
+/**
+ * An implementation of {@link java.security.PublicKey} for RSA keys which uses BoringSSL to
+ * perform all the operations.
+ *
+ * @hide
+ */
 public class OpenSSLRSAPublicKey implements RSAPublicKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 123125005824688292L;
 

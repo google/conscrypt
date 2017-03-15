@@ -92,8 +92,13 @@ if (androidSdkInstalled) {
         }
     }
 
+    configurations {
+        publicApiDocs
+    }
+
     dependencies {
         compile fileTree(dir: 'libs', include: ['*.jar'])
+        publicApiDocs project(':conscrypt-api-doclet')
         androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
             exclude group: 'com.android.support', module: 'support-annotations'
         })
@@ -111,6 +116,8 @@ if (androidSdkInstalled) {
         options {
             encoding = 'UTF-8'
             links "https://docs.oracle.com/javase/7/docs/api/"
+            doclet = "org.conscrypt.doclet.FilterDoclet"
+            docletpath = configurations.publicApiDocs.files as List
             // Disable JavaDoc doclint on Java 8. It's annoying.
             if (JavaVersion.current().isJava8Compatible()) {
                 addStringOption('Xdoclint:none', '-quiet')

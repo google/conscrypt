@@ -28,7 +28,9 @@ import javax.net.ssl.SSLSessionBindingListener;
 
 /**
  * Implementation of the class OpenSSLSessionImpl
- * based on OpenSSL.
+ * based on BoringSSL.
+ *
+ * @hide
  */
 public class OpenSSLSessionImpl extends AbstractOpenSSLSession {
     private long creationTime = 0;

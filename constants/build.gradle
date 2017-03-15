@@ -22,9 +22,9 @@ dependencies {
     }
 }
 
-// Generate javadoc and sources JAR
+// Generate sources JAR
 artifacts {
-    archives javadocJar, sourcesJar
+    archives sourcesJar
 }
 
 model {

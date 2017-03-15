@@ -33,6 +33,7 @@ import javax.net.ssl.ManagerFactoryParameters;
 /**
  * KeyManagerFactory implementation.
  * @see KeyManagerFactorySpi
+ * @hide
  */
 public class KeyManagerFactoryImpl extends KeyManagerFactorySpi {
 

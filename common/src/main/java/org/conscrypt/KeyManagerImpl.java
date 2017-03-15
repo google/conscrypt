@@ -45,7 +45,7 @@ import javax.security.auth.x500.X500Principal;
  * from socket or engine.
  *
  * @see javax.net.ssl.KeyManager
- *
+ * @hide
  */
 public class KeyManagerImpl extends X509ExtendedKeyManager {
 

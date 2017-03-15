@@ -28,6 +28,12 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateKeySpec;
 
+/**
+ * An implementation of {@link java.security.PrivateKey} for RSA keys which uses BoringSSL to
+ * perform all the operations.
+ *
+ * @hide
+ */
 public class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 4872170254439578735L;
 

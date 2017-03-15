@@ -33,6 +33,12 @@ import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
+/**
+ * An implementation of {@link java.security.KeyFactory} which uses BoringSSL to perform all the
+ * operations.
+ *
+ * @hide
+ */
 public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
 
     @Override

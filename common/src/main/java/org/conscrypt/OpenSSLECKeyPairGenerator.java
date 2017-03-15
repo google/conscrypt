@@ -29,6 +29,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * An implementation of {@link KeyPairGenerator} for EC keys which uses BoringSSL to perform all the
+ * operations.
+ *
+ * @hide
+ */
 public final class OpenSSLECKeyPairGenerator extends KeyPairGenerator {
     private static final String ALGORITHM = "EC";
 

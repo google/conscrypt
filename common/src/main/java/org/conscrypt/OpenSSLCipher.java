@@ -45,6 +45,11 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.conscrypt.NativeRef.EVP_CIPHER_CTX;
 
+/**
+ * An implementation of {@link Cipher} using BoringSSL as the backing library.
+ *
+ * @hide
+ */
 public abstract class OpenSSLCipher extends CipherSpi {
 
     /**
