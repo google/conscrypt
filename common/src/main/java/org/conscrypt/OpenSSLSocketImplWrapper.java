@@ -108,11 +108,13 @@ public class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
     }
 
     @Override
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public void setSendBufferSize(int size) throws SocketException {
         socket.setSendBufferSize(size);
     }
 
     @Override
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public void setReceiveBufferSize(int size) throws SocketException {
         socket.setReceiveBufferSize(size);
     }
@@ -143,6 +145,7 @@ public class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
     }
 
     @Override
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public int getSoTimeout() throws SocketException {
         return socket.getSoTimeout();
     }
@@ -153,11 +156,13 @@ public class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
     }
 
     @Override
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public int getSendBufferSize() throws SocketException {
         return socket.getSendBufferSize();
     }
 
     @Override
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public int getReceiveBufferSize() throws SocketException {
         return socket.getReceiveBufferSize();
     }
