@@ -295,6 +295,7 @@ public class OpenSSLSessionImpl extends AbstractOpenSSLSession {
     /**
      * Returns the name requested by the SNI extension.
      */
+    @Override
     public String getRequestedServerName() {
         return NativeCrypto.get_SSL_SESSION_tlsext_hostname(sslSessionNativePointer);
     }
@@ -302,6 +303,7 @@ public class OpenSSLSessionImpl extends AbstractOpenSSLSession {
     /**
      * Returns the OCSP stapled response.
      */
+    @Override
     public List<byte[]> getStatusResponses() {
         if (peerCertificateOcspData == null) {
             return Collections.<byte[]>emptyList();
@@ -310,6 +312,7 @@ public class OpenSSLSessionImpl extends AbstractOpenSSLSession {
         return Collections.singletonList(peerCertificateOcspData.clone());
     }
 
+    @Override
     public byte[] getTlsSctData() {
         if (peerTlsSctData == null) {
             return null;

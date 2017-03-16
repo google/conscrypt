@@ -1028,6 +1028,8 @@ public final class OpenSSLEngineImpl extends SSLEngine
                 case NEW:
                     throw new IllegalStateException(
                             "Client/server mode must be set before calling wrap");
+                default:
+                    break;
             }
 
             // If we haven't completed the handshake yet, just let the caller know.
