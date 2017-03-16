@@ -108,7 +108,7 @@ def addNativeJar(nativeClassifier) {
 // Optionally adds a test task for the given platform
 def addNativeTest(nativeClassifier) {
     def normalizedClassifier = normalizeClassifier(nativeClassifier)
-    def testTaskName = "${normalizedClassifier}TestTask"
+    def testTaskName = "${normalizedClassifier}Test"
     def javaExecutable
     def javaArchFlag
     if (normalizedClassifier.endsWith(arch32Name)) {
