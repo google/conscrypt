@@ -346,6 +346,7 @@ final class Platform {
      * builds since we didn't backport, so return null. This code is from
      * Chromium's net/android/java/src/org/chromium/net/DefaultAndroidKeyStore.java
      */
+    @SuppressWarnings("LiteralClassName")
     public static OpenSSLKey wrapRsaKey(PrivateKey javaKey) {
         // This fixup only applies to pre-JB-MR1
         if (Build.VERSION.SDK_INT >= 17) {
@@ -432,6 +433,7 @@ final class Platform {
     /**
      * Logs to the system EventLog system.
      */
+    @SuppressWarnings("LiteralClassName")
     public static void logEvent(String message) {
         try {
             Class<?> processClass = Class.forName("android.os.Process");
@@ -478,6 +480,7 @@ final class Platform {
     /**
      * Convert from platform's GCMParameterSpec to our internal version.
      */
+    @SuppressWarnings("LiteralClassName")
     public static GCMParameters fromGCMParameterSpec(AlgorithmParameterSpec params) {
         Class<?> gcmSpecClass;
         try {
@@ -512,6 +515,7 @@ final class Platform {
     /**
      * Creates a platform version of {@code GCMParameterSpec}.
      */
+    @SuppressWarnings("LiteralClassName")
     public static AlgorithmParameterSpec toGCMParameterSpec(int tagLenInBits, byte[] iv) {
         Class<?> gcmSpecClass;
         try {
@@ -584,6 +588,7 @@ final class Platform {
     /**
      * OID to Algorithm Name mapping.
      */
+    @SuppressWarnings("LiteralClassName")
     public static String oidToAlgorithmName(String oid) {
         // Old Harmony style
         try {

@@ -220,6 +220,7 @@ public class OpenSSLSignature extends SignatureSpi {
     }
 
     @Override
+    @SuppressWarnings("Finally")
     protected byte[] engineSign() throws SignatureException {
         final NativeRef.EVP_MD_CTX ctxLocal = ctx;
         try {
@@ -240,6 +241,7 @@ public class OpenSSLSignature extends SignatureSpi {
     }
 
     @Override
+    @SuppressWarnings("Finally")
     protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
         final NativeRef.EVP_MD_CTX ctxLocal = ctx;
         try {
