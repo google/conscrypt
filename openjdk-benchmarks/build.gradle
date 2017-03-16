@@ -6,12 +6,6 @@ apply plugin: 'idea'
 
 description = 'Conscrypt: OpenJDK Benchmarks'
 
-ext {
-    // The configuration of conscrypt-openjdk to use. This configuration will contain the native artifact for
-    // the current platform.
-    openJdkConfiguration = normalizeClassifier(classifierFor(osName, 'x86_64'))
-}
-
 jmh {
     jmhVersion = "$jmhVersion"
     warmupIterations = 10
@@ -26,12 +20,16 @@ configurations {
 }
 
 dependencies {
-    compile project(path: ':conscrypt-openjdk', configuration: "$openJdkConfiguration"),
-            project(':conscrypt-testing'),
+    compile project(':conscrypt-testing'),
             libraries.guava,
             libraries.junit,
             libraries.netty_handler,
             libraries.netty_tcnative
+
+    // Add the preferred native openjdk configuration for this platform.
+    compile project(
+            path: ':conscrypt-openjdk',
+            configuration: project(':conscrypt-openjdk').preferredNativeConfiguration)
 
     jmh libraries.jmh_core
 
@@ -45,12 +43,4 @@ dependencies {
 // See https://github.com/melix/jmh-gradle-plugin/issues/39
 idea.module {
     scopes.PROVIDED.plus += [ configurations.jmh, configurations.jmhGenerators ]
-}
-
-static classifierFor(osName, archName) {
-    return "${osName}-${archName}"
-}
-
-static normalizeClassifier(classifier) {
-    return classifier.replaceAll("-", "_")
 }
