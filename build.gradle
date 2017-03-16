@@ -3,12 +3,16 @@ buildscript {
         mavenCentral()
         mavenLocal()
         jcenter()
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
     }
     dependencies {
         // Add dependency for build script,
         // so we can access Git from our
         // build script.
         classpath 'org.ajoberstar:grgit:1.1.0'
+        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.9'
     }
 }
 
@@ -35,6 +39,7 @@ subprojects {
     apply plugin: "signing"
     apply plugin: "idea"
     apply plugin: "jacoco"
+    apply plugin: "net.ltgt.errorprone"
 
     group = "org.conscrypt"
     description = 'Conscrypt is an alternate Java Security Provider that uses BoringSSL'

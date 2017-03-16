@@ -749,8 +749,9 @@ public class NativeCryptoTest {
             if (DEBUG) {
                 System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
                         + " clientCertificateRequested"
-                        + " keyTypes=" + keyTypes + " asn1DerEncodedX500Principals="
-                        + asn1DerEncodedX500Principals);
+                        + " keyTypes=" + Arrays.toString(keyTypes)
+                        + " asn1DerEncodedX500Principals="
+                        + Arrays.toString(asn1DerEncodedX500Principals));
             }
             this.keyTypes = keyTypes;
             this.asn1DerEncodedX500Principals = asn1DerEncodedX500Principals;
