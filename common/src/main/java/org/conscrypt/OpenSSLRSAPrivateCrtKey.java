@@ -32,6 +32,7 @@ import java.security.spec.RSAPrivateCrtKeySpec;
  *
  * @hide
  */
+@Internal
 public class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSAPrivateCrtKey {
     private static final long serialVersionUID = 3785291944868707197L;
 

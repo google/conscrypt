@@ -31,6 +31,7 @@ import java.security.spec.RSAPublicKeySpec;
  *
  * @hide
  */
+@Internal
 public class OpenSSLRSAPublicKey implements RSAPublicKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 123125005824688292L;
 

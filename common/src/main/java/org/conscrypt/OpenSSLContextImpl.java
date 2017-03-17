@@ -32,6 +32,7 @@ import javax.net.ssl.TrustManager;
  *
  * @hide
  */
+@Internal
 public class OpenSSLContextImpl extends SSLContextSpi {
 
     /**

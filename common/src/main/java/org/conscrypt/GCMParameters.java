@@ -23,6 +23,7 @@ package org.conscrypt;
  *
  * @hide
  */
+@Internal
 public class GCMParameters {
     /** The tag length in bits. */
     public final int tLen;

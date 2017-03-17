@@ -57,8 +57,12 @@ import static org.conscrypt.SSLUtils.toSSLHandshakeException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
+import java.security.InvalidKeyException;
+import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.interfaces.ECKey;
+import java.security.spec.ECParameterSpec;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -77,9 +81,9 @@ import javax.security.auth.x500.X500Principal;
  *
  * @hide
  */
-public final class OpenSSLEngineImpl extends SSLEngine
-        implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.AliasChooser,
-                   SSLParametersImpl.PSKCallbacks {
+final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHandshakeCallbacks,
+                                                           SSLParametersImpl.AliasChooser,
+                                                           SSLParametersImpl.PSKCallbacks {
     private static final SSLEngineResult NEED_UNWRAP_OK =
             new SSLEngineResult(OK, NEED_UNWRAP, 0, 0);
     private static final SSLEngineResult NEED_UNWRAP_CLOSED =
@@ -91,18 +95,6 @@ public final class OpenSSLEngineImpl extends SSLEngine
             new SSLEngineResult(CLOSED, NOT_HANDSHAKING, 0, 0);
     private static final ByteBuffer EMPTY = ByteBuffer.allocateDirect(0);
     private static final long EMPTY_ADDR = NativeCrypto.getDirectBufferAddress(EMPTY);
-
-    /**
-     * Similar in concept to {@link javax.net.ssl.HandshakeCompletedListener}. Allows the caller to be
-     * notified immediately upon completion of the TLS handshake.
-     */
-    public interface HandshakeListener {
-
-        /**
-         * Called by the engine when the TLS handshake has completed.
-         */
-        void onHandshakeFinished() throws SSLException;
-    }
 
     private final SSLParametersImpl sslParameters;
 
@@ -179,7 +171,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
      * Private key for the TLS Channel ID extension. This field is client-side only. Set during
      * startHandshake.
      */
-    OpenSSLKey channelIdPrivateKey;
+    private OpenSSLKey channelIdPrivateKey;
 
     private int maxSealOverhead;
 
@@ -188,11 +180,11 @@ public final class OpenSSLEngineImpl extends SSLEngine
     private final ByteBuffer[] singleSrcBuffer = new ByteBuffer[1];
     private final ByteBuffer[] singleDstBuffer = new ByteBuffer[1];
 
-    public OpenSSLEngineImpl(SSLParametersImpl sslParameters) {
+    OpenSSLEngineImpl(SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
     }
 
-    public OpenSSLEngineImpl(String host, int port, SSLParametersImpl sslParameters) {
+    OpenSSLEngineImpl(String host, int port, SSLParametersImpl sslParameters) {
         super(host, port);
         this.sslParameters = sslParameters;
     }
@@ -200,25 +192,124 @@ public final class OpenSSLEngineImpl extends SSLEngine
     /**
      * Returns the maximum overhead, in bytes, of sealing a record with SSL.
      */
-    public final int maxSealOverhead() {
+    int maxSealOverhead() {
         return maxSealOverhead;
+    }
+
+    /**
+     * Enables/disables TLS Channel ID for this server engine.
+     *
+     * <p>This method needs to be invoked before the handshake starts.
+     *
+     * @throws IllegalStateException if this is a client engine or if the handshake has already
+     *         started.
+     */
+    void setChannelIdEnabled(boolean enabled) {
+        synchronized (stateLock) {
+            if (getUseClientMode()) {
+                throw new IllegalStateException("Not allowed in client mode");
+            }
+            if (isHandshakeStarted()) {
+                throw new IllegalStateException(
+                        "Could not enable/disable Channel ID after the initial handshake has begun.");
+            }
+            sslParameters.channelIdEnabled = enabled;
+        }
+    }
+
+    /**
+     * Gets the TLS Channel ID for this server engine. Channel ID is only available once the
+     * handshake completes.
+     *
+     * @return channel ID or {@code null} if not available.
+     *
+     * @throws IllegalStateException if this is a client engine or if the handshake has not yet
+     * completed.
+     * @throws SSLException if channel ID is available but could not be obtained.
+     */
+    byte[] getChannelId() throws SSLException {
+        synchronized (stateLock) {
+            if (getUseClientMode()) {
+                throw new IllegalStateException("Not allowed in client mode");
+            }
+
+            if (isHandshakeStarted()) {
+                throw new IllegalStateException(
+                        "Channel ID is only available after handshake completes");
+            }
+            return NativeCrypto.SSL_get_tls_channel_id(sslNativePointer);
+        }
+    }
+
+    /**
+     * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client engine.
+     *
+     * <p>This method needs to be invoked before the handshake starts.
+     *
+     * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key (disables
+     *        TLS Channel ID). The private key must be an Elliptic Curve (EC) key based on the NIST
+     *        P-256 curve (aka SECG secp256r1 or ANSI X9.62 prime256v1).
+     *
+     * @throws IllegalStateException if this is a server engine or if the handshake has already
+     *         started.
+     */
+    void setChannelIdPrivateKey(PrivateKey privateKey) {
+        if (!getUseClientMode()) {
+            throw new IllegalStateException("Not allowed in server mode");
+        }
+
+        synchronized (stateLock) {
+            if (isHandshakeStarted()) {
+                throw new IllegalStateException(
+                        "Could not change Channel ID private key after the initial handshake has begun.");
+            }
+
+            if (privateKey == null) {
+                sslParameters.channelIdEnabled = false;
+                channelIdPrivateKey = null;
+                return;
+            }
+
+            sslParameters.channelIdEnabled = true;
+            try {
+                ECParameterSpec ecParams = null;
+                if (privateKey instanceof ECKey) {
+                    ecParams = ((ECKey) privateKey).getParams();
+                }
+                if (ecParams == null) {
+                    // Assume this is a P-256 key, as specified in the contract of this method.
+                    ecParams =
+                            OpenSSLECGroupContext.getCurveByName("prime256v1").getECParameterSpec();
+                }
+                channelIdPrivateKey =
+                        OpenSSLKey.fromECPrivateKeyForTLSStackOnly(privateKey, ecParams);
+            } catch (InvalidKeyException e) {
+                // Will have error in startHandshake
+            }
+        }
     }
 
     /**
      * Sets the listener for the completion of the TLS handshake.
      */
-    public OpenSSLEngineImpl setHandshakeListener(HandshakeListener handshakeListener) {
-        switch(engineState) {
+    void setHandshakeListener(HandshakeListener handshakeListener) {
+        synchronized (stateLock) {
+            if (isHandshakeStarted()) {
+                throw new IllegalStateException(
+                        "Handshake listener must be set before starting the handshake.");
+            }
+            this.handshakeListener = handshakeListener;
+        }
+    }
+
+    private boolean isHandshakeStarted() {
+        switch (engineState) {
             case NEW:
             case MODE_SET:
-                // Allowed.
-                break;
+                return false;
             default:
-                // Disallow anything else.
-                throw new IllegalStateException("Handshake listener must be set before starting the handshake.");
+                return true;
         }
-        this.handshakeListener = handshakeListener;
-        return this;
     }
 
     @Override
@@ -510,14 +601,13 @@ public final class OpenSSLEngineImpl extends SSLEngine
         }
     }
 
-    public SSLEngineResult unwrap(final ByteBuffer[] srcs, final ByteBuffer[] dsts)
-            throws SSLException {
+    SSLEngineResult unwrap(final ByteBuffer[] srcs, final ByteBuffer[] dsts) throws SSLException {
         checkNotNull(srcs, "srcs");
         checkNotNull(dsts, "dsts");
         return unwrap(srcs, 0, srcs.length, dsts, 0, dsts.length);
     }
 
-    public SSLEngineResult unwrap(final ByteBuffer[] srcs, int srcsOffset, final int srcsLength,
+    SSLEngineResult unwrap(final ByteBuffer[] srcs, int srcsOffset, final int srcsLength,
             final ByteBuffer[] dsts, final int dstsOffset, final int dstsLength)
             throws SSLException {
         checkNotNull(srcs, "srcs");
@@ -877,9 +967,9 @@ public final class OpenSSLEngineImpl extends SSLEngine
                 int produced = readEncryptedData(dst, pendingNet);
 
                 if (produced <= 0) {
-                    // We ignore BIO_* errors here as we use in memory BIO anyway and will do another
-                    // SSL_* call later
-                    // on in which we will produce an exception in case of an error
+                    // We ignore BIO_* errors here as we use in memory BIO anyway and will do
+                    // another SSL_* call later on in which we will produce an exception in
+                    // case of an error
                     NativeCrypto.SSL_clear_error();
                 } else {
                     bytesProduced += produced;
@@ -1060,7 +1150,8 @@ public final class OpenSSLEngineImpl extends SSLEngine
 
                 srcsLen += src.remaining();
                 if (srcsLen > SSL3_RT_MAX_PLAIN_LENGTH || srcsLen < 0) {
-                    // If srcLen > MAX_PLAINTEXT_LENGTH or secLen < 0 just set it to MAX_PLAINTEXT_LENGTH.
+                    // If srcLen > MAX_PLAINTEXT_LENGTH or secLen < 0 just set it to
+                    // MAX_PLAINTEXT_LENGTH.
                     // This also help us to guard against overflow.
                     // We not break out here as we still need to check for null entries in srcs[].
                     srcsLen = SSL3_RT_MAX_PLAIN_LENGTH;
@@ -1186,8 +1277,8 @@ public final class OpenSSLEngineImpl extends SSLEngine
         synchronized (stateLock) {
             switch (type) {
                 case SSL_CB_HANDSHAKE_DONE:
-                    if (engineState != EngineState.HANDSHAKE_STARTED &&
-                        engineState != EngineState.READY_HANDSHAKE_CUT_THROUGH) {
+                    if (engineState != EngineState.HANDSHAKE_STARTED
+                            && engineState != EngineState.READY_HANDSHAKE_CUT_THROUGH) {
                         throw new IllegalStateException(
                                 "Completed handshake while in mode " + engineState);
                     }
@@ -1284,7 +1375,7 @@ public final class OpenSSLEngineImpl extends SSLEngine
     }
 
     /* @Override */
-    @SuppressWarnings("MissingOverride")  // For compilation with Java 6.
+    @SuppressWarnings("MissingOverride") // For compilation with Java 6.
     public SSLSession getHandshakeSession() {
         return handshakeSession;
     }
@@ -1333,50 +1424,24 @@ public final class OpenSSLEngineImpl extends SSLEngine
      *
      * @param useSessionTickets True to enable session tickets
      */
-    public void setUseSessionTickets(boolean useSessionTickets) {
+    void setUseSessionTickets(boolean useSessionTickets) {
         sslParameters.setUseSessionTickets(useSessionTickets);
     }
 
     /**
-     * This method does nothing and is kept for backward compatibility.
-     */
-    public void setNpnProtocols(byte[] npnProtocols) {}
-
-    /**
-     * Sets the list of ALPN protocols. This method internally converts the protocols to their
-     * wire-format form.
+     * Sets the list of ALPN protocols.
      *
      * @param alpnProtocols the list of ALPN protocols
-     * @see #setAlpnProtocols(byte[])
      */
-    public void setAlpnProtocols(String[] alpnProtocols) {
+    void setAlpnProtocols(String[] alpnProtocols) {
         sslParameters.setAlpnProtocols(alpnProtocols);
-    }
-
-    /**
-     * Alternate version of {@link #setAlpnProtocols(String[])} that directly sets the list of
-     * ALPN in the wire-format form used by BoringSSL (length-prefixed 8-bit strings).
-     * Requires that all strings be encoded with US-ASCII.
-     *
-     * @param alpnProtocols the encoded form of the ALPN protocol list
-     * @see #setAlpnProtocols(String[])
-     */
-    public void setAlpnProtocols(byte[] alpnProtocols) {
-        sslParameters.setAlpnProtocols(alpnProtocols);
-    }
-
-    /**
-     * Returns null always for backward compatibility.
-     */
-    public byte[] getNpnSelectedProtocol() {
-        return null;
     }
 
     /**
      * Returns the protocol agreed upon by client and server, or {@code null} if no protocol was
      * agreed upon.
      */
-    public byte[] getAlpnSelectedProtocol() {
+    byte[] getAlpnSelectedProtocol() {
         return NativeCrypto.SSL_get0_alpn_selected(sslNativePointer);
     }
 

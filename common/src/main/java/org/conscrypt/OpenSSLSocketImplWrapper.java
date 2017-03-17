@@ -28,6 +28,7 @@ import java.net.SocketException;
  *
  * @hide
  */
+@Internal
 public class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
 
     private Socket socket;

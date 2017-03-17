@@ -30,6 +30,7 @@ import java.security.spec.EllipticCurve;
  *
  * @hide
  */
+@Internal
 public final class OpenSSLECGroupContext {
     private final NativeRef.EC_GROUP groupCtx;
 

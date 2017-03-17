@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
  *
  * @hide
  */
+@Internal
 public final class OpenSSLBIOSink {
     private final long ctx;
     private final ByteArrayOutputStream buffer;

@@ -38,6 +38,7 @@ import java.util.List;
  *
  * @hide
  */
+@Internal
 public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
     private static final byte[] PKCS7_MARKER = new byte[] {
             '-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'

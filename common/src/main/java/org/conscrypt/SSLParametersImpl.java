@@ -57,6 +57,7 @@ import javax.security.auth.x500.X500Principal;
  *
  * @hide
  */
+@Internal
 public class SSLParametersImpl implements Cloneable {
 
     // default source of X.509 certificate based authentication keys

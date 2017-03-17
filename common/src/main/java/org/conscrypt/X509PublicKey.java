@@ -25,6 +25,7 @@ import java.util.Arrays;
  *
  * @hide
  */
+@Internal
 public class X509PublicKey implements PublicKey {
     private static final long serialVersionUID = -8610156854731664298L;
 

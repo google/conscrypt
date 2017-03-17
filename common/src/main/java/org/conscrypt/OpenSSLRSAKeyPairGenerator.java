@@ -32,6 +32,7 @@ import java.security.spec.RSAKeyGenParameterSpec;
  *
  * @hide
  */
+@Internal
 public class OpenSSLRSAKeyPairGenerator extends KeyPairGeneratorSpi {
     /**
      * Default modulus size is 0x10001 (65537)

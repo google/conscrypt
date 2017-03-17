@@ -35,6 +35,7 @@ import java.util.Map;
  *
  * @hide
  */
+@Internal
 public final class OpenSSLECKeyPairGenerator extends KeyPairGenerator {
     private static final String ALGORITHM = "EC";
 

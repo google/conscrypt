@@ -28,6 +28,7 @@ import java.util.List;
  *
  * @hide
  */
+@Internal
 public final class ChainStrengthAnalyzer {
 
     private static final int MIN_RSA_MODULUS_LEN_BITS = 1024;

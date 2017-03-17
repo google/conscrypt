@@ -32,6 +32,7 @@ import java.util.TimeZone;
  *
  * @hide
  */
+@Internal
 public class OpenSSLX509CRLEntry extends X509CRLEntry {
     private final long mContext;
 

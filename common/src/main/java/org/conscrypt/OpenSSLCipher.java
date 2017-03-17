@@ -50,6 +50,7 @@ import org.conscrypt.NativeRef.EVP_CIPHER_CTX;
  *
  * @hide
  */
+@Internal
 public abstract class OpenSSLCipher extends CipherSpi {
 
     /**

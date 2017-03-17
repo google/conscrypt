@@ -99,8 +99,8 @@ public class OpenSSLEngineImplTest {
     @Parameter
     public BufferType bufferType;
 
-    private OpenSSLEngineImpl clientEngine;
-    private OpenSSLEngineImpl serverEngine;
+    private SSLEngine clientEngine;
+    private SSLEngine serverEngine;
 
     @Test
     public void mutualAuthWithSameCertsShouldSucceed() throws Exception {
@@ -172,8 +172,8 @@ public class OpenSSLEngineImplTest {
         for (int i = 0; i < numMessages; ++i) {
             ByteBuffer out = bufferType.newBuffer(2 * MESSAGE_SIZE);
             cleartextBuffers[i] = out;
-            SSLEngineResult unwrapResult =
-                    serverEngine.unwrap(encryptedBuffers, new ByteBuffer[] {out});
+            SSLEngineResult unwrapResult = Conscrypt.Engines.unwrap(serverEngine, encryptedBuffers,
+                    new ByteBuffer[] {out});
             assertEquals(SSLEngineResult.Status.OK, unwrapResult.getStatus());
             assertEquals(MESSAGE_SIZE, unwrapResult.bytesProduced());
 
@@ -195,8 +195,8 @@ public class OpenSSLEngineImplTest {
         SSLContext clientContext = initSslContext(newContext(), clientKeyStore);
         SSLContext serverContext = initSslContext(newContext(), serverKeyStore);
 
-        clientEngine = (OpenSSLEngineImpl) initEngine(clientContext.createSSLEngine(), CIPHER, true);
-        serverEngine = (OpenSSLEngineImpl) initEngine(serverContext.createSSLEngine(), CIPHER, false);
+        clientEngine = initEngine(clientContext.createSSLEngine(), CIPHER, true);
+        serverEngine = initEngine(serverContext.createSSLEngine(), CIPHER, false);
     }
 
     private static byte[] toArray(ByteBuffer buffer) {

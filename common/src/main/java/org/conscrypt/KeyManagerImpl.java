@@ -47,6 +47,7 @@ import javax.security.auth.x500.X500Principal;
  * @see javax.net.ssl.KeyManager
  * @hide
  */
+@Internal
 public class KeyManagerImpl extends X509ExtendedKeyManager {
 
     // hashed key store information
