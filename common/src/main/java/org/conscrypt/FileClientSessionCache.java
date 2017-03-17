@@ -174,8 +174,6 @@ public class FileClientSessionCache {
                 if (in != null) {
                     try {
                         in.close();
-                    } catch (RuntimeException rethrown) {
-                        throw rethrown;
                     } catch (Exception ignored) {
                     }
                 }
