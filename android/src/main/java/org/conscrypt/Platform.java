@@ -435,12 +435,12 @@ final class Platform {
     public static void logEvent(String message) {
         try {
             Class<?> processClass = Class.forName("android.os.Process");
-            Object processInstance = processClass.newInstance();
+            Object processInstance = processClass.getDeclaredConstructor().newInstance();
             Method myUidMethod = processClass.getMethod("myUid", (Class[]) null);
             int uid = (Integer) myUidMethod.invoke(processInstance);
 
             Class<?> eventLogClass = Class.forName("android.util.EventLog");
-            Object eventLogInstance = eventLogClass.newInstance();
+            Object eventLogInstance = eventLogClass.getDeclaredConstructor().newInstance();
             Method writeEventMethod =
                     eventLogClass.getMethod("writeEvent", Integer.TYPE, Object[].class);
             writeEventMethod.invoke(eventLogInstance, 0x534e4554 /* SNET */,
