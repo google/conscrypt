@@ -31,6 +31,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketImpl;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
@@ -73,8 +74,7 @@ final class Platform {
             Field f_impl = Socket.class.getDeclaredField("impl");
             f_impl.setAccessible(true);
             Object socketImpl = f_impl.get(s);
-            Class<?> c_socketImpl = Class.forName("java.net.SocketImpl");
-            Field f_fd = c_socketImpl.getDeclaredField("fd");
+            Field f_fd = SocketImpl.class.getDeclaredField("fd");
             f_fd.setAccessible(true);
             return (FileDescriptor) f_fd.get(socketImpl);
         } catch (Exception e) {
