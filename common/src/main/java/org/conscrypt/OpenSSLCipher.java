@@ -1102,6 +1102,34 @@ public abstract class OpenSSLCipher extends CipherSpi {
             return 0;
         }
 
+        @SuppressWarnings("LiteralClassName")
+        private void throwAEADBadTagExceptionIfAvailable(String message, Throwable cause)
+                throws BadPaddingException {
+            Constructor<?> aeadBadTagConstructor;
+            try {
+                aeadBadTagConstructor = Class.forName("javax.crypto.AEADBadTagException")
+                                                .getConstructor(String.class);
+            } catch (Exception ignored) {
+                return;
+            }
+
+            BadPaddingException badTagException = null;
+            try {
+                badTagException = (BadPaddingException) aeadBadTagConstructor.newInstance(message);
+                badTagException.initCause(cause);
+            } catch (IllegalAccessException e2) {
+                // Fall through
+            } catch (InstantiationException e2) {
+                // Fall through
+            } catch (InvocationTargetException e2) {
+                throw(BadPaddingException) new BadPaddingException().initCause(
+                        e2.getTargetException());
+            }
+            if (badTagException != null) {
+                throw badTagException;
+            }
+        }
+
         @Override
         protected int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
                 throws IllegalBlockSizeException, BadPaddingException {
@@ -1115,31 +1143,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
                             tagLengthInBytes, output, outputOffset, iv, buf, 0, bufCount, aad);
                 }
             } catch (BadPaddingException e) {
-                Constructor<?> aeadBadTagConstructor = null;
-                try {
-                    aeadBadTagConstructor = Class.forName("javax.crypto.AEADBadTagException")
-                            .getConstructor(String.class);
-                } catch (Exception e2) {
-                }
-
-                if (aeadBadTagConstructor != null) {
-                    BadPaddingException badTagException = null;
-                    try {
-                        badTagException = (BadPaddingException) aeadBadTagConstructor.newInstance(e
-                                .getMessage());
-                        badTagException.initCause(e.getCause());
-                    } catch (IllegalAccessException e2) {
-                        // Fall through
-                    } catch (InstantiationException e2) {
-                        // Fall through
-                    } catch (InvocationTargetException e2) {
-                        throw (BadPaddingException) new BadPaddingException().initCause(e2
-                                .getTargetException());
-                    }
-                    if (badTagException != null) {
-                        throw badTagException;
-                    }
-                }
+                throwAEADBadTagExceptionIfAvailable(e.getMessage(), e.getCause());
                 throw e;
             }
             reset();
