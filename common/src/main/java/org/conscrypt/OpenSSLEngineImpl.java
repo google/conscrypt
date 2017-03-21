@@ -70,6 +70,7 @@ import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
@@ -95,6 +96,12 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
             new SSLEngineResult(CLOSED, NOT_HANDSHAKING, 0, 0);
     private static final ByteBuffer EMPTY = ByteBuffer.allocateDirect(0);
     private static final long EMPTY_ADDR = NativeCrypto.getDirectBufferAddress(EMPTY);
+
+    /**
+     * Hostname used with the TLS extension SNI hostname. {@link #getPeerHost()} is used if this is
+     * not set.
+     */
+    private String sniHostname;
 
     private final SSLParametersImpl sslParameters;
 
@@ -341,9 +348,9 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
             sslNativePointer = NativeCrypto.SSL_new(sessionContext.sslCtxNativePointer);
             networkBio = NativeCrypto.SSL_BIO_new(sslNativePointer);
-            sslSession =
-                    sslParameters.getSessionToReuse(sslNativePointer, getPeerHost(), getPeerPort());
-            sslParameters.setSSLParameters(sslNativePointer, this, this, getPeerHost());
+            sslSession = sslParameters.getSessionToReuse(
+                    sslNativePointer, getSniHostname(), getPeerPort());
+            sslParameters.setSSLParameters(sslNativePointer, this, this, getSniHostname());
             sslParameters.setCertificateValidation(sslNativePointer);
             sslParameters.setTlsChannelId(sslNativePointer, channelIdPrivateKey);
             if (getUseClientMode()) {
@@ -359,7 +366,7 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
             String message = e.getMessage();
             // Must match error reason string of SSL_R_UNEXPECTED_CCS (in ssl/ssl_err.c)
             if (message.contains("unexpected CCS")) {
-                String logMessage = String.format("ssl_unexpected_ccs: host=%s", getPeerHost());
+                String logMessage = String.format("ssl_unexpected_ccs: host=%s", getSniHostname());
                 Platform.logEvent(logMessage);
             }
             throw new SSLException(e);
@@ -426,6 +433,27 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
     }
 
     @Override
+    public SSLParameters getSSLParameters() {
+        SSLParameters params = super.getSSLParameters();
+        Platform.getSSLParameters(params, sslParameters, this);
+        return params;
+    }
+
+    public void setSniHostname(String sniHostname) {
+        this.sniHostname = sniHostname;
+    }
+
+    public String getSniHostname() {
+        return sniHostname != null ? sniHostname : getPeerHost();
+    }
+
+    @Override
+    public void setSSLParameters(SSLParameters p) {
+        super.setSSLParameters(p);
+        Platform.setSSLParameters(p, sslParameters, this);
+    }
+
+    @Override
     public HandshakeStatus getHandshakeStatus() {
         synchronized (stateLock) {
             return getHandshakeStatusInternal();
@@ -482,9 +510,10 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
     @Override
     public SSLSession getSession() {
         if (sslSession == null) {
-            return handshakeSession != null ? handshakeSession : SSLNullSession.getNullSession();
+            return handshakeSession != null ? Platform.wrapSSLSession(handshakeSession)
+                                            : SSLNullSession.getNullSession();
         }
-        return sslSession;
+        return Platform.wrapSSLSession(sslSession);
     }
 
     @Override
@@ -829,7 +858,7 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
                 throw shutdownWithError("Failed to obtain session after handshake completed");
             }
             sslSession = sslParameters.setupSession(sslSessionCtx, sslNativePointer, sslSession,
-                    getPeerHost(), getPeerPort(), true);
+                    getSniHostname(), getPeerPort(), true);
             if (sslSession != null && engineState == EngineState.HANDSHAKE_STARTED) {
                 engineState = EngineState.READY_HANDSHAKE_CUT_THROUGH;
             } else {
@@ -1313,7 +1342,7 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
             // Used for verifyCertificateChain callback
             handshakeSession = new OpenSSLSessionImpl(
                     NativeCrypto.SSL_get1_session(sslNativePointer), null, peerCertChain, ocspData,
-                    tlsSctData, getPeerHost(), getPeerPort(), null);
+                    tlsSctData, getSniHostname(), getPeerPort(), null);
 
             boolean client = sslParameters.getUseClientMode();
             if (client) {

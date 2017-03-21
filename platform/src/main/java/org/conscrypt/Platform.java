@@ -134,6 +134,31 @@ class Platform {
         }
     }
 
+    public static void setSSLParameters(
+            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+        impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
+        impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
+        List<SNIServerName> serverNames = params.getServerNames();
+        if (serverNames != null) {
+            for (SNIServerName serverName : serverNames) {
+                if (serverName.getType() == StandardConstants.SNI_HOST_NAME) {
+                    engine.setSniHostname(((SNIHostName) serverName).getAsciiName());
+                    break;
+                }
+            }
+        }
+    }
+
+    public static void getSSLParameters(
+            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+        params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
+        params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
+        if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getSniHostname())) {
+            params.setServerNames(Collections.<SNIServerName>singletonList(
+                    new SNIHostName(engine.getSniHostname())));
+        }
+    }
+
     /**
      * Helper function to unify calls to the different names used for each function taking a
      * Socket, SSLEngine, or String (legacy Android).
