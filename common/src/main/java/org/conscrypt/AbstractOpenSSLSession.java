@@ -35,6 +35,7 @@ import javax.security.cert.CertificateException;
  *
  * @hide
  */
+@Internal
 public abstract class AbstractOpenSSLSession implements SSLSession {
     private final Map<String, Object> values = new HashMap<String, Object>();
 

@@ -36,6 +36,7 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
  *
  * @hide
  */
+@Internal
 public class OpenSSLX509CertPath extends CertPath {
     private static final long serialVersionUID = -3249106005255170761L;
 

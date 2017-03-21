@@ -35,6 +35,7 @@ import javax.crypto.NoSuchPaddingException;
  *
  * @hide
  */
+@Internal
 public final class CryptoUpcalls {
 
     private CryptoUpcalls() {

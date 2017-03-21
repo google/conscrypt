@@ -38,6 +38,7 @@ import java.security.spec.X509EncodedKeySpec;
  *
  * @hide
  */
+@Internal
 public class OpenSSLECKeyFactory extends KeyFactorySpi {
 
     @Override

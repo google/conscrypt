@@ -33,6 +33,7 @@ import java.security.spec.X509EncodedKeySpec;
  *
  * @hide
  */
+@Internal
 public class OpenSSLKey {
     private final NativeRef.EVP_PKEY ctx;
 

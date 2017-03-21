@@ -25,6 +25,7 @@ import java.net.Socket;
  *
  * @hide
  */
+@Internal
 public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     private final SSLParametersImpl sslParameters;
     private boolean channelIdEnabled;

@@ -33,6 +33,7 @@ import javax.crypto.spec.SecretKeySpec;
  *
  * @hide
  */
+@Internal
 public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
 
     /** OpenSSL handle of the private key. Only available after the engine has been initialized. */

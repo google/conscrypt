@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 The Android Open Source Project
+ * Copyright 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,16 @@
 
 package org.conscrypt;
 
+import javax.net.ssl.SSLException;
+
 /**
- * Marker interface for classes that hold an {@link OpenSSLKey}.
- *
- * @hide
+ * Similar in concept to {@link javax.net.ssl.HandshakeCompletedListener}, but used for listening directly
+ * to the engine. Allows the caller to be notified immediately upon completion of the TLS handshake.
  */
-@Internal
-public interface OpenSSLKeyHolder {
-    OpenSSLKey getOpenSSLKey();
+public interface HandshakeListener {
+
+    /**
+     * Called by the engine when the TLS handshake has completed.
+     */
+    void onHandshakeFinished() throws SSLException;
 }

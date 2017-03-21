@@ -27,6 +27,7 @@ import java.security.KeyManagementException;
  *
  * @hide
  */
+@Internal
 public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
     private static boolean useEngineSocketByDefault = SSLUtils.USE_ENGINE_SOCKET_BY_DEFAULT;
 
@@ -55,7 +56,7 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
     /**
      * Configures the default socket to be created for all instances.
      */
-    public static void setUseEngineSocketByDefault(boolean useEngineSocket) {
+    static void setUseEngineSocketByDefault(boolean useEngineSocket) {
         useEngineSocketByDefault = useEngineSocket;
     }
 

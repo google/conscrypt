@@ -35,7 +35,6 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.OpenSSLEngineImpl.HandshakeListener;
 
 /**
  * Implements crypto handling by delegating to OpenSSLEngine. Used for socket implementations
@@ -43,7 +42,7 @@ import org.conscrypt.OpenSSLEngineImpl.HandshakeListener;
  *
  * @hide
  */
-public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
+final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
 
     private final OpenSSLEngineImpl engine;
@@ -52,7 +51,7 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
     private final InputStreamWrapper inputStreamWrapper;
     private boolean handshakeComplete;
 
-    public OpenSSLEngineSocketImpl(Socket socket, String hostname, int port, boolean autoClose,
+    OpenSSLEngineSocketImpl(Socket socket, String hostname, int port, boolean autoClose,
             SSLParametersImpl sslParameters) throws IOException {
         super(socket, hostname, port, autoClose, sslParameters);
         this.socket = socket;
@@ -280,7 +279,7 @@ public final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
 
     @Override
     public byte[] getNpnSelectedProtocol() {
-        return engine.getNpnSelectedProtocol();
+        return null;
     }
 
     @Override

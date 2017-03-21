@@ -24,6 +24,7 @@ import java.util.Locale;
  *
  * @hide
  */
+@Internal
 public final class EvpMdRef {
     public static final String MGF1_ALGORITHM_NAME = "MGF1";
     public static final String MGF1_OID = "1.2.840.113549.1.1.8";

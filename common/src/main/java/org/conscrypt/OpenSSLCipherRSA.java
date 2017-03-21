@@ -46,6 +46,7 @@ import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
 
+@Internal
 abstract class OpenSSLCipherRSA extends CipherSpi {
     /**
      * The current OpenSSL key we're operating on.

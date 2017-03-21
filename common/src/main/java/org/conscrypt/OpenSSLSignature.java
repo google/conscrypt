@@ -38,6 +38,7 @@ import java.security.spec.PSSParameterSpec;
  *
  * @hide
  */
+@Internal
 public class OpenSSLSignature extends SignatureSpi {
     private static enum EngineType {
         RSA, EC,

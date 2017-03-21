@@ -32,6 +32,7 @@ import java.util.Arrays;
  *
  * @hide
  */
+@Internal
 public final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 3215842926808298020L;
 

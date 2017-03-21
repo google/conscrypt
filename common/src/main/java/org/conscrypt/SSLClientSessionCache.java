@@ -31,25 +31,25 @@ import javax.net.ssl.SSLSession;
  *
  * @hide
  */
+@Internal
 public interface SSLClientSessionCache {
+    /**
+     * Gets data from a pre-existing session for a given server host and port.
+     *
+     * @param host from {@link javax.net.ssl.SSLSession#getPeerHost()}
+     * @param port from {@link javax.net.ssl.SSLSession#getPeerPort()}
+     * @return the session data or null if none is cached
+     * @throws NullPointerException if host is null
+     */
+    byte[] getSessionData(String host, int port);
 
-  /**
-   * Gets data from a pre-existing session for a given server host and port.
-   *
-   * @param host from {@link javax.net.ssl.SSLSession#getPeerHost()}
-   * @param port from {@link javax.net.ssl.SSLSession#getPeerPort()}
-   * @return the session data or null if none is cached
-   * @throws NullPointerException if host is null
-   */
-  public byte[] getSessionData(String host, int port);
-
-  /**
-   * Stores session data for the given session.
-   *
-   * @param session to cache data for
-   * @param sessionData to cache
-   * @throws NullPointerException if session, result of
-   *  {@code session.getPeerHost()} or data is null
-   */
-  public void putSessionData(SSLSession session, byte[] sessionData);
+    /**
+     * Stores session data for the given session.
+     *
+     * @param session to cache data for
+     * @param sessionData to cache
+     * @throws NullPointerException if session, result of
+     *  {@code session.getPeerHost()} or data is null
+     */
+    void putSessionData(SSLSession session, byte[] sessionData);
 }

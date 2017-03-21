@@ -27,6 +27,7 @@ import java.io.InputStream;
  *
  * @hide
  */
+@Internal
 public class OpenSSLBIOInputStream extends FilterInputStream {
     private long ctx;
 

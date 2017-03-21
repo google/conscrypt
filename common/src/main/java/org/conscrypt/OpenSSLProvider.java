@@ -30,6 +30,7 @@ import java.security.Provider;
  * algorithms</a></li>
  * </ul>
  */
+@Internal
 public final class OpenSSLProvider extends Provider {
     private static final long serialVersionUID = 2996752495318905136L;
 
