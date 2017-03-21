@@ -32,6 +32,7 @@ import javax.net.ssl.SSLSessionBindingListener;
  *
  * @hide
  */
+@Internal
 public class OpenSSLSessionImpl extends AbstractOpenSSLSession {
     private long creationTime = 0;
     long lastAccessedTime = 0;

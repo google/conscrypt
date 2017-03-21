@@ -30,6 +30,7 @@ import javax.crypto.SecretKey;
  *
  * @hide
  */
+@Internal
 public abstract class OpenSSLMac extends MacSpi {
     private NativeRef.HMAC_CTX ctx;
 

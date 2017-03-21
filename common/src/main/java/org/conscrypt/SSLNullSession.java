@@ -29,6 +29,7 @@ import javax.net.ssl.*;
  *
  * @hide
  */
+@Internal
 public final class SSLNullSession implements SSLSession, Cloneable {
 
     /*

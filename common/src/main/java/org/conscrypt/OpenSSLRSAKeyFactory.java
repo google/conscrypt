@@ -39,6 +39,7 @@ import java.security.spec.X509EncodedKeySpec;
  *
  * @hide
  */
+@Internal
 public class OpenSSLRSAKeyFactory extends KeyFactorySpi {
 
     @Override

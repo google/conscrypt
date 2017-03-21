@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
  *
  * @hide
  */
+@Internal
 public final class OpenSSLBIOSource {
     private OpenSSLBIOInputStream source;
 

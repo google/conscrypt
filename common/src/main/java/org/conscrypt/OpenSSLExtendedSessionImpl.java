@@ -32,6 +32,7 @@ import javax.security.cert.X509Certificate;
  *
  * @hide
  */
+@Internal
 public class OpenSSLExtendedSessionImpl extends ExtendedSSLSession {
     private final AbstractOpenSSLSession delegate;
 

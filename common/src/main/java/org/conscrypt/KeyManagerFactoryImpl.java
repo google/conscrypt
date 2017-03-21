@@ -35,6 +35,7 @@ import javax.net.ssl.ManagerFactoryParameters;
  * @see KeyManagerFactorySpi
  * @hide
  */
+@Internal
 public class KeyManagerFactoryImpl extends KeyManagerFactorySpi {
 
     // source of key material

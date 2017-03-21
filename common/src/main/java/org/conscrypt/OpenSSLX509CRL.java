@@ -48,6 +48,7 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
  *
  * @hide
  */
+@Internal
 public class OpenSSLX509CRL extends X509CRL {
     private final long mContext;
 

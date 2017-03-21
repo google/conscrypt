@@ -49,6 +49,7 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
  *
  * @hide
  */
+@Internal
 public final class NativeCrypto {
 
     // --- OpenSSL library initialization --------------------------------------

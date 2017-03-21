@@ -96,7 +96,9 @@ import javax.net.ssl.SSLEngine;
  *
  * @deprecated This abstraction is deprecated because it does not work with TLS 1.3.
  */
-@Deprecated public interface PSKKeyManager extends KeyManager {
+@Deprecated
+@Internal
+public interface PSKKeyManager extends KeyManager {
 
     /**
      * Maximum supported length (in bytes) for PSK identity hint (in modified UTF-8 representation).

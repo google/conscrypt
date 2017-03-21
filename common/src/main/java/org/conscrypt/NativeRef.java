@@ -22,6 +22,7 @@ package org.conscrypt;
  *
  * @hide
  */
+@Internal
 public abstract class NativeRef {
     final long context;
 

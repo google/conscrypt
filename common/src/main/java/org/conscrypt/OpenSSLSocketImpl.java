@@ -56,6 +56,7 @@ import javax.security.auth.x500.X500Principal;
  *
  * @hide
  */
+@Internal
 public class OpenSSLSocketImpl
         extends javax.net.ssl.SSLSocket
         implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.AliasChooser,
@@ -157,7 +158,7 @@ public class OpenSSLSocketImpl
      * Private key for the TLS Channel ID extension. This field is client-side
      * only. Set during startHandshake.
      */
-    OpenSSLKey channelIdPrivateKey;
+    private OpenSSLKey channelIdPrivateKey;
 
     /** Set during startHandshake. */
     private AbstractOpenSSLSession sslSession;
