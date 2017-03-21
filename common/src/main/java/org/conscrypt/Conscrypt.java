@@ -303,6 +303,25 @@ public final class Conscrypt {
         }
 
         /**
+         * This method enables Server Name Indication (SNI) and sets the host name used for
+         * SNI.
+         *
+         * @param engine the engine
+         * @param hostname the desired SNI hostname, or {@code null} to disable
+         */
+        public static void setHostname(SSLEngine engine, String hostname) {
+            toConscrypt(engine).setSniHostname(hostname);
+        }
+
+        /**
+         * Returns the SNI hostname that was set for the {@code engine}. If no SNI hostname
+         * was set, it will return the hostname supplied during creation of the {@code engine}.
+         */
+        public static String getHostname(SSLEngine engine) {
+            return toConscrypt(engine).getSniHostname();
+        }
+
+        /**
          * Returns the maximum overhead, in bytes, of sealing a record with SSL.
          */
         public static int maxSealOverhead(SSLEngine engine) {

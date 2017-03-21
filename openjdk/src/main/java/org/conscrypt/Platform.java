@@ -141,6 +141,31 @@ final class Platform {
         }
     }
 
+    public static void setSSLParameters(
+            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+        impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
+        impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
+        List<SNIServerName> serverNames = params.getServerNames();
+        if (serverNames != null) {
+            for (SNIServerName serverName : serverNames) {
+                if (serverName.getType() == StandardConstants.SNI_HOST_NAME) {
+                    engine.setSniHostname(((SNIHostName) serverName).getAsciiName());
+                    break;
+                }
+            }
+        }
+    }
+
+    public static void getSSLParameters(
+            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+        params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
+        params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
+        if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getSniHostname())) {
+            params.setServerNames(Collections.<SNIServerName>singletonList(
+                    new SNIHostName(engine.getSniHostname())));
+        }
+    }
+
     /**
      * Tries to return a Class reference of one of the supplied class names.
      */
