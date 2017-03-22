@@ -16,98 +16,121 @@
 
 package libcore.javax.net.ssl;
 
+import java.nio.charset.Charset;
 import java.security.Principal;
 import java.security.cert.Certificate;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
 
 public class FakeSSLSession implements SSLSession {
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
     final String host;
 
     public FakeSSLSession(String host) {
         this.host = host;
     }
 
+    @Override
     public int getApplicationBufferSize() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public String getCipherSuite() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public long getCreationTime() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public byte[] getId() {
-        return host.getBytes();
+        return host.getBytes(UTF_8);
     }
 
+    @Override
     public long getLastAccessedTime() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public Certificate[] getLocalCertificates() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public Principal getLocalPrincipal() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public int getPacketBufferSize() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public javax.security.cert.X509Certificate[] getPeerCertificateChain() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public Certificate[] getPeerCertificates() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public String getPeerHost() {
         return host;
     }
 
+    @Override
     public int getPeerPort() {
         return 443;
     }
 
+    @Override
     public Principal getPeerPrincipal() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public String getProtocol() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public SSLSessionContext getSessionContext() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public Object getValue(String name) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public String[] getValueNames() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public void invalidate() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean isValid() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public void putValue(String name, Object value) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public void removeValue(String name) {
         throw new UnsupportedOperationException();
     }

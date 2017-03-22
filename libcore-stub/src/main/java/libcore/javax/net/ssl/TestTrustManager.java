@@ -68,6 +68,7 @@ public final class TestTrustManager extends X509ExtendedTrustManager {
         this.trustManager = trustManager;
     }
 
+    @Override
     public void checkClientTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
         out.print("TestTrustManager.checkClientTrusted "
@@ -133,6 +134,7 @@ public final class TestTrustManager extends X509ExtendedTrustManager {
         }
     }
 
+    @Override
     public void checkServerTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {
         out.print("TestTrustManager.checkServerTrusted "
@@ -205,6 +207,7 @@ public final class TestTrustManager extends X509ExtendedTrustManager {
      * @return the list of certificate issuer authorities which are trusted for
      *         authentication of peers.
      */
+    @Override
     public X509Certificate[] getAcceptedIssuers() {
         X509Certificate[] result = trustManager.getAcceptedIssuers();
         out.print("TestTrustManager.getAcceptedIssuers result=" + result.length);

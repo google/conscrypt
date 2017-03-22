@@ -33,7 +33,7 @@ final class OpenSSLECPointContext {
         throw new IllegalArgumentException("OpenSSLECPointContext.equals is not defined.");
     }
 
-    public ECPoint getECPoint() {
+    ECPoint getECPoint() {
         final byte[][] generatorCoords = NativeCrypto.EC_POINT_get_affine_coordinates(
                 group.getNativeRef(), pointCtx);
         final BigInteger x = new BigInteger(generatorCoords[0]);
@@ -47,11 +47,11 @@ final class OpenSSLECPointContext {
         return super.hashCode();
     }
 
-    public NativeRef.EC_POINT getNativeRef() {
+    NativeRef.EC_POINT getNativeRef() {
         return pointCtx;
     }
 
-    public static OpenSSLECPointContext getInstance(OpenSSLECGroupContext group,
+    static OpenSSLECPointContext getInstance(OpenSSLECGroupContext group,
             ECPoint javaPoint) {
         OpenSSLECPointContext point = new OpenSSLECPointContext(group, new NativeRef.EC_POINT(
                 NativeCrypto.EC_POINT_new(group.getNativeRef())));

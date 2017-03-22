@@ -32,11 +32,8 @@ import javax.crypto.NoSuchPaddingException;
  * usually backed by hardware so we don't have access directly to the private
  * key material. If it were a key where we can get to the private key, we
  * would not ever call into this class.
- *
- * @hide
  */
-@Internal
-public final class CryptoUpcalls {
+final class CryptoUpcalls {
 
     private CryptoUpcalls() {
     }
@@ -61,7 +58,7 @@ public final class CryptoUpcalls {
         return providers;
     }
 
-    public static byte[] rawSignDigestWithPrivateKey(PrivateKey javaKey, byte[] message) {
+    static byte[] rawSignDigestWithPrivateKey(PrivateKey javaKey, byte[] message) {
         // Get the raw signature algorithm for this key type.
         String algorithm;
         // Hint: Algorithm names come from:
@@ -132,7 +129,7 @@ public final class CryptoUpcalls {
         }
     }
 
-    public static byte[] rsaDecryptWithPrivateKey(PrivateKey javaKey, int openSSLPadding,
+    static byte[] rsaDecryptWithPrivateKey(PrivateKey javaKey, int openSSLPadding,
             byte[] input) {
         String keyAlgorithm = javaKey.getAlgorithm();
         if (!"RSA".equals(keyAlgorithm)) {

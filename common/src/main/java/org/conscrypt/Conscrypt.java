@@ -21,6 +21,7 @@ import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.Provider;
+import javax.net.ssl.SSLContextSpi;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
@@ -46,6 +47,13 @@ public final class Conscrypt {
      */
     public static Provider newProvider(String providerName) {
         return new OpenSSLProvider(providerName);
+    }
+
+    /**
+     * Constructs a new instance of the preferred {@link SSLContextSpi}.
+     */
+    public static SSLContextSpi newPreferredSSLContextSpi() {
+        return OpenSSLContextImpl.getPreferred();
     }
 
     /**

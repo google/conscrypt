@@ -25,7 +25,7 @@ import javax.net.ssl.SSLSession;
  * @hide
  */
 @Internal
-public class ServerSessionContext extends AbstractSessionContext {
+public final class ServerSessionContext extends AbstractSessionContext {
 
     private SSLServerSessionCache persistentCache;
 

@@ -29,11 +29,8 @@ import javax.net.ssl.SSLSessionBindingListener;
 /**
  * Implementation of the class OpenSSLSessionImpl
  * based on BoringSSL.
- *
- * @hide
  */
-@Internal
-public class OpenSSLSessionImpl extends AbstractOpenSSLSession {
+class OpenSSLSessionImpl extends AbstractOpenSSLSession {
     private long creationTime = 0;
     long lastAccessedTime = 0;
     final X509Certificate[] localCertificates;
@@ -42,7 +39,7 @@ public class OpenSSLSessionImpl extends AbstractOpenSSLSession {
     private final Map<String, Object> values = new HashMap<String, Object>();
     private byte[] peerCertificateOcspData;
     private byte[] peerTlsSctData;
-    protected long sslSessionNativePointer;
+    long sslSessionNativePointer;
     private String peerHost;
     private int peerPort = -1;
     private String cipherSuite;
@@ -53,7 +50,7 @@ public class OpenSSLSessionImpl extends AbstractOpenSSLSession {
      * Class constructor creates an SSL session context given the appropriate
      * SSL parameters.
      */
-    protected OpenSSLSessionImpl(long sslSessionNativePointer, X509Certificate[] localCertificates,
+    OpenSSLSessionImpl(long sslSessionNativePointer, X509Certificate[] localCertificates,
             X509Certificate[] peerCertificates, byte[] peerCertificateOcspData,
             byte[] peerTlsSctData, String peerHost, int peerPort,
             AbstractSessionContext sessionContext) {

@@ -29,18 +29,15 @@ import javax.security.cert.X509Certificate;
 /**
  * Implementation of the ExtendedSSLSession class for OpenSSL. Uses a delegate to maintain backward
  * compatibility with previous versions of Android which don't have ExtendedSSLSession.
- *
- * @hide
  */
-@Internal
-public class OpenSSLExtendedSessionImpl extends ExtendedSSLSession {
+final class OpenSSLExtendedSessionImpl extends ExtendedSSLSession {
     private final AbstractOpenSSLSession delegate;
 
-    public OpenSSLExtendedSessionImpl(AbstractOpenSSLSession delegate) {
+    OpenSSLExtendedSessionImpl(AbstractOpenSSLSession delegate) {
         this.delegate = delegate;
     }
 
-    public AbstractOpenSSLSession getDelegate() {
+    AbstractOpenSSLSession getDelegate() {
         return delegate;
     }
 

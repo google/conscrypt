@@ -38,7 +38,7 @@ import javax.net.ssl.SSLSession;
  * @hide
  */
 @Internal
-public class FileClientSessionCache {
+public final class FileClientSessionCache {
     public static final int MAX_SIZE = 12; // ~72k
 
     private FileClientSessionCache() {}

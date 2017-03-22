@@ -139,7 +139,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         assertSame(identityHint, mockInvocationHandler.lastInvokedMethodArgs[0]);
         assertSame(mSSLEngine, mockInvocationHandler.lastInvokedMethodArgs[1]);
 
-        SecretKey key = new SecretKeySpec("arbitrary".getBytes(), "RAW");
+        SecretKey key = new SecretKeySpec("arbitrary".getBytes("UTF-8"), "RAW");
         mockInvocationHandler.returnValue = key;
         assertSame(key, pskKeyManager.getKey(identityHint, identity, mSSLSocket));
         assertEquals("getKey", mockInvocationHandler.lastInvokedMethod.getName());

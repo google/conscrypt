@@ -325,7 +325,9 @@ public class NativeCryptoTest {
             NativeCrypto.SSL_CTX_set_session_id_context(c, new byte[32]);
             try {
                 NativeCrypto.SSL_CTX_set_session_id_context(c, new byte[33]);
+                fail("Expected IllegalArgumentException");
             } catch (IllegalArgumentException expected) {
+                // Expected.
             }
         } finally {
             NativeCrypto.SSL_CTX_free(c);
@@ -1867,7 +1869,7 @@ public class NativeCryptoTest {
             public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                 byte[] negotiated = NativeCrypto.SSL_get0_alpn_selected(ssl);
-                assertEquals("spdy/2", new String(negotiated));
+                assertEquals("spdy/2", new String(negotiated, "UTF-8"));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
@@ -1876,7 +1878,7 @@ public class NativeCryptoTest {
             public void afterHandshake(long session, long ssl, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                 byte[] negotiated = NativeCrypto.SSL_get0_alpn_selected(ssl);
-                assertEquals("spdy/2", new String(negotiated));
+                assertEquals("spdy/2", new String(negotiated, "UTF-8"));
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
         };
@@ -2811,7 +2813,7 @@ public class NativeCryptoTest {
 
     @Test
     public void test_create_BIO_InputStream() throws Exception {
-        byte[] actual = "Test".getBytes();
+        byte[] actual = "Test".getBytes("UTF-8");
         ByteArrayInputStream is = new ByteArrayInputStream(actual);
 
         @SuppressWarnings("resource")
@@ -2829,7 +2831,7 @@ public class NativeCryptoTest {
 
     @Test
     public void test_create_BIO_OutputStream() throws Exception {
-        byte[] actual = "Test".getBytes();
+        byte[] actual = "Test".getBytes("UTF-8");
         ByteArrayOutputStream os = new ByteArrayOutputStream();
 
         long ctx = NativeCrypto.create_BIO_OutputStream(os);

@@ -33,7 +33,7 @@ import java.security.interfaces.RSAPublicKey;
  * @hide
  */
 @Internal
-public class OpenSSLSignatureRawRSA extends SignatureSpi {
+public final class OpenSSLSignatureRawRSA extends SignatureSpi {
     /**
      * The current OpenSSL key we're operating on.
      */
