@@ -16,13 +16,14 @@
 
 package org.conscrypt;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.PublicKey;
@@ -35,7 +36,6 @@ import java.util.logging.Logger;
 
 public final class CertBlacklist {
     private static final Logger logger = Logger.getLogger(CertBlacklist.class.getName());
-    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private final Set<BigInteger> serialBlacklist;
     private final Set<byte[]> pubkeyBlacklist;
@@ -165,7 +165,7 @@ public final class CertBlacklist {
         return Collections.unmodifiableSet(bl);
     }
 
-    private static final Set<byte[]> readPublicKeyBlackList(String path) {
+    private static Set<byte[]> readPublicKeyBlackList(String path) {
 
         // start out with a base set of known bad values
         Set<byte[]> bl = new HashSet<byte[]>(Arrays.asList(
