@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 The Android Open Source Project
+ * Copyright (C) 2015 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-package org.conscrypt.testing;
+package org.conscrypt;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
@@ -33,16 +36,19 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocketFactory;
+import libcore.io.Streams;
 import libcore.java.security.TestKeyStore;
 
 /**
  * Utility methods to support testing.
  */
-public final class TestUtil {
+public final class TestUtils {
+    public static final Charset UTF_8 = Charset.forName("UTF-8");
+
     private static final Provider JDK_PROVIDER = getDefaultTlsProvider();
     private static final Provider CONSCRYPT_PROVIDER = getConscryptProvider();
     private static final byte[] CHARS =
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".getBytes();
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".getBytes(UTF_8);
     private static final Pattern KEY_PATTERN =
             Pattern.compile("-+BEGIN\\s+.*PRIVATE\\s+KEY[^-]*-+(?:\\s|\\r|\\n)+" + // Header
                             "([a-z0-9+/=\\r\\n]+)" + // Base64 text
@@ -53,7 +59,19 @@ public final class TestUtil {
     public static final String PROVIDER_PROPERTY = "SSLContext.TLSv1.2";
     public static final String LOCALHOST = "localhost";
 
-    private TestUtil() {}
+    private TestUtils() {}
+
+    public static InputStream openTestFile(String name) throws FileNotFoundException {
+        InputStream is = TestUtils.class.getResourceAsStream("/" + name);
+        if (is == null) {
+            throw new FileNotFoundException(name);
+        }
+        return is;
+    }
+
+    public static byte[] readTestFile(String name) throws IOException {
+        return Streams.readFully(openTestFile(name));
+    }
 
     /**
      * Returns an array containing only {@link #PROTOCOL_TLS_V1_2}.
@@ -291,7 +309,7 @@ public final class TestUtil {
         throw new RuntimeException("Unable to find a default provider for " + PROVIDER_PROPERTY);
     }
 
-    private static final Provider getConscryptProvider() {
+    private static Provider getConscryptProvider() {
         try {
             return (Provider) Class.forName("org.conscrypt.OpenSSLProvider")
                     .getConstructor()

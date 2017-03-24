@@ -12,9 +12,11 @@ dependencies {
     // Only compile against this. Other modules will embed the generated code directly.
     compileOnly project(':conscrypt-constants')
 
-    compile libraries.bouncycastle_provider,
-            libraries.bouncycastle_apis,
+    compile project(':conscrypt-libcore-stub'),
             libraries.guava,
-            libraries.junit,
             libraries.netty_handler
 }
+
+// Don't include this artifact in the distribution.
+tasks.install.enabled = false
+tasks.uploadArchives.enabled = false;

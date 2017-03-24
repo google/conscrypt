@@ -16,14 +16,18 @@
 
 package org.conscrypt.ct;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringBufferInputStream;
 import java.security.PublicKey;
 import junit.framework.TestCase;
 import org.conscrypt.OpenSSLKey;
+import org.conscrypt.TestUtils;
 
 public class CTLogStoreImplTest extends TestCase {
     private static final String[] LOG_KEYS = new String[] {
@@ -172,7 +176,9 @@ public class CTLogStoreImplTest extends TestCase {
     }
 
     private static void writeFile(File file, String contents) throws FileNotFoundException {
-        PrintWriter writer = new PrintWriter(file);
+        PrintWriter writer = new PrintWriter(
+                new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), TestUtils.UTF_8)),
+                false);
         try {
             writer.write(contents);
         } finally {

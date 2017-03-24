@@ -33,6 +33,7 @@ public class CTVerifierTest extends TestCase {
 
     @Override
     public void setUp() throws Exception {
+        super.setUp();
         ca = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("ca-cert.pem"));
         cert = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("cert.pem"));
         certEmbedded = OpenSSLX509Certificate.fromX509PemInputStream(
@@ -43,6 +44,7 @@ public class CTVerifierTest extends TestCase {
 
         final CTLogInfo log = new CTLogInfo(key, "Test Log", "foo");
         CTLogStore store = new CTLogStore() {
+            @Override
             public CTLogInfo getKnownLog(byte[] logId) {
                 if (Arrays.equals(logId, log.getID())) {
                     return log;

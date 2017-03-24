@@ -842,6 +842,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             return SUPPORTED_EXTENSIONS;
         }
 
+        @SuppressWarnings("ReferenceEquality")
         @Override
         public void check(Certificate c, Collection<String> unresolvedCritExts)
                 throws CertPathValidatorException {

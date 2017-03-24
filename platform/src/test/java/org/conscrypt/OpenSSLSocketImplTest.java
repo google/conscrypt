@@ -90,6 +90,7 @@ public class OpenSSLSocketImplTest {
                 openTestFile("ct-server-key-public.pem")).getPublicKey();
         final CTLogInfo log = new CTLogInfo(key, "Test Log", "foo");
         CTLogStore store = new CTLogStore() {
+            @Override
             public CTLogInfo getKnownLog(byte[] logId) {
                 if (Arrays.equals(logId, log.getID())) {
                     return log;
@@ -121,12 +122,12 @@ public class OpenSSLSocketImplTest {
             isHandshakeCompleted = true;
         }
 
-        protected SSLParametersImpl getContextSSLParameters(OpenSSLContextImpl context)
+        SSLParametersImpl getContextSSLParameters(OpenSSLContextImpl context)
                 throws IllegalAccessException {
             return (SSLParametersImpl) contextSSLParameters.get(context);
         }
 
-        protected TrustManagerImpl getSSLParametersTrustManager(SSLParametersImpl params)
+        TrustManagerImpl getSSLParametersTrustManager(SSLParametersImpl params)
                 throws IllegalAccessException {
             return (TrustManagerImpl) sslParametersTrustManager.get(params);
         }
@@ -202,11 +203,11 @@ public class OpenSSLSocketImplTest {
         Exception clientException;
         Exception serverException;
 
-        public TestConnection(X509Certificate[] chain, PrivateKey key) throws Exception {
+        TestConnection(X509Certificate[] chain, PrivateKey key) throws Exception {
             this(chain, key, false);
         }
 
-        public TestConnection(X509Certificate[] chain, PrivateKey key, boolean useTrustManagerImpl)
+        TestConnection(X509Certificate[] chain, PrivateKey key, boolean useTrustManagerImpl)
                 throws Exception {
             clientHooks = new ClientHooks();
             serverHooks = new ServerHooks();
@@ -254,7 +255,7 @@ public class OpenSSLSocketImplTest {
             }
         }
 
-        public void doHandshake() throws Exception {
+        void doHandshake() throws Exception {
             ServerSocket listener = new ServerSocket(0);
             Future<OpenSSLSocketImpl> clientFuture = handshake(listener, clientHooks);
             Future<OpenSSLSocketImpl> serverFuture = handshake(listener, serverHooks);

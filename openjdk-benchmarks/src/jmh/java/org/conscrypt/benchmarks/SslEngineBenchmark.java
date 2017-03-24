@@ -33,12 +33,12 @@
 package org.conscrypt.benchmarks;
 
 import static java.lang.Math.max;
-import static org.conscrypt.testing.TestUtil.PROTOCOL_TLS_V1_2;
-import static org.conscrypt.testing.TestUtil.doEngineHandshake;
-import static org.conscrypt.testing.TestUtil.initClientSslContext;
-import static org.conscrypt.testing.TestUtil.initEngine;
-import static org.conscrypt.testing.TestUtil.initServerSslContext;
-import static org.conscrypt.testing.TestUtil.newTextMessage;
+import static org.conscrypt.TestUtils.PROTOCOL_TLS_V1_2;
+import static org.conscrypt.TestUtils.doEngineHandshake;
+import static org.conscrypt.TestUtils.initClientSslContext;
+import static org.conscrypt.TestUtils.initEngine;
+import static org.conscrypt.TestUtils.initServerSslContext;
+import static org.conscrypt.TestUtils.newTextMessage;
 import static org.junit.Assert.assertEquals;
 
 import io.netty.buffer.UnpooledByteBufAllocator;

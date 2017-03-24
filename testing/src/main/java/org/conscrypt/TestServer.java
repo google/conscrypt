@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.conscrypt.testing;
+package org.conscrypt;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -27,23 +27,26 @@
 # The structure is:
 #
 #   constants/
-#       src/gen             # Generates NativeConstants.java.
+#       src/gen                   # Generates NativeConstants.java.
 #   common/
-#       src/main/java       # Common Java source for all platforms.
+#       src/main/java             # Common Java source for all platforms.
 #       src/jni/
-#            main           # Common C++ source for all platforms.
-#            unbundled      # C++ source used for OpenJDK and unbundled Android.
+#            main                 # Common C++ source for all platforms.
+#            unbundled            # C++ source used for OpenJDK and unbundled Android.
 #   android/
-#       src/main/java       # Java source for unbundled Android.
+#       src/main/java             # Java source for unbundled Android.
 #   openjdk/
-#       src/main/java       # Java source for OpenJDK.
+#       src/main/java             # Java source for OpenJDK.
 #       src/test
-#            java/          # Java source for common tests.
-#            resources/     # Support files for tests
+#            java/                # Java source for common tests.
+#            resources/           # Support files for tests
 #   platform/
-#       src/main/java       # Java source for bundled Android.
+#       src/
+#            java-extensions      # Extensions to the standard JDK for bundled Android
+#            java-extensions-stub # Stub extensions for building on OpenJDK
+#            main/java            # Java source for bundled Android.
 #       src/test
-#            java/          # Java source for bundled tests.
+#            java/                # Java source for bundled tests.
 #
 # All subdirectories are optional (hence the "2> /dev/null"s below).
 
@@ -77,10 +80,13 @@ common_java_files := $(filter-out \
 	%/org/conscrypt/NativeCryptoJni.java \
 	, $(call all-java-files-under,common/src/main/java))
 
+bundled_main_java_files := $(common_java_files)
+bundled_main_java_files += $(call all-java-files-under,platform/src/main/java)
+bundled_main_java_files += $(call all-java-files-under,platform/src/java-extensions)
+
 # Create the conscrypt library
 include $(CLEAR_VARS)
-LOCAL_SRC_FILES := $(common_java_files)
-LOCAL_SRC_FILES += $(call all-java-files-under,platform/src/main/java)
+LOCAL_SRC_FILES := $(bundled_main_java_files)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
 LOCAL_JAVA_LIBRARIES := core-oj core-libart
 LOCAL_NO_STANDARD_LIBRARIES := true
@@ -96,8 +102,7 @@ include $(BUILD_JAVA_LIBRARY)
 # The build system may or may not strip the conscrypt jar, but this one will
 # not be stripped. See b/24535627.
 include $(CLEAR_VARS)
-LOCAL_SRC_FILES := $(common_java_files)
-LOCAL_SRC_FILES += $(call all-java-files-under,platform/src/main/java)
+LOCAL_SRC_FILES := $(bundled_main_java_files)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
 LOCAL_JAVA_LIBRARIES := core-oj core-libart
 LOCAL_NO_STANDARD_LIBRARIES := true
@@ -111,8 +116,7 @@ include $(BUILD_JAVA_LIBRARY)
 
 # Create the conscrypt library without jarjar for tests
 include $(CLEAR_VARS)
-LOCAL_SRC_FILES := $(common_java_files)
-LOCAL_SRC_FILES += $(call all-java-files-under,platform/src/main/java)
+LOCAL_SRC_FILES := $(bundled_main_java_files)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
 LOCAL_JAVA_LIBRARIES := core-oj core-libart
 LOCAL_NO_STANDARD_LIBRARIES := true
@@ -218,8 +222,7 @@ ifeq ($(HOST_OS),linux)
 
 # Make the conscrypt-hostdex library
 include $(CLEAR_VARS)
-LOCAL_SRC_FILES := $(common_java_files)
-LOCAL_SRC_FILES += $(call all-java-files-under,platform/src/main/java)
+LOCAL_SRC_FILES := $(bundled_main_java_files)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
@@ -231,8 +234,7 @@ include $(BUILD_HOST_DALVIK_JAVA_LIBRARY)
 
 # Make the conscrypt-hostdex-nojarjar for tests
 include $(CLEAR_VARS)
-LOCAL_SRC_FILES := $(common_java_files)
-LOCAL_SRC_FILES += $(call all-java-files-under,platform/src/main/java)
+LOCAL_SRC_FILES := $(bundled_main_java_files)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_BUILD_HOST_DEX := true
