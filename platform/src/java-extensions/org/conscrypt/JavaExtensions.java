@@ -24,7 +24,6 @@ import android.system.Os;
 import android.system.StructTimeval;
 import java.io.FileDescriptor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
