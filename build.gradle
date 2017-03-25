@@ -85,7 +85,6 @@ subprojects {
                 roboelectric: 'org.robolectric:android-all:7.1.0_r7-robolectric-0',
 
                 // Test dependencies.
-                guava : 'com.google.guava:guava:19.0',
                 junit  : 'junit:junit:4.12',
                 mockito: 'org.mockito:mockito-core:1.9.5',
                 truth  : 'com.google.truth:truth:0.28',

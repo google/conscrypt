@@ -13,7 +13,6 @@ dependencies {
     compileOnly project(':conscrypt-constants')
 
     compile project(':conscrypt-libcore-stub'),
-            libraries.guava,
             libraries.netty_handler
 }
 
