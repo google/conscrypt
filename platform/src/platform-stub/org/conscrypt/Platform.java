@@ -24,7 +24,6 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
 import java.nio.channels.SocketChannel;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
