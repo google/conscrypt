@@ -30,10 +30,26 @@ sourceSets {
             srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
         }
     }
+
+    platform {
+        java {
+            srcDirs = [ "src/main/java" ]
+            includes = [ "org/conscrypt/Platform.java" ]
+        }
+    }
+}
+
+task platformJar(type: Jar) {
+    from sourceSets.platform.output
 }
 
 configurations {
     publicApiDocs
+    platform
+}
+
+artifacts {
+    platform platformJar
 }
 
 // Append the BoringSSL-Version to the manifest.
@@ -51,6 +67,8 @@ dependencies {
                 project(':conscrypt-testing'),
                 libraries.junit,
                 libraries.mockito
+
+    platformCompileOnly sourceSets.main.output
 }
 
 javadoc {
