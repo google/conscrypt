@@ -32,6 +32,6 @@ beforehand.
 ## Proposing changes
 
 Make sure that `./gradlew build` (`gradlew build` on Windows) completes
-successfully without any new warnings (see [Building](Building.md)). Then create a Pull Request
+successfully without any new warnings (see [Building](BUILDING.md)). Then create a Pull Request
 with your changes. When the changes are accepted, they will be merged or cherry-picked by
 a Conscrypt developer.
