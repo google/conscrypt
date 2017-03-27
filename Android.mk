@@ -75,14 +75,11 @@ $(conscrypt_gen_java_files): $(conscrypt_generate_constants_exe)
 	mkdir -p $(dir $@)
 	$< > $@
 
-common_java_files := $(filter-out \
-	%/org/conscrypt/Platform.java \
-	%/org/conscrypt/NativeCryptoJni.java \
-	, $(call all-java-files-under,common/src/main/java))
+common_java_files := $(call all-java-files-under,common/src/main/java)
 
 bundled_main_java_files := $(common_java_files)
 bundled_main_java_files += $(call all-java-files-under,platform/src/main/java)
-bundled_main_java_files += $(call all-java-files-under,platform/src/java-extensions)
+bundled_main_java_files += $(call all-java-files-under,platform/src/platform-android)
 
 # Create the conscrypt library
 include $(CLEAR_VARS)
