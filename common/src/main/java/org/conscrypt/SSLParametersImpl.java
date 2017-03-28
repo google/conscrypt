@@ -937,8 +937,6 @@ final class SSLParametersImpl implements Cloneable {
 
     /**
      * Gets the default X.509 trust manager.
-     * <p>
-     * TODO: Move this to a published API under dalvik.system.
      */
     static X509TrustManager getDefaultX509TrustManager()
             throws KeyManagementException {

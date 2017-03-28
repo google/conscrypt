@@ -46,8 +46,11 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * Provides the Java side of our JNI glue for OpenSSL.
+ *
+ * @hide
  */
-final class NativeCrypto {
+@Internal
+public final class NativeCrypto {
     // --- OpenSSL library initialization --------------------------------------
     static {
         NativeCryptoJni.init();
@@ -326,7 +329,8 @@ final class NativeCrypto {
     static int X509_NAME_hash(X500Principal principal) {
         return X509_NAME_hash(principal, "SHA1");
     }
-    static int X509_NAME_hash_old(X500Principal principal) {
+
+    public static int X509_NAME_hash_old(X500Principal principal) {
         return X509_NAME_hash(principal, "MD5");
     }
     private static int X509_NAME_hash(X500Principal principal, String algorithm) {

@@ -22,8 +22,11 @@ import javax.net.ssl.SSLSession;
 /**
  * Caches client sessions. Indexes by host and port. Users are typically
  * looking to reuse any session for a given host and port.
+ *
+ * @hide
  */
-class ClientSessionContext extends AbstractSessionContext {
+@Internal
+public class ClientSessionContext extends AbstractSessionContext {
 
     /**
      * Sessions indexed by host and port. Protect from concurrent
@@ -33,15 +36,15 @@ class ClientSessionContext extends AbstractSessionContext {
 
     private SSLClientSessionCache persistentCache;
 
-    ClientSessionContext() {
+    public ClientSessionContext() {
         super(10);
     }
 
-    int size() {
+    public int size() {
         return sessionsByHostAndPort.size();
     }
 
-    void setPersistentCache(SSLClientSessionCache persistentCache) {
+    public void setPersistentCache(SSLClientSessionCache persistentCache) {
         this.persistentCache = persistentCache;
     }
 
@@ -65,7 +68,7 @@ class ClientSessionContext extends AbstractSessionContext {
      * @param port of server
      * @return cached session or null if none found
      */
-    SSLSession getSession(String host, int port) {
+    public SSLSession getSession(String host, int port) {
         if (host == null) {
             return null;
         }

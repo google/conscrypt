@@ -19,6 +19,7 @@ import java.io.FileDescriptor;
 import java.io.UnsupportedEncodingException;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.security.KeyManagementException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import javax.net.ssl.SSLContextSpi;
@@ -28,6 +29,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * Core API for creating and configuring all Conscrypt types.
@@ -54,6 +56,14 @@ public final class Conscrypt {
      */
     public static SSLContextSpi newPreferredSSLContextSpi() {
         return OpenSSLContextImpl.getPreferred();
+    }
+
+    /**
+     * Gets the default X.509 trust manager.
+     */
+    @ExperimentalApi
+    public static X509TrustManager getDefaultX509TrustManager() throws KeyManagementException {
+        return SSLParametersImpl.getDefaultX509TrustManager();
     }
 
     /**
