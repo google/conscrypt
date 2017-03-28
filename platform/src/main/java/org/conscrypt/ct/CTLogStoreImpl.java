@@ -31,30 +31,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
-import org.conscrypt.Internal;
-import org.conscrypt.InternalUtil;
+import org.conscrypt.InternalUtils;
 
-/**
- * @hide
- */
-@Internal
-public class CTLogStoreImpl implements CTLogStore {
+final class CTLogStoreImpl implements CTLogStore {
     /**
      * Thrown when parsing of a log file fails.
      */
-    public static class InvalidLogFileException extends Exception {
-        public InvalidLogFileException() {
-        }
-
-        public InvalidLogFileException(String message) {
+    static final class InvalidLogFileException extends Exception {
+        InvalidLogFileException(String message) {
             super(message);
         }
 
-        public InvalidLogFileException(String message, Throwable cause) {
-            super(message, cause);
-        }
-
-        public InvalidLogFileException(Throwable cause) {
+        InvalidLogFileException(Throwable cause) {
             super(cause);
         }
     }
@@ -77,13 +65,13 @@ public class CTLogStoreImpl implements CTLogStore {
     private HashMap<ByteBuffer, CTLogInfo> logCache = new HashMap<>();
     private Set<ByteBuffer> missingLogCache = Collections.synchronizedSet(new HashSet<ByteBuffer>());
 
-    public CTLogStoreImpl() {
+    CTLogStoreImpl() {
         this(defaultUserLogDir,
              defaultSystemLogDir,
              getDefaultFallbackLogs());
     }
 
-    public CTLogStoreImpl(File userLogDir, File systemLogDir, CTLogInfo[] fallbackLogs) {
+    CTLogStoreImpl(File userLogDir, File systemLogDir, CTLogInfo[] fallbackLogs) {
         this.userLogDir = userLogDir;
         this.systemLogDir = systemLogDir;
         this.fallbackLogs = fallbackLogs;
@@ -116,13 +104,17 @@ public class CTLogStoreImpl implements CTLogStore {
             return loadLog(new File(userLogDir, filename));
         } catch (InvalidLogFileException e) {
             return null;
-        } catch (FileNotFoundException e) {}
+        } catch (FileNotFoundException e) {
+            // Ignored.
+        }
 
         try {
             return loadLog(new File(systemLogDir, filename));
         } catch (InvalidLogFileException e) {
             return null;
-        } catch (FileNotFoundException e) {}
+        } catch (FileNotFoundException e) {
+            // Ignored.
+        }
 
         // If the updateable logs dont exist then use the fallback logs.
         if (!userLogDir.exists()) {
@@ -135,7 +127,7 @@ public class CTLogStoreImpl implements CTLogStore {
         return null;
     }
 
-    public static CTLogInfo[] getDefaultFallbackLogs() {
+    static CTLogInfo[] getDefaultFallbackLogs() {
         CTLogInfo[] result = defaultFallbackLogs;
         if (result == null) {
             // single-check idiom
@@ -148,7 +140,7 @@ public class CTLogStoreImpl implements CTLogStore {
         CTLogInfo[] logs = new CTLogInfo[KnownLogs.LOG_COUNT];
         for (int i = 0; i < KnownLogs.LOG_COUNT; i++) {
             try {
-                PublicKey key = InternalUtil.logKeyToPublicKey(KnownLogs.LOG_KEYS[i]);
+                PublicKey key = InternalUtils.logKeyToPublicKey(KnownLogs.LOG_KEYS[i]);
 
                 logs[i] = new CTLogInfo(key,
                                         KnownLogs.LOG_DESCRIPTIONS[i],
@@ -168,7 +160,7 @@ public class CTLogStoreImpl implements CTLogStore {
      * @throws InvalidLogFileException if the file could not be parsed properly
      * @return a CTLogInfo or null if the file is empty
      */
-    public static CTLogInfo loadLog(File file) throws FileNotFoundException,
+    static CTLogInfo loadLog(File file) throws FileNotFoundException,
                                                       InvalidLogFileException {
         return loadLog(new FileInputStream(file));
     }
@@ -180,7 +172,7 @@ public class CTLogStoreImpl implements CTLogStore {
      * @throws InvalidLogFileException if the input could not be parsed properly
      * @return a CTLogInfo or null if the input is empty
      */
-    public static CTLogInfo loadLog(InputStream input) throws InvalidLogFileException {
+    static CTLogInfo loadLog(InputStream input) throws InvalidLogFileException {
         final Scanner scan = new Scanner(input, "UTF-8");
         scan.useDelimiter("\n");
 
@@ -223,7 +215,7 @@ public class CTLogStoreImpl implements CTLogStore {
 
         PublicKey pubkey;
         try {
-            pubkey = InternalUtil.readPublicKeyPem(new StringBufferInputStream(
+            pubkey = InternalUtils.readPublicKeyPem(new StringBufferInputStream(
                         "-----BEGIN PUBLIC KEY-----\n" +
                         key + "\n" +
                         "-----END PUBLIC KEY-----"));
@@ -242,7 +234,7 @@ public class CTLogStoreImpl implements CTLogStore {
     };
 
     private static String hexEncode(byte[] data) {
-        StringBuffer sb = new StringBuffer(data.length * 2);
+        StringBuilder sb = new StringBuilder(data.length * 2);
         for (byte b: data) {
             sb.append(HEX_DIGITS[(b >> 4) & 0x0f]);
             sb.append(HEX_DIGITS[b & 0x0f]);

@@ -118,6 +118,7 @@ public class CertBlacklistTest extends TestCase {
             tm.checkServerTrusted(certs, "RSA");
             fail();
         } catch (CertificateException expected) {
+            // Expected
         }
     }
 }

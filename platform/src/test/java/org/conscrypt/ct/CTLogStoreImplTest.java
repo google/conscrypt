@@ -28,7 +28,7 @@ import java.io.PrintWriter;
 import java.io.StringBufferInputStream;
 import java.security.PublicKey;
 import junit.framework.TestCase;
-import org.conscrypt.InternalUtil;
+import org.conscrypt.InternalUtils;
 
 public class CTLogStoreImplTest extends TestCase {
     private static final String[] LOG_KEYS = new String[] {
@@ -64,7 +64,7 @@ public class CTLogStoreImplTest extends TestCase {
             LOGS = new CTLogInfo[logCount];
             LOGS_SERIALIZED = new String[logCount];
             for (int i = 0; i < logCount; i++) {
-                PublicKey key = InternalUtil.readPublicKeyPem(new StringBufferInputStream(
+                PublicKey key = InternalUtils.readPublicKeyPem(new StringBufferInputStream(
                     "-----BEGIN PUBLIC KEY-----\n" +
                     LOG_KEYS[i] + "\n" +
                     "-----END PUBLIC KEY-----\n"));
@@ -102,12 +102,16 @@ public class CTLogStoreImplTest extends TestCase {
         try {
             CTLogStoreImpl.loadLog(new StringBufferInputStream("randomgarbage"));
             fail("InvalidLogFileException not thrown");
-        } catch (CTLogStoreImpl.InvalidLogFileException e) {}
+        } catch (CTLogStoreImpl.InvalidLogFileException e) {
+            // Expected
+        }
 
         try {
             CTLogStoreImpl.loadLog(new File("/nonexistent"));
             fail("FileNotFoundException not thrown");
-        } catch (FileNotFoundException e) {}
+        } catch (FileNotFoundException e) {
+            // Expected
+        }
     }
 
     public void test_getKnownLog() throws Exception {

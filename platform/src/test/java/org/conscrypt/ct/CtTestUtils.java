@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,22 @@
 
 package org.conscrypt.ct;
 
-import java.security.cert.X509Certificate;
+import java.security.PublicKey;
+import java.util.Arrays;
 
-public interface CTPolicy {
-    boolean doesResultConformToPolicy(CTVerificationResult result, String hostname,
-            X509Certificate[] chain);
+public final class CtTestUtils {
+
+    public static CTLogStore newTestLogStore(PublicKey key) {
+        final CTLogInfo log = new CTLogInfo(key, "Test Log", "foo");
+        return new CTLogStore() {
+            @Override
+            public CTLogInfo getKnownLog(byte[] logId) {
+                if (Arrays.equals(logId, log.getID())) {
+                    return log;
+                } else {
+                    return null;
+                }
+            }
+        };
+    }
 }

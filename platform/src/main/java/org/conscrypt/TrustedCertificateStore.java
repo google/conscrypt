@@ -44,7 +44,7 @@ import libcore.io.IoUtils;
  * removal of system CAs. This store supports the {@code
  * TrustedCertificateKeyStoreSpi} wrapper to allow a traditional
  * KeyStore interface for use with {@link
- * javax.net.ssl.TrustManagerFactory.init}.
+ * javax.net.ssl.TrustManagerFactory#init}.
  *
  * <p>The CAs are accessed via {@code KeyStore} style aliases. Aliases
  * are made up of a prefix identifying the source ("system:" vs
@@ -63,7 +63,7 @@ import libcore.io.IoUtils;
  * efficient lookup operations for CAs again based on the file naming
  * convention.
  *
- * <p>The KeyChainService users the {@link installCertificate} and
+ * <p>The KeyChainService users the {@link #installCertificate} and
  * {@link #deleteCertificateEntry} to install user CAs as well as
  * delete those user CAs as well as system CAs. The deletion of system
  * CAs is performed by placing an exact copy of that CA in the deleted
@@ -79,19 +79,16 @@ import libcore.io.IoUtils;
  * ensures that its owner and group are the system uid and system
  * gid and that it is world readable but only writable by the system
  * user.
- *
- * @hide
  */
-@Internal
-public class TrustedCertificateStore {
+final class TrustedCertificateStore {
 
     private static final String PREFIX_SYSTEM = "system:";
     private static final String PREFIX_USER = "user:";
 
-    public static final boolean isSystem(String alias) {
+    static boolean isSystem(String alias) {
         return alias.startsWith(PREFIX_SYSTEM);
     }
-    public static final boolean isUser(String alias) {
+    static boolean isUser(String alias) {
         return alias.startsWith(PREFIX_USER);
     }
 
@@ -117,7 +114,7 @@ public class TrustedCertificateStore {
         }
     }
 
-    public static void setDefaultUserDirectory(File root) {
+    static void setDefaultUserDirectory(File root) {
         PreloadHolder.defaultCaCertsAddedDir = new File(root, "cacerts-added");
         PreloadHolder.defaultCaCertsDeletedDir = new File(root, "cacerts-removed");
     }
@@ -126,22 +123,22 @@ public class TrustedCertificateStore {
     private final File addedDir;
     private final File deletedDir;
 
-    public TrustedCertificateStore() {
+    TrustedCertificateStore() {
         this(PreloadHolder.defaultCaCertsSystemDir, PreloadHolder.defaultCaCertsAddedDir,
                 PreloadHolder.defaultCaCertsDeletedDir);
     }
 
-    public TrustedCertificateStore(File systemDir, File addedDir, File deletedDir) {
+    TrustedCertificateStore(File systemDir, File addedDir, File deletedDir) {
         this.systemDir = systemDir;
         this.addedDir = addedDir;
         this.deletedDir = deletedDir;
     }
 
-    public Certificate getCertificate(String alias) {
+    Certificate getCertificate(String alias) {
         return getCertificate(alias, false);
     }
 
-    public Certificate getCertificate(String alias, boolean includeDeletedSystem) {
+    Certificate getCertificate(String alias, boolean includeDeletedSystem) {
 
         File file = fileForAlias(alias);
         if (file == null || (isUser(alias) && isTombstone(file))) {
@@ -219,7 +216,7 @@ public class TrustedCertificateStore {
         return getCertificateFile(deletedDir, x).exists();
     }
 
-    public Date getCreationDate(String alias) {
+    Date getCreationDate(String alias) {
         // containsAlias check ensures the later fileForAlias result
         // was not a deleted system cert.
         if (!containsAlias(alias)) {
@@ -236,14 +233,14 @@ public class TrustedCertificateStore {
         return new Date(time);
     }
 
-    public Set<String> aliases() {
+    Set<String> aliases() {
         Set<String> result = new HashSet<String>();
         addAliases(result, PREFIX_USER, addedDir);
         addAliases(result, PREFIX_SYSTEM, systemDir);
         return result;
     }
 
-    public Set<String> userAliases() {
+    Set<String> userAliases() {
         Set<String> result = new HashSet<String>();
         addAliases(result, PREFIX_USER, addedDir);
         return result;
@@ -262,7 +259,7 @@ public class TrustedCertificateStore {
         }
     }
 
-    public Set<String> allSystemAliases() {
+    Set<String> allSystemAliases() {
         Set<String> result = new HashSet<String>();
         String[] files = systemDir.list();
         if (files == null) {
@@ -277,7 +274,7 @@ public class TrustedCertificateStore {
         return result;
     }
 
-    public boolean containsAlias(String alias) {
+    boolean containsAlias(String alias) {
         return containsAlias(alias, false);
     }
 
@@ -285,11 +282,11 @@ public class TrustedCertificateStore {
         return getCertificate(alias, includeDeletedSystem) != null;
     }
 
-    public String getCertificateAlias(Certificate c) {
+    String getCertificateAlias(Certificate c) {
         return getCertificateAlias(c, false);
     }
 
-    public String getCertificateAlias(Certificate c, boolean includeDeletedSystem) {
+    private String getCertificateAlias(Certificate c, boolean includeDeletedSystem) {
         if (c == null || !(c instanceof X509Certificate)) {
             return null;
         }
@@ -312,7 +309,7 @@ public class TrustedCertificateStore {
      * Returns true to indicate that the certificate was added by the
      * user, false otherwise.
      */
-    public boolean isUserAddedCertificate(X509Certificate cert) {
+    boolean isUserAddedCertificate(X509Certificate cert) {
         return getCertificateFile(addedDir, cert).exists();
     }
 
@@ -324,7 +321,7 @@ public class TrustedCertificateStore {
      *
      * @VisibleForTesting
      */
-    public File getCertificateFile(File dir, final X509Certificate x) {
+    File getCertificateFile(File dir, final X509Certificate x) {
         // compare X509Certificate.getEncoded values
         CertSelector selector = new CertSelector() {
             @Override
@@ -344,7 +341,7 @@ public class TrustedCertificateStore {
      * with other differences (for example when switching signature
      * from md2WithRSAEncryption to SHA1withRSA)
      */
-    public X509Certificate getTrustAnchor(final X509Certificate c) {
+    X509Certificate getTrustAnchor(final X509Certificate c) {
         // compare X509Certificate.getPublicKey values
         CertSelector selector = new CertSelector() {
             @Override
@@ -374,7 +371,7 @@ public class TrustedCertificateStore {
      * TrustManagerImpl} to locate the CA certificate that signed the
      * provided {@code X509Certificate}.
      */
-    public X509Certificate findIssuer(final X509Certificate c) {
+    X509Certificate findIssuer(final X509Certificate c) {
         // match on verified issuer of Certificate
         CertSelector selector = new CertSelector() {
             @Override
@@ -399,7 +396,7 @@ public class TrustedCertificateStore {
         return null;
     }
 
-    public Set<X509Certificate> findAllIssuers(final X509Certificate c) {
+    Set<X509Certificate> findAllIssuers(final X509Certificate c) {
         Set<X509Certificate> issuers = null;
         CertSelector selector = new CertSelector() {
             @Override
@@ -478,7 +475,7 @@ public class TrustedCertificateStore {
      * @throws CertificateException if there was a problem parsing the
      *             certificates
      */
-    public List<X509Certificate> getCertificateChain(X509Certificate leaf)
+    List<X509Certificate> getCertificateChain(X509Certificate leaf)
             throws CertificateException {
         final LinkedHashSet<OpenSSLX509Certificate> chain
                 = new LinkedHashSet<OpenSSLX509Certificate>();
@@ -500,8 +497,8 @@ public class TrustedCertificateStore {
     }
 
     // like java.security.cert.CertSelector but with X509Certificate and without cloning
-    private static interface CertSelector {
-        public boolean match(X509Certificate cert);
+    private interface CertSelector {
+        boolean match(X509Certificate cert);
     }
 
     private <T> T findCert(
@@ -556,7 +553,7 @@ public class TrustedCertificateStore {
 
     private String hash(X500Principal name) {
         int hash = NativeCrypto.X509_NAME_hash_old(name);
-        return Hex.intToHexString(hash, 8);
+        return InternalUtils.intToHexString(hash, 8);
     }
 
     private File file(File dir, String hash, int index) {
@@ -569,7 +566,7 @@ public class TrustedCertificateStore {
      * silently ignores the certificate if it already exists in the
      * store.
      */
-    public void installCertificate(X509Certificate cert) throws IOException, CertificateException {
+    void installCertificate(X509Certificate cert) throws IOException, CertificateException {
         if (cert == null) {
             throw new NullPointerException("cert == null");
         }
@@ -604,7 +601,7 @@ public class TrustedCertificateStore {
      * only. Instead, this is used by the {@code KeyChainService} to
      * delete CA certificates.
      */
-    public void deleteCertificateEntry(String alias) throws IOException, CertificateException {
+    void deleteCertificateEntry(String alias) throws IOException, CertificateException {
         if (alias == null) {
             return;
         }

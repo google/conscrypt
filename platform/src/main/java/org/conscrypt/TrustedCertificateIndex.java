@@ -33,18 +33,15 @@ import javax.security.auth.x500.X500Principal;
 /**
  * Indexes {@code TrustAnchor} instances so they can be found in O(1)
  * time instead of O(N).
- *
- * @hide
  */
-@Internal
-public final class TrustedCertificateIndex {
+final class TrustedCertificateIndex {
 
     private final Map<X500Principal, List<TrustAnchor>> subjectToTrustAnchors
             = new HashMap<X500Principal, List<TrustAnchor>>();
 
-    public TrustedCertificateIndex() {}
+    TrustedCertificateIndex() {}
 
-    public TrustedCertificateIndex(Set<TrustAnchor> anchors) {
+    TrustedCertificateIndex(Set<TrustAnchor> anchors) {
         index(anchors);
     }
 
@@ -54,13 +51,13 @@ public final class TrustedCertificateIndex {
         }
     }
 
-    public TrustAnchor index(X509Certificate cert) {
+    TrustAnchor index(X509Certificate cert) {
         TrustAnchor anchor = new TrustAnchor(cert, null);
         index(anchor);
         return anchor;
     }
 
-    public void index(TrustAnchor anchor) {
+    void index(TrustAnchor anchor) {
         X500Principal subject;
         X509Certificate cert = anchor.getTrustedCert();
         if (cert != null) {
@@ -88,20 +85,20 @@ public final class TrustedCertificateIndex {
         }
     }
 
-    public void reset() {
+    void reset() {
         synchronized (subjectToTrustAnchors) {
             subjectToTrustAnchors.clear();
         }
     }
 
-    public void reset(Set<TrustAnchor> anchors) {
+    void reset(Set<TrustAnchor> anchors) {
         synchronized (subjectToTrustAnchors) {
             reset();
             index(anchors);
         }
     }
 
-    public TrustAnchor findByIssuerAndSignature(X509Certificate cert) {
+    TrustAnchor findByIssuerAndSignature(X509Certificate cert) {
         X500Principal issuer = cert.getIssuerX500Principal();
         synchronized (subjectToTrustAnchors) {
             List<TrustAnchor> anchors = subjectToTrustAnchors.get(issuer);
@@ -127,7 +124,7 @@ public final class TrustedCertificateIndex {
         return null;
     }
 
-    public TrustAnchor findBySubjectAndPublicKey(X509Certificate cert) {
+    TrustAnchor findBySubjectAndPublicKey(X509Certificate cert) {
         X500Principal subject = cert.getSubjectX500Principal();
         synchronized (subjectToTrustAnchors) {
             List<TrustAnchor> anchors = subjectToTrustAnchors.get(subject);
@@ -173,7 +170,7 @@ public final class TrustedCertificateIndex {
         return null;
     }
 
-    public Set<TrustAnchor> findAllByIssuerAndSignature(X509Certificate cert) {
+    Set<TrustAnchor> findAllByIssuerAndSignature(X509Certificate cert) {
         X500Principal issuer = cert.getIssuerX500Principal();
         synchronized (subjectToTrustAnchors) {
             List<TrustAnchor> anchors = subjectToTrustAnchors.get(issuer);

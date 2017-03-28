@@ -34,7 +34,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -49,11 +48,11 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import org.conscrypt.ct.CTLogInfo;
 import org.conscrypt.ct.CTLogStore;
 import org.conscrypt.ct.CTPolicy;
-import org.conscrypt.ct.CTPolicyImpl;
 import org.conscrypt.ct.CTVerifier;
+import org.conscrypt.ct.CtTestUtils;
+import org.conscrypt.ct.CtUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -88,19 +87,9 @@ public class OpenSSLSocketImplTest {
 
         PublicKey key = OpenSSLKey.fromPublicKeyPemInputStream(
                 openTestFile("ct-server-key-public.pem")).getPublicKey();
-        final CTLogInfo log = new CTLogInfo(key, "Test Log", "foo");
-        CTLogStore store = new CTLogStore() {
-            @Override
-            public CTLogInfo getKnownLog(byte[] logId) {
-                if (Arrays.equals(logId, log.getID())) {
-                    return log;
-                } else {
-                    return null;
-                }
-            }
-        };
+        CTLogStore store = CtTestUtils.newTestLogStore(key);
         defaultCTVerifier = new CTVerifier(store);
-        defaultCTPolicy = new CTPolicyImpl(store, 1);
+        defaultCTPolicy = CtUtils.newPolicy(store, 1);
     }
 
     abstract class Hooks implements HandshakeCompletedListener {
@@ -260,7 +249,6 @@ public class OpenSSLSocketImplTest {
             Future<OpenSSLSocketImpl> clientFuture = handshake(listener, clientHooks);
             Future<OpenSSLSocketImpl> serverFuture = handshake(listener, serverHooks);
 
-            Exception cause = null;
             try {
                 client = getOrThrowCause(clientFuture, TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (Exception e) {

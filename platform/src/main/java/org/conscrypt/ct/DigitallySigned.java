@@ -18,16 +18,12 @@ package org.conscrypt.ct;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import org.conscrypt.Internal;
 
 /**
  * DigitallySigned structure, as defined by RFC5246 Section 4.7.
- *
- * @hide
  */
-@Internal
-public class DigitallySigned {
-    public enum HashAlgorithm {
+final class DigitallySigned {
+    enum HashAlgorithm {
         NONE,
         MD5,
         SHA1,
@@ -37,7 +33,7 @@ public class DigitallySigned {
         SHA512;
 
         private static HashAlgorithm[] values = values();
-        public static HashAlgorithm valueOf(int ord) {
+        static HashAlgorithm valueOf(int ord) {
             try {
                 return values[ord];
             } catch (IndexOutOfBoundsException e) {
@@ -46,14 +42,14 @@ public class DigitallySigned {
         }
     }
 
-    public enum SignatureAlgorithm {
+    enum SignatureAlgorithm {
         ANONYMOUS,
         RSA,
         DSA,
         ECDSA;
 
         private static SignatureAlgorithm[] values = values();
-        public static SignatureAlgorithm valueOf(int ord) {
+        static SignatureAlgorithm valueOf(int ord) {
             try {
                 return values[ord];
             } catch (IndexOutOfBoundsException e) {
@@ -66,7 +62,7 @@ public class DigitallySigned {
     private final SignatureAlgorithm signatureAlgorithm;
     private final byte[] signature;
 
-    public DigitallySigned(HashAlgorithm hashAlgorithm,
+    DigitallySigned(HashAlgorithm hashAlgorithm,
                            SignatureAlgorithm signatureAlgorithm,
                            byte[] signature) {
         this.hashAlgorithm = hashAlgorithm;
@@ -74,7 +70,7 @@ public class DigitallySigned {
         this.signature = signature;
     }
 
-    public DigitallySigned(int hashAlgorithm,
+    DigitallySigned(int hashAlgorithm,
                            int signatureAlgorithm,
                            byte[] signature) {
         this(
@@ -84,13 +80,13 @@ public class DigitallySigned {
         );
     }
 
-    public HashAlgorithm getHashAlgorithm() {
+    HashAlgorithm getHashAlgorithm() {
         return hashAlgorithm;
     }
-    public SignatureAlgorithm getSignatureAlgorithm() {
+    SignatureAlgorithm getSignatureAlgorithm() {
         return signatureAlgorithm;
     }
-    public byte[] getSignature() {
+    byte[] getSignature() {
         return signature;
     }
 
@@ -98,14 +94,14 @@ public class DigitallySigned {
      * Get the name of the hash and signature combination.
      * The result can be used to as the argument to {@link java.security.Signature#getInstance}.
      */
-    public String getAlgorithm() {
+    String getAlgorithm() {
         return String.format("%swith%s", hashAlgorithm, signatureAlgorithm);
     }
 
     /**
      * Decode a TLS encoded DigitallySigned structure.
      */
-    public static DigitallySigned decode(InputStream input)
+    static DigitallySigned decode(InputStream input)
         throws SerializationException {
         try {
             return new DigitallySigned(
@@ -121,7 +117,7 @@ public class DigitallySigned {
     /**
      * Decode a TLS encoded DigitallySigned structure.
      */
-    public static DigitallySigned decode(byte[] input)
+    static DigitallySigned decode(byte[] input)
             throws SerializationException {
         return decode(new ByteArrayInputStream(input));
     }

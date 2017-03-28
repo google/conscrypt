@@ -23,14 +23,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.conscrypt.Internal;
-import org.conscrypt.InternalUtil;
+import org.conscrypt.InternalUtils;
 import org.conscrypt.OpenSSLX509Certificate;
 
 /**
  * @hide
  */
 @Internal
-public class CTVerifier {
+public final class CTVerifier {
     private final CTLogStore store;
 
     public CTVerifier(CTLogStore store) {
@@ -53,7 +53,7 @@ public class CTVerifier {
      * response, and verified against the list of known logs.
      * @throws IllegalArgumentException if the chain is empty
      */
-    public CTVerificationResult verifySignedCertificateTimestamps(OpenSSLX509Certificate[] chain,
+    CTVerificationResult verifySignedCertificateTimestamps(OpenSSLX509Certificate[] chain,
             byte[] tlsData, byte[] ocspData) throws CertificateEncodingException {
         if (chain.length == 0) {
             throw new IllegalArgumentException("Chain of certificates mustn't be empty.");
@@ -218,7 +218,7 @@ public class CTVerifier {
             return Collections.emptyList();
         }
 
-        byte[] extData = InternalUtil.getOcspSingleExtension(data, CTConstants.OCSP_SCT_LIST_OID,
+        byte[] extData = InternalUtils.getOcspSingleExtension(data, CTConstants.OCSP_SCT_LIST_OID,
                                                              chain[0].getContext(), chain[1].getContext());
         if (extData == null) {
             return Collections.emptyList();
