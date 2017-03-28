@@ -63,10 +63,10 @@ final class Platform {
     private Platform() {
     }
 
-    public static void setup() {
+    static void setup() {
     }
 
-    public static FileDescriptor getFileDescriptor(Socket s) {
+    static FileDescriptor getFileDescriptor(Socket s) {
         try {
             SocketChannel channel = s.getChannel();
             if (channel != null) {
@@ -90,11 +90,11 @@ final class Platform {
         }
     }
 
-    public static FileDescriptor getFileDescriptorFromSSLSocket(OpenSSLSocketImpl openSSLSocketImpl) {
+    static FileDescriptor getFileDescriptorFromSSLSocket(OpenSSLSocketImpl openSSLSocketImpl) {
         return getFileDescriptor(openSSLSocketImpl);
     }
 
-    public static String getCurveName(ECParameterSpec spec) {
+    static String getCurveName(ECParameterSpec spec) {
         if (m_getCurveName == null) {
             return null;
         }
@@ -105,18 +105,18 @@ final class Platform {
         }
     }
 
-    public static void setCurveName(ECParameterSpec spec, String curveName) {
+    static void setCurveName(ECParameterSpec spec, String curveName) {
         // This doesn't appear to be needed.
     }
 
     /*
      * Call Os.setsockoptTimeval via reflection.
      */
-    public static void setSocketWriteTimeout(Socket s, long timeoutMillis) throws SocketException {
+    static void setSocketWriteTimeout(Socket s, long timeoutMillis) throws SocketException {
         // TODO: figure this out on the RI
     }
 
-    public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
+    static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
             OpenSSLSocketImpl socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
@@ -131,7 +131,7 @@ final class Platform {
         }
     }
 
-    public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
+    static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
             OpenSSLSocketImpl socket) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
@@ -141,7 +141,7 @@ final class Platform {
         }
     }
 
-    public static void setSSLParameters(
+    static void setSSLParameters(
             SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
@@ -156,7 +156,7 @@ final class Platform {
         }
     }
 
-    public static void getSSLParameters(
+    static void getSSLParameters(
             SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
@@ -179,16 +179,16 @@ final class Platform {
         return null;
     }
 
-    public static void setEndpointIdentificationAlgorithm(SSLParameters params,
+    static void setEndpointIdentificationAlgorithm(SSLParameters params,
             String endpointIdentificationAlgorithm) {
         params.setEndpointIdentificationAlgorithm(endpointIdentificationAlgorithm);
     }
 
-    public static String getEndpointIdentificationAlgorithm(SSLParameters params) {
+    static String getEndpointIdentificationAlgorithm(SSLParameters params) {
         return params.getEndpointIdentificationAlgorithm();
     }
 
-    public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
+    static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
             String authType, OpenSSLSocketImpl socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
@@ -198,7 +198,7 @@ final class Platform {
         }
     }
 
-    public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
+    static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
             String authType, OpenSSLSocketImpl socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
@@ -208,7 +208,7 @@ final class Platform {
         }
     }
 
-    public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
+    static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
             String authType, OpenSSLEngineImpl engine) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
@@ -218,7 +218,7 @@ final class Platform {
         }
     }
 
-    public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
+    static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
             String authType, OpenSSLEngineImpl engine) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
@@ -231,20 +231,20 @@ final class Platform {
     /**
      * Wraps an old AndroidOpenSSL key instance. This is not needed on RI.
      */
-    public static OpenSSLKey wrapRsaKey(PrivateKey javaKey) {
+    static OpenSSLKey wrapRsaKey(PrivateKey javaKey) {
         return null;
     }
 
     /**
      * Logs to the system EventLog system.
      */
-    public static void logEvent(String message) {
+    static void logEvent(String message) {
     }
 
     /**
      * Returns true if the supplied hostname is an literal IP address.
      */
-    public static boolean isLiteralIpAddress(String hostname) {
+    static boolean isLiteralIpAddress(String hostname) {
         // TODO: any RI API to make this better?
         return AddressUtils.isLiteralIpAddress(hostname);
     }
@@ -252,21 +252,21 @@ final class Platform {
     /**
      * For unbundled versions, SNI is always enabled by default.
      */
-    public static boolean isSniEnabledByDefault() {
+    static boolean isSniEnabledByDefault() {
         return true;
     }
 
     /**
      * Currently we don't wrap anything from the RI.
      */
-    public static SSLSocketFactory wrapSocketFactoryIfNeeded(OpenSSLSocketFactoryImpl factory) {
+    static SSLSocketFactory wrapSocketFactoryIfNeeded(OpenSSLSocketFactoryImpl factory) {
         return factory;
     }
 
     /**
      * Convert from platform's GCMParameterSpec to our internal version.
      */
-    public static GCMParameters fromGCMParameterSpec(AlgorithmParameterSpec params) {
+    static GCMParameters fromGCMParameterSpec(AlgorithmParameterSpec params) {
         if (params instanceof GCMParameterSpec) {
             GCMParameterSpec gcmParams = (GCMParameterSpec) params;
             return new GCMParameters(gcmParams.getTLen(), gcmParams.getIV());
@@ -277,7 +277,7 @@ final class Platform {
     /**
      * Creates a platform version of {@code GCMParameterSpec}.
      */
-    public static AlgorithmParameterSpec toGCMParameterSpec(int tagLenInBits, byte[] iv) {
+    static AlgorithmParameterSpec toGCMParameterSpec(int tagLenInBits, byte[] iv) {
         return new GCMParameterSpec(tagLenInBits, iv);
     }
 
@@ -285,30 +285,30 @@ final class Platform {
      * CloseGuard functions.
      */
 
-    public static Object closeGuardGet() {
+    static Object closeGuardGet() {
         return null;
     }
 
-    public static void closeGuardOpen(Object guardObj, String message) {
+    static void closeGuardOpen(Object guardObj, String message) {
     }
 
-    public static void closeGuardClose(Object guardObj) {
+    static void closeGuardClose(Object guardObj) {
     }
 
-    public static void closeGuardWarnIfOpen(Object guardObj) {
+    static void closeGuardWarnIfOpen(Object guardObj) {
     }
 
     /*
      * BlockGuard functions.
      */
 
-    public static void blockGuardOnNetwork() {
+    static void blockGuardOnNetwork() {
     }
 
     /**
      * OID to Algorithm Name mapping.
      */
-    public static String oidToAlgorithmName(String oid) {
+    static String oidToAlgorithmName(String oid) {
         try {
             return AlgorithmId.get(oid).getName();
         } catch (NoSuchAlgorithmException e) {
@@ -320,11 +320,11 @@ final class Platform {
      * Pre-Java-8 backward compatibility.
      */
 
-    public static SSLSession wrapSSLSession(AbstractOpenSSLSession sslSession) {
+    static SSLSession wrapSSLSession(AbstractOpenSSLSession sslSession) {
         return new OpenSSLExtendedSessionImpl(sslSession);
     }
 
-    public static SSLSession unwrapSSLSession(SSLSession sslSession) {
+    static SSLSession unwrapSSLSession(SSLSession sslSession) {
         if (sslSession instanceof OpenSSLExtendedSessionImpl) {
             return ((OpenSSLExtendedSessionImpl) sslSession).getDelegate();
         }
@@ -335,7 +335,7 @@ final class Platform {
      * Pre-Java-7 backward compatibility.
      */
 
-    public static String getHostStringFromInetSocketAddress(InetSocketAddress addr) {
+    static String getHostStringFromInetSocketAddress(InetSocketAddress addr) {
         return addr.getHostString();
     }
 
@@ -355,7 +355,7 @@ final class Platform {
      * - conscrypt.ct.enforce.com.*
      * - conscrypt.ct.enforce.*
      */
-    public static boolean isCTVerificationRequired(String hostname) {
+    static boolean isCTVerificationRequired(String hostname) {
         if (hostname == null) {
             return false;
         }

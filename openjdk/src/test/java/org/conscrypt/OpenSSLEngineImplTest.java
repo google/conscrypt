@@ -16,10 +16,10 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.testing.TestUtil.PROTOCOL_TLS_V1_2;
-import static org.conscrypt.testing.TestUtil.initEngine;
-import static org.conscrypt.testing.TestUtil.initSslContext;
-import static org.conscrypt.testing.TestUtil.newTextMessage;
+import static org.conscrypt.TestUtils.PROTOCOL_TLS_V1_2;
+import static org.conscrypt.TestUtils.initEngine;
+import static org.conscrypt.TestUtils.initSslContext;
+import static org.conscrypt.TestUtils.newTextMessage;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
@@ -33,7 +33,6 @@ import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import libcore.java.security.TestKeyStore;
-import org.conscrypt.testing.TestUtil;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -145,7 +144,7 @@ public class OpenSSLEngineImplTest {
     @Test
     public void exchangeMessages() throws Exception {
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
-        TestUtil.doEngineHandshake(clientEngine, serverEngine);
+        TestUtils.doEngineHandshake(clientEngine, serverEngine);
 
         ByteBuffer clientCleartextBuffer = bufferType.newBuffer(MESSAGE_SIZE);
         clientCleartextBuffer.put(newTextMessage(MESSAGE_SIZE));
@@ -186,7 +185,7 @@ public class OpenSSLEngineImplTest {
     private void doMutualAuthHandshake(TestKeyStore clientKs, TestKeyStore serverKs, ClientAuth clientAuth) throws Exception {
         setupEngines(clientKs, serverKs);
         clientAuth.apply(serverEngine);
-        TestUtil.doEngineHandshake(clientEngine, serverEngine);
+        TestUtils.doEngineHandshake(clientEngine, serverEngine);
         assertEquals(HandshakeStatus.NOT_HANDSHAKING, clientEngine.getHandshakeStatus());
         assertEquals(HandshakeStatus.NOT_HANDSHAKING, serverEngine.getHandshakeStatus());
     }

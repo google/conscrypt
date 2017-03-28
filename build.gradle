@@ -17,7 +17,7 @@ buildscript {
 }
 
 subprojects {
-    def androidProject = project.name == 'conscrypt-android'
+    def androidProject = (project.name == 'conscrypt-android') || (project.name == 'conscrypt-android-platform')
     if (!androidProject) {
         apply plugin: 'java'
         apply plugin: 'cpp'
@@ -82,15 +82,14 @@ subprojects {
 
         jmhVersion = '1.17.4'
         libraries = [
-                roboelectric: 'org.robolectric:android-all:5.0.0_r2-robolectric-1',
+                roboelectric: 'org.robolectric:android-all:7.1.0_r7-robolectric-0',
 
                 // Test dependencies.
-                guava : 'com.google.guava:guava:19.0',
                 junit  : 'junit:junit:4.12',
                 mockito: 'org.mockito:mockito-core:1.9.5',
                 truth  : 'com.google.truth:truth:0.28',
-                bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.55',
-                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.55',
+                bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.56',
+                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.56',
 
                 // Benchmark dependencies
                 jmh_core: "org.openjdk.jmh:jmh-core:${jmhVersion}",
