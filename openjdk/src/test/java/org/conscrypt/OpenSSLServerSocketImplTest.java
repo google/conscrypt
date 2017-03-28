@@ -52,6 +52,7 @@ public class OpenSSLServerSocketImplTest {
         DEFAULT(getConscryptServerSocketFactory(false)),
         ENGINE(getConscryptServerSocketFactory(true));
 
+        @SuppressWarnings("ImmutableEnumChecker")
         private final SSLServerSocketFactory serverSocketFactory;
 
         SocketType(SSLServerSocketFactory serverSocketFactory) {

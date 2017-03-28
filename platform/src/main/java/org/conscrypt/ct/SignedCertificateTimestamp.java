@@ -20,10 +20,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import org.conscrypt.Internal;
 
 /**
  * SignedCertificateTimestamp structure, as defined by RFC6962 Section 3.2.
+ *
+ * @hide
  */
+@Internal
 public class SignedCertificateTimestamp {
     public enum Version {
         V1

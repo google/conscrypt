@@ -25,15 +25,12 @@ import java.net.SocketException;
 
 /**
  * This class wraps the SSL functionality over an existing connected socket.
- *
- * @hide
  */
-@Internal
-public class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
+class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
 
     private Socket socket;
 
-    protected OpenSSLSocketImplWrapper(Socket socket, String hostname, int port,
+    OpenSSLSocketImplWrapper(Socket socket, String hostname, int port,
             boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
         super(socket, hostname, port, autoClose, sslParameters);
         if (!socket.isConnected()) {

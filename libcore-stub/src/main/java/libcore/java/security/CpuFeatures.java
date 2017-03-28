@@ -58,6 +58,7 @@ public class CpuFeatures {
 
     private static String getFieldFromCpuinfo(String field) {
         try {
+            @SuppressWarnings("DefaultCharset")
             BufferedReader br = new BufferedReader(new FileReader("/proc/cpuinfo"));
             Pattern p = Pattern.compile(field + "\\s*:\\s*(.*)");
 

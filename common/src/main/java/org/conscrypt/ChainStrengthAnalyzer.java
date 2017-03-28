@@ -25,11 +25,8 @@ import java.util.List;
 
 /**
  * Analyzes the cryptographic strength of a chain of X.509 certificates.
- *
- * @hide
  */
-@Internal
-public final class ChainStrengthAnalyzer {
+final class ChainStrengthAnalyzer {
 
     private static final int MIN_RSA_MODULUS_LEN_BITS = 1024;
 
@@ -44,7 +41,7 @@ public final class ChainStrengthAnalyzer {
         "1.2.840.113549.1.1.4", // md5WithRSAEncryption
     };
 
-    public static final void check(X509Certificate[] chain) throws CertificateException {
+    static final void check(X509Certificate[] chain) throws CertificateException {
         for (X509Certificate cert : chain) {
             try {
                 checkCert(cert);
@@ -55,7 +52,7 @@ public final class ChainStrengthAnalyzer {
         }
     }
 
-    public static final void check(List<X509Certificate> chain) throws CertificateException {
+    static final void check(List<X509Certificate> chain) throws CertificateException {
         for (X509Certificate cert : chain) {
             try {
                 checkCert(cert);
@@ -66,12 +63,12 @@ public final class ChainStrengthAnalyzer {
         }
     }
 
-    public static final void checkCert(X509Certificate cert) throws CertificateException {
+    static final void checkCert(X509Certificate cert) throws CertificateException {
         checkKeyLength(cert);
         checkSignatureAlgorithm(cert);
     }
 
-    private static final void checkKeyLength(X509Certificate cert) throws CertificateException {
+    private static void checkKeyLength(X509Certificate cert) throws CertificateException {
         Object pubkey = cert.getPublicKey();
         if (pubkey instanceof RSAPublicKey) {
             int modulusLength = ((RSAPublicKey) pubkey).getModulus().bitLength();
@@ -100,7 +97,7 @@ public final class ChainStrengthAnalyzer {
         }
     }
 
-    private static final void checkSignatureAlgorithm(
+    private static void checkSignatureAlgorithm(
             X509Certificate cert) throws CertificateException {
         String oid = cert.getSigAlgOID();
         for (String blacklisted : SIGNATURE_ALGORITHM_OID_BLACKLIST) {

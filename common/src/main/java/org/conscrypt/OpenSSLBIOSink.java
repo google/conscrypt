@@ -20,16 +20,13 @@ import java.io.ByteArrayOutputStream;
 
 /**
  * Wraps a BoringSSL BIO to act as a place to write out data.
- *
- * @hide
  */
-@Internal
-public final class OpenSSLBIOSink {
+final class OpenSSLBIOSink {
     private final long ctx;
     private final ByteArrayOutputStream buffer;
     private int position;
 
-    public static OpenSSLBIOSink create() {
+    static OpenSSLBIOSink create() {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         return new OpenSSLBIOSink(buffer);
     }
@@ -39,16 +36,16 @@ public final class OpenSSLBIOSink {
         this.buffer = buffer;
     }
 
-    public int available() {
+    int available() {
         return buffer.size() - position;
     }
 
-    public void reset() {
+    void reset() {
         buffer.reset();
         position = 0;
     }
 
-    public long skip(long byteCount) {
+    long skip(long byteCount) {
         int maxLength = Math.min(available(), (int) byteCount);
         position += maxLength;
         if (position == buffer.size()) {
@@ -57,15 +54,15 @@ public final class OpenSSLBIOSink {
         return maxLength;
     }
 
-    public long getContext() {
+    long getContext() {
         return ctx;
     }
 
-    public byte[] toByteArray() {
+    byte[] toByteArray() {
         return buffer.toByteArray();
     }
 
-    public int position() {
+    int position() {
         return position;
     }
 

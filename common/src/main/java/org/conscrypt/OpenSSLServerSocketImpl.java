@@ -22,32 +22,29 @@ import java.net.Socket;
 
 /**
  * BoringSSL-based implementation of server sockets.
- *
- * @hide
  */
-@Internal
-public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
+final class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     private final SSLParametersImpl sslParameters;
     private boolean channelIdEnabled;
     private boolean useEngineSocket;
 
-    protected OpenSSLServerSocketImpl(SSLParametersImpl sslParameters) throws IOException {
+    OpenSSLServerSocketImpl(SSLParametersImpl sslParameters) throws IOException {
         this.sslParameters = sslParameters;
     }
 
-    protected OpenSSLServerSocketImpl(int port, SSLParametersImpl sslParameters)
+    OpenSSLServerSocketImpl(int port, SSLParametersImpl sslParameters)
         throws IOException {
         super(port);
         this.sslParameters = sslParameters;
     }
 
-    protected OpenSSLServerSocketImpl(int port, int backlog, SSLParametersImpl sslParameters)
+    OpenSSLServerSocketImpl(int port, int backlog, SSLParametersImpl sslParameters)
         throws IOException {
         super(port, backlog);
         this.sslParameters = sslParameters;
     }
 
-    protected OpenSSLServerSocketImpl(int port,
+    OpenSSLServerSocketImpl(int port,
                                       int backlog,
                                       InetAddress iAddress,
                                       SSLParametersImpl sslParameters)
@@ -59,7 +56,7 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     /**
      * Configures the socket to be created for this instance.
      */
-    public OpenSSLServerSocketImpl setUseEngineSocket(boolean useEngineSocket) {
+    OpenSSLServerSocketImpl setUseEngineSocket(boolean useEngineSocket) {
         this.useEngineSocket = useEngineSocket;
         return this;
     }
@@ -121,14 +118,14 @@ public class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     /**
      * Enables/disables the TLS Channel ID extension for this server socket.
      */
-    public void setChannelIdEnabled(boolean enabled) {
+    void setChannelIdEnabled(boolean enabled) {
       channelIdEnabled = enabled;
     }
 
     /**
      * Checks whether the TLS Channel ID extension is enabled for this server socket.
      */
-    public boolean isChannelIdEnabled() {
+    boolean isChannelIdEnabled() {
       return channelIdEnabled;
     }
 

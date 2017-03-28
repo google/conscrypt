@@ -21,34 +21,31 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
+import javax.net.ssl.SSLSocketFactory;
 
 /**
- * An implementation of {@link javax.net.ssl.SSLSocketFactory} based on BoringSSL.
- *
- * @hide
+ * An implementation of {@link SSLSocketFactory} based on BoringSSL.
  */
-@Internal
-public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
+final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
     private static boolean useEngineSocketByDefault = SSLUtils.USE_ENGINE_SOCKET_BY_DEFAULT;
 
     private final SSLParametersImpl sslParameters;
     private final IOException instantiationException;
     private boolean useEngineSocket = useEngineSocketByDefault;
 
-    public OpenSSLSocketFactoryImpl() {
+    OpenSSLSocketFactoryImpl() {
         SSLParametersImpl sslParametersLocal = null;
         IOException instantiationExceptionLocal = null;
         try {
             sslParametersLocal = SSLParametersImpl.getDefault();
         } catch (KeyManagementException e) {
-            instantiationExceptionLocal = new IOException("Delayed instantiation exception:");
-            instantiationExceptionLocal.initCause(e);
+            instantiationExceptionLocal = new IOException("Delayed instantiation exception:", e);
         }
         this.sslParameters = sslParametersLocal;
         this.instantiationException = instantiationExceptionLocal;
     }
 
-    public OpenSSLSocketFactoryImpl(SSLParametersImpl sslParameters) {
+    OpenSSLSocketFactoryImpl(SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
         this.instantiationException = null;
     }
@@ -64,7 +61,7 @@ public class OpenSSLSocketFactoryImpl extends javax.net.ssl.SSLSocketFactory {
      * Configures the socket to be created for this instance. If not called,
      * {@link #useEngineSocketByDefault} will be used.
      */
-    public void setUseEngineSocket(boolean useEngineSocket) {
+    void setUseEngineSocket(boolean useEngineSocket) {
         this.useEngineSocket = useEngineSocket;
     }
 
