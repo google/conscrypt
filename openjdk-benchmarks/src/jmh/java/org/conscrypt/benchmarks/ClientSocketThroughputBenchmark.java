@@ -16,14 +16,14 @@
 
 package org.conscrypt.benchmarks;
 
-import static org.conscrypt.testing.TestUtil.LOCALHOST;
-import static org.conscrypt.testing.TestUtil.getConscryptServerSocketFactory;
-import static org.conscrypt.testing.TestUtil.getConscryptSocketFactory;
-import static org.conscrypt.testing.TestUtil.getJdkServerSocketFactory;
-import static org.conscrypt.testing.TestUtil.getJdkSocketFactory;
-import static org.conscrypt.testing.TestUtil.getProtocols;
-import static org.conscrypt.testing.TestUtil.newTextMessage;
-import static org.conscrypt.testing.TestUtil.pickUnusedPort;
+import static org.conscrypt.TestUtils.LOCALHOST;
+import static org.conscrypt.TestUtils.getConscryptServerSocketFactory;
+import static org.conscrypt.TestUtils.getConscryptSocketFactory;
+import static org.conscrypt.TestUtils.getJdkServerSocketFactory;
+import static org.conscrypt.TestUtils.getJdkSocketFactory;
+import static org.conscrypt.TestUtils.getProtocols;
+import static org.conscrypt.TestUtils.newTextMessage;
+import static org.conscrypt.TestUtils.pickUnusedPort;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -38,8 +38,8 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import org.conscrypt.testing.TestClient;
-import org.conscrypt.testing.TestServer;
+import org.conscrypt.TestClient;
+import org.conscrypt.TestServer;
 import org.openjdk.jmh.annotations.AuxCounters;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;

@@ -1,0 +1,118 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.2.3' // jcenter has the latest
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+    }
+}
+
+description = 'Conscrypt: Android Platform'
+
+ext {
+    androidHome = "$System.env.ANDROID_HOME"
+    androidSdkInstalled = file("$androidHome").exists()
+    androidVersionCode = 1
+    androidVersionName = "$version"
+    androidMinSdkVersion = 24
+    androidTargetSdkVersion = 25
+    androidBuildToolsVersion = "25.0.0"
+}
+
+if (androidSdkInstalled) {
+    apply plugin: 'com.android.library'
+
+    android {
+        compileSdkVersion androidTargetSdkVersion
+        buildToolsVersion androidBuildToolsVersion
+
+        compileOptions {
+            sourceCompatibility androidMinJavaVersion;
+            targetCompatibility androidMinJavaVersion
+        }
+
+        defaultConfig {
+            minSdkVersion androidMinSdkVersion
+            targetSdkVersion androidTargetSdkVersion
+            versionCode androidVersionCode
+            versionName androidVersionName
+
+            testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+            consumerProguardFiles 'proguard-rules.pro'
+
+            externalNativeBuild {
+                cmake {
+                    arguments '-DANDROID=True',
+                            '-DANDROID_STL=c++_static',
+                            "-DBORINGSSL_HOME=$boringsslHome"
+                    cFlags '-fvisibility=hidden',
+                            '-DBORINGSSL_SHARED_LIBRARY',
+                            '-DBORINGSSL_IMPLEMENTATION',
+                            '-DOPENSSL_SMALL',
+                            '-D_XOPEN_SOURCE=700',
+                            '-Wno-unused-parameter'
+                }
+            }
+            ndk {
+                abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
+            }
+        }
+        buildTypes {
+            release {
+                minifyEnabled false
+                proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            }
+        }
+        sourceSets {
+            main {
+                java {
+                    srcDirs = [
+                            "${rootDir}/common/src/main/java",
+                            "src/main/java",
+                    ]
+                    excludes = [ 'org/conscrypt/Platform.java' ]
+                }
+            }
+        }
+        lintOptions {
+            lintConfig file('lint.xml')
+        }
+    }
+
+    configurations {
+        publicApiDocs
+    }
+
+    dependencies {
+        compile fileTree(dir: 'libs', include: ['*.jar'])
+        compile project(path: ':conscrypt-openjdk', configuration: 'platform')
+        publicApiDocs project(':conscrypt-api-doclet')
+        androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+            exclude group: 'com.android.support', module: 'support-annotations'
+        })
+        testCompile project(':conscrypt-testing'),
+                    libraries.junit
+        provided project(':conscrypt-android-stub'),
+                 project(':conscrypt-libcore-stub')
+
+        // Adds the constants module as a dependency so that we can include its generated source
+        provided project(':conscrypt-constants')
+    }
+
+    // Disable running the tests.
+    tasks.withType(Test){
+        enabled = false
+    }
+
+} else {
+    logger.warn('Android SDK has not been detected. The Android Platform module will not be built.')
+
+    // Disable all tasks
+    tasks.collect {
+        it.enabled = false
+    }
+}

@@ -21,7 +21,6 @@ configurations {
 
 dependencies {
     compile project(':conscrypt-testing'),
-            libraries.guava,
             libraries.junit,
             libraries.netty_handler,
             libraries.netty_tcnative

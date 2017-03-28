@@ -4,6 +4,10 @@ description = 'Conscrypt: Android-Stub'
 sourceCompatibility = androidMinJavaVersion
 targetCompatibility = androidMinJavaVersion
 
+dependencies {
+    compile project(':conscrypt-libcore-stub')
+}
+
 // Don't include this artifact in the distribution.
 tasks.install.enabled = false
 tasks.uploadArchives.enabled = false;

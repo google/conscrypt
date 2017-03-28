@@ -126,18 +126,20 @@ public class TrustManagerImplTest extends TestCase {
             tm.checkClientTrusted(chain, "RSA");
             fail();
         } catch (CertificateException expected) {
+            // Expected.
         }
         try {
             tm.checkServerTrusted(chain, "RSA");
             fail();
         } catch (CertificateException expected) {
+            // Expected.
         }
     }
 
-    private class MySSLSession implements SSLSession {
+    private static class MySSLSession implements SSLSession {
         private final String hostname;
 
-        public MySSLSession(String hostname) {
+        MySSLSession(String hostname) {
             this.hostname = hostname;
         }
 
