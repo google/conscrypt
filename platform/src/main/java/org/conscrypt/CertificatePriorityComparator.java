@@ -39,6 +39,7 @@ import java.util.Map;
  * </ol>
  * </p>
  */
+@Internal
 public final class CertificatePriorityComparator implements Comparator<X509Certificate> {
 
     /**

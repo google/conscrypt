@@ -34,6 +34,10 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * @hide
+ */
+@Internal
 public final class CertBlacklist {
     private static final Logger logger = Logger.getLogger(CertBlacklist.class.getName());
 

@@ -22,6 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import org.conscrypt.Internal;
 import org.conscrypt.OpenSSLX509Certificate;
 
 /**
@@ -38,7 +39,9 @@ import org.conscrypt.OpenSSLX509Certificate;
  *     } signed_entry;
  * } CertificateEntry;
  *
+ * @hide
  */
+@Internal
 public class CertificateEntry {
     public enum LogEntryType {
         X509_ENTRY,

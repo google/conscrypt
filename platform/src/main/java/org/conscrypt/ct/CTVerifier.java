@@ -22,9 +22,14 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.conscrypt.Internal;
 import org.conscrypt.InternalUtil;
 import org.conscrypt.OpenSSLX509Certificate;
 
+/**
+ * @hide
+ */
+@Internal
 public class CTVerifier {
     private final CTLogStore store;
 

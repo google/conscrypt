@@ -31,8 +31,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
+import org.conscrypt.Internal;
 import org.conscrypt.InternalUtil;
 
+/**
+ * @hide
+ */
+@Internal
 public class CTLogStoreImpl implements CTLogStore {
     /**
      * Thrown when parsing of a log file fails.
