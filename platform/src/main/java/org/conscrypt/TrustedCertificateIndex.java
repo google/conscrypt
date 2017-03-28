@@ -33,7 +33,10 @@ import javax.security.auth.x500.X500Principal;
 /**
  * Indexes {@code TrustAnchor} instances so they can be found in O(1)
  * time instead of O(N).
+ *
+ * @hide
  */
+@Internal
 public final class TrustedCertificateIndex {
 
     private final Map<X500Principal, List<TrustAnchor>> subjectToTrustAnchors

@@ -31,9 +31,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
-import org.conscrypt.NativeCrypto;
-import org.conscrypt.OpenSSLKey;
+import org.conscrypt.Internal;
+import org.conscrypt.InternalUtil;
 
+/**
+ * @hide
+ */
+@Internal
 public class CTLogStoreImpl implements CTLogStore {
     /**
      * Thrown when parsing of a log file fails.
@@ -144,8 +148,7 @@ public class CTLogStoreImpl implements CTLogStore {
         CTLogInfo[] logs = new CTLogInfo[KnownLogs.LOG_COUNT];
         for (int i = 0; i < KnownLogs.LOG_COUNT; i++) {
             try {
-                PublicKey key = new OpenSSLKey(NativeCrypto.d2i_PUBKEY(KnownLogs.LOG_KEYS[i]))
-                                .getPublicKey();
+                PublicKey key = InternalUtil.logKeyToPublicKey(KnownLogs.LOG_KEYS[i]);
 
                 logs[i] = new CTLogInfo(key,
                                         KnownLogs.LOG_DESCRIPTIONS[i],
@@ -220,10 +223,10 @@ public class CTLogStoreImpl implements CTLogStore {
 
         PublicKey pubkey;
         try {
-            pubkey = OpenSSLKey.fromPublicKeyPemInputStream(new StringBufferInputStream(
+            pubkey = InternalUtil.readPublicKeyPem(new StringBufferInputStream(
                         "-----BEGIN PUBLIC KEY-----\n" +
                         key + "\n" +
-                        "-----END PUBLIC KEY-----")).getPublicKey();
+                        "-----END PUBLIC KEY-----"));
         } catch (InvalidKeyException e) {
             throw new InvalidLogFileException(e);
         } catch (NoSuchAlgorithmException e) {

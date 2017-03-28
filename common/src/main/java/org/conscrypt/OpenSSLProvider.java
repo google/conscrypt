@@ -29,6 +29,8 @@ import java.security.Provider;
  * href="http://csrc.nist.gov/groups/ST/crypto_apps_infra/csor/algorithms.html">NIST cryptographic
  * algorithms</a></li>
  * </ul>
+ *
+ * @hide
  */
 @Internal
 public final class OpenSSLProvider extends Provider {
@@ -38,7 +40,7 @@ public final class OpenSSLProvider extends Provider {
      * Default name used in the {@link java.security.Security JCE system} by {@code OpenSSLProvider}
      * if the {@link #OpenSSLProvider() default constructor} is used.
      */
-    public static final String PROVIDER_NAME = "AndroidOpenSSL";
+    private static final String PROVIDER_NAME = "AndroidOpenSSL";
 
     private static final String PREFIX = OpenSSLProvider.class.getPackage().getName() + ".";
 

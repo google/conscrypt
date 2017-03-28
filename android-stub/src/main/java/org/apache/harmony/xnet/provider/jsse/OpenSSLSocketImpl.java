@@ -81,15 +81,18 @@ public class OpenSSLSocketImpl
     }
 
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / client_cert_cb
+    @Override
     public void clientCertificateRequested(byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals)
             throws CertificateEncodingException, SSLException {
         throw new RuntimeException("Stub!");
     }
 
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / info_callback
+    @Override
     public void handshakeCompleted() {
         throw new RuntimeException("Stub!");
     }
+
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks
     @Override
     public void verifyCertificateChain(byte[][] bytes, String authMethod)
@@ -106,6 +109,7 @@ public class OpenSSLSocketImpl
     public OutputStream getOutputStream() throws IOException {
         throw new RuntimeException("Stub!");
     }
+
     @Override
     public SSLSession getSession() {
         throw new RuntimeException("Stub!");
@@ -160,6 +164,7 @@ public class OpenSSLSocketImpl
     public void setEnabledProtocols(String[] protocols) {
         throw new RuntimeException("Stub!");
     }
+
     public void setUseSessionTickets(boolean useSessionTickets) {
         throw new RuntimeException("Stub!");
     }
@@ -175,6 +180,7 @@ public class OpenSSLSocketImpl
     public byte[] getChannelId() throws SSLException {
         throw new RuntimeException("Stub!");
     }
+
     public void setChannelIdPrivateKey(PrivateKey privateKey) {
         throw new RuntimeException("Stub!");
     }
@@ -219,11 +225,13 @@ public class OpenSSLSocketImpl
         throw new RuntimeException("Stub!");
     }
 
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     @Override
     public void setSoTimeout(int readTimeoutMilliseconds) throws SocketException {
         throw new RuntimeException("Stub!");
     }
 
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     @Override
     public int getSoTimeout() throws SocketException {
         throw new RuntimeException("Stub!");
@@ -251,6 +259,7 @@ public class OpenSSLSocketImpl
         throw new RuntimeException("Stub!");
     }
 
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     @Override
     public void close() throws IOException {
         throw new RuntimeException("Stub!");

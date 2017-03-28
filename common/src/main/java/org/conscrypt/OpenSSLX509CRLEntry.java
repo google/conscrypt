@@ -29,11 +29,8 @@ import java.util.TimeZone;
 
 /**
  * An implementation of {@link X509CRLEntry} based on BoringSSL.
- *
- * @hide
  */
-@Internal
-public class OpenSSLX509CRLEntry extends X509CRLEntry {
+final class OpenSSLX509CRLEntry extends X509CRLEntry {
     private final long mContext;
 
     OpenSSLX509CRLEntry(long ctx) {

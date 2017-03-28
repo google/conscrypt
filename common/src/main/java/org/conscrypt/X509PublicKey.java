@@ -22,18 +22,15 @@ import java.util.Arrays;
 /**
  * A simple but useless key class that holds X.509 public key information when
  * the appropriate KeyFactory for the key algorithm is not available.
- *
- * @hide
  */
-@Internal
-public class X509PublicKey implements PublicKey {
+final class X509PublicKey implements PublicKey {
     private static final long serialVersionUID = -8610156854731664298L;
 
     private final String algorithm;
 
     private final byte[] encoded;
 
-    public X509PublicKey(String algorithm, byte[] encoded) {
+    X509PublicKey(String algorithm, byte[] encoded) {
         this.algorithm = algorithm;
         this.encoded = encoded;
     }

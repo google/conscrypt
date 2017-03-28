@@ -16,9 +16,14 @@
 
 package org.conscrypt.ct;
 
+import org.conscrypt.Internal;
+
 /**
  * Verification result for a single SCT.
+ *
+ * @hide
  */
+@Internal
 public final class VerifiedSCT {
     public enum Status {
         VALID,

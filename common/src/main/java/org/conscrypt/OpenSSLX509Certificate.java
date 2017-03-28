@@ -57,7 +57,7 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
  * @hide
  */
 @Internal
-public class OpenSSLX509Certificate extends X509Certificate {
+public final class OpenSSLX509Certificate extends X509Certificate {
     private static final long serialVersionUID = 1992239142393372128L;
 
     private transient final long mContext;

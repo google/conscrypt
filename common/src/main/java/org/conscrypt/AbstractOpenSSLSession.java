@@ -32,11 +32,8 @@ import javax.security.cert.CertificateException;
 
 /**
  * Extends the base SSLSession with some methods used exclusively in Conscrypt.
- *
- * @hide
  */
-@Internal
-public abstract class AbstractOpenSSLSession implements SSLSession {
+abstract class AbstractOpenSSLSession implements SSLSession {
     private final Map<String, Object> values = new HashMap<String, Object>();
 
     private volatile javax.security.cert.X509Certificate[] peerCertificateChain;
@@ -49,7 +46,7 @@ public abstract class AbstractOpenSSLSession implements SSLSession {
      * Class constructor creates an SSL session context given the appropriate
      * session context.
      */
-    protected AbstractOpenSSLSession(AbstractSessionContext sessionContext) {
+    AbstractOpenSSLSession(AbstractSessionContext sessionContext) {
         this.sessionContext = sessionContext;
     }
 

@@ -20,8 +20,7 @@ package org.conscrypt;
  * Compatibility utility for Arrays.
  */
 final class ArrayUtils {
-    private ArrayUtils() {
-    }
+    private ArrayUtils() {}
 
     /**
      * Checks that the range described by {@code offset} and {@code count}

@@ -48,7 +48,7 @@ public class OpenSSLKeyTest extends TestCase {
         "e9e1326013a84467190dd94c5aabaf148ad5e3c452a2dd063e1d4c044d6994a1", 16);
 
     public void test_fromPublicKeyPemInputStream() throws Exception {
-        ByteArrayInputStream is = new ByteArrayInputStream(RSA_PUBLIC_KEY.getBytes());
+        ByteArrayInputStream is = new ByteArrayInputStream(RSA_PUBLIC_KEY.getBytes("UTF-8"));
         OpenSSLKey key = OpenSSLKey.fromPublicKeyPemInputStream(is);
         OpenSSLRSAPublicKey publicKey = (OpenSSLRSAPublicKey)key.getPublicKey();
         assertEquals(RSA_MODULUS, publicKey.getModulus());
@@ -56,7 +56,7 @@ public class OpenSSLKeyTest extends TestCase {
     }
 
     public void test_fromPrivateKeyPemInputStream() throws Exception {
-        ByteArrayInputStream is = new ByteArrayInputStream(RSA_PRIVATE_KEY.getBytes());
+        ByteArrayInputStream is = new ByteArrayInputStream(RSA_PRIVATE_KEY.getBytes("UTF-8"));
         OpenSSLKey key = OpenSSLKey.fromPrivateKeyPemInputStream(is);
         OpenSSLRSAPrivateKey privateKey = (OpenSSLRSAPrivateKey)key.getPrivateKey();
         assertEquals(RSA_MODULUS, privateKey.getModulus());

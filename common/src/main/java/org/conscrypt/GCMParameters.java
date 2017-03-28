@@ -20,18 +20,15 @@ package org.conscrypt;
  * GCM parameters used during an ciphering operation with {@link OpenSSLCipher}.
  * This class exists solely for backward compatibility with Android versions
  * that did not have the {@code GCMParameterSpec} class.
- *
- * @hide
  */
-@Internal
-public class GCMParameters {
+final class GCMParameters {
     /** The tag length in bits. */
-    public final int tLen;
+    private final int tLen;
 
     /** Actually the nonce value for the GCM operation. */
-    public final byte[] iv;
+    private final byte[] iv;
 
-    public GCMParameters(int tLen, byte[] iv) {
+    GCMParameters(int tLen, byte[] iv) {
         this.tLen = tLen;
         this.iv = iv;
     }
@@ -39,14 +36,14 @@ public class GCMParameters {
     /**
      * Returns the tag length in bits.
      */
-    public int getTLen() {
+    int getTLen() {
         return tLen;
     }
 
     /**
      * Returns a non-cloned version of the IV.
      */
-    public byte[] getIV() {
+    byte[] getIV() {
         return iv;
     }
 }

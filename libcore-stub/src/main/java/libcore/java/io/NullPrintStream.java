@@ -29,52 +29,118 @@ public final class NullPrintStream extends PrintStream {
         // super class complains if argument is null
         super((OutputStream) new ByteArrayOutputStream());
     }
+
+    @Override
     public boolean checkError() {
         return false;
     }
+
+    @Override
     protected void clearError() {}
+
+    @Override
     public void close() {}
+
+    @Override
     public void flush() {}
+
+    @Override
     public PrintStream format(String format, Object... args) {
         return this;
     }
+
+    @Override
     public PrintStream format(Locale l, String format, Object... args) {
         return this;
     }
+
+    @Override
     public PrintStream printf(String format, Object... args) {
         return this;
     }
+
+    @Override
     public PrintStream printf(Locale l, String format, Object... args) {
         return this;
     }
+
+    @Override
     public void print(char[] charArray) {}
+
+    @Override
     public void print(char ch) {}
+
+    @Override
     public void print(double dnum) {}
+
+    @Override
     public void print(float fnum) {}
+
+    @Override
     public void print(int inum) {}
+
+    @Override
     public void print(long lnum) {}
+
+    @Override
     public void print(Object obj) {}
+
+    @Override
     public void print(String str) {}
+
+    @Override
     public void print(boolean bool) {}
+
+    @Override
     public void println() {}
+
+    @Override
     public void println(char[] charArray) {}
+
+    @Override
     public void println(char ch) {}
+
+    @Override
     public void println(double dnum) {}
+
+    @Override
     public void println(float fnum) {}
+
+    @Override
     public void println(int inum) {}
+
+    @Override
     public void println(long lnum) {}
+
+    @Override
     public void println(Object obj) {}
+
+    @Override
     public void println(String str) {}
+
+    @Override
     public void println(boolean bool) {}
+
+    @Override
     protected void setError() {}
+
+    @Override
     public void write(byte[] buffer, int offset, int length) {}
+
+    @Override
     public void write(int oneByte) {}
+
+    @Override
     public PrintStream append(char c) {
         return this;
     }
+
+    @Override
     public PrintStream append(CharSequence csq) {
         return this;
     }
+
+    @Override
     public PrintStream append(CharSequence csq, int start, int end) {
         return this;
     }

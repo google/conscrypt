@@ -273,7 +273,7 @@ public class ChainStrengthAnalyzerTest extends TestCase {
 
     private static X509Certificate createCert(String pem) throws Exception {
         CertificateFactory cf = CertificateFactory.getInstance("X509");
-        InputStream pemInput = new ByteArrayInputStream(pem.getBytes());
+        InputStream pemInput = new ByteArrayInputStream(pem.getBytes("UTF-8"));
         return (X509Certificate) cf.generateCertificate(pemInput);
     }
 }

@@ -39,8 +39,6 @@ import javax.security.auth.x500.X500Principal;
 /**
  * Implements crypto handling by delegating to OpenSSLEngine. Used for socket implementations
  * that are not backed by a real OS socket.
- *
- * @hide
  */
 final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);

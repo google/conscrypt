@@ -48,13 +48,11 @@ import javax.net.ssl.SSLHandshakeException;
  * Utility methods for SSL packet processing. Copied from the Netty project.
  * <p>
  * This is a public class to allow testing to occur on Android via CTS.
- *
- * @hide
  */
-public final class SSLUtils {
+final class SSLUtils {
     static final boolean USE_ENGINE_SOCKET_BY_DEFAULT =
             Boolean.parseBoolean(System.getProperty("org.conscrypt.useEngineSocketByDefault"));
-    static final int MAX_PROTOCOL_LENGTH = 255;
+    private static final int MAX_PROTOCOL_LENGTH = 255;
 
     /**
      * This is the maximum overhead when encrypting plaintext as defined by
@@ -80,7 +78,7 @@ public final class SSLUtils {
      * Calculates the minimum bytes required in the encrypted output buffer for the given number of
      * plaintext source bytes.
      */
-    public static int calculateOutNetBufSize(int pendingBytes) {
+    static int calculateOutNetBufSize(int pendingBytes) {
         return min(SSL3_RT_MAX_PACKET_SIZE,
                 MAX_ENCRYPTION_OVERHEAD_LENGTH + min(MAX_ENCRYPTION_OVERHEAD_DIFF, pendingBytes));
     }
@@ -119,7 +117,7 @@ public final class SSLUtils {
      * @throws IllegalArgumentException Is thrown if the given {@link ByteBuffer} has not at least
      * {@link org.conscrypt.NativeConstants#SSL3_RT_HEADER_LENGTH} bytes to read.
      */
-    public static int getEncryptedPacketLength(ByteBuffer[] buffers, int offset) {
+    static int getEncryptedPacketLength(ByteBuffer[] buffers, int offset) {
         ByteBuffer buffer = buffers[offset];
 
         // Check if everything we need is in one ByteBuffer. If so we can make use of the fast-path.
@@ -158,7 +156,7 @@ public final class SSLUtils {
      * @param protocols the list of protocols to be encoded
      * @return the encoded form of the protocol list.
      */
-    public static byte[] toLengthPrefixedList(String... protocols) {
+    static byte[] toLengthPrefixedList(String... protocols) {
         // Calculate the encoded length.
         int length = 0;
         for (int i = 0; i < protocols.length; ++i) {
