@@ -25,8 +25,11 @@ import java.util.List;
 
 /**
  * Analyzes the cryptographic strength of a chain of X.509 certificates.
+ *
+ * @hide
  */
-final class ChainStrengthAnalyzer {
+@Internal
+public final class ChainStrengthAnalyzer {
 
     private static final int MIN_RSA_MODULUS_LEN_BITS = 1024;
 
@@ -41,7 +44,7 @@ final class ChainStrengthAnalyzer {
         "1.2.840.113549.1.1.4", // md5WithRSAEncryption
     };
 
-    static final void check(X509Certificate[] chain) throws CertificateException {
+    public static final void check(X509Certificate[] chain) throws CertificateException {
         for (X509Certificate cert : chain) {
             try {
                 checkCert(cert);
@@ -52,7 +55,7 @@ final class ChainStrengthAnalyzer {
         }
     }
 
-    static final void check(List<X509Certificate> chain) throws CertificateException {
+    public static final void check(List<X509Certificate> chain) throws CertificateException {
         for (X509Certificate cert : chain) {
             try {
                 checkCert(cert);
@@ -63,7 +66,7 @@ final class ChainStrengthAnalyzer {
         }
     }
 
-    static final void checkCert(X509Certificate cert) throws CertificateException {
+    public static final void checkCert(X509Certificate cert) throws CertificateException {
         checkKeyLength(cert);
         checkSignatureAlgorithm(cert);
     }
