@@ -75,7 +75,7 @@ public class OpenSSLServerSocketImplTest {
     }
 
     @Parameters(name = "{0}")
-    public static Iterable<Object> data() {
+    public static Iterable<SocketType> data() {
         return Arrays.asList(SocketType.DEFAULT, SocketType.ENGINE);
     }
 

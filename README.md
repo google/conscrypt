@@ -32,7 +32,7 @@ not yet been published to the public Maven repositories.</b>
 
 #### Download JARs
 You can download
-[the JARs](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.conscrypt%22%20AND%20v%3A%221.0.1%22)
+[the JARs](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.conscrypt%22%20AND%20v%3A%221.1.0%22)
 directly from the Maven repositories.
 
 #### OpenJDK (i.e. non-Android)
@@ -66,7 +66,11 @@ Use the [os-maven-plugin](https://github.com/trustin/os-maven-plugin) to add the
 <dependency>
   <groupId>org.conscrypt</groupId>
   <artifactId>conscrypt-openjdk</artifactId>
+<<<<<<< HEAD
   <version>1.0.1</version>
+=======
+  <version>1.1.0-SNAPSHOT</version>
+>>>>>>> 52c196b8e8cea5b850404bf5eac44c27ca858d2e
   <classifier>${os.detected.classifier}</classifier>
 </dependency>
 ```
