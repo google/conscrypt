@@ -119,11 +119,7 @@ LOCAL_MODULE := conscrypt-nojarjar
 LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
-bundled_test_java_files := $(filter-out \
-	%/org/conscrypt/NativeCryptoTest.java \
-	%/org/conscrypt/OpenSSLSocketImplTest.java \
-	, $(call all-java-files-under,openjdk/src/test/java))
-bundled_test_java_files += $(call all-java-files-under,platform/src/test/java)
+bundled_test_java_files := $(call all-java-files-under,platform/src/test/java)
 bundled_test_java_files += $(call all-java-files-under,testing/src/main/java)
 bundled_test_java_files := $(foreach j,$(bundled_test_java_files),\
 	$(if $(findstring testing/src/main/java/libcore/,$(j)),,$(j)))
