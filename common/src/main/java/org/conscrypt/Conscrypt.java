@@ -69,6 +69,7 @@ public final class Conscrypt {
     /**
      * Utility that exposes common TLS constants.
      */
+    @ExperimentalApi
     public static final class Constants {
         private Constants() {}
 
