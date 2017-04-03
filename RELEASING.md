@@ -170,8 +170,8 @@ We currently distribute the following OSes and architectures:
 | OS | x86_32 | x86_64 |
 | --- | --- | --- |
 | Linux |  | X |
-| Windows | X | X |
 | Mac |  | X |
+| Windows | X | X |
 
 Deployment to Maven Central (or the snapshot repo) is a two-step process. The only
 artifact that is platform-specific is codegen, so we only need to deploy the other
@@ -196,7 +196,7 @@ If the version has the `-SNAPSHOT` suffix, the artifacts will automatically
 go to the snapshot repository. Otherwise it's a release deployment and the
 artifacts will go to a freshly created staging repository.
 
-### Deploy Additional Platforms (Release Deployment Only)
+### Deploy OpenJDK for Additional Platforms (Release Deployment Only)
 The previous step will only deploy the artifacts for the OS you run on
 it and the architecture of your JVM. For a fully fledged deployment, you will
 need to deploy for each supported OS/architecture.
@@ -211,8 +211,8 @@ deployment commands should include `-PrepositoryId=<repository-id>` in order to
 ensure that the artifacts are pushed to the same staging repository.
 
 ```bash
-conscrypt$ ./gradlew build uploadArchives -PtargetArch=<arch> \
-    -PrepositoryId=<repository-id> -Dorg.gradle.parallel=false
+conscrypt$ ./gradlew build conscrypt-openjdk:uploadArchives \
+    -Dorg.gradle.parallel=false -PrepositoryId=<repository-id>
 ```
 
 Now finish [Releasing on Maven Central](#releasing-on-maven-central).
