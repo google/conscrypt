@@ -73,24 +73,10 @@ public final class Conscrypt {
         private Constants() {}
 
         /**
-         * Returns the maximum length (in bytes) of plaintext data.
-         */
-        public static int maxPlaintextLength() {
-            return NativeConstants.SSL3_RT_MAX_PLAIN_LENGTH;
-        }
-
-        /**
          * Returns the maximum length (in bytes) of an encrypted packet.
          */
         public static int maxEncryptedPacketLength() {
             return NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
-        }
-
-        /**
-         * Returns the length (in bytes) of an encrypted packet header.
-         */
-        public static int encryptedPacketHeaderLength() {
-            return NativeConstants.SSL3_RT_HEADER_LENGTH;
         }
     }
 
