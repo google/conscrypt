@@ -2256,15 +2256,11 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_shutdown() throws Exception {
-        // null FileDescriptor
+        // We tolerate a null FileDescriptor
         wrapWithSSLSession(new SSLSessionWrappedTask() {
             @Override
             public void run(long sslSession) throws Exception {
-                try {
-                    NativeCrypto.SSL_shutdown(sslSession, null, DUMMY_CB);
-                    fail();
-                } catch (NullPointerException expected) {
-                }
+                NativeCrypto.SSL_shutdown(sslSession, null, DUMMY_CB);
             }
         });
 
@@ -2276,6 +2272,7 @@ public class NativeCryptoTest {
                     NativeCrypto.SSL_shutdown(sslSession, INVALID_FD, null);
                     fail();
                 } catch (NullPointerException expected) {
+                    // Ignored.
                 }
             }
         });
