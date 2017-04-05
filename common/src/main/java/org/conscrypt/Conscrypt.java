@@ -67,6 +67,21 @@ public final class Conscrypt {
     }
 
     /**
+     * Utility that exposes common TLS constants.
+     */
+    @ExperimentalApi
+    public static final class Constants {
+        private Constants() {}
+
+        /**
+         * Returns the maximum length (in bytes) of an encrypted packet.
+         */
+        public static int maxEncryptedPacketLength() {
+            return NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
+        }
+    }
+
+    /**
      * Utility methods for configuring Conscrypt socket factories.
      */
     public static final class SocketFactories {
