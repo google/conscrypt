@@ -64,8 +64,6 @@ public final class NativeCrypto {
     static native long EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q,
             byte[] dmp1, byte[] dmq1, byte[] iqmp);
 
-    static native int EVP_PKEY_size(NativeRef.EVP_PKEY pkey);
-
     static native int EVP_PKEY_type(NativeRef.EVP_PKEY pkey);
 
     static native String EVP_PKEY_print_public(NativeRef.EVP_PKEY pkeyRef);
@@ -117,10 +115,6 @@ public final class NativeCrypto {
      * @return array of {n, e, d, p, q, dmp1, dmq1, iqmp}
      */
     static native byte[][] get_RSA_private_params(NativeRef.EVP_PKEY rsa);
-
-    static native byte[] i2d_RSAPublicKey(NativeRef.EVP_PKEY rsa);
-
-    static native byte[] i2d_RSAPrivateKey(NativeRef.EVP_PKEY rsa);
 
     // --- EC functions --------------------------
 
@@ -179,8 +173,6 @@ public final class NativeCrypto {
     static native long EVP_get_digestbyname(String name);
 
     static native int EVP_MD_size(long evp_md_const);
-
-    static native int EVP_MD_block_size(long evp_md_const);
 
     // --- Message digest context functions --------------
 
@@ -294,8 +286,6 @@ public final class NativeCrypto {
 
     static native int EVP_AEAD_nonce_length(long evpAead);
 
-    static native int EVP_AEAD_max_tag_len(long evpAead);
-
     static native int EVP_AEAD_CTX_seal(long evpAead, byte[] key, int tagLengthInBytes, byte[] out,
             int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength, byte[] ad)
             throws BadPaddingException;
@@ -322,14 +312,6 @@ public final class NativeCrypto {
 
     static native void RAND_bytes(byte[] output);
 
-    // --- ASN.1 objects -------------------------------------------------------
-
-    static native int OBJ_txt2nid(String oid);
-
-    static native String OBJ_txt2nid_longName(String oid);
-
-    static native String OBJ_txt2nid_oid(String oid);
-
     // --- X509_NAME -----------------------------------------------------------
 
     static int X509_NAME_hash(X500Principal principal) {
@@ -349,8 +331,6 @@ public final class NativeCrypto {
             throw new AssertionError(e);
         }
     }
-
-    static native String X509_NAME_print_ex(long x509nameCtx, long flags);
 
     // --- X509 ----------------------------------------------------------------
 
@@ -541,11 +521,6 @@ public final class NativeCrypto {
     static native long create_BIO_InputStream(OpenSSLBIOInputStream is, boolean isFinite);
 
     static native long create_BIO_OutputStream(OutputStream os);
-
-    static native int BIO_read(long bioRef, byte[] buffer);
-
-    static native void BIO_write(long bioRef, byte[] buffer, int offset, int length)
-            throws IOException;
 
     static native void BIO_free_all(long bioRef);
 
@@ -782,6 +757,8 @@ public final class NativeCrypto {
 
     static native void SSL_CTX_set_session_id_context(long ssl_ctx, byte[] sid_ctx);
 
+    static native long SSL_CTX_set_timeout(long ssl_ctx, long seconds);
+
     static native long SSL_new(long ssl_ctx) throws SSLException;
 
     static native void SSL_enable_tls_channel_id(long ssl) throws SSLException;
@@ -798,13 +775,7 @@ public final class NativeCrypto {
 
     static native void SSL_set_client_CA_list(long ssl, byte[][] asn1DerEncodedX500Principals);
 
-    static native long SSL_get_mode(long ssl);
-
     static native long SSL_set_mode(long ssl, long mode);
-
-    static native long SSL_clear_mode(long ssl, long mode);
-
-    static native long SSL_get_options(long ssl);
 
     static native long SSL_set_options(long ssl, long options);
 
@@ -830,25 +801,29 @@ public final class NativeCrypto {
 
     /** Protocols to enable by default when "TLSv1.2" is requested. */
     static final String[] TLSV12_PROTOCOLS = new String[] {
-            SUPPORTED_PROTOCOL_TLSV1, SUPPORTED_PROTOCOL_TLSV1_1, SUPPORTED_PROTOCOL_TLSV1_2,
+            SUPPORTED_PROTOCOL_TLSV1,
+            SUPPORTED_PROTOCOL_TLSV1_1,
+            SUPPORTED_PROTOCOL_TLSV1_2,
     };
 
     /** Protocols to enable by default when "TLSv1.1" is requested. */
     static final String[] TLSV11_PROTOCOLS = new String[] {
-            SUPPORTED_PROTOCOL_TLSV1, SUPPORTED_PROTOCOL_TLSV1_1, SUPPORTED_PROTOCOL_TLSV1_2,
+            SUPPORTED_PROTOCOL_TLSV1,
+            SUPPORTED_PROTOCOL_TLSV1_1,
+            SUPPORTED_PROTOCOL_TLSV1_2,
     };
 
     /** Protocols to enable by default when "TLSv1" is requested. */
     static final String[] TLSV1_PROTOCOLS = new String[] {
-            SUPPORTED_PROTOCOL_TLSV1, SUPPORTED_PROTOCOL_TLSV1_1, SUPPORTED_PROTOCOL_TLSV1_2,
+            SUPPORTED_PROTOCOL_TLSV1,
+            SUPPORTED_PROTOCOL_TLSV1_1,
+            SUPPORTED_PROTOCOL_TLSV1_2,
     };
 
     static final String[] DEFAULT_PROTOCOLS = TLSV12_PROTOCOLS;
 
     static String[] getSupportedProtocols() {
-        return new String[] {
-                SUPPORTED_PROTOCOL_TLSV1, SUPPORTED_PROTOCOL_TLSV1_1, SUPPORTED_PROTOCOL_TLSV1_2,
-        };
+        return TLSV12_PROTOCOLS.clone();
     }
 
     static void setEnabledProtocols(long ssl, String[] protocols) {
@@ -996,11 +971,9 @@ public final class NativeCrypto {
             long sslNativePointer, FileDescriptor fd, SSLHandshakeCallbacks shc, int timeoutMillis)
             throws SSLException, SocketTimeoutException, CertificateException;
 
-    /**
-     * Currently only intended for forcing renegotiation for testing.
-     * Not used within OpenSSLSocketImpl.
-     */
-    static native void SSL_renegotiate(long sslNativePointer) throws SSLException;
+    public static native String SSL_get_current_cipher(long sslNativePointer);
+
+    public static native String SSL_get_version(long sslNativePointer);
 
     /**
      * Returns the local X509 certificate references. Must X509_free when done.
@@ -1040,6 +1013,16 @@ public final class NativeCrypto {
     static native byte[] SSL_SESSION_session_id(long sslSessionNativePointer);
 
     static native long SSL_SESSION_get_time(long sslSessionNativePointer);
+
+    static native long SSL_get_time(long sslNativePointer);
+
+    static native long SSL_set_timeout(long sslNativePointer, long millis);
+
+    static native long SSL_get_timeout(long sslNativePointer);
+
+    static native long SSL_SESSION_get_timeout(long sslSessionNativePointer);
+
+    static native byte[] SSL_session_id(long sslNativePointer);
 
     static native String SSL_SESSION_get_version(long sslSessionNativePointer);
 
@@ -1116,9 +1099,26 @@ public final class NativeCrypto {
          * Called when SSL state changes. This could be handshake completion.
          */
         void onSSLStateChange(int type, int val);
-    }
 
-    static native long ERR_peek_last_error();
+        /**
+         * Called when a new session has been established and may be added to the session cache.
+         * Returns {@code true} if {@code sslSessionNativePtr} is owned.
+         */
+        boolean onNewSessionEstablished(long sslSessionNativePtr);
+
+        /**
+         * Called for servers where TLS < 1.3 (TLS 1.3 uses session tickets rather than
+         * application session caches).
+         *
+         * <p/>Looks up the session by ID in the application's session cache. If a valid session
+         * is returned, this callback is responsible for incrementing the reference count (and any
+         * required synchronization).
+         *
+         * @param id the ID of the session to find.
+         * @return the cached session or {@code 0} if no session was found matching the given ID.
+         */
+        long serverSessionRequested(byte[] id);
+    }
 
     static native String SSL_CIPHER_get_kx_name(long cipherAddress);
 
@@ -1149,10 +1149,6 @@ public final class NativeCrypto {
     static native int SSL_pending_readable_bytes(long ssl);
 
     static native int SSL_pending_written_bytes_in_BIO(long bio);
-
-    static native long SSL_get0_session(long ssl);
-
-    static native long SSL_get1_session(long ssl);
 
     /**
      * Returns the maximum overhead, in bytes, of sealing a record with SSL.
@@ -1256,4 +1252,20 @@ public final class NativeCrypto {
      */
     static native void ENGINE_SSL_shutdown(long sslNativePointer, SSLHandshakeCallbacks shc)
             throws IOException;
+
+    /**
+     * Used for testing only.
+     */
+    static native int BIO_read(long bioRef, byte[] buffer);
+    static native void BIO_write(long bioRef, byte[] buffer, int offset, int length)
+            throws IOException;
+    static native long ERR_peek_last_error();
+    static native long SSL_clear_mode(long ssl, long mode);
+    static native long SSL_get_mode(long ssl);
+    static native long SSL_get_options(long ssl);
+    static native long SSL_get1_session(long ssl);
+    static native void SSL_renegotiate(long sslNativePointer) throws SSLException;
+    static native long SSL_SESSION_new(long sslContextNativePointer);
+    static native int SSL_SESSION_up_ref(long sslContextNativePointer);
+    static native long SSL_SESSION_set_time(long sslSessionNativePointer, long millis);
 }

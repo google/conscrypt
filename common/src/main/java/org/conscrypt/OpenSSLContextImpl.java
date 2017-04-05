@@ -30,11 +30,12 @@ import javax.net.ssl.TrustManager;
 /**
  * OpenSSL-backed SSLContext service provider interface.
  *
+ * <p>Public to allow contruction via the provider framework.
+ *
  * @hide
  */
 @Internal
 public abstract class OpenSSLContextImpl extends SSLContextSpi {
-
     /**
      * The default SSLContextImpl for use with
      * SSLContext.getInstance("Default"). Protected by the
@@ -97,8 +98,8 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
     @Override
     public void engineInit(KeyManager[] kms, TrustManager[] tms, SecureRandom sr)
             throws KeyManagementException {
-        sslParameters = new SSLParametersImpl(kms, tms, sr, clientSessionContext,
-                serverSessionContext, algorithms);
+        sslParameters = new SSLParametersImpl(
+                kms, tms, sr, clientSessionContext, serverSessionContext, algorithms);
     }
 
     @Override
@@ -147,18 +148,27 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
         return clientSessionContext;
     }
 
+    /**
+     * Public to allow construction via the provider framework.
+     */
     public static final class TLSv12 extends OpenSSLContextImpl {
         public TLSv12() {
             super(NativeCrypto.TLSV12_PROTOCOLS);
         }
     }
 
+    /**
+     * Public to allow construction via the provider framework.
+     */
     public static final class TLSv11 extends OpenSSLContextImpl {
         public TLSv11() {
             super(NativeCrypto.TLSV11_PROTOCOLS);
         }
     }
 
+    /**
+     * Public to allow construction via the provider framework.
+     */
     public static final class TLSv1 extends OpenSSLContextImpl {
         public TLSv1() {
             super(NativeCrypto.TLSV1_PROTOCOLS);

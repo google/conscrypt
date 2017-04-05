@@ -362,15 +362,16 @@ final class Platform {
      * Pre-Java-8 backward compatibility.
      */
 
-    static SSLSession wrapSSLSession(AbstractOpenSSLSession sslSession) {
-        return new OpenSSLExtendedSessionImpl(sslSession);
+    static SSLSession wrapSSLSession(ActiveSession sslSession) {
+        return new DelegatingExtendedSSLSession(sslSession);
     }
 
     @SuppressWarnings("unused")
     static SSLSession unwrapSSLSession(SSLSession sslSession) {
-        if (sslSession instanceof OpenSSLExtendedSessionImpl) {
-            return ((OpenSSLExtendedSessionImpl) sslSession).getDelegate();
+        if (sslSession instanceof DelegatingExtendedSSLSession) {
+            return ((DelegatingExtendedSSLSession) sslSession).getDelegate();
         }
+
         return sslSession;
     }
 

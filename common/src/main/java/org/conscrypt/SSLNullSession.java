@@ -28,6 +28,7 @@ import javax.net.ssl.*;
  * SSLSocket#getSession()} before {@link SSLSocket#startHandshake()} is called.
  */
 final class SSLNullSession implements SSLSession, Cloneable {
+    static final String INVALID_CIPHER = "SSL_NULL_WITH_NULL_NULL";
 
     /*
      * Holds default instances so class preloading doesn't create an instance of
@@ -46,7 +47,11 @@ final class SSLNullSession implements SSLSession, Cloneable {
         return DefaultHolder.NULL_SESSION;
     }
 
-    SSLNullSession() {
+    static boolean isNullSession(SSLSession session) {
+        return session == DefaultHolder.NULL_SESSION;
+    }
+
+    private SSLNullSession() {
         creationTime = System.currentTimeMillis();
         lastAccessedTime = creationTime;
     }
@@ -58,7 +63,7 @@ final class SSLNullSession implements SSLSession, Cloneable {
 
     @Override
     public String getCipherSuite() {
-        return "SSL_NULL_WITH_NULL_NULL";
+        return INVALID_CIPHER;
     }
 
     @Override

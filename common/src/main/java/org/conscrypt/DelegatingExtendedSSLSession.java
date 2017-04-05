@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 The Android Open Source Project
+ * Copyright 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,44 +30,46 @@ import javax.security.cert.X509Certificate;
  * Implementation of the ExtendedSSLSession class for OpenSSL. Uses a delegate to maintain backward
  * compatibility with previous versions of Android which don't have ExtendedSSLSession.
  */
-final class OpenSSLExtendedSessionImpl extends ExtendedSSLSession {
-    private final AbstractOpenSSLSession delegate;
+final class DelegatingExtendedSSLSession extends ExtendedSSLSession {
+    // TODO: use BoringSSL API to actually fetch the real data
+    private static final String[] LOCAL_SUPPORTED_SIGNATURE_ALGORITHMS = new String[] {
+            "SHA512withRSA",
+            "SHA512withECDSA",
+            "SHA384withRSA",
+            "SHA384withECDSA",
+            "SHA256withRSA",
+            "SHA256withECDSA",
+            "SHA224withRSA",
+            "SHA224withECDSA",
+            "SHA1withRSA",
+            "SHA1withECDSA",
+    };
+    // TODO: use BoringSSL API to actually fetch the real data
+    private static final String[] PEER_SUPPORTED_SIGNATURE_ALGORITHMS = new String[] {
+            "SHA1withRSA",
+            "SHA1withECDSA"
+    };
 
-    OpenSSLExtendedSessionImpl(AbstractOpenSSLSession delegate) {
+    private final ActiveSession delegate;
+
+    DelegatingExtendedSSLSession(ActiveSession delegate) {
         this.delegate = delegate;
     }
 
-    AbstractOpenSSLSession getDelegate() {
+    ActiveSession getDelegate() {
         return delegate;
     }
 
     /* @Override */
     @SuppressWarnings("MissingOverride") // For Android backward-compatibility.
     public String[] getLocalSupportedSignatureAlgorithms() {
-        // From src/ssl/t1_lib.c tls12_sigalgs
-        // TODO: use BoringSSL API to actually fetch the real data
-        return new String[] {
-                "SHA512withRSA",
-                "SHA512withECDSA",
-                "SHA384withRSA",
-                "SHA384withECDSA",
-                "SHA256withRSA",
-                "SHA256withECDSA",
-                "SHA224withRSA",
-                "SHA224withECDSA",
-                "SHA1withRSA",
-                "SHA1withECDSA",
-        };
+        return LOCAL_SUPPORTED_SIGNATURE_ALGORITHMS.clone();
     }
 
     /* @Override */
     @SuppressWarnings("MissingOverride") // For Android backward-compatibility.
     public String[] getPeerSupportedSignatureAlgorithms() {
-        // TODO: use BoringSSL API to actually fetch the real data
-        return new String[] {
-                "SHA1withRSA",
-                "SHA1withECDSA",
-        };
+        return PEER_SUPPORTED_SIGNATURE_ALGORITHMS.clone();
     }
 
     /* @Override */

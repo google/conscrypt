@@ -16,19 +16,10 @@
 
 package org.conscrypt;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.nio.BufferUnderflowException;
-import java.nio.ByteBuffer;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import javax.net.ssl.SSLSession;
@@ -50,28 +41,22 @@ abstract class AbstractSessionContext implements SSLSessionContext {
 
     final long sslCtxNativePointer = NativeCrypto.SSL_CTX_new();
 
-    /** Identifies OpenSSL sessions. */
-    private static final int OPEN_SSL = 1;
-
-    /** Identifies OpenSSL sessions with OCSP stapled data. */
-    private static final int OPEN_SSL_WITH_OCSP = 2;
-
-    /** Identifies OpenSSL sessions with TLS SCT data. */
-    private static final int OPEN_SSL_WITH_TLS_SCT = 3;
-
     @SuppressWarnings("serial")
-    private final Map<ByteArray, SSLSession> sessions = new LinkedHashMap<ByteArray, SSLSession>() {
-        @Override
-        protected boolean removeEldestEntry(
-                Map.Entry<ByteArray, SSLSession> eldest) {
-            boolean remove = maximumSize > 0 && size() > maximumSize;
-            if (remove) {
-                remove(eldest.getKey());
-                sessionRemoved(eldest.getValue());
-            }
-            return false;
-        }
-    };
+    private final Map<ByteArray, SslSessionWrapper> sessions =
+            new LinkedHashMap<ByteArray, SslSessionWrapper>() {
+                @Override
+                protected boolean removeEldestEntry(
+                        Map.Entry<ByteArray, SslSessionWrapper> eldest) {
+                    // NOTE: does not take into account any session that may have become
+                    // invalid.
+                    if (maximumSize > 0 && size() > maximumSize) {
+                        // Let the subclass know.
+                        onBeforeRemoveSession(eldest.getValue());
+                        return true;
+                    }
+                    return false;
+                }
+            };
 
     /**
      * Constructs a new session context.
@@ -83,29 +68,27 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     }
 
     /**
-     * Returns the collection of sessions ordered from oldest to newest
+     * This method is provided for API-compatibility only, not intended for use. No guarantees
+     * are made WRT performance.
      */
-    private Iterator<SSLSession> sessionIterator() {
-        synchronized (sessions) {
-            SSLSession[] array = sessions.values().toArray(
-                    new SSLSession[sessions.size()]);
-            return Arrays.asList(array).iterator();
-        }
-    }
-
     @Override
     public final Enumeration<byte[]> getIds() {
-        final Iterator<SSLSession> i = sessionIterator();
+        // Make a copy of the IDs.
+        final Iterator<SslSessionWrapper> iter;
+        synchronized (sessions) {
+            iter = Arrays.asList(sessions.values().toArray(new SslSessionWrapper[sessions.size()]))
+                    .iterator();
+        }
         return new Enumeration<byte[]>() {
-            private SSLSession next;
+            private SslSessionWrapper next;
 
             @Override
             public boolean hasMoreElements() {
                 if (next != null) {
                     return true;
                 }
-                while (i.hasNext()) {
-                    SSLSession session = i.next();
+                while (iter.hasNext()) {
+                    SslSessionWrapper session = iter.next();
                     if (session.isValid()) {
                         next = session;
                         return true;
@@ -127,6 +110,26 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         };
     }
 
+    /**
+     * This is provided for API-compatibility only, not intended for use. No guarantees are
+     * made WRT performance or the validity of the returned session.
+     */
+    @Override
+    public final SSLSession getSession(byte[] sessionId) {
+        if (sessionId == null) {
+            throw new NullPointerException("sessionId");
+        }
+        ByteArray key = new ByteArray(sessionId);
+        SslSessionWrapper session;
+        synchronized (sessions) {
+            session = sessions.get(key);
+        }
+        if (session != null && session.isValid()) {
+            return session.toSSLSession();
+        }
+        return null;
+    }
+
     @Override
     public final int getSessionCacheSize() {
         return maximumSize;
@@ -137,55 +140,33 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         return timeout;
     }
 
-    /**
-     * Makes sure cache size is < maximumSize.
-     */
-    private void trimToSize() {
-        synchronized (sessions) {
-            int size = sessions.size();
-            if (size > maximumSize) {
-                int removals = size - maximumSize;
-                Iterator<SSLSession> i = sessions.values().iterator();
-                do {
-                    SSLSession session = i.next();
-                    i.remove();
-                    sessionRemoved(session);
-                } while (--removals > 0);
-            }
-        }
-    }
-
     @Override
-    public void setSessionTimeout(int seconds)
-            throws IllegalArgumentException {
+    public final void setSessionTimeout(int seconds) throws IllegalArgumentException {
         if (seconds < 0) {
             throw new IllegalArgumentException("seconds < 0");
         }
-        timeout = seconds;
 
         synchronized (sessions) {
-            Iterator<SSLSession> i = sessions.values().iterator();
+            // Set the timeout on this context.
+            timeout = seconds;
+            NativeCrypto.SSL_CTX_set_timeout(sslCtxNativePointer, seconds);
+
+            Iterator<SslSessionWrapper> i = sessions.values().iterator();
             while (i.hasNext()) {
-                SSLSession session = i.next();
+                SslSessionWrapper session = i.next();
                 // SSLSession's know their context and consult the
                 // timeout as part of their validity condition.
                 if (!session.isValid()) {
+                    // Let the subclass know.
+                    onBeforeRemoveSession(session);
                     i.remove();
-                    sessionRemoved(session);
                 }
             }
         }
     }
 
-    /**
-     * Called when a session is removed. Used by ClientSessionContext
-     * to update its host-and-port based cache.
-     */
-    protected abstract void sessionRemoved(SSLSession session);
-
     @Override
-    public final void setSessionCacheSize(int size)
-            throws IllegalArgumentException {
+    public final void setSessionCacheSize(int size) throws IllegalArgumentException {
         if (size < 0) {
             throw new IllegalArgumentException("size < 0");
         }
@@ -199,208 +180,93 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
-    /**
-     * Converts the given session to bytes.
-     *
-     * @return session data as bytes or null if the session can't be converted
-     */
-    byte[] toBytes(SSLSession session) {
-        // TODO: Support SSLSessionImpl, too.
-        if (!(session instanceof OpenSSLSessionImpl)) {
-            return null;
-        }
-
-        OpenSSLSessionImpl sslSession = (OpenSSLSessionImpl) session;
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            DataOutputStream daos = new DataOutputStream(baos);
-
-            daos.writeInt(OPEN_SSL_WITH_TLS_SCT); // session type ID
-
-            // Session data.
-            byte[] data = sslSession.getEncoded();
-            daos.writeInt(data.length);
-            daos.write(data);
-
-            // Certificates.
-            Certificate[] certs = session.getPeerCertificates();
-            daos.writeInt(certs.length);
-
-            for (Certificate cert : certs) {
-                data = cert.getEncoded();
-                daos.writeInt(data.length);
-                daos.write(data);
-            }
-
-            List<byte[]> ocspResponses = sslSession.getStatusResponses();
-            daos.writeInt(ocspResponses.size());
-            for (byte[] ocspResponse : ocspResponses) {
-                daos.writeInt(ocspResponse.length);
-                daos.write(ocspResponse);
-            }
-
-            byte[] tlsSctData = sslSession.getTlsSctData();
-            if (tlsSctData != null) {
-                daos.writeInt(tlsSctData.length);
-                daos.write(tlsSctData);
-            } else {
-                daos.writeInt(0);
-            }
-
-            // TODO: local certificates?
-
-            return baos.toByteArray();
-        } catch (IOException e) {
-            System.err.println("Failed to convert saved SSL Session: " + e.getMessage());
-            return null;
-        } catch (CertificateEncodingException e) {
-            log(e);
-            return null;
-        }
-    }
-
-    private static void checkRemaining(ByteBuffer buf, int length) throws IOException {
-        if (length < 0) {
-            throw new IOException("Length is negative: " + length);
-        }
-        if (length > buf.remaining()) {
-            throw new IOException(
-                    "Length of blob is longer than available: " + length + " > " + buf.remaining());
-        }
-    }
-
-    /**
-     * Creates a session from the given bytes.
-     *
-     * @return a session or null if the session can't be converted
-     */
-    OpenSSLSessionImpl toSession(byte[] data, String host, int port) {
-        ByteBuffer buf = ByteBuffer.wrap(data);
-        try {
-            int type = buf.getInt();
-            if (type != OPEN_SSL && type != OPEN_SSL_WITH_OCSP && type != OPEN_SSL_WITH_TLS_SCT) {
-                throw new IOException("Unexpected type ID: " + type);
-            }
-
-            int length = buf.getInt();
-            checkRemaining(buf, length);
-
-            byte[] sessionData = new byte[length];
-            buf.get(sessionData);
-
-            int count = buf.getInt();
-            checkRemaining(buf, count);
-
-            X509Certificate[] certs = new X509Certificate[count];
-            for (int i = 0; i < count; i++) {
-                length = buf.getInt();
-                checkRemaining(buf, length);
-
-                byte[] certData = new byte[length];
-                buf.get(certData);
-                try {
-                    certs[i] = OpenSSLX509Certificate.fromX509Der(certData);
-                } catch (Exception e) {
-                    throw new IOException("Can not read certificate " + i + "/" + count);
-                }
-            }
-
-            byte[] ocspData = null;
-            if (type >= OPEN_SSL_WITH_OCSP) {
-                // We only support one OCSP response now, but in the future
-                // we may support RFC 6961 which has multiple.
-                int countOcspResponses = buf.getInt();
-                checkRemaining(buf, countOcspResponses);
-
-                if (countOcspResponses >= 1) {
-                    int ocspLength = buf.getInt();
-                    checkRemaining(buf, ocspLength);
-
-                    ocspData = new byte[ocspLength];
-                    buf.get(ocspData);
-
-                    // Skip the rest of the responses.
-                    for (int i = 1; i < countOcspResponses; i++) {
-                        ocspLength = buf.getInt();
-                        checkRemaining(buf, ocspLength);
-                        buf.position(buf.position() + ocspLength);
-                    }
-                }
-            }
-
-            byte[] tlsSctData = null;
-            if (type == OPEN_SSL_WITH_TLS_SCT) {
-                int tlsSctDataLength = buf.getInt();
-                checkRemaining(buf, tlsSctDataLength);
-
-                if (tlsSctDataLength > 0) {
-                    tlsSctData = new byte[tlsSctDataLength];
-                    buf.get(tlsSctData);
-                }
-            }
-
-            if (buf.remaining() != 0) {
-                log(new AssertionError("Read entire session, but data still remains; rejecting"));
-                return null;
-            }
-
-            return new OpenSSLSessionImpl(sessionData, host, port, certs, ocspData, tlsSctData,
-                    this);
-        } catch (IOException e) {
-            log(e);
-            return null;
-        } catch (BufferUnderflowException e) {
-            log(e);
-            return null;
-        }
-    }
-
-    SSLSession wrapSSLSessionIfNeeded(SSLSession session) {
-        if (session instanceof AbstractOpenSSLSession) {
-            return Platform.wrapSSLSession((AbstractOpenSSLSession) session);
-        } else {
-            return session;
-        }
-    }
-
-    @Override
-    public SSLSession getSession(byte[] sessionId) {
-        if (sessionId == null) {
-            throw new NullPointerException("sessionId == null");
-        }
-        ByteArray key = new ByteArray(sessionId);
-        SSLSession session;
-        synchronized (sessions) {
-            session = sessions.get(key);
-        }
-        if (session != null && session.isValid()) {
-            return wrapSSLSessionIfNeeded(session);
-        }
-        return null;
-    }
-
-    void putSession(SSLSession session) {
-        byte[] id = session.getId();
-        if (id.length == 0) {
-            return;
-        }
-        ByteArray key = new ByteArray(id);
-        synchronized (sessions) {
-            sessions.put(key, session);
-        }
-    }
-
-    private static void log(Throwable t) {
-        System.out.println("Error inflating SSL session: "
-                + (t.getMessage() != null ? t.getMessage() : t.getClass().getName()));
-    }
-
     @Override
     protected void finalize() throws Throwable {
         try {
             NativeCrypto.SSL_CTX_free(sslCtxNativePointer);
         } finally {
             super.finalize();
+        }
+    }
+
+    /**
+     * Adds the given session to the cache.
+     */
+    final void cacheSession(SslSessionWrapper session) {
+        byte[] id = session.getId();
+        if (id == null || id.length == 0) {
+            return;
+        }
+
+        // Let the subclass know.
+        onBeforeAddSession(session);
+
+        ByteArray key = new ByteArray(id);
+        synchronized (sessions) {
+            sessions.put(key, session);
+        }
+    }
+
+    /**
+     * Called for server sessions only. Retrieves the session by its ID. Overridden by
+     * {@link ServerSessionContext} to
+     */
+    final SslSessionWrapper getSessionFromCache(byte[] sessionId) {
+        if (sessionId == null) {
+            return null;
+        }
+
+        // First, look in the in-memory cache.
+        SslSessionWrapper session;
+        synchronized (sessions) {
+            session = sessions.get(new ByteArray(sessionId));
+        }
+        if (session != null && session.isValid()) {
+            return session;
+        }
+
+        // Not found in-memory - look it up in the persistent cache.
+        return getSessionFromPersistentCache(sessionId);
+    }
+
+    /**
+     * Called when the given session is about to be added. Used by {@link ClientSessionContext} to
+     * update its host-and-port based cache.
+     *
+     * <p>Visible for extension only, not intended to be called directly.
+     */
+    abstract void onBeforeAddSession(SslSessionWrapper session);
+
+    /**
+     * Called when a session is about to be removed. Used by {@link ClientSessionContext}
+     * to update its host-and-port based cache.
+     *
+     * <p>Visible for extension only, not intended to be called directly.
+     */
+    abstract void onBeforeRemoveSession(SslSessionWrapper session);
+
+    /**
+     * Called for server sessions only. Retrieves the session by ID from the persistent cache.
+     *
+     * <p>Visible for extension only, not intended to be called directly.
+     */
+    abstract SslSessionWrapper getSessionFromPersistentCache(byte[] sessionId);
+
+    /**
+     * Makes sure cache size is < maximumSize.
+     */
+    private void trimToSize() {
+        synchronized (sessions) {
+            int size = sessions.size();
+            if (size > maximumSize) {
+                int removals = size - maximumSize;
+                Iterator<SslSessionWrapper> i = sessions.values().iterator();
+                while (removals-- > 0) {
+                    SslSessionWrapper session = i.next();
+                    onBeforeRemoveSession(session);
+                    i.remove();
+                }
+            }
         }
     }
 }

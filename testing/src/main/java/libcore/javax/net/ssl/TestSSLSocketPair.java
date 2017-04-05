@@ -15,6 +15,7 @@
  */
 package libcore.javax.net.ssl;
 
+import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,9 +32,7 @@ public final class TestSSLSocketPair {
     public final TestSSLContext c;
     public final SSLSocket server;
     public final SSLSocket client;
-    private TestSSLSocketPair (TestSSLContext c,
-            SSLSocket server,
-            SSLSocket client) {
+    private TestSSLSocketPair(TestSSLContext c, SSLSocket server, SSLSocket client) {
         this.c = c;
         this.server = server;
         this.client = client;
@@ -47,14 +46,15 @@ public final class TestSSLSocketPair {
             throw new RuntimeException(e);
         }
     }
-    /**
-     * based on test_SSLSocket_startHandshake
-     */
-    public static TestSSLSocketPair create () {
-        TestSSLContext c = TestSSLContext.create();
-        SSLSocket[] sockets = connect(c, null, null);
-        return new TestSSLSocketPair(c, sockets[0], sockets[1]);
+
+    public SSLSocket[] sockets() {
+        return new SSLSocket[] {server, client};
     }
+
+    public TestSSLSocketPair connect() {
+        return connect(null, null);
+    }
+
     /**
      * Create a new connected server/client socket pair within a
      * existing SSLContext. Optionally specify clientCipherSuites to
@@ -62,13 +62,9 @@ public final class TestSSLSocketPair {
      * caching. Optionally specify serverCipherSuites for testing
      * cipher suite negotiation.
      */
-    public static SSLSocket[] connect (final TestSSLContext context,
-            final String[] clientCipherSuites,
-            final String[] serverCipherSuites) {
+    public TestSSLSocketPair connect(
+            final String[] clientCipherSuites, final String[] serverCipherSuites) {
         try {
-            final SSLSocket client = (SSLSocket)
-                    context.clientContext.getSocketFactory().createSocket(context.host, context.port);
-            final SSLSocket server = (SSLSocket) context.serverSocket.accept();
             ExecutorService executor = Executors.newFixedThreadPool(2);
             Future<Void> s = executor.submit(new Callable<Void>() {
                 @Override
@@ -115,10 +111,28 @@ public final class TestSSLSocketPair {
             if (clientException != null) {
                 throw clientException;
             }
-            return new SSLSocket[] { server, client };
+            return this;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static TestSSLSocketPair create() {
+        return create(TestSSLContext.create());
+    }
+
+    /**
+     * based on test_SSLSocket_startHandshake
+     */
+    public static TestSSLSocketPair create(TestSSLContext context) {
+        try {
+            SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                    context.host, context.port);
+            SSLSocket server = (SSLSocket) context.serverSocket.accept();
+            return new TestSSLSocketPair(context, server, client);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

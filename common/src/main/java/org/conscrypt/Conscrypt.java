@@ -20,11 +20,13 @@ import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.PrivateKey;
 import java.security.Provider;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLContextSpi;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
@@ -76,6 +78,44 @@ public final class Conscrypt {
          */
         public static int maxEncryptedPacketLength() {
             return NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
+        }
+    }
+
+    /**
+     * Utility methods for configuring Conscrypt {@link SSLContext} instances.
+     */
+    public static final class Contexts {
+        private Contexts() {}
+
+        /**
+         * Indicates whether the given object is a Conscrypt client-side session context.
+         */
+        public static boolean isConscrypt(SSLContext context) {
+            return context.getProvider() instanceof OpenSSLProvider;
+        }
+
+        /**
+         * Sets the client-side persistent cache to be used by the context.
+         */
+        public static void setClientSessionCache(SSLContext context, SSLClientSessionCache cache) {
+            SSLSessionContext clientContext = context.getClientSessionContext();
+            if (!(clientContext instanceof ClientSessionContext)) {
+                throw new IllegalArgumentException(
+                        "Not a conscrypt client context: " + clientContext.getClass().getName());
+            }
+            ((ClientSessionContext) clientContext).setPersistentCache(cache);
+        }
+
+        /**
+         * Sets the server-side persistent cache to be used by the context.
+         */
+        public static void setServerSessionCache(SSLContext context, SSLServerSessionCache cache) {
+            SSLSessionContext serverContext = context.getServerSessionContext();
+            if (!(serverContext instanceof ServerSessionContext)) {
+                throw new IllegalArgumentException(
+                        "Not a conscrypt client context: " + serverContext.getClass().getName());
+            }
+            ((ServerSessionContext) serverContext).setPersistentCache(cache);
         }
     }
 

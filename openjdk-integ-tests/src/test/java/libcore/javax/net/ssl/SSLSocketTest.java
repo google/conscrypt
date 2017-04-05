@@ -234,10 +234,10 @@ public class SSLSocketTest extends AbstractSSLTest {
                 }
                 String[] clientCipherSuiteArray =
                         new String[] {cipherSuite, StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION};
-                SSLSocket[] pair = TestSSLSocketPair.connect(
-                        c, clientCipherSuiteArray, clientCipherSuiteArray);
-                SSLSocket server = pair[0];
-                SSLSocket client = pair[1];
+                TestSSLSocketPair socketPair = TestSSLSocketPair.create(c).connect(
+                        clientCipherSuiteArray, clientCipherSuiteArray);
+                SSLSocket server = socketPair.server;
+                SSLSocket client = socketPair.client;
                 // Check that the client can read the message sent by the server
                 server.getOutputStream().write(serverToClient);
                 byte[] clientFromServer = new byte[serverToClient.length];
@@ -603,7 +603,6 @@ public class SSLSocketTest extends AbstractSSLTest {
                 byte[] id = session.getId();
                 assertNotNull(id);
                 assertEquals(32, id.length);
-                assertNotNull(c.clientContext.getClientSessionContext().getSession(id));
                 assertNotNull(cipherSuite);
                 assertTrue(Arrays.asList(client.getEnabledCipherSuites()).contains(cipherSuite));
                 assertTrue(Arrays.asList(c.serverSocket.getEnabledCipherSuites())
@@ -762,7 +761,7 @@ public class SSLSocketTest extends AbstractSSLTest {
     @Test
     public void test_SSLSocket_setUseClientMode_afterHandshake() throws Exception {
         // can't set after handshake
-        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        TestSSLSocketPair pair = TestSSLSocketPair.create().connect();
         try {
             pair.server.setUseClientMode(false);
             fail();
@@ -1365,7 +1364,7 @@ public class SSLSocketTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLSocket_close() throws Exception {
-        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        TestSSLSocketPair pair = TestSSLSocketPair.create().connect();
         SSLSocket server = pair.server;
         SSLSocket client = pair.client;
         assertFalse(server.isClosed());
@@ -1778,7 +1777,7 @@ public class SSLSocketTest extends AbstractSSLTest {
 
     @Test
     public void test_TestSSLSocketPair_create() {
-        TestSSLSocketPair test = TestSSLSocketPair.create();
+        TestSSLSocketPair test = TestSSLSocketPair.create().connect();
         assertNotNull(test.c);
         assertNotNull(test.server);
         assertNotNull(test.client);

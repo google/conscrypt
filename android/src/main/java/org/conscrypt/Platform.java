@@ -696,12 +696,12 @@ final class Platform {
      * Pre-Java 8 backward compatibility.
      */
 
-    public static SSLSession wrapSSLSession(AbstractOpenSSLSession sslSession) {
+    public static SSLSession wrapSSLSession(ActiveSession sslSession) {
         if (Build.VERSION.SDK_INT <= 23) {
             return sslSession;
         }
 
-        return new OpenSSLExtendedSessionImpl(sslSession);
+        return new DelegatingExtendedSSLSession(sslSession);
     }
 
     public static SSLSession unwrapSSLSession(SSLSession sslSession) {
@@ -709,9 +709,10 @@ final class Platform {
             return sslSession;
         }
 
-        if (sslSession instanceof OpenSSLExtendedSessionImpl) {
-            return ((OpenSSLExtendedSessionImpl) sslSession).getDelegate();
+        if (sslSession instanceof DelegatingExtendedSSLSession) {
+            return ((DelegatingExtendedSSLSession) sslSession).getDelegate();
         }
+
         return sslSession;
     }
 
