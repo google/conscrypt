@@ -17,7 +17,9 @@
 package org.conscrypt;
 
 import java.io.FileDescriptor;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -35,18 +37,17 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import javax.crypto.spec.GCMParameterSpec;
-import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 import sun.security.x509.AlgorithmId;
 
 /**
- * Platform-specific methods for OpenJDK
+ * Platform-specific methods for OpenJDK.
+ *
+ * Uses reflection to implement Java 8 SSL features for backwards compatibility.
  */
 final class Platform {
     private static final String TAG = "Conscrypt";
@@ -116,53 +117,110 @@ final class Platform {
         // TODO: figure this out on the RI
     }
 
-    static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
-            OpenSSLSocketImpl socket) {
+    @SuppressWarnings("unchecked")
+    public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                        OpenSSLSocketImpl socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
-        impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
-        List<SNIServerName> serverNames = params.getServerNames();
-        if (serverNames != null) {
-            for (SNIServerName serverName : serverNames) {
-                if (serverName.getType() == StandardConstants.SNI_HOST_NAME) {
-                    socket.setHostname(((SNIHostName) serverName).getAsciiName());
-                    break;
+        try {
+            Method getUseCipherSuitesOrder =
+                SSLParameters.class.getMethod("getUseCipherSuitesOrder");
+            impl.setUseCipherSuitesOrder((boolean)getUseCipherSuitesOrder.invoke(params));
+            Method getServerNames = SSLParameters.class.getMethod("getServerNames");
+            List<Object> serverNames = (List<Object>)getServerNames.invoke(params);
+
+            // javax.net.ssl.StandardConstants.SNI_HOST_NAME
+            int hostNameType = 0;
+            if (serverNames != null) {
+                for (Object serverName : serverNames) {
+                    if ((int)serverName.getClass().getMethod("getType").invoke(serverName) ==
+                        hostNameType) {
+                        socket.setHostname((String)serverName.getClass()
+                                               .getMethod("getAsciiName")
+                                               .invoke(serverName));
+                        break;
+                    }
                 }
             }
+        } catch (NoSuchMethodException e) {
+        } catch (IllegalAccessException e) {
+        } catch (InvocationTargetException e) {
         }
     }
 
-    static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
-            OpenSSLSocketImpl socket) {
+    @SuppressWarnings({"LiteralClassName", "rawtypes"})
+    public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                        OpenSSLSocketImpl socket) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
-        params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
-        if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
-            params.setServerNames(Collections.<SNIServerName> singletonList(
-                    new SNIHostName(socket.getHostname())));
+        try {
+            Method setUseCipherSuitesOrder =
+                SSLParameters.class.getMethod("setUseCipherSuitesOrder", boolean.class);
+            setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
+            Method setServerNames = SSLParameters.class.getMethod("setServerNames", List.class);
+            if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
+                Constructor sniHostNameConstructor =
+                    Class.forName("javax.net.ssl.SNIHostName").getConstructor(String.class);
+                setServerNames.invoke(
+                    params, (Collections.singletonList(
+                                sniHostNameConstructor.newInstance(socket.getHostname()))));
+            }
+        } catch (NoSuchMethodException e) {
+        } catch (IllegalAccessException e) {
+        } catch (InvocationTargetException e) {
+        } catch (ClassNotFoundException e) {
+        } catch (InstantiationException e) {
         }
     }
 
-    static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+    @SuppressWarnings("unchecked")
+    public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                        OpenSSLEngineImpl engine) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
-        impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
-        List<SNIServerName> serverNames = params.getServerNames();
-        if (serverNames != null) {
-            for (SNIServerName serverName : serverNames) {
-                if (serverName.getType() == StandardConstants.SNI_HOST_NAME) {
-                    engine.setSniHostname(((SNIHostName) serverName).getAsciiName());
-                    break;
+        try {
+            Method getUseCipherSuitesOrder =
+                SSLParameters.class.getMethod("getUseCipherSuitesOrder");
+            impl.setUseCipherSuitesOrder((boolean)getUseCipherSuitesOrder.invoke(params));
+            Method getServerNames = SSLParameters.class.getMethod("getServerNames");
+            List<Object> serverNames = (List<Object>)getServerNames.invoke(params);
+
+            int hostNameType = 0;
+            if (serverNames != null) {
+                for (Object serverName : serverNames) {
+                    if ((int)serverName.getClass().getMethod("getType").invoke(serverName) ==
+                        hostNameType) {
+                        engine.setSniHostname((String)serverName.getClass()
+                                                  .getMethod("getAsciiName")
+                                                  .invoke(serverName));
+                        break;
+                    }
                 }
             }
+        } catch (NoSuchMethodException e) {
+        } catch (IllegalAccessException e) {
+        } catch (InvocationTargetException e) {
         }
     }
 
-    static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+    @SuppressWarnings({"LiteralClassName", "rawtypes"})
+    public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                        OpenSSLEngineImpl engine) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
-        params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
-        if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getSniHostname())) {
-            params.setServerNames(Collections.<SNIServerName>singletonList(
-                    new SNIHostName(engine.getSniHostname())));
+        try {
+            Method setUseCipherSuitesOrder =
+                SSLParameters.class.getMethod("setUseCipherSuitesOrder", boolean.class);
+            setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
+            Method setServerNames = SSLParameters.class.getMethod("setServerNames", List.class);
+            if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getSniHostname())) {
+                Constructor sniHostNameConstructor =
+                    Class.forName("javax.net.ssl.SNIHostName").getConstructor(String.class);
+                setServerNames.invoke(
+                    params, (Collections.singletonList(
+                                sniHostNameConstructor.newInstance(engine.getSniHostname()))));
+            }
+        } catch (NoSuchMethodException e) {
+        } catch (IllegalAccessException e) {
+        } catch (InvocationTargetException e) {
+        } catch (ClassNotFoundException e) {
+        } catch (InstantiationException e) {
         }
     }
 

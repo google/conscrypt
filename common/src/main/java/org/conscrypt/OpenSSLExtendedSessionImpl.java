@@ -17,11 +17,7 @@ package org.conscrypt;
 
 import java.security.Principal;
 import java.security.cert.Certificate;
-import java.util.Collections;
-import java.util.List;
 import javax.net.ssl.ExtendedSSLSession;
-import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSessionContext;
 import javax.security.cert.X509Certificate;
@@ -68,17 +64,6 @@ final class OpenSSLExtendedSessionImpl extends ExtendedSSLSession {
                 "SHA1withRSA",
                 "SHA1withECDSA",
         };
-    }
-
-    /* @Override */
-    @SuppressWarnings("MissingOverride") // For Android backward-compatibility.
-    public List<SNIServerName> getRequestedServerNames() {
-        String requestedServerName = delegate.getRequestedServerName();
-        if (requestedServerName == null) {
-            return null;
-        }
-
-        return Collections.<SNIServerName> singletonList(new SNIHostName(requestedServerName));
     }
 
     @Override
