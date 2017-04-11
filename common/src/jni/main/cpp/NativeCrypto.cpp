@@ -510,6 +510,8 @@ namespace {
 ENGINE *g_engine;
 int g_rsa_exdata_index;
 int g_ecdsa_exdata_index;
+RSA_METHOD g_rsa_method;
+ECDSA_METHOD g_ecdsa_method;
 std::once_flag g_engine_once;
 
 void init_engine_globals();
@@ -699,30 +701,6 @@ int RsaMethodVerifyRaw(RSA* /* rsa */,
   return 0;
 }
 
-const RSA_METHOD android_rsa_method = {
-        {
-                0 /* references */, 1 /* is_static */
-        } /* common */,
-        nullptr /* app_data */,
-
-        nullptr /* init */,
-        nullptr /* finish */,
-        RsaMethodSize,
-        nullptr /* sign */,
-        nullptr /* verify */,
-        RsaMethodEncrypt,
-        RsaMethodSignRaw,
-        RsaMethodDecrypt,
-        RsaMethodVerifyRaw,
-        nullptr /* mod_exp */,
-        nullptr /* bn_mod_exp */,
-        nullptr /* private_transform */,
-        RSA_FLAG_OPAQUE,
-        nullptr /* keygen */,
-        nullptr /* multi_prime_keygen */,
-        nullptr /* supports_digest */,
-};
-
 // Custom ECDSA_METHOD that uses the platform APIs.
 // Note that for now, only signing through ECDSA_sign() is really supported.
 // all other method pointers are either stubs returning errors, or no-ops.
@@ -775,38 +753,27 @@ int EcdsaMethodSign(const uint8_t* digest,
     return 1;
 }
 
-int EcdsaMethodVerify(const uint8_t* /* digest */,
-                      size_t /* digest_len */,
-                      const uint8_t* /* sig */,
-                      size_t /* sig_len */,
-                      EC_KEY* /* ec_key */) {
-  OPENSSL_PUT_ERROR(ECDSA, ECDSA_R_NOT_IMPLEMENTED);
-  return 0;
-}
-
-const ECDSA_METHOD android_ecdsa_method = {
-        {
-                0 /* references */, 1 /* is_static */
-        } /* common */,
-        nullptr /* app_data */,
-
-        nullptr /* init */,
-        nullptr /* finish */,
-        nullptr /* group order size */,
-        EcdsaMethodSign,
-        EcdsaMethodVerify,
-        ECDSA_FLAG_OPAQUE,
-};
-
 void init_engine_globals() {
     g_rsa_exdata_index = RSA_get_ex_new_index(0 /* argl */, nullptr /* argp */,
                                               nullptr /* new_func */, ExDataDup, ExDataFree);
     g_ecdsa_exdata_index = EC_KEY_get_ex_new_index(0 /* argl */, nullptr /* argp */,
                                                    nullptr /* new_func */, ExDataDup, ExDataFree);
 
+    g_rsa_method.common.is_static = 1;
+    g_rsa_method.size = RsaMethodSize;
+    // TODO(davidben): Update BoringSSL to ignore this hook and remove this.
+    g_rsa_method.encrypt = RsaMethodEncrypt;
+    g_rsa_method.sign_raw = RsaMethodSignRaw;
+    g_rsa_method.decrypt = RsaMethodDecrypt;
+    g_rsa_method.flags = RSA_FLAG_OPAQUE;
+
+    g_ecdsa_method.common.is_static = 1;
+    g_ecdsa_method.sign = EcdsaMethodSign;
+    g_ecdsa_method.flags = ECDSA_FLAG_OPAQUE;
+
     g_engine = ENGINE_new();
-    ENGINE_set_RSA_method(g_engine, &android_rsa_method, sizeof(android_rsa_method));
-    ENGINE_set_ECDSA_method(g_engine, &android_ecdsa_method, sizeof(android_ecdsa_method));
+    ENGINE_set_RSA_method(g_engine, &g_rsa_method, sizeof(g_rsa_method));
+    ENGINE_set_ECDSA_method(g_engine, &g_ecdsa_method, sizeof(g_ecdsa_method));
 }
 
 }  // anonymous namespace
