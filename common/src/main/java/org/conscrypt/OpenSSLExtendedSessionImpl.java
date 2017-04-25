@@ -15,8 +15,12 @@
  */
 package org.conscrypt;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.security.Principal;
 import java.security.cert.Certificate;
+import java.util.Collections;
+import java.util.List;
 import javax.net.ssl.ExtendedSSLSession;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSessionContext;
@@ -64,6 +68,29 @@ final class OpenSSLExtendedSessionImpl extends ExtendedSSLSession {
                 "SHA1withRSA",
                 "SHA1withECDSA",
         };
+    }
+
+    /* @Override */
+    // For Android/Java7 backward-compatibility.
+    @SuppressWarnings({"MissingOverride", "unchecked", "rawtypes", "LiteralClassName"})
+    public List getRequestedServerNames() {
+        try {
+            String requestedServerName = delegate.getRequestedServerName();
+            if (requestedServerName == null) {
+                return null;
+            }
+
+            Constructor sniHostNameConstructor =
+                Class.forName("javax.net.ssl.SNIHostName").getConstructor(String.class);
+            return Collections.singletonList(sniHostNameConstructor.newInstance(requestedServerName));
+
+        } catch (NoSuchMethodException e) {
+        } catch (InvocationTargetException e) {
+        } catch (IllegalAccessException e) {
+        } catch (ClassNotFoundException e) {
+        } catch (InstantiationException e) {
+        }
+        return null;
     }
 
     @Override
