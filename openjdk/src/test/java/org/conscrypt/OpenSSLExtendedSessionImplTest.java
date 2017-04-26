@@ -16,11 +16,11 @@
 
 package org.conscrypt;
 
+import java.util.List;
+import javax.net.ssl.ExtendedSSLSession;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
-import javax.net.ssl.ExtendedSSLSession;
 import junit.framework.TestCase;
-import java.util.List;
 
 /**
  * Test for OpenSSLExtendedSessionImpl
