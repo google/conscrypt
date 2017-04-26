@@ -690,17 +690,6 @@ int RsaMethodDecrypt(RSA* rsa,
   return 1;
 }
 
-int RsaMethodVerifyRaw(RSA* /* rsa */,
-                       size_t* /* out_len */,
-                       uint8_t* /* out */,
-                       size_t /* max_out */,
-                       const uint8_t* /* in */,
-                       size_t /* in_len */,
-                       int /* padding */) {
-  OPENSSL_PUT_ERROR(RSA, RSA_R_UNKNOWN_ALGORITHM_TYPE);
-  return 0;
-}
-
 // Custom ECDSA_METHOD that uses the platform APIs.
 // Note that for now, only signing through ECDSA_sign() is really supported.
 // all other method pointers are either stubs returning errors, or no-ops.
