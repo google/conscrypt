@@ -21,25 +21,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import org.conscrypt.Internal;
 
-/**
- * @hide
- */
-@Internal
-public class Serialization {
+final class Serialization {
     private Serialization() {}
 
     private static final int DER_TAG_MASK = 0x3f;
     private static final int DER_TAG_OCTET_STRING = 0x4;
     private static final int DER_LENGTH_LONG_FORM_FLAG = 0x80;
 
-    public static byte[] readDEROctetString(byte[] input)
+    static byte[] readDEROctetString(byte[] input)
             throws SerializationException {
         return readDEROctetString(new ByteArrayInputStream(input));
     }
 
-    public static byte[] readDEROctetString(InputStream input)
+    static byte[] readDEROctetString(InputStream input)
             throws SerializationException {
         int tag = readByte(input) & DER_TAG_MASK;
         if (tag != DER_TAG_OCTET_STRING) {
@@ -56,7 +51,7 @@ public class Serialization {
         return readFixedBytes(input, length);
     }
 
-    public static byte[][] readList(byte[] input, int listWidth, int elemWidth)
+    static byte[][] readList(byte[] input, int listWidth, int elemWidth)
             throws SerializationException {
         return readList(new ByteArrayInputStream(input), listWidth, elemWidth);
     }
@@ -69,7 +64,7 @@ public class Serialization {
      * @param elemWidth the width of each element's length field, in bytes.
      * @throws SerializationException if EOF is encountered.
      */
-    public static byte[][] readList(InputStream input, int listWidth, int elemWidth)
+    static byte[][] readList(InputStream input, int listWidth, int elemWidth)
             throws SerializationException {
         ArrayList<byte[]> result = new ArrayList();
         byte[] data = readVariableBytes(input, listWidth);
@@ -91,7 +86,7 @@ public class Serialization {
      * @throws SerializationException if EOF is encountered, or if {@code width} is negative or
      * greater than 4
      */
-    public static byte[] readVariableBytes(InputStream input, int width)
+    static byte[] readVariableBytes(InputStream input, int width)
             throws SerializationException {
         int length = readNumber(input, width);
         return readFixedBytes(input, length);
@@ -102,7 +97,7 @@ public class Serialization {
      * @param length the number of bytes to read.
      * @throws SerializationException if EOF is encountered.
      */
-    public static byte[] readFixedBytes(InputStream input, int length)
+    static byte[] readFixedBytes(InputStream input, int length)
             throws SerializationException {
         try {
             if (length < 0) {
@@ -128,7 +123,7 @@ public class Serialization {
      * @throws SerializationException if EOF is encountered, or if {@code width} is negative or
      * greater than 4
      */
-    public static int readNumber(InputStream input, int width) throws SerializationException {
+    static int readNumber(InputStream input, int width) throws SerializationException {
         if (width > 4 || width < 0) {
             throw new SerializationException("Invalid width: " + width);
         }
@@ -148,7 +143,7 @@ public class Serialization {
      * @throws SerializationException if EOF is encountered.
      * @throws IllegalArgumentException if {@code width} is negative or greater than 8
      */
-    public static long readLong(InputStream input, int width) throws SerializationException {
+    static long readLong(InputStream input, int width) throws SerializationException {
         if (width > 8 || width < 0) {
             throw new IllegalArgumentException("Invalid width: " + width);
         }
@@ -165,7 +160,7 @@ public class Serialization {
      * Read a single byte from the input stream.
      * @throws SerializationException if EOF is encountered.
      */
-    public static byte readByte(InputStream input) throws SerializationException {
+    static byte readByte(InputStream input) throws SerializationException {
         try {
             int b = input.read();
             if (b == -1) {
@@ -185,7 +180,7 @@ public class Serialization {
      * @throws SerializationException if the length of {@code data} is too large to fit in
      * {@code width} bytes or {@code width} is negative.
      */
-    public static void writeVariableBytes(OutputStream output, byte[] data, int width)
+    static void writeVariableBytes(OutputStream output, byte[] data, int width)
             throws SerializationException {
         writeNumber(output, data.length, width);
         writeFixedBytes(output, data);
@@ -195,7 +190,7 @@ public class Serialization {
      * Write a fixed number sequence of bytes to the ouput stream.
      * @param data the data to be written.
      */
-    public static void writeFixedBytes(OutputStream output, byte[] data)
+    static void writeFixedBytes(OutputStream output, byte[] data)
             throws SerializationException {
         try {
             output.write(data);
@@ -212,7 +207,7 @@ public class Serialization {
      * @throws SerializationException if the number is too large to fit in {@code width} bytes or
      * {@code width} is negative.
      */
-    public static void writeNumber(OutputStream output, long value, int width)
+    static void writeNumber(OutputStream output, long value, int width)
             throws SerializationException {
         if (width < 0) {
             throw new SerializationException("Negative width: " + width);

@@ -23,23 +23,19 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Arrays;
-import org.conscrypt.Internal;
 
 /**
  * Properties about a Certificate Transparency Log.
  * This object stores information about a CT log, its public key, description and URL.
  * It allows verification of SCTs against the log's public key.
- *
- * @hide
  */
-@Internal
-public class CTLogInfo {
+final class CTLogInfo {
     private final byte[] logId;
     private final PublicKey publicKey;
     private final String description;
     private final String url;
 
-    public CTLogInfo(PublicKey publicKey, String description, String url) {
+    CTLogInfo(PublicKey publicKey, String description, String url) {
         try {
             this.logId = MessageDigest.getInstance("SHA-256")
                 .digest(publicKey.getEncoded());
@@ -56,19 +52,19 @@ public class CTLogInfo {
     /**
      * Get the log's ID, that is the SHA-256 hash of it's public key
      */
-    public byte[] getID() {
+    byte[] getID() {
         return logId;
     }
 
-    public PublicKey getPublicKey() {
+    PublicKey getPublicKey() {
         return publicKey;
     }
 
-    public String getDescription() {
+    String getDescription() {
         return description;
     }
 
-    public String getUrl() {
+    String getUrl() {
         return url;
     }
 
@@ -104,7 +100,7 @@ public class CTLogInfo {
      *
      * @return the result of the verification
      */
-    public VerifiedSCT.Status verifySingleSCT(SignedCertificateTimestamp sct,
+    VerifiedSCT.Status verifySingleSCT(SignedCertificateTimestamp sct,
                                               CertificateEntry entry) {
         if (!Arrays.equals(sct.getLogID(), getID())) {
             return VerifiedSCT.Status.UNKNOWN_LOG;

@@ -135,11 +135,6 @@ public class TrustedCertificateStoreTest extends TestCase {
         initCerts();
         return ALIAS_USER_CA2;
     }
-
-    private static String getAliasSystemChain0() {
-        initCerts();
-        return ALIAS_SYSTEM_CHAIN0;
-    }
     private static String getAliasSystemChain1() {
         initCerts();
         return ALIAS_SYSTEM_CHAIN1;
@@ -205,17 +200,9 @@ public class TrustedCertificateStoreTest extends TestCase {
         initCerts();
         return ALIAS_MULTIPLE_ISSUERS_CA1;
     }
-    private static String getAliasMultipleIssuersCa2() {
-        initCerts();
-        return ALIAS_MULTIPLE_ISSUERS_CA2;
-    }
     private static String getAliasMultipleIssuersCa1Cross() {
         initCerts();
         return ALIAS_MULTIPLE_ISSUERS_CA1_CROSS;
-    }
-    private static String getAliasMultipleIssuersEe() {
-        initCerts();
-        return ALIAS_MULTIPLE_ISSUERS_EE;
     }
     private static X509Certificate getMultipleIssuersCa1() {
         initCerts();
@@ -391,7 +378,9 @@ public class TrustedCertificateStoreTest extends TestCase {
 
     private TrustedCertificateStore store;
 
-    @Override protected void setUp() {
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
         setupStore();
     }
 
@@ -405,8 +394,10 @@ public class TrustedCertificateStoreTest extends TestCase {
         store = new TrustedCertificateStore(dirSystem, dirAdded, dirDeleted);
     }
 
-    @Override protected void tearDown() {
+    @Override
+    protected void tearDown() throws Exception {
         cleanStore();
+        super.tearDown();
     }
 
     private void cleanStore() {
@@ -464,6 +455,7 @@ public class TrustedCertificateStoreTest extends TestCase {
             store.getCertificate(null);
             fail();
         } catch (NullPointerException expected) {
+            // Expected
         }
         assertNull(store.getCertificate(""));
 
@@ -471,6 +463,7 @@ public class TrustedCertificateStoreTest extends TestCase {
             store.getCreationDate(null);
             fail();
         } catch (NullPointerException expected) {
+            // Expected
         }
         assertNull(store.getCreationDate(""));
 
@@ -487,6 +480,7 @@ public class TrustedCertificateStoreTest extends TestCase {
             store.containsAlias(null);
             fail();
         } catch (NullPointerException expected) {
+            // Expected
         }
         assertFalse(store.containsAlias(""));
 
@@ -497,6 +491,7 @@ public class TrustedCertificateStoreTest extends TestCase {
             store.getTrustAnchor(null);
             fail();
         } catch (NullPointerException expected) {
+            // Expected
         }
         assertNull(store.getTrustAnchor(getCa1()));
 
@@ -504,6 +499,7 @@ public class TrustedCertificateStoreTest extends TestCase {
             store.findIssuer(null);
             fail();
         } catch (NullPointerException expected) {
+            // Expected
         }
         assertNull(store.findIssuer(getCa1()));
 
@@ -511,6 +507,7 @@ public class TrustedCertificateStoreTest extends TestCase {
             store.installCertificate(null);
             fail();
         } catch (NullPointerException expected) {
+            // Expected
         }
 
         store.deleteCertificateEntry(null);
@@ -646,7 +643,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         PrivateKey privateKey = getPrivate().getPrivateKey();
         String name = "CN=CA4";
         X509Certificate ca1 = TestKeyStore.createCa(publicKey, privateKey, name);
-        Thread.sleep(1 * 1000); // wait to ensure CAs vary by expiration
+        Thread.sleep(1000); // wait to ensure CAs vary by expiration
         X509Certificate ca2 = TestKeyStore.createCa(publicKey, privateKey, name);
         assertFalse(ca1.equals(ca2));
 
@@ -939,7 +936,7 @@ public class TrustedCertificateStoreTest extends TestCase {
 
         X500Principal subject = x.getSubjectX500Principal();
         int intHash = NativeCrypto.X509_NAME_hash_old(subject);
-        String strHash = Hex.intToHexString(intHash, 8);
+        String strHash = InternalUtils.intToHexString(intHash, 8);
 
         return prefix + strHash + '.' + index;
     }

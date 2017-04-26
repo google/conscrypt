@@ -39,8 +39,7 @@ import java.util.Map;
  * </ol>
  * </p>
  */
-@Internal
-public final class CertificatePriorityComparator implements Comparator<X509Certificate> {
+final class CertificatePriorityComparator implements Comparator<X509Certificate> {
 
     /**
      * Map of signature algorithm OIDs to priorities. OIDs with a lower priority will be sorted

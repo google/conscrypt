@@ -71,14 +71,18 @@ public class SerializationTest extends TestCase {
             in[0] = 1; // Modify version field
             SignedCertificateTimestamp.decode(in, SignedCertificateTimestamp.Origin.EMBEDDED);
             fail("SerializationException not thrown on unsupported version");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+            // Expected
+        }
 
         try {
             byte[] in = sct.clone();
             in[41] = 1; // Modify extensions lemgth
             SignedCertificateTimestamp.decode(in, SignedCertificateTimestamp.Origin.EMBEDDED);
             fail("SerializationException not thrown on invalid extensions length");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+            // Expected
+        }
     }
 
     public void test_decode_DigitallySigned() throws Exception {
@@ -102,7 +106,9 @@ public class SerializationTest extends TestCase {
                 0x12, 0x34, 0x56, 0x78 // signature
             });
             fail("SerializationException not thrown on invalid hash type");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+            // Expected
+        }
 
         try {
             DigitallySigned.decode(new byte[] {
@@ -111,7 +117,9 @@ public class SerializationTest extends TestCase {
                 0x12, 0x34, 0x56, 0x78 // signature
             });
             fail("SerializationException not thrown on invalid signature type");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+            // Expected
+        }
 
         try {
             DigitallySigned.decode(new byte[] {
@@ -120,14 +128,18 @@ public class SerializationTest extends TestCase {
                 0x12, 0x34, 0x56, 0x78 // signature
             });
             fail("SerializationException not thrown on invalid signature length");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+            // Expected
+        }
 
         try {
             DigitallySigned.decode(new byte[] {
                 0x07, 0x03,            // hash & signature algorithm
             });
             fail("SerializationException not thrown on missing signature");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+            // Expected
+        }
     }
 
     public void test_encode_CertificateEntry_X509Certificate() throws Exception {
@@ -190,7 +202,9 @@ public class SerializationTest extends TestCase {
             };
             Serialization.readDEROctetString(in);
             fail("SerializationException not thrown on invalid tag.");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+            // Expected
+        }
 
         try {
             in = new byte[] {
@@ -200,10 +214,12 @@ public class SerializationTest extends TestCase {
             };
             Serialization.readDEROctetString(in);
             fail("SerializationException not thrown on invalid length.");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+            // Expected
+        }
     }
 
-    public static void assertEqualByteArrays(byte[] expected, byte[] actual) {
+    private static void assertEqualByteArrays(byte[] expected, byte[] actual) {
         assertEquals(Arrays.toString(expected), Arrays.toString(actual));
     }
 }

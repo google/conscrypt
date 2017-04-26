@@ -16,26 +16,21 @@
 
 package org.conscrypt.ct;
 
-import org.conscrypt.Internal;
-
 /**
  * Verification result for a single SCT.
- *
- * @hide
  */
-@Internal
-public final class VerifiedSCT {
-    public enum Status {
+final class VerifiedSCT {
+    enum Status {
         VALID,
         INVALID_SIGNATURE,
         UNKNOWN_LOG,
         INVALID_SCT
     }
 
-    public final SignedCertificateTimestamp sct;
-    public final Status status;
+    final SignedCertificateTimestamp sct;
+    final Status status;
 
-    public VerifiedSCT(SignedCertificateTimestamp sct, Status status) {
+    VerifiedSCT(SignedCertificateTimestamp sct, Status status) {
         this.sct = sct;
         this.status = status;
     }

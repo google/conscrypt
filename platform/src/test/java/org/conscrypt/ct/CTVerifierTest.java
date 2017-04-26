@@ -22,7 +22,7 @@ import static org.conscrypt.TestUtils.readTestFile;
 import java.security.PublicKey;
 import java.util.Arrays;
 import junit.framework.TestCase;
-import org.conscrypt.InternalUtil;
+import org.conscrypt.InternalUtils;
 import org.conscrypt.OpenSSLX509Certificate;
 
 public class CTVerifierTest extends TestCase {
@@ -39,7 +39,7 @@ public class CTVerifierTest extends TestCase {
         certEmbedded = OpenSSLX509Certificate.fromX509PemInputStream(
                 openTestFile("cert-ct-embedded.pem"));
 
-        PublicKey key = InternalUtil.readPublicKeyPem(openTestFile("ct-server-key-public.pem"));
+        PublicKey key = InternalUtils.readPublicKeyPem(openTestFile("ct-server-key-public.pem"));
 
         final CTLogInfo log = new CTLogInfo(key, "Test Log", "foo");
         CTLogStore store = new CTLogStore() {

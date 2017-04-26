@@ -669,21 +669,21 @@ public class NativeCryptoTest {
 
     private static final boolean DEBUG = false;
 
-    public static class Hooks {
-        protected String negotiatedCipherSuite;
+    private static class Hooks {
+        String negotiatedCipherSuite;
         private OpenSSLKey channelIdPrivateKey;
-        protected boolean pskEnabled;
-        protected byte[] pskKey;
-        protected List<String> enabledCipherSuites;
+        boolean pskEnabled;
+        byte[] pskKey;
+        List<String> enabledCipherSuites;
 
         /**
          * @throws SSLException if an error occurs creating the context.
          */
-        public long getContext() throws SSLException {
+        long getContext() throws SSLException {
             return NativeCrypto.SSL_CTX_new();
         }
 
-        public long beforeHandshake(long context) throws SSLException {
+        long beforeHandshake(long context) throws SSLException {
             long s = NativeCrypto.SSL_new(context);
             // Limit cipher suites to a known set so authMethod is known.
             List<String> cipherSuites = new ArrayList<String>();
@@ -705,10 +705,10 @@ public class NativeCryptoTest {
             }
             return s;
         }
-        public void configureCallbacks(
+        void configureCallbacks(
                 @SuppressWarnings("unused") TestSSLHandshakeCallbacks callbacks) {}
-        public void clientCertificateRequested(@SuppressWarnings("unused") long s) {}
-        public void afterHandshake(long session, long ssl, long context, Socket socket,
+        void clientCertificateRequested(@SuppressWarnings("unused") long s) {}
+        void afterHandshake(long session, long ssl, long context, Socket socket,
                 FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
             if (session != NULL) {
                 negotiatedCipherSuite = NativeCrypto.SSL_SESSION_cipher(session);
@@ -731,20 +731,20 @@ public class NativeCryptoTest {
         }
     }
 
-    public static class TestSSLHandshakeCallbacks implements SSLHandshakeCallbacks {
+    static class TestSSLHandshakeCallbacks implements SSLHandshakeCallbacks {
         private final Socket socket;
         private final long sslNativePointer;
         private final Hooks hooks;
 
-        public TestSSLHandshakeCallbacks(Socket socket, long sslNativePointer, Hooks hooks) {
+        TestSSLHandshakeCallbacks(Socket socket, long sslNativePointer, Hooks hooks) {
             this.socket = socket;
             this.sslNativePointer = sslNativePointer;
             this.hooks = hooks;
         }
 
-        public long[] certificateChainRefs;
-        public String authMethod;
-        public boolean verifyCertificateChainCalled;
+        long[] certificateChainRefs;
+        String authMethod;
+        boolean verifyCertificateChainCalled;
 
         @Override
         public void verifyCertificateChain(long[] certChainRefs, String authMethod)
@@ -879,20 +879,20 @@ public class NativeCryptoTest {
         }
     }
 
-    public static class ServerHooks extends Hooks {
+    static class ServerHooks extends Hooks {
         private final OpenSSLKey privateKey;
         private final long[] certificates;
         private boolean channelIdEnabled;
         private byte[] channelIdAfterHandshake;
         private Throwable channelIdAfterHandshakeException;
 
-        protected String pskIdentityHint;
+        String pskIdentityHint;
 
         public ServerHooks() {
             this(null, null);
         }
 
-        public ServerHooks(OpenSSLKey privateKey, long[] certificates) {
+        ServerHooks(OpenSSLKey privateKey, long[] certificates) {
             this.privateKey = privateKey;
             this.certificates = certificates;
         }
@@ -945,7 +945,7 @@ public class NativeCryptoTest {
         }
     }
 
-    public static Future<TestSSLHandshakeCallbacks> handshake(final ServerSocket listener,
+    static Future<TestSSLHandshakeCallbacks> handshake(final ServerSocket listener,
             final int timeout, final boolean client, final Hooks hooks,
             final byte[] alpnProtocols) {
         ExecutorService executor = Executors.newSingleThreadExecutor();

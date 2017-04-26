@@ -20,25 +20,21 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import org.conscrypt.Internal;
 
 /**
  * SignedCertificateTimestamp structure, as defined by RFC6962 Section 3.2.
- *
- * @hide
  */
-@Internal
-public class SignedCertificateTimestamp {
-    public enum Version {
+final class SignedCertificateTimestamp {
+    enum Version {
         V1
     };
 
-    public enum SignatureType {
+    enum SignatureType {
         CERTIFICATE_TIMESTAMP,
         TREE_HASH
     };
 
-    public enum Origin {
+    enum Origin {
         EMBEDDED,
         TLS_EXTENSION,
         OCSP_RESPONSE
@@ -54,7 +50,7 @@ public class SignedCertificateTimestamp {
     // and affects the verification process.
     private final Origin origin;
 
-    public SignedCertificateTimestamp(Version version, byte[] logId,
+    SignedCertificateTimestamp(Version version, byte[] logId,
                                       long timestamp, byte[] extensions,
                                       DigitallySigned signature, Origin origin) {
         this.version = version;
@@ -65,29 +61,29 @@ public class SignedCertificateTimestamp {
         this.origin = origin;
     }
 
-    public Version getVersion() {
+    Version getVersion() {
         return version;
     }
-    public byte[] getLogID() {
+    byte[] getLogID() {
         return logId;
     }
-    public long getTimestamp() {
+    long getTimestamp() {
         return timestamp;
     }
-    public byte[] getExtensions() {
+    byte[] getExtensions() {
         return extensions;
     }
-    public DigitallySigned getSignature() {
+    DigitallySigned getSignature() {
         return signature;
     }
-    public Origin getOrigin() {
+    Origin getOrigin() {
         return origin;
     }
 
     /**
      * Decode a TLS encoded SignedCertificateTimestamp structure.
      */
-    public static SignedCertificateTimestamp decode(InputStream input, Origin origin)
+    static SignedCertificateTimestamp decode(InputStream input, Origin origin)
             throws SerializationException {
         int version = Serialization.readNumber(input, CTConstants.VERSION_LENGTH);
         if (version != Version.V1.ordinal()) {
@@ -107,7 +103,7 @@ public class SignedCertificateTimestamp {
     /**
      * Decode a TLS encoded SignedCertificateTimestamp structure.
      */
-    public static SignedCertificateTimestamp decode(byte[] input, Origin origin)
+    static SignedCertificateTimestamp decode(byte[] input, Origin origin)
             throws SerializationException {
         return decode(new ByteArrayInputStream(input), origin);
     }
@@ -115,7 +111,7 @@ public class SignedCertificateTimestamp {
     /**
      * TLS encode the signed part of the SCT, as described by RFC6962 section 3.2.
      */
-    public void encodeTBS(OutputStream output, CertificateEntry certEntry)
+    void encodeTBS(OutputStream output, CertificateEntry certEntry)
             throws SerializationException {
         Serialization.writeNumber(output, version.ordinal(), CTConstants.VERSION_LENGTH);
         Serialization.writeNumber(output, SignatureType.CERTIFICATE_TIMESTAMP.ordinal(),
@@ -128,7 +124,7 @@ public class SignedCertificateTimestamp {
     /**
      * TLS encode the signed part of the SCT, as described by RFC6962 section 3.2.
      */
-    public byte[] encodeTBS(CertificateEntry certEntry)
+    byte[] encodeTBS(CertificateEntry certEntry)
             throws SerializationException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         encodeTBS(output, certEntry);

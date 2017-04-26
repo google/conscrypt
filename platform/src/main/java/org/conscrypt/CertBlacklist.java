@@ -34,25 +34,18 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * @hide
- */
-@Internal
-public final class CertBlacklist {
+final class CertBlacklist {
     private static final Logger logger = Logger.getLogger(CertBlacklist.class.getName());
 
     private final Set<BigInteger> serialBlacklist;
     private final Set<byte[]> pubkeyBlacklist;
 
-    /**
-     * public for testing only.
-     */
-    public CertBlacklist(Set<BigInteger> serialBlacklist, Set<byte[]> pubkeyBlacklist) {
+    CertBlacklist(Set<BigInteger> serialBlacklist, Set<byte[]> pubkeyBlacklist) {
         this.serialBlacklist = serialBlacklist;
         this.pubkeyBlacklist = pubkeyBlacklist;
     }
 
-    public static CertBlacklist getDefault() {
+    static CertBlacklist getDefault() {
         String androidData = System.getenv("ANDROID_DATA");
         String blacklistRoot = androidData + "/misc/keychain/";
         String defaultPubkeyBlacklistPath = blacklistRoot + "pubkey_blacklist.txt";
@@ -223,7 +216,7 @@ public final class CertBlacklist {
         return bl;
     }
 
-    public boolean isPublicKeyBlackListed(PublicKey publicKey) {
+    boolean isPublicKeyBlackListed(PublicKey publicKey) {
         byte[] encoded = publicKey.getEncoded();
         MessageDigest md;
         try {
@@ -256,8 +249,7 @@ public final class CertBlacklist {
         return out;
     }
 
-    public boolean isSerialNumberBlackListed(BigInteger serial) {
+    boolean isSerialNumberBlackListed(BigInteger serial) {
         return serialBlacklist.contains(serial);
     }
-
 }

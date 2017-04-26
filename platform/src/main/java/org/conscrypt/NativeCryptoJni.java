@@ -20,7 +20,7 @@ package org.conscrypt;
  * Helper to initialize the JNI libraries. This version runs when compiled
  * as part of the platform.
  */
-class NativeCryptoJni {
+final class NativeCryptoJni {
     public static void init() {
         System.loadLibrary("javacrypto");
     }

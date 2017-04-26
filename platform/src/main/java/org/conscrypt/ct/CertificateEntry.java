@@ -22,7 +22,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import org.conscrypt.Internal;
 import org.conscrypt.OpenSSLX509Certificate;
 
 /**
@@ -38,12 +37,9 @@ import org.conscrypt.OpenSSLX509Certificate;
  *         case precert_entry: PreCert;
  *     } signed_entry;
  * } CertificateEntry;
- *
- * @hide
  */
-@Internal
-public class CertificateEntry {
-    public enum LogEntryType {
+final class CertificateEntry {
+    enum LogEntryType {
         X509_ENTRY,
         PRECERT_ENTRY
     }
@@ -76,11 +72,11 @@ public class CertificateEntry {
     /**
      * @throws IllegalArgumentException if issuerKeyHash isn't 32 bytes
      */
-    public static CertificateEntry createForPrecertificate(byte[] tbsCertificate, byte[] issuerKeyHash) {
+    static CertificateEntry createForPrecertificate(byte[] tbsCertificate, byte[] issuerKeyHash) {
         return new CertificateEntry(LogEntryType.PRECERT_ENTRY, tbsCertificate, issuerKeyHash);
     }
 
-    public static CertificateEntry createForPrecertificate(OpenSSLX509Certificate leaf,
+    static CertificateEntry createForPrecertificate(OpenSSLX509Certificate leaf,
             OpenSSLX509Certificate issuer) throws CertificateException {
         try {
             if (!leaf.getNonCriticalExtensionOIDs().contains(CTConstants.X509_SCT_LIST_OID)) {
@@ -102,29 +98,29 @@ public class CertificateEntry {
         }
     }
 
-    public static CertificateEntry createForX509Certificate(byte[] x509Certificate) {
+    static CertificateEntry createForX509Certificate(byte[] x509Certificate) {
         return new CertificateEntry(LogEntryType.X509_ENTRY, x509Certificate, null);
     }
 
-    public static CertificateEntry createForX509Certificate(X509Certificate cert)
+    static CertificateEntry createForX509Certificate(X509Certificate cert)
             throws CertificateEncodingException {
         return createForX509Certificate(cert.getEncoded());
     }
 
-    public LogEntryType getEntryType() {
+    LogEntryType getEntryType() {
         return entryType;
     }
-    public byte[] getCertificate() {
+    byte[] getCertificate() {
         return certificate;
     }
-    public byte[] getIssuerKeyHash() {
+    byte[] getIssuerKeyHash() {
         return issuerKeyHash;
     }
 
     /**
      * TLS encode the CertificateEntry structure.
      */
-    public void encode(OutputStream output) throws SerializationException {
+    void encode(OutputStream output) throws SerializationException {
         Serialization.writeNumber(output, entryType.ordinal(), CTConstants.LOG_ENTRY_TYPE_LENGTH);
         if (entryType == LogEntryType.PRECERT_ENTRY) {
             Serialization.writeFixedBytes(output, issuerKeyHash);

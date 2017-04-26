@@ -71,11 +71,10 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509ExtendedTrustManager;
 import org.conscrypt.ct.CTLogStore;
-import org.conscrypt.ct.CTLogStoreImpl;
 import org.conscrypt.ct.CTPolicy;
-import org.conscrypt.ct.CTPolicyImpl;
 import org.conscrypt.ct.CTVerificationResult;
 import org.conscrypt.ct.CTVerifier;
+import org.conscrypt.ct.CtUtils;
 
 /**
  *
@@ -84,10 +83,8 @@ import org.conscrypt.ct.CTVerifier;
  * be provided by some certification provider.
  *
  * @see javax.net.ssl.X509ExtendedTrustManager
- * @hide
  */
-@Internal
-public final class TrustManagerImpl extends X509ExtendedTrustManager {
+final class TrustManagerImpl extends X509ExtendedTrustManager {
 
     /**
      * Comparator used for ordering trust anchors during certificate path building.
@@ -147,20 +144,20 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      *
      * @param keyStore
      */
-    public TrustManagerImpl(KeyStore keyStore) {
+    TrustManagerImpl(KeyStore keyStore) {
         this(keyStore, null);
     }
 
-    public TrustManagerImpl(KeyStore keyStore, CertPinManager manager) {
+    TrustManagerImpl(KeyStore keyStore, CertPinManager manager) {
         this(keyStore, manager, null);
     }
 
-    public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
+    TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
                             TrustedCertificateStore certStore) {
         this(keyStore, manager, certStore, null);
     }
 
-    public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
+    TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
                             TrustedCertificateStore certStore,
                             CertBlacklist blacklist) {
         this(keyStore, manager, certStore, blacklist, null, null, null);
@@ -169,7 +166,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     /**
      * For testing only.
      */
-    public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
+    TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
             TrustedCertificateStore certStore, CertBlacklist blacklist, CTLogStore ctLogStore,
             CTVerifier ctVerifier, CTPolicy ctPolicy) {
         CertPathValidator validatorLocal = null;
@@ -206,11 +203,11 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             blacklist = CertBlacklist.getDefault();
         }
         if (ctLogStore == null) {
-            ctLogStore = new CTLogStoreImpl();
+            ctLogStore = CtUtils.newLogStore();
         }
 
         if (ctPolicy == null) {
-            ctPolicy = new CTPolicyImpl(ctLogStore, 2);
+            ctPolicy = CtUtils.newPolicy(ctLogStore, 2);
         }
 
         this.pinManager = manager;
@@ -269,7 +266,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     /**
      * For backward compatibility with older Android API that used String for the hostname only.
      */
-    public List<X509Certificate> checkClientTrusted(X509Certificate[] chain, String authType,
+    List<X509Certificate> checkClientTrusted(X509Certificate[] chain, String authType,
             String hostname) throws CertificateException {
         return checkTrusted(chain, null /* ocspData */, null /* tlsSctData */, authType, hostname,
                 true);
@@ -316,7 +313,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     /**
      * For backward compatibility with older Android API that used String for the hostname only.
      */
-    public List<X509Certificate> checkServerTrusted(X509Certificate[] chain, String authType,
+    List<X509Certificate> checkServerTrusted(X509Certificate[] chain, String authType,
             String hostname) throws CertificateException {
         return checkTrusted(chain, null /* ocspData */, null /* tlsSctData */, authType, hostname,
                 false);
@@ -327,7 +324,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      *
      * Throws {@link CertificateException} when no trusted chain can be found from {@code certs}.
      */
-    public List<X509Certificate> getTrustedChainForServer(X509Certificate[] certs,
+    List<X509Certificate> getTrustedChainForServer(X509Certificate[] certs,
             String authType, Socket socket) throws CertificateException {
         SSLSession session = null;
         SSLParameters parameters = null;
@@ -344,7 +341,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      *
      * Throws {@link CertificateException} when no trusted chain can be found from {@code certs}.
      */
-    public List<X509Certificate> getTrustedChainForServer(X509Certificate[] certs,
+    List<X509Certificate> getTrustedChainForServer(X509Certificate[] certs,
             String authType, SSLEngine engine) throws CertificateException {
         SSLSession session = engine.getHandshakeSession();
         if (session == null) {
@@ -366,7 +363,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         getTrustedChainForServer(chain, authType, engine);
     }
 
-    public boolean isUserAddedCertificate(X509Certificate cert) {
+    boolean isUserAddedCertificate(X509Certificate cert) {
         if (trustedCertificateStore == null) {
             return false;
         } else {
@@ -380,12 +377,12 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      * null, it does not check for pinned certs. The return value is a list of
      * the certificates used for making the trust decision.
      */
-    public List<X509Certificate> checkServerTrusted(X509Certificate[] chain, String authType,
+    List<X509Certificate> checkServerTrusted(X509Certificate[] chain, String authType,
             SSLSession session) throws CertificateException {
         return checkTrusted(chain, authType, session, null, false /* client auth */);
     }
 
-    public void handleTrustStorageUpdate() {
+    void handleTrustStorageUpdate() {
         if (acceptedIssuers == null) {
             trustedCertificateIndex.reset();
         } else {
@@ -960,17 +957,17 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         return (acceptedIssuers != null) ? acceptedIssuers.clone() : acceptedIssuers(rootKeyStore);
     }
 
-    public void setCTEnabledOverride(boolean enabled) {
+    void setCTEnabledOverride(boolean enabled) {
         this.ctEnabledOverride = enabled;
     }
 
     // Replace the CTVerifier. For testing only.
-    public void setCTVerifier(CTVerifier verifier) {
+    void setCTVerifier(CTVerifier verifier) {
         this.ctVerifier = verifier;
     }
 
     // Replace the CTPolicy. For testing only.
-    public void setCTPolicy(CTPolicy policy) {
+    void setCTPolicy(CTPolicy policy) {
         this.ctPolicy = policy;
     }
 }

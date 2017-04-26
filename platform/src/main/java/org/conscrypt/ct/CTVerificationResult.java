@@ -25,7 +25,7 @@ import org.conscrypt.Internal;
  * @hide
  */
 @Internal
-public class CTVerificationResult {
+public final class CTVerificationResult {
     private final ArrayList<VerifiedSCT> validSCTs = new ArrayList<>();
     private final ArrayList<VerifiedSCT> invalidSCTs = new ArrayList<>();
 
@@ -37,11 +37,11 @@ public class CTVerificationResult {
         }
     }
 
-    public List<VerifiedSCT> getValidSCTs() {
+    List<VerifiedSCT> getValidSCTs() {
         return Collections.unmodifiableList(validSCTs);
     }
 
-    public List<VerifiedSCT> getInvalidSCTs() {
+    List<VerifiedSCT> getInvalidSCTs() {
         return Collections.unmodifiableList(invalidSCTs);
     }
 }

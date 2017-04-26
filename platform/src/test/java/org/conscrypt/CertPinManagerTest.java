@@ -42,7 +42,7 @@ public class CertPinManagerTest extends TestCase {
 
     public void testCertPinManagerCalled() throws Exception {
         class TestCertPinManager implements CertPinManager {
-            public boolean called = false;
+            private boolean called = false;
             @Override
             public void checkChainPinning(String hostname, List<X509Certificate> chain)
                     throws CertificateException {
@@ -77,7 +77,7 @@ public class CertPinManagerTest extends TestCase {
     public void testHostnameProvided() throws Exception {
         final String expectedHostname = "example.com";
         class TestCertPinManager implements CertPinManager {
-            public boolean hostnameMatched = false;
+            private boolean hostnameMatched = false;
             @Override
             public void checkChainPinning(String hostname, List<X509Certificate> chain)
                     throws CertificateException {
@@ -91,7 +91,7 @@ public class CertPinManagerTest extends TestCase {
 
     public void testFullChainProvided() throws Exception {
         class TestCertPinManager implements CertPinManager {
-            public boolean fullChainProvided = false;
+            private boolean fullChainProvided = false;
             @Override
             public void checkChainPinning(String hostname, List<X509Certificate> chain)
                     throws CertificateException {

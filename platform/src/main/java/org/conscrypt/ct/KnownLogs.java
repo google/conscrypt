@@ -19,15 +19,11 @@
 
 package org.conscrypt.ct;
 
-import org.conscrypt.Internal;
+final class KnownLogs {
+    private KnownLogs() {}
 
-/**
- * @hide
- */
-@Internal
-public final class KnownLogs {
-    public static final int LOG_COUNT = 8;
-    public static final String[] LOG_DESCRIPTIONS = new String[] {
+    static final int LOG_COUNT = 8;
+    static final String[] LOG_DESCRIPTIONS = new String[] {
         "Google 'Pilot' log",
         "Google 'Aviator' log",
         "DigiCert Log Server",
@@ -37,7 +33,7 @@ public final class KnownLogs {
         "Symantec log",
         "Venafi log",
     };
-    public static final String[] LOG_URLS = new String[] {
+    static final String[] LOG_URLS = new String[] {
         "ct.googleapis.com/pilot",
         "ct.googleapis.com/aviator",
         "ct1.digicert-ct.com/log",
@@ -47,7 +43,7 @@ public final class KnownLogs {
         "ct.ws.symantec.com",
         "ctlog.api.venafi.com",
     };
-    public static final byte[][] LOG_KEYS = new byte[][] {
+    static final byte[][] LOG_KEYS = new byte[][] {
         // Google 'Pilot' log
         new byte[] {
             48, 89, 48, 19, 6, 7, 42, -122, 72, -50, 61, 2, 1, 6, 8, 42, -122, 72,
