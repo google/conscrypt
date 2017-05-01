@@ -629,14 +629,18 @@ final class SSLParametersImpl implements Cloneable {
      * sockets. For more information on SNI, see RFC 6066 section 3.
      */
     private boolean isSniEnabledByDefault() {
-        String enableSNI = System.getProperty("jsse.enableSNIExtension", "true");
-        if ("true".equalsIgnoreCase(enableSNI)) {
+        try {
+            String enableSNI = System.getProperty("jsse.enableSNIExtension", "true");
+            if ("true".equalsIgnoreCase(enableSNI)) {
+                return true;
+            } else if ("false".equalsIgnoreCase(enableSNI)) {
+                return false;
+            } else {
+                throw new RuntimeException(
+                        "Can only set \"jsse.enableSNIExtension\" to \"true\" or \"false\"");
+            }
+        } catch (SecurityException e) {
             return true;
-        } else if ("false".equalsIgnoreCase(enableSNI)) {
-            return false;
-        } else {
-            throw new RuntimeException(
-                    "Can only set \"jsse.enableSNIExtension\" to \"true\" or \"false\"");
         }
     }
 
