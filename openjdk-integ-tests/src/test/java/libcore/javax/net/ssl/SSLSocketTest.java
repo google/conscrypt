@@ -1799,7 +1799,6 @@ public class SSLSocketTest {
             StandardNames.assertDefaultCipherSuites(cipherSuites);
         }, getSSLSocketFactoriesToTest());
     }
-    @Ignore("TODO(nmittler): Fix this.")
     @Test
     public void test_SSLSocket_ClientHello_supportedCurves() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
