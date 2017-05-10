@@ -55,6 +55,15 @@ public final class TestUtils {
 
     private TestUtils() {}
 
+    public static void installConscryptAsDefaultProvider() {
+        synchronized (CONSCRYPT_PROVIDER) {
+            Provider[] providers = Security.getProviders();
+            if (providers.length == 0 || !providers[0].equals(CONSCRYPT_PROVIDER)) {
+                Security.insertProviderAt(CONSCRYPT_PROVIDER, 1);
+            }
+        }
+    }
+
     public static InputStream openTestFile(String name) throws FileNotFoundException {
         InputStream is = TestUtils.class.getResourceAsStream("/" + name);
         if (is == null) {

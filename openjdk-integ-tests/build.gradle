@@ -1,0 +1,28 @@
+description = 'Conscrypt: OpenJDK Integration Tests'
+
+evaluationDependsOn(':conscrypt-openjdk')
+
+def nativeConfig = project(':conscrypt-openjdk').preferredNativeConfiguration
+
+sourceSets {
+    main {
+        resources {
+            // This shouldn't be needed but seems to help IntelliJ locate the native artifact.
+            srcDirs += file(project(':conscrypt-openjdk').buildDir.absolutePath + "/${nativeConfig}/resources/main")
+        }
+    }
+}
+
+dependencies {
+    // Add the preferred native openjdk configuration for this platform.
+    compile project(
+            path: ':conscrypt-openjdk',
+            configuration: "$nativeConfig")
+
+    testCompile project(':conscrypt-constants'),
+            project(':conscrypt-testing')
+}
+
+// Don't include this artifact in the distribution.
+tasks.install.enabled = false
+tasks.uploadArchives.enabled = false;

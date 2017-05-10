@@ -7631,8 +7631,6 @@ static void NativeCrypto_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_address,
         return;
     }
     if (fdObject == nullptr) {
-        Errors::jniThrowNullPointerException(env, "fd == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_shutdown => fd == null", ssl);
         return;
     }
     if (shc == nullptr) {
