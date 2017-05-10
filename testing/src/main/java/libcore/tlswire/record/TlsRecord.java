@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 package libcore.tlswire.record;
-import libcore.tlswire.util.TlsProtocolVersion;
+
 import java.io.DataInput;
 import java.io.IOException;
+import libcore.tlswire.util.TlsProtocolVersion;
+
 /**
  * TLS Record Protocol record from TLS 1.2 RFC 5246.
  */

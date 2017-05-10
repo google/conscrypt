@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 package libcore.tlswire.handshake;
-import libcore.tlswire.util.IoUtils;
+
 import java.io.DataInput;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
+import libcore.tlswire.util.IoUtils;
+
 /**
  * {@code HelloExtension} struct from TLS 1.2 RFC 5246.
  */

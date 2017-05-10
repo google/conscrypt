@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 package libcore.tlswire.handshake;
-import libcore.tlswire.util.IoUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import libcore.tlswire.util.IoUtils;
+
 /**
  * {@code elliptic_curves} {@link HelloExtension} from RFC 4492 section 5.1.1.
  */
@@ -30,7 +32,8 @@ public class EllipticCurvesHelloExtension extends HelloExtension {
     protected void parseData() throws IOException {
         byte[] ellipticCurvesListBytes = IoUtils.readTlsVariableLengthByteVector(
                 new DataInputStream(new ByteArrayInputStream(data)), 0xffff);
-        ByteArrayInputStream ellipticCurvesListIn = new ByteArrayInputStream(ellipticCurvesListBytes);
+        ByteArrayInputStream ellipticCurvesListIn =
+                new ByteArrayInputStream(ellipticCurvesListBytes);
         DataInputStream in = new DataInputStream(ellipticCurvesListIn);
         wellFormed = (ellipticCurvesListIn.available() % 2) == 0;
         supported = new ArrayList<EllipticCurve>(ellipticCurvesListIn.available() / 2);

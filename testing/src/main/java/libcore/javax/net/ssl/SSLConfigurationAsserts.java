@@ -19,7 +19,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import libcore.java.security.StandardNames;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,6 +31,7 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import libcore.java.security.StandardNames;
 
 /**
  * Assertions about the configuration of TLS/SSL primitives.
@@ -48,8 +48,8 @@ public class SSLConfigurationAsserts {
     public static void assertSSLContextDefaultConfiguration(SSLContext sslContext)
             throws IOException {
         SSLParameters defaultParameters = sslContext.getDefaultSSLParameters();
-        StandardNames.assertSSLContextEnabledProtocols(sslContext.getProtocol(),
-                defaultParameters.getProtocols());
+        StandardNames.assertSSLContextEnabledProtocols(
+                sslContext.getProtocol(), defaultParameters.getProtocols());
         StandardNames.assertDefaultCipherSuites(defaultParameters.getCipherSuites());
         assertFalse(defaultParameters.getWantClientAuth());
         assertFalse(defaultParameters.getNeedClientAuth());
@@ -58,13 +58,13 @@ public class SSLConfigurationAsserts {
         StandardNames.assertSupportedProtocols(supportedParameters.getProtocols());
         assertFalse(supportedParameters.getWantClientAuth());
         assertFalse(supportedParameters.getNeedClientAuth());
-        assertContainsAll("Unsupported enabled cipher suites", supportedParameters.getCipherSuites(),
-                defaultParameters.getCipherSuites());
+        assertContainsAll("Unsupported enabled cipher suites",
+                supportedParameters.getCipherSuites(), defaultParameters.getCipherSuites());
         assertContainsAll("Unsupported enabled protocols", supportedParameters.getProtocols(),
                 defaultParameters.getProtocols());
         assertSSLSocketFactoryConfigSameAsSSLContext(sslContext.getSocketFactory(), sslContext);
-        assertSSLServerSocketFactoryConfigSameAsSSLContext(sslContext.getServerSocketFactory(),
-                sslContext);
+        assertSSLServerSocketFactoryConfigSameAsSSLContext(
+                sslContext.getServerSocketFactory(), sslContext);
         SSLEngine sslEngine = sslContext.createSSLEngine();
         assertFalse(sslEngine.getUseClientMode());
         assertSSLEngineConfigSameAsSSLContext(sslEngine, sslContext);
@@ -73,10 +73,9 @@ public class SSLConfigurationAsserts {
      * Asserts that the provided {@link SSLSocketFactory} has the expected default configuration and
      * that {@link SSLSocket} instances created by the factory match the configuration.
      */
-    public static void assertSSLSocketFactoryDefaultConfiguration(
-            SSLSocketFactory sslSocketFactory) throws Exception {
-        assertSSLSocketFactoryConfigSameAsSSLContext(sslSocketFactory,
-                SSLContext.getDefault());
+    public static void assertSSLSocketFactoryDefaultConfiguration(SSLSocketFactory sslSocketFactory)
+            throws Exception {
+        assertSSLSocketFactoryConfigSameAsSSLContext(sslSocketFactory, SSLContext.getDefault());
     }
     /**
      * Asserts that {@link SSLSocketFactory}'s configuration matches {@code SSLContext}'s
@@ -106,9 +105,10 @@ public class SSLConfigurationAsserts {
     /**
      * Asserts that {@link SSLSocket}'s configuration matches {@code SSLContext's} configuration.
      */
-    private static void assertSSLSocketConfigSameAsSSLContext(SSLSocket sslSocket,
-            SSLContext sslContext) {
-        assertSSLParametersEqual(sslSocket.getSSLParameters(), sslContext.getDefaultSSLParameters());
+    private static void assertSSLSocketConfigSameAsSSLContext(
+            SSLSocket sslSocket, SSLContext sslContext) {
+        assertSSLParametersEqual(
+                sslSocket.getSSLParameters(), sslContext.getDefaultSSLParameters());
         assertCipherSuitesEqual(sslSocket.getEnabledCipherSuites(),
                 sslContext.getDefaultSSLParameters().getCipherSuites());
         assertProtocolsEqual(sslSocket.getEnabledProtocols(),
@@ -125,22 +125,24 @@ public class SSLConfigurationAsserts {
      */
     public static void assertSSLServerSocketFactoryDefaultConfiguration(
             SSLServerSocketFactory sslServerSocketFactory) throws Exception {
-        assertSSLServerSocketFactoryConfigSameAsSSLContext(sslServerSocketFactory,
-                SSLContext.getDefault());
+        assertSSLServerSocketFactoryConfigSameAsSSLContext(
+                sslServerSocketFactory, SSLContext.getDefault());
     }
     /**
      * Asserts that {@link SSLServerSocketFactory}'s configuration matches {@code SSLContext}'s
-     * configuration, and that {@link SSLServerSocket} instances obtained from the factory match this
+     * configuration, and that {@link SSLServerSocket} instances obtained from the factory match
+     * this
      * configuration as well.
      */
     private static void assertSSLServerSocketFactoryConfigSameAsSSLContext(
-            SSLServerSocketFactory sslServerSocketFactory, SSLContext sslContext)  throws IOException {
+            SSLServerSocketFactory sslServerSocketFactory, SSLContext sslContext)
+            throws IOException {
         assertCipherSuitesEqual(sslContext.getDefaultSSLParameters().getCipherSuites(),
                 sslServerSocketFactory.getDefaultCipherSuites());
         assertCipherSuitesEqual(sslContext.getSupportedSSLParameters().getCipherSuites(),
                 sslServerSocketFactory.getSupportedCipherSuites());
         try (SSLServerSocket sslServerSocket =
-                (SSLServerSocket) sslServerSocketFactory.createServerSocket()) {
+                        (SSLServerSocket) sslServerSocketFactory.createServerSocket()) {
             assertFalse(sslServerSocket.getUseClientMode());
             assertTrue(sslServerSocket.getEnableSessionCreation());
             assertSSLServerSocketConfigSameAsSSLContext(sslServerSocket, sslContext);
@@ -160,8 +162,8 @@ public class SSLConfigurationAsserts {
      * Asserts that {@link SSLServerSocket}'s configuration matches {@code SSLContext's}
      * configuration.
      */
-    private static void assertSSLServerSocketConfigSameAsSSLContext(SSLServerSocket sslServerSocket,
-            SSLContext sslContext) {
+    private static void assertSSLServerSocketConfigSameAsSSLContext(
+            SSLServerSocket sslServerSocket, SSLContext sslContext) {
         assertCipherSuitesEqual(sslServerSocket.getEnabledCipherSuites(),
                 sslContext.getDefaultSSLParameters().getCipherSuites());
         assertProtocolsEqual(sslServerSocket.getEnabledProtocols(),
@@ -186,9 +188,10 @@ public class SSLConfigurationAsserts {
     /**
      * Asserts that {@link SSLEngine}'s configuration matches {@code SSLContext's} configuration.
      */
-    private static void assertSSLEngineConfigSameAsSSLContext(SSLEngine sslEngine,
-            SSLContext sslContext) {
-        assertSSLParametersEqual(sslEngine.getSSLParameters(), sslContext.getDefaultSSLParameters());
+    private static void assertSSLEngineConfigSameAsSSLContext(
+            SSLEngine sslEngine, SSLContext sslContext) {
+        assertSSLParametersEqual(
+                sslEngine.getSSLParameters(), sslContext.getDefaultSSLParameters());
         assertCipherSuitesEqual(sslEngine.getEnabledCipherSuites(),
                 sslContext.getDefaultSSLParameters().getCipherSuites());
         assertProtocolsEqual(sslEngine.getEnabledProtocols(),
