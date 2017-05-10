@@ -822,9 +822,17 @@ public class OpenSSLSocketImpl
     @Override
     public SSLSession getSession() {
         if (sslSession == null) {
+            boolean handshakeCompleted = false;
             try {
-                waitForHandshake();
+                if (isConnected()) {
+                    waitForHandshake();
+                    handshakeCompleted = true;
+                }
             } catch (IOException e) {
+                // Fall through.
+            }
+
+            if (!handshakeCompleted) {
                 // return an invalid session with
                 // invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
                 return SSLNullSession.getNullSession();

@@ -359,7 +359,6 @@ public class SSLSocketTest {
             }
         }
     }
-    @Ignore("TODO(nmittler): Fix this.")
     @Test
     public void test_SSLSocket_getSession() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -1559,48 +1558,50 @@ public class SSLSocketTest {
         listening.close();
     }
     @Ignore("TODO(nmittler): Fix this.")
-    @Test
+    @Test(expected = SocketTimeoutException.class)
     public void test_SSLSocket_setSoWriteTimeout() throws Exception {
         final TestSSLContext c = TestSSLContext.create();
-        SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket();
-        // Try to make the client SO_SNDBUF size as small as possible
-        // (it can default to 512k or even megabytes).  Note that
-        // socket(7) says that the kernel will double the request to
-        // leave room for its own book keeping and that the minimal
-        // value will be 2048. Also note that tcp(7) says the value
-        // needs to be set before connect(2).
-        int sendBufferSize = 1024;
-        client.setSendBufferSize(sendBufferSize);
-        sendBufferSize = client.getSendBufferSize();
+
         // In jb-mr2 it was found that we need to also set SO_RCVBUF
         // to a minimal size or the write would not block. While
         // tcp(2) says the value has to be set before listen(2), it
         // seems fine to set it before accept(2).
         final int recvBufferSize = 128;
         c.serverSocket.setReceiveBufferSize(recvBufferSize);
-        client.connect(new InetSocketAddress(c.host, c.port));
+
+        SSLSocket client =
+                (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
+        // Try to make the client SO_SNDBUF size as small as possible
+        // (it can default to 512k or even megabytes).  Note that
+        // socket(7) says that the kernel will double the request to
+        // leave room for its own book keeping and that the minimal
+        // value will be 2048. Also note that tcp(7) says the value
+        // needs to be set before connect(2).
+        client.setSendBufferSize(1024);
+        final int sendBufferSize = client.getSendBufferSize();
+
+        // Start the handshake.
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<Void> future = executor.submit(() -> {
-            server.startHandshake();
+            client.startHandshake();
             return null;
         });
         executor.shutdown();
-        client.startHandshake();
+        server.startHandshake();
+
         Conscrypt.Sockets.setSoWriteTimeout(client, 1);
         try {
             // Add extra space to the write to exceed the send buffer
             // size and cause the write to block.
             final int extra = 1;
             client.getOutputStream().write(new byte[sendBufferSize + extra]);
-            fail();
-        } catch (SocketTimeoutException expected) {
-            // Ignored.
+        } finally {
+            future.get();
+            client.close();
+            server.close();
+            c.close();
         }
-        future.get();
-        client.close();
-        server.close();
-        c.close();
     }
     @Ignore("TODO(nmittler): Fix this.")
     @Test
