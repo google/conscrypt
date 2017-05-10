@@ -1772,7 +1772,6 @@ public class SSLSocketTest {
                     + " bytes");
         }
     }
-    @Ignore("TODO(nmittler): Fix this.")
     @Test
     public void test_SSLSocket_ClientHello_cipherSuites() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
