@@ -28,7 +28,6 @@ import java.security.spec.ECPublicKeySpec;
 import java.security.spec.KeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import javax.crypto.spec.DHPrivateKeySpec;
 import javax.crypto.spec.DHPublicKeySpec;
 
@@ -703,11 +703,9 @@ public final class StandardNames {
         addBoth("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA");
         addBoth("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
         addBoth("TLS_RSA_WITH_AES_256_CBC_SHA");
-        addBoth("TLS_DHE_RSA_WITH_AES_256_CBC_SHA");
         addBoth("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
         addBoth("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
         addBoth("TLS_RSA_WITH_AES_128_CBC_SHA");
-        addBoth("TLS_DHE_RSA_WITH_AES_128_CBC_SHA");
         addBoth("SSL_RSA_WITH_3DES_EDE_CBC_SHA");
 
         // TLSv1.2 cipher suites
@@ -715,10 +713,6 @@ public final class StandardNames {
         addBoth("TLS_RSA_WITH_AES_256_CBC_SHA256");
         addOpenSsl("TLS_RSA_WITH_AES_128_GCM_SHA256");
         addOpenSsl("TLS_RSA_WITH_AES_256_GCM_SHA384");
-        addBoth("TLS_DHE_RSA_WITH_AES_128_CBC_SHA256");
-        addBoth("TLS_DHE_RSA_WITH_AES_256_CBC_SHA256");
-        addOpenSsl("TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
-        addOpenSsl("TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
         addBoth("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
         addBoth("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
         addOpenSsl("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
@@ -778,9 +772,6 @@ public final class StandardNames {
         // Dropped
         addNeither("SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA");
         addNeither("SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA");
-        addRi("SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA");
-        addRi("SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA");
-        addRi("SSL_DHE_RSA_WITH_DES_CBC_SHA");
         addRi("SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
         addRi("SSL_DH_anon_EXPORT_WITH_RC4_40_MD5");
         addRi("SSL_DH_anon_WITH_3DES_EDE_CBC_SHA");
@@ -836,82 +827,61 @@ public final class StandardNames {
         addNeither("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA");
         addNeither("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5");
 
-        CIPHER_SUITES = (IS_RI) ? CIPHER_SUITES_RI : CIPHER_SUITES_OPENSSL;
+        CIPHER_SUITES = CIPHER_SUITES_OPENSSL;
     }
 
-    /**
-     * Cipher suites that are not negotiated when TLSv1.2 is selected on the RI.
-     */
-    public static final List<String> CIPHER_SUITES_OBSOLETE_TLS12 = Arrays.asList(
-            "SSL_RSA_WITH_DES_CBC_SHA", "SSL_DHE_RSA_WITH_DES_CBC_SHA",
-            "SSL_DHE_DSS_WITH_DES_CBC_SHA", "SSL_DH_anon_WITH_DES_CBC_SHA",
-            "SSL_RSA_EXPORT_WITH_RC4_40_MD5", "SSL_DH_anon_EXPORT_WITH_RC4_40_MD5",
-            "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA", "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
-            "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", "SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
-
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
-    private static final List<String> CIPHER_SUITES_ANDROID_AES_HARDWARE = Arrays.asList(
-            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+    private static final List<String> CIPHER_SUITES_AES_HARDWARE = Arrays.asList(
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_RSA_WITH_AES_256_GCM_SHA384", "TLS_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_RSA_WITH_AES_256_CBC_SHA", CIPHER_SUITE_SECURE_RENEGOTIATION);
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_WITH_AES_256_CBC_SHA",
+            CIPHER_SUITE_SECURE_RENEGOTIATION);
 
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
-    private static final List<String> CIPHER_SUITES_ANDROID_SOFTWARE = Arrays.asList(
+    private static final List<String> CIPHER_SUITES_SOFTWARE = Arrays.asList(
             "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384", "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_RSA_WITH_AES_256_GCM_SHA384", "TLS_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_RSA_WITH_AES_256_CBC_SHA", CIPHER_SUITE_SECURE_RENEGOTIATION);
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_WITH_AES_256_CBC_SHA",
+            CIPHER_SUITE_SECURE_RENEGOTIATION);
 
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
-    public static final List<String> CIPHER_SUITES_DEFAULT = (IS_RI)
-            ? Arrays.asList("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
-                      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384", "TLS_RSA_WITH_AES_256_CBC_SHA256",
-                      "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384",
-                      "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384", "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
-                      "TLS_DHE_DSS_WITH_AES_256_CBC_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-                      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA",
-                      "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA", "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",
-                      "TLS_DHE_RSA_WITH_AES_256_CBC_SHA", "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
-                      "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-                      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256", "TLS_RSA_WITH_AES_128_CBC_SHA256",
-                      "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
-                      "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
-                      "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-                      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_128_CBC_SHA",
-                      "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA", "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
-                      "TLS_DHE_RSA_WITH_AES_128_CBC_SHA", "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
-                      "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA", "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
-                      "SSL_RSA_WITH_RC4_128_SHA", "TLS_ECDH_ECDSA_WITH_RC4_128_SHA",
-                      "TLS_ECDH_RSA_WITH_RC4_128_SHA", "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA",
-                      "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA", "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
-                      "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA", "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",
-                      "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA", "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
-                      "SSL_RSA_WITH_RC4_128_MD5", "TLS_EMPTY_RENEGOTIATION_INFO_SCSV")
-            : CpuFeatures.isAESHardwareAccelerated() ? CIPHER_SUITES_ANDROID_AES_HARDWARE
-                                                     : CIPHER_SUITES_ANDROID_SOFTWARE;
+    public static final List<String> CIPHER_SUITES_DEFAULT = CpuFeatures.isAESHardwareAccelerated()
+            ? CIPHER_SUITES_AES_HARDWARE
+            : CIPHER_SUITES_SOFTWARE;
 
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
-    public static final List<String> CIPHER_SUITES_DEFAULT_PSK =
-            Arrays.asList("TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256",
-                    "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA", "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA",
-                    "TLS_PSK_WITH_AES_128_CBC_SHA", "TLS_PSK_WITH_AES_256_CBC_SHA");
+    public static final List<String> CIPHER_SUITES_DEFAULT_PSK = Arrays.asList(
+            "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA",
+            "TLS_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_PSK_WITH_AES_256_CBC_SHA");
 
     // Should be updated to match BoringSSL's defaults when they change.
     // https://boringssl.googlesource.com/boringssl/+/master/ssl/t1_lib.c#306
@@ -922,8 +892,12 @@ public final class StandardNames {
             Arrays.asList("RSA", "DHE_RSA", "DHE_DSS", "ECDHE_RSA", "ECDHE_ECDSA"));
 
     private static final Set<String> PERMITTED_DEFAULT_BULK_ENCRYPTION_CIPHERS =
-            new HashSet<String>(Arrays.asList("AES_128_CBC", "AES_256_CBC", "AES_128_GCM",
-                    "AES_256_GCM", "CHACHA20_POLY1305"));
+            new HashSet<String>(Arrays.asList(
+                    "AES_128_CBC",
+                    "AES_256_CBC",
+                    "AES_128_GCM",
+                    "AES_256_GCM",
+                    "CHACHA20_POLY1305"));
 
     private static final Set<String> PERMITTED_DEFAULT_MACS =
             new HashSet<String>(Arrays.asList("SHA", "SHA256", "SHA384"));
@@ -1058,21 +1032,10 @@ public final class StandardNames {
      */
     public static void assertDefaultCipherSuites(String[] cipherSuites) {
         assertValidCipherSuites(cipherSuites);
-        assertEquals(CIPHER_SUITES_DEFAULT, Arrays.asList(cipherSuites));
 
-        // Assert that all the cipher suites are permitted to be in the default list.
-        // This assertion is a backup for the stricter assertion above.
-        //
-        // There is no point in asserting this for the RI as it's outside of our control.
-        if (!IS_RI) {
-            List<String> disallowedDefaultCipherSuites = new ArrayList<String>();
-            for (String cipherSuite : cipherSuites) {
-                if (!isPermittedDefaultCipherSuite(cipherSuite)) {
-                    disallowedDefaultCipherSuites.add(cipherSuite);
-                }
-            }
-            assertEquals(Collections.EMPTY_LIST, disallowedDefaultCipherSuites);
-        }
+        Set<String> expected = new TreeSet<>(CIPHER_SUITES_DEFAULT);
+        Set<String> actual = new TreeSet<>(Arrays.asList(cipherSuites));
+        assertEquals(expected, actual);
     }
 
     public static void assertDefaultEllipticCurves(String[] curves) {
