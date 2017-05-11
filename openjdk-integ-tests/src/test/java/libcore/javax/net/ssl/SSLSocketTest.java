@@ -26,6 +26,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -71,6 +72,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -174,8 +176,12 @@ public class SSLSocketTest {
                         return new SecretKeySpec("Just an arbitrary key".getBytes(UTF_8), "RAW");
                     }
                 });
-        TestSSLContext c = TestSSLContext.createWithAdditionalKeyManagers(testKeyStore,
-                testKeyStore, new KeyManager[] {pskKeyManager}, new KeyManager[] {pskKeyManager});
+        TestSSLContext c = TestSSLContext.newBuilder()
+                                   .client(testKeyStore)
+                                   .server(testKeyStore)
+                                   .additionalClientKeyManagers(new KeyManager[] {pskKeyManager})
+                                   .additionalServerKeyManagers(new KeyManager[] {pskKeyManager})
+                                   .build();
         String[] cipherSuites = c.clientContext.getSocketFactory().getSupportedCipherSuites();
         for (String cipherSuite : cipherSuites) {
             try {
@@ -462,8 +468,11 @@ public class SSLSocketTest {
     }
     @Test
     public void test_SSLSocket_NoEnabledCipherSuites_Failure() throws Exception {
-        TestSSLContext c = TestSSLContext.create(null, null, null, null, null, null, null, null,
-                SSLContext.getDefault(), SSLContext.getDefault());
+        TestSSLContext c = TestSSLContext.newBuilder()
+                                   .useDefaults(false)
+                                   .clientContext(SSLContext.getDefault())
+                                   .serverContext(SSLContext.getDefault())
+                                   .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         client.setEnabledCipherSuites(new String[0]);
@@ -492,8 +501,11 @@ public class SSLSocketTest {
     }
     @Test
     public void test_SSLSocket_startHandshake_noKeyStore() throws Exception {
-        TestSSLContext c = TestSSLContext.create(null, null, null, null, null, null, null, null,
-                SSLContext.getDefault(), SSLContext.getDefault());
+        TestSSLContext c = TestSSLContext.newBuilder()
+                .useDefaults(false)
+                .clientContext(SSLContext.getDefault())
+                .serverContext(SSLContext.getDefault())
+                .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -1557,28 +1569,29 @@ public class SSLSocketTest {
         underlying.close();
         listening.close();
     }
-    @Ignore("TODO(nmittler): Fix this.")
     @Test(expected = SocketTimeoutException.class)
     public void test_SSLSocket_setSoWriteTimeout() throws Exception {
-        final TestSSLContext c = TestSSLContext.create();
+        // Only run this test on Linux since it relies on non-posix methods.
+        assumeTrue(isLinux());
 
         // In jb-mr2 it was found that we need to also set SO_RCVBUF
-        // to a minimal size or the write would not block. While
-        // tcp(2) says the value has to be set before listen(2), it
-        // seems fine to set it before accept(2).
-        final int recvBufferSize = 128;
-        c.serverSocket.setReceiveBufferSize(recvBufferSize);
+        // to a minimal size or the write would not block.
+        final int receiveBufferSize = 128;
+        TestSSLContext c =
+                TestSSLContext.newBuilder().serverReceiveBufferSize(receiveBufferSize).build();
 
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
+
         // Try to make the client SO_SNDBUF size as small as possible
         // (it can default to 512k or even megabytes).  Note that
         // socket(7) says that the kernel will double the request to
         // leave room for its own book keeping and that the minimal
         // value will be 2048. Also note that tcp(7) says the value
         // needs to be set before connect(2).
-        client.setSendBufferSize(1024);
-        final int sendBufferSize = client.getSendBufferSize();
+        int sendBufferSize = 1024;
+        client.setSendBufferSize(sendBufferSize);
+        sendBufferSize = client.getSendBufferSize();
 
         // Start the handshake.
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -1603,6 +1616,14 @@ public class SSLSocketTest {
             c.close();
         }
     }
+
+    private static boolean isLinux() {
+        return System.getProperty("os.name")
+                .toLowerCase(Locale.US)
+                .replaceAll("[^a-z0-9]+", "")
+                .startsWith("linux");
+    }
+
     @Ignore("TODO(nmittler): Fix this.")
     @Test
     public void test_SSLSocket_interrupt() throws Exception {
