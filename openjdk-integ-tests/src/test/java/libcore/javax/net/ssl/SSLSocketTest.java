@@ -26,6 +26,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -71,6 +72,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -118,6 +120,8 @@ import libcore.tlswire.record.TlsProtocols;
 import libcore.tlswire.record.TlsRecord;
 import libcore.tlswire.util.TlsProtocolVersion;
 import org.conscrypt.Conscrypt;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -129,9 +133,24 @@ import tests.util.Pair;
 
 @RunWith(JUnit4.class)
 public class SSLSocketTest {
+    private ExecutorService executor;
+    private ThreadGroup threadGroup;
+
     @BeforeClass
-    public static void setup() {
+    public static void setupStatic() {
         installConscryptAsDefaultProvider();
+    }
+
+    @Before
+    public void setup() {
+        threadGroup = new ThreadGroup("SSLSocketTest");
+        executor = Executors.newCachedThreadPool(r -> new Thread(threadGroup, r));
+    }
+
+    @After
+    public void teardown() throws InterruptedException {
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 
     @Test
@@ -174,8 +193,12 @@ public class SSLSocketTest {
                         return new SecretKeySpec("Just an arbitrary key".getBytes(UTF_8), "RAW");
                     }
                 });
-        TestSSLContext c = TestSSLContext.createWithAdditionalKeyManagers(testKeyStore,
-                testKeyStore, new KeyManager[] {pskKeyManager}, new KeyManager[] {pskKeyManager});
+        TestSSLContext c = TestSSLContext.newBuilder()
+                                   .client(testKeyStore)
+                                   .server(testKeyStore)
+                                   .additionalClientKeyManagers(new KeyManager[] {pskKeyManager})
+                                   .additionalServerKeyManagers(new KeyManager[] {pskKeyManager})
+                                   .build();
         String[] cipherSuites = c.clientContext.getSocketFactory().getSupportedCipherSuites();
         for (String cipherSuite : cipherSuites) {
             try {
@@ -380,8 +403,7 @@ public class SSLSocketTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             server.startHandshake();
             assertNotNull(server.getSession());
             assertNull(server.getHandshakeSession());
@@ -400,7 +422,6 @@ public class SSLSocketTest {
             TestSSLContext.assertCertificateInKeyStore(localCertificates[0], c.serverKeyStore);
             return null;
         });
-        executor.shutdown();
         client.startHandshake();
         assertNotNull(client.getSession());
         assertNull(client.getSession().getLocalCertificates());
@@ -431,11 +452,10 @@ public class SSLSocketTest {
     @Test
     public void test_SSLSocket_confirmSessionReuse() throws Exception {
         final TestSSLContext c = TestSSLContext.create();
-        final ExecutorService executor = Executors.newSingleThreadExecutor();
         final SSLSocket client1 = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
                 c.host.getHostName(), c.port);
         final SSLSocket server1 = (SSLSocket) c.serverSocket.accept();
-        final Future<byte[]> future1 = executor.submit(new SSLServerSessionIdCallable(server1));
+        final Future<byte[]> future1 = runAsync(new SSLServerSessionIdCallable(server1));
         client1.startHandshake();
         assertNotNull(client1.getSession());
         assertNotNull(client1.getSession().getId());
@@ -447,7 +467,7 @@ public class SSLSocketTest {
         final SSLSocket client2 = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
                 c.host.getHostName(), c.port);
         final SSLSocket server2 = (SSLSocket) c.serverSocket.accept();
-        final Future<byte[]> future2 = executor.submit(new SSLServerSessionIdCallable(server2));
+        final Future<byte[]> future2 = runAsync(new SSLServerSessionIdCallable(server2));
         client2.startHandshake();
         assertNotNull(client2.getSession());
         assertNotNull(client2.getSession().getId());
@@ -457,19 +477,20 @@ public class SSLSocketTest {
         client2.close();
         server2.close();
         assertTrue(Arrays.equals(clientSessionId1, clientSessionId2));
-        executor.shutdown();
         c.close();
     }
     @Test
     public void test_SSLSocket_NoEnabledCipherSuites_Failure() throws Exception {
-        TestSSLContext c = TestSSLContext.create(null, null, null, null, null, null, null, null,
-                SSLContext.getDefault(), SSLContext.getDefault());
+        TestSSLContext c = TestSSLContext.newBuilder()
+                                   .useDefaults(false)
+                                   .clientContext(SSLContext.getDefault())
+                                   .serverContext(SSLContext.getDefault())
+                                   .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         client.setEnabledCipherSuites(new String[0]);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             try {
                 server.startHandshake();
                 fail();
@@ -478,7 +499,6 @@ public class SSLSocketTest {
             }
             return null;
         });
-        executor.shutdown();
         try {
             client.startHandshake();
             fail();
@@ -492,13 +512,15 @@ public class SSLSocketTest {
     }
     @Test
     public void test_SSLSocket_startHandshake_noKeyStore() throws Exception {
-        TestSSLContext c = TestSSLContext.create(null, null, null, null, null, null, null, null,
-                SSLContext.getDefault(), SSLContext.getDefault());
+        TestSSLContext c = TestSSLContext.newBuilder()
+                .useDefaults(false)
+                .clientContext(SSLContext.getDefault())
+                .serverContext(SSLContext.getDefault())
+                .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             try {
                 server.startHandshake();
                 fail();
@@ -507,7 +529,6 @@ public class SSLSocketTest {
             }
             return null;
         });
-        executor.shutdown();
         try {
             client.startHandshake();
             fail();
@@ -526,12 +547,10 @@ public class SSLSocketTest {
         SSLSocket client =
                 (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             server.startHandshake();
             return null;
         });
-        executor.shutdown();
         client.startHandshake();
         future.get();
         client.close();
@@ -544,12 +563,10 @@ public class SSLSocketTest {
         final SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             server.startHandshake();
             return null;
         });
-        executor.shutdown();
         final boolean[] handshakeCompletedListenerCalled = new boolean[1];
         client.addHandshakeCompletedListener(event -> {
             try {
@@ -634,12 +651,10 @@ public class SSLSocketTest {
         final SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             server.startHandshake();
             return null;
         });
-        executor.shutdown();
         client.addHandshakeCompletedListener(event -> {
             throw expectedException;
         });
@@ -690,8 +705,7 @@ public class SSLSocketTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<IOException> future = executor.submit(() -> {
+        Future<IOException> future = runAsync(() -> {
             try {
                 if (!serverClientMode) {
                     server.setSoTimeout(1000);
@@ -703,7 +717,6 @@ public class SSLSocketTest {
                 return e;
             }
         });
-        executor.shutdown();
         if (!clientClientMode) {
             client.setSoTimeout(1000);
         }
@@ -741,8 +754,7 @@ public class SSLSocketTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             try {
                 server.startHandshake();
                 fail();
@@ -751,7 +763,6 @@ public class SSLSocketTest {
             }
             return null;
         });
-        executor.shutdown();
         try {
             client.startHandshake();
             fail();
@@ -770,8 +781,7 @@ public class SSLSocketTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             assertFalse(server.getWantClientAuth());
             assertFalse(server.getNeedClientAuth());
             // confirm turning one on by itself
@@ -789,7 +799,6 @@ public class SSLSocketTest {
             server.startHandshake();
             return null;
         });
-        executor.shutdown();
         client.startHandshake();
         assertNotNull(client.getSession().getLocalCertificates());
         TestKeyStore.assertChainLength(client.getSession().getLocalCertificates());
@@ -837,8 +846,7 @@ public class SSLSocketTest {
         SSLSocket client =
                 (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             try {
                 server.setNeedClientAuth(true);
                 server.startHandshake();
@@ -848,7 +856,6 @@ public class SSLSocketTest {
             }
             return null;
         });
-        executor.shutdown();
         try {
             client.startHandshake();
             fail();
@@ -919,13 +926,11 @@ public class SSLSocketTest {
             SSLSocket client =
                     (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
             final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            Future<Void> future = executor.submit(() -> {
+            Future<Void> future = runAsync(() -> {
                 server.setNeedClientAuth(true);
                 server.startHandshake();
                 return null;
             });
-            executor.shutdown();
             client.startHandshake();
             assertNotNull(client.getSession().getLocalCertificates());
             TestKeyStore.assertChainLength(client.getSession().getLocalCertificates());
@@ -1163,8 +1168,7 @@ public class SSLSocketTest {
         SSLSocket client =
                 (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             try {
                 server.startHandshake();
                 fail();
@@ -1173,7 +1177,6 @@ public class SSLSocketTest {
             }
             return null;
         });
-        executor.shutdown();
         try {
             client.startHandshake();
             fail();
@@ -1203,8 +1206,7 @@ public class SSLSocketTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             server.setEnableSessionCreation(false);
             try {
                 server.startHandshake();
@@ -1214,7 +1216,6 @@ public class SSLSocketTest {
             }
             return null;
         });
-        executor.shutdown();
         try {
             client.startHandshake();
             fail();
@@ -1232,8 +1233,7 @@ public class SSLSocketTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             try {
                 server.startHandshake();
                 fail();
@@ -1242,7 +1242,6 @@ public class SSLSocketTest {
             }
             return null;
         });
-        executor.shutdown();
         client.setEnableSessionCreation(false);
         try {
             client.startHandshake();
@@ -1422,8 +1421,7 @@ public class SSLSocketTest {
         final Socket underlying = new Socket(c.host, c.port);
         final SSLSocket wrapping = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
                 underlying, c.host.getHostName(), c.port, false);
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> clientFuture = executor.submit(() -> {
+        Future<Void> clientFuture = runAsync(() -> {
             wrapping.startHandshake();
             wrapping.getOutputStream().write(42);
             // close the underlying socket,
@@ -1432,7 +1430,6 @@ public class SSLSocketTest {
             wrapping.close();
             return null;
         });
-        executor.shutdown();
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
         server.startHandshake();
         @SuppressWarnings("unused")
@@ -1451,8 +1448,7 @@ public class SSLSocketTest {
         p.setEndpointIdentificationAlgorithm("HTTPS");
         client.connect(new InetSocketAddress(c.host, c.port));
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             server.startHandshake();
             assertNotNull(server.getSession());
             try {
@@ -1468,7 +1464,6 @@ public class SSLSocketTest {
             TestSSLContext.assertCertificateInKeyStore(localCertificates[0], c.serverKeyStore);
             return null;
         });
-        executor.shutdown();
         client.startHandshake();
         assertNotNull(client.getSession());
         assertNull(client.getSession().getLocalCertificates());
@@ -1491,8 +1486,7 @@ public class SSLSocketTest {
         client.setSSLParameters(p);
         client.connect(c.getLoopbackAsHostname("unmatched.example.com", c.port));
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             try {
                 server.startHandshake();
                 fail("Should receive SSLHandshakeException as server");
@@ -1501,7 +1495,6 @@ public class SSLSocketTest {
             }
             return null;
         });
-        executor.shutdown();
         try {
             client.startHandshake();
             fail("Should throw when hostname does not match expected");
@@ -1557,37 +1550,36 @@ public class SSLSocketTest {
         underlying.close();
         listening.close();
     }
-    @Ignore("TODO(nmittler): Fix this.")
     @Test(expected = SocketTimeoutException.class)
     public void test_SSLSocket_setSoWriteTimeout() throws Exception {
-        final TestSSLContext c = TestSSLContext.create();
+        // Only run this test on Linux since it relies on non-posix methods.
+        assumeTrue(isLinux());
 
         // In jb-mr2 it was found that we need to also set SO_RCVBUF
-        // to a minimal size or the write would not block. While
-        // tcp(2) says the value has to be set before listen(2), it
-        // seems fine to set it before accept(2).
-        final int recvBufferSize = 128;
-        c.serverSocket.setReceiveBufferSize(recvBufferSize);
+        // to a minimal size or the write would not block.
+        final int receiveBufferSize = 128;
+        TestSSLContext c =
+                TestSSLContext.newBuilder().serverReceiveBufferSize(receiveBufferSize).build();
 
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
+
         // Try to make the client SO_SNDBUF size as small as possible
         // (it can default to 512k or even megabytes).  Note that
         // socket(7) says that the kernel will double the request to
         // leave room for its own book keeping and that the minimal
         // value will be 2048. Also note that tcp(7) says the value
         // needs to be set before connect(2).
-        client.setSendBufferSize(1024);
-        final int sendBufferSize = client.getSendBufferSize();
+        int sendBufferSize = 1024;
+        client.setSendBufferSize(sendBufferSize);
+        sendBufferSize = client.getSendBufferSize();
 
         // Start the handshake.
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             client.startHandshake();
             return null;
         });
-        executor.shutdown();
         server.startHandshake();
 
         Conscrypt.Sockets.setSoWriteTimeout(client, 1);
@@ -1603,6 +1595,14 @@ public class SSLSocketTest {
             c.close();
         }
     }
+
+    private static boolean isLinux() {
+        return System.getProperty("os.name")
+                .toLowerCase(Locale.US)
+                .replaceAll("[^a-z0-9]+", "")
+                .startsWith("linux");
+    }
+
     @Ignore("TODO(nmittler): Fix this.")
     @Test
     public void test_SSLSocket_interrupt() throws Exception {
@@ -1621,10 +1621,7 @@ public class SSLSocketTest {
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
 
         // Start the handshake.
-        final ThreadGroup clientGroup = new ThreadGroup("client");
-        ExecutorService executor = Executors.newSingleThreadExecutor(
-                r -> new Thread(clientGroup, r));
-        Future<Void> handshakeFuture = executor.submit(() -> {
+        Future<Void> handshakeFuture = runAsync(() -> {
             clientWrapping.startHandshake();
             return null;
         });
@@ -1635,12 +1632,11 @@ public class SSLSocketTest {
         final Socket toClose = (closeUnderlying) ? underlying : clientWrapping;
 
         // Schedule the socket to be closes in 1 second.
-        Future<Void> future = executor.submit(() -> {
+        Future<Void> future = runAsync(() -> {
             Thread.sleep(1000);
             toClose.close();
             return null;
         });
-        executor.shutdown();
 
         // Read from the socket.
         try {
@@ -1670,25 +1666,18 @@ public class SSLSocketTest {
         final Socket underlying = new Socket(c.host, c.port);
         final SSLSocket wrapping = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
                 underlying, c.host.getHostName(), c.port, false);
-        // Create our own thread group so we can inspect the stack state later.
-        final ThreadGroup clientGroup = new ThreadGroup("client");
-        ExecutorService executor = Executors.newSingleThreadExecutor(
-                r -> new Thread(clientGroup, r));
-        Future<Void> clientFuture = executor.submit(() -> {
+        Future<Void> clientFuture = runAsync(() -> {
             wrapping.startHandshake();
             wrapping.setSoTimeout(readingTimeoutMillis);
             assertEquals(-1, wrapping.getInputStream().read());
             return null;
         });
-        executor.shutdown();
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
         server.startHandshake();
-        /*
-         * Wait for the client to at least be in the "read" method before
-         * calling close()
-         */
+
+        // Wait for the client to at least be in the "read" method before calling close()
         Thread[] threads = new Thread[1];
-        clientGroup.enumerate(threads);
+        threadGroup.enumerate(threads);
         if (threads[0] != null) {
             boolean clientInRead = false;
             while (!clientInRead) {
@@ -1705,6 +1694,7 @@ public class SSLSocketTest {
                 }
             }
         }
+
         wrapping.close();
         clientFuture.get();
         server.close();
@@ -1988,13 +1978,11 @@ public class SSLSocketTest {
         c.serverSocket.setSSLParameters(serverParams);
         client.connect(new InetSocketAddress(c.host, c.port));
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
         @SuppressWarnings("unused")
-        Future<?> future = executor.submit(() -> {
+        Future<?> future = runAsync(() -> {
             client.startHandshake();
             return null;
         });
-        executor.shutdown();
         server.startHandshake();
         SSLSession serverSession = server.getSession();
         assertTrue(serverSession instanceof ExtendedSSLSession);
@@ -2018,20 +2006,18 @@ public class SSLSocketTest {
         final String[] clientCipherSuites = new String[serverCipherSuites.length + 1];
         System.arraycopy(serverCipherSuites, 0, clientCipherSuites, 0, serverCipherSuites.length);
         clientCipherSuites[serverCipherSuites.length] = StandardNames.CIPHER_SUITE_FALLBACK;
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        Future<Void> s = executor.submit(() -> {
+        Future<Void> s = runAsync(() -> {
             server.setEnabledProtocols(new String[] {"TLSv1.2"});
             server.setEnabledCipherSuites(serverCipherSuites);
             server.startHandshake();
             return null;
         });
-        Future<Void> c = executor.submit(() -> {
+        Future<Void> c = runAsync(() -> {
             client.setEnabledProtocols(new String[] {"TLSv1.2"});
             client.setEnabledCipherSuites(clientCipherSuites);
             client.startHandshake();
             return null;
         });
-        executor.shutdown();
         s.get();
         c.get();
         client.close();
@@ -2048,18 +2034,16 @@ public class SSLSocketTest {
         // Confirm absence of TLS_FALLBACK_SCSV.
         assertFalse(Arrays.asList(client.getEnabledCipherSuites())
                             .contains(StandardNames.CIPHER_SUITE_FALLBACK));
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        Future<Void> s = executor.submit(() -> {
+        Future<Void> s = runAsync(() -> {
             server.setEnabledProtocols(new String[] {"TLSv1.2", "TLSv1.1"});
             server.startHandshake();
             return null;
         });
-        Future<Void> c = executor.submit(() -> {
+        Future<Void> c = runAsync(() -> {
             client.setEnabledProtocols(new String[] {"TLSv1.1"});
             client.startHandshake();
             return null;
         });
-        executor.shutdown();
         s.get();
         c.get();
         client.close();
@@ -2082,8 +2066,7 @@ public class SSLSocketTest {
         final String[] clientCipherSuites = new String[serverCipherSuites.length + 1];
         System.arraycopy(serverCipherSuites, 0, clientCipherSuites, 0, serverCipherSuites.length);
         clientCipherSuites[serverCipherSuites.length] = StandardNames.CIPHER_SUITE_FALLBACK;
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        Future<Void> s = executor.submit(() -> {
+        Future<Void> s = runAsync(() -> {
             server.setEnabledProtocols(new String[] {"TLSv1.1", "TLSv1"});
             server.setEnabledCipherSuites(serverCipherSuites);
             try {
@@ -2096,7 +2079,7 @@ public class SSLSocketTest {
             }
             return null;
         });
-        Future<Void> c = executor.submit(() -> {
+        Future<Void> c = runAsync(() -> {
             client.setEnabledProtocols(new String[] {"TLSv1"});
             client.setEnabledCipherSuites(clientCipherSuites);
             try {
@@ -2109,7 +2092,6 @@ public class SSLSocketTest {
             }
             return null;
         });
-        executor.shutdown();
         s.get();
         c.get();
         client.close();
@@ -2124,8 +2106,7 @@ public class SSLSocketTest {
         final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
                 context.host, listener.getLocalPort());
         final Socket server = listener.accept();
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        Future<Void> c = executor.submit(() -> {
+        Future<Void> c = runAsync(() -> {
             try {
                 client.startHandshake();
                 fail("Should receive handshake exception");
@@ -2135,7 +2116,7 @@ public class SSLSocketTest {
             }
             return null;
         });
-        Future<Void> s = executor.submit(() -> {
+        Future<Void> s = runAsync(() -> {
             // Wait until the client sends something.
             byte[] scratch = new byte[8192];
             @SuppressWarnings("unused")
@@ -2149,7 +2130,6 @@ public class SSLSocketTest {
                     new byte[] {0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00});
             return null;
         });
-        executor.shutdown();
         c.get(5, TimeUnit.SECONDS);
         s.get(5, TimeUnit.SECONDS);
         client.close();
@@ -2163,8 +2143,7 @@ public class SSLSocketTest {
         TestSSLContext context = TestSSLContext.create();
         final Socket client = SocketFactory.getDefault().createSocket(context.host, context.port);
         final SSLSocket server = (SSLSocket) context.serverSocket.accept();
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        Future<Void> s = executor.submit(() -> {
+        Future<Void> s = runAsync(() -> {
             try {
                 server.startHandshake();
                 fail("Should receive handshake exception");
@@ -2174,7 +2153,7 @@ public class SSLSocketTest {
             }
             return null;
         });
-        Future<Void> c = executor.submit(() -> {
+        Future<Void> c = runAsync(() -> {
             // Send bogus ClientHello:
             // TLSv1.2 Record Layer: Handshake Protocol: Client Hello
             client.getOutputStream().write(new byte[] {
@@ -2232,7 +2211,6 @@ public class SSLSocketTest {
                     new byte[] {0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00});
             return null;
         });
-        executor.shutdown();
         c.get(5, TimeUnit.SECONDS);
         s.get(5, TimeUnit.SECONDS);
         client.close();
@@ -2253,6 +2231,10 @@ public class SSLSocketTest {
         } catch (IllegalArgumentException expected) {
             // Ignored.
         }
+    }
+
+    private <T> Future<T> runAsync(Callable<T> callable) {
+        return executor.submit(callable);
     }
 
     private static void readFully(InputStream in, byte[] dst) throws IOException {
