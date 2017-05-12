@@ -830,6 +830,21 @@ public final class StandardNames {
         CIPHER_SUITES = CIPHER_SUITES_OPENSSL;
     }
 
+    /**
+     * Cipher suites that are not negotiated when TLSv1.2 is selected on the RI.
+     */
+    public static final List<String> CIPHER_SUITES_OBSOLETE_TLS12 = Arrays.asList(
+            "SSL_RSA_WITH_DES_CBC_SHA",
+            "SSL_DHE_RSA_WITH_DES_CBC_SHA",
+            "SSL_DHE_DSS_WITH_DES_CBC_SHA",
+            "SSL_DH_anon_WITH_DES_CBC_SHA",
+            "SSL_RSA_EXPORT_WITH_RC4_40_MD5",
+            "SSL_DH_anon_EXPORT_WITH_RC4_40_MD5",
+            "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",
+            "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
+            "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA",
+            "SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
+
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
     private static final List<String> CIPHER_SUITES_AES_HARDWARE = Arrays.asList(
