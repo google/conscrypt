@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Method;
 import java.security.Security;
 import java.security.spec.DSAPrivateKeySpec;
 import java.security.spec.DSAPublicKeySpec;
@@ -69,7 +70,7 @@ import javax.crypto.spec.DHPublicKeySpec;
 public final class StandardNames {
     public static final boolean IS_RI =
             !"Dalvik Core Library".equals(System.getProperty("java.specification.name"));
-    public static final String JSSE_PROVIDER_NAME = (IS_RI) ? "SunJSSE" : "AndroidOpenSSL";
+    public static final String JSSE_PROVIDER_NAME = "AndroidOpenSSL";
     public static final String SECURITY_PROVIDER_NAME = (IS_RI) ? "SUN" : "BC";
 
     public static final String KEY_MANAGER_FACTORY_DEFAULT = (IS_RI) ? "SunX509" : "PKIX";
@@ -236,10 +237,6 @@ public final class StandardNames {
         provide("MessageDigest", "SHA-384");
         provide("MessageDigest", "SHA-512");
         provide("Policy", "JavaPolicy");
-        // Android does not support SSLv3
-        if (IS_RI) {
-            provide("SSLContext", "SSLv3");
-        }
         provide("SSLContext", "TLSv1");
         provide("SSLContext", "TLSv1.1");
         provide("SSLContext", "TLSv1.2");
@@ -303,10 +300,6 @@ public final class StandardNames {
 
         // Not documented as in RI 6 but mentioned in Standard Names
         provide("AlgorithmParameters", "PBE");
-        // Android does not support SSLv3
-        if (IS_RI) {
-            provide("SSLContext", "SSL");
-        }
         provide("SSLContext", "TLS");
 
         // Not documented as in RI 6 but that exist in RI 6
@@ -586,21 +579,11 @@ public final class StandardNames {
             }
         }
 
-        if (IS_RI) {
-            provideSslContextEnabledProtocols("SSL", TLSVersion.SSLv3, TLSVersion.TLSv1);
-            provideSslContextEnabledProtocols("SSLv3", TLSVersion.SSLv3, TLSVersion.TLSv1);
-            provideSslContextEnabledProtocols("TLS", TLSVersion.SSLv3, TLSVersion.TLSv1);
-            provideSslContextEnabledProtocols("TLSv1", TLSVersion.SSLv3, TLSVersion.TLSv1);
-            provideSslContextEnabledProtocols("TLSv1.1", TLSVersion.SSLv3, TLSVersion.TLSv11);
-            provideSslContextEnabledProtocols("TLSv1.2", TLSVersion.SSLv3, TLSVersion.TLSv12);
-            provideSslContextEnabledProtocols("Default", TLSVersion.SSLv3, TLSVersion.TLSv1);
-        } else {
-            provideSslContextEnabledProtocols("TLS", TLSVersion.TLSv1, TLSVersion.TLSv12);
-            provideSslContextEnabledProtocols("TLSv1", TLSVersion.TLSv1, TLSVersion.TLSv12);
-            provideSslContextEnabledProtocols("TLSv1.1", TLSVersion.TLSv1, TLSVersion.TLSv12);
-            provideSslContextEnabledProtocols("TLSv1.2", TLSVersion.TLSv1, TLSVersion.TLSv12);
-            provideSslContextEnabledProtocols("Default", TLSVersion.TLSv1, TLSVersion.TLSv12);
-        }
+        provideSslContextEnabledProtocols("TLS", TLSVersion.TLSv1, TLSVersion.TLSv12);
+        provideSslContextEnabledProtocols("TLSv1", TLSVersion.TLSv1, TLSVersion.TLSv12);
+        provideSslContextEnabledProtocols("TLSv1.1", TLSVersion.TLSv1, TLSVersion.TLSv12);
+        provideSslContextEnabledProtocols("TLSv1.2", TLSVersion.TLSv1, TLSVersion.TLSv12);
+        provideSslContextEnabledProtocols("Default", TLSVersion.TLSv1, TLSVersion.TLSv12);
     }
 
     public static final String SSL_CONTEXT_PROTOCOLS_DEFAULT = "Default";
@@ -624,23 +607,8 @@ public final class StandardNames {
             new HashSet<String>(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2"));
     public static final Set<String> SSL_SOCKET_PROTOCOLS_SERVER_DEFAULT =
             new HashSet<String>(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2"));
-    static {
-        if (IS_RI) {
-            /* Even though we use OpenSSL's SSLv23_method which
-             * supports sending SSLv2 client hello messages, the
-             * OpenSSL implementation in s23_client_hello disables
-             * this if SSL_OP_NO_SSLv2 is specified, which we always
-             * do to disable general use of SSLv2.
-             */
-            SSL_SOCKET_PROTOCOLS.add("SSLv2Hello");
 
-            /* The RI still has SSLv3 as a default protocol. */
-            SSL_SOCKET_PROTOCOLS_CLIENT_DEFAULT.add("SSLv3");
-            SSL_SOCKET_PROTOCOLS_SERVER_DEFAULT.add("SSLv3");
-        }
-    }
-
-    private static enum TLSVersion {
+    private enum TLSVersion {
         SSLv3("SSLv3"),
         TLSv1("TLSv1"),
         TLSv11("TLSv1.1"),
@@ -652,7 +620,6 @@ public final class StandardNames {
             this.name = name;
         }
     }
-    ;
 
     /**
      * Valid values for X509TrustManager.checkClientTrusted authType,

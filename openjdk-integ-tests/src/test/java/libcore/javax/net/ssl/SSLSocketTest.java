@@ -1553,7 +1553,7 @@ public class SSLSocketTest {
     @Test(expected = SocketTimeoutException.class)
     public void test_SSLSocket_setSoWriteTimeout() throws Exception {
         // Only run this test on Linux since it relies on non-posix methods.
-        assumeTrue(isLinux());
+        assumeTrue("Test only runs on Linux. Current OS: " + osName(), isLinux());
 
         // In jb-mr2 it was found that we need to also set SO_RCVBUF
         // to a minimal size or the write would not block.
@@ -1596,11 +1596,12 @@ public class SSLSocketTest {
         }
     }
 
+    private static String osName() {
+        return System.getProperty("os.name").toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "");
+    }
+
     private static boolean isLinux() {
-        return System.getProperty("os.name")
-                .toLowerCase(Locale.US)
-                .replaceAll("[^a-z0-9]+", "")
-                .startsWith("linux");
+        return osName().startsWith("linux");
     }
 
     @Ignore("TODO(nmittler): Fix this.")

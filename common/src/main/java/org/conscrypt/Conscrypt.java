@@ -79,6 +79,13 @@ public final class Conscrypt {
         public static int maxEncryptedPacketLength() {
             return NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
         }
+
+        /**
+         * Indicates whether or not AES hardward acceleration is supported on this platform.
+         */
+        public static boolean isAesHardwareAccelerated() {
+            return NativeCrypto.HAS_AES_HARDWARE;
+        }
     }
 
     /**
