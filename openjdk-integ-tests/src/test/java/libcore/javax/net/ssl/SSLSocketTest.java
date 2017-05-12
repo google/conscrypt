@@ -149,7 +149,7 @@ public class SSLSocketTest {
 
     @After
     public void teardown() throws InterruptedException {
-        executor.shutdown();
+        executor.shutdownNow();
         executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 

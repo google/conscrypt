@@ -16,6 +16,7 @@
 
 package libcore.javax.net.ssl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -52,7 +53,6 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SSLEngineTest {
-
     @BeforeClass
     public static void setupStatic() {
         installConscryptAsDefaultProvider();
@@ -118,7 +118,7 @@ public class SSLEngineTest {
                     @Override
                     protected SecretKey getKey(
                             String identityHint, String identity, SSLEngine engine) {
-                        return new SecretKeySpec("Just an arbitrary key".getBytes(), "RAW");
+                        return new SecretKeySpec("Just an arbitrary key".getBytes(UTF_8), "RAW");
                     }
                 });
         TestSSLContext c = TestSSLContext.newBuilder()
@@ -219,9 +219,9 @@ public class SSLEngineTest {
                     boolean needsRecordSplit = "TLS".equalsIgnoreCase(c.clientContext.getProtocol())
                             && cipherSuite.contains("_CBC_");
 
-                    assertSendsCorrectly("This is the client. Hello!".getBytes(), pair.client,
+                    assertSendsCorrectly("This is the client. Hello!".getBytes(UTF_8), pair.client,
                             pair.server, needsRecordSplit);
-                    assertSendsCorrectly("This is the server. Hi!".getBytes(), pair.server,
+                    assertSendsCorrectly("This is the server. Hi!".getBytes(UTF_8), pair.server,
                             pair.client, needsRecordSplit);
                 } finally {
                     if (pair != null) {
@@ -844,7 +844,7 @@ public class SSLEngineTest {
                 startUpSync.countDown();
 
                 for (int i = 0; i < NUM_STRESS_ITERATIONS; i++) {
-                    assertSendsCorrectly("This is the client. Hello!".getBytes(), pair.client,
+                    assertSendsCorrectly("This is the client. Hello!".getBytes(UTF_8), pair.client,
                             pair.server, false);
                 }
 
@@ -854,7 +854,7 @@ public class SSLEngineTest {
                 startUpSync.countDown();
 
                 for (int i = 0; i < NUM_STRESS_ITERATIONS; i++) {
-                    assertSendsCorrectly("This is the server. Hi!".getBytes(), pair.server,
+                    assertSendsCorrectly("This is the server. Hi!".getBytes(UTF_8), pair.server,
                             pair.client, false);
                 }
 
