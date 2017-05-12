@@ -399,7 +399,7 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
             if (engineState == EngineState.CLOSED || engineState == EngineState.CLOSED_OUTBOUND) {
                 return;
             }
-            if (engineState != EngineState.MODE_SET && engineState != EngineState.NEW) {
+            if (isHandshakeStarted()) {
                 shutdownAndFreeSslNative();
             }
             if (engineState == EngineState.CLOSED_INBOUND) {
@@ -581,7 +581,7 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
     @Override
     public void setUseClientMode(boolean mode) {
         synchronized (stateLock) {
-            if (engineState != EngineState.MODE_SET && engineState != EngineState.NEW) {
+            if (isHandshakeStarted()) {
                 throw new IllegalArgumentException(
                         "Can not change mode after handshake: engineState == " + engineState);
             }
@@ -1344,8 +1344,7 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
                     NativeCrypto.SSL_get1_session(sslNativePointer), null, peerCertChain, ocspData,
                     tlsSctData, getSniHostname(), getPeerPort(), null);
 
-            boolean client = sslParameters.getUseClientMode();
-            if (client) {
+            if (getUseClientMode()) {
                 Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, this);
             } else {
                 String authType = peerCertChain[0].getPublicKey().getAlgorithm();
