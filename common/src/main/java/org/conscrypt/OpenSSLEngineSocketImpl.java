@@ -94,7 +94,7 @@ final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                 case NEED_UNWRAP: {
                     if (inputStreamWrapper.read(EmptyArray.BYTE) == -1) {
                         // Can't complete the handshake due to EOF.
-                        throw new EOFException();
+                        throw SSLUtils.toSSLHandshakeException(new EOFException());
                     }
                     break;
                 }
