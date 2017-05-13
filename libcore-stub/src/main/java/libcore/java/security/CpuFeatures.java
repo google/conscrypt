@@ -31,12 +31,7 @@ public class CpuFeatures {
 
     public static boolean isAESHardwareAccelerated() {
         List<String> features = getListFromCpuinfo("Features");
-        if (features == null) {
-            // Platform doesn't support CPU info, use the value from NativeCrypto.
-            return isAESHardwareAccelerated_NativeCrypto();
-        }
-
-        if (features.contains("aes")) {
+        if (features != null && features.contains("aes")) {
             return true;
         }
 
@@ -48,27 +43,28 @@ public class CpuFeatures {
         // If we're in an emulated ABI, Conscrypt's NativeCrypto might bridge to
         // a library that has accelerated AES instructions. See if Conscrypt
         // detects that condition.
+        Class<?> nativeCrypto;
         try {
-            Class<?> nativeCrypto = Class.forName("com.android.org.conscrypt.NativeCrypto");
+            nativeCrypto = Class.forName("com.android.org.conscrypt.NativeCrypto");
+        } catch (ClassNotFoundException e1) {
+            try {
+                nativeCrypto = Class.forName("org.conscrypt.NativeCrypto");
+            } catch (ClassNotFoundException e2) {
+                return false;
+            }
+        }
+
+        try {
             Method EVP_has_aes_hardware = nativeCrypto.getDeclaredMethod("EVP_has_aes_hardware");
+            EVP_has_aes_hardware.setAccessible(true);
             return ((Integer) EVP_has_aes_hardware.invoke(null)) == 1;
-        } catch (ClassNotFoundException | NoSuchMethodException | SecurityException
+        } catch (NoSuchMethodException | SecurityException
                 | IllegalAccessException | IllegalArgumentException ignored) {
         } catch (InvocationTargetException e) {
             throw new IllegalArgumentException(e);
         }
 
         return false;
-    }
-
-    private static boolean isAESHardwareAccelerated_NativeCrypto() {
-        try {
-            Class<?> clazz = Class.forName("org.conscrypt.Conscrypt$Constants");
-            Method method = clazz.getMethod("isAesHardwareAccelerated");
-            return (Boolean) method.invoke(null);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private static String getFieldFromCpuinfo(String field) {
@@ -89,6 +85,7 @@ public class CpuFeatures {
                 br.close();
             }
         } catch (IOException ignored) {
+            // Ignored.
         }
 
         return null;
