@@ -724,7 +724,8 @@ public final class NativeCrypto {
     // prevent apps from connecting to servers they were previously able to connect to.
 
     /** X.509 based cipher suites enabled by default (if requested), in preference order. */
-    static final String[] DEFAULT_X509_CIPHER_SUITES = EVP_has_aes_hardware() == 1 ?
+    static final boolean HAS_AES_HARDWARE = EVP_has_aes_hardware() == 1;
+    static final String[] DEFAULT_X509_CIPHER_SUITES = HAS_AES_HARDWARE ?
             new String[] {
                     "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
                     "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
@@ -760,8 +761,10 @@ public final class NativeCrypto {
 
     /** TLS-PSK cipher suites enabled by default (if requested), in preference order. */
     static final String[] DEFAULT_PSK_CIPHER_SUITES = new String[] {
-            "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256", "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA", "TLS_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA",
+            "TLS_PSK_WITH_AES_128_CBC_SHA",
             "TLS_PSK_WITH_AES_256_CBC_SHA",
     };
 
