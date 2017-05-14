@@ -19,9 +19,9 @@ package libcore.javax.net.ssl;
 import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
-import java.util.Arrays;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
