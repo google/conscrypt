@@ -70,9 +70,9 @@ public class CpuFeatures {
     private static Class<?> findFirstClass(String... names) {
         for (String name : names) {
             try {
-                return Class.forName("com.android.org.conscrypt.NativeCrypto");
-            } catch (ClassNotFoundException e1) {
-                // Try the next one.
+                return Class.forName(name);
+            } catch (ClassNotFoundException e) {
+                // Just try the next one.
             }
         }
         return null;
