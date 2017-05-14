@@ -16,6 +16,8 @@
 
 package libcore.java.security;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -116,7 +118,7 @@ public class CpuFeatures {
             Process proc = Runtime.getRuntime().exec("sysctl -a");
             if (proc.waitFor() == 0) {
                 BufferedReader reader =
-                        new BufferedReader(new InputStreamReader(proc.getInputStream()));
+                        new BufferedReader(new InputStreamReader(proc.getInputStream(), UTF_8));
 
                 final String linePrefix = "machdep.cpu.features:";
 
