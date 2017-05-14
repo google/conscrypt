@@ -1886,7 +1886,6 @@ public class SSLSocketTest {
         //    the first chunk of data received. This chunk is assumed to be the ClientHello.
         // NOTE: Steps 2 and 3 run concurrently.
         ServerSocket listeningSocket = null;
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
         // Some Socket operations are not interruptible via Thread.interrupt for some reason. To
         // work around, we unblock these sockets using Socket.close.
         final Socket[] sockets = new Socket[2];
@@ -1896,7 +1895,7 @@ public class SSLSocketTest {
             final ServerSocket finalListeningSocket = listeningSocket;
             // 2. (in background) Wait for an incoming connection and read its first chunk.
             final Future<byte[]> readFirstReceivedChunkFuture =
-                    executorService.submit(() -> {
+                    runAsync(() -> {
                         Socket socket = finalListeningSocket.accept();
                         sockets[1] = socket;
                         try {
@@ -1912,7 +1911,7 @@ public class SSLSocketTest {
                     });
             // 3. Create a client socket, connect it to the server socket, and start the TLS/SSL
             //    handshake.
-            executorService.submit((Callable<Void>) () -> {
+            runAsync((Callable<Void>) () -> {
                 Socket client = new Socket();
                 sockets[0] = client;
                 try {
@@ -1937,13 +1936,9 @@ public class SSLSocketTest {
             // Wait for the ClientHello to arrive
             return readFirstReceivedChunkFuture.get(10, TimeUnit.SECONDS);
         } finally {
-            executorService.shutdownNow();
             closeQuietly(listeningSocket);
             closeQuietly(sockets[0]);
             closeQuietly(sockets[1]);
-            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
-                fail("Timed out while waiting for the test to shut down");
-            }
         }
     }
     // http://b/18428603
