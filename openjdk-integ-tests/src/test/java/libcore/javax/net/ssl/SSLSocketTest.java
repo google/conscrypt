@@ -17,7 +17,6 @@
 package libcore.javax.net.ssl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -122,7 +121,6 @@ import libcore.tlswire.util.TlsProtocolVersion;
 import org.conscrypt.Conscrypt;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
