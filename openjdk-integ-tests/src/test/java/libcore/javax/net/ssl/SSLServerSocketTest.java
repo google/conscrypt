@@ -16,23 +16,17 @@
 
 package libcore.javax.net.ssl;
 
-import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class SSLServerSocketTest {
-    @BeforeClass
-    public static void setupStatic() {
-        installConscryptAsDefaultProvider();
-    }
+public class SSLServerSocketTest extends AbstractSSLTest {
 
     @Test
     public void testDefaultConfiguration() throws Exception {

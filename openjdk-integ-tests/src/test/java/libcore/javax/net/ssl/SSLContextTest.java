@@ -16,7 +16,6 @@
 
 package libcore.javax.net.ssl;
 
-import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -59,17 +58,12 @@ import javax.net.ssl.X509KeyManager;
 import junit.framework.AssertionFailedError;
 import libcore.java.security.StandardNames;
 import org.conscrypt.Conscrypt;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class SSLContextTest {
-    @BeforeClass
-    public static void setupStatic() {
-        installConscryptAsDefaultProvider();
-    }
+public class SSLContextTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLContext_getDefault() throws Exception {

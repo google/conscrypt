@@ -17,7 +17,6 @@
 package libcore.javax.net.ssl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -46,17 +45,12 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class SSLEngineTest {
-    @BeforeClass
-    public static void setupStatic() {
-        installConscryptAsDefaultProvider();
-    }
+public class SSLEngineTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLEngine_defaultConfiguration() throws Exception {
