@@ -51,16 +51,6 @@ import libcore.java.security.TestKeyStore;
  * don't have to duplicate the logic.
  */
 public final class TestSSLContext {
-    /*
-     * The RI and Android have very different default SSLSession cache behaviors.
-     * The RI keeps an unlimited number of SSLSesions around for 1 day.
-     * Android keeps 10 SSLSessions forever.
-     */
-    private static final boolean IS_RI = StandardNames.IS_RI;
-    public static final int EXPECTED_DEFAULT_CLIENT_SSL_SESSION_CACHE_SIZE = (IS_RI) ? 0 : 10;
-    public static final int EXPECTED_DEFAULT_SERVER_SSL_SESSION_CACHE_SIZE = (IS_RI) ? 0 : 100;
-    public static final int EXPECTED_DEFAULT_SSL_SESSION_CACHE_TIMEOUT =
-            (IS_RI) ? 24 * 3600 : 8 * 3600;
     /**
      * The Android SSLSocket and SSLServerSocket implementations are
      * based on a version of OpenSSL which includes support for RFC

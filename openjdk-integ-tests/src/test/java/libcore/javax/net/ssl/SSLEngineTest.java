@@ -52,11 +52,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class SSLEngineTest {
-    @BeforeClass
-    public static void setupStatic() {
-        installConscryptAsDefaultProvider();
-    }
+public class SSLEngineTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLEngine_defaultConfiguration() throws Exception {

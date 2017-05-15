@@ -65,11 +65,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class SSLContextTest {
-    @BeforeClass
-    public static void setupStatic() {
-        installConscryptAsDefaultProvider();
-    }
+public class SSLContextTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLContext_getDefault() throws Exception {

@@ -39,11 +39,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class SSLParametersTest {
-    @BeforeClass
-    public static void setupStatic() {
-        installConscryptAsDefaultProvider();
-    }
+public class SSLParametersTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLParameters_emptyConstructor() {

@@ -37,11 +37,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class SSLSocketFactoryTest {
-    @BeforeClass
-    public static void setupStatic() {
-        installConscryptAsDefaultProvider();
-    }
+public class SSLSocketFactoryTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLSocketFactory_getDefault() {

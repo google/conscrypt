@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package libcore.javax.net.ssl;
 
 import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 
-import javax.net.ssl.SSLServerSocketFactory;
 import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class SSLServerSocketFactoryTest extends AbstractSSLTest {
+/**
+ * Abstract base class for all SSL integration tests. This sets up the default TLS provider.
+ */
+public abstract class AbstractSSLTest {
 
-    @Test
-    public void testDefaultConfiguration() throws Exception {
-        SSLConfigurationAsserts.assertSSLServerSocketFactoryDefaultConfiguration(
-                (SSLServerSocketFactory) SSLServerSocketFactory.getDefault());
+    @BeforeClass
+    public static void setupStatic() {
+        installConscryptAsDefaultProvider();
     }
 }

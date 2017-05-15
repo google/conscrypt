@@ -132,14 +132,9 @@ import tests.util.ForEachRunner;
 import tests.util.Pair;
 
 @RunWith(JUnit4.class)
-public class SSLSocketTest {
+public class SSLSocketTest extends AbstractSSLTest {
     private ExecutorService executor;
     private ThreadGroup threadGroup;
-
-    @BeforeClass
-    public static void setupStatic() {
-        installConscryptAsDefaultProvider();
-    }
 
     @Before
     public void setup() {
