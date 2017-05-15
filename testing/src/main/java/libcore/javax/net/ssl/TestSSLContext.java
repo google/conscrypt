@@ -42,7 +42,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
-import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
 
 /**
