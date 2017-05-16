@@ -45,21 +45,41 @@ public final class TestUtils {
     static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private static final Provider JDK_PROVIDER = getDefaultTlsProvider();
-    private static final Provider CONSCRYPT_PROVIDER = getConscryptProvider();
     private static final byte[] CHARS =
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".getBytes(UTF_8);
 
     public static final String PROTOCOL_TLS_V1_2 = "TLSv1.2";
-    private static final String PROVIDER_PROPERTY = "SSLContext.TLSv1.2";
+    public static final String PROVIDER_PROPERTY = "SSLContext.TLSv1.2";
     public static final String LOCALHOST = "localhost";
 
     private TestUtils() {}
 
+    private static Provider getDefaultTlsProvider() {
+        for (Provider p : Security.getProviders()) {
+            if (p.get(PROVIDER_PROPERTY) != null) {
+                return p;
+            }
+        }
+        throw new RuntimeException("Unable to find a default provider for " + PROVIDER_PROPERTY);
+    }
+
+    public static Provider getConscryptProvider() {
+        try {
+            return (Provider) conscryptClass("OpenSSLProvider")
+                .getConstructor()
+                .newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void installConscryptAsDefaultProvider() {
-        synchronized (CONSCRYPT_PROVIDER) {
+        final Provider conscryptProvider = getConscryptProvider();
+        synchronized (getConscryptProvider()) {
             Provider[] providers = Security.getProviders();
-            if (providers.length == 0 || !providers[0].equals(CONSCRYPT_PROVIDER)) {
-                Security.insertProviderAt(CONSCRYPT_PROVIDER, 1);
+            if (providers.length == 0 || !providers[0].equals(conscryptProvider)) {
+                Security.insertProviderAt(conscryptProvider, 1);
+                return;
             }
         }
     }
@@ -112,7 +132,7 @@ public final class TestUtils {
             Class<?> clazz = conscryptClass("Conscrypt$SocketFactories");
             Method method = clazz.getMethod("setUseEngineSocket", SSLSocketFactory.class, boolean.class);
 
-            SSLSocketFactory socketFactory = getSocketFactory(CONSCRYPT_PROVIDER);
+            SSLSocketFactory socketFactory = getSocketFactory(getConscryptProvider());
             method.invoke(null, socketFactory, useEngineSocket);
             return socketFactory;
         } catch (Exception e) {
@@ -125,7 +145,7 @@ public final class TestUtils {
             Class<?> clazz = conscryptClass("Conscrypt$ServerSocketFactories");
             Method method = clazz.getMethod("setUseEngineSocket", SSLServerSocketFactory.class, boolean.class);
 
-            SSLServerSocketFactory socketFactory = getServerSocketFactory(CONSCRYPT_PROVIDER);
+            SSLServerSocketFactory socketFactory = getServerSocketFactory(getConscryptProvider());
             method.invoke(null, socketFactory, useEngineSocket);
             return socketFactory;
         } catch (Exception e) {
@@ -317,25 +337,6 @@ public final class TestUtils {
                 }
                 task.run();
             }
-        }
-    }
-
-    private static Provider getDefaultTlsProvider() {
-        for (Provider p : Security.getProviders()) {
-            if (p.get(PROVIDER_PROPERTY) != null) {
-                return p;
-            }
-        }
-        throw new RuntimeException("Unable to find a default provider for " + PROVIDER_PROPERTY);
-    }
-
-    private static Provider getConscryptProvider() {
-        try {
-            return (Provider) conscryptClass("OpenSSLProvider")
-                    .getConstructor()
-                    .newInstance();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 }
