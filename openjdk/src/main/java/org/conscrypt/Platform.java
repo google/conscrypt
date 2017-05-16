@@ -50,8 +50,6 @@ import sun.security.x509.AlgorithmId;
  * Uses reflection to implement Java 8 SSL features for backwards compatibility.
  */
 final class Platform {
-    private static final String TAG = "Conscrypt";
-
     private static Method m_getCurveName;
     static {
         try {
@@ -61,11 +59,9 @@ final class Platform {
         }
     }
 
-    private Platform() {
-    }
+    private Platform() {}
 
-    static void setup() {
-    }
+    static void setup() {}
 
     static FileDescriptor getFileDescriptor(Socket s) {
         try {
@@ -106,148 +102,139 @@ final class Platform {
         }
     }
 
-    static void setCurveName(ECParameterSpec spec, String curveName) {
+    static void setCurveName(@SuppressWarnings("unused") ECParameterSpec spec,
+            @SuppressWarnings("unused") String curveName) {
         // This doesn't appear to be needed.
     }
 
     /*
      * Call Os.setsockoptTimeval via reflection.
      */
-    static void setSocketWriteTimeout(Socket s, long timeoutMillis) throws SocketException {
+    static void setSocketWriteTimeout(@SuppressWarnings("unused") Socket s,
+            @SuppressWarnings("unused") long timeoutMillis) throws SocketException {
         // TODO: figure this out on the RI
     }
 
     @SuppressWarnings("unchecked")
-    public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
-                                        OpenSSLSocketImpl socket) {
+    public static void setSSLParameters(
+            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         try {
             Method getUseCipherSuitesOrder =
-                SSLParameters.class.getMethod("getUseCipherSuitesOrder");
-            impl.setUseCipherSuitesOrder((boolean)getUseCipherSuitesOrder.invoke(params));
+                    SSLParameters.class.getMethod("getUseCipherSuitesOrder");
+            impl.setUseCipherSuitesOrder((boolean) getUseCipherSuitesOrder.invoke(params));
             Method getServerNames = SSLParameters.class.getMethod("getServerNames");
-            List<Object> serverNames = (List<Object>)getServerNames.invoke(params);
+            List<Object> serverNames = (List<Object>) getServerNames.invoke(params);
 
             // javax.net.ssl.StandardConstants.SNI_HOST_NAME
             int hostNameType = 0;
             if (serverNames != null) {
                 for (Object serverName : serverNames) {
-                    if ((int)serverName.getClass().getMethod("getType").invoke(serverName) ==
-                        hostNameType) {
-                        socket.setHostname((String)serverName.getClass()
-                                               .getMethod("getAsciiName")
-                                               .invoke(serverName));
+                    if ((int) serverName.getClass().getMethod("getType").invoke(serverName)
+                            == hostNameType) {
+                        socket.setHostname((String) serverName.getClass()
+                                                   .getMethod("getAsciiName")
+                                                   .invoke(serverName));
                         break;
                     }
                 }
             }
-        } catch (NoSuchMethodException e) {
-        } catch (IllegalAccessException e) {
-        } catch (InvocationTargetException e) {
+        } catch (NoSuchMethodException ignored) {
+        } catch (IllegalAccessException ignored) {
+        } catch (InvocationTargetException ignored) {
         }
     }
 
     @SuppressWarnings({"LiteralClassName", "rawtypes"})
-    public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
-                                        OpenSSLSocketImpl socket) {
+    public static void getSSLParameters(
+            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         try {
             Method setUseCipherSuitesOrder =
-                SSLParameters.class.getMethod("setUseCipherSuitesOrder", boolean.class);
+                    SSLParameters.class.getMethod("setUseCipherSuitesOrder", boolean.class);
             setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
             Method setServerNames = SSLParameters.class.getMethod("setServerNames", List.class);
             if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
                 Constructor sniHostNameConstructor =
-                    Class.forName("javax.net.ssl.SNIHostName").getConstructor(String.class);
-                setServerNames.invoke(
-                    params, (Collections.singletonList(
+                        Class.forName("javax.net.ssl.SNIHostName").getConstructor(String.class);
+                setServerNames.invoke(params,
+                        (Collections.singletonList(
                                 sniHostNameConstructor.newInstance(socket.getHostname()))));
             }
-        } catch (NoSuchMethodException e) {
-        } catch (IllegalAccessException e) {
-        } catch (InvocationTargetException e) {
-        } catch (ClassNotFoundException e) {
-        } catch (InstantiationException e) {
+        } catch (NoSuchMethodException ignored) {
+        } catch (IllegalAccessException ignored) {
+        } catch (InvocationTargetException ignored) {
+        } catch (ClassNotFoundException ignored) {
+        } catch (InstantiationException ignored) {
         }
     }
 
     @SuppressWarnings("unchecked")
-    public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
-                                        OpenSSLEngineImpl engine) {
+    public static void setSSLParameters(
+            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         try {
             Method getUseCipherSuitesOrder =
-                SSLParameters.class.getMethod("getUseCipherSuitesOrder");
-            impl.setUseCipherSuitesOrder((boolean)getUseCipherSuitesOrder.invoke(params));
+                    SSLParameters.class.getMethod("getUseCipherSuitesOrder");
+            impl.setUseCipherSuitesOrder((boolean) getUseCipherSuitesOrder.invoke(params));
             Method getServerNames = SSLParameters.class.getMethod("getServerNames");
-            List<Object> serverNames = (List<Object>)getServerNames.invoke(params);
+            List<Object> serverNames = (List<Object>) getServerNames.invoke(params);
 
             int hostNameType = 0;
             if (serverNames != null) {
                 for (Object serverName : serverNames) {
-                    if ((int)serverName.getClass().getMethod("getType").invoke(serverName) ==
-                        hostNameType) {
-                        engine.setSniHostname((String)serverName.getClass()
-                                                  .getMethod("getAsciiName")
-                                                  .invoke(serverName));
+                    if ((int) serverName.getClass().getMethod("getType").invoke(serverName)
+                            == hostNameType) {
+                        engine.setSniHostname((String) serverName.getClass()
+                                                      .getMethod("getAsciiName")
+                                                      .invoke(serverName));
                         break;
                     }
                 }
             }
-        } catch (NoSuchMethodException e) {
-        } catch (IllegalAccessException e) {
-        } catch (InvocationTargetException e) {
+        } catch (NoSuchMethodException ignored) {
+        } catch (IllegalAccessException ignored) {
+        } catch (InvocationTargetException ignored) {
         }
     }
 
     @SuppressWarnings({"LiteralClassName", "rawtypes"})
-    public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
-                                        OpenSSLEngineImpl engine) {
+    public static void getSSLParameters(
+            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         try {
             Method setUseCipherSuitesOrder =
-                SSLParameters.class.getMethod("setUseCipherSuitesOrder", boolean.class);
+                    SSLParameters.class.getMethod("setUseCipherSuitesOrder", boolean.class);
             setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
             Method setServerNames = SSLParameters.class.getMethod("setServerNames", List.class);
             if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getSniHostname())) {
                 Constructor sniHostNameConstructor =
-                    Class.forName("javax.net.ssl.SNIHostName").getConstructor(String.class);
-                setServerNames.invoke(
-                    params, (Collections.singletonList(
+                        Class.forName("javax.net.ssl.SNIHostName").getConstructor(String.class);
+                setServerNames.invoke(params,
+                        (Collections.singletonList(
                                 sniHostNameConstructor.newInstance(engine.getSniHostname()))));
             }
-        } catch (NoSuchMethodException e) {
-        } catch (IllegalAccessException e) {
-        } catch (InvocationTargetException e) {
-        } catch (ClassNotFoundException e) {
-        } catch (InstantiationException e) {
+        } catch (NoSuchMethodException ignored) {
+        } catch (IllegalAccessException ignored) {
+        } catch (InvocationTargetException ignored) {
+        } catch (ClassNotFoundException ignored) {
+        } catch (InstantiationException ignored) {
         }
     }
 
-    /**
-     * Tries to return a Class reference of one of the supplied class names.
-     */
-    private static Class<?> getClass(String... klasses) {
-        for (String klass : klasses) {
-            try {
-                return Class.forName(klass);
-            } catch (Exception ignored) {
-            }
-        }
-        return null;
-    }
-
-    static void setEndpointIdentificationAlgorithm(SSLParameters params,
-            String endpointIdentificationAlgorithm) {
+    @SuppressWarnings("unused")
+    static void setEndpointIdentificationAlgorithm(
+            SSLParameters params, String endpointIdentificationAlgorithm) {
         params.setEndpointIdentificationAlgorithm(endpointIdentificationAlgorithm);
     }
 
+    @SuppressWarnings("unused")
     static String getEndpointIdentificationAlgorithm(SSLParameters params) {
         return params.getEndpointIdentificationAlgorithm();
     }
 
-    static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+    static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
+            OpenSSLSocketImpl socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkClientTrusted(chain, authType, socket);
@@ -256,8 +243,8 @@ final class Platform {
         }
     }
 
-    static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+    static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
+            OpenSSLSocketImpl socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkServerTrusted(chain, authType, socket);
@@ -266,8 +253,8 @@ final class Platform {
         }
     }
 
-    static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+    static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
+            OpenSSLEngineImpl engine) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkClientTrusted(chain, authType, engine);
@@ -276,8 +263,8 @@ final class Platform {
         }
     }
 
-    static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+    static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
+            OpenSSLEngineImpl engine) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkServerTrusted(chain, authType, engine);
@@ -289,15 +276,14 @@ final class Platform {
     /**
      * Wraps an old AndroidOpenSSL key instance. This is not needed on RI.
      */
-    static OpenSSLKey wrapRsaKey(PrivateKey javaKey) {
+    static OpenSSLKey wrapRsaKey(@SuppressWarnings("unused") PrivateKey javaKey) {
         return null;
     }
 
     /**
      * Logs to the system EventLog system.
      */
-    static void logEvent(String message) {
-    }
+    static void logEvent(@SuppressWarnings("unused") String message) {}
 
     /**
      * Returns true if the supplied hostname is an literal IP address.
@@ -310,6 +296,7 @@ final class Platform {
     /**
      * For unbundled versions, SNI is always enabled by default.
      */
+    @SuppressWarnings("unused")
     static boolean isSniEnabledByDefault() {
         return true;
     }
@@ -347,21 +334,18 @@ final class Platform {
         return null;
     }
 
-    static void closeGuardOpen(Object guardObj, String message) {
-    }
+    static void closeGuardOpen(@SuppressWarnings("unused") Object guardObj,
+            @SuppressWarnings("unused") String message) {}
 
-    static void closeGuardClose(Object guardObj) {
-    }
+    static void closeGuardClose(@SuppressWarnings("unused") Object guardObj) {}
 
-    static void closeGuardWarnIfOpen(Object guardObj) {
-    }
+    static void closeGuardWarnIfOpen(@SuppressWarnings("unused") Object guardObj) {}
 
     /*
      * BlockGuard functions.
      */
 
-    static void blockGuardOnNetwork() {
-    }
+    static void blockGuardOnNetwork() {}
 
     /**
      * OID to Algorithm Name mapping.
@@ -382,6 +366,7 @@ final class Platform {
         return new OpenSSLExtendedSessionImpl(sslSession);
     }
 
+    @SuppressWarnings("unused")
     static SSLSession unwrapSSLSession(SSLSession sslSession) {
         if (sslSession instanceof OpenSSLExtendedSessionImpl) {
             return ((OpenSSLExtendedSessionImpl) sslSession).getDelegate();
@@ -419,7 +404,7 @@ final class Platform {
         }
 
         String property = Security.getProperty("conscrypt.ct.enable");
-        if (property == null || Boolean.valueOf(property.toLowerCase()) == false) {
+        if (property == null || !Boolean.valueOf(property.toLowerCase())) {
             return false;
         }
 
@@ -427,19 +412,19 @@ final class Platform {
         Collections.reverse(parts);
 
         boolean enable = false;
-        String propertyName = "conscrypt.ct.enforce";
+        StringBuilder propertyName = new StringBuilder("conscrypt.ct.enforce");
         // The loop keeps going on even once we've found a match
         // This allows for finer grained settings on subdomains
-        for (String part: parts) {
+        for (String part : parts) {
             property = Security.getProperty(propertyName + ".*");
             if (property != null) {
                 enable = Boolean.valueOf(property.toLowerCase());
             }
 
-            propertyName = propertyName + "." + part;
+            propertyName.append(".").append(part);
         }
 
-        property = Security.getProperty(propertyName);
+        property = Security.getProperty(propertyName.toString());
         if (property != null) {
             enable = Boolean.valueOf(property.toLowerCase());
         }

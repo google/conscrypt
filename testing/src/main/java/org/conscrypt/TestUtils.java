@@ -77,23 +77,39 @@ public final class TestUtils {
     }
 
     /**
+     * Looks up the conscrypt class for the given simple name (i.e. no package prefix).
+     */
+    public static Class<?> conscryptClass(String simpleName) throws ClassNotFoundException {
+        ClassNotFoundException ex = null;
+        for (String packageName : new String[]{"com.android.org.conscrypt", "org.conscrypt"}) {
+            String name = packageName + "." + simpleName;
+            try {
+                return Class.forName(name);
+            } catch (ClassNotFoundException e) {
+                ex = e;
+            }
+        }
+        throw ex;
+    }
+
+    /**
      * Returns an array containing only {@link #PROTOCOL_TLS_V1_2}.
      */
-    static String[] getProtocols() {
+    public static String[] getProtocols() {
         return new String[] {PROTOCOL_TLS_V1_2};
     }
 
-    static SSLSocketFactory getJdkSocketFactory() {
+    public static SSLSocketFactory getJdkSocketFactory() {
         return getSocketFactory(JDK_PROVIDER);
     }
 
-    static SSLServerSocketFactory getJdkServerSocketFactory() {
+    public static SSLServerSocketFactory getJdkServerSocketFactory() {
         return getServerSocketFactory(JDK_PROVIDER);
     }
 
-    static SSLSocketFactory getConscryptSocketFactory(boolean useEngineSocket) {
+    public static SSLSocketFactory getConscryptSocketFactory(boolean useEngineSocket) {
         try {
-            Class<?> clazz = Class.forName("org.conscrypt.Conscrypt$SocketFactories");
+            Class<?> clazz = conscryptClass("Conscrypt$SocketFactories");
             Method method = clazz.getMethod("setUseEngineSocket", SSLSocketFactory.class, boolean.class);
 
             SSLSocketFactory socketFactory = getSocketFactory(CONSCRYPT_PROVIDER);
@@ -104,9 +120,9 @@ public final class TestUtils {
         }
     }
 
-    static SSLServerSocketFactory getConscryptServerSocketFactory(boolean useEngineSocket) {
+    public static SSLServerSocketFactory getConscryptServerSocketFactory(boolean useEngineSocket) {
         try {
-            Class<?> clazz = Class.forName("org.conscrypt.Conscrypt$ServerSocketFactories");
+            Class<?> clazz = conscryptClass("Conscrypt$ServerSocketFactories");
             Method method = clazz.getMethod("setUseEngineSocket", SSLServerSocketFactory.class, boolean.class);
 
             SSLServerSocketFactory socketFactory = getServerSocketFactory(CONSCRYPT_PROVIDER);
@@ -141,7 +157,7 @@ public final class TestUtils {
      * returned port to create a new server socket when other threads/processes are concurrently
      * creating new sockets without a specific port.
      */
-    static int pickUnusedPort() {
+    public static int pickUnusedPort() {
         try {
             ServerSocket serverSocket = new ServerSocket(0);
             int port = serverSocket.getLocalPort();
@@ -155,7 +171,7 @@ public final class TestUtils {
     /**
      * Creates a text message of the given length.
      */
-    static byte[] newTextMessage(int length) {
+    public static byte[] newTextMessage(int length) {
         byte[] msg = new byte[length];
         for (int msgIndex = 0; msgIndex < length;) {
             int remaining = length - msgIndex;
@@ -169,7 +185,7 @@ public final class TestUtils {
     /**
      * Initializes the given engine with the cipher and client mode.
      */
-    static SSLEngine initEngine(SSLEngine engine, String cipher, boolean client) {
+    public static SSLEngine initEngine(SSLEngine engine, String cipher, boolean client) {
         engine.setEnabledProtocols(getProtocols());
         engine.setEnabledCipherSuites(new String[] {cipher});
         engine.setUseClientMode(client);
@@ -179,14 +195,14 @@ public final class TestUtils {
     /**
      * Initializes the given client-side {@code context} with a default cert.
      */
-    private static SSLContext initClientSslContext(SSLContext context) {
+    public static SSLContext initClientSslContext(SSLContext context) {
         return initSslContext(context, TestKeyStore.getClient());
     }
 
     /**
      * Initializes the given server-side {@code context} with the given cert chain and private key.
      */
-    private static SSLContext initServerSslContext(SSLContext context) {
+    public static SSLContext initServerSslContext(SSLContext context) {
         return initSslContext(context, TestKeyStore.getServer());
     }
 
@@ -205,7 +221,7 @@ public final class TestUtils {
     /**
      * Performs the intial TLS handshake between the two {@link SSLEngine} instances.
      */
-    static void doEngineHandshake(SSLEngine clientEngine, SSLEngine serverEngine)
+    public static void doEngineHandshake(SSLEngine clientEngine, SSLEngine serverEngine)
             throws SSLException {
         ByteBuffer cTOs = ByteBuffer.allocate(clientEngine.getSession().getPacketBufferSize());
         ByteBuffer sTOc = ByteBuffer.allocate(serverEngine.getSession().getPacketBufferSize());
@@ -315,7 +331,7 @@ public final class TestUtils {
 
     private static Provider getConscryptProvider() {
         try {
-            return (Provider) Class.forName("org.conscrypt.OpenSSLProvider")
+            return (Provider) conscryptClass("OpenSSLProvider")
                     .getConstructor()
                     .newInstance();
         } catch (Exception e) {

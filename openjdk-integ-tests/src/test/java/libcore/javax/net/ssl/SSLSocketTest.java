@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNotNull;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
@@ -118,7 +119,6 @@ import libcore.tlswire.handshake.ServerNameHelloExtension;
 import libcore.tlswire.record.TlsProtocols;
 import libcore.tlswire.record.TlsRecord;
 import libcore.tlswire.util.TlsProtocolVersion;
-import org.conscrypt.Conscrypt;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -1557,6 +1557,9 @@ public class SSLSocketTest extends AbstractSSLTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
 
+        Method writeTimeoutMethod = getWriteTimeoutSetter(client);
+        assumeNotNull("Client socket does not support setting write timeout", writeTimeoutMethod);
+
         // Try to make the client SO_SNDBUF size as small as possible
         // (it can default to 512k or even megabytes).  Note that
         // socket(7) says that the kernel will double the request to
@@ -1575,7 +1578,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         });
         server.startHandshake();
 
-        Conscrypt.Sockets.setSoWriteTimeout(client, 1);
+        writeTimeoutMethod.invoke(client, 1);
         try {
             // Add extra space to the write to exceed the send buffer
             // size and cause the write to block.
@@ -1586,6 +1589,14 @@ public class SSLSocketTest extends AbstractSSLTest {
             client.close();
             server.close();
             c.close();
+        }
+    }
+
+    private static Method getWriteTimeoutSetter(Object socket) {
+        try {
+            return socket.getClass().getDeclaredMethod("setSoWriteTimeout", int.class);
+        } catch (Exception e) {
+            return null;
         }
     }
 
