@@ -57,7 +57,7 @@ import javax.net.ssl.TrustManagerFactorySpi;
 import javax.net.ssl.X509KeyManager;
 import junit.framework.AssertionFailedError;
 import libcore.java.security.StandardNames;
-import org.conscrypt.Conscrypt;
+import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -614,7 +614,16 @@ public class SSLContextTest extends AbstractSSLTest {
 
     @Test(expected = NoSuchAlgorithmException.class)
     public void test_SSLContext_SSLv3Unsupported() throws Exception {
-        SSLContext.getInstance("SSLv3", Conscrypt.newProvider());
+        // Find the default provider for TLS and verify that it does NOT support SSLv3.
+        Provider defaultTlsProvider = null;
+        for (Provider p : Security.getProviders()) {
+            if (p.get(TestUtils.PROVIDER_PROPERTY) != null) {
+                defaultTlsProvider = p;
+                break;
+            }
+        }
+        assertNotNull(defaultTlsProvider);
+        SSLContext.getInstance("SSLv3", defaultTlsProvider);
     }
 
     private static void assertContentsInOrder(List<String> expected, String... actual) {

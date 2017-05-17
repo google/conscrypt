@@ -99,8 +99,7 @@ public class NativeCryptoTest {
 
     @BeforeClass
     public static void getPlatformMethods() throws Exception {
-        Class<?> c_Platform =
-                Class.forName(NativeCryptoTest.class.getPackage().getName() + ".Platform");
+        Class<?> c_Platform = TestUtils.conscryptClass("Platform");
         m_Platform_getFileDescriptor =
                 c_Platform.getDeclaredMethod("getFileDescriptor", Socket.class);
         m_Platform_getFileDescriptor.setAccessible(true);

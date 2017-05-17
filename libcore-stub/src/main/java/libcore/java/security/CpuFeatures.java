@@ -51,8 +51,7 @@ public class CpuFeatures {
         // If we're in an emulated ABI, Conscrypt's NativeCrypto might bridge to
         // a library that has accelerated AES instructions. See if Conscrypt
         // detects that condition.
-        Class<?> nativeCrypto = findFirstClass(
-                "com.android.org.conscrypt.NativeCrypto", "org.conscrypt.NativeCrypto");
+        Class<?> nativeCrypto = findNativeCrypto();
         if (nativeCrypto != null) {
             try {
                 Method EVP_has_aes_hardware =
@@ -69,12 +68,13 @@ public class CpuFeatures {
         return false;
     }
 
-    private static Class<?> findFirstClass(String... names) {
-        for (String name : names) {
+    private static Class<?> findNativeCrypto() {
+        for (String packageName : new String[]{"com.android.org.conscrypt", "org.conscrypt"}) {
+            String name = packageName + ".NativeCrypto";
             try {
                 return Class.forName(name);
             } catch (ClassNotFoundException e) {
-                // Just try the next one.
+                // Try the next one.
             }
         }
         return null;
