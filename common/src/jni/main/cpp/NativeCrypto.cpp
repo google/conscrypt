@@ -8599,6 +8599,11 @@ static int NativeCrypto_ENGINE_SSL_write_BIO_direct(JNIEnv* env, jclass, jlong s
     if (bio == nullptr) {
         return -1;
     }
+    if (BIO_ctrl_get_write_guarantee(bio) < len) {
+        // The network BIO couldn't handle the entire write. Don't write anything, so that we
+        // only process one packet at a time.
+        return 0;
+    }
     const char* sourcePtr = reinterpret_cast<const char*>(address);
 
     AppData* appData = toAppData(ssl);
@@ -8646,6 +8651,11 @@ static int NativeCrypto_ENGINE_SSL_write_BIO_heap(JNIEnv* env, jclass, jlong ssl
     BIO* bio = to_SSL_BIO(env, bioRef, true);
     if (bio == nullptr) {
         return -1;
+    }
+    if (BIO_ctrl_get_write_guarantee(bio) < sourceLength) {
+        // The network BIO couldn't handle the entire write. Don't write anything, so that we
+        // only process one packet at a time.
+        return 0;
     }
     ScopedByteArrayRO source(env, sourceJava);
     if (source.get() == nullptr) {
