@@ -12,7 +12,7 @@ buildscript {
         // so we can access Git from our
         // build script.
         classpath 'org.ajoberstar:grgit:1.1.0'
-        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.9'
+        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.10'
     }
 }
 
