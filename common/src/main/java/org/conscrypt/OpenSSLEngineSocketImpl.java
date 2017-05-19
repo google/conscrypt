@@ -23,6 +23,7 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
@@ -49,6 +50,31 @@ final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
     private final InputStreamWrapper inputStreamWrapper;
     private boolean handshakeComplete;
 
+    OpenSSLEngineSocketImpl(SSLParametersImpl sslParameters) throws IOException {
+        this(new Socket(), null, -1, false, sslParameters);
+    }
+
+    OpenSSLEngineSocketImpl(String host, int port, SSLParametersImpl sslParameters)
+            throws IOException {
+        this(new Socket(host, port), host, port, false, sslParameters);
+    }
+
+    OpenSSLEngineSocketImpl(String host, int port, InetAddress clientAddress, int clientPort,
+            SSLParametersImpl sslParameters) throws IOException {
+        this(new Socket(host, port, clientAddress, clientPort), host, port, false, sslParameters);
+    }
+
+    OpenSSLEngineSocketImpl(InetAddress address, int port, SSLParametersImpl sslParameters)
+            throws IOException {
+        this(new Socket(address, port), null, port, false, sslParameters);
+    }
+
+    OpenSSLEngineSocketImpl(InetAddress address, int port, InetAddress clientAddress,
+            int clientPort, SSLParametersImpl sslParameters) throws IOException {
+        this(new Socket(address, port, clientAddress, clientPort), null, port, false,
+                sslParameters);
+    }
+
     OpenSSLEngineSocketImpl(Socket socket, String hostname, int port, boolean autoClose,
             SSLParametersImpl sslParameters) throws IOException {
         super(socket, hostname, port, autoClose, sslParameters);
@@ -72,37 +98,44 @@ final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
 
     @Override
     public void startHandshake() throws IOException {
-        // Trigger the handshake
-        boolean beginHandshakeCalled = false;
-        while (!handshakeComplete) {
-            switch (engine.getHandshakeStatus()) {
-                case NOT_HANDSHAKING: {
-                    if (!beginHandshakeCalled) {
-                        beginHandshakeCalled = true;
-                        engine.beginHandshake();
+        try {
+            // Trigger the handshake
+            boolean beginHandshakeCalled = false;
+            while (!handshakeComplete) {
+                switch (engine.getHandshakeStatus()) {
+                    case NOT_HANDSHAKING: {
+                        if (!beginHandshakeCalled) {
+                            beginHandshakeCalled = true;
+                            engine.beginHandshake();
+                            break;
+                        }
                         break;
                     }
-                    break;
-                }
-                case FINISHED: {
-                    return;
-                }
-                case NEED_WRAP: {
-                    outputStreamWrapper.write(EMPTY_BUFFER);
-                    break;
-                }
-                case NEED_UNWRAP: {
-                    if (inputStreamWrapper.read(EmptyArray.BYTE) == -1) {
-                        // Can't complete the handshake due to EOF.
-                        throw SSLUtils.toSSLHandshakeException(new EOFException());
+                    case FINISHED: {
+                        return;
                     }
-                    break;
+                    case NEED_WRAP: {
+                        outputStreamWrapper.write(EMPTY_BUFFER);
+                        break;
+                    }
+                    case NEED_UNWRAP: {
+                        if (inputStreamWrapper.read(EmptyArray.BYTE) == -1) {
+                            // Can't complete the handshake due to EOF.
+                            throw SSLUtils.toSSLHandshakeException(new EOFException());
+                        }
+                        break;
+                    }
+                    case NEED_TASK: {
+                        throw new IllegalStateException("OpenSSLEngineImpl returned NEED_TASK");
+                    }
+                    default: {
+                        break;
+                    }
                 }
-                case NEED_TASK: {
-                    throw new IllegalStateException("OpenSSLEngineImpl returned NEED_TASK");
-                }
-                default: { break; }
             }
+        } catch (Exception e) {
+            close();
+            throw SSLUtils.toSSLHandshakeException(e);
         }
     }
 
@@ -394,10 +427,8 @@ final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                         }
                     } while (len > 0);
                 } catch (IOException e) {
-                    e.printStackTrace();
                     throw e;
                 } catch (RuntimeException e) {
-                    e.printStackTrace();
                     throw e;
                 }
             }
@@ -541,10 +572,8 @@ final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                         // Continue the loop and return the data from the engine buffer.
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
                     throw e;
                 } catch (RuntimeException e) {
-                    e.printStackTrace();
                     throw e;
                 }
             }
