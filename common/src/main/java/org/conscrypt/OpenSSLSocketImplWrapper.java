@@ -42,17 +42,17 @@ class OpenSSLSocketImplWrapper extends OpenSSLSocketImpl {
     @Override
     public void connect(SocketAddress sockaddr, int timeout)
         throws IOException {
-        throw new IOException("Underlying socket is already connected.");
+        socket.connect(sockaddr, timeout);
     }
 
     @Override
     public void connect(SocketAddress sockaddr) throws IOException {
-        throw new IOException("Underlying socket is already connected.");
+        socket.connect(sockaddr);
     }
 
     @Override
     public void bind(SocketAddress sockaddr) throws IOException {
-        throw new IOException("Underlying socket is already connected.");
+        socket.bind(sockaddr);
     }
 
     @Override

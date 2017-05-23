@@ -80,27 +80,47 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
         if (instantiationException != null) {
             throw instantiationException;
         }
-        return new OpenSSLSocketImpl((SSLParametersImpl) sslParameters.clone());
+        if (useEngineSocket) {
+            return new OpenSSLEngineSocketImpl((SSLParametersImpl) sslParameters.clone());
+        } else {
+            return new OpenSSLSocketImpl((SSLParametersImpl) sslParameters.clone());
+        }
     }
 
     @Override
     public Socket createSocket(String hostname, int port) throws IOException, UnknownHostException {
-        return new OpenSSLSocketImpl(hostname, port, (SSLParametersImpl) sslParameters.clone());
+        if (useEngineSocket) {
+            return new OpenSSLEngineSocketImpl(hostname, port, (SSLParametersImpl) sslParameters.clone());
+        } else {
+            return new OpenSSLSocketImpl(hostname, port, (SSLParametersImpl) sslParameters.clone());
+        }
     }
 
     @Override
     public Socket createSocket(String hostname, int port, InetAddress localHost, int localPort)
             throws IOException, UnknownHostException {
-        return new OpenSSLSocketImpl(hostname,
-                                     port,
-                                     localHost,
-                                     localPort,
-                                     (SSLParametersImpl) sslParameters.clone());
+        if (useEngineSocket) {
+            return new OpenSSLEngineSocketImpl(hostname,
+                    port,
+                    localHost,
+                    localPort,
+                    (SSLParametersImpl) sslParameters.clone());
+        } else {
+            return new OpenSSLSocketImpl(hostname,
+                    port,
+                    localHost,
+                    localPort,
+                    (SSLParametersImpl) sslParameters.clone());
+        }
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port) throws IOException {
-        return new OpenSSLSocketImpl(address, port, (SSLParametersImpl) sslParameters.clone());
+        if (useEngineSocket) {
+            return new OpenSSLEngineSocketImpl(address, port, (SSLParametersImpl) sslParameters.clone());
+        } else {
+            return new OpenSSLSocketImpl(address, port, (SSLParametersImpl) sslParameters.clone());
+        }
     }
 
     @Override
@@ -109,30 +129,41 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
                                InetAddress localAddress,
                                int localPort)
             throws IOException {
-        return new OpenSSLSocketImpl(address,
-                                     port,
-                                     localAddress,
-                                     localPort,
-                                     (SSLParametersImpl) sslParameters.clone());
+        if (useEngineSocket) {
+            return new OpenSSLEngineSocketImpl(address,
+                    port,
+                    localAddress,
+                    localPort,
+                    (SSLParametersImpl) sslParameters.clone());
+        } else {
+            return new OpenSSLSocketImpl(address,
+                    port,
+                    localAddress,
+                    localPort,
+                    (SSLParametersImpl) sslParameters.clone());
+        }
     }
 
     @Override
     public Socket createSocket(Socket s, String hostname, int port, boolean autoClose)
             throws IOException {
-        boolean socketHasFd = false;
-        try {
-            // If socket has a file descriptor we can use OpenSSLSocketImplWrapper directly
-            // otherwise we need to use the engine.
-            socketHasFd = Platform.getFileDescriptor(s) != null;
-        } catch (RuntimeException re) {
-            // Ignore
-        }
-        if (socketHasFd && !useEngineSocket) {
+        if (hasFileDescriptor(s) && !useEngineSocket) {
             return new OpenSSLSocketImplWrapper(
                     s, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
         } else {
             return new OpenSSLEngineSocketImpl(
                     s, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
+        }
+    }
+
+    private boolean hasFileDescriptor(Socket s) {
+        try {
+            // If socket has a file descriptor we can use OpenSSLSocketImplWrapper directly
+            // otherwise we need to use the engine.
+            Platform.getFileDescriptor(s);
+            return true;
+        } catch (RuntimeException re) {
+            return false;
         }
     }
 }

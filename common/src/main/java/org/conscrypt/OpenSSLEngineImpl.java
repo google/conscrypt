@@ -369,7 +369,7 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
                 String logMessage = String.format("ssl_unexpected_ccs: host=%s", getSniHostname());
                 Platform.logEvent(logMessage);
             }
-            throw new SSLException(e);
+            throw SSLUtils.toSSLHandshakeException(e);
         } finally {
             if (releaseResources) {
                 engineState = EngineState.CLOSED;
@@ -1317,6 +1317,11 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
     public void onSSLStateChange(int type, int val) {
         synchronized (stateLock) {
             switch (type) {
+                case SSL_CB_HANDSHAKE_START:
+                    // For clients, this will allow the NEED_UNWRAP status to be
+                    // returned.
+                    engineState = EngineState.HANDSHAKE_STARTED;
+                    break;
                 case SSL_CB_HANDSHAKE_DONE:
                     if (engineState != EngineState.HANDSHAKE_STARTED
                             && engineState != EngineState.READY_HANDSHAKE_CUT_THROUGH) {
@@ -1325,11 +1330,7 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
                     }
                     engineState = EngineState.HANDSHAKE_COMPLETED;
                     break;
-                case SSL_CB_HANDSHAKE_START:
-                    // For clients, this will allow the NEED_UNWRAP status to be
-                    // returned.
-                    engineState = EngineState.HANDSHAKE_STARTED;
-                    break;
+
             }
         }
     }
