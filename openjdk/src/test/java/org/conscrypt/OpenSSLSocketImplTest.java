@@ -26,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.KeyManagementException;
@@ -65,8 +66,20 @@ public class OpenSSLSocketImplTest {
      * Various factories for SSL server sockets.
      */
     public enum SocketType {
-        DEFAULT(false),
-        ENGINE(true);
+        DEFAULT(false) {
+            @Override
+            void assertSocketType(Socket socket) {
+                assertTrue("Unexpected socket type: " + socket.getClass().getName(),
+                        socket instanceof OpenSSLSocketImpl);
+            }
+        },
+        ENGINE(true) {
+            @Override
+            void assertSocketType(Socket socket) {
+                assertTrue("Unexpected socket type: " + socket.getClass().getName(),
+                        socket instanceof OpenSSLEngineSocketImpl);
+            }
+        };
 
         private final boolean useEngineSocket;
 
@@ -80,6 +93,7 @@ public class OpenSSLSocketImplTest {
             Conscrypt.SocketFactories.setUseEngineSocket(factory, useEngineSocket);
             OpenSSLSocketImpl socket = (OpenSSLSocketImpl) factory.createSocket(
                     listener.getInetAddress(), listener.getLocalPort());
+            assertSocketType(socket);
             socket.setUseClientMode(true);
             return socket;
         }
@@ -91,9 +105,12 @@ public class OpenSSLSocketImplTest {
             OpenSSLSocketImpl socket = (OpenSSLSocketImpl) factory.createSocket(listener.accept(),
                     null, -1, // hostname, port
                     true); // autoclose
+            assertSocketType(socket);
             socket.setUseClientMode(false);
             return socket;
         }
+
+        abstract void assertSocketType(Socket socket);
     }
 
     @Parameters(name = "{0}")
@@ -256,7 +273,7 @@ public class OpenSSLSocketImplTest {
         }
 
         void doHandshake() throws Exception {
-            ServerSocket listener = new ServerSocket(0);
+            ServerSocket listener = newServerSocket();
             Future<OpenSSLSocketImpl> clientFuture = handshake(listener, clientHooks);
             Future<OpenSSLSocketImpl> serverFuture = handshake(listener, serverHooks);
 
@@ -353,29 +370,18 @@ public class OpenSSLSocketImplTest {
     // http://b/27250522
     @Test
     public void test_setSoTimeout_doesNotCreateSocketImpl() throws Exception {
-        ServerSocket listening = new ServerSocket(0);
+        ServerSocket listening = newServerSocket();
         Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
 
-        OpenSSLSocketImpl simpl;
-        switch (socketType) {
-            case DEFAULT:
-                simpl = new OpenSSLSocketImpl(underlying, null, listening.getLocalPort(), false,
-                        SSLParametersImpl.getDefault());
-                break;
-            case ENGINE:
-                simpl = new OpenSSLEngineSocketImpl(underlying, null, listening.getLocalPort(),
-                        false, SSLParametersImpl.getDefault());
-                break;
-            default:
-                throw new IllegalArgumentException("Unexpected socketType " + socketType);
-        }
-
-        simpl.setSoTimeout(1000);
-        simpl.close();
+        Socket socket = TestUtils.getConscryptSocketFactory(socketType == SocketType.ENGINE)
+                                .createSocket(underlying, null, listening.getLocalPort(), false);
+        socketType.assertSocketType(socket);
+        socket.setSoTimeout(1000);
+        socket.close();
 
         Field f = Socket.class.getDeclaredField("created");
         f.setAccessible(true);
-        assertFalse(f.getBoolean(simpl));
+        assertFalse(f.getBoolean(socket));
     }
 
     @Test
@@ -401,5 +407,9 @@ public class OpenSSLSocketImplTest {
 
         assertFalse(connection.clientHooks.isHandshakeCompleted);
         assertFalse(connection.serverHooks.isHandshakeCompleted);
+    }
+
+    private static ServerSocket newServerSocket() throws IOException {
+        return new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
     }
 }
