@@ -6,6 +6,20 @@ apply plugin: 'idea'
 
 description = 'Conscrypt: OpenJDK Benchmarks'
 
+evaluationDependsOn(':conscrypt-openjdk')
+
+def preferredNativeConfiguration = project(':conscrypt-openjdk').preferredNativeConfiguration
+def preferredNativeFileDir = project(':conscrypt-openjdk').preferredNativeFileDir
+
+sourceSets {
+    main {
+        resources {
+            // This shouldn't be needed but seems to help IntelliJ locate the native artifact.
+            srcDirs += preferredNativeFileDir
+        }
+    }
+}
+
 jmh {
     jmhVersion = "$jmhVersion"
     warmupIterations = 10
@@ -20,15 +34,14 @@ configurations {
 }
 
 dependencies {
-    compile project(':conscrypt-testing'),
+    compile project(':conscrypt-openjdk'),
+            project(':conscrypt-testing'),
             libraries.junit,
             libraries.netty_handler,
             libraries.netty_tcnative
 
     // Add the preferred native openjdk configuration for this platform.
-    compile project(
-            path: ':conscrypt-openjdk',
-            configuration: project(':conscrypt-openjdk').preferredNativeConfiguration)
+    compile project(path: ':conscrypt-openjdk', configuration: "$preferredNativeConfiguration")
 
     jmh libraries.jmh_core
 
