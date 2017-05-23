@@ -11,19 +11,43 @@ ext {
     javaExecutable32 = properties['javaExecutable32'] ?: System.env.CONSCRYPT_JAVA_EXECUTABLE_32
     javaExecutable64 = properties['javaExecutable64'] ?: System.env.CONSCRYPT_JAVA_EXECUTABLE_64
     nativeClassifiers = []
+    nativeClassifier64Bit = null
+    nativeClassifier32Bit = null
+    nativeConfiguration64Bit = null
+    nativeConfiguration32Bit = null
+    preferredNativeConfiguration = null
+    preferredClassifier = null
+    preferredSourceSet = null
+    preferredNativeFileDir = null
     if (build64Bit) {
         // Add the 64-Bit classifier first, as the preferred classifier.
-        nativeClassifiers += classifierFor(osName, arch64Name)
+        nativeClassifier64Bit = classifierFor(osName, arch64Name)
+        nativeClassifiers += nativeClassifier64Bit
+        preferredClassifier = nativeClassifier64Bit
+        preferredSourceSet = sourceSetName(preferredClassifier)
+        preferredNativeFileDir = nativeResourcesDir(preferredClassifier)
+
+        nativeConfiguration64Bit = compileConfigurationName(nativeClassifier64Bit)
+        preferredNativeConfiguration = nativeConfiguration64Bit
     }
     if (build32Bit) {
-        nativeClassifiers += classifierFor(osName, arch32Name)
-    }
+        nativeClassifier32Bit = classifierFor(osName, arch32Name)
+        nativeClassifiers += nativeClassifier32Bit
+        if (preferredClassifier == null) {
+            preferredClassifier = nativeClassifier32Bit
+            preferredSourceSet = sourceSetName(preferredClassifier)
+            preferredNativeFileDir = nativeResourcesDir(preferredClassifier)
+        }
 
-    // Create a "preferred" configuration that can be used by other modules (e.g. tests/benchmarks)
-    preferredNativeConfiguration = normalizeClassifier(nativeClassifiers[0])
+        nativeConfiguration32Bit = compileConfigurationName(nativeClassifier32Bit)
+        if (preferredNativeConfiguration == null) {
+            preferredNativeConfiguration = nativeConfiguration32Bit
+        }
+    }
 }
 
 sourceSets {
+
     main {
         java {
             srcDirs += "${rootDir}/common/src/main/java"
@@ -35,6 +59,38 @@ sourceSets {
         java {
             srcDirs = [ "src/main/java" ]
             includes = [ "org/conscrypt/Platform.java" ]
+        }
+    }
+
+    test {
+        resources {
+            // This shouldn't be needed but seems to help IntelliJ locate the native artifact.
+            srcDirs += preferredNativeFileDir
+        }
+    }
+
+    // Add the source sets for each of the native build
+    nativeClassifiers.each { nativeClassifier ->
+        def sourceSetName = sourceSetName(nativeClassifier)
+        def testSourceSetName = testSourceSetName(nativeClassifier)
+
+        // Main sources for the native build
+        "$sourceSetName" {
+            resources {
+                srcDirs = [nativeResourcesDir(nativeClassifier)]
+            }
+        }
+
+        // Test sources for the native build
+        "${testSourceSetName}" {
+            java {
+                // Include the test source.
+                srcDirs = test.java.srcDirs
+            }
+            resources {
+                srcDirs = ["src/test/resources"]
+                srcDirs += sourceSets["$sourceSetName"].resources.srcDirs
+            }
         }
     }
 }
@@ -64,84 +120,73 @@ dependencies {
     compileOnly project(':conscrypt-constants')
 
     testCompile project(':conscrypt-constants'),
+            project(':conscrypt-testing'),
+            libraries.junit,
+            libraries.mockito
+
+    // Need to add the native artifact to classpath when running the tests.
+    testRuntime configurations["${preferredNativeConfiguration}"]
+
+    // Configure the dependencies for the native tests.
+    nativeClassifiers.each { nativeClassifier ->
+        def testCompileConfigName = testSourceSet(nativeClassifier).compileConfigurationName
+        "${testCompileConfigName}" (
+                sourceSets.main.output, // Explicitly add the main classes
+                project(':conscrypt-constants'),
                 project(':conscrypt-testing'),
                 libraries.junit,
                 libraries.mockito
+        )
+    }
 
     platformCompileOnly sourceSets.main.output
 }
 
-javadoc {
-    options.doclet = "org.conscrypt.doclet.FilterDoclet"
-    options.docletpath = configurations.publicApiDocs.files as List
-}
-
-/**
- * Create Jar and Test tasks for each native classifier.
- */
 nativeClassifiers.each { nativeClassifier ->
-    // Create all native configurations
-    addNativeSourceSet(nativeClassifier)
-    addNativeSourceSet("${nativeClassifier}Test")
-
     // Create the JAR task and add it's output to the published archives for this project
     addNativeJar(nativeClassifier)
 
     // Create the test task and have it auto run whenever the test task runs.
     addNativeTest(nativeClassifier)
-}
 
-def nativeFileDir(nativeClassifier) {
-    def normalizedClassifier = normalizeClassifier(nativeClassifier)
-    "${buildDir}/${normalizedClassifier}/resources/main"
-}
-
-// Creates a source set (and resulting configurations) containing only the
-// native shared library.
-def addNativeSourceSet(nativeClassifier) {
-    def normalizedClassifier = normalizeClassifier(nativeClassifier)
-
-    // Create a configuration which will contain the artifact.
-    configurations.create(normalizedClassifier)
-
-    // Create a new source set. This will automatically create configurations for:
-    // ${normalizedClassifier}Compile
-    // ${normalizedClassifier}Runtime
-    def sources = sourceSets.create(normalizedClassifier)
-    sources.resources {
-        srcDirs += files(nativeFileDir(nativeClassifier))
-    }
+    // Build the classes as part of the standard build.
+    classes.dependsOn sourceSet(nativeClassifier).classesTaskName
+    testClasses.dependsOn testSourceSet(nativeClassifier).classesTaskName
 }
 
 // Adds a JAR task for the native library.
 def addNativeJar(nativeClassifier) {
-    def normalizedClassifier = normalizeClassifier(nativeClassifier)
     // Create a JAR for this configuration and add it to the output archives.
-    def jarTaskName = "create${normalizedClassifier}Jar"
-    // The testRuntime configuration is created automatically when we created the source set.
-    def testRuntimeConfigName = "${normalizedClassifier}TestRuntime"
+    SourceSet sourceSet = sourceSet(nativeClassifier)
+    def jarTaskName = sourceSet.jarTaskName
     task "$jarTaskName"(type: Jar) {
+        // Depend on the regular classes task
         dependsOn classes
-        dependsOn configurations[testRuntimeConfigName]
-        from sourceSets.main.output + files(nativeFileDir(nativeClassifier))
         manifest = jar.manifest
         classifier = nativeClassifier
+
+        from sourceSet.output + sourceSets.main.output
     }
+
+    def jarTask = tasks["$jarTaskName"]
+
+    // Add the jar task to the standard build.
+    jar.dependsOn jarTask
+
     // Add it to the 'archives' configuration so that the artifact will be automatically built and
     // installed/deployed.
-    artifacts.add('archives', tasks["$jarTaskName"])
-
-    // Also add the artifact to its own configuration so that it can be referenced from other projects.
-    artifacts.add(normalizedClassifier, tasks["$jarTaskName"])
+    artifacts.add('archives', jarTask)
 }
 
 // Optionally adds a test task for the given platform
 def addNativeTest(nativeClassifier) {
-    def normalizedClassifier = normalizeClassifier(nativeClassifier)
-    def testTaskName = "${normalizedClassifier}Test"
+    SourceSet testSourceSet = testSourceSet(nativeClassifier)
+
+    // Just use the same name as the source set for the task.
+    def testTaskName = "${testSourceSet.name}"
     def javaExecutable
     def javaArchFlag
-    if (normalizedClassifier.endsWith(arch32Name)) {
+    if (testSourceSet.name.endsWith(arch32Name)) {
         // 32-bit test
         javaExecutable = javaExecutable32 != null ? javaExecutable32 : test.executable
         javaArchFlag = '-d32'
@@ -164,10 +209,16 @@ def addNativeTest(nativeClassifier) {
     def archSupported = !javaError.toString().toLowerCase().contains('error')
     if (archSupported) {
         task "$testTaskName"(type: Test) {
-            testClassesDir = test.testClassesDir
-            classpath = test.classpath + files(nativeFileDir(nativeClassifier))
+            dependsOn testSourceSet.classesTaskName
             jvmArgs javaArchFlag
             executable = javaExecutable
+            testClassesDir = testSourceSet.output.classesDir
+
+            // Set the classpath just before we run the test so that the runtime classpath
+            // is fully resolved.
+            doFirst {
+                classpath = testSourceSet.runtimeClasspath
+            }
         }
         test.dependsOn "$testTaskName"
     }
@@ -176,6 +227,11 @@ def addNativeTest(nativeClassifier) {
 // Exclude all test classes from the default test suite.
 // We will test each available native artifact separately (see nativeClassifiers).
 test.exclude("**")
+
+javadoc {
+    options.doclet = "org.conscrypt.doclet.FilterDoclet"
+    options.docletpath = configurations.publicApiDocs.files as List
+}
 
 model {
     platforms {
@@ -299,17 +355,17 @@ model {
             // Build the native artifact classifier from the OS and architecture.
             def archName = binary.targetPlatform.architecture.name.replaceAll('-', '_')
             def classifier = classifierFor(osName, archName)
-            def normalizedClassifier = normalizeClassifier("$classifier")
+            def sourceSetName = sourceSetName("$classifier")
             def source = binary.sharedLibraryFile
 
             // Copies the native library to a resource location that will be included in the jar.
-            def copyTaskName = "copyNativeLib${normalizedClassifier}"
+            def copyTaskName = "copyNativeLib${sourceSetName}"
             task "$copyTaskName"(type: Copy, dependsOn: binary.buildTask) {
                 from source
                 // Rename the artifact to include the generated classifier
                 rename '(.+)(\\.[^\\.]+)', "\$1-$classifier\$2"
-                // This location will automatically be included in the jar.
-                into "${buildDir}/${normalizedClassifier}/resources/main/META-INF/native"
+                // Everything under will be included in the native jar.
+                into nativeResourcesDir(classifier) + '/META-INF/native'
             }
 
             // Make sure we build and copy the native library to the output directory.
@@ -330,15 +386,32 @@ model {
     }
 }
 
-static classifierFor(osName, archName) {
-    return "${osName}-${archName}"
+String nativeResourcesDir(nativeClassifier) {
+    def sourceSetName = sourceSetName(nativeClassifier)
+    "${buildDir}/${sourceSetName}/resources"
 }
 
-static normalizeClassifier(classifier) {
-    return classifier.replaceAll("-", "_")
+SourceSet sourceSet(classifier) {
+    sourceSets[sourceSetName(classifier)]
 }
 
-// Manually add the native library to help IntelliJ run tests.
-idea.module {
-    scopes.PROVIDED.plus += [ configurations["$preferredNativeConfiguration"] ]
+SourceSet testSourceSet(classifier) {
+    sourceSets[testSourceSetName(classifier)]
 }
+
+static String classifierFor(osName, archName) {
+    "${osName}-${archName}"
+}
+
+static String sourceSetName(classifier) {
+    classifier.replaceAll("-", "_")
+}
+
+static String testSourceSetName(classifier) {
+    "${sourceSetName(classifier)}Test"
+}
+
+static String compileConfigurationName(classifier) {
+    sourceSetName(classifier) + "Compile"
+}
+
