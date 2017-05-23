@@ -143,7 +143,6 @@ dependencies {
 }
 
 nativeClassifiers.each { nativeClassifier ->
-    //sourceSets.getByName("").
     // Create the JAR task and add it's output to the published archives for this project
     addNativeJar(nativeClassifier)
 
@@ -166,7 +165,6 @@ def addNativeJar(nativeClassifier) {
         manifest = jar.manifest
         classifier = nativeClassifier
 
-        //def resourcesDir = files(nativeResourcesDir(nativeClassifier))
         from sourceSet.output + sourceSets.main.output
     }
 
@@ -184,7 +182,8 @@ def addNativeJar(nativeClassifier) {
 def addNativeTest(nativeClassifier) {
     SourceSet testSourceSet = testSourceSet(nativeClassifier)
 
-    def testTaskName = "${testSourceSet.name}Test"
+    // Just use the same name as the source set for the task.
+    def testTaskName = "${testSourceSet.name}"
     def javaExecutable
     def javaArchFlag
     if (testSourceSet.name.endsWith(arch32Name)) {
