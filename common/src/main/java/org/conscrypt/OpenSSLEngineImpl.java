@@ -1532,9 +1532,16 @@ final class OpenSSLEngineImpl extends SSLEngine implements NativeCrypto.SSLHands
         }
     }
 
-    private static <T> T checkNotNull(T obj, String fmt, Object... args) {
+    private static <T> T checkNotNull(T obj, String msg) {
         if (obj == null) {
-            throw new IllegalArgumentException(String.format(fmt, args));
+            throw new IllegalArgumentException(msg);
+        }
+        return obj;
+    }
+
+    private static <T> T checkNotNull(T obj, String fmt, Object arg1) {
+        if (obj == null) {
+            throw new IllegalArgumentException(String.format(fmt, arg1));
         }
         return obj;
     }
