@@ -1635,7 +1635,7 @@ public class SSLSocketTest extends AbstractSSLTest {
                         underlying, c.host.getHostName(), c.port, true);
 
         if (isConscryptFdSocket(clientWrapping) && !readUnderlying && closeUnderlying) {
-            // TODO(nmittler): The FD socket gets stuck in the read on windows.
+            // TODO(nmittler): FD socket gets stuck in the read on windows.
             assumeFalse(isWindows());
         }
 
@@ -1665,10 +1665,9 @@ public class SSLSocketTest extends AbstractSSLTest {
             toRead.setSoTimeout(readingTimeoutMillis);
             final InputStream inputStream = toRead.getInputStream();
             int value = inputStream.read();
-            if (isConscryptFdSocket(clientWrapping)) {
-                // This seems to only happen with Conscrypt's FD-based socket.
+            if (isConscryptFdSocket(clientWrapping) && !readUnderlying && !closeUnderlying) {
+                // TODO(nmittler): FD socket read returns -1 instead of SocketException.
                 assertEquals(-1, value);
-                assertTrue(!readUnderlying && !closeUnderlying);
             } else {
                 // For every other condition, we should expect SocketException.
                 fail();
