@@ -1595,14 +1595,6 @@ public class SSLSocketTest extends AbstractSSLTest {
         }
     }
 
-    private static String osName() {
-        return System.getProperty("os.name").toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "");
-    }
-
-    private static boolean isLinux() {
-        return osName().startsWith("linux");
-    }
-
     // TODO(nmittler): FD socket read may return -1 instead of SocketException.
     @Test
     public void test_SSLSocket_interrupt_readUnderlyingAndCloseUnderlying() throws Exception {
@@ -2289,12 +2281,20 @@ public class SSLSocketTest extends AbstractSSLTest {
         return "OpenSSLSocketImplWrapper".equals(socket.getClass().getSimpleName());
     }
 
+    private static String osName() {
+        return System.getProperty("os.name").toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "");
+    }
+
+    private static boolean isLinux() {
+        return osName().startsWith("linux");
+    }
+
     private static boolean isWindows() {
-        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+        return osName().startsWith("windows");
     }
 
     private static boolean isOsx() {
-        String name = System.getProperty("os.name").toLowerCase();
+        String name = osName();
         return name.startsWith("macosx") || name.startsWith("osx");
     }
 
