@@ -1615,7 +1615,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         test_SSLSocket_interrupt_case(true, false);
     }
 
-    // TODO(nmittler): FD socket gets stuck in read on windows.
+    // TODO(nmittler): FD socket gets stuck in read on Windows and OSX.
     @Test
     public void test_SSLSocket_interrupt_readWrapperAndCloseUnderlying() throws Exception {
         test_SSLSocket_interrupt_case(false, true);
@@ -1637,8 +1637,9 @@ public class SSLSocketTest extends AbstractSSLTest {
                         underlying, c.host.getHostName(), c.port, true);
 
         if (isConscryptFdSocket(clientWrapping) && !readUnderlying && closeUnderlying) {
-            // TODO(nmittler): FD socket gets stuck in the read on windows.
-            assumeFalse(isWindows());
+            // TODO(nmittler): FD socket gets stuck in the read on Windows and OSX.
+            assumeFalse("Skipping interrupt test on Windows", isWindows());
+            assumeFalse("Skipping interrupt test on OSX", isOsx());
         }
 
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -2290,6 +2291,11 @@ public class SSLSocketTest extends AbstractSSLTest {
 
     private static boolean isWindows() {
         return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    }
+
+    private static boolean isOsx() {
+        String name = System.getProperty("os.name").toLowerCase();
+        return name.startsWith("macosx") || name.startsWith("osx");
     }
 
     private <T> Future<T> runAsync(Callable<T> callable) {
