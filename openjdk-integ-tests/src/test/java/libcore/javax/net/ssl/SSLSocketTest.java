@@ -1603,12 +1603,13 @@ public class SSLSocketTest extends AbstractSSLTest {
         return osName().startsWith("linux");
     }
 
+    // TODO(nmittler): FD socket read may return -1 instead of SocketException.
     @Test
     public void test_SSLSocket_interrupt_readUnderlyingAndCloseUnderlying() throws Exception {
         test_SSLSocket_interrupt_case(true, true);
     }
 
-    // TODO(nmittler): FD socket read returns -1 instead of SocketException.
+    // TODO(nmittler): FD socket read may return -1 instead of SocketException.
     @Test
     public void test_SSLSocket_interrupt_readUnderlyingAndCloseWrapper() throws Exception {
         test_SSLSocket_interrupt_case(true, false);
@@ -1620,6 +1621,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         test_SSLSocket_interrupt_case(false, true);
     }
 
+    // TODO(nmittler): FD socket read may return -1 instead of SocketException.
     @Test
     public void test_SSLSocket_interrupt_readWrapperAndCloseWrapper() throws Exception {
         test_SSLSocket_interrupt_case(false, false);
@@ -1665,18 +1667,14 @@ public class SSLSocketTest extends AbstractSSLTest {
             toRead.setSoTimeout(readingTimeoutMillis);
             final InputStream inputStream = toRead.getInputStream();
             int value = inputStream.read();
-            if (isConscryptFdSocket(clientWrapping) && !readUnderlying && !closeUnderlying) {
-                // TODO(nmittler): FD socket read returns -1 instead of SocketException.
+            if (isConscryptFdSocket(clientWrapping)) {
+                // TODO(nmittler): FD socket read may return -1 instead of SocketException.
                 assertEquals(-1, value);
             } else {
                 // For every other condition, we should expect SocketException.
                 fail();
             }
         } catch (SocketException e) {
-            if(isConscryptFdSocket(clientWrapping)) {
-                // Opposite condition of the one above. Verify the behavior we expect.
-                assertFalse(!readUnderlying && !closeUnderlying);
-            }
             // Otherwise, ignore the exception since it's expected.
         }
 
