@@ -23,14 +23,14 @@ import java.net.Socket;
  * A {@link javax.net.ssl.SSLSocketFactory} which creates unbundled conscrypt SSLSockets and wraps
  * them into KitKat (and newer) platform SSLSockets.
  */
-public class KitKatPlatformOpenSSLSocketAdapterFactory extends BaseOpenSSLSocketAdapterFactory {
-
-    public KitKatPlatformOpenSSLSocketAdapterFactory(OpenSSLSocketFactoryImpl delegate) {
+public class KitKatPlatformOpenSSLSocketAdapterFactory
+        extends BaseOpenSSLSocketAdapterFactory {
+    public KitKatPlatformOpenSSLSocketAdapterFactory(ConscryptSocketFactory delegate) {
         super(delegate);
     }
 
     @Override
-    protected Socket wrap(OpenSSLSocketImpl socket) throws IOException {
+    protected Socket wrap(AbstractConscryptSocket socket) throws IOException {
         return new KitKatPlatformOpenSSLSocketImplAdapter(socket);
     }
 }

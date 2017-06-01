@@ -82,9 +82,8 @@ final class Platform {
         }
     }
 
-    public static FileDescriptor getFileDescriptorFromSSLSocket(
-            OpenSSLSocketImpl openSSLSocketImpl) {
-        return getFileDescriptor(openSSLSocketImpl);
+    public static FileDescriptor getFileDescriptorFromSSLSocket(AbstractConscryptSocket socket) {
+        return getFileDescriptor(socket);
     }
 
     public static String getCurveName(ECParameterSpec spec) {
@@ -195,7 +194,7 @@ final class Platform {
     }
 
     public static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket) {
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         try {
             setSSLParametersOnImpl(params, impl);
 
@@ -260,7 +259,7 @@ final class Platform {
     }
 
     public static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket) {
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         try {
             getSSLParametersFromImpl(params, impl);
 
@@ -276,7 +275,7 @@ final class Platform {
 
     @TargetApi(24)
     private static void setParametersSniHostname(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket)
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
             Method m_setServerNames = params.getClass().getMethod("setServerNames", List.class);
@@ -360,9 +359,9 @@ final class Platform {
         return false;
     }
 
-    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // AbstractConscryptSocket defines getHandshakeSession()
     public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+            String authType, AbstractConscryptSocket socket) throws CertificateException {
         if (!checkTrusted("checkClientTrusted", tm, chain, authType, Socket.class, socket)
                 && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
                            socket.getHandshakeSession().getPeerHost())) {
@@ -370,9 +369,9 @@ final class Platform {
         }
     }
 
-    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // AbstractConscryptSocket defines getHandshakeSession()
     public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+            String authType, AbstractConscryptSocket socket) throws CertificateException {
         if (!checkTrusted("checkServerTrusted", tm, chain, authType, Socket.class, socket)
                 && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
                            socket.getHandshakeSession().getPeerHost())) {
@@ -380,7 +379,7 @@ final class Platform {
         }
     }
 
-    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // AbstractConscryptSocket defines getHandshakeSession()
     public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
             String authType, ConscryptEngine engine) throws CertificateException {
         if (!checkTrusted("checkClientTrusted", tm, chain, authType, SSLEngine.class, engine)
@@ -390,7 +389,7 @@ final class Platform {
         }
     }
 
-    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // AbstractConscryptSocket defines getHandshakeSession()
     public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
             String authType, ConscryptEngine engine) throws CertificateException {
         if (!checkTrusted("checkServerTrusted", tm, chain, authType, SSLEngine.class, engine)
@@ -528,7 +527,7 @@ final class Platform {
     /**
      * Wrap the SocketFactory with the platform wrapper if needed for compatability.
      */
-    public static SSLSocketFactory wrapSocketFactoryIfNeeded(OpenSSLSocketFactoryImpl factory) {
+    public static SSLSocketFactory wrapSocketFactoryIfNeeded(ConscryptSocketFactory factory) {
         if (Build.VERSION.SDK_INT < 19) {
             return new PreKitKatPlatformOpenSSLSocketAdapterFactory(factory);
         } else if (Build.VERSION.SDK_INT < 22) {

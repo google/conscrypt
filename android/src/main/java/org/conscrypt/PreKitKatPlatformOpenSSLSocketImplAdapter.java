@@ -33,7 +33,7 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 
 /**
- * This class delegates all calls to an {@code org.conscrypt.OpenSSLSocketImpl}.
+ * This class delegates all calls to an {@code AbstractConscryptSocket}.
  * This is to work around code that checks that the socket is an
  * {@code org.apache.harmony.xnet.provider.jsse.OpenSSLSocketImpl} before
  * calling methods, such as setting SNI. This is only for Pre-Kitkat devices.
@@ -44,10 +44,9 @@ import javax.net.ssl.SSLSession;
 public class PreKitKatPlatformOpenSSLSocketImplAdapter
         extends org.apache.harmony.xnet.provider.jsse.OpenSSLSocketImpl {
 
+    private final AbstractConscryptSocket delegate;
 
-    private final org.conscrypt.OpenSSLSocketImpl delegate;
-
-    public PreKitKatPlatformOpenSSLSocketImplAdapter(org.conscrypt.OpenSSLSocketImpl delegate)
+    public PreKitKatPlatformOpenSSLSocketImplAdapter(AbstractConscryptSocket delegate)
             throws IOException {
         super(null);
         this.delegate = delegate;
@@ -444,6 +443,7 @@ public class PreKitKatPlatformOpenSSLSocketImplAdapter
 
     // These aren't in the Platform's OpenSSLSocketImpl but we have them to support duck typing.
 
+    @SuppressWarnings("unused")
     public byte[] getAlpnSelectedProtocol() {
         return delegate.getAlpnSelectedProtocol();
     }

@@ -77,7 +77,7 @@ public class OpenSSLSocketImplTest {
             @Override
             void assertSocketType(Socket socket) {
                 assertTrue("Unexpected socket type: " + socket.getClass().getName(),
-                        socket instanceof OpenSSLEngineSocketImpl);
+                        socket instanceof ConscryptEngineSocket);
             }
         };
 
@@ -87,23 +87,23 @@ public class OpenSSLSocketImplTest {
             this.useEngineSocket = useEngineSocket;
         }
 
-        OpenSSLSocketImpl createClientSocket(OpenSSLContextImpl context, ServerSocket listener)
-                throws IOException {
+        AbstractConscryptSocket createClientSocket(
+                OpenSSLContextImpl context, ServerSocket listener) throws IOException {
             SSLSocketFactory factory = context.engineGetSocketFactory();
             Conscrypt.SocketFactories.setUseEngineSocket(factory, useEngineSocket);
-            OpenSSLSocketImpl socket = (OpenSSLSocketImpl) factory.createSocket(
+            AbstractConscryptSocket socket = (AbstractConscryptSocket) factory.createSocket(
                     listener.getInetAddress(), listener.getLocalPort());
             assertSocketType(socket);
             socket.setUseClientMode(true);
             return socket;
         }
 
-        OpenSSLSocketImpl createServerSocket(OpenSSLContextImpl context, ServerSocket listener)
-                throws IOException {
+        AbstractConscryptSocket createServerSocket(
+                OpenSSLContextImpl context, ServerSocket listener) throws IOException {
             SSLSocketFactory factory = context.engineGetSocketFactory();
             Conscrypt.SocketFactories.setUseEngineSocket(factory, useEngineSocket);
-            OpenSSLSocketImpl socket = (OpenSSLSocketImpl) factory.createSocket(listener.accept(),
-                    null, -1, // hostname, port
+            AbstractConscryptSocket socket = (AbstractConscryptSocket) factory.createSocket(
+                    listener.accept(), null, -1, // hostname, port
                     true); // autoclose
             assertSocketType(socket);
             socket.setUseClientMode(false);
@@ -152,7 +152,7 @@ public class OpenSSLSocketImplTest {
         KeyManager[] keyManagers;
         TrustManager[] trustManagers;
 
-        abstract OpenSSLSocketImpl createSocket(ServerSocket listener) throws IOException;
+        abstract AbstractConscryptSocket createSocket(ServerSocket listener) throws IOException;
 
         OpenSSLContextImpl createContext() throws IOException {
             OpenSSLContextImpl context = OpenSSLContextImpl.getPreferred();
@@ -192,8 +192,9 @@ public class OpenSSLSocketImplTest {
         }
 
         @Override
-        OpenSSLSocketImpl createSocket(ServerSocket listener) throws IOException {
-            OpenSSLSocketImpl socket = socketType.createClientSocket(createContext(), listener);
+        AbstractConscryptSocket createSocket(ServerSocket listener) throws IOException {
+            AbstractConscryptSocket socket =
+                    socketType.createClientSocket(createContext(), listener);
             socket.setHostname(hostname);
             return socket;
         }
@@ -217,7 +218,7 @@ public class OpenSSLSocketImplTest {
         }
 
         @Override
-        OpenSSLSocketImpl createSocket(ServerSocket listener) throws IOException {
+        AbstractConscryptSocket createSocket(ServerSocket listener) throws IOException {
             return socketType.createServerSocket(createContext(), listener);
         }
     }
@@ -226,8 +227,8 @@ public class OpenSSLSocketImplTest {
         ServerHooks serverHooks;
         ClientHooks clientHooks;
 
-        OpenSSLSocketImpl client;
-        OpenSSLSocketImpl server;
+        AbstractConscryptSocket client;
+        AbstractConscryptSocket server;
 
         Exception clientException;
         Exception serverException;
@@ -274,8 +275,8 @@ public class OpenSSLSocketImplTest {
 
         void doHandshake() throws Exception {
             ServerSocket listener = newServerSocket();
-            Future<OpenSSLSocketImpl> clientFuture = handshake(listener, clientHooks);
-            Future<OpenSSLSocketImpl> serverFuture = handshake(listener, serverHooks);
+            Future<AbstractConscryptSocket> clientFuture = handshake(listener, clientHooks);
+            Future<AbstractConscryptSocket> serverFuture = handshake(listener, serverHooks);
 
             try {
                 client = getOrThrowCause(clientFuture, TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -289,9 +290,9 @@ public class OpenSSLSocketImplTest {
             }
         }
 
-        Future<OpenSSLSocketImpl> handshake(final ServerSocket listener, final Hooks hooks) {
+        Future<AbstractConscryptSocket> handshake(final ServerSocket listener, final Hooks hooks) {
             return executor.submit(() -> {
-                OpenSSLSocketImpl socket = hooks.createSocket(listener);
+                AbstractConscryptSocket socket = hooks.createSocket(listener);
                 socket.addHandshakeCompletedListener(hooks);
 
                 socket.startHandshake();
@@ -390,8 +391,8 @@ public class OpenSSLSocketImplTest {
 
         connection.clientHooks = new ClientHooks() {
             @Override
-            public OpenSSLSocketImpl createSocket(ServerSocket listener) throws IOException {
-                OpenSSLSocketImpl socket = super.createSocket(listener);
+            public AbstractConscryptSocket createSocket(ServerSocket listener) throws IOException {
+                AbstractConscryptSocket socket = super.createSocket(listener);
                 socket.setEnabledProtocols(new String[] {"SSLv3"});
                 assertEquals(
                         "SSLv3 should be filtered out", 0, socket.getEnabledProtocols().length);

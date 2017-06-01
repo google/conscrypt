@@ -87,8 +87,8 @@ final class Platform {
         }
     }
 
-    static FileDescriptor getFileDescriptorFromSSLSocket(OpenSSLSocketImpl openSSLSocketImpl) {
-        return getFileDescriptor(openSSLSocketImpl);
+    static FileDescriptor getFileDescriptorFromSSLSocket(AbstractConscryptSocket socket) {
+        return getFileDescriptor(socket);
     }
 
     static String getCurveName(ECParameterSpec spec) {
@@ -117,7 +117,7 @@ final class Platform {
 
     @SuppressWarnings("unchecked")
     public static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket) {
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         try {
             Method getUseCipherSuitesOrder =
@@ -147,7 +147,7 @@ final class Platform {
 
     @SuppressWarnings({"LiteralClassName", "rawtypes"})
     public static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket) {
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         try {
             Method setUseCipherSuitesOrder =
@@ -234,7 +234,7 @@ final class Platform {
     }
 
     static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            OpenSSLSocketImpl socket) throws CertificateException {
+            AbstractConscryptSocket socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkClientTrusted(chain, authType, socket);
@@ -244,7 +244,7 @@ final class Platform {
     }
 
     static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            OpenSSLSocketImpl socket) throws CertificateException {
+            AbstractConscryptSocket socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkServerTrusted(chain, authType, socket);
@@ -304,7 +304,7 @@ final class Platform {
     /**
      * Currently we don't wrap anything from the RI.
      */
-    static SSLSocketFactory wrapSocketFactoryIfNeeded(OpenSSLSocketFactoryImpl factory) {
+    static SSLSocketFactory wrapSocketFactoryIfNeeded(ConscryptSocketFactory factory) {
         return factory;
     }
 

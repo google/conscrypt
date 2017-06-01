@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.conscrypt;
+package com.android.org.conscrypt;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -24,108 +24,90 @@ import java.net.SocketException;
 import java.security.PrivateKey;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 
 /**
- * Public shim allowing us to stay backward-compatible with legacy applications which were using
- * Conscrypt's extended socket API before the introduction of the {@link Conscrypt} class.
- *
- * @hide
+ * Abstract base class for all Conscrypt sockets that extends the basic {@link SSLSocket} API.
  */
-@Internal
-public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
-    OpenSSLSocketImpl() throws IOException {
+@SuppressWarnings("unused")
+abstract class AbstractConscryptSocket extends SSLSocket {
+    AbstractConscryptSocket() throws IOException {
     }
 
-    OpenSSLSocketImpl(String hostname, int port) throws IOException {
+    AbstractConscryptSocket(String hostname, int port) throws IOException {
         super(hostname, port);
     }
 
-    OpenSSLSocketImpl(InetAddress address, int port) throws IOException {
+    AbstractConscryptSocket(InetAddress address, int port) throws IOException {
         super(address, port);
     }
 
-    OpenSSLSocketImpl(String hostname, int port, InetAddress clientAddress, int clientPort)
-        throws IOException {
+    AbstractConscryptSocket(String hostname, int port, InetAddress clientAddress, int clientPort)
+            throws IOException {
         super(hostname, port, clientAddress, clientPort);
     }
 
-    OpenSSLSocketImpl(InetAddress address, int port, InetAddress clientAddress,
-        int clientPort)
-        throws IOException {
+    AbstractConscryptSocket(InetAddress address, int port, InetAddress clientAddress,
+            int clientPort) throws IOException {
         super(address, port, clientAddress, clientPort);
     }
 
-    OpenSSLSocketImpl(Socket socket, String hostname, int port, boolean autoClose)
-        throws IOException {
-        super(socket, hostname, port, autoClose);
+    AbstractConscryptSocket(Socket socket, String hostname, int port, boolean autoClose)
+            throws IOException {
     }
 
-    @Override
     public String getHostname() {
-        return super.getHostname();
+        return null;
     }
 
-    @Override
     public void setHostname(String hostname) {
-        super.setHostname(hostname);
     }
 
-    @Override
     public String getHostnameOrIP() {
-        return super.getHostnameOrIP();
+        return null;
     }
 
-    @Override
-    public FileDescriptor getFileDescriptor$() {
-        return super.getFileDescriptor$();
-    }
-
-    @Override
-    public void setSoWriteTimeout(int writeTimeoutMilliseconds) throws SocketException {
-        super.setSoWriteTimeout(writeTimeoutMilliseconds);
-    }
-
-    @Override
-    public int getSoWriteTimeout() throws SocketException {
-        return super.getSoWriteTimeout();
-    }
-
-    @Override
-    public void setHandshakeTimeout(int handshakeTimeoutMilliseconds) throws SocketException {
-        super.setHandshakeTimeout(handshakeTimeoutMilliseconds);
-    }
-
-    @Override
+    /* @Override */
+    @SuppressWarnings("MissingOverride") // For compilation with Java 6.
     public abstract SSLSession getHandshakeSession();
 
-    @Override
+    /* @Override */
+    public FileDescriptor getFileDescriptor$() {
+        return null;
+    }
+
+    public void setSoWriteTimeout(int writeTimeoutMilliseconds) throws SocketException {
+    }
+
+    public int getSoWriteTimeout() throws SocketException {
+        return 0;
+    }
+
+    public void setHandshakeTimeout(int handshakeTimeoutMilliseconds) throws SocketException {
+    }
+
+    /**
+     * This method enables session ticket support.
+     *
+     * @param useSessionTickets True to enable session tickets
+     */
     public abstract void setUseSessionTickets(boolean useSessionTickets);
 
-    @Override
     public abstract void setChannelIdEnabled(boolean enabled);
 
-    @Override
     public abstract byte[] getChannelId() throws SSLException;
 
-    @Override
     public abstract void setChannelIdPrivateKey(PrivateKey privateKey);
 
-    @Override
-    public final byte[] getNpnSelectedProtocol() {
-        return super.getNpnSelectedProtocol();
+    public byte[] getNpnSelectedProtocol() {
+        return null;
     }
 
-    @Override
-    public final void setNpnProtocols(byte[] npnProtocols) {
-        super.setNpnProtocols(npnProtocols);
-    }
+    public void setNpnProtocols(byte[] npnProtocols) {}
 
-    @Override
     public abstract byte[] getAlpnSelectedProtocol();
 
-    @Override
     public abstract void setAlpnProtocols(String[] alpnProtocols);
 
-    @Override
     public abstract void setAlpnProtocols(byte[] alpnProtocols);
 }

@@ -676,27 +676,29 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         c.close();
     }
+
     @Test
-    public void test_SSLSocket_setUseClientMode() throws Exception {
-        // client is client, server is server
+    public void testClientMode_normal() throws Exception {
+        // Client is client and server is server.
         test_SSLSocket_setUseClientMode(true, false);
-        // client is server, server is client
-        test_SSLSocket_setUseClientMode(true, false);
-        // both are client
-        try {
-            test_SSLSocket_setUseClientMode(true, true);
-            fail();
-        } catch (SSLProtocolException | SSLHandshakeException expected) {
-            // Ignored.
-        }
-        // both are server
-        try {
-            test_SSLSocket_setUseClientMode(false, false);
-            fail();
-        } catch (SocketTimeoutException expected) {
-            // Ignored.
-        }
     }
+
+    @Test(expected = SSLHandshakeException.class)
+    public void testClientMode_reverse() throws Exception {
+        // Client is server and server is client.
+        test_SSLSocket_setUseClientMode(false, true);
+    }
+
+    @Test(expected = SSLHandshakeException.class)
+    public void testClientMode_bothClient() throws Exception {
+        test_SSLSocket_setUseClientMode(true, true);
+    }
+
+    @Test(expected = SocketTimeoutException.class)
+    public void testClientMode_bothServer() throws Exception {
+        test_SSLSocket_setUseClientMode(false, false);
+    }
+
     private void test_SSLSocket_setUseClientMode(
             final boolean clientClientMode, final boolean serverClientMode) throws Exception {
         TestSSLContext c = TestSSLContext.create();
@@ -1595,13 +1597,13 @@ public class SSLSocketTest extends AbstractSSLTest {
         }
     }
 
-    // TODO(nmittler): FD socket read may return -1 instead of SocketException.
+    // TODO(nmittler): Conscrypt socket read may return -1 instead of SocketException.
     @Test
     public void test_SSLSocket_interrupt_readUnderlyingAndCloseUnderlying() throws Exception {
         test_SSLSocket_interrupt_case(true, true);
     }
 
-    // TODO(nmittler): FD socket read may return -1 instead of SocketException.
+    // TODO(nmittler): Conscrypt socket read may return -1 instead of SocketException.
     @Test
     public void test_SSLSocket_interrupt_readUnderlyingAndCloseWrapper() throws Exception {
         test_SSLSocket_interrupt_case(true, false);
@@ -1613,7 +1615,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         test_SSLSocket_interrupt_case(false, true);
     }
 
-    // TODO(nmittler): FD socket read may return -1 instead of SocketException.
+    // TODO(nmittler): Conscrypt socket read may return -1 instead of SocketException.
     @Test
     public void test_SSLSocket_interrupt_readWrapperAndCloseWrapper() throws Exception {
         test_SSLSocket_interrupt_case(false, false);
@@ -1660,11 +1662,11 @@ public class SSLSocketTest extends AbstractSSLTest {
             toRead.setSoTimeout(readingTimeoutMillis);
             final InputStream inputStream = toRead.getInputStream();
             int value = inputStream.read();
-            if (isConscryptFdSocket(clientWrapping)) {
-                // TODO(nmittler): FD socket read may return -1 instead of SocketException.
+            if (isConscryptSocket(clientWrapping)) {
+                // TODO(nmittler): Conscrypt socket read may return -1 instead of SocketException.
                 assertEquals(-1, value);
             } else {
-                // For every other condition, we should expect SocketException.
+                // For any other socket type, we should expect SocketException.
                 fail();
             }
         } catch (SocketException e) {
@@ -1682,29 +1684,33 @@ public class SSLSocketTest extends AbstractSSLTest {
      * thread will interrupt another thread blocked reading on the same
      * socket.
      */
+    // TODO(nmittler): Interrupts do not work with the engine-based socket.
     @Test
-    public void test_SSLSocket_interrupt_read() throws Exception {
+    public void test_SSLSocket_interrupt_read_withoutAutoClose() throws Exception {
         final int readingTimeoutMillis = 5000;
         TestSSLContext c = TestSSLContext.create();
         final Socket underlying = new Socket(c.host, c.port);
         final SSLSocket wrapping = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
                 underlying, c.host.getHostName(), c.port, false);
+
+        // TODO(nmittler): Interrupts do not work with the engine-based socket.
+        assumeFalse(isConscryptEngineSocket(wrapping));
+
         Future<Void> clientFuture = runAsync(() -> {
             wrapping.startHandshake();
             try {
                 wrapping.setSoTimeout(readingTimeoutMillis);
                 int ret = wrapping.getInputStream().read();
                 // Android returns -1 rather than throwing.
-                if (isConscryptFdSocket(wrapping)) {
-                    // This seems to only happen with Conscrypt's FD-based socket.
+                if (isConscryptSocket(wrapping)) {
+                    // TODO(nmittler): Conscrypt socket read may return -1 instead of
+                    // SocketException.
                     assertEquals(-1, ret);
                 } else {
-                    // For every other condition, we should expect SocketException.
+                    // For any other socket type, we should expect SocketException.
                     fail();
                 }
             } catch (SocketException e) {
-                // Opposite condition of the one above. Verify the behavior we expect.
-                assertFalse(isConscryptFdSocket(wrapping));
                 // Otherwise, ignore the exception since it's expected.
             }
             return null;
@@ -1733,6 +1739,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         }
 
         wrapping.close();
+
         clientFuture.get();
         server.close();
     }
@@ -2277,8 +2284,16 @@ public class SSLSocketTest extends AbstractSSLTest {
         }
     }
 
+    private static boolean isConscryptSocket(Socket socket) {
+        return isConscryptFdSocket(socket) || isConscryptEngineSocket(socket);
+    }
+
     private static boolean isConscryptFdSocket(Socket socket) {
-        return "OpenSSLSocketImplWrapper".equals(socket.getClass().getSimpleName());
+        return "ConscryptFileDescriptorSocket".equals(socket.getClass().getSimpleName());
+    }
+
+    private static boolean isConscryptEngineSocket(Socket socket) {
+        return "ConscryptEngineSocket".equals(socket.getClass().getSimpleName());
     }
 
     private static String osName() {
