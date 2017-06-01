@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeTrue;
 
@@ -1607,12 +1608,13 @@ public class SSLSocketTest extends AbstractSSLTest {
         test_SSLSocket_interrupt_case(true, true);
     }
 
-    // TODO(nmittler): For FD socket, read returns -1 instead of SocketException.
+    // TODO(nmittler): FD socket read returns -1 instead of SocketException.
     @Test
     public void test_SSLSocket_interrupt_readUnderlyingAndCloseWrapper() throws Exception {
         test_SSLSocket_interrupt_case(true, false);
     }
 
+    // TODO(nmittler): FD socket gets stuck in read on windows.
     @Test
     public void test_SSLSocket_interrupt_readWrapperAndCloseUnderlying() throws Exception {
         test_SSLSocket_interrupt_case(false, true);
@@ -1631,6 +1633,12 @@ public class SSLSocketTest extends AbstractSSLTest {
         final SSLSocket clientWrapping =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(
                         underlying, c.host.getHostName(), c.port, true);
+
+        if (isConscryptFdSocket(clientWrapping) && !readUnderlying && closeUnderlying) {
+            // TODO(nmittler): The FD socket gets stuck in the read on windows.
+            assumeFalse(isWindows());
+        }
+
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
 
         // Start the handshake.
@@ -2281,6 +2289,10 @@ public class SSLSocketTest extends AbstractSSLTest {
 
     private static boolean isConscryptFdSocket(Socket socket) {
         return "OpenSSLSocketImplWrapper".equals(socket.getClass().getSimpleName());
+    }
+
+    private static boolean isWindows() {
+        return System.getProperty("os.name").toLowerCase().startsWith("windows");
     }
 
     private <T> Future<T> runAsync(Callable<T> callable) {
