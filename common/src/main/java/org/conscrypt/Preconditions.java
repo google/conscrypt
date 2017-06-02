@@ -41,9 +41,16 @@ final class Preconditions {
     /**
      * Ensures the truth of an expression involving one or more parameters to the calling method.
      */
-    static void checkArgument(boolean condition, String errorMessageTemplate, Object... args) {
+    static void checkArgument(boolean condition, String errorMessage) {
         if (!condition) {
-            throw new IllegalArgumentException(String.format(errorMessageTemplate, args));
+            throw new IllegalArgumentException(errorMessage);
         }
+    }
+
+    /**
+     * Ensures the truth of an expression involving one or more parameters to the calling method.
+     */
+    static void checkArgument(boolean condition, String errorMessageTemplate, Object arg) {
+        checkArgument(condition, String.format(errorMessageTemplate, arg));
     }
 }

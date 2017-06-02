@@ -171,7 +171,7 @@ final class Platform {
         } catch (NoSuchMethodException | IllegalAccessException ignored) {
         } catch (InvocationTargetException e) {
             if (e.getCause() instanceof CertificateException) {
-                throw(CertificateException) e.getCause();
+                throw (CertificateException) e.getCause();
             }
             throw new RuntimeException(e.getCause());
         }

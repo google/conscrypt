@@ -130,11 +130,6 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      */
     private final Object stateLock = new Object();
 
-    /*
-     * A CloseGuard object on Android. On other platforms, this is nothing.
-     */
-    private final Object guard = Platform.closeGuardGet();
-
     /**
      * A provider for the peer host and port information.
      */
@@ -374,8 +369,6 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
             sslNativePointer = NativeCrypto.SSL_new(sessionContext.sslCtxNativePointer);
             networkBio = NativeCrypto.SSL_BIO_new(sslNativePointer);
-            Platform.closeGuardOpen(guard, "close");
-
             sslSession =
                     sslParameters.getSessionToReuse(sslNativePointer, getPeerHost(), getPeerPort());
             sslParameters.setSSLParameters(sslNativePointer, this, this, getSniHostname());
@@ -1465,32 +1458,11 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         NativeCrypto.BIO_free_all(networkBio);
         sslNativePointer = 0;
         networkBio = 0;
-        Platform.closeGuardClose(guard);
     }
 
     @Override
     protected void finalize() throws Throwable {
         try {
-            /*
-             * Just worry about our own state. Notably we do not try and
-             * close anything. The SocketImpl, either our own
-             * PlainSocketImpl, or the Socket we are wrapping, will do
-             * that. This might mean we do not properly SSL_shutdown, but
-             * if you want to do that, properly close the socket yourself.
-             *
-             * The reason why we don't try to SSL_shutdown, is that there
-             * can be a race between finalizers where the PlainSocketImpl
-             * finalizer runs first and closes the socket. However, in the
-             * meanwhile, the underlying file descriptor could be reused
-             * for another purpose. If we call SSL_shutdown, the
-             * underlying socket BIOs still have the old file descriptor
-             * and will write the close notify to some unsuspecting
-             * reader.
-             */
-            if (guard != null) {
-                Platform.closeGuardWarnIfOpen(guard);
-            }
-
             free();
         } finally {
             super.finalize();
