@@ -167,6 +167,12 @@ public final class NativeCrypto {
     static native int ECDH_compute_key(byte[] out, int outOffset, NativeRef.EVP_PKEY publicKeyRef,
             NativeRef.EVP_PKEY privateKeyRef) throws InvalidKeyException;
 
+    static native int ECDSA_size(NativeRef.EVP_PKEY pkey);
+
+    static native int ECDSA_sign(byte[] data, byte[] sig, NativeRef.EVP_PKEY pkey);
+
+    static native int ECDSA_verify(byte[] data, byte[] sig, NativeRef.EVP_PKEY pkey);
+
     // --- Message digest functions --------------
 
     // These return const references
