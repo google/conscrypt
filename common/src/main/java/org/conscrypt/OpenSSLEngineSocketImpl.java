@@ -38,13 +38,13 @@ import javax.net.ssl.X509KeyManager;
 import javax.security.auth.x500.X500Principal;
 
 /**
- * Implements crypto handling by delegating to OpenSSLEngine. Used for socket implementations
- * that are not backed by a real OS socket.
+ * Implements crypto handling by delegating to {@link ConscryptEngine}. Used for socket
+ * implementations that are not backed by a real OS socket.
  */
 final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
 
-    private final OpenSSLEngineImpl engine;
+    private final ConscryptEngine engine;
     private final Socket socket;
     private final OutputStreamWrapper outputStreamWrapper;
     private final InputStreamWrapper inputStreamWrapper;
@@ -79,7 +79,7 @@ final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
             SSLParametersImpl sslParameters) throws IOException {
         super(socket, hostname, port, autoClose, sslParameters);
         this.socket = socket;
-        engine = new OpenSSLEngineImpl(hostname, port, sslParameters);
+        engine = new ConscryptEngine(hostname, port, sslParameters);
 
         // When the handshake completes, notify any listeners.
         engine.setHandshakeListener(new HandshakeListener() {
@@ -126,11 +126,9 @@ final class OpenSSLEngineSocketImpl extends OpenSSLSocketImplWrapper {
                         break;
                     }
                     case NEED_TASK: {
-                        throw new IllegalStateException("OpenSSLEngineImpl returned NEED_TASK");
+                        throw new IllegalStateException("ConscryptEngine returned NEED_TASK");
                     }
-                    default: {
-                        break;
-                    }
+                    default: { break; }
                 }
             }
         } catch (Exception e) {

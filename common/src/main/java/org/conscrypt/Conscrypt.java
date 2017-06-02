@@ -324,15 +324,15 @@ public final class Conscrypt {
          * Indicates whether the given engine is a Conscrypt engine.
          */
         public static boolean isConscrypt(SSLEngine engine) {
-            return engine instanceof OpenSSLEngineImpl;
+            return engine instanceof ConscryptEngine;
         }
 
-        private static OpenSSLEngineImpl toConscrypt(SSLEngine engine) {
+        private static ConscryptEngine toConscrypt(SSLEngine engine) {
             if (!isConscrypt(engine)) {
                 throw new IllegalArgumentException(
                         "Not a conscrypt engine: " + engine.getClass().getName());
             }
-            return (OpenSSLEngineImpl) engine;
+            return (ConscryptEngine) engine;
         }
 
         /**

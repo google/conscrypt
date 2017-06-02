@@ -213,7 +213,7 @@ final class Platform {
     }
 
     public static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         try {
             setSSLParametersOnImpl(params, impl);
 
@@ -280,13 +280,14 @@ final class Platform {
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
             Method m_setServerNames = params.getClass().getMethod("setServerNames", List.class);
-            m_setServerNames.invoke(params, Collections.<SNIServerName>singletonList(
-                                                    new SNIHostName(socket.getHostname())));
+            m_setServerNames.invoke(params,
+                    Collections.<SNIServerName>singletonList(
+                            new SNIHostName(socket.getHostname())));
         }
     }
 
     public static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         try {
             getSSLParametersFromImpl(params, impl);
 
@@ -302,7 +303,7 @@ final class Platform {
 
     @TargetApi(24)
     private static void setParametersSniHostname(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine)
+            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getSniHostname())) {
             Method m_setServerNames = params.getClass().getMethod("setServerNames", List.class);
@@ -381,7 +382,7 @@ final class Platform {
 
     @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
     public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+            String authType, ConscryptEngine engine) throws CertificateException {
         if (!checkTrusted("checkClientTrusted", tm, chain, authType, SSLEngine.class, engine)
                 && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
                            engine.getHandshakeSession().getPeerHost())) {
@@ -391,7 +392,7 @@ final class Platform {
 
     @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
     public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+            String authType, ConscryptEngine engine) throws CertificateException {
         if (!checkTrusted("checkServerTrusted", tm, chain, authType, SSLEngine.class, engine)
                 && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
                            engine.getHandshakeSession().getPeerHost())) {
@@ -430,7 +431,8 @@ final class Platform {
             // provider, which should be the default. That could happen if an
             // OEM decided
             // to implement a different default provider. Also highly unlikely.
-            Log.e(TAG, "Private key is not an OpenSSLRSAPrivateKey instance, its class name is:"
+            Log.e(TAG,
+                    "Private key is not an OpenSSLRSAPrivateKey instance, its class name is:"
                             + javaKey.getClass().getCanonicalName());
             return null;
         }

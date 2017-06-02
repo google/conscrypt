@@ -55,6 +55,62 @@ final class SSLUtils {
     private static final int MAX_PROTOCOL_LENGTH = 255;
 
     /**
+     * States for SSL engines.
+     */
+    static final class EngineStates {
+        private EngineStates() {}
+
+        /**
+         * The engine is constructed, but the initial handshake hasn't been started
+         */
+        static final int STATE_NEW = 0;
+
+        /**
+         * The client/server mode of the engine has been set.
+         */
+        static final int STATE_MODE_SET = 1;
+
+        /**
+         * The handshake has been started
+         */
+        static final int STATE_HANDSHAKE_STARTED = 2;
+
+        /**
+         * Listeners of the handshake have been notified of completion but the handshake call
+         * hasn't returned.
+         */
+        static final int STATE_HANDSHAKE_COMPLETED = 3;
+
+        /**
+         * The handshake call returned but the listeners have not yet been notified. This is expected
+         * behaviour in cut-through mode, where SSL_do_handshake returns before the handshake is
+         * complete. We can now start writing data to the socket.
+         */
+        static final int STATE_READY_HANDSHAKE_CUT_THROUGH = 4;
+
+        /**
+         * The handshake call has returned and the listeners have been notified. Ready to begin
+         * writing data.
+         */
+        static final int STATE_READY = 5;
+
+        /**
+         * The inbound direction of the engine has been closed.
+         */
+        static final int STATE_CLOSED_INBOUND = 6;
+
+        /**
+         * The outbound direction of the engine has been closed.
+         */
+        static final int STATE_CLOSED_OUTBOUND = 7;
+
+        /**
+         * The engine has been closed.
+         */
+        static final int STATE_CLOSED = 8;
+    }
+
+    /**
      * This is the maximum overhead when encrypting plaintext as defined by
      * <a href="https://www.ietf.org/rfc/rfc5246.txt">rfc5264</a>,
      * <a href="https://www.ietf.org/rfc/rfc5289.txt">rfc5289</a> and openssl implementation itself.
