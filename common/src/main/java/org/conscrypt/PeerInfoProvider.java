@@ -46,7 +46,7 @@ abstract class PeerInfoProvider {
         return NULL_PEER_INFO_PROVIDER;
     }
 
-    static PeerInfoProvider forHostAndPort(String host, int port) {
+    static PeerInfoProvider forHostAndPort(final String host, final int port) {
         return new PeerInfoProvider() {
             @Override
             public String getHostnameOrIP() {
