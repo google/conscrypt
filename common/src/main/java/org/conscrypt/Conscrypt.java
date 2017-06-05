@@ -190,7 +190,8 @@ public final class Conscrypt {
         }
 
         /**
-         * This method enables Server Name Indication
+         * This method enables Server Name Indication (SNI) and overrides the hostname supplied
+         * during socket creation.
          *
          * @param socket the socket
          * @param hostname the desired SNI hostname, or null to disable
@@ -200,17 +201,17 @@ public final class Conscrypt {
         }
 
         /**
-         * Returns the hostname that was supplied during socket creation. No DNS resolution is
-         * attempted before returning the hostname.
+         * Returns either the hostname supplied during socket creation or via
+         * {@link #setHostname(SSLSocket, String)}. No DNS resolution is attempted before
+         * returning the hostname.
          */
         public static String getHostname(SSLSocket socket) {
             return toConscrypt(socket).getHostname();
         }
 
         /**
-         * For the purposes of an SSLSession, we want a way to represent the supplied hostname
-         * or the IP address in a textual representation. We do not want to perform reverse DNS
-         * lookups on this address.
+         * This method attempts to create a textual representation of the peer host or IP. Does
+         * not perform a reverse DNS lookup. This is typically used during session creation.
          */
         public static String getHostnameOrIP(SSLSocket socket) {
             return toConscrypt(socket).getHostnameOrIP();
@@ -324,34 +325,35 @@ public final class Conscrypt {
          * Indicates whether the given engine is a Conscrypt engine.
          */
         public static boolean isConscrypt(SSLEngine engine) {
-            return engine instanceof OpenSSLEngineImpl;
+            return engine instanceof ConscryptEngine;
         }
 
-        private static OpenSSLEngineImpl toConscrypt(SSLEngine engine) {
+        private static ConscryptEngine toConscrypt(SSLEngine engine) {
             if (!isConscrypt(engine)) {
                 throw new IllegalArgumentException(
                         "Not a conscrypt engine: " + engine.getClass().getName());
             }
-            return (OpenSSLEngineImpl) engine;
+            return (ConscryptEngine) engine;
         }
 
         /**
-         * This method enables Server Name Indication (SNI) and sets the host name used for
-         * SNI.
+         * This method enables Server Name Indication (SNI) and overrides the hostname supplied
+         * during engine creation.
          *
          * @param engine the engine
          * @param hostname the desired SNI hostname, or {@code null} to disable
          */
         public static void setHostname(SSLEngine engine, String hostname) {
-            toConscrypt(engine).setSniHostname(hostname);
+            toConscrypt(engine).setHostname(hostname);
         }
 
         /**
-         * Returns the SNI hostname that was set for the {@code engine}. If no SNI hostname
-         * was set, it will return the hostname supplied during creation of the {@code engine}.
+         * Returns either the hostname supplied during socket creation or via
+         * {@link #setHostname(SSLEngine, String)}. No DNS resolution is attempted before
+         * returning the hostname.
          */
         public static String getHostname(SSLEngine engine) {
-            return toConscrypt(engine).getSniHostname();
+            return toConscrypt(engine).getHostname();
         }
 
         /**

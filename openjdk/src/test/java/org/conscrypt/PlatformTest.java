@@ -59,14 +59,14 @@ public class PlatformTest extends TestCase {
     public void test_setSSLParameters_Engine() throws Exception {
         SSLParametersImpl impl = SSLParametersImpl.getDefault();
         SSLParameters params = new SSLParameters();
-        OpenSSLEngineImpl engine = new OpenSSLEngineImpl(impl);
+        ConscryptEngine engine = new ConscryptEngine(impl);
         List<SNIServerName> names = new ArrayList<SNIServerName>();
         names.add(new SNIHostName("some.host"));
         params.setServerNames(names);
         params.setUseCipherSuitesOrder(false);
         params.setEndpointIdentificationAlgorithm("ABC");
         Platform.setSSLParameters(params, impl, engine);
-        assertEquals("some.host", engine.getSniHostname());
+        assertEquals("some.host", engine.getHostname());
         assertFalse(impl.getUseCipherSuitesOrder());
         assertEquals("ABC", impl.getEndpointIdentificationAlgorithm());
     }
@@ -74,10 +74,10 @@ public class PlatformTest extends TestCase {
     public void test_getSSLParameters_Engine() throws Exception {
         SSLParametersImpl impl = SSLParametersImpl.getDefault();
         SSLParameters params = new SSLParameters();
-        OpenSSLEngineImpl engine = new OpenSSLEngineImpl(impl);
+        ConscryptEngine engine = new ConscryptEngine(impl);
         impl.setUseCipherSuitesOrder(false);
         impl.setEndpointIdentificationAlgorithm("ABC");
-        engine.setSniHostname("some.host");
+        engine.setHostname("some.host");
         Platform.getSSLParameters(params, impl, engine);
         assertEquals("some.host", ((SNIHostName)params.getServerNames().get(0)).getAsciiName());
         assertFalse(params.getUseCipherSuitesOrder());

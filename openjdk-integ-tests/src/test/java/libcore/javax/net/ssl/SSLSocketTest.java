@@ -1765,7 +1765,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             protected SSLSocket configureSocket(SSLSocket socket) {
                 // Enable SNI extension on the socket (this is typically enabled by default)
                 // to increase the size of ClientHello.
-                setSniHostname(socket);
+                setHostname(socket);
 
                 // Enable Session Tickets extension on the socket (this is typically enabled
                 // by default) to increase the size of ClientHello.
@@ -1966,7 +1966,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         try (SSLSocket client =
                         (SSLSocket) context.clientContext.getSocketFactory().createSocket()) {
             client.connect(new InetSocketAddress(context.host, context.port));
-            setSniHostname(client);
+            setHostname(client);
             assertTrue(client.getPort() > 0);
         } finally {
             context.close();
@@ -2252,7 +2252,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         assumeNoException("Client socket does not support setting write timeout", ex);
     }
 
-    private static void setSniHostname(SSLSocket socket) {
+    private static void setHostname(SSLSocket socket) {
         try {
             Method method = socket.getClass().getMethod("setHostname", String.class);
             method.setAccessible(true);

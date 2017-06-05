@@ -8395,6 +8395,9 @@ static jint NativeCrypto_ENGINE_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake appData => 0", ssl);
         return 0;
     }
+
+    errno = 0;
+
     if (!appData->setCallbackState(env, shc, nullptr)) {
         Errors::throwSSLExceptionStr(env, "Unable to set appdata callback");
         ERR_clear_error();
@@ -8402,8 +8405,6 @@ static jint NativeCrypto_ENGINE_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake => exception", ssl);
         return 0;
     }
-
-    errno = 0;
 
     int ret = SSL_do_handshake(ssl);
     appData->clearCallbackState();
@@ -8415,8 +8416,47 @@ static jint NativeCrypto_ENGINE_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_
         return 0;
     }
 
-    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake shc=%p => ret=%d", ssl, shc, ret);
-    return ret;
+    OpenSslError sslError(ssl, ret);
+    int code = sslError.get();
+
+    if (ret > 0 || code == SSL_ERROR_WANT_READ || code == SSL_ERROR_WANT_WRITE) {
+        // Non-exceptional case.
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake shc=%p => ret=%d", ssl, shc, code);
+        return code;
+    }
+
+    // Exceptional case...
+    if (ret == 0) {
+        // TODO(nmittler): Can this happen with memory BIOs?
+        /*
+         * Clean error. See SSL_do_handshake(3SSL) man page.
+         * The other side closed the socket before the handshake could be
+         * completed, but everything is within the bounds of the TLS protocol.
+         * We still might want to find out the real reason of the failure.
+         */
+        if (code == SSL_ERROR_NONE || (code == SSL_ERROR_SYSCALL && errno == 0) ||
+            (code == SSL_ERROR_ZERO_RETURN)) {
+            Errors::throwSSLHandshakeExceptionStr(env, "Connection closed by peer");
+        } else {
+            Errors::throwSSLExceptionWithSslErrors(env, ssl, sslError.release(),
+                                                   "SSL handshake terminated",
+                                                   Errors::throwSSLHandshakeExceptionStr);
+        }
+        safeSslClear(ssl);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake clean error => exception", ssl);
+        return code;
+    }
+
+    /*
+     * Unclean error. See SSL_do_handshake(3SSL) man page.
+     * Translate the error and throw exception. We are sure it is an error
+     * at this point.
+     */
+    Errors::throwSSLExceptionWithSslErrors(env, ssl, sslError.release(), "SSL handshake aborted",
+                                           Errors::throwSSLHandshakeExceptionStr);
+    safeSslClear(ssl);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake unclean error => exception", ssl);
+    return code;
 }
 
 static void NativeCrypto_ENGINE_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_address, jobject shc) {
@@ -8485,6 +8525,91 @@ static void NativeCrypto_ENGINE_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_addr
     safeSslClear(ssl);
 }
 
+static int doEngineRead(JNIEnv* env, const char* methodName, SSL* ssl, jobject shc, char* destPtr,
+                        int length) {
+    if (shc == nullptr) {
+        Errors::jniThrowNullPointerException(env, "sslHandshakeCallbacks == null");
+        JNI_TRACE("ssl=%p %s => sslHandshakeCallbacks == null", ssl, methodName);
+        return -1;
+    }
+    AppData* appData = toAppData(ssl);
+    if (appData == nullptr) {
+        Errors::throwSSLExceptionStr(env, "Unable to retrieve application data");
+        safeSslClear(ssl);
+        JNI_TRACE("ssl=%p %s => appData == null", ssl, methodName);
+        return -1;
+    }
+    if (!appData->setCallbackState(env, shc, nullptr)) {
+        Errors::throwSSLExceptionStr(env, "Unable to set appdata callback");
+        ERR_clear_error();
+        safeSslClear(ssl);
+        JNI_TRACE("ssl=%p %s => exception", ssl, methodName);
+        return -1;
+    }
+
+    errno = 0;
+
+    int result = SSL_read(ssl, destPtr, length);
+    appData->clearCallbackState();
+    if (env->ExceptionCheck()) {
+        // An exception was thrown by one of the callbacks. Just propagate that exception.
+        safeSslClear(ssl);
+        JNI_TRACE("ssl=%p %s => THROWN_EXCEPTION", ssl, methodName);
+        return -1;
+    }
+
+    OpenSslError sslError(ssl, result);
+    switch (sslError.get()) {
+        case SSL_ERROR_NONE: {
+            // Successfully read at least one byte. Just return the result.
+            break;
+        }
+        case SSL_ERROR_ZERO_RETURN: {
+            // TODO(nmittler): Can this happen with memory BIOs?
+            // Read zero bytes. End of stream reached.
+            Errors::jniThrowException(env, "java/io/EOFException", "Read error");
+            break;
+        }
+        case SSL_ERROR_WANT_READ:
+        case SSL_ERROR_WANT_WRITE: {
+            // Return the negative of these values.
+            result = -sslError.get();
+            break;
+        }
+        case SSL_ERROR_SYSCALL: {
+            // A problem occurred during a system call, but this is not
+            // necessarily an error.
+            if (result == 0) {
+                // TODO(nmittler): Can this happen with memory BIOs?
+                // Connection closed without proper shutdown. Tell caller we
+                // have reached end-of-stream.
+                Errors::jniThrowException(env, "java/io/EOFException", "Read error");
+                break;
+            }
+
+            if (errno == EINTR) {
+                // TODO(nmittler): Can this happen with memory BIOs?
+                // System call has been interrupted. Simply retry.
+                Errors::jniThrowException(env, "java/io/InterruptedIOException", "Read error");
+                break;
+            }
+
+            // Note that for all other system call errors we fall through
+            // to the default case, which results in an Exception.
+            FALLTHROUGH_INTENDED;
+        }
+        default: {
+            // Everything else is basically an error.
+            Errors::throwSSLExceptionWithSslErrors(env, ssl, sslError.release(), "Read error");
+            break;
+        }
+    }
+
+    JNI_TRACE("ssl=%p %s address=%p length=%d shc=%p result=%d", ssl, methodName, destPtr, length,
+              shc, result);
+    return result;
+}
+
 static jint NativeCrypto_ENGINE_SSL_read_direct(JNIEnv* env, jclass, jlong sslRef, jlong address,
                                                 jint length, jobject shc) {
     SSL* ssl = to_SSL(env, sslRef, true);
@@ -8495,36 +8620,7 @@ static jint NativeCrypto_ENGINE_SSL_read_direct(JNIEnv* env, jclass, jlong sslRe
     JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct address=%p length=%d shc=%p", ssl,
               destPtr, length, shc);
 
-    if (shc == nullptr) {
-        Errors::jniThrowNullPointerException(env, "sslHandshakeCallbacks == null");
-        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct => sslHandshakeCallbacks == null",
-                  ssl);
-        return -1;
-    }
-
-    AppData* appData = toAppData(ssl);
-    if (appData == nullptr) {
-        Errors::throwSSLExceptionStr(env, "Unable to retrieve application data");
-        safeSslClear(ssl);
-        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct => appData == null", ssl);
-        return -1;
-    }
-    if (!appData->setCallbackState(env, shc, nullptr)) {
-        Errors::throwSSLExceptionStr(env, "Unable to set appdata callback");
-        ERR_clear_error();
-        safeSslClear(ssl);
-        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct => exception", ssl);
-        return -1;
-    }
-
-    errno = 0;
-
-    int result = SSL_read(ssl, destPtr, length);
-    appData->clearCallbackState();
-
-    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct address=%p length=%d shc=%p result=%d",
-              ssl, destPtr, length, shc, result);
-    return result;
+    return doEngineRead(env, "NativeCrypto_ENGINE_SSL_read_direct", ssl, shc, destPtr, length);
 }
 
 static jint NativeCrypto_ENGINE_SSL_read_heap(JNIEnv* env, jclass, jlong sslRef,
@@ -8532,11 +8628,6 @@ static jint NativeCrypto_ENGINE_SSL_read_heap(JNIEnv* env, jclass, jlong sslRef,
                                               jobject shc) {
     SSL* ssl = to_SSL(env, sslRef, true);
     if (ssl == nullptr) {
-        return -1;
-    }
-    if (shc == nullptr) {
-        Errors::jniThrowNullPointerException(env, "sslHandshakeCallbacks == null");
-        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_heap => sslHandshakeCallbacks == null", ssl);
         return -1;
     }
     ScopedByteArrayRW dest(env, destJava);
@@ -8553,32 +8644,8 @@ static jint NativeCrypto_ENGINE_SSL_read_heap(JNIEnv* env, jclass, jlong sslRef,
         return -1;
     }
 
-    AppData* appData = toAppData(ssl);
-    if (appData == nullptr) {
-        Errors::throwSSLExceptionStr(env, "Unable to retrieve application data");
-        safeSslClear(ssl);
-        ERR_clear_error();
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake_netty appData => null", ssl);
-        return -1;
-    }
-    if (!appData->setCallbackState(env, shc, nullptr)) {
-        Errors::throwSSLExceptionStr(env, "Unable to set appdata callback");
-        ERR_clear_error();
-        safeSslClear(ssl);
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake_netty => exception", ssl);
-        return -1;
-    }
-
-    errno = 0;
-
-    int result = SSL_read(ssl, reinterpret_cast<char*>(dest.get()) + destOffset, destLength);
-    appData->clearCallbackState();
-
-    JNI_TRACE(
-            "ssl=%p NativeCrypto_ENGINE_SSL_read_heap dest=%p destOffset=%d destLength=%d shc=%p "
-            "=> ret=%d",
-            ssl, dest.get(), destOffset, destLength, shc, result);
-    return result;
+    return doEngineRead(env, "NativeCrypto_ENGINE_SSL_read_heap", ssl, shc,
+                        reinterpret_cast<char*>(dest.get()) + destOffset, destLength);
 }
 
 static int NativeCrypto_ENGINE_SSL_write_BIO_direct(JNIEnv* env, jclass, jlong sslRef, jlong bioRef,

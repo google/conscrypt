@@ -16,6 +16,13 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED;
+import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_COMPLETED;
+import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_STARTED;
+import static org.conscrypt.SSLUtils.EngineStates.STATE_NEW;
+import static org.conscrypt.SSLUtils.EngineStates.STATE_READY;
+import static org.conscrypt.SSLUtils.EngineStates.STATE_READY_HANDSHAKE_CUT_THROUGH;
+
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
@@ -69,41 +76,6 @@ public class OpenSSLSocketImpl
      */
     private final Object stateLock = new Object();
 
-    /**
-     * The {@link OpenSSLSocketImpl} object is constructed, but {@link #startHandshake()}
-     * has not yet been called.
-     */
-    private static final int STATE_NEW = 0;
-
-    /**
-     * {@link #startHandshake()} has been called at least once.
-     */
-    private static final int STATE_HANDSHAKE_STARTED = 1;
-
-    /**
-     * {@link HandshakeCompletedListener#handshakeCompleted} has been called, but
-     * {@link #startHandshake()} hasn't returned yet.
-     */
-    private static final int STATE_HANDSHAKE_COMPLETED = 2;
-
-    /**
-     * {@link #startHandshake()} has completed but
-     * {@link HandshakeCompletedListener#handshakeCompleted} hasn't been called. This is expected
-     * behaviour in cut-through mode, where SSL_do_handshake returns before the handshake is
-     * complete. We can now start writing data to the socket.
-     */
-    private static final int STATE_READY_HANDSHAKE_CUT_THROUGH = 3;
-
-    /**
-     * {@link #startHandshake()} has completed and
-     * {@link HandshakeCompletedListener#handshakeCompleted} has been called.
-     */
-    private static final int STATE_READY = 4;
-
-    /**
-     * {@link #close()} has been called at least once.
-     */
-    private static final int STATE_CLOSED = 5;
 
     // @GuardedBy("stateLock");
     private int state = STATE_NEW;

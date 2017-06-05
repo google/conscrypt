@@ -44,7 +44,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class OpenSSLEngineImplTest {
+public class ConscryptEngineTest {
     private static final String CIPHER = "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256";
     private static final int MESSAGE_SIZE = 4096;
 
@@ -99,8 +99,7 @@ public class OpenSSLEngineImplTest {
         return Arrays.asList(BufferType.HEAP, BufferType.DIRECT);
     }
 
-    @Parameter
-    public BufferType bufferType;
+    @Parameter public BufferType bufferType;
 
     private SSLEngine clientEngine;
     private SSLEngine serverEngine;
@@ -117,7 +116,8 @@ public class OpenSSLEngineImplTest {
 
     @Test(expected = SSLHandshakeException.class)
     public void mutualAuthWithUntrustedServerShouldFail() throws Exception {
-        doMutualAuthHandshake(TestKeyStore.getClientCA2(), TestKeyStore.getServer(), ClientAuth.NONE);
+        doMutualAuthHandshake(
+                TestKeyStore.getClientCA2(), TestKeyStore.getServer(), ClientAuth.NONE);
     }
 
     @Test(expected = SSLHandshakeException.class)
@@ -127,22 +127,26 @@ public class OpenSSLEngineImplTest {
 
     @Test
     public void optionalClientAuthShouldSucceed() throws Exception {
-        doMutualAuthHandshake(TestKeyStore.getClient(), TestKeyStore.getServer(), ClientAuth.OPTIONAL);
+        doMutualAuthHandshake(
+                TestKeyStore.getClient(), TestKeyStore.getServer(), ClientAuth.OPTIONAL);
     }
 
     @Test(expected = SSLHandshakeException.class)
     public void optionalClientAuthShouldFail() throws Exception {
-        doMutualAuthHandshake(TestKeyStore.getClient(), TestKeyStore.getClient(), ClientAuth.OPTIONAL);
+        doMutualAuthHandshake(
+                TestKeyStore.getClient(), TestKeyStore.getClient(), ClientAuth.OPTIONAL);
     }
 
     @Test
     public void requiredClientAuthShouldSucceed() throws Exception {
-        doMutualAuthHandshake(TestKeyStore.getServer(), TestKeyStore.getServer(), ClientAuth.REQUIRED);
+        doMutualAuthHandshake(
+                TestKeyStore.getServer(), TestKeyStore.getServer(), ClientAuth.REQUIRED);
     }
 
     @Test(expected = SSLHandshakeException.class)
     public void requiredClientAuthShouldFail() throws Exception {
-        doMutualAuthHandshake(TestKeyStore.getClient(), TestKeyStore.getClient(), ClientAuth.REQUIRED);
+        doMutualAuthHandshake(
+                TestKeyStore.getClient(), TestKeyStore.getClient(), ClientAuth.REQUIRED);
     }
 
     @Test
@@ -175,8 +179,8 @@ public class OpenSSLEngineImplTest {
         for (int i = 0; i < numMessages; ++i) {
             ByteBuffer out = bufferType.newBuffer(2 * MESSAGE_SIZE);
             cleartextBuffers[i] = out;
-            SSLEngineResult unwrapResult = Conscrypt.Engines.unwrap(serverEngine, encryptedBuffers,
-                    new ByteBuffer[] {out});
+            SSLEngineResult unwrapResult = Conscrypt.Engines.unwrap(
+                    serverEngine, encryptedBuffers, new ByteBuffer[] {out});
             assertEquals(SSLEngineResult.Status.OK, unwrapResult.getStatus());
             assertEquals(MESSAGE_SIZE, unwrapResult.bytesProduced());
 
@@ -200,8 +204,9 @@ public class OpenSSLEngineImplTest {
 
         // Encrypt the input message.
         List<ByteBuffer> encryptedBufferList = new ArrayList<ByteBuffer>();
-        while(inputBuffer.hasRemaining()) {
-            ByteBuffer encryptedBuffer = bufferType.newBuffer(clientEngine.getSession().getPacketBufferSize());
+        while (inputBuffer.hasRemaining()) {
+            ByteBuffer encryptedBuffer =
+                    bufferType.newBuffer(clientEngine.getSession().getPacketBufferSize());
             SSLEngineResult wrapResult = clientEngine.wrap(inputBuffer, encryptedBuffer);
             assertEquals(SSLEngineResult.Status.OK, wrapResult.getStatus());
             encryptedBuffer.flip();
@@ -210,7 +215,8 @@ public class OpenSSLEngineImplTest {
 
         // Unwrap the all of the encrypted messages.
         ByteArrayOutputStream cleartextStream = new ByteArrayOutputStream();
-        ByteBuffer[] encryptedBuffers = encryptedBufferList.toArray(new ByteBuffer[encryptedBufferList.size()]);
+        ByteBuffer[] encryptedBuffers =
+                encryptedBufferList.toArray(new ByteBuffer[encryptedBufferList.size()]);
         int decryptedBufferSize = 8192;
         final ByteBuffer decryptedBuffer = bufferType.newBuffer(decryptedBufferSize);
         for (ByteBuffer encryptedBuffer : encryptedBuffers) {
@@ -220,8 +226,8 @@ public class OpenSSLEngineImplTest {
                     decryptedBuffer.clear();
                 }
                 int prevPos = decryptedBuffer.position();
-                SSLEngineResult unwrapResult = Conscrypt.Engines.unwrap(serverEngine,
-                        encryptedBuffers, new ByteBuffer[]{decryptedBuffer});
+                SSLEngineResult unwrapResult = Conscrypt.Engines.unwrap(
+                        serverEngine, encryptedBuffers, new ByteBuffer[] {decryptedBuffer});
                 status = unwrapResult.getStatus();
                 int newPos = decryptedBuffer.position();
                 int bytesProduced = unwrapResult.bytesProduced();
@@ -249,7 +255,8 @@ public class OpenSSLEngineImplTest {
         assertArrayEquals(message, actualMessage);
     }
 
-    private void doMutualAuthHandshake(TestKeyStore clientKs, TestKeyStore serverKs, ClientAuth clientAuth) throws Exception {
+    private void doMutualAuthHandshake(
+            TestKeyStore clientKs, TestKeyStore serverKs, ClientAuth clientAuth) throws Exception {
         setupEngines(clientKs, serverKs);
         clientAuth.apply(serverEngine);
         TestUtils.doEngineHandshake(clientEngine, serverEngine);
@@ -257,7 +264,8 @@ public class OpenSSLEngineImplTest {
         assertEquals(HandshakeStatus.NOT_HANDSHAKING, serverEngine.getHandshakeStatus());
     }
 
-    private void setupEngines(TestKeyStore clientKeyStore, TestKeyStore serverKeyStore) throws SSLException {
+    private void setupEngines(TestKeyStore clientKeyStore, TestKeyStore serverKeyStore)
+            throws SSLException {
         SSLContext clientContext = initSslContext(newContext(), clientKeyStore);
         SSLContext serverContext = initSslContext(newContext(), serverKeyStore);
 
