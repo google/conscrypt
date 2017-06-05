@@ -124,7 +124,7 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
         }
         SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
         p.setUseClientMode(false);
-        return new OpenSSLEngineImpl(host, port, p);
+        return new ConscryptEngine(host, port, p);
     }
 
     @Override
@@ -134,7 +134,7 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
         }
         SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
         p.setUseClientMode(false);
-        return new OpenSSLEngineImpl(p);
+        return new ConscryptEngine(p);
     }
 
     @Override
