@@ -21,9 +21,9 @@ RUN yum install -y clang
 # Install Java 8
 RUN wget -q --no-cookies --no-check-certificate \
     --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" \
-    "http://download.oracle.com/otn-pub/java/jdk/8u121-b13/e9e7ea248e2c4826b92b3f075a80e441/jdk-8u121-linux-x64.tar.gz" \
+    "http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jdk-8u131-linux-x64.tar.gz" \
     -O - | tar xz -C /var/local
-ENV JAVA_HOME /var/local/jdk1.8.0_121
+ENV JAVA_HOME /var/local/jdk1.8.0_131
 ENV PATH $JAVA_HOME/bin:$PATH
 
 # Install GCC 4.8
