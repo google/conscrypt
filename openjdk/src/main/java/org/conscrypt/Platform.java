@@ -185,7 +185,7 @@ final class Platform {
                 for (Object serverName : serverNames) {
                     if ((int) serverName.getClass().getMethod("getType").invoke(serverName)
                             == hostNameType) {
-                        engine.setSniHostname((String) serverName.getClass()
+                        engine.setHostname((String) serverName.getClass()
                                                       .getMethod("getAsciiName")
                                                       .invoke(serverName));
                         break;
@@ -207,12 +207,12 @@ final class Platform {
                     SSLParameters.class.getMethod("setUseCipherSuitesOrder", boolean.class);
             setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
             Method setServerNames = SSLParameters.class.getMethod("setServerNames", List.class);
-            if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getSniHostname())) {
+            if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
                 Constructor sniHostNameConstructor =
                         Class.forName("javax.net.ssl.SNIHostName").getConstructor(String.class);
                 setServerNames.invoke(params,
                         (Collections.singletonList(
-                                sniHostNameConstructor.newInstance(engine.getSniHostname()))));
+                                sniHostNameConstructor.newInstance(engine.getHostname()))));
             }
         } catch (NoSuchMethodException ignored) {
         } catch (IllegalAccessException ignored) {

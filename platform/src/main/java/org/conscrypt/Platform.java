@@ -138,7 +138,7 @@ final class Platform {
         if (serverNames != null) {
             for (SNIServerName serverName : serverNames) {
                 if (serverName.getType() == StandardConstants.SNI_HOST_NAME) {
-                    engine.setSniHostname(((SNIHostName) serverName).getAsciiName());
+                    engine.setHostname(((SNIHostName) serverName).getAsciiName());
                     break;
                 }
             }
@@ -149,9 +149,9 @@ final class Platform {
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
-        if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getSniHostname())) {
+        if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             params.setServerNames(Collections.<SNIServerName>singletonList(
-                    new SNIHostName(engine.getSniHostname())));
+                    new SNIHostName(engine.getHostname())));
         }
     }
 

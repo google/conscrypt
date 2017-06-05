@@ -66,7 +66,7 @@ public class PlatformTest extends TestCase {
         params.setUseCipherSuitesOrder(false);
         params.setEndpointIdentificationAlgorithm("ABC");
         Platform.setSSLParameters(params, impl, engine);
-        assertEquals("some.host", engine.getSniHostname());
+        assertEquals("some.host", engine.getHostname());
         assertFalse(impl.getUseCipherSuitesOrder());
         assertEquals("ABC", impl.getEndpointIdentificationAlgorithm());
     }
@@ -77,7 +77,7 @@ public class PlatformTest extends TestCase {
         ConscryptEngine engine = new ConscryptEngine(impl);
         impl.setUseCipherSuitesOrder(false);
         impl.setEndpointIdentificationAlgorithm("ABC");
-        engine.setSniHostname("some.host");
+        engine.setHostname("some.host");
         Platform.getSSLParameters(params, impl, engine);
         assertEquals("some.host", ((SNIHostName)params.getServerNames().get(0)).getAsciiName());
         assertFalse(params.getUseCipherSuitesOrder());

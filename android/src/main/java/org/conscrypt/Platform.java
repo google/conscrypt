@@ -220,7 +220,7 @@ final class Platform {
             if (Build.VERSION.SDK_INT >= 24) {
                 String sniHostname = getSniHostnameFromParams(params);
                 if (sniHostname != null) {
-                    engine.setSniHostname(sniHostname);
+                    engine.setHostname(sniHostname);
                 }
             }
         } catch (NoSuchMethodException ignored) {
@@ -305,11 +305,11 @@ final class Platform {
     private static void setParametersSniHostname(
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getSniHostname())) {
+        if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             Method m_setServerNames = params.getClass().getMethod("setServerNames", List.class);
             m_setServerNames.invoke(params,
                     Collections.<SNIServerName>singletonList(
-                            new SNIHostName(engine.getSniHostname())));
+                            new SNIHostName(engine.getHostname())));
         }
     }
 

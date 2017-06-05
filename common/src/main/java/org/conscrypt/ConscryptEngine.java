@@ -105,23 +105,11 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     private static final SSLEngineResult CLOSED_NOT_HANDSHAKING =
             new SSLEngineResult(CLOSED, NOT_HANDSHAKING, 0, 0);
     private static final ByteBuffer EMPTY = ByteBuffer.allocateDirect(0);
-    private static final PeerInfoProvider NULL_PEER_INFO_PROVIDER = new PeerInfoProvider() {
-        @Override
-        public String getPeerHostOrIP() {
-            return null;
-        }
-
-        @Override
-        public int getPeerPort() {
-            return -1;
-        }
-    };
 
     /**
-     * Hostname used with the TLS extension SNI hostname. {@link #getPeerHost()} is used if this is
-     * not set.
+     * Hostname used with the TLS extension SNI hostname.
      */
-    private String sniHostname;
+    private String peerHostname;
 
     private final SSLParametersImpl sslParameters;
 
@@ -129,14 +117,6 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      * Protects {@link #engineState} and {@link #handshakeFinished}.
      */
     private final Object stateLock = new Object();
-
-    /**
-     * A provider for the peer host and port information.
-     */
-    interface PeerInfoProvider {
-        String getPeerHostOrIP();
-        int getPeerPort();
-    }
 
     // @GuardedBy("stateLock");
     private int engineState = STATE_NEW;
@@ -184,22 +164,12 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     ConscryptEngine(SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
-        peerInfoProvider = NULL_PEER_INFO_PROVIDER;
+        peerInfoProvider = PeerInfoProvider.nullProvider();
     }
 
     ConscryptEngine(final String host, final int port, SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
-        this.peerInfoProvider = new PeerInfoProvider() {
-            @Override
-            public String getPeerHostOrIP() {
-                return host;
-            }
-
-            @Override
-            public int getPeerPort() {
-                return port;
-            }
-        };
+        this.peerInfoProvider = PeerInfoProvider.forHostAndPort(host, port);
     }
 
     ConscryptEngine(SSLParametersImpl sslParameters, PeerInfoProvider peerInfoProvider) {
@@ -330,14 +300,32 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         }
     }
 
+    /**
+     * This method enables Server Name Indication (SNI) and overrides the hostname supplied
+     * during engine creation.
+     */
+    void setHostname(String hostname) {
+        sslParameters.setUseSni(hostname != null);
+        this.peerHostname = hostname;
+    }
+
+    /**
+     * Returns either the hostname supplied during engine creation or via
+     * {@link #setHostname(String)}. No DNS resolution is attempted before
+     * returning the hostname.
+     */
+    String getHostname() {
+        return peerHostname;
+    }
+
     @Override
     public String getPeerHost() {
-        return sniHostname != null ? sniHostname : peerInfoProvider.getPeerHostOrIP();
+        return peerHostname != null ? peerHostname : peerInfoProvider.getHostnameOrIP();
     }
 
     @Override
     public int getPeerPort() {
-        return peerInfoProvider.getPeerPort();
+        return peerInfoProvider.getPort();
     }
 
     @Override
@@ -369,16 +357,36 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             final AbstractSessionContext sessionContext = sslParameters.getSessionContext();
             sslNativePointer = NativeCrypto.SSL_new(sessionContext.sslCtxNativePointer);
             networkBio = NativeCrypto.SSL_BIO_new(sslNativePointer);
-            sslSession =
-                    sslParameters.getSessionToReuse(sslNativePointer, getPeerHost(), getPeerPort());
-            sslParameters.setSSLParameters(sslNativePointer, this, this, getSniHostname());
-            sslParameters.setCertificateValidation(sslNativePointer);
-            sslParameters.setTlsChannelId(sslNativePointer, channelIdPrivateKey);
+
+            // Allow servers to trigger renegotiation. Some inadvisable server
+            // configurations cause them to attempt to renegotiate during
+            // certain protocols.
+            NativeCrypto.SSL_accept_renegotiations(sslNativePointer);
+
             if (getUseClientMode()) {
                 NativeCrypto.SSL_set_connect_state(sslNativePointer);
+
+                // Configure OCSP and CT extensions for client
+                NativeCrypto.SSL_enable_ocsp_stapling(sslNativePointer);
+                if (sslParameters.isCTVerificationEnabled(getHostname())) {
+                    NativeCrypto.SSL_enable_signed_cert_timestamps(sslNativePointer);
+                }
             } else {
                 NativeCrypto.SSL_set_accept_state(sslNativePointer);
+
+                // Configure OCSP for server
+                if (sslParameters.getOCSPResponse() != null) {
+                    NativeCrypto.SSL_enable_ocsp_stapling(sslNativePointer);
+                }
             }
+
+            sslSession =
+                    sslParameters.getSessionToReuse(sslNativePointer, getPeerHost(), getPeerPort());
+
+            sslParameters.setSSLParameters(sslNativePointer, this, this, getHostname());
+            sslParameters.setCertificateValidation(sslNativePointer);
+            sslParameters.setTlsChannelId(sslNativePointer, channelIdPrivateKey);
+
             maxSealOverhead = NativeCrypto.SSL_max_seal_overhead(sslNativePointer);
             handshake();
             releaseResources = false;
@@ -387,7 +395,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             String message = e.getMessage();
             // Must match error reason string of SSL_R_UNEXPECTED_CCS (in ssl/ssl_err.c)
             if (message.contains("unexpected CCS")) {
-                String logMessage = String.format("ssl_unexpected_ccs: host=%s", getSniHostname());
+                String logMessage = String.format("ssl_unexpected_ccs: host=%s", getPeerHost());
                 Platform.logEvent(logMessage);
             }
             throw SSLUtils.toSSLHandshakeException(e);
@@ -458,14 +466,6 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         SSLParameters params = super.getSSLParameters();
         Platform.getSSLParameters(params, sslParameters, this);
         return params;
-    }
-
-    public void setSniHostname(String sniHostname) {
-        this.sniHostname = sniHostname;
-    }
-
-    public String getSniHostname() {
-        return sniHostname != null ? sniHostname : getPeerHost();
     }
 
     @Override
@@ -1378,9 +1378,9 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                 }
                 case SSL_CB_HANDSHAKE_DONE: {
                     if (engineState != STATE_HANDSHAKE_STARTED
-                        && engineState != STATE_READY_HANDSHAKE_CUT_THROUGH) {
+                            && engineState != STATE_READY_HANDSHAKE_CUT_THROUGH) {
                         throw new IllegalStateException(
-                            "Completed handshake while in mode " + engineState);
+                                "Completed handshake while in mode " + engineState);
                     }
                     engineState = STATE_HANDSHAKE_COMPLETED;
                     break;
