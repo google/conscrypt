@@ -170,6 +170,10 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
 
     void engineInitInternal(int opmode, Key key, AlgorithmParameterSpec spec)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
+        if (null == key) {
+            throw new IllegalArgumentException("Key must not be null");
+        }
+        
         if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
             encrypting = true;
         } else if (opmode == Cipher.DECRYPT_MODE || opmode == Cipher.UNWRAP_MODE) {
