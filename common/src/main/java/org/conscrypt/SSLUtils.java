@@ -50,8 +50,8 @@ import javax.net.ssl.SSLHandshakeException;
  * This is a public class to allow testing to occur on Android via CTS.
  */
 final class SSLUtils {
-    static final boolean USE_ENGINE_SOCKET_BY_DEFAULT =
-            Boolean.parseBoolean(System.getProperty("org.conscrypt.useEngineSocketByDefault"));
+    static final boolean USE_ENGINE_SOCKET_BY_DEFAULT = Boolean.parseBoolean(
+            System.getProperty("org.conscrypt.useEngineSocketByDefault", "false"));
     private static final int MAX_PROTOCOL_LENGTH = 255;
 
     /**

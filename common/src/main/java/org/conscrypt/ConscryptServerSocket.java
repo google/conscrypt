@@ -19,32 +19,33 @@ package org.conscrypt;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import javax.net.ssl.SSLServerSocket;
 
 /**
  * BoringSSL-based implementation of server sockets.
  */
-final class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
+final class ConscryptServerSocket extends SSLServerSocket {
     private final SSLParametersImpl sslParameters;
     private boolean channelIdEnabled;
     private boolean useEngineSocket;
 
-    OpenSSLServerSocketImpl(SSLParametersImpl sslParameters) throws IOException {
+    ConscryptServerSocket(SSLParametersImpl sslParameters) throws IOException {
         this.sslParameters = sslParameters;
     }
 
-    OpenSSLServerSocketImpl(int port, SSLParametersImpl sslParameters)
+    ConscryptServerSocket(int port, SSLParametersImpl sslParameters)
         throws IOException {
         super(port);
         this.sslParameters = sslParameters;
     }
 
-    OpenSSLServerSocketImpl(int port, int backlog, SSLParametersImpl sslParameters)
+    ConscryptServerSocket(int port, int backlog, SSLParametersImpl sslParameters)
         throws IOException {
         super(port, backlog);
         this.sslParameters = sslParameters;
     }
 
-    OpenSSLServerSocketImpl(int port,
+    ConscryptServerSocket(int port,
                                       int backlog,
                                       InetAddress iAddress,
                                       SSLParametersImpl sslParameters)
@@ -56,7 +57,7 @@ final class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
     /**
      * Configures the socket to be created for this instance.
      */
-    OpenSSLServerSocketImpl setUseEngineSocket(boolean useEngineSocket) {
+    ConscryptServerSocket setUseEngineSocket(boolean useEngineSocket) {
         this.useEngineSocket = useEngineSocket;
         return this;
     }
@@ -174,21 +175,15 @@ final class OpenSSLServerSocketImpl extends javax.net.ssl.SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
+        final AbstractConscryptSocket socket;
         if (useEngineSocket) {
-            Socket rawSocket = new Socket();
-            implAccept(rawSocket);
-
-            // Enable channel ID.
-            OpenSSLEngineSocketImpl socket =
-                    new OpenSSLEngineSocketImpl(rawSocket, null, -1, true, sslParameters);
-            socket.setChannelIdEnabled(channelIdEnabled);
-            socket.startHandshake();
-            return socket;
+            socket = new ConscryptEngineSocket(sslParameters);
         } else {
-            OpenSSLSocketImpl socket = new OpenSSLSocketImpl(sslParameters);
-            socket.setChannelIdEnabled(channelIdEnabled);
-            implAccept(socket);
-            return socket;
+            socket = new ConscryptFileDescriptorSocket(sslParameters);
         }
+
+        socket.setChannelIdEnabled(channelIdEnabled);
+        implAccept(socket);
+        return socket;
     }
 }

@@ -75,11 +75,11 @@ final class Platform {
         return s.getFileDescriptor$();
     }
 
-    static FileDescriptor getFileDescriptorFromSSLSocket(OpenSSLSocketImpl openSSLSocketImpl) {
+    static FileDescriptor getFileDescriptorFromSSLSocket(AbstractConscryptSocket socket) {
         try {
             Field f_impl = Socket.class.getDeclaredField("impl");
             f_impl.setAccessible(true);
-            Object socketImpl = f_impl.get(openSSLSocketImpl);
+            Object socketImpl = f_impl.get(socket);
             Field f_fd = SocketImpl.class.getDeclaredField("fd");
             f_fd.setAccessible(true);
             return (FileDescriptor) f_fd.get(socketImpl);
@@ -106,7 +106,7 @@ final class Platform {
     }
 
     static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket) {
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
         List<SNIServerName> serverNames = params.getServerNames();
@@ -121,7 +121,7 @@ final class Platform {
     }
 
     static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket) {
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
@@ -171,7 +171,7 @@ final class Platform {
         } catch (NoSuchMethodException | IllegalAccessException ignored) {
         } catch (InvocationTargetException e) {
             if (e.getCause() instanceof CertificateException) {
-                throw (CertificateException) e.getCause();
+                throw(CertificateException) e.getCause();
             }
             throw new RuntimeException(e.getCause());
         }
@@ -179,7 +179,7 @@ final class Platform {
     }
 
     static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            OpenSSLSocketImpl socket) throws CertificateException {
+            AbstractConscryptSocket socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkClientTrusted(chain, authType, socket);
@@ -191,7 +191,7 @@ final class Platform {
     }
 
     static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            OpenSSLSocketImpl socket) throws CertificateException {
+            AbstractConscryptSocket socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkServerTrusted(chain, authType, socket);

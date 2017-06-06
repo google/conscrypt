@@ -301,8 +301,8 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     }
 
     /**
-     * This method enables Server Name Indication (SNI) and overrides the hostname supplied
-     * during engine creation.
+     * This method enables Server Name Indication (SNI) and overrides the {@link PeerInfoProvider}
+     * supplied during engine creation.
      */
     void setHostname(String hostname) {
         sslParameters.setUseSni(hostname != null);
@@ -310,12 +310,12 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     }
 
     /**
-     * Returns either the hostname supplied during engine creation or via
-     * {@link #setHostname(String)}. No DNS resolution is attempted before
+     * Returns the hostname from {@link #setHostname(String)} or supplied by the
+     * {@link PeerInfoProvider} upon creation. No DNS resolution is attempted before
      * returning the hostname.
      */
     String getHostname() {
-        return peerHostname;
+        return peerHostname != null ? peerHostname : peerInfoProvider.getHostname();
     }
 
     @Override

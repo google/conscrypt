@@ -41,7 +41,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class OpenSSLServerSocketImplTest {
+public class ConscryptServerSocketTest {
     private static final String CIPHER = "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256";
     private static final int MESSAGE_SIZE = 4096;
 

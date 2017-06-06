@@ -24,6 +24,9 @@ import javax.net.ssl.SSLServerSocketFactory;
 
 /**
  * An implementation of {@link SSLServerSocketFactory} using BoringSSL.
+ *
+ * <p/>This name of this class cannot change in order to maintain backward-compatibility with GMS
+ * core {@code ProviderInstallerImpl}
  */
 final class OpenSSLServerSocketFactoryImpl extends SSLServerSocketFactory {
     private static boolean useEngineSocketByDefault = SSLUtils.USE_ENGINE_SOCKET_BY_DEFAULT;
@@ -37,8 +40,7 @@ final class OpenSSLServerSocketFactoryImpl extends SSLServerSocketFactory {
             this.sslParameters = SSLParametersImpl.getDefault();
             this.sslParameters.setUseClientMode(false);
         } catch (KeyManagementException e) {
-            instantiationException =
-                new IOException("Delayed instantiation exception:");
+            instantiationException = new IOException("Delayed instantiation exception:");
             instantiationException.initCause(e);
         }
     }
@@ -75,26 +77,26 @@ final class OpenSSLServerSocketFactoryImpl extends SSLServerSocketFactory {
 
     @Override
     public ServerSocket createServerSocket() throws IOException {
-        return new OpenSSLServerSocketImpl((SSLParametersImpl) sslParameters.clone())
+        return new ConscryptServerSocket((SSLParametersImpl) sslParameters.clone())
                 .setUseEngineSocket(useEngineSocket);
     }
 
     @Override
     public ServerSocket createServerSocket(int port) throws IOException {
-        return new OpenSSLServerSocketImpl(port, (SSLParametersImpl) sslParameters.clone())
+        return new ConscryptServerSocket(port, (SSLParametersImpl) sslParameters.clone())
                 .setUseEngineSocket(useEngineSocket);
     }
 
     @Override
     public ServerSocket createServerSocket(int port, int backlog) throws IOException {
-        return new OpenSSLServerSocketImpl(port, backlog, (SSLParametersImpl) sslParameters.clone())
+        return new ConscryptServerSocket(port, backlog, (SSLParametersImpl) sslParameters.clone())
                 .setUseEngineSocket(useEngineSocket);
     }
 
     @Override
     public ServerSocket createServerSocket(int port, int backlog, InetAddress iAddress)
             throws IOException {
-        return new OpenSSLServerSocketImpl(
+        return new ConscryptServerSocket(
                 port, backlog, iAddress, (SSLParametersImpl) sslParameters.clone())
                 .setUseEngineSocket(useEngineSocket);
     }
