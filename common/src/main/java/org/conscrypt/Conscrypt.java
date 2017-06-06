@@ -15,9 +15,7 @@
  */
 package org.conscrypt;
 
-import java.io.FileDescriptor;
 import java.io.UnsupportedEncodingException;
-import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.PrivateKey;
@@ -168,25 +166,15 @@ public final class Conscrypt {
          * Indicates whether the given socket is a Conscrypt socket.
          */
         public static boolean isConscrypt(SSLSocket socket) {
-            return socket instanceof OpenSSLSocketImpl;
+            return socket instanceof AbstractConscryptSocket;
         }
 
-        private static OpenSSLSocketImpl toConscrypt(SSLSocket socket) {
+        private static AbstractConscryptSocket toConscrypt(SSLSocket socket) {
             if (!isConscrypt(socket)) {
                 throw new IllegalArgumentException(
                         "Not a conscrypt socket: " + socket.getClass().getName());
             }
-            return (OpenSSLSocketImpl) socket;
-        }
-
-        /**
-         * This method enables session ticket support.
-         *
-         * @param socket the socket
-         * @param useSessionTickets True to enable session tickets
-         */
-        public static void setUseSessionTickets(SSLSocket socket, boolean useSessionTickets) {
-            toConscrypt(socket).setUseSessionTickets(useSessionTickets);
+            return (AbstractConscryptSocket) socket;
         }
 
         /**
@@ -218,34 +206,13 @@ public final class Conscrypt {
         }
 
         /**
-         * Note write timeouts are not part of the javax.net.ssl.SSLSocket API
+         * This method enables session ticket support.
+         *
+         * @param socket the socket
+         * @param useSessionTickets True to enable session tickets
          */
-        public static void setSoWriteTimeout(SSLSocket socket, int writeTimeoutMilliseconds)
-                throws SocketException {
-            toConscrypt(socket).setSoWriteTimeout(writeTimeoutMilliseconds);
-        }
-
-        /**
-         * Note write timeouts are not part of the javax.net.ssl.SSLSocket API
-         */
-        public static int getSoWriteTimeout(SSLSocket socket) throws SocketException {
-            return toConscrypt(socket).getSoWriteTimeout();
-        }
-
-        /**
-         * Set the handshake timeout on this socket.  This timeout is specified in
-         * milliseconds and will be used only during the handshake process.
-         */
-        public static void setHandshakeTimeout(SSLSocket socket, int handshakeTimeoutMilliseconds)
-                throws SocketException {
-            toConscrypt(socket).setHandshakeTimeout(handshakeTimeoutMilliseconds);
-        }
-
-        /**
-         * Gets the underlying file descriptor for the given socket.
-         */
-        public static FileDescriptor getFileDescriptor(SSLSocket socket) {
-            return toConscrypt(socket).getFileDescriptor$();
+        public static void setUseSessionTickets(SSLSocket socket, boolean useSessionTickets) {
+            toConscrypt(socket).setUseSessionTickets(useSessionTickets);
         }
 
         /**

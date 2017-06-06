@@ -19,12 +19,16 @@ package org.conscrypt;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import javax.net.ssl.SSLSocketFactory;
 
 /**
  * An implementation of {@link SSLSocketFactory} based on BoringSSL.
+ *
+ * <p/>This name of this class cannot change in order to maintain backward-compatibility with GMS
+ * core {@code ProviderInstallerImpl}
  */
 final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
     private static boolean useEngineSocketByDefault = SSLUtils.USE_ENGINE_SOCKET_BY_DEFAULT;
@@ -81,18 +85,20 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
             throw instantiationException;
         }
         if (useEngineSocket) {
-            return new OpenSSLEngineSocketImpl((SSLParametersImpl) sslParameters.clone());
+            return new ConscryptEngineSocket((SSLParametersImpl) sslParameters.clone());
         } else {
-            return new OpenSSLSocketImpl((SSLParametersImpl) sslParameters.clone());
+            return new ConscryptFileDescriptorSocket((SSLParametersImpl) sslParameters.clone());
         }
     }
 
     @Override
     public Socket createSocket(String hostname, int port) throws IOException, UnknownHostException {
         if (useEngineSocket) {
-            return new OpenSSLEngineSocketImpl(hostname, port, (SSLParametersImpl) sslParameters.clone());
+            return new ConscryptEngineSocket(
+                    hostname, port, (SSLParametersImpl) sslParameters.clone());
         } else {
-            return new OpenSSLSocketImpl(hostname, port, (SSLParametersImpl) sslParameters.clone());
+            return new ConscryptFileDescriptorSocket(
+                    hostname, port, (SSLParametersImpl) sslParameters.clone());
         }
     }
 
@@ -100,16 +106,10 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
     public Socket createSocket(String hostname, int port, InetAddress localHost, int localPort)
             throws IOException, UnknownHostException {
         if (useEngineSocket) {
-            return new OpenSSLEngineSocketImpl(hostname,
-                    port,
-                    localHost,
-                    localPort,
+            return new ConscryptEngineSocket(hostname, port, localHost, localPort,
                     (SSLParametersImpl) sslParameters.clone());
         } else {
-            return new OpenSSLSocketImpl(hostname,
-                    port,
-                    localHost,
-                    localPort,
+            return new ConscryptFileDescriptorSocket(hostname, port, localHost, localPort,
                     (SSLParametersImpl) sslParameters.clone());
         }
     }
@@ -117,48 +117,46 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
     @Override
     public Socket createSocket(InetAddress address, int port) throws IOException {
         if (useEngineSocket) {
-            return new OpenSSLEngineSocketImpl(address, port, (SSLParametersImpl) sslParameters.clone());
+            return new ConscryptEngineSocket(
+                    address, port, (SSLParametersImpl) sslParameters.clone());
         } else {
-            return new OpenSSLSocketImpl(address, port, (SSLParametersImpl) sslParameters.clone());
+            return new ConscryptFileDescriptorSocket(
+                    address, port, (SSLParametersImpl) sslParameters.clone());
         }
     }
 
     @Override
-    public Socket createSocket(InetAddress address,
-                               int port,
-                               InetAddress localAddress,
-                               int localPort)
-            throws IOException {
+    public Socket createSocket(InetAddress address, int port, InetAddress localAddress,
+            int localPort) throws IOException {
         if (useEngineSocket) {
-            return new OpenSSLEngineSocketImpl(address,
-                    port,
-                    localAddress,
-                    localPort,
+            return new ConscryptEngineSocket(address, port, localAddress, localPort,
                     (SSLParametersImpl) sslParameters.clone());
         } else {
-            return new OpenSSLSocketImpl(address,
-                    port,
-                    localAddress,
-                    localPort,
+            return new ConscryptFileDescriptorSocket(address, port, localAddress, localPort,
                     (SSLParametersImpl) sslParameters.clone());
         }
     }
 
     @Override
-    public Socket createSocket(Socket s, String hostname, int port, boolean autoClose)
+    public Socket createSocket(Socket socket, String hostname, int port, boolean autoClose)
             throws IOException {
-        if (hasFileDescriptor(s) && !useEngineSocket) {
-            return new OpenSSLSocketImplWrapper(
-                    s, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
+        Preconditions.checkNotNull(socket, "socket");
+        if (!socket.isConnected()) {
+            throw new SocketException("Socket is not connected.");
+        }
+
+        if (hasFileDescriptor(socket) && !useEngineSocket) {
+            return new ConscryptFileDescriptorSocket(
+                    socket, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
         } else {
-            return new OpenSSLEngineSocketImpl(
-                    s, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
+            return new ConscryptEngineSocket(
+                    socket, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
         }
     }
 
     private boolean hasFileDescriptor(Socket s) {
         try {
-            // If socket has a file descriptor we can use OpenSSLSocketImplWrapper directly
+            // If socket has a file descriptor we can use it directly
             // otherwise we need to use the engine.
             Platform.getFileDescriptor(s);
             return true;

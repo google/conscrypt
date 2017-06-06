@@ -37,8 +37,8 @@ public class PlatformTest extends TestCase {
         params.setServerNames(names);
         params.setUseCipherSuitesOrder(false);
         params.setEndpointIdentificationAlgorithm("ABC");
-        Platform.setSSLParameters(params, impl, (OpenSSLSocketImpl)socket);
-        assertEquals("some.host", ((OpenSSLSocketImpl)socket).getHostname());
+        Platform.setSSLParameters(params, impl, (AbstractConscryptSocket)socket);
+        assertEquals("some.host", ((AbstractConscryptSocket)socket).getHostname());
         assertFalse(impl.getUseCipherSuitesOrder());
         assertEquals("ABC", impl.getEndpointIdentificationAlgorithm());
     }
@@ -49,8 +49,8 @@ public class PlatformTest extends TestCase {
         SSLParameters params = new SSLParameters();
         impl.setUseCipherSuitesOrder(false);
         impl.setEndpointIdentificationAlgorithm("ABC");
-        ((OpenSSLSocketImpl)socket).setHostname("some.host");
-        Platform.getSSLParameters(params, impl, (OpenSSLSocketImpl)socket);
+        ((AbstractConscryptSocket)socket).setHostname("some.host");
+        Platform.getSSLParameters(params, impl, (AbstractConscryptSocket)socket);
         assertEquals("some.host", ((SNIHostName)params.getServerNames().get(0)).getAsciiName());
         assertFalse(params.getUseCipherSuitesOrder());
         assertEquals("ABC", params.getEndpointIdentificationAlgorithm());

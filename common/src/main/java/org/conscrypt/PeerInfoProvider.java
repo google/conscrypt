@@ -21,6 +21,11 @@ package org.conscrypt;
 abstract class PeerInfoProvider {
     private static final PeerInfoProvider NULL_PEER_INFO_PROVIDER = new PeerInfoProvider() {
         @Override
+        String getHostname() {
+            return null;
+        }
+
+        @Override
         public String getHostnameOrIP() {
             return null;
         }
@@ -30,6 +35,12 @@ abstract class PeerInfoProvider {
             return -1;
         }
     };
+
+    /**
+     * Returns the hostname supplied during engine/socket creation. No DNS resolution is
+     * attempted before returning the hostname.
+     */
+    abstract String getHostname();
 
     /**
      * This method attempts to create a textual representation of the peer host or IP. Does
@@ -48,6 +59,11 @@ abstract class PeerInfoProvider {
 
     static PeerInfoProvider forHostAndPort(final String host, final int port) {
         return new PeerInfoProvider() {
+            @Override
+            String getHostname() {
+                return host;
+            }
+
             @Override
             public String getHostnameOrIP() {
                 return host;
