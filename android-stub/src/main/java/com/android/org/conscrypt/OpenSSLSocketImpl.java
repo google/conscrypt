@@ -13,115 +13,266 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.android.org.conscrypt;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.PrivateKey;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 
-public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
-
-    public OpenSSLSocketImpl() throws IOException {
+/**
+ * Implementation of the class OpenSSLSocketImpl based on OpenSSL.
+ * <p>
+ * Extensions to SSLSocket include:
+ * <ul>
+ * <li>handshake timeout
+ * <li>session tickets
+ * <li>Server Name Indication
+ * </ul>
+ */
+public class OpenSSLSocketImpl
+        extends javax.net.ssl.SSLSocket implements NativeCrypto.SSLHandshakeCallbacks {
+    protected OpenSSLSocketImpl(SSLParametersImpl sslParameters) throws IOException {
+        throw new RuntimeException("Stub!");
     }
 
-    public OpenSSLSocketImpl(String hostname, int port) throws IOException {
-        super(hostname, port);
+    protected OpenSSLSocketImpl(SSLParametersImpl sslParameters, String[] enabledProtocols,
+            String[] enabledCipherSuites) throws IOException {
+        throw new RuntimeException("Stub!");
     }
 
-    public OpenSSLSocketImpl(InetAddress address, int port) throws IOException {
-        super(address, port);
-    }
-
-    public OpenSSLSocketImpl(String hostname, int port, InetAddress clientAddress, int clientPort)
+    protected OpenSSLSocketImpl(String host, int port, SSLParametersImpl sslParameters)
             throws IOException {
-        super(hostname, port, clientAddress, clientPort);
+        throw new RuntimeException("Stub!");
     }
 
-    public OpenSSLSocketImpl(InetAddress address, int port, InetAddress clientAddress,
-            int clientPort)
+    protected OpenSSLSocketImpl(InetAddress address, int port, SSLParametersImpl sslParameters)
             throws IOException {
-        super(address, port, clientAddress, clientPort);
+        throw new RuntimeException("Stub!");
     }
 
-    public OpenSSLSocketImpl(Socket socket, String hostname, int port, boolean autoClose)
-            throws IOException {
-        super(socket, hostname, port, autoClose);
+    protected OpenSSLSocketImpl(String host, int port, InetAddress clientAddress, int clientPort,
+            SSLParametersImpl sslParameters) throws IOException {
+        throw new RuntimeException("Stub!");
+    }
+
+    protected OpenSSLSocketImpl(InetAddress address, int port, InetAddress clientAddress,
+            int clientPort, SSLParametersImpl sslParameters) throws IOException {
+        throw new RuntimeException("Stub!");
+    }
+
+    protected OpenSSLSocketImpl(Socket socket, String host, int port, boolean autoClose,
+            SSLParametersImpl sslParameters) throws IOException {
+        throw new RuntimeException("Stub!");
     }
 
     @Override
-    public String getHostname() {
-        return super.getHostname();
+    public synchronized void startHandshake() throws IOException {
+        throw new RuntimeException("Stub!");
+    }
+
+    @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / client_cert_cb
+    @Override
+    public void clientCertificateRequested(byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals)
+            throws CertificateEncodingException, SSLException {
+        throw new RuntimeException("Stub!");
+    }
+
+    @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / info_callback
+    @Override
+    public void handshakeCompleted() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks
+    @Override
+    public void verifyCertificateChain(byte[][] bytes, String authMethod)
+            throws CertificateException {
+        throw new RuntimeException("Stub!");
     }
 
     @Override
+    public InputStream getInputStream() throws IOException {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public OutputStream getOutputStream() throws IOException {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public SSLSession getSession() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public void addHandshakeCompletedListener(HandshakeCompletedListener listener) {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public void removeHandshakeCompletedListener(HandshakeCompletedListener listener) {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public boolean getEnableSessionCreation() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public void setEnableSessionCreation(boolean flag) {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public String[] getSupportedCipherSuites() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public String[] getEnabledCipherSuites() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public void setEnabledCipherSuites(String[] suites) {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public String[] getSupportedProtocols() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public String[] getEnabledProtocols() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public void setEnabledProtocols(String[] protocols) {
+        throw new RuntimeException("Stub!");
+    }
+    public void setUseSessionTickets(boolean useSessionTickets) {
+        throw new RuntimeException("Stub!");
+    }
+
     public void setHostname(String hostname) {
-        super.setHostname(hostname);
+        throw new RuntimeException("Stub!");
+    }
+
+    public void setChannelIdEnabled(boolean enabled) {
+        throw new RuntimeException("Stub!");
+    }
+
+    public byte[] getChannelId() throws SSLException {
+        throw new RuntimeException("Stub!");
+    }
+
+    public void setChannelIdPrivateKey(PrivateKey privateKey) {
+        throw new RuntimeException("Stub!");
     }
 
     @Override
-    public String getHostnameOrIP() {
-        return super.getHostnameOrIP();
+    public boolean getUseClientMode() {
+        throw new RuntimeException("Stub!");
     }
 
     @Override
-    public SSLSession getHandshakeSession() {
-        return null;
+    public void setUseClientMode(boolean mode) {
+        throw new RuntimeException("Stub!");
     }
 
     @Override
-    public FileDescriptor getFileDescriptor$() {
-        return super.getFileDescriptor$();
+    public boolean getWantClientAuth() {
+        throw new RuntimeException("Stub!");
     }
 
     @Override
+    public boolean getNeedClientAuth() {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public void setNeedClientAuth(boolean need) {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public void setWantClientAuth(boolean want) {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public void sendUrgentData(int data) throws IOException {
+        throw new RuntimeException("Stub!");
+    }
+
+    @Override
+    public void setOOBInline(boolean on) throws SocketException {
+        throw new RuntimeException("Stub!");
+    }
+
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
+    @Override
+    public void setSoTimeout(int readTimeoutMilliseconds) throws SocketException {
+        throw new RuntimeException("Stub!");
+    }
+
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
+    @Override
+    public int getSoTimeout() throws SocketException {
+        throw new RuntimeException("Stub!");
+    }
+
+    /**
+     * Note write timeouts are not part of the javax.net.ssl.SSLSocket API
+     */
     public void setSoWriteTimeout(int writeTimeoutMilliseconds) throws SocketException {
-        super.setSoWriteTimeout(writeTimeoutMilliseconds);
+        throw new RuntimeException("Stub!");
     }
 
-    @Override
+    /**
+     * Note write timeouts are not part of the javax.net.ssl.SSLSocket API
+     */
     public int getSoWriteTimeout() throws SocketException {
-        return super.getSoWriteTimeout();
+        throw new RuntimeException("Stub!");
     }
 
-    @Override
+    /**
+     * Set the handshake timeout on this socket.  This timeout is specified in
+     * milliseconds and will be used only during the handshake process.
+     */
     public void setHandshakeTimeout(int handshakeTimeoutMilliseconds) throws SocketException {
-        super.setHandshakeTimeout(handshakeTimeoutMilliseconds);
+        throw new RuntimeException("Stub!");
     }
 
+    @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     @Override
-    public abstract void setUseSessionTickets(boolean useSessionTickets);
-
-    @Override
-    public abstract void setChannelIdEnabled(boolean enabled);
-
-    @Override
-    public abstract byte[] getChannelId() throws SSLException;
-
-    @Override
-    public abstract void setChannelIdPrivateKey(PrivateKey privateKey);
-
-    @Override
-    public final byte[] getNpnSelectedProtocol() {
-        return super.getNpnSelectedProtocol();
+    public void close() throws IOException {
+        throw new RuntimeException("Stub!");
     }
 
-    @Override
-    public final void setNpnProtocols(byte[] npnProtocols) {
-        super.setNpnProtocols(npnProtocols);
+    public FileDescriptor getFileDescriptor$() {
+        throw new RuntimeException("Stub!");
     }
 
-    @Override
-    public abstract byte[] getAlpnSelectedProtocol();
+    public byte[] getNpnSelectedProtocol() {
+        throw new RuntimeException("Stub!");
+    }
 
-    @Override
-    public abstract void setAlpnProtocols(String[] alpnProtocols);
-
-    @Override
-    public abstract void setAlpnProtocols(byte[] alpnProtocols);
+    public void setNpnProtocols(byte[] npnProtocols) {
+        throw new RuntimeException("Stub!");
+    }
 }

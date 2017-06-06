@@ -304,7 +304,7 @@ final class Platform {
     /**
      * Currently we don't wrap anything from the RI.
      */
-    static SSLSocketFactory wrapSocketFactoryIfNeeded(ConscryptSocketFactory factory) {
+    static SSLSocketFactory wrapSocketFactoryIfNeeded(OpenSSLSocketFactoryImpl factory) {
         return factory;
     }
 

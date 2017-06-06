@@ -266,7 +266,7 @@ final class Platform {
      * Wrap the SocketFactory with the platform wrapper if needed for compatability.
      * For the platform-bundled library we never need to wrap.
      */
-    static SSLSocketFactory wrapSocketFactoryIfNeeded(ConscryptSocketFactory factory) {
+    static SSLSocketFactory wrapSocketFactoryIfNeeded(OpenSSLSocketFactoryImpl factory) {
         return factory;
     }
 

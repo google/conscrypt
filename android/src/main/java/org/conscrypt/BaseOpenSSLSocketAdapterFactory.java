@@ -23,9 +23,10 @@ import java.net.UnknownHostException;
 import javax.net.ssl.SSLSocketFactory;
 
 public abstract class BaseOpenSSLSocketAdapterFactory extends SSLSocketFactory {
-    private final ConscryptSocketFactory delegate;
 
-    protected BaseOpenSSLSocketAdapterFactory(ConscryptSocketFactory delegate) {
+    private final OpenSSLSocketFactoryImpl delegate;
+
+    protected BaseOpenSSLSocketAdapterFactory(OpenSSLSocketFactoryImpl delegate) {
         this.delegate = delegate;
     }
 
@@ -41,42 +42,45 @@ public abstract class BaseOpenSSLSocketAdapterFactory extends SSLSocketFactory {
 
     @Override
     public Socket createSocket() throws IOException {
-        return wrap((AbstractConscryptSocket) delegate.createSocket());
+        return wrap((OpenSSLSocketImpl) delegate.createSocket());
     }
 
     @Override
-    public Socket createSocket(String hostname, int port) throws IOException, UnknownHostException {
-        return wrap((ConscryptFileDescriptorSocket) delegate.createSocket(hostname, port));
+    public Socket createSocket(String hostname, int port)
+            throws IOException, UnknownHostException {
+        return wrap((OpenSSLSocketImpl) delegate.createSocket(hostname, port));
     }
 
     @Override
     public Socket createSocket(String hostname, int port, InetAddress localHost, int localPort)
             throws IOException, UnknownHostException {
-        return wrap((ConscryptFileDescriptorSocket) delegate.createSocket(
-                hostname, port, localHost, localPort));
+        return wrap(
+                (OpenSSLSocketImpl) delegate.createSocket(hostname, port, localHost, localPort));
     }
     @Override
     public Socket createSocket(InetAddress address, int port) throws IOException {
-        return wrap((ConscryptFileDescriptorSocket) delegate.createSocket(address, port));
+        return wrap((OpenSSLSocketImpl) delegate.createSocket(address, port));
     }
 
     @Override
-    public Socket createSocket(InetAddress address, int port, InetAddress localAddress,
-            int localPort) throws IOException {
-        return wrap((ConscryptFileDescriptorSocket) delegate.createSocket(
-                address, port, localAddress, localPort));
+    public Socket createSocket(InetAddress address,
+                               int port,
+                               InetAddress localAddress,
+                               int localPort)
+            throws IOException {
+        return wrap(
+                (OpenSSLSocketImpl) delegate.createSocket(address, port, localAddress, localPort));
     }
 
     @Override
     public Socket createSocket(Socket s, String hostname, int port, boolean autoClose)
             throws IOException {
-        return wrap((ConscryptFileDescriptorSocket) delegate.createSocket(
-                s, hostname, port, autoClose));
+        return wrap((OpenSSLSocketImpl) delegate.createSocket(s, hostname, port, autoClose));
     }
 
     /**
      * Wraps the provided unbundled conscrypt SSLSocket into a platform bundled conscrypt
      * SSLSocket.
      */
-    protected abstract Socket wrap(AbstractConscryptSocket sock) throws IOException;
+    protected abstract Socket wrap(OpenSSLSocketImpl sock) throws IOException;
 }

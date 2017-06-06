@@ -698,6 +698,7 @@ public class SSLSocketTest extends AbstractSSLTest {
     public void testClientMode_bothServer() throws Exception {
         try {
             test_SSLSocket_setUseClientMode(false, false);
+            fail();
         } catch (SocketTimeoutException expected) {
             // Ignore
         } catch (SSLHandshakeException expected) {

@@ -89,15 +89,15 @@ public final class Conscrypt {
          * Indicates whether the given object is a Conscrypt socket factory.
          */
         public static boolean isConscrypt(SSLSocketFactory factory) {
-            return factory instanceof ConscryptSocketFactory;
+            return factory instanceof OpenSSLSocketFactoryImpl;
         }
 
-        private static ConscryptSocketFactory toConscrypt(SSLSocketFactory factory) {
+        private static OpenSSLSocketFactoryImpl toConscrypt(SSLSocketFactory factory) {
             if (!isConscrypt(factory)) {
                 throw new IllegalArgumentException(
                         "Not a conscrypt socket factory: " + factory.getClass().getName());
             }
-            return (ConscryptSocketFactory) factory;
+            return (OpenSSLSocketFactoryImpl) factory;
         }
 
         /**
@@ -105,7 +105,7 @@ public final class Conscrypt {
          */
         @ExperimentalApi
         public static void setUseEngineSocketByDefault(boolean useEngineSocket) {
-            ConscryptSocketFactory.setUseEngineSocketByDefault(useEngineSocket);
+            OpenSSLSocketFactoryImpl.setUseEngineSocketByDefault(useEngineSocket);
         }
 
         /**
@@ -127,15 +127,15 @@ public final class Conscrypt {
          * Indicates whether the given object is a Conscrypt socket factory.
          */
         public static boolean isConscrypt(SSLServerSocketFactory factory) {
-            return factory instanceof ConscryptServerSocketFactory;
+            return factory instanceof OpenSSLServerSocketFactoryImpl;
         }
 
-        private static ConscryptServerSocketFactory toConscrypt(SSLServerSocketFactory factory) {
+        private static OpenSSLServerSocketFactoryImpl toConscrypt(SSLServerSocketFactory factory) {
             if (!isConscrypt(factory)) {
                 throw new IllegalArgumentException(
                         "Not a conscrypt server socket factory: " + factory.getClass().getName());
             }
-            return (ConscryptServerSocketFactory) factory;
+            return (OpenSSLServerSocketFactoryImpl) factory;
         }
 
         /**
@@ -143,7 +143,7 @@ public final class Conscrypt {
          */
         @ExperimentalApi
         public static void setUseEngineSocketByDefault(boolean useEngineSocket) {
-            ConscryptServerSocketFactory.setUseEngineSocketByDefault(useEngineSocket);
+            OpenSSLServerSocketFactoryImpl.setUseEngineSocketByDefault(useEngineSocket);
         }
 
         /**

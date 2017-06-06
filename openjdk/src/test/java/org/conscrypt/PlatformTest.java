@@ -29,7 +29,7 @@ import junit.framework.TestCase;
  */
 public class PlatformTest extends TestCase {
     public void test_setSSLParameters_Socket() throws Exception {
-        Socket socket = new ConscryptSocketFactory().createSocket();
+        Socket socket = new OpenSSLSocketFactoryImpl().createSocket();
         SSLParametersImpl impl = SSLParametersImpl.getDefault();
         SSLParameters params = new SSLParameters();
         List<SNIServerName> names = new ArrayList<SNIServerName>();
@@ -44,7 +44,7 @@ public class PlatformTest extends TestCase {
     }
 
     public void test_getSSLParameters_Socket() throws Exception {
-        Socket socket = new ConscryptSocketFactory().createSocket();
+        Socket socket = new OpenSSLSocketFactoryImpl().createSocket();
         SSLParametersImpl impl = SSLParametersImpl.getDefault();
         SSLParameters params = new SSLParameters();
         impl.setUseCipherSuitesOrder(false);
