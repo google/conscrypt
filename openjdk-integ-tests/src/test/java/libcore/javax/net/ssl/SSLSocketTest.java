@@ -694,9 +694,17 @@ public class SSLSocketTest extends AbstractSSLTest {
         test_SSLSocket_setUseClientMode(true, true);
     }
 
-    @Test(expected = SocketTimeoutException.class)
+    @Test
     public void testClientMode_bothServer() throws Exception {
-        test_SSLSocket_setUseClientMode(false, false);
+        try {
+            test_SSLSocket_setUseClientMode(false, false);
+        } catch (SocketTimeoutException expected) {
+            // Ignore
+        } catch (SSLHandshakeException expected) {
+            // Depending on the timing of the socket closures, this can happen as well.
+            assertTrue("Unexpected handshake error: " + expected.getMessage(),
+                    expected.getMessage().toLowerCase().contains("connection closed"));
+        }
     }
 
     private void test_SSLSocket_setUseClientMode(
