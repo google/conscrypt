@@ -45,9 +45,9 @@ public class KitKatPlatformOpenSSLSocketImplAdapter
         extends com.android.org.conscrypt.OpenSSLSocketImpl {
 
 
-    private final org.conscrypt.OpenSSLSocketImpl delegate;
+    private final AbstractConscryptSocket delegate;
 
-    public KitKatPlatformOpenSSLSocketImplAdapter(org.conscrypt.OpenSSLSocketImpl delegate)
+    public KitKatPlatformOpenSSLSocketImplAdapter(AbstractConscryptSocket delegate)
             throws IOException {
         super(null);
         this.delegate = delegate;
