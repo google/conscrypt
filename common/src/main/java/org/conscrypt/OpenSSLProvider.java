@@ -98,6 +98,47 @@ public final class OpenSSLProvider extends Provider {
         put("MessageDigest.MD5", PREFIX + "OpenSSLMessageDigestJDK$MD5");
         put("Alg.Alias.MessageDigest.1.2.840.113549.2.5", "MD5");
 
+        /* == KeyGenerators == */
+        // TODO: Enable
+        /*
+        put("KeyGenerator.AES", PREFIX + "KeyGeneratorImpl$AES");
+
+        put("KeyGenerator.DESEDE", PREFIX + "KeyGeneratorImpl$DESEDE");
+        put("Alg.Alias.KeyGenerator.TDEA", "DESEDE");
+
+        put("KeyGenerator.HmacMD5", PREFIX + "KeyGeneratorImpl$HmacMD5");
+        put("Alg.Alias.KeyGenerator.1.3.6.1.5.5.8.1.1", "HmacMD5");
+        put("Alg.Alias.KeyGenerator.HMAC-MD5", "HmacMD5");
+        put("Alg.Alias.KeyGenerator.HMAC/MD5", "HmacMD5");
+
+        put("KeyGenerator.HmacSHA1", PREFIX + "KeyGeneratorImpl$HmacSHA1");
+        put("Alg.Alias.KeyGenerator.1.2.840.113549.2.7", "HmacSHA1");
+        put("Alg.Alias.KeyGenerator.1.3.6.1.5.5.8.1.2", "HmacSHA1");
+        put("Alg.Alias.KeyGenerator.HMAC-SHA1", "HmacSHA1");
+        put("Alg.Alias.KeyGenerator.HMAC/SHA1", "HmacSHA1");
+
+        put("KeyGenerator.HmacSHA224", PREFIX + "KeyGeneratorImpl$HmacSHA224");
+        put("Alg.Alias.KeyGenerator.1.2.840.113549.2.8", "HmacSHA224");
+        put("Alg.Alias.KeyGenerator.HMAC-SHA224", "HmacSHA224");
+        put("Alg.Alias.KeyGenerator.HMAC/SHA224", "HmacSHA224");
+
+        put("KeyGenerator.HmacSHA256", PREFIX + "KeyGeneratorImpl$HmacSHA256");
+        put("Alg.Alias.KeyGenerator.1.2.840.113549.2.9", "HmacSHA256");
+        put("Alg.Alias.KeyGenerator.2.16.840.1.101.3.4.2.1", "HmacSHA256");
+        put("Alg.Alias.KeyGenerator.HMAC-SHA256", "HmacSHA256");
+        put("Alg.Alias.KeyGenerator.HMAC/SHA256", "HmacSHA256");
+
+        put("KeyGenerator.HmacSHA384", PREFIX + "KeyGeneratorImpl$HmacSHA384");
+        put("Alg.Alias.KeyGenerator.1.2.840.113549.2.10", "HmacSHA384");
+        put("Alg.Alias.KeyGenerator.HMAC-SHA384", "HmacSHA384");
+        put("Alg.Alias.KeyGenerator.HMAC/SHA384", "HmacSHA384");
+
+        put("KeyGenerator.HmacSHA512", PREFIX + "KeyGeneratorImpl$HmacSHA512");
+        put("Alg.Alias.KeyGenerator.1.2.840.113549.2.11", "HmacSHA512");
+        put("Alg.Alias.KeyGenerator.HMAC-SHA512", "HmacSHA512");
+        put("Alg.Alias.KeyGenerator.HMAC/SHA512", "HmacSHA512");
+        */
+
         /* == KeyPairGenerators == */
         put("KeyPairGenerator.RSA", PREFIX + "OpenSSLRSAKeyPairGenerator");
         put("Alg.Alias.KeyPairGenerator.1.2.840.113549.1.1.1", "RSA");
