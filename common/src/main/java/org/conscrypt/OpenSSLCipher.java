@@ -245,11 +245,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
         if (iv != null && iv.length > 0) {
             try {
                 AlgorithmParameters params = AlgorithmParameters.getInstance(getBaseCipherName());
-                params.init(iv);
+                params.init(new IvParameterSpec(iv));
                 return params;
             } catch (NoSuchAlgorithmException e) {
                 return null;
-            } catch (IOException e) {
+            } catch (InvalidParameterSpecException e) {
                 return null;
             }
         }

@@ -73,11 +73,21 @@ public final class OpenSSLProvider extends Provider {
         put("SSLContext.Default", PREFIX + "DefaultSSLContextImpl");
 
         /* === AlgorithmParameters === */
+        put("AlgorithmParameters.AES", PREFIX + "IvParameters$AES");
+        put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.2", "AES");
+        put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.22", "AES");
+        put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.42", "AES");
+
+        put("AlgorithmParameters.DESEDE", PREFIX + "IvParameters$DESEDE");
+        put("Alg.Alias.AlgorithmParameters.TDEA", "DESEDE");
+        put("Alg.Alias.AlgorithmParameters.1.2.840.113549.3.7", "DESEDE");
+
         put("AlgorithmParameters.GCM", PREFIX + "GCMParameters");
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.6", "GCM");
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.26", "GCM");
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.46", "GCM");
         put("AlgorithmParameters.OAEP", PREFIX + "OAEPParameters");
+        put("AlgorithmParameters.EC", PREFIX + "ECParameters");
 
         /* === Message Digests === */
         put("MessageDigest.SHA-1", PREFIX + "OpenSSLMessageDigestJDK$SHA1");
