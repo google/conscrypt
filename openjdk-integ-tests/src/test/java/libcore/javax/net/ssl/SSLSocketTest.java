@@ -152,12 +152,14 @@ public class SSLSocketTest extends AbstractSSLTest {
         SSLConfigurationAsserts.assertSSLSocketDefaultConfiguration(
                 (SSLSocket) SSLSocketFactory.getDefault().createSocket());
     }
+
     @Test
     public void test_SSLSocket_getSupportedCipherSuites_returnsCopies() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket ssl = (SSLSocket) sf.createSocket();
         assertNotSame(ssl.getSupportedCipherSuites(), ssl.getSupportedCipherSuites());
     }
+
     @Test
     public void test_SSLSocket_getSupportedCipherSuites_connect() throws Exception {
         // note the rare usage of non-RSA keys
@@ -276,12 +278,14 @@ public class SSLSocketTest extends AbstractSSLTest {
         }
         c.close();
     }
+
     @Test
     public void test_SSLSocket_getEnabledCipherSuites_returnsCopies() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket ssl = (SSLSocket) sf.createSocket();
         assertNotSame(ssl.getEnabledCipherSuites(), ssl.getEnabledCipherSuites());
     }
+
     @Test
     public void test_SSLSocket_setEnabledCipherSuites_storesCopy() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -292,6 +296,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         array[0] = "Modified after having been set";
         assertEquals(originalFirstElement, ssl.getEnabledCipherSuites()[0]);
     }
+
     @Test
     public void test_SSLSocket_setEnabledCipherSuites() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -322,18 +327,21 @@ public class SSLSocketTest extends AbstractSSLTest {
         ssl.setEnabledCipherSuites(cipherSuites);
         assertEquals(Arrays.asList(cipherSuites), Arrays.asList(ssl.getEnabledCipherSuites()));
     }
+
     @Test
     public void test_SSLSocket_getSupportedProtocols_returnsCopies() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket ssl = (SSLSocket) sf.createSocket();
         assertNotSame(ssl.getSupportedProtocols(), ssl.getSupportedProtocols());
     }
+
     @Test
     public void test_SSLSocket_getEnabledProtocols_returnsCopies() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket ssl = (SSLSocket) sf.createSocket();
         assertNotSame(ssl.getEnabledProtocols(), ssl.getEnabledProtocols());
     }
+
     @Test
     public void test_SSLSocket_setEnabledProtocols_storesCopy() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -344,6 +352,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         array[0] = "Modified after having been set";
         assertEquals(originalFirstElement, ssl.getEnabledProtocols()[0]);
     }
+
     @Test
     public void test_SSLSocket_setEnabledProtocols() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -386,6 +395,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             }
         }
     }
+
     @Test
     public void test_SSLSocket_getSession() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -394,6 +404,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         assertNotNull(session);
         assertFalse(session.isValid());
     }
+
     @Test
     public void test_SSLSocket_getHandshakeSession() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -401,6 +412,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         SSLSession session = ssl.getHandshakeSession();
         assertNull(session);
     }
+
     @Test
     public void test_SSLSocket_startHandshake() throws Exception {
         final TestSSLContext c = TestSSLContext.create();
@@ -452,6 +464,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             return server.getSession().getId();
         }
     }
+
     @Test
     public void test_SSLSocket_confirmSessionReuse() throws Exception {
         final TestSSLContext c = TestSSLContext.create();
@@ -482,6 +495,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         assertTrue(Arrays.equals(clientSessionId1, clientSessionId2));
         c.close();
     }
+
     @Test
     public void test_SSLSocket_NoEnabledCipherSuites_Failure() throws Exception {
         TestSSLContext c = TestSSLContext.newBuilder()
@@ -513,6 +527,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         client.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_startHandshake_noKeyStore() throws Exception {
         TestSSLContext c = TestSSLContext.newBuilder()
@@ -543,6 +558,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         client.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_startHandshake_noClientCertificate() throws Exception {
         TestSSLContext c = TestSSLContext.create();
@@ -560,6 +576,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_HandshakeCompletedListener() throws Exception {
         final TestSSLContext c = TestSSLContext.create();
@@ -640,6 +657,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             actualException = ex;
         }
     }
+
     @Test
     public void test_SSLSocket_HandshakeCompletedListener_RuntimeException() throws Exception {
         final Thread self = Thread.currentThread();
@@ -664,6 +682,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         assertSame(expectedException, test.actualException);
         self.setUncaughtExceptionHandler(original);
     }
+
     @Test
     public void test_SSLSocket_getUseClientMode() throws Exception {
         TestSSLContext c = TestSSLContext.create();
@@ -739,6 +758,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_setUseClientMode_afterHandshake() throws Exception {
         // can't set after handshake
@@ -756,6 +776,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             // Ignored.
         }
     }
+
     @Test
     public void test_SSLSocket_untrustedServer() throws Exception {
         TestSSLContext c =
@@ -783,6 +804,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_clientAuth() throws Exception {
         TestSSLContext c = TestSSLContext.create(
@@ -818,6 +840,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_clientAuth_bogusAlias() throws Exception {
         TestSSLContext c = TestSSLContext.create();
@@ -877,14 +900,17 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_clientAuth_OpaqueKey_RSA() throws Exception {
         run_SSLSocket_clientAuth_OpaqueKey(TestKeyStore.getClientCertificate());
     }
+
     @Test
     public void test_SSLSocket_clientAuth_OpaqueKey_EC_RSA() throws Exception {
         run_SSLSocket_clientAuth_OpaqueKey(TestKeyStore.getClientEcRsaCertificate());
     }
+
     @Test
     public void test_SSLSocket_clientAuth_OpaqueKey_EC_EC() throws Exception {
         run_SSLSocket_clientAuth_OpaqueKey(TestKeyStore.getClientEcEcCertificate());
@@ -1153,6 +1179,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             return delegate;
         }
     }
+
     @Test
     public void test_SSLSocket_TrustManagerRuntimeException() throws Exception {
         TestSSLContext c = TestSSLContext.create();
@@ -1197,6 +1224,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_getEnableSessionCreation() throws Exception {
         TestSSLContext c = TestSSLContext.create();
@@ -1209,6 +1237,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_setEnableSessionCreation_server() throws Exception {
         TestSSLContext c = TestSSLContext.create();
@@ -1236,6 +1265,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_setEnableSessionCreation_client() throws Exception {
         TestSSLContext c = TestSSLContext.create();
@@ -1263,6 +1293,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_getSSLParameters() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -1285,6 +1316,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         p.setEndpointIdentificationAlgorithm("FOO");
         assertEquals("FOO", p.getEndpointIdentificationAlgorithm());
     }
+
     @Test
     public void test_SSLSocket_setSSLParameters() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -1330,6 +1362,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             assertFalse(ssl.getWantClientAuth());
         }
     }
+
     @Test
     public void test_SSLSocket_close() throws Exception {
         TestSSLSocketPair pair = TestSSLSocketPair.create();
@@ -1449,6 +1482,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         // because the peer has closed, but it shouldn't throw.
         server.close();
     }
+
     @Test
     public void test_SSLSocket_endpointIdentification_Success() throws Exception {
         final TestSSLContext c = TestSSLContext.create();
@@ -1486,6 +1520,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         c.close();
     }
+
     @Test
     public void test_SSLSocket_endpointIdentification_Failure() throws Exception {
         final TestSSLContext c = TestSSLContext.create();
@@ -1519,6 +1554,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             }
         }
     }
+
     @Test
     public void test_SSLSocket_setSoTimeout_basic() throws Exception {
         ServerSocket listening = new ServerSocket(0);
@@ -1538,6 +1574,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         assertEquals(0, wrapping.getSoTimeout());
         assertEquals(0, underlying.getSoTimeout());
     }
+
     @Test
     public void test_SSLSocket_setSoTimeout_wrapper() throws Exception {
         ServerSocket listening = new ServerSocket(0);
@@ -1559,6 +1596,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         underlying.close();
         listening.close();
     }
+
     @Test(expected = SocketTimeoutException.class)
     public void test_SSLSocket_setSoWriteTimeout() throws Exception {
         // Only run this test on Linux since it relies on non-posix methods.
@@ -1752,6 +1790,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         clientFuture.get();
         server.close();
     }
+
     @Test
     public void test_TestSSLSocketPair_create() {
         TestSSLSocketPair test = TestSSLSocketPair.create();
@@ -1768,6 +1807,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         assertTrue(test.client.getSession().isValid());
         test.close();
     }
+
     @Test
     public void test_SSLSocket_ClientHello_record_size() throws Exception {
         // This test checks the size of ClientHello of the default SSLSocket. TLS/SSL handshakes
@@ -1801,6 +1841,7 @@ public class SSLSocketTest extends AbstractSSLTest {
                     + " bytes");
         }
     }
+
     @Test
     public void test_SSLSocket_ClientHello_cipherSuites() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
@@ -1826,6 +1867,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             StandardNames.assertDefaultCipherSuites(cipherSuites);
         }, getSSLSocketFactoriesToTest());
     }
+
     @Test
     public void test_SSLSocket_ClientHello_supportedCurves() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
@@ -1847,6 +1889,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             StandardNames.assertDefaultEllipticCurves(supportedCurves);
         }, getSSLSocketFactoriesToTest());
     }
+
     @Test
     public void test_SSLSocket_ClientHello_clientProtocolVersion() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
@@ -1854,6 +1897,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             assertEquals(TlsProtocolVersion.TLSv1_2, clientHello.clientVersion);
         }, getSSLSocketFactoriesToTest());
     }
+
     @Test
     public void test_SSLSocket_ClientHello_compressionMethods() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
@@ -1862,6 +1906,7 @@ public class SSLSocketTest extends AbstractSSLTest {
                     clientHello.compressionMethods);
         }, getSSLSocketFactoriesToTest());
     }
+
     @Test
     public void test_SSLSocket_ClientHello_SNI() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
@@ -1988,6 +2033,7 @@ public class SSLSocketTest extends AbstractSSLTest {
             context.close();
         }
     }
+
     @Test
     public void test_SSLSocket_SNIHostName() throws Exception {
         TestSSLContext c = TestSSLContext.create();
@@ -2019,6 +2065,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         SNIHostName serverHostName = (SNIHostName) serverName;
         assertEquals("www.example.com", serverHostName.getAsciiName());
     }
+
     @Test
     public void test_SSLSocket_sendsTlsFallbackScsv_Fallback_Success() throws Exception {
         TestSSLContext context = TestSSLContext.create();
@@ -2124,6 +2171,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         context.close();
     }
+
     @Test
     public void test_SSLSocket_ClientGetsAlertDuringHandshake_HasGoodExceptionMessage()
             throws Exception {
@@ -2161,6 +2209,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         listener.close();
         context.close();
     }
+
     @Test
     public void test_SSLSocket_ServerGetsAlertDuringHandshake_HasGoodExceptionMessage()
             throws Exception {
@@ -2239,6 +2288,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         server.close();
         context.close();
     }
+
     @Test
     public void test_SSLSocket_SSLv3Unsupported() throws Exception {
         TestSSLContext context = TestSSLContext.create();

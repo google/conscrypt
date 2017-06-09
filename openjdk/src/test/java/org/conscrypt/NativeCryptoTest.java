@@ -465,6 +465,7 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_free(s);
         NativeCrypto.SSL_CTX_free(c);
     }
+
     @Test
     public void test_SSL_check_private_key_key_then_cert() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
