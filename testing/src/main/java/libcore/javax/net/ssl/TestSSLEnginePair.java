@@ -35,6 +35,7 @@ public final class TestSSLEnginePair implements AutoCloseable {
     public final TestSSLContext c;
     public final SSLEngine server;
     public final SSLEngine client;
+
     private TestSSLEnginePair(TestSSLContext c,
             SSLEngine server,
             SSLEngine client) {
@@ -42,23 +43,29 @@ public final class TestSSLEnginePair implements AutoCloseable {
         this.server = server;
         this.client = client;
     }
+
     public static TestSSLEnginePair create() throws IOException {
         return create(null);
     }
+
     public static TestSSLEnginePair create(Hooks hooks) throws IOException {
         return create(TestSSLContext.create(), hooks);
     }
+
     public static TestSSLEnginePair create(TestSSLContext c, Hooks hooks) throws IOException {
         return create(c, hooks, null);
     }
+
     public static TestSSLEnginePair create(TestSSLContext c, Hooks hooks, boolean[] finished)
             throws IOException {
         SSLEngine[] engines = connect(c, hooks, finished);
         return new TestSSLEnginePair(c, engines[0], engines[1]);
     }
+
     public static SSLEngine[] connect(TestSSLContext c, Hooks hooks) throws IOException {
         return connect(c, hooks, null);
     }
+
     /**
      * Create a new connected server/client engine pair within a
      * existing SSLContext. Optionally specify clientCipherSuites to
@@ -72,15 +79,20 @@ public final class TestSSLEnginePair implements AutoCloseable {
         if (hooks == null) {
             hooks = new Hooks();
         }
+
         // FINISHED state should be returned only once.
         boolean[] clientFinished = new boolean[1];
         boolean[] serverFinished = new boolean[1];
+
         SSLSession session = c.clientContext.createSSLEngine().getSession();
+
         int packetBufferSize = session.getPacketBufferSize();
         ByteBuffer clientToServer = ByteBuffer.allocate(packetBufferSize);
         ByteBuffer serverToClient = ByteBuffer.allocate(packetBufferSize);
+
         int applicationBufferSize = session.getApplicationBufferSize();
         ByteBuffer scratch = ByteBuffer.allocate(applicationBufferSize);
+
         SSLEngine client = c.clientContext.createSSLEngine(c.host.getHostName(), c.port);
         SSLEngine server = c.serverContext.createSSLEngine();
         client.setUseClientMode(true);
@@ -88,12 +100,14 @@ public final class TestSSLEnginePair implements AutoCloseable {
         hooks.beforeBeginHandshake(client, server);
         client.beginHandshake();
         server.beginHandshake();
+
         while (true) {
             boolean clientDone = client.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING;
             boolean serverDone = server.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING;
             if (clientDone && serverDone) {
                 break;
             }
+
             boolean progress = false;
             if (!clientDone) {
                 progress = handshakeCompleted(client,
@@ -113,6 +127,7 @@ public final class TestSSLEnginePair implements AutoCloseable {
                 break;
             }
         }
+
         if (finished != null) {
             assertEquals(2, finished.length);
             finished[0] = clientFinished[0];
@@ -120,13 +135,16 @@ public final class TestSSLEnginePair implements AutoCloseable {
         }
         return new SSLEngine[] { server, client };
     }
+
     public static class Hooks {
         void beforeBeginHandshake(SSLEngine client, SSLEngine server) {}
     }
+
     @Override
     public void close() throws SSLException {
         close(new SSLEngine[] { client, server });
     }
+
     public static void close(SSLEngine[] engines) {
         try {
             for (SSLEngine engine : engines) {
@@ -139,6 +157,7 @@ public final class TestSSLEnginePair implements AutoCloseable {
             throw new RuntimeException(e);
         }
     }
+
     private static boolean handshakeCompleted(SSLEngine engine,
             ByteBuffer output,
             ByteBuffer input,
@@ -147,8 +166,10 @@ public final class TestSSLEnginePair implements AutoCloseable {
         try {
             // make the other side's output into our input
             input.flip();
+
             HandshakeStatus status = engine.getHandshakeStatus();
             switch (status) {
+
                 case NEED_TASK: {
                     boolean progress = false;
                     while (true) {
@@ -160,6 +181,7 @@ public final class TestSSLEnginePair implements AutoCloseable {
                         progress = true;
                     }
                 }
+
                 case NEED_UNWRAP: {
                     // avoid underflow
                     if (input.remaining() == 0) {
@@ -174,6 +196,7 @@ public final class TestSSLEnginePair implements AutoCloseable {
                     assertFinishedOnce(finished, unwrapResult);
                     return true;
                 }
+
                 case NEED_WRAP: {
                     // avoid possible overflow
                     if (output.remaining() != output.capacity()) {
@@ -191,6 +214,7 @@ public final class TestSSLEnginePair implements AutoCloseable {
                     assertFinishedOnce(finished, wrapResult);
                     return true;
                 }
+
                 case NOT_HANDSHAKING:
                     // should have been checked by caller before calling
                 case FINISHED:
@@ -204,6 +228,7 @@ public final class TestSSLEnginePair implements AutoCloseable {
             input.compact();
         }
     }
+
     private static void assertFinishedOnce(boolean[] finishedOut, SSLEngineResult result) {
         if (result.getHandshakeStatus() == HandshakeStatus.FINISHED) {
             assertFalse("should only return FINISHED once", finishedOut[0]);
