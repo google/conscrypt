@@ -1489,6 +1489,7 @@ public class SSLSocketTest extends AbstractSSLTest {
         SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket();
         SSLParameters p = client.getSSLParameters();
         p.setEndpointIdentificationAlgorithm("HTTPS");
+        client.setSSLParameters(p);
         client.connect(new InetSocketAddress(c.host, c.port));
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
         Future<Void> future = runAsync(() -> {
