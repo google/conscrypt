@@ -159,6 +159,7 @@ public final class TestKeyStore {
 
     private static final byte[] LOCAL_HOST_ADDRESS = {127, 0, 0, 1};
     private static final String LOCAL_HOST_NAME = "localhost";
+    private static final String LOCAL_HOST_NAME_IPV6 = "ip6-localhost";
 
     public final KeyStore keyStore;
     public final char[] storePassword;
@@ -376,7 +377,6 @@ public final class TestKeyStore {
         private BigInteger certificateSerialNumber = null;
 
         public Builder() {
-            subject = localhost();
         }
 
         /**
@@ -446,6 +446,11 @@ public final class TestKeyStore {
         public Builder addSubjectAltName(GeneralName generalName) {
             subjectAltNames.add(generalName);
             return this;
+        }
+
+        public Builder addSubjectAltNameDnsName(String dnsName) {
+            return addSubjectAltName(
+                    new GeneralName(GeneralName.dNSName, dnsName));
         }
 
         public Builder addSubjectAltNameIpAddress(byte[] ipAddress) {
@@ -552,6 +557,13 @@ public final class TestKeyStore {
                 caKey = signer.getPrivateKey();
                 caCert = (X509Certificate) signer.getCertificate();
                 caCertChain = (X509Certificate[]) signer.getCertificateChain();
+            }
+
+            // Default to localhost if nothing was specified.
+            if (subject == null) {
+                subject = localhost();
+                addSubjectAltNameDnsName(LOCAL_HOST_NAME);
+                addSubjectAltNameDnsName(LOCAL_HOST_NAME_IPV6);
             }
 
             final PrivateKey privateKey;
@@ -709,9 +721,9 @@ public final class TestKeyStore {
             x509cg.addExtension(
                     Extension.extendedKeyUsage, critical, new ExtendedKeyUsage(keyPurposeId));
         }
-        for (GeneralName subjectAltName : subjectAltNames) {
+        if (!subjectAltNames.isEmpty()) {
             x509cg.addExtension(Extension.subjectAlternativeName, false,
-                    new GeneralNames(subjectAltName).getEncoded());
+                    new GeneralNames(subjectAltNames.toArray(new GeneralName[0])).getEncoded());
         }
         if (!permittedNameConstraints.isEmpty() || !excludedNameConstraints.isEmpty()) {
             x509cg.addExtension(Extension.nameConstraints, true,
