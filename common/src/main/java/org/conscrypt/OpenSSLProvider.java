@@ -178,6 +178,9 @@ public final class OpenSSLProvider extends Provider {
 
         putRAWRSASignatureImplClass("OpenSSLSignatureRawRSA");
 
+        // TODO: Enable
+        // putSignatureImplClass("NONEwithECDSA", "OpenSSLSignatureRawECDSA");
+
         putSignatureImplClass("SHA1withECDSA", "OpenSSLSignature$SHA1ECDSA");
         put("Alg.Alias.Signature.ECDSA", "SHA1withECDSA");
         put("Alg.Alias.Signature.ECDSAwithSHA1", "SHA1withECDSA");

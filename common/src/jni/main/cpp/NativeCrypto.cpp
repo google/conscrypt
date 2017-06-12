@@ -2082,6 +2082,116 @@ static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
     return outputLength;
 }
 
+static jint NativeCrypto_ECDSA_size(JNIEnv* env, jclass, jobject pkeyRef) {
+    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
+    JNI_TRACE("ECDSA_size(%p)", pkey);
+
+    if (pkey == nullptr) {
+        return 0;
+    }
+
+    bssl::UniquePtr<EC_KEY> ec_key(EVP_PKEY_get1_EC_KEY(pkey));
+    if (ec_key.get() == nullptr) {
+        Errors::jniThrowRuntimeException(env, "ECDSA_size failed");
+        return 0;
+    }
+
+    size_t size = ECDSA_size(ec_key.get());
+
+    JNI_TRACE("ECDSA_size(%p) => %zu", pkey, size);
+    return static_cast<jint>(size);
+}
+
+static jint NativeCrypto_ECDSA_sign(JNIEnv* env, jclass, jbyteArray data, jbyteArray sig,
+                                    jobject pkeyRef) {
+    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
+    JNI_TRACE("ECDSA_sign(%p, %p, %p)", data, sig, pkey);
+
+    if (pkey == nullptr) {
+        return -1;
+    }
+
+    bssl::UniquePtr<EC_KEY> ec_key(EVP_PKEY_get1_EC_KEY(pkey));
+    if (ec_key.get() == nullptr) {
+        return -1;
+    }
+
+    ScopedByteArrayRO data_array(env, data);
+    if (data_array.get() == nullptr) {
+        return -1;
+    }
+
+    ScopedByteArrayRW sig_array(env, sig);
+    if (sig_array.get() == nullptr) {
+        return -1;
+    }
+
+    unsigned int sig_size;
+    int result = ECDSA_sign(0, reinterpret_cast<const unsigned char*>(data_array.get()),
+                            data_array.size(), reinterpret_cast<unsigned char*>(sig_array.get()),
+                            &sig_size, ec_key.get());
+    if (result == 0) {
+        if (Errors::throwExceptionIfNecessary(env, "ECDSA_sign")) {
+            JNI_TRACE("ECDSA_sign => threw error");
+        }
+        return -1;
+    }
+
+    JNI_TRACE("ECDSA_sign(%p, %p, %p) => %d", data, sig, pkey, sig_size);
+    return static_cast<jint>(sig_size);
+}
+
+static jint NativeCrypto_ECDSA_verify(JNIEnv* env, jclass, jbyteArray data, jbyteArray sig,
+                                      jobject pkeyRef) {
+    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
+    JNI_TRACE("ECDSA_verify(%p, %p, %p)", data, sig, pkey);
+
+    if (pkey == nullptr) {
+        return -1;
+    }
+
+    bssl::UniquePtr<EC_KEY> ec_key(EVP_PKEY_get1_EC_KEY(pkey));
+    if (ec_key.get() == nullptr) {
+        return -1;
+    }
+
+    ScopedByteArrayRO data_array(env, data);
+    if (data_array.get() == nullptr) {
+        return -1;
+    }
+
+    ScopedByteArrayRO sig_array(env, sig);
+    if (sig_array.get() == nullptr) {
+        return -1;
+    }
+
+    int result =
+            ECDSA_verify(0, reinterpret_cast<const unsigned char*>(data_array.get()),
+                         data_array.size(), reinterpret_cast<const unsigned char*>(sig_array.get()),
+                         sig_array.size(), ec_key.get());
+
+    if (result == 0) {
+        unsigned long error = ERR_peek_last_error();
+        if ((ERR_GET_LIB(error) == ERR_LIB_ECDSA) &&
+            (ERR_GET_REASON(error) == ECDSA_R_BAD_SIGNATURE)) {
+            // This error just means the signature didn't verify, so clear the error and return
+            // a failed verification
+            ERR_clear_error();
+            JNI_TRACE("ECDSA_verify(%p, %p, %p) => %d", data, sig, pkey, result);
+            return 0;
+        }
+        if (Errors::throwExceptionIfNecessary(env, "ECDSA_verify")) {
+            JNI_TRACE("ECDSA_verify => threw error");
+        } else {
+            return 0;
+        }
+        return -1;
+    }
+
+    JNI_TRACE("ECDSA_verify(%p, %p, %p) => %d", data, sig, pkey, result);
+    return static_cast<jint>(result);
+}
+
 static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
     JNI_TRACE_MD("EVP_MD_CTX_create()");
 
@@ -9043,6 +9153,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EC_KEY_get_private_key, "(" REF_EVP_PKEY ")[B"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EC_KEY_get_public_key, "(" REF_EVP_PKEY ")J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ECDH_compute_key, "([BI" REF_EVP_PKEY REF_EVP_PKEY ")I"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, ECDSA_size, "(" REF_EVP_PKEY ")I"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, ECDSA_sign, "([B[B" REF_EVP_PKEY ")I"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, ECDSA_verify, "([B[B" REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_create, "()J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_cleanup, "(" REF_EVP_MD_CTX ")V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_MD_CTX_destroy, "(J)V"),
