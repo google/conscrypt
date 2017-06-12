@@ -522,6 +522,90 @@ public final class NativeCrypto {
 
     static native void ASN1_TIME_to_Calendar(long asn1TimeCtx, Calendar cal);
 
+    // --- ASN1 Encoding -------------------------------------------------------
+
+    /**
+     * Allocates and returns an opaque reference to an object that can be used with other
+     * asn1_read_* functions to read the ASN.1-encoded data in val.  The returned object must
+     * be freed after use by calling asn1_read_free.
+     */
+    static native long asn1_read_init(byte[] val);
+
+    /**
+     * Allocates and returns an opaque reference to an object that can be used with other
+     * asn1_read_* functions to read the ASN.1 sequence pointed to by cbsRef.  The returned
+     * object must be freed after use by calling asn1_read_free.
+     */
+    static native long asn1_read_sequence(long cbsRef) throws IOException;
+
+    /**
+     * Returns the contents of an ASN.1 octet string from the given reference.
+     */
+    static native byte[] asn1_read_octetstring(long cbsRef) throws IOException;
+
+    /**
+     * Returns an ASN.1 integer from the given reference.
+     */
+    static native long asn1_read_integer(long cbsRef) throws IOException;
+
+    /**
+     * Returns whether or not the given reference has been read completely.
+     */
+    static native boolean asn1_read_is_empty(long cbsRef);
+
+    /**
+     * Frees any resources associated with the given reference.  After calling, the reference
+     * must not be used again.  This may be called with a zero reference, in which case nothing
+     * will be done.
+     */
+    static native void asn1_read_free(long cbsRef);
+
+    /**
+     * Allocates and returns an opaque reference to an object that can be used with other
+     * asn1_write_* functions to write ASN.1-encoded data.  The returned object must be finalized
+     * after use by calling either asn1_write_finish or asn1_write_cleanup, and its resources
+     * must be freed by calling asn1_write_free.
+     */
+    static native long asn1_write_init() throws IOException;
+
+    /**
+     * Allocates and returns an opaque reference to an object that can be used with other
+     * asn1_write_* functions to write an ASN.1 sequence into the given reference.  The returned
+     * reference may only be used until the next call on the parent reference.  The returned
+     * object must be freed after use by calling asn1_write_free.
+     */
+    static native long asn1_write_sequence(long cbbRef) throws IOException;
+
+    /**
+     * Writes the given data into the given reference as an ASN.1-encoded octet string.
+     */
+    static native void asn1_write_octetstring(long cbbRef, byte[] data) throws IOException;
+
+    /**
+     * Writes the given value into the given reference as an ASN.1-encoded integer.
+     */
+    static native void asn1_write_integer(long cbbRef, long value) throws IOException;
+
+    /**
+     * Completes any in-progress operations and returns the ASN.1-encoded data.  Either this
+     * or asn1_write_cleanup must be called on any reference returned from asn1_write_init
+     * before it is freed.
+     */
+    static native byte[] asn1_write_finish(long cbbRef) throws IOException;
+
+    /**
+     * Cleans up intermediate state in the given reference.  Either this or asn1_write_finish
+     * must be called on any reference returned from asn1_write_init before it is freed.
+     */
+    static native void asn1_write_cleanup(long cbbRef);
+
+    /**
+     * Frees resources associated with the given reference.  After calling, the reference
+     * must not be used again.  This may be called with a zero reference, in which case nothing
+     * will be done.
+     */
+    static native void asn1_write_free(long cbbRef);
+
     // --- BIO stream creation -------------------------------------------------
 
     static native long create_BIO_InputStream(OpenSSLBIOInputStream is, boolean isFinite);
