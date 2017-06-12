@@ -1700,7 +1700,6 @@ public class SSLSocketTest extends AbstractSSLTest {
         // Schedule the socket to be closes in 1 second.
         Future<Void> future = runAsync(() -> {
             Thread.sleep(1000);
-            toClose.shutdownInput();
             toClose.close();
             return null;
         });
@@ -1708,17 +1707,10 @@ public class SSLSocketTest extends AbstractSSLTest {
         // Read from the socket.
         try {
             toRead.setSoTimeout(readingTimeoutMillis);
-            final InputStream inputStream = toRead.getInputStream();
-            int value = inputStream.read();
-            if (isConscryptSocket(clientWrapping)) {
-                // TODO(nmittler): Conscrypt socket read may return -1 instead of SocketException.
-                assertEquals(-1, value);
-            } else {
-                // For any other socket type, we should expect SocketException.
-                fail();
-            }
-        } catch (SocketException e) {
-            // Otherwise, ignore the exception since it's expected.
+            toRead.getInputStream().read();
+            fail();
+        } catch (SocketException expected) {
+            // Expected
         }
 
         future.get();
@@ -1748,18 +1740,10 @@ public class SSLSocketTest extends AbstractSSLTest {
             wrapping.startHandshake();
             try {
                 wrapping.setSoTimeout(readingTimeoutMillis);
-                int ret = wrapping.getInputStream().read();
-                // Android returns -1 rather than throwing.
-                if (isConscryptSocket(wrapping)) {
-                    // TODO(nmittler): Conscrypt socket read may return -1 instead of
-                    // SocketException.
-                    assertEquals(-1, ret);
-                } else {
-                    // For any other socket type, we should expect SocketException.
-                    fail();
-                }
-            } catch (SocketException e) {
-                // Otherwise, ignore the exception since it's expected.
+                wrapping.getInputStream().read();
+                fail();
+            } catch (SocketException expected) {
+                // Expected
             }
             return null;
         });
