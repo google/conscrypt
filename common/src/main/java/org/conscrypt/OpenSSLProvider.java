@@ -99,8 +99,6 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.MessageDigest.1.2.840.113549.2.5", "MD5");
 
         /* == KeyGenerators == */
-        // TODO: Enable
-        /*
         put("KeyGenerator.AES", PREFIX + "KeyGeneratorImpl$AES");
 
         put("KeyGenerator.DESEDE", PREFIX + "KeyGeneratorImpl$DESEDE");
@@ -137,7 +135,6 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.KeyGenerator.1.2.840.113549.2.11", "HmacSHA512");
         put("Alg.Alias.KeyGenerator.HMAC-SHA512", "HmacSHA512");
         put("Alg.Alias.KeyGenerator.HMAC/SHA512", "HmacSHA512");
-        */
 
         /* == KeyPairGenerators == */
         put("KeyPairGenerator.RSA", PREFIX + "OpenSSLRSAKeyPairGenerator");
@@ -219,8 +216,7 @@ public final class OpenSSLProvider extends Provider {
 
         putRAWRSASignatureImplClass("OpenSSLSignatureRawRSA");
 
-        // TODO: Enable
-        // putSignatureImplClass("NONEwithECDSA", "OpenSSLSignatureRawECDSA");
+        putSignatureImplClass("NONEwithECDSA", "OpenSSLSignatureRawECDSA");
 
         putSignatureImplClass("SHA1withECDSA", "OpenSSLSignature$SHA1ECDSA");
         put("Alg.Alias.Signature.ECDSA", "SHA1withECDSA");
