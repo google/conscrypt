@@ -56,3 +56,7 @@ dependencies {
 idea.module {
     scopes.PROVIDED.plus += [ configurations.jmh, configurations.jmhGenerators ]
 }
+
+// Don't include this artifact in the distribution.
+tasks.install.enabled = false
+tasks.uploadArchives.enabled = false;

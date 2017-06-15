@@ -58,11 +58,11 @@ subprojects {
         }
 
         boringsslHome = "$System.env.BORINGSSL_HOME"
-        boringsslIncludeDir = "$boringsslHome/include"
-        boringssl32BuildDir = "$boringsslHome/build32"
-        boringssl64BuildDir = "$boringsslHome/build64"
+        boringsslIncludeDir = normalizePath("$boringsslHome/include")
+        boringssl32BuildDir = normalizePath("$boringsslHome/build32")
+        boringssl64BuildDir = normalizePath("$boringsslHome/build64")
         jdkHome = "$System.env.JAVA_HOME"
-        jdkIncludeDir = "$jdkHome/include"
+        jdkIncludeDir = normalizePath("$jdkHome/include")
         // Needs to be binary compatible with androidMinSdkVersion
         androidMinJavaVersion = JavaVersion.VERSION_1_7
 
@@ -233,4 +233,8 @@ subprojects {
             maxHeapSize = '1500m'
         }
     }
+}
+
+static String normalizePath(path) {
+    new File(path.toString()).absolutePath
 }

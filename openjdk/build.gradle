@@ -186,7 +186,7 @@ def addNativeTest(nativeClassifier) {
     def testTaskName = "${testSourceSet.name}"
     def javaExecutable
     def javaArchFlag
-    if (testSourceSet.name.endsWith(arch32Name)) {
+    if (testSourceSet.name.endsWith("${arch32Name}Test")) {
         // 32-bit test
         javaExecutable = javaExecutable32 != null ? javaExecutable32 : test.executable
         javaArchFlag = '-d32'
@@ -268,11 +268,13 @@ model {
                     cppCompiler.define "CONSCRYPT_OPENJDK"
 
                     // Set up 32-bit vs 64-bit build
+                    def building64Bit = false
                     def libPath
                     if (targetPlatform.getArchitecture().getName() == "x86") {
                         libPath = "$boringssl32BuildDir"
                     } else if (targetPlatform.getArchitecture().getName() == "x86-64") {
                         libPath = "$boringssl64BuildDir"
+                        building64Bit = true
                     } else {
                         throw new GradleException("Unknown architecture: " +
                                 targetPlatform.getArchitecture().name)
@@ -300,7 +302,9 @@ model {
                     } else if (toolChain in VisualCpp) {
                         cppCompiler.define "DLL_EXPORT"
                         cppCompiler.define "WIN32_LEAN_AND_MEAN"
-                        cppCompiler.define "WIN64"
+                        if (building64Bit) {
+                            cppCompiler.define "WIN64"
+                        }
                         cppCompiler.define "_WINDOWS"
                         cppCompiler.define "UNICODE"
                         cppCompiler.define "_UNICODE"
@@ -337,8 +341,8 @@ model {
                         linker.args "-WX",
                                 "ws2_32.lib",
                                 "advapi32.lib",
-                                libPath + "\\ssl\\ssl.lib",
-                                libPath + "\\crypto\\crypto.lib"
+                                "${libPath}\\ssl\\ssl.lib",
+                                "${libPath}\\crypto\\crypto.lib"
                     }
                 }
 
