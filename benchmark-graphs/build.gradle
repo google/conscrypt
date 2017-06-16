@@ -6,3 +6,7 @@ dependencies {
 }
 
 mainClassName = 'org.conscrypt.graphgen.Main'
+
+// Don't include this artifact in the distribution.
+tasks.install.enabled = false
+tasks.uploadArchives.enabled = false;

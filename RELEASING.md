@@ -188,8 +188,16 @@ As stated above, this only needs to be done once for one of the selected OS/arch
 The following command will build the whole project and upload it to Maven
 Central. Parallel building [is not safe during
 uploadArchives](https://issues.gradle.org/browse/GRADLE-3420).
+
+**Linux/Mac:**
 ```bash
 conscrypt$ ./gradlew build && ./gradlew -Dorg.gradle.parallel=false uploadArchives
+```
+
+**Windows:**
+```bat
+C:\conscrypt>gradlew build && gradlew -Dorg.gradle.parallel=false uploadArchives
+
 ```
 
 If the version has the `-SNAPSHOT` suffix, the artifacts will automatically
@@ -201,18 +209,23 @@ The previous step will only deploy the artifacts for the OS you run on
 it and the architecture of your JVM. For a fully fledged deployment, you will
 need to deploy for each supported OS/architecture.
 
-To deploy the codegen for an OS and architecture, you must run the following
-commands on that OS and specify the architecture by the flag `-PtargetArch=<arch>`.
-
 When deploying a Release, the first deployment will create
 [a new staging repository](https://oss.sonatype.org/#stagingRepositories). You'll need
 to look up the ID in the OSSRH UI (usually in the form of `orgconscrypt-*`). Codegen
 deployment commands should include `-PrepositoryId=<repository-id>` in order to
 ensure that the artifacts are pushed to the same staging repository.
 
+**Linux/Mac:**
 ```bash
-conscrypt$ ./gradlew build conscrypt-openjdk:uploadArchives \
-    -Dorg.gradle.parallel=false -PrepositoryId=<repository-id>
+conscrypt$ ./gradlew build && ./gradlew -Dorg.gradle.parallel=false \
+    conscrypt-openjdk:uploadArchives -PrepositoryId=<repository-id>
+```
+
+**Windows:**
+```bat
+C:\conscrypt>gradlew build && gradlew -Dorg.gradle.parallel=false ^
+             conscrypt-openjdk:uploadArchives -PrepositoryId=<repository-id>
+
 ```
 
 Now finish [Releasing on Maven Central](#releasing-on-maven-central).
@@ -221,6 +234,7 @@ Now finish [Releasing on Maven Central](#releasing-on-maven-central).
 Once all of the native JARs appear on Maven Central, you can build and deploy
 the Uber JAR that contains all of them.
 
+**Linux/Mac:**
 ```bash
 conscrypt$ ./gradlew conscrypt-openjdk-uber:build \
            -Dorg.conscrypt.openjdk.buildUberJar=true
@@ -228,6 +242,17 @@ conscrypt$ ./gradlew conscrypt-openjdk-uber:build \
 conscrypt$ ./gradlew conscrypt-openjdk-uber:uploadArchives \
            -Dorg.gradle.parallel=false \
            -Dorg.conscrypt.openjdk.buildUberJar=true
+```
+
+**Windows:**
+```bat
+C:\conscrypt>gradlew conscrypt-openjdk-uber:build ^
+             -Dorg.conscrypt.openjdk.buildUberJar=true
+
+C:\conscrypt>gradlew conscrypt-openjdk-uber:uploadArchives ^
+             -Dorg.gradle.parallel=false ^
+             -Dorg.conscrypt.openjdk.buildUberJar=true
+
 ```
 
 This will create
