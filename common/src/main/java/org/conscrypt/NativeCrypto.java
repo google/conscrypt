@@ -1028,8 +1028,6 @@ public final class NativeCrypto {
 
     static native String SSL_SESSION_cipher(long sslSessionNativePointer);
 
-    static native String get_SSL_SESSION_tlsext_hostname(long sslSessionNativePointer);
-
     static native void SSL_SESSION_free(long sslSessionNativePointer);
 
     static native byte[] i2d_SSL_SESSION(long sslSessionNativePointer);
@@ -1265,7 +1263,4 @@ public final class NativeCrypto {
     static native long SSL_get_options(long ssl);
     static native long SSL_get1_session(long ssl);
     static native void SSL_renegotiate(long sslNativePointer) throws SSLException;
-    static native long SSL_SESSION_new(long sslContextNativePointer);
-    static native int SSL_SESSION_up_ref(long sslContextNativePointer);
-    static native long SSL_SESSION_set_time(long sslSessionNativePointer, long millis);
 }

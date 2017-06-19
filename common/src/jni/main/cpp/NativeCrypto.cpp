@@ -7945,19 +7945,6 @@ static jstring NativeCrypto_SSL_SESSION_cipher(JNIEnv* env, jclass, jlong ssl_se
     return env->NewStringUTF(name);
 }
 
-static jstring NativeCrypto_get_SSL_SESSION_tlsext_hostname(JNIEnv* env, jclass, jlong sessionJava) {
-    SSL_SESSION* ssl_session = to_SSL_SESSION(env, sessionJava, true);
-    JNI_TRACE("ssl_session=%p NativeCrypto_get_SSL_SESSION_tlsext_hostname", ssl_session);
-    if (ssl_session == nullptr || ssl_session->tlsext_hostname == nullptr) {
-        JNI_TRACE("ssl_session=%p NativeCrypto_get_SSL_SESSION_tlsext_hostname => null",
-                  ssl_session);
-        return nullptr;
-    }
-    JNI_TRACE("ssl_session=%p NativeCrypto_get_SSL_SESSION_tlsext_hostname => \"%s\"",
-              ssl_session, ssl_session->tlsext_hostname);
-    return env->NewStringUTF(ssl_session->tlsext_hostname);
-}
-
 /**
  * Frees the SSL session.
  */
@@ -9181,43 +9168,6 @@ static void NativeCrypto_SSL_renegotiate(JNIEnv* env, jclass, jlong ssl_address)
     JNI_TRACE("ssl=%p NativeCrypto_SSL_renegotiate => OK", ssl);
 }
 
-static jlong NativeCrypto_SSL_SESSION_new(JNIEnv* env, jclass, jlong ssl_ctx_address)
-{
-    SSL_CTX* ctx = to_SSL_CTX(env, ssl_ctx_address, true);
-    JNI_TRACE("ctx=%p NativeCrypto_SSL_SESSION_new", ctx);
-    if (ctx == nullptr) {
-        return 0;
-    }
-    bssl::UniquePtr<SSL_SESSION> session(SSL_SESSION_new(ctx));
-    if (session.get() == nullptr) {
-      Errors::throwExceptionIfNecessary(env, "SSL_SESSION_new");
-      return 0;
-    }
-    JNI_TRACE("NativeCrypto_SSL_SESSION_new => %p", session.get());
-    return (jlong) session.release();
-}
-
-static jint NativeCrypto_SSL_SESSION_up_ref(JNIEnv* env, jclass, jlong ssl_session_address) {
-    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
-    JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_set_time", ssl_session);
-    if (ssl_session == nullptr) {
-        return 0;
-    }
-
-    return SSL_SESSION_up_ref(ssl_session);
-}
-
-static jlong NativeCrypto_SSL_SESSION_set_time(JNIEnv* env, jclass, jlong ssl_session_address, jlong millis) {
-    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
-    JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_set_time", ssl_session);
-    if (ssl_session == nullptr) {
-        return 0;
-    }
-    // OpenSSL uses seconds, Java uses milliseconds.
-    long seconds = millis / 1000;
-    return SSL_SESSION_set_time(ssl_session, seconds) * 1000;
-}
-
 // TESTING METHODS END
 
 #define CONSCRYPT_NATIVE_METHOD(className, functionName, signature) \
@@ -9469,7 +9419,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_session_id, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_SESSION_get_version, "(J)Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_SESSION_cipher, "(J)Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, get_SSL_SESSION_tlsext_hostname, "(J)Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_SESSION_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, i2d_SSL_SESSION, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, d2i_SSL_SESSION, "([B)J"),
@@ -9507,9 +9456,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_options, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get1_session, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_renegotiate, "(J)V"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_SESSION_new, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_SESSION_up_ref, "(J)I"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_SESSION_set_time, "(JJ)J"),
 };
 
 void NativeCrypto::registerNativeMethods(JNIEnv* env) {

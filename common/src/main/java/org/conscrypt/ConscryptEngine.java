@@ -1372,14 +1372,17 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public boolean onNewSessionEstablished(long sslSessionNativePtr) {
+        SslSessionWrapper sessionWrapper;
         try {
-            // Cache the newly established session.
-            AbstractSessionContext ctx = sessionContext();
-            ctx.cacheSession(SslSessionWrapper.newInstance(sslSessionNativePtr, sslSession));
-            return true;
-        } catch (Exception ignored) {
+            sessionWrapper = SslSessionWrapper.newInstance(sslSessionNativePtr, sslSession);
+        } catch (Throwable e) {
             return false;
         }
+
+        // Cache the newly established session.
+        AbstractSessionContext ctx = sessionContext();
+        ctx.cacheSession(sessionWrapper);
+        return true;
     }
 
     @Override
