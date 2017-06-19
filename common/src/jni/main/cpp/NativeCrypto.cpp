@@ -5678,8 +5678,7 @@ static int new_session_callback(SSL* ssl, SSL_SESSION* session) {
     jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
     jmethodID methodID = env->GetMethodID(cls, "onNewSessionEstablished", "(J)V");
     JNI_TRACE("ssl=%p new_session_callback calling onNewSessionEstablished", ssl);
-    env->CallBooleanMethod(sslHandshakeCallbacks, methodID,
-                                          reinterpret_cast<jlong>(session));
+    env->CallVoidMethod(sslHandshakeCallbacks, methodID, reinterpret_cast<jlong>(session));
     if (env->ExceptionCheck()) {
         JNI_TRACE("ssl=%p new_session_callback exception cleared", ssl);
         env->ExceptionClear();

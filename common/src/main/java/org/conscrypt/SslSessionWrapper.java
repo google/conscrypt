@@ -46,18 +46,18 @@ abstract class SslSessionWrapper {
      * session information via the SSL_SESSION, we get some values (e.g. peer certs) from
      * the active session instead (i.e. the SSL object).
      */
-    static SslSessionWrapper newInstance(long sslSessionNativePointer, ActiveSession activeSession)
+    static SslSessionWrapper newInstance(NativeRef.SSL_SESSION ref, ActiveSession activeSession)
             throws SSLPeerUnverifiedException {
         AbstractSessionContext context = (AbstractSessionContext) activeSession.getSessionContext();
         if (context instanceof ClientSessionContext) {
-            return new Impl(context, sslSessionNativePointer, activeSession.getPeerHost(),
+            return new Impl(context, ref, activeSession.getPeerHost(),
                     activeSession.getPeerPort(), activeSession.getPeerCertificates(),
                     getOcspResponse(activeSession),
                     activeSession.getPeerSignedCertificateTimestamp());
         }
 
         // Server's will be cached by ID and won't have any of the extra fields.
-        return new Impl(context, sslSessionNativePointer, null, -1, null, null, null);
+        return new Impl(context, ref, null, -1, null, null, null);
     }
 
     private static byte[] getOcspResponse(ActiveSession activeSession) {
@@ -147,9 +147,9 @@ abstract class SslSessionWrapper {
                 return null;
             }
 
-            long sslSessionNativePointer = NativeCrypto.d2i_SSL_SESSION(sessionData);
-            return new Impl(
-                    context, sslSessionNativePointer, host, port, peerCerts, ocspData, tlsSctData);
+            NativeRef.SSL_SESSION ref =
+                    new NativeRef.SSL_SESSION(NativeCrypto.d2i_SSL_SESSION(sessionData));
+            return new Impl(context, ref, host, port, peerCerts, ocspData, tlsSctData);
         } catch (IOException e) {
             log(e);
             return null;
@@ -207,7 +207,7 @@ abstract class SslSessionWrapper {
      * The session wrapper implementation.
      */
     private static final class Impl extends SslSessionWrapper {
-        private final long sslSessionNativePointer;
+        private final NativeRef.SSL_SESSION ref;
 
         // BoringSSL offers no API to obtain these values directly from the SSL_SESSION.
         private final AbstractSessionContext context;
@@ -219,7 +219,7 @@ abstract class SslSessionWrapper {
         private final byte[] peerOcspStapledResponse;
         private final byte[] peerSignedCertificateTimestamp;
 
-        private Impl(AbstractSessionContext context, long sslSessionNativePointer, String host,
+        private Impl(AbstractSessionContext context, NativeRef.SSL_SESSION ref, String host,
                 int port, java.security.cert.X509Certificate[] peerCertificates,
                 byte[] peerOcspStapledResponse, byte[] peerSignedCertificateTimestamp) {
             this.context = context;
@@ -228,23 +228,19 @@ abstract class SslSessionWrapper {
             this.peerCertificates = peerCertificates;
             this.peerOcspStapledResponse = peerOcspStapledResponse;
             this.peerSignedCertificateTimestamp = peerSignedCertificateTimestamp;
-            this.protocol = NativeCrypto.SSL_SESSION_get_version(sslSessionNativePointer);
+            this.protocol = NativeCrypto.SSL_SESSION_get_version(ref.context);
             this.cipherSuite = SSLUtils.getCipherSuiteFromName(
-                    NativeCrypto.SSL_SESSION_cipher(sslSessionNativePointer));
-
-            // Need to set the native pointer last to guarantee successful construction and
-            // that this class has taken ownership of the SSL_SESSION. The finalizer will
-            // use this value to determine whether it is safe to free the SSL_SESSION.
-            this.sslSessionNativePointer = sslSessionNativePointer;
+                    NativeCrypto.SSL_SESSION_cipher(ref.context));
+            this.ref = ref;
         }
 
         @Override
         byte[] getId() {
-            return NativeCrypto.SSL_SESSION_session_id(sslSessionNativePointer);
+            return NativeCrypto.SSL_SESSION_session_id(ref.context);
         }
 
         private long getCreationTime() {
-            return NativeCrypto.SSL_SESSION_get_time(sslSessionNativePointer);
+            return NativeCrypto.SSL_SESSION_get_time(ref.context);
         }
 
         @Override
@@ -254,14 +250,14 @@ abstract class SslSessionWrapper {
             long timeoutMillis =
                     Math.max(0,
                             Math.min(context.getSessionTimeout(),
-                                    NativeCrypto.SSL_SESSION_get_timeout(sslSessionNativePointer)))
+                                    NativeCrypto.SSL_SESSION_get_timeout(ref.context)))
                     * 1000;
             return (System.currentTimeMillis() - timeoutMillis) < creationTimeMillis;
         }
 
         @Override
         void offerToResume(SslWrapper ssl) throws SSLException {
-            ssl.offerToResumeSession(sslSessionNativePointer);
+            ssl.offerToResumeSession(ref.context);
         }
 
         @Override
@@ -303,7 +299,7 @@ abstract class SslSessionWrapper {
                 daos.writeInt(OPEN_SSL_WITH_TLS_SCT.value); // session type ID
 
                 // Session data.
-                byte[] data = NativeCrypto.i2d_SSL_SESSION(sslSessionNativePointer);
+                byte[] data = NativeCrypto.i2d_SSL_SESSION(ref.context);
                 daos.writeInt(data.length);
                 daos.write(data);
 
@@ -455,19 +451,6 @@ abstract class SslSessionWrapper {
                     throw new UnsupportedOperationException();
                 }
             };
-        }
-
-        @Override
-        protected void finalize() throws Throwable {
-            try {
-                // The constructor can throw an exception if this object is constructed from invalid
-                // saved session data.
-                if (sslSessionNativePointer != 0) {
-                    NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
-                }
-            } finally {
-                super.finalize();
-            }
         }
     }
 

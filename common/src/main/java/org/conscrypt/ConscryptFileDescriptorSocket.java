@@ -43,6 +43,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.NativeRef.SSL_SESSION;
 
 /**
  * Implementation of the class OpenSSLSocketImpl based on OpenSSL.
@@ -351,21 +352,28 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     @Override
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / new_session_callback
     public void onNewSessionEstablished(long sslSessionNativePtr) {
+        // Increment the reference count to "take ownership" of the session resource.
         NativeCrypto.SSL_SESSION_up_ref(sslSessionNativePtr);
-        SslSessionWrapper sessionWrapper;
+
+        // Create a native reference which will release the SSL_SESSION in its finalizer.
+        NativeRef.SSL_SESSION ref;
         try {
-            sessionWrapper =
-                SslSessionWrapper.newInstance(sslSessionNativePtr, sslSession);
-        } catch (Exception ignored) {
-            // Failed constructing the wrapper. Its finalizer will not release the reference, so
-            // we need to here.
+            ref = new SSL_SESSION(sslSessionNativePtr);
+        } catch (Throwable e) {
+            // Failed constructing the reference, need to manually release it.
             NativeCrypto.SSL_SESSION_free(sslSessionNativePtr);
             return;
         }
 
-        // Cache the newly established session.
-        AbstractSessionContext ctx = sessionContext();
-        ctx.cacheSession(sessionWrapper);
+        try {
+            SslSessionWrapper sessionWrapper = SslSessionWrapper.newInstance(ref, sslSession);
+
+            // Cache the newly established session.
+            AbstractSessionContext ctx = sessionContext();
+            ctx.cacheSession(sessionWrapper);
+        } catch (Exception ignored) {
+            // Ignore.
+        }
     }
 
     @Override
