@@ -1373,20 +1373,15 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public void onNewSessionEstablished(long sslSessionNativePtr) {
-        // Increment the reference count to "take ownership" of the session resource.
-        NativeCrypto.SSL_SESSION_up_ref(sslSessionNativePtr);
-
-        // Create a native reference which will release the SSL_SESSION in its finalizer.
-        NativeRef.SSL_SESSION ref;
         try {
-            ref = new SSL_SESSION(sslSessionNativePtr);
-        } catch (Throwable e) {
-            // Failed constructing the reference, need to manually release it.
-            NativeCrypto.SSL_SESSION_free(sslSessionNativePtr);
-            return;
-        }
+            // Increment the reference count to "take ownership" of the session resource.
+            NativeCrypto.SSL_SESSION_up_ref(sslSessionNativePtr);
 
-        try {
+            // Create a native reference which will release the SSL_SESSION in its finalizer.
+            // This constructor will only throw if the native pointer passed in is NULL, which
+            // BoringSSL guarantees will not happen.
+            NativeRef.SSL_SESSION ref = new SSL_SESSION(sslSessionNativePtr);
+
             SslSessionWrapper sessionWrapper = SslSessionWrapper.newInstance(ref, sslSession);
 
             // Cache the newly established session.
