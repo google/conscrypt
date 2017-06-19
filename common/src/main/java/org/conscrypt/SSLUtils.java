@@ -41,8 +41,14 @@ import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
 import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
 import java.nio.ByteBuffer;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
+import java.util.HashSet;
+import java.util.Set;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.security.cert.CertificateException;
 
 /**
  * Utility methods for SSL packet processing. Copied from the Netty project.
@@ -53,6 +59,35 @@ final class SSLUtils {
     static final boolean USE_ENGINE_SOCKET_BY_DEFAULT = Boolean.parseBoolean(
             System.getProperty("org.conscrypt.useEngineSocketByDefault", "false"));
     private static final int MAX_PROTOCOL_LENGTH = 255;
+
+    // TODO(nathanmittler): Should these be in NativeConstants?
+    enum SessionType {
+        /**
+         * Identifies OpenSSL sessions.
+         */
+        OPEN_SSL(1),
+
+        /**
+         * Identifies OpenSSL sessions with OCSP stapled data.
+         */
+        OPEN_SSL_WITH_OCSP(2),
+
+        /**
+         * Identifies OpenSSL sessions with TLS SCT data.
+         */
+        OPEN_SSL_WITH_TLS_SCT(3);
+
+        SessionType(int value) {
+            this.value = value;
+        }
+
+        static final boolean isSupportedType(int type) {
+            return type == OPEN_SSL.value || type == OPEN_SSL_WITH_OCSP.value
+                    || type == OPEN_SSL_WITH_TLS_SCT.value;
+        }
+
+        final int value;
+    }
 
     /**
      * States for SSL engines.
@@ -129,6 +164,135 @@ final class SSLUtils {
 
     private static final int MAX_ENCRYPTION_OVERHEAD_DIFF =
             Integer.MAX_VALUE - MAX_ENCRYPTION_OVERHEAD_LENGTH;
+
+    /** Key type: RSA certificate. */
+    private static final String KEY_TYPE_RSA = "RSA";
+
+    /** Key type: Diffie-Hellman certificate signed by issuer with RSA signature. */
+    private static final String KEY_TYPE_DH_RSA = "DH_RSA";
+
+    /** Key type: Elliptic Curve certificate. */
+    private static final String KEY_TYPE_EC = "EC";
+
+    /** Key type: Elliptic Curve certificate signed by issuer with ECDSA signature. */
+    private static final String KEY_TYPE_EC_EC = "EC_EC";
+
+    /** Key type: Elliptic Curve certificate signed by issuer with RSA signature. */
+    private static final String KEY_TYPE_EC_RSA = "EC_RSA";
+
+    /**
+     * Returns key type constant suitable for calling X509KeyManager.chooseServerAlias or
+     * X509ExtendedKeyManager.chooseEngineServerAlias. Returns {@code null} for key exchanges that
+     * do not use X.509 for server authentication.
+     */
+    static String getServerX509KeyType(long sslCipherNative) throws SSLException {
+        String kx_name = NativeCrypto.SSL_CIPHER_get_kx_name(sslCipherNative);
+        if (kx_name.equals("RSA") || kx_name.equals("DHE_RSA") || kx_name.equals("ECDHE_RSA")) {
+            return KEY_TYPE_RSA;
+        } else if (kx_name.equals("ECDHE_ECDSA")) {
+            return KEY_TYPE_EC;
+        } else if (kx_name.equals("ECDH_RSA")) {
+            return KEY_TYPE_EC_RSA;
+        } else if (kx_name.equals("ECDH_ECDSA")) {
+            return KEY_TYPE_EC_EC;
+        } else if (kx_name.equals("DH_RSA")) {
+            return KEY_TYPE_DH_RSA;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Similar to getServerKeyType, but returns value given TLS
+     * ClientCertificateType byte values from a CertificateRequest
+     * message for use with X509KeyManager.chooseClientAlias or
+     * X509ExtendedKeyManager.chooseEngineClientAlias.
+     * <p>
+     * Visible for testing.
+     */
+    static String getClientKeyType(byte clientCertificateType) {
+        // See also http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
+        switch (clientCertificateType) {
+            case NativeConstants.TLS_CT_RSA_SIGN:
+                return KEY_TYPE_RSA; // RFC rsa_sign
+            case NativeConstants.TLS_CT_RSA_FIXED_DH:
+                return KEY_TYPE_DH_RSA; // RFC rsa_fixed_dh
+            case NativeConstants.TLS_CT_ECDSA_SIGN:
+                return KEY_TYPE_EC; // RFC ecdsa_sign
+            case NativeConstants.TLS_CT_RSA_FIXED_ECDH:
+                return KEY_TYPE_EC_RSA; // RFC rsa_fixed_ecdh
+            case NativeConstants.TLS_CT_ECDSA_FIXED_ECDH:
+                return KEY_TYPE_EC_EC; // RFC ecdsa_fixed_ecdh
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Gets the supported key types for client certificates based on the
+     * {@code ClientCertificateType} values provided by the server.
+     *
+     * @param clientCertificateTypes {@code ClientCertificateType} values provided by the server.
+     *        See https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml.
+     * @return supported key types that can be used in {@code X509KeyManager.chooseClientAlias} and
+     *         {@code X509ExtendedKeyManager.chooseEngineClientAlias}.
+     *
+     * Visible for testing.
+     */
+    static Set<String> getSupportedClientKeyTypes(byte[] clientCertificateTypes) {
+        Set<String> result = new HashSet<String>(clientCertificateTypes.length);
+        for (byte keyTypeCode : clientCertificateTypes) {
+            String keyType = SSLUtils.getClientKeyType(keyTypeCode);
+            if (keyType == null) {
+                // Unsupported client key type -- ignore
+                continue;
+            }
+            result.add(keyType);
+        }
+        return result;
+    }
+
+    static byte[][] encodeIssuerX509Principals(X509Certificate[] certificates)
+            throws CertificateEncodingException {
+        byte[][] principalBytes = new byte[certificates.length][];
+        for (int i = 0; i < certificates.length; i++) {
+            principalBytes[i] = certificates[i].getIssuerX500Principal().getEncoded();
+        }
+        return principalBytes;
+    }
+
+    static String getCipherSuiteFromName(String name) {
+        String cipherSuite = name;
+        if (name != null) {
+            cipherSuite = NativeCrypto.OPENSSL_TO_STANDARD_CIPHER_SUITES.get(name);
+        }
+        return cipherSuite != null ? cipherSuite : SSLNullSession.INVALID_CIPHER;
+    }
+
+    /**
+     * Converts the peer certificates into a cert chain.
+     */
+    static javax.security.cert.X509Certificate[] toCertificateChain(X509Certificate[] certificates)
+            throws SSLPeerUnverifiedException {
+        try {
+            javax.security.cert.X509Certificate[] chain =
+                    new javax.security.cert.X509Certificate[certificates.length];
+
+            for (int i = 0; i < certificates.length; i++) {
+                byte[] encoded = certificates[i].getEncoded();
+                chain[i] = javax.security.cert.X509Certificate.getInstance(encoded);
+            }
+            return chain;
+        } catch (CertificateEncodingException e) {
+            SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
+            exception.initCause(exception);
+            throw exception;
+        } catch (CertificateException e) {
+            SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
+            exception.initCause(exception);
+            throw exception;
+        }
+    }
 
     /**
      * Calculates the minimum bytes required in the encrypted output buffer for the given number of

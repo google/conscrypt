@@ -17,7 +17,8 @@
 package org.conscrypt;
 
 import java.util.HashMap;
-import javax.net.ssl.SSLSession;
+import java.util.Map;
+import javax.net.ssl.SSLContext;
 
 /**
  * Caches client sessions. Indexes by host and port. Users are typically
@@ -26,39 +27,70 @@ import javax.net.ssl.SSLSession;
  * @hide
  */
 @Internal
-public class ClientSessionContext extends AbstractSessionContext {
-
+public final class ClientSessionContext extends AbstractSessionContext {
     /**
      * Sessions indexed by host and port. Protect from concurrent
      * access by holding a lock on sessionsByHostAndPort.
      */
-    private final HashMap<HostAndPort, SSLSession> sessionsByHostAndPort = new HashMap<>();
+    @SuppressWarnings("serial")
+    private final Map<HostAndPort, SslSessionWrapper> sessionsByHostAndPort = new HashMap<>();
 
     private SSLClientSessionCache persistentCache;
 
-    public ClientSessionContext() {
+    ClientSessionContext() {
         super(10);
     }
 
-    public int size() {
-        return sessionsByHostAndPort.size();
-    }
-
+    /**
+     * Applications should not use this method. Instead use {@link
+     * Conscrypt.Contexts#setClientSessionCache(SSLContext, SSLClientSessionCache)}.
+     */
     public void setPersistentCache(SSLClientSessionCache persistentCache) {
         this.persistentCache = persistentCache;
     }
 
-    @Override
-    protected void sessionRemoved(SSLSession session) {
-        String host = session.getPeerHost();
-        int port = session.getPeerPort();
-        if (host == null) {
-            return;
+    /**
+     * Gets the suitable session reference from the session cache container.
+     */
+    SslSessionWrapper getCachedSession(String hostName, int port, SSLParametersImpl sslParameters) {
+        if (hostName == null) {
+            return null;
         }
-        HostAndPort hostAndPortKey = new HostAndPort(host, port);
-        synchronized (sessionsByHostAndPort) {
-            sessionsByHostAndPort.remove(hostAndPortKey);
+
+        SslSessionWrapper session = getSession(hostName, port);
+        if (session == null) {
+            return null;
         }
+
+        String protocol = session.getProtocol();
+        boolean protocolFound = false;
+        for (String enabledProtocol : sslParameters.enabledProtocols) {
+            if (protocol.equals(enabledProtocol)) {
+                protocolFound = true;
+                break;
+            }
+        }
+        if (!protocolFound) {
+            return null;
+        }
+
+        String cipherSuite = session.getCipherSuite();
+        boolean cipherSuiteFound = false;
+        for (String enabledCipherSuite : sslParameters.enabledCipherSuites) {
+            if (cipherSuite.equals(enabledCipherSuite)) {
+                cipherSuiteFound = true;
+                break;
+            }
+        }
+        if (!cipherSuiteFound) {
+            return null;
+        }
+
+        return session;
+    }
+
+    int size() {
+        return sessionsByHostAndPort.size();
     }
 
     /**
@@ -68,30 +100,30 @@ public class ClientSessionContext extends AbstractSessionContext {
      * @param port of server
      * @return cached session or null if none found
      */
-    public SSLSession getSession(String host, int port) {
+    private SslSessionWrapper getSession(String host, int port) {
         if (host == null) {
             return null;
         }
-        SSLSession session;
-        HostAndPort hostAndPortKey = new HostAndPort(host, port);
+
+        HostAndPort key = new HostAndPort(host, port);
+        SslSessionWrapper session;
         synchronized (sessionsByHostAndPort) {
-            session = sessionsByHostAndPort.get(hostAndPortKey);
+            session = sessionsByHostAndPort.get(key);
         }
         if (session != null && session.isValid()) {
-            return wrapSSLSessionIfNeeded(session);
+            return session;
         }
 
         // Look in persistent cache.
         if (persistentCache != null) {
             byte[] data = persistentCache.getSessionData(host, port);
             if (data != null) {
-                session = toSession(data, host, port);
+                session = SslSessionWrapper.newInstance(this, data, host, port);
                 if (session != null && session.isValid()) {
-                    super.putSession(session);
                     synchronized (sessionsByHostAndPort) {
-                        sessionsByHostAndPort.put(hostAndPortKey, session);
+                        sessionsByHostAndPort.put(key, session);
                     }
-                    return wrapSSLSessionIfNeeded(session);
+                    return session;
                 }
             }
         }
@@ -100,30 +132,47 @@ public class ClientSessionContext extends AbstractSessionContext {
     }
 
     @Override
-    public void putSession(SSLSession session) {
-        super.putSession(session);
-
+    void onBeforeAddSession(SslSessionWrapper session) {
         String host = session.getPeerHost();
         int port = session.getPeerPort();
         if (host == null) {
             return;
         }
 
-        HostAndPort hostAndPortKey = new HostAndPort(host, port);
+        HostAndPort key = new HostAndPort(host, port);
         synchronized (sessionsByHostAndPort) {
-            sessionsByHostAndPort.put(hostAndPortKey, session);
+            sessionsByHostAndPort.put(key, session);
         }
 
-        // TODO: This in a background thread.
+        // TODO: Do this in a background thread.
         if (persistentCache != null) {
-            byte[] data = toBytes(session);
+            byte[] data = session.toBytes();
             if (data != null) {
-                persistentCache.putSessionData(session, data);
+                persistentCache.putSessionData(session.toSSLSession(), data);
             }
         }
     }
 
-    static class HostAndPort {
+    @Override
+    void onBeforeRemoveSession(SslSessionWrapper session) {
+        String host = session.getPeerHost();
+        if (host == null) {
+            return;
+        }
+        int port = session.getPeerPort();
+        HostAndPort hostAndPortKey = new HostAndPort(host, port);
+        synchronized (sessionsByHostAndPort) {
+            sessionsByHostAndPort.remove(hostAndPortKey);
+        }
+    }
+
+    @Override
+    SslSessionWrapper getSessionFromPersistentCache(byte[] sessionId) {
+        // Not implemented for clients.
+        return null;
+    }
+
+    private static final class HostAndPort {
         final String host;
         final int port;
 

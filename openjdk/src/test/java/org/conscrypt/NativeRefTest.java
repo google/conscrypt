@@ -21,7 +21,11 @@ import junit.framework.TestCase;
 public class NativeRefTest extends TestCase {
     public void test_zeroContextThrowsNullPointException() {
         try {
-            new NativeRef(0) {};
+            new NativeRef(0) {
+                @Override
+                void doFree(long context) {
+                }
+            };
             fail("Should throw NullPointerException when arguments are NULL");
         } catch (NullPointerException expected) {
         }

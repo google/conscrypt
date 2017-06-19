@@ -17,29 +17,17 @@
 
 package org.conscrypt;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.security.InvalidKeyException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import javax.crypto.SecretKey;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedKeyManager;
@@ -61,8 +49,6 @@ final class SSLParametersImpl implements Cloneable {
     private static volatile X509KeyManager defaultX509KeyManager;
     // default source of X.509 certificate based authentication trust decisions
     private static volatile X509TrustManager defaultX509TrustManager;
-    // default source of random numbers
-    private static volatile SecureRandom defaultSecureRandom;
     // default SSL parameters
     private static volatile SSLParametersImpl defaultParameters;
 
@@ -83,11 +69,11 @@ final class SSLParametersImpl implements Cloneable {
     private SecureRandom secureRandom;
 
     // protocols enabled for SSL connection
-    private String[] enabledProtocols;
+    String[] enabledProtocols;
     // set to indicate when obsolete protocols are filtered
-    private boolean isEnabledProtocolsFiltered;
+    boolean isEnabledProtocolsFiltered;
     // cipher suites enabled for SSL connection
-    private String[] enabledCipherSuites;
+    String[] enabledCipherSuites;
 
     // if the peer with this parameters tuned to work in client mode
     private boolean client_mode = true;
@@ -106,11 +92,11 @@ final class SSLParametersImpl implements Cloneable {
     private boolean ctVerificationEnabled;
 
     // server-side only. SCT and OCSP data to send to clients which request it
-    private byte[] sctExtension;
-    private byte[] ocspResponse;
+    byte[] sctExtension;
+    byte[] ocspResponse;
 
-    private byte[] alpnProtocols;
-    private boolean useSessionTickets;
+    byte[] alpnProtocols;
+    boolean useSessionTickets;
     private Boolean useSni;
 
     /**
@@ -189,13 +175,6 @@ final class SSLParametersImpl implements Cloneable {
     }
 
     /**
-     * @return server session context
-     */
-    ServerSessionContext getServerSessionContext() {
-        return serverSessionContext;
-    }
-
-    /**
      * @return client session context
      */
     ClientSessionContext getClientSessionContext() {
@@ -222,29 +201,6 @@ final class SSLParametersImpl implements Cloneable {
      */
     X509TrustManager getX509TrustManager() {
         return x509TrustManager;
-    }
-
-    /**
-     * @return secure random
-     */
-    SecureRandom getSecureRandom() {
-        if (secureRandom != null) {
-            return secureRandom;
-        }
-        SecureRandom result = defaultSecureRandom;
-        if (result == null) {
-            // single-check idiom
-            defaultSecureRandom = result = new SecureRandom();
-        }
-        secureRandom = result;
-        return secureRandom;
-    }
-
-    /**
-     * @return the secure random member reference, even it is null
-     */
-    SecureRandom getSecureRandomMember() {
-        return secureRandom;
     }
 
     /**
@@ -306,6 +262,10 @@ final class SSLParametersImpl implements Cloneable {
             throw new IllegalArgumentException("alpnProtocols.length == 0");
         }
         this.alpnProtocols = alpnProtocols;
+    }
+
+    byte[] getAlpnProtocols() {
+        return alpnProtocols;
     }
 
     /**
@@ -383,7 +343,7 @@ final class SSLParametersImpl implements Cloneable {
      * extension Server Name Indication (SNI).
      */
     void setUseSni(boolean flag) {
-        useSni = Boolean.valueOf(flag);
+        useSni = flag;
     }
 
     /**
@@ -391,128 +351,32 @@ final class SSLParametersImpl implements Cloneable {
      * extension Server Name Indication (SNI).
      */
     boolean getUseSni() {
-        return useSni != null ? useSni.booleanValue() : isSniEnabledByDefault();
+        return useSni != null ? useSni : isSniEnabledByDefault();
     }
 
+    /**
+     * For testing only.
+     */
     void setCTVerificationEnabled(boolean enabled) {
         ctVerificationEnabled = enabled;
     }
 
+    /**
+     * For testing only.
+     */
     void setSCTExtension(byte[] extension) {
         sctExtension = extension;
     }
 
+    /**
+     * For testing only.
+     */
     void setOCSPResponse(byte[] response) {
         ocspResponse = response;
     }
 
     byte[] getOCSPResponse() {
         return ocspResponse;
-    }
-
-    static byte[][] encodeIssuerX509Principals(X509Certificate[] certificates)
-            throws CertificateEncodingException {
-        byte[][] principalBytes = new byte[certificates.length][];
-        for (int i = 0; i < certificates.length; i++) {
-            principalBytes[i] = certificates[i].getIssuerX500Principal().getEncoded();
-        }
-        return principalBytes;
-    }
-
-    AbstractOpenSSLSession getSessionToReuse(long sslNativePointer, String hostname, int port)
-            throws SSLException {
-        OpenSSLSessionImpl sessionToReuse = null;
-
-        if (client_mode) {
-            // look for client session to reuse
-            SSLSession cachedSession = getCachedClientSession(clientSessionContext, hostname, port);
-            if (cachedSession != null) {
-                // The native pointer is used here, so we have to make sure it's not a delegate
-                // SSLSession class.
-                cachedSession = Platform.unwrapSSLSession(cachedSession);
-
-                if (cachedSession instanceof OpenSSLSessionImpl) {
-                    sessionToReuse = (OpenSSLSessionImpl) cachedSession;
-                    NativeCrypto.SSL_set_session(sslNativePointer,
-                            sessionToReuse.sslSessionNativePointer);
-                }
-            }
-        }
-
-        return sessionToReuse;
-    }
-
-    void setTlsChannelId(long sslNativePointer, OpenSSLKey channelIdPrivateKey)
-            throws SSLHandshakeException, SSLException {
-        // TLS Channel ID
-        if (channelIdEnabled) {
-            if (client_mode) {
-                // Client-side TLS Channel ID
-                if (channelIdPrivateKey == null) {
-                    throw new SSLHandshakeException("Invalid TLS channel ID key specified");
-                }
-                NativeCrypto.SSL_set1_tls_channel_id(sslNativePointer,
-                        channelIdPrivateKey.getNativeRef());
-            } else {
-                // Server-side TLS Channel ID
-                NativeCrypto.SSL_enable_tls_channel_id(sslNativePointer);
-            }
-        }
-    }
-
-    void setCertificate(long sslNativePointer, String alias) throws CertificateEncodingException,
-            SSLException {
-        if (alias == null) {
-            return;
-        }
-        X509KeyManager keyManager = getX509KeyManager();
-        if (keyManager == null) {
-            return;
-        }
-        PrivateKey privateKey = keyManager.getPrivateKey(alias);
-        if (privateKey == null) {
-            return;
-        }
-        X509Certificate[] certificates = keyManager.getCertificateChain(alias);
-        if (certificates == null) {
-            return;
-        }
-        PublicKey publicKey = (certificates.length > 0) ? certificates[0].getPublicKey() : null;
-
-        /*
-         * Make sure we keep a reference to the OpenSSLX509Certificate by using
-         * this array. Otherwise, if they're not OpenSSLX509Certificate
-         * instances originally, they may be garbage collected before we
-         * complete our JNI calls.
-         */
-        OpenSSLX509Certificate[] openSslCerts = new OpenSSLX509Certificate[certificates.length];
-        long[] x509refs = new long[certificates.length];
-        for (int i = 0; i < certificates.length; i++) {
-            OpenSSLX509Certificate openSslCert = OpenSSLX509Certificate
-                    .fromCertificate(certificates[i]);
-            openSslCerts[i] = openSslCert;
-            x509refs[i] = openSslCert.getContext();
-        }
-
-        // Note that OpenSSL says to use SSL_use_certificate before
-        // SSL_use_PrivateKey.
-        NativeCrypto.SSL_use_certificate(sslNativePointer, x509refs);
-
-        final OpenSSLKey key;
-        try {
-            key = OpenSSLKey.fromPrivateKeyForTLSStackOnly(privateKey, publicKey);
-            NativeCrypto.SSL_use_PrivateKey(sslNativePointer, key.getNativeRef());
-        } catch (InvalidKeyException e) {
-            throw new SSLException(e);
-        }
-
-        // We may not have access to all the information to check the private key
-        // if it's a wrapped platform key, so skip this check.
-        if (!key.isWrapped()) {
-            // Makes sure the set PrivateKey and X509Certificate refer to the same
-            // key by comparing the public values.
-            NativeCrypto.SSL_check_private_key(sslNativePointer);
-        }
     }
 
     /**
@@ -535,95 +399,6 @@ final class SSLParametersImpl implements Cloneable {
 
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
-    void setSSLParameters(long sslNativePointer, AliasChooser chooser, PSKCallbacks pskCallbacks,
-            String sniHostname) throws SSLException, IOException {
-        if (enabledProtocols.length == 0 && isEnabledProtocolsFiltered) {
-            throw new SSLHandshakeException("No enabled protocols; "
-                    + NativeCrypto.OBSOLETE_PROTOCOL_SSLV3
-                    + " is no longer supported and was filtered from the list");
-        }
-        NativeCrypto.SSL_configure_alpn(sslNativePointer, client_mode, alpnProtocols);
-        NativeCrypto.setEnabledProtocols(sslNativePointer, enabledProtocols);
-        NativeCrypto.setEnabledCipherSuites(sslNativePointer, enabledCipherSuites);
-
-        // setup server certificates and private keys.
-        // clients will receive a call back to request certificates.
-        if (!client_mode) {
-            Set<String> keyTypes = new HashSet<String>();
-            for (long sslCipherNativePointer : NativeCrypto.SSL_get_ciphers(sslNativePointer)) {
-                String keyType = getServerX509KeyType(sslCipherNativePointer);
-                if (keyType != null) {
-                    keyTypes.add(keyType);
-                }
-            }
-            X509KeyManager keyManager = getX509KeyManager();
-            if (keyManager != null) {
-                for (String keyType : keyTypes) {
-                    try {
-                        setCertificate(sslNativePointer,
-                                chooser.chooseServerAlias(x509KeyManager, keyType));
-                    } catch (CertificateEncodingException e) {
-                        throw new IOException(e);
-                    }
-                }
-            }
-
-            NativeCrypto.SSL_set_options(sslNativePointer,
-                    NativeConstants.SSL_OP_CIPHER_SERVER_PREFERENCE);
-
-            if (sctExtension != null) {
-                NativeCrypto.SSL_set_signed_cert_timestamp_list(sslNativePointer, sctExtension);
-            }
-
-            if (ocspResponse != null) {
-                NativeCrypto.SSL_set_ocsp_response(sslNativePointer, ocspResponse);
-            }
-        }
-
-        enablePSKKeyManagerIfRequested(sslNativePointer, pskCallbacks);
-
-        if (useSessionTickets) {
-            NativeCrypto.SSL_clear_options(sslNativePointer, NativeConstants.SSL_OP_NO_TICKET);
-        }
-        if (getUseSni() && AddressUtils.isValidSniHostname(sniHostname)) {
-            NativeCrypto.SSL_set_tlsext_host_name(sslNativePointer, sniHostname);
-        }
-
-        // BEAST attack mitigation (1/n-1 record splitting for CBC cipher suites
-        // with TLSv1 and SSLv3).
-        NativeCrypto.SSL_set_mode(sslNativePointer, NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING);
-
-        boolean enableSessionCreation = getEnableSessionCreation();
-        if (!enableSessionCreation) {
-            NativeCrypto.SSL_set_session_creation_enabled(sslNativePointer, enableSessionCreation);
-        }
-    }
-
-    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    private void enablePSKKeyManagerIfRequested(long sslNativePointer, PSKCallbacks pskCallbacks)
-            throws SSLException {
-        // Enable Pre-Shared Key (PSK) key exchange if requested
-        PSKKeyManager pskKeyManager = getPSKKeyManager();
-        if (pskKeyManager != null) {
-            boolean pskEnabled = false;
-            for (String enabledCipherSuite : enabledCipherSuites) {
-                if ((enabledCipherSuite != null) && (enabledCipherSuite.contains("PSK"))) {
-                    pskEnabled = true;
-                    break;
-                }
-            }
-            if (pskEnabled) {
-                if (client_mode) {
-                    NativeCrypto.set_SSL_psk_client_callback_enabled(sslNativePointer, true);
-                } else {
-                    NativeCrypto.set_SSL_psk_server_callback_enabled(sslNativePointer, true);
-                    String identityHint = pskCallbacks.chooseServerPSKIdentityHint(pskKeyManager);
-                    NativeCrypto.SSL_use_psk_identity_hint(sslNativePointer, identityHint);
-                }
-            }
-        }
-    }
-
     /**
      * Returns whether Server Name Indication (SNI) is enabled by default for
      * sockets. For more information on SNI, see RFC 6066 section 3.
@@ -642,202 +417,6 @@ final class SSLParametersImpl implements Cloneable {
         } catch (SecurityException e) {
             return true;
         }
-    }
-
-    void setCertificateValidation(long sslNativePointer) throws IOException {
-        // setup peer certificate verification
-        if (!client_mode) {
-            // needing client auth takes priority...
-            boolean certRequested;
-            if (getNeedClientAuth()) {
-                NativeCrypto.SSL_set_verify(sslNativePointer,
-                                            NativeCrypto.SSL_VERIFY_PEER
-                                            | NativeCrypto.SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
-                certRequested = true;
-            // ... over just wanting it...
-            } else if (getWantClientAuth()) {
-                NativeCrypto.SSL_set_verify(sslNativePointer, NativeCrypto.SSL_VERIFY_PEER);
-                certRequested = true;
-            // ... and we must disable verification if we don't want client auth.
-            } else {
-                NativeCrypto.SSL_set_verify(sslNativePointer, NativeCrypto.SSL_VERIFY_NONE);
-                certRequested = false;
-            }
-
-            if (certRequested) {
-                X509TrustManager trustManager = getX509TrustManager();
-                X509Certificate[] issuers = trustManager.getAcceptedIssuers();
-                if (issuers != null && issuers.length != 0) {
-                    byte[][] issuersBytes;
-                    try {
-                        issuersBytes = encodeIssuerX509Principals(issuers);
-                    } catch (CertificateEncodingException e) {
-                        throw new IOException("Problem encoding principals", e);
-                    }
-                    NativeCrypto.SSL_set_client_CA_list(sslNativePointer, issuersBytes);
-                }
-            }
-        }
-    }
-
-    AbstractOpenSSLSession setupSession(long sslSessionNativePointer, long sslNativePointer,
-            final AbstractOpenSSLSession sessionToReuse, String hostname, int port,
-            boolean handshakeCompleted) throws IOException {
-        AbstractOpenSSLSession sslSession = null;
-        if (sessionToReuse != null && NativeCrypto.SSL_session_reused(sslNativePointer)) {
-            sslSession = sessionToReuse;
-            sslSession.setLastAccessedTime(System.currentTimeMillis());
-            NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);
-        } else {
-            if (!getEnableSessionCreation()) {
-                // Should have been prevented by
-                // NativeCrypto.SSL_set_session_creation_enabled
-                throw new IllegalStateException("SSL Session may not be created");
-            }
-            X509Certificate[] localCertificates = OpenSSLX509Certificate.createCertChain(
-                    NativeCrypto.SSL_get_certificate(sslNativePointer));
-            X509Certificate[] peerCertificates = OpenSSLX509Certificate.createCertChain(
-                    NativeCrypto.SSL_get_peer_cert_chain(sslNativePointer));
-            byte[] ocspData = NativeCrypto.SSL_get_ocsp_response(sslNativePointer);
-            byte[] tlsSctData = NativeCrypto.SSL_get_signed_cert_timestamp_list(sslNativePointer);
-            sslSession = new OpenSSLSessionImpl(sslSessionNativePointer, localCertificates,
-                    peerCertificates, ocspData, tlsSctData, hostname, port, getSessionContext());
-            // if not, putSession later in handshakeCompleted() callback
-            if (handshakeCompleted) {
-                getSessionContext().putSession(sslSession);
-            }
-        }
-        return sslSession;
-    }
-
-    void chooseClientCertificate(byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals,
-            long sslNativePointer, AliasChooser chooser) throws SSLException,
-            CertificateEncodingException {
-        Set<String> keyTypesSet = getSupportedClientKeyTypes(keyTypeBytes);
-        String[] keyTypes = keyTypesSet.toArray(new String[keyTypesSet.size()]);
-
-        X500Principal[] issuers;
-        if (asn1DerEncodedPrincipals == null) {
-            issuers = null;
-        } else {
-            issuers = new X500Principal[asn1DerEncodedPrincipals.length];
-            for (int i = 0; i < asn1DerEncodedPrincipals.length; i++) {
-                issuers[i] = new X500Principal(asn1DerEncodedPrincipals[i]);
-            }
-        }
-        X509KeyManager keyManager = getX509KeyManager();
-        String alias = (keyManager != null) ? chooser.chooseClientAlias(keyManager, issuers,
-                keyTypes) : null;
-        setCertificate(sslNativePointer, alias);
-    }
-
-    /**
-     * @see NativeCrypto.SSLHandshakeCallbacks#clientPSKKeyRequested(String, byte[], byte[])
-     */
-    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    int clientPSKKeyRequested(
-            String identityHint, byte[] identityBytesOut, byte[] key, PSKCallbacks pskCallbacks) {
-        PSKKeyManager pskKeyManager = getPSKKeyManager();
-        if (pskKeyManager == null) {
-            return 0;
-        }
-
-        String identity = pskCallbacks.chooseClientPSKIdentity(pskKeyManager, identityHint);
-        // Store identity in NULL-terminated modified UTF-8 representation into ientityBytesOut
-        byte[] identityBytes;
-        if (identity == null) {
-            identity = "";
-            identityBytes = EmptyArray.BYTE;
-        } else if (identity.isEmpty()) {
-            identityBytes = EmptyArray.BYTE;
-        } else {
-            try {
-                identityBytes = identity.getBytes("UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException("UTF-8 encoding not supported", e);
-            }
-        }
-        if (identityBytes.length + 1 > identityBytesOut.length) {
-            // Insufficient space in the output buffer
-            return 0;
-        }
-        if (identityBytes.length > 0) {
-            System.arraycopy(identityBytes, 0, identityBytesOut, 0, identityBytes.length);
-        }
-        identityBytesOut[identityBytes.length] = 0;
-
-        SecretKey secretKey = pskCallbacks.getPSKKey(pskKeyManager, identityHint, identity);
-        byte[] secretKeyBytes = secretKey.getEncoded();
-        if (secretKeyBytes == null) {
-            return 0;
-        } else if (secretKeyBytes.length > key.length) {
-            // Insufficient space in the output buffer
-            return 0;
-        }
-        System.arraycopy(secretKeyBytes, 0, key, 0, secretKeyBytes.length);
-        return secretKeyBytes.length;
-    }
-
-    /**
-     * @see NativeCrypto.SSLHandshakeCallbacks#serverPSKKeyRequested(String, String, byte[])
-     */
-    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    int serverPSKKeyRequested(
-            String identityHint, String identity, byte[] key, PSKCallbacks pskCallbacks) {
-        PSKKeyManager pskKeyManager = getPSKKeyManager();
-        if (pskKeyManager == null) {
-            return 0;
-        }
-        SecretKey secretKey = pskCallbacks.getPSKKey(pskKeyManager, identityHint, identity);
-        byte[] secretKeyBytes = secretKey.getEncoded();
-        if (secretKeyBytes == null) {
-            return 0;
-        } else if (secretKeyBytes.length > key.length) {
-            return 0;
-        }
-        System.arraycopy(secretKeyBytes, 0, key, 0, secretKeyBytes.length);
-        return secretKeyBytes.length;
-    }
-
-    /**
-     * Gets the suitable session reference from the session cache container.
-     */
-    SSLSession getCachedClientSession(ClientSessionContext sessionContext, String hostName,
-            int port) {
-        if (hostName == null) {
-            return null;
-        }
-
-        SSLSession session = sessionContext.getSession(hostName, port);
-        if (session == null) {
-            return null;
-        }
-
-        String protocol = session.getProtocol();
-        boolean protocolFound = false;
-        for (String enabledProtocol : enabledProtocols) {
-            if (protocol.equals(enabledProtocol)) {
-                protocolFound = true;
-                break;
-            }
-        }
-        if (!protocolFound) {
-            return null;
-        }
-
-        String cipherSuite = session.getCipherSuite();
-        boolean cipherSuiteFound = false;
-        for (String enabledCipherSuite : enabledCipherSuites) {
-            if (cipherSuite.equals(enabledCipherSuite)) {
-                cipherSuiteFound = true;
-                break;
-            }
-        }
-        if (!cipherSuiteFound) {
-            return null;
-        }
-
-        return session;
     }
 
     /**
@@ -1002,93 +581,6 @@ final class SSLParametersImpl implements Cloneable {
 
     void setUseCipherSuitesOrder(boolean useCipherSuitesOrder) {
         this.useCipherSuitesOrder = useCipherSuitesOrder;
-    }
-
-    /** Key type: RSA certificate. */
-    private static final String KEY_TYPE_RSA = "RSA";
-
-    /** Key type: Diffie-Hellman certificate signed by issuer with RSA signature. */
-    private static final String KEY_TYPE_DH_RSA = "DH_RSA";
-
-    /** Key type: Elliptic Curve certificate. */
-    private static final String KEY_TYPE_EC = "EC";
-
-    /** Key type: Elliptic Curve certificate signed by issuer with ECDSA signature. */
-    private static final String KEY_TYPE_EC_EC = "EC_EC";
-
-    /** Key type: Elliptic Curve certificate signed by issuer with RSA signature. */
-    private static final String KEY_TYPE_EC_RSA = "EC_RSA";
-
-    /**
-     * Returns key type constant suitable for calling X509KeyManager.chooseServerAlias or
-     * X509ExtendedKeyManager.chooseEngineServerAlias. Returns {@code null} for key exchanges that
-     * do not use X.509 for server authentication.
-     */
-    private static String getServerX509KeyType(long sslCipherNative) throws SSLException {
-        String kx_name = NativeCrypto.SSL_CIPHER_get_kx_name(sslCipherNative);
-        if (kx_name.equals("RSA") || kx_name.equals("DHE_RSA") || kx_name.equals("ECDHE_RSA")) {
-            return KEY_TYPE_RSA;
-        } else if (kx_name.equals("ECDHE_ECDSA")) {
-            return KEY_TYPE_EC;
-        } else if (kx_name.equals("ECDH_RSA")) {
-            return KEY_TYPE_EC_RSA;
-        } else if (kx_name.equals("ECDH_ECDSA")) {
-            return KEY_TYPE_EC_EC;
-        } else if (kx_name.equals("DH_RSA")) {
-            return KEY_TYPE_DH_RSA;
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Similar to getServerKeyType, but returns value given TLS
-     * ClientCertificateType byte values from a CertificateRequest
-     * message for use with X509KeyManager.chooseClientAlias or
-     * X509ExtendedKeyManager.chooseEngineClientAlias.
-     * <p>
-     * Visible for testing.
-     */
-    static String getClientKeyType(byte clientCertificateType) {
-        // See also http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
-        switch (clientCertificateType) {
-            case NativeConstants.TLS_CT_RSA_SIGN:
-                return KEY_TYPE_RSA; // RFC rsa_sign
-            case NativeConstants.TLS_CT_RSA_FIXED_DH:
-                return KEY_TYPE_DH_RSA; // RFC rsa_fixed_dh
-            case NativeConstants.TLS_CT_ECDSA_SIGN:
-                return KEY_TYPE_EC; // RFC ecdsa_sign
-            case NativeConstants.TLS_CT_RSA_FIXED_ECDH:
-                return KEY_TYPE_EC_RSA; // RFC rsa_fixed_ecdh
-            case NativeConstants.TLS_CT_ECDSA_FIXED_ECDH:
-                return KEY_TYPE_EC_EC; // RFC ecdsa_fixed_ecdh
-            default:
-                return null;
-        }
-    }
-
-    /**
-     * Gets the supported key types for client certificates based on the
-     * {@code ClientCertificateType} values provided by the server.
-     *
-     * @param clientCertificateTypes {@code ClientCertificateType} values provided by the server.
-     *        See https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml.
-     * @return supported key types that can be used in {@code X509KeyManager.chooseClientAlias} and
-     *         {@code X509ExtendedKeyManager.chooseEngineClientAlias}.
-     *
-     * Visible for testing.
-     */
-    static Set<String> getSupportedClientKeyTypes(byte[] clientCertificateTypes) {
-        Set<String> result = new HashSet<String>(clientCertificateTypes.length);
-        for (byte keyTypeCode : clientCertificateTypes) {
-            String keyType = getClientKeyType(keyTypeCode);
-            if (keyType == null) {
-                // Unsupported client key type -- ignore
-                continue;
-            }
-            result.add(keyType);
-        }
-        return result;
     }
 
     private static String[] getDefaultCipherSuites(

@@ -27,19 +27,23 @@ public final class TestSSLSessions {
      * An invalid session that is not connected
      */
     public final SSLSession invalid;
+
     /**
      * The server side of a connected session
      */
     public final SSLSession server;
+
     /**
      * The client side of a connected session
      */
     public final SSLSession client;
+
     /**
      * The associated SSLSocketTest.Helper that is the source of
      * the client and server SSLSessions.
      */
     public final TestSSLSocketPair s;
+
     private TestSSLSessions(SSLSession invalid,
             SSLSession server,
             SSLSession client,
@@ -49,15 +53,17 @@ public final class TestSSLSessions {
         this.client = client;
         this.s = s;
     }
+
     public void close() {
         s.close();
     }
-    public static final TestSSLSessions create() {
+
+    public static TestSSLSessions create() {
         try {
             SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
             SSLSocket ssl = (SSLSocket) sf.createSocket();
             SSLSession invalid = ssl.getSession();
-            TestSSLSocketPair s = TestSSLSocketPair.create();
+            TestSSLSocketPair s = TestSSLSocketPair.create().connect();
             return new TestSSLSessions(invalid, s.server.getSession(), s.client.getSession(), s);
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -16,7 +16,7 @@
 
 package org.conscrypt;
 
-import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLContext;
 
 /**
  * Caches server sessions. Indexes by session ID. Users typically look up
@@ -26,10 +26,9 @@ import javax.net.ssl.SSLSession;
  */
 @Internal
 public final class ServerSessionContext extends AbstractSessionContext {
-
     private SSLServerSessionCache persistentCache;
 
-    public ServerSessionContext() {
+    ServerSessionContext() {
         super(100);
 
         // TODO make sure SSL_CTX does not automaticaly clear sessions we want it to cache
@@ -48,30 +47,23 @@ public final class ServerSessionContext extends AbstractSessionContext {
         NativeCrypto.SSL_CTX_set_session_id_context(sslCtxNativePointer, new byte[] { ' ' });
     }
 
+    /**
+     * Applications should not use this method. Instead use {@link
+     * Conscrypt.Contexts#setServerSessionCache(SSLContext, SSLServerSessionCache)}.
+     */
     public void setPersistentCache(SSLServerSessionCache persistentCache) {
         this.persistentCache = persistentCache;
     }
 
     @Override
-    protected void sessionRemoved(SSLSession session) {}
-
-    @Override
-    public SSLSession getSession(byte[] sessionId) {
-        // First see if AbstractSessionContext can satisfy the request.
-        SSLSession cachedSession = super.getSession(sessionId);
-        if (cachedSession != null) {
-            // This will already have gone through Platform#wrapSSLSession
-            return cachedSession;
-        }
-
-        // Then check the persistent cache.
+    SslSessionWrapper getSessionFromPersistentCache(byte[] sessionId) {
         if (persistentCache != null) {
             byte[] data = persistentCache.getSessionData(sessionId);
             if (data != null) {
-                OpenSSLSessionImpl session = toSession(data, null, -1);
+                SslSessionWrapper session = SslSessionWrapper.newInstance(this, data, null, -1);
                 if (session != null && session.isValid()) {
-                    super.putSession(session);
-                    return Platform.wrapSSLSession(session);
+                    cacheSession(session);
+                    return session;
                 }
             }
         }
@@ -80,15 +72,18 @@ public final class ServerSessionContext extends AbstractSessionContext {
     }
 
     @Override
-    void putSession(SSLSession session) {
-        super.putSession(session);
-
-        // TODO: In background thread.
+    void onBeforeAddSession(SslSessionWrapper session) {
+        // TODO: Do this in background thread.
         if (persistentCache != null) {
-            byte[] data = toBytes(session);
+            byte[] data = session.toBytes();
             if (data != null) {
-                persistentCache.putSessionData(session, data);
+                persistentCache.putSessionData(session.toSSLSession(), data);
             }
         }
+    }
+
+    @Override
+    void onBeforeRemoveSession(SslSessionWrapper session) {
+        // Do nothing.
     }
 }

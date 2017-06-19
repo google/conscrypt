@@ -34,19 +34,15 @@ import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.security.PrivateKey;
-import javax.crypto.SecretKey;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.X509KeyManager;
-import javax.security.auth.x500.X500Principal;
 
 /**
  * Implements crypto handling by delegating to {@link ConscryptEngine}.
  */
-final class ConscryptEngineSocket extends OpenSSLSocketImpl
-        implements SSLParametersImpl.AliasChooser, SSLParametersImpl.PSKCallbacks {
+final class ConscryptEngineSocket extends OpenSSLSocketImpl {
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
 
     private final ConscryptEngine engine;
@@ -225,7 +221,7 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl
     @Override
     public SSLSession getSession() {
         SSLSession session = engine.getSession();
-        if (session == null) {
+        if (SSLNullSession.isNullSession(session)) {
             boolean handshakeCompleted = false;
             try {
                 if (isConnected()) {
@@ -237,9 +233,8 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl
             }
 
             if (!handshakeCompleted) {
-                // return an invalid session with
-                // invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
-                return SSLNullSession.getNullSession();
+                // Return an invalid session with invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
+                return session;
             }
             session = engine.getSession();
         }
@@ -389,35 +384,6 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl
     @Override
     public void setAlpnProtocols(String[] alpnProtocols) {
         engine.setAlpnProtocols(alpnProtocols);
-    }
-
-    @Override
-    public String chooseServerAlias(X509KeyManager keyManager, String keyType) {
-        return engine.chooseServerAlias(keyManager, keyType);
-    }
-
-    @Override
-    public String chooseClientAlias(
-            X509KeyManager keyManager, X500Principal[] issuers, String[] keyTypes) {
-        return engine.chooseClientAlias(keyManager, issuers, keyTypes);
-    }
-
-    @Override
-    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
-        return engine.chooseServerPSKIdentityHint(keyManager);
-    }
-
-    @Override
-    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
-        return engine.chooseClientPSKIdentity(keyManager, identityHint);
-    }
-
-    @Override
-    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
-        return engine.getPSKKey(keyManager, identityHint, identity);
     }
 
     private boolean isHandshakeFinished() {
