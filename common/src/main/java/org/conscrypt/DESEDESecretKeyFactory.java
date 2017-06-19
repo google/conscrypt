@@ -38,7 +38,16 @@ public class DESEDESecretKeyFactory extends SecretKeyFactorySpi {
             throw new InvalidKeySpecException("Null KeySpec");
         }
         if (keySpec instanceof SecretKeySpec) {
-            return (SecretKey) keySpec;
+            SecretKeySpec key = (SecretKeySpec) keySpec;
+            try {
+                if (!DESedeKeySpec.isParityAdjusted(key.getEncoded(), 0)) {
+                    throw new InvalidKeySpecException(
+                            "SecretKeySpec is not a parity-adjusted DESEDE key");
+                }
+            } catch (InvalidKeyException e) {
+                throw new InvalidKeySpecException(e);
+            }
+            return key;
         } else if (keySpec instanceof DESedeKeySpec) {
             DESedeKeySpec desKeySpec = (DESedeKeySpec) keySpec;
             return new SecretKeySpec(desKeySpec.getKey(), "DESEDE");
@@ -55,6 +64,13 @@ public class DESEDESecretKeyFactory extends SecretKeyFactorySpi {
             throw new InvalidKeySpecException("Null SecretKey");
         }
         if (aClass == SecretKeySpec.class) {
+            try {
+                if (!DESedeKeySpec.isParityAdjusted(secretKey.getEncoded(), 0)) {
+                    throw new InvalidKeySpecException("SecretKey is not a parity-adjusted DESEDE key");
+                }
+            } catch (InvalidKeyException e) {
+                throw new InvalidKeySpecException(e);
+            }
             if (secretKey instanceof SecretKeySpec) {
                 return (KeySpec) secretKey;
             } else {
