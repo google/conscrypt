@@ -5676,16 +5676,19 @@ static int new_session_callback(SSL* ssl, SSL_SESSION* session) {
 
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
     jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID = env->GetMethodID(cls, "onNewSessionEstablished", "(J)Z");
+    jmethodID methodID = env->GetMethodID(cls, "onNewSessionEstablished", "(J)V");
     JNI_TRACE("ssl=%p new_session_callback calling onNewSessionEstablished", ssl);
-    jboolean ret = env->CallBooleanMethod(sslHandshakeCallbacks, methodID,
+    env->CallBooleanMethod(sslHandshakeCallbacks, methodID,
                                           reinterpret_cast<jlong>(session));
     if (env->ExceptionCheck()) {
         JNI_TRACE("ssl=%p new_session_callback exception cleared", ssl);
         env->ExceptionClear();
     }
-    JNI_TRACE("ssl=%p new_session_callback completed => %d", ssl, ret);
-    return ret;
+    JNI_TRACE("ssl=%p new_session_callback completed", ssl);
+
+    // Always returning 0 (not taking ownership). The Java code is responsible for incrementing
+    // the reference count.
+    return 0;
 }
 
 static SSL_SESSION* server_session_requested_callback(SSL* ssl, uint8_t* id, int id_len,
@@ -7946,6 +7949,18 @@ static jstring NativeCrypto_SSL_SESSION_cipher(JNIEnv* env, jclass, jlong ssl_se
 }
 
 /**
+ * Increments the reference count of the session.
+ */
+static void NativeCrypto_SSL_SESSION_up_ref(JNIEnv* env, jclass, jlong ssl_session_address) {
+    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
+    JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_up_ref", ssl_session);
+    if (ssl_session == nullptr) {
+        return;
+    }
+    SSL_SESSION_up_ref(ssl_session);
+}
+
+/**
  * Frees the SSL session.
  */
 static void NativeCrypto_SSL_SESSION_free(JNIEnv* env, jclass, jlong ssl_session_address) {
@@ -9419,6 +9434,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_session_id, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_SESSION_get_version, "(J)Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_SESSION_cipher, "(J)Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_SESSION_up_ref, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_SESSION_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, i2d_SSL_SESSION, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, d2i_SSL_SESSION, "([B)J"),

@@ -1028,6 +1028,8 @@ public final class NativeCrypto {
 
     static native String SSL_SESSION_cipher(long sslSessionNativePointer);
 
+    static native void SSL_SESSION_up_ref(long sslSessionNativePointer);
+
     static native void SSL_SESSION_free(long sslSessionNativePointer);
 
     static native byte[] i2d_SSL_SESSION(long sslSessionNativePointer);
@@ -1100,9 +1102,9 @@ public final class NativeCrypto {
 
         /**
          * Called when a new session has been established and may be added to the session cache.
-         * Returns {@code true} if {@code sslSessionNativePtr} is owned.
+         * The callee is responsible for incrementing the reference count on the returned session.
          */
-        boolean onNewSessionEstablished(long sslSessionNativePtr);
+        void onNewSessionEstablished(long sslSessionNativePtr);
 
         /**
          * Called for servers where TLS < 1.3 (TLS 1.3 uses session tickets rather than

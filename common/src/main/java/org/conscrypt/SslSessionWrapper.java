@@ -223,7 +223,6 @@ abstract class SslSessionWrapper {
                 int port, java.security.cert.X509Certificate[] peerCertificates,
                 byte[] peerOcspStapledResponse, byte[] peerSignedCertificateTimestamp) {
             this.context = context;
-            this.sslSessionNativePointer = sslSessionNativePointer;
             this.host = host;
             this.port = port;
             this.peerCertificates = peerCertificates;
@@ -232,6 +231,11 @@ abstract class SslSessionWrapper {
             this.protocol = NativeCrypto.SSL_SESSION_get_version(sslSessionNativePointer);
             this.cipherSuite = SSLUtils.getCipherSuiteFromName(
                     NativeCrypto.SSL_SESSION_cipher(sslSessionNativePointer));
+
+            // Need to set the native pointer last to guarantee successful construction and
+            // that this class has taken ownership of the SSL_SESSION. The finalizer will
+            // use this value to determine whether it is safe to free the SSL_SESSION.
+            this.sslSessionNativePointer = sslSessionNativePointer;
         }
 
         @Override

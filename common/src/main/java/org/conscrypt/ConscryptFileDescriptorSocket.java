@@ -350,18 +350,22 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / new_session_callback
-    public boolean onNewSessionEstablished(long sslSessionNativePtr) {
+    public void onNewSessionEstablished(long sslSessionNativePtr) {
+        NativeCrypto.SSL_SESSION_up_ref(sslSessionNativePtr);
         SslSessionWrapper sessionWrapper;
         try {
-            sessionWrapper = SslSessionWrapper.newInstance(sslSessionNativePtr, sslSession);
-        } catch (Throwable e) {
-            return false;
+            sessionWrapper =
+                SslSessionWrapper.newInstance(sslSessionNativePtr, sslSession);
+        } catch (Exception ignored) {
+            // Failed constructing the wrapper. Its finalizer will not release the reference, so
+            // we need to here.
+            NativeCrypto.SSL_SESSION_free(sslSessionNativePtr);
+            return;
         }
 
         // Cache the newly established session.
         AbstractSessionContext ctx = sessionContext();
         ctx.cacheSession(sessionWrapper);
-        return true;
     }
 
     @Override

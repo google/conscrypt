@@ -906,7 +906,7 @@ public class NativeCryptoTest {
         private long onNewSessionEstablishedSessionNativePointer;
 
         @Override
-        public boolean onNewSessionEstablished(long sslSessionNativePtr) {
+        public void onNewSessionEstablished(long sslSessionNativePtr) {
             if (DEBUG) {
                 System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
                         + " onNewSessionCreated"
@@ -915,10 +915,8 @@ public class NativeCryptoTest {
             onNewSessionEstablishedInvoked = true;
 
             if (onNewSessionEstablishedSaveSession) {
+                NativeCrypto.SSL_SESSION_up_ref(sslSessionNativePtr);
                 onNewSessionEstablishedSessionNativePointer = sslSessionNativePtr;
-                return true;
-            } else {
-                return false;
             }
         }
 
