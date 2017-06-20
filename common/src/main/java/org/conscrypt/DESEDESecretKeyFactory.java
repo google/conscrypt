@@ -32,6 +32,10 @@ import javax.crypto.spec.SecretKeySpec;
  */
 @Internal
 public class DESEDESecretKeyFactory extends SecretKeyFactorySpi {
+    public DESEDESecretKeyFactory() {
+        NativeCrypto.checkAvailability();
+    }
+
     @Override
     protected SecretKey engineGenerateSecret(KeySpec keySpec) throws InvalidKeySpecException {
         if (keySpec == null) {

@@ -38,6 +38,7 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
     private boolean useEngineSocket = useEngineSocketByDefault;
 
     OpenSSLSocketFactoryImpl() {
+        NativeCrypto.checkAvailability();
         SSLParametersImpl sslParametersLocal = null;
         IOException instantiationExceptionLocal = null;
         try {
@@ -50,6 +51,7 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
     }
 
     OpenSSLSocketFactoryImpl(SSLParametersImpl sslParameters) {
+        NativeCrypto.checkAvailability();
         this.sslParameters = sslParameters;
         this.instantiationException = null;
     }

@@ -54,6 +54,10 @@ public final class OpenSSLSignatureRawRSA extends SignatureSpi {
      */
     private boolean inputIsTooLong;
 
+    public OpenSSLSignatureRawRSA() {
+        NativeCrypto.checkAvailability();
+    }
+
     @Override
     protected void engineUpdate(byte input) {
         final int oldOffset = inputOffset++;

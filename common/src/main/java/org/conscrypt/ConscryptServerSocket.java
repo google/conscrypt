@@ -30,18 +30,21 @@ final class ConscryptServerSocket extends SSLServerSocket {
     private boolean useEngineSocket;
 
     ConscryptServerSocket(SSLParametersImpl sslParameters) throws IOException {
+        NativeCrypto.checkAvailability();
         this.sslParameters = sslParameters;
     }
 
     ConscryptServerSocket(int port, SSLParametersImpl sslParameters)
         throws IOException {
         super(port);
+        NativeCrypto.checkAvailability();
         this.sslParameters = sslParameters;
     }
 
     ConscryptServerSocket(int port, int backlog, SSLParametersImpl sslParameters)
         throws IOException {
         super(port, backlog);
+        NativeCrypto.checkAvailability();
         this.sslParameters = sslParameters;
     }
 
@@ -51,6 +54,7 @@ final class ConscryptServerSocket extends SSLServerSocket {
                                       SSLParametersImpl sslParameters)
         throws IOException {
         super(port, backlog, iAddress);
+        NativeCrypto.checkAvailability();
         this.sslParameters = sslParameters;
     }
 

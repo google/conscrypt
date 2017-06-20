@@ -57,7 +57,7 @@ public final class DefaultSSLContextImpl extends OpenSSLContextImpl {
      * creating the state shared between all default SSLContexts.
      */
     public DefaultSSLContextImpl() throws GeneralSecurityException, IOException {
-        super();
+        NativeCrypto.checkAvailability();
     }
 
     // TODO javax.net.ssl.keyStoreProvider system property

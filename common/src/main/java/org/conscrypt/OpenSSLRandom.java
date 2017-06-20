@@ -28,6 +28,10 @@ import java.security.SecureRandomSpi;
 public final class OpenSSLRandom extends SecureRandomSpi implements Serializable {
     private static final long serialVersionUID = 8506210602917522861L;
 
+    public OpenSSLRandom() {
+        NativeCrypto.checkAvailability();
+    }
+
     @Override
     protected void engineSetSeed(byte[] seed) {
         if (seed == null) {

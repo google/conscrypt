@@ -64,6 +64,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
      * @param maximumSize of cache
      */
     AbstractSessionContext(int maximumSize) {
+        NativeCrypto.checkAvailability();
         this.maximumSize = maximumSize;
     }
 

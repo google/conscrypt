@@ -58,6 +58,8 @@ public final class OpenSSLProvider extends Provider {
     public OpenSSLProvider(String providerName) {
         super(providerName, 1.0, "Android's OpenSSL-backed security provider");
 
+        NativeCrypto.checkAvailability();
+
         // Make sure the platform is initialized.
         Platform.setup();
 

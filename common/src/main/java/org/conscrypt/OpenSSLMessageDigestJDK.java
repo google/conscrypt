@@ -53,6 +53,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
      * Creates a new OpenSSLMessageDigest instance for the given algorithm name.
      */
     private OpenSSLMessageDigestJDK(long evp_md, int size) throws NoSuchAlgorithmException {
+        NativeCrypto.checkAvailability();
         this.evp_md = evp_md;
         this.size = size;
         NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
@@ -61,6 +62,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
 
     private OpenSSLMessageDigestJDK(long evp_md, int size, NativeRef.EVP_MD_CTX ctx,
             boolean digestInitializedInContext) {
+        NativeCrypto.checkAvailability();
         this.evp_md = evp_md;
         this.size = size;
         this.ctx = ctx;

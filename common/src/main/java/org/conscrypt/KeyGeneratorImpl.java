@@ -37,6 +37,7 @@ public abstract class KeyGeneratorImpl extends KeyGeneratorSpi {
     private int keySizeBits;
 
     private KeyGeneratorImpl(String algorithm, int defaultKeySizeBits) {
+        NativeCrypto.checkAvailability();
         this.algorithm = algorithm;
         this.keySizeBits = defaultKeySizeBits;
     }

@@ -41,6 +41,10 @@ public class OpenSSLSignatureRawECDSA extends SignatureSpi {
      */
     private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
+    public OpenSSLSignatureRawECDSA() {
+        NativeCrypto.checkAvailability();
+    }
+
     @Override
     protected void engineUpdate(byte input) {
         buffer.write(input);
