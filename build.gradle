@@ -80,16 +80,16 @@ subprojects {
         boringSslGit = org.ajoberstar.grgit.Grgit.open(file("$boringsslHome"))
         boringSslVersion = boringSslGit.head().id
 
-        jmhVersion = '1.17.4'
+        jmhVersion = '1.19'
         libraries = [
                 roboelectric: 'org.robolectric:android-all:7.1.0_r7-robolectric-0',
 
                 // Test dependencies.
+                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.56',
+                bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.56',
                 junit  : 'junit:junit:4.12',
                 mockito: 'org.mockito:mockito-core:1.9.5',
                 truth  : 'com.google.truth:truth:0.28',
-                bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.56',
-                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.56',
 
                 // Benchmark dependencies
                 jmh_core: "org.openjdk.jmh:jmh-core:${jmhVersion}",

@@ -117,7 +117,8 @@ dependencies {
     // This is used for the @hide annotation processing in JavaDoc
     publicApiDocs project(':conscrypt-api-doclet')
 
-    compileOnly project(':conscrypt-constants')
+    compileOnly project(':conscrypt-constants'),
+                configurations.publicApiDocs
 
     testCompile project(':conscrypt-constants'),
             project(':conscrypt-testing'),
