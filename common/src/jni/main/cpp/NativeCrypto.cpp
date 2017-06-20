@@ -5728,8 +5728,10 @@ static SSL_SESSION* server_session_requested_callback(SSL* ssl, uint8_t* id, int
         JNI_TRACE("ssl=%p server_session_requested_callback exception cleared", ssl);
         env->ExceptionClear();
     }
-    JNI_TRACE("ssl=%p server_session_requested_callback completed => %d", ssl, ssl_session_address);
-    return reinterpret_cast<SSL_SESSION*>(static_cast<uintptr_t>(ssl_session_address));
+    SSL_SESSION* ssl_session_ptr = reinterpret_cast<SSL_SESSION*>(
+            static_cast<uintptr_t>(ssl_session_address));
+    JNI_TRACE("ssl=%p server_session_requested_callback completed => %p", ssl, ssl_session_ptr);
+    return ssl_session_ptr;
 }
 
 static jint NativeCrypto_EVP_has_aes_hardware(JNIEnv*, jclass) {
