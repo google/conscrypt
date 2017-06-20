@@ -92,7 +92,12 @@ if (androidSdkInstalled) {
         compile project(path: ':conscrypt-openjdk', configuration: 'platform')
         publicApiDocs project(':conscrypt-api-doclet')
         androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-            exclude group: 'com.android.support', module: 'support-annotations'
+            exclude module: 'support-annotations'
+            exclude module: 'support-v4'
+            exclude module: 'support-v13'
+            exclude module: 'recyclerview-v7'
+            exclude module: 'appcompat-v7'
+            exclude module: 'design'
         })
         testCompile project(':conscrypt-testing'),
                     libraries.junit
