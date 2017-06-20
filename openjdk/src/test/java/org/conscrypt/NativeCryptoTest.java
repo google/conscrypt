@@ -33,7 +33,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.annotation.Native;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.InetAddress;
