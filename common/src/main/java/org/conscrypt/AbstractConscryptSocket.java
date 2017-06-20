@@ -86,7 +86,6 @@ abstract class AbstractConscryptSocket extends SSLSocket {
     private int readTimeoutMilliseconds;
 
     AbstractConscryptSocket() throws IOException {
-        NativeCrypto.checkAvailability();
         this.socket = this;
         this.peerHostname = null;
         this.peerPort = -1;
@@ -95,7 +94,6 @@ abstract class AbstractConscryptSocket extends SSLSocket {
 
     AbstractConscryptSocket(String hostname, int port) throws IOException {
         super(hostname, port);
-        NativeCrypto.checkAvailability();
         this.socket = this;
         this.peerHostname = hostname;
         this.peerPort = port;
@@ -104,7 +102,6 @@ abstract class AbstractConscryptSocket extends SSLSocket {
 
     AbstractConscryptSocket(InetAddress address, int port) throws IOException {
         super(address, port);
-        NativeCrypto.checkAvailability();
         this.socket = this;
         this.peerHostname = null;
         this.peerPort = -1;
@@ -114,7 +111,6 @@ abstract class AbstractConscryptSocket extends SSLSocket {
     AbstractConscryptSocket(String hostname, int port, InetAddress clientAddress, int clientPort)
             throws IOException {
         super(hostname, port, clientAddress, clientPort);
-        NativeCrypto.checkAvailability();
         this.socket = this;
         this.peerHostname = hostname;
         this.peerPort = port;
@@ -124,7 +120,6 @@ abstract class AbstractConscryptSocket extends SSLSocket {
     AbstractConscryptSocket(InetAddress address, int port, InetAddress clientAddress,
             int clientPort) throws IOException {
         super(address, port, clientAddress, clientPort);
-        NativeCrypto.checkAvailability();
         this.socket = this;
         this.peerHostname = null;
         this.peerPort = -1;
@@ -133,7 +128,6 @@ abstract class AbstractConscryptSocket extends SSLSocket {
 
     AbstractConscryptSocket(Socket socket, String hostname, int port, boolean autoClose)
             throws IOException {
-        NativeCrypto.checkAvailability();
         this.socket = checkNotNull(socket, "socket");
         this.peerHostname = hostname;
         this.peerPort = port;

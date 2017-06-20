@@ -40,9 +40,6 @@ import java.security.spec.X509EncodedKeySpec;
  */
 @Internal
 public final class OpenSSLECKeyFactory extends KeyFactorySpi {
-    public OpenSSLECKeyFactory() {
-        NativeCrypto.checkAvailability();
-    }
 
     @Override
     protected PublicKey engineGeneratePublic(KeySpec keySpec) throws InvalidKeySpecException {

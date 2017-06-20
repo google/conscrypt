@@ -41,7 +41,12 @@ public final class Conscrypt {
      * Returns {@code true} if the Conscrypt native library has been successfully loaded.
      */
     public static boolean isAvailable() {
-        return NativeCrypto.isAvailable();
+        try {
+            checkAvailability();
+            return true;
+        } catch (Throwable e) {
+            return false;
+        }
     }
 
     /**
@@ -50,7 +55,12 @@ public final class Conscrypt {
      * @throws UnsatisfiedLinkError if unavailable
      */
     public static void checkAvailability() {
-        NativeCrypto.checkAvailability();
+        try {
+            NativeCrypto.checkAvailability();
+        } catch (Throwable e) {
+            throw(Error) new UnsatisfiedLinkError("failed to load the required native library")
+                    .initCause(e);
+        }
     }
 
     /**

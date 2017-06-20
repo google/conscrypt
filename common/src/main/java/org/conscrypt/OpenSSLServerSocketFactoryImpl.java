@@ -37,7 +37,6 @@ final class OpenSSLServerSocketFactoryImpl extends SSLServerSocketFactory {
 
     OpenSSLServerSocketFactoryImpl() {
         try {
-            NativeCrypto.checkAvailability();
             this.sslParameters = SSLParametersImpl.getDefault();
             this.sslParameters.setUseClientMode(false);
         } catch (KeyManagementException e) {
@@ -47,7 +46,6 @@ final class OpenSSLServerSocketFactoryImpl extends SSLServerSocketFactory {
     }
 
     OpenSSLServerSocketFactoryImpl(SSLParametersImpl sslParameters) {
-        NativeCrypto.checkAvailability();
         this.sslParameters = (SSLParametersImpl) sslParameters.clone();
         this.sslParameters.setUseClientMode(false);
     }

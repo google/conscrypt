@@ -55,7 +55,6 @@ public final class OpenSSLECKeyPairGenerator extends KeyPairGenerator {
 
     public OpenSSLECKeyPairGenerator() {
         super(ALGORITHM);
-        NativeCrypto.checkAvailability();
     }
 
     @Override

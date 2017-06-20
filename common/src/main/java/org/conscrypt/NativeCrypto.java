@@ -68,37 +68,17 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 @Internal
 public final class NativeCrypto {
     // --- OpenSSL library initialization --------------------------------------
-    private static final Throwable UNAVAILABILITY_CAUSE;
     static {
-        Throwable cause = null;
-        try {
-            NativeCryptoJni.init();
-            clinit();
-        } catch (Throwable e) {
-            cause = e;
-        }
-        UNAVAILABILITY_CAUSE = cause;
+        NativeCryptoJni.init();
+        clinit();
     }
 
     private native static void clinit();
 
     /**
-     * Returns {@code true} if the Conscrypt native library has been successfully loaded.
-     */
-    static boolean isAvailable() {
-        return UNAVAILABILITY_CAUSE == null;
-    }
-
-    /**
-     * Checks that the Conscrypt support is available for the system.
-     *
-     * @throws UnsatisfiedLinkError if unavailable
+     * Does nothing. Just for forcing static initialization.
      */
     static void checkAvailability() {
-        if (!isAvailable()) {
-            throw (Error) new UnsatisfiedLinkError(
-                    "failed to load the required native library").initCause(UNAVAILABILITY_CAUSE);
-        }
     }
 
     // --- DSA/RSA public/private key handling functions -----------------------

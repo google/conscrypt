@@ -41,9 +41,6 @@ import java.security.spec.X509EncodedKeySpec;
  */
 @Internal
 public final class OpenSSLRSAKeyFactory extends KeyFactorySpi {
-    public OpenSSLRSAKeyFactory() {
-        NativeCrypto.checkAvailability();
-    }
 
     @Override
     protected PublicKey engineGeneratePublic(KeySpec keySpec) throws InvalidKeySpecException {

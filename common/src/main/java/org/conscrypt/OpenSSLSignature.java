@@ -82,7 +82,6 @@ public class OpenSSLSignature extends SignatureSpi {
      * @param evpMdRef digest algorithm ({@code EVP_MD} reference).
      */
     private OpenSSLSignature(long evpMdRef, EngineType engineType) {
-        NativeCrypto.checkAvailability();
         this.engineType = engineType;
         this.evpMdRef = evpMdRef;
     }

@@ -60,7 +60,6 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
     }
 
     OpenSSLContextImpl(String[] algorithms) {
-        NativeCrypto.checkAvailability();
         this.algorithms = algorithms;
         clientSessionContext = new ClientSessionContext();
         serverSessionContext = new ServerSessionContext();
@@ -70,7 +69,6 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
      * Constuctor for the DefaultSSLContextImpl.
      */
     OpenSSLContextImpl() throws GeneralSecurityException, IOException {
-        NativeCrypto.checkAvailability();
         synchronized (DefaultSSLContextImpl.class) {
             this.algorithms = null;
             if (DEFAULT_SSL_CONTEXT_IMPL == null) {

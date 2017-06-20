@@ -248,12 +248,6 @@ public class NativeCryptoTest {
         assertEquals(Arrays.deepToString(expected), Arrays.deepToString(actual));
     }
 
-    @Test
-    public void conscryptShouldBeAvailable() {
-        assertTrue(NativeCrypto.isAvailable());
-        NativeCrypto.checkAvailability();
-    }
-
     @Test(expected = NullPointerException.class)
     public void EVP_PKEY_cmp_BothNullParameters() throws Exception {
         NativeCrypto.EVP_PKEY_cmp(null, null);

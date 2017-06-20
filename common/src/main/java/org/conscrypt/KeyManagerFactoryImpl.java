@@ -44,10 +44,6 @@ public class KeyManagerFactoryImpl extends KeyManagerFactorySpi {
     //password
     private char[] pwd;
 
-    public KeyManagerFactoryImpl() {
-        NativeCrypto.checkAvailability();
-    }
-
     /**
      * @see KeyManagerFactorySpi#engineInit(KeyStore ks, char[] password)
      */

@@ -44,7 +44,6 @@ public class OpenSSLRSAPublicKey implements RSAPublicKey, OpenSSLKeyHolder {
     private transient boolean fetchedParams;
 
     OpenSSLRSAPublicKey(OpenSSLKey key) {
-        NativeCrypto.checkAvailability();
         this.key = key;
     }
 

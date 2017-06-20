@@ -64,13 +64,11 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     private transient Integer mHashCode;
 
     OpenSSLX509Certificate(long ctx) {
-        NativeCrypto.checkAvailability();
         mContext = ctx;
     }
 
     public static OpenSSLX509Certificate fromX509DerInputStream(InputStream is)
             throws ParsingException {
-        NativeCrypto.checkAvailability();
         @SuppressWarnings("resource")
         final OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
 
@@ -90,7 +88,6 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     public static OpenSSLX509Certificate fromX509Der(byte[] encoded)
             throws CertificateEncodingException {
         try {
-            NativeCrypto.checkAvailability();
             return new OpenSSLX509Certificate(NativeCrypto.d2i_X509(encoded));
         } catch (ParsingException e) {
             throw new CertificateEncodingException(e);
@@ -99,7 +96,6 @@ public final class OpenSSLX509Certificate extends X509Certificate {
 
     public static List<OpenSSLX509Certificate> fromPkcs7DerInputStream(InputStream is)
             throws ParsingException {
-        NativeCrypto.checkAvailability();
         @SuppressWarnings("resource")
         OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
 
@@ -129,7 +125,6 @@ public final class OpenSSLX509Certificate extends X509Certificate {
 
     public static OpenSSLX509Certificate fromX509PemInputStream(InputStream is)
             throws ParsingException {
-        NativeCrypto.checkAvailability();
         @SuppressWarnings("resource")
         final OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
 
@@ -148,7 +143,6 @@ public final class OpenSSLX509Certificate extends X509Certificate {
 
     public static List<OpenSSLX509Certificate> fromPkcs7PemInputStream(InputStream is)
             throws ParsingException {
-        NativeCrypto.checkAvailability();
         @SuppressWarnings("resource")
         OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
 

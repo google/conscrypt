@@ -157,7 +157,6 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     private SSLException handshakeException;
 
     ConscryptEngine(SSLParametersImpl sslParameters) {
-        NativeCrypto.checkAvailability();
         this.sslParameters = sslParameters;
         peerInfoProvider = PeerInfoProvider.nullProvider();
         this.ssl = newSsl(sslParameters, this);
@@ -166,7 +165,6 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     }
 
     ConscryptEngine(final String host, final int port, SSLParametersImpl sslParameters) {
-        NativeCrypto.checkAvailability();
         this.sslParameters = sslParameters;
         this.peerInfoProvider = PeerInfoProvider.forHostAndPort(host, port);
         this.ssl = newSsl(sslParameters, this);
@@ -175,7 +173,6 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     }
 
     ConscryptEngine(SSLParametersImpl sslParameters, PeerInfoProvider peerInfoProvider) {
-        NativeCrypto.checkAvailability();
         this.sslParameters = sslParameters;
         this.peerInfoProvider = checkNotNull(peerInfoProvider, "peerInfoProvider");
         this.ssl = newSsl(sslParameters, this);

@@ -56,7 +56,6 @@ public abstract class OpenSSLMac extends MacSpi {
     private final byte[] singleByte = new byte[1];
 
     private OpenSSLMac(long evp_md, int size) {
-        NativeCrypto.checkAvailability();
         this.evp_md = evp_md;
         this.size = size;
     }
