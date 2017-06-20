@@ -58,7 +58,7 @@ public final class Conscrypt {
         try {
             NativeCrypto.checkAvailability();
         } catch (Throwable e) {
-            throw(Error) new UnsatisfiedLinkError("failed to load the required native library")
+            throw (Error) new UnsatisfiedLinkError("failed to load the required native library")
                     .initCause(e);
         }
     }
