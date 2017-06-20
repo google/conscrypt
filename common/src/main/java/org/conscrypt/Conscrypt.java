@@ -38,6 +38,22 @@ public final class Conscrypt {
     private Conscrypt() {}
 
     /**
+     * Returns {@code true} if the Conscrypt native library has been successfully loaded.
+     */
+    public static boolean isAvailable() {
+        return NativeCrypto.isAvailable();
+    }
+
+    /**
+     * Checks that the Conscrypt support is available for the system.
+     *
+     * @throws UnsatisfiedLinkError if unavailable
+     */
+    public static void checkAvailability() {
+        NativeCrypto.checkAvailability();
+    }
+
+    /**
      * Constructs a new {@link Provider} with the default name.
      */
     public static Provider newProvider() {

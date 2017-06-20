@@ -33,6 +33,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.annotation.Native;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -246,6 +247,12 @@ public class NativeCryptoTest {
 
     public static void assertEqualByteArrays(byte[][] expected, byte[][] actual) {
         assertEquals(Arrays.deepToString(expected), Arrays.deepToString(actual));
+    }
+
+    @Test
+    public void conscryptShouldBeAvailable() {
+        assertTrue(NativeCrypto.isAvailable());
+        NativeCrypto.checkAvailability();
     }
 
     @Test(expected = NullPointerException.class)
