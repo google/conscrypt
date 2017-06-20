@@ -141,7 +141,7 @@ public abstract class KeyGeneratorImpl extends KeyGeneratorSpi {
             // Set the parity bit for each byte
             for (int i = 0; i < keyData.length; i++) {
                 if (Integer.bitCount(keyData[i]) % 2 == 0) {
-                    keyData[i] ^= 1;
+                    keyData[i] = (byte) (keyData[i] ^ 1);
                 }
             }
             if (keyBytes == 14) {

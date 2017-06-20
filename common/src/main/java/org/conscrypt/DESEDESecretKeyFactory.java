@@ -58,8 +58,8 @@ public class DESEDESecretKeyFactory extends SecretKeyFactorySpi {
     }
 
     @Override
-    protected KeySpec engineGetKeySpec(SecretKey secretKey, Class aClass)
-            throws InvalidKeySpecException {
+    protected KeySpec engineGetKeySpec(SecretKey secretKey,
+            @SuppressWarnings("rawtypes") Class aClass) throws InvalidKeySpecException {
         if (secretKey == null) {
             throw new InvalidKeySpecException("Null SecretKey");
         }
