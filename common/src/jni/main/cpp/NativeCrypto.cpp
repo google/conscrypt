@@ -1079,90 +1079,106 @@ static jint NativeCrypto_EVP_PKEY_cmp(JNIEnv* env, jclass, jobject pkey1Ref, job
 }
 
 /*
- * static native byte[] i2d_PKCS8_PRIV_KEY_INFO(int, byte[])
+ * static native byte[] EVP_marshal_private_key(long)
  */
-static jbyteArray NativeCrypto_i2d_PKCS8_PRIV_KEY_INFO(JNIEnv* env, jclass, jobject pkeyRef) {
+static jbyteArray NativeCrypto_EVP_marshal_private_key(JNIEnv* env, jclass, jobject pkeyRef) {
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
-    JNI_TRACE("i2d_PKCS8_PRIV_KEY_INFO(%p)", pkey);
+    JNI_TRACE("EVP_marshal_private_key(%p)", pkey);
 
     if (pkey == nullptr) {
         return nullptr;
     }
 
-    bssl::UniquePtr<PKCS8_PRIV_KEY_INFO> pkcs8(EVP_PKEY2PKCS8(pkey));
-    if (pkcs8.get() == nullptr) {
-        Errors::throwExceptionIfNecessary(env, "NativeCrypto_i2d_PKCS8_PRIV_KEY_INFO");
-        JNI_TRACE("key=%p i2d_PKCS8_PRIV_KEY_INFO => error from key to PKCS8", pkey);
+    bssl::ScopedCBB cbb;
+    if (!CBB_init(cbb.get(), 64)) {
+        Errors::jniThrowOutOfMemory(env, "CBB_init failed");
+        JNI_TRACE("CBB_init failed");
         return nullptr;
     }
 
-    return ASN1ToByteArray<PKCS8_PRIV_KEY_INFO>(env, pkcs8.get(), i2d_PKCS8_PRIV_KEY_INFO);
+    if (!EVP_marshal_private_key(cbb.get(), pkey)) {
+        Errors::throwExceptionIfNecessary(env, "EVP_marshal_private_key");
+        JNI_TRACE("key=%p EVP_marshal_private_key => error", pkey);
+        return nullptr;
+    }
+
+    return CBBToByteArray(env, cbb.get());
 }
 
 /*
- * static native int d2i_PKCS8_PRIV_KEY_INFO(byte[])
+ * static native long EVP_parse_private_key(byte[])
  */
-static jlong NativeCrypto_d2i_PKCS8_PRIV_KEY_INFO(JNIEnv* env, jclass, jbyteArray keyJavaBytes) {
-    JNI_TRACE("d2i_PKCS8_PRIV_KEY_INFO(%p)", keyJavaBytes);
+static jlong NativeCrypto_EVP_parse_private_key(JNIEnv* env, jclass, jbyteArray keyJavaBytes) {
+    JNI_TRACE("EVP_parse_private_key(%p)", keyJavaBytes);
 
     ScopedByteArrayRO bytes(env, keyJavaBytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("bytes=%p d2i_PKCS8_PRIV_KEY_INFO => threw exception", keyJavaBytes);
+        JNI_TRACE("bytes=%p EVP_parse_private_key => threw exception", keyJavaBytes);
         return 0;
     }
 
-    const unsigned char* tmp = reinterpret_cast<const unsigned char*>(bytes.get());
-    bssl::UniquePtr<PKCS8_PRIV_KEY_INFO> pkcs8(
-            d2i_PKCS8_PRIV_KEY_INFO(nullptr, &tmp, static_cast<long>(bytes.size())));
-    if (pkcs8.get() == nullptr) {
-        Errors::throwExceptionIfNecessary(env, "d2i_PKCS8_PRIV_KEY_INFO");
-        JNI_TRACE("ssl=%p d2i_PKCS8_PRIV_KEY_INFO => error from DER to PKCS8", keyJavaBytes);
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_parse_private_key(&cbs));
+    if (!pkey || CBS_len(&cbs) != 0) {
+        Errors::throwParsingException(env, "Error parsing private key");
+        JNI_TRACE("bytes=%p EVP_parse_private_key => threw exception", keyJavaBytes);
         return 0;
     }
 
-    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKCS82PKEY(pkcs8.get()));
-    if (pkey.get() == nullptr) {
-        Errors::throwExceptionIfNecessary(env, "d2i_PKCS8_PRIV_KEY_INFO");
-        JNI_TRACE("ssl=%p d2i_PKCS8_PRIV_KEY_INFO => error from PKCS8 to key", keyJavaBytes);
-        return 0;
-    }
-
-    JNI_TRACE("bytes=%p d2i_PKCS8_PRIV_KEY_INFO => %p", keyJavaBytes, pkey.get());
+    JNI_TRACE("bytes=%p EVP_parse_private_key => %p", keyJavaBytes, pkey.get());
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
 /*
- * static native byte[] i2d_PUBKEY(int)
+ * static native byte[] EVP_marshal_public_key(long)
  */
-static jbyteArray NativeCrypto_i2d_PUBKEY(JNIEnv* env, jclass, jobject pkeyRef) {
+static jbyteArray NativeCrypto_EVP_marshal_public_key(JNIEnv* env, jclass, jobject pkeyRef) {
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
-    JNI_TRACE("i2d_PUBKEY(%p)", pkey);
+    JNI_TRACE("EVP_marshal_public_key(%p)", pkey);
+
     if (pkey == nullptr) {
         return nullptr;
     }
-    return ASN1ToByteArray<EVP_PKEY>(env, pkey, reinterpret_cast<int (*) (EVP_PKEY*, uint8_t **)>(i2d_PUBKEY));
+
+    bssl::ScopedCBB cbb;
+    if (!CBB_init(cbb.get(), 64)) {
+        Errors::jniThrowOutOfMemory(env, "CBB_init failed");
+        JNI_TRACE("CBB_init failed");
+        return nullptr;
+    }
+
+    if (!EVP_marshal_public_key(cbb.get(), pkey)) {
+        Errors::throwExceptionIfNecessary(env, "EVP_marshal_public_key");
+        JNI_TRACE("key=%p EVP_marshal_public_key => error", pkey);
+        return nullptr;
+    }
+
+    return CBBToByteArray(env, cbb.get());
 }
 
 /*
- * static native int d2i_PUBKEY(byte[])
+ * static native long EVP_parse_public_key(byte[])
  */
-static jlong NativeCrypto_d2i_PUBKEY(JNIEnv* env, jclass, jbyteArray javaBytes) {
-    JNI_TRACE("d2i_PUBKEY(%p)", javaBytes);
+static jlong NativeCrypto_EVP_parse_public_key(JNIEnv* env, jclass, jbyteArray keyJavaBytes) {
+    JNI_TRACE("EVP_parse_public_key(%p)", keyJavaBytes);
 
-    ScopedByteArrayRO bytes(env, javaBytes);
+    ScopedByteArrayRO bytes(env, keyJavaBytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("d2i_PUBKEY(%p) => threw error", javaBytes);
+        JNI_TRACE("bytes=%p EVP_parse_public_key => threw exception", keyJavaBytes);
         return 0;
     }
 
-    const unsigned char* tmp = reinterpret_cast<const unsigned char*>(bytes.get());
-    bssl::UniquePtr<EVP_PKEY> pkey(d2i_PUBKEY(nullptr, &tmp, static_cast<long>(bytes.size())));
-    if (pkey.get() == nullptr) {
-        JNI_TRACE("bytes=%p d2i_PUBKEY => threw exception", javaBytes);
-        Errors::throwExceptionIfNecessary(env, "d2i_PUBKEY");
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_parse_public_key(&cbs));
+    if (!pkey || CBS_len(&cbs) != 0) {
+        Errors::throwParsingException(env, "Error parsing public key");
+        JNI_TRACE("bytes=%p EVP_parse_public_key => threw exception", keyJavaBytes);
         return 0;
     }
 
+    JNI_TRACE("bytes=%p EVP_parse_public_key => %p", keyJavaBytes, pkey.get());
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
@@ -9198,10 +9214,10 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_PKEY_print_params, "(" REF_EVP_PKEY ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_PKEY_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_PKEY_cmp, "(" REF_EVP_PKEY REF_EVP_PKEY ")I"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, i2d_PKCS8_PRIV_KEY_INFO, "(" REF_EVP_PKEY ")[B"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, d2i_PKCS8_PRIV_KEY_INFO, "([B)J"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, i2d_PUBKEY, "(" REF_EVP_PKEY ")[B"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, d2i_PUBKEY, "([B)J"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_marshal_private_key, "(" REF_EVP_PKEY ")[B"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_parse_private_key, "([B)J"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_marshal_public_key, "(" REF_EVP_PKEY ")[B"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_parse_public_key, "([B)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, PEM_read_bio_PUBKEY, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, PEM_read_bio_PrivateKey, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, getRSAPrivateKeyWrapper, "(Ljava/security/PrivateKey;[B)J"),

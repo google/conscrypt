@@ -198,7 +198,7 @@ class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
 
     @Override
     public final byte[] getEncoded() {
-        return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getNativeRef());
+        return NativeCrypto.EVP_marshal_private_key(key.getNativeRef());
     }
 
     @Override

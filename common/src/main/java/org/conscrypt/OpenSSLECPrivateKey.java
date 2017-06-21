@@ -161,7 +161,7 @@ final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder {
 
     @Override
     public byte[] getEncoded() {
-        return NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getNativeRef());
+        return NativeCrypto.EVP_marshal_private_key(key.getNativeRef());
     }
 
     @Override
@@ -214,7 +214,7 @@ final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder {
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(NativeCrypto.i2d_PKCS8_PRIV_KEY_INFO(key.getNativeRef()));
+        return Arrays.hashCode(NativeCrypto.EVP_marshal_private_key(key.getNativeRef()));
     }
 
     @Override
@@ -231,7 +231,7 @@ final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder {
 
         byte[] encoded = (byte[]) stream.readObject();
 
-        key = new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(encoded));
+        key = new OpenSSLKey(NativeCrypto.EVP_parse_private_key(encoded));
         group = new OpenSSLECGroupContext(new NativeRef.EC_GROUP(
                 NativeCrypto.EC_KEY_get1_group(key.getNativeRef())));
     }
