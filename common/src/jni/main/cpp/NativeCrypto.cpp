@@ -308,6 +308,35 @@ jbyteArray ASN1ToByteArray(JNIEnv* env, T* obj, int (*i2d_func)(T*, unsigned cha
 }
 
 /**
+ * Finishes a pending CBB and returns a jbyteArray with the contents.
+ */
+jbyteArray CBBToByteArray(JNIEnv* env, CBB* cbb) {
+    uint8_t *data;
+    size_t len;
+    if (!CBB_finish(cbb, &data, &len)) {
+        Errors::jniThrowRuntimeException(env, "CBB_finish failed");
+        JNI_TRACE("creating byte array failed");
+        return nullptr;
+    }
+    bssl::UniquePtr<uint8_t> free_data(data);
+
+    ScopedLocalRef<jbyteArray> byteArray(env, env->NewByteArray(static_cast<jsize>(len)));
+    if (byteArray.get() == nullptr) {
+        JNI_TRACE("creating byte array failed");
+        return nullptr;
+    }
+
+    ScopedByteArrayRW bytes(env, byteArray.get());
+    if (bytes.get() == nullptr) {
+        JNI_TRACE("using byte array failed");
+        return nullptr;
+    }
+
+    memcpy(bytes.get(), data, len);
+    return byteArray.release();
+}
+
+/**
  * Converts ASN.1 BIT STRING to a jbooleanArray.
  */
 jbooleanArray ASN1BitStringToBooleanArray(JNIEnv* env, ASN1_BIT_STRING* bitStr) {
@@ -4459,29 +4488,7 @@ static jbyteArray NativeCrypto_i2d_PKCS7(JNIEnv* env, jclass, jlongArray certsAr
 
     sk_X509_free(stack);
 
-    uint8_t *derBytes;
-    size_t derLen;
-    if (!CBB_finish(out.get(), &derBytes, &derLen)) {
-        Errors::throwExceptionIfNecessary(env, "CBB_finish");
-        return nullptr;
-    }
-
-    ScopedLocalRef<jbyteArray> byteArray(env, env->NewByteArray(static_cast<jsize>(derLen)));
-    if (byteArray.get() == nullptr) {
-        JNI_TRACE("creating byte array failed");
-        return nullptr;
-    }
-
-    ScopedByteArrayRW bytes(env, byteArray.get());
-    if (bytes.get() == nullptr) {
-        JNI_TRACE("using byte array failed");
-        return nullptr;
-    }
-
-    uint8_t* p = reinterpret_cast<unsigned char*>(bytes.get());
-    memcpy(p, derBytes, derLen);
-
-    return byteArray.release();
+    return CBBToByteArray(env, out.get());
 }
 
 static jlongArray NativeCrypto_PEM_read_bio_PKCS7(JNIEnv* env, jclass, jlong bioRef, jint which) {
@@ -4660,29 +4667,7 @@ static jbyteArray NativeCrypto_ASN1_seq_pack_X509(JNIEnv* env, jclass, jlongArra
         }
     }
 
-    uint8_t *out;
-    size_t out_len;
-    if (!CBB_finish(result.get(), &out, &out_len)) {
-        return nullptr;
-    }
-    std::unique_ptr<uint8_t> out_storage(out);
-
-    ScopedLocalRef<jbyteArray> byteArray(env, env->NewByteArray(static_cast<jsize>(out_len)));
-    if (byteArray.get() == nullptr) {
-        JNI_TRACE("ASN1_seq_pack_X509(%p) => creating byte array failed", certs);
-        return nullptr;
-    }
-
-    ScopedByteArrayRW bytes(env, byteArray.get());
-    if (bytes.get() == nullptr) {
-        JNI_TRACE("ASN1_seq_pack_X509(%p) => using byte array failed", certs);
-        return nullptr;
-    }
-
-    uint8_t *p = reinterpret_cast<uint8_t*>(bytes.get());
-    memcpy(p, out, out_len);
-
-    return byteArray.release();
+    return CBBToByteArray(env, result.get());
 }
 
 static void NativeCrypto_X509_free(JNIEnv* env, jclass, jlong x509Ref) {
