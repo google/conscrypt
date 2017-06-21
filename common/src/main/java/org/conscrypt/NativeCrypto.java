@@ -59,6 +59,12 @@ public final class NativeCrypto {
 
     private native static void clinit();
 
+    /**
+     * Does nothing. Just for forcing static initialization.
+     */
+    static void checkAvailability() {
+    }
+
     // --- DSA/RSA public/private key handling functions -----------------------
 
     static native long EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q,
