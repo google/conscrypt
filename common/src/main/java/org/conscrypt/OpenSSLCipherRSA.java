@@ -23,6 +23,8 @@ import java.security.InvalidParameterException;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateCrtKey;
@@ -478,6 +480,21 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
             }
 
             engineInitInternal(opmode, key, spec);
+        }
+
+        @Override
+        void engineInitInternal(int opmode, Key key, AlgorithmParameterSpec spec)
+                throws InvalidKeyException, InvalidAlgorithmParameterException {
+            if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
+                if (!(key instanceof PublicKey)) {
+                    throw new InvalidKeyException("Only public keys may be used to encrypt");
+                }
+            } else if (opmode == Cipher.DECRYPT_MODE || opmode == Cipher.UNWRAP_MODE) {
+                if (!(key instanceof PrivateKey)) {
+                    throw new InvalidKeyException("Only private keys may be used to decrypt");
+                }
+            }
+            super.engineInitInternal(opmode, key, spec);
         }
 
         @Override
