@@ -4379,9 +4379,9 @@ static jbyteArray NativeCrypto_asn1_read_octetstring(JNIEnv* env, jclass, jlong 
     return out.release();
 }
 
-static jlong NativeCrypto_asn1_read_integer(JNIEnv* env, jclass, jlong cbsRef) {
+static jlong NativeCrypto_asn1_read_uint64(JNIEnv* env, jclass, jlong cbsRef) {
     CbsHandle* cbs = reinterpret_cast<CbsHandle*>(static_cast<uintptr_t>(cbsRef));
-    JNI_TRACE("asn1_read_integer(%p)", cbs);
+    JNI_TRACE("asn1_read_uint64(%p)", cbs);
 
     uint64_t value;
     if (!CBS_get_asn1_uint64(cbs->cbs.get(), &value)) {
@@ -4455,9 +4455,9 @@ static void NativeCrypto_asn1_write_octetstring(JNIEnv* env, jclass, jlong cbbRe
     }
 }
 
-static void NativeCrypto_asn1_write_integer(JNIEnv* env, jclass, jlong cbbRef, jlong data) {
+static void NativeCrypto_asn1_write_uint64(JNIEnv* env, jclass, jlong cbbRef, jlong data) {
     CBB* cbb = reinterpret_cast<CBB*>(static_cast<uintptr_t>(cbbRef));
-    JNI_TRACE("asn1_write_integer(%p)", cbb);
+    JNI_TRACE("asn1_write_uint64(%p)", cbb);
 
     if (!CBB_add_asn1_uint64(cbb, static_cast<uint64_t>(data))) {
         Errors::throwIOException(env, "Error writing ASN.1 encoding");
@@ -4475,6 +4475,7 @@ static jbyteArray NativeCrypto_asn1_write_finish(JNIEnv* env, jclass, jlong cbbR
         Errors::throwIOException(env, "Error writing ASN.1 encoding");
         return 0;
     }
+    bssl::UniquePtr<uint8_t> data_storage(data);
     ScopedLocalRef<jbyteArray> out(env, env->NewByteArray(static_cast<jsize>(data_len)));
     if (out.get() == nullptr) {
         Errors::throwIOException(env, "Error writing ASN.1 encoding");
@@ -4486,7 +4487,6 @@ static jbyteArray NativeCrypto_asn1_write_finish(JNIEnv* env, jclass, jlong cbbR
         return 0;
     }
     memcpy(outBytes.get(), data, data_len);
-    OPENSSL_free(data);
     return out.release();
 }
 
@@ -9577,13 +9577,13 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_init, "([B)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_sequence, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_octetstring, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_integer, "(J)J"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_uint64, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_is_empty, "(J)Z"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_init, "()J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_sequence, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_octetstring, "(J[B)V"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_integer, "(JJ)V"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_uint64, "(JJ)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_cleanup, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_finish, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_free, "(J)V"),

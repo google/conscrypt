@@ -544,9 +544,10 @@ public final class NativeCrypto {
     static native byte[] asn1_read_octetstring(long cbsRef) throws IOException;
 
     /**
-     * Returns an ASN.1 integer from the given reference.
+     * Returns an ASN.1 integer from the given reference.  If the integer doesn't fit
+     * in a uint64, this method will throw an IOException.
      */
-    static native long asn1_read_integer(long cbsRef) throws IOException;
+    static native long asn1_read_uint64(long cbsRef) throws IOException;
 
     /**
      * Returns whether or not the given reference has been read completely.
@@ -584,7 +585,7 @@ public final class NativeCrypto {
     /**
      * Writes the given value into the given reference as an ASN.1-encoded integer.
      */
-    static native void asn1_write_integer(long cbbRef, long value) throws IOException;
+    static native void asn1_write_uint64(long cbbRef, long value) throws IOException;
 
     /**
      * Completes any in-progress operations and returns the ASN.1-encoded data.  Either this

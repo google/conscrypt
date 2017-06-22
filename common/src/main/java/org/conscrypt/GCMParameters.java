@@ -85,7 +85,7 @@ public final class GCMParameters extends AlgorithmParametersSpi {
             byte[] newIv = NativeCrypto.asn1_read_octetstring(seqRef);
             int newTlen = DEFAULT_TLEN;
             if (!NativeCrypto.asn1_read_is_empty(seqRef)) {
-                newTlen = 8 * (int) NativeCrypto.asn1_read_integer(seqRef);
+                newTlen = 8 * (int) NativeCrypto.asn1_read_uint64(seqRef);
             }
             if (!NativeCrypto.asn1_read_is_empty(seqRef)
                     || !NativeCrypto.asn1_read_is_empty(readRef)) {
@@ -127,7 +127,7 @@ public final class GCMParameters extends AlgorithmParametersSpi {
             seqRef = NativeCrypto.asn1_write_sequence(cbbRef);
             NativeCrypto.asn1_write_octetstring(seqRef, this.iv);
             if (this.tLen != DEFAULT_TLEN) {
-                NativeCrypto.asn1_write_integer(seqRef, this.tLen / 8);
+                NativeCrypto.asn1_write_uint64(seqRef, this.tLen / 8);
             }
             return NativeCrypto.asn1_write_finish(cbbRef);
         } catch (IOException e) {
