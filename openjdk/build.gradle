@@ -284,7 +284,7 @@ model {
                     if (toolChain in Clang || toolChain in Gcc) {
                         cppCompiler.args "-Wall",
                                 "-fPIC",
-                                "-O2",
+                                "-O3",
                                 "-std=c++11",
                                 "-I$jniSourceDir/main/include",
                                 "-I$jniSourceDir/unbundled/include",
@@ -295,7 +295,7 @@ model {
                                 "-I$jdkIncludeDir/win32"
 
                         // Static link to BoringSSL
-                        linker.args "-O2",
+                        linker.args "-O3",
                                 "-fvisibility=hidden",
                                 "-lstdc++",
                                 libPath + "/ssl/libssl.a",

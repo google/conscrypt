@@ -52,6 +52,8 @@ public final class TestUtils {
     public static final String PROVIDER_PROPERTY = "SSLContext.TLSv1.2";
     public static final String LOCALHOST = "localhost";
 
+    static final String TEST_CIPHER = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
+
     private TestUtils() {}
 
     private static Provider getDefaultTlsProvider() {
@@ -61,6 +63,10 @@ public final class TestUtils {
             }
         }
         throw new RuntimeException("Unable to find a default provider for " + PROVIDER_PROPERTY);
+    }
+
+    static Provider getJdkProvider() {
+        return JDK_PROVIDER;
     }
 
     public static Provider getConscryptProvider() {
@@ -127,30 +133,34 @@ public final class TestUtils {
         return getServerSocketFactory(JDK_PROVIDER);
     }
 
-    public static SSLSocketFactory getConscryptSocketFactory(boolean useEngineSocket) {
+    static SSLSocketFactory setUseEngineSocket(SSLSocketFactory conscryptFactory, boolean useEngineSocket) {
         try {
             Class<?> clazz = conscryptClass("Conscrypt$SocketFactories");
             Method method = clazz.getMethod("setUseEngineSocket", SSLSocketFactory.class, boolean.class);
-
-            SSLSocketFactory socketFactory = getSocketFactory(getConscryptProvider());
-            method.invoke(null, socketFactory, useEngineSocket);
-            return socketFactory;
+            method.invoke(null, conscryptFactory, useEngineSocket);
+            return conscryptFactory;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static SSLServerSocketFactory getConscryptServerSocketFactory(boolean useEngineSocket) {
+    static SSLServerSocketFactory setUseEngineSocket(SSLServerSocketFactory conscryptFactory, boolean useEngineSocket) {
         try {
             Class<?> clazz = conscryptClass("Conscrypt$ServerSocketFactories");
             Method method = clazz.getMethod("setUseEngineSocket", SSLServerSocketFactory.class, boolean.class);
-
-            SSLServerSocketFactory socketFactory = getServerSocketFactory(getConscryptProvider());
-            method.invoke(null, socketFactory, useEngineSocket);
-            return socketFactory;
+            method.invoke(null, conscryptFactory, useEngineSocket);
+            return conscryptFactory;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static SSLSocketFactory getConscryptSocketFactory(boolean useEngineSocket) {
+        return setUseEngineSocket(getSocketFactory(getConscryptProvider()), useEngineSocket);
+    }
+
+    public static SSLServerSocketFactory getConscryptServerSocketFactory(boolean useEngineSocket) {
+        return setUseEngineSocket(getServerSocketFactory(getConscryptProvider()), useEngineSocket);
     }
 
     private static SSLSocketFactory getSocketFactory(Provider provider) {
@@ -205,11 +215,21 @@ public final class TestUtils {
     /**
      * Initializes the given engine with the cipher and client mode.
      */
-    public static SSLEngine initEngine(SSLEngine engine, String cipher, boolean client) {
+    static SSLEngine initEngine(SSLEngine engine, String cipher, boolean client) {
         engine.setEnabledProtocols(getProtocols());
         engine.setEnabledCipherSuites(new String[] {cipher});
         engine.setUseClientMode(client);
         return engine;
+    }
+
+    static SSLContext newClientSslContext(Provider provider) {
+        SSLContext context = newContext(provider);
+        return initClientSslContext(context);
+    }
+
+    static SSLContext newServerSslContext(Provider provider) {
+        SSLContext context = newContext(provider);
+        return initServerSslContext(context);
     }
 
     /**

@@ -58,7 +58,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class OpenSSLSocketImplTest {
+public class ConscryptSocketTest {
     private static final long TIMEOUT_SECONDS = 5;
     private static final char[] EMPTY_PASSWORD = new char[0];
 

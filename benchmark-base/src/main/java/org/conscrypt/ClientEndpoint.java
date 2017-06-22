@@ -19,32 +19,40 @@ package org.conscrypt;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
+import java.util.Arrays;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 
 /**
  * Client-side endpoint. Provides basic services for sending/receiving messages from the client
  * socket.
  */
-public final class TestClient {
+final class ClientEndpoint {
     private final SSLSocket socket;
     private InputStream input;
     private OutputStream output;
 
-    public TestClient(SSLSocket socket) {
-        this.socket = socket;
+    ClientEndpoint(SSLSocketFactory socketFactory, WrappedSocketType wrappedSocketType, int port,
+            String[] protocols, String[] ciphers) throws IOException {
+        socket = wrappedSocketType.newClientSocket(
+                socketFactory, InetAddress.getLoopbackAddress(), port);
+        socket.setEnabledProtocols(protocols);
+        socket.setEnabledCipherSuites(ciphers);
     }
 
-    public void start() {
+    void start() {
         try {
             socket.startHandshake();
             input = socket.getInputStream();
             output = socket.getOutputStream();
         } catch (IOException e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
 
-    public void stop() {
+    void stop() {
         try {
             socket.close();
         } catch (IOException e) {
@@ -52,7 +60,7 @@ public final class TestClient {
         }
     }
 
-    public int readMessage(byte[] buffer) {
+    int readMessage(byte[] buffer) {
         try {
             int totalBytesRead = 0;
             while (totalBytesRead < buffer.length) {
@@ -69,7 +77,7 @@ public final class TestClient {
         }
     }
 
-    public void sendMessage(byte[] data) {
+    void sendMessage(byte[] data) {
         try {
             output.write(data);
         } catch (IOException e) {
@@ -77,7 +85,7 @@ public final class TestClient {
         }
     }
 
-    public void flush() {
+    void flush() {
         try {
             output.flush();
         } catch (IOException e) {
