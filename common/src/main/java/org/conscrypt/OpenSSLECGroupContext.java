@@ -36,12 +36,10 @@ final class OpenSSLECGroupContext {
     }
 
     static OpenSSLECGroupContext getCurveByName(String curveName) {
-        // Workaround for OpenSSL not supporting SECG names for NIST P-192 and P-256
-        // (aka ANSI X9.62 prime192v1 and prime256v1) curve names.
+        // Workaround for OpenSSL not supporting SECG names for NIST P-256 (aka
+        // ANSI X9.62 prime256v1).
         if ("secp256r1".equals(curveName)) {
             curveName = "prime256v1";
-        } else if ("secp192r1".equals(curveName)) {
-            curveName = "prime192v1";
         }
 
         final long ctx = NativeCrypto.EC_GROUP_new_by_curve_name(curveName);
