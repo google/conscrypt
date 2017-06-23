@@ -38,7 +38,7 @@ matrix:
         - $ANDROID_HOME/tools/bin/sdkmanager 'platforms;android-25'
         - $ANDROID_HOME/tools/bin/sdkmanager 'extras;android;m2repository'
         - $ANDROID_HOME/tools/bin/sdkmanager --channel=1 ndk-bundle
-        - $ANDROID_HOME/tools/bin/sdkmanager 'cmake;3.6.3155560'
+        - $ANDROID_HOME/tools/bin/sdkmanager 'cmake;3.6.4111459'
 
       addons:
         apt:
