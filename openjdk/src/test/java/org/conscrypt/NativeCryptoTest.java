@@ -749,7 +749,7 @@ public class NativeCryptoTest {
             } else {
                 cipherSuites.addAll(enabledCipherSuites);
             }
-            NativeCrypto.SSL_set_cipher_lists(
+            NativeCrypto.setEnabledCipherSuites(
                     s, cipherSuites.toArray(new String[cipherSuites.size()]));
 
             if (channelIdPrivateKey != null) {
@@ -2215,6 +2215,24 @@ public class NativeCryptoTest {
         Future<TestSSLHandshakeCallbacks> server = handshake(listener, 0, false, sHooks, null);
         client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void test_SSL_cipher_names() throws Exception {
+        final ServerSocket listener = newServerSocket();
+        Hooks cHooks = new Hooks();
+        Hooks sHooks = new ServerHooks(getServerPrivateKey(), getServerCertificates());
+        // Both legacy and standard names are accepted.
+        cHooks.enabledCipherSuites = Collections.singletonList("ECDHE-RSA-AES128-GCM-SHA256");
+        sHooks.enabledCipherSuites =
+                Collections.singletonList("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
+        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null);
+        Future<TestSSLHandshakeCallbacks> server = handshake(listener, 0, false, sHooks, null);
+        client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        // The standard name is always reported.
+        assertEquals("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", cHooks.negotiatedCipherSuite);
+        assertEquals("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", sHooks.negotiatedCipherSuite);
     }
 
     private final byte[] BYTES = new byte[] {2, -3, 5, 127, 0, -128};
