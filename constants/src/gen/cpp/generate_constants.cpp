@@ -46,21 +46,8 @@ int main(int /* argc */, char ** /* argv */) {
   printf("package org.conscrypt;\n\n");
   printf("final class NativeConstants {\n");
 
-  printf("    static final boolean HAS_EVP_AEAD = %s;\n",
-#if defined(EVP_AEAD_DEFAULT_TAG_LENGTH)
-         "true"
-#else
-         "false"
-#endif
-  );
-
 #define CONST(x) \
   printf("    static final int %s = %ld;\n", #x, (long int)(x))
-#define CONST_MINUS_1(x) printf("    static final int %s = -1;\n", #x)
-  CONST(OPENSSL_EC_NAMED_CURVE);
-
-  CONST(POINT_CONVERSION_COMPRESSED);
-  CONST(POINT_CONVERSION_UNCOMPRESSED);
 
   CONST(EXFLAG_CA);
   CONST(EXFLAG_CRITICAL);
@@ -95,44 +82,14 @@ int main(int /* argc */, char ** /* argv */) {
 
   CONST(TLS_CT_RSA_SIGN);
   CONST(TLS_CT_ECDSA_SIGN);
-
-#if defined(TLS_CT_RSA_FIXED_DH)
   CONST(TLS_CT_RSA_FIXED_DH);
-#else
-  CONST_MINUS_1(TLS_CT_RSA_FIXED_DH);
-#endif
-#if defined(TLS_CT_RSA_FIXED_ECDH)
   CONST(TLS_CT_RSA_FIXED_ECDH);
-#else
-  CONST_MINUS_1(TLS_CT_RSA_FIXED_ECDH);
-#endif
-#if defined(TLS_CT_ECDSA_FIXED_ECDH)
   CONST(TLS_CT_ECDSA_FIXED_ECDH);
-#else
-  CONST_MINUS_1(TLS_CT_ECDSA_FIXED_ECDH);
-#endif
 
   CONST(SSL_VERIFY_NONE);
   CONST(SSL_VERIFY_PEER);
   CONST(SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
 
-  CONST(SSL_ST_CONNECT);
-  CONST(SSL_ST_ACCEPT);
-  CONST(SSL_ST_MASK);
-  CONST(SSL_ST_INIT);
-  CONST(SSL_ST_OK);
-  CONST(SSL_ST_RENEGOTIATE);
-  CONST(SSL_CB_LOOP);
-  CONST(SSL_CB_EXIT);
-  CONST(SSL_CB_READ);
-  CONST(SSL_CB_WRITE);
-  CONST(SSL_CB_ALERT);
-  CONST(SSL_CB_READ_ALERT);
-  CONST(SSL_CB_WRITE_ALERT);
-  CONST(SSL_CB_ACCEPT_LOOP);
-  CONST(SSL_CB_ACCEPT_EXIT);
-  CONST(SSL_CB_CONNECT_LOOP);
-  CONST(SSL_CB_CONNECT_EXIT);
   CONST(SSL_CB_HANDSHAKE_START);
   CONST(SSL_CB_HANDSHAKE_DONE);
 
