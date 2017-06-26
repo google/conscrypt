@@ -1270,5 +1270,4 @@ public final class NativeCrypto {
     static native long SSL_get_mode(long ssl);
     static native long SSL_get_options(long ssl);
     static native long SSL_get1_session(long ssl);
-    static native void SSL_renegotiate(long sslNativePointer) throws SSLException;
 }

@@ -9155,35 +9155,6 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
     return reinterpret_cast<uintptr_t>(SSL_get1_session(ssl));
 }
 
-/**
- * Perform SSL renegotiation
- */
-static void NativeCrypto_SSL_renegotiate(JNIEnv* env, jclass, jlong ssl_address)
-{
-    SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_renegotiate", ssl);
-    if (ssl == nullptr) {
-        return;
-    }
-    int result = SSL_renegotiate(ssl);
-    if (result != 1) {
-        Errors::throwSSLExceptionStr(env, "Problem with SSL_renegotiate");
-        return;
-    }
-    // first call asks client to perform renegotiation
-    int ret = SSL_do_handshake(ssl);
-    if (ret != 1) {
-        OpenSslError sslError(ssl, ret);
-        Errors::throwSSLExceptionWithSslErrors(env, ssl, sslError.release(),
-                                       "Problem with SSL_do_handshake after SSL_renegotiate");
-        return;
-    }
-    // if client agrees, set ssl state and perform renegotiation
-    SSL_set_state(ssl, SSL_ST_ACCEPT);
-    SSL_do_handshake(ssl);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_renegotiate => OK", ssl);
-}
-
 // TESTING METHODS END
 
 #define CONSCRYPT_NATIVE_METHOD(className, functionName, signature) \
@@ -9472,7 +9443,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_mode, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_options, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get1_session, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_renegotiate, "(J)V"),
 };
 
 void NativeCrypto::registerNativeMethods(JNIEnv* env) {
