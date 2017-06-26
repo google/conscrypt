@@ -539,6 +539,19 @@ public final class NativeCrypto {
     static native long asn1_read_sequence(long cbsRef) throws IOException;
 
     /**
+     * Returns whether the next object in the given reference is explicitly tagged with the
+     * given tag number.
+     */
+    static native boolean asn1_read_next_tag_is(long cbsRef, int tag) throws IOException;
+
+    /**
+     * Allocates and returns an opaque reference to an object that can be used with
+     * other asn1_read_* functions to read the ASN.1 data pointed to by cbsRef.  The returned
+     * object must be freed after use by calling asn1_read_free.
+     */
+    static native long asn1_read_tagged(long cbsRef) throws IOException;
+
+    /**
      * Returns the contents of an ASN.1 octet string from the given reference.
      */
     static native byte[] asn1_read_octetstring(long cbsRef) throws IOException;
@@ -548,6 +561,17 @@ public final class NativeCrypto {
      * in a uint64, this method will throw an IOException.
      */
     static native long asn1_read_uint64(long cbsRef) throws IOException;
+
+    /**
+     * Consumes an ASN.1 NULL from the given reference.
+     */
+    static native void asn1_read_null(long cbsRef) throws IOException;
+
+    /**
+     * Returns an ASN.1 OID in dotted-decimal notation (eg, "1.3.14.3.2.26" for SHA-1) from the
+     * given reference.
+     */
+    static native String asn1_read_oid(long cbsRef) throws IOException;
 
     /**
      * Returns whether or not the given reference has been read completely.
@@ -578,6 +602,15 @@ public final class NativeCrypto {
     static native long asn1_write_sequence(long cbbRef) throws IOException;
 
     /**
+     * Allocates and returns an opaque reference to an object that can be used with other
+     * asn1_write_* functions to write a explicitly-tagged ASN.1 object with the given tag
+     * into the given reference. The returned reference may only be used until the next
+     * call on the parent reference.  The returned object must be freed after use by
+     * calling asn1_write_free.
+     */
+    static native long asn1_write_tag(long cbbRef, int tag) throws IOException;
+
+    /**
      * Writes the given data into the given reference as an ASN.1-encoded octet string.
      */
     static native void asn1_write_octetstring(long cbbRef, byte[] data) throws IOException;
@@ -586,6 +619,24 @@ public final class NativeCrypto {
      * Writes the given value into the given reference as an ASN.1-encoded integer.
      */
     static native void asn1_write_uint64(long cbbRef, long value) throws IOException;
+
+    /**
+     * Writes a NULL value into the given reference.
+     */
+    static native void asn1_write_null(long cbbRef) throws IOException;
+
+    /**
+     * Writes the given OID (which must be in dotted-decimal notation) into the given reference.
+     */
+    static native void asn1_write_oid(long cbbRef, String oid) throws IOException;
+
+    /**
+     * Flushes the given reference, invalidating any child references and completing their
+     * operations.  This must be called if the child references are to be freed before
+     * asn1_write_finish is called on the ultimate parent.  The child references must still
+     * be freed.
+     */
+    static native void asn1_write_flush(long cbbRef) throws IOException;
 
     /**
      * Completes any in-progress operations and returns the ASN.1-encoded data.  Either this
