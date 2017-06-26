@@ -102,8 +102,7 @@ final class SslWrapper {
     }
 
     String getCipherSuite() {
-        String name = NativeCrypto.SSL_get_current_cipher(ssl);
-        return SSLUtils.getCipherSuiteFromName(name);
+        return NativeCrypto.cipherSuiteToJava(NativeCrypto.SSL_get_current_cipher(ssl));
     }
 
     OpenSSLX509Certificate[] getLocalCertificates() {

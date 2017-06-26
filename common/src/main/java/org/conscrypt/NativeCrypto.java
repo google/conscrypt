@@ -32,11 +32,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -537,26 +534,12 @@ public final class NativeCrypto {
     private static final String SUPPORTED_PROTOCOL_TLSV1_1 = "TLSv1.1";
     private static final String SUPPORTED_PROTOCOL_TLSV1_2 = "TLSv1.2";
 
-    // STANDARD_TO_OPENSSL_CIPHER_SUITES is a map from OpenSSL-style
-    // cipher-suite names to the standard name for the same (i.e. the name that
-    // is registered with IANA).
-    static final Map<String, String> OPENSSL_TO_STANDARD_CIPHER_SUITES =
-            new HashMap<String, String>();
-
-    // STANDARD_TO_OPENSSL_CIPHER_SUITES is a map from "standard" cipher suite
-    // names (i.e. the names that are registered with IANA) to the
-    // OpenSSL-style name for the same.
-    static final Map<String, String> STANDARD_TO_OPENSSL_CIPHER_SUITES =
-            new LinkedHashMap<String, String>();
-
-    // SUPPORTED_CIPHER_SUITES_SET contains all the cipher suites supported by
-    // OpenSSL, named using "standard" (as opposed to OpenSSL-style) names.
+    // SUPPORTED_CIPHER_SUITES_SET contains all the supported cipher suites, using their Java names.
     static final Set<String> SUPPORTED_CIPHER_SUITES_SET = new HashSet<String>();
 
-    private static void add(String openssl, String standard) {
-        OPENSSL_TO_STANDARD_CIPHER_SUITES.put(openssl, standard);
-        STANDARD_TO_OPENSSL_CIPHER_SUITES.put(standard, openssl);
-    }
+    // SUPPORTED_LEGACY_CIPHER_SUITES_SET contains all the supported cipher suites using the legacy
+    // OpenSSL-style names.
+    static final Set<String> SUPPORTED_LEGACY_CIPHER_SUITES_SET = new HashSet<String>();
 
     /**
      * TLS_EMPTY_RENEGOTIATION_INFO_SCSV is RFC 5746's renegotiation
@@ -579,6 +562,21 @@ public final class NativeCrypto {
      */
     static final String TLS_EMPTY_RENEGOTIATION_INFO_SCSV = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
 
+    static String cipherSuiteToJava(String cipherSuite) {
+        // For historical reasons, Java uses a different name for TLS_RSA_WITH_3DES_EDE_CBC_SHA.
+        if ("TLS_RSA_WITH_3DES_EDE_CBC_SHA".equals(cipherSuite)) {
+            return "SSL_RSA_WITH_3DES_EDE_CBC_SHA";
+        }
+        return cipherSuite;
+    }
+
+    static String cipherSuiteFromJava(String javaCipherSuite) {
+        if ("SSL_RSA_WITH_3DES_EDE_CBC_SHA".equals(javaCipherSuite)) {
+            return "TLS_RSA_WITH_3DES_EDE_CBC_SHA";
+        }
+        return javaCipherSuite;
+    }
+
     /**
      * TLS_FALLBACK_SCSV is from
      * https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-00
@@ -587,101 +585,26 @@ public final class NativeCrypto {
      */
     static final String TLS_FALLBACK_SCSV = "TLS_FALLBACK_SCSV";
 
-    static {
-        add("ADH-AES128-GCM-SHA256", "TLS_DH_anon_WITH_AES_128_GCM_SHA256");
-        add("ADH-AES128-SHA256", "TLS_DH_anon_WITH_AES_128_CBC_SHA256");
-        add("ADH-AES128-SHA", "TLS_DH_anon_WITH_AES_128_CBC_SHA");
-        add("ADH-AES256-GCM-SHA384", "TLS_DH_anon_WITH_AES_256_GCM_SHA384");
-        add("ADH-AES256-SHA256", "TLS_DH_anon_WITH_AES_256_CBC_SHA256");
-        add("ADH-AES256-SHA", "TLS_DH_anon_WITH_AES_256_CBC_SHA");
-        add("ADH-DES-CBC3-SHA", "SSL_DH_anon_WITH_3DES_EDE_CBC_SHA");
-        add("ADH-DES-CBC-SHA", "SSL_DH_anon_WITH_DES_CBC_SHA");
-        add("AECDH-AES128-SHA", "TLS_ECDH_anon_WITH_AES_128_CBC_SHA");
-        add("AECDH-AES256-SHA", "TLS_ECDH_anon_WITH_AES_256_CBC_SHA");
-        add("AECDH-DES-CBC3-SHA", "TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA");
-        add("AECDH-NULL-SHA", "TLS_ECDH_anon_WITH_NULL_SHA");
-        add("AES128-GCM-SHA256", "TLS_RSA_WITH_AES_128_GCM_SHA256");
-        add("AES128-SHA256", "TLS_RSA_WITH_AES_128_CBC_SHA256");
-        add("AES128-SHA", "TLS_RSA_WITH_AES_128_CBC_SHA");
-        add("AES256-GCM-SHA384", "TLS_RSA_WITH_AES_256_GCM_SHA384");
-        add("AES256-SHA256", "TLS_RSA_WITH_AES_256_CBC_SHA256");
-        add("AES256-SHA", "TLS_RSA_WITH_AES_256_CBC_SHA");
-        add("DES-CBC3-SHA", "SSL_RSA_WITH_3DES_EDE_CBC_SHA");
-        add("DES-CBC-SHA", "SSL_RSA_WITH_DES_CBC_SHA");
-        add("ECDH-ECDSA-AES128-GCM-SHA256", "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256");
-        add("ECDH-ECDSA-AES128-SHA256", "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256");
-        add("ECDH-ECDSA-AES128-SHA", "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA");
-        add("ECDH-ECDSA-AES256-GCM-SHA384", "TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384");
-        add("ECDH-ECDSA-AES256-SHA384", "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384");
-        add("ECDH-ECDSA-AES256-SHA", "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA");
-        add("ECDH-ECDSA-DES-CBC3-SHA", "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA");
-        add("ECDH-ECDSA-NULL-SHA", "TLS_ECDH_ECDSA_WITH_NULL_SHA");
-        add("ECDHE-ECDSA-AES128-GCM-SHA256", "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
-        add("ECDHE-ECDSA-AES128-SHA256", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
-        add("ECDHE-ECDSA-AES128-SHA", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
-        add("ECDHE-ECDSA-AES256-GCM-SHA384", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
-        add("ECDHE-ECDSA-AES256-SHA384", "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384");
-        add("ECDHE-ECDSA-AES256-SHA", "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA");
-        add("ECDHE-ECDSA-CHACHA20-POLY1305", "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305");
-        add("ECDHE-ECDSA-CHACHA20-POLY1305", "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256");
-        add("ECDHE-ECDSA-DES-CBC3-SHA", "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA");
-        add("ECDHE-ECDSA-NULL-SHA", "TLS_ECDHE_ECDSA_WITH_NULL_SHA");
-        add("ECDHE-PSK-AES128-CBC-SHA", "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA");
-        add("ECDHE-PSK-AES128-GCM-SHA256", "TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256");
-        add("ECDHE-PSK-AES256-CBC-SHA", "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA");
-        add("ECDHE-PSK-AES256-GCM-SHA384", "TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384");
-        add("ECDHE-PSK-CHACHA20-POLY1305", "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256");
-        add("ECDHE-RSA-AES128-GCM-SHA256", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
-        add("ECDHE-RSA-AES128-SHA256", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
-        add("ECDHE-RSA-AES128-SHA", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
-        add("ECDHE-RSA-AES256-GCM-SHA384", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
-        add("ECDHE-RSA-AES256-SHA384", "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
-        add("ECDHE-RSA-AES256-SHA", "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
-        add("ECDHE-RSA-CHACHA20-POLY1305", "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305");
-        add("ECDHE-RSA-CHACHA20-POLY1305", "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256");
-        add("ECDHE-RSA-DES-CBC3-SHA", "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA");
-        add("ECDHE-RSA-NULL-SHA", "TLS_ECDHE_RSA_WITH_NULL_SHA");
-        add("ECDH-RSA-AES128-GCM-SHA256", "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256");
-        add("ECDH-RSA-AES128-SHA256", "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256");
-        add("ECDH-RSA-AES128-SHA", "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA");
-        add("ECDH-RSA-AES256-GCM-SHA384", "TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384");
-        add("ECDH-RSA-AES256-SHA384", "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384");
-        add("ECDH-RSA-AES256-SHA", "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA");
-        add("ECDH-RSA-DES-CBC3-SHA", "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA");
-        add("ECDH-RSA-NULL-SHA", "TLS_ECDH_RSA_WITH_NULL_SHA");
-        add("EXP-ADH-DES-CBC-SHA", "SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
-        add("EXP-DES-CBC-SHA", "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA");
-        add("NULL-MD5", "SSL_RSA_WITH_NULL_MD5");
-        add("NULL-SHA256", "TLS_RSA_WITH_NULL_SHA256");
-        add("NULL-SHA", "SSL_RSA_WITH_NULL_SHA");
-        add("PSK-3DES-EDE-CBC-SHA", "TLS_PSK_WITH_3DES_EDE_CBC_SHA");
-        add("PSK-AES128-CBC-SHA", "TLS_PSK_WITH_AES_128_CBC_SHA");
-        add("PSK-AES256-CBC-SHA", "TLS_PSK_WITH_AES_256_CBC_SHA");
-
-        // Signaling Cipher Suite Value for secure renegotiation handled as special case.
-        // add("TLS_EMPTY_RENEGOTIATION_INFO_SCSV", null);
-
-        // Similarly, the fallback SCSV is handled as a special case.
-        // add("TLS_FALLBACK_SCSV", null);
-    }
-
     private static final String[] SUPPORTED_CIPHER_SUITES;
     static {
-        String[] allOpenSSLCipherSuites = get_cipher_names("ALL:!DHE");
+        String[] allCipherSuites = get_cipher_names("ALL:!DHE");
 
-        int size = allOpenSSLCipherSuites.length;
-        SUPPORTED_CIPHER_SUITES = new String[size + 2];
-        for (int i = 0; i < size; i++) {
-            String standardName = OPENSSL_TO_STANDARD_CIPHER_SUITES.get(allOpenSSLCipherSuites[i]);
-            if (standardName == null) {
-                throw new IllegalArgumentException("Unknown cipher suite supported by native code: "
-                        + allOpenSSLCipherSuites[i]);
-            }
-            SUPPORTED_CIPHER_SUITES[i] = standardName;
-            SUPPORTED_CIPHER_SUITES_SET.add(standardName);
+        // get_cipher_names returns an array where even indices are the standard name and odd
+        // indices are the OpenSSL name.
+        int size = allCipherSuites.length;
+        if (size % 2 != 0) {
+            throw new IllegalArgumentException("Invalid cipher list returned by get_cipher_names");
         }
-        SUPPORTED_CIPHER_SUITES[size] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
-        SUPPORTED_CIPHER_SUITES[size + 1] = TLS_FALLBACK_SCSV;
+        SUPPORTED_CIPHER_SUITES = new String[size / 2 + 2];
+        for (int i = 0; i < size; i += 2) {
+            String cipherSuite = cipherSuiteToJava(allCipherSuites[i]);
+            SUPPORTED_CIPHER_SUITES[i / 2] = cipherSuite;
+            SUPPORTED_CIPHER_SUITES_SET.add(cipherSuite);
+
+            SUPPORTED_LEGACY_CIPHER_SUITES_SET.add(allCipherSuites[i + 1]);
+        }
+        SUPPORTED_CIPHER_SUITES[size / 2] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
+        SUPPORTED_CIPHER_SUITES[size / 2 + 1] = TLS_FALLBACK_SCSV;
     }
 
     /**
@@ -903,9 +826,7 @@ public final class NativeCrypto {
                 SSL_set_mode(ssl, NativeConstants.SSL_MODE_SEND_FALLBACK_SCSV);
                 continue;
             }
-            String openssl = STANDARD_TO_OPENSSL_CIPHER_SUITES.get(cipherSuite);
-            String cs = (openssl == null) ? cipherSuite : openssl;
-            opensslSuites.add(cs);
+            opensslSuites.add(cipherSuiteFromJava(cipherSuite));
         }
         SSL_set_cipher_lists(ssl, opensslSuites.toArray(new String[opensslSuites.size()]));
     }
@@ -916,26 +837,24 @@ public final class NativeCrypto {
         }
         // makes sure all suites are valid, throwing on error
         for (int i = 0; i < cipherSuites.length; i++) {
-            String cipherSuite = cipherSuites[i];
-            if (cipherSuite == null) {
+            if (cipherSuites[i] == null) {
                 throw new IllegalArgumentException("cipherSuites[" + i + "] == null");
             }
-            if (cipherSuite.equals(TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
-                    || cipherSuite.equals(TLS_FALLBACK_SCSV)) {
+            if (cipherSuites[i].equals(TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
+                    || cipherSuites[i].equals(TLS_FALLBACK_SCSV)) {
                 continue;
             }
-            if (SUPPORTED_CIPHER_SUITES_SET.contains(cipherSuite)) {
+            if (SUPPORTED_CIPHER_SUITES_SET.contains(cipherSuites[i])) {
                 continue;
             }
 
             // For backwards compatibility, it's allowed for |cipherSuite| to
             // be an OpenSSL-style cipher-suite name.
-            String standardName = OPENSSL_TO_STANDARD_CIPHER_SUITES.get(cipherSuite);
-            if (standardName != null && SUPPORTED_CIPHER_SUITES_SET.contains(standardName)) {
+            if (SUPPORTED_LEGACY_CIPHER_SUITES_SET.contains(cipherSuites[i])) {
                 // TODO log warning about using backward compatability
                 continue;
             }
-            throw new IllegalArgumentException("cipherSuite " + cipherSuite + " is not supported.");
+            throw new IllegalArgumentException("cipherSuite " + cipherSuites[i] + " is not supported.");
         }
         return cipherSuites;
     }
