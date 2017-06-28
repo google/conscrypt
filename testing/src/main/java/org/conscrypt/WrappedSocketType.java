@@ -65,7 +65,8 @@ public enum WrappedSocketType {
 
         @Override
         ServerSocket newServerSocket(SSLServerSocketFactory unused) throws IOException {
-            return ServerSocketFactory.getDefault().createServerSocket(0, 50, InetAddress.getLoopbackAddress());
+            return ServerSocketFactory.getDefault().createServerSocket(
+                    0, 50, InetAddress.getLoopbackAddress());
         }
 
         @Override
@@ -104,7 +105,7 @@ public enum WrappedSocketType {
                 channel = serverChannel.accept();
             } while (channel == null);
 
-                Socket wrapped = channel.socket();
+            Socket wrapped = channel.socket();
             return serverMode(factory.createSocket(
                     wrapped, wrapped.getInetAddress().getHostAddress(), wrapped.getPort(), true));
         }

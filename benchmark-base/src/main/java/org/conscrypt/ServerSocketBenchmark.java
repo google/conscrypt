@@ -31,8 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.conscrypt.ServerEndpoint.MessageProcessor;
 
 /**
- * Benchmark for comparing performance of server socket implementations. All benchmarks use the
- * standard JDK TLS implementation.
+ * Benchmark for comparing performance of server socket implementations.
  */
 public final class ServerSocketBenchmark {
     /**
@@ -119,7 +118,7 @@ public final class ServerSocketBenchmark {
 
     void throughput() throws Exception {
         recording.set(true);
-        // No need to do anything, just sleep here.
+        // Send as many messages as we can in a second.
         Thread.sleep(1001);
         recording.set(false);
     }

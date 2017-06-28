@@ -28,8 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Benchmark for comparing performance of client socket implementations. All benchmarks use Netty
- * with tcnative as the server.
+ * Benchmark for comparing performance of client socket implementations.
  */
 public final class ClientSocketBenchmark {
     /**
@@ -105,7 +104,7 @@ public final class ClientSocketBenchmark {
      */
     void throughput() throws Exception {
         recording.set(true);
-        // No need to do anything, just sleep here.
+        // Send as many messages as we can in a second.
         Thread.sleep(1001);
         recording.set(false);
     }
