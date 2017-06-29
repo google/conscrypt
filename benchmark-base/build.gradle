@@ -1,0 +1,32 @@
+description = 'Conscrypt: Benchmarks Base'
+
+evaluationDependsOn(':conscrypt-openjdk')
+
+ext {
+    preferredNativeConfiguration = project(':conscrypt-openjdk').preferredNativeConfiguration
+    preferredNativeFileDir = project(':conscrypt-openjdk').preferredNativeFileDir
+}
+
+sourceSets {
+    main {
+        resources {
+            // This shouldn't be needed but seems to help IntelliJ locate the native artifact.
+            srcDirs += preferredNativeFileDir
+        }
+    }
+}
+
+dependencies {
+    compile project(':conscrypt-openjdk'),
+            project(':conscrypt-testing'),
+            libraries.junit,
+            libraries.netty_handler,
+            libraries.netty_tcnative
+
+    // Add the preferred native openjdk configuration for this platform.
+    compile project(path: ':conscrypt-openjdk', configuration: "$preferredNativeConfiguration")
+}
+
+// Don't include this artifact in the distribution.
+tasks.install.enabled = false
+tasks.uploadArchives.enabled = false;

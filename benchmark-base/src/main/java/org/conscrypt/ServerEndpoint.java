@@ -19,21 +19,25 @@ package org.conscrypt;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ServerSocket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 
 /**
  * A simple socket-based test server.
  */
-public final class TestServer {
+final class ServerEndpoint {
     /**
      * A processor for receipt of a single message.
      */
-    public interface MessageProcessor { void processMessage(byte[] message, int numBytes, OutputStream os); }
+    public interface MessageProcessor {
+        void processMessage(byte[] message, int numBytes, OutputStream os);
+    }
 
     /**
      * A {@link MessageProcessor} that simply echos back the received message to the client.
@@ -50,8 +54,12 @@ public final class TestServer {
         }
     }
 
-    private final SSLServerSocket serverSocket;
+    private final ServerSocket serverSocket;
+    private final WrappedSocketType wrappedSocketType;
+    private final SSLSocketFactory socketFactory;
     private final int messageSize;
+    private final String[] protocols;
+    private final String[] cipherSuites;
     private final byte[] buffer;
     private SSLSocket socket;
     private ExecutorService executor;
@@ -60,22 +68,28 @@ public final class TestServer {
     private volatile boolean stopping;
     private volatile MessageProcessor messageProcessor = new EchoProcessor();
 
-    public TestServer(SSLServerSocket serverSocket, int messageSize) {
-        this.serverSocket = serverSocket;
+    ServerEndpoint(SSLSocketFactory socketFactory, SSLServerSocketFactory serverSocketFactory,
+            WrappedSocketType wrappedSocketType, int messageSize, String[] protocols,
+            String[] cipherSuites) throws IOException {
+        this.serverSocket = wrappedSocketType.newServerSocket(serverSocketFactory);
+        this.socketFactory = socketFactory;
+        this.wrappedSocketType = wrappedSocketType;
         this.messageSize = messageSize;
+        this.protocols = protocols;
+        this.cipherSuites = cipherSuites;
         buffer = new byte[messageSize];
     }
 
-    public void setMessageProcessor(MessageProcessor messageProcessor) {
+    void setMessageProcessor(MessageProcessor messageProcessor) {
         this.messageProcessor = messageProcessor;
     }
 
-    public Future<?> start() {
+    Future<?> start() throws IOException {
         executor = Executors.newSingleThreadExecutor();
         return executor.submit(new AcceptTask());
     }
 
-    public void stop() {
+    void stop() {
         try {
             stopping = true;
 
@@ -106,7 +120,12 @@ public final class TestServer {
                 if (stopping) {
                     return;
                 }
-                socket = (SSLSocket) serverSocket.accept();
+                socket = wrappedSocketType.accept(serverSocket, socketFactory);
+                socket.setEnabledProtocols(protocols);
+                socket.setEnabledCipherSuites(cipherSuites);
+
+                socket.startHandshake();
+
                 inputStream = socket.getInputStream();
                 outputStream = socket.getOutputStream();
 
@@ -115,6 +134,7 @@ public final class TestServer {
                 }
                 executor.execute(new ProcessTask());
             } catch (IOException e) {
+                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         }

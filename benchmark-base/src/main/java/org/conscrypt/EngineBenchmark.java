@@ -30,7 +30,7 @@
  * under the License.
  */
 
-package org.conscrypt.benchmarks;
+package org.conscrypt;
 
 import static java.lang.Math.max;
 import static org.conscrypt.TestUtils.PROTOCOL_TLS_V1_2;
@@ -48,24 +48,27 @@ import java.nio.ByteBuffer;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
-import java.util.Collections;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import libcore.java.security.TestKeyStore;
-import org.conscrypt.OpenSSLProvider;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Param;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
 
 /**
  * Benchmark comparing performance of various engine implementations to conscrypt.
  */
-@State(Scope.Benchmark)
-public class SslEngineBenchmark {
+public final class EngineBenchmark {
+    /**
+     * Provider for the benchmark configuration
+     */
+    interface Config {
+        SslProvider sslProvider();
+        BufferType bufferType();
+        int messageSize();
+        String cipher();
+    }
+
+    @SuppressWarnings({"ImmutableEnumChecker", "unused"})
     public enum SslProvider {
         JDK {
             private final SSLContext clientContext = initClientSslContext(newContext());
@@ -112,8 +115,8 @@ public class SslEngineBenchmark {
             }
         },
         NETTY {
-            private final SslContext clientContext = newClientContext(null);
-            private final SslContext serverContext = newServerContext(null);
+            private final SslContext clientContext = newNettyClientContext();
+            private final SslContext serverContext = newNettyServerContext();
 
             @Override
             SSLEngine newClientEngine(String cipher) {
@@ -130,8 +133,37 @@ public class SslEngineBenchmark {
 
         abstract SSLEngine newClientEngine(String cipher);
         abstract SSLEngine newServerEngine(String cipher);
+
+        private static SslContext newNettyClientContext() {
+            try {
+                TestKeyStore server = TestKeyStore.getServer();
+                SslContextBuilder ctx =
+                        SslContextBuilder.forClient()
+                                .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL)
+                                .trustManager((X509Certificate[]) server.getPrivateKey("RSA", "RSA")
+                                                      .getCertificateChain());
+                return ctx.build();
+            } catch (SSLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        private static SslContext newNettyServerContext() {
+            try {
+                PrivateKeyEntry server = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
+                SslContextBuilder ctx =
+                        SslContextBuilder
+                                .forServer(server.getPrivateKey(),
+                                        (X509Certificate[]) server.getCertificateChain())
+                                .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL);
+                return ctx.build();
+            } catch (SSLException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
+    @SuppressWarnings("unused")
     public enum BufferType {
         HEAP {
             @Override
@@ -149,99 +181,124 @@ public class SslEngineBenchmark {
         abstract ByteBuffer newBuffer(int size);
     }
 
-    @Param public SslProvider sslProvider;
+    private final SSLEngine clientEngine;
+    private final SSLEngine serverEngine;
 
-    @Param public BufferType bufferType;
+    private final ByteBuffer clientCleartextBuffer;
+    private final ByteBuffer encryptedBuffer;
+    private final ByteBuffer serverCleartextBuffer;
+    private final ByteBuffer preEncryptedBuffer;
 
-    @Param({"64", "128", "512", "1024", "4096"}) public int messageSize;
+    EngineBenchmark(Config config) throws Exception {
+        final SslProvider provider = config.sslProvider();
+        final String cipher = config.cipher();
+        final BufferType bufferType = config.bufferType();
+        final int messageSize = config.messageSize();
 
-    @Param({"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}) public String cipher;
+        clientEngine = provider.newClientEngine(cipher);
+        serverEngine = provider.newServerEngine(cipher);
 
-    private SSLEngine clientEngine;
-    private SSLEngine serverEngine;
-
-    private ByteBuffer clientCleartextBuffer;
-    private ByteBuffer encryptedBuffer;
-    private ByteBuffer serverCleartextBuffer;
-
-    @Setup
-    public void setup() throws Exception {
-        clientEngine = sslProvider.newClientEngine(cipher);
-        serverEngine = sslProvider.newServerEngine(cipher);
-
-        encryptedBuffer = bufferType.newBuffer(clientEngine.getSession().getPacketBufferSize());
+        final int encryptedBufferSize = clientEngine.getSession().getPacketBufferSize();
+        encryptedBuffer = bufferType.newBuffer(encryptedBufferSize);
+        preEncryptedBuffer = bufferType.newBuffer(encryptedBufferSize);
 
         // Generate the message to be sent from the client.
-        serverCleartextBuffer = bufferType.newBuffer(
-                max(messageSize, serverEngine.getSession().getApplicationBufferSize()));
+        final int cleartextBufferSize = serverEngine.getSession().getApplicationBufferSize();
+        serverCleartextBuffer = bufferType.newBuffer(max(messageSize, cleartextBufferSize));
         clientCleartextBuffer = bufferType.newBuffer(messageSize);
         clientCleartextBuffer.put(newTextMessage(messageSize));
         clientCleartextBuffer.flip();
 
         // Complete the initial TLS handshake.
         doEngineHandshake(clientEngine, serverEngine);
+
+        // Populate the pre-encrypted buffer for use with the unwrap benchmark.
+        doWrap(clientCleartextBuffer, preEncryptedBuffer);
+        doUnwrap(preEncryptedBuffer, serverCleartextBuffer);
     }
 
-    private static SslContext newClientContext(String cipher) {
-        try {
-            TestKeyStore server = TestKeyStore.getServer();
-            SslContextBuilder ctx =
-                    SslContextBuilder.forClient()
-                            .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL)
-                            .trustManager((X509Certificate[]) server.getPrivateKey("RSA", "RSA")
-                                                  .getCertificateChain());
-            if (cipher != null) {
-                ctx.ciphers(Collections.singletonList(cipher));
-            }
-            return ctx.build();
-        } catch (SSLException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    void wrap() throws SSLException {
+        // Reset the buffers.
+        clientCleartextBuffer.position(0);
+        encryptedBuffer.clear();
 
-    private static SslContext newServerContext(String cipher) {
-        try {
-            PrivateKeyEntry server = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
-            SslContextBuilder ctx =
-                    SslContextBuilder
-                            .forServer(server.getPrivateKey(),
-                                    (X509Certificate[]) server.getCertificateChain())
-                           .sslProvider(io.netty.handler.ssl.SslProvider.OPENSSL);
-            if (cipher != null) {
-                ctx.ciphers(Collections.singletonList(cipher));
-            }
-            return ctx.build();
-        } catch (SSLException e) {
-            throw new RuntimeException(e);
-        }
-    }
+        // Wrap the original message and create the encrypted data.
+        doWrap(clientCleartextBuffer, encryptedBuffer);
 
+        // Lightweight comparison - just make sure the data length is correct.
+        assertEquals(preEncryptedBuffer.limit(), encryptedBuffer.limit());
+    }
 
     /**
      * Simple benchmark that sends a single message from client to server.
      */
-    @Benchmark
-    public void sendMessage() throws SSLException {
+    void wrapAndUnwrap() throws SSLException {
         // Reset the buffers.
         clientCleartextBuffer.position(0);
         encryptedBuffer.clear();
         serverCleartextBuffer.clear();
 
         // Wrap the original message and create the encrypted data.
-        SSLEngineResult wrapResult = clientEngine.wrap(clientCleartextBuffer, encryptedBuffer);
-        if (wrapResult.getStatus() != SSLEngineResult.Status.OK) {
-            throw new RuntimeException("Wrap returned unexpected result " + wrapResult);
-        }
+        doWrap(clientCleartextBuffer, encryptedBuffer);
 
         // Unwrap the encrypted data and get back the original result.
-        encryptedBuffer.flip();
-        SSLEngineResult unwrapResult = serverEngine.unwrap(encryptedBuffer, serverCleartextBuffer);
-        if (unwrapResult.getStatus() != SSLEngineResult.Status.OK) {
-            throw new RuntimeException("Unwrap returned unexpected result " + wrapResult);
-        }
-        serverCleartextBuffer.flip();
+        doUnwrap(encryptedBuffer, serverCleartextBuffer);
 
         // Lightweight comparison - just make sure the unencrypted data length is correct.
         assertEquals(clientCleartextBuffer.limit(), serverCleartextBuffer.limit());
+    }
+
+    private void doWrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
+        // Wrap the original message and create the encrypted data.
+        verifyResult(src, clientEngine.wrap(src, dst));
+        dst.flip();
+    }
+
+    private void doUnwrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
+        verifyResult(src, serverEngine.unwrap(src, dst));
+        dst.flip();
+    }
+
+    private void verifyResult(ByteBuffer src, SSLEngineResult result) {
+        if (result.getStatus() != SSLEngineResult.Status.OK) {
+            throw new RuntimeException("Operation returned unexpected result " + result);
+        }
+        if (result.bytesConsumed() != src.limit()) {
+            throw new RuntimeException(
+                    String.format("Operation didn't consume all bytes. Expected %d, consumed %d.",
+                            src.limit(), result.bytesConsumed()));
+        }
+    }
+
+    /**
+     * A simple main for profiling.
+     */
+    public static void main(String[] args) throws Exception {
+        EngineBenchmark bm = new EngineBenchmark(new Config() {
+            @Override
+            public SslProvider sslProvider() {
+                return SslProvider.CONSCRYPT;
+            }
+
+            @Override
+            public BufferType bufferType() {
+                return BufferType.DIRECT;
+            }
+
+            @Override
+            public int messageSize() {
+                return 512;
+            }
+
+            @Override
+            public String cipher() {
+                return TestUtils.TEST_CIPHER;
+            }
+        });
+
+        // Just run forever for profiling.
+        while (true) {
+            bm.wrapAndUnwrap();
+        }
     }
 }
