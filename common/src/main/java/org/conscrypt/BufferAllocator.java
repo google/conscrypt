@@ -25,11 +25,6 @@ import java.nio.ByteBuffer;
 abstract class BufferAllocator {
     private static BufferAllocator UNPOOLED = new BufferAllocator() {
         @Override
-        public AllocatedBuffer allocateHeapBuffer(int capacity) {
-            return AllocatedBuffer.wrap(new byte[capacity]);
-        }
-
-        @Override
         public AllocatedBuffer allocateDirectBuffer(int capacity) {
             return AllocatedBuffer.wrap(ByteBuffer.allocateDirect(capacity));
         }
@@ -41,11 +36,6 @@ abstract class BufferAllocator {
     public static BufferAllocator unpooled() {
         return UNPOOLED;
     }
-
-    /**
-     * Allocates a buffer with the given capacity that is backed by an array on the heap.
-     */
-    public abstract AllocatedBuffer allocateHeapBuffer(int capacity);
 
     /**
      * Allocates a direct (i.e. non-heap) buffer with the given capacity.

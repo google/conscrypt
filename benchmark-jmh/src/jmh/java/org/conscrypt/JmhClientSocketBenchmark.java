@@ -56,7 +56,8 @@ public class JmhClientSocketBenchmark {
 
     private final JmhConfig config = new JmhConfig();
 
-    @Param public SocketType socketType;
+    @Param
+    public SocketType socketType;
 
     @Param({"64", "512", "4096"})
     public int messageSize;
@@ -64,7 +65,8 @@ public class JmhClientSocketBenchmark {
     @Param({TestUtils.TEST_CIPHER})
     public String cipher;
 
-    @Param public WrappedSocketType wrapped;
+    @Param
+    public ChannelType channelType;
 
     private ClientSocketBenchmark benchmark;
 
@@ -101,8 +103,8 @@ public class JmhClientSocketBenchmark {
         }
 
         @Override
-        public WrappedSocketType wrappedSocketType() {
-            return wrapped;
+        public ChannelType channelType() {
+            return channelType;
         }
     }
 }

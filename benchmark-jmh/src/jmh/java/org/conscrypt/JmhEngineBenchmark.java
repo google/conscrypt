@@ -33,7 +33,6 @@
 package org.conscrypt;
 
 import javax.net.ssl.SSLException;
-import org.conscrypt.EngineBenchmark.BufferType;
 import org.conscrypt.EngineBenchmark.Config;
 import org.conscrypt.EngineBenchmark.SslProvider;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -55,9 +54,6 @@ public class JmhEngineBenchmark {
 
     @Param
     public SslProvider sslProvider;
-
-    @Param
-    public BufferType bufferType;
 
     @Param({"64", "512", "4096"})
     public int messageSize;
@@ -86,11 +82,6 @@ public class JmhEngineBenchmark {
         @Override
         public SslProvider sslProvider() {
             return sslProvider;
-        }
-
-        @Override
-        public BufferType bufferType() {
-            return bufferType;
         }
 
         @Override

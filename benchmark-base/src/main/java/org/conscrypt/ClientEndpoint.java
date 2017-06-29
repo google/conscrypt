@@ -32,9 +32,9 @@ final class ClientEndpoint {
     private InputStream input;
     private OutputStream output;
 
-    ClientEndpoint(SSLSocketFactory socketFactory, WrappedSocketType wrappedSocketType, int port,
+    ClientEndpoint(SSLSocketFactory socketFactory, ChannelType channelType, int port,
             String[] protocols, String[] ciphers) throws IOException {
-        socket = wrappedSocketType.newClientSocket(
+        socket = channelType.newClientSocket(
                 socketFactory, InetAddress.getLoopbackAddress(), port);
         socket.setEnabledProtocols(protocols);
         socket.setEnabledCipherSuites(ciphers);

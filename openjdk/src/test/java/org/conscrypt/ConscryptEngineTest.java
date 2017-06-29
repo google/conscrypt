@@ -16,7 +16,9 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.Conscrypt.Engines.setBufferAllocator;
 import static org.conscrypt.TestUtils.PROTOCOL_TLS_V1_2;
+import static org.conscrypt.TestUtils.TEST_CIPHER;
 import static org.conscrypt.TestUtils.initEngine;
 import static org.conscrypt.TestUtils.initSslContext;
 import static org.conscrypt.TestUtils.newTextMessage;
@@ -45,17 +47,23 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ConscryptEngineTest {
-    private static final String CIPHER = "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256";
     private static final int MESSAGE_SIZE = 4096;
 
+    @SuppressWarnings("ImmutableEnumChecker")
     public enum BufferType {
-        HEAP {
+        HEAP_ALLOCATOR(BufferAllocator.unpooled()) {
             @Override
             ByteBuffer newBuffer(int size) {
                 return ByteBuffer.allocate(size);
             }
         },
-        DIRECT {
+        HEAP_NO_ALLOCATOR(null) {
+            @Override
+            ByteBuffer newBuffer(int size) {
+                return ByteBuffer.allocate(size);
+            }
+        },
+        DIRECT(null) {
             @Override
             ByteBuffer newBuffer(int size) {
                 return ByteBuffer.allocateDirect(size);
@@ -63,40 +71,44 @@ public class ConscryptEngineTest {
         };
 
         abstract ByteBuffer newBuffer(int size);
+
+        BufferType(BufferAllocator allocator) {
+            this.allocator = allocator;
+        }
+
+        private final BufferAllocator allocator;
     }
 
     private enum ClientAuth {
         NONE {
             @Override
-            SSLEngine apply(SSLEngine engine) {
+            void apply(SSLEngine engine) {
                 engine.setWantClientAuth(false);
                 engine.setNeedClientAuth(false);
-                return engine;
             }
         },
         OPTIONAL {
             @Override
-            SSLEngine apply(SSLEngine engine) {
+            void apply(SSLEngine engine) {
                 engine.setWantClientAuth(true);
                 engine.setNeedClientAuth(false);
-                return engine;
             }
         },
         REQUIRED {
             @Override
-            SSLEngine apply(SSLEngine engine) {
+            void apply(SSLEngine engine) {
                 engine.setWantClientAuth(false);
                 engine.setNeedClientAuth(true);
-                return engine;
             }
         };
 
-        abstract SSLEngine apply(SSLEngine engine);
+        abstract void apply(SSLEngine engine);
     }
 
     @Parameters(name = "{0}")
     public static Iterable<BufferType> data() {
-        return Arrays.asList(BufferType.HEAP, BufferType.DIRECT);
+        return Arrays.asList(
+                BufferType.HEAP_ALLOCATOR, BufferType.HEAP_NO_ALLOCATOR, BufferType.DIRECT);
     }
 
     @Parameter public BufferType bufferType;
@@ -175,10 +187,8 @@ public class ConscryptEngineTest {
         byte[] expectedMessage = toArray(clientCleartextBuffer);
 
         // Unwrap the all of the encrypted messages.
-        ByteBuffer[] cleartextBuffers = new ByteBuffer[numMessages];
         for (int i = 0; i < numMessages; ++i) {
             ByteBuffer out = bufferType.newBuffer(2 * MESSAGE_SIZE);
-            cleartextBuffers[i] = out;
             SSLEngineResult unwrapResult = Conscrypt.Engines.unwrap(
                     serverEngine, encryptedBuffers, new ByteBuffer[] {out});
             assertEquals(SSLEngineResult.Status.OK, unwrapResult.getStatus());
@@ -269,8 +279,10 @@ public class ConscryptEngineTest {
         SSLContext clientContext = initSslContext(newContext(), clientKeyStore);
         SSLContext serverContext = initSslContext(newContext(), serverKeyStore);
 
-        clientEngine = initEngine(clientContext.createSSLEngine(), CIPHER, true);
-        serverEngine = initEngine(serverContext.createSSLEngine(), CIPHER, false);
+        clientEngine = initEngine(clientContext.createSSLEngine(), TEST_CIPHER, true);
+        serverEngine = initEngine(serverContext.createSSLEngine(), TEST_CIPHER, false);
+        setBufferAllocator(clientEngine, bufferType.allocator);
+        setBufferAllocator(serverEngine, bufferType.allocator);
     }
 
     private static byte[] toArray(ByteBuffer buffer) {

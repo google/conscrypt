@@ -56,13 +56,17 @@ public class JmhServerSocketBenchmark {
 
     private final JmhConfig config = new JmhConfig();
 
-    @Param public SocketType socketType;
+    @Param
+    public SocketType socketType;
 
-    @Param public WrappedSocketType wrapped;
+    @Param
+    public ChannelType channelType;
 
-    @Param({"64", "1024"}) public int messageSize;
+    @Param({"64", "512", "4096"})
+    public int messageSize;
 
-    @Param({"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}) public String cipher;
+    @Param({"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"})
+    public String cipher;
 
     private ServerSocketBenchmark benchmark;
 
@@ -99,8 +103,8 @@ public class JmhServerSocketBenchmark {
         }
 
         @Override
-        public WrappedSocketType wrappedSocketType() {
-            return wrapped;
+        public ChannelType channelType() {
+            return channelType;
         }
     }
 }
