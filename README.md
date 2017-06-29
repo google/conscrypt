@@ -3,7 +3,7 @@ Conscrypt - A Java Security Provider
 
 Conscrypt is a Java Security Provider (JSP) that implements parts of the
 Java Cryptography Extension (JCE) and Java Secure Socket Extension (JSSE).
-It uses BoringSSL to provide cryptograhpic primitives and Transport Layer
+It uses BoringSSL to provide cryptographical primitives and Transport Layer
 Security (TLS) for Java applications on Android and OpenJDK.
 
 The core SSL engine has borrowed liberally from the [Netty](http://netty.io/) project and their
@@ -32,14 +32,14 @@ not yet been published to the public Maven repositories.</b>
 
 #### Download JARs
 You can download
-[the JARs](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.conscrypt%22%20AND%20v%3A%221.1.0%22)
+[the JARs](http://search.maven.org/#search%7Cga%7C1%7Cg:%22org.conscrypt%22%20AND%20v:%221.1.0%22)
 directly from the Maven repositories.
 
 #### OpenJDK (i.e. non-Android)
 
 ##### Native Classifiers
 
-The OpenJDK artifacts are platform-dependent, since each embeds a native library for a particular
+The OpenJDK artifacts are platform-dependent since each embeds a native library for a particular
 platform. We publish artifacts to Maven Central for the following platforms:
 
 Classifier | Description
@@ -143,7 +143,7 @@ supporting various versions of Android. This generates an `aar` library artifact
 
 ### OpenJDK
 
-This modules provides the `Platform` class for non-Android (OpenJDK-based) systems. It also provides
+These modules provide the `Platform` class for non-Android (OpenJDK-based) systems. It also provides
 a native library loader supports bundling the shared library with the JAR.
 
 ### Platform
