@@ -96,7 +96,7 @@ public class OpenSSLRSAPublicKey implements RSAPublicKey, OpenSSLKeyHolder {
 
     @Override
     public byte[] getEncoded() {
-        return NativeCrypto.i2d_PUBKEY(key.getNativeRef());
+        return NativeCrypto.EVP_marshal_public_key(key.getNativeRef());
     }
 
     private void ensureReadParams() {

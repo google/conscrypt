@@ -30,7 +30,7 @@ import java.security.PublicKey;
 @Internal
 public final class InternalUtil {
     public static PublicKey logKeyToPublicKey(byte[] logKey) throws NoSuchAlgorithmException {
-        return new OpenSSLKey(NativeCrypto.d2i_PUBKEY(logKey)).getPublicKey();
+        return new OpenSSLKey(NativeCrypto.EVP_parse_public_key(logKey)).getPublicKey();
     }
 
     public static PublicKey readPublicKeyPem(InputStream pem) throws InvalidKeyException, NoSuchAlgorithmException {

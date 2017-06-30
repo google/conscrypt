@@ -87,7 +87,7 @@ final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
 
     @Override
     public byte[] getEncoded() {
-        return NativeCrypto.i2d_PUBKEY(key.getNativeRef());
+        return NativeCrypto.EVP_marshal_public_key(key.getNativeRef());
     }
 
     @Override
@@ -143,7 +143,7 @@ final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(NativeCrypto.i2d_PUBKEY(key.getNativeRef()));
+        return Arrays.hashCode(NativeCrypto.EVP_marshal_public_key(key.getNativeRef()));
     }
 
     @Override
@@ -156,7 +156,7 @@ final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
 
         byte[] encoded = (byte[]) stream.readObject();
 
-        key = new OpenSSLKey(NativeCrypto.d2i_PUBKEY(encoded));
+        key = new OpenSSLKey(NativeCrypto.EVP_parse_public_key(encoded));
         group = new OpenSSLECGroupContext(new NativeRef.EC_GROUP(
                 NativeCrypto.EC_KEY_get1_group(key.getNativeRef())));
     }

@@ -80,13 +80,13 @@ public final class NativeCrypto {
 
     static native int EVP_PKEY_cmp(NativeRef.EVP_PKEY pkey1, NativeRef.EVP_PKEY pkey2);
 
-    static native byte[] i2d_PKCS8_PRIV_KEY_INFO(NativeRef.EVP_PKEY pkey);
+    static native byte[] EVP_marshal_private_key(NativeRef.EVP_PKEY pkey);
 
-    static native long d2i_PKCS8_PRIV_KEY_INFO(byte[] data);
+    static native long EVP_parse_private_key(byte[] data);
 
-    static native byte[] i2d_PUBKEY(NativeRef.EVP_PKEY pkey);
+    static native byte[] EVP_marshal_public_key(NativeRef.EVP_PKEY pkey);
 
-    static native long d2i_PUBKEY(byte[] data);
+    static native long EVP_parse_public_key(byte[] data);
 
     static native long PEM_read_bio_PUBKEY(long bioCtx);
 
