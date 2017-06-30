@@ -545,7 +545,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      */
     SSLSession handshakeSession() {
         synchronized (stateLock) {
-            return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY ? sslSession : null;
+            return state == STATE_HANDSHAKE_STARTED ? sslSession : null;
         }
     }
 
