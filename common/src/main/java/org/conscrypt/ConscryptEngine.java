@@ -32,6 +32,8 @@
 
 package org.conscrypt;
 
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.FINISHED;
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NEED_UNWRAP;
 import static javax.net.ssl.SSLEngineResult.HandshakeStatus.NEED_WRAP;
@@ -50,6 +52,7 @@ import static org.conscrypt.NativeConstants.SSL_ERROR_WANT_WRITE;
 import static org.conscrypt.NativeConstants.SSL_ERROR_ZERO_RETURN;
 import static org.conscrypt.Preconditions.checkArgument;
 import static org.conscrypt.Preconditions.checkNotNull;
+import static org.conscrypt.Preconditions.checkPositionIndexes;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED_INBOUND;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED_OUTBOUND;
@@ -106,12 +109,20 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             new SSLEngineResult(CLOSED, NOT_HANDSHAKING, 0, 0);
     private static final ByteBuffer EMPTY = ByteBuffer.allocateDirect(0);
 
+    private final SSLParametersImpl sslParameters;
+    private BufferAllocator bufferAllocator;
+
+    /**
+     * A lazy-created direct buffer used as a bridge between heap buffers provided by the
+     * application and JNI. This avoids the overhead of calling JNI with heap buffers.
+     * Used only when no {@link #bufferAllocator} has been provided.
+     */
+    private ByteBuffer lazyDirectBuffer;
+
     /**
      * Hostname used with the TLS extension SNI hostname.
      */
     private String peerHostname;
-
-    private final SSLParametersImpl sslParameters;
 
     /**
      * Protects {@link #state} and {@link #handshakeFinished}.
@@ -164,7 +175,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         sslSession = new ActiveSession(ssl, sslParameters.getSessionContext());
     }
 
-    ConscryptEngine(final String host, final int port, SSLParametersImpl sslParameters) {
+    ConscryptEngine(String host, int port, SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
         this.peerInfoProvider = PeerInfoProvider.forHostAndPort(host, port);
         this.ssl = newSsl(sslParameters, this);
@@ -185,6 +196,16 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             return SslWrapper.newInstance(sslParameters, engine, engine, engine);
         } catch (SSLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    void setBufferAllocator(BufferAllocator bufferAllocator) {
+        synchronized (stateLock) {
+            if (isHandshakeStarted()) {
+                throw new IllegalStateException(
+                        "Could not set buffer allocator after the initial handshake has begun.");
+            }
+            this.bufferAllocator = bufferAllocator;
         }
     }
 
@@ -662,9 +683,8 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             throws SSLException {
         checkArgument(srcs != null, "srcs is null");
         checkArgument(dsts != null, "dsts is null");
-
-        checkIndex(srcs.length, srcsOffset, srcsLength, "srcs");
-        checkIndex(dsts.length, dstsOffset, dstsLength, "dsts");
+        checkPositionIndexes(srcsOffset, srcsOffset + srcsLength, srcs.length);
+        checkPositionIndexes(dstsOffset, dstsOffset + dstsLength, dsts.length);
 
         // Determine the output capacity.
         final int dstLength = calcDstsLength(dsts, dstsOffset, dstsLength);
@@ -742,7 +762,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                         continue;
                     }
                     // Write the source encrypted data to the networkBio.
-                    int written = writeEncryptedData(src, Math.min(lenRemaining, remaining));
+                    int written = writeEncryptedData(src, min(lenRemaining, remaining));
                     if (written > 0) {
                         bytesConsumed += written;
                         lenRemaining -= written;
@@ -953,14 +973,10 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         try {
             final int pos = src.position();
             final int sslWrote;
-
             if (src.isDirect()) {
-                long addr = NativeCrypto.getDirectBufferAddress(src) + pos;
-                sslWrote = ssl.writeDirectByteBuffer(addr, len);
+                sslWrote = writePlaintextDataDirect(src, pos, len);
             } else {
-                ByteBuffer heapSrc = toHeapBuffer(src, len);
-                sslWrote = ssl.writeArray(
-                        heapSrc.array(), heapSrc.arrayOffset() + heapSrc.position(), len);
+                sslWrote = writePlaintextDataHeap(src, pos, len);
             }
             if (sslWrote > 0) {
                 src.position(pos + sslWrote);
@@ -971,36 +987,102 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         }
     }
 
+    private int writePlaintextDataDirect(ByteBuffer src, int pos, int len) throws IOException {
+        return ssl.writeDirectByteBuffer(directByteBufferAddress(src, pos), len);
+    }
+
+    private int writePlaintextDataHeap(ByteBuffer src, int pos, int len) throws IOException {
+        AllocatedBuffer allocatedBuffer = null;
+        try {
+            final ByteBuffer buffer;
+            if (bufferAllocator != null) {
+                allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
+                buffer = allocatedBuffer.nioBuffer();
+            } else {
+                // We don't have a buffer allocator, but we don't want to send a heap
+                // buffer to JNI. So lazy-create a direct buffer that we will use from now
+                // on to copy plaintext data.
+                buffer = getOrCreateLazyDirectBuffer();
+            }
+
+            // Copy the data to the direct buffer.
+            int limit = src.limit();
+            int bytesToWrite = min(len, buffer.remaining());
+            src.limit(pos + bytesToWrite);
+            buffer.put(src);
+            buffer.flip();
+            // Restore the original position and limit.
+            src.limit(limit);
+            src.position(pos);
+
+            return writePlaintextDataDirect(buffer, 0, bytesToWrite);
+        } finally {
+            if (allocatedBuffer != null) {
+                // Release the buffer back to the pool.
+                allocatedBuffer.release();
+            }
+        }
+    }
+
     /**
      * Read plaintext data from the OpenSSL internal BIO
      */
     private int readPlaintextData(final ByteBuffer dst) throws IOException {
         try {
-            final int sslRead;
             final int pos = dst.position();
             final int limit = dst.limit();
-            final int len = Math.min(SSL3_RT_MAX_PACKET_SIZE, limit - pos);
+            final int len = min(SSL3_RT_MAX_PACKET_SIZE, limit - pos);
             if (dst.isDirect()) {
-                long addr = NativeCrypto.getDirectBufferAddress(dst) + pos;
-                sslRead = ssl.readDirectByteBuffer(addr, len);
-                if (sslRead > 0) {
-                    dst.position(pos + sslRead);
+                int bytesRead = readPlaintextDataDirect(dst, pos, len);
+                if (bytesRead > 0) {
+                    dst.position(pos + bytesRead);
                 }
-            } else if (dst.hasArray()) {
-                sslRead = ssl.readArray(dst.array(), dst.arrayOffset() + pos, len);
-                if (sslRead > 0) {
-                    dst.position(pos + sslRead);
-                }
-            } else {
-                byte[] data = new byte[len];
-                sslRead = ssl.readArray(data, 0, len);
-                if (sslRead > 0) {
-                    dst.put(data, 0, sslRead);
-                }
+                return bytesRead;
             }
-            return sslRead;
+
+            // The heap method updates the dst position automatically.
+            return readPlaintextDataHeap(dst, len);
         } catch (CertificateException e) {
             throw convertException(e);
+        }
+    }
+
+    private int readPlaintextDataDirect(ByteBuffer dst, int pos, int len)
+            throws IOException, CertificateException {
+        return ssl.readDirectByteBuffer(directByteBufferAddress(dst, pos), len);
+    }
+
+    private int readPlaintextDataHeap(ByteBuffer dst, int len)
+            throws IOException, CertificateException {
+        AllocatedBuffer allocatedBuffer = null;
+        try {
+            final ByteBuffer buffer;
+            if (bufferAllocator != null) {
+                allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
+                buffer = allocatedBuffer.nioBuffer();
+            } else {
+                // We don't have a buffer allocator, but we don't want to send a heap
+                // buffer to JNI. So lazy-create a direct buffer that we will use from now
+                // on to copy plaintext data.
+                buffer = getOrCreateLazyDirectBuffer();
+            }
+
+            // Read the data to the direct buffer.
+            int bytesToRead = min(len, buffer.remaining());
+            int bytesRead = readPlaintextDataDirect(buffer, 0, bytesToRead);
+            if (bytesRead > 0) {
+                // Copy the data to the heap buffer.
+                buffer.position(bytesRead);
+                buffer.flip();
+                dst.put(buffer);
+            }
+
+            return bytesRead;
+        } finally {
+            if (allocatedBuffer != null) {
+                // Release the buffer back to the pool.
+                allocatedBuffer.release();
+            }
         }
     }
 
@@ -1017,24 +1099,76 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     private int writeEncryptedData(final ByteBuffer src, int len) throws SSLException {
         try {
             final int pos = src.position();
-            final int netWrote;
+            final int bytesWritten;
             if (src.isDirect()) {
-                long addr = NativeCrypto.getDirectBufferAddress(src) + pos;
-                netWrote = networkBio.writeDirectByteBuffer(addr, len);
+                bytesWritten = writeEncryptedDataDirect(src, pos, len);
             } else {
-                ByteBuffer heapSrc = toHeapBuffer(src, len);
-                netWrote = networkBio.writeArray(
-                        heapSrc.array(), heapSrc.arrayOffset() + heapSrc.position(), len);
+                bytesWritten = writeEncryptedDataHeap(src, pos, len);
             }
 
-            if (netWrote >= 0) {
-                src.position(pos + netWrote);
+            if (bytesWritten > 0) {
+                src.position(pos + bytesWritten);
             }
 
-            return netWrote;
+            return bytesWritten;
         } catch (IOException e) {
             throw new SSLException(e);
         }
+    }
+
+    private int writeEncryptedDataDirect(ByteBuffer src, int pos, int len) throws IOException {
+        return networkBio.writeDirectByteBuffer(directByteBufferAddress(src, pos), len);
+    }
+
+    private int writeEncryptedDataHeap(ByteBuffer src, int pos, int len) throws IOException {
+        AllocatedBuffer allocatedBuffer = null;
+        try {
+            final ByteBuffer buffer;
+            if (bufferAllocator != null) {
+                allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
+                buffer = allocatedBuffer.nioBuffer();
+            } else {
+                // We don't have a buffer allocator, but we don't want to send a heap
+                // buffer to JNI. So lazy-create a direct buffer that we will use from now
+                // on to copy encrypted packets.
+                buffer = getOrCreateLazyDirectBuffer();
+            }
+
+            int limit = src.limit();
+            int bytesToCopy = min(min(limit - pos, len), buffer.remaining());
+            src.limit(pos + bytesToCopy);
+            buffer.put(src);
+            // Restore the original limit.
+            src.limit(limit);
+
+            // Reset the original position on the source buffer.
+            src.position(pos);
+
+            int bytesWritten = writeEncryptedDataDirect(buffer, 0, bytesToCopy);
+
+            // Restore the original position.
+            src.position(pos);
+
+            return bytesWritten;
+        } finally {
+            if (allocatedBuffer != null) {
+                // Release the buffer back to the pool.
+                allocatedBuffer.release();
+            }
+        }
+    }
+
+    private ByteBuffer getOrCreateLazyDirectBuffer() {
+        if (lazyDirectBuffer == null) {
+            lazyDirectBuffer = ByteBuffer.allocateDirect(
+                    max(SSL3_RT_MAX_PLAIN_LENGTH, SSL3_RT_MAX_PACKET_SIZE));
+        }
+        lazyDirectBuffer.clear();
+        return lazyDirectBuffer;
+    }
+
+    private long directByteBufferAddress(ByteBuffer directBuffer, int pos) {
+        return NativeCrypto.getDirectBufferAddress(directBuffer) + pos;
     }
 
     private SSLEngineResult readPendingBytesFromBIO(ByteBuffer dst, int bytesConsumed,
@@ -1081,36 +1215,61 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      */
     private int readEncryptedData(final ByteBuffer dst, final int pending) throws SSLException {
         try {
-            int bioRead = 0;
+            int bytesRead = 0;
+            final int pos = dst.position();
             if (dst.remaining() >= pending) {
-                final int pos = dst.position();
                 final int limit = dst.limit();
-                final int len = Math.min(pending, limit - pos);
+                final int len = min(pending, limit - pos);
                 if (dst.isDirect()) {
-                    long addr = NativeCrypto.getDirectBufferAddress(dst) + pos;
-                    bioRead = networkBio.readDirectByteBuffer(addr, len);
-                    if (bioRead > 0) {
-                        dst.position(pos + bioRead);
-                        return bioRead;
-                    }
-                } else if (dst.hasArray()) {
-                    bioRead = networkBio.readArray(dst.array(), dst.arrayOffset() + pos, pending);
-                    if (bioRead > 0) {
-                        dst.position(pos + bioRead);
-                        return bioRead;
+                    bytesRead = readEncryptedDataDirect(dst, pos, len);
+                    // Need to update the position on the dst buffer.
+                    if (bytesRead > 0) {
+                        dst.position(pos + bytesRead);
                     }
                 } else {
-                    byte[] data = new byte[len];
-                    bioRead = networkBio.readArray(data, 0, pending);
-                    if (bioRead > 0) {
-                        dst.put(data, 0, bioRead);
-                        return bioRead;
-                    }
+                    // The heap method will update the position on the dst buffer automatically.
+                    bytesRead = readEncryptedDataHeap(dst, pos, len);
                 }
             }
-            return bioRead;
+
+            return bytesRead;
         } catch (Exception e) {
             throw convertException(e);
+        }
+    }
+
+    private int readEncryptedDataDirect(ByteBuffer dst, int pos, int len) throws IOException {
+        return networkBio.readDirectByteBuffer(directByteBufferAddress(dst, pos), len);
+    }
+
+    private int readEncryptedDataHeap(ByteBuffer dst, int pos, int len) throws IOException {
+        AllocatedBuffer allocatedBuffer = null;
+        try {
+            final ByteBuffer buffer;
+            if (bufferAllocator != null) {
+                allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
+                buffer = allocatedBuffer.nioBuffer();
+            } else {
+                // We don't have a buffer allocator, but we don't want to send a heap
+                // buffer to JNI. So lazy-create a direct buffer that we will use from now
+                // on to copy encrypted packets.
+                buffer = getOrCreateLazyDirectBuffer();
+            }
+
+            int bytesToRead = min(len, buffer.remaining());
+            int bytesRead = readEncryptedDataDirect(buffer, pos, bytesToRead);
+            if (bytesRead > 0) {
+                buffer.position(bytesRead);
+                buffer.flip();
+                dst.put(buffer);
+            }
+
+            return bytesRead;
+        } finally {
+            if (allocatedBuffer != null) {
+                // Release the buffer back to the pool.
+                allocatedBuffer.release();
+            }
         }
     }
 
@@ -1173,11 +1332,11 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     }
 
     @Override
-    public SSLEngineResult wrap(ByteBuffer[] srcs, int offset, int length, ByteBuffer dst)
+    public SSLEngineResult wrap(ByteBuffer[] srcs, int srcsOffset, int srcsLength, ByteBuffer dst)
             throws SSLException {
         checkArgument(srcs != null, "srcs is null");
         checkArgument(dst != null, "dst is null");
-        checkIndex(srcs.length, offset, length, "srcs");
+        checkPositionIndexes(srcsOffset, srcsOffset + srcsLength, srcs.length);
         if (dst.isReadOnly()) {
             throw new ReadOnlyBufferException();
         }
@@ -1214,8 +1373,8 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             }
 
             int srcsLen = 0;
-            final int endOffset = offset + length;
-            for (int i = offset; i < endOffset; ++i) {
+            final int endOffset = srcsOffset + srcsLength;
+            for (int i = srcsOffset; i < endOffset; ++i) {
                 final ByteBuffer src = srcs[i];
                 if (src == null) {
                     throw new IllegalArgumentException("srcs[" + i + "] is null");
@@ -1242,14 +1401,14 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             int bytesProduced = 0;
             int bytesConsumed = 0;
         loop:
-            for (int i = offset; i < endOffset; ++i) {
+            for (int i = srcsOffset; i < endOffset; ++i) {
                 final ByteBuffer src = srcs[i];
                 checkArgument(src != null, "srcs[%d] is null", i);
                 while (src.hasRemaining()) {
                     final SSLEngineResult pendingNetResult;
                     // Write plaintext application data to the SSL engine
-                    int result = writePlaintextData(src,
-                            Math.min(src.remaining(), SSL3_RT_MAX_PLAIN_LENGTH - bytesConsumed));
+                    int result = writePlaintextData(
+                            src, min(src.remaining(), SSL3_RT_MAX_PLAIN_LENGTH - bytesConsumed));
                     if (result > 0) {
                         bytesConsumed += result;
 
@@ -1541,26 +1700,6 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         return ssl.getAlpnSelectedProtocol();
     }
 
-    private ByteBuffer toHeapBuffer(ByteBuffer buffer, int len) {
-        if (buffer.hasArray()) {
-            return buffer;
-        }
-
-        // Need to copy to a heap buffer.
-        final ByteBuffer heapBuffer = ByteBuffer.allocate(len);
-        final int pos = buffer.position();
-        final int limit = buffer.limit();
-        buffer.limit(pos + len);
-        try {
-            heapBuffer.put(buffer);
-            heapBuffer.flip();
-            return heapBuffer;
-        } finally {
-            buffer.limit(limit);
-            buffer.position(pos);
-        }
-    }
-
     private ByteBuffer[] singleSrcBuffer(ByteBuffer src) {
         singleSrcBuffer[0] = src;
         return singleSrcBuffer;
@@ -1585,13 +1724,5 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     private AbstractSessionContext sessionContext() {
         return sslParameters.getSessionContext();
-    }
-
-    private static void checkIndex(int arrayLength, int offset, int length, String arrayName) {
-        if ((offset | length) < 0 || offset + length > arrayLength) {
-            throw new IndexOutOfBoundsException("offset: " + offset + ", length: " + length
-                    + " (expected: offset <= offset + length <= " + arrayName + ".length ("
-                    + arrayLength + "))");
-        }
     }
 }

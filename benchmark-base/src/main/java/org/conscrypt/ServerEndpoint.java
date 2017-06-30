@@ -55,7 +55,7 @@ final class ServerEndpoint {
     }
 
     private final ServerSocket serverSocket;
-    private final WrappedSocketType wrappedSocketType;
+    private final ChannelType channelType;
     private final SSLSocketFactory socketFactory;
     private final int messageSize;
     private final String[] protocols;
@@ -69,11 +69,11 @@ final class ServerEndpoint {
     private volatile MessageProcessor messageProcessor = new EchoProcessor();
 
     ServerEndpoint(SSLSocketFactory socketFactory, SSLServerSocketFactory serverSocketFactory,
-            WrappedSocketType wrappedSocketType, int messageSize, String[] protocols,
+            ChannelType channelType, int messageSize, String[] protocols,
             String[] cipherSuites) throws IOException {
-        this.serverSocket = wrappedSocketType.newServerSocket(serverSocketFactory);
+        this.serverSocket = channelType.newServerSocket(serverSocketFactory);
         this.socketFactory = socketFactory;
-        this.wrappedSocketType = wrappedSocketType;
+        this.channelType = channelType;
         this.messageSize = messageSize;
         this.protocols = protocols;
         this.cipherSuites = cipherSuites;
@@ -120,7 +120,7 @@ final class ServerEndpoint {
                 if (stopping) {
                     return;
                 }
-                socket = wrappedSocketType.accept(serverSocket, socketFactory);
+                socket = channelType.accept(serverSocket, socketFactory);
                 socket.setEnabledProtocols(protocols);
                 socket.setEnabledCipherSuites(cipherSuites);
 

@@ -41,7 +41,7 @@ public final class ServerSocketBenchmark {
         SocketType socketType();
         int messageSize();
         String cipher();
-        WrappedSocketType wrappedSocketType();
+        ChannelType channelType();
     }
 
     private ClientEndpoint client;
@@ -57,10 +57,10 @@ public final class ServerSocketBenchmark {
 
         byte[] message = newTextMessage(config.messageSize());
 
-        final WrappedSocketType wrappedSocketType = config.wrappedSocketType();
+        final ChannelType channelType = config.channelType();
 
         server = config.socketType().newServer(
-                wrappedSocketType, config.messageSize(), getProtocols(), ciphers(config));
+            channelType, config.messageSize(), getProtocols(), ciphers(config));
         server.setMessageProcessor(new MessageProcessor() {
             @Override
             public void processMessage(byte[] inMessage, int numBytes, OutputStream os) {
@@ -78,7 +78,7 @@ public final class ServerSocketBenchmark {
 
         // Always use the same client for consistency across the benchmarks.
         client = SocketType.CONSCRYPT_ENGINE.newClient(
-                WrappedSocketType.CHANNEL, server.port(), getProtocols(), ciphers(config));
+                ChannelType.CHANNEL, server.port(), getProtocols(), ciphers(config));
         client.start();
 
         // Wait for the initial connection to complete.
@@ -156,8 +156,8 @@ public final class ServerSocketBenchmark {
             }
 
             @Override
-            public WrappedSocketType wrappedSocketType() {
-                return WrappedSocketType.CHANNEL;
+            public ChannelType channelType() {
+                return ChannelType.CHANNEL;
             }
         });
 

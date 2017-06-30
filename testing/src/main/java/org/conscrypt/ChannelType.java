@@ -35,7 +35,7 @@ import javax.net.ssl.SSLSocketFactory;
  * The type of socket to be wrapped by the Conscrypt socket.
  */
 @SuppressWarnings("unused")
-public enum WrappedSocketType {
+public enum ChannelType {
     NONE {
         @Override
         SSLSocket newClientSocket(SSLSocketFactory factory, InetAddress address, int port)

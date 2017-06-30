@@ -370,6 +370,15 @@ public final class Conscrypt {
         }
 
         /**
+         * Provides the given engine with the provided bufferAllocator.
+         * @param engine
+         * @param bufferAllocator
+         */
+        static void setBufferAllocator(SSLEngine engine, BufferAllocator bufferAllocator) {
+            toConscrypt(engine).setBufferAllocator(bufferAllocator);
+        }
+
+        /**
          * This method enables Server Name Indication (SNI) and overrides the hostname supplied
          * during engine creation.
          *

@@ -41,7 +41,9 @@ import static org.conscrypt.TestUtils.initServerSslContext;
 import static org.conscrypt.TestUtils.newTextMessage;
 import static org.junit.Assert.assertEquals;
 
-import io.netty.buffer.UnpooledByteBufAllocator;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import java.nio.ByteBuffer;
@@ -63,14 +65,55 @@ public final class EngineBenchmark {
      */
     interface Config {
         SslProvider sslProvider();
-        BufferType bufferType();
         int messageSize();
         String cipher();
     }
 
+    private static final class PooledAllocator extends BufferAllocator {
+        private static final ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
+        private static final PooledAllocator instance = new PooledAllocator();
+
+        static PooledAllocator getInstance() {
+            return instance;
+        }
+
+        @Override
+        public AllocatedBuffer allocateDirectBuffer(int capacity) {
+            return new ByteBufAdapter(alloc.directBuffer(capacity));
+        }
+
+        private static final class ByteBufAdapter extends AllocatedBuffer {
+            private final ByteBuf nettyBuffer;
+            private final ByteBuffer buffer;
+
+            private ByteBufAdapter(ByteBuf nettyBuffer) {
+                this.nettyBuffer = nettyBuffer;
+                nettyBuffer.writerIndex(nettyBuffer.capacity());
+                this.buffer = nettyBuffer.nioBuffer();
+            }
+
+            @Override
+            public ByteBuffer nioBuffer() {
+                return buffer;
+            }
+
+            @Override
+            public AllocatedBuffer retain() {
+                nettyBuffer.retain();
+                return this;
+            }
+
+            @Override
+            public AllocatedBuffer release() {
+                nettyBuffer.release();
+                return this;
+            }
+        }
+    }
+
     @SuppressWarnings({"ImmutableEnumChecker", "unused"})
     public enum SslProvider {
-        JDK {
+        JDK_HEAP {
             private final SSLContext clientContext = initClientSslContext(newContext());
             private final SSLContext serverContext = initServerSslContext(newContext());
 
@@ -82,6 +125,11 @@ public final class EngineBenchmark {
             @Override
             SSLEngine newServerEngine(String cipher) {
                 return initEngine(serverContext.createSSLEngine(), cipher, false);
+            }
+
+            @Override
+            ByteBuffer newBuffer(int size) {
+                return ByteBuffer.allocate(size);
             }
 
             private SSLContext newContext() {
@@ -92,7 +140,7 @@ public final class EngineBenchmark {
                 }
             }
         },
-        CONSCRYPT {
+        JDK_DIRECT {
             private final SSLContext clientContext = initClientSslContext(newContext());
             private final SSLContext serverContext = initServerSslContext(newContext());
 
@@ -106,6 +154,38 @@ public final class EngineBenchmark {
                 return initEngine(serverContext.createSSLEngine(), cipher, false);
             }
 
+            @Override
+            ByteBuffer newBuffer(int size) {
+                return ByteBuffer.allocateDirect(size);
+            }
+
+            private SSLContext newContext() {
+                try {
+                    return SSLContext.getInstance(PROTOCOL_TLS_V1_2);
+                } catch (NoSuchAlgorithmException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        },
+        CONSCRYPT_HEAP_UNPOOLED {
+            private final SSLContext clientContext = initClientSslContext(newContext());
+            private final SSLContext serverContext = initServerSslContext(newContext());
+
+            @Override
+            SSLEngine newClientEngine(String cipher) {
+                return initEngine(clientContext.createSSLEngine(), cipher, true);
+            }
+
+            @Override
+            SSLEngine newServerEngine(String cipher) {
+                return initEngine(serverContext.createSSLEngine(), cipher, false);
+            }
+
+            @Override
+            ByteBuffer newBuffer(int size) {
+                return ByteBuffer.allocate(size);
+            }
+
             private SSLContext newContext() {
                 try {
                     return SSLContext.getInstance(PROTOCOL_TLS_V1_2, new OpenSSLProvider());
@@ -114,25 +194,110 @@ public final class EngineBenchmark {
                 }
             }
         },
-        NETTY {
+        CONSCRYPT_HEAP_POOLED {
+            private final SSLContext clientContext = initClientSslContext(newContext());
+            private final SSLContext serverContext = initServerSslContext(newContext());
+
+            @Override
+            SSLEngine newClientEngine(String cipher) {
+                SSLEngine engine = initEngine(clientContext.createSSLEngine(), cipher, true);
+                Conscrypt.Engines.setBufferAllocator(engine, PooledAllocator.getInstance());
+                return engine;
+            }
+
+            @Override
+            SSLEngine newServerEngine(String cipher) {
+                SSLEngine engine = initEngine(serverContext.createSSLEngine(), cipher, false);
+                Conscrypt.Engines.setBufferAllocator(engine, PooledAllocator.getInstance());
+                return engine;
+            }
+
+            @Override
+            ByteBuffer newBuffer(int size) {
+                return ByteBuffer.allocate(size);
+            }
+
+            private SSLContext newContext() {
+                try {
+                    return SSLContext.getInstance(PROTOCOL_TLS_V1_2, new OpenSSLProvider());
+                } catch (NoSuchAlgorithmException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        },
+        CONSCRYPT_DIRECT {
+            private final SSLContext clientContext = initClientSslContext(newContext());
+            private final SSLContext serverContext = initServerSslContext(newContext());
+
+            @Override
+            SSLEngine newClientEngine(String cipher) {
+                return initEngine(clientContext.createSSLEngine(), cipher, true);
+            }
+
+            @Override
+            SSLEngine newServerEngine(String cipher) {
+                return initEngine(serverContext.createSSLEngine(), cipher, false);
+            }
+
+            @Override
+            ByteBuffer newBuffer(int size) {
+                return ByteBuffer.allocateDirect(size);
+            }
+
+            private SSLContext newContext() {
+                try {
+                    return SSLContext.getInstance(PROTOCOL_TLS_V1_2, new OpenSSLProvider());
+                } catch (NoSuchAlgorithmException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        },
+        NETTY_HEAP {
             private final SslContext clientContext = newNettyClientContext();
             private final SslContext serverContext = newNettyServerContext();
 
             @Override
             SSLEngine newClientEngine(String cipher) {
                 return initEngine(
-                        clientContext.newEngine(UnpooledByteBufAllocator.DEFAULT), cipher, true);
+                    clientContext.newEngine(PooledByteBufAllocator.DEFAULT), cipher, true);
             }
 
             @Override
             SSLEngine newServerEngine(String cipher) {
                 return initEngine(
-                        serverContext.newEngine(UnpooledByteBufAllocator.DEFAULT), cipher, false);
+                    serverContext.newEngine(PooledByteBufAllocator.DEFAULT), cipher, false);
+            }
+
+            @Override
+            ByteBuffer newBuffer(int size) {
+                return ByteBuffer.allocate(size);
+            }
+        },
+        NETTY_DIRECT {
+            private final SslContext clientContext = newNettyClientContext();
+            private final SslContext serverContext = newNettyServerContext();
+
+            @Override
+            SSLEngine newClientEngine(String cipher) {
+                return initEngine(
+                        clientContext.newEngine(PooledByteBufAllocator.DEFAULT), cipher, true);
+            }
+
+            @Override
+            SSLEngine newServerEngine(String cipher) {
+                return initEngine(
+                        serverContext.newEngine(PooledByteBufAllocator.DEFAULT), cipher, false);
+            }
+
+            @Override
+            ByteBuffer newBuffer(int size) {
+                return ByteBuffer.allocateDirect(size);
             }
         };
 
         abstract SSLEngine newClientEngine(String cipher);
         abstract SSLEngine newServerEngine(String cipher);
+        abstract ByteBuffer newBuffer(int size);
 
         private static SslContext newNettyClientContext() {
             try {
@@ -163,24 +328,6 @@ public final class EngineBenchmark {
         }
     }
 
-    @SuppressWarnings("unused")
-    public enum BufferType {
-        HEAP {
-            @Override
-            ByteBuffer newBuffer(int size) {
-                return ByteBuffer.allocate(size);
-            }
-        },
-        DIRECT {
-            @Override
-            ByteBuffer newBuffer(int size) {
-                return ByteBuffer.allocateDirect(size);
-            }
-        };
-
-        abstract ByteBuffer newBuffer(int size);
-    }
-
     private final SSLEngine clientEngine;
     private final SSLEngine serverEngine;
 
@@ -192,20 +339,19 @@ public final class EngineBenchmark {
     EngineBenchmark(Config config) throws Exception {
         final SslProvider provider = config.sslProvider();
         final String cipher = config.cipher();
-        final BufferType bufferType = config.bufferType();
         final int messageSize = config.messageSize();
 
         clientEngine = provider.newClientEngine(cipher);
         serverEngine = provider.newServerEngine(cipher);
 
         final int encryptedBufferSize = clientEngine.getSession().getPacketBufferSize();
-        encryptedBuffer = bufferType.newBuffer(encryptedBufferSize);
-        preEncryptedBuffer = bufferType.newBuffer(encryptedBufferSize);
+        encryptedBuffer = provider.newBuffer(encryptedBufferSize);
+        preEncryptedBuffer = provider.newBuffer(encryptedBufferSize);
 
         // Generate the message to be sent from the client.
         final int cleartextBufferSize = serverEngine.getSession().getApplicationBufferSize();
-        serverCleartextBuffer = bufferType.newBuffer(max(messageSize, cleartextBufferSize));
-        clientCleartextBuffer = bufferType.newBuffer(messageSize);
+        serverCleartextBuffer = provider.newBuffer(max(messageSize, cleartextBufferSize));
+        clientCleartextBuffer = provider.newBuffer(messageSize);
         clientCleartextBuffer.put(newTextMessage(messageSize));
         clientCleartextBuffer.flip();
 
@@ -277,12 +423,7 @@ public final class EngineBenchmark {
         EngineBenchmark bm = new EngineBenchmark(new Config() {
             @Override
             public SslProvider sslProvider() {
-                return SslProvider.CONSCRYPT;
-            }
-
-            @Override
-            public BufferType bufferType() {
-                return BufferType.DIRECT;
+                return SslProvider.CONSCRYPT_HEAP_POOLED;
             }
 
             @Override

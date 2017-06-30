@@ -21,16 +21,16 @@ public enum SocketType {
         this.factories = factories;
     }
 
-    ClientEndpoint newClient(WrappedSocketType wrappedSocketType, int port, String[] protocols,
+    ClientEndpoint newClient(ChannelType channelType, int port, String[] protocols,
             String[] ciphers) throws IOException {
         return new ClientEndpoint(
-                factories.clientFactory, wrappedSocketType, port, protocols, ciphers);
+                factories.clientFactory, channelType, port, protocols, ciphers);
     }
 
-    ServerEndpoint newServer(WrappedSocketType wrappedSocketType, int messageSize,
+    ServerEndpoint newServer(ChannelType channelType, int messageSize,
             String[] protocols, String[] ciphers) throws IOException {
         return new ServerEndpoint(factories.serverFactory, factories.serverSocketFactory,
-                wrappedSocketType, messageSize, protocols, ciphers);
+            channelType, messageSize, protocols, ciphers);
     }
 
     private static final class Factories {
