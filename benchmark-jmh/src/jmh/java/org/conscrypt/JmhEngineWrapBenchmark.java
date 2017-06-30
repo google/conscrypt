@@ -33,14 +33,14 @@
 package org.conscrypt;
 
 import javax.net.ssl.SSLException;
-import org.conscrypt.EngineBenchmark.Config;
-import org.conscrypt.EngineBenchmark.SslProvider;
+import org.conscrypt.EngineWrapBenchmark.Config;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 
 /**
@@ -49,23 +49,31 @@ import org.openjdk.jmh.annotations.Threads;
 @State(Scope.Benchmark)
 @Fork(1)
 @Threads(1)
-public class JmhEngineBenchmark {
+public class JmhEngineWrapBenchmark {
     private final JmhConfig config = new JmhConfig();
 
+    @Param({TestUtils.TEST_CIPHER})
+    public String a_cipher;
+
     @Param
-    public SslProvider sslProvider;
+    public BufferType b_buffer;
 
     @Param({"64", "512", "4096"})
-    public int messageSize;
+    public int c_message;
 
-    @Param({TestUtils.TEST_CIPHER})
-    public String cipher;
+    @Param
+    public EngineType d_engine;
 
-    private EngineBenchmark benchmark;
+    private EngineWrapBenchmark benchmark;
 
     @Setup
     public void setup() throws Exception {
-        benchmark = new EngineBenchmark(config);
+        benchmark = new EngineWrapBenchmark(config);
+    }
+
+    @TearDown
+    public void teardown() {
+        benchmark.teardown();
     }
 
     @Benchmark
@@ -79,19 +87,25 @@ public class JmhEngineBenchmark {
     }
 
     private final class JmhConfig implements Config {
+
         @Override
-        public SslProvider sslProvider() {
-            return sslProvider;
+        public BufferType bufferType() {
+            return b_buffer;
+        }
+
+        @Override
+        public EngineType engineType() {
+            return d_engine;
         }
 
         @Override
         public int messageSize() {
-            return messageSize;
+            return c_message;
         }
 
         @Override
         public String cipher() {
-            return cipher;
+            return a_cipher;
         }
     }
 }

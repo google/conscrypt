@@ -8,10 +8,14 @@ description = 'Conscrypt: OpenJDK Benchmarks'
 
 ext {
     genDir = "${buildDir}/jmh-generated-classes"
+    jmhInclude = System.getProperty("jmh.include")
 }
 
 jmh {
     jmhVersion = "$jmhVersion"
+    if (jmhInclude != null) {
+        setInclude(jmhInclude)
+    }
     warmupIterations = 10
     iterations = 10
     fork = 1

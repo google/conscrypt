@@ -81,7 +81,7 @@ public class JmhServerSocketBenchmark {
     }
 
     @Benchmark
-    public final void throughput(@SuppressWarnings("unused") BytesPerSecondCounter counter)
+    public final void bm(@SuppressWarnings("unused") BytesPerSecondCounter counter)
             throws Exception {
         benchmark.throughput();
     }

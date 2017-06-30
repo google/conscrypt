@@ -115,6 +115,10 @@ public class ConscryptEngineTest {
 
     private SSLEngine clientEngine;
     private SSLEngine serverEngine;
+    private ByteBuffer clientApplicationBuffer;
+    private ByteBuffer clientPacketBuffer;
+    private ByteBuffer serverApplicationBuffer;
+    private ByteBuffer serverPacketBuffer;
 
     @Test
     public void mutualAuthWithSameCertsShouldSucceed() throws Exception {
@@ -164,7 +168,7 @@ public class ConscryptEngineTest {
     @Test
     public void exchangeMessages() throws Exception {
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
-        TestUtils.doEngineHandshake(clientEngine, serverEngine);
+        doHandshake();
 
         ByteBuffer clientCleartextBuffer = bufferType.newBuffer(MESSAGE_SIZE);
         clientCleartextBuffer.put(newTextMessage(MESSAGE_SIZE));
@@ -203,7 +207,7 @@ public class ConscryptEngineTest {
     @Test
     public void exchangeLargeMessage() throws Exception {
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
-        TestUtils.doEngineHandshake(clientEngine, serverEngine);
+        doHandshake();
 
         // Create the input message.
         final int largeMessageSize = 16413;
@@ -269,9 +273,14 @@ public class ConscryptEngineTest {
             TestKeyStore clientKs, TestKeyStore serverKs, ClientAuth clientAuth) throws Exception {
         setupEngines(clientKs, serverKs);
         clientAuth.apply(serverEngine);
-        TestUtils.doEngineHandshake(clientEngine, serverEngine);
+        doHandshake();
         assertEquals(HandshakeStatus.NOT_HANDSHAKING, clientEngine.getHandshakeStatus());
         assertEquals(HandshakeStatus.NOT_HANDSHAKING, serverEngine.getHandshakeStatus());
+    }
+
+    private void doHandshake() throws SSLException {
+        TestUtils.doEngineHandshake(clientEngine, serverEngine, clientApplicationBuffer,
+                clientPacketBuffer, serverApplicationBuffer, serverPacketBuffer);
     }
 
     private void setupEngines(TestKeyStore clientKeyStore, TestKeyStore serverKeyStore)
@@ -283,6 +292,14 @@ public class ConscryptEngineTest {
         serverEngine = initEngine(serverContext.createSSLEngine(), TEST_CIPHER, false);
         setBufferAllocator(clientEngine, bufferType.allocator);
         setBufferAllocator(serverEngine, bufferType.allocator);
+
+        // Create the application and packet buffers for both endpoints.
+        clientApplicationBuffer =
+            bufferType.newBuffer(clientEngine.getSession().getApplicationBufferSize());
+        serverApplicationBuffer =
+            bufferType.newBuffer(serverEngine.getSession().getApplicationBufferSize());
+        clientPacketBuffer = bufferType.newBuffer(clientEngine.getSession().getPacketBufferSize());
+        serverPacketBuffer = bufferType.newBuffer(serverEngine.getSession().getPacketBufferSize());
     }
 
     private static byte[] toArray(ByteBuffer buffer) {
