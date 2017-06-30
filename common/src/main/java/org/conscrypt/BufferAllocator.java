@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
  * pooling within an application.
  */
 @ExperimentalApi
-abstract class BufferAllocator {
+public abstract class BufferAllocator {
     private static BufferAllocator UNPOOLED = new BufferAllocator() {
         @Override
         public AllocatedBuffer allocateDirectBuffer(int capacity) {

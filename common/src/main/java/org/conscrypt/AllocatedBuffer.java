@@ -39,7 +39,7 @@ import java.nio.ByteBuffer;
  * A buffer that was allocated by a {@link BufferAllocator}.
  */
 @ExperimentalApi
-abstract class AllocatedBuffer {
+public abstract class AllocatedBuffer {
     /**
      * Returns the {@link ByteBuffer} that backs this buffer.
      */

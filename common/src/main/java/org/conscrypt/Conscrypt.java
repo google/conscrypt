@@ -374,7 +374,7 @@ public final class Conscrypt {
          * @param engine
          * @param bufferAllocator
          */
-        static void setBufferAllocator(SSLEngine engine, BufferAllocator bufferAllocator) {
+        public static void setBufferAllocator(SSLEngine engine, BufferAllocator bufferAllocator) {
             toConscrypt(engine).setBufferAllocator(bufferAllocator);
         }
 
