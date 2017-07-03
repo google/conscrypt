@@ -72,6 +72,12 @@ public final class OpenSSLProvider extends Provider {
         put("SSLContext.TLSv1.2", tls12SSLContext);
         put("SSLContext.Default", PREFIX + "DefaultSSLContextImpl");
 
+        /* === AlgorithmParameters === */
+        put("AlgorithmParameters.GCM", PREFIX + "GCMParameters");
+        put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.6", "GCM");
+        put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.26", "GCM");
+        put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.46", "GCM");
+
         /* === Message Digests === */
         put("MessageDigest.SHA-1", PREFIX + "OpenSSLMessageDigestJDK$SHA1");
         put("Alg.Alias.MessageDigest.SHA1", "SHA-1");

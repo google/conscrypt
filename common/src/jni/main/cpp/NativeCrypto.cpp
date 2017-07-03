@@ -4334,6 +4334,202 @@ static void NativeCrypto_ASN1_TIME_to_Calendar(JNIEnv* env, jclass, jlong asn1Ti
                         sec);
 }
 
+// A CbsHandle is a structure used to manage resources allocated by asn1_read-*
+// functions so that they can be freed properly when finished.  This struct owns
+// all objects pointed to by its members.
+struct CbsHandle {
+    // A pointer to the CBS.
+    std::unique_ptr<CBS> cbs;
+    // A pointer to the data held by the CBS.  If the data held by the CBS
+    // is owned by a different CbsHandle, data will be null.
+    std::unique_ptr<unsigned char[]> data;
+};
+
+static jlong NativeCrypto_asn1_read_init(JNIEnv* env, jclass, jbyteArray data) {
+    JNI_TRACE("asn1_read_init(%p)", data);
+
+    ScopedByteArrayRO bytes(env, data);
+    if (bytes.get() == nullptr) {
+        Errors::throwIOException(env, "Error reading ASN.1 encoding");
+        return 0;
+    }
+
+    std::unique_ptr<CbsHandle> cbs(new CbsHandle());
+    cbs->data.reset(new unsigned char[bytes.size()]);
+    memcpy(cbs->data.get(), bytes.get(), bytes.size());
+
+    cbs->cbs.reset(new CBS());
+    CBS_init(cbs->cbs.get(), cbs->data.get(), bytes.size());
+    JNI_TRACE("asn1_read_init(%p) => %p", data, cbs.get());
+    return reinterpret_cast<uintptr_t>(cbs.release());
+}
+
+static jlong NativeCrypto_asn1_read_sequence(JNIEnv* env, jclass, jlong cbsRef) {
+    CbsHandle* cbs = reinterpret_cast<CbsHandle*>(static_cast<uintptr_t>(cbsRef));
+    JNI_TRACE("asn1_read_sequence(%p)", cbs);
+
+    std::unique_ptr<CbsHandle> seq(new CbsHandle());
+    seq->cbs.reset(new CBS());
+    if (!CBS_get_asn1(cbs->cbs.get(), seq->cbs.get(), CBS_ASN1_SEQUENCE)) {
+        Errors::throwIOException(env, "Error reading ASN.1 encoding");
+        return 0;
+    }
+    JNI_TRACE("asn1_read_sequence(%p) => %p", cbs, seq.get());
+    return reinterpret_cast<uintptr_t>(seq.release());
+}
+
+static jbyteArray NativeCrypto_asn1_read_octetstring(JNIEnv* env, jclass, jlong cbsRef) {
+    CbsHandle* cbs = reinterpret_cast<CbsHandle*>(static_cast<uintptr_t>(cbsRef));
+    JNI_TRACE("asn1_read_octetstring(%p)", cbs);
+
+    std::unique_ptr<CBS> str(new CBS());
+    if (!CBS_get_asn1(cbs->cbs.get(), str.get(), CBS_ASN1_OCTETSTRING)) {
+        Errors::throwIOException(env, "Error reading ASN.1 encoding");
+        return 0;
+    }
+    ScopedLocalRef<jbyteArray> out(env, env->NewByteArray(static_cast<jsize>(CBS_len(str.get()))));
+    if (out.get() == nullptr) {
+        Errors::throwIOException(env, "Error reading ASN.1 encoding");
+        return 0;
+    }
+    ScopedByteArrayRW outBytes(env, out.get());
+    if (outBytes.get() == nullptr) {
+        Errors::throwIOException(env, "Error reading ASN.1 encoding");
+        return 0;
+    }
+    memcpy(outBytes.get(), CBS_data(str.get()), CBS_len(str.get()));
+    JNI_TRACE("asn1_read_octetstring(%p) => %p", cbs, out.get());
+    return out.release();
+}
+
+static jlong NativeCrypto_asn1_read_uint64(JNIEnv* env, jclass, jlong cbsRef) {
+    CbsHandle* cbs = reinterpret_cast<CbsHandle*>(static_cast<uintptr_t>(cbsRef));
+    JNI_TRACE("asn1_read_uint64(%p)", cbs);
+
+    uint64_t value;
+    if (!CBS_get_asn1_uint64(cbs->cbs.get(), &value)) {
+        Errors::throwIOException(env, "Error reading ASN.1 encoding");
+        return 0;
+    }
+    return value;
+}
+
+static jboolean NativeCrypto_asn1_read_is_empty(CONSCRYPT_UNUSED JNIEnv* env, jclass, jlong cbsRef) {
+    CbsHandle* cbs = reinterpret_cast<CbsHandle*>(static_cast<uintptr_t>(cbsRef));
+    JNI_TRACE("asn1_read_is_empty(%p)", cbs);
+
+    bool empty = (CBS_len(cbs->cbs.get()) == 0);
+    JNI_TRACE("asn1_read_is_empty(%p) => %s", cbs, empty ? "true" : "false");
+    return empty;
+}
+
+static void NativeCrypto_asn1_read_free(CONSCRYPT_UNUSED JNIEnv* env, jclass, jlong cbsRef) {
+    if (cbsRef == 0) {
+        JNI_TRACE("asn1_read_free(0)");
+        return;
+    }
+    CbsHandle* cbs = reinterpret_cast<CbsHandle*>(static_cast<uintptr_t>(cbsRef));
+    JNI_TRACE("asn1_read_free(%p)", cbs);
+    delete cbs;
+}
+
+static jlong NativeCrypto_asn1_write_init(JNIEnv* env, jclass) {
+    JNI_TRACE("asn1_write_init");
+    std::unique_ptr<CBB> cbb(new CBB());
+    if (!CBB_init(cbb.get(), 128)) {
+        Errors::throwIOException(env, "Error writing ASN.1 encoding");
+        return 0;
+    }
+    JNI_TRACE("asn1_write_init => %p", cbb.get());
+    return reinterpret_cast<uintptr_t>(cbb.release());
+}
+
+static jlong NativeCrypto_asn1_write_sequence(JNIEnv* env, jclass, jlong cbbRef) {
+    CBB* cbb = reinterpret_cast<CBB*>(static_cast<uintptr_t>(cbbRef));
+    JNI_TRACE("asn1_write_sequence(%p)", cbb);
+
+    std::unique_ptr<CBB> seq(new CBB());
+    if (!CBB_add_asn1(cbb, seq.get(), CBS_ASN1_SEQUENCE)) {
+        Errors::throwIOException(env, "Error writing ASN.1 encoding");
+        return 0;
+    }
+    JNI_TRACE("asn1_write_sequence(%p) => %p", cbb, seq.get());
+    return reinterpret_cast<uintptr_t>(seq.release());
+}
+
+static void NativeCrypto_asn1_write_octetstring(JNIEnv* env, jclass, jlong cbbRef, jbyteArray data) {
+    CBB* cbb = reinterpret_cast<CBB*>(static_cast<uintptr_t>(cbbRef));
+    JNI_TRACE("asn1_write_octetstring(%p, %p)", cbb, data);
+
+    ScopedByteArrayRO bytes(env, data);
+    if (bytes.get() == nullptr) {
+        JNI_TRACE("asn1_write_octetstring(%p, %p) => using byte array failed", cbb, data);
+        return;
+    }
+
+    std::unique_ptr<CBB> octetstring(new CBB());
+    if (!CBB_add_asn1(cbb, octetstring.get(), CBS_ASN1_OCTETSTRING)) {
+        Errors::throwIOException(env, "Error writing ASN.1 encoding");
+        return;
+    }
+    if (!CBB_add_bytes(octetstring.get(), reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size())) {
+        Errors::throwIOException(env, "Error writing ASN.1 encoding");
+        return;
+    }
+}
+
+static void NativeCrypto_asn1_write_uint64(JNIEnv* env, jclass, jlong cbbRef, jlong data) {
+    CBB* cbb = reinterpret_cast<CBB*>(static_cast<uintptr_t>(cbbRef));
+    JNI_TRACE("asn1_write_uint64(%p)", cbb);
+
+    if (!CBB_add_asn1_uint64(cbb, static_cast<uint64_t>(data))) {
+        Errors::throwIOException(env, "Error writing ASN.1 encoding");
+        return;
+    }
+}
+
+static jbyteArray NativeCrypto_asn1_write_finish(JNIEnv* env, jclass, jlong cbbRef) {
+    CBB* cbb = reinterpret_cast<CBB*>(static_cast<uintptr_t>(cbbRef));
+    JNI_TRACE("asn1_write_finish(%p)", cbb);
+
+    uint8_t* data;
+    size_t data_len;
+    if (!CBB_finish(cbb, &data, &data_len)) {
+        Errors::throwIOException(env, "Error writing ASN.1 encoding");
+        return 0;
+    }
+    bssl::UniquePtr<uint8_t> data_storage(data);
+    ScopedLocalRef<jbyteArray> out(env, env->NewByteArray(static_cast<jsize>(data_len)));
+    if (out.get() == nullptr) {
+        Errors::throwIOException(env, "Error writing ASN.1 encoding");
+        return 0;
+    }
+    ScopedByteArrayRW outBytes(env, out.get());
+    if (outBytes.get() == nullptr) {
+        Errors::throwIOException(env, "Error writing ASN.1 encoding");
+        return 0;
+    }
+    memcpy(outBytes.get(), data, data_len);
+    return out.release();
+}
+
+static void NativeCrypto_asn1_write_cleanup(CONSCRYPT_UNUSED JNIEnv* env, jclass, jlong cbbRef) {
+    CBB* cbb = reinterpret_cast<CBB*>(static_cast<uintptr_t>(cbbRef));
+    JNI_TRACE("asn1_write_cleanup(%p)", cbb);
+
+    CBB_cleanup(cbb);
+}
+
+static void NativeCrypto_asn1_write_free(CONSCRYPT_UNUSED JNIEnv* env, jclass, jlong cbbRef) {
+    if (cbbRef == 0) {
+        JNI_TRACE("asn1_write_free(0)");
+        return;
+    }
+    CBB* cbb = reinterpret_cast<CBB*>(static_cast<uintptr_t>(cbbRef));
+    JNI_TRACE("asn1_write_free(%p)", cbb);
+    delete cbb;
+}
+
 template <typename T, T* (*d2i_func)(BIO*, T**)>
 static jlong d2i_ASN1Object_to_jlong(JNIEnv* env, jlong bioRef) {
     BIO* bio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(bioRef));
@@ -9328,6 +9524,19 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, i2d_X509_REVOKED, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, X509_supported_extension, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ASN1_TIME_to_Calendar, "(JLjava/util/Calendar;)V"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_init, "([B)J"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_sequence, "(J)J"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_octetstring, "(J)[B"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_uint64, "(J)J"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_is_empty, "(J)Z"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_read_free, "(J)V"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_init, "()J"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_sequence, "(J)J"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_octetstring, "(J[B)V"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_uint64, "(JJ)V"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_cleanup, "(J)V"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_finish, "(J)[B"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, asn1_write_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EVP_has_aes_hardware, "()I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_CTX_new, "()J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_CTX_free, "(J)V"),
