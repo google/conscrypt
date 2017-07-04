@@ -4384,7 +4384,7 @@ static jboolean NativeCrypto_asn1_read_next_tag_is(CONSCRYPT_UNUSED JNIEnv* env,
 
     int result = CBS_peek_asn1_tag(cbs->cbs.get(), CBS_ASN1_CONTEXT_SPECIFIC | CBS_ASN1_CONSTRUCTED | tag);
     JNI_TRACE("asn1_read_next_tag_is(%p) => %s", cbs, result ? "true" : "false");
-    return result;
+    return result ? JNI_TRUE : JNI_FALSE;
 }
 
 static jlong NativeCrypto_asn1_read_tagged(JNIEnv* env, jclass, jlong cbsRef) {
@@ -4458,12 +4458,12 @@ static jstring NativeCrypto_asn1_read_oid(JNIEnv* env, jclass, jlong cbsRef) {
     }
     int nid = OBJ_cbs2nid(&oid_cbs);
     if (nid == NID_undef) {
-        Errors::throwIOException(env, "Error reading ASN.1 encoding");
+        Errors::throwIOException(env, "Error reading ASN.1 encoding: OID not found");
         return nullptr;
     }
     const ASN1_OBJECT* obj(OBJ_nid2obj(nid));
     if (obj == nullptr) {
-        Errors::throwIOException(env, "Error reading ASN.1 encoding");
+        Errors::throwIOException(env, "Error reading ASN.1 encoding: Could not find ASN1_OBJECT for NID");
         return nullptr;
     }
     return ASN1_OBJECT_to_OID_string(env, obj);
