@@ -582,9 +582,9 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public boolean isInboundDone() {
-        if (ssl.isClosed()) {
-            synchronized (stateLock) {
-                return state == STATE_CLOSED || state == STATE_CLOSED_INBOUND;
+        synchronized (stateLock) {
+            if (state == STATE_CLOSED || state == STATE_CLOSED_INBOUND) {
+                return true;
             }
         }
         return ssl.wasShutdownReceived();
@@ -592,9 +592,9 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public boolean isOutboundDone() {
-        if (ssl.isClosed()) {
-            synchronized (stateLock) {
-                return state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND;
+        synchronized (stateLock) {
+            if (state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND) {
+                return true;
             }
         }
         return ssl.wasShutdownSent();
