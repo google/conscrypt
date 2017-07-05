@@ -7154,7 +7154,7 @@ static jstring NativeCrypto_SSL_get_current_cipher(JNIEnv* env, jclass, jlong ss
         return nullptr;
     }
     const SSL_CIPHER* cipher = SSL_get_current_cipher(ssl);
-    const char* name = SSL_CIPHER_get_name(cipher);
+    const char* name = SSL_CIPHER_standard_name(cipher);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_current_cipher => %s", ssl, name);
     return env->NewStringUTF(name);
 }
@@ -8119,7 +8119,7 @@ static jstring NativeCrypto_SSL_SESSION_cipher(JNIEnv* env, jclass, jlong ssl_se
         return nullptr;
     }
     const SSL_CIPHER* cipher = ssl_session->cipher;
-    const char* name = SSL_CIPHER_get_name(cipher);
+    const char* name = SSL_CIPHER_standard_name(cipher);
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_cipher => %s", ssl_session, name);
     return env->NewStringUTF(name);
 }
@@ -8223,18 +8223,27 @@ static jobjectArray NativeCrypto_get_cipher_names(JNIEnv *env, jclass, jstring s
 
     size_t size = sk_SSL_CIPHER_num(ciphers);
     ScopedLocalRef<jobjectArray> cipherNamesArray(
-            env, env->NewObjectArray(static_cast<jsize>(size), JniConstants::stringClass, nullptr));
+            env,
+            env->NewObjectArray(static_cast<jsize>(2 * size), JniConstants::stringClass, nullptr));
     if (cipherNamesArray.get() == nullptr) {
         return nullptr;
     }
 
+    // Return an array of standard and OpenSSL name pairs.
     for (size_t i = 0; i < size; i++) {
-        const char *name = SSL_CIPHER_get_name(sk_SSL_CIPHER_value(ciphers, i));
-        ScopedLocalRef<jstring> cipherName(env, env->NewStringUTF(name));
-        env->SetObjectArrayElement(cipherNamesArray.get(), static_cast<jsize>(i), cipherName.get());
+        const SSL_CIPHER* cipher = sk_SSL_CIPHER_value(ciphers, i);
+        ScopedLocalRef<jstring> cipherName(env,
+                                           env->NewStringUTF(SSL_CIPHER_standard_name(cipher)));
+        env->SetObjectArrayElement(cipherNamesArray.get(), static_cast<jsize>(2 * i),
+                                   cipherName.get());
+
+        ScopedLocalRef<jstring> opensslName(env, env->NewStringUTF(SSL_CIPHER_get_name(cipher)));
+        env->SetObjectArrayElement(cipherNamesArray.get(), static_cast<jsize>(2 * i + 1),
+                                   opensslName.get());
     }
 
-    JNI_TRACE("NativeCrypto_get_cipher_names(%s) => success (%zd entries)", selector.c_str(), size);
+    JNI_TRACE("NativeCrypto_get_cipher_names(%s) => success (%zd entries)", selector.c_str(),
+              2 * size);
     return cipherNamesArray.release();
 }
 

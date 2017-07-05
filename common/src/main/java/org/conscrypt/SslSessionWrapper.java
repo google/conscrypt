@@ -229,8 +229,8 @@ abstract class SslSessionWrapper {
             this.peerOcspStapledResponse = peerOcspStapledResponse;
             this.peerSignedCertificateTimestamp = peerSignedCertificateTimestamp;
             this.protocol = NativeCrypto.SSL_SESSION_get_version(ref.context);
-            this.cipherSuite = SSLUtils.getCipherSuiteFromName(
-                    NativeCrypto.SSL_SESSION_cipher(ref.context));
+            this.cipherSuite =
+                    NativeCrypto.cipherSuiteToJava(NativeCrypto.SSL_SESSION_cipher(ref.context));
             this.ref = ref;
         }
 

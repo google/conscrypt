@@ -240,14 +240,6 @@ final class SSLUtils {
         return principalBytes;
     }
 
-    static String getCipherSuiteFromName(String name) {
-        String cipherSuite = name;
-        if (name != null) {
-            cipherSuite = NativeCrypto.OPENSSL_TO_STANDARD_CIPHER_SUITES.get(name);
-        }
-        return cipherSuite != null ? cipherSuite : SSLNullSession.INVALID_CIPHER;
-    }
-
     /**
      * Converts the peer certificates into a cert chain.
      */
