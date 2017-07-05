@@ -168,17 +168,8 @@ final class SSLUtils {
     /** Key type: RSA certificate. */
     private static final String KEY_TYPE_RSA = "RSA";
 
-    /** Key type: Diffie-Hellman certificate signed by issuer with RSA signature. */
-    private static final String KEY_TYPE_DH_RSA = "DH_RSA";
-
     /** Key type: Elliptic Curve certificate. */
     private static final String KEY_TYPE_EC = "EC";
-
-    /** Key type: Elliptic Curve certificate signed by issuer with ECDSA signature. */
-    private static final String KEY_TYPE_EC_EC = "EC_EC";
-
-    /** Key type: Elliptic Curve certificate signed by issuer with RSA signature. */
-    private static final String KEY_TYPE_EC_RSA = "EC_RSA";
 
     /**
      * Returns key type constant suitable for calling X509KeyManager.chooseServerAlias or
@@ -191,12 +182,6 @@ final class SSLUtils {
             return KEY_TYPE_RSA;
         } else if (kx_name.equals("ECDHE_ECDSA")) {
             return KEY_TYPE_EC;
-        } else if (kx_name.equals("ECDH_RSA")) {
-            return KEY_TYPE_EC_RSA;
-        } else if (kx_name.equals("ECDH_ECDSA")) {
-            return KEY_TYPE_EC_EC;
-        } else if (kx_name.equals("DH_RSA")) {
-            return KEY_TYPE_DH_RSA;
         } else {
             return null;
         }
@@ -215,14 +200,8 @@ final class SSLUtils {
         switch (clientCertificateType) {
             case NativeConstants.TLS_CT_RSA_SIGN:
                 return KEY_TYPE_RSA; // RFC rsa_sign
-            case NativeConstants.TLS_CT_RSA_FIXED_DH:
-                return KEY_TYPE_DH_RSA; // RFC rsa_fixed_dh
             case NativeConstants.TLS_CT_ECDSA_SIGN:
                 return KEY_TYPE_EC; // RFC ecdsa_sign
-            case NativeConstants.TLS_CT_RSA_FIXED_ECDH:
-                return KEY_TYPE_EC_RSA; // RFC rsa_fixed_ecdh
-            case NativeConstants.TLS_CT_ECDSA_FIXED_ECDH:
-                return KEY_TYPE_EC_EC; // RFC ecdsa_fixed_ecdh
             default:
                 return null;
         }

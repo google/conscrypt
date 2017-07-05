@@ -77,17 +77,8 @@ public class SSLUtilsTest {
                 case 1:
                     assertEquals(byteString, "RSA", keyType);
                     break;
-                case 3:
-                    assertEquals(byteString, "DH_RSA", keyType);
-                    break;
                 case 64:
                     assertEquals(byteString, "EC", keyType);
-                    break;
-                case 65:
-                    assertEquals(byteString, "EC_RSA", keyType);
-                    break;
-                case 66:
-                    assertEquals(byteString, "EC_EC", keyType);
                     break;
                 default:
                     assertNull(byteString, keyType);
@@ -103,8 +94,7 @@ public class SSLUtilsTest {
         for (int i = 0; i < allClientCertificateTypes.length; i++) {
             allClientCertificateTypes[i] = (byte) i;
         }
-        assertEquals(
-                new HashSet<String>(Arrays.asList("RSA", "DH_RSA", "EC", "EC_RSA", "EC_EC")),
+        assertEquals(new HashSet<String>(Arrays.asList("RSA", "EC")),
                 SSLUtils.getSupportedClientKeyTypes(allClientCertificateTypes));
     }
 
