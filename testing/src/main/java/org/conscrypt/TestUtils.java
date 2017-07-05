@@ -47,6 +47,7 @@ public final class TestUtils {
     private static final Provider JDK_PROVIDER = getDefaultTlsProvider();
     private static final byte[] CHARS =
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".getBytes(UTF_8);
+    private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocateDirect(0);
 
     public static final String PROTOCOL_TLS_V1_2 = "TLSv1.2";
     public static final String PROVIDER_PROPERTY = "SSLContext.TLSv1.2";
@@ -261,20 +262,11 @@ public final class TestUtils {
     /**
      * Performs the intial TLS handshake between the two {@link SSLEngine} instances.
      */
-    public static void doEngineHandshake(SSLEngine clientEngine, SSLEngine serverEngine)
-            throws SSLException {
-        ByteBuffer cTOs = ByteBuffer.allocate(clientEngine.getSession().getPacketBufferSize());
-        ByteBuffer sTOc = ByteBuffer.allocate(serverEngine.getSession().getPacketBufferSize());
-
-        ByteBuffer serverAppReadBuffer =
-                ByteBuffer.allocate(serverEngine.getSession().getApplicationBufferSize());
-        ByteBuffer clientAppReadBuffer =
-                ByteBuffer.allocate(clientEngine.getSession().getApplicationBufferSize());
-
+    public static void doEngineHandshake(SSLEngine clientEngine, SSLEngine serverEngine,
+            ByteBuffer clientAppBuffer, ByteBuffer clientPacketBuffer, ByteBuffer serverAppBuffer,
+            ByteBuffer serverPacketBuffer) throws SSLException {
         clientEngine.beginHandshake();
         serverEngine.beginHandshake();
-
-        ByteBuffer empty = ByteBuffer.allocate(0);
 
         SSLEngineResult clientResult;
         SSLEngineResult serverResult;
@@ -283,22 +275,22 @@ public final class TestUtils {
         boolean serverHandshakeFinished = false;
 
         do {
-            int cTOsPos = cTOs.position();
-            int sTOcPos = sTOc.position();
+            int cTOsPos = clientPacketBuffer.position();
+            int sTOcPos = serverPacketBuffer.position();
 
-            clientResult = clientEngine.wrap(empty, cTOs);
+            clientResult = clientEngine.wrap(EMPTY_BUFFER, clientPacketBuffer);
             runDelegatedTasks(clientResult, clientEngine);
-            serverResult = serverEngine.wrap(empty, sTOc);
+            serverResult = serverEngine.wrap(EMPTY_BUFFER, serverPacketBuffer);
             runDelegatedTasks(serverResult, serverEngine);
 
             // Verify that the consumed and produced number match what is in the buffers now.
-            assertEquals(empty.remaining(), clientResult.bytesConsumed());
-            assertEquals(empty.remaining(), serverResult.bytesConsumed());
-            assertEquals(cTOs.position() - cTOsPos, clientResult.bytesProduced());
-            assertEquals(sTOc.position() - sTOcPos, serverResult.bytesProduced());
+            assertEquals(0, clientResult.bytesConsumed());
+            assertEquals(0, serverResult.bytesConsumed());
+            assertEquals(clientPacketBuffer.position() - cTOsPos, clientResult.bytesProduced());
+            assertEquals(serverPacketBuffer.position() - sTOcPos, serverResult.bytesProduced());
 
-            cTOs.flip();
-            sTOc.flip();
+            clientPacketBuffer.flip();
+            serverPacketBuffer.flip();
 
             // Verify that we only had one SSLEngineResult.HandshakeStatus.FINISHED
             if (isHandshakeFinished(clientResult)) {
@@ -310,27 +302,27 @@ public final class TestUtils {
                 serverHandshakeFinished = true;
             }
 
-            cTOsPos = cTOs.position();
-            sTOcPos = sTOc.position();
+            cTOsPos = clientPacketBuffer.position();
+            sTOcPos = serverPacketBuffer.position();
 
-            int clientAppReadBufferPos = clientAppReadBuffer.position();
-            int serverAppReadBufferPos = serverAppReadBuffer.position();
+            int clientAppReadBufferPos = clientAppBuffer.position();
+            int serverAppReadBufferPos = serverAppBuffer.position();
 
-            clientResult = clientEngine.unwrap(sTOc, clientAppReadBuffer);
+            clientResult = clientEngine.unwrap(serverPacketBuffer, clientAppBuffer);
             runDelegatedTasks(clientResult, clientEngine);
-            serverResult = serverEngine.unwrap(cTOs, serverAppReadBuffer);
+            serverResult = serverEngine.unwrap(clientPacketBuffer, serverAppBuffer);
             runDelegatedTasks(serverResult, serverEngine);
 
             // Verify that the consumed and produced number match what is in the buffers now.
-            assertEquals(sTOc.position() - sTOcPos, clientResult.bytesConsumed());
-            assertEquals(cTOs.position() - cTOsPos, serverResult.bytesConsumed());
-            assertEquals(clientAppReadBuffer.position() - clientAppReadBufferPos,
+            assertEquals(serverPacketBuffer.position() - sTOcPos, clientResult.bytesConsumed());
+            assertEquals(clientPacketBuffer.position() - cTOsPos, serverResult.bytesConsumed());
+            assertEquals(clientAppBuffer.position() - clientAppReadBufferPos,
                     clientResult.bytesProduced());
-            assertEquals(serverAppReadBuffer.position() - serverAppReadBufferPos,
+            assertEquals(serverAppBuffer.position() - serverAppReadBufferPos,
                     serverResult.bytesProduced());
 
-            cTOs.compact();
-            sTOc.compact();
+            clientPacketBuffer.compact();
+            serverPacketBuffer.compact();
 
             // Verify that we only had one SSLEngineResult.HandshakeStatus.FINISHED
             if (isHandshakeFinished(clientResult)) {
