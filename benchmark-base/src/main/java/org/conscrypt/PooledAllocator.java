@@ -31,6 +31,8 @@ final class PooledAllocator extends BufferAllocator {
         return instance;
     }
 
+    private PooledAllocator() {}
+
     @Override
     public AllocatedBuffer allocateDirectBuffer(int capacity) {
         return new ByteBufAdapter(alloc.directBuffer(capacity));

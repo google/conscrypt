@@ -8,18 +8,22 @@ description = 'Conscrypt: OpenJDK Benchmarks'
 
 ext {
     genDir = "${buildDir}/jmh-generated-classes"
-    jmhInclude = System.getProperty("jmh.include")
+    jmhInclude = System.getProperty('jmh.include')
+    jmhWarmupIterations = System.getProperty('jmh.wi', '10')
+    jmhIterations = System.getProperty('jmh.i', '10')
+    jmhFork = System.getProperty('jmh.f', '1')
+    jmhJvmArgs = System.getProperty('jmh.jvmArgs', '-server -Xms2g -Xmx2g')
 }
 
 jmh {
     jmhVersion = "$jmhVersion"
     if (jmhInclude != null) {
-        setInclude(jmhInclude)
+        setInclude(jmhInclude.toString())
     }
-    warmupIterations = 10
-    iterations = 10
-    fork = 1
-    jvmArgs = '-server -Xms2g -Xmx2g'
+    warmupIterations = "$jmhWarmupIterations".toInteger()
+    iterations = "$jmhIterations".toInteger();
+    fork = "$jmhFork".toInteger()
+    jvmArgs = jmhJvmArgs.toString()
     duplicateClassesStrategy = 'warn'
 }
 

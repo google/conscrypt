@@ -62,18 +62,16 @@ public final class EngineHandshakeBenchmark {
     EngineHandshakeBenchmark(Config config) throws Exception {
         engineType = config.engineType();
         cipher = config.cipher();
-        final BufferType bufferType = config.bufferType();
+        BufferType bufferType = config.bufferType();
 
         SSLEngine clientEngine = engineType.newClientEngine(cipher);
         SSLEngine serverEngine = engineType.newServerEngine(cipher);
 
         // Create the application and packet buffers for both endpoints.
-        clientApplicationBuffer =
-                bufferType.newBuffer(clientEngine.getSession().getApplicationBufferSize());
-        serverApplicationBuffer =
-                bufferType.newBuffer(serverEngine.getSession().getApplicationBufferSize());
-        clientPacketBuffer = bufferType.newBuffer(clientEngine.getSession().getPacketBufferSize());
-        serverPacketBuffer = bufferType.newBuffer(serverEngine.getSession().getPacketBufferSize());
+        clientApplicationBuffer = bufferType.newApplicationBuffer(clientEngine);
+        serverApplicationBuffer = bufferType.newApplicationBuffer(serverEngine);
+        clientPacketBuffer = bufferType.newPacketBuffer(clientEngine);
+        serverPacketBuffer = bufferType.newPacketBuffer(serverEngine);
 
         engineType.dispose(clientEngine);
         engineType.dispose(serverEngine);
@@ -91,5 +89,32 @@ public final class EngineHandshakeBenchmark {
                 serverApplicationBuffer, serverPacketBuffer);
         engineType.dispose(client);
         engineType.dispose(server);
+    }
+
+    /**
+     * A simple main for profiling.
+     */
+    public static void main(String[] args) throws Exception {
+        EngineHandshakeBenchmark bm = new EngineHandshakeBenchmark(new Config() {
+            @Override
+            public BufferType bufferType() {
+                return BufferType.HEAP;
+            }
+
+            @Override
+            public EngineType engineType() {
+                return EngineType.NETTY;
+            }
+
+            @Override
+            public String cipher() {
+                return TestUtils.TEST_CIPHER;
+            }
+        });
+
+        // Just run forever for profiling.
+        while (true) {
+            bm.handshake();
+        }
     }
 }

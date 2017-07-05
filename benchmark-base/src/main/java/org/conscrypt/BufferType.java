@@ -16,6 +16,7 @@
 package org.conscrypt;
 
 import java.nio.ByteBuffer;
+import javax.net.ssl.SSLEngine;
 
 /**
  * Enumeration that provides allocation of direct or heap buffers.
@@ -36,4 +37,12 @@ public enum BufferType {
     };
 
     abstract ByteBuffer newBuffer(int size);
+
+    ByteBuffer newApplicationBuffer(SSLEngine engine) {
+        return newBuffer(engine.getSession().getApplicationBufferSize());
+    }
+
+    ByteBuffer newPacketBuffer(SSLEngine engine) {
+        return newBuffer(engine.getSession().getPacketBufferSize());
+    }
 }

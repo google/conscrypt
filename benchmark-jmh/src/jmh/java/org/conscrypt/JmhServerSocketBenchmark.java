@@ -70,12 +70,12 @@ public class JmhServerSocketBenchmark {
 
     private ServerSocketBenchmark benchmark;
 
-    @Setup
+    @Setup(Level.Iteration)
     public void setup() throws Exception {
         benchmark = new ServerSocketBenchmark(config);
     }
 
-    @TearDown
+    @TearDown(Level.Iteration)
     public void teardown() throws Exception {
         benchmark.close();
     }

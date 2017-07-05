@@ -70,12 +70,12 @@ public class JmhClientSocketBenchmark {
 
     private ClientSocketBenchmark benchmark;
 
-    @Setup(Level.Trial)
+    @Setup(Level.Iteration)
     public void setup() throws Exception {
         benchmark = new ClientSocketBenchmark(config);
     }
 
-    @TearDown(Level.Trial)
+    @TearDown(Level.Iteration)
     public void teardown() throws Exception {
         benchmark.close();
     }

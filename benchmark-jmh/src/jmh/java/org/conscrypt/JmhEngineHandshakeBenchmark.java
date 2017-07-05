@@ -36,6 +36,7 @@ import javax.net.ssl.SSLException;
 import org.conscrypt.EngineHandshakeBenchmark.Config;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
@@ -62,7 +63,7 @@ public class JmhEngineHandshakeBenchmark {
 
     private EngineHandshakeBenchmark benchmark;
 
-    @Setup
+    @Setup(Level.Iteration)
     public void setup() throws Exception {
         benchmark = new EngineHandshakeBenchmark(config);
     }

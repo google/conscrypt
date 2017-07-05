@@ -36,6 +36,7 @@ import javax.net.ssl.SSLException;
 import org.conscrypt.EngineWrapBenchmark.Config;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
@@ -66,12 +67,12 @@ public class JmhEngineWrapBenchmark {
 
     private EngineWrapBenchmark benchmark;
 
-    @Setup
+    @Setup(Level.Iteration)
     public void setup() throws Exception {
         benchmark = new EngineWrapBenchmark(config);
     }
 
-    @TearDown
+    @TearDown(Level.Iteration)
     public void teardown() {
         benchmark.teardown();
     }

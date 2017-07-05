@@ -70,21 +70,19 @@ public final class EngineWrapBenchmark {
     EngineWrapBenchmark(Config config) throws Exception {
         engineType = config.engineType();
         cipher = config.cipher();
-        final BufferType bufferType = config.bufferType();
+        BufferType bufferType = config.bufferType();
 
         clientEngine = engineType.newClientEngine(cipher);
         serverEngine = engineType.newServerEngine(cipher);
 
         // Create the application and packet buffers for both endpoints.
-        clientApplicationBuffer =
-                bufferType.newBuffer(clientEngine.getSession().getApplicationBufferSize());
-        serverApplicationBuffer =
-                bufferType.newBuffer(serverEngine.getSession().getApplicationBufferSize());
-        clientPacketBuffer = bufferType.newBuffer(clientEngine.getSession().getPacketBufferSize());
-        serverPacketBuffer = bufferType.newBuffer(serverEngine.getSession().getPacketBufferSize());
+        clientApplicationBuffer = bufferType.newApplicationBuffer(clientEngine);
+        serverApplicationBuffer = bufferType.newApplicationBuffer(serverEngine);
+        clientPacketBuffer = bufferType.newPacketBuffer(clientEngine);
+        serverPacketBuffer = bufferType.newPacketBuffer(serverEngine);
 
         // Generate the message to be sent from the client.
-        final int messageSize = config.messageSize();
+        int messageSize = config.messageSize();
         messageBuffer = bufferType.newBuffer(messageSize);
         messageBuffer.put(newTextMessage(messageSize));
         messageBuffer.flip();
