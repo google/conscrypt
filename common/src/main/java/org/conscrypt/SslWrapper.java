@@ -311,9 +311,12 @@ final class SslWrapper {
                     + NativeCrypto.OBSOLETE_PROTOCOL_SSLV3
                     + " is no longer supported and was filtered from the list");
         }
-        NativeCrypto.SSL_configure_alpn(ssl, isClient(), parameters.alpnProtocols);
         NativeCrypto.setEnabledProtocols(ssl, parameters.enabledProtocols);
         NativeCrypto.setEnabledCipherSuites(ssl, parameters.enabledCipherSuites);
+
+        if (parameters.alpnProtocols != null) {
+            NativeCrypto.SSL_configure_alpn(ssl, isClient(), parameters.alpnProtocols);
+        }
 
         // setup server certificates and private keys.
         // clients will receive a call back to request certificates.

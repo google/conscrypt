@@ -15,12 +15,19 @@
  */
 package org.conscrypt;
 
+import static io.netty.handler.ssl.SslProvider.OPENSSL;
+import static io.netty.handler.ssl.SslProvider.OPENSSL_REFCNT;
 import static org.conscrypt.TestUtils.PROTOCOL_TLS_V1_2;
 import static org.conscrypt.TestUtils.initClientSslContext;
 import static org.conscrypt.TestUtils.initEngine;
 import static org.conscrypt.TestUtils.initServerSslContext;
 
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
+import io.netty.handler.ssl.ApplicationProtocolConfig.SelectedListenerFailureBehavior;
+import io.netty.handler.ssl.ApplicationProtocolConfig.SelectorFailureBehavior;
+import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.util.ReferenceCountUtil;
@@ -42,12 +49,18 @@ public enum EngineType {
         private final SSLContext serverContext = initServerSslContext(newContext());
 
         @Override
-        SSLEngine newClientEngine(String cipher) {
+        SSLEngine newClientEngine(String cipher, boolean useAlpn) {
+            if (useAlpn) {
+                throw new UnsupportedOperationException("ALPN not supported for JDK");
+            }
             return initEngine(clientContext.createSSLEngine(), cipher, true);
         }
 
         @Override
-        SSLEngine newServerEngine(String cipher) {
+        SSLEngine newServerEngine(String cipher, boolean useAlpn) {
+            if (useAlpn) {
+                throw new UnsupportedOperationException("ALPN not supported for JDK");
+            }
             return initEngine(serverContext.createSSLEngine(), cipher, false);
         }
 
@@ -60,17 +73,27 @@ public enum EngineType {
         }
     },
     CONSCRYPT_UNPOOLED {
-        private final SSLContext clientContext = initClientSslContext(newContext());
-        private final SSLContext serverContext = initServerSslContext(newContext());
+        private final SSLContext clientContext = newConscryptClientContext();
+        private final SSLContext serverContext = newConscryptServerContext();
 
         @Override
-        SSLEngine newClientEngine(String cipher) {
-            return initEngine(clientContext.createSSLEngine(), cipher, true);
+        SSLEngine newClientEngine(String cipher, boolean useAlpn) {
+            SSLEngine engine = initEngine(clientContext.createSSLEngine(), cipher, true);
+            if (useAlpn) {
+                Conscrypt.Engines.setAlpnProtocols(
+                        engine, new String[] {ApplicationProtocolNames.HTTP_2});
+            }
+            return engine;
         }
 
         @Override
-        SSLEngine newServerEngine(String cipher) {
-            return initEngine(serverContext.createSSLEngine(), cipher, false);
+        SSLEngine newServerEngine(String cipher, boolean useAlpn) {
+            SSLEngine engine = initEngine(serverContext.createSSLEngine(), cipher, false);
+            if (useAlpn) {
+                Conscrypt.Engines.setAlpnProtocols(
+                        engine, new String[] {ApplicationProtocolNames.HTTP_2});
+            }
+            return engine;
         }
 
         private SSLContext newContext() {
@@ -82,20 +105,28 @@ public enum EngineType {
         }
     },
     CONSCRYPT_POOLED {
-        private final SSLContext clientContext = initClientSslContext(newContext());
-        private final SSLContext serverContext = initServerSslContext(newContext());
+        private final SSLContext clientContext = newConscryptClientContext();
+        private final SSLContext serverContext = newConscryptServerContext();
 
         @Override
-        SSLEngine newClientEngine(String cipher) {
+        SSLEngine newClientEngine(String cipher, boolean useAlpn) {
             SSLEngine engine = initEngine(clientContext.createSSLEngine(), cipher, true);
             Conscrypt.Engines.setBufferAllocator(engine, PooledAllocator.getInstance());
+            if (useAlpn) {
+                Conscrypt.Engines.setAlpnProtocols(
+                        engine, new String[] {ApplicationProtocolNames.HTTP_2});
+            }
             return engine;
         }
 
         @Override
-        SSLEngine newServerEngine(String cipher) {
+        SSLEngine newServerEngine(String cipher, boolean useAlpn) {
             SSLEngine engine = initEngine(serverContext.createSSLEngine(), cipher, false);
             Conscrypt.Engines.setBufferAllocator(engine, PooledAllocator.getInstance());
+            if (useAlpn) {
+                Conscrypt.Engines.setAlpnProtocols(
+                        engine, new String[] {ApplicationProtocolNames.HTTP_2});
+            }
             return engine;
         }
 
@@ -108,54 +139,79 @@ public enum EngineType {
         }
     },
     NETTY {
-        private final SslContext clientContext =
-                newNettyClientContext(io.netty.handler.ssl.SslProvider.OPENSSL);
-        private final SslContext serverContext =
-                newNettyServerContext(io.netty.handler.ssl.SslProvider.OPENSSL);
+        private final SslContext clientContext = newNettyClientContext(OPENSSL, false);
+        private final SslContext clientContextAlpn = newNettyClientContext(OPENSSL, true);
+        private final SslContext serverContext = newNettyServerContext(OPENSSL, false);
+        private final SslContext serverContextAlpn = newNettyServerContext(OPENSSL, true);
 
         @Override
-        SSLEngine newClientEngine(String cipher) {
+        SSLEngine newClientEngine(String cipher, boolean useAlpn) {
             return initEngine(
-                    clientContext.newEngine(PooledByteBufAllocator.DEFAULT), cipher, true);
+                    clientContext(useAlpn).newEngine(PooledByteBufAllocator.DEFAULT), cipher, true);
         }
 
         @Override
-        SSLEngine newServerEngine(String cipher) {
-            return initEngine(
-                    serverContext.newEngine(PooledByteBufAllocator.DEFAULT), cipher, false);
+        SSLEngine newServerEngine(String cipher, boolean useAlpn) {
+            return initEngine(serverContext(useAlpn).newEngine(PooledByteBufAllocator.DEFAULT),
+                    cipher, false);
+        }
+
+        private SslContext clientContext(boolean useAlpn) {
+            return useAlpn ? clientContextAlpn : clientContext;
+        }
+
+        private SslContext serverContext(boolean useAlpn) {
+            return useAlpn ? serverContextAlpn : serverContext;
         }
     },
     NETTY_REF_CNT {
-        private final SslContext clientContext =
-                newNettyClientContext(io.netty.handler.ssl.SslProvider.OPENSSL_REFCNT);
-        private final SslContext serverContext =
-                newNettyServerContext(io.netty.handler.ssl.SslProvider.OPENSSL_REFCNT);
+        private final SslContext clientContext = newNettyClientContext(OPENSSL_REFCNT, false);
+        private final SslContext clientContextAlpn = newNettyClientContext(OPENSSL_REFCNT, true);
+        private final SslContext serverContext = newNettyServerContext(OPENSSL_REFCNT, false);
+        private final SslContext serverContextAlpn = newNettyServerContext(OPENSSL_REFCNT, true);
 
         @Override
-        SSLEngine newClientEngine(String cipher) {
+        SSLEngine newClientEngine(String cipher, boolean useAlpn) {
             return initEngine(
-                    clientContext.newEngine(PooledByteBufAllocator.DEFAULT), cipher, true);
+                    clientContext(useAlpn).newEngine(PooledByteBufAllocator.DEFAULT), cipher, true);
         }
 
         @Override
-        SSLEngine newServerEngine(String cipher) {
-            return initEngine(
-                    serverContext.newEngine(PooledByteBufAllocator.DEFAULT), cipher, false);
+        SSLEngine newServerEngine(String cipher, boolean useAlpn) {
+            return initEngine(serverContext(useAlpn).newEngine(PooledByteBufAllocator.DEFAULT),
+                    cipher, false);
         }
 
         @Override
         void dispose(SSLEngine engine) {
             ReferenceCountUtil.release(engine);
         }
+
+        private SslContext clientContext(boolean useAlpn) {
+            return useAlpn ? clientContextAlpn : clientContext;
+        }
+
+        private SslContext serverContext(boolean useAlpn) {
+            return useAlpn ? serverContextAlpn : serverContext;
+        }
     };
 
-    abstract SSLEngine newClientEngine(String cipher);
+    abstract SSLEngine newClientEngine(String cipher, boolean useAlpn);
 
-    abstract SSLEngine newServerEngine(String cipher);
+    abstract SSLEngine newServerEngine(String cipher, boolean useAlpn);
 
     void dispose(SSLEngine engine) {}
 
-    private static SslContext newNettyClientContext(io.netty.handler.ssl.SslProvider sslProvider) {
+    private static SSLContext newConscryptClientContext() {
+        return TestUtils.newClientSslContext(TestUtils.getConscryptProvider());
+    }
+
+    private static SSLContext newConscryptServerContext() {
+        return TestUtils.newServerSslContext(TestUtils.getConscryptProvider());
+    }
+
+    private static SslContext newNettyClientContext(
+            io.netty.handler.ssl.SslProvider sslProvider, boolean useAlpn) {
         try {
             TestKeyStore server = TestKeyStore.getServer();
             SslContextBuilder ctx =
@@ -163,13 +219,17 @@ public enum EngineType {
                             .sslProvider(sslProvider)
                             .trustManager((X509Certificate[]) server.getPrivateKey("RSA", "RSA")
                                                   .getCertificateChain());
+            if (useAlpn) {
+                ctx.applicationProtocolConfig(NETTY_ALPN_CONFIG);
+            }
             return ctx.build();
         } catch (SSLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static SslContext newNettyServerContext(io.netty.handler.ssl.SslProvider sslProvider) {
+    private static SslContext newNettyServerContext(
+            io.netty.handler.ssl.SslProvider sslProvider, boolean useAlpn) {
         try {
             PrivateKeyEntry server = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
             SslContextBuilder ctx =
@@ -177,9 +237,16 @@ public enum EngineType {
                             .forServer(server.getPrivateKey(),
                                     (X509Certificate[]) server.getCertificateChain())
                             .sslProvider(sslProvider);
+            if (useAlpn) {
+                ctx.applicationProtocolConfig(NETTY_ALPN_CONFIG);
+            }
             return ctx.build();
         } catch (SSLException e) {
             throw new RuntimeException(e);
         }
     }
+
+    private static final ApplicationProtocolConfig NETTY_ALPN_CONFIG =
+            new ApplicationProtocolConfig(Protocol.ALPN, SelectorFailureBehavior.NO_ADVERTISE,
+                    SelectedListenerFailureBehavior.ACCEPT, ApplicationProtocolNames.HTTP_2);
 }
