@@ -493,20 +493,9 @@ final class SslWrapper {
                 ssl, destAddress, destLength, handshakeCallbacks);
     }
 
-    int readArray(byte[] destJava, int destOffset, int destLength)
-            throws IOException, CertificateException {
-        return NativeCrypto.ENGINE_SSL_read_heap(
-                ssl, destJava, destOffset, destLength, handshakeCallbacks);
-    }
-
     int writeDirectByteBuffer(long sourceAddress, int sourceLength) throws IOException {
         return NativeCrypto.ENGINE_SSL_write_direct(
                 ssl, sourceAddress, sourceLength, handshakeCallbacks);
-    }
-
-    int writeArray(byte[] sourceJava, int sourceOffset, int sourceLength) throws IOException {
-        return NativeCrypto.ENGINE_SSL_write_heap(
-                ssl, sourceJava, sourceOffset, sourceLength, handshakeCallbacks);
     }
 
     int getPendingReadableBytes() {

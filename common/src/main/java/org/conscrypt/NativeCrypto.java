@@ -1202,35 +1202,11 @@ public final class NativeCrypto {
             SSLHandshakeCallbacks shc) throws IOException, CertificateException;
 
     /**
-     * Variant of the {@link #SSL_read} for a heap {@link java.nio.ByteBuffer} used by {@link
-     * ConscryptEngine}.
-     *
-     * @return if positive, represents the number of bytes read into the given buffer.
-     * Returns {@code -SSL_ERROR_WANT_READ} if more data is needed. Returns
-     * {@code -SSL_ERROR_WANT_WRITE} if data needs to be written out to flush the BIO.
-     *
-     * @throws java.io.InterruptedIOException if the read was interrupted.
-     * @throws java.io.EOFException if the end of stream has been reached.
-     * @throws CertificateException if the application's certificate verification callback failed.
-     * Only occurs during handshake processing.
-     * @throws SSLException if any other error occurs.
-     */
-    static native int ENGINE_SSL_read_heap(long sslNativePointer, byte[] destJava, int destOffset,
-            int destLength, SSLHandshakeCallbacks shc) throws IOException, CertificateException;
-
-    /**
      * Variant of the {@link #SSL_write} for a direct {@link java.nio.ByteBuffer} used by {@link
      * ConscryptEngine}. This version does not lock or and does no error pre-processing.
      */
     static native int ENGINE_SSL_write_direct(long sslNativePointer, long address, int length,
             SSLHandshakeCallbacks shc) throws IOException;
-
-    /**
-     * Variant of the {@link #SSL_write} for a heap {@link java.nio.ByteBuffer} used by {@link
-     * ConscryptEngine}. This version does not lock or and does no error pre-processing.
-     */
-    static native int ENGINE_SSL_write_heap(long sslNativePointer, byte[] sourceJava,
-            int sourceOffset, int sourceLength, SSLHandshakeCallbacks shc) throws IOException;
 
     /**
      * Writes data from the given direct {@link java.nio.ByteBuffer} to the BIO.
