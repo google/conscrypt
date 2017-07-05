@@ -918,6 +918,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 // The handshake hasn't been started yet, so there's no OpenSSL related
                 // state to clean up. We still need to close the underlying socket if
                 // we're wrapping it and were asked to autoClose.
+                free();
                 closeUnderlyingSocket();
 
                 stateLock.notifyAll();
