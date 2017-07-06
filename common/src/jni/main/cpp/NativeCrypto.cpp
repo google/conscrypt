@@ -8768,25 +8768,34 @@ static void NativeCrypto_ENGINE_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_addr
     safeSslClear(ssl);
 }
 
-static int doEngineRead(JNIEnv* env, const char* methodName, SSL* ssl, jobject shc, char* destPtr,
-                        int length) {
+static jint NativeCrypto_ENGINE_SSL_read_direct(JNIEnv* env, jclass, jlong sslRef, jlong address,
+                                                jint length, jobject shc) {
+    SSL* ssl = to_SSL(env, sslRef, true);
+    char* destPtr = reinterpret_cast<char*>(address);
+    if (ssl == nullptr) {
+        return -1;
+    }
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct address=%p length=%d shc=%p", ssl,
+              destPtr, length, shc);
+
     if (shc == nullptr) {
         Errors::jniThrowNullPointerException(env, "sslHandshakeCallbacks == null");
-        JNI_TRACE("ssl=%p %s => sslHandshakeCallbacks == null", ssl, methodName);
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct => sslHandshakeCallbacks == null",
+                  ssl);
         return -1;
     }
     AppData* appData = toAppData(ssl);
     if (appData == nullptr) {
         Errors::throwSSLExceptionStr(env, "Unable to retrieve application data");
         safeSslClear(ssl);
-        JNI_TRACE("ssl=%p %s => appData == null", ssl, methodName);
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct => appData == null", ssl);
         return -1;
     }
     if (!appData->setCallbackState(env, shc, nullptr)) {
         Errors::throwSSLExceptionStr(env, "Unable to set appdata callback");
         ERR_clear_error();
         safeSslClear(ssl);
-        JNI_TRACE("ssl=%p %s => exception", ssl, methodName);
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct => exception", ssl);
         return -1;
     }
 
@@ -8797,7 +8806,7 @@ static int doEngineRead(JNIEnv* env, const char* methodName, SSL* ssl, jobject s
     if (env->ExceptionCheck()) {
         // An exception was thrown by one of the callbacks. Just propagate that exception.
         safeSslClear(ssl);
-        JNI_TRACE("ssl=%p %s => THROWN_EXCEPTION", ssl, methodName);
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct => THROWN_EXCEPTION", ssl);
         return -1;
     }
 
@@ -8848,47 +8857,9 @@ static int doEngineRead(JNIEnv* env, const char* methodName, SSL* ssl, jobject s
         }
     }
 
-    JNI_TRACE("ssl=%p %s address=%p length=%d shc=%p result=%d", ssl, methodName, destPtr, length,
-              shc, result);
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct address=%p length=%d shc=%p result=%d",
+              ssl, destPtr, length, shc, result);
     return result;
-}
-
-static jint NativeCrypto_ENGINE_SSL_read_direct(JNIEnv* env, jclass, jlong sslRef, jlong address,
-                                                jint length, jobject shc) {
-    SSL* ssl = to_SSL(env, sslRef, true);
-    char* destPtr = reinterpret_cast<char*>(address);
-    if (ssl == nullptr) {
-        return -1;
-    }
-    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct address=%p length=%d shc=%p", ssl,
-              destPtr, length, shc);
-
-    return doEngineRead(env, "NativeCrypto_ENGINE_SSL_read_direct", ssl, shc, destPtr, length);
-}
-
-static jint NativeCrypto_ENGINE_SSL_read_heap(JNIEnv* env, jclass, jlong sslRef,
-                                              jbyteArray destJava, jint destOffset, jint destLength,
-                                              jobject shc) {
-    SSL* ssl = to_SSL(env, sslRef, true);
-    if (ssl == nullptr) {
-        return -1;
-    }
-    ScopedByteArrayRW dest(env, destJava);
-    if (dest.get() == nullptr) {
-        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_heap => threw exception", ssl);
-        return -1;
-    }
-    if (ARRAY_OFFSET_LENGTH_INVALID(dest, destOffset, destLength)) {
-        JNI_TRACE(
-                "ssl=%p NativeCrypto_ENGINE_SSL_read_heap => destOffset=%d, destLength=%d, "
-                "size=%zd",
-                ssl, destOffset, destLength, dest.size());
-        Errors::jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", nullptr);
-        return -1;
-    }
-
-    return doEngineRead(env, "NativeCrypto_ENGINE_SSL_read_heap", ssl, shc,
-                        reinterpret_cast<char*>(dest.get()) + destOffset, destLength);
 }
 
 static int NativeCrypto_ENGINE_SSL_write_BIO_direct(JNIEnv* env, jclass, jlong sslRef, jlong bioRef,
@@ -9162,61 +9133,6 @@ static int NativeCrypto_ENGINE_SSL_write_direct(JNIEnv* env, jclass, jlong sslRe
     appData->clearCallbackState();
     JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_direct address=%p length=%d shc=%p => ret=%d",
               ssl, sourcePtr, len, shc, result);
-    return result;
-}
-
-static int NativeCrypto_ENGINE_SSL_write_heap(JNIEnv* env, jclass, jlong sslRef,
-                                              jbyteArray sourceJava, jint sourceOffset,
-                                              jint sourceLength, jobject shc) {
-    SSL* ssl = to_SSL(env, sslRef, true);
-    if (ssl == nullptr) {
-        return -1;
-    }
-    if (shc == nullptr) {
-        Errors::jniThrowNullPointerException(env, "sslHandshakeCallbacks == null");
-        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_heap => sslHandshakeCallbacks == null",
-                  ssl);
-        return -1;
-    }
-    ScopedByteArrayRO source(env, sourceJava);
-    if (source.get() == nullptr) {
-        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_heap => threw exception", ssl);
-        return -1;
-    }
-    if (ARRAY_OFFSET_LENGTH_INVALID(source, sourceOffset, sourceLength)) {
-        JNI_TRACE(
-                "ssl=%p NativeCrypto_ENGINE_SSL_write_heap => sourceOffset=%d, sourceLength=%d, "
-                "size=%zd",
-                ssl, sourceOffset, sourceLength, source.size());
-        Errors::jniThrowException(env, "java/lang/ArrayIndexOutOfBoundsException", nullptr);
-        return -1;
-    }
-
-    AppData* appData = toAppData(ssl);
-    if (appData == nullptr) {
-        Errors::throwSSLExceptionStr(env, "Unable to retrieve application data");
-        safeSslClear(ssl);
-        ERR_clear_error();
-        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_heap appData => null", ssl);
-        return -1;
-    }
-    if (!appData->setCallbackState(env, shc, nullptr)) {
-        Errors::throwSSLExceptionStr(env, "Unable to set appdata callback");
-        ERR_clear_error();
-        safeSslClear(ssl);
-        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_heap => exception", ssl);
-        return -1;
-    }
-
-    errno = 0;
-
-    int result = SSL_write(ssl, reinterpret_cast<const char*>(source.get()) + sourceOffset,
-                           sourceLength);
-    appData->clearCallbackState();
-    JNI_TRACE(
-            "ssl=%p NativeCrypto_ENGINE_SSL_write_heap source=%p sourceOffset=%d sourceLength=%d "
-            "shc=%p => ret=%d",
-            ssl, source.get(), sourceOffset, sourceLength, shc, result);
     return result;
 }
 
@@ -9627,8 +9543,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_write_direct, "(JJI" SSL_CALLBACKS ")I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_write_BIO_direct, "(JJJI" SSL_CALLBACKS ")I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_read_BIO_direct, "(JJJI" SSL_CALLBACKS ")I"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_read_heap, "(J[BII" SSL_CALLBACKS ")I"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_write_heap, "(J[BII" SSL_CALLBACKS ")I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_write_BIO_heap, "(JJ[BII" SSL_CALLBACKS ")I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_read_BIO_heap, "(JJ[BII" SSL_CALLBACKS ")I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_shutdown, "(J" SSL_CALLBACKS ")V"),
