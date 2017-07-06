@@ -44,7 +44,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 
 /**
- * Benchmark comparing performance of various engine implementations to conscrypt.
+ * Benchmark comparing handshake performance of various engine implementations.
  */
 @State(Scope.Benchmark)
 @Fork(1)
@@ -88,6 +88,11 @@ public class JmhEngineHandshakeBenchmark {
         @Override
         public String cipher() {
             return a_cipher;
+        }
+
+        @Override
+        public boolean useAlpn() {
+            return false;
         }
     }
 }

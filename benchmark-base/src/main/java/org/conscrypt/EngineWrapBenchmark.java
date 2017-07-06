@@ -72,8 +72,8 @@ public final class EngineWrapBenchmark {
         cipher = config.cipher();
         BufferType bufferType = config.bufferType();
 
-        clientEngine = engineType.newClientEngine(cipher);
-        serverEngine = engineType.newServerEngine(cipher);
+        clientEngine = engineType.newClientEngine(cipher, false);
+        serverEngine = engineType.newServerEngine(cipher, false);
 
         // Create the application and packet buffers for both endpoints.
         clientApplicationBuffer = bufferType.newApplicationBuffer(clientEngine);

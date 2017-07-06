@@ -48,6 +48,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ConscryptEngineTest {
     private static final int MESSAGE_SIZE = 4096;
+    private static final String ALPN_PROTOCOL = "h2";
+    private static final String[] SUPPORTED_ALPN_PROTOCOLS = new String[] {ALPN_PROTOCOL};
 
     @SuppressWarnings("ImmutableEnumChecker")
     public enum BufferType {
@@ -167,7 +169,7 @@ public class ConscryptEngineTest {
 
     @Test
     public void exchangeMessages() throws Exception {
-        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer(), false);
         doHandshake();
 
         ByteBuffer clientCleartextBuffer = bufferType.newBuffer(MESSAGE_SIZE);
@@ -206,7 +208,7 @@ public class ConscryptEngineTest {
 
     @Test
     public void exchangeLargeMessage() throws Exception {
-        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer(), false);
         doHandshake();
 
         // Create the input message.
@@ -269,9 +271,17 @@ public class ConscryptEngineTest {
         assertArrayEquals(message, actualMessage);
     }
 
+    @Test
+    public void handshakeWithAlpnShouldSucceed() throws Exception {
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer(), true /* useAlpn */);
+        doHandshake();
+        assertEquals(ALPN_PROTOCOL, Conscrypt.Engines.getAlpnSelectedProtocol(clientEngine));
+        assertEquals(ALPN_PROTOCOL, Conscrypt.Engines.getAlpnSelectedProtocol(serverEngine));
+    }
+
     private void doMutualAuthHandshake(
             TestKeyStore clientKs, TestKeyStore serverKs, ClientAuth clientAuth) throws Exception {
-        setupEngines(clientKs, serverKs);
+        setupEngines(clientKs, serverKs, false);
         clientAuth.apply(serverEngine);
         doHandshake();
         assertEquals(HandshakeStatus.NOT_HANDSHAKING, clientEngine.getHandshakeStatus());
@@ -283,7 +293,7 @@ public class ConscryptEngineTest {
                 clientPacketBuffer, serverApplicationBuffer, serverPacketBuffer);
     }
 
-    private void setupEngines(TestKeyStore clientKeyStore, TestKeyStore serverKeyStore)
+    private void setupEngines(TestKeyStore clientKeyStore, TestKeyStore serverKeyStore, boolean useAlpn)
             throws SSLException {
         SSLContext clientContext = initSslContext(newContext(), clientKeyStore);
         SSLContext serverContext = initSslContext(newContext(), serverKeyStore);
@@ -292,6 +302,10 @@ public class ConscryptEngineTest {
         serverEngine = initEngine(serverContext.createSSLEngine(), TEST_CIPHER, false);
         setBufferAllocator(clientEngine, bufferType.allocator);
         setBufferAllocator(serverEngine, bufferType.allocator);
+        if (useAlpn) {
+            Conscrypt.Engines.setAlpnProtocols(clientEngine, SUPPORTED_ALPN_PROTOCOLS);
+            Conscrypt.Engines.setAlpnProtocols(serverEngine, SUPPORTED_ALPN_PROTOCOLS);
+        }
 
         // Create the application and packet buffers for both endpoints.
         clientApplicationBuffer =

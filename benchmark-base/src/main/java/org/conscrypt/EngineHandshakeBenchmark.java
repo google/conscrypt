@@ -49,10 +49,12 @@ public final class EngineHandshakeBenchmark {
         BufferType bufferType();
         EngineType engineType();
         String cipher();
+        boolean useAlpn();
     }
 
     private final EngineType engineType;
     private final String cipher;
+    private final boolean useAlpn;
 
     private final ByteBuffer clientApplicationBuffer;
     private final ByteBuffer clientPacketBuffer;
@@ -62,10 +64,11 @@ public final class EngineHandshakeBenchmark {
     EngineHandshakeBenchmark(Config config) throws Exception {
         engineType = config.engineType();
         cipher = config.cipher();
+        useAlpn = config.useAlpn();
         BufferType bufferType = config.bufferType();
 
-        SSLEngine clientEngine = engineType.newClientEngine(cipher);
-        SSLEngine serverEngine = engineType.newServerEngine(cipher);
+        SSLEngine clientEngine = engineType.newClientEngine(cipher, useAlpn);
+        SSLEngine serverEngine = engineType.newServerEngine(cipher, useAlpn);
 
         // Create the application and packet buffers for both endpoints.
         clientApplicationBuffer = bufferType.newApplicationBuffer(clientEngine);
@@ -78,8 +81,8 @@ public final class EngineHandshakeBenchmark {
     }
 
     void handshake() throws SSLException {
-        SSLEngine client = engineType.newClientEngine(cipher);
-        SSLEngine server = engineType.newServerEngine(cipher);
+        SSLEngine client = engineType.newClientEngine(cipher, useAlpn);
+        SSLEngine server = engineType.newServerEngine(cipher, useAlpn);
         clientApplicationBuffer.clear();
         clientPacketBuffer.clear();
         serverApplicationBuffer.clear();
@@ -109,6 +112,11 @@ public final class EngineHandshakeBenchmark {
             @Override
             public String cipher() {
                 return TestUtils.TEST_CIPHER;
+            }
+
+            @Override
+            public boolean useAlpn() {
+                return false;
             }
         });
 
