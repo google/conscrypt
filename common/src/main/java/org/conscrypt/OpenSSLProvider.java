@@ -77,6 +77,7 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.6", "GCM");
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.26", "GCM");
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.46", "GCM");
+        put("AlgorithmParameters.OAEP", PREFIX + "OAEPParameters");
 
         /* === Message Digests === */
         put("MessageDigest.SHA-1", PREFIX + "OpenSSLMessageDigestJDK$SHA1");
