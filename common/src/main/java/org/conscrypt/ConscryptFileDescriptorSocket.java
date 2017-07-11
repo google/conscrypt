@@ -32,6 +32,7 @@ import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.ECKey;
 import java.security.spec.ECParameterSpec;
 import javax.crypto.SecretKey;
@@ -381,17 +382,31 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     @Override
     public void verifyCertificateChain(long[] certRefs, String authMethod)
             throws CertificateException {
+        if (certRefs == null || certRefs.length == 0) {
+            throw new CertificateException("Peer sent no certificate");
+        }
+        OpenSSLX509Certificate[] peerCertChain = OpenSSLX509Certificate.createCertChain(certRefs);
+
+        verifyPeerCertificateChain(peerCertChain, authMethod);
+    }
+
+    @Override
+    public void verifyEncodedCertificateChain(byte[][] certChain, String authMethod)
+            throws CertificateException {
+        if (certChain == null || certChain.length == 0) {
+            throw new CertificateException("Peer sent no certificate");
+        }
+        X509Certificate[] peerCertChain = SSLUtils.decodeX509CertificateChain(certChain);
+        verifyPeerCertificateChain(peerCertChain, authMethod);
+    }
+
+    private void verifyPeerCertificateChain(X509Certificate[] peerCertChain, String authMethod)
+            throws CertificateException {
         try {
             X509TrustManager x509tm = sslParameters.getX509TrustManager();
             if (x509tm == null) {
                 throw new CertificateException("No X.509 TrustManager");
             }
-            if (certRefs == null || certRefs.length == 0) {
-                throw new SSLException("Peer sent no certificate");
-            }
-            OpenSSLX509Certificate[] peerCertChain =
-                    OpenSSLX509Certificate.createCertChain(certRefs);
-
             // Update the peer information on the session.
             sslSession.onPeerCertificatesReceived(getHostnameOrIP(), getPort(), peerCertChain);
 

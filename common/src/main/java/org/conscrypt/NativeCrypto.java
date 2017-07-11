@@ -1113,6 +1113,19 @@ public final class NativeCrypto {
                 throws CertificateException;
 
         /**
+         * Verify that we trust the certificate chain is trusted. This is an alternative
+         * to {@link #verifyCertificateChain(long[], String)}, which is given the fully encoded
+         * certificates.
+         *
+         * @param certificateChain chain of X.509 certificates in their encoded form
+         * @param authMethod auth algorithm name
+         *
+         * @throws CertificateException if the certificate is untrusted
+         */
+        void verifyEncodedCertificateChain(byte[][] certificateChain, String authMethod)
+                throws CertificateException;
+
+        /**
          * Called on an SSL client when the server requests (or
          * requires a certificate). The client can respond by using
          * SSL_use_certificate and SSL_use_PrivateKey to set a

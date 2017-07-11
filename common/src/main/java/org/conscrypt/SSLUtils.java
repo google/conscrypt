@@ -40,8 +40,10 @@ import static org.conscrypt.NativeConstants.SSL3_RT_HANDSHAKE;
 import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
 import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
+import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.HashSet;
 import java.util.Set;
@@ -59,6 +61,15 @@ final class SSLUtils {
     static final boolean USE_ENGINE_SOCKET_BY_DEFAULT = Boolean.parseBoolean(
             System.getProperty("org.conscrypt.useEngineSocketByDefault", "false"));
     private static final int MAX_PROTOCOL_LENGTH = 255;
+
+    static final CertificateFactory X509_CERT_FACTORY;
+    static {
+        try {
+            X509_CERT_FACTORY = CertificateFactory.getInstance("X.509");
+        } catch (java.security.cert.CertificateException e) {
+            throw new IllegalStateException("unable to instance X.509 CertificateFactory", e);
+        }
+    }
 
     // TODO(nathanmittler): Should these be in NativeConstants?
     enum SessionType {
@@ -170,6 +181,24 @@ final class SSLUtils {
 
     /** Key type: Elliptic Curve certificate. */
     private static final String KEY_TYPE_EC = "EC";
+
+    static X509Certificate[] decodeX509CertificateChain(byte[][] certChain)
+            throws java.security.cert.CertificateException {
+        X509Certificate[] peerCertChain = new X509Certificate[certChain.length];
+        for (int i = 0; i < peerCertChain.length; i++) {
+            peerCertChain[i] = decodeX509Certificate(certChain[i]);
+        }
+        return peerCertChain;
+    }
+
+    private static X509Certificate decodeX509Certificate(byte[] bytes)
+            throws java.security.cert.CertificateException {
+        if (X509_CERT_FACTORY != null) {
+            return (X509Certificate) X509_CERT_FACTORY.generateCertificate(
+                new ByteArrayInputStream(bytes));
+        }
+        return OpenSSLX509Certificate.fromX509Der(bytes);
+    }
 
     /**
      * Returns key type constant suitable for calling X509KeyManager.chooseServerAlias or

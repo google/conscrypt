@@ -101,12 +101,12 @@ public final class EngineHandshakeBenchmark {
         EngineHandshakeBenchmark bm = new EngineHandshakeBenchmark(new Config() {
             @Override
             public BufferType bufferType() {
-                return BufferType.HEAP;
+                return BufferType.DIRECT;
             }
 
             @Override
             public EngineType engineType() {
-                return EngineType.NETTY;
+                return EngineType.CONSCRYPT_UNPOOLED;
             }
 
             @Override

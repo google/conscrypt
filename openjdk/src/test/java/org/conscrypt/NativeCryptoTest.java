@@ -748,6 +748,22 @@ public class NativeCryptoTest {
             this.verifyCertificateChainCalled = true;
         }
 
+        @Override
+        public void verifyEncodedCertificateChain(byte[][] certs, String authMethod)
+            throws CertificateException {
+            certificateChainRefs = new long[certs.length];
+            for (int i = 0; i < certs.length; ++i) {
+                byte[] cert = certs[i];
+                try {
+                    certificateChainRefs[i] = NativeCrypto.d2i_X509(cert);
+                } catch (ParsingException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            this.authMethod = authMethod;
+            this.verifyCertificateChainCalled = true;
+        }
+
         private byte[] keyTypes;
         private byte[][] asn1DerEncodedX500Principals;
         private boolean clientCertificateRequestedCalled;
