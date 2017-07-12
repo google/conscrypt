@@ -326,7 +326,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         // The handshake has completed successfully ...
 
         // Update the session from the current state of the SSL object.
-        sslSession.onSessionEstablished(getHostnameOrIP(), getPort());
+        sslSession.onHandshakeCompleted(getHostnameOrIP(), getPort());
 
         // First, update the state.
         synchronized (stateLock) {

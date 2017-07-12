@@ -7288,59 +7288,6 @@ static jstring NativeCrypto_SSL_get_version(JNIEnv* env, jclass, jlong ssl_addre
     return env->NewStringUTF(protocol);
 }
 
-/**
- * public static native byte[][] SSL_get_certificate(long ssl);
- */
-static jlongArray NativeCrypto_SSL_get_certificate(JNIEnv* env, jclass, jlong ssl_address)
-{
-    SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate", ssl);
-    if (ssl == nullptr) {
-        return nullptr;
-    }
-    X509* certificate = SSL_get_certificate(ssl);
-    if (certificate == nullptr) {
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => null", ssl);
-        // SSL_get_certificate can return nullptr during an error as well.
-        ERR_clear_error();
-        return nullptr;
-    }
-
-    bssl::UniquePtr<STACK_OF(X509)> chain(sk_X509_new_null());
-    if (chain.get() == nullptr) {
-        Errors::jniThrowOutOfMemory(env, "Unable to allocate local certificate chain");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => threw exception", ssl);
-        return nullptr;
-    }
-    if (!sk_X509_push(chain.get(), certificate)) {
-        Errors::jniThrowOutOfMemory(env, "Unable to push local certificate");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => null", ssl);
-        return nullptr;
-    }
-    X509_up_ref(certificate);
-
-    STACK_OF(X509)* cert_chain = nullptr;
-    if (!SSL_get0_chain_certs(ssl, &cert_chain)) {
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_chain_certs => null", ssl);
-        ERR_clear_error();
-        return nullptr;
-    }
-
-    for (size_t i = 0; i < sk_X509_num(cert_chain); i++) {
-        X509* cert = sk_X509_value(cert_chain, i);
-        if (!sk_X509_push(chain.get(), cert)) {
-            Errors::jniThrowOutOfMemory(env, "Unable to push local certificate chain");
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => null", ssl);
-            return nullptr;
-        }
-        X509_up_ref(cert);
-    }
-
-    jlongArray refArray = getCertificateRefs(env, chain.get());
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_certificate => %p", ssl, refArray);
-    return refArray;
-}
-
 // Fills a long[] with the peer certificates in the chain.
 static jlongArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlong ssl_address)
 {
@@ -9627,7 +9574,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_do_handshake, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "I)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_current_cipher, "(J)Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_version, "(J)Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_certificate, "(J)[J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_peer_cert_chain, "(J)[J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_read, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_write, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)V"),

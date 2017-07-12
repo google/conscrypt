@@ -1037,11 +1037,6 @@ public final class NativeCrypto {
     public static native String SSL_get_version(long sslNativePointer);
 
     /**
-     * Returns the local X509 certificate references. Must X509_free when done.
-     */
-    static native long[] SSL_get_certificate(long sslNativePointer);
-
-    /**
      * Returns the peer X509 certificate references. Must X509_free when done.
      */
     static native long[] SSL_get_peer_cert_chain(long sslNativePointer);
