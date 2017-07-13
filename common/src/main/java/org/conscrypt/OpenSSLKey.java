@@ -27,6 +27,7 @@ import java.security.spec.ECParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * Represents a BoringSSL {@code EVP_PKEY}.
@@ -73,7 +74,11 @@ final class OpenSSLKey {
             throw new InvalidKeyException("Key encoding is null");
         }
 
-        return new OpenSSLKey(NativeCrypto.EVP_parse_private_key(key.getEncoded()));
+        try {
+            return new OpenSSLKey(NativeCrypto.EVP_parse_private_key(key.getEncoded()));
+        } catch (ParsingException e) {
+            throw new InvalidKeyException(e);
+        }
     }
 
     /**
@@ -169,7 +174,7 @@ final class OpenSSLKey {
      * @return instance or {@code null} if the {@code key} does not export its key material in a
      *         suitable format.
      */
-    private static OpenSSLKey fromKeyMaterial(PrivateKey key) {
+    private static OpenSSLKey fromKeyMaterial(PrivateKey key) throws InvalidKeyException {
         if (!"PKCS#8".equals(key.getFormat())) {
             return null;
         }
@@ -177,7 +182,11 @@ final class OpenSSLKey {
         if (encoded == null) {
             return null;
         }
-        return new OpenSSLKey(NativeCrypto.EVP_parse_private_key(encoded));
+        try {
+            return new OpenSSLKey(NativeCrypto.EVP_parse_private_key(encoded));
+        } catch (ParsingException e) {
+            throw new InvalidKeyException(e);
+        }
     }
 
     /**
