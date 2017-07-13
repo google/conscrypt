@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.security.AlgorithmParameters;

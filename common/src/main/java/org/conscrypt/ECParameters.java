@@ -73,7 +73,7 @@ public class ECParameters extends AlgorithmParametersSpi {
 
     @Override
     protected void engineInit(byte[] bytes, String format) throws IOException {
-        if ((format == null) || format.equals("ASN.1")) {
+        if (format == null || format.equals("ASN.1")) {
             engineInit(bytes);
         } else {
             throw new IOException("Unsupported format: " + format);
@@ -100,7 +100,7 @@ public class ECParameters extends AlgorithmParametersSpi {
 
     @Override
     protected byte[] engineGetEncoded(String format) throws IOException {
-        if ((format == null) || format.equals("ASN.1")) {
+        if (format == null || format.equals("ASN.1")) {
             return engineGetEncoded();
         }
         throw new IOException("Unsupported format: " + format);
