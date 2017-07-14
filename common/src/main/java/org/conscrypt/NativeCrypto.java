@@ -839,11 +839,17 @@ public final class NativeCrypto {
 
     static native void SSL_set1_tls_channel_id(long ssl, NativeRef.EVP_PKEY pkey);
 
-    static native void SSL_use_certificate(long ssl, long[] x509refs) throws SSLException;
-
-    static native void SSL_use_PrivateKey(long ssl, NativeRef.EVP_PKEY pkey) throws SSLException;
-
-    static native void SSL_check_private_key(long ssl) throws SSLException;
+    /**
+     * Sets the local certificates and private key. The caller must provide exactly one of
+     * {@code pkey} or {@code encodedPkey}.
+     *
+     * @param ssl the SSL reference.
+     * @param encodedCertificates the encoded form of the local certificate chain.
+     * @param pkey a reference to the private key.
+     * @throws SSLException if a problem occurs setting the cert/key.
+     */
+    static native void setLocalCertsAndPrivateKey(long ssl, byte[][] encodedCertificates,
+        NativeRef.EVP_PKEY pkey) throws SSLException;
 
     static native void SSL_set_client_CA_list(long ssl, byte[][] asn1DerEncodedX500Principals)
             throws SSLException;
