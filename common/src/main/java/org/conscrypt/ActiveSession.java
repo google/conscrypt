@@ -303,21 +303,7 @@ final class ActiveSession implements SSLSession {
      * Configures the peer information once it has been received by the handshake.
      */
     void onPeerCertificatesReceived(
-            String peerHost, int peerPort, OpenSSLX509Certificate[] peerCertificates) {
-        configurePeer(peerHost, peerPort, peerCertificates);
-    }
-
-    /**
-     * Configures the peer and local state from a newly created BoringSSL session.
-     */
-    void onSessionEstablished(String peerHost, int peerPort) {
-        id = null;
-        this.localCertificates = ssl.getLocalCertificates();
-        configurePeer(peerHost, peerPort, ssl.getPeerCertificates());
-    }
-
-    private void configurePeer(
-            String peerHost, int peerPort, OpenSSLX509Certificate[] peerCertificates) {
+            String peerHost, int peerPort, X509Certificate[] peerCertificates) {
         this.peerHost = peerHost;
         this.peerPort = peerPort;
         this.peerCertificates = peerCertificates;
@@ -325,11 +311,14 @@ final class ActiveSession implements SSLSession {
         this.peerTlsSctData = ssl.getPeerTlsSctData();
     }
 
-    private X509Certificate[] getX509PeerCertificates() throws SSLPeerUnverifiedException {
-        if (peerCertificates == null || peerCertificates.length == 0) {
-            throw new SSLPeerUnverifiedException("No peer certificates");
-        }
-        return peerCertificates;
+    /**
+     * Updates the session after the handshake has completed.
+     */
+    void onHandshakeCompleted(String peerHost, int peerPort) {
+        id = null;
+        this.peerHost = peerHost;
+        this.peerPort = peerPort;
+        this.localCertificates = ssl.getLocalCertificates();
     }
 
     /**

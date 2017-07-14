@@ -49,6 +49,7 @@ final class SslWrapper {
     private final SSLHandshakeCallbacks handshakeCallbacks;
     private final AliasChooser aliasChooser;
     private final PSKCallbacks pskCallbacks;
+    private X509Certificate[] localCertificates;
     private long ssl;
 
     static SslWrapper newInstance(SSLParametersImpl parameters,
@@ -105,12 +106,8 @@ final class SslWrapper {
         return NativeCrypto.cipherSuiteToJava(NativeCrypto.SSL_get_current_cipher(ssl));
     }
 
-    OpenSSLX509Certificate[] getLocalCertificates() {
-        return OpenSSLX509Certificate.createCertChain(NativeCrypto.SSL_get_certificate(ssl));
-    }
-
-    OpenSSLX509Certificate[] getPeerCertificates() {
-        return OpenSSLX509Certificate.createCertChain(NativeCrypto.SSL_get_peer_cert_chain(ssl));
+    X509Certificate[] getLocalCertificates() {
+        return localCertificates;
     }
 
     byte[] getPeerCertificateOcspData() {
@@ -220,11 +217,11 @@ final class SslWrapper {
         if (privateKey == null) {
             return;
         }
-        X509Certificate[] certificates = keyManager.getCertificateChain(alias);
-        if (certificates == null) {
+        localCertificates = keyManager.getCertificateChain(alias);
+        if (localCertificates == null) {
             return;
         }
-        PublicKey publicKey = (certificates.length > 0) ? certificates[0].getPublicKey() : null;
+        PublicKey publicKey = (localCertificates.length > 0) ? localCertificates[0].getPublicKey() : null;
 
         /*
          * Make sure we keep a reference to the OpenSSLX509Certificate by using
@@ -232,11 +229,12 @@ final class SslWrapper {
          * instances originally, they may be garbage collected before we
          * complete our JNI calls.
          */
-        OpenSSLX509Certificate[] openSslCerts = new OpenSSLX509Certificate[certificates.length];
-        long[] x509refs = new long[certificates.length];
-        for (int i = 0; i < certificates.length; i++) {
+        // TODO(nmittler): Replace this with a new native method that takes the encoded form.
+        OpenSSLX509Certificate[] openSslCerts = new OpenSSLX509Certificate[localCertificates.length];
+        long[] x509refs = new long[localCertificates.length];
+        for (int i = 0; i < localCertificates.length; i++) {
             OpenSSLX509Certificate openSslCert =
-                    OpenSSLX509Certificate.fromCertificate(certificates[i]);
+                    OpenSSLX509Certificate.fromCertificate(localCertificates[i]);
             openSslCerts[i] = openSslCert;
             x509refs[i] = openSslCert.getContext();
         }
