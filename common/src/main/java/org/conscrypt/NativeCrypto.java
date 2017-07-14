@@ -840,8 +840,7 @@ public final class NativeCrypto {
     static native void SSL_set1_tls_channel_id(long ssl, NativeRef.EVP_PKEY pkey);
 
     /**
-     * Sets the local certificates and private key. The caller must provide exactly one of
-     * {@code pkey} or {@code encodedPkey}.
+     * Sets the local certificates and private key.
      *
      * @param ssl the SSL reference.
      * @param encodedCertificates the encoded form of the local certificate chain.

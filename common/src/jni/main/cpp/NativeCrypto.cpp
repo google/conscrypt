@@ -6433,7 +6433,7 @@ static void NativeCrypto_setLocalCertsAndPrivateKey(JNIEnv* env, jclass, jlong s
     // Copy the certificates.
     std::vector<bssl::UniquePtr<CRYPTO_BUFFER>> certBufferRefs(numCerts);
     std::vector<CRYPTO_BUFFER*> certBuffers(numCerts);
-    for(unsigned i = 0; i < numCerts; ++i) {
+    for(size_t i = 0; i < numCerts; ++i) {
         const jbyteArray encodedCertJava =
             (jbyteArray) env->GetObjectArrayElement(encodedCertificatesJava, i);
         ScopedByteArrayRO encodedCert(env, encodedCertJava);
@@ -6445,10 +6445,9 @@ static void NativeCrypto_setLocalCertsAndPrivateKey(JNIEnv* env, jclass, jlong s
         certBuffers[i] = buffer;
     }
 
-    int ret = SSL_set_chain_and_key(ssl, certBuffers.data(), numCerts, pkey, nullptr);
-    if (ret != 1) {
+    if (!SSL_set_chain_and_key(ssl, certBuffers.data(), numCerts, pkey, nullptr)) {
         Errors::throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE,
-                                               "Error checking private key");
+                                               "Error configuring certificate");
         safeSslClear(ssl);
         JNI_TRACE("ssl=%p NativeCrypto_SSL_set_chain_and_key => error", ssl);
         return;
