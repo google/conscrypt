@@ -2014,6 +2014,53 @@ static jlong NativeCrypto_EC_KEY_get_public_key(JNIEnv* env, jclass, jobject pke
     return reinterpret_cast<uintptr_t>(dup.release());
 }
 
+static jbyteArray NativeCrypto_EC_KEY_marshal_curve_name(JNIEnv* env, jclass, jobject groupRef) {
+    const EC_GROUP* group = fromContextObject<EC_GROUP>(env, groupRef);
+    JNI_TRACE("EC_KEY_marshal_curve_name(%p)", group);
+    if (group == nullptr) {
+        Errors::throwIOException(env, "Invalid group pointer");
+        return nullptr;
+    }
+
+    bssl::ScopedCBB cbb;
+    if (!CBB_init(cbb.get(), 64)) {
+        Errors::jniThrowOutOfMemory(env, "CBB_init failed");
+        JNI_TRACE("CBB_init failed");
+        return nullptr;
+    }
+
+    if (!EC_KEY_marshal_curve_name(cbb.get(), group)) {
+        Errors::throwIOException(env, "Error writing ASN.1 encoding");
+        JNI_TRACE("group=%p EC_KEY_marshal_curve_name => error", group);
+        return nullptr;
+    }
+
+    return CBBToByteArray(env, cbb.get());
+}
+
+static jlong NativeCrypto_EC_KEY_parse_curve_name(JNIEnv* env, jclass, jbyteArray curveNameBytes) {
+    JNI_TRACE("EC_KEY_parse_curve_name(%p)", curveNameBytes);
+
+    ScopedByteArrayRO bytes(env, curveNameBytes);
+    if (bytes.get() == nullptr) {
+        Errors::throwIOException(env, "Error reading ASN.1 encoding");
+        JNI_TRACE("bytes=%p EC_KEY_parse_curve_name => threw exception", curveNameBytes);
+        return 0;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
+    bssl::UniquePtr<EC_GROUP> group(EC_KEY_parse_curve_name(&cbs));
+    if (!group || CBS_len(&cbs) != 0) {
+        Errors::throwIOException(env, "Error reading ASN.1 encoding");
+        JNI_TRACE("bytes=%p EC_KEY_parse_curve_name => threw exception", curveNameBytes);
+        return 0;
+    }
+
+    JNI_TRACE("bytes=%p EC_KEY_parse_curve_name => %p", curveNameBytes, group.get());
+    return reinterpret_cast<uintptr_t>(group.release());
+}
+
 static jint NativeCrypto_ECDH_compute_key(JNIEnv* env, jclass,
      jbyteArray outArray, jint outOffset, jobject pubkeyRef, jobject privkeyRef)
 {
@@ -9439,6 +9486,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EC_KEY_get1_group, "(" REF_EVP_PKEY ")J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EC_KEY_get_private_key, "(" REF_EVP_PKEY ")[B"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, EC_KEY_get_public_key, "(" REF_EVP_PKEY ")J"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, EC_KEY_marshal_curve_name, "(" REF_EC_GROUP ")[B"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, EC_KEY_parse_curve_name, "([B)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ECDH_compute_key, "([BI" REF_EVP_PKEY REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ECDSA_size, "(" REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ECDSA_sign, "([B[B" REF_EVP_PKEY ")I"),

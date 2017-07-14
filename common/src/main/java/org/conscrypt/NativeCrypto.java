@@ -161,6 +161,10 @@ public final class NativeCrypto {
 
     static native long EC_KEY_get_public_key(NativeRef.EVP_PKEY keyRef);
 
+    static native byte[] EC_KEY_marshal_curve_name(NativeRef.EC_GROUP groupRef) throws IOException;
+
+    static native long EC_KEY_parse_curve_name(byte[] encoded) throws IOException;
+
     static native int ECDH_compute_key(byte[] out, int outOffset, NativeRef.EVP_PKEY publicKeyRef,
             NativeRef.EVP_PKEY privateKeyRef) throws InvalidKeyException;
 
