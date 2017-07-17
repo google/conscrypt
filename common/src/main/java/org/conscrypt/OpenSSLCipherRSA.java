@@ -168,7 +168,7 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
     }
 
     void doCryptoInit(AlgorithmParameterSpec spec)
-            throws InvalidAlgorithmParameterException {}
+        throws InvalidAlgorithmParameterException, InvalidKeyException {}
 
     void engineInitInternal(int opmode, Key key, AlgorithmParameterSpec spec)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
@@ -503,7 +503,7 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
 
         @Override
         void doCryptoInit(AlgorithmParameterSpec spec)
-                throws InvalidAlgorithmParameterException {
+            throws InvalidAlgorithmParameterException, InvalidKeyException {
             pkeyCtx = new NativeRef.EVP_PKEY_CTX(encrypting
                             ? NativeCrypto.EVP_PKEY_encrypt_init(key.getNativeRef())
                             : NativeCrypto.EVP_PKEY_decrypt_init(key.getNativeRef()));

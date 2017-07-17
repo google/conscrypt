@@ -7955,83 +7955,6 @@ static void NativeCrypto_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_address,
     safeSslClear(ssl);
 }
 
-/**
- * OpenSSL close SSL socket function.
- */
-static void NativeCrypto_SSL_shutdown_BIO(JNIEnv* env, jclass, jlong ssl_address, jlong rbioRef,
-        jlong wbioRef, jobject shc) {
-    SSL* ssl = to_SSL(env, ssl_address, false);
-    BIO* rbio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(rbioRef));
-    BIO* wbio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(wbioRef));
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_shutdown rbio=%p wbio=%p shc=%p", ssl, rbio, wbio, shc);
-    if (ssl == nullptr) {
-        return;
-    }
-    if (rbio == nullptr || wbio == nullptr) {
-        Errors::jniThrowNullPointerException(env, "rbio == null || wbio == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_shutdown => rbio == null || wbio == null", ssl);
-        return;
-    }
-    if (shc == nullptr) {
-        Errors::jniThrowNullPointerException(env, "sslHandshakeCallbacks == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_shutdown => sslHandshakeCallbacks == null", ssl);
-        return;
-    }
-
-    AppData* appData = toAppData(ssl);
-    if (appData != nullptr) {
-        std::lock_guard<std::mutex> appDataLock(appData->mutex);
-
-        if (!appData->setCallbackState(env, shc, nullptr)) {
-            // SocketException thrown by NetFd.isClosed
-            ERR_clear_error();
-            safeSslClear(ssl);
-            return;
-        }
-
-        ScopedSslBio scopedBio(ssl, rbio, wbio);
-
-        int ret = SSL_shutdown(ssl);
-        appData->clearCallbackState();
-        // callbacks can happen if server requests renegotiation
-        if (env->ExceptionCheck()) {
-            safeSslClear(ssl);
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_shutdown => exception", ssl);
-            return;
-        }
-        switch (ret) {
-            case 0:
-                /*
-                 * Shutdown was not successful (yet), but there also
-                 * is no error. Since we can't know whether the remote
-                 * server is actually still there, and we don't want to
-                 * get stuck forever in a second SSL_shutdown() call, we
-                 * simply return. This is not security a problem as long
-                 * as we close the underlying socket, which we actually
-                 * do, because that's where we are just coming from.
-                 */
-                break;
-            case 1:
-                /*
-                 * Shutdown was successful. We can safely return. Hooray!
-                 */
-                break;
-            default:
-                /*
-                 * Everything else is a real error condition. We should
-                 * let the Java layer know about this by throwing an
-                 * exception.
-                 */
-                int sslError = SSL_get_error(ssl, ret);
-                Errors::throwSSLExceptionWithSslErrors(env, ssl, sslError, "SSL shutdown failed");
-                break;
-        }
-    }
-
-    ERR_clear_error();
-    safeSslClear(ssl);
-}
-
 static jint NativeCrypto_SSL_get_shutdown(JNIEnv* env, jclass, jlong ssl_address) {
     const SSL* ssl = to_SSL(env, ssl_address, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_shutdown", ssl);
@@ -8612,22 +8535,12 @@ static jlong NativeCrypto_getDirectBufferAddress(JNIEnv *env, jclass, jobject bu
     return reinterpret_cast<jlong>(env->GetDirectBufferAddress(buffer));
 }
 
-static int NativeCrypto_SSL_get_last_error_number(JNIEnv*, jclass) {
-    return static_cast<int>(ERR_get_error());
-}
-
 static jint NativeCrypto_SSL_get_error(JNIEnv* env, jclass, jlong ssl_address, jint ret) {
     SSL* ssl = to_SSL(env, ssl_address, true);
     if (ssl == nullptr) {
         return 0;
     }
     return SSL_get_error(ssl, ret);
-}
-
-static jstring NativeCrypto_SSL_get_error_string(JNIEnv* env, jclass, jint number) {
-    char buf[256];
-    ERR_error_string(static_cast<uint32_t>(number), buf);
-    return env->NewStringUTF(buf);
 }
 
 static void NativeCrypto_SSL_clear_error(JNIEnv*, jclass) {
@@ -9628,7 +9541,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_write, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_interrupt, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_shutdown, "(J" FILE_DESCRIPTOR SSL_CALLBACKS ")V"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_shutdown_BIO, "(JJJ" SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_shutdown, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_SESSION_session_id, "(J)[B"),
@@ -9655,9 +9567,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_clear_error, "()V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_pending_readable_bytes, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_pending_written_bytes_in_BIO, "(J)I"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_last_error_number, "()I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_error, "(JI)I"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_error_string, "(J)Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_configure_alpn, "(JZ[B)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_do_handshake, "(J" SSL_CALLBACKS ")I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, ENGINE_SSL_read_direct, "(JJI" SSL_CALLBACKS ")I"),

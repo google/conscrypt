@@ -16,8 +16,14 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING;
+import static org.conscrypt.NativeConstants.SSL_OP_CIPHER_SERVER_PREFERENCE;
+import static org.conscrypt.NativeConstants.SSL_OP_NO_TICKET;
 import static org.conscrypt.NativeConstants.SSL_RECEIVED_SHUTDOWN;
 import static org.conscrypt.NativeConstants.SSL_SENT_SHUTDOWN;
+import static org.conscrypt.NativeConstants.SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+import static org.conscrypt.NativeConstants.SSL_VERIFY_NONE;
+import static org.conscrypt.NativeConstants.SSL_VERIFY_PEER;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -337,7 +343,7 @@ final class SslWrapper {
                 }
             }
 
-            NativeCrypto.SSL_set_options(ssl, NativeConstants.SSL_OP_CIPHER_SERVER_PREFERENCE);
+            NativeCrypto.SSL_set_options(ssl, SSL_OP_CIPHER_SERVER_PREFERENCE);
 
             if (parameters.sctExtension != null) {
                 NativeCrypto.SSL_set_signed_cert_timestamp_list(ssl, parameters.sctExtension);
@@ -351,10 +357,10 @@ final class SslWrapper {
         enablePSKKeyManagerIfRequested();
 
         if (parameters.useSessionTickets) {
-            NativeCrypto.SSL_clear_options(ssl, NativeConstants.SSL_OP_NO_TICKET);
+            NativeCrypto.SSL_clear_options(ssl, SSL_OP_NO_TICKET);
         } else {
             NativeCrypto.SSL_set_options(
-                    ssl, NativeCrypto.SSL_get_options(ssl) | NativeConstants.SSL_OP_NO_TICKET);
+                    ssl, NativeCrypto.SSL_get_options(ssl) | SSL_OP_NO_TICKET);
         }
 
         if (parameters.getUseSni() && AddressUtils.isValidSniHostname(hostname)) {
@@ -363,7 +369,7 @@ final class SslWrapper {
 
         // BEAST attack mitigation (1/n-1 record splitting for CBC cipher suites
         // with TLSv1 and SSLv3).
-        NativeCrypto.SSL_set_mode(ssl, NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING);
+        NativeCrypto.SSL_set_mode(ssl, SSL_MODE_CBC_RECORD_SPLITTING);
 
         setCertificateValidation(ssl);
         setTlsChannelId(channelIdPrivateKey);
@@ -438,16 +444,16 @@ final class SslWrapper {
             // needing client auth takes priority...
             boolean certRequested;
             if (parameters.getNeedClientAuth()) {
-                NativeCrypto.SSL_set_verify(sslNativePointer, NativeCrypto.SSL_VERIFY_PEER
-                                | NativeCrypto.SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
+                NativeCrypto.SSL_set_verify(sslNativePointer, SSL_VERIFY_PEER
+                                | SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
                 certRequested = true;
                 // ... over just wanting it...
             } else if (parameters.getWantClientAuth()) {
-                NativeCrypto.SSL_set_verify(sslNativePointer, NativeCrypto.SSL_VERIFY_PEER);
+                NativeCrypto.SSL_set_verify(sslNativePointer, SSL_VERIFY_PEER);
                 certRequested = true;
                 // ... and we must disable verification if we don't want client auth.
             } else {
-                NativeCrypto.SSL_set_verify(sslNativePointer, NativeCrypto.SSL_VERIFY_NONE);
+                NativeCrypto.SSL_set_verify(sslNativePointer, SSL_VERIFY_NONE);
                 certRequested = false;
             }
 

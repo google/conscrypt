@@ -30,6 +30,7 @@ import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPrivateKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * An implementation of a {@link PrivateKey} for EC keys based on BoringSSL.
@@ -231,7 +232,11 @@ final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder {
 
         byte[] encoded = (byte[]) stream.readObject();
 
-        key = new OpenSSLKey(NativeCrypto.EVP_parse_private_key(encoded));
+        try {
+            key = new OpenSSLKey(NativeCrypto.EVP_parse_private_key(encoded));
+        } catch (ParsingException e) {
+            throw new IOException(e);
+        }
         group = new OpenSSLECGroupContext(new NativeRef.EC_GROUP(
                 NativeCrypto.EC_KEY_get1_group(key.getNativeRef())));
     }

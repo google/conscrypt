@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * Helper to initialize the JNI libraries. This version runs when compiled
@@ -29,8 +30,13 @@ import java.security.PublicKey;
  */
 @Internal
 public final class InternalUtil {
-    public static PublicKey logKeyToPublicKey(byte[] logKey) throws NoSuchAlgorithmException {
-        return new OpenSSLKey(NativeCrypto.EVP_parse_public_key(logKey)).getPublicKey();
+    public static PublicKey logKeyToPublicKey(byte[] logKey)
+            throws NoSuchAlgorithmException {
+        try {
+            return new OpenSSLKey(NativeCrypto.EVP_parse_public_key(logKey)).getPublicKey();
+        } catch (ParsingException e) {
+            throw new NoSuchAlgorithmException(e);
+        }
     }
 
     public static PublicKey readPublicKeyPem(InputStream pem) throws InvalidKeyException, NoSuchAlgorithmException {
