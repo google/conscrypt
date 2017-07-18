@@ -65,8 +65,6 @@ final class SSLParametersImpl implements Cloneable {
     private final PSKKeyManager pskKeyManager;
     // source of X.509 certificate based authentication trust decisions or null if not provided
     private final X509TrustManager x509TrustManager;
-    // source of random numbers
-    private SecureRandom secureRandom;
 
     // protocols enabled for SSL connection
     String[] enabledProtocols;
@@ -137,13 +135,6 @@ final class SSLParametersImpl implements Cloneable {
             x509TrustManager = findFirstX509TrustManager(tms);
         }
 
-        // initialize secure random
-        // We simply use the SecureRandom passed in by the caller. If it's
-        // null, we don't replace it by a new instance. The native code below
-        // then directly accesses /dev/urandom. Not the most elegant solution,
-        // but faster than going through the SecureRandom object.
-        secureRandom = sr;
-
         // initialize the list of cipher suites and protocols enabled by default
         enabledProtocols = NativeCrypto.checkEnabledProtocols(
                 protocols == null ? NativeCrypto.DEFAULT_PROTOCOLS : protocols).clone();
@@ -151,6 +142,9 @@ final class SSLParametersImpl implements Cloneable {
         boolean pskCipherSuitesNeeded = pskKeyManager != null;
         enabledCipherSuites = getDefaultCipherSuites(
                 x509CipherSuitesNeeded, pskCipherSuitesNeeded);
+
+        // We ignore the SecureRandom passed in by the caller. The native code below
+        // directly accesses /dev/urandom, which makes it irrelevant.
     }
 
     static SSLParametersImpl getDefault() throws KeyManagementException {

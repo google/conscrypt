@@ -1526,6 +1526,8 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                     state = STATE_HANDSHAKE_COMPLETED;
                     break;
                 }
+                default:
+                    // Ignore
             }
         }
     }
