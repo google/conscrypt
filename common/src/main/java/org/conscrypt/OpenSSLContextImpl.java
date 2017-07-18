@@ -41,7 +41,7 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
      * SSLContext.getInstance("Default"). Protected by the
      * DefaultSSLContextImpl.class monitor.
      */
-    private static DefaultSSLContextImpl DEFAULT_SSL_CONTEXT_IMPL;
+    private static DefaultSSLContextImpl defaultSslContextImpl;
 
     /** TLS algorithm to initialize all sockets. */
     private final String[] algorithms;
@@ -71,16 +71,16 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
     OpenSSLContextImpl() throws GeneralSecurityException, IOException {
         synchronized (DefaultSSLContextImpl.class) {
             this.algorithms = null;
-            if (DEFAULT_SSL_CONTEXT_IMPL == null) {
+            if (defaultSslContextImpl == null) {
                 clientSessionContext = new ClientSessionContext();
                 serverSessionContext = new ServerSessionContext();
-                DEFAULT_SSL_CONTEXT_IMPL = (DefaultSSLContextImpl) this;
+                defaultSslContextImpl = (DefaultSSLContextImpl) this;
             } else {
-                clientSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetClientSessionContext();
-                serverSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetServerSessionContext();
+                clientSessionContext = defaultSslContextImpl.engineGetClientSessionContext();
+                serverSessionContext = defaultSslContextImpl.engineGetServerSessionContext();
             }
-            sslParameters = new SSLParametersImpl(DEFAULT_SSL_CONTEXT_IMPL.getKeyManagers(),
-                    DEFAULT_SSL_CONTEXT_IMPL.getTrustManagers(), null, clientSessionContext,
+            sslParameters = new SSLParametersImpl(defaultSslContextImpl.getKeyManagers(),
+                    defaultSslContextImpl.getTrustManagers(), null, clientSessionContext,
                     serverSessionContext, algorithms);
         }
     }

@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
  */
 @ExperimentalApi
 public abstract class BufferAllocator {
-    private static BufferAllocator UNPOOLED = new BufferAllocator() {
+    private static final BufferAllocator UNPOOLED = new BufferAllocator() {
         @Override
         public AllocatedBuffer allocateDirectBuffer(int capacity) {
             return AllocatedBuffer.wrap(ByteBuffer.allocateDirect(capacity));

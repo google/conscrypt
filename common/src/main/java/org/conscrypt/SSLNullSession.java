@@ -20,7 +20,11 @@ package org.conscrypt;
 import java.security.Principal;
 import java.security.cert.Certificate;
 import java.util.HashMap;
-import javax.net.ssl.*;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSessionBindingEvent;
+import javax.net.ssl.SSLSessionBindingListener;
+import javax.net.ssl.SSLSessionContext;
 
 /**
  * This is returned in the place of a {@link SSLSession} when no TLS connection could be negotiated,
