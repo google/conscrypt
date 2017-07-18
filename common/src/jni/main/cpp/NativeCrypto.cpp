@@ -44,6 +44,8 @@
 #include <openssl/x509v3.h>
 #include <openssl/aead.h>
 
+#include <vector>
+
 using namespace conscrypt;
 
 /**
@@ -6393,106 +6395,64 @@ static void NativeCrypto_SSL_set1_tls_channel_id(JNIEnv* env, jclass,
     JNI_TRACE("ssl=%p SSL_set1_tls_channel_id => ok", ssl);
 }
 
-static void NativeCrypto_SSL_use_PrivateKey(JNIEnv* env, jclass, jlong ssl_address,
-                                            jobject pkeyRef) {
+static void NativeCrypto_setLocalCertsAndPrivateKey(JNIEnv* env, jclass, jlong ssl_address,
+                                                    jobjectArray encodedCertificatesJava,
+                                                    jobject pkeyRef) {
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p SSL_use_PrivateKey privatekey=%p", ssl, pkeyRef);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_chain_and_key certificates=%p, privateKey=%p", ssl,
+              encodedCertificatesJava, pkeyRef);
     if (ssl == nullptr) {
         return;
     }
+    if (encodedCertificatesJava == nullptr) {
+        Errors::jniThrowNullPointerException(env, "certificates == null");
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_chain_and_key => certificates == null", ssl);
+        return;
+    }
+    size_t numCerts = static_cast<size_t>(env->GetArrayLength(encodedCertificatesJava));
+    if (numCerts == 0) {
+        Errors::jniThrowException(env, "java/lang/IllegalArgumentException",
+                                  "certificates.length == 0");
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_chain_and_key => certificates.length == 0", ssl);
+        return;
+    }
+    if (pkeyRef == nullptr) {
+        Errors::jniThrowNullPointerException(env, "privateKey == null");
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_chain_and_key => privateKey == null", ssl);
+        return;
+    }
 
+    // Get the private key.
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     if (pkey == nullptr) {
-        JNI_TRACE("ssl=%p SSL_use_PrivateKey => pkey == null", ssl);
+        Errors::jniThrowNullPointerException(env, "pkey == null");
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_chain_and_key => pkey == null", ssl);
         return;
     }
 
-    int ret = SSL_use_PrivateKey(ssl, pkey);
-    if (ret != 1) {
-        ALOGE("%s", ERR_error_string(ERR_peek_error(), nullptr));
-        Errors::throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "Error setting private key");
+    // Copy the certificates.
+    std::vector<bssl::UniquePtr<CRYPTO_BUFFER>> certBufferRefs(numCerts);
+    std::vector<CRYPTO_BUFFER*> certBuffers(numCerts);
+    for(size_t i = 0; i < numCerts; ++i) {
+        const jbyteArray encodedCertJava =
+            (jbyteArray) env->GetObjectArrayElement(encodedCertificatesJava, i);
+        ScopedByteArrayRO encodedCert(env, encodedCertJava);
+        CRYPTO_BUFFER* buffer = CRYPTO_BUFFER_new((const uint8_t*) encodedCert.get(),
+                                                  encodedCert.size(), nullptr);
+
+        // Add a reference to the buffer. It will be freed when the vector is destroyed.
+        certBufferRefs[i] = bssl::UniquePtr<CRYPTO_BUFFER>(buffer);
+        certBuffers[i] = buffer;
+    }
+
+    if (!SSL_set_chain_and_key(ssl, certBuffers.data(), numCerts, pkey, nullptr)) {
+        Errors::throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE,
+                                               "Error configuring certificate");
         safeSslClear(ssl);
-        JNI_TRACE("ssl=%p SSL_use_PrivateKey => error", ssl);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_chain_and_key => error", ssl);
         return;
     }
-
-    JNI_TRACE("ssl=%p SSL_use_PrivateKey => ok", ssl);
-}
-
-static void NativeCrypto_SSL_use_certificate(JNIEnv* env, jclass,
-                                             jlong ssl_address, jlongArray certificatesJava)
-{
-    SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate certificates=%p", ssl, certificatesJava);
-    if (ssl == nullptr) {
-        return;
-    }
-
-    if (certificatesJava == nullptr) {
-        Errors::jniThrowNullPointerException(env, "certificates == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificates == null", ssl);
-        return;
-    }
-
-    size_t length = static_cast<size_t>(env->GetArrayLength(certificatesJava));
-    if (length == 0) {
-        Errors::jniThrowException(env, "java/lang/IllegalArgumentException", "certificates.length == 0");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificates.length == 0", ssl);
-        return;
-    }
-
-    ScopedLongArrayRO certificates(env, certificatesJava);
-    if (certificates.get() == nullptr) {
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificates == null", ssl);
-        return;
-    }
-
-    X509* serverCert = reinterpret_cast<X509*>(static_cast<uintptr_t>(certificates[0]));
-    if (serverCert == nullptr) {
-        // Note this shouldn't happen since we checked the number of certificates above.
-        Errors::jniThrowOutOfMemory(env, "Unable to allocate local certificate chain");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => chain allocation error", ssl);
-        return;
-    }
-
-    int ret = SSL_use_certificate(ssl, serverCert);
-    if (ret != 1) {
-        ALOGE("%s", ERR_error_string(ERR_peek_error(), nullptr));
-        Errors::throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "Error setting certificate");
-        safeSslClear(ssl);
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => SSL_use_certificate error", ssl);
-        return;
-    }
-
-    for (size_t i = 1; i < length; i++) {
-        X509* cert = reinterpret_cast<X509*>(static_cast<uintptr_t>(certificates[i]));
-        if (cert == nullptr || !SSL_add1_chain_cert(ssl, cert)) {
-            ALOGE("%s", ERR_error_string(ERR_peek_error(), nullptr));
-            Errors::throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "Error parsing certificate");
-            safeSslClear(ssl);
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => certificates parsing error", ssl);
-            return;
-        }
-    }
-
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_use_certificate => ok", ssl);
-}
-
-static void NativeCrypto_SSL_check_private_key(JNIEnv* env, jclass, jlong ssl_address)
-{
-    SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_check_private_key", ssl);
-    if (ssl == nullptr) {
-        return;
-    }
-    int ret = SSL_check_private_key(ssl);
-    if (ret != 1) {
-        Errors::throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "Error checking private key");
-        safeSslClear(ssl);
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_check_private_key => error", ssl);
-        return;
-    }
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_check_private_key => ok", ssl);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_chain_and_key => ok", ssl);
 }
 
 static void NativeCrypto_SSL_set_client_CA_list(JNIEnv* env, jclass,
@@ -9506,9 +9466,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_enable_tls_channel_id, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_tls_channel_id, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_set1_tls_channel_id, "(J" REF_EVP_PKEY ")V"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_use_PrivateKey, "(J" REF_EVP_PKEY ")V"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_use_certificate, "(J[J)V"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_check_private_key, "(J)V"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, setLocalCertsAndPrivateKey, "(J[[B" REF_EVP_PKEY ")V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_set_client_CA_list, "(J[[B)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_set_mode, "(JJ)J"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_set_options, "(JJ)J"),

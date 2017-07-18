@@ -227,51 +227,29 @@ final class SslWrapper {
         if (localCertificates == null) {
             return;
         }
-        PublicKey publicKey = (localCertificates.length > 0) ? localCertificates[0].getPublicKey() : null;
+        int numLocalCerts = localCertificates.length;
+        PublicKey publicKey = (numLocalCerts > 0) ? localCertificates[0].getPublicKey() : null;
 
-        /*
-         * Make sure we keep a reference to the OpenSSLX509Certificate by using
-         * this array. Otherwise, if they're not OpenSSLX509Certificate
-         * instances originally, they may be garbage collected before we
-         * complete our JNI calls.
-         */
-        // TODO(nmittler): Replace this with a new native method that takes the encoded form.
-        OpenSSLX509Certificate[] openSslCerts = new OpenSSLX509Certificate[localCertificates.length];
-        long[] x509refs = new long[localCertificates.length];
-        for (int i = 0; i < localCertificates.length; i++) {
-            OpenSSLX509Certificate openSslCert =
-                    OpenSSLX509Certificate.fromCertificate(localCertificates[i]);
-            openSslCerts[i] = openSslCert;
-            x509refs[i] = openSslCert.getContext();
+        // Encode the local certificates.
+        byte[][] encodedLocalCerts = new byte[numLocalCerts][];
+        for (int i = 0; i < numLocalCerts; ++i) {
+            encodedLocalCerts[i] = localCertificates[i].getEncoded();
         }
 
-        // Note that OpenSSL says to use SSL_use_certificate before
-        // SSL_use_PrivateKey.
-        NativeCrypto.SSL_use_certificate(ssl, x509refs);
-
+        // Convert the key so we can access a native reference.
         final OpenSSLKey key;
         try {
             key = OpenSSLKey.fromPrivateKeyForTLSStackOnly(privateKey, publicKey);
-            NativeCrypto.SSL_use_PrivateKey(ssl, key.getNativeRef());
         } catch (InvalidKeyException e) {
             throw new SSLException(e);
         }
 
-        // We may not have access to all the information to check the private key
-        // if it's a wrapped platform key, so skip this check.
-        if (!key.isWrapped()) {
-            // Makes sure the set PrivateKey and X509Certificate refer to the same
-            // key by comparing the public values.
-            NativeCrypto.SSL_check_private_key(ssl);
-        }
+        // Set the local certs and private key.
+        NativeCrypto.setLocalCertsAndPrivateKey(ssl, encodedLocalCerts, key.getNativeRef());
     }
 
     String getVersion() {
         return NativeCrypto.SSL_get_version(ssl);
-    }
-
-    boolean isReused() {
-        return NativeCrypto.SSL_session_reused(ssl);
     }
 
     String getRequestedServerName() {
@@ -553,19 +531,9 @@ final class SslWrapper {
                     ssl, bio, address, length, handshakeCallbacks);
         }
 
-        int writeArray(byte[] sourceJava, int sourceOffset, int sourceLength) throws IOException {
-            return NativeCrypto.ENGINE_SSL_write_BIO_heap(
-                    ssl, bio, sourceJava, sourceOffset, sourceLength, handshakeCallbacks);
-        }
-
         int readDirectByteBuffer(long destAddress, int destLength) throws IOException {
             return NativeCrypto.ENGINE_SSL_read_BIO_direct(
                     ssl, bio, destAddress, destLength, handshakeCallbacks);
-        }
-
-        int readArray(byte[] destJava, int destOffset, int destLength) throws IOException {
-            return NativeCrypto.ENGINE_SSL_read_BIO_heap(
-                    ssl, bio, destJava, destOffset, destLength, handshakeCallbacks);
         }
 
         void close() {
