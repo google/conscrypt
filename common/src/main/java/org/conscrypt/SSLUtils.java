@@ -62,15 +62,6 @@ final class SSLUtils {
             System.getProperty("org.conscrypt.useEngineSocketByDefault", "false"));
     private static final int MAX_PROTOCOL_LENGTH = 255;
 
-    static final CertificateFactory X509_CERT_FACTORY;
-    static {
-        try {
-            X509_CERT_FACTORY = CertificateFactory.getInstance("X.509");
-        } catch (java.security.cert.CertificateException e) {
-            throw new IllegalStateException("unable to instance X.509 CertificateFactory", e);
-        }
-    }
-
     // TODO(nathanmittler): Should these be in NativeConstants?
     enum SessionType {
         /**
@@ -92,7 +83,7 @@ final class SSLUtils {
             this.value = value;
         }
 
-        static final boolean isSupportedType(int type) {
+        static boolean isSupportedType(int type) {
             return type == OPEN_SSL.value || type == OPEN_SSL_WITH_OCSP.value
                     || type == OPEN_SSL_WITH_TLS_SCT.value;
         }
@@ -191,10 +182,19 @@ final class SSLUtils {
         return peerCertChain;
     }
 
+    private static CertificateFactory getCertificateFactory() {
+        try {
+            return CertificateFactory.getInstance("X.509");
+        } catch (java.security.cert.CertificateException e) {
+            return null;
+        }
+    }
+
     private static X509Certificate decodeX509Certificate(byte[] bytes)
             throws java.security.cert.CertificateException {
-        if (X509_CERT_FACTORY != null) {
-            return (X509Certificate) X509_CERT_FACTORY.generateCertificate(
+        CertificateFactory certificateFactory = getCertificateFactory();
+        if (certificateFactory != null) {
+            return (X509Certificate) certificateFactory.generateCertificate(
                 new ByteArrayInputStream(bytes));
         }
         return OpenSSLX509Certificate.fromX509Der(bytes);
@@ -414,7 +414,6 @@ final class SSLUtils {
     }
 
     private static int getEncryptedPacketLength(ByteBuffer buffer) {
-        int packetLength = 0;
         int pos = buffer.position();
         // SSLv3 or TLS - Check ContentType
         switch (unsignedByte(buffer.get(pos))) {
@@ -436,7 +435,7 @@ final class SSLUtils {
         }
 
         // SSLv3 or TLS
-        packetLength = unsignedShort(buffer.getShort(pos + 3)) + SSL3_RT_HEADER_LENGTH;
+        int packetLength = unsignedShort(buffer.getShort(pos + 3)) + SSL3_RT_HEADER_LENGTH;
         if (packetLength <= SSL3_RT_HEADER_LENGTH) {
             // Neither SSLv3 or TLSv1 (i.e. SSLv2 or bad data)
             return -1;

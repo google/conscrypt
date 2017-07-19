@@ -378,31 +378,15 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         return 0;
     }
 
-    @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks
     @Override
-    public void verifyCertificateChain(long[] certRefs, String authMethod)
-            throws CertificateException {
-        if (certRefs == null || certRefs.length == 0) {
-            throw new CertificateException("Peer sent no certificate");
-        }
-        OpenSSLX509Certificate[] peerCertChain = OpenSSLX509Certificate.createCertChain(certRefs);
-
-        verifyPeerCertificateChain(peerCertChain, authMethod);
-    }
-
-    @Override
-    public void verifyEncodedCertificateChain(byte[][] certChain, String authMethod)
-            throws CertificateException {
-        if (certChain == null || certChain.length == 0) {
-            throw new CertificateException("Peer sent no certificate");
-        }
-        X509Certificate[] peerCertChain = SSLUtils.decodeX509CertificateChain(certChain);
-        verifyPeerCertificateChain(peerCertChain, authMethod);
-    }
-
-    private void verifyPeerCertificateChain(X509Certificate[] peerCertChain, String authMethod)
+    public void verifyCertificateChain(byte[][] certChain, String authMethod)
             throws CertificateException {
         try {
+            if (certChain == null || certChain.length == 0) {
+                throw new CertificateException("Peer sent no certificate");
+            }
+            X509Certificate[] peerCertChain = SSLUtils.decodeX509CertificateChain(certChain);
+
             X509TrustManager x509tm = sslParameters.getX509TrustManager();
             if (x509tm == null) {
                 throw new CertificateException("No X.509 TrustManager");
