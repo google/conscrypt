@@ -50,13 +50,55 @@ import sun.security.x509.AlgorithmId;
  * Uses reflection to implement Java 8 SSL features for backwards compatibility.
  */
 final class Platform {
-    private static Method m_getCurveName;
+    private static final boolean JAVA8;
+    private static final Method GET_CURVE_NAME_METHOD;
+    private static final Method SET_USE_CIPHER_SUITES_ORDER_METHOD;
+    private static final Method GET_USE_CIPHER_SUITES_ORDER_METHOD;
+    private static final Method SET_SERVER_NAMES_METHOD;
+    private static final Method GET_SERVER_NAMES_METHOD;
+    private static final Method GET_TYPE_METHOD;
+    private static final Method GET_ASCII_NAME_METHOD;
+    private static final Constructor<?> SNI_HOST_NAME_CONSTRUCTOR;
     static {
+        Method getCurveNameMethod = null;
         try {
-            m_getCurveName = ECParameterSpec.class.getDeclaredMethod("getCurveName");
-            m_getCurveName.setAccessible(true);
+            getCurveNameMethod = ECParameterSpec.class.getDeclaredMethod("getCurveName");
+            getCurveNameMethod.setAccessible(true);
         } catch (Exception ignored) {
         }
+        GET_CURVE_NAME_METHOD = getCurveNameMethod;
+
+        // Java 8 methods.
+        boolean java8 = false;
+        Method setUseCipherSuitesOrderMethod = null;
+        Method getUseCipherSuitesOrderMethod = null;
+        Method setServerNamesMethod = null;
+        Method getServerNamesMethod = null;
+        Method getTypeMethod = null;
+        Method getAsciiNameMethod = null;
+        Constructor<?> sniHostNameConstructor = null;
+        try {
+            setUseCipherSuitesOrderMethod =
+                SSLParameters.class.getMethod("setUseCipherSuitesOrder", boolean.class);
+            getUseCipherSuitesOrderMethod = SSLParameters.class.getMethod("getUseCipherSuitesOrder");
+            setServerNamesMethod = SSLParameters.class.getMethod("setServerNames", List.class);
+            getServerNamesMethod = SSLParameters.class.getMethod("getServerNames");
+            Class<?> sniHostNameClass = Class.forName("javax.net.ssl.SNIHostName");
+            getTypeMethod = sniHostNameClass.getMethod("getType");
+            getAsciiNameMethod = sniHostNameClass.getMethod("getAsciiName");
+            sniHostNameConstructor = sniHostNameClass.getConstructor(String.class);
+            java8 = true;
+        } catch (Exception ignored) {
+            // Ignored.
+        }
+        SET_USE_CIPHER_SUITES_ORDER_METHOD = java8 ? setUseCipherSuitesOrderMethod : null;
+        GET_USE_CIPHER_SUITES_ORDER_METHOD = java8 ? getUseCipherSuitesOrderMethod : null;
+        SET_SERVER_NAMES_METHOD = java8 ? setServerNamesMethod : null;
+        GET_SERVER_NAMES_METHOD = java8 ? getServerNamesMethod : null;
+        GET_TYPE_METHOD = java8 ? getTypeMethod : null;
+        GET_ASCII_NAME_METHOD = java8 ? getAsciiNameMethod : null;
+        SNI_HOST_NAME_CONSTRUCTOR = java8 ? sniHostNameConstructor : null;
+        JAVA8 = java8;
     }
 
     private Platform() {}
@@ -92,14 +134,14 @@ final class Platform {
     }
 
     static String getCurveName(ECParameterSpec spec) {
-        if (m_getCurveName == null) {
-            return null;
+        if (GET_CURVE_NAME_METHOD != null) {
+            try {
+                return (String) GET_CURVE_NAME_METHOD.invoke(spec);
+            } catch (Exception ignored) {
+                // Ignored
+            }
         }
-        try {
-            return (String) m_getCurveName.invoke(spec);
-        } catch (Exception e) {
-            return null;
-        }
+        return null;
     }
 
     static void setCurveName(@SuppressWarnings("unused") ECParameterSpec spec,
@@ -119,29 +161,25 @@ final class Platform {
     public static void setSSLParameters(
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
-        try {
-            Method getUseCipherSuitesOrder =
-                    SSLParameters.class.getMethod("getUseCipherSuitesOrder");
-            impl.setUseCipherSuitesOrder((boolean) getUseCipherSuitesOrder.invoke(params));
-            Method getServerNames = SSLParameters.class.getMethod("getServerNames");
-            List<Object> serverNames = (List<Object>) getServerNames.invoke(params);
+        if (JAVA8) {
+            try {
+                impl.setUseCipherSuitesOrder(
+                    (boolean) GET_USE_CIPHER_SUITES_ORDER_METHOD.invoke(params));
+                List<Object> serverNames = (List<Object>) GET_SERVER_NAMES_METHOD.invoke(params);
 
-            // javax.net.ssl.StandardConstants.SNI_HOST_NAME
-            int hostNameType = 0;
-            if (serverNames != null) {
-                for (Object serverName : serverNames) {
-                    if ((int) serverName.getClass().getMethod("getType").invoke(serverName)
-                            == hostNameType) {
-                        socket.setHostname((String) serverName.getClass()
-                                                   .getMethod("getAsciiName")
-                                                   .invoke(serverName));
-                        break;
+                // javax.net.ssl.StandardConstants.SNI_HOST_NAME
+                int hostNameType = 0;
+                if (serverNames != null) {
+                    for (Object serverName : serverNames) {
+                        if ((int) GET_TYPE_METHOD.invoke(serverName) == hostNameType) {
+                            socket.setHostname((String) GET_ASCII_NAME_METHOD.invoke(serverName));
+                            break;
+                        }
                     }
                 }
+            } catch (IllegalAccessException ignored) {
+            } catch (InvocationTargetException ignored) {
             }
-        } catch (NoSuchMethodException ignored) {
-        } catch (IllegalAccessException ignored) {
-        } catch (InvocationTargetException ignored) {
         }
     }
 
@@ -149,23 +187,18 @@ final class Platform {
     public static void getSSLParameters(
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
-        try {
-            Method setUseCipherSuitesOrder =
-                    SSLParameters.class.getMethod("setUseCipherSuitesOrder", boolean.class);
-            setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
-            Method setServerNames = SSLParameters.class.getMethod("setServerNames", List.class);
-            if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
-                Constructor sniHostNameConstructor =
-                        Class.forName("javax.net.ssl.SNIHostName").getConstructor(String.class);
-                setServerNames.invoke(params,
+        if (JAVA8) {
+            try {
+                SET_USE_CIPHER_SUITES_ORDER_METHOD.invoke(params, impl.getUseCipherSuitesOrder());
+                if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
+                    SET_SERVER_NAMES_METHOD.invoke(params,
                         (Collections.singletonList(
-                                sniHostNameConstructor.newInstance(socket.getHostname()))));
+                            SNI_HOST_NAME_CONSTRUCTOR.newInstance(socket.getHostname()))));
+                }
+            } catch (IllegalAccessException ignored) {
+            } catch (InvocationTargetException ignored) {
+            } catch (InstantiationException ignored) {
             }
-        } catch (NoSuchMethodException ignored) {
-        } catch (IllegalAccessException ignored) {
-        } catch (InvocationTargetException ignored) {
-        } catch (ClassNotFoundException ignored) {
-        } catch (InstantiationException ignored) {
         }
     }
 
@@ -173,28 +206,24 @@ final class Platform {
     public static void setSSLParameters(
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
-        try {
-            Method getUseCipherSuitesOrder =
-                    SSLParameters.class.getMethod("getUseCipherSuitesOrder");
-            impl.setUseCipherSuitesOrder((boolean) getUseCipherSuitesOrder.invoke(params));
-            Method getServerNames = SSLParameters.class.getMethod("getServerNames");
-            List<Object> serverNames = (List<Object>) getServerNames.invoke(params);
+        if (JAVA8) {
+            try {
+                impl.setUseCipherSuitesOrder(
+                    (boolean) GET_USE_CIPHER_SUITES_ORDER_METHOD.invoke(params));
+                List<Object> serverNames = (List<Object>) GET_SERVER_NAMES_METHOD.invoke(params);
 
-            int hostNameType = 0;
-            if (serverNames != null) {
-                for (Object serverName : serverNames) {
-                    if ((int) serverName.getClass().getMethod("getType").invoke(serverName)
-                            == hostNameType) {
-                        engine.setHostname((String) serverName.getClass()
-                                                      .getMethod("getAsciiName")
-                                                      .invoke(serverName));
-                        break;
+                int hostNameType = 0;
+                if (serverNames != null) {
+                    for (Object serverName : serverNames) {
+                        if ((int) GET_TYPE_METHOD.invoke(serverName) == hostNameType) {
+                            engine.setHostname((String) GET_ASCII_NAME_METHOD.invoke(serverName));
+                            break;
+                        }
                     }
                 }
+            } catch (IllegalAccessException ignored) {
+            } catch (InvocationTargetException ignored) {
             }
-        } catch (NoSuchMethodException ignored) {
-        } catch (IllegalAccessException ignored) {
-        } catch (InvocationTargetException ignored) {
         }
     }
 
@@ -202,23 +231,18 @@ final class Platform {
     public static void getSSLParameters(
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
-        try {
-            Method setUseCipherSuitesOrder =
-                    SSLParameters.class.getMethod("setUseCipherSuitesOrder", boolean.class);
-            setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
-            Method setServerNames = SSLParameters.class.getMethod("setServerNames", List.class);
-            if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
-                Constructor sniHostNameConstructor =
-                        Class.forName("javax.net.ssl.SNIHostName").getConstructor(String.class);
-                setServerNames.invoke(params,
+        if (JAVA8) {
+            try {
+                SET_USE_CIPHER_SUITES_ORDER_METHOD.invoke(params, impl.getUseCipherSuitesOrder());
+                if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
+                    SET_SERVER_NAMES_METHOD.invoke(params,
                         (Collections.singletonList(
-                                sniHostNameConstructor.newInstance(engine.getHostname()))));
+                            SNI_HOST_NAME_CONSTRUCTOR.newInstance(engine.getHostname()))));
+                }
+            } catch (IllegalAccessException ignored) {
+            } catch (InvocationTargetException ignored) {
+            } catch (InstantiationException ignored) {
             }
-        } catch (NoSuchMethodException ignored) {
-        } catch (IllegalAccessException ignored) {
-        } catch (InvocationTargetException ignored) {
-        } catch (ClassNotFoundException ignored) {
-        } catch (InstantiationException ignored) {
         }
     }
 

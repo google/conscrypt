@@ -175,11 +175,13 @@ final class SSLUtils {
 
     static X509Certificate[] decodeX509CertificateChain(byte[][] certChain)
             throws java.security.cert.CertificateException {
-        X509Certificate[] peerCertChain = new X509Certificate[certChain.length];
-        for (int i = 0; i < peerCertChain.length; i++) {
-            peerCertChain[i] = decodeX509Certificate(certChain[i]);
+        CertificateFactory certificateFactory = getCertificateFactory();
+        int numCerts = certChain.length;
+        X509Certificate[] decodedCerts = new X509Certificate[numCerts];
+        for (int i = 0; i < numCerts; i++) {
+            decodedCerts[i] = decodeX509Certificate(certificateFactory, certChain[i]);
         }
-        return peerCertChain;
+        return decodedCerts;
     }
 
     private static CertificateFactory getCertificateFactory() {
@@ -190,12 +192,11 @@ final class SSLUtils {
         }
     }
 
-    private static X509Certificate decodeX509Certificate(byte[] bytes)
-            throws java.security.cert.CertificateException {
-        CertificateFactory certificateFactory = getCertificateFactory();
+    private static X509Certificate decodeX509Certificate(CertificateFactory certificateFactory,
+            byte[] bytes) throws java.security.cert.CertificateException {
         if (certificateFactory != null) {
             return (X509Certificate) certificateFactory.generateCertificate(
-                new ByteArrayInputStream(bytes));
+                    new ByteArrayInputStream(bytes));
         }
         return OpenSSLX509Certificate.fromX509Der(bytes);
     }
