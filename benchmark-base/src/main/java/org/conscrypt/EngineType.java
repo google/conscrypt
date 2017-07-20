@@ -163,6 +163,12 @@ public enum EngineType {
         private SslContext serverContext(boolean useAlpn) {
             return useAlpn ? serverContextAlpn : serverContext;
         }
+
+        @Override
+        void dispose(SSLEngine engine) {
+            super.dispose(engine);
+            ReferenceCountUtil.release(engine);
+        }
     },
     NETTY_REF_CNT {
         private final SslContext clientContext = newNettyClientContext(OPENSSL_REFCNT, false);
@@ -184,6 +190,7 @@ public enum EngineType {
 
         @Override
         void dispose(SSLEngine engine) {
+            super.dispose(engine);
             ReferenceCountUtil.release(engine);
         }
 
@@ -200,7 +207,9 @@ public enum EngineType {
 
     abstract SSLEngine newServerEngine(String cipher, boolean useAlpn);
 
-    void dispose(SSLEngine engine) {}
+    void dispose(SSLEngine engine) {
+        engine.closeOutbound();
+    }
 
     private static SSLContext newConscryptClientContext() {
         return TestUtils.newClientSslContext(TestUtils.getConscryptProvider());
