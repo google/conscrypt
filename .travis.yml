@@ -3,8 +3,8 @@ language: android
 env:
   global:
     - BORINGSSL_HOME="$HOME/boringssl"
-    - CC=clang
-    - CXX=clang++
+    - CC=clang-3.8
+    - CXX=clang++-3.8
     - GOOGLE_JAVA_FORMAT_VERSION=1.1
 
 cache:
@@ -47,7 +47,7 @@ matrix:
             - llvm-toolchain-precise-3.8  # for clang-format-3.8
             - ubuntu-toolchain-r-test
           packages:
-            - clang
+            - clang-3.8
             - clang-format-3.8  # for style checks
             - cmake
             - g++-multilib
