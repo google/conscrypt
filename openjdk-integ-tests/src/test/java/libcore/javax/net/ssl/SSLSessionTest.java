@@ -26,7 +26,12 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSocket;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
 import org.junit.Test;
@@ -198,6 +203,55 @@ public class SSLSessionTest extends AbstractSSLTest {
             // Ignored.
         }
         s.close();
+    }
+
+    @Test
+    public void test_SSLSession_getPeerCertificates_resumption() throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+
+        // Ensure that the session is reused to the best of our ability
+        context.clientContext.getClientSessionContext().setSessionTimeout(1000000);
+        context.clientContext.getClientSessionContext().setSessionCacheSize(0);
+
+        SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        connect(client, server);
+
+        assertNotNull(client.getSession().getPeerCertificates());
+
+        client.close();
+        server.close();
+
+        client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        server = (SSLSocket) context.serverSocket.accept();
+        connect(client, server);
+
+        assertNotNull(client.getSession().getPeerCertificates());
+
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    private static void connect(SSLSocket client, SSLSocket server) {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        Future<Void> s = executor.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                server.startHandshake();
+                return null;
+            }
+        });
+        Future<Void> c = executor.submit(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                client.startHandshake();
+                return null;
+            }
+        });
+        executor.shutdown();
     }
 
     @Test
