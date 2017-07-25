@@ -735,15 +735,17 @@ public class NativeCryptoTest {
         private boolean verifyCertificateChainCalled;
 
         @Override
-        public void verifyCertificateChain(long[] certChainRefs, String authMethod)
-                throws CertificateException {
-            if (DEBUG) {
-                System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
-                        + " verifyCertificateChain"
-                        + " asn1DerEncodedCertificateChain=" + Arrays.toString(certChainRefs)
-                        + " authMethod=" + authMethod);
+        public void verifyCertificateChain(byte[][] certs, String authMethod)
+            throws CertificateException {
+            certificateChainRefs = new long[certs.length];
+            for (int i = 0; i < certs.length; ++i) {
+                byte[] cert = certs[i];
+                try {
+                    certificateChainRefs[i] = NativeCrypto.d2i_X509(cert);
+                } catch (ParsingException e) {
+                    throw new RuntimeException(e);
+                }
             }
-            this.certificateChainRefs = certChainRefs;
             this.authMethod = authMethod;
             this.verifyCertificateChainCalled = true;
         }

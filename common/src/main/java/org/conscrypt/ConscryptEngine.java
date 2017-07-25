@@ -74,6 +74,7 @@ import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.ECKey;
 import java.security.spec.ECParameterSpec;
 import javax.crypto.SecretKey;
@@ -1560,18 +1561,18 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     }
 
     @Override
-    public void verifyCertificateChain(long[] certRefs, String authMethod)
+    public void verifyCertificateChain(byte[][] certChain, String authMethod)
             throws CertificateException {
         try {
+            if (certChain == null || certChain.length == 0) {
+                throw new CertificateException("Peer sent no certificate");
+            }
+            X509Certificate[] peerCertChain = SSLUtils.decodeX509CertificateChain(certChain);
+
             X509TrustManager x509tm = sslParameters.getX509TrustManager();
             if (x509tm == null) {
                 throw new CertificateException("No X.509 TrustManager");
             }
-            if (certRefs == null || certRefs.length == 0) {
-                throw new SSLException("Peer sent no certificate");
-            }
-            OpenSSLX509Certificate[] peerCertChain =
-                    OpenSSLX509Certificate.createCertChain(certRefs);
 
             // Update the peer information on the session.
             sslSession.onPeerCertificatesReceived(getPeerHost(), getPeerPort(), peerCertChain);

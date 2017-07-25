@@ -5731,10 +5731,7 @@ static AppData* toAppData(const SSL* ssl) {
     return reinterpret_cast<AppData*>(SSL_get_app_data(ssl));
 }
 
-/**
- * Verify the X509 certificate via SSL_CTX_set_cert_verify_callback
- */
-static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg) {
+static int cert_verify_callback(X509_STORE_CTX *x509_store_ctx, void *arg) {
     /* Get the correct index to the SSLobject stored into X509_STORE_CTX. */
     SSL* ssl = reinterpret_cast<SSL*>(X509_STORE_CTX_get_ex_data(x509_store_ctx,
             SSL_get_ex_data_X509_STORE_CTX_idx()));
@@ -5747,12 +5744,27 @@ static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg) {
         JNI_TRACE("ssl=%p cert_verify_callback => 0", ssl);
         return 0;
     }
+    // Get a stack of all certs in the chain
+    STACK_OF(CRYPTO_BUFFER)* buffers = SSL_get0_peer_certificates(ssl);
+
+    int numBuffers = sk_CRYPTO_BUFFER_num(buffers);
+
+    // Create the byte[][] array that holds all the certs
+    ScopedLocalRef<jobjectArray> array(env,
+        env->NewObjectArray(numBuffers, JniConstants::byteArrayClass, nullptr));
+
+    for(unsigned i = 0; i < numBuffers; ++i) {
+        CRYPTO_BUFFER* buffer = sk_CRYPTO_BUFFER_value(buffers, i);
+        int length = CRYPTO_BUFFER_len(buffer);
+        ScopedLocalRef<jbyteArray> bArray(env, env->NewByteArray(length));
+        env->SetByteArrayRegion(bArray.get(), 0, length, (jbyte*) CRYPTO_BUFFER_data(buffer));
+        env->SetObjectArrayElement(array.get(), i, bArray.get());
+    }
+
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
-
     jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID = env->GetMethodID(cls, "verifyCertificateChain", "([JLjava/lang/String;)V");
-
-    jlongArray refArray = getCertificateRefs(env, x509_store_ctx->untrusted);
+    jmethodID methodID = env->GetMethodID(cls, "verifyCertificateChain",
+                                          "([[BLjava/lang/String;)V");
 
     const SSL_CIPHER *cipher = SSL_get_pending_cipher(ssl);
     const char *authMethod = SSL_CIPHER_get_kx_name(cipher);
@@ -5760,7 +5772,11 @@ static int cert_verify_callback(X509_STORE_CTX* x509_store_ctx, void* arg) {
     JNI_TRACE("ssl=%p cert_verify_callback calling verifyCertificateChain authMethod=%s",
               ssl, authMethod);
     jstring authMethodString = env->NewStringUTF(authMethod);
-    env->CallVoidMethod(sslHandshakeCallbacks, methodID, refArray, authMethodString);
+    env->CallVoidMethod(sslHandshakeCallbacks, methodID, array.get(), authMethodString);
+
+    // We need to delete the local references so we not leak memory as this method is called
+    // via callback.
+    env->DeleteLocalRef(authMethodString);
 
     int result = (env->ExceptionCheck()) ? 0 : 1;
     JNI_TRACE("ssl=%p cert_verify_callback => %d", ssl, result);

@@ -40,8 +40,10 @@ import static org.conscrypt.NativeConstants.SSL3_RT_HANDSHAKE;
 import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
 import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
+import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.HashSet;
 import java.util.Set;
@@ -81,7 +83,7 @@ final class SSLUtils {
             this.value = value;
         }
 
-        static final boolean isSupportedType(int type) {
+        static boolean isSupportedType(int type) {
             return type == OPEN_SSL.value || type == OPEN_SSL_WITH_OCSP.value
                     || type == OPEN_SSL_WITH_TLS_SCT.value;
         }
@@ -170,6 +172,34 @@ final class SSLUtils {
 
     /** Key type: Elliptic Curve certificate. */
     private static final String KEY_TYPE_EC = "EC";
+
+    static X509Certificate[] decodeX509CertificateChain(byte[][] certChain)
+            throws java.security.cert.CertificateException {
+        CertificateFactory certificateFactory = getCertificateFactory();
+        int numCerts = certChain.length;
+        X509Certificate[] decodedCerts = new X509Certificate[numCerts];
+        for (int i = 0; i < numCerts; i++) {
+            decodedCerts[i] = decodeX509Certificate(certificateFactory, certChain[i]);
+        }
+        return decodedCerts;
+    }
+
+    private static CertificateFactory getCertificateFactory() {
+        try {
+            return CertificateFactory.getInstance("X.509");
+        } catch (java.security.cert.CertificateException e) {
+            return null;
+        }
+    }
+
+    private static X509Certificate decodeX509Certificate(CertificateFactory certificateFactory,
+            byte[] bytes) throws java.security.cert.CertificateException {
+        if (certificateFactory != null) {
+            return (X509Certificate) certificateFactory.generateCertificate(
+                    new ByteArrayInputStream(bytes));
+        }
+        return OpenSSLX509Certificate.fromX509Der(bytes);
+    }
 
     /**
      * Returns key type constant suitable for calling X509KeyManager.chooseServerAlias or
@@ -385,7 +415,6 @@ final class SSLUtils {
     }
 
     private static int getEncryptedPacketLength(ByteBuffer buffer) {
-        int packetLength = 0;
         int pos = buffer.position();
         // SSLv3 or TLS - Check ContentType
         switch (unsignedByte(buffer.get(pos))) {
@@ -407,7 +436,7 @@ final class SSLUtils {
         }
 
         // SSLv3 or TLS
-        packetLength = unsignedShort(buffer.getShort(pos + 3)) + SSL3_RT_HEADER_LENGTH;
+        int packetLength = unsignedShort(buffer.getShort(pos + 3)) + SSL3_RT_HEADER_LENGTH;
         if (packetLength <= SSL3_RT_HEADER_LENGTH) {
             // Neither SSLv3 or TLSv1 (i.e. SSLv2 or bad data)
             return -1;

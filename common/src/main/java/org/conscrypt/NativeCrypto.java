@@ -1101,15 +1101,15 @@ public final class NativeCrypto {
      */
     interface SSLHandshakeCallbacks {
         /**
-         * Verify that we trust the certificate chain is trusted.
+         * Verify that the certificate chain is trusted.
          *
-         * @param certificateChainRefs chain of X.509 certificate references
+         * @param certificateChain chain of X.509 certificates in their encoded form
          * @param authMethod auth algorithm name
          *
          * @throws CertificateException if the certificate is untrusted
          */
         @SuppressWarnings("unused")
-        void verifyCertificateChain(long[] certificateChainRefs, String authMethod)
+        void verifyCertificateChain(byte[][] certificateChain, String authMethod)
                 throws CertificateException;
 
         /**
