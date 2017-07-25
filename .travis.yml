@@ -5,6 +5,7 @@ env:
     - BORINGSSL_HOME="$HOME/boringssl"
     - CC=clang-3.8
     - CXX=clang++-3.8
+    - CXXFLAGS="-stdlib=libc++"
     - GOOGLE_JAVA_FORMAT_VERSION=1.1
 
 cache:
