@@ -51,10 +51,10 @@ matrix:
             - clang-3.8
             - clang-format-3.8  # for style checks
             - cmake
-            - g++-4.9
-            - gcc-4.9
-            - g++-4.9-multilib
-            - gcc-4.9-multilib
+            - g++-4.8
+            - gcc-4.8
+            - g++-4.8-multilib
+            - gcc-4.8-multilib
             - libc6-dev-i386
             - libc6-dev:i386
             - ninja-build
