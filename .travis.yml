@@ -3,8 +3,8 @@ language: android
 env:
   global:
     - BORINGSSL_HOME="$HOME/boringssl"
-    - CC=clang-3.8
-    - CXX=clang++-3.8
+    - CC=clang
+    - CXX=clang++
     - CXXFLAGS="-std=c++11"
     - GOOGLE_JAVA_FORMAT_VERSION=1.1
 
