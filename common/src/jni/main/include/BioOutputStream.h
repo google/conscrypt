@@ -23,6 +23,9 @@
 
 namespace conscrypt {
 
+/**
+ * TODO(nmittler): Remove this after the legacy FD-based socket is removed.
+ */
 class BioOutputStream : public BioStream {
 public:
     BioOutputStream(jobject stream) : BioStream(stream) {}
