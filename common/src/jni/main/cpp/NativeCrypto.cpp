@@ -6450,9 +6450,14 @@ static void NativeCrypto_setLocalCertsAndPrivateKey(JNIEnv* env, jclass, jlong s
     std::vector<bssl::UniquePtr<CRYPTO_BUFFER>> certBufferRefs(numCerts);
     std::vector<CRYPTO_BUFFER*> certBuffers(numCerts);
     for(size_t i = 0; i < numCerts; ++i) {
-        const jbyteArray encodedCertJava =
-            (jbyteArray) env->GetObjectArrayElement(encodedCertificatesJava, i);
-        ScopedByteArrayRO encodedCert(env, encodedCertJava);
+        ScopedLocalRef<jbyteArray> certArray(env, reinterpret_cast<jbyteArray>(
+            env->GetObjectArrayElement(encodedCertificatesJava, i)));
+        if (certArray.get() == nullptr) {
+            Errors::jniThrowNullPointerException(env, "certArray element == null");
+            JNI_TRACE("ssl=%p NativeCrypto_SSL_set_chain_and_key => certArray element null", ssl);
+            return;
+        }
+        ScopedByteArrayRO encodedCert(env, certArray.get());
         CRYPTO_BUFFER* buffer = CRYPTO_BUFFER_new((const uint8_t*) encodedCert.get(),
                                                   encodedCert.size(), nullptr);
 
