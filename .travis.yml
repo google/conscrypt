@@ -48,8 +48,8 @@ matrix:
             - llvm-toolchain-precise-3.8  # for clang-format-3.8
             - ubuntu-toolchain-r-test
           packages:
-            - clang-4.0
-            - clang-format-4.0  # for style checks
+            - clang-3.9
+            - clang-format-3.9  # for style checks
             - cmake
             - g++-multilib
             - gcc-multilib
