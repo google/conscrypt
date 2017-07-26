@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_NETWORKUTIL_H_
-#define CONSCRYPT_NETWORKUTIL_H_
+#ifndef CONSCRYPT_FILEDESCRIPTORSOCKETUTIL_H_
+#define CONSCRYPT_FILEDESCRIPTORSOCKETUTIL_H_
+
+#include <jni.h>
 
 #ifdef _WIN32
 // Needed for inet_ntop
@@ -43,17 +45,18 @@ namespace conscrypt {
 
 /**
  * Network utility methods.
+ * TODO(nmittler): Remove this after the legacy FD-based socket is removed.
  */
-class NetworkUtil {
+class FileDescriptorSocketUtil {
 private:
-    NetworkUtil() {}
-    ~NetworkUtil() {}
+    FileDescriptorSocketUtil() {}
+    ~FileDescriptorSocketUtil() {}
 
 public:
     /**
      * Copied from libnativehelper NetworkUtilites.cpp
      */
-    static inline bool setBlocking(int fd, bool blocking) {
+    static bool setBlocking(int fd, bool blocking) {
 #ifdef _WIN32
         unsigned long flag = blocking ? 0UL : 1UL;
         int res = ioctlsocket(fd, FIONBIO, &flag);
@@ -76,8 +79,11 @@ public:
         return fcntl(fd, F_SETFL, flags) != -1;
 #endif
     }
+
+    static jlong createBioInputStream(JNIEnv* env, jobject streamObj, jboolean isFinite);
+    static jlong createBioOutputStream(JNIEnv* env, jobject streamObj);
 };
 
 }  // namespace conscrypt
 
-#endif  // CONSCRYPT_NETWORKUTIL_H_
+#endif  // CONSCRYPT_FILEDESCRIPTORSOCKETUTIL_H_

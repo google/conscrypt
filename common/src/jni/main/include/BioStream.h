@@ -25,7 +25,8 @@
 namespace conscrypt {
 
 /**
- * BIO for InputStream
+ * BIO for InputStream.
+ * TODO(nmittler): Remove this after the legacy FD-based socket is removed.
  */
 class BioStream {
 public:
@@ -62,6 +63,10 @@ public:
         }
 
         return 1;
+    }
+
+    void assignTo(BIO *b) {
+        b->ptr = static_cast<void*>(this);
     }
 
 protected:

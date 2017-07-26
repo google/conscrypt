@@ -17,8 +17,8 @@
 #ifndef CONSCRYPT_APPDATA_H_
 #define CONSCRYPT_APPDATA_H_
 
+#include "FileDescriptorSocketUtil.h"
 #include "NetFd.h"
-#include "NetworkUtil.h"
 #include "Trace.h"
 #include "compat.h"
 
@@ -126,7 +126,7 @@ public:
             ALOGE("AppData::create pipe(2) failed: %s", strerror(errno));
             return nullptr;
         }
-        if (!NetworkUtil::setBlocking(appData.get()->fdsEmergency[0], false)) {
+        if (!FileDescriptorSocketUtil::setBlocking(appData.get()->fdsEmergency[0], false)) {
             ALOGE("AppData::create fcntl(2) failed: %s", strerror(errno));
             return nullptr;
         }
@@ -152,6 +152,14 @@ public:
         clearAlpnCallbackState();
     }
 
+    static AppData* getAppData(const SSL* ssl) {
+        return reinterpret_cast<AppData*>(SSL_get_app_data(ssl));
+    }
+
+    static void setAppData(SSL* ssl, AppData* appData) {
+        SSL_set_app_data(ssl, reinterpret_cast<char*>(appData));
+    }
+
 private:
     AppData()
         : aliveAndKicking(1),
@@ -169,6 +177,7 @@ private:
     }
 
 public:
+
     /**
      * Sets the callback data for ALPN negotiation. Only called in server-mode.
      *
