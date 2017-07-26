@@ -5753,7 +5753,7 @@ static int cert_verify_callback(X509_STORE_CTX *x509_store_ctx, void *arg) {
     ScopedLocalRef<jobjectArray> array(env,
         env->NewObjectArray(numBuffers, JniConstants::byteArrayClass, nullptr));
 
-    for(unsigned i = 0; i < numBuffers; ++i) {
+    for(int i = 0; i < numBuffers; ++i) {
         CRYPTO_BUFFER* buffer = sk_CRYPTO_BUFFER_value(buffers, i);
         int length = CRYPTO_BUFFER_len(buffer);
         ScopedLocalRef<jbyteArray> bArray(env, env->NewByteArray(length));
