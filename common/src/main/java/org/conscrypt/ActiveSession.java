@@ -324,8 +324,9 @@ final class ActiveSession implements SSLSession {
         this.localCertificates = ssl.getLocalCertificates();
         if (this.peerCertificates == null) {
             // When resuming a session, the cert_verify_callback (which calls
-            // onPeerCertificatesReceived) isn't called by BoringSSL during the handshake, leaving
-            // us without the peer certificates.  If that happens, fetch them explicitly.
+            // onPeerCertificatesReceived) isn't called by BoringSSL during the handshake because
+            // it presumes the certs were verified in the previous connection on that session,
+            // leaving us without the peer certificates.  If that happens, fetch them explicitly.
             configurePeer(peerHost, peerPort, ssl.getPeerCertificates());
         }
     }
