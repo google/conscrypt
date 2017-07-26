@@ -24,7 +24,7 @@
 /* If we're compiled unbundled from Android system image, we use the
  * CompatibilityCloseMonitor
  */
-#include "AsynchronousCloseMonitor.h"
+#include <nativehelper/AsynchronousCloseMonitor.h>
 
 namespace conscrypt {
 

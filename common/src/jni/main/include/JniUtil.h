@@ -19,7 +19,7 @@
 
 #include <jni.h>
 #include <cstdlib>
-#include "ScopedLocalRef.h"
+#include <nativehelper/ScopedLocalRef.h>
 #include "compat.h"
 #include "macros.h"
 
