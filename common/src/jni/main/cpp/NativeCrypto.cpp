@@ -5772,25 +5772,22 @@ static AppData* toAppData(const SSL* ssl) {
     return reinterpret_cast<AppData*>(SSL_get_app_data(ssl));
 }
 
-static int cert_verify_callback(X509_STORE_CTX *x509_store_ctx, void *arg) {
-    /* Get the correct index to the SSLobject stored into X509_STORE_CTX. */
-    SSL* ssl = reinterpret_cast<SSL*>(X509_STORE_CTX_get_ex_data(x509_store_ctx,
-            SSL_get_ex_data_X509_STORE_CTX_idx()));
-    JNI_TRACE("ssl=%p cert_verify_callback x509_store_ctx=%p arg=%p", ssl, x509_store_ctx, arg);
+static ssl_verify_result_t cert_verify_callback(SSL* ssl, uint8_t* out_alert) {
+    JNI_TRACE("ssl=%p cert_verify_callback", ssl);
 
     AppData* appData = toAppData(ssl);
     JNIEnv* env = appData->env;
     if (env == nullptr) {
         ALOGE("AppData->env missing in cert_verify_callback");
         JNI_TRACE("ssl=%p cert_verify_callback => 0", ssl);
-        return 0;
+        return ssl_verify_invalid;
     }
 
     // Create the byte[][] array that holds all the certs
     ScopedLocalRef<jobjectArray> array(
             env, CryptoBuffersToObjectArray(env, SSL_get0_peer_certificates(ssl)));
     if (array.get() == nullptr) {
-        return 0;
+        return ssl_verify_invalid;
     }
 
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
@@ -5810,7 +5807,7 @@ static int cert_verify_callback(X509_STORE_CTX *x509_store_ctx, void *arg) {
     // via callback.
     env->DeleteLocalRef(authMethodString);
 
-    int result = (env->ExceptionCheck()) ? 0 : 1;
+    ssl_verify_result_t result = env->ExceptionCheck() ? ssl_verify_invalid : ssl_verify_ok;
     JNI_TRACE("ssl=%p cert_verify_callback => %d", ssl, result);
     return result;
 }
@@ -6234,7 +6231,6 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
 
     SSL_CTX_set_mode(sslCtx.get(), mode);
 
-    SSL_CTX_set_cert_verify_callback(sslCtx.get(), cert_verify_callback, nullptr);
     SSL_CTX_set_info_callback(sslCtx.get(), info_callback);
     SSL_CTX_set_cert_cb(sslCtx.get(), cert_cb, nullptr);
     if (Trace::kWithJniTraceKeys) {
@@ -6348,14 +6344,7 @@ static jlong NativeCrypto_SSL_new(JNIEnv* env, jclass, jlong ssl_ctx_address)
     }
     SSL_set_app_data(ssl.get(), reinterpret_cast<char*>(appData));
 
-    /*
-     * Java code in class OpenSSLSocketImpl does the verification. Since
-     * the callbacks do all the verification of the chain, this flag
-     * simply controls whether to send protocol-level alerts or not.
-     * SSL_VERIFY_NONE means don't send alerts and anything else means send
-     * alerts.
-     */
-    SSL_set_verify(ssl.get(), SSL_VERIFY_PEER, nullptr);
+    SSL_set_custom_verify(ssl.get(), SSL_VERIFY_PEER, cert_verify_callback);
 
     JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_new => ssl=%p appData=%p", ssl_ctx, ssl.get(), appData);
     return (jlong) ssl.release();
@@ -6945,7 +6934,7 @@ static void NativeCrypto_SSL_set_verify(JNIEnv* env,
     if (ssl == nullptr) {
         return;
     }
-    SSL_set_verify(ssl, (int)mode, nullptr);
+    SSL_set_custom_verify(ssl, (int)mode, cert_verify_callback);
 }
 
 /**
