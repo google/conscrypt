@@ -32,6 +32,8 @@
 #include "compat.h"
 #include "macros.h"
 
+#include <limits.h>
+
 #include <openssl/asn1.h>
 #include <openssl/engine.h>
 #include <openssl/err.h>
@@ -337,6 +339,79 @@ jbyteArray CBBToByteArray(JNIEnv* env, CBB* cbb) {
     memcpy(bytes.get(), data, len);
     return byteArray.release();
 }
+
+jbyteArray CryptoBufferToByteArray(JNIEnv* env, const CRYPTO_BUFFER* buf) {
+  if (CRYPTO_BUFFER_len(buf) > INT_MAX) {
+      JNI_TRACE("buffer too large");
+      Errors::jniThrowRuntimeException(env, "buffer too large");
+      return nullptr;
+  }
+
+  int length = static_cast<int>(CRYPTO_BUFFER_len(buf));
+  jbyteArray ret = env->NewByteArray(length);
+  if (ret == nullptr) {
+    JNI_TRACE("allocating byte array failed");
+    return nullptr;
+  }
+
+  env->SetByteArrayRegion(ret, 0, length, reinterpret_cast<const int8_t*>(CRYPTO_BUFFER_data(buf)));
+  return ret;
+}
+
+bssl::UniquePtr<CRYPTO_BUFFER> ByteArrayToCryptoBuffer(JNIEnv* env, const jbyteArray array,
+                                                       CRYPTO_BUFFER_POOL* pool) {
+    if (array == nullptr) {
+        JNI_TRACE("array was null");
+        Errors::jniThrowNullPointerException(env, "array == null");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO arrayRo(env, array);
+    if (arrayRo.get() == nullptr) {
+        JNI_TRACE("failed to get bytes");
+        return nullptr;
+    }
+
+    bssl::UniquePtr<CRYPTO_BUFFER> ret(CRYPTO_BUFFER_new(
+            reinterpret_cast<const uint8_t*>(arrayRo.get()), arrayRo.size(), nullptr));
+    if (!ret) {
+        JNI_TRACE("failed to allocate CRYPTO_BUFFER");
+        Errors::jniThrowOutOfMemory(env, "failed to allocate CRYPTO_BUFFER");
+        return nullptr;
+    }
+
+    return ret;
+}
+
+static jobjectArray CryptoBuffersToObjectArray(JNIEnv* env,
+                                               const STACK_OF(CRYPTO_BUFFER)* buffers) {
+    size_t numBuffers = sk_CRYPTO_BUFFER_num(buffers);
+    if (numBuffers > INT_MAX) {
+        JNI_TRACE("too many buffers");
+        Errors::jniThrowRuntimeException(env, "too many buffers");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jobjectArray> array(
+            env, env->NewObjectArray(static_cast<int>(numBuffers), JniConstants::byteArrayClass,
+                                     nullptr));
+    if (array.get() == nullptr) {
+        JNI_TRACE("failed to allocate array");
+        return nullptr;
+    }
+
+    for (size_t i = 0; i < numBuffers; ++i) {
+        CRYPTO_BUFFER* buffer = sk_CRYPTO_BUFFER_value(buffers, i);
+        ScopedLocalRef<jbyteArray> bArray(env, CryptoBufferToByteArray(env, buffer));
+        if (bArray.get() == nullptr) {
+            return nullptr;
+        }
+        env->SetObjectArrayElement(array.get(), i, bArray.get());
+    }
+
+    return array.release();
+}
+
 
 /**
  * Converts ASN.1 BIT STRING to a jbooleanArray.
@@ -5496,40 +5571,6 @@ static jlongArray getCertificateRefs(JNIEnv* env, const STACK_OF(X509)* chain)
     return refArray.release();
 }
 
-/**
- * Returns an array containing all the X500 principal's bytes.
- */
-static jobjectArray getPrincipalBytes(JNIEnv* env, const STACK_OF(X509_NAME)* names)
-{
-    if (names == nullptr) {
-        return nullptr;
-    }
-
-    int count = static_cast<int>(sk_X509_NAME_num(names));
-    if (count <= 0) {
-        return nullptr;
-    }
-
-    ScopedLocalRef<jobjectArray> joa(
-            env, env->NewObjectArray(count, JniConstants::byteArrayClass, nullptr));
-    if (joa.get() == nullptr) {
-        return nullptr;
-    }
-
-    for (int i = 0; i < count; i++) {
-        X509_NAME* principal = sk_X509_NAME_value(names, static_cast<size_t>(i));
-
-        ScopedLocalRef<jbyteArray> byteArray(env, ASN1ToByteArray<X509_NAME>(env,
-                principal, i2d_X509_NAME));
-        if (byteArray.get() == nullptr) {
-            return nullptr;
-        }
-        env->SetObjectArrayElement(joa.get(), i, byteArray.get());
-    }
-
-    return joa.release();
-}
-
 #ifdef _WIN32
 
 /**
@@ -5744,21 +5785,12 @@ static int cert_verify_callback(X509_STORE_CTX *x509_store_ctx, void *arg) {
         JNI_TRACE("ssl=%p cert_verify_callback => 0", ssl);
         return 0;
     }
-    // Get a stack of all certs in the chain
-    STACK_OF(CRYPTO_BUFFER)* buffers = SSL_get0_peer_certificates(ssl);
-
-    int numBuffers = sk_CRYPTO_BUFFER_num(buffers);
 
     // Create the byte[][] array that holds all the certs
-    ScopedLocalRef<jobjectArray> array(env,
-        env->NewObjectArray(numBuffers, JniConstants::byteArrayClass, nullptr));
-
-    for(int i = 0; i < numBuffers; ++i) {
-        CRYPTO_BUFFER* buffer = sk_CRYPTO_BUFFER_value(buffers, i);
-        int length = CRYPTO_BUFFER_len(buffer);
-        ScopedLocalRef<jbyteArray> bArray(env, env->NewByteArray(length));
-        env->SetByteArrayRegion(bArray.get(), 0, length, (jbyte*) CRYPTO_BUFFER_data(buffer));
-        env->SetObjectArrayElement(array.get(), i, bArray.get());
+    ScopedLocalRef<jobjectArray> array(
+            env, CryptoBuffersToObjectArray(env, SSL_get0_peer_certificates(ssl)));
+    if (array.get() == nullptr) {
+        return 0;
     }
 
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
@@ -5861,7 +5893,11 @@ static int cert_cb(SSL* ssl, CONSCRYPT_UNUSED void* arg) {
     // Call Java callback which can reconfigure the client certificate.
     const uint8_t* ctype = nullptr;
     size_t ctype_num = SSL_get0_certificate_types(ssl, &ctype);
-    jobjectArray issuers = getPrincipalBytes(env, SSL_get_client_CA_list(ssl));
+    ScopedLocalRef<jobjectArray> issuers(
+            env, CryptoBuffersToObjectArray(env, SSL_get0_server_requested_CAs(ssl)));
+    if (issuers.get() == nullptr) {
+        return 0;
+    }
 
     if (Trace::kWithJniTrace) {
         for (size_t i = 0; i < ctype_num; i++) {
@@ -5878,8 +5914,8 @@ static int cert_cb(SSL* ssl, CONSCRYPT_UNUSED void* arg) {
                             reinterpret_cast<const jbyte*>(ctype));
 
     JNI_TRACE("ssl=%p clientCertificateRequested calling clientCertificateRequested "
-              "keyTypes=%p issuers=%p", ssl, keyTypes, issuers);
-    env->CallVoidMethod(sslHandshakeCallbacks, methodID, keyTypes, issuers);
+              "keyTypes=%p issuers=%p", ssl, keyTypes, issuers.get());
+    env->CallVoidMethod(sslHandshakeCallbacks, methodID, keyTypes, issuers.get());
 
     if (env->ExceptionCheck()) {
         JNI_TRACE("ssl=%p cert_cb exception => 0", ssl);
@@ -6449,21 +6485,14 @@ static void NativeCrypto_setLocalCertsAndPrivateKey(JNIEnv* env, jclass, jlong s
     // Copy the certificates.
     std::vector<bssl::UniquePtr<CRYPTO_BUFFER>> certBufferRefs(numCerts);
     std::vector<CRYPTO_BUFFER*> certBuffers(numCerts);
-    for(size_t i = 0; i < numCerts; ++i) {
+    for (size_t i = 0; i < numCerts; ++i) {
         ScopedLocalRef<jbyteArray> certArray(env, reinterpret_cast<jbyteArray>(
             env->GetObjectArrayElement(encodedCertificatesJava, i)));
-        if (certArray.get() == nullptr) {
-            Errors::jniThrowNullPointerException(env, "certArray element == null");
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_set_chain_and_key => certArray element null", ssl);
+        certBufferRefs[i] = ByteArrayToCryptoBuffer(env, certArray.get(), nullptr);
+        if (!certBufferRefs[i]) {
             return;
         }
-        ScopedByteArrayRO encodedCert(env, certArray.get());
-        CRYPTO_BUFFER* buffer = CRYPTO_BUFFER_new((const uint8_t*) encodedCert.get(),
-                                                  encodedCert.size(), nullptr);
-
-        // Add a reference to the buffer. It will be freed when the vector is destroyed.
-        certBufferRefs[i] = bssl::UniquePtr<CRYPTO_BUFFER>(buffer);
-        certBuffers[i] = buffer;
+        certBuffers[i] = certBufferRefs[i].get();
     }
 
     if (!SSL_set_chain_and_key(ssl, certBuffers.data(), numCerts, pkey, nullptr)) {
@@ -6498,48 +6527,28 @@ static void NativeCrypto_SSL_set_client_CA_list(JNIEnv* env, jclass,
         return;
     }
 
-    bssl::UniquePtr<STACK_OF(X509_NAME)> principalsStack(sk_X509_NAME_new_null());
+    bssl::UniquePtr<STACK_OF(CRYPTO_BUFFER)> principalsStack(sk_CRYPTO_BUFFER_new_null());
     if (principalsStack.get() == nullptr) {
         Errors::jniThrowOutOfMemory(env, "Unable to allocate principal stack");
         JNI_TRACE("ssl=%p NativeCrypto_SSL_set_client_CA_list => stack allocation error", ssl);
         return;
     }
     for (int i = 0; i < length; i++) {
-        ScopedLocalRef<jbyteArray> principal(env,
-                reinterpret_cast<jbyteArray>(env->GetObjectArrayElement(principals, i)));
-        if (principal.get() == nullptr) {
-            Errors::jniThrowNullPointerException(env, "principals element == null");
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_set_client_CA_list => principals element null", ssl);
+        ScopedLocalRef<jbyteArray> principal(
+                env, reinterpret_cast<jbyteArray>(env->GetObjectArrayElement(principals, i)));
+        bssl::UniquePtr<CRYPTO_BUFFER> buf = ByteArrayToCryptoBuffer(env, principal.get(), nullptr);
+        if (!buf) {
             return;
         }
-
-        ScopedByteArrayRO buf(env, principal.get());
-        if (buf.get() == nullptr) {
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_set_client_CA_list => threw exception", ssl);
-            return;
-        }
-        const unsigned char* tmp = reinterpret_cast<const unsigned char*>(buf.get());
-        bssl::UniquePtr<X509_NAME> principalX509Name(
-                d2i_X509_NAME(nullptr, &tmp, static_cast<long>(buf.size())));
-
-        if (principalX509Name.get() == nullptr) {
-            ALOGE("%s", ERR_error_string(ERR_peek_error(), nullptr));
-            Errors::throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE, "Error parsing principal");
-            safeSslClear(ssl);
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_set_client_CA_list => principals parsing error",
-                      ssl);
-            return;
-        }
-
-        if (!sk_X509_NAME_push(principalsStack.get(), principalX509Name.get())) {
+        if (!sk_CRYPTO_BUFFER_push(principalsStack.get(), buf.get())) {
             Errors::jniThrowOutOfMemory(env, "Unable to push principal");
             JNI_TRACE("ssl=%p NativeCrypto_SSL_set_client_CA_list => principal push error", ssl);
             return;
         }
-        OWNERSHIP_TRANSFERRED(principalX509Name);
+        OWNERSHIP_TRANSFERRED(buf);
     }
 
-    SSL_set_client_CA_list(ssl, principalsStack.release());
+    SSL_set0_client_CAs(ssl, principalsStack.release());
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set_client_CA_list => ok", ssl);
 }
 
