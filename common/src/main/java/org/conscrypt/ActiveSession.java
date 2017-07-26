@@ -304,6 +304,11 @@ final class ActiveSession implements SSLSession {
      */
     void onPeerCertificatesReceived(
             String peerHost, int peerPort, X509Certificate[] peerCertificates) {
+        configurePeer(peerHost, peerPort, peerCertificates);
+    }
+
+    private void configurePeer(
+            String peerHost, int peerPort, X509Certificate[] peerCertificates) {
         this.peerHost = peerHost;
         this.peerPort = peerPort;
         this.peerCertificates = peerCertificates;
@@ -316,9 +321,14 @@ final class ActiveSession implements SSLSession {
      */
     void onHandshakeCompleted(String peerHost, int peerPort) {
         id = null;
-        this.peerHost = peerHost;
-        this.peerPort = peerPort;
         this.localCertificates = ssl.getLocalCertificates();
+        if (this.peerCertificates == null) {
+            // When resuming a session, the cert_verify_callback (which calls
+            // onPeerCertificatesReceived) isn't called by BoringSSL during the handshake because
+            // it presumes the certs were verified in the previous connection on that session,
+            // leaving us without the peer certificates.  If that happens, fetch them explicitly.
+            configurePeer(peerHost, peerPort, ssl.getPeerCertificates());
+        }
     }
 
     /**
