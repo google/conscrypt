@@ -86,7 +86,7 @@ before_script:
   - popd
 
   # Get git-clang-format
-  - mkdir $HOME/bin
+  - if [ ! -d "$HOME/bin" ]; then mkdir $HOME/bin; fi
   - curl -L https://llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format -o $HOME/bin/git-clang-format
   - chmod 0755 $HOME/bin/git-clang-format
   - export PATH="$HOME/bin:$PATH"
