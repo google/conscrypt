@@ -48,13 +48,11 @@ matrix:
             - llvm-toolchain-precise-3.8  # for clang-format-3.8
             - ubuntu-toolchain-r-test
           packages:
-            - clang-3.8
-            - clang-format-3.8  # for style checks
+            - clang-4.0
+            - clang-format-4.0  # for style checks
             - cmake
-            - g++-4.8
-            - gcc-4.8
-            - g++-4.8-multilib
-            - gcc-4.8-multilib
+            - g++-multilib
+            - gcc-multilib
             - libc6-dev-i386
             - libc6-dev:i386
             - ninja-build
