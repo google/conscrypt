@@ -6165,7 +6165,7 @@ static const uint16_t kDefaultSignatureAlgorithms[] = {
  * public static native int SSL_CTX_new();
  */
 static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
-    bssl::UniquePtr<SSL_CTX> sslCtx(SSL_CTX_new(SSLv23_method()));
+    bssl::UniquePtr<SSL_CTX> sslCtx(SSL_CTX_new(TLS_with_buffers_method()));
     if (sslCtx.get() == nullptr) {
         Errors::throwExceptionIfNecessary(env, "SSL_CTX_new");
         return 0;
@@ -8210,7 +8210,7 @@ static jobjectArray NativeCrypto_get_cipher_names(JNIEnv *env, jclass, jstring s
 
     JNI_TRACE("NativeCrypto_get_cipher_names %s", selector.c_str());
 
-    bssl::UniquePtr<SSL_CTX> sslCtx(SSL_CTX_new(SSLv23_method()));
+    bssl::UniquePtr<SSL_CTX> sslCtx(SSL_CTX_new(TLS_with_buffers_method()));
     bssl::UniquePtr<SSL> ssl(SSL_new(sslCtx.get()));
 
     if (!SSL_set_cipher_list(ssl.get(), selector.c_str())) {
