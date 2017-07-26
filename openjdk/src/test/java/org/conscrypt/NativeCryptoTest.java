@@ -2027,23 +2027,20 @@ public class NativeCryptoTest {
     }
 
     @Test(expected = NullPointerException.class)
-    public void SSL_get_peer_cert_chain_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_get_peer_cert_chain(NULL);
+    public void SSL_get0_peer_certificates_withNullShouldThrow() throws Exception {
+        NativeCrypto.SSL_get0_peer_certificates(NULL);
     }
 
     @Test
-    public void test_SSL_get_peer_cert_chain() throws Exception {
+    public void test_SSL_get0_peer_certificates() throws Exception {
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
             @Override
             public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
                     SSLHandshakeCallbacks callback) throws Exception {
-                long[] cc = NativeCrypto.SSL_get_peer_cert_chain(s);
-                assertEqualCertificateChains(getServerCertificateRefs(), cc);
-                for (long ref : cc) {
-                    NativeCrypto.X509_free(ref);
-                }
+                byte[][] cc = NativeCrypto.SSL_get0_peer_certificates(s);
+                assertEqualByteArrays(getEncodedServerCertificates(), cc);
                 super.afterHandshake(session, s, c, sock, fd, callback);
             }
         };

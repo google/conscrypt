@@ -112,8 +112,9 @@ final class SslWrapper {
         return NativeCrypto.cipherSuiteToJava(NativeCrypto.SSL_get_current_cipher(ssl));
     }
 
-    X509Certificate[] getPeerCertificates() {
-        return OpenSSLX509Certificate.createCertChain(NativeCrypto.SSL_get_peer_cert_chain(ssl));
+    X509Certificate[] getPeerCertificates() throws CertificateException {
+        byte[][] encoded = NativeCrypto.SSL_get0_peer_certificates(ssl);
+        return encoded == null ? null : SSLUtils.decodeX509CertificateChain(encoded);
     }
 
     X509Certificate[] getLocalCertificates() {

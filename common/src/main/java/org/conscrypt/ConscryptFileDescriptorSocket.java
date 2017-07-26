@@ -216,6 +216,9 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
             try {
                 ssl.doHandshake(Platform.getFileDescriptor(socket), getSoTimeout());
+
+                // Update the session from the current state of the SSL object.
+                sslSession.onHandshakeCompleted(getHostnameOrIP(), getPort());
             } catch (CertificateException e) {
                 SSLHandshakeException wrapper = new SSLHandshakeException(e.getMessage());
                 wrapper.initCause(e);
@@ -325,9 +328,6 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         }
 
         // The handshake has completed successfully ...
-
-        // Update the session from the current state of the SSL object.
-        sslSession.onHandshakeCompleted(getHostnameOrIP(), getPort());
 
         // First, update the state.
         synchronized (stateLock) {

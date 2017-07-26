@@ -1043,9 +1043,9 @@ public final class NativeCrypto {
     public static native String SSL_get_version(long sslNativePointer);
 
     /**
-     * Returns the peer X509 certificate references. Must X509_free when done.
+     * Returns the peer certificate chain.
      */
-    static native long[] SSL_get_peer_cert_chain(long sslNativePointer);
+    static native byte[][] SSL_get0_peer_certificates(long sslNativePointer);
 
     /**
      * Reads with the native SSL_read function from the encrypted data stream
