@@ -20,6 +20,7 @@ import static org.conscrypt.Preconditions.checkNotNull;
 
 import java.security.Principal;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.HashMap;
@@ -319,7 +320,7 @@ final class ActiveSession implements SSLSession {
     /**
      * Updates the session after the handshake has completed.
      */
-    void onHandshakeCompleted(String peerHost, int peerPort) {
+    void onHandshakeCompleted(String peerHost, int peerPort) throws CertificateException {
         id = null;
         this.localCertificates = ssl.getLocalCertificates();
         if (this.peerCertificates == null) {

@@ -5547,30 +5547,6 @@ static void info_callback_LOG(const SSL* s, int where, int ret) {
     }
 }
 
-/**
- * Returns an array containing all the X509 certificate references
- */
-static jlongArray getCertificateRefs(JNIEnv* env, const STACK_OF(X509)* chain)
-{
-    if (chain == nullptr) {
-        // Chain can be nullptr if the associated cipher doesn't do certs.
-        return nullptr;
-    }
-    size_t count = sk_X509_num(chain);
-    if (static_cast<ssize_t>(count) <= 0) {
-        return nullptr;
-    }
-    ScopedLocalRef<jlongArray> refArray(env, env->NewLongArray(static_cast<jsize>(count)));
-    ScopedLongArrayRW refs(env, refArray.get());
-    if (refs.get() == nullptr) {
-        return nullptr;
-    }
-    for (size_t i = 0; i < count; i++) {
-        refs[i] = reinterpret_cast<uintptr_t>(X509_dup_nocopy(sk_X509_value(chain, i)));
-    }
-    return refArray.release();
-}
-
 #ifdef _WIN32
 
 /**
@@ -7314,18 +7290,26 @@ static jstring NativeCrypto_SSL_get_version(JNIEnv* env, jclass, jlong ssl_addre
     return env->NewStringUTF(protocol);
 }
 
-// Fills a long[] with the peer certificates in the chain.
-static jlongArray NativeCrypto_SSL_get_peer_cert_chain(JNIEnv* env, jclass, jlong ssl_address)
+static jobjectArray NativeCrypto_SSL_get0_peer_certificates(JNIEnv* env, jclass, jlong ssl_address)
 {
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain", ssl);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_peer_certificates", ssl);
     if (ssl == nullptr) {
         return nullptr;
     }
-    STACK_OF(X509)* chain = SSL_get_peer_full_cert_chain(ssl);
-    jlongArray refArray = getCertificateRefs(env, chain);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_peer_cert_chain => %p", ssl, refArray);
-    return refArray;
+
+    STACK_OF(CRYPTO_BUFFER)* chain = SSL_get0_peer_certificates(ssl);
+    if (chain == nullptr) {
+        return nullptr;
+    }
+
+    ScopedLocalRef<jobjectArray> array(env, CryptoBuffersToObjectArray(env, chain));
+    if (array.get() == nullptr) {
+        return nullptr;
+    }
+
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_peer_certificates => %p", ssl, array.get());
+    return array.release();
 }
 
 static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* buf, jint len,
@@ -9513,7 +9497,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_do_handshake, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "I)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_current_cipher, "(J)Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_version, "(J)Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get_peer_cert_chain, "(J)[J"),
+        CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_get0_peer_certificates, "(J)[[B"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_read, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)I"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_write, "(J" FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)V"),
         CONSCRYPT_NATIVE_METHOD(NativeCrypto, SSL_interrupt, "(J)V"),
