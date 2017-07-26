@@ -5,6 +5,7 @@ env:
     - BORINGSSL_HOME="$HOME/boringssl"
     - CC=clang
     - CXX=clang++
+    - CXXFLAGS="-std=c++11"
     - GOOGLE_JAVA_FORMAT_VERSION=1.1
 
 cache:
@@ -47,8 +48,8 @@ matrix:
             - llvm-toolchain-precise-3.8  # for clang-format-3.8
             - ubuntu-toolchain-r-test
           packages:
-            - clang
-            - clang-format-3.8  # for style checks
+            - clang-3.9
+            - clang-format-3.9  # for style checks
             - cmake
             - g++-multilib
             - gcc-multilib
@@ -85,7 +86,7 @@ before_script:
   - popd
 
   # Get git-clang-format
-  - mkdir $HOME/bin
+  - if [ ! -d "$HOME/bin" ]; then mkdir $HOME/bin; fi
   - curl -L https://llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format -o $HOME/bin/git-clang-format
   - chmod 0755 $HOME/bin/git-clang-format
   - export PATH="$HOME/bin:$PATH"
