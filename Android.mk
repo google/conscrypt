@@ -250,7 +250,6 @@ endif
 
 # Conscrypt native library for host
 include $(CLEAR_VARS)
-LOCAL_CLANG := true
 LOCAL_SRC_FILES := $(call all-cpp-files-under,common/src/jni/main/cpp)
 LOCAL_C_INCLUDES += \
         external/openssl/include \
