@@ -40,6 +40,12 @@ model {
                     }
                 }
             }
+
+            binaries.all {
+                if (toolChain in VisualCpp) {
+                    cppCompiler.define "WIN32_LEAN_AND_MEAN"
+                }
+            }
         }
     }
 
