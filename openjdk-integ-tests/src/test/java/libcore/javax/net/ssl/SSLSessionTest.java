@@ -27,6 +27,7 @@ import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -235,7 +236,8 @@ public class SSLSessionTest extends AbstractSSLTest {
         context.close();
     }
 
-    private static void connect(SSLSocket client, SSLSocket server) {
+    private static void connect(SSLSocket client, SSLSocket server)
+            throws InterruptedException, ExecutionException {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         Future<Void> s = executor.submit(new Callable<Void>() {
             @Override
@@ -252,6 +254,8 @@ public class SSLSessionTest extends AbstractSSLTest {
             }
         });
         executor.shutdown();
+        s.get();
+        c.get();
     }
 
     @Test
