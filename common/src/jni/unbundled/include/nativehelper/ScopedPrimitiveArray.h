@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef SCOPED_PRIMITIVE_ARRAY_H_included
-#define SCOPED_PRIMITIVE_ARRAY_H_included
+#ifndef SCOPEDPRIMITIVEARRAY_H_
+#define SCOPEDPRIMITIVEARRAY_H_
 
-#include "Errors.h"
+#include <conscrypt/errors.h>
 
 // ScopedBooleanArrayRO, ScopedByteArrayRO, ScopedCharArrayRO, ScopedDoubleArrayRO,
 // ScopedFloatArrayRO, ScopedIntArrayRO, ScopedLongArrayRO, and ScopedShortArrayRO provide
@@ -25,7 +25,7 @@
 // access and should be used by default.
 #define INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RO(PRIMITIVE_TYPE, NAME)                   \
     class Scoped##NAME##ArrayRO {                                                     \
-    public:                                                                           \
+     public:                                                                           \
         explicit Scoped##NAME##ArrayRO(JNIEnv* env)                                   \
             : mEnv(env), mJavaArray(nullptr), mRawArray(nullptr) {}                   \
         Scoped##NAME##ArrayRO(JNIEnv* env, PRIMITIVE_TYPE##Array javaArray)           \
@@ -58,7 +58,7 @@
             return static_cast<size_t>(mEnv->GetArrayLength(mJavaArray));             \
         }                                                                             \
                                                                                       \
-    private:                                                                          \
+     private:                                                                          \
         JNIEnv* mEnv;                                                                 \
         PRIMITIVE_TYPE##Array mJavaArray;                                             \
         PRIMITIVE_TYPE* mRawArray;                                                    \
@@ -83,7 +83,7 @@ INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RO(jshort, Short);
 // since they entail a copy back onto the Java heap, and should only be used when necessary.
 #define INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RW(PRIMITIVE_TYPE, NAME)              \
     class Scoped##NAME##ArrayRW {                                                \
-    public:                                                                      \
+     public:                                                                      \
         explicit Scoped##NAME##ArrayRW(JNIEnv* env)                              \
             : mEnv(env), mJavaArray(nullptr), mRawArray(nullptr) {}              \
         Scoped##NAME##ArrayRW(JNIEnv* env, PRIMITIVE_TYPE##Array javaArray)      \
@@ -122,7 +122,7 @@ INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RO(jshort, Short);
             return static_cast<size_t>(mEnv->GetArrayLength(mJavaArray));        \
         }                                                                        \
                                                                                  \
-    private:                                                                     \
+     private:                                                                     \
         JNIEnv* mEnv;                                                            \
         PRIMITIVE_TYPE##Array mJavaArray;                                        \
         PRIMITIVE_TYPE* mRawArray;                                               \
@@ -141,4 +141,4 @@ INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RW(jshort, Short);
 
 #undef INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RW
 
-#endif  // SCOPED_PRIMITIVE_ARRAY_H_included
+#endif  // SCOPEDPRIMITIVEARRAY_H_

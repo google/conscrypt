@@ -99,6 +99,59 @@ task platformJar(type: Jar) {
     from sourceSets.platform.output
 }
 
+if (isExecutableOnPath('cpplint')) {
+    task cpplint(type: Exec) {
+        executable = 'cpplint'
+
+        // TODO(nmittler): Is there a better way of getting the JNI sources?
+        def pattern = ['**/*.cc', '**/*.h']
+        def sourceFiles = fileTree(dir: jniSourceDir, includes: pattern).asPath.tokenize(':')
+        // Adding roots so that class #ifdefs don't require full path from the project root.
+        args = sourceFiles
+
+        // Capture stderr from the process
+        errorOutput = new ByteArrayOutputStream();
+
+        // Need to ignore exit value so that doLast will execute.
+        ignoreExitValue = true
+
+        doLast {
+            // Create the report file.
+            def reportDir = file("${buildDir}/cpplint")
+            reportDir.mkdirs();
+            def reportFile = new File(reportDir, "report.txt")
+            def reportStream = new FileOutputStream(reportFile)
+
+            try {
+                // Check for failure
+                if (execResult != null) {
+                    execResult.assertNormalExitValue()
+                }
+            } catch (Exception e) {
+                // The process failed - get the error report from the stderr.
+                String report = errorOutput.toString();
+
+                // Write the report to the console.
+                System.err.println(report)
+
+                // Also write the report file.
+                reportStream.write(report.bytes);
+
+                // Extension method cpplint.output() can be used to obtain the report
+                ext.output = {
+                    return report
+                }
+
+                // Rethrow the exception to terminate the build.
+                throw e;
+            } finally {
+                reportStream.close();
+            }
+        }
+    }
+    check.dependsOn cpplint
+}
+
 configurations {
     publicApiDocs
     platform
@@ -258,7 +311,7 @@ model {
                 cpp {
                     source {
                         srcDirs "$jniSourceDir/main/cpp"
-                        include "**/*.cpp"
+                        include "**/*.cc"
                     }
                 }
             }
@@ -389,6 +442,22 @@ model {
             binary.tasks.build.dependsOn stripTask
         }
     }
+}
+
+boolean isExecutableOnPath(executable) {
+    FilenameFilter filter = new FilenameFilter() {
+        @Override
+        boolean accept(File dir, String name) {
+            return executable.equals(name);
+        }
+    }
+    for(String folder : System.getenv('PATH').split("" + File.pathSeparatorChar)) {
+        File[] files = file(folder).listFiles(filter)
+        if (files != null && files.size() > 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 String nativeResourcesDir(nativeClassifier) {

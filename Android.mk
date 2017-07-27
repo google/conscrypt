@@ -60,7 +60,7 @@ core_cppflags := -Wall -Wextra -Werror -Wunused -fvisibility=hidden
 #
 
 include $(CLEAR_VARS)
-LOCAL_SRC_FILES := constants/src/gen/cpp/generate_constants.cpp
+LOCAL_SRC_FILES := constants/src/gen/cpp/generate_constants.cc
 LOCAL_MODULE := conscrypt_generate_constants
 LOCAL_SHARED_LIBRARIES := libcrypto libssl
 include $(BUILD_HOST_EXECUTABLE)

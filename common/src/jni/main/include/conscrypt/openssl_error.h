@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_OPENSSLERROR_H_
-#define CONSCRYPT_OPENSSLERROR_H_
+#ifndef CONSCRYPT_OPENSSL_ERROR_H_
+#define CONSCRYPT_OPENSSL_ERROR_H_
 
 #include <openssl/ssl.h>
 
@@ -30,7 +30,7 @@ namespace conscrypt {
  * argument to things that free the error stack state as a side-effect.
  */
 class OpenSslError {
-public:
+ public:
     OpenSslError() : sslError_(SSL_ERROR_NONE), released_(false) {}
 
     OpenSslError(SSL* ssl, int returnCode) : sslError_(SSL_ERROR_NONE), released_(false) {
@@ -60,11 +60,11 @@ public:
         return sslError_;
     }
 
-private:
+ private:
     int sslError_;
     bool released_;
 };
 
 }  // namespace conscrypt
 
-#endif  // CONSCRYPT_OPENSSLERROR_H_
+#endif  // CONSCRYPT_OPENSSL_ERROR_H_

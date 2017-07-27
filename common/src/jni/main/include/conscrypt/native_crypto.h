@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_NATIVECRYPTO_H_
-#define CONSCRYPT_NATIVECRYPTO_H_
+#ifndef CONSCRYPT_NATIVE_CRYPTO_H_
+#define CONSCRYPT_NATIVE_CRYPTO_H_
 
 #include <jni.h>
 
@@ -25,17 +25,17 @@ namespace conscrypt {
  * Provides registration support for all native methods exported by Conscrypt.
  */
 class NativeCrypto {
-private:
-    NativeCrypto() {}
-    ~NativeCrypto() {}
-
-public:
+ public:
     /**
      * Register all native JNI methods exported by Conscrypt.
      */
     static void registerNativeMethods(JNIEnv* env);
+
+ private:
+    NativeCrypto() {}
+    ~NativeCrypto() {}
 };
 
 }  // namespace conscrypt
 
-#endif  // CONSCRYPT_NATIVECRYPTO_H_
+#endif  // CONSCRYPT_NATIVE_CRYPTO_H_

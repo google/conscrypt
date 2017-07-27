@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_APPDATA_H_
-#define CONSCRYPT_APPDATA_H_
-
-#include "NetFd.h"
-#include "NetworkUtil.h"
-#include "Trace.h"
-#include "compat.h"
+#ifndef CONSCRYPT_APP_DATA_H_
+#define CONSCRYPT_APP_DATA_H_
 
 #include <jni.h>
-#include <mutex>
+#include <mutex>  // NOLINT(build/c++11)
+#include "conscrypt/compat.h"
+
+#include <NetFd.h>
+#include "conscrypt/network_util.h"
+#include "conscrypt/trace.h"
 
 namespace conscrypt {
 
@@ -94,7 +94,7 @@ namespace conscrypt {
  * SSL_do_handshake, SSL_read, SSL_write, and SSL_shutdown.
  */
 class AppData {
-public:
+ public:
     volatile int aliveAndKicking;
     int waitingThreads;
 #ifdef _WIN32
@@ -111,7 +111,6 @@ public:
     /**
      * Creates the application data context for the SSL*.
      */
-public:
     static AppData* create() {
         std::unique_ptr<AppData> appData(new AppData());
 #ifdef _WIN32
@@ -152,23 +151,6 @@ public:
         clearAlpnCallbackState();
     }
 
-private:
-    AppData()
-        : aliveAndKicking(1),
-          waitingThreads(0),
-          env(nullptr),
-          sslHandshakeCallbacks(nullptr),
-          alpnProtocolsData(nullptr),
-          alpnProtocolsLength(static_cast<size_t>(-1)) {
-#ifdef _WIN32
-        interruptEvent = nullptr;
-#else
-        fdsEmergency[0] = -1;
-        fdsEmergency[1] = -1;
-#endif
-    }
-
-public:
     /**
      * Sets the callback data for ALPN negotiation. Only called in server-mode.
      *
@@ -230,8 +212,24 @@ public:
         sslHandshakeCallbacks = nullptr;
         env = nullptr;
     }
+
+ private:
+    AppData()
+        : aliveAndKicking(1),
+          waitingThreads(0),
+          env(nullptr),
+          sslHandshakeCallbacks(nullptr),
+          alpnProtocolsData(nullptr),
+          alpnProtocolsLength(static_cast<size_t>(-1)) {
+#ifdef _WIN32
+        interruptEvent = nullptr;
+#else
+        fdsEmergency[0] = -1;
+        fdsEmergency[1] = -1;
+#endif
+    }
 };
 
 }  // namespace conscrypt
 
-#endif  // CONSCRYPT_APPDATA_H_
+#endif  // CONSCRYPT_APP_DATA_H_

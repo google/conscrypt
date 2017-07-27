@@ -15,22 +15,24 @@
  */
 
 #include <jni.h>
+#include "conscrypt/macros.h"
 
-#include "CompatibilityCloseMonitor.h"
-#include "JniConstants.h"
-#include "NativeCrypto.h"
-#include "macros.h"
+#include "conscrypt/compatibility_close_monitor.h"
+#include "conscrypt/jni_constants.h"
+#include "conscrypt/native_crypto.h"
 
 #ifndef CONSCRYPT_JNI_VERSION
 #define CONSCRYPT_JNI_VERSION JNI_VERSION_1_6
 #endif  // !CONSCRYPT_JNI_VERSION
 
-using namespace conscrypt;
+using conscrypt::CompatibilityCloseMonitor;
+using conscrypt::JniConstants;
+using conscrypt::NativeCrypto;
 
 // Give client libs everything they need to initialize our JNI
 jint libconscrypt_JNI_OnLoad(JavaVM* vm, void*) {
     JNIEnv* env;
-    if (vm->GetEnv((void**)&env, CONSCRYPT_JNI_VERSION) != JNI_OK) {
+    if (vm->GetEnv(reinterpret_cast<void**>(&env), CONSCRYPT_JNI_VERSION) != JNI_OK) {
         ALOGE("Could not get JNIEnv");
         return JNI_ERR;
     }

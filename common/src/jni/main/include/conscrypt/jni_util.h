@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_JNIUTIL_H_
-#define CONSCRYPT_JNIUTIL_H_
+#ifndef CONSCRYPT_JNI_UTIL_H_
+#define CONSCRYPT_JNI_UTIL_H_
 
 #include <jni.h>
-#include <cstdlib>
 #include <nativehelper/ScopedLocalRef.h>
-#include "compat.h"
-#include "macros.h"
+
+#include <cstdlib>
+#include "conscrypt/compat.h"
+#include "conscrypt/macros.h"
 
 namespace conscrypt {
 
@@ -29,21 +30,19 @@ namespace conscrypt {
  * Utility methods for working with JNI.
  */
 class JniUtil {
-private:
-    JniUtil() {}
-    ~JniUtil() {}
-
-public:
+ public:
     /**
      * Obtains the current thread's JNIEnv
      */
     static inline JNIEnv* getJNIEnv(JavaVM* gJavaVM) {
         JNIEnv* env;
+
 #ifdef ANDROID
-        if (gJavaVM->AttachCurrentThread(&env, nullptr) < 0) {
+        int ret = gJavaVM->AttachCurrentThread(&env, nullptr);
 #else
-        if (gJavaVM->AttachCurrentThread(reinterpret_cast<void**>(&env), nullptr) < 0) {
+        int ret = gJavaVM->AttachCurrentThread(reinterpret_cast<void**>(&env), nullptr);
 #endif
+        if (ret < 0) {
             ALOGE("Could not attach JavaVM to find current JNIEnv");
             return nullptr;
         }
@@ -144,8 +143,12 @@ public:
         return true;
 #endif
     }
+
+ private:
+    JniUtil() {}
+    ~JniUtil() {}
 };
 
 }  // namespace conscrypt
 
-#endif  // CONSCRYPT_JNIUTIL_H_
+#endif  // CONSCRYPT_JNI_UTIL_H_

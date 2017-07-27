@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_SRC_MAIN_NATIVE_COMPAT_H_
-#define CONSCRYPT_SRC_MAIN_NATIVE_COMPAT_H_
+#ifndef CONSCRYPT_COMPAT_H_
+#define CONSCRYPT_COMPAT_H_
 
 #if defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)
 // We want the XSI-compliant strerror_r (it's more portable across NDK versions,
@@ -49,6 +49,7 @@
 #include <winsock2.h>
 #include <cstddef>
 
+// NOLINTNEXTLINE(runtime/int)
 typedef long ssize_t;
 #define strerror_r(errnum, buf, buflen) strerror_s(buf, buflen, errnum)
 #define strcasecmp _stricmp
@@ -100,10 +101,10 @@ inline int gettimeofday(struct timeval *tp, struct timezone *) {
     time = ((uint64_t)file_time.dwLowDateTime);
     time += ((uint64_t)file_time.dwHighDateTime) << 32;
 
-    tp->tv_sec = (long)((time - EPOCH) / 10000000L);
-    tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
+    tp->tv_sec = static_cast<long>((time - EPOCH) / 10000000L);  // NOLINT(runtime/int)
+    tp->tv_usec = static_cast<long>(system_time.wMilliseconds * 1000);  // NOLINT(runtime/int)
     return 0;
 }
 #endif  // _WIN32
 
-#endif  // CONSCRYPT_SRC_MAIN_NATIVE_COMPAT_H_
+#endif  // CONSCRYPT_COMPAT_H_

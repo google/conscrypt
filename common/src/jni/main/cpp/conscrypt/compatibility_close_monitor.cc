@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#include "CompatibilityCloseMonitor.h"
+#include "conscrypt/compatibility_close_monitor.h"
 
 #if defined(CONSCRYPT_UNBUNDLED) && !defined(CONSCRYPT_OPENJDK)
 
 #include <dlfcn.h>
 
-using namespace conscrypt;
+namespace conscrypt {
 
 CompatibilityCloseMonitor::acm_ctor_func CompatibilityCloseMonitor::asyncCloseMonitorConstructor =
         nullptr;
@@ -36,5 +36,7 @@ void CompatibilityCloseMonitor::init() {
                 (acm_dtor_func)dlsym(lib, "_ZN24AsynchronousCloseMonitorD1Ev");
     }
 }
+
+}  // namespace conscrypt
 
 #endif  // CONSCRYPT_UNBUNDLED && !CONSCRYPT_OPENJDK

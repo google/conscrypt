@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_BIOSTREAM_H_
-#define CONSCRYPT_BIOSTREAM_H_
+#ifndef CONSCRYPT_BIO_STREAM_H_
+#define CONSCRYPT_BIO_STREAM_H_
 
 #include <jni.h>
 
-#include "JniConstants.h"
-#include "Trace.h"
+#include "conscrypt/jni_constants.h"
+#include "conscrypt/trace.h"
 
 namespace conscrypt {
 
@@ -28,8 +28,8 @@ namespace conscrypt {
  * BIO for InputStream
  */
 class BioStream {
-public:
-    BioStream(jobject stream) : mEof(false) {
+ public:
+    explicit BioStream(jobject stream) : mEof(false) {
         JNIEnv* env = JniConstants::getJNIEnv();
         mStream = env->NewGlobalRef(stream);
     }
@@ -64,7 +64,7 @@ public:
         return 1;
     }
 
-protected:
+ protected:
     jobject getStream() {
         return mStream;
     }
@@ -73,11 +73,11 @@ protected:
         mEof = eof;
     }
 
-private:
+ private:
     jobject mStream;
     bool mEof;
 };
 
 }  // namespace conscrypt
 
-#endif  // CONSCRYPT_BIOSTREAM_H_
+#endif  // CONSCRYPT_BIO_STREAM_H_
