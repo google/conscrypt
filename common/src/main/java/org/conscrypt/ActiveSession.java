@@ -318,9 +318,10 @@ final class ActiveSession implements SSLSession {
     }
 
     /**
-     * Updates the session after the handshake has completed.
+     * Updates the cached peer certificate after the handshake has completed
+     * (or entered False Start).
      */
-    void onHandshakeCompleted(String peerHost, int peerPort) throws CertificateException {
+    void onPeerCertificateAvailable(String peerHost, int peerPort) throws CertificateException {
         id = null;
         this.localCertificates = ssl.getLocalCertificates();
         if (this.peerCertificates == null) {
