@@ -1,0 +1,61 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.3.3' // jcenter has the latest
+    }
+}
+
+description = 'Conscrypt: Android Benchmarks'
+
+ext {
+    androidHome = "$System.env.ANDROID_HOME"
+    androidSdkInstalled = file("$androidHome").exists()
+    androidVersionCode = 1
+    androidVersionName = "$version"
+    androidMinSdkVersion = 19
+    androidTargetSdkVersion = 25
+    androidBuildToolsVersion = "25.0.0"
+}
+
+if (androidSdkInstalled) {
+    apply plugin: 'com.android.library'
+
+    android {
+        compileSdkVersion androidTargetSdkVersion
+        buildToolsVersion androidBuildToolsVersion
+
+        compileOptions {
+            sourceCompatibility androidMinJavaVersion;
+            targetCompatibility androidMinJavaVersion
+        }
+
+        defaultConfig {
+            minSdkVersion androidMinSdkVersion
+            targetSdkVersion androidTargetSdkVersion
+            versionCode androidVersionCode
+            versionName androidVersionName
+        }
+        sourceSets.main {
+            java {
+                srcDirs = [
+                        "${rootDir}/benchmark-base/src/main/java",
+                        "src/main/java"
+                ]
+            }
+        }
+    }
+
+    dependencies {
+        compile project(':conscrypt-android'),
+                project(':conscrypt-testing')
+    }
+} else {
+    logger.warn('Android SDK has not been detected. The Android Benchmark module will not be built.')
+
+    // Disable all tasks
+    tasks.collect {
+        it.enabled = false
+    }
+}

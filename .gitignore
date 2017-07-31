@@ -26,3 +26,6 @@ bin
 
 # Vim
 .*.sw[nop]
+
+# Vogar benchmarks
+vogar-results/*

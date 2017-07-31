@@ -108,7 +108,7 @@ public final class TestUtils {
      */
     public static Class<?> conscryptClass(String simpleName) throws ClassNotFoundException {
         ClassNotFoundException ex = null;
-        for (String packageName : new String[]{"com.android.org.conscrypt", "org.conscrypt"}) {
+        for (String packageName : new String[]{"org.conscrypt", "com.android.org.conscrypt"}) {
             String name = packageName + "." + simpleName;
             try {
                 return Class.forName(name);
