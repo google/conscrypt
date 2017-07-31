@@ -948,7 +948,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             // The handshake has completed successfully...
 
             // Update the session from the current state of the SSL object.
-            sslSession.onHandshakeCompleted(getPeerHost(), getPeerPort());
+            sslSession.onPeerCertificateAvailable(getPeerHost(), getPeerPort());
 
             finishHandshake();
             return FINISHED;
