@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "conscrypt/compatibility_close_monitor.h"
+#include <conscrypt/compatibility_close_monitor.h>
 
 #if defined(CONSCRYPT_UNBUNDLED) && !defined(CONSCRYPT_OPENJDK)
 

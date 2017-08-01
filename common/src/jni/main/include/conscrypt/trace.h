@@ -18,7 +18,7 @@
 #define CONSCRYPT_TRACE_H_
 
 #include <cstddef>
-#include "conscrypt/macros.h"
+#include <conscrypt/macros.h>
 
 namespace conscrypt {
 

@@ -18,11 +18,10 @@
 #define CONSCRYPT_JNI_UTIL_H_
 
 #include <jni.h>
-#include <nativehelper/ScopedLocalRef.h>
-
 #include <cstdlib>
-#include "conscrypt/compat.h"
-#include "conscrypt/macros.h"
+#include <nativehelper/ScopedLocalRef.h>
+#include <conscrypt/compat.h>
+#include <conscrypt/macros.h>
 
 namespace conscrypt {
 

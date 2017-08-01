@@ -20,7 +20,7 @@
 #include <jni.h>
 #include <openssl/ssl.h>
 
-#include "conscrypt/bio_stream.h"
+#include <conscrypt/bio_stream.h>
 
 namespace conscrypt {
 

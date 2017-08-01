@@ -17,7 +17,7 @@
 #ifndef CONSCRYPT_COMPATIBILITY_CLOSE_MONITOR_H_
 #define CONSCRYPT_COMPATIBILITY_CLOSE_MONITOR_H_
 
-#include "conscrypt/macros.h"
+#include <conscrypt/macros.h>
 
 #ifndef CONSCRYPT_UNBUNDLED
 

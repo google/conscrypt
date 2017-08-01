@@ -19,6 +19,7 @@
 
 #include <conscrypt/macros.h>
 #include <jni.h>
+
 #include <stddef.h>
 
 // A smart pointer that deletes a JNI local reference when it goes out of scope.

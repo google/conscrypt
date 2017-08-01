@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "conscrypt/jni_constants.h"
+#include <conscrypt/jni_constants.h>
 
 namespace conscrypt {
 

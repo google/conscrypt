@@ -14,12 +14,26 @@
  * limitations under the License.
  */
 
-#include "conscrypt/native_crypto.h"
-
+#include <conscrypt/app_data.h>
+#include <conscrypt/bio_input_stream.h>
+#include <conscrypt/bio_output_stream.h>
+#include <conscrypt/bio_stream.h>
+#include <conscrypt/compatibility_close_monitor.h>
+#include <conscrypt/errors.h>
+#include <conscrypt/jni_constants.h>
+#include <conscrypt/jni_util.h>
+#include <conscrypt/native_crypto.h>
+#include <NetFd.h>
+#include <conscrypt/network_util.h>
+#include <conscrypt/openssl_error.h>
 #include <nativehelper/ScopedPrimitiveArray.h>
+#include <conscrypt/scoped_ssl_bio.h>
 #include <nativehelper/ScopedUtfChars.h>
+#include <conscrypt/compat.h>
+#include <conscrypt/macros.h>
 
 #include <limits.h>
+
 #include <openssl/asn1.h>
 #include <openssl/engine.h>
 #include <openssl/err.h>
@@ -30,23 +44,9 @@
 #include <openssl/rsa.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
+#include <openssl/aead.h>
+
 #include <vector>
-
-#include "conscrypt/compat.h"
-#include "conscrypt/macros.h"
-#include <NetFd.h>
-
-#include "conscrypt/app_data.h"
-#include "conscrypt/bio_input_stream.h"
-#include "conscrypt/bio_output_stream.h"
-#include "conscrypt/bio_stream.h"
-#include "conscrypt/compatibility_close_monitor.h"
-#include "conscrypt/errors.h"
-#include "conscrypt/jni_constants.h"
-#include "conscrypt/jni_util.h"
-#include "conscrypt/network_util.h"
-#include "conscrypt/openssl_error.h"
-#include "conscrypt/scoped_ssl_bio.h"
 
 using conscrypt::AppData;
 using conscrypt::BioInputStream;
@@ -4518,7 +4518,8 @@ static jlong NativeCrypto_asn1_read_sequence(JNIEnv* env, jclass, jlong cbsRef) 
     return reinterpret_cast<uintptr_t>(seq.release());
 }
 
-static jboolean NativeCrypto_asn1_read_next_tag_is(JNIEnv*, jclass, jlong cbsRef, jint tag) {
+static jboolean NativeCrypto_asn1_read_next_tag_is(CONSCRYPT_UNUSED JNIEnv* env, jclass,
+                                                   jlong cbsRef, jint tag) {
     CbsHandle* cbs = reinterpret_cast<CbsHandle*>(static_cast<uintptr_t>(cbsRef));
     JNI_TRACE("asn1_read_next_tag_is(%p)", cbs);
 
@@ -4612,7 +4613,8 @@ static jstring NativeCrypto_asn1_read_oid(JNIEnv* env, jclass, jlong cbsRef) {
     return ASN1_OBJECT_to_OID_string(env, obj);
 }
 
-static jboolean NativeCrypto_asn1_read_is_empty(JNIEnv*, jclass, jlong cbsRef) {
+static jboolean NativeCrypto_asn1_read_is_empty(CONSCRYPT_UNUSED JNIEnv* env, jclass,
+                                                jlong cbsRef) {
     CbsHandle* cbs = reinterpret_cast<CbsHandle*>(static_cast<uintptr_t>(cbsRef));
     JNI_TRACE("asn1_read_is_empty(%p)", cbs);
 
@@ -4621,7 +4623,7 @@ static jboolean NativeCrypto_asn1_read_is_empty(JNIEnv*, jclass, jlong cbsRef) {
     return empty;
 }
 
-static void NativeCrypto_asn1_read_free(JNIEnv*, jclass, jlong cbsRef) {
+static void NativeCrypto_asn1_read_free(CONSCRYPT_UNUSED JNIEnv* env, jclass, jlong cbsRef) {
     if (cbsRef == 0) {
         JNI_TRACE("asn1_read_free(0)");
         return;
@@ -4700,8 +4702,7 @@ static void NativeCrypto_asn1_write_uint64(JNIEnv* env, jclass, jlong cbbRef, jl
     CBB* cbb = reinterpret_cast<CBB*>(static_cast<uintptr_t>(cbbRef));
     JNI_TRACE("asn1_write_uint64(%p)", cbb);
 
-    // NOLINTNEXTLINE(runtime/int)
-    if (!CBB_add_asn1_uint64(cbb, static_cast<unsigned long>(data))) {
+    if (!CBB_add_asn1_uint64(cbb, static_cast<uint64_t>(data))) {
         Errors::throwIOException(env, "Error writing ASN.1 encoding");
         return;
     }

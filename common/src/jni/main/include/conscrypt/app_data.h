@@ -17,13 +17,13 @@
 #ifndef CONSCRYPT_APP_DATA_H_
 #define CONSCRYPT_APP_DATA_H_
 
+#include <NetFd.h>
+#include <conscrypt/network_util.h>
+#include <conscrypt/trace.h>
+#include <conscrypt/compat.h>
+
 #include <jni.h>
 #include <mutex>  // NOLINT(build/c++11)
-#include "conscrypt/compat.h"
-
-#include <NetFd.h>
-#include "conscrypt/network_util.h"
-#include "conscrypt/trace.h"
 
 namespace conscrypt {
 

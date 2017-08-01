@@ -18,7 +18,7 @@
 #define CONSCRYPT_JNI_CONSTANTS_H_
 
 #include <jni.h>
-#include "conscrypt/jni_util.h"
+#include <conscrypt/jni_util.h>
 
 namespace conscrypt {
 

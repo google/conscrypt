@@ -19,8 +19,8 @@
 
 #include <jni.h>
 
-#include "conscrypt/jni_constants.h"
-#include "conscrypt/trace.h"
+#include <conscrypt/jni_constants.h>
+#include <conscrypt/trace.h>
 
 namespace conscrypt {
 

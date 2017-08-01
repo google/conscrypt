@@ -17,12 +17,12 @@
 #ifndef CONSCRYPT_ERRORS_H_
 #define CONSCRYPT_ERRORS_H_
 
+#include <conscrypt/compat.h>
+#include <conscrypt/trace.h>
+
 #include <errno.h>
 #include <jni.h>
 #include <openssl/ssl.h>
-#include "conscrypt/compat.h"
-
-#include "conscrypt/trace.h"
 
 namespace conscrypt {
 

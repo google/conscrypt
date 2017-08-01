@@ -17,8 +17,8 @@
 #ifndef SCOPEDUTFCHARS_H_
 #define SCOPEDUTFCHARS_H_
 
-#include <conscrypt/errors.h>
 #include <string.h>
+#include <conscrypt/errors.h>
 
 // A smart pointer that provides read-only access to a Java string's UTF chars.
 // Unlike GetStringUTFChars, we throw NullPointerException rather than abort if

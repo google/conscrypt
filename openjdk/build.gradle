@@ -356,6 +356,7 @@ model {
                     } else if (toolChain in VisualCpp) {
                         cppCompiler.define "DLL_EXPORT"
                         cppCompiler.define "WIN32_LEAN_AND_MEAN"
+                        cppCompiler.define "NOMINMAX"
                         if (building64Bit) {
                             cppCompiler.define "WIN64"
                         }
