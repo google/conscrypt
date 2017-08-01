@@ -26,9 +26,9 @@
 #include "NetFd.h"
 #include "NetworkUtil.h"
 #include "OpenSslError.h"
-#include "ScopedPrimitiveArray.h"
+#include <nativehelper/ScopedPrimitiveArray.h>
 #include "ScopedSslBio.h"
-#include "ScopedUtfChars.h"
+#include <nativehelper/ScopedUtfChars.h>
 #include "compat.h"
 #include "macros.h"
 
