@@ -9300,7 +9300,7 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
     {                                                          \
         /* NOLINTNEXTLINE */                                   \
         (char*)#functionName, (char*)(signature),              \
-        reinterpret_cast<void*>(NativeCrypto##_##functionName) \
+        reinterpret_cast<void*>(NativeCrypto_##functionName) \
     }
 
 #define FILE_DESCRIPTOR "Ljava/io/FileDescriptor;"
