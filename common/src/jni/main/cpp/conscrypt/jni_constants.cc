@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include "JniConstants.h"
+#include <conscrypt/jni_constants.h>
 
-using namespace conscrypt;
+namespace conscrypt {
 
 JavaVM *JniConstants::gJavaVM;
 jclass JniConstants::cryptoUpcallsClass;
@@ -71,3 +71,5 @@ void JniConstants::init(JavaVM *vm, JNIEnv *env) {
     outputStream_writeMethod = JniUtil::getMethodRef(env, outputStreamClass, "write", "([B)V");
     outputStream_flushMethod = JniUtil::getMethodRef(env, outputStreamClass, "flush", "()V");
 }
+
+}  // namespace conscrypt

@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_BIOOUTPUTSTREAM_H_
-#define CONSCRYPT_BIOOUTPUTSTREAM_H_
+#ifndef CONSCRYPT_BIO_OUTPUT_STREAM_H_
+#define CONSCRYPT_BIO_OUTPUT_STREAM_H_
 
 #include <jni.h>
 
-#include "BioStream.h"
+#include <conscrypt/bio_stream.h>
 
 namespace conscrypt {
 
 class BioOutputStream : public BioStream {
-public:
-    BioOutputStream(jobject stream) : BioStream(stream) {}
+ public:
+    explicit BioOutputStream(jobject stream) : BioStream(stream) {}
 
     int write(const char* buf, int len) {
         JNIEnv* env = JniConstants::getJNIEnv();
@@ -59,4 +59,4 @@ public:
 
 }  // namespace conscrypt
 
-#endif  // CONSCRYPT_BIOOUTPUTSTREAM_H_
+#endif  // CONSCRYPT_BIO_OUTPUT_STREAM_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_NETWORKUTIL_H_
-#define CONSCRYPT_NETWORKUTIL_H_
+#ifndef CONSCRYPT_NETWORK_UTIL_H_
+#define CONSCRYPT_NETWORK_UTIL_H_
 
 #ifdef _WIN32
 // Needed for inet_ntop
@@ -26,7 +26,7 @@
 
 #include <io.h>
 #include <winsock2.h>
-#else // !_WIN32
+#else  // !_WIN32
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -36,8 +36,8 @@
 #include <unistd.h>
 #ifdef CONSCRYPT_UNBUNDLED
 #include <dlfcn.h>
-#endif // CONSCRYPT_UNBUNDLED
-#endif // !_WIN32
+#endif  // CONSCRYPT_UNBUNDLED
+#endif  // !_WIN32
 
 namespace conscrypt {
 
@@ -45,17 +45,13 @@ namespace conscrypt {
  * Network utility methods.
  */
 class NetworkUtil {
-private:
-    NetworkUtil() {}
-    ~NetworkUtil() {}
-
-public:
+ public:
     /**
      * Copied from libnativehelper NetworkUtilites.cpp
      */
-    static inline bool setBlocking(int fd, bool blocking) {
+    static bool setBlocking(int fd, bool blocking) {
 #ifdef _WIN32
-        unsigned long flag = blocking ? 0UL : 1UL;
+        unsigned long flag = blocking ? 0UL : 1UL;  // NOLINT(runtime/int)
         int res = ioctlsocket(fd, FIONBIO, &flag);
         if (res != NO_ERROR) {
             JNI_TRACE("ioctlsocket %d failed with error: %d", fd, WSAGetLastError());
@@ -76,8 +72,12 @@ public:
         return fcntl(fd, F_SETFL, flags) != -1;
 #endif
     }
+
+ private:
+    NetworkUtil() {}
+    ~NetworkUtil() {}
 };
 
 }  // namespace conscrypt
 
-#endif  // CONSCRYPT_NETWORKUTIL_H_
+#endif  // CONSCRYPT_NETWORK_UTIL_H_

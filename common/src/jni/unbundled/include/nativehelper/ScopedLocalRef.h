@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef SCOPED_LOCAL_REF_H_included
-#define SCOPED_LOCAL_REF_H_included
+#ifndef SCOPEDLOCALREF_H_
+#define SCOPEDLOCALREF_H_
 
-#include <macros.h>
-#include "jni.h"
+#include <conscrypt/macros.h>
+#include <jni.h>
 
 #include <stddef.h>
 
 // A smart pointer that deletes a JNI local reference when it goes out of scope.
 template<typename T>
 class ScopedLocalRef {
-public:
+ public:
     ScopedLocalRef(JNIEnv* env, T localRef) : mEnv(env), mLocalRef(localRef) {
     }
 
@@ -53,7 +53,7 @@ public:
         return mLocalRef;
     }
 
-private:
+ private:
     JNIEnv* mEnv;
     T mLocalRef;
 
@@ -62,4 +62,4 @@ private:
     void operator=(const ScopedLocalRef&);
 };
 
-#endif  // SCOPED_LOCAL_REF_H_included
+#endif  // SCOPEDLOCALREF_H_

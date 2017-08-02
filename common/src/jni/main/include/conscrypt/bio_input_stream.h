@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_BIOINPUTSTREAM_H_
-#define CONSCRYPT_BIOINPUTSTREAM_H_
+#ifndef CONSCRYPT_BIO_INPUT_STREAM_H_
+#define CONSCRYPT_BIO_INPUT_STREAM_H_
 
 #include <jni.h>
 #include <openssl/ssl.h>
 
-#include "BioStream.h"
+#include <conscrypt/bio_stream.h>
 
 namespace conscrypt {
 
 class BioInputStream : public BioStream {
-public:
+ public:
     BioInputStream(jobject stream, bool isFinite) : BioStream(stream), isFinite_(isFinite) {}
 
     int read(char *buf, int len) {
@@ -47,7 +47,7 @@ public:
         return isFinite_;
     }
 
-private:
+ private:
     const bool isFinite_;
 
     int read_internal(char *buf, int len, jmethodID method) {
@@ -85,11 +85,11 @@ private:
         return read;
     }
 
-public:
+ public:
     /** Length of PEM-encoded line (64) plus CR plus NUL */
     static const int PEM_LINE_LENGTH = 66;
 };
 
 }  // namespace conscrypt
 
-#endif  // CONSCRYPT_BIOINPUTSTREAM_H_
+#endif  // CONSCRYPT_BIO_INPUT_STREAM_H_

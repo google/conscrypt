@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_SRC_MAIN_NATIVE_MACROS_H_
-#define CONSCRYPT_SRC_MAIN_NATIVE_MACROS_H_
+#ifndef CONSCRYPT_MACROS_H_
+#define CONSCRYPT_MACROS_H_
 
 #define TO_STRING1(x) #x
 #define TO_STRING(x) TO_STRING1(x)
@@ -99,7 +99,7 @@
 #endif
 
 #ifndef NELEM
-#define NELEM(x) ((int)(sizeof(x) / sizeof((x)[0])))
+#define NELEM(x) (static_cast<int>(sizeof(x) / sizeof((x)[0])))
 #endif
 
 /**
@@ -214,4 +214,4 @@
 
 #endif  // !ANDROID
 
-#endif  // CONSCRYPT_SRC_MAIN_NATIVE_MACROS_H_
+#endif  // CONSCRYPT_MACROS_H_

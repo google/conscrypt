@@ -14,20 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_JNICONSTANTS_H_
-#define CONSCRYPT_JNICONSTANTS_H_
+#ifndef CONSCRYPT_JNI_CONSTANTS_H_
+#define CONSCRYPT_JNI_CONSTANTS_H_
 
 #include <jni.h>
-#include "JniUtil.h"
+#include <conscrypt/jni_util.h>
 
 namespace conscrypt {
 
 class JniConstants {
-private:
-    JniConstants() {}
-    ~JniConstants() {}
-
-public:
+ public:
     /**
      * Initializes the JNI constants from the environment.
      */
@@ -40,7 +36,7 @@ public:
         return JniUtil::getJNIEnv(gJavaVM);
     }
 
-public:
+ public:
     static JavaVM* gJavaVM;
     static jclass cryptoUpcallsClass;
     static jclass openSslInputStreamClass;
@@ -63,8 +59,12 @@ public:
     static jmethodID openSslInputStream_readLineMethod;
     static jmethodID outputStream_writeMethod;
     static jmethodID outputStream_flushMethod;
+
+ private:
+    JniConstants() {}
+    ~JniConstants() {}
 };
 
 }  // namespace conscrypt
 
-#endif  // CONSCRYPT_JNICONSTANTS_H_
+#endif  // CONSCRYPT_JNI_CONSTANTS_H_

@@ -17,8 +17,8 @@
 #ifndef CONSCRYPT_ERRORS_H_
 #define CONSCRYPT_ERRORS_H_
 
-#include "compat.h"
-#include "Trace.h"
+#include <conscrypt/compat.h>
+#include <conscrypt/trace.h>
 
 #include <errno.h>
 #include <jni.h>
@@ -30,11 +30,7 @@ namespace conscrypt {
  * Utility methods for throwing JNI errors.
  */
 class Errors {
-private:
-    Errors() {}
-    ~Errors() {}
-
-public:
+ public:
     /**
      * Throw an exception with the specified class and an optional message.
      *
@@ -141,7 +137,8 @@ public:
      * Throws a ParsingException with the given string as a message.
      */
     static int throwParsingException(JNIEnv* env, const char* message) {
-        return jniThrowException(env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509CertificateFactory$ParsingException",
+        return jniThrowException(env, TO_STRING(JNI_JARJAR_PREFIX)
+                                 "org/conscrypt/OpenSSLX509CertificateFactory$ParsingException",
                                  message);
     }
 
@@ -278,6 +275,7 @@ public:
         int line;
         const char* data;
         int flags;
+        // NOLINTNEXTLINE(runtime/int)
         unsigned long error = ERR_get_error_line_data(&file, &line, &data, &flags);
         bool result = false;
 
@@ -427,6 +425,7 @@ public:
                 int line;
                 const char* data;
                 int flags;
+                // NOLINTNEXTLINE(runtime/int)
                 unsigned long err = ERR_get_error_line_data(&file, &line, &data, &flags);
                 if (err == 0) {
                     break;
@@ -471,6 +470,10 @@ public:
         ERR_clear_error();
         return ret;
     }
+
+ private:
+    Errors() {}
+    ~Errors() {}
 };
 
 }  // namespace conscrypt

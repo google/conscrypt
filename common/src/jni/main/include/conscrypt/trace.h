@@ -18,16 +18,12 @@
 #define CONSCRYPT_TRACE_H_
 
 #include <cstddef>
-#include "macros.h"
+#include <conscrypt/macros.h>
 
 namespace conscrypt {
 
 class Trace {
-private:
-    Trace() {}
-    ~Trace() {}
-
-public:
+ public:
     static constexpr bool kWithJniTrace = false;
     static constexpr bool kWithJniTraceMd = false;
     static constexpr bool kWithJniTraceData = false;
@@ -65,6 +61,10 @@ public:
 
     // don't overwhelm logcat
     static constexpr std::size_t kWithJniTraceDataChunkSize = 512;
+
+ private:
+    Trace() {}
+    ~Trace() {}
 };  // class Trace
 
 }  // namespace conscrypt
@@ -86,4 +86,4 @@ public:
         debug_print_packet_data(ssl, dir, data, len); \
     }
 
-#endif  // CONSCRYPT_SCOPEDSSLBIO_H_
+#endif  // CONSCRYPT_TRACE_H_

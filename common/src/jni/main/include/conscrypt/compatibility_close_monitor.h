@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_COMPATIBILITYCLOSEMONITOR_H_
-#define CONSCRYPT_COMPATIBILITYCLOSEMONITOR_H_
+#ifndef CONSCRYPT_COMPATIBILITY_CLOSE_MONITOR_H_
+#define CONSCRYPT_COMPATIBILITY_CLOSE_MONITOR_H_
 
-#include "macros.h"
+#include <conscrypt/macros.h>
 
 #ifndef CONSCRYPT_UNBUNDLED
 
@@ -32,11 +32,11 @@ namespace conscrypt {
  * When bundled with Android, this just wraps around AsynchronousCloseMonitor.
  */
 class CompatibilityCloseMonitor {
-private:
+ private:
     AsynchronousCloseMonitor monitor;
 
-public:
-    CompatibilityCloseMonitor(int fd) : monitor(fd) {}
+ public:
+    explicit CompatibilityCloseMonitor(int fd) : monitor(fd) {}
 
     ~CompatibilityCloseMonitor() {}
 
@@ -56,8 +56,8 @@ namespace conscrypt {
  * So we try to look up the symbol from the main library to find it.
  */
 class CompatibilityCloseMonitor {
-public:
-    CompatibilityCloseMonitor(int fd) {
+ public:
+    explicit CompatibilityCloseMonitor(int fd) {
         if (asyncCloseMonitorConstructor != nullptr) {
             asyncCloseMonitorConstructor(objBuffer, fd);
         }
@@ -71,7 +71,7 @@ public:
 
     static void init();
 
-private:
+ private:
     typedef void (*acm_ctor_func)(void*, int);
     typedef void (*acm_dtor_func)(void*);
 
@@ -95,8 +95,8 @@ namespace conscrypt {
  * For OpenJDK, do nothing.
  */
 class CompatibilityCloseMonitor {
-public:
-    CompatibilityCloseMonitor(int) {}
+ public:
+    explicit CompatibilityCloseMonitor(int) {}
 
     ~CompatibilityCloseMonitor() {}
 
@@ -107,4 +107,4 @@ public:
 
 #endif  // CONSCRYPT_UNBUNDLED && CONSCRYPT_OPENJDK
 
-#endif  // CONSCRYPT_COMPATIBILITYCLOSEMONITOR_H_
+#endif  // CONSCRYPT_COMPATIBILITY_CLOSE_MONITOR_H_
