@@ -55,7 +55,7 @@ public class CaliperEngineWrapBenchmark {
     public int c_message;
 
     @Param
-    public EngineType d_engine;
+    public AndroidEngineType d_engine;
 
     private EngineWrapBenchmark benchmark;
 

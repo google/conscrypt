@@ -156,36 +156,4 @@ public final class EngineWrapBenchmark {
                             src.limit(), result.bytesConsumed()));
         }
     }
-
-    /**
-     * A simple main for profiling.
-     */
-    public static void main(String[] args) throws Exception {
-        EngineWrapBenchmark bm = new EngineWrapBenchmark(new Config() {
-            @Override
-            public BufferType bufferType() {
-                return BufferType.HEAP;
-            }
-
-            @Override
-            public EngineType engineType() {
-                return EngineType.CONSCRYPT_UNPOOLED;
-            }
-
-            @Override
-            public int messageSize() {
-                return 512;
-            }
-
-            @Override
-            public String cipher() {
-                return TestUtils.TEST_CIPHER;
-            }
-        });
-
-        // Just run forever for profiling.
-        while (true) {
-            bm.wrapAndUnwrap();
-        }
-    }
 }

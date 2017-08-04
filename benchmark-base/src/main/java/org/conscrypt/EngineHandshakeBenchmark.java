@@ -93,36 +93,4 @@ public final class EngineHandshakeBenchmark {
         engineType.dispose(client);
         engineType.dispose(server);
     }
-
-    /**
-     * A simple main for profiling.
-     */
-    public static void main(String[] args) throws Exception {
-        EngineHandshakeBenchmark bm = new EngineHandshakeBenchmark(new Config() {
-            @Override
-            public BufferType bufferType() {
-                return BufferType.DIRECT;
-            }
-
-            @Override
-            public EngineType engineType() {
-                return EngineType.CONSCRYPT_UNPOOLED;
-            }
-
-            @Override
-            public String cipher() {
-                return TestUtils.TEST_CIPHER;
-            }
-
-            @Override
-            public boolean useAlpn() {
-                return false;
-            }
-        });
-
-        // Just run forever for profiling.
-        while (true) {
-            bm.handshake();
-        }
-    }
 }

@@ -33,9 +33,8 @@ public class CaliperAlpnBenchmark {
     @Param
     public BufferType b_buffer;
 
-    // JDK does not support ALPN, so exclude it from the benchmarks.
-    @Param({"CONSCRYPT_UNPOOLED"})
-    public EngineType c_engine;
+    @Param
+    public AndroidEngineType c_engine;
 
     private EngineHandshakeBenchmark benchmark;
 

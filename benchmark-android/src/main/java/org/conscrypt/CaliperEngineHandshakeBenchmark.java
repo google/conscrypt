@@ -51,7 +51,7 @@ public class CaliperEngineHandshakeBenchmark {
     public BufferType b_buffer;
 
     @Param
-    public EngineType c_engine;
+    public AndroidEngineType c_engine;
 
     private EngineHandshakeBenchmark benchmark;
 
