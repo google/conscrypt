@@ -32,9 +32,9 @@
 
 package org.conscrypt;
 
-import static junit.framework.Assert.assertEquals;
 import static org.conscrypt.TestUtils.doEngineHandshake;
 import static org.conscrypt.TestUtils.newTextMessage;
+import static org.junit.Assert.assertEquals;
 
 import java.nio.ByteBuffer;
 import java.util.Locale;

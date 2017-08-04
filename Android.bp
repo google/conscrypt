@@ -26,9 +26,11 @@ cc_defaults {
 
     srcs: [
         "common/src/jni/main/cpp/conscrypt/compatibility_close_monitor.cc",
-        "common/src/jni/main/cpp/conscrypt/jni_constants.cc",
+        "common/src/jni/main/cpp/conscrypt/jniload.cc",
+        "common/src/jni/main/cpp/conscrypt/jniutil.cc",
         "common/src/jni/main/cpp/conscrypt/native_crypto.cc",
-        "common/src/jni/main/cpp/conscrypt/jni_load.cc",
+        "common/src/jni/main/cpp/conscrypt/netutil.cc",
+        "common/src/jni/main/cpp/conscrypt/trace.cc",
     ],
 
     local_include_dirs: [

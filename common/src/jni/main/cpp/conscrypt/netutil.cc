@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_NETWORK_UTIL_H_
-#define CONSCRYPT_NETWORK_UTIL_H_
+#include <conscrypt/netutil.h>
+#include <conscrypt/trace.h>
 
 #ifdef _WIN32
-// Needed for inet_ntop
-#define _WIN32_WINNT _WIN32_WINNT_WIN8
-#include <ws2ipdef.h>
-#include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
-
-#include <io.h>
 #include <winsock2.h>
 #else  // !_WIN32
 #include <arpa/inet.h>
@@ -40,44 +34,34 @@
 #endif  // !_WIN32
 
 namespace conscrypt {
+namespace netutil {
 
 /**
- * Network utility methods.
+ * Copied from libnativehelper NetworkUtilites.cpp
  */
-class NetworkUtil {
- public:
-    /**
-     * Copied from libnativehelper NetworkUtilites.cpp
-     */
-    static bool setBlocking(int fd, bool blocking) {
+bool setBlocking(int fd, bool blocking) {
 #ifdef _WIN32
-        unsigned long flag = blocking ? 0UL : 1UL;  // NOLINT(runtime/int)
-        int res = ioctlsocket(fd, FIONBIO, &flag);
-        if (res != NO_ERROR) {
-            JNI_TRACE("ioctlsocket %d failed with error: %d", fd, WSAGetLastError());
-        }
-        return res == NO_ERROR;
+    unsigned long flag = blocking ? 0UL : 1UL;  // NOLINT(runtime/int)
+    int res = ioctlsocket(fd, FIONBIO, &flag);
+    if (res != NO_ERROR) {
+        JNI_TRACE("ioctlsocket %d failed with error: %d", fd, WSAGetLastError());
+    }
+    return res == NO_ERROR;
 #else
-        int flags = fcntl(fd, F_GETFL);
-        if (flags == -1) {
-            return false;
-        }
-
-        if (!blocking) {
-            flags |= O_NONBLOCK;
-        } else {
-            flags &= ~O_NONBLOCK;
-        }
-
-        return fcntl(fd, F_SETFL, flags) != -1;
-#endif
+    int flags = fcntl(fd, F_GETFL);
+    if (flags == -1) {
+        return false;
     }
 
- private:
-    NetworkUtil() {}
-    ~NetworkUtil() {}
-};
+    if (!blocking) {
+        flags |= O_NONBLOCK;
+    } else {
+        flags &= ~O_NONBLOCK;
+    }
 
+    return fcntl(fd, F_SETFL, flags) != -1;
+#endif
+}
+
+}  // namespace netutil
 }  // namespace conscrypt
-
-#endif  // CONSCRYPT_NETWORK_UTIL_H_

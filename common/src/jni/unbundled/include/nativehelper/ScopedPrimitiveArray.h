@@ -17,7 +17,7 @@
 #ifndef SCOPEDPRIMITIVEARRAY_H_
 #define SCOPEDPRIMITIVEARRAY_H_
 
-#include <conscrypt/errors.h>
+#include <conscrypt/jniutil.h>
 
 // ScopedBooleanArrayRO, ScopedByteArrayRO, ScopedCharArrayRO, ScopedDoubleArrayRO,
 // ScopedFloatArrayRO, ScopedIntArrayRO, ScopedLongArrayRO, and ScopedShortArrayRO provide
@@ -31,7 +31,7 @@
         Scoped##NAME##ArrayRO(JNIEnv* env, PRIMITIVE_TYPE##Array javaArray)           \
             : mEnv(env), mJavaArray(javaArray), mRawArray(nullptr) {                  \
             if (mJavaArray == nullptr) {                                              \
-                conscrypt::Errors::jniThrowNullPointerException(mEnv, nullptr);       \
+                conscrypt::jniutil::jniThrowNullPointerException(mEnv, nullptr);      \
             } else {                                                                  \
                 mRawArray = mEnv->Get##NAME##ArrayElements(mJavaArray, nullptr);      \
             }                                                                         \
@@ -89,7 +89,7 @@ INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RO(jshort, Short);
         Scoped##NAME##ArrayRW(JNIEnv* env, PRIMITIVE_TYPE##Array javaArray)      \
             : mEnv(env), mJavaArray(javaArray), mRawArray(nullptr) {             \
             if (mJavaArray == nullptr) {                                         \
-                conscrypt::Errors::jniThrowNullPointerException(mEnv, nullptr);  \
+                conscrypt::jniutil::jniThrowNullPointerException(mEnv, nullptr); \
             } else {                                                             \
                 mRawArray = mEnv->Get##NAME##ArrayElements(mJavaArray, nullptr); \
             }                                                                    \

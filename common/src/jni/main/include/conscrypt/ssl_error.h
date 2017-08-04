@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-#ifndef CONSCRYPT_OPENSSL_ERROR_H_
-#define CONSCRYPT_OPENSSL_ERROR_H_
+#ifndef CONSCRYPT_SSL_ERROR_H_
+#define CONSCRYPT_SSL_ERROR_H_
 
 #include <openssl/ssl.h>
 
 namespace conscrypt {
 
 /**
- * Manages the freeing of the OpenSSL error stack. This allows you to
+ * Manages the freeing of the SSL error stack. This allows you to
  * instantiate this object during an SSL call that may fail and not worry
  * about manually calling ERR_clear_error() later.
  *
  * As an optimization, you can also call .release() for passing as an
  * argument to things that free the error stack state as a side-effect.
  */
-class OpenSslError {
+class SslError {
  public:
-    OpenSslError() : sslError_(SSL_ERROR_NONE), released_(false) {}
+    SslError() : sslError_(SSL_ERROR_NONE), released_(false) {}
 
-    OpenSslError(SSL* ssl, int returnCode) : sslError_(SSL_ERROR_NONE), released_(false) {
+    SslError(SSL* ssl, int returnCode) : sslError_(SSL_ERROR_NONE), released_(false) {
         reset(ssl, returnCode);
     }
 
-    ~OpenSslError() {
+    ~SslError() {
         if (!released_ && sslError_ != SSL_ERROR_NONE) {
             ERR_clear_error();
         }
@@ -67,4 +67,4 @@ class OpenSslError {
 
 }  // namespace conscrypt
 
-#endif  // CONSCRYPT_OPENSSL_ERROR_H_
+#endif  // CONSCRYPT_SSL_ERROR_H_
