@@ -4,7 +4,6 @@ include ":conscrypt-android-platform"
 include ":conscrypt-android-stub"
 include ":conscrypt-api-doclet"
 include ":conscrypt-benchmark-android"
-include ":conscrypt-benchmark-caliper"
 include ":conscrypt-benchmark-graphs"
 include ":conscrypt-benchmark-jmh"
 include ":conscrypt-benchmark-openjdk"
@@ -20,7 +19,6 @@ project(':conscrypt-android-platform').projectDir = "$rootDir/platform" as File
 project(':conscrypt-android-stub').projectDir = "$rootDir/android-stub" as File
 project(':conscrypt-api-doclet').projectDir = "$rootDir/api-doclet" as File
 project(':conscrypt-benchmark-android').projectDir = "$rootDir/benchmark-android" as File
-project(':conscrypt-benchmark-caliper').projectDir = "$rootDir/benchmark-caliper" as File
 project(':conscrypt-benchmark-graphs').projectDir = "$rootDir/benchmark-graphs" as File
 project(':conscrypt-benchmark-jmh').projectDir = "$rootDir/benchmark-jmh" as File
 project(':conscrypt-benchmark-openjdk').projectDir = "$rootDir/benchmark-openjdk" as File

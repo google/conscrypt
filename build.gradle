@@ -85,6 +85,7 @@ subprojects {
 
         jmhVersion = '1.19'
         libraries = [
+                android_tools: 'com.android.tools.build:gradle:2.3.3',
                 roboelectric: 'org.robolectric:android-all:7.1.0_r7-robolectric-0',
 
                 // Test dependencies.
