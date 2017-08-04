@@ -82,9 +82,13 @@ public final class ClientSocketBenchmark {
         sendingFuture = executor.submit(new Runnable() {
             @Override
             public void run() {
-                Thread thread = Thread.currentThread();
-                while (!stopping && !thread.isInterrupted()) {
-                    client.sendMessage(message);
+                try {
+                    Thread thread = Thread.currentThread();
+                    while (!stopping && !thread.isInterrupted()) {
+                        client.sendMessage(message);
+                    }
+                } finally {
+                    client.flush();
                 }
             }
         });
@@ -92,11 +96,14 @@ public final class ClientSocketBenchmark {
 
     void close() throws Exception {
         stopping = true;
+
+        // Wait for the sending thread to stop.
+        sendingFuture.get(5, TimeUnit.SECONDS);
+
         client.stop();
         server.stop();
         executor.shutdown();
         executor.awaitTermination(5, TimeUnit.SECONDS);
-        sendingFuture.get(5, TimeUnit.SECONDS);
     }
 
     /**
@@ -128,12 +135,12 @@ public final class ClientSocketBenchmark {
         ClientSocketBenchmark bm = new ClientSocketBenchmark(new Config() {
             @Override
             public SocketType socketType() {
-                return SocketType.CONSCRYPT_ENGINE;
+                return SocketType.JDK;
             }
 
             @Override
             public int messageSize() {
-                return 512;
+                return 64;
             }
 
             @Override
