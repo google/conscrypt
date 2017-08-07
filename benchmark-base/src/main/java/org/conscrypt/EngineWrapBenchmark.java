@@ -37,6 +37,7 @@ import static org.conscrypt.TestUtils.newTextMessage;
 import static org.junit.Assert.assertEquals;
 
 import java.nio.ByteBuffer;
+import java.util.Locale;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
@@ -150,40 +151,9 @@ public final class EngineWrapBenchmark {
         }
         if (result.bytesConsumed() != src.limit()) {
             throw new RuntimeException(
-                    String.format("Operation didn't consume all bytes. Expected %d, consumed %d.",
+                    String.format(Locale.US,
+                            "Operation didn't consume all bytes. Expected %d, consumed %d.",
                             src.limit(), result.bytesConsumed()));
-        }
-    }
-
-    /**
-     * A simple main for profiling.
-     */
-    public static void main(String[] args) throws Exception {
-        EngineWrapBenchmark bm = new EngineWrapBenchmark(new Config() {
-            @Override
-            public BufferType bufferType() {
-                return BufferType.HEAP;
-            }
-
-            @Override
-            public EngineType engineType() {
-                return EngineType.CONSCRYPT_POOLED;
-            }
-
-            @Override
-            public int messageSize() {
-                return 512;
-            }
-
-            @Override
-            public String cipher() {
-                return TestUtils.TEST_CIPHER;
-            }
-        });
-
-        // Just run forever for profiling.
-        while (true) {
-            bm.wrapAndUnwrap();
         }
     }
 }

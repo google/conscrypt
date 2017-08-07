@@ -407,6 +407,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
 
     /* @Override */
     @SuppressWarnings("MissingOverride")  // For compilation with Java 7.
+    // noinspection Override
     public void verify(PublicKey key, Provider sigProvider)
             throws CertificateException, NoSuchAlgorithmException, InvalidKeyException,
                    SignatureException {

@@ -44,7 +44,7 @@ public class JmhAlpnBenchmark {
 
   // JDK does not support ALPN, so exclude it from the benchmarks.
   @Param({"CONSCRYPT_UNPOOLED", "CONSCRYPT_POOLED", "NETTY", "NETTY_REF_CNT"})
-  public EngineType c_engine;
+  public OpenJdkEngineType c_engine;
 
   private EngineHandshakeBenchmark benchmark;
 

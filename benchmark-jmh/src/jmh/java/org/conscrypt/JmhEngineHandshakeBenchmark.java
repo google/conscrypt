@@ -59,7 +59,7 @@ public class JmhEngineHandshakeBenchmark {
     public BufferType b_buffer;
 
     @Param
-    public EngineType c_engine;
+    public OpenJdkEngineType c_engine;
 
     private EngineHandshakeBenchmark benchmark;
 
