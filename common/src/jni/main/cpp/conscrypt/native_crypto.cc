@@ -7005,7 +7005,7 @@ static void NativeCrypto_SSL_set_session_creation_enabled(JNIEnv* env, jclass,
 }
 
 static jboolean NativeCrypto_SSL_session_reused(JNIEnv* env, jclass, jlong ssl_address) {
-    SSL* ssl = to_SSL(env, ssl_address, true);
+    SSL* ssl = to_SSL(env, ssl_address, false);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_session_reused", ssl);
     if (ssl == nullptr) {
         return JNI_FALSE;
@@ -7017,7 +7017,7 @@ static jboolean NativeCrypto_SSL_session_reused(JNIEnv* env, jclass, jlong ssl_a
 }
 
 static void NativeCrypto_SSL_accept_renegotiations(JNIEnv* env, jclass, jlong ssl_address) {
-    SSL* ssl = to_SSL(env, ssl_address, true);
+    SSL* ssl = to_SSL(env, ssl_address, false);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_accept_renegotiations", ssl);
     if (ssl == nullptr) {
         return;
@@ -7954,7 +7954,7 @@ static void NativeCrypto_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_address,
 }
 
 static jint NativeCrypto_SSL_get_shutdown(JNIEnv* env, jclass, jlong ssl_address) {
-    const SSL* ssl = to_SSL(env, ssl_address, true);
+    const SSL* ssl = to_SSL(env, ssl_address, false);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_shutdown", ssl);
     if (ssl == nullptr) {
         return 0;
@@ -7969,7 +7969,7 @@ static jint NativeCrypto_SSL_get_shutdown(JNIEnv* env, jclass, jlong ssl_address
  * public static native void SSL_free(long ssl);
  */
 static void NativeCrypto_SSL_free(JNIEnv* env, jclass, jlong ssl_address) {
-    SSL* ssl = to_SSL(env, ssl_address, true);
+    SSL* ssl = to_SSL(env, ssl_address, false);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_free", ssl);
     if (ssl == nullptr) {
         return;
@@ -7986,7 +7986,7 @@ static void NativeCrypto_SSL_free(JNIEnv* env, jclass, jlong ssl_address) {
  */
 static jbyteArray NativeCrypto_SSL_SESSION_session_id(JNIEnv* env, jclass,
                                                       jlong ssl_session_address) {
-    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
+    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, false);
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_session_id", ssl_session);
     if (ssl_session == nullptr) {
         return nullptr;
@@ -8006,7 +8006,7 @@ static jbyteArray NativeCrypto_SSL_SESSION_session_id(JNIEnv* env, jclass,
  * actual SSL session.
  */
 static jlong NativeCrypto_SSL_SESSION_get_time(JNIEnv* env, jclass, jlong ssl_session_address) {
-    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
+    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, false);
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_get_time", ssl_session);
     if (ssl_session == nullptr) {
         return 0;
@@ -8025,7 +8025,7 @@ static jlong NativeCrypto_SSL_SESSION_get_time(JNIEnv* env, jclass, jlong ssl_se
  * actual SSL session.
  */
 static jlong NativeCrypto_SSL_get_time(JNIEnv* env, jclass, jlong ssl_address) {
-    SSL* ssl = to_SSL(env, ssl_address, true);
+    SSL* ssl = to_SSL(env, ssl_address, false);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_time", ssl);
     if (ssl == nullptr) {
         return 0;
@@ -8049,7 +8049,7 @@ static jlong NativeCrypto_SSL_get_time(JNIEnv* env, jclass, jlong ssl_address) {
  * Sets the timeout on the SSL session.
  */
 static jlong NativeCrypto_SSL_set_timeout(JNIEnv* env, jclass, jlong ssl_address, jlong millis) {
-    SSL* ssl = to_SSL(env, ssl_address, true);
+    SSL* ssl = to_SSL(env, ssl_address, false);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set_timeout", ssl);
     if (ssl == nullptr) {
         return 0;
@@ -8073,7 +8073,7 @@ static jlong NativeCrypto_SSL_set_timeout(JNIEnv* env, jclass, jlong ssl_address
  * Gets the timeout for the SSL session.
  */
 static jlong NativeCrypto_SSL_get_timeout(JNIEnv* env, jclass, jlong ssl_address) {
-    SSL* ssl = to_SSL(env, ssl_address, true);
+    SSL* ssl = to_SSL(env, ssl_address, false);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_timeout", ssl);
     if (ssl == nullptr) {
         return 0;
@@ -8097,7 +8097,7 @@ static jlong NativeCrypto_SSL_get_timeout(JNIEnv* env, jclass, jlong ssl_address
  * Gets the timeout for the SSL session.
  */
 static jlong NativeCrypto_SSL_SESSION_get_timeout(JNIEnv* env, jclass, jlong ssl_session_address) {
-    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
+    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, false);
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_get_timeout", ssl_session);
     if (ssl_session == nullptr) {
         return 0;
@@ -8110,7 +8110,7 @@ static jlong NativeCrypto_SSL_SESSION_get_timeout(JNIEnv* env, jclass, jlong ssl
  * Gets the ID for the SSL session, or null if no session is currently available.
  */
 static jbyteArray NativeCrypto_SSL_session_id(JNIEnv* env, jclass, jlong ssl_address) {
-    SSL* ssl = to_SSL(env, ssl_address, true);
+    SSL* ssl = to_SSL(env, ssl_address, false);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_session_id", ssl);
     if (ssl == nullptr) {
         return nullptr;
@@ -8138,7 +8138,7 @@ static jbyteArray NativeCrypto_SSL_session_id(JNIEnv* env, jclass, jlong ssl_add
  */
 static jstring NativeCrypto_SSL_SESSION_get_version(JNIEnv* env, jclass,
                                                     jlong ssl_session_address) {
-    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
+    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, false);
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_get_version", ssl_session);
     if (ssl_session == nullptr) {
         return nullptr;
@@ -8152,7 +8152,7 @@ static jstring NativeCrypto_SSL_SESSION_get_version(JNIEnv* env, jclass,
  * Gets and returns in a string the cipher negotiated for the SSL session.
  */
 static jstring NativeCrypto_SSL_SESSION_cipher(JNIEnv* env, jclass, jlong ssl_session_address) {
-    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
+    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, false);
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_cipher", ssl_session);
     if (ssl_session == nullptr) {
         return nullptr;
@@ -8167,7 +8167,7 @@ static jstring NativeCrypto_SSL_SESSION_cipher(JNIEnv* env, jclass, jlong ssl_se
  * Increments the reference count of the session.
  */
 static void NativeCrypto_SSL_SESSION_up_ref(JNIEnv* env, jclass, jlong ssl_session_address) {
-    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
+    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, false);
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_up_ref", ssl_session);
     if (ssl_session == nullptr) {
         return;
@@ -8179,7 +8179,7 @@ static void NativeCrypto_SSL_SESSION_up_ref(JNIEnv* env, jclass, jlong ssl_sessi
  * Frees the SSL session.
  */
 static void NativeCrypto_SSL_SESSION_free(JNIEnv* env, jclass, jlong ssl_session_address) {
-    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
+    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, false);
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_free", ssl_session);
     if (ssl_session == nullptr) {
         return;
@@ -8194,7 +8194,7 @@ static void NativeCrypto_SSL_SESSION_free(JNIEnv* env, jclass, jlong ssl_session
  * See apache mod_ssl.
  */
 static jbyteArray NativeCrypto_i2d_SSL_SESSION(JNIEnv* env, jclass, jlong ssl_session_address) {
-    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
+    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, false);
     JNI_TRACE("ssl_session=%p NativeCrypto_i2d_SSL_SESSION", ssl_session);
     if (ssl_session == nullptr) {
         return nullptr;
