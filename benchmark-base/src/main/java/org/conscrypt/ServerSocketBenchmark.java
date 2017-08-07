@@ -52,7 +52,7 @@ public final class ServerSocketBenchmark {
     private static final AtomicLong bytesCounter = new AtomicLong();
     private AtomicBoolean recording = new AtomicBoolean();
 
-    ServerSocketBenchmark(Config config) throws Exception {
+    ServerSocketBenchmark(final Config config) throws Exception {
         recording.set(false);
 
         byte[] message = newTextMessage(config.messageSize());

@@ -139,6 +139,27 @@ LOCAL_REQUIRED_MODULES := libjavacrypto
 LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
 LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_STATIC_JAVA_LIBRARY)
+
+bundled_benchmark_java_files := $(call all-java-files-under,testing/src/main/java)
+bundled_benchmark_java_files := $(foreach j,$(bundled_benchmark_java_files),\
+	$(if $(findstring testing/src/main/java/libcore/,$(j)),,$(j)))
+bundled_benchmark_java_files += $(call all-java-files-under,benchmark-base/src/main/java)
+bundled_benchmark_java_files += $(call all-java-files-under,benchmark-caliper/src/main/java)
+bundled_benchmark_java_files += $(call all-java-files-under,benchmark-android/src/main/java)
+
+# Make the conscrypt-benchmarks library.
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := $(bundled_benchmark_java_files)
+LOCAL_NO_STANDARD_LIBRARIES := true
+LOCAL_JAVA_LIBRARIES := core-oj core-libart junit bouncycastle caliper-api-target
+LOCAL_STATIC_JAVA_LIBRARIES := core-tests-support conscrypt-nojarjar
+LOCAL_JAVACFLAGS := $(local_javac_flags)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := conscrypt-benchmarks
+LOCAL_REQUIRED_MODULES := libjavacrypto
+LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
+include $(BUILD_STATIC_JAVA_LIBRARY)
 endif
 
 # Platform conscrypt crypto JNI library

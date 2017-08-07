@@ -17,7 +17,10 @@ buildscript {
 }
 
 subprojects {
-    def androidProject = (project.name == 'conscrypt-android') || (project.name == 'conscrypt-android-platform')
+    def androidProject = ((project.name == 'conscrypt-android')
+            || (project.name == 'conscrypt-android-platform')
+            || (project.name == 'conscrypt-benchmark-android')
+            || (project.name == 'conscrypt-benchmark-caliper'))
     if (!androidProject) {
         apply plugin: 'java'
         apply plugin: 'cpp'
@@ -82,6 +85,7 @@ subprojects {
 
         jmhVersion = '1.19'
         libraries = [
+                android_tools: 'com.android.tools.build:gradle:2.3.3',
                 roboelectric: 'org.robolectric:android-all:7.1.0_r7-robolectric-0',
 
                 // Test dependencies.

@@ -4,7 +4,7 @@ plugins {
 
 apply plugin: 'idea'
 
-description = 'Conscrypt: OpenJDK Benchmarks'
+description = 'Conscrypt: JMH on OpenJDK Benchmarks'
 
 ext {
     genDir = "${buildDir}/jmh-generated-classes"
@@ -49,7 +49,7 @@ sourceSets {
 }
 
 dependencies {
-    compile project(':conscrypt-benchmark-base'),
+    compile project(':conscrypt-benchmark-openjdk'),
             libraries.junit
 
     jmhGeneratorAnnprocess libraries.jmh_generator_annprocess

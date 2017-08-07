@@ -63,7 +63,7 @@ public class JmhEngineWrapBenchmark {
     public int c_message;
 
     @Param
-    public EngineType d_engine;
+    public OpenJdkEngineType d_engine;
 
     private EngineWrapBenchmark benchmark;
 
