@@ -442,7 +442,9 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                 return;
             }
             if (isHandshakeStarted()) {
+                state = STATE_CLOSED;
                 shutdownAndFreeSslNative();
+                return;
             }
             if (state == STATE_CLOSED_INBOUND) {
                 state = STATE_CLOSED;
