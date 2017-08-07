@@ -56,7 +56,7 @@ final class SslWrapper {
     private final AliasChooser aliasChooser;
     private final PSKCallbacks pskCallbacks;
     private X509Certificate[] localCertificates;
-    private long ssl;
+    private volatile long ssl;
 
     static SslWrapper newInstance(SSLParametersImpl parameters,
             SSLHandshakeCallbacks handshakeCallbacks, AliasChooser chooser,
