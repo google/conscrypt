@@ -125,26 +125,19 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      */
     private String peerHostname;
 
-    /**
-     * Protects {@link #state} and {@link #handshakeFinished}.
-     */
-    private final Object stateLock = new Object();
-
-    // @GuardedBy("stateLock");
+    // @GuardedBy("ssl");
     private int state = STATE_NEW;
     private boolean handshakeFinished;
 
     /**
-     * Protected by synchronizing on stateLock. Starts as 0, set by startHandshake, reset to 0 on
-     * close.
+     * Wrapper around the underlying SSL object.
      */
-    // @GuardedBy("stateLock");
     private final SslWrapper ssl;
 
     /**
      * The BIO used for reading/writing encrypted bytes.
      */
-    // @GuardedBy("stateLock");
+    // @GuardedBy("ssl");
     private final BioWrapper networkBio;
 
     /**
@@ -201,7 +194,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     }
 
     void setBufferAllocator(BufferAllocator bufferAllocator) {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             if (isHandshakeStarted()) {
                 throw new IllegalStateException(
                         "Could not set buffer allocator after the initial handshake has begun.");
@@ -226,7 +219,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      *         started.
      */
     void setChannelIdEnabled(boolean enabled) {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             if (getUseClientMode()) {
                 throw new IllegalStateException("Not allowed in client mode");
             }
@@ -249,7 +242,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      * @throws SSLException if channel ID is available but could not be obtained.
      */
     byte[] getChannelId() throws SSLException {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             if (getUseClientMode()) {
                 throw new IllegalStateException("Not allowed in client mode");
             }
@@ -279,7 +272,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             throw new IllegalStateException("Not allowed in server mode");
         }
 
-        synchronized (stateLock) {
+        synchronized (ssl) {
             if (isHandshakeStarted()) {
                 throw new IllegalStateException("Could not change Channel ID private key "
                         + "after the initial handshake has begun.");
@@ -314,7 +307,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      * Sets the listener for the completion of the TLS handshake.
      */
     void setHandshakeListener(HandshakeListener handshakeListener) {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             if (isHandshakeStarted()) {
                 throw new IllegalStateException(
                         "Handshake listener must be set before starting the handshake.");
@@ -363,7 +356,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public void beginHandshake() throws SSLException {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             beginHandshakeInternal();
         }
     }
@@ -421,7 +414,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public void closeInbound() throws SSLException {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             if (state == STATE_CLOSED || state == STATE_CLOSED_INBOUND) {
                 return;
             }
@@ -435,7 +428,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public void closeOutbound() {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             if (state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND) {
                 return;
             }
@@ -489,7 +482,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public HandshakeStatus getHandshakeStatus() {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             return getHandshakeStatusInternal();
         }
     }
@@ -545,14 +538,14 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      * Work-around to allow this method to be called on older versions of Android.
      */
     SSLSession handshakeSession() {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             return state == STATE_HANDSHAKE_STARTED ? sslSession : null;
         }
     }
 
     @Override
     public SSLSession getSession() {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             if (state < STATE_HANDSHAKE_COMPLETED) {
                 // Return an invalid session with invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
                 return SSLNullSession.getNullSession();
@@ -583,7 +576,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public boolean isInboundDone() {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             return state == STATE_CLOSED || state == STATE_CLOSED_INBOUND
                     || ssl.wasShutdownReceived();
         }
@@ -591,7 +584,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public boolean isOutboundDone() {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             return state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND || ssl.wasShutdownSent();
         }
     }
@@ -618,14 +611,14 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public void setUseClientMode(boolean mode) {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             if (isHandshakeStarted()) {
                 throw new IllegalArgumentException(
                         "Can not change mode after handshake: state == " + state);
             }
             state = STATE_MODE_SET;
+            sslParameters.setUseClientMode(mode);
         }
-        sslParameters.setUseClientMode(mode);
     }
 
     @Override
@@ -635,7 +628,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             try {
                 return unwrap(singleSrcBuffer(src), singleDstBuffer(dst));
             } finally {
@@ -647,7 +640,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer[] dsts) throws SSLException {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             try {
                 return unwrap(singleSrcBuffer(src), dsts);
             } finally {
@@ -659,7 +652,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     @Override
     public SSLEngineResult unwrap(final ByteBuffer src, final ByteBuffer[] dsts, final int offset,
             final int length) throws SSLException {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             try {
                 return unwrap(singleSrcBuffer(src), 0, 1, dsts, offset, length);
             } finally {
@@ -689,7 +682,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         final int srcsEndOffset = srcsOffset + srcsLength;
         final long srcLength = calcSrcsLength(srcs, srcsOffset, srcsEndOffset);
 
-        synchronized (stateLock) {
+        synchronized (ssl) {
             switch (state) {
                 case STATE_MODE_SET:
                     // Begin the handshake implicitly.
@@ -1317,7 +1310,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public final SSLEngineResult wrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             try {
                 return wrap(singleSrcBuffer(src), dst);
             } finally {
@@ -1336,7 +1329,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             throw new ReadOnlyBufferException();
         }
 
-        synchronized (stateLock) {
+        synchronized (ssl) {
             switch (state) {
                 case STATE_MODE_SET:
                     // Begin the handshake implicitly.
@@ -1505,7 +1498,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     @Override
     public void onSSLStateChange(int type, int val) {
-        synchronized (stateLock) {
+        synchronized (ssl) {
             switch (type) {
                 case SSL_CB_HANDSHAKE_START: {
                     // For clients, this will allow the NEED_UNWRAP status to be
