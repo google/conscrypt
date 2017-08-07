@@ -34,14 +34,15 @@ package org.conscrypt;
 
 import com.google.caliper.AfterExperiment;
 import com.google.caliper.BeforeExperiment;
+import com.google.caliper.Benchmark;
 import com.google.caliper.Param;
-import org.conscrypt.EngineWrapBenchmark.Config;
-
 import javax.net.ssl.SSLException;
+import org.conscrypt.EngineWrapBenchmark.Config;
 
 /**
  * Benchmark comparing performance of various engine implementations to conscrypt.
  */
+@SuppressWarnings("unused")
 public class CaliperEngineWrapBenchmark {
     private final CaliperConfig config = new CaliperConfig();
 
@@ -55,7 +56,7 @@ public class CaliperEngineWrapBenchmark {
     public int c_message;
 
     @Param
-    public AndroidEngineType d_engine;
+    public AndroidEngineFactory d_engine;
 
     private EngineWrapBenchmark benchmark;
 
@@ -69,6 +70,7 @@ public class CaliperEngineWrapBenchmark {
         benchmark.teardown();
     }
 
+    @Benchmark
     public void timeWrap(int reps) throws SSLException {
         for (int i = 0; i < reps; ++i) {
             benchmark.wrap();
@@ -89,7 +91,7 @@ public class CaliperEngineWrapBenchmark {
         }
 
         @Override
-        public EngineType engineType() {
+        public EngineFactory engineFactory() {
             return d_engine;
         }
 

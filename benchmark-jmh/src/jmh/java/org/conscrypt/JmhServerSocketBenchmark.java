@@ -29,8 +29,7 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 
 /**
- * Benchmark for comparing performance of server socket implementations. All benchmarks use the
- * standard JDK TLS implementation.
+ * Benchmark for comparing performance of server socket implementations.
  */
 @State(Scope.Benchmark)
 @Fork(1)
@@ -57,7 +56,7 @@ public class JmhServerSocketBenchmark {
     private final JmhConfig config = new JmhConfig();
 
     @Param
-    public SocketType socketType;
+    public OpenJdkEndpointFactory socketType;
 
     @Param
     public ChannelType channelType;
@@ -88,8 +87,14 @@ public class JmhServerSocketBenchmark {
 
     private final class JmhConfig implements Config {
         @Override
-        public SocketType socketType() {
+        public EndpointFactory serverFactory() {
             return socketType;
+        }
+
+        @Override
+        public EndpointFactory clientFactory() {
+            // Use the same client for all benchmarks since we're benchmarks server perf.
+            return OpenJdkEndpointFactory.CONSCRYPT_ENGINE;
         }
 
         @Override
