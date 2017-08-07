@@ -414,8 +414,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
             throw SSLUtils.toSSLHandshakeException(e);
         } finally {
             if (releaseResources) {
-                state = STATE_CLOSED;
-                shutdownAndFreeSslNative();
+                closeAndFreeResources();
             }
         }
     }
@@ -423,16 +422,15 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     @Override
     public void closeInbound() throws SSLException {
         synchronized (stateLock) {
-            if (state == STATE_CLOSED) {
+            if (state == STATE_CLOSED || state == STATE_CLOSED_INBOUND) {
                 return;
             }
-            if (state == STATE_CLOSED_OUTBOUND) {
+            if (isOutboundDone()) {
                 state = STATE_CLOSED;
             } else {
                 state = STATE_CLOSED_INBOUND;
             }
         }
-        // TODO anything else to notify OpenSSL layer?
     }
 
     @Override
@@ -442,15 +440,17 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                 return;
             }
             if (isHandshakeStarted()) {
-                shutdownAndFreeSslNative();
-            }
-            if (state == STATE_CLOSED_INBOUND) {
-                state = STATE_CLOSED;
+                sendSSLShutdown();
+                if (isInboundDone()) {
+                    closeAndFreeResources();
+                } else {
+                    state = STATE_CLOSED_OUTBOUND;
+                }
             } else {
-                state = STATE_CLOSED_OUTBOUND;
+                // Never started the handshake. Just close now.
+                closeAndFreeResources();
             }
         }
-        shutdown();
     }
 
     @Override
@@ -584,21 +584,16 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     @Override
     public boolean isInboundDone() {
         synchronized (stateLock) {
-            if (state == STATE_CLOSED || state == STATE_CLOSED_INBOUND) {
-                return true;
-            }
+            return state == STATE_CLOSED || state == STATE_CLOSED_INBOUND
+                    || ssl.wasShutdownReceived();
         }
-        return ssl.wasShutdownReceived();
     }
 
     @Override
     public boolean isOutboundDone() {
         synchronized (stateLock) {
-            if (state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND) {
-                return true;
-            }
+            return state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND || ssl.wasShutdownSent();
         }
-        return ssl.wasShutdownSent();
     }
 
     @Override
@@ -819,7 +814,8 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                                 }
                                 default: {
                                     // Should never get here.
-                                    throw shutdownWithError("SSL_read");
+                                    sendSSLShutdown();
+                                    throw newSslExceptionWithMessage("SSL_read");
                                 }
                             }
                         }
@@ -843,7 +839,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                 }
 
                 // Nothing to write, just shutdown and throw the exception.
-                shutdown();
+                sendSSLShutdown();
                 throw convertException(e);
             } catch (InterruptedIOException e) {
                 return newResult(bytesConsumed, bytesProduced, handshakeStatus);
@@ -851,7 +847,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                 closeAll();
                 throw convertException(e);
             } catch (IOException e) {
-                shutdown();
+                sendSSLShutdown();
                 throw convertException(e);
             }
 
@@ -938,10 +934,10 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                 }
 
                 // There is no pending alert to write - just shutdown and throw.
-                shutdown();
+                sendSSLShutdown();
                 throw e;
             } catch (IOException e) {
-                shutdown();
+                sendSSLShutdown();
                 throw e;
             }
 
@@ -1305,9 +1301,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         closeInbound();
     }
 
-    private SSLException shutdownWithError(String err) {
-        // There was an internal error -- shutdown
-        shutdown();
+    private SSLException newSslExceptionWithMessage(String err) {
         if (!handshakeFinished) {
             return new SSLException(err);
         }
@@ -1396,7 +1390,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
             if (dst.remaining() < calculateOutNetBufSize(srcsLen)) {
                 return new SSLEngineResult(
-                        Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0, 0);
+                    Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0, 0);
             }
 
             int bytesProduced = 0;
@@ -1409,12 +1403,12 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                     final SSLEngineResult pendingNetResult;
                     // Write plaintext application data to the SSL engine
                     int result = writePlaintextData(
-                            src, min(src.remaining(), SSL3_RT_MAX_PLAIN_LENGTH - bytesConsumed));
+                        src, min(src.remaining(), SSL3_RT_MAX_PLAIN_LENGTH - bytesConsumed));
                     if (result > 0) {
                         bytesConsumed += result;
 
                         pendingNetResult = readPendingBytesFromBIO(
-                                dst, bytesConsumed, bytesProduced, handshakeStatus);
+                            dst, bytesConsumed, bytesProduced, handshakeStatus);
                         if (pendingNetResult != null) {
                             if (pendingNetResult.getStatus() != OK) {
                                 return pendingNetResult;
@@ -1476,7 +1470,8 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                                                                 : NEED_WRAP_CLOSED;
                             default:
                                 // Everything else is considered as error
-                                throw shutdownWithError("SSL_write");
+                                sendSSLShutdown();
+                                throw newSslExceptionWithMessage("SSL_write");
                         }
                     }
                 }
@@ -1596,7 +1591,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         ssl.chooseClientCertificate(keyTypeBytes, asn1DerEncodedPrincipals);
     }
 
-    private void shutdown() {
+    private void sendSSLShutdown() {
         try {
             ssl.shutdown();
         } catch (IOException ignored) {
@@ -1605,15 +1600,8 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         }
     }
 
-    private void shutdownAndFreeSslNative() {
-        try {
-            shutdown();
-        } finally {
-            free();
-        }
-    }
-
-    private void free() {
+    private void closeAndFreeResources() {
+        state = STATE_CLOSED;
         if (!ssl.isClosed()) {
             ssl.close();
             networkBio.close();
@@ -1623,7 +1611,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     @Override
     protected void finalize() throws Throwable {
         try {
-            free();
+            closeAndFreeResources();
         } finally {
             super.finalize();
         }
