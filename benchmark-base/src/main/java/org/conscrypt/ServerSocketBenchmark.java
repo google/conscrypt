@@ -65,8 +65,12 @@ public final class ServerSocketBenchmark {
             @Override
             public void processMessage(byte[] inMessage, int numBytes, OutputStream os) {
                 try {
-                    while (!stopping) {
-                        os.write(inMessage, 0, numBytes);
+                    try {
+                        while (!stopping) {
+                            os.write(inMessage, 0, numBytes);
+                        }
+                    } finally {
+                        os.flush();
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -109,11 +113,12 @@ public final class ServerSocketBenchmark {
 
     void close() throws Exception {
         stopping = true;
-        client.stop();
+        // Stop and wait for sending to complete.
         server.stop();
+        client.stop();
         executor.shutdown();
-        executor.awaitTermination(5, TimeUnit.SECONDS);
         receivingFuture.get(5, TimeUnit.SECONDS);
+        executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 
     void throughput() throws Exception {
