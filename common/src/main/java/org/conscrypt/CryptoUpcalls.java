@@ -23,6 +23,8 @@ import java.security.Provider;
 import java.security.Security;
 import java.security.Signature;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 
@@ -34,9 +36,9 @@ import javax.crypto.NoSuchPaddingException;
  * would not ever call into this class.
  */
 final class CryptoUpcalls {
+    private static final Logger logger = Logger.getLogger(CryptoUpcalls.class.getName());
 
-    private CryptoUpcalls() {
-    }
+    private CryptoUpcalls() {}
 
     private static boolean isOurProvider(Provider p) {
         return p.getClass().getPackage().equals(CryptoUpcalls.class.getPackage());
@@ -53,7 +55,7 @@ final class CryptoUpcalls {
             }
         }
         if (providers.isEmpty()) {
-            System.err.println("Could not find external provider for algorithm: " + algorithm);
+            logger.warning("Could not find external provider for algorithm: " + algorithm);
         }
         return providers;
     }
@@ -90,10 +92,10 @@ final class CryptoUpcalls {
                 signature = null;
             }
         } catch (NoSuchAlgorithmException e) {
-            System.err.println("Unsupported signature algorithm: " + algorithm);
+            logger.warning("Unsupported signature algorithm: " + algorithm);
             return null;
         } catch (InvalidKeyException e) {
-            System.err.println("Preferred provider doesn't support key:");
+            logger.warning("Preferred provider doesn't support key:");
             e.printStackTrace();
             signature = null;
         }
@@ -112,7 +114,7 @@ final class CryptoUpcalls {
                 }
             }
             if (signature == null) {
-                System.err.println("Could not find provider for algorithm: " + algorithm);
+                logger.warning("Could not find provider for algorithm: " + algorithm);
                 return null;
             }
         }
@@ -122,18 +124,18 @@ final class CryptoUpcalls {
             signature.update(message);
             return signature.sign();
         } catch (Exception e) {
-            System.err.println("Exception while signing message with " + javaKey.getAlgorithm()
-                    + " private key:");
-            e.printStackTrace();
+            logger.log(Level.WARNING,
+                    "Exception while signing message with " + javaKey.getAlgorithm()
+                            + " private key:",
+                    e);
             return null;
         }
     }
 
-    static byte[] rsaDecryptWithPrivateKey(PrivateKey javaKey, int openSSLPadding,
-            byte[] input) {
+    static byte[] rsaDecryptWithPrivateKey(PrivateKey javaKey, int openSSLPadding, byte[] input) {
         String keyAlgorithm = javaKey.getAlgorithm();
         if (!"RSA".equals(keyAlgorithm)) {
-            System.err.println("Unexpected key type: " + keyAlgorithm);
+            logger.warning("Unexpected key type: " + keyAlgorithm);
             return null;
         }
 
@@ -149,7 +151,7 @@ final class CryptoUpcalls {
                 jcaPadding = "OAEPPadding";
                 break;
             default:
-                System.err.println("Unsupported OpenSSL/BoringSSL padding: " + openSSLPadding);
+                logger.warning("Unsupported OpenSSL/BoringSSL padding: " + openSSLPadding);
                 return null;
         }
 
@@ -168,11 +170,10 @@ final class CryptoUpcalls {
                 c = null;
             }
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-            System.err.println("Unsupported cipher algorithm: " + transformation);
+            logger.warning("Unsupported cipher algorithm: " + transformation);
             return null;
         } catch (InvalidKeyException e) {
-            System.err.println("Preferred provider doesn't support key:");
-            e.printStackTrace();
+            logger.log(Level.WARNING, "Preferred provider doesn't support key:", e);
             c = null;
         }
 
@@ -185,13 +186,13 @@ final class CryptoUpcalls {
                     c = Cipher.getInstance(transformation, p);
                     c.init(Cipher.DECRYPT_MODE, javaKey);
                     break;
-                } catch (NoSuchAlgorithmException | InvalidKeyException
-                        | NoSuchPaddingException e) {
+                } catch (
+                        NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException e) {
                     c = null;
                 }
             }
             if (c == null) {
-                System.err.println("Could not find provider for algorithm: " + transformation);
+                logger.warning("Could not find provider for algorithm: " + transformation);
                 return null;
             }
         }
@@ -199,9 +200,10 @@ final class CryptoUpcalls {
         try {
             return c.doFinal(input);
         } catch (Exception e) {
-            System.err.println("Exception while decrypting message with " + javaKey.getAlgorithm()
-                    + " private key using " + transformation + ":");
-            e.printStackTrace();
+            logger.log(Level.WARNING,
+                    "Exception while decrypting message with " + javaKey.getAlgorithm()
+                            + " private key using " + transformation + ":",
+                    e);
             return null;
         }
     }
