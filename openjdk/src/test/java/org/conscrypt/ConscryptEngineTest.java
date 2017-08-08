@@ -24,6 +24,8 @@ import static org.conscrypt.TestUtils.initSslContext;
 import static org.conscrypt.TestUtils.newTextMessage;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -121,6 +123,61 @@ public class ConscryptEngineTest {
     private ByteBuffer clientPacketBuffer;
     private ByteBuffer serverApplicationBuffer;
     private ByteBuffer serverPacketBuffer;
+
+    @Test
+    public void closingOutboundBeforeHandshakeShouldCloseAll() throws Exception {
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer(), false);
+        assertFalse(clientEngine.isInboundDone());
+        assertFalse(clientEngine.isOutboundDone());
+        assertFalse(serverEngine.isInboundDone());
+        assertFalse(serverEngine.isOutboundDone());
+
+        clientEngine.closeOutbound();
+        serverEngine.closeOutbound();
+
+        assertTrue(clientEngine.isInboundDone());
+        assertTrue(clientEngine.isOutboundDone());
+        assertTrue(serverEngine.isInboundDone());
+        assertTrue(serverEngine.isOutboundDone());
+    }
+
+    @Test
+    public void closingOutboundAfterHandshakeShouldOnlyCloseOutbound() throws Exception {
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer(), false);
+        doHandshake();
+
+        assertFalse(clientEngine.isInboundDone());
+        assertFalse(clientEngine.isOutboundDone());
+        assertFalse(serverEngine.isInboundDone());
+        assertFalse(serverEngine.isOutboundDone());
+
+        clientEngine.closeOutbound();
+        serverEngine.closeOutbound();
+
+        assertFalse(clientEngine.isInboundDone());
+        assertTrue(clientEngine.isOutboundDone());
+        assertFalse(serverEngine.isInboundDone());
+        assertTrue(serverEngine.isOutboundDone());
+    }
+
+    @Test
+    public void closingInboundShouldOnlyCloseInbound() throws Exception {
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer(), false);
+        doHandshake();
+
+        assertFalse(clientEngine.isInboundDone());
+        assertFalse(clientEngine.isOutboundDone());
+        assertFalse(serverEngine.isInboundDone());
+        assertFalse(serverEngine.isOutboundDone());
+
+        clientEngine.closeInbound();
+        serverEngine.closeInbound();
+
+        assertTrue(clientEngine.isInboundDone());
+        assertFalse(clientEngine.isOutboundDone());
+        assertTrue(serverEngine.isInboundDone());
+        assertFalse(serverEngine.isOutboundDone());
+    }
 
     @Test
     public void mutualAuthWithSameCertsShouldSucceed() throws Exception {
