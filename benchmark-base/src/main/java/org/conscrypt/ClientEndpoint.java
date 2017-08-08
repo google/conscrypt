@@ -16,10 +16,14 @@
 
 package org.conscrypt;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.SocketException;
+import java.nio.channels.ClosedChannelException;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -34,8 +38,7 @@ final class ClientEndpoint {
 
     ClientEndpoint(SSLSocketFactory socketFactory, ChannelType channelType, int port,
             String[] protocols, String[] ciphers) throws IOException {
-        socket = channelType.newClientSocket(
-                socketFactory, InetAddress.getLoopbackAddress(), port);
+        socket = channelType.newClientSocket(socketFactory, InetAddress.getLoopbackAddress(), port);
         socket.setEnabledProtocols(protocols);
         socket.setEnabledCipherSuites(ciphers);
     }
@@ -71,7 +74,18 @@ final class ClientEndpoint {
                 totalBytesRead += bytesRead;
             }
             return totalBytesRead;
-        } catch (Throwable e) {
+        } catch (SSLException e) {
+            if (e.getCause() instanceof EOFException) {
+                return -1;
+            }
+            throw new RuntimeException(e);
+        } catch (ClosedChannelException e) {
+            // Thrown for channel-based sockets. Just treat like EOF.
+            return -1;
+        }  catch (SocketException e) {
+            // The socket was broken. Just treat like EOF.
+            return -1;
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

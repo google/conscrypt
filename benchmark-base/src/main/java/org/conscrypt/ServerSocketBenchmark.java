@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -72,6 +73,8 @@ public final class ServerSocketBenchmark {
                     } finally {
                         os.flush();
                     }
+                } catch (SocketException e) {
+                    // Just ignore.
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -100,6 +103,9 @@ public final class ServerSocketBenchmark {
                 byte[] buffer = new byte[config.messageSize()];
                 while (!stopping && !thread.isInterrupted()) {
                     int numBytes = client.readMessage(buffer);
+                    if (numBytes < 0) {
+                        return;
+                    }
                     assertEquals(config.messageSize(), numBytes);
 
                     // Increment the message counter if we're recording.

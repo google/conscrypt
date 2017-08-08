@@ -713,17 +713,21 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
         }
 
         private int readFromSocket() throws IOException {
-            if (socketChannel != null) {
-                return socketChannel.read(fromSocket);
-            }
-            // Read directly to the underlying array and increment the buffer position if
-            // appropriate.
-            int read = socketInputStream.read(
+            try {
+                if (socketChannel != null) {
+                    return socketChannel.read(fromSocket);
+                }
+                // Read directly to the underlying array and increment the buffer position if
+                // appropriate.
+                int read = socketInputStream.read(
                     fromSocket.array(), fromSocket.position(), fromSocket.remaining());
-            if (read > 0) {
-                fromSocket.position(fromSocket.position() + read);
+                if (read > 0) {
+                    fromSocket.position(fromSocket.position() + read);
+                }
+                return read;
+            } catch (EOFException e) {
+                return -1;
             }
-            return read;
         }
     }
 }
