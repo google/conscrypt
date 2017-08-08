@@ -49,17 +49,31 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 @Internal
 public final class NativeCrypto {
     // --- OpenSSL library initialization --------------------------------------
+    private static final UnsatisfiedLinkError loadError;
     static {
-        NativeCryptoJni.init();
-        clinit();
+        UnsatisfiedLinkError error = null;
+        try {
+            NativeCryptoJni.init();
+            clinit();
+        } catch (UnsatisfiedLinkError t) {
+            // Don't rethrow the error, so that we can later on interrogate the
+            // value of loadError.
+            error = t;
+        }
+        loadError = error;
     }
 
     private native static void clinit();
 
     /**
-     * Does nothing. Just for forcing static initialization.
+     * Checks to see whether or not the native library was successfully loaded. If not, throws
+     * the {@link UnsatisfiedLinkError} that was encountered while attempting to load the library.
      */
-    static void checkAvailability() {}
+    static void checkAvailability() {
+        if (loadError != null) {
+            throw loadError;
+        }
+    }
 
     // --- DSA/RSA public/private key handling functions -----------------------
 

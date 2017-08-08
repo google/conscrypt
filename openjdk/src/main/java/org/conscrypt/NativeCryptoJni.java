@@ -16,126 +16,112 @@
 
 package org.conscrypt;
 
-import java.util.Locale;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import org.conscrypt.NativeLibraryLoader.LoadResult;
 
 /**
  * Helper to initialize the JNI libraries. This version runs when compiled as part of a host OpenJDK
  * build.
  */
 final class NativeCryptoJni {
-    private static final String LIB_NAME = "conscrypt_openjdk_jni";
-    private static final String UNKNOWN = "unknown";
-    private static final String LINUX = "linux";
+    private static final String STATIC_LIB_NAME = "conscrypt";
+    private static final String DYNAMIC_LIB_NAME_PREFIX = "conscrypt_openjdk_jni";
 
-    public static void init() {
-        String os = normalizeOs(System.getProperty("os.name", ""));
-        String arch = normalizeArch(System.getProperty("os.arch", ""));
-
-        // First, try loading the platform-specific library. Platform-specific
-        // libraries will be available if using a tcnative uber jar.
-        //
-        // TODO(davidben): Pick one name for the library and stick with it.
-        String platformSpecific = LIB_NAME + "-" + os + '-' + arch;
-        NativeLibraryLoader.loadFirstAvailable(
-                NativeCrypto.class.getClassLoader(), platformSpecific, LIB_NAME);
+    /**
+     * Attempts to load the shared JNI library. First try loading the platform-specific library
+     * name (e.g. conscrypt_openjdk_jni-linux-x86_64). If not found, try the static library name.
+     *
+     * The static library name is needed in order to support Java 8 static linking
+     * (http://openjdk.java.net/jeps/178), where the library name is used to invoke a
+     * library-specific load method (i.e. {@code JNI_OnLoad_conscrypt}).
+     *
+     * @throws UnsatisfiedLinkError if the library failed to load.
+     */
+    static void init() throws UnsatisfiedLinkError {
+        List<LoadResult> results = new ArrayList<LoadResult>();
+        if (!NativeLibraryLoader.loadFirstAvailable(
+                    classLoader(), results, platformLibName(), STATIC_LIB_NAME)) {
+            logResults(results);
+            throwBestError(results);
+        }
     }
 
     private NativeCryptoJni() {}
 
-    /**
-     * Normalizes the os.name value into the value used by the Maven os plugin
-     * (https://github.com/trustin/os-maven-plugin). This plugin is used to generate
-     * platform-specific
-     * classifiers for artifacts.
-     */
-    private static String normalizeOs(String value) {
-        value = normalize(value);
-        if (value.startsWith("aix")) {
-            return "aix";
+    private static void logResults(List<LoadResult> results) {
+        for (LoadResult result : results) {
+            result.log();
         }
-        if (value.startsWith("hpux")) {
-            return "hpux";
-        }
-        if (value.startsWith("os400")) {
-            // Avoid the names such as os4000
-            if (value.length() <= 5 || !Character.isDigit(value.charAt(5))) {
-                return "os400";
+    }
+
+    private static void throwBestError(List<LoadResult> results) {
+        Collections.sort(results, ErrorComparator.INSTANCE);
+
+        UnsatisfiedLinkError bestError = null;
+        for (LoadResult result : results) {
+            if (bestError == null) {
+                // We're guaranteed that the best (i.e. first) error is an UnsatisifiedLinkError.
+                bestError = (UnsatisfiedLinkError) result.error;
+            } else {
+                // Suppress all of the other errors, so that they're available to the caller if
+                // desired. Note: suppression is only supported on Java 7+.
+                Platform.addSuppressed(bestError, result.error);
             }
         }
-        if (value.startsWith(LINUX)) {
-            return LINUX;
-        }
-        if (value.startsWith("macosx") || value.startsWith("osx")) {
-            return "osx";
-        }
-        if (value.startsWith("freebsd")) {
-            return "freebsd";
-        }
-        if (value.startsWith("openbsd")) {
-            return "openbsd";
-        }
-        if (value.startsWith("netbsd")) {
-            return "netbsd";
-        }
-        if (value.startsWith("solaris") || value.startsWith("sunos")) {
-            return "sunos";
-        }
-        if (value.startsWith("windows")) {
-            return "windows";
-        }
 
-        return UNKNOWN;
+        // We'll always throw here.
+        if (bestError != null) {
+            throw bestError;
+        }
+    }
+
+    private static ClassLoader classLoader() {
+        return NativeCrypto.class.getClassLoader();
+    }
+
+    private static String platformLibName() {
+        return DYNAMIC_LIB_NAME_PREFIX + "-" + osName() + '-' + archName();
+    }
+
+    private static String osName() {
+        return Platform.OS.name().toLowerCase();
+    }
+
+    private static String archName() {
+        return Platform.ARCH.name().toLowerCase();
     }
 
     /**
-     * Normalizes the os.arch value into the value used by the Maven os plugin
-     * (https://github.com/trustin/os-maven-plugin). This plugin is used to generate
-     * platform-specific
-     * classifiers for artifacts.
+     * Sorts the errors in a list in descending order of value. After a list is sorted,
+     * the first element is the most important error.
      */
-    private static String normalizeArch(String value) {
-        value = normalize(value);
-        if (value.matches("^(x8664|amd64|ia32e|em64t|x64)$")) {
-            return "x86_64";
-        }
-        if (value.matches("^(x8632|x86|i[3-6]86|ia32|x32)$")) {
-            return "x86_32";
-        }
-        if (value.matches("^(ia64|itanium64)$")) {
-            return "itanium_64";
-        }
-        if (value.matches("^(sparc|sparc32)$")) {
-            return "sparc_32";
-        }
-        if (value.matches("^(sparcv9|sparc64)$")) {
-            return "sparc_64";
-        }
-        if (value.matches("^(arm|arm32)$")) {
-            return "arm_32";
-        }
-        if ("aarch64".equals(value)) {
-            return "aarch_64";
-        }
-        if (value.matches("^(ppc|ppc32)$")) {
-            return "ppc_32";
-        }
-        if ("ppc64".equals(value)) {
-            return "ppc_64";
-        }
-        if ("ppc64le".equals(value)) {
-            return "ppcle_64";
-        }
-        if ("s390".equals(value)) {
-            return "s390_32";
-        }
-        if ("s390x".equals(value)) {
-            return "s390_64";
-        }
+    private static final class ErrorComparator implements Comparator<LoadResult> {
+        static final ErrorComparator INSTANCE = new ErrorComparator();
 
-        return UNKNOWN;
-    }
+        @Override
+        public int compare(LoadResult o1, LoadResult o2) {
+            Throwable e1 = o1.error;
+            Throwable e2 = o2.error;
 
-    private static String normalize(String value) {
-        return value.toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "");
+            // First, sort by error type.
+            int value1 = e1 instanceof UnsatisfiedLinkError ? 1 : 0;
+            int value2 = e2 instanceof UnsatisfiedLinkError ? 1 : 0;
+            if (value1 != value2) {
+                // Order so that the UnsatisfiedLinkError is first.
+                return value2 - value1;
+            }
+
+            // Both are either link errors or not. Compare the message. Treat messages in
+            // the form "no <libName> in java.library.path" as lower value, since there may be
+            // a more interesting message for a library that was found.
+            String m1 = e1.getMessage();
+            String m2 = e2.getMessage();
+            value1 = m1 != null && m1.contains("java.library.path") ? 0 : 1;
+            value2 = m2 != null && m2.contains("java.library.path") ? 0 : 1;
+            return value2 - value1;
+        }
     }
 }

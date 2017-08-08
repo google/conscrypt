@@ -79,5 +79,9 @@ final class Java7PlatformUtil {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
     }
 
+    static void addSuppressed(Throwable t, Throwable suppressed) {
+        t.addSuppressed(suppressed);
+    }
+
     private Java7PlatformUtil() {}
 }
