@@ -45,7 +45,6 @@ if (androidSdkInstalled) {
         sourceSets.main {
             java {
                 srcDirs = [
-                        "${rootDir}/benchmark-base/src/main/java",
                         "src/main/java"
                 ]
             }
@@ -54,6 +53,7 @@ if (androidSdkInstalled) {
 
     dependencies {
         compile project(':conscrypt-android'),
+                project(':conscrypt-benchmark-base'),
                 project(':conscrypt-testing')
 
         compile 'com.google.caliper:caliper:1.0-beta-2'
@@ -117,6 +117,7 @@ if (androidSdkInstalled) {
                 args '--language=JN'
                 args '--mode=app_process'
                 args 'org.conscrypt.CaliperAlpnBenchmark'
+                args 'org.conscrypt.CaliperClientSocketBenchmark'
                 args 'org.conscrypt.CaliperEngineHandshakeBenchmark'
                 args 'org.conscrypt.CaliperEngineWrapBenchmark'
             }

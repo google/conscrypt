@@ -16,23 +16,17 @@
 package org.conscrypt;
 
 import static org.conscrypt.TestUtils.PROTOCOL_TLS_V1_2;
-import static org.conscrypt.TestUtils.initClientSslContext;
 import static org.conscrypt.TestUtils.initEngine;
-import static org.conscrypt.TestUtils.initServerSslContext;
 
-import java.security.KeyStore.PrivateKeyEntry;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.X509Certificate;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
-import libcore.java.security.TestKeyStore;
 
 /**
  * Enumeration of various types of engines for use with engine-based benchmarks.
  */
 @SuppressWarnings({"ImmutableEnumChecker", "unused"})
-public enum AndroidEngineType implements EngineType {
+public enum AndroidEngineFactory implements EngineFactory {
     CONSCRYPT_UNPOOLED {
         private final SSLContext clientContext = newConscryptClientContext();
         private final SSLContext serverContext = newConscryptServerContext();

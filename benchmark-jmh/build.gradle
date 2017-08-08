@@ -6,7 +6,12 @@ apply plugin: 'idea'
 
 description = 'Conscrypt: JMH on OpenJDK Benchmarks'
 
+evaluationDependsOn(':conscrypt-openjdk')
+
 ext {
+    preferredNativeConfiguration = project(':conscrypt-openjdk').preferredNativeConfiguration
+    preferredNativeFileDir = project(':conscrypt-openjdk').preferredNativeFileDir
+
     genDir = "${buildDir}/jmh-generated-classes"
     jmhInclude = System.getProperty('jmh.include')
     jmhWarmupIterations = System.getProperty('jmh.wi', '10')
@@ -43,14 +48,21 @@ sourceSets {
                 // This shouldn't be needed but seems to help IntelliJ locate
                 // META_INF/BenchmarkList.
                 srcDirs += genDir
+
+                // This shouldn't be needed but seems to help IntelliJ locate the native artifact.
+                srcDirs += preferredNativeFileDir
             }
         }
     }
 }
 
 dependencies {
-    compile project(':conscrypt-benchmark-openjdk'),
-            libraries.junit
+    compile project(':conscrypt-benchmark-base'),
+            // Add the preferred native openjdk configuration for this platform.
+            project(path: ':conscrypt-openjdk', configuration: "$preferredNativeConfiguration"),
+            libraries.junit,
+            libraries.netty_handler,
+            libraries.netty_tcnative
 
     jmhGeneratorAnnprocess libraries.jmh_generator_annprocess
 
@@ -63,7 +75,7 @@ dependencies {
 // Running benchmarks in IntelliJ seems broken without this.
 // See https://github.com/melix/jmh-gradle-plugin/issues/39
 idea.module {
-    scopes.PROVIDED.plus += [ configurations.compile, configurations.jmh ]//, configurations.jmhGeneratorAnnprocess ]
+    scopes.PROVIDED.plus += [ configurations.compile, configurations.jmh ]
 }
 
 // Don't include this artifact in the distribution.

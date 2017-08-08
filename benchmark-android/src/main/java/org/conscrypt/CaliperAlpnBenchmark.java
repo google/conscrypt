@@ -17,6 +17,7 @@
 package org.conscrypt;
 
 import com.google.caliper.BeforeExperiment;
+import com.google.caliper.Benchmark;
 import com.google.caliper.Param;
 import org.conscrypt.EngineHandshakeBenchmark.Config;
 
@@ -24,6 +25,7 @@ import org.conscrypt.EngineHandshakeBenchmark.Config;
  * Cipher benchmarks. Only runs on AES currently because of the combinatorial
  * explosion of the test as it stands.
  */
+@SuppressWarnings("unused")
 public class CaliperAlpnBenchmark {
     private final CaliperConfig config = new CaliperConfig();
 
@@ -34,7 +36,7 @@ public class CaliperAlpnBenchmark {
     public BufferType b_buffer;
 
     @Param
-    public AndroidEngineType c_engine;
+    public AndroidEngineFactory c_engine;
 
     private EngineHandshakeBenchmark benchmark;
 
@@ -43,6 +45,7 @@ public class CaliperAlpnBenchmark {
         benchmark = new EngineHandshakeBenchmark(config);
     }
 
+    @Benchmark
     public void timeHandshake(int reps) throws Exception {
         for (int i = 0; i < reps; ++i) {
             benchmark.handshake();
@@ -56,7 +59,7 @@ public class CaliperAlpnBenchmark {
         }
 
         @Override
-        public EngineType engineType() {
+        public EngineFactory engineFactory() {
             return c_engine;
         }
 

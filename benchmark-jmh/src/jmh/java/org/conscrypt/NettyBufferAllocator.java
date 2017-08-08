@@ -23,15 +23,15 @@ import java.nio.ByteBuffer;
 /**
  * A {@link BufferAllocator} that is backed by a Netty buffer pool.
  */
-final class PooledAllocator extends BufferAllocator {
+final class NettyBufferAllocator extends BufferAllocator {
     private static final ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
-    private static final PooledAllocator instance = new PooledAllocator();
+    private static final NettyBufferAllocator instance = new NettyBufferAllocator();
 
-    static PooledAllocator getInstance() {
+    static NettyBufferAllocator getInstance() {
         return instance;
     }
 
-    private PooledAllocator() {}
+    private NettyBufferAllocator() {}
 
     @Override
     public AllocatedBuffer allocateDirectBuffer(int capacity) {
@@ -44,8 +44,7 @@ final class PooledAllocator extends BufferAllocator {
 
         private ByteBufAdapter(ByteBuf nettyBuffer) {
             this.nettyBuffer = nettyBuffer;
-            nettyBuffer.writerIndex(nettyBuffer.capacity());
-            this.buffer = nettyBuffer.nioBuffer();
+            this.buffer = nettyBuffer.nioBuffer(0, nettyBuffer.capacity());
         }
 
         @Override
