@@ -15,17 +15,12 @@
  */
 package org.conscrypt;
 
-import java.security.NoSuchAlgorithmException;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
-import static org.conscrypt.TestUtils.PROTOCOL_TLS_V1_2;
-import static org.conscrypt.TestUtils.initEngine;
-
 /**
- * Enumeration of various types of engines for use with engine-based benchmarks.
+ * Factory for {@link SSLEngine} instances.
  */
-public interface EngineType {
+interface EngineFactory {
 
     SSLEngine newClientEngine(String cipher, boolean useAlpn);
 

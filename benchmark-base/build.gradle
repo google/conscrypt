@@ -1,0 +1,12 @@
+description = 'Conscrypt: Base library for benchmarks'
+
+dependencies {
+    compile project(':conscrypt-openjdk'),
+            project(':conscrypt-testing'),
+            libraries.junit
+}
+
+
+// Don't include this artifact in the distribution.
+tasks.install.enabled = false
+tasks.uploadArchives.enabled = false;

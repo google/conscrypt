@@ -33,14 +33,14 @@
 package org.conscrypt;
 
 import com.google.caliper.BeforeExperiment;
+import com.google.caliper.Benchmark;
 import com.google.caliper.Param;
 import org.conscrypt.EngineHandshakeBenchmark.Config;
-
-import javax.net.ssl.SSLException;
 
 /**
  * Benchmark comparing handshake performance of various engine implementations.
  */
+@SuppressWarnings("unused")
 public class CaliperEngineHandshakeBenchmark {
     private final CaliperConfig config = new CaliperConfig();
 
@@ -51,7 +51,7 @@ public class CaliperEngineHandshakeBenchmark {
     public BufferType b_buffer;
 
     @Param
-    public AndroidEngineType c_engine;
+    public AndroidEngineFactory c_engine;
 
     private EngineHandshakeBenchmark benchmark;
 
@@ -60,6 +60,7 @@ public class CaliperEngineHandshakeBenchmark {
         benchmark = new EngineHandshakeBenchmark(config);
     }
 
+    @Benchmark
     public void timeHandshake(int reps) throws Exception {
         for (int i = 0; i < reps; ++i) {
             benchmark.handshake();
@@ -73,7 +74,7 @@ public class CaliperEngineHandshakeBenchmark {
         }
 
         @Override
-        public EngineType engineType() {
+        public EngineFactory engineFactory() {
             return c_engine;
         }
 

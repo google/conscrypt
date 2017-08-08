@@ -57,7 +57,7 @@ public class JmhClientSocketBenchmark {
     private final JmhConfig config = new JmhConfig();
 
     @Param
-    public SocketType socketType;
+    public OpenJdkEndpointFactory socketType;
 
     @Param({"64", "512", "4096"})
     public int messageSize;
@@ -88,8 +88,14 @@ public class JmhClientSocketBenchmark {
 
     private final class JmhConfig implements Config {
         @Override
-        public SocketType socketType() {
+        public EndpointFactory clientFactory() {
             return socketType;
+        }
+
+        @Override
+        public EndpointFactory serverFactory() {
+            // Use the same server for all benchmarks since we're benchmarks client perf.
+            return OpenJdkEndpointFactory.CONSCRYPT_ENGINE;
         }
 
         @Override

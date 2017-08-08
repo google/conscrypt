@@ -59,7 +59,7 @@ public class JmhEngineHandshakeBenchmark {
     public BufferType b_buffer;
 
     @Param
-    public OpenJdkEngineType c_engine;
+    public OpenJdkEngineFactory c_engine;
 
     private EngineHandshakeBenchmark benchmark;
 
@@ -81,7 +81,7 @@ public class JmhEngineHandshakeBenchmark {
         }
 
         @Override
-        public EngineType engineType() {
+        public EngineFactory engineFactory() {
             return c_engine;
         }
 

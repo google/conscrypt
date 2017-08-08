@@ -35,7 +35,8 @@ public final class ClientSocketBenchmark {
      * Provider for the benchmark configuration
      */
     interface Config {
-        SocketType socketType();
+        EndpointFactory clientFactory();
+        EndpointFactory serverFactory();
         int messageSize();
         String cipher();
         ChannelType channelType();
@@ -57,7 +58,7 @@ public final class ClientSocketBenchmark {
         message = newTextMessage(config.messageSize());
 
         // Always use the same server for consistency across the benchmarks.
-        server = SocketType.CONSCRYPT_ENGINE.newServer(
+        server = config.serverFactory().newServer(
                 ChannelType.CHANNEL, config.messageSize(), getProtocols(), ciphers(config));
 
         server.setMessageProcessor(new ServerEndpoint.MessageProcessor() {
@@ -71,7 +72,7 @@ public final class ClientSocketBenchmark {
         });
         Future<?> connectedFuture = server.start();
 
-        client = config.socketType().newClient(
+        client = config.clientFactory().newClient(
             config.channelType(), server.port(), getProtocols(), ciphers(config));
         client.start();
 
@@ -107,7 +108,22 @@ public final class ClientSocketBenchmark {
     }
 
     /**
-     * Simple benchmark for throughput.
+     * Simple benchmark for the amount of time to send a given number of messages (used by
+     * Caliper).
+     */
+    void time(final int numMessages) throws Exception {
+        reset();
+        recording.set(true);
+
+        while (bytesCounter.get() < numMessages) {
+            Thread.sleep(50);
+        }
+
+        recording.set(false);
+    }
+
+    /**
+     * Simple benchmark for throughput (used by JMH).
      */
     void throughput() throws Exception {
         recording.set(true);
@@ -126,37 +142,5 @@ public final class ClientSocketBenchmark {
 
     private String[] ciphers(Config config) {
         return new String[] {config.cipher()};
-    }
-
-    /**
-     * A simple main for profiling.
-     */
-    public static void main(String[] args) throws Exception {
-        ClientSocketBenchmark bm = new ClientSocketBenchmark(new Config() {
-            @Override
-            public SocketType socketType() {
-                return SocketType.JDK;
-            }
-
-            @Override
-            public int messageSize() {
-                return 64;
-            }
-
-            @Override
-            public String cipher() {
-                return TestUtils.TEST_CIPHER;
-            }
-
-            @Override
-            public ChannelType channelType() {
-                return ChannelType.CHANNEL;
-            }
-        });
-
-        // Just run forever for profiling.
-        while (true) {
-            bm.throughput();
-        }
     }
 }

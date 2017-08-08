@@ -43,7 +43,7 @@ import libcore.java.security.TestKeyStore;
  * Enumeration of various types of engines for use with engine-based benchmarks.
  */
 @SuppressWarnings({"ImmutableEnumChecker", "unused"})
-public enum OpenJdkEngineType implements EngineType {
+public enum OpenJdkEngineFactory implements EngineFactory {
     JDK {
         private final SSLContext clientContext = initClientSslContext(newContext());
         private final SSLContext serverContext = initServerSslContext(newContext());
@@ -111,7 +111,7 @@ public enum OpenJdkEngineType implements EngineType {
         @Override
         public SSLEngine newClientEngine(String cipher, boolean useAlpn) {
             SSLEngine engine = initEngine(clientContext.createSSLEngine(), cipher, true);
-            Conscrypt.Engines.setBufferAllocator(engine, PooledAllocator.getInstance());
+            Conscrypt.Engines.setBufferAllocator(engine, NettyBufferAllocator.getInstance());
             if (useAlpn) {
                 Conscrypt.Engines.setAlpnProtocols(
                         engine, new String[] {ApplicationProtocolNames.HTTP_2});
@@ -122,7 +122,7 @@ public enum OpenJdkEngineType implements EngineType {
         @Override
         public SSLEngine newServerEngine(String cipher, boolean useAlpn) {
             SSLEngine engine = initEngine(serverContext.createSSLEngine(), cipher, false);
-            Conscrypt.Engines.setBufferAllocator(engine, PooledAllocator.getInstance());
+            Conscrypt.Engines.setBufferAllocator(engine, NettyBufferAllocator.getInstance());
             if (useAlpn) {
                 Conscrypt.Engines.setAlpnProtocols(
                         engine, new String[] {ApplicationProtocolNames.HTTP_2});
