@@ -149,7 +149,14 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         synchronized (sessions) {
             // Set the timeout on this context.
             timeout = seconds;
-            NativeCrypto.SSL_CTX_set_timeout(sslCtxNativePointer, seconds);
+            // setSessionTimeout(0) is defined to remove the timeout, but passing 0
+            // to SSL_CTX_set_timeout in BoringSSL sets it to the default timeout instead.
+            // Pass INT_MAX seconds (68 years), since that's equivalent for practical purposes.
+            if (seconds > 0) {
+                NativeCrypto.SSL_CTX_set_timeout(sslCtxNativePointer, seconds);
+            } else {
+                NativeCrypto.SSL_CTX_set_timeout(sslCtxNativePointer, Integer.MAX_VALUE);
+            }
 
             Iterator<SslSessionWrapper> i = sessions.values().iterator();
             while (i.hasNext()) {
