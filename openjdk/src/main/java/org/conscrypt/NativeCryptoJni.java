@@ -16,9 +16,7 @@
 
 package org.conscrypt;
 
-import java.util.LinkedHashSet;
 import java.util.Locale;
-import java.util.Set;
 
 /**
  * Helper to initialize the JNI libraries. This version runs when compiled as part of a host OpenJDK
@@ -33,21 +31,13 @@ final class NativeCryptoJni {
         String os = normalizeOs(System.getProperty("os.name", ""));
         String arch = normalizeArch(System.getProperty("os.arch", ""));
 
-        Set<String> libNames = new LinkedHashSet<String>(3);
         // First, try loading the platform-specific library. Platform-specific
         // libraries will be available if using a tcnative uber jar.
-        libNames.add(LIB_NAME + "-" + os + '-' + arch);
-        if (LINUX.equalsIgnoreCase(os)) {
-            // Fedora SSL lib so naming (libssl.so.10 vs libssl.so.1.0.0).
-            // Note: This is only needed if the jni lib is dynamically linked to OpenSSL.
-            // BoringSSL does not have this problem since it's always statically linked.
-            libNames.add(LIB_NAME + "-" + os + '-' + arch + "-fedora");
-        }
-        // finally the default library.
-        libNames.add(LIB_NAME);
-
+        //
+        // TODO(davidben): Pick one name for the library and stick with it.
+        String platformSpecific = LIB_NAME + "-" + os + '-' + arch;
         NativeLibraryLoader.loadFirstAvailable(
-                NativeCrypto.class.getClassLoader(), libNames.toArray(new String[libNames.size()]));
+                NativeCrypto.class.getClassLoader(), platformSpecific, LIB_NAME);
     }
 
     private NativeCryptoJni() {}
