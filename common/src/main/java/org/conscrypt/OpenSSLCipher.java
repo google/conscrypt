@@ -231,7 +231,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     @Override
     protected int engineGetOutputSize(int inputLen) {
-        return getOutputSizeForFinal(inputLen);
+        return Math.max(getOutputSizeForUpdate(inputLen), getOutputSizeForFinal(inputLen));
     }
 
     @Override
