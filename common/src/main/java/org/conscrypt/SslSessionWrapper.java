@@ -29,6 +29,8 @@ import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
@@ -41,6 +43,8 @@ import javax.security.cert.X509Certificate;
  * This is abstract only to support mocking for tests.
  */
 abstract class SslSessionWrapper {
+    private static final Logger logger = Logger.getLogger(SslSessionWrapper.class.getName());
+
     /**
      * Creates a new instance. Since BoringSSL does not provide an API to get access to all
      * session information via the SSL_SESSION, we get some values (e.g. peer certs) from
@@ -50,9 +54,8 @@ abstract class SslSessionWrapper {
             throws SSLPeerUnverifiedException {
         AbstractSessionContext context = (AbstractSessionContext) activeSession.getSessionContext();
         if (context instanceof ClientSessionContext) {
-            return new Impl(context, ref, activeSession.getPeerHost(),
-                    activeSession.getPeerPort(), activeSession.getPeerCertificates(),
-                    getOcspResponse(activeSession),
+            return new Impl(context, ref, activeSession.getPeerHost(), activeSession.getPeerPort(),
+                    activeSession.getPeerCertificates(), getOcspResponse(activeSession),
                     activeSession.getPeerSignedCertificateTimestamp());
         }
 
@@ -247,10 +250,9 @@ abstract class SslSessionWrapper {
         boolean isValid() {
             long creationTimeMillis = getCreationTime();
             // Use the minimum of the timeout from the context and the session.
-            long timeoutMillis =
-                    Math.max(0,
-                            Math.min(context.getSessionTimeout(),
-                                    NativeCrypto.SSL_SESSION_get_timeout(ref.context)))
+            long timeoutMillis = Math.max(0,
+                                         Math.min(context.getSessionTimeout(),
+                                                 NativeCrypto.SSL_SESSION_get_timeout(ref.context)))
                     * 1000;
             return (System.currentTimeMillis() - timeoutMillis) < creationTimeMillis;
         }
@@ -332,7 +334,7 @@ abstract class SslSessionWrapper {
                 return baos.toByteArray();
             } catch (IOException e) {
                 // TODO(nathanmittler): Better error handling?
-                System.err.println("Failed to convert saved SSL Session: " + e.getMessage());
+                logger.log(Level.WARNING, "Failed to convert saved SSL Session: ", e);
                 return null;
             } catch (CertificateEncodingException e) {
                 log(e);
@@ -456,8 +458,8 @@ abstract class SslSessionWrapper {
 
     private static void log(Throwable t) {
         // TODO(nathanmittler): Better error handling?
-        System.out.println("Error inflating SSL session: "
-                + (t.getMessage() != null ? t.getMessage() : t.getClass().getName()));
+        logger.log(Level.INFO, "Error inflating SSL session: {0}",
+                (t.getMessage() != null ? t.getMessage() : t.getClass().getName()));
     }
 
     private static void checkRemaining(ByteBuffer buf, int length) throws IOException {
