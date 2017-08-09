@@ -497,6 +497,17 @@ public class SSLEngineTest extends AbstractSSLTest {
         TestSSLEnginePair.close(engines);
     }
 
+    // http://b/37078438
+    @Test
+    public void test_SSLEngine_beginHandshake_redundantCalls() throws Exception {
+        TestSSLContext c = TestSSLContext.create();
+        SSLEngine client = c.clientContext.createSSLEngine(c.host.getHostName(), c.port);
+        client.setUseClientMode(true);
+        client.beginHandshake();
+        client.beginHandshake();  // This call should be ignored
+        c.close();
+    }
+
     @Test
     public void test_SSLEngine_getUseClientMode() throws Exception {
         TestSSLContext c = TestSSLContext.create();
