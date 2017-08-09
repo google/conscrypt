@@ -1,8 +1,7 @@
 description = 'Conscrypt: Base library for benchmarks'
 
 dependencies {
-    compile project(':conscrypt-openjdk'),
-            project(':conscrypt-testing'),
+    compile project(':conscrypt-testing'),
             libraries.junit
 }
 
