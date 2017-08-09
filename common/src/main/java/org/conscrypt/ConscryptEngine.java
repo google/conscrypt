@@ -364,10 +364,11 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     private void beginHandshakeInternal() throws SSLException {
         switch (state) {
             case STATE_MODE_SET:
-                // This is the only allowed state.
+                // We know what mode to handshake in but have not started the handshake, proceed
                 break;
             case STATE_HANDSHAKE_STARTED:
-                throw new IllegalStateException("Handshake has already been started");
+                // We've already started the handshake, just return
+                return;
             case STATE_CLOSED_INBOUND:
             case STATE_CLOSED_OUTBOUND:
             case STATE_CLOSED:
