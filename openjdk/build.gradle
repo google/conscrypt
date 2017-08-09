@@ -271,11 +271,8 @@ def addNativeTest(nativeClassifier) {
             // TODO(nmittler): Is there a way to copy all properties of the test task?
 
             // Copy the logging configuration from the test task.
-            testLogging.exceptionFormat = test.testLogging.exceptionFormat
-            testLogging.showExceptions test.testLogging.showExceptions
-            testLogging.showCauses test.testLogging.showCauses
-            testLogging.showStackTraces test.testLogging.showStackTraces
-            testLogging.showStandardStreams = test.testLogging.showStandardStreams
+            org.codehaus.groovy.runtime.InvokerHelper.setProperties(testLogging,
+                    test.testLogging.properties)
 
             // Copy heap settings.
             minHeapSize = test.minHeapSize

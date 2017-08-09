@@ -458,7 +458,7 @@ abstract class SslSessionWrapper {
 
     private static void log(Throwable t) {
         // TODO(nathanmittler): Better error handling?
-        logger.log(Level.INFO, "Error inflating SSL session: {}",
+        logger.log(Level.INFO, "Error inflating SSL session: {0}",
                 (t.getMessage() != null ? t.getMessage() : t.getClass().getName()));
     }
 
