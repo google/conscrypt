@@ -233,7 +233,10 @@ subprojects {
                 showExceptions true
                 showCauses true
                 showStackTraces true
+                showStandardStreams = true
             }
+            // Enable logging for all conscrypt classes while running tests.
+            systemProperty 'java.util.logging.config.file', "${rootDir}/test_logging.properties"
             maxHeapSize = '1500m'
         }
     }
