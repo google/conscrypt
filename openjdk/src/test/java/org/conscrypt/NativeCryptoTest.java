@@ -1012,7 +1012,6 @@ public class NativeCryptoTest {
                             }
                             return callback;
                         } catch (Exception e) {
-                            e.printStackTrace();
                             throw e;
                         }
                     }
@@ -1252,9 +1251,6 @@ public class NativeCryptoTest {
             client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException expected) {
-            if (SocketTimeoutException.class != expected.getCause().getClass()) {
-                expected.printStackTrace();
-            }
             assertEquals(SocketTimeoutException.class, expected.getCause().getClass());
         } finally {
             // Manually close peer socket when testing timeout
