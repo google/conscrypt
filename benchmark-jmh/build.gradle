@@ -57,7 +57,8 @@ sourceSets {
 }
 
 dependencies {
-    compile project(':conscrypt-benchmark-base'),
+    compile project(':conscrypt-openjdk'),
+            project(':conscrypt-benchmark-base'),
             // Add the preferred native openjdk configuration for this platform.
             project(path: ':conscrypt-openjdk', configuration: "$preferredNativeConfiguration"),
             libraries.junit,

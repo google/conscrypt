@@ -21,68 +21,63 @@
 #include <conscrypt/macros.h>
 
 namespace conscrypt {
+namespace trace {
 
-class Trace {
- public:
-    static constexpr bool kWithJniTrace = false;
-    static constexpr bool kWithJniTraceMd = false;
-    static constexpr bool kWithJniTraceData = false;
+extern const bool kWithJniTrace;
+extern const bool kWithJniTraceMd;
+extern const bool kWithJniTraceData;
 
-    /*
-     * To print create a pcap-style dump you can take the log output and
-     * pipe it through text2pcap.
-     *
-     * For example, if you were interested in ssl=0x12345678, you would do:
-     *
-     *  address=0x12345678
-     *  awk "match(\$0,/ssl=$address SSL_DATA: (.*)\$/,a){print a[1]}" | text2pcap -T 443,1337 -t
-     * '%s.' -n -D - $address.pcapng
-     */
-    static constexpr bool kWithJniTracePackets = false;
+/*
+ * To print create a pcap-style dump you can take the log output and
+ * pipe it through text2pcap.
+ *
+ * For example, if you were interested in ssl=0x12345678, you would do:
+ *
+ *  address=0x12345678
+ *  awk "match(\$0,/ssl=$address SSL_DATA: (.*)\$/,a){print a[1]}" | text2pcap -T 443,1337 -t
+ * '%s.' -n -D - $address.pcapng
+ */
+extern const bool kWithJniTracePackets;
 
-    /*
-     * How to use this for debugging with Wireshark:
-     *
-     * 1. Pull lines from logcat to a file that have "KEY_LINE:" and remove the
-     *    prefix up to and including "KEY_LINE: " so they look like this
-     *    (without the quotes):
-     *     "RSA 3b8...184 1c5...aa0" <CR>
-     *     "CLIENT_RANDOM 82e...f18b 1c5...aa0" <CR>
-     *     <etc>
-     *    Follows the format defined at
-     *    https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format
-     * 2. Start Wireshark
-     * 3. Go to Edit -> Preferences -> SSL -> (Pre-)Master-Key log and fill in
-     *    the file you put the lines in above.
-     * 4. Follow the stream that corresponds to the desired "Session-ID" in
-     *    the Server Hello.
-     */
-    static constexpr bool kWithJniTraceKeys = false;
+/*
+ * How to use this for debugging with Wireshark:
+ *
+ * 1. Pull lines from logcat to a file that have "KEY_LINE:" and remove the
+ *    prefix up to and including "KEY_LINE: " so they look like this
+ *    (without the quotes):
+ *     "RSA 3b8...184 1c5...aa0" <CR>
+ *     "CLIENT_RANDOM 82e...f18b 1c5...aa0" <CR>
+ *     <etc>
+ *    Follows the format defined at
+ *    https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format
+ * 2. Start Wireshark
+ * 3. Go to Edit -> Preferences -> SSL -> (Pre-)Master-Key log and fill in
+ *    the file you put the lines in above.
+ * 4. Follow the stream that corresponds to the desired "Session-ID" in
+ *    the Server Hello.
+ */
+extern const bool kWithJniTraceKeys;
 
-    // don't overwhelm logcat
-    static constexpr std::size_t kWithJniTraceDataChunkSize = 512;
+// don't overwhelm logcat
+extern const std::size_t kWithJniTraceDataChunkSize;
 
- private:
-    Trace() {}
-    ~Trace() {}
-};  // class Trace
-
+}  // namespace trace
 }  // namespace conscrypt
 
 #define JNI_TRACE(...)                               \
-    if (conscrypt::Trace::kWithJniTrace) {           \
+    if (conscrypt::trace::kWithJniTrace) {           \
         ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
     }
 #define JNI_TRACE_MD(...)                            \
-    if (conscrypt::Trace::kWithJniTraceMd) {         \
+    if (conscrypt::trace::kWithJniTraceMd) {         \
         ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
     }
 #define JNI_TRACE_KEYS(...)                          \
-    if (conscrypt::Trace::kWithJniTraceKeys) {       \
+    if (conscrypt::trace::kWithJniTraceKeys) {       \
         ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
     }
 #define JNI_TRACE_PACKET_DATA(ssl, dir, data, len)    \
-    if (conscrypt::Trace::kWithJniTracePackets) {     \
+    if (conscrypt::trace::kWithJniTracePackets) {     \
         debug_print_packet_data(ssl, dir, data, len); \
     }
 

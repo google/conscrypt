@@ -18,12 +18,26 @@
 #define CONSCRYPT_APP_DATA_H_
 
 #include <NetFd.h>
-#include <conscrypt/network_util.h>
-#include <conscrypt/trace.h>
 #include <conscrypt/compat.h>
+#include <conscrypt/netutil.h>
+#include <conscrypt/trace.h>
 
 #include <jni.h>
 #include <mutex>  // NOLINT(build/c++11)
+
+#ifdef _WIN32
+// Needed for inet_ntop
+#define _WIN32_WINNT _WIN32_WINNT_WIN8
+#include <ws2ipdef.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
+
+#include <winsock2.h>
+#else  // !_WIN32
+#include <arpa/inet.h>
+#include <poll.h>
+#include <unistd.h>
+#endif  // !_WIN32
 
 namespace conscrypt {
 
@@ -125,7 +139,7 @@ class AppData {
             ALOGE("AppData::create pipe(2) failed: %s", strerror(errno));
             return nullptr;
         }
-        if (!NetworkUtil::setBlocking(appData.get()->fdsEmergency[0], false)) {
+        if (!netutil::setBlocking(appData.get()->fdsEmergency[0], false)) {
             ALOGE("AppData::create fcntl(2) failed: %s", strerror(errno));
             return nullptr;
         }

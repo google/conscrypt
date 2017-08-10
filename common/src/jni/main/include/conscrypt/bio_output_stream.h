@@ -28,7 +28,7 @@ class BioOutputStream : public BioStream {
     explicit BioOutputStream(jobject stream) : BioStream(stream) {}
 
     int write(const char* buf, int len) {
-        JNIEnv* env = JniConstants::getJNIEnv();
+        JNIEnv* env = jniutil::getJNIEnv();
         if (env == nullptr) {
             JNI_TRACE("BioOutputStream::write => could not get JNIEnv");
             return -1;
@@ -47,7 +47,7 @@ class BioOutputStream : public BioStream {
 
         env->SetByteArrayRegion(javaBytes.get(), 0, len, reinterpret_cast<const jbyte*>(buf));
 
-        env->CallVoidMethod(getStream(), JniConstants::outputStream_writeMethod, javaBytes.get());
+        env->CallVoidMethod(getStream(), jniutil::outputStream_writeMethod, javaBytes.get());
         if (env->ExceptionCheck()) {
             JNI_TRACE("BioOutputStream::write => failed call to OutputStream#write");
             return -1;

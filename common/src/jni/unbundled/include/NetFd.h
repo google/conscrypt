@@ -17,8 +17,7 @@
 #ifndef NETFD_H_
 #define NETFD_H_
 
-#include <conscrypt/errors.h>
-#include <conscrypt/jni_util.h>
+#include <conscrypt/jniutil.h>
 
 /**
  * Wraps access to the int inside a java.io.FileDescriptor, taking care of throwing exceptions.
@@ -29,10 +28,11 @@ class NetFd {
         : mEnv(env), mFileDescriptor(fileDescriptor), mFd(-1) {}
 
     bool isClosed() {
-        mFd = conscrypt::JniUtil::jniGetFDFromFileDescriptor(mEnv, mFileDescriptor);
+        mFd = conscrypt::jniutil::jniGetFDFromFileDescriptor(mEnv, mFileDescriptor);
         bool closed = (mFd == -1);
         if (closed) {
-            conscrypt::Errors::jniThrowException(mEnv, "java/net/SocketException", "Socket closed");
+            conscrypt::jniutil::jniThrowException(mEnv, "java/net/SocketException",
+                                                  "Socket closed");
         }
         return closed;
     }
