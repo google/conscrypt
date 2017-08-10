@@ -18,7 +18,7 @@
 #define SCOPEDUTFCHARS_H_
 
 #include <string.h>
-#include <conscrypt/errors.h>
+#include <conscrypt/jniutil.h>
 
 // A smart pointer that provides read-only access to a Java string's UTF chars.
 // Unlike GetStringUTFChars, we throw NullPointerException rather than abort if
@@ -34,7 +34,7 @@ class ScopedUtfChars {
     ScopedUtfChars(JNIEnv* env, jstring s) : env_(env), string_(s) {
         if (s == nullptr) {
             utf_chars_ = nullptr;
-            conscrypt::Errors::jniThrowNullPointerException(env, nullptr);
+            conscrypt::jniutil::jniThrowNullPointerException(env, nullptr);
         } else {
             utf_chars_ = env->GetStringUTFChars(s, nullptr);
         }

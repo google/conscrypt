@@ -19,7 +19,7 @@
 
 #include <jni.h>
 
-#include <conscrypt/jni_constants.h>
+#include <conscrypt/jniutil.h>
 #include <conscrypt/trace.h>
 
 namespace conscrypt {
@@ -30,12 +30,12 @@ namespace conscrypt {
 class BioStream {
  public:
     explicit BioStream(jobject stream) : mEof(false) {
-        JNIEnv* env = JniConstants::getJNIEnv();
+        JNIEnv* env = jniutil::getJNIEnv();
         mStream = env->NewGlobalRef(stream);
     }
 
     ~BioStream() {
-        JNIEnv* env = JniConstants::getJNIEnv();
+        JNIEnv* env = jniutil::getJNIEnv();
 
         env->DeleteGlobalRef(mStream);
     }
@@ -46,7 +46,7 @@ class BioStream {
     }
 
     int flush() {
-        JNIEnv* env = JniConstants::getJNIEnv();
+        JNIEnv* env = jniutil::getJNIEnv();
         if (env == nullptr) {
             return -1;
         }
@@ -56,7 +56,7 @@ class BioStream {
             return -1;
         }
 
-        env->CallVoidMethod(mStream, JniConstants::outputStream_flushMethod);
+        env->CallVoidMethod(mStream, jniutil::outputStream_flushMethod);
         if (env->ExceptionCheck()) {
             return -1;
         }

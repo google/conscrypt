@@ -21,6 +21,7 @@
 #include <openssl/ssl.h>
 
 #include <conscrypt/bio_stream.h>
+#include <nativehelper/ScopedLocalRef.h>
 
 namespace conscrypt {
 
@@ -29,7 +30,7 @@ class BioInputStream : public BioStream {
     BioInputStream(jobject stream, bool isFinite) : BioStream(stream), isFinite_(isFinite) {}
 
     int read(char *buf, int len) {
-        return read_internal(buf, len, JniConstants::inputStream_readMethod);
+        return read_internal(buf, len, jniutil::inputStream_readMethod);
     }
 
     int gets(char *buf, int len) {
@@ -37,7 +38,7 @@ class BioInputStream : public BioStream {
             len = PEM_LINE_LENGTH;
         }
 
-        int read = read_internal(buf, len - 1, JniConstants::openSslInputStream_readLineMethod);
+        int read = read_internal(buf, len - 1, jniutil::openSslInputStream_readLineMethod);
         buf[read] = '\0';
         JNI_TRACE("BIO::gets \"%s\"", buf);
         return read;
@@ -51,7 +52,7 @@ class BioInputStream : public BioStream {
     const bool isFinite_;
 
     int read_internal(char *buf, int len, jmethodID method) {
-        JNIEnv *env = JniConstants::getJNIEnv();
+        JNIEnv *env = jniutil::getJNIEnv();
         if (env == nullptr) {
             JNI_TRACE("BioInputStream::read could not get JNIEnv");
             return -1;
