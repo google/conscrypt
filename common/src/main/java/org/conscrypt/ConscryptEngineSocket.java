@@ -32,7 +32,6 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import java.security.PrivateKey;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
@@ -443,20 +442,17 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
         return super.getInputStream();
     }
 
-    private SocketChannel getUnderlyingChannel() throws IOException {
-        return super.getChannel();
-    }
-
     /**
      * Wrap bytes written to the underlying socket.
      */
     private final class SSLOutputStream extends OutputStream {
         private final Object writeLock = new Object();
-        private ByteBuffer target;
+        private final ByteBuffer target;
         private OutputStream socketOutputStream;
-        private SocketChannel socketChannel;
 
-        SSLOutputStream() {}
+        SSLOutputStream() {
+            target = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+        }
 
         @Override
         public void close() throws IOException {
@@ -536,30 +532,12 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
         private void init() throws IOException {
             if (socketOutputStream == null) {
                 socketOutputStream = getUnderlyingOutputStream();
-                socketChannel = getUnderlyingChannel();
-                if (socketChannel != null) {
-                    // Optimization. Using direct buffers wherever possible to avoid passing
-                    // arrays to JNI.
-                    target = ByteBuffer.allocateDirect(engine.getSession().getPacketBufferSize());
-                } else {
-                    target = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
-                }
             }
         }
 
         private void writeToSocket() throws IOException {
             // Write the data to the socket.
-            if (socketChannel != null) {
-                // Loop until all of the data is written to the channel. Typically,
-                // SocketChannel writes will return only after all bytes are written,
-                // so we won't really loop here.
-                while (target.hasRemaining()) {
-                    socketChannel.write(target);
-                }
-            } else {
-                // Target is a heap buffer.
-                socketOutputStream.write(target.array(), 0, target.limit());
-            }
+            socketOutputStream.write(target.array(), 0, target.limit());
         }
     }
 
@@ -570,14 +548,14 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
         private final Object readLock = new Object();
         private final byte[] singleByte = new byte[1];
         private final ByteBuffer fromEngine;
-        private ByteBuffer fromSocket;
+        private final ByteBuffer fromSocket;
         private InputStream socketInputStream;
-        private SocketChannel socketChannel;
 
         SSLInputStream() {
             fromEngine = ByteBuffer.allocateDirect(engine.getSession().getApplicationBufferSize());
             // Initially fromEngine.remaining() == 0.
             fromEngine.flip();
+            fromSocket = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
         }
 
         @Override
@@ -702,21 +680,11 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
         private void init() throws IOException {
             if (socketInputStream == null) {
                 socketInputStream = getUnderlyingInputStream();
-                socketChannel = getUnderlyingChannel();
-                if (socketChannel != null) {
-                    fromSocket =
-                            ByteBuffer.allocateDirect(engine.getSession().getPacketBufferSize());
-                } else {
-                    fromSocket = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
-                }
             }
         }
 
         private int readFromSocket() throws IOException {
             try {
-                if (socketChannel != null) {
-                    return socketChannel.read(fromSocket);
-                }
                 // Read directly to the underlying array and increment the buffer position if
                 // appropriate.
                 int read = socketInputStream.read(
