@@ -121,7 +121,7 @@ public class SSLContextTest extends AbstractSSLTest {
                                 new PSKKeyManagerProxy())},
                 new TrustManager[0], null);
         List<String> expectedCipherSuites =
-                new ArrayList<>(StandardNames.CIPHER_SUITES_DEFAULT_PSK);
+                new ArrayList<String>(StandardNames.CIPHER_SUITES_DEFAULT_PSK);
         expectedCipherSuites.add(StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION);
         assertEnabledCipherSuites(expectedCipherSuites, sslContext);
     }
@@ -135,7 +135,7 @@ public class SSLContextTest extends AbstractSSLTest {
                 null, // Use default trust managers, one of which is an X.509 one.
                 null);
         List<String> expectedCipherSuites =
-                new ArrayList<>(StandardNames.CIPHER_SUITES_DEFAULT_PSK);
+                new ArrayList<String>(StandardNames.CIPHER_SUITES_DEFAULT_PSK);
         expectedCipherSuites.addAll(StandardNames.CIPHER_SUITES_DEFAULT);
         assertEnabledCipherSuites(expectedCipherSuites, sslContext);
 
@@ -186,6 +186,7 @@ public class SSLContextTest extends AbstractSSLTest {
 
     private static void assertEnabledCipherSuites(
             List<String> expectedCipherSuites, SSLContext sslContext) throws Exception {
+        TestUtils.assumeSetEndpointIdentificationAlgorithmAvailable();
         assertContentsInOrder(
                 expectedCipherSuites, sslContext.createSSLEngine().getEnabledCipherSuites());
         assertContentsInOrder(expectedCipherSuites,
@@ -327,28 +328,31 @@ public class SSLContextTest extends AbstractSSLTest {
         // This test thus installs a Provider of KeyManagerFactory and TrustManagerFactory whose
         // factories throw exceptions which will make this test fail if the factories are used.
         Provider provider = new ThrowExceptionKeyAndTrustManagerFactoryProvider();
-        invokeWithHighestPrioritySecurityProvider(provider, (Callable<Void>) () -> {
-            assertEquals(ThrowExceptionKeyAndTrustManagerFactoryProvider.class,
+        invokeWithHighestPrioritySecurityProvider(provider, new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                assertEquals(ThrowExceptionKeyAndTrustManagerFactoryProvider.class,
                     TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
-                            .getProvider()
-                            .getClass());
-            assertEquals(ThrowExceptionKeyAndTrustManagerFactoryProvider.class,
+                        .getProvider()
+                        .getClass());
+                assertEquals(ThrowExceptionKeyAndTrustManagerFactoryProvider.class,
                     KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-                            .getProvider()
-                            .getClass());
+                        .getProvider()
+                        .getClass());
 
-            KeyManager[] keyManagers = new KeyManager[0];
-            TrustManager[] trustManagers = new TrustManager[0];
-            for (String protocol : StandardNames.SSL_CONTEXT_PROTOCOLS) {
-                if (protocol.equals(StandardNames.SSL_CONTEXT_PROTOCOLS_DEFAULT)) {
-                    // Default SSLContext is provided in an already initialized state
-                    continue;
+                KeyManager[] keyManagers = new KeyManager[0];
+                TrustManager[] trustManagers = new TrustManager[0];
+                for (String protocol : StandardNames.SSL_CONTEXT_PROTOCOLS) {
+                    if (protocol.equals(StandardNames.SSL_CONTEXT_PROTOCOLS_DEFAULT)) {
+                        // Default SSLContext is provided in an already initialized state
+                        continue;
+                    }
+                    SSLContext sslContext = SSLContext.getInstance(protocol);
+                    sslContext.init(keyManagers, trustManagers, null);
                 }
-                SSLContext sslContext = SSLContext.getInstance(protocol);
-                sslContext.init(keyManagers, trustManagers, null);
-            }
 
-            return null;
+                return null;
+            }
         });
     }
 
@@ -361,28 +365,33 @@ public class SSLContextTest extends AbstractSSLTest {
         // This test thus installs a Provider of KeyManagerFactory and TrustManagerFactory whose
         // factories throw exceptions which will make this test fail if the factories are used.
         Provider provider = new ThrowExceptionKeyAndTrustManagerFactoryProvider();
-        invokeWithHighestPrioritySecurityProvider(provider, (Callable<Void>) () -> {
-            assertEquals(ThrowExceptionKeyAndTrustManagerFactoryProvider.class,
+        invokeWithHighestPrioritySecurityProvider(provider, new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                assertEquals(ThrowExceptionKeyAndTrustManagerFactoryProvider.class,
                     TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
-                            .getProvider()
-                            .getClass());
-            assertEquals(ThrowExceptionKeyAndTrustManagerFactoryProvider.class,
+                        .getProvider()
+                        .getClass());
+                assertEquals(ThrowExceptionKeyAndTrustManagerFactoryProvider.class,
                     KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-                            .getProvider()
-                            .getClass());
+                        .getProvider()
+                        .getClass());
 
-            KeyManager[] keyManagers = new KeyManager[] {new KeyManager(){}};
-            TrustManager[] trustManagers = new TrustManager[] {new TrustManager(){}};
-            for (String protocol : StandardNames.SSL_CONTEXT_PROTOCOLS) {
-                if (protocol.equals(StandardNames.SSL_CONTEXT_PROTOCOLS_DEFAULT)) {
-                    // Default SSLContext is provided in an already initialized state
-                    continue;
+                KeyManager[] keyManagers = new KeyManager[]{new KeyManager() {
+                }};
+                TrustManager[] trustManagers = new TrustManager[]{new TrustManager() {
+                }};
+                for (String protocol : StandardNames.SSL_CONTEXT_PROTOCOLS) {
+                    if (protocol.equals(StandardNames.SSL_CONTEXT_PROTOCOLS_DEFAULT)) {
+                        // Default SSLContext is provided in an already initialized state
+                        continue;
+                    }
+                    SSLContext sslContext = SSLContext.getInstance(protocol);
+                    sslContext.init(keyManagers, trustManagers, null);
                 }
-                SSLContext sslContext = SSLContext.getInstance(protocol);
-                sslContext.init(keyManagers, trustManagers, null);
-            }
 
-            return null;
+                return null;
+            }
         });
     }
 

@@ -23,7 +23,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
@@ -33,16 +35,19 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 import libcore.io.Streams;
 import libcore.java.security.TestKeyStore;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.Assume;
 
 /**
  * Utility methods to support testing.
  */
 public final class TestUtils {
-    static final Charset UTF_8 = Charset.forName("UTF-8");
+    public static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private static final Provider JDK_PROVIDER = getDefaultTlsProvider();
     private static final byte[] CHARS =
@@ -63,11 +68,51 @@ public final class TestUtils {
                 return p;
             }
         }
-        throw new RuntimeException("Unable to find a default provider for " + PROVIDER_PROPERTY);
+        //throw new RuntimeException("Unable to find a default provider for " + PROVIDER_PROPERTY);
+        // For Java 1.6
+        return new BouncyCastleProvider();
     }
 
     static Provider getJdkProvider() {
         return JDK_PROVIDER;
+    }
+
+    public static void assumeSNIHostnameAvailable() {
+        boolean available = false;
+        try {
+            Class.forName("javax.net.ssl.SNIHostName");
+            available = true;
+        } catch (ClassNotFoundException ignore) {
+            // Ignored
+        }
+        Assume.assumeTrue("Skipping test: SNIHostName unavailable", available);
+    }
+
+    public static void assumeSetEndpointIdentificationAlgorithmAvailable() {
+        boolean supported = false;
+        try {
+            SSLParameters.class.getMethod("Skipping test: "
+                            + "SSLParameters.setEndpointIdentificationAlgorithm unavailable",
+                    String.class);
+            supported = true;
+        } catch (NoSuchMethodException ignore) {
+            // Ignored
+        }
+        Assume.assumeTrue(supported);
+    }
+
+    public static InetAddress getLoopbackAddress() {
+        try {
+            Method method = InetAddress.class.getMethod("getLoopbackAddress");
+            return (InetAddress) method.invoke(null);
+        } catch (Exception ignore) {
+            // Ignored.
+        }
+        try {
+            return InetAddress.getLocalHost();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static Provider getConscryptProvider() {

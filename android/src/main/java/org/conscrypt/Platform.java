@@ -701,7 +701,7 @@ final class Platform {
             return sslSession;
         }
 
-        return new DelegatingExtendedSSLSession(sslSession);
+        return ExtendedSessionAdapter.wrap(sslSession);
     }
 
     public static SSLSession unwrapSSLSession(SSLSession sslSession) {
@@ -709,11 +709,7 @@ final class Platform {
             return sslSession;
         }
 
-        if (sslSession instanceof DelegatingExtendedSSLSession) {
-            return ((DelegatingExtendedSSLSession) sslSession).getDelegate();
-        }
-
-        return sslSession;
+        return ExtendedSessionAdapter.getDelegate(sslSession);
     }
 
     /*

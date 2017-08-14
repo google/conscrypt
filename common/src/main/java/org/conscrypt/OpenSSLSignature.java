@@ -455,7 +455,9 @@ public class OpenSSLSignature extends SignatureSpi {
                                 saltSizeBytes,
                                 TRAILER_FIELD_BC_ID));
                 return result;
-            } catch (NoSuchAlgorithmException | InvalidParameterSpecException e) {
+            } catch (NoSuchAlgorithmException e) {
+                throw new ProviderException("Failed to create PSS AlgorithmParameters", e);
+            } catch (InvalidParameterSpecException e) {
                 throw new ProviderException("Failed to create PSS AlgorithmParameters", e);
             }
         }

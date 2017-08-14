@@ -55,18 +55,14 @@ public final class Conscrypt {
      * @throws UnsatisfiedLinkError if unavailable
      */
     public static void checkAvailability() {
-        try {
-            NativeCrypto.checkAvailability();
-        } catch (Throwable e) {
-            throw (Error) new UnsatisfiedLinkError("failed to load the required native library")
-                    .initCause(e);
-        }
+        NativeCrypto.checkAvailability();
     }
 
     /**
      * Constructs a new {@link Provider} with the default name.
      */
     public static Provider newProvider() {
+        checkAvailability();
         return new OpenSSLProvider();
     }
 
@@ -74,6 +70,7 @@ public final class Conscrypt {
      * Constructs a new {@link Provider} with the given name.
      */
     public static Provider newProvider(String providerName) {
+        checkAvailability();
         return new OpenSSLProvider(providerName);
     }
 
@@ -81,6 +78,7 @@ public final class Conscrypt {
      * Constructs a new instance of the preferred {@link SSLContextSpi}.
      */
     public static SSLContextSpi newPreferredSSLContextSpi() {
+        checkAvailability();
         return OpenSSLContextImpl.getPreferred();
     }
 
@@ -89,6 +87,7 @@ public final class Conscrypt {
      */
     @ExperimentalApi
     public static X509TrustManager getDefaultX509TrustManager() throws KeyManagementException {
+        checkAvailability();
         return SSLParametersImpl.getDefaultX509TrustManager();
     }
 

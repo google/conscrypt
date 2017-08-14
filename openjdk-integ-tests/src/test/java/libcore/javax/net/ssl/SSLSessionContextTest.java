@@ -164,7 +164,7 @@ public class SSLSessionContextTest extends AbstractSSLTest {
         String[] supportedCipherSuites = c.serverSocket.getSupportedCipherSuites();
         c.serverSocket.setEnabledCipherSuites(supportedCipherSuites);
         LinkedList<String> uniqueCipherSuites =
-                new LinkedList<>(Arrays.asList(supportedCipherSuites));
+                new LinkedList<String>(Arrays.asList(supportedCipherSuites));
         // only use RSA cipher suites which will work with our TrustProvider
         Iterator<String> i = uniqueCipherSuites.iterator();
         while (i.hasNext()) {
@@ -206,7 +206,7 @@ public class SSLSessionContextTest extends AbstractSSLTest {
         String cipherSuite2 = uniqueCipherSuites.get(1);
         String cipherSuite3 = uniqueCipherSuites.get(2);
 
-        List<SSLSocket[]> toClose = new ArrayList<>();
+        List<SSLSocket[]> toClose = new ArrayList<SSLSocket[]>();
         toClose.add(
                 TestSSLSocketPair.create(c).connect(new String[] {cipherSuite1}, null).sockets());
         assertSSLSessionContextSize(1, c);

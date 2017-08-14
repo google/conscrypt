@@ -33,7 +33,7 @@ public final class ClientSessionContext extends AbstractSessionContext {
      * access by holding a lock on sessionsByHostAndPort.
      */
     @SuppressWarnings("serial")
-    private final Map<HostAndPort, SslSessionWrapper> sessionsByHostAndPort = new HashMap<>();
+    private final Map<HostAndPort, SslSessionWrapper> sessionsByHostAndPort = new HashMap<HostAndPort, SslSessionWrapper>();
 
     private SSLClientSessionCache persistentCache;
 

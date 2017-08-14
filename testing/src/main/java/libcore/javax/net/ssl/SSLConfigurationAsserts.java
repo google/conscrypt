@@ -88,10 +88,13 @@ public class SSLConfigurationAsserts {
                 sslSocketFactory.getDefaultCipherSuites());
         assertCipherSuitesEqual(sslContext.getSupportedSSLParameters().getCipherSuites(),
                 sslSocketFactory.getSupportedCipherSuites());
-        try (SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket()) {
+        SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket();
+        try {
             assertTrue(sslSocket.getUseClientMode());
             assertTrue(sslSocket.getEnableSessionCreation());
             assertSSLSocketConfigSameAsSSLContext(sslSocket, sslContext);
+        } finally {
+            sslSocket.close();
         }
     }
     /**
@@ -141,11 +144,14 @@ public class SSLConfigurationAsserts {
                 sslServerSocketFactory.getDefaultCipherSuites());
         assertCipherSuitesEqual(sslContext.getSupportedSSLParameters().getCipherSuites(),
                 sslServerSocketFactory.getSupportedCipherSuites());
-        try (SSLServerSocket sslServerSocket =
-                        (SSLServerSocket) sslServerSocketFactory.createServerSocket()) {
+        SSLServerSocket sslServerSocket =
+            (SSLServerSocket) sslServerSocketFactory.createServerSocket();
+        try {
             assertFalse(sslServerSocket.getUseClientMode());
             assertTrue(sslServerSocket.getEnableSessionCreation());
             assertSSLServerSocketConfigSameAsSSLContext(sslServerSocket, sslContext);
+        } finally {
+            sslServerSocket.close();
         }
     }
     /**

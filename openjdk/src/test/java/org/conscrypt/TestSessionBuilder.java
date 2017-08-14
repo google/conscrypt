@@ -30,14 +30,14 @@ public class TestSessionBuilder {
     private int sessionDataLength;
 
     private boolean certificatesSet;
-    private ArrayList<byte[]> certificates = new ArrayList<>();
+    private ArrayList<byte[]> certificates = new ArrayList<byte[]>();
     private int certificatesLength;
-    private ArrayList<Integer> certificateLengths = new ArrayList<>();
+    private ArrayList<Integer> certificateLengths = new ArrayList<Integer>();
 
     private boolean ocspDataSet;
-    private ArrayList<byte[]> ocspDatas = new ArrayList<>();
+    private ArrayList<byte[]> ocspDatas = new ArrayList<byte[]>();
     private int ocspDatasLength;
-    private ArrayList<Integer> ocspDataLengths = new ArrayList<>();
+    private ArrayList<Integer> ocspDataLengths = new ArrayList<Integer>();
 
     private boolean tlsSctDataSet;
     private byte[] tlsSctData;

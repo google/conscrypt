@@ -449,7 +449,8 @@ public final class OpenSSLX509Certificate extends X509Certificate {
         try {
             OpenSSLKey pkey = new OpenSSLKey(NativeCrypto.X509_get_pubkey(mContext));
             return pkey.getPublicKey();
-        } catch (NoSuchAlgorithmException | InvalidKeyException ignored) {
+        } catch (NoSuchAlgorithmException ignored) {
+        } catch (InvalidKeyException ignored) {
         }
 
         /* Try generating the key using other Java providers. */
@@ -458,7 +459,8 @@ public final class OpenSSLX509Certificate extends X509Certificate {
         try {
             KeyFactory kf = KeyFactory.getInstance(oid);
             return kf.generatePublic(new X509EncodedKeySpec(encoded));
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException ignored) {
+        } catch (NoSuchAlgorithmException ignored) {
+        } catch (InvalidKeySpecException ignored) {
         }
 
         /*

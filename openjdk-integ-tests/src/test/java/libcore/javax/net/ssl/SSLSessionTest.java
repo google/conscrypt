@@ -236,7 +236,7 @@ public class SSLSessionTest extends AbstractSSLTest {
         context.close();
     }
 
-    private static void connect(SSLSocket client, SSLSocket server)
+    private static void connect(final SSLSocket client, final SSLSocket server)
             throws InterruptedException, ExecutionException {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         Future<Void> s = executor.submit(new Callable<Void>() {

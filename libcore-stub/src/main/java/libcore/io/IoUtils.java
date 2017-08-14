@@ -16,6 +16,7 @@
 
 package libcore.io;
 
+import java.io.Closeable;
 import java.io.InterruptedIOException;
 import java.net.Socket;
 
@@ -25,7 +26,7 @@ public final class IoUtils {
     /**
      * Closes 'closeable', ignoring any checked exceptions. Does nothing if 'closeable' is null.
      */
-    public static void closeQuietly(AutoCloseable closeable) {
+    public static void closeQuietly(Closeable closeable) {
         if (closeable != null) {
             try {
                 closeable.close();
