@@ -364,7 +364,7 @@ jbyteArray CryptoBufferToByteArray(JNIEnv* env, const CRYPTO_BUFFER* buf) {
 }
 
 bssl::UniquePtr<CRYPTO_BUFFER> ByteArrayToCryptoBuffer(JNIEnv* env, const jbyteArray array,
-                                                       CRYPTO_BUFFER_POOL* pool) {
+                                                       CONSCRYPT_UNUSED CRYPTO_BUFFER_POOL* pool) {
     if (array == nullptr) {
         JNI_TRACE("array was null");
         conscrypt::jniutil::jniThrowNullPointerException(env, "array == null");
@@ -447,17 +447,6 @@ static void safeSslClear(SSL* ssl) {
     if (SSL_clear(ssl) != 1) {
         ERR_clear_error();
     }
-}
-
-/**
- * To avoid the round-trip to ASN.1 and back in X509_dup, we just up the reference count.
- */
-static X509* X509_dup_nocopy(X509* x509) {
-    if (x509 == nullptr) {
-        return nullptr;
-    }
-    X509_up_ref(x509);
-    return x509;
 }
 
 static int bio_stream_create(BIO* b) {
@@ -5777,7 +5766,7 @@ static AppData* toAppData(const SSL* ssl) {
     return reinterpret_cast<AppData*>(SSL_get_app_data(ssl));
 }
 
-static ssl_verify_result_t cert_verify_callback(SSL* ssl, uint8_t* out_alert) {
+static ssl_verify_result_t cert_verify_callback(SSL* ssl, CONSCRYPT_UNUSED uint8_t* out_alert) {
     JNI_TRACE("ssl=%p cert_verify_callback", ssl);
 
     AppData* appData = toAppData(ssl);
