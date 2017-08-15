@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.KeyManagementException;
@@ -34,6 +33,7 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -372,13 +372,16 @@ public class ConscryptSocketTest {
         }
 
         Future<AbstractConscryptSocket> handshake(final ServerSocket listener, final Hooks hooks) {
-            return executor.submit(() -> {
-                AbstractConscryptSocket socket = hooks.createSocket(listener);
-                socket.addHandshakeCompletedListener(hooks);
+            return executor.submit(new Callable<AbstractConscryptSocket>() {
+                @Override
+                public AbstractConscryptSocket call() throws Exception {
+                    AbstractConscryptSocket socket = hooks.createSocket(listener);
+                    socket.addHandshakeCompletedListener(hooks);
 
-                socket.startHandshake();
+                    socket.startHandshake();
 
-                return socket;
+                    return socket;
+                }
             });
         }
     }
@@ -492,6 +495,6 @@ public class ConscryptSocketTest {
     }
 
     private static ServerSocket newServerSocket() throws IOException {
-        return new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
+        return new ServerSocket(0, 50, TestUtils.getLoopbackAddress());
     }
 }

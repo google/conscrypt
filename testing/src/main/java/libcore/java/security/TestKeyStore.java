@@ -166,7 +166,7 @@ public final class TestKeyStore {
     public final char[] keyPassword;
     public final KeyManager[] keyManagers;
     public final TrustManager[] trustManagers;
-    public final TestTrustManager trustManager;
+    public final TrustManager trustManager;
 
     private TestKeyStore(KeyStore keyStore, char[] storePassword, char[] keyPassword) {
         this.keyStore = keyStore;
@@ -174,7 +174,7 @@ public final class TestKeyStore {
         this.keyPassword = keyPassword;
         this.keyManagers = createKeyManagers(keyStore, storePassword);
         this.trustManagers = createTrustManagers(keyStore);
-        this.trustManager = (TestTrustManager) trustManagers[0];
+        this.trustManager = trustManagers[0];
     }
 
     public static KeyManager[] createKeyManagers(KeyStore keyStore, char[] storePassword) {
@@ -1004,7 +1004,11 @@ public final class TestKeyStore {
     public static KeyStore.Entry entryByAlias(KeyStore keyStore, String alias) {
         try {
             return keyStore.getEntry(alias, null);
-        } catch (NoSuchAlgorithmException | UnrecoverableEntryException | KeyStoreException e) {
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        } catch (UnrecoverableEntryException e) {
+            throw new RuntimeException(e);
+        } catch (KeyStoreException e) {
             throw new RuntimeException(e);
         }
     }

@@ -58,8 +58,10 @@ public class CpuFeatures {
                         nativeCrypto.getDeclaredMethod("EVP_has_aes_hardware");
                 EVP_has_aes_hardware.setAccessible(true);
                 return ((Integer) EVP_has_aes_hardware.invoke(null)) == 1;
-            } catch (NoSuchMethodException | SecurityException | IllegalAccessException
-                    | IllegalArgumentException ignored) {
+            } catch (NoSuchMethodException ignored) {
+            } catch (SecurityException ignored) {
+            } catch (IllegalAccessException ignored) {
+            } catch (IllegalArgumentException ignored) {
             } catch (InvocationTargetException e) {
                 throw new IllegalArgumentException(e);
             }
