@@ -16,9 +16,18 @@
 
 package org.conscrypt;
 
+import static java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE;
+import static java.nio.file.attribute.PosixFilePermission.OTHERS_EXECUTE;
+import static java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE;
+
+import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.file.attribute.PosixFilePermission;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.EnumSet;
+import java.util.Set;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -81,6 +90,34 @@ final class Java7PlatformUtil {
 
     static void addSuppressed(Throwable t, Throwable suppressed) {
         t.addSuppressed(suppressed);
+    }
+
+    static boolean canExecuteExecutable(File file) throws IOException {
+        // If we can already execute, there is nothing to do.
+        if (file.canExecute()) {
+            return true;
+        }
+
+        // On volumes, with noexec set, even files with the executable POSIX permissions will
+        // fail to execute. The File#canExecute() method honors this behavior, probaby via
+        // parsing the noexec flag when initializing the UnixFileStore, though the flag is not
+        // exposed via a public API.  To find out if library is being loaded off a volume with
+        // noexec, confirm or add executalbe permissions, then check File#canExecute().
+
+        // Note: We use FQCN to not break when used in java6
+        Set<PosixFilePermission> existingFilePermissions =
+                java.nio.file.Files.getPosixFilePermissions(file.toPath());
+        Set<java.nio.file.attribute.PosixFilePermission> executePermissions =
+                EnumSet.of(OWNER_EXECUTE, GROUP_EXECUTE, OTHERS_EXECUTE);
+        if (existingFilePermissions.containsAll(executePermissions)) {
+            return false;
+        }
+
+        Set<java.nio.file.attribute.PosixFilePermission> newPermissions =
+                EnumSet.copyOf(existingFilePermissions);
+        newPermissions.addAll(executePermissions);
+        java.nio.file.Files.setPosixFilePermissions(file.toPath(), newPermissions);
+        return file.canExecute();
     }
 
     private Java7PlatformUtil() {}

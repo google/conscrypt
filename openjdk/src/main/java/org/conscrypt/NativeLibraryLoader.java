@@ -31,10 +31,6 @@
  */
 package org.conscrypt;
 
-import static java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE;
-import static java.nio.file.attribute.PosixFilePermission.OTHERS_EXECUTE;
-import static java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE;
-
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
@@ -48,9 +44,7 @@ import java.net.URL;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.MessageFormat;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,7 +57,6 @@ final class NativeLibraryLoader {
     private static final String WORK_DIR_PROPERTY_NAME = "org.conscrypt.native.workdir";
     private static final String DELETE_LIB_PROPERTY_NAME =
             "org.conscrypt.native.deleteLibAfterLoading";
-    private static final boolean POSIX_FILE_SUPPORTED = isPosixFileSupported();
     private static final String NATIVE_RESOURCE_HOME = "META-INF/native/";
     private static final File WORKDIR;
     private static final boolean DELETE_NATIVE_LIB_AFTER_LOADING;
@@ -194,8 +187,7 @@ final class NativeLibraryLoader {
         try {
             // Create a temporary file.
             tmpFile = Platform.createTempFile(prefix, suffix, WORKDIR);
-            if (tmpFile.isFile() && tmpFile.canRead()
-                    && !NoexecVolumeDetector.canExecuteExecutable(tmpFile)) {
+            if (tmpFile.isFile() && tmpFile.canRead() && !Platform.canExecuteExecutable(tmpFile)) {
                 throw new IOException(MessageFormat.format("{0} exists but cannot be executed even "
                                 + "when execute permissions set; check volume for "
                                 + "\"noexec\" flag; use -D{1}=[path] to set native "
@@ -426,55 +418,5 @@ final class NativeLibraryLoader {
 
     private static void debug(String message, Throwable t) {
         logger.log(Level.FINE, message, t);
-    }
-
-    private static boolean isPosixFileSupported() {
-        try {
-            Class.forName("java.nio.file.attribute.PosixFilePermission");
-            Class.forName("java.nio.file.Files");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-
-    private static final class NoexecVolumeDetector {
-        static boolean canExecuteExecutable(File file) throws IOException {
-            if (!POSIX_FILE_SUPPORTED) {
-                // Pre-JDK7, the Java API did not directly support POSIX permissions; instead of
-                // implementing a custom work-around, assume true, which disables the check.
-                return true;
-            }
-
-            // If we can already execute, there is nothing to do.
-            if (file.canExecute()) {
-                return true;
-            }
-
-            // On volumes, with noexec set, even files with the executable POSIX permissions will
-            // fail to execute. The File#canExecute() method honors this behavior, probaby via
-            // parsing the noexec flag when initializing the UnixFileStore, though the flag is not
-            // exposed via a public API.  To find out if library is being loaded off a volume with
-            // noexec, confirm or add executalbe permissions, then check File#canExecute().
-
-            // Note: We use FQCN to not break when used in java6
-            Set<java.nio.file.attribute.PosixFilePermission> existingFilePermissions =
-                    java.nio.file.Files.getPosixFilePermissions(file.toPath());
-            Set<java.nio.file.attribute.PosixFilePermission> executePermissions =
-                    EnumSet.of(OWNER_EXECUTE, GROUP_EXECUTE, OTHERS_EXECUTE);
-            if (existingFilePermissions.containsAll(executePermissions)) {
-                return false;
-            }
-
-            Set<java.nio.file.attribute.PosixFilePermission> newPermissions =
-                    EnumSet.copyOf(existingFilePermissions);
-            newPermissions.addAll(executePermissions);
-            java.nio.file.Files.setPosixFilePermissions(file.toPath(), newPermissions);
-            return file.canExecute();
-        }
-
-        private NoexecVolumeDetector() {
-            // Utility
-        }
     }
 }

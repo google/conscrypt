@@ -250,6 +250,13 @@ final class Platform {
         }
     }
 
+    static boolean canExecuteExecutable(File file) throws IOException {
+        if (JAVA_VERSION >= 7) {
+            return Java7PlatformUtil.canExecuteExecutable(file);
+        }
+        return true;
+    }
+
     static void addSuppressed(Throwable t, Throwable suppressed) {
         if (JAVA_VERSION >= 7) {
             Java7PlatformUtil.addSuppressed(t, suppressed);

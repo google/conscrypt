@@ -60,22 +60,18 @@ final class NativeCryptoJni {
     private static void throwBestError(List<LoadResult> results) {
         Collections.sort(results, ErrorComparator.INSTANCE);
 
-        UnsatisfiedLinkError bestError = null;
-        for (LoadResult result : results) {
-            if (bestError == null) {
-                // We're guaranteed that the best (i.e. first) error is an UnsatisifiedLinkError.
-                bestError = (UnsatisfiedLinkError) result.error;
-            } else {
-                // Suppress all of the other errors, so that they're available to the caller if
-                // desired. Note: suppression is only supported on Java 7+.
-                Platform.addSuppressed(bestError, result.error);
-            }
+        Throwable bestError = results.get(0).error;
+        for (LoadResult result : results.subList(1, results.size())) {
+            // Suppress all of the other errors, so that they're available to the caller if
+            // desired. Note: suppression is only supported on Java 7+.
+            Platform.addSuppressed(bestError, result.error);
         }
 
-        // We'll always throw here.
-        if (bestError != null) {
-            throw bestError;
+        if (bestError instanceof Error) {
+            throw (Error) bestError;
         }
+
+        throw (Error) new UnsatisfiedLinkError(bestError.getMessage()).initCause(bestError);
     }
 
     private static ClassLoader classLoader() {
