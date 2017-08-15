@@ -60,6 +60,7 @@ core_cppflags := -Wall -Wextra -Werror -Wunused -fvisibility=hidden
 #
 
 include $(CLEAR_VARS)
+LOCAL_CPP_EXTENSION := .cc
 LOCAL_SRC_FILES := constants/src/gen/cpp/generate_constants.cc
 LOCAL_MODULE := conscrypt_generate_constants
 LOCAL_SHARED_LIBRARIES := libcrypto libssl
@@ -144,7 +145,6 @@ bundled_benchmark_java_files := $(call all-java-files-under,testing/src/main/jav
 bundled_benchmark_java_files := $(foreach j,$(bundled_benchmark_java_files),\
 	$(if $(findstring testing/src/main/java/libcore/,$(j)),,$(j)))
 bundled_benchmark_java_files += $(call all-java-files-under,benchmark-base/src/main/java)
-bundled_benchmark_java_files += $(call all-java-files-under,benchmark-caliper/src/main/java)
 bundled_benchmark_java_files += $(call all-java-files-under,benchmark-android/src/main/java)
 
 # Make the conscrypt-benchmarks library.
@@ -164,6 +164,7 @@ endif
 
 # Platform conscrypt crypto JNI library
 include $(CLEAR_VARS)
+LOCAL_CPP_EXTENSION := .cc
 LOCAL_CFLAGS += $(core_cflags)
 LOCAL_CFLAGS += -DJNI_JARJAR_PREFIX="com/android/"
 LOCAL_CPPFLAGS += $(core_cppflags)
@@ -205,6 +206,7 @@ include $(BUILD_STATIC_JAVA_LIBRARY)
 
 # Static unbundled Conscrypt crypto JNI library
 include $(CLEAR_VARS)
+LOCAL_CPP_EXTENSION := .cc
 LOCAL_CFLAGS += $(core_cflags)
 LOCAL_CPPFLAGS += $(core_cppflags) \
         -DJNI_JARJAR_PREFIX="com/google/android/gms/" \
@@ -271,6 +273,7 @@ endif
 
 # Conscrypt native library for host
 include $(CLEAR_VARS)
+LOCAL_CPP_EXTENSION := .cc
 LOCAL_SRC_FILES := $(call all-cpp-files-under,common/src/jni/main/cpp)
 LOCAL_C_INCLUDES += \
         external/openssl/include \
