@@ -142,56 +142,59 @@ int jniThrowException(JNIEnv* env, const char* className, const char* msg) {
 }
 
 int jniThrowRuntimeException(JNIEnv* env, const char* msg) {
-    return jniThrowException(env, "java/lang/RuntimeException", msg);
+    return conscrypt::jniutil::jniThrowException(env, "java/lang/RuntimeException", msg);
 }
 
 int jniThrowNullPointerException(JNIEnv* env, const char* msg) {
-    return jniThrowException(env, "java/lang/NullPointerException", msg);
+    return conscrypt::jniutil::jniThrowException(env, "java/lang/NullPointerException", msg);
 }
 
 int jniThrowOutOfMemory(JNIEnv* env, const char* message) {
-    return jniThrowException(env, "java/lang/OutOfMemoryError", message);
+    return conscrypt::jniutil::jniThrowException(env, "java/lang/OutOfMemoryError", message);
 }
 
 int throwBadPaddingException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwBadPaddingException %s", message);
-    return jniThrowException(env, "javax/crypto/BadPaddingException", message);
+    return conscrypt::jniutil::jniThrowException(env, "javax/crypto/BadPaddingException", message);
 }
 
 int throwSignatureException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSignatureException %s", message);
-    return jniThrowException(env, "java/security/SignatureException", message);
+    return conscrypt::jniutil::jniThrowException(env, "java/security/SignatureException", message);
 }
 
 int throwInvalidKeyException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwInvalidKeyException %s", message);
-    return jniThrowException(env, "java/security/InvalidKeyException", message);
+    return conscrypt::jniutil::jniThrowException(env, "java/security/InvalidKeyException", message);
 }
 
 int throwIllegalBlockSizeException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwIllegalBlockSizeException %s", message);
-    return jniThrowException(env, "javax/crypto/IllegalBlockSizeException", message);
+    return conscrypt::jniutil::jniThrowException(
+            env, "javax/crypto/IllegalBlockSizeException", message);
 }
 
 int throwNoSuchAlgorithmException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwUnknownAlgorithmException %s", message);
-    return jniThrowException(env, "java/security/NoSuchAlgorithmException", message);
+    return conscrypt::jniutil::jniThrowException(
+            env, "java/security/NoSuchAlgorithmException", message);
 }
 
 int throwIOException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwIOException %s", message);
-    return jniThrowException(env, "java/io/IOException", message);
+    return conscrypt::jniutil::jniThrowException(env, "java/io/IOException", message);
 }
 
 int throwParsingException(JNIEnv* env, const char* message) {
-    return jniThrowException(env, TO_STRING(JNI_JARJAR_PREFIX)
+    return conscrypt::jniutil::jniThrowException(env, TO_STRING(JNI_JARJAR_PREFIX)
                             "org/conscrypt/OpenSSLX509CertificateFactory$ParsingException",
                             message);
 }
 
 int throwInvalidAlgorithmParameterException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwInvalidAlgorithmParameterException %s", message);
-    return jniThrowException(env, "java/security/InvalidAlgorithmParameterException", message);
+    return conscrypt::jniutil::jniThrowException(
+            env, "java/security/InvalidAlgorithmParameterException", message);
 }
 
 int throwForAsn1Error(JNIEnv* env, int reason, const char* message,
@@ -359,22 +362,24 @@ bool throwExceptionIfNecessary(JNIEnv* env, CONSCRYPT_UNUSED const char* locatio
 
 int throwSocketTimeoutException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSocketTimeoutException %s", message);
-    return jniThrowException(env, "java/net/SocketTimeoutException", message);
+    return conscrypt::jniutil::jniThrowException(env, "java/net/SocketTimeoutException", message);
 }
 
 int throwSSLHandshakeExceptionStr(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSSLExceptionStr %s", message);
-    return jniThrowException(env, "javax/net/ssl/SSLHandshakeException", message);
+    return conscrypt::jniutil::jniThrowException(
+            env, "javax/net/ssl/SSLHandshakeException", message);
 }
 
 int throwSSLExceptionStr(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSSLExceptionStr %s", message);
-    return jniThrowException(env, "javax/net/ssl/SSLException", message);
+    return conscrypt::jniutil::jniThrowException(env, "javax/net/ssl/SSLException", message);
 }
 
 int throwSSLProtocolExceptionStr(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSSLProtocolExceptionStr %s", message);
-    return jniThrowException(env, "javax/net/ssl/SSLProtocolException", message);
+    return conscrypt::jniutil::jniThrowException(
+            env, "javax/net/ssl/SSLProtocolException", message);
 }
 
 int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCode, const char* message,
