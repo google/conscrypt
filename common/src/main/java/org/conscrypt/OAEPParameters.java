@@ -35,8 +35,8 @@ import javax.crypto.spec.PSource;
 @Internal
 public class OAEPParameters extends AlgorithmParametersSpi {
 
-    private static final Map<String, String> OID_TO_NAME = new HashMap<>();
-    private static final Map<String, String> NAME_TO_OID = new HashMap<>();
+    private static final Map<String, String> OID_TO_NAME = new HashMap<String, String>();
+    private static final Map<String, String> NAME_TO_OID = new HashMap<String, String>();
     static {
         OID_TO_NAME.put("1.3.14.3.2.26", "SHA-1");
         OID_TO_NAME.put("2.16.840.1.101.3.4.2.4", "SHA-224");

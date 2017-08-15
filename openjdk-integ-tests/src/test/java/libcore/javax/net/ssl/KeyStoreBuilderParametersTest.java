@@ -34,15 +34,6 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class KeyStoreBuilderParametersTest extends AbstractSSLTest {
-    @Test
-    public void test_init_Builder_null() {
-        try {
-            new KeyStoreBuilderParameters((Builder) null);
-            fail();
-        } catch (NullPointerException expected) {
-            // Ignored.
-        }
-    }
 
     @Test
     public void test_init_Builder() {

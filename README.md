@@ -27,8 +27,7 @@ similar performance.
 
 Download
 -------------
-<b><u>NOTE:</u> This section is under construction! Artifacts have
-not yet been published to the public Maven repositories.</b>
+All Conscrypt artifacts target the **Java 6** runtime and are available on Maven central.
 
 #### Download JARs
 You can download

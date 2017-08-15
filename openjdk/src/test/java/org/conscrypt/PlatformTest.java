@@ -16,19 +16,29 @@
 
 package org.conscrypt;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLParameters;
-import junit.framework.TestCase;
+import org.junit.Assume;
+import org.junit.Test;
 
 /**
  * Test for Platform
  */
-public class PlatformTest extends TestCase {
+public class PlatformTest {
+    private static final void assumeJava8() {
+        Assume.assumeTrue("Require Java 8: " + Platform.javaVersion(), Platform.javaVersion() >= 8);
+    }
+
+    @Test
     public void test_setSSLParameters_Socket() throws Exception {
+        assumeJava8();
         Socket socket = new OpenSSLSocketFactoryImpl().createSocket();
         SSLParametersImpl impl = SSLParametersImpl.getDefault();
         SSLParameters params = new SSLParameters();
@@ -37,26 +47,30 @@ public class PlatformTest extends TestCase {
         params.setServerNames(names);
         params.setUseCipherSuitesOrder(false);
         params.setEndpointIdentificationAlgorithm("ABC");
-        Platform.setSSLParameters(params, impl, (AbstractConscryptSocket)socket);
-        assertEquals("some.host", ((AbstractConscryptSocket)socket).getHostname());
+        Platform.setSSLParameters(params, impl, (AbstractConscryptSocket) socket);
+        assertEquals("some.host", ((AbstractConscryptSocket) socket).getHostname());
         assertFalse(impl.getUseCipherSuitesOrder());
         assertEquals("ABC", impl.getEndpointIdentificationAlgorithm());
     }
 
+    @Test
     public void test_getSSLParameters_Socket() throws Exception {
+        assumeJava8();
         Socket socket = new OpenSSLSocketFactoryImpl().createSocket();
         SSLParametersImpl impl = SSLParametersImpl.getDefault();
         SSLParameters params = new SSLParameters();
         impl.setUseCipherSuitesOrder(false);
         impl.setEndpointIdentificationAlgorithm("ABC");
-        ((AbstractConscryptSocket)socket).setHostname("some.host");
-        Platform.getSSLParameters(params, impl, (AbstractConscryptSocket)socket);
-        assertEquals("some.host", ((SNIHostName)params.getServerNames().get(0)).getAsciiName());
+        ((AbstractConscryptSocket) socket).setHostname("some.host");
+        Platform.getSSLParameters(params, impl, (AbstractConscryptSocket) socket);
+        assertEquals("some.host", ((SNIHostName) params.getServerNames().get(0)).getAsciiName());
         assertFalse(params.getUseCipherSuitesOrder());
         assertEquals("ABC", params.getEndpointIdentificationAlgorithm());
     }
 
+    @Test
     public void test_setSSLParameters_Engine() throws Exception {
+        assumeJava8();
         SSLParametersImpl impl = SSLParametersImpl.getDefault();
         SSLParameters params = new SSLParameters();
         ConscryptEngine engine = new ConscryptEngine(impl);
@@ -71,7 +85,9 @@ public class PlatformTest extends TestCase {
         assertEquals("ABC", impl.getEndpointIdentificationAlgorithm());
     }
 
+    @Test
     public void test_getSSLParameters_Engine() throws Exception {
+        assumeJava8();
         SSLParametersImpl impl = SSLParametersImpl.getDefault();
         SSLParameters params = new SSLParameters();
         ConscryptEngine engine = new ConscryptEngine(impl);
@@ -79,7 +95,7 @@ public class PlatformTest extends TestCase {
         impl.setEndpointIdentificationAlgorithm("ABC");
         engine.setHostname("some.host");
         Platform.getSSLParameters(params, impl, engine);
-        assertEquals("some.host", ((SNIHostName)params.getServerNames().get(0)).getAsciiName());
+        assertEquals("some.host", ((SNIHostName) params.getServerNames().get(0)).getAsciiName());
         assertFalse(params.getUseCipherSuitesOrder());
         assertEquals("ABC", params.getEndpointIdentificationAlgorithm());
     }

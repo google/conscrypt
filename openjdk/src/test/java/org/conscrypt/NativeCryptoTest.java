@@ -42,7 +42,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -630,7 +629,7 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c);
 
-        List<String> ciphers = new ArrayList<>(NativeCrypto.SUPPORTED_CIPHER_SUITES_SET);
+        List<String> ciphers = new ArrayList<String>(NativeCrypto.SUPPORTED_CIPHER_SUITES_SET);
         NativeCrypto.SSL_set_cipher_lists(s, ciphers.toArray(new String[ciphers.size()]));
 
         NativeCrypto.SSL_free(s);
@@ -1196,7 +1195,7 @@ public class NativeCryptoTest {
 
         assertTrue(clientCallback.clientCertificateRequestedCalled);
         assertNotNull(clientCallback.keyTypes);
-        assertEquals(new HashSet<>(Arrays.asList("EC", "RSA")),
+        assertEquals(new HashSet<String>(Arrays.asList("EC", "RSA")),
                 SSLUtils.getSupportedClientKeyTypes(clientCallback.keyTypes));
         assertEqualPrincipals(getCaPrincipals(), clientCallback.asn1DerEncodedX500Principals);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
@@ -3007,6 +3006,6 @@ public class NativeCryptoTest {
     }
 
     private static ServerSocket newServerSocket() throws IOException {
-        return new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
+        return new ServerSocket(0, 50, TestUtils.getLoopbackAddress());
     }
 }

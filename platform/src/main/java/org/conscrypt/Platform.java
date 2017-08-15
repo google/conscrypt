@@ -335,15 +335,11 @@ final class Platform {
      */
 
     static SSLSession wrapSSLSession(ActiveSession sslSession) {
-        return new DelegatingExtendedSSLSession(sslSession);
+        return ExtendedSessionAdapter.wrap(sslSession);
     }
 
     static SSLSession unwrapSSLSession(SSLSession sslSession) {
-        if (sslSession instanceof DelegatingExtendedSSLSession) {
-            return ((DelegatingExtendedSSLSession) sslSession).getDelegate();
-        }
-
-        return sslSession;
+        return ExtendedSessionAdapter.getDelegate(sslSession);
     }
 
     /*

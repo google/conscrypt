@@ -122,7 +122,7 @@ public final class OpenSSLECKeyPairGenerator extends KeyPairGenerator {
 
     /** For testing. */
     public static void assertCurvesAreValid() {
-        ArrayList<String> invalidCurves = new ArrayList<>();
+        ArrayList<String> invalidCurves = new ArrayList<String>();
         for (String curveName : SIZE_TO_CURVE_NAME.values()) {
             if (OpenSSLECGroupContext.getCurveByName(curveName) == null) {
                 invalidCurves.add(curveName);

@@ -18,6 +18,7 @@ package libcore.javax.net.ssl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import javax.net.ssl.SSLEngine;
@@ -31,7 +32,7 @@ import javax.net.ssl.SSLSession;
  * a pair of connected and handshaked client and server SSLEngines for
  * testing.
  */
-public final class TestSSLEnginePair implements AutoCloseable {
+public final class TestSSLEnginePair implements Closeable {
     public final TestSSLContext c;
     public final SSLEngine server;
     public final SSLEngine client;

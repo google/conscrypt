@@ -32,13 +32,13 @@ import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLParameters;
+import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SSLParametersTest extends AbstractSSLTest {
-
     @Test
     public void test_SSLParameters_emptyConstructor() {
         SSLParameters p = new SSLParameters();
@@ -131,8 +131,10 @@ public class SSLParametersTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLParameters_setServerNames_duplicatedNameThrows() throws Exception {
+        TestUtils.assumeSNIHostnameAvailable();
+
         SSLParameters p = new SSLParameters();
-        ArrayList<SNIServerName> dupeNames = new ArrayList<>();
+        ArrayList<SNIServerName> dupeNames = new ArrayList<SNIServerName>();
         dupeNames.add(new SNIHostName("www.example.com"));
         dupeNames.add(new SNIHostName("www.example.com"));
         try {
@@ -145,8 +147,10 @@ public class SSLParametersTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLParameters_setServerNames_setNull_getNull() throws Exception {
+        TestUtils.assumeSNIHostnameAvailable();
         SSLParameters p = new SSLParameters();
-        p.setServerNames(Collections.singletonList(new SNIHostName("www.example.com")));
+        p.setServerNames(
+                Collections.singletonList((SNIServerName) new SNIHostName("www.example.com")));
         assertNotNull(p.getServerNames());
         p.setServerNames(null);
         assertNull(p.getServerNames());
@@ -154,8 +158,9 @@ public class SSLParametersTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLParameters_setServerNames_setEmpty_getEmpty() throws Exception {
+        TestUtils.assumeSNIHostnameAvailable();
         SSLParameters p = new SSLParameters();
-        p.setServerNames(new ArrayList<>());
+        p.setServerNames(new ArrayList<SNIServerName>());
         Collection<SNIServerName> actual = p.getServerNames();
         assertNotNull(actual);
         assertEquals(0, actual.size());
@@ -163,8 +168,10 @@ public class SSLParametersTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLParameters_getServerNames_unmodifiable() throws Exception {
+        TestUtils.assumeSNIHostnameAvailable();
         SSLParameters p = new SSLParameters();
-        p.setServerNames(Collections.singletonList(new SNIHostName("www.example.com")));
+        p.setServerNames(
+                Collections.singletonList((SNIServerName) new SNIHostName("www.example.com")));
         Collection<SNIServerName> actual = p.getServerNames();
         try {
             actual.add(new SNIHostName("www.foo.com"));
@@ -176,8 +183,9 @@ public class SSLParametersTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLParameters_setSNIMatchers_duplicatedNameThrows() throws Exception {
+        TestUtils.assumeSNIHostnameAvailable();
         SSLParameters p = new SSLParameters();
-        ArrayList<SNIMatcher> dupeMatchers = new ArrayList<>();
+        ArrayList<SNIMatcher> dupeMatchers = new ArrayList<SNIMatcher>();
         dupeMatchers.add(SNIHostName.createSNIMatcher("www\\.example\\.com"));
         dupeMatchers.add(SNIHostName.createSNIMatcher("www\\.example\\.com"));
         try {
@@ -190,6 +198,7 @@ public class SSLParametersTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLParameters_setSNIMatchers_setNull_getNull() throws Exception {
+        TestUtils.assumeSNIHostnameAvailable();
         SSLParameters p = new SSLParameters();
         p.setSNIMatchers(
                 Collections.singletonList(SNIHostName.createSNIMatcher("www\\.example\\.com")));
@@ -200,11 +209,12 @@ public class SSLParametersTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLParameters_setSNIMatchers_setEmpty_getEmpty() throws Exception {
+        TestUtils.assumeSNIHostnameAvailable();
         SSLParameters p = new SSLParameters();
         p.setSNIMatchers(
                 Collections.singletonList(SNIHostName.createSNIMatcher("www\\.example\\.com")));
         assertEquals(1, p.getSNIMatchers().size());
-        p.setSNIMatchers(Collections.emptyList());
+        p.setSNIMatchers(Collections.<SNIMatcher>emptyList());
         Collection<SNIMatcher> actual = p.getSNIMatchers();
         assertNotNull(actual);
         assertEquals(0, actual.size());
@@ -212,6 +222,7 @@ public class SSLParametersTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLParameters_getSNIMatchers_unmodifiable() throws Exception {
+        TestUtils.assumeSNIHostnameAvailable();
         SSLParameters p = new SSLParameters();
         p.setSNIMatchers(
                 Collections.singletonList(SNIHostName.createSNIMatcher("www\\.example\\.com")));

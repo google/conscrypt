@@ -32,12 +32,10 @@ import libcore.java.security.StandardNames;
  * X509ExtendedTrustManager to provide debug logging and recording of
  * values.
  */
-public final class TestTrustManager extends X509ExtendedTrustManager {
+public abstract class TestTrustManager {
     private static final boolean LOG = false;
     private static final PrintStream out = LOG ? System.out : new NullPrintStream();
-
-    private final X509TrustManager trustManager;
-    private final X509ExtendedTrustManager extendedTrustManager;
+    private static final Class<?> EXTENDED_TRUST_MANAGER_CLASS = getExtendedTrustManagerClass();
 
     public static TrustManager[] wrap(TrustManager[] trustManagers) {
         TrustManager[] result = trustManagers.clone();
@@ -48,169 +46,235 @@ public final class TestTrustManager extends X509ExtendedTrustManager {
     }
 
     public static TrustManager wrap(TrustManager trustManager) {
-        if (trustManager instanceof X509ExtendedTrustManager) {
-            return new TestTrustManager((X509ExtendedTrustManager) trustManager);
+        if (EXTENDED_TRUST_MANAGER_CLASS != null && EXTENDED_TRUST_MANAGER_CLASS.isInstance(trustManager)) {
+            return new ExtendedWrapper((X509ExtendedTrustManager) trustManager);
         } else if (trustManager instanceof X509TrustManager) {
-            return new TestTrustManager((X509TrustManager) trustManager);
+            return new Wrapper((X509TrustManager) trustManager);
         }
         return trustManager;
     }
 
-    public TestTrustManager(X509ExtendedTrustManager trustManager) {
-        out.println("TestTrustManager.<init> extendedTrustManager=" + trustManager);
-        this.extendedTrustManager = trustManager;
-        this.trustManager = trustManager;
-    }
-
-    public TestTrustManager(X509TrustManager trustManager) {
-        out.println("TestTrustManager.<init> trustManager=" + trustManager);
-        this.extendedTrustManager = null;
-        this.trustManager = trustManager;
-    }
-
-    @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType)
-            throws CertificateException {
-        out.print("TestTrustManager.checkClientTrusted "
-                + "chain=" + chain.length + " "
-                + "authType=" + authType + " ");
+    private static Class<?> getExtendedTrustManagerClass() {
         try {
-            assertClientAuthType(authType);
-            trustManager.checkClientTrusted(chain, authType);
-            out.println("OK");
-        } catch (CertificateException e) {
-            e.printStackTrace(out);
-            throw e;
+            return Class.forName("javax.net.ssl.X509ExtendedTrustManager");
+        } catch (ClassNotFoundException e) {
+            return null;
         }
     }
 
-    @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket)
-            throws CertificateException {
-        if (extendedTrustManager == null) {
-            out.print("(fallback to X509TrustManager) ");
-            checkClientTrusted(chain, authType);
-            return;
-        }
-        out.print("TestTrustManager.checkClientTrusted "
-                + "chain=" + chain.length + " "
-                + "authType=" + authType + " "
-                + "socket=" + socket + " ");
-        try {
-            assertClientAuthType(authType);
-            extendedTrustManager.checkClientTrusted(chain, authType, socket);
-            out.println("OK");
-        } catch (CertificateException e) {
-            e.printStackTrace(out);
-            throw e;
-        }
-    }
-
-    @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
-            throws CertificateException {
-        if (extendedTrustManager == null) {
-            out.print("(fallback to X509TrustManager) ");
-            checkClientTrusted(chain, authType);
-            return;
-        }
-        out.print("TestTrustManager.checkClientTrusted "
-                + "chain=" + chain.length + " "
-                + "authType=" + authType + " "
-                + "engine=" + engine + " ");
-        try {
-            assertClientAuthType(authType);
-            extendedTrustManager.checkClientTrusted(chain, authType, engine);
-            out.println("OK");
-        } catch (CertificateException e) {
-            e.printStackTrace(out);
-            throw e;
-        }
-    }
-
-    private void assertClientAuthType(String authType) {
+    private static void assertClientAuthType(String authType) {
         if (!StandardNames.CLIENT_AUTH_TYPES.contains(authType)) {
             throw new AssertionError("Unexpected client auth type " + authType);
         }
     }
 
-    @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType)
-            throws CertificateException {
-        out.print("TestTrustManager.checkServerTrusted "
-                + "chain=" + chain.length + " "
-                + "authType=" + authType + " ");
-        try {
-            assertServerAuthType(authType);
-            trustManager.checkServerTrusted(chain, authType);
-            out.println("OK");
-        } catch (CertificateException e) {
-            e.printStackTrace(out);
-            throw e;
-        }
-    }
-
-    @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket)
-            throws CertificateException {
-        if (extendedTrustManager == null) {
-            out.print("(fallback to X509TrustManager) ");
-            checkServerTrusted(chain, authType);
-            return;
-        }
-        out.print("TestTrustManager.checkServerTrusted "
-                + "chain=" + chain.length + " "
-                + "authType=" + authType + " "
-                + "socket=" + socket.toString() + " ");
-        try {
-            assertServerAuthType(authType);
-            extendedTrustManager.checkServerTrusted(chain, authType, socket);
-            out.println("OK");
-        } catch (CertificateException e) {
-            e.printStackTrace(out);
-            throw e;
-        }
-    }
-
-    @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
-            throws CertificateException {
-        if (extendedTrustManager == null) {
-            out.print("(fallback to X509TrustManager) ");
-            checkServerTrusted(chain, authType);
-            return;
-        }
-        out.print("TestTrustManager.checkServerTrusted "
-                + "chain=" + chain.length + " "
-                + "authType=" + authType + " "
-                + "engine=" + engine.toString() + " ");
-        try {
-            assertServerAuthType(authType);
-            extendedTrustManager.checkServerTrusted(chain, authType, engine);
-            out.println("OK");
-        } catch (CertificateException e) {
-            e.printStackTrace(out);
-            throw e;
-        }
-    }
-
-    private void assertServerAuthType(String authType) {
+    private static void assertServerAuthType(String authType) {
         if (!StandardNames.SERVER_AUTH_TYPES.contains(authType)) {
             throw new AssertionError("Unexpected server auth type " + authType);
         }
     }
 
-    /**
-     * Returns the list of certificate issuer authorities which are trusted for
-     * authentication of peers.
-     *
-     * @return the list of certificate issuer authorities which are trusted for
-     *         authentication of peers.
-     */
-    @Override
-    public X509Certificate[] getAcceptedIssuers() {
-        X509Certificate[] result = trustManager.getAcceptedIssuers();
-        out.print("TestTrustManager.getAcceptedIssuers result=" + result.length);
-        return result;
+    private static final class Wrapper implements X509TrustManager {
+        private final X509TrustManager trustManager;
+
+        private Wrapper(X509TrustManager trustManager) {
+            out.println("TestTrustManager.<init> trustManager=" + trustManager);
+            this.trustManager = trustManager;
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType)
+            throws CertificateException {
+            out.print("TestTrustManager.checkClientTrusted "
+                + "chain=" + chain.length + " "
+                + "authType=" + authType + " ");
+            try {
+                assertClientAuthType(authType);
+                trustManager.checkClientTrusted(chain, authType);
+                out.println("OK");
+            } catch (CertificateException e) {
+                e.printStackTrace(out);
+                throw e;
+            }
+        }
+
+
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType)
+            throws CertificateException {
+            out.print("TestTrustManager.checkServerTrusted "
+                + "chain=" + chain.length + " "
+                + "authType=" + authType + " ");
+            try {
+                assertServerAuthType(authType);
+                trustManager.checkServerTrusted(chain, authType);
+                out.println("OK");
+            } catch (CertificateException e) {
+                e.printStackTrace(out);
+                throw e;
+            }
+        }
+
+        /**
+         * Returns the list of certificate issuer authorities which are trusted for
+         * authentication of peers.
+         *
+         * @return the list of certificate issuer authorities which are trusted for
+         *         authentication of peers.
+         */
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            X509Certificate[] result = trustManager.getAcceptedIssuers();
+            out.print("TestTrustManager.getAcceptedIssuers result=" + result.length);
+            return result;
+        }
+    }
+
+    private static final class ExtendedWrapper extends X509ExtendedTrustManager {
+        private final X509ExtendedTrustManager extendedTrustManager;
+        private final X509TrustManager trustManager;
+
+        ExtendedWrapper(X509ExtendedTrustManager trustManager) {
+            out.println("TestTrustManager.<init> extendedTrustManager=" + trustManager);
+            this.extendedTrustManager = trustManager;
+            this.trustManager = trustManager;
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType)
+            throws CertificateException {
+            out.print("TestTrustManager.checkClientTrusted "
+                + "chain=" + chain.length + " "
+                + "authType=" + authType + " ");
+            try {
+                assertClientAuthType(authType);
+                trustManager.checkClientTrusted(chain, authType);
+                out.println("OK");
+            } catch (CertificateException e) {
+                e.printStackTrace(out);
+                throw e;
+            }
+        }
+
+
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType)
+            throws CertificateException {
+            out.print("TestTrustManager.checkServerTrusted "
+                + "chain=" + chain.length + " "
+                + "authType=" + authType + " ");
+            try {
+                assertServerAuthType(authType);
+                trustManager.checkServerTrusted(chain, authType);
+                out.println("OK");
+            } catch (CertificateException e) {
+                e.printStackTrace(out);
+                throw e;
+            }
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket)
+            throws CertificateException {
+            if (extendedTrustManager == null) {
+                out.print("(fallback to X509TrustManager) ");
+                checkClientTrusted(chain, authType);
+                return;
+            }
+            out.print("TestTrustManager.checkClientTrusted "
+                + "chain=" + chain.length + " "
+                + "authType=" + authType + " "
+                + "socket=" + socket + " ");
+            try {
+                assertClientAuthType(authType);
+                extendedTrustManager.checkClientTrusted(chain, authType, socket);
+                out.println("OK");
+            } catch (CertificateException e) {
+                e.printStackTrace(out);
+                throw e;
+            }
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
+            throws CertificateException {
+            if (extendedTrustManager == null) {
+                out.print("(fallback to X509TrustManager) ");
+                checkClientTrusted(chain, authType);
+                return;
+            }
+            out.print("TestTrustManager.checkClientTrusted "
+                + "chain=" + chain.length + " "
+                + "authType=" + authType + " "
+                + "engine=" + engine + " ");
+            try {
+                assertClientAuthType(authType);
+                extendedTrustManager.checkClientTrusted(chain, authType, engine);
+                out.println("OK");
+            } catch (CertificateException e) {
+                e.printStackTrace(out);
+                throw e;
+            }
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket)
+            throws CertificateException {
+            if (extendedTrustManager == null) {
+                out.print("(fallback to X509TrustManager) ");
+                checkServerTrusted(chain, authType);
+                return;
+            }
+            out.print("TestTrustManager.checkServerTrusted "
+                + "chain=" + chain.length + " "
+                + "authType=" + authType + " "
+                + "socket=" + socket.toString() + " ");
+            try {
+                assertServerAuthType(authType);
+                extendedTrustManager.checkServerTrusted(chain, authType, socket);
+                out.println("OK");
+            } catch (CertificateException e) {
+                e.printStackTrace(out);
+                throw e;
+            }
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
+            throws CertificateException {
+            if (extendedTrustManager == null) {
+                out.print("(fallback to X509TrustManager) ");
+                checkServerTrusted(chain, authType);
+                return;
+            }
+            out.print("TestTrustManager.checkServerTrusted "
+                + "chain=" + chain.length + " "
+                + "authType=" + authType + " "
+                + "engine=" + engine.toString() + " ");
+            try {
+                assertServerAuthType(authType);
+                extendedTrustManager.checkServerTrusted(chain, authType, engine);
+                out.println("OK");
+            } catch (CertificateException e) {
+                e.printStackTrace(out);
+                throw e;
+            }
+        }
+
+        /**
+         * Returns the list of certificate issuer authorities which are trusted for
+         * authentication of peers.
+         *
+         * @return the list of certificate issuer authorities which are trusted for
+         *         authentication of peers.
+         */
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            X509Certificate[] result = trustManager.getAcceptedIssuers();
+            out.print("TestTrustManager.getAcceptedIssuers result=" + result.length);
+            return result;
+        }
     }
 }

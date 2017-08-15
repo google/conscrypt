@@ -16,7 +16,7 @@
 
 package libcore.javax.net.ssl;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.conscrypt.TestUtils.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -27,6 +27,7 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,13 +46,13 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
+import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SSLEngineTest extends AbstractSSLTest {
-
     @Test
     public void test_SSLEngine_defaultConfiguration() throws Exception {
         SSLConfigurationAsserts.assertSSLEngineDefaultConfiguration(
@@ -504,7 +505,7 @@ public class SSLEngineTest extends AbstractSSLTest {
         SSLEngine client = c.clientContext.createSSLEngine(c.host.getHostName(), c.port);
         client.setUseClientMode(true);
         client.beginHandshake();
-        client.beginHandshake();  // This call should be ignored
+        client.beginHandshake(); // This call should be ignored
         c.close();
     }
 
@@ -691,6 +692,7 @@ public class SSLEngineTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLEngine_endpointVerification_Success() throws Exception {
+        TestUtils.assumeSetEndpointIdentificationAlgorithmAvailable();
         TestSSLContext c = TestSSLContext.create();
         TestSSLEnginePair p = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             @Override
@@ -840,34 +842,43 @@ public class SSLEngineTest extends AbstractSSLTest {
 
     @Test
     public void test_SSLEngine_Multiple_Thread_Success() throws Exception {
-        try (final TestSSLEnginePair pair = TestSSLEnginePair.create()) {
+        final TestSSLEnginePair pair = TestSSLEnginePair.create();
+        try {
             assertConnected(pair);
 
             final CountDownLatch startUpSync = new CountDownLatch(2);
             ExecutorService executor = Executors.newFixedThreadPool(2);
-            Future<Void> client = executor.submit(() -> {
-                startUpSync.countDown();
+            Future<Void> client = executor.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    startUpSync.countDown();
 
-                for (int i = 0; i < NUM_STRESS_ITERATIONS; i++) {
-                    assertSendsCorrectly("This is the client. Hello!".getBytes(UTF_8), pair.client,
-                            pair.server, false);
+                    for (int i = 0; i < NUM_STRESS_ITERATIONS; i++) {
+                        assertSendsCorrectly("This is the client. Hello!".getBytes(UTF_8),
+                                pair.client, pair.server, false);
+                    }
+
+                    return null;
                 }
-
-                return null;
             });
-            Future<Void> server = executor.submit(() -> {
-                startUpSync.countDown();
+            Future<Void> server = executor.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    startUpSync.countDown();
 
-                for (int i = 0; i < NUM_STRESS_ITERATIONS; i++) {
-                    assertSendsCorrectly("This is the server. Hi!".getBytes(UTF_8), pair.server,
-                            pair.client, false);
+                    for (int i = 0; i < NUM_STRESS_ITERATIONS; i++) {
+                        assertSendsCorrectly("This is the server. Hi!".getBytes(UTF_8), pair.server,
+                                pair.client, false);
+                    }
+
+                    return null;
                 }
-
-                return null;
             });
             executor.shutdown();
             client.get();
             server.get();
+        } finally {
+            pair.close();
         }
     }
 

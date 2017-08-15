@@ -7,9 +7,6 @@ ext {
     // Build the list of classifiers that will be used in the build.
     arch32Name = 'x86'
     arch64Name = 'x86_64'
-    // Allow the java executable to be specified via env/property for each architecture.
-    javaExecutable32 = properties['javaExecutable32'] ?: System.env.CONSCRYPT_JAVA_EXECUTABLE_32
-    javaExecutable64 = properties['javaExecutable64'] ?: System.env.CONSCRYPT_JAVA_EXECUTABLE_64
     nativeClassifiers = []
     nativeClassifier64Bit = null
     nativeClassifier32Bit = null
@@ -253,6 +250,7 @@ def addNativeTest(nativeClassifier) {
     // Execute the java executable to see if it supports the architecture flag.
     def javaError = new ByteArrayOutputStream()
     exec {
+        System.out.println("Running tests with java executable: " + javaExecutable + ".")
         executable javaExecutable
         args = ["$javaArchFlag", '-version']
         ignoreExitValue true

@@ -1014,8 +1014,8 @@ public final class StandardNames {
     public static void assertDefaultCipherSuites(String[] cipherSuites) {
         assertValidCipherSuites(cipherSuites);
 
-        Set<String> expected = new TreeSet<>(CIPHER_SUITES_DEFAULT);
-        Set<String> actual = new TreeSet<>(Arrays.asList(cipherSuites));
+        Set<String> expected = new TreeSet<String>(CIPHER_SUITES_DEFAULT);
+        Set<String> actual = new TreeSet<String>(Arrays.asList(cipherSuites));
         assertEquals(expected, actual);
     }
 

@@ -40,9 +40,9 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 import libcore.java.security.TestKeyStore;
+import org.conscrypt.TestUtils;
 
 /**
  * TestSSLContext is a convenience class for other tests that
@@ -76,8 +76,8 @@ public final class TestSSLContext {
     public final char[] serverStorePassword;
     public final KeyManager[] clientKeyManagers;
     public final KeyManager[] serverKeyManagers;
-    public final X509ExtendedTrustManager clientTrustManager;
-    public final X509ExtendedTrustManager serverTrustManager;
+    public final X509TrustManager clientTrustManager;
+    public final X509TrustManager serverTrustManager;
     public final SSLContext clientContext;
     public final SSLContext serverContext;
     public final SSLServerSocket serverSocket;
@@ -159,7 +159,7 @@ public final class TestSSLContext {
      */
     public InetSocketAddress getLoopbackAsHostname(String hostname, int port)
             throws IOException, ClassNotFoundException {
-        InetSocketAddress addr = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
+        InetSocketAddress addr = new InetSocketAddress(TestUtils.getLoopbackAddress(), port);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         HostnameRewritingObjectOutputStream oos =
                 new HostnameRewritingObjectOutputStream(baos, hostname);
@@ -170,8 +170,8 @@ public final class TestSSLContext {
     }
     private TestSSLContext(KeyStore clientKeyStore, char[] clientStorePassword,
             KeyStore serverKeyStore, char[] serverStorePassword, KeyManager[] clientKeyManagers,
-            KeyManager[] serverKeyManagers, X509ExtendedTrustManager clientTrustManager,
-            X509ExtendedTrustManager serverTrustManager, SSLContext clientContext,
+            KeyManager[] serverKeyManagers, X509TrustManager clientTrustManager,
+            X509TrustManager serverTrustManager, SSLContext clientContext,
             SSLContext serverContext, SSLServerSocket serverSocket, InetAddress host, int port) {
         this.clientKeyStore = clientKeyStore;
         this.clientStorePassword = clientStorePassword;
@@ -325,14 +325,14 @@ public final class TestSSLContext {
                     // The TCP spec says that this should occur before listen.
                     serverSocket.setReceiveBufferSize(serverReceiveBufferSize);
                 }
-                InetAddress host = InetAddress.getLoopbackAddress();
+                InetAddress host = TestUtils.getLoopbackAddress();
                 serverSocket.bind(new InetSocketAddress(host, 0));
                 int port = serverSocket.getLocalPort();
                 return new TestSSLContext(client != null ? client.keyStore : null,
                         clientStorePassword, server != null ? server.keyStore : null,
                         serverStorePassword, clientKeyManagers, serverKeyManagers,
-                        (X509ExtendedTrustManager) clientTrustManager,
-                        (X509ExtendedTrustManager) serverTrustManager, clientContext, serverContext,
+                        (X509TrustManager) clientTrustManager,
+                        (X509TrustManager) serverTrustManager, clientContext, serverContext,
                         serverSocket, host, port);
             } catch (RuntimeException e) {
                 throw e;
