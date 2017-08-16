@@ -55,7 +55,5 @@ final class NativeLibraryUtil {
         }
     }
 
-    private NativeLibraryUtil() {
-        // Utility
-    }
+    private NativeLibraryUtil() {}
 }
