@@ -38,153 +38,137 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Arrays;
-import java.util.Locale;
+import java.text.MessageFormat;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Helper class to load JNI resources.
- *
  */
 final class NativeLibraryLoader {
+    private static final Logger logger = Logger.getLogger(NativeLibraryLoader.class.getName());
+
+    private static final String WORK_DIR_PROPERTY_NAME = "org.conscrypt.native.workdir";
+    private static final String DELETE_LIB_PROPERTY_NAME =
+            "org.conscrypt.native.deleteLibAfterLoading";
     private static final String NATIVE_RESOURCE_HOME = "META-INF/native/";
-    private static final String OSNAME;
     private static final File WORKDIR;
+    private static final boolean DELETE_NATIVE_LIB_AFTER_LOADING;
 
     static {
-        OSNAME = System.getProperty("os.name", "")
-                         .toLowerCase(Locale.US)
-                         .replaceAll("[^a-z0-9]+", "");
-
-        String workdir = System.getProperty("org.conscrypt.native.workdir");
-        if (workdir != null) {
-            File f = new File(workdir);
-            f.mkdirs();
-
-            try {
-                f = f.getAbsoluteFile();
-            } catch (Exception ignored) {
-                // Good to have an absolute path, but it's OK.
-            }
-
-            WORKDIR = f;
-        } else {
-            WORKDIR = tmpdir();
+        File workdir = getWorkDir();
+        if (workdir == null) {
+            workdir = Platform.getTempDir();
         }
+        WORKDIR = workdir;
+        log("-D{0}: {1}", WORK_DIR_PROPERTY_NAME, WORKDIR);
+
+        DELETE_NATIVE_LIB_AFTER_LOADING =
+                Boolean.valueOf(System.getProperty(DELETE_LIB_PROPERTY_NAME, "true"));
     }
 
-    private static File tmpdir() {
-        File f;
+    private static File getWorkDir() {
+        String dirName = System.getProperty(WORK_DIR_PROPERTY_NAME);
+        if (dirName == null) {
+            // Application didn't specify a workdir.
+            return null;
+        }
+
+        File f = new File(dirName);
+        // Create the directory if it doesn't already exist.
+        if (!f.mkdirs() && !f.exists()) {
+            // Unable to create the directory.
+            log("Unable to find or create working directory: {0}", dirName);
+            return null;
+        }
+
         try {
-            f = toDirectory(System.getProperty("org.conscrypt.tmpdir"));
-            if (f != null) {
-                return f;
-            }
-
-            f = toDirectory(System.getProperty("java.io.tmpdir"));
-            if (f != null) {
-                return f;
-            }
-
-            // This shouldn't happen, but just in case ..
-            if (isWindows()) {
-                f = toDirectory(System.getenv("TEMP"));
-                if (f != null) {
-                    return f;
-                }
-
-                String userprofile = System.getenv("USERPROFILE");
-                if (userprofile != null) {
-                    f = toDirectory(userprofile + "\\AppData\\Local\\Temp");
-                    if (f != null) {
-                        return f;
-                    }
-
-                    f = toDirectory(userprofile + "\\Local Settings\\Temp");
-                    if (f != null) {
-                        return f;
-                    }
-                }
-            } else {
-                f = toDirectory(System.getenv("TMPDIR"));
-                if (f != null) {
-                    return f;
-                }
-            }
+            f = f.getAbsoluteFile();
         } catch (Exception ignored) {
-            // Environment variable inaccessible
+            // Good to have an absolute path, but it's OK.
         }
-
-        // Last resort.
-        if (isWindows()) {
-            f = new File("C:\\Windows\\Temp");
-        } else {
-            f = new File("/tmp");
-        }
-
         return f;
-    }
-
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    private static File toDirectory(String path) {
-        if (path == null) {
-            return null;
-        }
-
-        File f = new File(path);
-        f.mkdirs();
-
-        if (!f.isDirectory()) {
-            return null;
-        }
-
-        try {
-            return f.getAbsoluteFile();
-        } catch (Exception ignored) {
-            return f;
-        }
-    }
-
-    private static boolean isWindows() {
-        return OSNAME.startsWith("windows");
-    }
-
-    private static boolean isOSX() {
-        return OSNAME.startsWith("macosx") || OSNAME.startsWith("osx");
     }
 
     /**
      * Loads the first available library in the collection with the specified
      * {@link ClassLoader}.
-     *
-     * @throws IllegalArgumentException
-     *         if none of the given libraries load successfully.
      */
-    static void loadFirstAvailable(ClassLoader loader, String... names) {
+    static boolean loadFirstAvailable(
+            ClassLoader loader, List<LoadResult> results, String... names) {
         for (String name : names) {
-            try {
-                load(name, loader);
-                return;
-            } catch (Throwable t) {
-                // Do nothing.
+            if (load(name, loader, results)) {
+                // Successfully loaded
+                return true;
             }
         }
-        throw new IllegalArgumentException(
-                "Failed to load any of the given libraries: " + Arrays.toString(names));
+        return false;
+    }
+
+    /**
+     * A result of a single attempt to load a library.
+     */
+    static final class LoadResult {
+        final String name;
+        final boolean absolute;
+        final boolean loaded;
+        final boolean usingHelperClassloader;
+        final Throwable error;
+
+        private static LoadResult newSuccessResult(
+                String name, boolean absolute, boolean usingHelperClassloader) {
+            return new LoadResult(name, absolute, true, usingHelperClassloader, null);
+        }
+
+        private static LoadResult newFailureResult(
+                String name, boolean absolute, boolean usingHelperClassloader, Throwable error) {
+            return new LoadResult(name, absolute, false, usingHelperClassloader, error);
+        }
+
+        private LoadResult(String name, boolean absolute, boolean loaded,
+                boolean usingHelperClassloader, Throwable error) {
+            this.name = name;
+            this.absolute = absolute;
+            this.loaded = loaded;
+            this.usingHelperClassloader = usingHelperClassloader;
+            this.error = error;
+        }
+
+        void log() {
+            if (error != null) {
+                NativeLibraryLoader.log(
+                        "Unable to load the library {0} (using helper classloader={1})", name,
+                        usingHelperClassloader, error);
+            } else {
+                NativeLibraryLoader.log(
+                        "Successfully loaded library {0}  (using helper classloader={1})", name,
+                        usingHelperClassloader);
+            }
+        }
     }
 
     /**
      * Load the given library with the specified {@link ClassLoader}
      */
-    private static void load(String name, ClassLoader loader) {
+    private static boolean load(String name, ClassLoader loader, List<LoadResult> results) {
+        // Try loading from the fully-qualified classpath resource first. Otherwise just try
+        // loading the non-absolute library name directly.
+        return loadFromWorkdir(name, loader, results) || loadLibrary(loader, name, false, results);
+    }
+
+    private static boolean loadFromWorkdir(
+            String name, ClassLoader loader, List<LoadResult> results) {
         String libname = System.mapLibraryName(name);
         String path = NATIVE_RESOURCE_HOME + libname;
 
         URL url = loader.getResource(path);
-        if (url == null && isOSX()) {
+        if (url == null && Platform.isOSX()) {
             if (path.endsWith(".jnilib")) {
                 url = loader.getResource(NATIVE_RESOURCE_HOME + "lib" + name + ".dynlib");
             } else {
@@ -193,20 +177,62 @@ final class NativeLibraryLoader {
         }
 
         if (url == null) {
-            // Fall back to normal loading of JNI stuff
-            loadLibrary(loader, name, false);
-            return;
+            return false;
         }
 
         int index = libname.lastIndexOf('.');
         String prefix = libname.substring(0, index);
         String suffix = libname.substring(index, libname.length());
-        InputStream in = null;
-        OutputStream out = null;
         File tmpFile = null;
         try {
-            tmpFile = createTempFile(prefix, suffix, WORKDIR);
-            in = url.openStream();
+            // Create a temporary file.
+            tmpFile = Platform.createTempFile(prefix, suffix, WORKDIR);
+            if (tmpFile.isFile() && tmpFile.canRead() && !Platform.canExecuteExecutable(tmpFile)) {
+                throw new IOException(MessageFormat.format("{0} exists but cannot be executed even "
+                                + "when execute permissions set; check volume for "
+                                + "\"noexec\" flag; use -D{1}=[path] to set native "
+                                + "working directory separately.",
+                        tmpFile.getPath(), WORK_DIR_PROPERTY_NAME));
+            }
+
+            // Copy the library from classpath to tmpFile
+            copyLibrary(url, tmpFile);
+
+            return loadLibrary(loader, tmpFile.getPath(), true, results);
+        } catch (IOException e) {
+            // Convert to an UnsatisfiedLinkError.
+            Throwable error = new UnsatisfiedLinkError(
+                    MessageFormat.format("Failed creating temp file ({0})",
+                            tmpFile)).initCause(e);
+            results.add(LoadResult.newFailureResult(name, true, false, error));
+            return false;
+        } finally {
+            // After we load the library it is safe to delete the file.
+            // We delete the file immediately to free up resources as soon as possible,
+            // and if this fails fallback to deleting on JVM exit.
+            if (tmpFile != null) {
+                boolean deleted = false;
+                if (DELETE_NATIVE_LIB_AFTER_LOADING) {
+                    deleted = tmpFile.delete();
+                }
+                if (!deleted) {
+                    tmpFile.deleteOnExit();
+                }
+            }
+        }
+    }
+
+    /**
+     * Copies the given shared library file from classpath to a temporary file.
+     *
+     * @param classpathUrl the URL of the library on classpath
+     * @param tmpFile the destination temporary file.
+     */
+    private static void copyLibrary(URL classpathUrl, File tmpFile) throws IOException {
+        InputStream in = null;
+        OutputStream out = null;
+        try {
+            in = classpathUrl.openStream();
             out = new FileOutputStream(tmpFile);
 
             byte[] buffer = new byte[8192];
@@ -215,26 +241,9 @@ final class NativeLibraryLoader {
                 out.write(buffer, 0, length);
             }
             out.flush();
-
-            // Close the output stream before loading the unpacked library,
-            // because otherwise Windows will refuse to load it when it's in use by other process.
-            closeQuietly(out);
-            out = null;
-
-            loadLibrary(loader, tmpFile.getPath(), true);
-        } catch (Exception e) {
-            throw(UnsatisfiedLinkError) new UnsatisfiedLinkError(
-                    "could not load a native library: " + name)
-                    .initCause(e);
         } finally {
             closeQuietly(in);
             closeQuietly(out);
-            // After we load the library it is safe to delete the file.
-            // We delete the file immediately to free up resources as soon as possible,
-            // and if this fails fallback to deleting on JVM exit.
-            if (tmpFile != null && !tmpFile.delete()) {
-                tmpFile.deleteOnExit();
-            }
         }
     }
 
@@ -243,49 +252,73 @@ final class NativeLibraryLoader {
      * @param loader - The {@link ClassLoader} where the native library will be loaded into
      * @param name - The native library path or name
      * @param absolute - Whether the native library will be loaded by path or by name
+     * @return {@code true} if the library was successfully loaded.
      */
-    private static void loadLibrary(
-            final ClassLoader loader, final String name, final boolean absolute) {
+    private static boolean loadLibrary(final ClassLoader loader, final String name,
+            final boolean absolute, List<LoadResult> results) {
         try {
-            // Make sure the helper is belong to the target ClassLoader.
+            // Make sure the helper belongs to the target ClassLoader.
             final Class<?> newHelper = tryToLoadClass(loader, NativeLibraryUtil.class);
-            loadLibraryByHelper(newHelper, name, absolute);
-            return;
-        } catch (UnsatisfiedLinkError e) { // Should by pass the UnsatisfiedLinkError here!
-            // Do nothing.
-        } catch (Exception e) {
-            // Do nothing.
+            LoadResult result = loadLibraryFromHelperClassloader(newHelper, name, absolute);
+            results.add(result);
+            if (result.loaded) {
+                // Successfully loaded the library.
+                return true;
+            }
+        } catch (Exception ignore) {
+            // Failed loading the helper in the provided classloader - ignore.
         }
-        NativeLibraryUtil.loadLibrary(name, absolute); // Fallback to local helper class.
+
+        // Fallback to loading from the local classloader.
+        LoadResult result = loadLibraryFromCurrentClassloader(name, absolute);
+        results.add(result);
+        return result.loaded;
     }
 
-    private static void loadLibraryByHelper(final Class<?> helper, final String name,
-            final boolean absolute) throws UnsatisfiedLinkError {
-        Object ret = AccessController.doPrivileged(new PrivilegedAction<Object>() {
+    /**
+     * Attempts to load the library by reflectively using the {@link NativeLibraryUtil} helper
+     * from its classloader.
+     *
+     * @param helper The {@link NativeLibraryUtil} helper class
+     * @param name the name of the library to load.
+     * @param absolute true if {@code name} is an absolute path to the file.
+     * @return the result of the load operation.
+     */
+    private static LoadResult loadLibraryFromHelperClassloader(
+            final Class<?> helper, final String name, final boolean absolute) {
+        return AccessController.doPrivileged(new PrivilegedAction<LoadResult>() {
             @Override
-            public Object run() {
+            public LoadResult run() {
                 try {
                     // Invoke the helper to load the native library, if succeed, then the native
-                    // library belong to the specified ClassLoader.
+                    // library belongs to the specified ClassLoader.
                     Method method = helper.getMethod("loadLibrary", String.class, boolean.class);
                     method.setAccessible(true);
-                    return method.invoke(null, name, absolute);
-                } catch (Exception e) {
-                    return e;
+                    method.invoke(null, name, absolute);
+                    return LoadResult.newSuccessResult(name, absolute, true);
+                } catch (InvocationTargetException e) {
+                    return LoadResult.newFailureResult(name, absolute, true, e.getCause());
+                } catch (Throwable e) {
+                    return LoadResult.newFailureResult(name, absolute, true, e);
                 }
             }
         });
-        if (ret instanceof Throwable) {
-            Throwable error = (Throwable) ret;
-            Throwable cause = error.getCause();
-            if (cause != null) {
-                if (cause instanceof UnsatisfiedLinkError) {
-                    throw(UnsatisfiedLinkError) cause;
-                } else {
-                    throw new UnsatisfiedLinkError(cause.getMessage());
-                }
-            }
-            throw new UnsatisfiedLinkError(error.getMessage());
+    }
+
+    /**
+     * Attempts to load the library using the {@link NativeLibraryUtil} helper from the current
+     * classloader.
+     *
+     * @param name the name of the library to load.
+     * @param absolute true if {@code name} is an absolute path
+     * @return the result of the load operation.
+     */
+    private static LoadResult loadLibraryFromCurrentClassloader(String name, boolean absolute) {
+        try {
+            NativeLibraryUtil.loadLibrary(name, absolute);
+            return LoadResult.newSuccessResult(name, absolute, false);
+        } catch (Throwable e) {
+            return LoadResult.newFailureResult(name, absolute, false, e);
         }
     }
 
@@ -367,39 +400,23 @@ final class NativeLibraryLoader {
         }
     }
 
-    // Approximates the behavior of File.createTempFile without depending on SecureRandom.
-    private static File createTempFile(String prefix, String suffix, File directory)
-            throws IOException {
-        if (directory == null) {
-            throw new NullPointerException();
-        }
-        long time = System.currentTimeMillis();
-        prefix = new File(prefix).getName();
-        IOException suppressed = null;
-        for (int i = 0; i < 10000; i++) {
-            String tempName = String.format("%s%d%04d%s", prefix, time, i, suffix);
-            File tempFile = new File(directory, tempName);
-            if (!tempName.equals(tempFile.getName())) {
-                // The given prefix or suffix contains path separators.
-                throw new IOException("Unable to create temporary file: " + tempFile);
-            }
-            try {
-                if (tempFile.createNewFile()) {
-                    return tempFile.getCanonicalFile();
-                }
-            } catch (IOException e) {
-                // This may just be a transient error; store it just in case.
-                suppressed = e;
-            }
-        }
-        if (suppressed != null) {
-            throw suppressed;
-        } else {
-            throw new IOException("Unable to create temporary file");
-        }
-    }
-
     private NativeLibraryLoader() {
         // Utility
+    }
+
+    private static void log(String format, Object arg) {
+        logger.log(Level.FINE, format, arg);
+    }
+
+    private static void log(String format, Object arg1, Object arg2) {
+        logger.log(Level.FINE, format, new Object[] {arg1, arg2});
+    }
+
+    private static void log(String format, Object arg1, Object arg2, Throwable t) {
+        debug(MessageFormat.format(format, arg1, arg2), t);
+    }
+
+    private static void debug(String message, Throwable t) {
+        logger.log(Level.FINE, message, t);
     }
 }
