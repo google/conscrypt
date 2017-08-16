@@ -82,8 +82,8 @@ cc_library_host_shared {
     host_ldlibs: ["-lpthread"],
 
     static_libs: [
-        "libssl_static-host",
-        "libcrypto_static",
+        "libssl",
+        "libcrypto",
     ],
 
     // TODO: b/26097626. ASAN breaks use of this library in JVM.
