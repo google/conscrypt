@@ -131,7 +131,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(bundled_test_java_files)
 LOCAL_JAVA_RESOURCE_DIRS := openjdk/src/test/resources
 LOCAL_NO_STANDARD_LIBRARIES := true
-LOCAL_JAVA_LIBRARIES := core-oj core-libart junit bouncycastle mockito-target-minus-junit4
+LOCAL_JAVA_LIBRARIES := core-oj core-libart junit bouncycastle-nojarjar mockito-target-minus-junit4
 LOCAL_STATIC_JAVA_LIBRARIES := core-tests-support conscrypt-nojarjar
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
