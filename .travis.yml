@@ -45,7 +45,7 @@ matrix:
         apt:
           sources:
             - kalakris-cmake
-            - llvm-toolchain-precise-3.8  # for clang-format-3.8
+            - llvm-toolchain-precise-3.9  # for clang-format-3.9
             - ubuntu-toolchain-r-test
           packages:
             - clang-3.9
@@ -112,7 +112,7 @@ script:
   # MacOS (BSD) xargs is missing some nice features that make this easy, so skip it.
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
-        git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git clang-format --binary=$(which clang-format-3.8) --style=file --diff {}^ {} | ( git apply; true ) && git diff --exit-code || { git reset --hard; false; }
+        git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git clang-format --binary=$(which clang-format-3.9) --style=file --diff {}^ {} | ( git apply; true ) && git diff --exit-code || { git reset --hard; false; }
     fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
