@@ -32,7 +32,12 @@ final class NativeCryptoJni {
 
     /**
      * Attempts to load the shared JNI library. First try loading the platform-specific library
-     * name (e.g. conscrypt_openjdk_jni-linux-x86_64). If not found, try the static library name.
+     * name (e.g. conscrypt_openjdk_jni-linux-x86_64). If that doesn't work, try to load the
+     * library via just the prefix (e.g. conscrypt_openjdk_jni).  If not found, try the static
+     * library name.
+     *
+     * The non-suffixed dynamic library name is used by the Android build system, which builds
+     * the appropriate library for the system it's being run on under that name.
      *
      * The static library name is needed in order to support Java 8 static linking
      * (http://openjdk.java.net/jeps/178), where the library name is used to invoke a
@@ -42,8 +47,8 @@ final class NativeCryptoJni {
      */
     static void init() throws UnsatisfiedLinkError {
         List<LoadResult> results = new ArrayList<LoadResult>();
-        if (!NativeLibraryLoader.loadFirstAvailable(
-                    classLoader(), results, platformLibName(), STATIC_LIB_NAME)) {
+        if (!NativeLibraryLoader.loadFirstAvailable(classLoader(), results,
+                platformLibName(), DYNAMIC_LIB_NAME_PREFIX, STATIC_LIB_NAME)) {
             logResults(results);
             throwBestError(results);
         }
