@@ -336,6 +336,7 @@ public class SSLSessionContextTest extends AbstractSSLTest {
     }
 
     private boolean isConscrypt(Provider provider) {
-        return "AndroidOpenSSL".equals(provider.getName());
+        String name = provider.getName();
+        return "AndroidOpenSSL".equals(name) || "Conscrypt".equals(name);
     }
 }

@@ -69,6 +69,14 @@ final class Platform {
 
     public static void setup() {}
 
+    /**
+     * Default name used in the {@link java.security.Security JCE system} by {@code OpenSSLProvider}
+     * if the default constructor is used.
+     */
+    public static String getDefaultProviderName() {
+        return "Conscrypt";
+    }
+
     public static FileDescriptor getFileDescriptor(Socket s) {
         try {
             Field f_impl = Socket.class.getDeclaredField("impl");
@@ -426,10 +434,8 @@ final class Platform {
         }
         if (!superClass.isInstance(javaKey)) {
             // This may happen if the PrivateKey was not created by the
-            // "AndroidOpenSSL"
-            // provider, which should be the default. That could happen if an
-            // OEM decided
-            // to implement a different default provider. Also highly unlikely.
+            // Conscrypt provider, which should be the default. That could happen if an
+            // OEM decided to implement a different default provider. Also highly unlikely.
             Log.e(TAG,
                     "Private key is not an OpenSSLRSAPrivateKey instance, its class name is:"
                             + javaKey.getClass().getCanonicalName());
