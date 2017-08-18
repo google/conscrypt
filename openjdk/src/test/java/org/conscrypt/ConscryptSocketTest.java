@@ -172,7 +172,7 @@ public class ConscryptSocketTest {
 
         private SSLSocketFactory socketFactory(OpenSSLContextImpl context) {
             SSLSocketFactory factory = context.engineGetSocketFactory();
-            Conscrypt.SocketFactories.setUseEngineSocket(factory, useEngineSocket);
+            Conscrypt.setUseEngineSocket(factory, useEngineSocket);
             return factory;
         }
 

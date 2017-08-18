@@ -49,7 +49,7 @@ public final class ServerSessionContext extends AbstractSessionContext {
 
     /**
      * Applications should not use this method. Instead use {@link
-     * Conscrypt.Contexts#setServerSessionCache(SSLContext, SSLServerSessionCache)}.
+     * Conscrypt#setServerSessionCache(SSLContext, SSLServerSessionCache)}.
      */
     public void setPersistentCache(SSLServerSessionCache persistentCache) {
         this.persistentCache = persistentCache;

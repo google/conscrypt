@@ -16,7 +16,7 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.Conscrypt.Engines.setBufferAllocator;
+import static org.conscrypt.Conscrypt.setBufferAllocator;
 import static org.conscrypt.TestUtils.PROTOCOL_TLS_V1_2;
 import static org.conscrypt.TestUtils.TEST_CIPHER;
 import static org.conscrypt.TestUtils.initEngine;
@@ -252,7 +252,7 @@ public class ConscryptEngineTest {
         // Unwrap the all of the encrypted messages.
         for (int i = 0; i < numMessages; ++i) {
             ByteBuffer out = bufferType.newBuffer(2 * MESSAGE_SIZE);
-            SSLEngineResult unwrapResult = Conscrypt.Engines.unwrap(
+            SSLEngineResult unwrapResult = Conscrypt.unwrap(
                     serverEngine, encryptedBuffers, new ByteBuffer[] {out});
             assertEquals(SSLEngineResult.Status.OK, unwrapResult.getStatus());
             assertEquals(MESSAGE_SIZE, unwrapResult.bytesProduced());
@@ -299,7 +299,7 @@ public class ConscryptEngineTest {
                     decryptedBuffer.clear();
                 }
                 int prevPos = decryptedBuffer.position();
-                SSLEngineResult unwrapResult = Conscrypt.Engines.unwrap(
+                SSLEngineResult unwrapResult = Conscrypt.unwrap(
                         serverEngine, encryptedBuffers, new ByteBuffer[] {decryptedBuffer});
                 status = unwrapResult.getStatus();
                 int newPos = decryptedBuffer.position();
@@ -332,8 +332,8 @@ public class ConscryptEngineTest {
     public void handshakeWithAlpnShouldSucceed() throws Exception {
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer(), true /* useAlpn */);
         doHandshake();
-        assertEquals(ALPN_PROTOCOL, Conscrypt.Engines.getAlpnSelectedProtocol(clientEngine));
-        assertEquals(ALPN_PROTOCOL, Conscrypt.Engines.getAlpnSelectedProtocol(serverEngine));
+        assertEquals(ALPN_PROTOCOL, Conscrypt.getAlpnSelectedProtocol(clientEngine));
+        assertEquals(ALPN_PROTOCOL, Conscrypt.getAlpnSelectedProtocol(serverEngine));
     }
 
     private void doMutualAuthHandshake(
@@ -360,8 +360,8 @@ public class ConscryptEngineTest {
         setBufferAllocator(clientEngine, bufferType.allocator);
         setBufferAllocator(serverEngine, bufferType.allocator);
         if (useAlpn) {
-            Conscrypt.Engines.setAlpnProtocols(clientEngine, SUPPORTED_ALPN_PROTOCOLS);
-            Conscrypt.Engines.setAlpnProtocols(serverEngine, SUPPORTED_ALPN_PROTOCOLS);
+            Conscrypt.setAlpnProtocols(clientEngine, SUPPORTED_ALPN_PROTOCOLS);
+            Conscrypt.setAlpnProtocols(serverEngine, SUPPORTED_ALPN_PROTOCOLS);
         }
 
         // Create the application and packet buffers for both endpoints.
