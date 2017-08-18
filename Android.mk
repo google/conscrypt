@@ -151,7 +151,7 @@ bundled_benchmark_java_files += $(call all-java-files-under,benchmark-android/sr
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(bundled_benchmark_java_files)
 LOCAL_NO_STANDARD_LIBRARIES := true
-LOCAL_JAVA_LIBRARIES := core-oj core-libart junit bouncycastle caliper-api-target
+LOCAL_JAVA_LIBRARIES := core-oj core-libart junit bouncycastle-nojarjar caliper-api-target
 LOCAL_STATIC_JAVA_LIBRARIES := core-tests-support conscrypt-nojarjar
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
@@ -260,7 +260,7 @@ ifeq ($(LIBCORE_SKIP_TESTS),)
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(bundled_test_java_files)
     LOCAL_JAVA_RESOURCE_DIRS := openjdk/src/test/resources
-    LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex junit-hostdex core-tests-support-hostdex mockito-api-hostdex
+    LOCAL_JAVA_LIBRARIES := bouncycastle-hostdex-nojarjar junit-hostdex core-tests-support-hostdex mockito-api-hostdex
     LOCAL_STATIC_JAVA_LIBRARIES := conscrypt-hostdex-nojarjar
     LOCAL_JAVACFLAGS := $(local_javac_flags)
     LOCAL_MODULE_TAGS := optional
