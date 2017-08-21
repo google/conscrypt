@@ -71,6 +71,14 @@ final class Platform {
 
     private Platform() {}
 
+    /**
+     * Default name used in the {@link java.security.Security JCE system} by {@code OpenSSLProvider}
+     * if the default constructor is used.
+     */
+    static String getDefaultProviderName() {
+        return "AndroidOpenSSL";
+    }
+
     static FileDescriptor getFileDescriptor(Socket s) {
         return s.getFileDescriptor$();
     }

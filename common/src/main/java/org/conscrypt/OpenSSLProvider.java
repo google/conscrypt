@@ -36,12 +36,6 @@ import java.security.Provider;
 public final class OpenSSLProvider extends Provider {
     private static final long serialVersionUID = 2996752495318905136L;
 
-    /**
-     * Default name used in the {@link java.security.Security JCE system} by {@code OpenSSLProvider}
-     * if the {@link #OpenSSLProvider() default constructor} is used.
-     */
-    private static final String PROVIDER_NAME = "AndroidOpenSSL";
-
     private static final String PREFIX = OpenSSLProvider.class.getPackage().getName() + ".";
 
     private static final String STANDARD_EC_PRIVATE_KEY_INTERFACE_CLASS_NAME =
@@ -52,7 +46,7 @@ public final class OpenSSLProvider extends Provider {
             "java.security.interfaces.RSAPublicKey";
 
     public OpenSSLProvider() {
-        this(PROVIDER_NAME);
+        this(Platform.getDefaultProviderName());
     }
 
     public OpenSSLProvider(String providerName) {
