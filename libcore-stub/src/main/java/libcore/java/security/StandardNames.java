@@ -69,7 +69,7 @@ import javax.crypto.spec.DHPublicKeySpec;
 public final class StandardNames {
     public static final boolean IS_RI =
             !"Dalvik Core Library".equals(System.getProperty("java.specification.name"));
-    public static final String JSSE_PROVIDER_NAME = "AndroidOpenSSL";
+    public static final String JSSE_PROVIDER_NAME = (IS_RI) ? "Conscrypt" : "AndroidOpenSSL";
     public static final String SECURITY_PROVIDER_NAME = (IS_RI) ? "SUN" : "BC";
 
     public static final String KEY_MANAGER_FACTORY_DEFAULT = (IS_RI) ? "SunX509" : "PKIX";

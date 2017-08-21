@@ -252,6 +252,14 @@ final class Platform {
         }
     }
 
+    /**
+     * Default name used in the {@link java.security.Security JCE system} by {@code OpenSSLProvider}
+     * if the default constructor is used.
+     */
+    static String getDefaultProviderName() {
+        return "Conscrypt";
+    }
+
     static boolean canExecuteExecutable(File file) throws IOException {
         if (JAVA_VERSION >= 7) {
             return Java7PlatformUtil.canExecuteExecutable(file);
