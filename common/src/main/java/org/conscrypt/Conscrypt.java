@@ -34,6 +34,7 @@ import javax.net.ssl.X509TrustManager;
 /**
  * Core API for creating and configuring all Conscrypt types.
  */
+@SuppressWarnings("unused")
 public final class Conscrypt {
     private Conscrypt() {}
 
@@ -327,9 +328,8 @@ public final class Conscrypt {
 
     /**
      * Provides the given engine with the provided bufferAllocator.
-     * @param engine
-     * @param bufferAllocator
      */
+    @ExperimentalApi
     public static void setBufferAllocator(SSLEngine engine, BufferAllocator bufferAllocator) {
         toConscrypt(engine).setBufferAllocator(bufferAllocator);
     }
