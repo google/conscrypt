@@ -17,7 +17,6 @@ package org.conscrypt;
 
 import static io.netty.handler.ssl.SslProvider.OPENSSL;
 import static io.netty.handler.ssl.SslProvider.OPENSSL_REFCNT;
-import static org.conscrypt.TestUtils.PROTOCOL_TLS_V1_2;
 import static org.conscrypt.TestUtils.initClientSslContext;
 import static org.conscrypt.TestUtils.initEngine;
 import static org.conscrypt.TestUtils.initServerSslContext;
@@ -66,7 +65,7 @@ public enum OpenJdkEngineFactory implements EngineFactory {
 
         private SSLContext newContext() {
             try {
-                return SSLContext.getInstance(PROTOCOL_TLS_V1_2);
+                return SSLContext.getInstance(PROTOCOL);
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
             }
@@ -98,7 +97,7 @@ public enum OpenJdkEngineFactory implements EngineFactory {
 
         private SSLContext newContext() {
             try {
-                return SSLContext.getInstance(PROTOCOL_TLS_V1_2, new OpenSSLProvider());
+                return SSLContext.getInstance(PROTOCOL, new OpenSSLProvider());
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
             }
@@ -132,7 +131,7 @@ public enum OpenJdkEngineFactory implements EngineFactory {
 
         private SSLContext newContext() {
             try {
-                return SSLContext.getInstance(PROTOCOL_TLS_V1_2, new OpenSSLProvider());
+                return SSLContext.getInstance(PROTOCOL, new OpenSSLProvider());
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
             }
@@ -255,4 +254,5 @@ public enum OpenJdkEngineFactory implements EngineFactory {
     private static final ApplicationProtocolConfig NETTY_ALPN_CONFIG =
             new ApplicationProtocolConfig(Protocol.ALPN, SelectorFailureBehavior.NO_ADVERTISE,
                     SelectedListenerFailureBehavior.ACCEPT, ApplicationProtocolNames.HTTP_2);
+    private static final String PROTOCOL = TestUtils.getProtocols()[0];
 }

@@ -5811,12 +5811,12 @@ static ssl_verify_result_t cert_verify_callback(SSL* ssl, CONSCRYPT_UNUSED uint8
  * False Start support, since SSL_do_handshake returns before the handshake is
  * completed in this case.
  */
-static void info_callback(const SSL* ssl, int where, int ret) {
-    JNI_TRACE("ssl=%p info_callback where=0x%x ret=%d", ssl, where, ret);
+static void info_callback(const SSL* ssl, int type, int value) {
+    JNI_TRACE("ssl=%p info_callback type=0x%x value=%d", ssl, type, value);
     if (conscrypt::trace::kWithJniTrace) {
-        info_callback_LOG(ssl, where, ret);
+        info_callback_LOG(ssl, type, value);
     }
-    if (!(where & SSL_CB_HANDSHAKE_DONE) && !(where & SSL_CB_HANDSHAKE_START)) {
+    if (!(type & SSL_CB_HANDSHAKE_DONE) && !(type & SSL_CB_HANDSHAKE_START)) {
         JNI_TRACE("ssl=%p info_callback ignored", ssl);
         return;
     }
@@ -5839,7 +5839,7 @@ static void info_callback(const SSL* ssl, int where, int ret) {
     jmethodID methodID = env->GetMethodID(cls, "onSSLStateChange", "(II)V");
 
     JNI_TRACE("ssl=%p info_callback calling onSSLStateChange", ssl);
-    env->CallVoidMethod(sslHandshakeCallbacks, methodID, where, ret);
+    env->CallVoidMethod(sslHandshakeCallbacks, methodID, type, value);
 
     if (env->ExceptionCheck()) {
         JNI_TRACE("ssl=%p info_callback exception", ssl);

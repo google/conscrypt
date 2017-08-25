@@ -90,7 +90,7 @@ public final class EngineWrapBenchmark {
 
         // Complete the initial TLS handshake.
         doEngineHandshake(clientEngine, serverEngine, clientApplicationBuffer, clientPacketBuffer,
-                serverApplicationBuffer, serverPacketBuffer);
+                serverApplicationBuffer, serverPacketBuffer, true);
 
         // Populate the pre-encrypted buffer for use with the unwrap benchmark.
         preEncryptedBuffer = bufferType.newBuffer(clientEngine.getSession().getPacketBufferSize());

@@ -625,10 +625,12 @@ public class SSLContextTest extends AbstractSSLTest {
     public void test_SSLContext_SSLv3Unsupported() throws Exception {
         // Find the default provider for TLS and verify that it does NOT support SSLv3.
         Provider defaultTlsProvider = null;
-        for (Provider p : Security.getProviders()) {
-            if (p.get(TestUtils.PROVIDER_PROPERTY) != null) {
-                defaultTlsProvider = p;
-                break;
+        for (String protocol : new String[] {"SSLContext.TLSv1.2", "SSLContext.TLSv1"}) {
+            for (Provider p : Security.getProviders()) {
+                if (p.get(protocol) != null) {
+                    defaultTlsProvider = p;
+                    break;
+                }
             }
         }
         assertNotNull(defaultTlsProvider);

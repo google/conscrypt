@@ -363,18 +363,20 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
 
     private void beginHandshakeInternal() throws SSLException {
         switch (state) {
-            case STATE_MODE_SET:
+            case STATE_NEW: {
+                throw new IllegalStateException("Client/server mode must be set before handshake");
+            }
+            case STATE_MODE_SET: {
                 // We know what mode to handshake in but have not started the handshake, proceed
                 break;
-            case STATE_HANDSHAKE_STARTED:
-                // We've already started the handshake, just return
-                return;
+            }
             case STATE_CLOSED_INBOUND:
             case STATE_CLOSED_OUTBOUND:
             case STATE_CLOSED:
                 throw new IllegalStateException("Engine has already been closed");
             default:
-                throw new IllegalStateException("Client/server mode must be set before handshake");
+                // We've already started the handshake, just return
+                return;
         }
 
         state = STATE_HANDSHAKE_STARTED;
@@ -1522,6 +1524,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                     // For clients, this will allow the NEED_UNWRAP status to be
                     // returned.
                     state = STATE_HANDSHAKE_STARTED;
+                    handshakeFinished = false;
                     break;
                 }
                 case SSL_CB_HANDSHAKE_DONE: {
