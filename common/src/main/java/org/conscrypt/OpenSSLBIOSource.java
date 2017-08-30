@@ -98,7 +98,7 @@ final class OpenSSLBIOSource {
 
         @Override
         public long skip(long byteCount) throws IOException {
-            int originalPosition = source.position();
+            long originalPosition = source.position();
             source.position((int) (originalPosition + byteCount));
             return source.position() - originalPosition;
         }

@@ -543,9 +543,16 @@ final class Platform {
             return originalHostName;
         } catch (InvocationTargetException e) {
             throw new RuntimeException("Failed to get originalHostName", e);
-        } catch (ReflectiveOperationException ignore) {
-            // passthrough and return addr.getHostAddress()
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception ignore) {
+            // Everything else...
+            // Passthrough and return addr.getHostAddress()
+
+            // NOTE: We're really catching ReflectiveOperationException, which was added in
+            // Java 7. Catching a generic exception for backward-compatibility with Java 6.
         }
+
         return addr.getHostAddress();
     }
 
