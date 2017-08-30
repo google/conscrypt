@@ -94,6 +94,7 @@ final class SSLParametersImpl implements Cloneable {
     byte[] ocspResponse;
 
     byte[] alpnProtocols;
+    AlpnProtocolSelectorAdapter alpnProtocolSelector;
     boolean useSessionTickets;
     private Boolean useSni;
 
@@ -256,6 +257,14 @@ final class SSLParametersImpl implements Cloneable {
             throw new IllegalArgumentException("alpnProtocols.length == 0");
         }
         this.alpnProtocols = alpnProtocols;
+    }
+
+    /**
+     * Used for server-mode only. Sets or clears the application-provided ALPN protocol selector.
+     * If set, will override the protocol list provided by {@link #setAlpnProtocols(String[])}.
+     */
+    void setAlpnProtocolSelector(AlpnProtocolSelectorAdapter alpnProtocolSelector) {
+        this.alpnProtocolSelector = alpnProtocolSelector;
     }
 
     byte[] getAlpnProtocols() {

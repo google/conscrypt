@@ -21,8 +21,12 @@ import static org.conscrypt.TestUtils.readTestFile;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -56,6 +60,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.mockito.Mockito;
 
 @RunWith(Parameterized.class)
 public class ConscryptSocketTest {
@@ -126,14 +131,14 @@ public class ConscryptSocketTest {
             @Override
             void assertSocketType(Socket socket) {
                 assertTrue("Unexpected socket type: " + socket.getClass().getName(),
-                        socket instanceof OpenSSLSocketImpl);
+                        Platform.unwrapSocket((SSLSocket) socket) instanceof ConscryptFileDescriptorSocket);
             }
         },
         ENGINE(true) {
             @Override
             void assertSocketType(Socket socket) {
                 assertTrue("Unexpected socket type: " + socket.getClass().getName(),
-                        socket instanceof ConscryptEngineSocket);
+                    Platform.unwrapSocket((SSLSocket) socket) instanceof ConscryptEngineSocket);
             }
         };
 
@@ -232,6 +237,7 @@ public class ConscryptSocketTest {
     abstract class Hooks implements HandshakeCompletedListener {
         KeyManager[] keyManagers;
         TrustManager[] trustManagers;
+        String[] alpnProtocols;
 
         abstract AbstractConscryptSocket createSocket(ServerSocket listener) throws IOException;
 
@@ -277,6 +283,9 @@ public class ConscryptSocketTest {
             AbstractConscryptSocket socket =
                     socketType.newClientSocket(createContext(), listener, underlyingSocketType);
             socket.setHostname(hostname);
+            if (alpnProtocols != null) {
+                Conscrypt.setAlpnProtocols(socket, alpnProtocols);
+            }
             return socket;
         }
     }
@@ -284,6 +293,7 @@ public class ConscryptSocketTest {
     class ServerHooks extends Hooks {
         byte[] sctTLSExtension;
         byte[] ocspResponse;
+        AlpnProtocolSelector alpnProtocolSelector;
 
         @Override
         public OpenSSLContextImpl createContext() throws IOException {
@@ -300,7 +310,15 @@ public class ConscryptSocketTest {
 
         @Override
         AbstractConscryptSocket createSocket(ServerSocket listener) throws IOException {
-            return socketType.newServerSocket(createContext(), listener, underlyingSocketType);
+            AbstractConscryptSocket socket =
+                    socketType.newServerSocket(createContext(), listener, underlyingSocketType);
+            if (alpnProtocols != null) {
+                Conscrypt.setAlpnProtocols(socket, alpnProtocols);
+            }
+            if (alpnProtocolSelector != null) {
+                Conscrypt.setAlpnProtocolSelector(socket, alpnProtocolSelector);
+            }
+            return socket;
         }
     }
 
@@ -393,6 +411,80 @@ public class ConscryptSocketTest {
 
         assertTrue(connection.clientHooks.isHandshakeCompleted);
         assertTrue(connection.serverHooks.isHandshakeCompleted);
+    }
+
+    @Test
+    public void alpnWithProtocolListShouldSucceed() throws Exception {
+        TestConnection c = new TestConnection(new X509Certificate[] {cert, ca}, certKey);
+
+        // Configure ALPN protocols
+        String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
+        String[] serverAlpnProtocols = new String[]{"spdy/2", "foo", "bar"};
+
+        c.clientHooks.alpnProtocols = clientAlpnProtocols;
+        c.serverHooks.alpnProtocols = serverAlpnProtocols;
+
+        c.doHandshake();
+
+        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(c.client));
+        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(c.server));
+    }
+
+    @Test
+    public void alpnWithProtocolListShouldFail() throws Exception {
+        TestConnection c = new TestConnection(new X509Certificate[] {cert, ca}, certKey);
+
+        // Configure ALPN protocols
+        String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
+        String[] serverAlpnProtocols = new String[]{"h2", "bar", "baz"};
+
+        c.clientHooks.alpnProtocols = clientAlpnProtocols;
+        c.serverHooks.alpnProtocols = serverAlpnProtocols;
+
+        c.doHandshake();
+
+        assertNull(Conscrypt.getAlpnSelectedProtocol(c.client));
+        assertNull(Conscrypt.getAlpnSelectedProtocol(c.server));
+    }
+
+    @Test
+    public void alpnWithServerProtocolSelectorShouldSucceed() throws Exception {
+        TestConnection c = new TestConnection(new X509Certificate[] {cert, ca}, certKey);
+
+        // Configure client ALPN protocols
+        String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
+        c.clientHooks.alpnProtocols = clientAlpnProtocols;
+
+        // Configure server selector
+        AlpnProtocolSelector selector = Mockito.mock(AlpnProtocolSelector.class);
+        when(selector.selectAlpnProtocol(any(SSLSocket.class), anyListOf(String.class)))
+                .thenReturn("spdy/2");
+        c.serverHooks.alpnProtocolSelector = selector;
+
+        c.doHandshake();
+
+        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(c.client));
+        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(c.server));
+    }
+
+    @Test
+    public void alpnWithServerProtocolSelectorShouldFail() throws Exception {
+        TestConnection c = new TestConnection(new X509Certificate[] {cert, ca}, certKey);
+
+        // Configure client ALPN protocols
+        String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
+        c.clientHooks.alpnProtocols = clientAlpnProtocols;
+
+        // Configure server selector
+        AlpnProtocolSelector selector = Mockito.mock(AlpnProtocolSelector.class);
+        when(selector.selectAlpnProtocol(any(SSLSocket.class), anyListOf(String.class)))
+                .thenReturn("h2");
+        c.serverHooks.alpnProtocolSelector = selector;
+
+        c.doHandshake();
+
+        assertNull(Conscrypt.getAlpnSelectedProtocol(c.client));
+        assertNull(Conscrypt.getAlpnSelectedProtocol(c.server));
     }
 
     @Test

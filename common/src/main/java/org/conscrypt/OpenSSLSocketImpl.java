@@ -32,7 +32,7 @@ import javax.net.ssl.SSLSession;
  * @hide
  */
 @Internal
-public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
+public abstract class OpenSSLSocketImpl extends ConscryptSocketBase {
     OpenSSLSocketImpl() throws IOException {
     }
 

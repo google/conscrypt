@@ -9,8 +9,4 @@
     <issue id="Assert">
         <ignore path="**/org/conscrypt/Platform.java" />
     </issue>
-    <issue id="NewApi">
-        <ignore path="**/org/conscrypt/Java7PlatformUtil.java" />
-        <ignore path="**/org/conscrypt/Java8PlatformUtil.java" />
-    </issue>
 </lint>

@@ -402,6 +402,17 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
         engine.setAlpnProtocols(alpnProtocols);
     }
 
+    @Override
+    public void setAlpnProtocolSelector(AlpnProtocolSelector selector) {
+        setAlpnProtocolSelector(
+                selector == null ? null : new AlpnProtocolSelectorAdapter(this, selector));
+    }
+
+    @Override
+    void setAlpnProtocolSelector(AlpnProtocolSelectorAdapter selector) {
+        engine.setAlpnProtocolSelector(selector);
+    }
+
     private void onHandshakeFinished() {
         boolean notify = false;
         synchronized (stateLock) {

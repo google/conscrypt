@@ -46,6 +46,7 @@ import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509TrustManager;
@@ -530,6 +531,26 @@ final class Platform {
         return AddressUtils.isLiteralIpAddress(hostname);
     }
 
+    static SSLEngine wrapEngine(ConscryptEngine engine) {
+        // For now, don't wrap on Android.
+        return engine;
+    }
+
+    static SSLEngine unwrapEngine(SSLEngine engine) {
+        // For now, don't wrap on Android.
+        return engine;
+    }
+
+    static SSLSocket wrapSocket(ConscryptSocketBase socket) {
+        // For now, don't wrap on Android.
+        return socket;
+    }
+
+    static SSLSocket unwrapSocket(SSLSocket socket) {
+        // For now, don't wrap on Android.
+        return socket;
+    }
+
     /**
      * Wrap the SocketFactory with the platform wrapper if needed for compatability.
      */
@@ -707,7 +728,7 @@ final class Platform {
             return sslSession;
         }
 
-        return ExtendedSessionAdapter.wrap(sslSession);
+        return new Java7SessionWrapper(sslSession);
     }
 
     public static SSLSession unwrapSSLSession(SSLSession sslSession) {
@@ -715,7 +736,7 @@ final class Platform {
             return sslSession;
         }
 
-        return ExtendedSessionAdapter.getDelegate(sslSession);
+        return Java7SessionWrapper.getDelegate(sslSession);
     }
 
     public static String getOriginalHostNameFromInetAddress(InetAddress addr) {

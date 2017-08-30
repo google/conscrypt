@@ -302,7 +302,10 @@ final class SslWrapper {
         NativeCrypto.setEnabledCipherSuites(ssl, parameters.enabledCipherSuites);
 
         if (parameters.alpnProtocols != null) {
-            NativeCrypto.SSL_configure_alpn(ssl, isClient(), parameters.alpnProtocols);
+            NativeCrypto.setAlpnProtocols(ssl, isClient(), parameters.alpnProtocols);
+        }
+        if (!isClient() && parameters.alpnProtocolSelector != null) {
+            NativeCrypto.setAlpnProtocolSelector(ssl, parameters.alpnProtocolSelector);
         }
 
         // setup server certificates and private keys.
@@ -510,7 +513,7 @@ final class SslWrapper {
     }
 
     byte[] getAlpnSelectedProtocol() {
-        return NativeCrypto.SSL_get0_alpn_selected(ssl);
+        return NativeCrypto.getAlpnSelectedProtocol(ssl);
     }
 
     private boolean isClient() {

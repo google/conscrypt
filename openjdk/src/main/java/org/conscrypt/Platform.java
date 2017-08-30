@@ -60,8 +60,10 @@ import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
 import sun.security.x509.AlgorithmId;
@@ -447,6 +449,34 @@ final class Platform {
         return true;
     }
 
+    static SSLEngine wrapEngine(ConscryptEngine engine) {
+        if (JAVA_VERSION >= 8) {
+            return Java8PlatformUtil.wrapEngine(engine);
+        }
+        return engine;
+    }
+
+    static SSLEngine unwrapEngine(SSLEngine engine) {
+        if (JAVA_VERSION >= 8) {
+            return Java8PlatformUtil.unwrapEngine(engine);
+        }
+        return engine;
+    }
+
+    static SSLSocket wrapSocket(ConscryptSocketBase socket) {
+        if (JAVA_VERSION >= 8) {
+            return Java8PlatformUtil.wrapSocket(socket);
+        }
+        return socket;
+    }
+
+    static SSLSocket unwrapSocket(SSLSocket socket) {
+        if (JAVA_VERSION >= 8) {
+            return Java8PlatformUtil.unwrapSocket(socket);
+        }
+        return socket;
+    }
+
     /**
      * Currently we don't wrap anything from the RI.
      */
@@ -519,12 +549,18 @@ final class Platform {
 
     @SuppressWarnings("unused")
     static SSLSession wrapSSLSession(ActiveSession sslSession) {
-        return ExtendedSessionAdapter.wrap(sslSession);
+        if (JAVA_VERSION >= 7) {
+            return Java7PlatformUtil.wrapSSLSession(sslSession);
+        }
+        return sslSession;
     }
 
     @SuppressWarnings("unused")
     static SSLSession unwrapSSLSession(SSLSession sslSession) {
-        return ExtendedSessionAdapter.getDelegate(sslSession);
+        if (JAVA_VERSION >= 7) {
+            return Java7PlatformUtil.unwrapSSLSession(sslSession);
+        }
+        return sslSession;
     }
 
     public static String getOriginalHostNameFromInetAddress(InetAddress addr) {

@@ -29,6 +29,7 @@ import java.security.cert.X509Certificate;
 import java.util.EnumSet;
 import java.util.Set;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 
@@ -118,6 +119,14 @@ final class Java7PlatformUtil {
         newPermissions.addAll(executePermissions);
         java.nio.file.Files.setPosixFilePermissions(file.toPath(), newPermissions);
         return file.canExecute();
+    }
+
+    static SSLSession wrapSSLSession(ActiveSession sslSession) {
+        return new Java7SessionWrapper(sslSession);
+    }
+
+    static SSLSession unwrapSSLSession(SSLSession sslSession) {
+        return Java7SessionWrapper.getDelegate(sslSession);
     }
 
     private Java7PlatformUtil() {}
