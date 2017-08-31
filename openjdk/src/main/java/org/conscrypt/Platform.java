@@ -543,9 +543,12 @@ final class Platform {
             return originalHostName;
         } catch (InvocationTargetException e) {
             throw new RuntimeException("Failed to get originalHostName", e);
-        } catch (ReflectiveOperationException ignore) {
+        } catch (ClassNotFoundException ignore) {
             // passthrough and return addr.getHostAddress()
+        } catch (IllegalAccessException ignore) {
+        } catch (NoSuchMethodException ignore) {
         }
+
         return addr.getHostAddress();
     }
 
