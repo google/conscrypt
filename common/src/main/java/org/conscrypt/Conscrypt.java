@@ -60,7 +60,7 @@ public final class Conscrypt {
     }
 
     /**
-     * Indicates whether the given object is a Conscrypt {@link Provider}.
+     * Indicates whether the given {@link Provider} was created by this distribution of Conscrypt.
      */
     public static boolean isConscrypt(Provider provider) {
         return provider instanceof OpenSSLProvider;
@@ -99,7 +99,7 @@ public final class Conscrypt {
     }
 
     /**
-     * Indicates whether the given object is a Conscrypt client-side session context.
+     * Indicates whether the given {@link SSLContext} was created by this distribution of Conscrypt.
      */
     public static boolean isConscrypt(SSLContext context) {
         return context.getProvider() instanceof OpenSSLProvider;
@@ -138,7 +138,8 @@ public final class Conscrypt {
     }
 
     /**
-     * Indicates whether the given object is a Conscrypt socket factory.
+     * Indicates whether the given {@link SSLSocketFactory} was created by this distribution of
+     * Conscrypt.
      */
     public static boolean isConscrypt(SSLSocketFactory factory) {
         return factory instanceof OpenSSLSocketFactoryImpl;
@@ -170,7 +171,8 @@ public final class Conscrypt {
     }
 
     /**
-     * Indicates whether the given object is a Conscrypt socket factory.
+     * Indicates whether the given {@link SSLServerSocketFactory} was created by this distribution
+     * of Conscrypt.
      */
     public static boolean isConscrypt(SSLServerSocketFactory factory) {
         return factory instanceof OpenSSLServerSocketFactoryImpl;
@@ -193,7 +195,7 @@ public final class Conscrypt {
     }
 
     /**
-     * Indicates whether the given socket is a Conscrypt socket.
+     * Indicates whether the given {@link SSLSocket} was created by this distribution of Conscrypt.
      */
     public static boolean isConscrypt(SSLSocket socket) {
         return socket instanceof AbstractConscryptSocket;
@@ -312,7 +314,7 @@ public final class Conscrypt {
     }
 
     /**
-     * Indicates whether the given engine is a Conscrypt engine.
+     * Indicates whether the given {@link SSLEngine} was created by this distribution of Conscrypt.
      */
     public static boolean isConscrypt(SSLEngine engine) {
         return engine instanceof ConscryptEngine;
