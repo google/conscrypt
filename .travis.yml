@@ -26,6 +26,7 @@ matrix:
         - ANDROID_TOOLS_URL="https://dl.google.com/android/repository/tools_r25.2.3-linux.zip"
         - ANDROID_HOME="$HOME/android-sdk-linux"
         - ANDROID_NDK_HOME="$ANDROID_HOME/ndk-bundle"
+        - JAVA6_HOME=/usr/lib/jvm/java-6-openjdk-amd64
 
       before_install:
         - curl -L $ANDROID_TOOLS_URL -o $HOME/tools.zip
@@ -56,6 +57,7 @@ matrix:
             - libc6-dev-i386
             - libc6-dev:i386
             - ninja-build
+            - openjdk-6-jre # for running tests with Java 6
 
     ###
     ### MacOS build only does x86-64.
@@ -91,17 +93,6 @@ before_script:
   - chmod 0755 $HOME/bin/git-clang-format
   - export PATH="$HOME/bin:$PATH"
 
-  # TODO(nathanmittler): Need to figure out how to make 32-bit builds work
-  # Build BoringSSL for 32-bit
-  # - if [[ "$TRAVIS_OS_NAME" == "linux" ]];
-  #  then
-  #      mkdir $BORINGSSL_HOME/build32;
-  #      pushd $BORINGSSL_HOME/build32;
-  #      cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS="-Wa,--noexecstack -m32 -msse2" -GNinja ..;
-  #      ninja;
-  #      popd;
-  #  fi
-
   # We need this to find the merge-base
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
@@ -120,6 +111,16 @@ script:
     fi
 
   - ./gradlew build
+
+  # Also test with Java 6 on linux
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
+      then
+        ${JAVA6_HOME}/bin/java -version;
+      fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
+    then
+      ./gradlew check -DjavaExecutable64=${JAVA6_HOME}/bin/java;
+    fi
 
 after_script:
   - "[ -f android/build/outputs/lint-results-debug.xml ] && cat android/build/outputs/lint-results-debug.xml"
