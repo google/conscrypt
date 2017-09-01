@@ -72,7 +72,7 @@ import sun.security.x509.AlgorithmId;
  * Uses reflection to implement Java 8 SSL features for backwards compatibility.
  */
 final class Platform {
-    private static final Logger logger = Logger.getLogger(NativeLibraryLoader.class.getName());
+    private static final Logger logger = Logger.getLogger(Platform.class.getName());
 
     private static final int JAVA_VERSION = javaVersion0();
     private static final String TEMP_DIR_PROPERTY_NAME = "org.conscrypt.tmpdir";
