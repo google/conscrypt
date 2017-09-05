@@ -179,10 +179,12 @@ public final class TestUtils {
         return getServerSocketFactory(JDK_PROVIDER);
     }
 
-    static SSLSocketFactory setUseEngineSocket(SSLSocketFactory conscryptFactory, boolean useEngineSocket) {
+    static SSLSocketFactory setUseEngineSocket(
+            SSLSocketFactory conscryptFactory, boolean useEngineSocket) {
         try {
-            Class<?> clazz = conscryptClass("Conscrypt$SocketFactories");
-            Method method = clazz.getMethod("setUseEngineSocket", SSLSocketFactory.class, boolean.class);
+            Class<?> clazz = conscryptClass("Conscrypt");
+            Method method =
+                    clazz.getMethod("setUseEngineSocket", SSLSocketFactory.class, boolean.class);
             method.invoke(null, conscryptFactory, useEngineSocket);
             return conscryptFactory;
         } catch (Exception e) {
@@ -190,10 +192,12 @@ public final class TestUtils {
         }
     }
 
-    static SSLServerSocketFactory setUseEngineSocket(SSLServerSocketFactory conscryptFactory, boolean useEngineSocket) {
+    static SSLServerSocketFactory setUseEngineSocket(
+            SSLServerSocketFactory conscryptFactory, boolean useEngineSocket) {
         try {
-            Class<?> clazz = conscryptClass("Conscrypt$ServerSocketFactories");
-            Method method = clazz.getMethod("setUseEngineSocket", SSLServerSocketFactory.class, boolean.class);
+            Class<?> clazz = conscryptClass("Conscrypt");
+            Method method = clazz.getMethod(
+                    "setUseEngineSocket", SSLServerSocketFactory.class, boolean.class);
             method.invoke(null, conscryptFactory, useEngineSocket);
             return conscryptFactory;
         } catch (Exception e) {

@@ -35,8 +35,7 @@ public enum AndroidEngineFactory implements EngineFactory {
         public SSLEngine newClientEngine(String cipher, boolean useAlpn) {
             SSLEngine engine = initEngine(clientContext.createSSLEngine(), cipher, true);
             if (useAlpn) {
-                Conscrypt.Engines.setAlpnProtocols(
-                        engine, new String[] {"h2"});
+                Conscrypt.setAlpnProtocols(engine, new String[] {"h2"});
             }
             return engine;
         }
@@ -45,8 +44,7 @@ public enum AndroidEngineFactory implements EngineFactory {
         public SSLEngine newServerEngine(String cipher, boolean useAlpn) {
             SSLEngine engine = initEngine(serverContext.createSSLEngine(), cipher, false);
             if (useAlpn) {
-                Conscrypt.Engines.setAlpnProtocols(
-                        engine, new String[] {"h2"});
+                Conscrypt.setAlpnProtocols(engine, new String[] {"h2"});
             }
             return engine;
         }
