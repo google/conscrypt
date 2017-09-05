@@ -34,6 +34,7 @@ import javax.net.ssl.X509TrustManager;
 /**
  * Core API for creating and configuring all Conscrypt types.
  */
+@SuppressWarnings("unused")
 public final class Conscrypt {
     private Conscrypt() {}
 
@@ -59,6 +60,13 @@ public final class Conscrypt {
     }
 
     /**
+     * Indicates whether the given {@link Provider} was created by this distribution of Conscrypt.
+     */
+    public static boolean isConscrypt(Provider provider) {
+        return provider instanceof OpenSSLProvider;
+    }
+
+    /**
      * Constructs a new {@link Provider} with the default name.
      */
     public static Provider newProvider() {
@@ -75,11 +83,10 @@ public final class Conscrypt {
     }
 
     /**
-     * Constructs a new instance of the preferred {@link SSLContextSpi}.
+     * Returns the maximum length (in bytes) of an encrypted packet.
      */
-    public static SSLContextSpi newPreferredSSLContextSpi() {
-        checkAvailability();
-        return OpenSSLContextImpl.getPreferred();
+    public static int maxEncryptedPacketLength() {
+        return NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
     }
 
     /**
@@ -92,434 +99,384 @@ public final class Conscrypt {
     }
 
     /**
-     * Utility that exposes common TLS constants.
+     * Indicates whether the given {@link SSLContext} was created by this distribution of Conscrypt.
+     */
+    public static boolean isConscrypt(SSLContext context) {
+        return context.getProvider() instanceof OpenSSLProvider;
+    }
+
+    /**
+     * Constructs a new instance of the preferred {@link SSLContextSpi}.
+     */
+    public static SSLContextSpi newPreferredSSLContextSpi() {
+        checkAvailability();
+        return OpenSSLContextImpl.getPreferred();
+    }
+
+    /**
+     * Sets the client-side persistent cache to be used by the context.
+     */
+    public static void setClientSessionCache(SSLContext context, SSLClientSessionCache cache) {
+        SSLSessionContext clientContext = context.getClientSessionContext();
+        if (!(clientContext instanceof ClientSessionContext)) {
+            throw new IllegalArgumentException(
+                    "Not a conscrypt client context: " + clientContext.getClass().getName());
+        }
+        ((ClientSessionContext) clientContext).setPersistentCache(cache);
+    }
+
+    /**
+     * Sets the server-side persistent cache to be used by the context.
+     */
+    public static void setServerSessionCache(SSLContext context, SSLServerSessionCache cache) {
+        SSLSessionContext serverContext = context.getServerSessionContext();
+        if (!(serverContext instanceof ServerSessionContext)) {
+            throw new IllegalArgumentException(
+                    "Not a conscrypt client context: " + serverContext.getClass().getName());
+        }
+        ((ServerSessionContext) serverContext).setPersistentCache(cache);
+    }
+
+    /**
+     * Indicates whether the given {@link SSLSocketFactory} was created by this distribution of
+     * Conscrypt.
+     */
+    public static boolean isConscrypt(SSLSocketFactory factory) {
+        return factory instanceof OpenSSLSocketFactoryImpl;
+    }
+
+    private static OpenSSLSocketFactoryImpl toConscrypt(SSLSocketFactory factory) {
+        if (!isConscrypt(factory)) {
+            throw new IllegalArgumentException(
+                    "Not a conscrypt socket factory: " + factory.getClass().getName());
+        }
+        return (OpenSSLSocketFactoryImpl) factory;
+    }
+
+    /**
+     * Configures the default socket to be created for all socket factory instances.
      */
     @ExperimentalApi
-    public static final class Constants {
-        private Constants() {}
-
-        /**
-         * Returns the maximum length (in bytes) of an encrypted packet.
-         */
-        public static int maxEncryptedPacketLength() {
-            return NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
-        }
+    public static void setUseEngineSocketByDefault(boolean useEngineSocket) {
+        OpenSSLSocketFactoryImpl.setUseEngineSocketByDefault(useEngineSocket);
+        OpenSSLServerSocketFactoryImpl.setUseEngineSocketByDefault(useEngineSocket);
     }
 
     /**
-     * Utility methods for configuring Conscrypt {@link SSLContext} instances.
+     * Configures the socket to be created for the given socket factory instance.
      */
-    public static final class Contexts {
-        private Contexts() {}
-
-        /**
-         * Indicates whether the given object is a Conscrypt client-side session context.
-         */
-        public static boolean isConscrypt(SSLContext context) {
-            return context.getProvider() instanceof OpenSSLProvider;
-        }
-
-        /**
-         * Sets the client-side persistent cache to be used by the context.
-         */
-        public static void setClientSessionCache(SSLContext context, SSLClientSessionCache cache) {
-            SSLSessionContext clientContext = context.getClientSessionContext();
-            if (!(clientContext instanceof ClientSessionContext)) {
-                throw new IllegalArgumentException(
-                        "Not a conscrypt client context: " + clientContext.getClass().getName());
-            }
-            ((ClientSessionContext) clientContext).setPersistentCache(cache);
-        }
-
-        /**
-         * Sets the server-side persistent cache to be used by the context.
-         */
-        public static void setServerSessionCache(SSLContext context, SSLServerSessionCache cache) {
-            SSLSessionContext serverContext = context.getServerSessionContext();
-            if (!(serverContext instanceof ServerSessionContext)) {
-                throw new IllegalArgumentException(
-                        "Not a conscrypt client context: " + serverContext.getClass().getName());
-            }
-            ((ServerSessionContext) serverContext).setPersistentCache(cache);
-        }
+    @ExperimentalApi
+    public static void setUseEngineSocket(SSLSocketFactory factory, boolean useEngineSocket) {
+        toConscrypt(factory).setUseEngineSocket(useEngineSocket);
     }
 
     /**
-     * Utility methods for configuring Conscrypt socket factories.
+     * Indicates whether the given {@link SSLServerSocketFactory} was created by this distribution
+     * of Conscrypt.
      */
-    public static final class SocketFactories {
-        private SocketFactories() {}
+    public static boolean isConscrypt(SSLServerSocketFactory factory) {
+        return factory instanceof OpenSSLServerSocketFactoryImpl;
+    }
 
-        /**
-         * Indicates whether the given object is a Conscrypt socket factory.
-         */
-        public static boolean isConscrypt(SSLSocketFactory factory) {
-            return factory instanceof OpenSSLSocketFactoryImpl;
+    private static OpenSSLServerSocketFactoryImpl toConscrypt(SSLServerSocketFactory factory) {
+        if (!isConscrypt(factory)) {
+            throw new IllegalArgumentException(
+                    "Not a conscrypt server socket factory: " + factory.getClass().getName());
         }
-
-        private static OpenSSLSocketFactoryImpl toConscrypt(SSLSocketFactory factory) {
-            if (!isConscrypt(factory)) {
-                throw new IllegalArgumentException(
-                        "Not a conscrypt socket factory: " + factory.getClass().getName());
-            }
-            return (OpenSSLSocketFactoryImpl) factory;
-        }
-
-        /**
-         * Configures the default socket to be created for all socket factory instances.
-         */
-        @ExperimentalApi
-        public static void setUseEngineSocketByDefault(boolean useEngineSocket) {
-            OpenSSLSocketFactoryImpl.setUseEngineSocketByDefault(useEngineSocket);
-        }
-
-        /**
-         * Configures the socket to be created for the given socket factory instance.
-         */
-        @ExperimentalApi
-        public static void setUseEngineSocket(SSLSocketFactory factory, boolean useEngineSocket) {
-            toConscrypt(factory).setUseEngineSocket(useEngineSocket);
-        }
+        return (OpenSSLServerSocketFactoryImpl) factory;
     }
 
     /**
-     * Utility methods for configuring Conscrypt server socket factories.
+     * Configures the socket to be created for the given server socket factory instance.
      */
-    public static final class ServerSocketFactories {
-        private ServerSocketFactories() {}
-
-        /**
-         * Indicates whether the given object is a Conscrypt socket factory.
-         */
-        public static boolean isConscrypt(SSLServerSocketFactory factory) {
-            return factory instanceof OpenSSLServerSocketFactoryImpl;
-        }
-
-        private static OpenSSLServerSocketFactoryImpl toConscrypt(SSLServerSocketFactory factory) {
-            if (!isConscrypt(factory)) {
-                throw new IllegalArgumentException(
-                        "Not a conscrypt server socket factory: " + factory.getClass().getName());
-            }
-            return (OpenSSLServerSocketFactoryImpl) factory;
-        }
-
-        /**
-         * Configures the default socket to be created for all server socket factory instances.
-         */
-        @ExperimentalApi
-        public static void setUseEngineSocketByDefault(boolean useEngineSocket) {
-            OpenSSLServerSocketFactoryImpl.setUseEngineSocketByDefault(useEngineSocket);
-        }
-
-        /**
-         * Configures the socket to be created for the given server socket factory instance.
-         */
-        @ExperimentalApi
-        public static void setUseEngineSocket(
-                SSLServerSocketFactory factory, boolean useEngineSocket) {
-            toConscrypt(factory).setUseEngineSocket(useEngineSocket);
-        }
+    @ExperimentalApi
+    public static void setUseEngineSocket(SSLServerSocketFactory factory, boolean useEngineSocket) {
+        toConscrypt(factory).setUseEngineSocket(useEngineSocket);
     }
 
     /**
-     * Utility methods for configuring Conscrypt sockets.
+     * Indicates whether the given {@link SSLSocket} was created by this distribution of Conscrypt.
      */
-    public static final class Sockets {
-        private Sockets() {}
+    public static boolean isConscrypt(SSLSocket socket) {
+        return socket instanceof AbstractConscryptSocket;
+    }
 
-        /**
-         * Indicates whether the given socket is a Conscrypt socket.
-         */
-        public static boolean isConscrypt(SSLSocket socket) {
-            return socket instanceof AbstractConscryptSocket;
+    private static AbstractConscryptSocket toConscrypt(SSLSocket socket) {
+        if (!isConscrypt(socket)) {
+            throw new IllegalArgumentException(
+                    "Not a conscrypt socket: " + socket.getClass().getName());
         }
-
-        private static AbstractConscryptSocket toConscrypt(SSLSocket socket) {
-            if (!isConscrypt(socket)) {
-                throw new IllegalArgumentException(
-                        "Not a conscrypt socket: " + socket.getClass().getName());
-            }
-            return (AbstractConscryptSocket) socket;
-        }
-
-        /**
-         * This method enables Server Name Indication (SNI) and overrides the hostname supplied
-         * during socket creation.
-         *
-         * @param socket the socket
-         * @param hostname the desired SNI hostname, or null to disable
-         */
-        public static void setHostname(SSLSocket socket, String hostname) {
-            toConscrypt(socket).setHostname(hostname);
-        }
-
-        /**
-         * Returns either the hostname supplied during socket creation or via
-         * {@link #setHostname(SSLSocket, String)}. No DNS resolution is attempted before
-         * returning the hostname.
-         */
-        public static String getHostname(SSLSocket socket) {
-            return toConscrypt(socket).getHostname();
-        }
-
-        /**
-         * This method attempts to create a textual representation of the peer host or IP. Does
-         * not perform a reverse DNS lookup. This is typically used during session creation.
-         */
-        public static String getHostnameOrIP(SSLSocket socket) {
-            return toConscrypt(socket).getHostnameOrIP();
-        }
-
-        /**
-         * This method enables session ticket support.
-         *
-         * @param socket the socket
-         * @param useSessionTickets True to enable session tickets
-         */
-        public static void setUseSessionTickets(SSLSocket socket, boolean useSessionTickets) {
-            toConscrypt(socket).setUseSessionTickets(useSessionTickets);
-        }
-
-        /**
-         * Enables/disables TLS Channel ID for the given server-side socket.
-         *
-         * <p>This method needs to be invoked before the handshake starts.
-         *
-         * @param socket the socket
-         * @param enabled Whether to enable channel ID.
-         * @throws IllegalStateException if this is a client socket or if the handshake has already
-         * started.
-         */
-        public static void setChannelIdEnabled(SSLSocket socket, boolean enabled) {
-            toConscrypt(socket).setChannelIdEnabled(enabled);
-        }
-
-        /**
-         * Gets the TLS Channel ID for the given server-side socket. Channel ID is only available
-         * once the handshake completes.
-         *
-         * @param socket the socket
-         * @return channel ID or {@code null} if not available.
-         * @throws IllegalStateException if this is a client socket or if the handshake has not yet
-         * completed.
-         * @throws SSLException if channel ID is available but could not be obtained.
-         */
-        public static byte[] getChannelId(SSLSocket socket) throws SSLException {
-            return toConscrypt(socket).getChannelId();
-        }
-
-        /**
-         * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client socket.
-         *
-         * <p>This method needs to be invoked before the handshake starts.
-         *
-         * @param socket the socket
-         * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key
-         * (disables TLS Channel ID).
-         * The private key must be an Elliptic Curve (EC) key based on the NIST P-256 curve (aka
-         * SECG secp256r1 or ANSI
-         * X9.62 prime256v1).
-         * @throws IllegalStateException if this is a server socket or if the handshake has already
-         * started.
-         */
-        public static void setChannelIdPrivateKey(SSLSocket socket, PrivateKey privateKey) {
-            toConscrypt(socket).setChannelIdPrivateKey(privateKey);
-        }
-
-        /**
-         * Returns the ALPN protocol agreed upon by client and server.
-         *
-         * @param socket the socket
-         * @return the selected protocol or {@code null} if no protocol was agreed upon.
-         */
-        public static String getAlpnSelectedProtocol(SSLSocket socket) {
-            return toProtocolString(toConscrypt(socket).getAlpnSelectedProtocol());
-        }
-
-        /**
-         * Sets the list of ALPN protocols supported by the socket.
-         *
-         * @param socket the socket
-         * @param alpnProtocols the list of ALPN protocols
-         */
-        public static void setAlpnProtocols(SSLSocket socket, String[] alpnProtocols) {
-            toConscrypt(socket).setAlpnProtocols(alpnProtocols);
-        }
+        return (AbstractConscryptSocket) socket;
     }
 
     /**
-     * Utility methods for configuring Conscrypt engines.
+     * This method enables Server Name Indication (SNI) and overrides the hostname supplied
+     * during socket creation.
+     *
+     * @param socket the socket
+     * @param hostname the desired SNI hostname, or null to disable
      */
-    public static final class Engines {
-        private Engines() {}
+    public static void setHostname(SSLSocket socket, String hostname) {
+        toConscrypt(socket).setHostname(hostname);
+    }
 
-        /**
-         * Indicates whether the given engine is a Conscrypt engine.
-         */
-        public static boolean isConscrypt(SSLEngine engine) {
-            return engine instanceof ConscryptEngine;
-        }
+    /**
+     * Returns either the hostname supplied during socket creation or via
+     * {@link #setHostname(SSLSocket, String)}. No DNS resolution is attempted before
+     * returning the hostname.
+     */
+    public static String getHostname(SSLSocket socket) {
+        return toConscrypt(socket).getHostname();
+    }
 
-        private static ConscryptEngine toConscrypt(SSLEngine engine) {
-            if (!isConscrypt(engine)) {
-                throw new IllegalArgumentException(
-                        "Not a conscrypt engine: " + engine.getClass().getName());
-            }
-            return (ConscryptEngine) engine;
-        }
+    /**
+     * This method attempts to create a textual representation of the peer host or IP. Does
+     * not perform a reverse DNS lookup. This is typically used during session creation.
+     */
+    public static String getHostnameOrIP(SSLSocket socket) {
+        return toConscrypt(socket).getHostnameOrIP();
+    }
 
-        /**
-         * Provides the given engine with the provided bufferAllocator.
-         * @param engine
-         * @param bufferAllocator
-         */
-        public static void setBufferAllocator(SSLEngine engine, BufferAllocator bufferAllocator) {
-            toConscrypt(engine).setBufferAllocator(bufferAllocator);
-        }
+    /**
+     * This method enables session ticket support.
+     *
+     * @param socket the socket
+     * @param useSessionTickets True to enable session tickets
+     */
+    public static void setUseSessionTickets(SSLSocket socket, boolean useSessionTickets) {
+        toConscrypt(socket).setUseSessionTickets(useSessionTickets);
+    }
 
-        /**
-         * This method enables Server Name Indication (SNI) and overrides the hostname supplied
-         * during engine creation.
-         *
-         * @param engine the engine
-         * @param hostname the desired SNI hostname, or {@code null} to disable
-         */
-        public static void setHostname(SSLEngine engine, String hostname) {
-            toConscrypt(engine).setHostname(hostname);
-        }
+    /**
+     * Enables/disables TLS Channel ID for the given server-side socket.
+     *
+     * <p>This method needs to be invoked before the handshake starts.
+     *
+     * @param socket the socket
+     * @param enabled Whether to enable channel ID.
+     * @throws IllegalStateException if this is a client socket or if the handshake has already
+     * started.
+     */
+    public static void setChannelIdEnabled(SSLSocket socket, boolean enabled) {
+        toConscrypt(socket).setChannelIdEnabled(enabled);
+    }
 
-        /**
-         * Returns either the hostname supplied during socket creation or via
-         * {@link #setHostname(SSLEngine, String)}. No DNS resolution is attempted before
-         * returning the hostname.
-         */
-        public static String getHostname(SSLEngine engine) {
-            return toConscrypt(engine).getHostname();
-        }
+    /**
+     * Gets the TLS Channel ID for the given server-side socket. Channel ID is only available
+     * once the handshake completes.
+     *
+     * @param socket the socket
+     * @return channel ID or {@code null} if not available.
+     * @throws IllegalStateException if this is a client socket or if the handshake has not yet
+     * completed.
+     * @throws SSLException if channel ID is available but could not be obtained.
+     */
+    public static byte[] getChannelId(SSLSocket socket) throws SSLException {
+        return toConscrypt(socket).getChannelId();
+    }
 
-        /**
-         * Returns the maximum overhead, in bytes, of sealing a record with SSL.
-         */
-        public static int maxSealOverhead(SSLEngine engine) {
-            return toConscrypt(engine).maxSealOverhead();
-        }
+    /**
+     * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client socket.
+     *
+     * <p>This method needs to be invoked before the handshake starts.
+     *
+     * @param socket the socket
+     * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key
+     * (disables TLS Channel ID).
+     * The private key must be an Elliptic Curve (EC) key based on the NIST P-256 curve (aka
+     * SECG secp256r1 or ANSI
+     * X9.62 prime256v1).
+     * @throws IllegalStateException if this is a server socket or if the handshake has already
+     * started.
+     */
+    public static void setChannelIdPrivateKey(SSLSocket socket, PrivateKey privateKey) {
+        toConscrypt(socket).setChannelIdPrivateKey(privateKey);
+    }
 
-        /**
-         * Sets a listener on the given engine for completion of the TLS handshake
-         */
-        public static void setHandshakeListener(
-                SSLEngine engine, HandshakeListener handshakeListener) {
-            toConscrypt(engine).setHandshakeListener(handshakeListener);
-        }
+    /**
+     * Returns the ALPN protocol agreed upon by client and server.
+     *
+     * @param socket the socket
+     * @return the selected protocol or {@code null} if no protocol was agreed upon.
+     */
+    public static String getAlpnSelectedProtocol(SSLSocket socket) {
+        return toProtocolString(toConscrypt(socket).getAlpnSelectedProtocol());
+    }
 
-        /**
-         * Enables/disables TLS Channel ID for the given server-side engine.
-         *
-         * <p>This method needs to be invoked before the handshake starts.
-         *
-         * @param engine the engine
-         * @param enabled Whether to enable channel ID.
-         * @throws IllegalStateException if this is a client engine or if the handshake has already
-         * started.
-         */
-        public static void setChannelIdEnabled(SSLEngine engine, boolean enabled) {
-            toConscrypt(engine).setChannelIdEnabled(enabled);
-        }
+    /**
+     * Sets the list of ALPN protocols supported by the socket.
+     *
+     * @param socket the socket
+     * @param alpnProtocols the list of ALPN protocols
+     */
+    public static void setAlpnProtocols(SSLSocket socket, String[] alpnProtocols) {
+        toConscrypt(socket).setAlpnProtocols(alpnProtocols);
+    }
 
-        /**
-         * Gets the TLS Channel ID for the given server-side engine. Channel ID is only available
-         * once the handshake completes.
-         *
-         * @param engine the engine
-         * @return channel ID or {@code null} if not available.
-         * @throws IllegalStateException if this is a client engine or if the handshake has not yet
-         * completed.
-         * @throws SSLException if channel ID is available but could not be obtained.
-         */
-        public static byte[] getChannelId(SSLEngine engine) throws SSLException {
-            return toConscrypt(engine).getChannelId();
-        }
+    /**
+     * Indicates whether the given {@link SSLEngine} was created by this distribution of Conscrypt.
+     */
+    public static boolean isConscrypt(SSLEngine engine) {
+        return engine instanceof ConscryptEngine;
+    }
 
-        /**
-         * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client engine.
-         *
-         * <p>This method needs to be invoked before the handshake starts.
-         *
-         * @param engine the engine
-         * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key
-         * (disables TLS Channel ID).
-         * The private key must be an Elliptic Curve (EC) key based on the NIST P-256 curve (aka
-         * SECG secp256r1 or ANSI X9.62 prime256v1).
-         * @throws IllegalStateException if this is a server engine or if the handshake has already
-         * started.
-         */
-        public static void setChannelIdPrivateKey(SSLEngine engine, PrivateKey privateKey) {
-            toConscrypt(engine).setChannelIdPrivateKey(privateKey);
+    private static ConscryptEngine toConscrypt(SSLEngine engine) {
+        if (!isConscrypt(engine)) {
+            throw new IllegalArgumentException(
+                    "Not a conscrypt engine: " + engine.getClass().getName());
         }
+        return (ConscryptEngine) engine;
+    }
 
-        /**
-         * Extended unwrap method for multiple source and destination buffers.
-         *
-         * @param engine the target engine for the unwrap
-         * @param srcs the source buffers
-         * @param dsts the destination buffers
-         * @return the result of the unwrap operation
-         * @throws SSLException thrown if an SSL error occurred
-         */
-        public static SSLEngineResult unwrap(SSLEngine engine, final ByteBuffer[] srcs,
-                final ByteBuffer[] dsts) throws SSLException {
-            return toConscrypt(engine).unwrap(srcs, dsts);
-        }
+    /**
+     * Provides the given engine with the provided bufferAllocator.
+     */
+    @ExperimentalApi
+    public static void setBufferAllocator(SSLEngine engine, BufferAllocator bufferAllocator) {
+        toConscrypt(engine).setBufferAllocator(bufferAllocator);
+    }
 
-        /**
-         * Exteneded unwrap method for multiple source and destination buffers.
-         *
-         * @param engine the target engine for the unwrap.
-         * @param srcs the source buffers
-         * @param srcsOffset the offset in the {@code srcs} array of the first source buffer
-         * @param srcsLength the number of source buffers starting at {@code srcsOffset}
-         * @param dsts the destination buffers
-         * @param dstsOffset the offset in the {@code dsts} array of the first destination buffer
-         * @param dstsLength the number of destination buffers starting at {@code dstsOffset}
-         * @return the result of the unwrap operation
-         * @throws SSLException thrown if an SSL error occurred
-         */
-        public static SSLEngineResult unwrap(SSLEngine engine, final ByteBuffer[] srcs,
-                int srcsOffset, final int srcsLength, final ByteBuffer[] dsts, final int dstsOffset,
-                final int dstsLength) throws SSLException {
-            return toConscrypt(engine).unwrap(
-                    srcs, srcsOffset, srcsLength, dsts, dstsOffset, dstsLength);
-        }
+    /**
+     * This method enables Server Name Indication (SNI) and overrides the hostname supplied
+     * during engine creation.
+     *
+     * @param engine the engine
+     * @param hostname the desired SNI hostname, or {@code null} to disable
+     */
+    public static void setHostname(SSLEngine engine, String hostname) {
+        toConscrypt(engine).setHostname(hostname);
+    }
 
-        /**
-         * This method enables session ticket support.
-         *
-         * @param engine the engine
-         * @param useSessionTickets True to enable session tickets
-         */
-        public static void setUseSessionTickets(SSLEngine engine, boolean useSessionTickets) {
-            toConscrypt(engine).setUseSessionTickets(useSessionTickets);
-        }
+    /**
+     * Returns either the hostname supplied during socket creation or via
+     * {@link #setHostname(SSLEngine, String)}. No DNS resolution is attempted before
+     * returning the hostname.
+     */
+    public static String getHostname(SSLEngine engine) {
+        return toConscrypt(engine).getHostname();
+    }
 
-        /**
-         * Sets the list of ALPN protocols supported by the engine.
-         *
-         * @param engine the engine
-         * @param alpnProtocols the list of ALPN protocols
-         */
-        public static void setAlpnProtocols(SSLEngine engine, String[] alpnProtocols) {
-            toConscrypt(engine).setAlpnProtocols(alpnProtocols);
-        }
+    /**
+     * Returns the maximum overhead, in bytes, of sealing a record with SSL.
+     */
+    public static int maxSealOverhead(SSLEngine engine) {
+        return toConscrypt(engine).maxSealOverhead();
+    }
 
-        /**
-         * Returns the ALPN protocol agreed upon by client and server.
-         *
-         * @param engine the engine
-         * @return the selected protocol or {@code null} if no protocol was agreed upon.
-         */
-        public static String getAlpnSelectedProtocol(SSLEngine engine) {
-            return toProtocolString(toConscrypt(engine).getAlpnSelectedProtocol());
-        }
+    /**
+     * Sets a listener on the given engine for completion of the TLS handshake
+     */
+    public static void setHandshakeListener(SSLEngine engine, HandshakeListener handshakeListener) {
+        toConscrypt(engine).setHandshakeListener(handshakeListener);
+    }
+
+    /**
+     * Enables/disables TLS Channel ID for the given server-side engine.
+     *
+     * <p>This method needs to be invoked before the handshake starts.
+     *
+     * @param engine the engine
+     * @param enabled Whether to enable channel ID.
+     * @throws IllegalStateException if this is a client engine or if the handshake has already
+     * started.
+     */
+    public static void setChannelIdEnabled(SSLEngine engine, boolean enabled) {
+        toConscrypt(engine).setChannelIdEnabled(enabled);
+    }
+
+    /**
+     * Gets the TLS Channel ID for the given server-side engine. Channel ID is only available
+     * once the handshake completes.
+     *
+     * @param engine the engine
+     * @return channel ID or {@code null} if not available.
+     * @throws IllegalStateException if this is a client engine or if the handshake has not yet
+     * completed.
+     * @throws SSLException if channel ID is available but could not be obtained.
+     */
+    public static byte[] getChannelId(SSLEngine engine) throws SSLException {
+        return toConscrypt(engine).getChannelId();
+    }
+
+    /**
+     * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client engine.
+     *
+     * <p>This method needs to be invoked before the handshake starts.
+     *
+     * @param engine the engine
+     * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key
+     * (disables TLS Channel ID).
+     * The private key must be an Elliptic Curve (EC) key based on the NIST P-256 curve (aka
+     * SECG secp256r1 or ANSI X9.62 prime256v1).
+     * @throws IllegalStateException if this is a server engine or if the handshake has already
+     * started.
+     */
+    public static void setChannelIdPrivateKey(SSLEngine engine, PrivateKey privateKey) {
+        toConscrypt(engine).setChannelIdPrivateKey(privateKey);
+    }
+
+    /**
+     * Extended unwrap method for multiple source and destination buffers.
+     *
+     * @param engine the target engine for the unwrap
+     * @param srcs the source buffers
+     * @param dsts the destination buffers
+     * @return the result of the unwrap operation
+     * @throws SSLException thrown if an SSL error occurred
+     */
+    public static SSLEngineResult unwrap(SSLEngine engine, final ByteBuffer[] srcs,
+            final ByteBuffer[] dsts) throws SSLException {
+        return toConscrypt(engine).unwrap(srcs, dsts);
+    }
+
+    /**
+     * Exteneded unwrap method for multiple source and destination buffers.
+     *
+     * @param engine the target engine for the unwrap.
+     * @param srcs the source buffers
+     * @param srcsOffset the offset in the {@code srcs} array of the first source buffer
+     * @param srcsLength the number of source buffers starting at {@code srcsOffset}
+     * @param dsts the destination buffers
+     * @param dstsOffset the offset in the {@code dsts} array of the first destination buffer
+     * @param dstsLength the number of destination buffers starting at {@code dstsOffset}
+     * @return the result of the unwrap operation
+     * @throws SSLException thrown if an SSL error occurred
+     */
+    public static SSLEngineResult unwrap(SSLEngine engine, final ByteBuffer[] srcs, int srcsOffset,
+            final int srcsLength, final ByteBuffer[] dsts, final int dstsOffset,
+            final int dstsLength) throws SSLException {
+        return toConscrypt(engine).unwrap(
+                srcs, srcsOffset, srcsLength, dsts, dstsOffset, dstsLength);
+    }
+
+    /**
+     * This method enables session ticket support.
+     *
+     * @param engine the engine
+     * @param useSessionTickets True to enable session tickets
+     */
+    public static void setUseSessionTickets(SSLEngine engine, boolean useSessionTickets) {
+        toConscrypt(engine).setUseSessionTickets(useSessionTickets);
+    }
+
+    /**
+     * Sets the list of ALPN protocols supported by the engine.
+     *
+     * @param engine the engine
+     * @param alpnProtocols the list of ALPN protocols
+     */
+    public static void setAlpnProtocols(SSLEngine engine, String[] alpnProtocols) {
+        toConscrypt(engine).setAlpnProtocols(alpnProtocols);
+    }
+
+    /**
+     * Returns the ALPN protocol agreed upon by client and server.
+     *
+     * @param engine the engine
+     * @return the selected protocol or {@code null} if no protocol was agreed upon.
+     */
+    public static String getAlpnSelectedProtocol(SSLEngine engine) {
+        return toProtocolString(toConscrypt(engine).getAlpnSelectedProtocol());
     }
 
     private static String toProtocolString(byte[] bytes) {
