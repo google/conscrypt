@@ -39,6 +39,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
+import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
@@ -877,6 +878,54 @@ public class SSLEngineTest extends AbstractSSLTest {
             executor.shutdown();
             client.get();
             server.get();
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLEngine_CloseOutbound() throws Exception {
+        final TestSSLEnginePair pair = TestSSLEnginePair.create();
+        try {
+            assertConnected(pair);
+
+            // Closing the outbound direction should cause a close_notify to be sent
+            pair.client.closeOutbound();
+            ByteBuffer clientOut = ByteBuffer
+                    .allocate(pair.client.getSession().getPacketBufferSize());
+            SSLEngineResult res = pair.client.wrap(ByteBuffer.wrap(new byte[0]), clientOut);
+            assertEquals(Status.CLOSED, res.getStatus());
+            assertEquals(HandshakeStatus.NOT_HANDSHAKING, res.getHandshakeStatus());
+            assertTrue(res.bytesProduced() > 0);
+
+            // Read the close_notify in the server
+            clientOut.flip();
+            ByteBuffer serverIn = ByteBuffer
+                    .allocate(pair.server.getSession().getApplicationBufferSize());
+            res = pair.server.unwrap(clientOut, serverIn);
+            assertEquals(Status.CLOSED, res.getStatus());
+            assertEquals(HandshakeStatus.NEED_WRAP, res.getHandshakeStatus());
+
+            // Reading the close_notify should cause a close_notify to be sent back
+            ByteBuffer serverOut = ByteBuffer
+                    .allocate(pair.server.getSession().getPacketBufferSize());
+            res = pair.server.wrap(ByteBuffer.wrap(new byte[0]), serverOut);
+            assertEquals(Status.CLOSED, res.getStatus());
+            assertEquals(HandshakeStatus.NOT_HANDSHAKING, res.getHandshakeStatus());
+            assertTrue(res.bytesProduced() > 0);
+
+            // Read the close_notify in the client
+            serverOut.flip();
+            ByteBuffer clientIn = ByteBuffer
+                    .allocate(pair.client.getSession().getApplicationBufferSize());
+            res = pair.client.unwrap(serverOut, clientIn);
+            assertEquals(Status.CLOSED, res.getStatus());
+            assertEquals(HandshakeStatus.NOT_HANDSHAKING, res.getHandshakeStatus());
+
+            // Both sides have received close_notify messages, so both peers should have
+            // registered that they're finished
+            assertTrue(pair.client.isInboundDone() && pair.client.isOutboundDone());
+            assertTrue(pair.server.isInboundDone() && pair.server.isOutboundDone());
         } finally {
             pair.close();
         }

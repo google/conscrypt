@@ -7932,7 +7932,6 @@ static void NativeCrypto_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_address, jo
     }
 
     ERR_clear_error();
-    safeSslClear(ssl);
 }
 
 static jint NativeCrypto_SSL_get_shutdown(JNIEnv* env, jclass, jlong ssl_address) {
@@ -8789,7 +8788,6 @@ static void NativeCrypto_ENGINE_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_addr
     }
 
     ERR_clear_error();
-    safeSslClear(ssl);
 }
 
 static jint NativeCrypto_ENGINE_SSL_read_direct(JNIEnv* env, jclass, jlong sslRef, jlong address,
@@ -8841,10 +8839,8 @@ static jint NativeCrypto_ENGINE_SSL_read_direct(JNIEnv* env, jclass, jlong sslRe
             break;
         }
         case SSL_ERROR_ZERO_RETURN: {
-            // TODO(nmittler): Can this happen with memory BIOs?
-            // Read zero bytes. End of stream reached.
-            conscrypt::jniutil::jniThrowException(env, "java/io/EOFException", "Read error");
-            break;
+            // A close_notify was received, this stream is finished.
+            return -SSL_ERROR_ZERO_RETURN;
         }
         case SSL_ERROR_WANT_READ:
         case SSL_ERROR_WANT_WRITE: {
