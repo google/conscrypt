@@ -806,6 +806,16 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                                 case -SSL_ERROR_WANT_WRITE: {
                                     return newResult(bytesConsumed, bytesProduced, handshakeStatus);
                                 }
+                                case -SSL_ERROR_ZERO_RETURN: {
+                                    // We received a close_notify from the peer, so mark the
+                                    // inbound direction as closed and shut down the SSL object
+                                    closeInbound();
+                                    sendSSLShutdown();
+                                    return new SSLEngineResult(Status.CLOSED,
+                                            pendingOutboundEncryptedBytes() > 0
+                                                    ? NEED_WRAP : NOT_HANDSHAKING,
+                                            bytesConsumed, bytesProduced);
+                                }
                                 default: {
                                     // Should never get here.
                                     sendSSLShutdown();
@@ -1338,6 +1348,13 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
                     break;
                 case STATE_CLOSED_OUTBOUND:
                 case STATE_CLOSED:
+                    // We may have pending encrypted bytes from a close_notify alert, so
+                    // try to read them out
+                    SSLEngineResult pendingNetResult =
+                            readPendingBytesFromBIO(dst, 0, 0, HandshakeStatus.NOT_HANDSHAKING);
+                    if (pendingNetResult != null) {
+                        return pendingNetResult;
+                    }
                     return new SSLEngineResult(Status.CLOSED, getHandshakeStatusInternal(), 0, 0);
                 case STATE_NEW:
                     throw new IllegalStateException(
