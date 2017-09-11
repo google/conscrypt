@@ -216,6 +216,26 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
     }
 
     @Override
+    protected int engineGetKeySize(Key key) throws InvalidKeyException {
+        if (key instanceof OpenSSLRSAPrivateKey) {
+            return ((OpenSSLRSAPrivateKey) key).getModulus().bitLength();
+        } else if (key instanceof RSAPrivateCrtKey) {
+            return ((RSAPrivateCrtKey) key).getModulus().bitLength();
+        } else if (key instanceof RSAPrivateKey) {
+            return ((RSAPrivateKey) key).getModulus().bitLength();
+        } else if (key instanceof OpenSSLRSAPublicKey) {
+            return ((OpenSSLRSAPublicKey) key).getModulus().bitLength();
+        } else if (key instanceof RSAPublicKey) {
+            return ((RSAPublicKey) key).getModulus().bitLength();
+        } else {
+            if (null == key) {
+                throw new InvalidKeyException("RSA private or public key is null");
+            }
+            throw new InvalidKeyException("Need RSA private or public key");
+        }
+    }
+
+    @Override
     protected void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
         try {
             engineInitInternal(opmode, key, null);
