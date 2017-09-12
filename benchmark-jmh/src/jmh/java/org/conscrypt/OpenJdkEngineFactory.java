@@ -39,6 +39,8 @@ import javax.net.ssl.SSLException;
 import libcore.java.security.TestKeyStore;
 
 final class OpenJdkEngineFactoryConfig {
+    private OpenJdkEngineFactoryConfig() {}
+
     static final ApplicationProtocolConfig NETTY_ALPN_CONFIG =
             new ApplicationProtocolConfig(Protocol.ALPN, SelectorFailureBehavior.NO_ADVERTISE,
                     SelectedListenerFailureBehavior.ACCEPT, ApplicationProtocolNames.HTTP_2);

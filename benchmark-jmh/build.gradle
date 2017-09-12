@@ -17,6 +17,7 @@ ext {
     jmhWarmupIterations = System.getProperty('jmh.wi', '10')
     jmhIterations = System.getProperty('jmh.i', '10')
     jmhFork = System.getProperty('jmh.f', '1')
+    jmhJvm = System.getProperty('jmh.jvm')
     jmhJvmArgs = System.getProperty('jmh.jvmArgs', '-server -Xms2g -Xmx2g')
 }
 
@@ -33,6 +34,9 @@ jmh {
     iterations = "$jmhIterations".toInteger();
     fork = "$jmhFork".toInteger()
     jvmArgs = jmhJvmArgs.toString()
+    if (jmhJvm != null) {
+        jvm = jmhJvm
+    }
     duplicateClassesStrategy = 'warn'
 }
 
