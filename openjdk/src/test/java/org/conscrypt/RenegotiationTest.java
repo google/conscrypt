@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -62,7 +63,6 @@ public class RenegotiationTest {
     private static final ByteBuffer MESSAGE_BUFFER =
             ByteBuffer.wrap(MESSAGE_BYTES).asReadOnlyBuffer();
     private static final int MESSAGE_LENGTH = MESSAGE_BYTES.length;
-    private static final int NUM_REPLIES = 1;
 
     public enum SocketType {
         FILE_DESCRIPTOR {
@@ -112,17 +112,17 @@ public class RenegotiationTest {
 
     @Test
     public void test() throws Exception {
+        client.socket.startHandshake();
+        String initialCipher = client.socket.getSession().getCipherSuite();
+
         client.sendMessage();
 
         Future<?> repliesFuture = client.readReplies();
         server.await(5, TimeUnit.SECONDS);
         repliesFuture.get(5, TimeUnit.SECONDS);
 
-        // BoringSSL will not call the verify callback on renegotiation, so the client will never
-        // see the new cipher. This means there's nothing specific we can test at the application
-        // layer. Instead, we're just verifying that nothing bad happens during the course of the
-        // test.
-        // assertEquals(RENEGOTIATION_CIPHER, client.socket.getSession().getCipherSuite());
+        // Verify that the cipher has changed.
+        assertNotEquals(initialCipher, client.socket.getSession().getCipherSuite());
     }
 
     private static SSLContext newConscryptClientContext() {
@@ -183,10 +183,7 @@ public class RenegotiationTest {
             return executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    // Read all the replies, dealing with renegotiations silently as we go.
-                    for (int i = 0; !stopping && i < NUM_REPLIES; ++i) {
-                        readReply();
-                    }
+                    readReply();
                 }
             });
         }
@@ -314,10 +311,8 @@ public class RenegotiationTest {
             public void run() {
                 try {
                     readMessage();
-                    for (int i = 0; !stopping && i < NUM_REPLIES; ++i) {
-                        renegotiate();
-                        reply();
-                    }
+                    renegotiate();
+                    reply();
                 } catch (Throwable e) {
                     e.printStackTrace();
                     throw new RuntimeException(e);
