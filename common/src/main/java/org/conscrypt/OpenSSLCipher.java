@@ -422,6 +422,20 @@ public abstract class OpenSSLCipher extends CipherSpi {
         }
     }
 
+    @Override
+    protected int engineGetKeySize(Key key) throws InvalidKeyException {
+        if (!(key instanceof SecretKey)) {
+            throw new InvalidKeyException("Only SecretKey is supported");
+        }
+        byte[] encodedKey = key.getEncoded();
+        if (encodedKey == null) {
+            throw new InvalidKeyException("key.getEncoded() == null");
+        }
+        checkSupportedKeySize(encodedKey.length);
+        // The return value is in bits
+        return encodedKey.length * 8;
+    }
+
     private byte[] checkAndSetEncodedKey(int opmode, Key key) throws InvalidKeyException {
         if (opmode == Cipher.ENCRYPT_MODE || opmode == Cipher.WRAP_MODE) {
             encrypting = true;
