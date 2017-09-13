@@ -41,7 +41,6 @@ final class ActiveSession implements SSLSession {
     private AbstractSessionContext sessionContext;
     private byte[] id;
     private long creationTime;
-    private String cipherSuite;
     private String protocol;
     private String peerHost;
     private int peerPort = -1;
@@ -274,12 +273,11 @@ final class ActiveSession implements SSLSession {
 
     @Override
     public String getCipherSuite() {
-        if (cipherSuite == null) {
-            synchronized (ssl) {
-                cipherSuite = ssl.getCipherSuite();
-            }
+        // Always get the Cipher from the SSL directly since it may have changed during a
+        // renegotiation.
+        synchronized (ssl) {
+            return ssl.getCipherSuite();
         }
-        return cipherSuite;
     }
 
     @Override

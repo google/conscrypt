@@ -15,7 +15,6 @@
  */
 package org.conscrypt;
 
-import static org.conscrypt.TestUtils.PROTOCOL_TLS_V1_2;
 import static org.conscrypt.TestUtils.initEngine;
 
 import java.security.NoSuchAlgorithmException;
@@ -51,7 +50,7 @@ public enum AndroidEngineFactory implements EngineFactory {
 
         private SSLContext newContext() {
             try {
-                return SSLContext.getInstance(PROTOCOL_TLS_V1_2, new OpenSSLProvider());
+                return SSLContext.getInstance(TestUtils.getProtocols()[0], new OpenSSLProvider());
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
             }

@@ -89,7 +89,7 @@ public final class EngineHandshakeBenchmark {
         serverPacketBuffer.clear();
 
         doEngineHandshake(client, server, clientApplicationBuffer, clientPacketBuffer,
-                serverApplicationBuffer, serverPacketBuffer);
+                serverApplicationBuffer, serverPacketBuffer, true);
         engineFactory.dispose(client);
         engineFactory.dispose(server);
     }
