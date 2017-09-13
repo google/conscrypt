@@ -275,9 +275,11 @@ final class ActiveSession implements SSLSession {
     public String getCipherSuite() {
         // Always get the Cipher from the SSL directly since it may have changed during a
         // renegotiation.
+        String cipher;
         synchronized (ssl) {
-            return ssl.getCipherSuite();
+            cipher = ssl.getCipherSuite();
         }
+        return cipher == null ? SSLNullSession.INVALID_CIPHER : cipher;
     }
 
     @Override

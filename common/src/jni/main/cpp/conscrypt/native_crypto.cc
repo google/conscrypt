@@ -7380,6 +7380,10 @@ static jstring NativeCrypto_SSL_get_current_cipher(JNIEnv* env, jclass, jlong ss
         return nullptr;
     }
     const SSL_CIPHER* cipher = SSL_get_current_cipher(ssl);
+    if (cipher == nullptr) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_get_current_cipher cipher => null", ssl);
+        return nullptr;
+    }
     const char* name = SSL_CIPHER_standard_name(cipher);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_current_cipher => %s", ssl, name);
     return env->NewStringUTF(name);
