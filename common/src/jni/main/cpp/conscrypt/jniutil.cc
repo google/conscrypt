@@ -281,7 +281,6 @@ int throwForRsaError(JNIEnv* env, int reason, const char* message,
             return throwBadPaddingException(env, message);
             break;
         case RSA_R_BAD_SIGNATURE:
-        case RSA_R_DATA_TOO_LARGE_FOR_MODULUS:
         case RSA_R_INVALID_MESSAGE_LENGTH:
         case RSA_R_WRONG_SIGNATURE_LENGTH:
             return throwSignatureException(env, message);
@@ -293,6 +292,8 @@ int throwForRsaError(JNIEnv* env, int reason, const char* message,
         case RSA_R_NO_PUBLIC_EXPONENT:
             return throwInvalidKeyException(env, message);
             break;
+        case RSA_R_DATA_TOO_LARGE:
+        case RSA_R_DATA_TOO_LARGE_FOR_MODULUS:
         case RSA_R_DATA_TOO_LARGE_FOR_KEY_SIZE:
             return throwIllegalBlockSizeException(env, message);
             break;
