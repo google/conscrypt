@@ -27,6 +27,7 @@ import javax.net.ssl.SSLSocket;
  */
 public class Java8SocketWrapper extends AbstractConscryptSocket {
     private final ConscryptSocketBase delegate;
+    private BiFunction<SSLSocket, List<String>, String> selector;
 
     Java8SocketWrapper(ConscryptSocketBase delegate) {
         this.delegate = checkNotNull(delegate, "delegate");
@@ -446,9 +447,21 @@ public class Java8SocketWrapper extends AbstractConscryptSocket {
     @SuppressWarnings("MissingOverride") // For compilation with Java < 9.
     public void setHandshakeApplicationProtocolSelector​(
             final BiFunction<SSLSocket, List<String>, String> selector) {
-        setAlpnProtocolSelector(new AlpnProtocolSelector() {
+        this.selector = selector;
+        setAlpnProtocolSelector(toAlpnProtocolSelector(selector));
+    }
+
+    /* @Override */
+    @SuppressWarnings("MissingOverride") // For compilation with Java < 9.
+    public BiFunction<SSLSocket, List<String>, String> getHandshakeApplicationProtocolSelector​() {
+        return selector;
+    }
+
+    private static AlpnProtocolSelector toAlpnProtocolSelector(
+        final BiFunction<SSLSocket, List<String>, String> selector) {
+        return selector == null ? null : new AlpnProtocolSelector() {
             @Override
-            public String selectAlpnProtocol(SSLEngine engine, List<String> protocols) {
+            public String selectAlpnProtocol(SSLEngine socket, List<String> protocols) {
                 throw new UnsupportedOperationException();
             }
 
@@ -456,6 +469,6 @@ public class Java8SocketWrapper extends AbstractConscryptSocket {
             public String selectAlpnProtocol(SSLSocket socket, List<String> protocols) {
                 return selector.apply(socket, protocols);
             }
-        });
+        };
     }
 }
