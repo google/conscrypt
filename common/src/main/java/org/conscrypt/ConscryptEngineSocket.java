@@ -34,6 +34,7 @@ import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
@@ -123,11 +124,6 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
     public void startHandshake() throws IOException {
         checkOpen();
 
-        if (isHandshakeFinished()) {
-            // TODO(nmittler): Handle renegotiation.
-            return;
-        }
-
         try {
             synchronized (handshakeLock) {
                 // Only lock stateLock when we begin the handshake. This is done so that we don't
@@ -142,37 +138,58 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
                     } else {
                         // We've either started the handshake already or have been closed.
                         // Do nothing in both cases.
+                        //
+                        // NOTE: BoringSSL does not support initiating renegotiation, so we always
+                        // ignore addition handshake calls.
                         return;
                     }
                 }
 
-                boolean finished = false;
-                while (!finished) {
-                    switch (engine.getHandshakeStatus()) {
-                        case NEED_UNWRAP:
-                            if (in.readInternal(EmptyArray.BYTE, 0, 0) < 0) {
-                                // Can't complete the handshake due to EOF.
-                                throw SSLUtils.toSSLHandshakeException(new EOFException());
-                            }
-                            break;
-                        case NEED_WRAP: {
-                            out.writeInternal(EMPTY_BUFFER);
-                            // Always flush handshake frames immediately.
-                            out.flushInternal();
-                            break;
+                doHandshake();
+            }
+        } catch (SSLException e) {
+            close();
+            throw e;
+        } catch (IOException e) {
+            close();
+            throw e;
+        } catch (Exception e) {
+            close();
+            // Convert anything else to a handshake exception.
+            throw SSLUtils.toSSLHandshakeException(e);
+        }
+    }
+
+    private void doHandshake() throws IOException {
+        try {
+            boolean finished = false;
+            while (!finished) {
+                switch (engine.getHandshakeStatus()) {
+                    case NEED_UNWRAP:
+                        if (in.readInternal(EmptyArray.BYTE, 0, 0) < 0) {
+                            // Can't complete the handshake due to EOF.
+                            throw SSLUtils.toSSLHandshakeException(new EOFException());
                         }
-                        case NEED_TASK:
-                            // Should never get here, since our engine never provides tasks.
-                            throw new IllegalStateException("Engine tasks are unsupported");
-                        case NOT_HANDSHAKING:
-                        case FINISHED:
-                            // Handshake is complete.
-                            finished = true;
-                            break;
-                        default: {
-                            throw new IllegalStateException(
-                                    "Unknown handshake status: " + engine.getHandshakeStatus());
-                        }
+                        break;
+                    case NEED_WRAP: {
+                        out.writeInternal(EMPTY_BUFFER);
+                        // Always flush handshake frames immediately.
+                        out.flushInternal();
+                        break;
+                    }
+                    case NEED_TASK: {
+                        // Should never get here, since our engine never provides tasks.
+                        throw new IllegalStateException("Engine tasks are unsupported");
+                    }
+                    case NOT_HANDSHAKING:
+                    case FINISHED: {
+                        // Handshake is complete.
+                        finished = true;
+                        break;
+                    }
+                    default: {
+                        throw new IllegalStateException(
+                            "Unknown handshake status: " + engine.getHandshakeStatus());
                     }
                 }
             }
@@ -385,10 +402,6 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
         engine.setAlpnProtocols(alpnProtocols);
     }
 
-    private boolean isHandshakeFinished() {
-        return state >= STATE_READY_HANDSHAKE_CUT_THROUGH;
-    }
-
     private void onHandshakeFinished() {
         boolean notify = false;
         synchronized (stateLock) {
@@ -448,10 +461,12 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
     private final class SSLOutputStream extends OutputStream {
         private final Object writeLock = new Object();
         private final ByteBuffer target;
+        private final int targetArrayOffset;
         private OutputStream socketOutputStream;
 
         SSLOutputStream() {
             target = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+            targetArrayOffset = target.arrayOffset();
         }
 
         @Override
@@ -537,7 +552,7 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
 
         private void writeToSocket() throws IOException {
             // Write the data to the socket.
-            socketOutputStream.write(target.array(), 0, target.limit());
+            socketOutputStream.write(target.array(), targetArrayOffset, target.limit());
         }
     }
 
@@ -549,6 +564,7 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
         private final byte[] singleByte = new byte[1];
         private final ByteBuffer fromEngine;
         private final ByteBuffer fromSocket;
+        private final int fromSocketArrayOffset;
         private InputStream socketInputStream;
 
         SSLInputStream() {
@@ -556,6 +572,7 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
             // Initially fromEngine.remaining() == 0.
             fromEngine.flip();
             fromSocket = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+            fromSocketArrayOffset = fromSocket.arrayOffset();
         }
 
         @Override
@@ -606,6 +623,17 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
             }
         }
 
+        private boolean isHandshaking(HandshakeStatus status) {
+            switch(status) {
+                case NEED_TASK:
+                case NEED_WRAP:
+                case NEED_UNWRAP:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         private int readInternal(byte[] b, int off, int len) throws IOException {
             Platform.blockGuardOnNetwork();
             checkOpen();
@@ -627,7 +655,10 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
                 // Unwrap the unencrypted bytes into the engine buffer.
                 fromSocket.flip();
                 fromEngine.clear();
+
+                boolean engineHandshaking = isHandshaking(engine.getHandshakeStatus());
                 SSLEngineResult engineResult = engine.unwrap(fromSocket, fromEngine);
+
                 // Shift any remaining data to the beginning of the buffer so that
                 // we can accommodate the next full packet. After this is called,
                 // limit will be restored to capacity and position will point just
@@ -646,7 +677,16 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
                         break;
                     }
                     case OK: {
-                        // We processed the entire packet successfully.
+                        // We processed the entire packet successfully...
+
+                        if (!engineHandshaking && isHandshaking(engineResult.getHandshakeStatus())
+                            && isHandshakeFinished()) {
+                            // The received packet is the beginning of a renegotiation handshake.
+                            // Perform another handshake.
+                            renegotiate();
+                            return 0;
+                        }
+
                         needMoreDataFromSocket = false;
                         break;
                     }
@@ -677,6 +717,21 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
             }
         }
 
+        private boolean isHandshakeFinished() {
+            synchronized (stateLock) {
+                return state >= STATE_READY_HANDSHAKE_CUT_THROUGH;
+            }
+        }
+
+        /**
+         * Processes a renegotiation received from the remote peer.
+         */
+        private void renegotiate() throws IOException {
+            synchronized (handshakeLock) {
+                doHandshake();
+            }
+        }
+
         private void init() throws IOException {
             if (socketInputStream == null) {
                 socketInputStream = getUnderlyingInputStream();
@@ -687,10 +742,13 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
             try {
                 // Read directly to the underlying array and increment the buffer position if
                 // appropriate.
+                int pos = fromSocket.position();
+                int lim = fromSocket.limit();
                 int read = socketInputStream.read(
-                    fromSocket.array(), fromSocket.position(), fromSocket.remaining());
+                    fromSocket.array(), fromSocketArrayOffset + pos, lim - pos);
+
                 if (read > 0) {
-                    fromSocket.position(fromSocket.position() + read);
+                    fromSocket.position(pos + read);
                 }
                 return read;
             } catch (EOFException e) {
