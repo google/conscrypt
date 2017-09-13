@@ -88,11 +88,11 @@ final class NativeCryptoJni {
     }
 
     private static String osName() {
-        return Platform.OS.name().toLowerCase();
+        return NativeLibraryLoader.OS.name().toLowerCase();
     }
 
     private static String archName() {
-        return Platform.ARCH.name().toLowerCase();
+        return NativeLibraryLoader.ARCH.name().toLowerCase();
     }
 
     /**
