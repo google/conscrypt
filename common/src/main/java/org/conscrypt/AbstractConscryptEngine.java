@@ -20,7 +20,6 @@ import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 
@@ -93,24 +92,6 @@ abstract class AbstractConscryptEngine extends SSLEngine {
 
     @Override public abstract int getPeerPort();
 
-    @Override public abstract void beginHandshake() throws SSLException;
-
-    @Override public abstract void closeInbound() throws SSLException;
-
-    @Override public abstract void closeOutbound();
-
-    @Override public abstract Runnable getDelegatedTask();
-
-    @Override public abstract String[] getEnabledCipherSuites();
-
-    @Override public abstract String[] getEnabledProtocols();
-
-    @Override public abstract boolean getEnableSessionCreation();
-
-    @Override public abstract HandshakeStatus getHandshakeStatus();
-
-    @Override public abstract boolean getNeedClientAuth();
-
     /* @Override */
     @SuppressWarnings("MissingOverride") // For compilation with Java 6.
     public final SSLSession getHandshakeSession() {
@@ -121,32 +102,6 @@ abstract class AbstractConscryptEngine extends SSLEngine {
      * Work-around to allow this method to be called on older versions of Android.
      */
     abstract SSLSession handshakeSession();
-
-    @Override public abstract SSLSession getSession();
-
-    @Override public abstract String[] getSupportedCipherSuites();
-
-    @Override public abstract String[] getSupportedProtocols();
-
-    @Override public abstract boolean getUseClientMode();
-
-    @Override public abstract boolean getWantClientAuth();
-
-    @Override public abstract boolean isInboundDone();
-
-    @Override public abstract boolean isOutboundDone();
-
-    @Override public abstract void setEnabledCipherSuites(String[] suites);
-
-    @Override public abstract void setEnabledProtocols(String[] protocols);
-
-    @Override public abstract void setEnableSessionCreation(boolean flag);
-
-    @Override public abstract void setNeedClientAuth(boolean need);
-
-    @Override public abstract void setUseClientMode(boolean mode);
-
-    @Override public abstract void setWantClientAuth(boolean want);
 
     @Override
     public abstract SSLEngineResult unwrap(ByteBuffer src, ByteBuffer dst) throws SSLException;
