@@ -64,7 +64,7 @@ final class NativeLibraryLoader {
     static {
         File workdir = getWorkDir();
         if (workdir == null) {
-            workdir = Platform.getTempDir();
+            workdir = HostProperties.getTempDir();
         }
         WORKDIR = workdir;
         log("-D{0}: {1}", WORK_DIR_PROPERTY_NAME, WORKDIR);
@@ -168,7 +168,7 @@ final class NativeLibraryLoader {
         String path = NATIVE_RESOURCE_HOME + libname;
 
         URL url = loader.getResource(path);
-        if (url == null && Platform.isOSX()) {
+        if (url == null && HostProperties.isOSX()) {
             if (path.endsWith(".jnilib")) {
                 url = loader.getResource(NATIVE_RESOURCE_HOME + "lib" + name + ".dynlib");
             } else {
