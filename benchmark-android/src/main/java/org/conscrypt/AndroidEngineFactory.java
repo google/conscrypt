@@ -15,8 +15,6 @@
  */
 package org.conscrypt;
 
-import static org.conscrypt.TestUtils.initEngine;
-
 import java.security.NoSuchAlgorithmException;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -71,5 +69,12 @@ public enum AndroidEngineFactory implements EngineFactory {
 
     private static SSLContext newConscryptServerContext() {
         return TestUtils.newServerSslContext(TestUtils.getConscryptProvider());
+    }
+
+    static SSLEngine initEngine(SSLEngine engine, String cipher, boolean client) {
+        engine.setEnabledProtocols(new String[]{"TLSv1.2"});
+        engine.setEnabledCipherSuites(new String[] {cipher});
+        engine.setUseClientMode(client);
+        return engine;
     }
 }

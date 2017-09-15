@@ -309,16 +309,6 @@ public final class TestUtils {
         return msg;
     }
 
-    /**
-     * Initializes the given engine with the cipher and client mode.
-     */
-    static SSLEngine initEngine(SSLEngine engine, String cipher, boolean client) {
-        engine.setEnabledProtocols(getProtocols());
-        engine.setEnabledCipherSuites(new String[] {cipher});
-        engine.setUseClientMode(client);
-        return engine;
-    }
-
     static SSLContext newClientSslContext(Provider provider) {
         SSLContext context = newContext(provider);
         return initClientSslContext(context);
