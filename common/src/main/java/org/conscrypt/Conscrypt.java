@@ -15,7 +15,6 @@
  */
 package org.conscrypt;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.PrivateKey;
@@ -300,7 +299,18 @@ public final class Conscrypt {
      * @return the selected protocol or {@code null} if no protocol was agreed upon.
      */
     public static String getAlpnSelectedProtocol(SSLSocket socket) {
-        return toProtocolString(toConscrypt(socket).getAlpnSelectedProtocol());
+        return SSLUtils.toProtocolString(toConscrypt(socket).getAlpnSelectedProtocol());
+    }
+
+    /**
+     * Sets an application-provided ALPN protocol selector. If provided, this will override
+     * the list of protocols set by {@link #setAlpnProtocols(SSLSocket,String[])}.
+     *
+     * @param socket the socket
+     * @param selector the ALPN protocol selector
+     */
+    public static void setAlpnProtocolSelector(SSLSocket socket, AlpnProtocolSelector selector) {
+        toConscrypt(socket).setAlpnProtocolSelector(selector);
     }
 
     /**
@@ -317,15 +327,15 @@ public final class Conscrypt {
      * Indicates whether the given {@link SSLEngine} was created by this distribution of Conscrypt.
      */
     public static boolean isConscrypt(SSLEngine engine) {
-        return engine instanceof ConscryptEngine;
+        return engine instanceof AbstractConscryptEngine;
     }
 
-    private static ConscryptEngine toConscrypt(SSLEngine engine) {
+    private static AbstractConscryptEngine toConscrypt(SSLEngine engine) {
         if (!isConscrypt(engine)) {
             throw new IllegalArgumentException(
                     "Not a conscrypt engine: " + engine.getClass().getName());
         }
-        return (ConscryptEngine) engine;
+        return (AbstractConscryptEngine) engine;
     }
 
     /**
@@ -470,23 +480,23 @@ public final class Conscrypt {
     }
 
     /**
+     * Sets an application-provided ALPN protocol selector. If provided, this will override
+     * the list of protocols set by {@link #setAlpnProtocols(SSLEngine,String[])}.
+     *
+     * @param engine the engine
+     * @param selector the ALPN protocol selector
+     */
+    public static void setAlpnProtocolSelector(SSLEngine engine, AlpnProtocolSelector selector) {
+        toConscrypt(engine).setAlpnProtocolSelector(selector);
+    }
+
+    /**
      * Returns the ALPN protocol agreed upon by client and server.
      *
      * @param engine the engine
      * @return the selected protocol or {@code null} if no protocol was agreed upon.
      */
     public static String getAlpnSelectedProtocol(SSLEngine engine) {
-        return toProtocolString(toConscrypt(engine).getAlpnSelectedProtocol());
-    }
-
-    private static String toProtocolString(byte[] bytes) {
-        try {
-            if (bytes == null) {
-                return null;
-            }
-            return new String(bytes, "US-ASCII");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        return SSLUtils.toProtocolString(toConscrypt(engine).getAlpnSelectedProtocol());
     }
 }

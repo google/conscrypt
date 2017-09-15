@@ -121,6 +121,7 @@ class AppData {
     jobject sslHandshakeCallbacks;
     char* alpnProtocolsData;
     size_t alpnProtocolsLength;
+    jobject alpnProtocolSelector;
 
     /**
      * Creates the application data context for the SSL*.
@@ -161,12 +162,13 @@ class AppData {
             close(fdsEmergency[1]);
         }
 #endif
+        clearAlpnProtocols();
+        clearAlpnProtocolSelector(env);
         clearCallbackState();
-        clearAlpnCallbackState();
     }
 
     /**
-     * Sets the callback data for ALPN negotiation. Only called in server-mode.
+     * Only called in server mode. Sets the protocols for ALPN negotiation.
      *
      * @param env The JNIEnv
      * @param alpnProtocols ALPN protocols so that they may be advertised (by the
@@ -174,8 +176,8 @@ class AppData {
      *                     non-null enables ALPN. This array is copied so that no
      *                     global reference to the Java byte array is maintained.
      */
-    bool setAlpnCallbackState(JNIEnv* e, jbyteArray alpnProtocolsJava) {
-        clearAlpnCallbackState();
+    bool setAlpnProtocols(JNIEnv* e, jbyteArray alpnProtocolsJava) {
+        clearAlpnProtocols();
         if (alpnProtocolsJava != nullptr) {
             jbyte* alpnProtocols = e->GetByteArrayElements(alpnProtocolsJava, nullptr);
             if (alpnProtocols == nullptr) {
@@ -191,11 +193,16 @@ class AppData {
         return true;
     }
 
-    void clearAlpnCallbackState() {
-        if (alpnProtocolsData != nullptr) {
-            delete alpnProtocolsData;
-            alpnProtocolsData = nullptr;
-            alpnProtocolsLength = static_cast<size_t>(-1);
+    /**
+     * Only called in server mode. Sets the application-provided ALPN protocol selector.
+     * This overrides the list of ALPN protocols, if set.
+     */
+    void setAlpnProtocolSelector(JNIEnv* e, jobject selector) {
+        clearAlpnProtocolSelector(e);
+        if (selector != nullptr) {
+            // Need to a global reference since we keep this around beyond a single JNI
+            // invocation.
+            alpnProtocolSelector = e->NewGlobalRef(selector);
         }
     }
 
@@ -233,6 +240,7 @@ class AppData {
           waitingThreads(0),
           env(nullptr),
           sslHandshakeCallbacks(nullptr),
+          alpnProtocolSelector(nullptr),
           alpnProtocolsData(nullptr),
           alpnProtocolsLength(static_cast<size_t>(-1)) {
 #ifdef _WIN32
@@ -241,6 +249,24 @@ class AppData {
         fdsEmergency[0] = -1;
         fdsEmergency[1] = -1;
 #endif
+    }
+
+    void clearAlpnProtocols() {
+        if (alpnProtocolsData != nullptr) {
+            delete alpnProtocolsData;
+            alpnProtocolsData = nullptr;
+            alpnProtocolsLength = static_cast<size_t>(-1);
+        }
+    }
+
+    void clearAlpnProtocolSelector(JNIEnv* e) {
+        if (alpnProtocolSelector != nullptr) {
+            if (e == nullptr) {
+                e = conscrypt::jniutil::getJNIEnv();
+            }
+            e->DeleteGlobalRef(alpnProtocolSelector);
+            alpnProtocolSelector = nullptr;
+        }
     }
 };
 

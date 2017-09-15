@@ -22,7 +22,9 @@ import java.util.Collections;
 import java.util.List;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocket;
 
 /**
  * Utility methods supported on Java 8+.
@@ -77,6 +79,22 @@ final class Java8PlatformUtil {
             params.setServerNames(Collections.singletonList(
                     (SNIServerName) new SNIHostName((engine.getHostname()))));
         }
+    }
+
+    static SSLEngine wrapEngine(ConscryptEngine engine) {
+        return new Java8EngineWrapper(engine);
+    }
+
+    static SSLEngine unwrapEngine(SSLEngine engine) {
+        return Java8EngineWrapper.getDelegate(engine);
+    }
+
+    static SSLSocket wrapSocket(ConscryptSocketBase socket) {
+        return new Java8SocketWrapper(socket);
+    }
+
+    static SSLSocket unwrapSocket(SSLSocket socket) {
+        return Java8SocketWrapper.getDelegate(socket);
     }
 
     private Java8PlatformUtil() {}

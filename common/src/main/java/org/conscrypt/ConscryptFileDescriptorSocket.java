@@ -1009,38 +1009,30 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         }
     }
 
-    /**
-     * Returns the protocol agreed upon by client and server, or {@code null} if
-     * no protocol was agreed upon.
-     */
     @Override
     public byte[] getAlpnSelectedProtocol() {
         return ssl.getAlpnSelectedProtocol();
     }
 
-    /**
-     * Sets the list of ALPN protocols. This method internally converts the protocols to their
-     * wire-format form.
-     *
-     * @param alpnProtocols the list of ALPN protocols
-     * @see #setAlpnProtocols(byte[])
-     */
     @Override
     public void setAlpnProtocols(String[] alpnProtocols) {
         sslParameters.setAlpnProtocols(alpnProtocols);
     }
 
-    /**
-     * Alternate version of {@link #setAlpnProtocols(String[])} that directly sets the list of
-     * ALPN in the wire-format form used by BoringSSL (length-prefixed 8-bit strings).
-     * Requires that all strings be encoded with US-ASCII.
-     *
-     * @param alpnProtocols the encoded form of the ALPN protocol list
-     * @see #setAlpnProtocols(String[])
-     */
     @Override
     public void setAlpnProtocols(byte[] alpnProtocols) {
         sslParameters.setAlpnProtocols(alpnProtocols);
+    }
+
+    @Override
+    public void setAlpnProtocolSelector(AlpnProtocolSelector selector) {
+        setAlpnProtocolSelector(
+                selector == null ? null : new AlpnProtocolSelectorAdapter(this, selector));
+    }
+
+    @Override
+    void setAlpnProtocolSelector(AlpnProtocolSelectorAdapter selector) {
+        sslParameters.setAlpnProtocolSelector(selector);
     }
 
     @Override

@@ -96,7 +96,7 @@ import org.conscrypt.SslWrapper.BioWrapper;
 /**
  * Implements the {@link SSLEngine} API using OpenSSL's non-blocking interfaces.
  */
-final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandshakeCallbacks,
+final class ConscryptEngine extends AbstractConscryptEngine implements NativeCrypto.SSLHandshakeCallbacks,
                                                          SSLParametersImpl.AliasChooser,
                                                          SSLParametersImpl.PSKCallbacks {
     private static final SSLEngineResult NEED_UNWRAP_OK =
@@ -193,6 +193,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         }
     }
 
+    @Override
     void setBufferAllocator(BufferAllocator bufferAllocator) {
         synchronized (ssl) {
             if (isHandshakeStarted()) {
@@ -206,6 +207,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     /**
      * Returns the maximum overhead, in bytes, of sealing a record with SSL.
      */
+    @Override
     int maxSealOverhead() {
         return maxSealOverhead;
     }
@@ -218,6 +220,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      * @throws IllegalStateException if this is a client engine or if the handshake has already
      *         started.
      */
+    @Override
     void setChannelIdEnabled(boolean enabled) {
         synchronized (ssl) {
             if (getUseClientMode()) {
@@ -241,6 +244,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      * completed.
      * @throws SSLException if channel ID is available but could not be obtained.
      */
+    @Override
     byte[] getChannelId() throws SSLException {
         synchronized (ssl) {
             if (getUseClientMode()) {
@@ -267,6 +271,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      * @throws IllegalStateException if this is a server engine or if the handshake has already
      *         started.
      */
+    @Override
     void setChannelIdPrivateKey(PrivateKey privateKey) {
         if (!getUseClientMode()) {
             throw new IllegalStateException("Not allowed in server mode");
@@ -306,6 +311,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     /**
      * Sets the listener for the completion of the TLS handshake.
      */
+    @Override
     void setHandshakeListener(HandshakeListener handshakeListener) {
         synchronized (ssl) {
             if (isHandshakeStarted()) {
@@ -330,6 +336,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      * This method enables Server Name Indication (SNI) and overrides the {@link PeerInfoProvider}
      * supplied during engine creation.
      */
+    @Override
     void setHostname(String hostname) {
         sslParameters.setUseSni(hostname != null);
         this.peerHostname = hostname;
@@ -340,6 +347,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      * {@link PeerInfoProvider} upon creation. No DNS resolution is attempted before
      * returning the hostname.
      */
+    @Override
     String getHostname() {
         return peerHostname != null ? peerHostname : peerInfoProvider.getHostname();
     }
@@ -531,15 +539,10 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         return sslParameters.getNeedClientAuth();
     }
 
-    /* @Override */
-    @SuppressWarnings("MissingOverride") // For compilation with Java 6.
-    public SSLSession getHandshakeSession() {
-        return handshakeSession();
-    }
-
     /**
      * Work-around to allow this method to be called on older versions of Android.
      */
+    @Override
     SSLSession handshakeSession() {
         synchronized (ssl) {
             return state == STATE_HANDSHAKE_STARTED ? sslSession : null;
@@ -664,12 +667,14 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
         }
     }
 
+    @Override
     SSLEngineResult unwrap(final ByteBuffer[] srcs, final ByteBuffer[] dsts) throws SSLException {
         checkArgument(srcs != null, "srcs is null");
         checkArgument(dsts != null, "dsts is null");
         return unwrap(srcs, 0, srcs.length, dsts, 0, dsts.length);
     }
 
+    @Override
     SSLEngineResult unwrap(final ByteBuffer[] srcs, int srcsOffset, final int srcsLength,
             final ByteBuffer[] dsts, final int dstsOffset, final int dstsLength)
             throws SSLException {
@@ -1322,7 +1327,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
     }
 
     @Override
-    public final SSLEngineResult wrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
+    public SSLEngineResult wrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
         synchronized (ssl) {
             try {
                 return wrap(singleSrcBuffer(src), dst);
@@ -1675,6 +1680,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      *
      * @param useSessionTickets True to enable session tickets
      */
+    @Override
     void setUseSessionTickets(boolean useSessionTickets) {
         sslParameters.setUseSessionTickets(useSessionTickets);
     }
@@ -1684,6 +1690,7 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      *
      * @param alpnProtocols the list of ALPN protocols
      */
+    @Override
     void setAlpnProtocols(String[] alpnProtocols) {
         sslParameters.setAlpnProtocols(alpnProtocols);
     }
@@ -1693,14 +1700,30 @@ final class ConscryptEngine extends SSLEngine implements NativeCrypto.SSLHandsha
      *
      * @param alpnProtocols the list of ALPN protocols
      */
+    @Override
     void setAlpnProtocols(byte[] alpnProtocols) {
         sslParameters.setAlpnProtocols(alpnProtocols);
+    }
+
+    /**
+     * Sets an application-provided ALPN protocol selector. If provided, this will override
+     * the list of protocols set by {@link #setAlpnProtocols(String[])}.
+     */
+    @Override
+    void setAlpnProtocolSelector(AlpnProtocolSelector selector) {
+        setAlpnProtocolSelector(
+                selector == null ? null : new AlpnProtocolSelectorAdapter(this, selector));
+    }
+
+    void setAlpnProtocolSelector(AlpnProtocolSelectorAdapter adapter) {
+        sslParameters.setAlpnProtocolSelector(adapter);
     }
 
     /**
      * Returns the protocol agreed upon by client and server, or {@code null} if no protocol was
      * agreed upon.
      */
+    @Override
     byte[] getAlpnSelectedProtocol() {
         return ssl.getAlpnSelectedProtocol();
     }
