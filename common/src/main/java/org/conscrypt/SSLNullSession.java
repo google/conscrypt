@@ -29,7 +29,8 @@ import javax.net.ssl.SSLSessionContext;
 /**
  * This is returned in the place of a {@link SSLSession} when no TLS connection could be negotiated,
  * but one was requested from a method that can't throw an exception such as {@link
- * SSLSocket#getSession()} before {@link SSLSocket#startHandshake()} is called.
+ * javax.net.ssl.SSLSocket#getSession()} before {@link javax.net.ssl.SSLSocket#startHandshake()} is
+ * called.
  */
 final class SSLNullSession implements SSLSession, Cloneable {
     static final String INVALID_CIPHER = "SSL_NULL_WITH_NULL_NULL";

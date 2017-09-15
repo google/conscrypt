@@ -17,9 +17,10 @@ ext {
     androidSdkInstalled = file("$androidHome").exists()
     androidVersionCode = 1
     androidVersionName = "$version"
-    androidMinSdkVersion = 24
-    androidTargetSdkVersion = 25
-    androidBuildToolsVersion = "25.0.0"
+    // Platform is always built against head, so we can use newer API versions.
+    androidMinSdkVersion = 26
+    androidTargetSdkVersion = 26
+    androidBuildToolsVersion = "26.0.1"
 }
 
 if (androidSdkInstalled) {

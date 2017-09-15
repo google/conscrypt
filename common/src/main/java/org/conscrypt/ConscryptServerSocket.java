@@ -175,7 +175,7 @@ final class ConscryptServerSocket extends SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
-        final AbstractConscryptSocket socket;
+        final ConscryptSocketBase socket;
         if (useEngineSocket) {
             socket = new ConscryptEngineSocket(sslParameters);
         } else {
@@ -184,6 +184,6 @@ final class ConscryptServerSocket extends SSLServerSocket {
 
         socket.setChannelIdEnabled(channelIdEnabled);
         implAccept(socket);
-        return socket;
+        return Platform.wrapSocket(socket);
     }
 }

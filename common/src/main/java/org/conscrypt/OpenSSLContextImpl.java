@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.Platform.wrapEngine;
+
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
@@ -125,7 +127,7 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
         }
         SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
         p.setUseClientMode(false);
-        return new ConscryptEngine(host, port, p);
+        return wrapEngine(new ConscryptEngine(host, port, p));
     }
 
     @Override
@@ -135,7 +137,7 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
         }
         SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
         p.setUseClientMode(false);
-        return new ConscryptEngine(p);
+        return wrapEngine(new ConscryptEngine(p));
     }
 
     @Override

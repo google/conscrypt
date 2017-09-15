@@ -47,6 +47,7 @@ import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509ExtendedTrustManager;
@@ -270,6 +271,22 @@ final class Platform {
         return InetAddress.isNumeric(hostname);
     }
 
+    static SSLEngine wrapEngine(ConscryptEngine engine) {
+        return Java8PlatformUtil.wrapEngine(engine);
+    }
+
+    static SSLEngine unwrapEngine(SSLEngine engine) {
+        return Java8PlatformUtil.unwrapEngine(engine);
+    }
+
+    static SSLSocket wrapSocket(ConscryptSocketBase socket) {
+        return Java8PlatformUtil.wrapSocket(socket);
+    }
+
+    static SSLSocket unwrapSocket(SSLSocket socket) {
+        return Java8PlatformUtil.unwrapSocket(socket);
+    }
+
     /**
      * Wrap the SocketFactory with the platform wrapper if needed for compatability.
      * For the platform-bundled library we never need to wrap.
@@ -343,11 +360,11 @@ final class Platform {
      */
 
     static SSLSession wrapSSLSession(ActiveSession sslSession) {
-        return ExtendedSessionAdapter.wrap(sslSession);
+        return new Java7SessionWrapper(sslSession);
     }
 
     static SSLSession unwrapSSLSession(SSLSession sslSession) {
-        return ExtendedSessionAdapter.getDelegate(sslSession);
+        return Java7SessionWrapper.getDelegate(sslSession);
     }
 
     public static String getOriginalHostNameFromInetAddress(InetAddress addr) {

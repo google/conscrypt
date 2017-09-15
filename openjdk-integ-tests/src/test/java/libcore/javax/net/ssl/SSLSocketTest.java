@@ -651,7 +651,7 @@ public class SSLSocketTest extends AbstractSSLTest {
                     TestSSLContext.assertCertificateInKeyStore(peerPrincipal, c.serverKeyStore);
                     assertNull(localPrincipal);
                     assertNotNull(socket);
-                    assertSame(client, socket);
+                    assertSame(unwrap(client), socket);
                     assertNull(getHandshakeSession((SSLSocket) socket));
                     synchronized (handshakeCompletedListenerCalled) {
                         handshakeCompletedListenerCalled[0] = true;
@@ -2495,16 +2495,26 @@ public class SSLSocketTest extends AbstractSSLTest {
         }
     }
 
-    private static boolean isConscryptSocket(Socket socket) {
+    private static boolean isConscryptSocket(SSLSocket socket) {
         return isConscryptFdSocket(socket) || isConscryptEngineSocket(socket);
     }
 
-    private static boolean isConscryptFdSocket(Socket socket) {
-        return "ConscryptFileDescriptorSocket".equals(socket.getClass().getSimpleName());
+    private static SSLSocket unwrap(SSLSocket socket) {
+        try {
+            Class<?> platformClass = TestUtils.conscryptClass("Platform");
+            Method method = platformClass.getDeclaredMethod("unwrapSocket", SSLSocket.class);
+            method.setAccessible(true);
+            return (SSLSocket) method.invoke(null, socket);
+        } catch (Exception e) {
+            return socket;
+        }
+    }
+    private static boolean isConscryptFdSocket(SSLSocket socket) {
+        return "ConscryptFileDescriptorSocket".equals(unwrap(socket).getClass().getSimpleName());
     }
 
-    private static boolean isConscryptEngineSocket(Socket socket) {
-        return "ConscryptEngineSocket".equals(socket.getClass().getSimpleName());
+    private static boolean isConscryptEngineSocket(SSLSocket socket) {
+        return "ConscryptEngineSocket".equals(unwrap(socket).getClass().getSimpleName());
     }
 
     private static String osName() {

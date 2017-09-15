@@ -42,6 +42,7 @@ import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
 import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -61,6 +62,8 @@ final class SSLUtils {
     static final boolean USE_ENGINE_SOCKET_BY_DEFAULT = Boolean.parseBoolean(
             System.getProperty("org.conscrypt.useEngineSocketByDefault", "false"));
     private static final int MAX_PROTOCOL_LENGTH = 255;
+
+    private static final Charset US_ASCII = Charset.forName("US-ASCII");
 
     // TODO(nathanmittler): Should these be in NativeConstants?
     enum SessionType {
@@ -172,6 +175,23 @@ final class SSLUtils {
 
     /** Key type: Elliptic Curve certificate. */
     private static final String KEY_TYPE_EC = "EC";
+
+    static String toProtocolString(byte[] bytes) {
+        if (bytes == null) {
+            return null;
+        }
+        return new String(bytes, US_ASCII);
+    }
+
+    static byte[] toProtocolBytes(String protocolString) {
+        if (protocolString == null) {
+            return null;
+        }
+        if (protocolString.isEmpty()) {
+            return EmptyArray.BYTE;
+        }
+        return protocolString.getBytes(US_ASCII);
+    }
 
     static X509Certificate[] decodeX509CertificateChain(byte[][] certChain)
             throws java.security.cert.CertificateException {
