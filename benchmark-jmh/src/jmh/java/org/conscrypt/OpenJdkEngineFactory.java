@@ -18,7 +18,6 @@ package org.conscrypt;
 import static io.netty.handler.ssl.SslProvider.OPENSSL;
 import static io.netty.handler.ssl.SslProvider.OPENSSL_REFCNT;
 import static org.conscrypt.TestUtils.initClientSslContext;
-import static org.conscrypt.TestUtils.initEngine;
 import static org.conscrypt.TestUtils.initServerSslContext;
 
 import io.netty.buffer.PooledByteBufAllocator;
@@ -42,7 +41,7 @@ final class OpenJdkEngineFactoryConfig {
     static final ApplicationProtocolConfig NETTY_ALPN_CONFIG =
             new ApplicationProtocolConfig(Protocol.ALPN, SelectorFailureBehavior.NO_ADVERTISE,
                     SelectedListenerFailureBehavior.ACCEPT, ApplicationProtocolNames.HTTP_2);
-    static final String PROTOCOL = TestUtils.getProtocols()[0];
+    static final String PROTOCOL = "TLSv1.2";
 }
 
 /**
@@ -254,5 +253,12 @@ public enum OpenJdkEngineFactory implements EngineFactory {
         } catch (SSLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    static SSLEngine initEngine(SSLEngine engine, String cipher, boolean client) {
+        engine.setEnabledProtocols(new String[]{OpenJdkEngineFactoryConfig.PROTOCOL});
+        engine.setEnabledCipherSuites(new String[] {cipher});
+        engine.setUseClientMode(client);
+        return engine;
     }
 }

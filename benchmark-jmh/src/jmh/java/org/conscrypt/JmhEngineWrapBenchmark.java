@@ -59,7 +59,7 @@ public class JmhEngineWrapBenchmark {
     @Param
     public BufferType b_buffer;
 
-    @Param({"64", "512", "4096"})
+    @Param({"128", "4096"})
     public int c_message;
 
     @Param
