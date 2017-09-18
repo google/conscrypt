@@ -16,7 +16,7 @@
 
 package org.conscrypt;
 
-import org.conscrypt.CipherEncodingBenchmark.Config;
+import org.conscrypt.CipherEncryptBenchmark.Config;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Level;
@@ -33,7 +33,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @State(Scope.Benchmark)
 @Fork(1)
 @Threads(1)
-public class JmhCipherEncodingBenchmark {
+public class JmhCipherEncryptBenchmark {
     private final JmhConfig config = new JmhConfig();
 
     @Param({"AES/CBC/PKCS5Padding"})
@@ -43,21 +43,21 @@ public class JmhCipherEncodingBenchmark {
     public int b_inputLength;
 
     @Param
-    public CipherEncodingBenchmark.BufferType c_bufferType;
+    public CipherEncryptBenchmark.BufferType c_bufferType;
 
     @Param
     public OpenJdkCipherFactory d_provider;
 
-    private CipherEncodingBenchmark benchmark;
+    private CipherEncryptBenchmark benchmark;
 
     @Setup(Level.Iteration)
     public void setup() throws Exception {
-        benchmark = new CipherEncodingBenchmark(config);
+        benchmark = new CipherEncryptBenchmark(config);
     }
 
     @Benchmark
-    public void encode(Blackhole bh) throws Exception {
-        bh.consume(benchmark.encode());
+    public void encrypt(Blackhole bh) throws Exception {
+        bh.consume(benchmark.encrypt());
     }
 
     private final class JmhConfig implements Config {
@@ -68,7 +68,7 @@ public class JmhCipherEncodingBenchmark {
         }
 
         @Override
-        public CipherEncodingBenchmark.BufferType bufferType() {
+        public CipherEncryptBenchmark.BufferType bufferType() {
             return c_bufferType;
         }
 

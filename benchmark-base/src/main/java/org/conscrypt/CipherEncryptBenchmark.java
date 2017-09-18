@@ -22,9 +22,9 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 
 /**
- * Benchmark for comparing cipher encoding performance.
+ * Benchmark for comparing cipher encrypt performance.
  */
-public final class CipherEncodingBenchmark {
+public final class CipherEncryptBenchmark {
     private static final String ALGORITHM = "AES";
     private static final int KEY_SIZE = 128;
 
@@ -46,29 +46,29 @@ public final class CipherEncodingBenchmark {
         String transformation();
     }
 
-    private final Encoder encoder;
+    private final EncryptStrategy encryptStrategy;
 
-    CipherEncodingBenchmark(Config config) throws Exception {
+    CipherEncryptBenchmark(Config config) throws Exception {
         switch (config.bufferType()) {
             case ARRAY:
-                encoder = new ArrayEncoder(config);
+                encryptStrategy = new ArrayStrategy(config);
                 break;
             default:
-                encoder = new ByteBufferEncoder(config);
+                encryptStrategy = new ByteBufferStrategy(config);
                 break;
         }
     }
 
-    int encode() throws Exception {
-        return encoder.encode();
+    int encrypt() throws Exception {
+        return encryptStrategy.encrypt();
     }
 
-    private static abstract class Encoder {
+    private static abstract class EncryptStrategy {
         final Key key;
         final Cipher cipher;
         final int outputSize;
 
-        Encoder(Config config) throws Exception {
+        EncryptStrategy(Config config) throws Exception {
             KeyGenerator keyGen = KeyGenerator.getInstance(ALGORITHM);
             keyGen.init(KEY_SIZE);
             key = keyGen.generateKey();
@@ -77,18 +77,18 @@ public final class CipherEncodingBenchmark {
             outputSize = cipher.getOutputSize(config.plainTextLength());
         }
 
-        abstract int encode() throws Exception;
+        abstract int encrypt() throws Exception;
     }
 
     private static byte[] newMessage(Config config) {
         return TestUtils.newTextMessage(config.plainTextLength());
     }
 
-    private static final class ArrayEncoder extends Encoder {
+    private static final class ArrayStrategy extends EncryptStrategy {
         private final byte[] plainBytes;
         private final byte[] cipherBytes;
 
-        ArrayEncoder(Config config) throws Exception {
+        ArrayStrategy(Config config) throws Exception {
             super(config);
 
             plainBytes = newMessage(config);
@@ -96,17 +96,17 @@ public final class CipherEncodingBenchmark {
         }
 
         @Override
-        int encode() throws Exception {
+        int encrypt() throws Exception {
             cipher.init(Cipher.ENCRYPT_MODE, key);
             return cipher.doFinal(plainBytes, 0, plainBytes.length, cipherBytes, 0);
         }
     }
 
-    private static final class ByteBufferEncoder extends Encoder {
+    private static final class ByteBufferStrategy extends EncryptStrategy {
         private final ByteBuffer input;
         private final ByteBuffer output;
 
-        ByteBufferEncoder(Config config) throws Exception {
+        ByteBufferStrategy(Config config) throws Exception {
             super(config);
 
             switch (config.bufferType()) {
@@ -134,7 +134,7 @@ public final class CipherEncodingBenchmark {
         }
 
         @Override
-        int encode() throws Exception {
+        int encrypt() throws Exception {
             cipher.init(Cipher.ENCRYPT_MODE, key);
             input.position(0);
             output.clear();
