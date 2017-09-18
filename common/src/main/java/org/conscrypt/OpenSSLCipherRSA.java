@@ -204,7 +204,7 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
             if (null == key) {
                 throw new InvalidKeyException("RSA private or public key is null");
             }
-            
+
             throw new InvalidKeyException("Need RSA private or public key");
         }
 
