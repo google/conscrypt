@@ -240,9 +240,9 @@ class AppData {
           waitingThreads(0),
           env(nullptr),
           sslHandshakeCallbacks(nullptr),
-          alpnProtocolSelector(nullptr),
           alpnProtocolsData(nullptr),
-          alpnProtocolsLength(static_cast<size_t>(-1)) {
+          alpnProtocolsLength(static_cast<size_t>(-1)),
+          alpnProtocolSelector(nullptr) {
 #ifdef _WIN32
         interruptEvent = nullptr;
 #else
