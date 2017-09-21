@@ -298,29 +298,29 @@ public final class Conscrypt {
      * @param socket the socket
      * @return the selected protocol or {@code null} if no protocol was agreed upon.
      */
-    public static String getAlpnSelectedProtocol(SSLSocket socket) {
-        return SSLUtils.toProtocolString(toConscrypt(socket).getAlpnSelectedProtocol());
+    public static String getApplicationProtocol​(SSLSocket socket) {
+        return toConscrypt(socket).getApplicationProtocol​();
     }
 
     /**
      * Sets an application-provided ALPN protocol selector. If provided, this will override
-     * the list of protocols set by {@link #setAlpnProtocols(SSLSocket,String[])}.
+     * the list of protocols set by {@link #setApplicationProtocols(SSLSocket,String[])}.
      *
      * @param socket the socket
      * @param selector the ALPN protocol selector
      */
-    public static void setAlpnProtocolSelector(SSLSocket socket, AlpnProtocolSelector selector) {
-        toConscrypt(socket).setAlpnProtocolSelector(selector);
+    public static void setApplicationProtocolSelector(SSLSocket socket, ApplicationProtocolSelector selector) {
+        toConscrypt(socket).setApplicationProtocolSelector(selector);
     }
 
     /**
      * Sets the list of ALPN protocols supported by the socket.
      *
      * @param socket the socket
-     * @param alpnProtocols the list of ALPN protocols
+     * @param protocols the list of ALPN protocols
      */
-    public static void setAlpnProtocols(SSLSocket socket, String[] alpnProtocols) {
-        toConscrypt(socket).setAlpnProtocols(alpnProtocols);
+    public static void setApplicationProtocols(SSLSocket socket, String[] protocols) {
+        toConscrypt(socket).setApplicationProtocols(protocols);
     }
 
     /**
@@ -473,21 +473,21 @@ public final class Conscrypt {
      * Sets the list of ALPN protocols supported by the engine.
      *
      * @param engine the engine
-     * @param alpnProtocols the list of ALPN protocols
+     * @param protocols the list of ALPN protocols
      */
-    public static void setAlpnProtocols(SSLEngine engine, String[] alpnProtocols) {
-        toConscrypt(engine).setAlpnProtocols(alpnProtocols);
+    public static void setApplicationProtocols(SSLEngine engine, String[] protocols) {
+        toConscrypt(engine).setApplicationProtocols(protocols);
     }
 
     /**
      * Sets an application-provided ALPN protocol selector. If provided, this will override
-     * the list of protocols set by {@link #setAlpnProtocols(SSLEngine,String[])}.
+     * the list of protocols set by {@link #setApplicationProtocols(SSLEngine,String[])}.
      *
      * @param engine the engine
      * @param selector the ALPN protocol selector
      */
-    public static void setAlpnProtocolSelector(SSLEngine engine, AlpnProtocolSelector selector) {
-        toConscrypt(engine).setAlpnProtocolSelector(selector);
+    public static void setApplicationProtocolSelector(SSLEngine engine, ApplicationProtocolSelector selector) {
+        toConscrypt(engine).setApplicationProtocolSelector(selector);
     }
 
     /**
@@ -496,7 +496,7 @@ public final class Conscrypt {
      * @param engine the engine
      * @return the selected protocol or {@code null} if no protocol was agreed upon.
      */
-    public static String getAlpnSelectedProtocol(SSLEngine engine) {
-        return SSLUtils.toProtocolString(toConscrypt(engine).getAlpnSelectedProtocol());
+    public static String getApplicationProtocol​(SSLEngine engine) {
+        return toConscrypt(engine).getApplicationProtocol​();
     }
 }

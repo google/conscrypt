@@ -589,7 +589,7 @@ abstract class ConscryptSocketBase extends AbstractConscryptSocket {
      */
     abstract SSLSession getActiveSession();
 
-    abstract void setAlpnProtocolSelector(AlpnProtocolSelectorAdapter selector);
+    abstract void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter selector);
 
     final void notifyHandshakeCompletedListeners() {
         if (listeners != null && !listeners.isEmpty()) {

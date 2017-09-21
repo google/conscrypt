@@ -87,7 +87,7 @@ public enum OpenJdkEngineFactory implements EngineFactory {
         public SSLEngine newClientEngine(String cipher, boolean useAlpn) {
             SSLEngine engine = initEngine(clientContext.createSSLEngine(), cipher, true);
             if (useAlpn) {
-                Conscrypt.setAlpnProtocols(engine, new String[] {ApplicationProtocolNames.HTTP_2});
+                Conscrypt.setApplicationProtocols(engine, new String[] {ApplicationProtocolNames.HTTP_2});
             }
             return engine;
         }
@@ -96,7 +96,7 @@ public enum OpenJdkEngineFactory implements EngineFactory {
         public SSLEngine newServerEngine(String cipher, boolean useAlpn) {
             SSLEngine engine = initEngine(serverContext.createSSLEngine(), cipher, false);
             if (useAlpn) {
-                Conscrypt.setAlpnProtocols(engine, new String[] {ApplicationProtocolNames.HTTP_2});
+                Conscrypt.setApplicationProtocols(engine, new String[] {ApplicationProtocolNames.HTTP_2});
             }
             return engine;
         }
@@ -119,7 +119,7 @@ public enum OpenJdkEngineFactory implements EngineFactory {
             SSLEngine engine = initEngine(clientContext.createSSLEngine(), cipher, true);
             Conscrypt.setBufferAllocator(engine, NettyBufferAllocator.getInstance());
             if (useAlpn) {
-                Conscrypt.setAlpnProtocols(engine, new String[] {ApplicationProtocolNames.HTTP_2});
+                Conscrypt.setApplicationProtocols(engine, new String[] {ApplicationProtocolNames.HTTP_2});
             }
             return engine;
         }
@@ -129,7 +129,7 @@ public enum OpenJdkEngineFactory implements EngineFactory {
             SSLEngine engine = initEngine(serverContext.createSSLEngine(), cipher, false);
             Conscrypt.setBufferAllocator(engine, NettyBufferAllocator.getInstance());
             if (useAlpn) {
-                Conscrypt.setAlpnProtocols(engine, new String[] {ApplicationProtocolNames.HTTP_2});
+                Conscrypt.setApplicationProtocols(engine, new String[] {ApplicationProtocolNames.HTTP_2});
             }
             return engine;
         }

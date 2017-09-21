@@ -301,11 +301,11 @@ final class SslWrapper {
         NativeCrypto.setEnabledProtocols(ssl, parameters.enabledProtocols);
         NativeCrypto.setEnabledCipherSuites(ssl, parameters.enabledCipherSuites);
 
-        if (parameters.alpnProtocols != null) {
-            NativeCrypto.setAlpnProtocols(ssl, isClient(), parameters.alpnProtocols);
+        if (parameters.applicationProtocols != null) {
+            NativeCrypto.setApplicationProtocols(ssl, isClient(), parameters.applicationProtocols);
         }
-        if (!isClient() && parameters.alpnProtocolSelector != null) {
-            NativeCrypto.setAlpnProtocolSelector(ssl, parameters.alpnProtocolSelector);
+        if (!isClient() && parameters.applicationProtocolSelector != null) {
+            NativeCrypto.setApplicationProtocolSelector(ssl, parameters.applicationProtocolSelector);
         }
 
         // setup server certificates and private keys.
@@ -512,8 +512,8 @@ final class SslWrapper {
         return NativeCrypto.SSL_get_error(ssl, result);
     }
 
-    byte[] getAlpnSelectedProtocol() {
-        return NativeCrypto.getAlpnSelectedProtocol(ssl);
+    byte[] getApplicationProtocol() {
+        return NativeCrypto.getApplicationProtocol(ssl);
     }
 
     private boolean isClient() {

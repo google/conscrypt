@@ -965,7 +965,7 @@ public class NativeCryptoTest {
 
     public static Future<TestSSLHandshakeCallbacks> handshake(final ServerSocket listener,
             final int timeout, final boolean client, final Hooks hooks, final byte[] alpnProtocols,
-            final AlpnProtocolSelectorAdapter alpnSelector) {
+            final ApplicationProtocolSelectorAdapter alpnSelector) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<TestSSLHandshakeCallbacks> future =
                 executor.submit(new Callable<TestSSLHandshakeCallbacks>() {
@@ -1001,10 +1001,10 @@ public class NativeCryptoTest {
                                 NativeCrypto.SSL_set_accept_state(s);
                             }
                             if (alpnProtocols != null) {
-                                NativeCrypto.setAlpnProtocols(s, client, alpnProtocols);
+                                NativeCrypto.setApplicationProtocols(s, client, alpnProtocols);
                             }
                             if (!client && alpnSelector != null) {
-                                NativeCrypto.setAlpnProtocolSelector(s, alpnSelector);
+                                NativeCrypto.setApplicationProtocolSelector(s, alpnSelector);
                             }
                             NativeCrypto.SSL_do_handshake(s, fd, callback, timeout);
                             session = NativeCrypto.SSL_get1_session(s);
@@ -1968,14 +1968,14 @@ public class NativeCryptoTest {
     @Test
     public void alpnWithProtocolListShouldSucceed() throws Exception {
         final byte[] clientAlpnProtocols =
-                SSLUtils.toLengthPrefixedList("http/1.1", "foo", "spdy/2");
-        final byte[] serverAlpnProtocols = SSLUtils.toLengthPrefixedList("spdy/2", "foo", "bar");
+                SSLUtils.encodeProtocols("http/1.1", "foo", "spdy/2");
+        final byte[] serverAlpnProtocols = SSLUtils.encodeProtocols("spdy/2", "foo", "bar");
 
         Hooks cHooks = new Hooks() {
             @Override
             public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getAlpnSelectedProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
                 assertEquals("spdy/2", new String(negotiated, "UTF-8"));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
@@ -1984,7 +1984,7 @@ public class NativeCryptoTest {
             @Override
             public void afterHandshake(long session, long ssl, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getAlpnSelectedProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
                 assertEquals("spdy/2", new String(negotiated, "UTF-8"));
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
@@ -2002,14 +2002,14 @@ public class NativeCryptoTest {
     @Test
     public void alpnWithProtocolListShouldFail() throws Exception {
         final byte[] clientAlpnProtocols =
-                SSLUtils.toLengthPrefixedList("http/1.1", "foo", "spdy/2");
-        final byte[] serverAlpnProtocols = SSLUtils.toLengthPrefixedList("h2", "bar", "baz");
+                SSLUtils.encodeProtocols("http/1.1", "foo", "spdy/2");
+        final byte[] serverAlpnProtocols = SSLUtils.encodeProtocols("h2", "bar", "baz");
 
         Hooks cHooks = new Hooks() {
             @Override
             public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getAlpnSelectedProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
                 assertNull(negotiated);
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
@@ -2018,7 +2018,7 @@ public class NativeCryptoTest {
             @Override
             public void afterHandshake(long session, long ssl, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getAlpnSelectedProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
                 assertNull(negotiated);
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
@@ -2036,13 +2036,13 @@ public class NativeCryptoTest {
     @Test
     public void alpnWithServerProtocolSelectorShouldSucceed() throws Exception {
         final byte[] clientAlpnProtocols =
-                SSLUtils.toLengthPrefixedList("http/1.1", "foo", "spdy/2");
+                SSLUtils.encodeProtocols("http/1.1", "foo", "spdy/2");
 
         Hooks cHooks = new Hooks() {
             @Override
             public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getAlpnSelectedProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
                 assertEquals("spdy/2", new String(negotiated, "UTF-8"));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
@@ -2051,16 +2051,16 @@ public class NativeCryptoTest {
             @Override
             public void afterHandshake(long session, long ssl, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getAlpnSelectedProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
                 assertEquals("spdy/2", new String(negotiated, "UTF-8"));
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
         };
 
-        AlpnProtocolSelector selector = Mockito.mock(AlpnProtocolSelector.class);
+        ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
         SSLEngine engine = Mockito.mock(SSLEngine.class);
-        AlpnProtocolSelectorAdapter adapter = new AlpnProtocolSelectorAdapter(engine, selector);
-        when(selector.selectAlpnProtocol(same(engine), Matchers.anyListOf(String.class)))
+        ApplicationProtocolSelectorAdapter adapter = new ApplicationProtocolSelectorAdapter(engine, selector);
+        when(selector.selectApplicationProtocol(same(engine), Matchers.anyListOf(String.class)))
                 .thenReturn("spdy/2");
 
         ServerSocket listener = newServerSocket();
@@ -2075,13 +2075,13 @@ public class NativeCryptoTest {
     @Test
     public void alpnWithServerProtocolSelectorShouldFail() throws Exception {
         final byte[] clientAlpnProtocols =
-                SSLUtils.toLengthPrefixedList("http/1.1", "foo", "spdy/2");
+                SSLUtils.encodeProtocols("http/1.1", "foo", "spdy/2");
 
         Hooks cHooks = new Hooks() {
             @Override
             public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getAlpnSelectedProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
                 assertNull(negotiated);
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
@@ -2090,16 +2090,16 @@ public class NativeCryptoTest {
             @Override
             public void afterHandshake(long session, long ssl, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getAlpnSelectedProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
                 assertNull(negotiated);
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
         };
 
-        AlpnProtocolSelector selector = Mockito.mock(AlpnProtocolSelector.class);
+        ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
         SSLEngine engine = Mockito.mock(SSLEngine.class);
-        AlpnProtocolSelectorAdapter adapter = new AlpnProtocolSelectorAdapter(engine, selector);
-        when(selector.selectAlpnProtocol(same(engine), Matchers.anyListOf(String.class)))
+        ApplicationProtocolSelectorAdapter adapter = new ApplicationProtocolSelectorAdapter(engine, selector);
+        when(selector.selectApplicationProtocol(same(engine), Matchers.anyListOf(String.class)))
                 .thenReturn("h2");
 
         ServerSocket listener = newServerSocket();

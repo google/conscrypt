@@ -388,29 +388,34 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
     }
 
     @Override
-    public byte[] getAlpnSelectedProtocol() {
-        return engine.getAlpnSelectedProtocol();
+    void setApplicationProtocols(String[] protocols) {
+        engine.setApplicationProtocols(protocols);
     }
 
     @Override
-    public void setAlpnProtocols(byte[] alpnProtocols) {
-        engine.setAlpnProtocols(alpnProtocols);
+    String[] getApplicationProtocols() {
+        return engine.getApplicationProtocols();
     }
 
     @Override
-    public void setAlpnProtocols(String[] alpnProtocols) {
-        engine.setAlpnProtocols(alpnProtocols);
+    public String getApplicationProtocol​() {
+        return engine.getApplicationProtocol​();
     }
 
     @Override
-    public void setAlpnProtocolSelector(AlpnProtocolSelector selector) {
-        setAlpnProtocolSelector(
-                selector == null ? null : new AlpnProtocolSelectorAdapter(this, selector));
+    public String getHandshakeApplicationProtocol​() {
+        return engine.getHandshakeApplicationProtocol​();
     }
 
     @Override
-    void setAlpnProtocolSelector(AlpnProtocolSelectorAdapter selector) {
-        engine.setAlpnProtocolSelector(selector);
+    public void setApplicationProtocolSelector(ApplicationProtocolSelector selector) {
+        setApplicationProtocolSelector(
+                selector == null ? null : new ApplicationProtocolSelectorAdapter(this, selector));
+    }
+
+    @Override
+    void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter selector) {
+        engine.setApplicationProtocolSelector(selector);
     }
 
     private void onHandshakeFinished() {
