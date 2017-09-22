@@ -19,15 +19,11 @@ package org.conscrypt;
 import java.nio.ByteBuffer;
 import java.security.Key;
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 
 /**
  * Benchmark for comparing cipher encrypt performance.
  */
 public final class CipherEncryptBenchmark {
-    private static final String ALGORITHM = "AES";
-    private static final int KEY_SIZE = 128;
-
     public enum BufferType {
         ARRAY,
         HEAP_HEAP,
@@ -40,10 +36,9 @@ public final class CipherEncryptBenchmark {
      * Provider for the benchmark configuration
      */
     interface Config {
-        int plainTextLength();
         BufferType bufferType();
         CipherFactory cipherFactory();
-        String transformation();
+        Transformation transformation();
     }
 
     private final EncryptStrategy encryptStrategy;
@@ -64,24 +59,35 @@ public final class CipherEncryptBenchmark {
     }
 
     private static abstract class EncryptStrategy {
-        final Key key;
+        private final Key key;
         final Cipher cipher;
         final int outputSize;
 
         EncryptStrategy(Config config) throws Exception {
-            KeyGenerator keyGen = KeyGenerator.getInstance(ALGORITHM);
-            keyGen.init(KEY_SIZE);
-            key = keyGen.generateKey();
-            cipher = config.cipherFactory().newCipher(config.transformation());
+            Transformation tx = config.transformation();
+            key = tx.newEncryptKey();
+            cipher = config.cipherFactory().newCipher(tx.toFormattedString());
+            initCipher();
+
+            int messageSize = messageSize(tx.toFormattedString());
+            outputSize = cipher.getOutputSize(messageSize);
+        }
+
+        final void initCipher() throws Exception {
             cipher.init(Cipher.ENCRYPT_MODE, key);
-            outputSize = cipher.getOutputSize(config.plainTextLength());
+        }
+
+        final int messageSize(String transformation) throws Exception {
+            Cipher conscryptCipher = Cipher.getInstance(transformation, TestUtils.getConscryptProvider());
+            conscryptCipher.init(Cipher.ENCRYPT_MODE, key);
+            return conscryptCipher.getBlockSize() > 0 ? conscryptCipher.getBlockSize() : 128;
+        }
+
+        final byte[] newMessage() {
+            return TestUtils.newTextMessage(cipher.getBlockSize());
         }
 
         abstract int encrypt() throws Exception;
-    }
-
-    private static byte[] newMessage(Config config) {
-        return TestUtils.newTextMessage(config.plainTextLength());
     }
 
     private static final class ArrayStrategy extends EncryptStrategy {
@@ -91,13 +97,13 @@ public final class CipherEncryptBenchmark {
         ArrayStrategy(Config config) throws Exception {
             super(config);
 
-            plainBytes = newMessage(config);
+            plainBytes = newMessage();
             cipherBytes = new byte[outputSize];
         }
 
         @Override
         int encrypt() throws Exception {
-            cipher.init(Cipher.ENCRYPT_MODE, key);
+            initCipher();
             return cipher.doFinal(plainBytes, 0, plainBytes.length, cipherBytes, 0);
         }
     }
@@ -111,19 +117,19 @@ public final class CipherEncryptBenchmark {
 
             switch (config.bufferType()) {
                 case HEAP_HEAP:
-                    input = ByteBuffer.wrap(newMessage(config));
+                    input = ByteBuffer.wrap(newMessage());
                     output = ByteBuffer.allocate(outputSize);
                     break;
                 case HEAP_DIRECT:
-                    input = ByteBuffer.wrap(newMessage(config));
+                    input = ByteBuffer.wrap(newMessage());
                     output = ByteBuffer.allocateDirect(outputSize);
                     break;
                 case DIRECT_DIRECT:
-                    input = toDirect(newMessage(config));
+                    input = toDirect(newMessage());
                     output = ByteBuffer.allocateDirect(outputSize);
                     break;
                 case DIRECT_HEAP:
-                    input = toDirect(newMessage(config));
+                    input = toDirect(newMessage());
                     output = ByteBuffer.allocate(outputSize);
                     break;
                 default: {
@@ -135,7 +141,7 @@ public final class CipherEncryptBenchmark {
 
         @Override
         int encrypt() throws Exception {
-            cipher.init(Cipher.ENCRYPT_MODE, key);
+            initCipher();
             input.position(0);
             output.clear();
             return cipher.doFinal(input, output);
