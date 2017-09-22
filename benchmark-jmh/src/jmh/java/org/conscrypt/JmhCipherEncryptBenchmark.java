@@ -36,17 +36,14 @@ import org.openjdk.jmh.infra.Blackhole;
 public class JmhCipherEncryptBenchmark {
     private final JmhConfig config = new JmhConfig();
 
-    @Param({"AES/CBC/PKCS5Padding"})
-    public String a_transformation;
-
-    @Param({"128", "1024"})
-    public int b_inputLength;
+    @Param
+    public Transformation a_tx;
 
     @Param
-    public CipherEncryptBenchmark.BufferType c_bufferType;
+    public CipherEncryptBenchmark.BufferType b_bufferType;
 
     @Param
-    public OpenJdkCipherFactory d_provider;
+    public OpenJdkCipherFactory c_provider;
 
     private CipherEncryptBenchmark benchmark;
 
@@ -61,25 +58,19 @@ public class JmhCipherEncryptBenchmark {
     }
 
     private final class JmhConfig implements Config {
-
-        @Override
-        public int plainTextLength() {
-            return b_inputLength;
-        }
-
         @Override
         public CipherEncryptBenchmark.BufferType bufferType() {
-            return c_bufferType;
+            return b_bufferType;
         }
 
         @Override
         public CipherFactory cipherFactory() {
-            return d_provider;
+            return c_provider;
         }
 
         @Override
-        public String transformation() {
-            return a_transformation;
+        public Transformation transformation() {
+            return a_tx;
         }
     }
 }
