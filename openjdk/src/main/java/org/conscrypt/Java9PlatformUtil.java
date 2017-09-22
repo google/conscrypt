@@ -91,7 +91,7 @@ final class Java9PlatformUtil {
     private static void setApplicationProtocols(SSLParameters params, String[] protocols) {
         if (SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD != null) {
             try {
-                SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD.invoke(params, protocols);
+                SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD.invoke(params, (Object) protocols);
             } catch (ReflectiveOperationException ignored) {
                 // TODO(nmittler): Should we throw here?
             }
