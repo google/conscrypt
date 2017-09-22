@@ -301,7 +301,7 @@ final class SslWrapper {
         NativeCrypto.setEnabledProtocols(ssl, parameters.enabledProtocols);
         NativeCrypto.setEnabledCipherSuites(ssl, parameters.enabledCipherSuites);
 
-        if (parameters.applicationProtocols != null) {
+        if (parameters.applicationProtocols.length > 0) {
             NativeCrypto.setApplicationProtocols(ssl, isClient(), parameters.applicationProtocols);
         }
         if (!isClient() && parameters.applicationProtocolSelector != null) {

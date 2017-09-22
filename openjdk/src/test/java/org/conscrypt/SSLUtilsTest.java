@@ -35,23 +35,23 @@ public class SSLUtilsTest {
     @Test
     public void noProtocolsShouldSucceed() {
         byte[] expected = new byte[0];
-        byte[] actual = SSLUtils.encodeProtocols();
+        byte[] actual = SSLUtils.encodeProtocols(EmptyArray.STRING);
         assertArrayEquals(expected, actual);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void emptyProtocolShouldThrow() {
-        SSLUtils.encodeProtocols("");
+        SSLUtils.encodeProtocols(new String[] {""});
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void longProtocolShouldThrow() {
-        SSLUtils.encodeProtocols(new String(newValidProtocol(256), UTF_8));
+        SSLUtils.encodeProtocols(new String[] {new String(newValidProtocol(256), UTF_8)});
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void protocolWithInvalidCharacterShouldThrow() {
-        SSLUtils.encodeProtocols("This is a bad character: €");
+        SSLUtils.encodeProtocols(new String[] {"This is a bad character: €"});
     }
 
     @Test

@@ -93,7 +93,7 @@ final class SSLParametersImpl implements Cloneable {
     byte[] sctExtension;
     byte[] ocspResponse;
 
-    byte[] applicationProtocols;
+    byte[] applicationProtocols = EmptyArray.BYTE;
     ApplicationProtocolSelectorAdapter applicationProtocolSelector;
     boolean useSessionTickets;
     private Boolean useSni;
@@ -239,10 +239,11 @@ final class SSLParametersImpl implements Cloneable {
      * @param protocols the list of ALPN protocols
      */
     void setApplicationProtocols(String[] protocols) {
-        if (protocols != null && protocols.length == 0) {
-            throw new IllegalArgumentException("applicationProtocols.length == 0");
-        }
         this.applicationProtocols = SSLUtils.encodeProtocols(protocols);
+    }
+
+    String[] getApplicationProtocols() {
+        return SSLUtils.decodeProtocols(applicationProtocols);
     }
 
     /**
@@ -251,10 +252,6 @@ final class SSLParametersImpl implements Cloneable {
      */
     void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter applicationProtocolSelector) {
         this.applicationProtocolSelector = applicationProtocolSelector;
-    }
-
-    String[] getApplicationProtocols() {
-        return SSLUtils.decodeProtocols(applicationProtocols);
     }
 
     /**

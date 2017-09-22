@@ -1686,12 +1686,12 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     @Override
-    public String[] getApplicationProtocols() {
+    String[] getApplicationProtocols() {
         return sslParameters.getApplicationProtocols();
     }
 
     @Override
-    public void setApplicationProtocols(String[] protocols) {
+    void setApplicationProtocols(String[] protocols) {
         sslParameters.setApplicationProtocols(protocols);
     }
 

@@ -348,8 +348,8 @@ final class SSLUtils {
      * @return the decoded protocols or {@code null} if {@code protocols} is {@code null}.
      */
     static String[] decodeProtocols(byte[] protocols) {
-        if (protocols == null) {
-            return null;
+        if (protocols.length == 0) {
+            return EmptyArray.STRING;
         }
 
         int numProtocols = 0;
@@ -383,21 +383,29 @@ final class SSLUtils {
      * @param protocols the list of protocols to be encoded
      * @return the encoded form of the protocol list.
      */
-    static byte[] encodeProtocols(String... protocols) {
+    static byte[] encodeProtocols(String[] protocols) {
         if (protocols == null) {
-            return null;
+            throw new IllegalArgumentException("protocols array must be non-null");
+        }
+
+        if (protocols.length == 0) {
+            return EmptyArray.BYTE;
         }
 
         // Calculate the encoded length.
         int length = 0;
         for (int i = 0; i < protocols.length; ++i) {
+            String protocol = protocols[i];
+            if (protocol == null) {
+                throw new IllegalArgumentException("protocol[" + i + "] is null");
+            }
             int protocolLength = protocols[i].length();
 
             // Verify that the length is valid here, so that we don't attempt to allocate an array
             // below if the threshold is violated.
             if (protocolLength == 0 || protocolLength > MAX_PROTOCOL_LENGTH) {
-                throw new IllegalArgumentException("Protocol has invalid length ("
-                    + protocolLength + "): " + protocols[i]);
+                throw new IllegalArgumentException(
+                    "protocol[" + i + "] has invalid length: " + protocolLength);
             }
 
             // Include a 1-byte prefix for each protocol.

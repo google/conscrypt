@@ -275,12 +275,12 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     }
 
     @Override
-    public void setApplicationProtocols(String[] protocols) {
+    void setApplicationProtocols(String[] protocols) {
         delegate.setApplicationProtocols(protocols);
     }
 
     @Override
-    public String[] getApplicationProtocols() {
+    String[] getApplicationProtocols() {
         return delegate.getApplicationProtocols();
     }
 

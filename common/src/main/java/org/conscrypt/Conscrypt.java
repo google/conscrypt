@@ -304,23 +304,38 @@ public final class Conscrypt {
 
     /**
      * Sets an application-provided ALPN protocol selector. If provided, this will override
-     * the list of protocols set by {@link #setApplicationProtocols(SSLSocket,String[])}.
+     * the list of protocols set by {@link #setApplicationProtocols(SSLSocket, String[])}.
      *
      * @param socket the socket
      * @param selector the ALPN protocol selector
      */
-    public static void setApplicationProtocolSelector(SSLSocket socket, ApplicationProtocolSelector selector) {
+    public static void setApplicationProtocolSelector(SSLSocket socket,
+        ApplicationProtocolSelector selector) {
         toConscrypt(socket).setApplicationProtocolSelector(selector);
     }
 
     /**
-     * Sets the list of ALPN protocols supported by the socket.
+     * Sets the application-layer protocols (ALPN) in prioritization order.
      *
-     * @param socket the socket
-     * @param protocols the list of ALPN protocols
+     * @param socket the socket being configured
+     * @param protocols the protocols in descending order of preference. If empty, no protocol
+     * indications will be used. This array will be copied.
+     * @throws IllegalArgumentException - if protocols is null, or if any element in a non-empty
+     * array is null or an empty (zero-length) string
      */
     public static void setApplicationProtocols(SSLSocket socket, String[] protocols) {
         toConscrypt(socket).setApplicationProtocols(protocols);
+    }
+
+    /**
+     * Gets the application-layer protocols (ALPN) in prioritization order.
+     *
+     * @param socket the socket
+     * @return the protocols in descending order of preference, or an empty array if protocol
+     * indications are not being used. Always returns a new array.
+     */
+    public static String[] getApplicationProtocols(SSLSocket socket) {
+        return toConscrypt(socket).getApplicationProtocols();
     }
 
     /**
@@ -470,23 +485,38 @@ public final class Conscrypt {
     }
 
     /**
-     * Sets the list of ALPN protocols supported by the engine.
+     * Sets the application-layer protocols (ALPN) in prioritization order.
      *
-     * @param engine the engine
-     * @param protocols the list of ALPN protocols
+     * @param engine the engine being configured
+     * @param protocols the protocols in descending order of preference. If empty, no protocol
+     * indications will be used.  This array will be copied.
+     * @throws IllegalArgumentException - if protocols is null, or if any element in a non-empty
+     * array is null or an empty (zero-length) string
      */
     public static void setApplicationProtocols(SSLEngine engine, String[] protocols) {
         toConscrypt(engine).setApplicationProtocols(protocols);
     }
 
     /**
+     * Gets the application-layer protocols (ALPN) in prioritization order.
+     *
+     * @param engine the engine
+     * @return the protocols in descending order of preference, or an empty array if protocol
+     * indications are not being used. Always returns a new array.
+     */
+    public static String[] getApplicationProtocols(SSLEngine engine) {
+        return toConscrypt(engine).getApplicationProtocols();
+    }
+
+    /**
      * Sets an application-provided ALPN protocol selector. If provided, this will override
-     * the list of protocols set by {@link #setApplicationProtocols(SSLEngine,String[])}.
+     * the list of protocols set by {@link #setApplicationProtocols(SSLEngine, String[])}.
      *
      * @param engine the engine
      * @param selector the ALPN protocol selector
      */
-    public static void setApplicationProtocolSelector(SSLEngine engine, ApplicationProtocolSelector selector) {
+    public static void setApplicationProtocolSelector(SSLEngine engine,
+        ApplicationProtocolSelector selector) {
         toConscrypt(engine).setApplicationProtocolSelector(selector);
     }
 

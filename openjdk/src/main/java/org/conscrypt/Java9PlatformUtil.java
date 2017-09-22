@@ -29,8 +29,8 @@ final class Java9PlatformUtil {
 
     static {
         Class<?> sslParameters = SSLParameters.class;
-        Method getApplicationProtocolsMethod = null;
-        Method setApplicationProtocolsMethod = null;
+        Method getApplicationProtocolsMethod;
+        Method setApplicationProtocolsMethod;
         try {
             getApplicationProtocolsMethod = sslParameters.getMethod("getApplicationProtocols");
             setApplicationProtocolsMethod =
@@ -48,7 +48,7 @@ final class Java9PlatformUtil {
             SSLParameters src, SSLParametersImpl dest, AbstractConscryptSocket socket) {
         Java8PlatformUtil.setSSLParameters(src, dest, socket);
 
-        setApplicationProtocols(src, dest);
+        dest.setApplicationProtocols(getApplicationProtocols(src));
     }
 
     static void getSSLParameters(
@@ -70,11 +70,6 @@ final class Java9PlatformUtil {
         Java8PlatformUtil.getSSLParameters(dest, src, engine);
 
         setApplicationProtocols(dest, src.getApplicationProtocols());
-    }
-
-    private static void setApplicationProtocols(SSLParameters src, SSLParametersImpl dest) {
-        String[] protocols = getApplicationProtocols(src);
-        dest.setApplicationProtocols(protocols.length == 0 ? null : protocols);
     }
 
     private static String[] getApplicationProtocols(SSLParameters params) {

@@ -1968,8 +1968,9 @@ public class NativeCryptoTest {
     @Test
     public void alpnWithProtocolListShouldSucceed() throws Exception {
         final byte[] clientAlpnProtocols =
-                SSLUtils.encodeProtocols("http/1.1", "foo", "spdy/2");
-        final byte[] serverAlpnProtocols = SSLUtils.encodeProtocols("spdy/2", "foo", "bar");
+                SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
+        final byte[] serverAlpnProtocols =
+                SSLUtils.encodeProtocols(new String[] {"spdy/2", "foo", "bar"});
 
         Hooks cHooks = new Hooks() {
             @Override
@@ -2002,8 +2003,9 @@ public class NativeCryptoTest {
     @Test
     public void alpnWithProtocolListShouldFail() throws Exception {
         final byte[] clientAlpnProtocols =
-                SSLUtils.encodeProtocols("http/1.1", "foo", "spdy/2");
-        final byte[] serverAlpnProtocols = SSLUtils.encodeProtocols("h2", "bar", "baz");
+                SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
+        final byte[] serverAlpnProtocols =
+                SSLUtils.encodeProtocols(new String[] {"h2", "bar", "baz"});
 
         Hooks cHooks = new Hooks() {
             @Override
@@ -2036,7 +2038,7 @@ public class NativeCryptoTest {
     @Test
     public void alpnWithServerProtocolSelectorShouldSucceed() throws Exception {
         final byte[] clientAlpnProtocols =
-                SSLUtils.encodeProtocols("http/1.1", "foo", "spdy/2");
+                SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
 
         Hooks cHooks = new Hooks() {
             @Override
@@ -2075,7 +2077,7 @@ public class NativeCryptoTest {
     @Test
     public void alpnWithServerProtocolSelectorShouldFail() throws Exception {
         final byte[] clientAlpnProtocols =
-                SSLUtils.encodeProtocols("http/1.1", "foo", "spdy/2");
+                SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
 
         Hooks cHooks = new Hooks() {
             @Override
