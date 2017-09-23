@@ -16,9 +16,11 @@
 
 package org.conscrypt;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,8 +34,32 @@ import org.junit.Test;
  * Test for Platform
  */
 public class PlatformTest {
-    private static final void assumeJava8() {
-        Assume.assumeTrue("Require Java 8: " + Platform.javaVersion(), Platform.javaVersion() >= 8);
+    private static final Method SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD;
+    private static final Method SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD;
+
+    static {
+        Class<?> sslParameters = SSLParameters.class;
+        Method getApplicationProtocolsMethod;
+        Method setApplicationProtocolsMethod;
+        try {
+            getApplicationProtocolsMethod = sslParameters.getMethod("getApplicationProtocols");
+            setApplicationProtocolsMethod =
+                sslParameters.getMethod("setApplicationProtocols", String[].class);
+        } catch (NoSuchMethodException e) {
+            getApplicationProtocolsMethod = null;
+            setApplicationProtocolsMethod = null;
+        }
+
+        SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD = getApplicationProtocolsMethod;
+        SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD = setApplicationProtocolsMethod;
+    }
+
+    private static boolean isJavaVersion(int version) {
+        return Platform.javaVersion() >= version;
+    }
+
+    private static void assumeJava8() {
+        Assume.assumeTrue("Require Java 8: " + Platform.javaVersion(), isJavaVersion(8));
     }
 
     @Test
@@ -47,10 +73,17 @@ public class PlatformTest {
         params.setServerNames(names);
         params.setUseCipherSuitesOrder(false);
         params.setEndpointIdentificationAlgorithm("ABC");
+        String[] applicationProtocols = new String[] {"foo", "bar"};
+        if (isJavaVersion(9)) {
+            setApplicationProtocols(params, applicationProtocols);
+        }
         Platform.setSSLParameters(params, impl, (AbstractConscryptSocket) socket);
         assertEquals("some.host", ((AbstractConscryptSocket) socket).getHostname());
         assertFalse(impl.getUseCipherSuitesOrder());
         assertEquals("ABC", impl.getEndpointIdentificationAlgorithm());
+        if (isJavaVersion(9)) {
+            assertArrayEquals(applicationProtocols, impl.getApplicationProtocols());
+        }
     }
 
     @Test
@@ -61,11 +94,18 @@ public class PlatformTest {
         SSLParameters params = new SSLParameters();
         impl.setUseCipherSuitesOrder(false);
         impl.setEndpointIdentificationAlgorithm("ABC");
+        String[] applicationProtocols = new String[] {"foo", "bar"};
+        if (isJavaVersion(9)) {
+            impl.setApplicationProtocols(applicationProtocols);
+        }
         ((AbstractConscryptSocket) socket).setHostname("some.host");
         Platform.getSSLParameters(params, impl, (AbstractConscryptSocket) socket);
         assertEquals("some.host", ((SNIHostName) params.getServerNames().get(0)).getAsciiName());
         assertFalse(params.getUseCipherSuitesOrder());
         assertEquals("ABC", params.getEndpointIdentificationAlgorithm());
+        if (isJavaVersion(9)) {
+            assertArrayEquals(applicationProtocols, getApplicationProtocols(params));
+        }
     }
 
     @Test
@@ -79,10 +119,17 @@ public class PlatformTest {
         params.setServerNames(names);
         params.setUseCipherSuitesOrder(false);
         params.setEndpointIdentificationAlgorithm("ABC");
+        String[] applicationProtocols = new String[] {"foo", "bar"};
+        if (isJavaVersion(9)) {
+            setApplicationProtocols(params, applicationProtocols);
+        }
         Platform.setSSLParameters(params, impl, engine);
         assertEquals("some.host", engine.getHostname());
         assertFalse(impl.getUseCipherSuitesOrder());
         assertEquals("ABC", impl.getEndpointIdentificationAlgorithm());
+        if (isJavaVersion(9)) {
+            assertArrayEquals(applicationProtocols, impl.getApplicationProtocols());
+        }
     }
 
     @Test
@@ -94,9 +141,37 @@ public class PlatformTest {
         impl.setUseCipherSuitesOrder(false);
         impl.setEndpointIdentificationAlgorithm("ABC");
         engine.setHostname("some.host");
+        String[] applicationProtocols = new String[] {"foo", "bar"};
+        if (isJavaVersion(9)) {
+            impl.setApplicationProtocols(applicationProtocols);
+        }
         Platform.getSSLParameters(params, impl, engine);
         assertEquals("some.host", ((SNIHostName) params.getServerNames().get(0)).getAsciiName());
         assertFalse(params.getUseCipherSuitesOrder());
         assertEquals("ABC", params.getEndpointIdentificationAlgorithm());
+        if (isJavaVersion(9)) {
+            assertArrayEquals(applicationProtocols, getApplicationProtocols(params));
+        }
+    }
+
+    private static String[] getApplicationProtocols(SSLParameters params) {
+        if (SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD != null) {
+            try {
+                return (String[]) SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD.invoke(params);
+            } catch (Exception ignored) {
+                // TODO(nmittler): Should we throw here?
+            }
+        }
+        return EmptyArray.STRING;
+    }
+
+    private static void setApplicationProtocols(SSLParameters params, String[] protocols) {
+        if (SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD != null) {
+            try {
+                SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD.invoke(params, (Object) protocols);
+            } catch (Exception ignored) {
+                // TODO(nmittler): Should we throw here?
+            }
+        }
     }
 }

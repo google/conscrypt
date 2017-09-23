@@ -139,20 +139,27 @@ abstract class AbstractConscryptSocket extends SSLSocket {
 
     /**
      * Returns null always for backward compatibility.
+     * @deprecated NPN is not supported
      */
+    @Deprecated
     byte[] getNpnSelectedProtocol() {
         return null;
     }
 
     /**
      * This method does nothing and is kept for backward compatibility.
+     * @deprecated NPN is not supported
      */
+    @Deprecated
     void setNpnProtocols(byte[] npnProtocols) {}
 
     /**
      * Returns the protocol agreed upon by client and server, or {@code null} if
      * no protocol was agreed upon.
+     *
+     * @deprecated use {@link #getApplicationProtocol​()} instead.
      */
+    @Deprecated
     abstract byte[] getAlpnSelectedProtocol();
 
     /**
@@ -160,8 +167,9 @@ abstract class AbstractConscryptSocket extends SSLSocket {
      * wire-format form.
      *
      * @param alpnProtocols the list of ALPN protocols
-     * @see #setAlpnProtocols(byte[])
+     * @deprecated use {@link #setApplicationProtocols(String[])} instead.
      */
+    @Deprecated
     abstract void setAlpnProtocols(String[] alpnProtocols);
 
     /**
@@ -170,15 +178,36 @@ abstract class AbstractConscryptSocket extends SSLSocket {
      * Requires that all strings be encoded with US-ASCII.
      *
      * @param alpnProtocols the encoded form of the ALPN protocol list
-     * @see #setAlpnProtocols(String[])
+     * @deprecated Use {@link #setApplicationProtocols(String[])} instead.
      */
+    @Deprecated
     abstract void setAlpnProtocols(byte[] alpnProtocols);
 
     /**
-     * Sets an application-provided ALPN protocol selector. If provided, this will override
-     * the list of protocols set by {@link #setAlpnProtocols(String[])}.
+     * Sets the list of ALPN protocols.
+     *
+     * @param protocols the list of ALPN protocols
      */
-    abstract void setAlpnProtocolSelector(AlpnProtocolSelector selector);
+    @SuppressWarnings("MissingOverride") // For compiling pre Java 9.
+    abstract void setApplicationProtocols(String[] protocols);
+
+    /**
+     * Returns the list of supported ALPN protocols.
+     */
+    @SuppressWarnings("MissingOverride") // For compiling pre Java 9.
+    abstract String[] getApplicationProtocols();
+
+    @SuppressWarnings("MissingOverride") // For compiling pre Java 9.
+    public abstract String getApplicationProtocol​();
+
+    @SuppressWarnings("MissingOverride") // For compiling pre Java 9.
+    public abstract String getHandshakeApplicationProtocol​();
+
+    /**
+     * Sets an application-provided ALPN protocol selector. If provided, this will override
+     * the list of protocols set by {@link #setApplicationProtocols(String[])}.
+     */
+    abstract void setApplicationProtocolSelector(ApplicationProtocolSelector selector);
 
     abstract PeerInfoProvider peerInfoProvider();
 }

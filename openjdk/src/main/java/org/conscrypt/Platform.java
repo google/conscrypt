@@ -204,7 +204,9 @@ final class Platform {
 
     static void setSSLParameters(
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
-        if (JAVA_VERSION >= 8) {
+        if (JAVA_VERSION >= 9) {
+            Java9PlatformUtil.setSSLParameters(params, impl, socket);
+        } else if (JAVA_VERSION >= 8) {
             Java8PlatformUtil.setSSLParameters(params, impl, socket);
         } else if (JAVA_VERSION >= 7) {
             Java7PlatformUtil.setSSLParameters(params, impl);
@@ -213,7 +215,9 @@ final class Platform {
 
     static void getSSLParameters(
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
-        if (JAVA_VERSION >= 8) {
+        if (JAVA_VERSION >= 9) {
+            Java9PlatformUtil.getSSLParameters(params, impl, socket);
+        } else if (JAVA_VERSION >= 8) {
             Java8PlatformUtil.getSSLParameters(params, impl, socket);
         } else if (JAVA_VERSION >= 7) {
             Java7PlatformUtil.getSSLParameters(params, impl);
@@ -222,7 +226,9 @@ final class Platform {
 
     static void setSSLParameters(
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
-        if (JAVA_VERSION >= 8) {
+        if (JAVA_VERSION >= 9) {
+            Java9PlatformUtil.setSSLParameters(params, impl, engine);
+        } else if (JAVA_VERSION >= 8) {
             Java8PlatformUtil.setSSLParameters(params, impl, engine);
         } else if (JAVA_VERSION >= 7) {
             Java7PlatformUtil.setSSLParameters(params, impl);
@@ -231,7 +237,9 @@ final class Platform {
 
     static void getSSLParameters(
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
-        if (JAVA_VERSION >= 8) {
+        if (JAVA_VERSION >= 9) {
+            Java9PlatformUtil.getSSLParameters(params, impl, engine);
+        } else if (JAVA_VERSION >= 8) {
             Java8PlatformUtil.getSSLParameters(params, impl, engine);
         } else if (JAVA_VERSION >= 7) {
             Java7PlatformUtil.getSSLParameters(params, impl);

@@ -25,7 +25,7 @@ import javax.net.ssl.SSLSocket;
  * new {@code setHandshakeApplicationProtocolSelector} API, which takes a {@code BiFunction}
  * (available in Java 8+). This interface is provided to support protocol selection in Java < 8.
  */
-public abstract class AlpnProtocolSelector {
+public abstract class ApplicationProtocolSelector {
     /**
      * Selects the appropriate ALPN protocol.
      *
@@ -38,7 +38,7 @@ public abstract class AlpnProtocolSelector {
      * "no_application_protocol" alert will be sent to the peer and the connection will be
      * terminated.
      */
-    public abstract String selectAlpnProtocol(SSLEngine engine, List<String> protocols);
+    public abstract String selectApplicationProtocol(SSLEngine engine, List<String> protocols);
 
     /**
      * Selects the appropriate ALPN protocol.
@@ -52,5 +52,5 @@ public abstract class AlpnProtocolSelector {
      * "no_application_protocol" alert will be sent to the peer and the connection will be
      * terminated.
      */
-    public abstract String selectAlpnProtocol(SSLSocket socket, List<String> protocols);
+    public abstract String selectApplicationProtocol(SSLSocket socket, List<String> protocols);
 }

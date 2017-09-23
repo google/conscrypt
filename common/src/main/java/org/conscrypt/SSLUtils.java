@@ -176,23 +176,6 @@ final class SSLUtils {
     /** Key type: Elliptic Curve certificate. */
     private static final String KEY_TYPE_EC = "EC";
 
-    static String toProtocolString(byte[] bytes) {
-        if (bytes == null) {
-            return null;
-        }
-        return new String(bytes, US_ASCII);
-    }
-
-    static byte[] toProtocolBytes(String protocolString) {
-        if (protocolString == null) {
-            return null;
-        }
-        if (protocolString.isEmpty()) {
-            return EmptyArray.BYTE;
-        }
-        return protocolString.getBytes(US_ASCII);
-    }
-
     static X509Certificate[] decodeX509CertificateChain(byte[][] certChain)
             throws java.security.cert.CertificateException {
         CertificateFactory certificateFactory = getCertificateFactory();
@@ -345,10 +328,113 @@ final class SSLUtils {
         return new SSLException(e);
     }
 
+    static String toProtocolString(byte[] bytes) {
+        if (bytes == null) {
+            return null;
+        }
+        return new String(bytes, US_ASCII);
+    }
+
+    static byte[] toProtocolBytes(String protocol) {
+        if (protocol == null) {
+            return null;
+        }
+        return protocol.getBytes(US_ASCII);
+    }
+
+    /**
+     * Decodes the given list of protocols into {@link String}s.
+     * @param protocols the encoded protocol list
+     * @return the decoded protocols or {@code null} if {@code protocols} is {@code null}.
+     */
+    static String[] decodeProtocols(byte[] protocols) {
+        if (protocols.length == 0) {
+            return EmptyArray.STRING;
+        }
+
+        int numProtocols = 0;
+        for (int i = 0; i < protocols.length;) {
+            int protocolLength = protocols[i];
+            if (protocolLength < 0 || protocolLength > protocols.length - i) {
+                throw new IllegalArgumentException(
+                        "Protocol has invalid length (" + protocolLength + "): " + protocols[i]);
+            }
+
+            numProtocols++;
+            i += 1 + protocolLength;
+        }
+
+        String[] decoded = new String[numProtocols];
+        for (int i = 0, d = 0; i < protocols.length;) {
+            int protocolLength = protocols[i];
+            decoded[d++] = protocolLength > 0
+                    ? new String(protocols, i + 1, protocolLength, US_ASCII)
+                    : "";
+            i += 1 + protocolLength;
+        }
+
+        return decoded;
+    }
+
+    /**
+     * Encodes a list of protocols into the wire-format (length-prefixed 8-bit strings).
+     * Requires that all strings be encoded with US-ASCII.
+     *
+     * @param protocols the list of protocols to be encoded
+     * @return the encoded form of the protocol list.
+     */
+    static byte[] encodeProtocols(String[] protocols) {
+        if (protocols == null) {
+            throw new IllegalArgumentException("protocols array must be non-null");
+        }
+
+        if (protocols.length == 0) {
+            return EmptyArray.BYTE;
+        }
+
+        // Calculate the encoded length.
+        int length = 0;
+        for (int i = 0; i < protocols.length; ++i) {
+            String protocol = protocols[i];
+            if (protocol == null) {
+                throw new IllegalArgumentException("protocol[" + i + "] is null");
+            }
+            int protocolLength = protocols[i].length();
+
+            // Verify that the length is valid here, so that we don't attempt to allocate an array
+            // below if the threshold is violated.
+            if (protocolLength == 0 || protocolLength > MAX_PROTOCOL_LENGTH) {
+                throw new IllegalArgumentException(
+                    "protocol[" + i + "] has invalid length: " + protocolLength);
+            }
+
+            // Include a 1-byte prefix for each protocol.
+            length += 1 + protocolLength;
+        }
+
+        byte[] data = new byte[length];
+        for (int dataIndex = 0, i = 0; i < protocols.length; ++i) {
+            String protocol = protocols[i];
+            int protocolLength = protocol.length();
+
+            // Add the length prefix.
+            data[dataIndex++] = (byte) protocolLength;
+            for (int ci = 0; ci < protocolLength; ++ci) {
+                char c = protocol.charAt(ci);
+                if (c > Byte.MAX_VALUE) {
+                    // Enforce US-ASCII
+                    throw new IllegalArgumentException("Protocol contains invalid character: "
+                        + c + "(protocol=" + protocol + ")");
+                }
+                data[dataIndex++] = (byte) c;
+            }
+        }
+        return data;
+    }
+
     /**
      * Return how much bytes can be read out of the encrypted data. Be aware that this method will
-     * not
-     * increase the readerIndex of the given {@link ByteBuffer}.
+     * not increase the readerIndex of the given {@link ByteBuffer}.
      *
      * @param buffers The {@link ByteBuffer}s to read from. Be aware that they must have at least
      * {@link org.conscrypt.NativeConstants#SSL3_RT_HEADER_LENGTH} bytes to read, otherwise it will
@@ -388,50 +474,6 @@ final class SSLUtils {
         // Done, flip the buffer so we can read from it.
         tmp.flip();
         return getEncryptedPacketLength(tmp);
-    }
-
-    /**
-     * Encodes a list of protocols into the wire-format (length-prefixed 8-bit strings).
-     * Requires that all strings be encoded with US-ASCII.
-     *
-     * @param protocols the list of protocols to be encoded
-     * @return the encoded form of the protocol list.
-     */
-    static byte[] toLengthPrefixedList(String... protocols) {
-        // Calculate the encoded length.
-        int length = 0;
-        for (int i = 0; i < protocols.length; ++i) {
-            int protocolLength = protocols[i].length();
-
-            // Verify that the length is valid here, so that we don't attempt to allocate an array
-            // below if the threshold is violated.
-            if (protocolLength == 0 || protocolLength > MAX_PROTOCOL_LENGTH) {
-                throw new IllegalArgumentException("Protocol has invalid length ("
-                        + protocolLength + "): " + protocols[i]);
-            }
-
-            // Include a 1-byte prefix for each protocol.
-            length += 1 + protocolLength;
-        }
-
-        byte[] data = new byte[length];
-        for (int dataIndex = 0, i = 0; i < protocols.length; ++i) {
-            String protocol = protocols[i];
-            int protocolLength = protocol.length();
-
-            // Add the length prefix.
-            data[dataIndex++] = (byte) protocolLength;
-            for (int ci = 0; ci < protocolLength; ++ci) {
-                char c = protocol.charAt(ci);
-                if (c > Byte.MAX_VALUE) {
-                    // Enforce US-ASCII
-                    throw new IllegalArgumentException("Protocol contains invalid character: "
-                            + c + "(protocol=" + protocol + ")");
-                }
-                data[dataIndex++] = (byte) c;
-            }
-        }
-        return data;
     }
 
     private static int getEncryptedPacketLength(ByteBuffer buffer) {

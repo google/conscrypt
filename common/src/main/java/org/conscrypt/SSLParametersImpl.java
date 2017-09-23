@@ -93,8 +93,8 @@ final class SSLParametersImpl implements Cloneable {
     byte[] sctExtension;
     byte[] ocspResponse;
 
-    byte[] alpnProtocols;
-    AlpnProtocolSelectorAdapter alpnProtocolSelector;
+    byte[] applicationProtocols = EmptyArray.BYTE;
+    ApplicationProtocolSelectorAdapter applicationProtocolSelector;
     boolean useSessionTickets;
     private Boolean useSni;
 
@@ -234,41 +234,24 @@ final class SSLParametersImpl implements Cloneable {
     }
 
     /**
-     * Sets the list of ALPN protocols. This method internally converts the protocols to their
-     * wire-format form.
+     * Sets the list of ALPN protocols.
      *
-     * @param alpnProtocols the list of ALPN protocols
-     * @see #setAlpnProtocols(byte[])
+     * @param protocols the list of ALPN protocols
      */
-    void setAlpnProtocols(String[] alpnProtocols) {
-        setAlpnProtocols(SSLUtils.toLengthPrefixedList(alpnProtocols));
+    void setApplicationProtocols(String[] protocols) {
+        this.applicationProtocols = SSLUtils.encodeProtocols(protocols);
     }
 
-    /**
-     * Alternate version of {@link #setAlpnProtocols(String[])} that directly sets the list of
-     * ALPN in the wire-format form used by BoringSSL (length-prefixed 8-bit strings).
-     * Requires that all strings be encoded with US-ASCII.
-     *
-     * @param alpnProtocols the encoded form of the ALPN protocol list
-     * @see #setAlpnProtocols(String[])
-     */
-    void setAlpnProtocols(byte[] alpnProtocols) {
-        if (alpnProtocols != null && alpnProtocols.length == 0) {
-            throw new IllegalArgumentException("alpnProtocols.length == 0");
-        }
-        this.alpnProtocols = alpnProtocols;
+    String[] getApplicationProtocols() {
+        return SSLUtils.decodeProtocols(applicationProtocols);
     }
 
     /**
      * Used for server-mode only. Sets or clears the application-provided ALPN protocol selector.
-     * If set, will override the protocol list provided by {@link #setAlpnProtocols(String[])}.
+     * If set, will override the protocol list provided by {@link #setApplicationProtocols(String[])}.
      */
-    void setAlpnProtocolSelector(AlpnProtocolSelectorAdapter alpnProtocolSelector) {
-        this.alpnProtocolSelector = alpnProtocolSelector;
-    }
-
-    byte[] getAlpnProtocols() {
-        return alpnProtocols;
+    void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter applicationProtocolSelector) {
+        this.applicationProtocolSelector = applicationProtocolSelector;
     }
 
     /**

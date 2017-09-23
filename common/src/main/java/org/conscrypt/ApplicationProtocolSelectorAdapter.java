@@ -18,29 +18,28 @@ package org.conscrypt;
 
 import static org.conscrypt.Preconditions.checkNotNull;
 
-import java.nio.charset.Charset;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSocket;
 
 /**
- * An adapter to bridge between the native code and the {@link AlpnProtocolSelector} API.
+ * An adapter to bridge between the native code and the {@link ApplicationProtocolSelector} API.
  */
-final class AlpnProtocolSelectorAdapter {
+final class ApplicationProtocolSelectorAdapter {
     private static final int NO_PROTOCOL_SELECTED = -1;
 
     private final SSLEngine engine;
     private final SSLSocket socket;
-    private final AlpnProtocolSelector selector;
+    private final ApplicationProtocolSelector selector;
 
-    AlpnProtocolSelectorAdapter(SSLEngine engine, AlpnProtocolSelector selector) {
+    ApplicationProtocolSelectorAdapter(SSLEngine engine, ApplicationProtocolSelector selector) {
         this.engine = checkNotNull(engine, "engine");
         this.socket = null;
         this.selector = checkNotNull(selector, "selector");
     }
 
-    AlpnProtocolSelectorAdapter(SSLSocket socket, AlpnProtocolSelector selector) {
+    ApplicationProtocolSelectorAdapter(SSLSocket socket, ApplicationProtocolSelector selector) {
         this.engine = null;
         this.socket = checkNotNull(socket, "socket");
         this.selector = checkNotNull(selector, "selector");
@@ -48,43 +47,39 @@ final class AlpnProtocolSelectorAdapter {
 
     /**
      * Performs the ALPN protocol selection from the given list of length-delimited peer protocols.
-     * @param lengthPrefixedList the peer protocols in length-delimited form.
+     * @param encodedProtocols the peer protocols in length-delimited form.
      * @return If successful, returns the offset into the {@code lenghPrefixedList} array of the
      * selected protocol (i.e. points to the length prefix). Otherwise, returns
      * {@link #NO_PROTOCOL_SELECTED}.
      */
-    int selectAlpnProtocol(byte[] lengthPrefixedList) {
-        if (lengthPrefixedList == null || lengthPrefixedList.length == 0) {
+    int selectApplicationProtocol(byte[] encodedProtocols) {
+        if (encodedProtocols == null || encodedProtocols.length == 0) {
             return NO_PROTOCOL_SELECTED;
         }
 
-        // Convert the protocols to a list of strings.
-        List<String> stringProtocols = new ArrayList<String>();
-        for (int i = 0; i < lengthPrefixedList.length;) {
-            int protocolLength = lengthPrefixedList[i++];
-            Charset US_ASCII = Charset.forName("US-ASCII");
-            stringProtocols.add(new String(lengthPrefixedList, i, protocolLength, US_ASCII));
-            i += protocolLength;
-        }
+        // Decode the protocols.
+        List<String> protocols = Arrays.asList(SSLUtils.decodeProtocols(encodedProtocols));
 
         // Select the protocol.
         final String selected;
         if (engine != null ) {
-            selected = selector.selectAlpnProtocol(engine, stringProtocols);
+            selected = selector.selectApplicationProtocol(engine, protocols);
         } else {
-            selected = selector.selectAlpnProtocol(socket, stringProtocols);
+            selected = selector.selectApplicationProtocol(socket, protocols);
         }
         if (selected == null || selected.isEmpty()) {
             return NO_PROTOCOL_SELECTED;
         }
 
         int offset = 0;
-        for (String protocol : stringProtocols) {
+        for (String protocol : protocols) {
             if (selected.equals(protocol)) {
                 // Found the selected protocol. Return the index position of the beginning of
                 // the protocol.
                 return offset;
             }
+
+            // Add 1 byte for the length prefix.
             offset += 1 + protocol.length();
         }
 

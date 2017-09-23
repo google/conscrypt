@@ -25,7 +25,7 @@ import javax.net.ssl.SSLSocket;
  * patches of 8) {@code setHandshakeApplicationProtocolSelector​} API (which requires Java 8 for
  * compilation, due to the use of {@link BiFunction}).
  */
-public class Java8SocketWrapper extends AbstractConscryptSocket {
+public final class Java8SocketWrapper extends AbstractConscryptSocket {
     private final ConscryptSocketBase delegate;
     private BiFunction<SSLSocket, List<String>, String> selector;
 
@@ -41,11 +41,13 @@ public class Java8SocketWrapper extends AbstractConscryptSocket {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     byte[] getNpnSelectedProtocol() {
         return delegate.getNpnSelectedProtocol();
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     void setNpnProtocols(byte[] npnProtocols) {
         delegate.setNpnProtocols(npnProtocols);
     }
@@ -418,24 +420,30 @@ public class Java8SocketWrapper extends AbstractConscryptSocket {
     }
 
     @Override
+    @Deprecated
+    @SuppressWarnings("deprecation")
     byte[] getAlpnSelectedProtocol() {
         return delegate.getAlpnSelectedProtocol();
     }
 
     @Override
+    @Deprecated
+    @SuppressWarnings("deprecation")
     void setAlpnProtocols(String[] alpnProtocols) {
         delegate.setAlpnProtocols(alpnProtocols);
     }
 
     @Override
+    @Deprecated
+    @SuppressWarnings("deprecation")
     void setAlpnProtocols(byte[] alpnProtocols) {
         delegate.setAlpnProtocols(alpnProtocols);
     }
 
     @Override
-    void setAlpnProtocolSelector(AlpnProtocolSelector selector) {
-        delegate.setAlpnProtocolSelector(
-                selector == null ? null : new AlpnProtocolSelectorAdapter(this, selector));
+    void setApplicationProtocolSelector(ApplicationProtocolSelector selector) {
+        delegate.setApplicationProtocolSelector(
+                selector == null ? null : new ApplicationProtocolSelectorAdapter(this, selector));
     }
 
     @Override
@@ -443,12 +451,32 @@ public class Java8SocketWrapper extends AbstractConscryptSocket {
         return delegate.peerInfoProvider();
     }
 
+    @Override
+    void setApplicationProtocols(String[] protocols) {
+        delegate.setApplicationProtocols(protocols);
+    }
+
+    @Override
+    String[] getApplicationProtocols() {
+        return delegate.getApplicationProtocols();
+    }
+
+    @Override
+    public String getApplicationProtocol​() {
+        return delegate.getApplicationProtocol​();
+    }
+
+    @Override
+    public String getHandshakeApplicationProtocol​() {
+        return delegate.getHandshakeApplicationProtocol​();
+    }
+
     /* @Override */
     @SuppressWarnings("MissingOverride") // For compilation with Java < 9.
     public void setHandshakeApplicationProtocolSelector​(
             final BiFunction<SSLSocket, List<String>, String> selector) {
         this.selector = selector;
-        setAlpnProtocolSelector(toAlpnProtocolSelector(selector));
+        setApplicationProtocolSelector(toApplicationProtocolSelector(selector));
     }
 
     /* @Override */
@@ -457,16 +485,16 @@ public class Java8SocketWrapper extends AbstractConscryptSocket {
         return selector;
     }
 
-    private static AlpnProtocolSelector toAlpnProtocolSelector(
+    private static ApplicationProtocolSelector toApplicationProtocolSelector(
         final BiFunction<SSLSocket, List<String>, String> selector) {
-        return selector == null ? null : new AlpnProtocolSelector() {
+        return selector == null ? null : new ApplicationProtocolSelector() {
             @Override
-            public String selectAlpnProtocol(SSLEngine socket, List<String> protocols) {
+            public String selectApplicationProtocol(SSLEngine socket, List<String> protocols) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public String selectAlpnProtocol(SSLSocket socket, List<String> protocols) {
+            public String selectApplicationProtocol(SSLSocket socket, List<String> protocols) {
                 return selector.apply(socket, protocols);
             }
         };

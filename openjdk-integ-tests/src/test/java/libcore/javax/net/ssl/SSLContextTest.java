@@ -25,11 +25,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.security.AccessController;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivilegedAction;
 import java.security.Provider;
 import java.security.Security;
 import java.security.UnrecoverableKeyException;
@@ -236,14 +238,30 @@ public class SSLContextTest extends AbstractSSLTest {
         try {
             SSLContext.getInstance(null, (String) null);
             fail();
-        } catch (IllegalArgumentException expected) {
-            // Ignored.
+        } catch (Exception expected) {
+            if (javaVersion() >= 9) {
+                assertTrue("Expected NullPointerException on Java 9, was "
+                                + expected.getClass().getName(),
+                        expected instanceof NullPointerException);
+            } else {
+                assertTrue(
+                        "Expected IllegalArgumentException, was " + expected.getClass().getName(),
+                        expected instanceof IllegalArgumentException);
+            }
         }
         try {
             SSLContext.getInstance(null, "");
             fail();
-        } catch (IllegalArgumentException expected) {
-            // Ignored.
+        } catch (Exception expected) {
+            if (javaVersion() >= 9) {
+                assertTrue("Expected NullPointerException on Java 9, was "
+                        + expected.getClass().getName(),
+                    expected instanceof NullPointerException);
+            } else {
+                assertTrue(
+                    "Expected IllegalArgumentException, was " + expected.getClass().getName(),
+                    expected instanceof IllegalArgumentException);
+            }
         }
         for (String protocol : StandardNames.SSL_CONTEXT_PROTOCOLS) {
             try {
@@ -646,6 +664,62 @@ public class SSLContextTest extends AbstractSSLTest {
         if (!expected.equals(Arrays.asList(actual))) {
             fail("Unexpected element(s). Expected <" + expected + ">, actual <"
                     + Arrays.asList(actual) + ">");
+        }
+    }
+
+    private static boolean isAndroid() {
+        boolean android;
+        try {
+            Class.forName("android.app.Application", false, getSystemClassLoader());
+            android = true;
+        } catch (Throwable ignored) {
+            // Failed to load the class uniquely available in Android.
+            android = false;
+        }
+        return android;
+    }
+
+    private static int javaVersion() {
+        final int majorVersion;
+
+        if (isAndroid()) {
+            majorVersion = 6;
+        } else {
+            majorVersion = majorVersionFromJavaSpecificationVersion();
+        }
+
+        return majorVersion;
+    }
+
+    private static int majorVersionFromJavaSpecificationVersion() {
+        return majorVersion(System.getProperty("java.specification.version", "1.6"));
+    }
+
+    private static int majorVersion(final String javaSpecVersion) {
+        final String[] components = javaSpecVersion.split("\\.");
+        final int[] version = new int[components.length];
+        for (int i = 0; i < components.length; i++) {
+            version[i] = Integer.parseInt(components[i]);
+        }
+
+        if (version[0] == 1) {
+            assert version[1] >= 6;
+            return version[1];
+        } else {
+            return version[0];
+        }
+    }
+
+    private static ClassLoader getSystemClassLoader() {
+        if (System.getSecurityManager() == null) {
+            return ClassLoader.getSystemClassLoader();
+        } else {
+            return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+                @Override
+                public ClassLoader run() {
+                    return ClassLoader.getSystemClassLoader();
+                }
+            });
         }
     }
 }
