@@ -273,12 +273,12 @@ public class ConscryptEngineTest {
         String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
         String[] serverAlpnProtocols = new String[]{"spdy/2", "foo", "bar"};
 
-        Conscrypt.setAlpnProtocols(clientEngine, clientAlpnProtocols);
-        Conscrypt.setAlpnProtocols(serverEngine, serverAlpnProtocols);
+        Conscrypt.setApplicationProtocols(clientEngine, clientAlpnProtocols);
+        Conscrypt.setApplicationProtocols(serverEngine, serverAlpnProtocols);
 
         doHandshake(true);
-        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(clientEngine));
-        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(serverEngine));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(clientEngine));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(serverEngine));
     }
 
     @Test
@@ -289,12 +289,12 @@ public class ConscryptEngineTest {
         String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
         String[] serverAlpnProtocols = new String[]{"h2", "bar", "baz"};
 
-        Conscrypt.setAlpnProtocols(clientEngine, clientAlpnProtocols);
-        Conscrypt.setAlpnProtocols(serverEngine, serverAlpnProtocols);
+        Conscrypt.setApplicationProtocols(clientEngine, clientAlpnProtocols);
+        Conscrypt.setApplicationProtocols(serverEngine, serverAlpnProtocols);
 
         doHandshake(true);
-        assertNull(Conscrypt.getAlpnSelectedProtocol(clientEngine));
-        assertNull(Conscrypt.getAlpnSelectedProtocol(serverEngine));
+        assertNull(Conscrypt.getApplicationProtocol​(clientEngine));
+        assertNull(Conscrypt.getApplicationProtocol​(serverEngine));
     }
 
     @Test
@@ -303,17 +303,17 @@ public class ConscryptEngineTest {
 
         // Configure client protocols.
         String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
-        Conscrypt.setAlpnProtocols(clientEngine, clientAlpnProtocols);
+        Conscrypt.setApplicationProtocols(clientEngine, clientAlpnProtocols);
 
         // Configure server selector
-        AlpnProtocolSelector selector = Mockito.mock(AlpnProtocolSelector.class);
-        when(selector.selectAlpnProtocol(same(serverEngine), Matchers.anyListOf(String.class)))
+        ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
+        when(selector.selectApplicationProtocol(same(serverEngine), Matchers.anyListOf(String.class)))
                 .thenReturn("spdy/2");
-        Conscrypt.setAlpnProtocolSelector(serverEngine, selector);
+        Conscrypt.setApplicationProtocolSelector(serverEngine, selector);
 
         doHandshake(true);
-        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(clientEngine));
-        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(serverEngine));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(clientEngine));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(serverEngine));
     }
 
     @Test
@@ -322,17 +322,17 @@ public class ConscryptEngineTest {
 
         // Configure client protocols.
         String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
-        Conscrypt.setAlpnProtocols(clientEngine, clientAlpnProtocols);
+        Conscrypt.setApplicationProtocols(clientEngine, clientAlpnProtocols);
 
         // Configure server selector
-        AlpnProtocolSelector selector = Mockito.mock(AlpnProtocolSelector.class);
-        when(selector.selectAlpnProtocol(same(serverEngine), Matchers.anyListOf(String.class)))
+        ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
+        when(selector.selectApplicationProtocol(same(serverEngine), Matchers.anyListOf(String.class)))
                 .thenReturn("h2");
-        Conscrypt.setAlpnProtocolSelector(serverEngine, selector);
+        Conscrypt.setApplicationProtocolSelector(serverEngine, selector);
 
         doHandshake(true);
-        assertNull(Conscrypt.getAlpnSelectedProtocol(clientEngine));
-        assertNull(Conscrypt.getAlpnSelectedProtocol(serverEngine));
+        assertNull(Conscrypt.getApplicationProtocol​(clientEngine));
+        assertNull(Conscrypt.getApplicationProtocol​(serverEngine));
     }
 
     /**

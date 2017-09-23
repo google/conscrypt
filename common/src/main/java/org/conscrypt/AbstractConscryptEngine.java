@@ -137,26 +137,24 @@ abstract class AbstractConscryptEngine extends SSLEngine {
     /**
      * Sets the list of ALPN protocols.
      *
-     * @param alpnProtocols the list of ALPN protocols
+     * @param protocols the list of ALPN protocols
      */
-    abstract void setAlpnProtocols(String[] alpnProtocols);
+    abstract void setApplicationProtocols(String[] protocols);
 
     /**
-     * Sets the list of ALPN protocols.
-     *
-     * @param alpnProtocols the list of ALPN protocols
+     * Returns the list of supported ALPN protocols.
      */
-    abstract void setAlpnProtocols(byte[] alpnProtocols);
+    abstract String[] getApplicationProtocols();
+
+    @SuppressWarnings("MissingOverride") // For compiling pre Java 9.
+    public abstract String getApplicationProtocol​();
+
+    @SuppressWarnings("MissingOverride") // For compiling pre Java 9.
+    public abstract String getHandshakeApplicationProtocol​();
 
     /**
      * Sets an application-provided ALPN protocol selector. If provided, this will override
-     * the list of protocols set by {@link #setAlpnProtocols(String[])}.
+     * the list of protocols set by {@link #setApplicationProtocols(String[])}.
      */
-    abstract void setAlpnProtocolSelector(AlpnProtocolSelector selector);
-
-    /**
-     * Returns the protocol agreed upon by client and server, or {@code null} if no protocol was
-     * agreed upon.
-     */
-    abstract byte[] getAlpnSelectedProtocol();
+    abstract void setApplicationProtocolSelector(ApplicationProtocolSelector selector);
 }

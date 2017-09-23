@@ -284,7 +284,7 @@ public class ConscryptSocketTest {
                     socketType.newClientSocket(createContext(), listener, underlyingSocketType);
             socket.setHostname(hostname);
             if (alpnProtocols != null) {
-                Conscrypt.setAlpnProtocols(socket, alpnProtocols);
+                Conscrypt.setApplicationProtocols(socket, alpnProtocols);
             }
             return socket;
         }
@@ -293,7 +293,7 @@ public class ConscryptSocketTest {
     class ServerHooks extends Hooks {
         byte[] sctTLSExtension;
         byte[] ocspResponse;
-        AlpnProtocolSelector alpnProtocolSelector;
+        ApplicationProtocolSelector alpnProtocolSelector;
 
         @Override
         public OpenSSLContextImpl createContext() throws IOException {
@@ -313,10 +313,10 @@ public class ConscryptSocketTest {
             AbstractConscryptSocket socket =
                     socketType.newServerSocket(createContext(), listener, underlyingSocketType);
             if (alpnProtocols != null) {
-                Conscrypt.setAlpnProtocols(socket, alpnProtocols);
+                Conscrypt.setApplicationProtocols(socket, alpnProtocols);
             }
             if (alpnProtocolSelector != null) {
-                Conscrypt.setAlpnProtocolSelector(socket, alpnProtocolSelector);
+                Conscrypt.setApplicationProtocolSelector(socket, alpnProtocolSelector);
             }
             return socket;
         }
@@ -426,8 +426,8 @@ public class ConscryptSocketTest {
 
         c.doHandshake();
 
-        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(c.client));
-        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(c.server));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(c.client));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(c.server));
     }
 
     @Test
@@ -443,8 +443,8 @@ public class ConscryptSocketTest {
 
         c.doHandshake();
 
-        assertNull(Conscrypt.getAlpnSelectedProtocol(c.client));
-        assertNull(Conscrypt.getAlpnSelectedProtocol(c.server));
+        assertNull(Conscrypt.getApplicationProtocol​(c.client));
+        assertNull(Conscrypt.getApplicationProtocol​(c.server));
     }
 
     @Test
@@ -456,15 +456,15 @@ public class ConscryptSocketTest {
         c.clientHooks.alpnProtocols = clientAlpnProtocols;
 
         // Configure server selector
-        AlpnProtocolSelector selector = Mockito.mock(AlpnProtocolSelector.class);
-        when(selector.selectAlpnProtocol(any(SSLSocket.class), anyListOf(String.class)))
+        ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
+        when(selector.selectApplicationProtocol(any(SSLSocket.class), anyListOf(String.class)))
                 .thenReturn("spdy/2");
         c.serverHooks.alpnProtocolSelector = selector;
 
         c.doHandshake();
 
-        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(c.client));
-        assertEquals("spdy/2", Conscrypt.getAlpnSelectedProtocol(c.server));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(c.client));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(c.server));
     }
 
     @Test
@@ -476,15 +476,15 @@ public class ConscryptSocketTest {
         c.clientHooks.alpnProtocols = clientAlpnProtocols;
 
         // Configure server selector
-        AlpnProtocolSelector selector = Mockito.mock(AlpnProtocolSelector.class);
-        when(selector.selectAlpnProtocol(any(SSLSocket.class), anyListOf(String.class)))
+        ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
+        when(selector.selectApplicationProtocol(any(SSLSocket.class), anyListOf(String.class)))
                 .thenReturn("h2");
         c.serverHooks.alpnProtocolSelector = selector;
 
         c.doHandshake();
 
-        assertNull(Conscrypt.getAlpnSelectedProtocol(c.client));
-        assertNull(Conscrypt.getAlpnSelectedProtocol(c.server));
+        assertNull(Conscrypt.getApplicationProtocol​(c.client));
+        assertNull(Conscrypt.getApplicationProtocol​(c.server));
     }
 
     @Test

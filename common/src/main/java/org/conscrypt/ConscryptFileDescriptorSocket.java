@@ -1007,32 +1007,41 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         } finally {
             super.finalize();
         }
+
     }
 
     @Override
-    public byte[] getAlpnSelectedProtocol() {
-        return ssl.getAlpnSelectedProtocol();
+    public void setApplicationProtocolSelector(ApplicationProtocolSelector selector) {
+        setApplicationProtocolSelector(
+                selector == null ? null : new ApplicationProtocolSelectorAdapter(this, selector));
     }
 
     @Override
-    public void setAlpnProtocols(String[] alpnProtocols) {
-        sslParameters.setAlpnProtocols(alpnProtocols);
+    void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter selector) {
+        sslParameters.setApplicationProtocolSelector(selector);
     }
 
     @Override
-    public void setAlpnProtocols(byte[] alpnProtocols) {
-        sslParameters.setAlpnProtocols(alpnProtocols);
+    void setApplicationProtocols(String[] protocols) {
+        sslParameters.setApplicationProtocols(protocols);
     }
 
     @Override
-    public void setAlpnProtocolSelector(AlpnProtocolSelector selector) {
-        setAlpnProtocolSelector(
-                selector == null ? null : new AlpnProtocolSelectorAdapter(this, selector));
+    String[] getApplicationProtocols() {
+        return sslParameters.getApplicationProtocols();
     }
 
     @Override
-    void setAlpnProtocolSelector(AlpnProtocolSelectorAdapter selector) {
-        sslParameters.setAlpnProtocolSelector(selector);
+    public String getApplicationProtocol​() {
+        return SSLUtils.toProtocolString(ssl.getApplicationProtocol());
+    }
+
+    @Override
+    public String getHandshakeApplicationProtocol​() {
+        synchronized (ssl) {
+            return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY
+                ? getApplicationProtocol​() : null;
+        }
     }
 
     @Override

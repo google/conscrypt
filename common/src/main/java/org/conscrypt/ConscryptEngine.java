@@ -1685,47 +1685,36 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         sslParameters.setUseSessionTickets(useSessionTickets);
     }
 
-    /**
-     * Sets the list of ALPN protocols.
-     *
-     * @param alpnProtocols the list of ALPN protocols
-     */
     @Override
-    void setAlpnProtocols(String[] alpnProtocols) {
-        sslParameters.setAlpnProtocols(alpnProtocols);
+    String[] getApplicationProtocols() {
+        return sslParameters.getApplicationProtocols();
     }
 
-    /**
-     * Sets the list of ALPN protocols.
-     *
-     * @param alpnProtocols the list of ALPN protocols
-     */
     @Override
-    void setAlpnProtocols(byte[] alpnProtocols) {
-        sslParameters.setAlpnProtocols(alpnProtocols);
+    void setApplicationProtocols(String[] protocols) {
+        sslParameters.setApplicationProtocols(protocols);
     }
 
-    /**
-     * Sets an application-provided ALPN protocol selector. If provided, this will override
-     * the list of protocols set by {@link #setAlpnProtocols(String[])}.
-     */
     @Override
-    void setAlpnProtocolSelector(AlpnProtocolSelector selector) {
-        setAlpnProtocolSelector(
-                selector == null ? null : new AlpnProtocolSelectorAdapter(this, selector));
+    void setApplicationProtocolSelector(ApplicationProtocolSelector selector) {
+        setApplicationProtocolSelector(
+                selector == null ? null : new ApplicationProtocolSelectorAdapter(this, selector));
     }
 
-    void setAlpnProtocolSelector(AlpnProtocolSelectorAdapter adapter) {
-        sslParameters.setAlpnProtocolSelector(adapter);
+    void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter adapter) {
+        sslParameters.setApplicationProtocolSelector(adapter);
     }
 
-    /**
-     * Returns the protocol agreed upon by client and server, or {@code null} if no protocol was
-     * agreed upon.
-     */
     @Override
-    byte[] getAlpnSelectedProtocol() {
-        return ssl.getAlpnSelectedProtocol();
+    public String getApplicationProtocol​() {
+        return SSLUtils.toProtocolString(ssl.getApplicationProtocol());
+    }
+
+    @Override
+    public String getHandshakeApplicationProtocol​() {
+        synchronized (ssl) {
+            return state == STATE_HANDSHAKE_STARTED ? getApplicationProtocol​() : null;
+        }
     }
 
     private ByteBuffer[] singleSrcBuffer(ByteBuffer src) {

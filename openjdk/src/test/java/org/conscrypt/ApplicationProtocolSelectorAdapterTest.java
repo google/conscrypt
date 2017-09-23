@@ -28,22 +28,22 @@ import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class AlpnProtocolSelectorAdapterTest {
+public class ApplicationProtocolSelectorAdapterTest {
     private static Charset US_ASCII = Charset.forName("US-ASCII");
     private static final String[] PROTOCOLS = new String[] {"a", "b", "c"};
-    private static final byte[] PROTOCOL_BYTES = SSLUtils.toLengthPrefixedList(PROTOCOLS);
+    private static final byte[] PROTOCOL_BYTES = SSLUtils.encodeProtocols(PROTOCOLS);
 
-    @Mock private AlpnProtocolSelector selector;
+    @Mock private ApplicationProtocolSelector selector;
 
     @Mock private SSLEngine engine;
 
-    private AlpnProtocolSelectorAdapter adapter;
+    private ApplicationProtocolSelectorAdapter adapter;
 
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
-        adapter = new AlpnProtocolSelectorAdapter(engine, selector);
+        adapter = new ApplicationProtocolSelectorAdapter(engine, selector);
     }
 
     @Test
@@ -73,11 +73,11 @@ public class AlpnProtocolSelectorAdapterTest {
     }
 
     private int select(byte[] protocols) {
-        return adapter.selectAlpnProtocol(protocols);
+        return adapter.selectApplicationProtocol(protocols);
     }
 
     private void mockSelection(String returnValue) {
-        when(selector.selectAlpnProtocol(same(engine), Matchers.anyListOf(String.class)))
+        when(selector.selectApplicationProtocol(same(engine), Matchers.anyListOf(String.class)))
                 .thenReturn(returnValue);
     }
 

@@ -275,24 +275,29 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     }
 
     @Override
-    void setAlpnProtocols(String[] alpnProtocols) {
-        delegate.setAlpnProtocols(alpnProtocols);
+    void setApplicationProtocols(String[] protocols) {
+        delegate.setApplicationProtocols(protocols);
     }
 
     @Override
-    void setAlpnProtocols(byte[] alpnProtocols) {
-        delegate.setAlpnProtocols(alpnProtocols);
+    String[] getApplicationProtocols() {
+        return delegate.getApplicationProtocols();
     }
 
     @Override
-    void setAlpnProtocolSelector(AlpnProtocolSelector selector) {
-        delegate.setAlpnProtocolSelector(
-                selector == null ? null : new AlpnProtocolSelectorAdapter(this, selector));
+    public String getApplicationProtocol​() {
+        return delegate.getApplicationProtocol​();
     }
 
     @Override
-    byte[] getAlpnSelectedProtocol() {
-        return delegate.getAlpnSelectedProtocol();
+    void setApplicationProtocolSelector(ApplicationProtocolSelector selector) {
+        delegate.setApplicationProtocolSelector(
+                selector == null ? null : new ApplicationProtocolSelectorAdapter(this, selector));
+    }
+
+    @Override
+    public String getHandshakeApplicationProtocol​() {
+        return delegate.getHandshakeApplicationProtocol​();
     }
 
     /* @Override */
@@ -300,7 +305,7 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     public void setHandshakeApplicationProtocolSelector​(
             final BiFunction<SSLEngine, List<String>, String> selector) {
         this.selector = selector;
-        setAlpnProtocolSelector(toAlpnProtocolSelector(selector));
+        setApplicationProtocolSelector(toApplicationProtocolSelector(selector));
     }
 
     /* @Override */
@@ -309,16 +314,16 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
         return selector;
     }
 
-    private static AlpnProtocolSelector toAlpnProtocolSelector(
+    private static ApplicationProtocolSelector toApplicationProtocolSelector(
             final BiFunction<SSLEngine, List<String>, String> selector) {
-        return selector == null ? null : new AlpnProtocolSelector() {
+        return selector == null ? null : new ApplicationProtocolSelector() {
             @Override
-            public String selectAlpnProtocol(SSLEngine engine, List<String> protocols) {
+            public String selectApplicationProtocol(SSLEngine engine, List<String> protocols) {
                 return selector.apply(engine, protocols);
             }
 
             @Override
-            public String selectAlpnProtocol(SSLSocket socket, List<String> protocols) {
+            public String selectApplicationProtocol(SSLSocket socket, List<String> protocols) {
                 throw new UnsupportedOperationException();
             }
         };

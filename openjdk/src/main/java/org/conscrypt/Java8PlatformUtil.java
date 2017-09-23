@@ -32,7 +32,7 @@ import javax.net.ssl.SSLSocket;
 final class Java8PlatformUtil {
     static void setSSLParameters(
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
-        impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
+        Java7PlatformUtil.setSSLParameters(params, impl);
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
         List<SNIServerName> serverNames = params.getServerNames();
 
@@ -48,7 +48,7 @@ final class Java8PlatformUtil {
 
     static void getSSLParameters(
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
-        params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
+        Java7PlatformUtil.getSSLParameters(params, impl);
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
             params.setServerNames(Collections.singletonList(
@@ -58,7 +58,7 @@ final class Java8PlatformUtil {
 
     static void setSSLParameters(
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
-        impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
+        Java7PlatformUtil.setSSLParameters(params, impl);
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
         List<SNIServerName> serverNames = params.getServerNames();
 
@@ -73,7 +73,7 @@ final class Java8PlatformUtil {
     }
     static void getSSLParameters(
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
-        params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
+        Java7PlatformUtil.getSSLParameters(params, impl);
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             params.setServerNames(Collections.singletonList(
