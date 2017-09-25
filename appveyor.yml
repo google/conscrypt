@@ -6,7 +6,7 @@ environment:
   ANDROID_TOOLS_URL: "https://dl.google.com/android/repository/tools_r25.2.3-windows.zip"
   NINJA_URL: "https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-win.zip"
   CMAKE_URL: "https://cmake.org/files/v3.4/cmake-3.4.0-win32-x86.zip"
-  MSVC: "2017\Community"
+  MSVC_HOME: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community"
 
 clone_folder: "C:\\projects\\conscrypt"
 shallow_clone: true
@@ -56,7 +56,7 @@ init:
 
 before_build:
   # Build BoringSSL in 64-bit
-  - call "C:\Program Files (x86)\Microsoft Visual Studio\%MSVC%\VC\Auxiliary\Build\vcvarsall.bat" x64
+  - call "%MSVC_HOME%\VC\Auxiliary\Build\vcvarsall.bat" x64
   - cd "%BORINGSSL_HOME%"
   - mkdir build64
   - cd build64
@@ -64,7 +64,7 @@ before_build:
   - ninja
 
   # Build BoringSSL in 32-bit
-  - call "C:\Program Files (x86)\Microsoft Visual Studio\%MSVC%\VC\Auxiliary\Build\vcvarsall.bat" x86
+  - call "%MSVC_HOME%\VC\Auxiliary\Build\vcvarsall.bat" x86
   - cd "%BORINGSSL_HOME%"
   - mkdir build32
   - cd build32
