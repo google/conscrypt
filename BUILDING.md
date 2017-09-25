@@ -71,15 +71,20 @@ ninja
 ```
 
 ##### Building on Windows
-This assumes that you have Microsoft Visual Studio 2015 installed along
-with Windows 8.1 SDK and your machine is capable of compiling 64-bit.
-Visual Studio 2015 sets the `VS140COMNTOOLS` environment variable upon
-installation.
+This assumes that you have Microsoft Visual Studio 2017 installed along
+with both the Windows 8.1 and 10 SDKs and that your machine is capable of
+compiling 64-bit.
+
+Unlike earlier versions, Visual Studio 2017 doesn't appear to set an
+environment variable to simplify building from the command line. The
+instructions below assume the default installation of the community
+edition. To use another edition or a non-standard install path, you'll
+need to modify the paths below as appropriate.
 
 To build in 64-bit mode, set up with this command line:
 
 ```bat
-call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" amd64 8.1
+call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
 mkdir build64
 cd build64
 ```
@@ -87,7 +92,7 @@ cd build64
 To build in 32-bit mode, set up with this command line:
 
 ```bat
-call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x86 8.1
+call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86
 mkdir build32
 cd build32
 ```
