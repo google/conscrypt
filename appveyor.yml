@@ -6,12 +6,12 @@ environment:
   ANDROID_TOOLS_URL: "https://dl.google.com/android/repository/tools_r25.2.3-windows.zip"
   NINJA_URL: "https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-win.zip"
   CMAKE_URL: "https://cmake.org/files/v3.4/cmake-3.4.0-win32-x86.zip"
-  MSVC: "14.0"
+  MSVC_HOME: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community"
 
 clone_folder: "C:\\projects\\conscrypt"
 shallow_clone: true
 
-os: Visual Studio 2015
+os: Visual Studio 2017
 
 platform:
   # - x86
@@ -55,26 +55,21 @@ init:
   - set PATH=C:\Program Files (x86)\Windows Kits\8.1\bin\x86;%PATH%
 
 before_build:
-  # Set up Visual Studio in 64-bit mode
-  - call "C:\Program Files (x86)\Microsoft Visual Studio %MSVC%\VC\vcvarsall.bat" x64
-
   # Build BoringSSL in 64-bit
+  - call "%MSVC_HOME%\VC\Auxiliary\Build\vcvarsall.bat" x64
   - cd "%BORINGSSL_HOME%"
   - mkdir build64
   - cd build64
   - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
   - ninja
 
-  # Set up Visual Studio in 32-bit mode
-  - call "C:\Program Files (x86)\Microsoft Visual Studio %MSVC%\VC\vcvarsall.bat"
-
-  # TODO(nathanmittler): Need to figure out how to make 32-bit builds work
   # Build BoringSSL in 32-bit
-  # - cd "%BORINGSSL_HOME%"
-  # - mkdir build32
-  # - cd build32
-  # - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
-  # - ninja
+  - call "%MSVC_HOME%\VC\Auxiliary\Build\vcvarsall.bat" x86
+  - cd "%BORINGSSL_HOME%"
+  - mkdir build32
+  - cd build32
+  - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+  - ninja
 
   # Go to project directory
   - cd C:\projects\conscrypt
