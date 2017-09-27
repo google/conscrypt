@@ -1065,7 +1065,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     @Override
     public String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
             String[] keyTypes) {
-        return keyManager.chooseClientAlias(keyTypes, null, this);
+        return keyManager.chooseClientAlias(keyTypes, issuers, this);
     }
 
     @Override
