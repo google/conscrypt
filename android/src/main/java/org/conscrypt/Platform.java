@@ -183,11 +183,23 @@ final class Platform {
         } catch (Exception e) {
             // We don't want to spam the logcat since this isn't a fatal error, but we want to know
             // why this might be happening.
-            Log.w(TAG, "Could not set socket write timeout:");
-            StackTraceElement[] elements = e.getStackTrace();
-            for (int i = 0; i < 2 && i < elements.length; i++) {
-                Log.w(TAG, "   " + elements[i].toString());
+            logStackTraceSnippet("Could not set socket write timeout: " + e, e);
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                logStackTraceSnippet("Caused by: " + cause, cause);
+                cause = cause.getCause();
             }
+        }
+    }
+
+    /**
+     * Logs an abbreviated stacktrace (summary and a couple of StackTraceElements).
+     */
+    private static void logStackTraceSnippet(String summary, Throwable throwable) {
+        Log.w(TAG, summary);
+        StackTraceElement[] elements = throwable.getStackTrace();
+        for (int i = 0; i < 2 && i < elements.length; i++) {
+            Log.w(TAG, "\tat " + elements[i].toString());
         }
     }
 
