@@ -28,7 +28,7 @@ import static org.conscrypt.NativeConstants.SSL_VERIFY_PEER;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.SocketTimeoutException;
+import java.net.SocketException;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -363,7 +363,10 @@ final class SslWrapper {
 
     // TODO(nathanmittler): Remove once after we switch to the engine socket.
     void doHandshake(FileDescriptor fd, int timeoutMillis)
-            throws CertificateException, SocketTimeoutException, SSLException {
+            throws CertificateException, IOException {
+        if (isClosed() || fd == null || !fd.valid()) {
+            throw new SocketException("Socket is closed");
+        }
         NativeCrypto.SSL_do_handshake(ssl, fd, handshakeCallbacks, timeoutMillis);
     }
 
@@ -374,12 +377,18 @@ final class SslWrapper {
     // TODO(nathanmittler): Remove once after we switch to the engine socket.
     int read(FileDescriptor fd, byte[] buf, int offset, int len, int timeoutMillis)
             throws IOException {
+        if (isClosed() || fd == null || !fd.valid()) {
+            throw new SocketException("Socket is closed");
+        }
         return NativeCrypto.SSL_read(ssl, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
     }
 
     // TODO(nathanmittler): Remove once after we switch to the engine socket.
     void write(FileDescriptor fd, byte[] buf, int offset, int len, int timeoutMillis)
             throws IOException {
+        if (isClosed() || fd == null || !fd.valid()) {
+            throw new SocketException("Socket is closed");
+        }
         NativeCrypto.SSL_write(ssl, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
     }
 
