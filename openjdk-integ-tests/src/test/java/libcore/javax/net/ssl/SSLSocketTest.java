@@ -2457,6 +2457,30 @@ public class SSLSocketTest extends AbstractSSLTest {
         }
     }
 
+    // Under some circumstances, the file descriptor socket may get finalized but still
+    // be reused by the JDK's built-in HTTP connection reuse code.  Ensure that a
+    // SocketException is thrown if that happens.
+    @Test
+    public void test_SSLSocket_finalizeThrowsProperException() throws Exception {
+        TestSSLSocketPair test = TestSSLSocketPair.create().connect();
+        try {
+            if (isConscryptFdSocket(test.client)) {
+                SSLSocket underlying = unwrap(test.client);
+                Method method = underlying.getClass().getDeclaredMethod("finalize");
+                method.setAccessible(true);
+                method.invoke(underlying);
+                try {
+                    test.client.getOutputStream().write(new byte[] { 0x01 });
+                    fail("The socket shouldn't work after being finalized");
+                } catch (SocketException expected) {
+                    // Expected
+                }
+            }
+        } finally {
+            test.close();
+        }
+    }
+
     private static void setWriteTimeout(Object socket, int timeout) {
         Exception ex = null;
         try {
