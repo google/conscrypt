@@ -422,21 +422,21 @@ public final class Java8SocketWrapper extends AbstractConscryptSocket {
     @Override
     @Deprecated
     @SuppressWarnings("deprecation")
-    byte[] getAlpnSelectedProtocol() {
+    public byte[] getAlpnSelectedProtocol() {
         return delegate.getAlpnSelectedProtocol();
     }
 
     @Override
     @Deprecated
     @SuppressWarnings("deprecation")
-    void setAlpnProtocols(String[] alpnProtocols) {
+    public void setAlpnProtocols(String[] alpnProtocols) {
         delegate.setAlpnProtocols(alpnProtocols);
     }
 
     @Override
     @Deprecated
     @SuppressWarnings("deprecation")
-    void setAlpnProtocols(byte[] alpnProtocols) {
+    public void setAlpnProtocols(byte[] alpnProtocols) {
         delegate.setAlpnProtocols(alpnProtocols);
     }
 
