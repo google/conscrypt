@@ -8197,13 +8197,15 @@ static jbyteArray NativeCrypto_SSL_session_id(JNIEnv* env, jclass, jlong ssl_add
         return nullptr;
     }
 
-    jbyteArray result = env->NewByteArray(static_cast<jsize>(ssl_session->session_id_length));
+    unsigned session_id_length;
+    const uint8_t* session_id = SSL_SESSION_get_id(ssl_session, &session_id_length);
+    jbyteArray result = env->NewByteArray(static_cast<jsize>(session_id_length));
     if (result != nullptr) {
-        jbyte* src = reinterpret_cast<jbyte*>(ssl_session->session_id);
-        env->SetByteArrayRegion(result, 0, static_cast<jsize>(ssl_session->session_id_length), src);
+        const jbyte* src = reinterpret_cast<const jbyte*>(session_id);
+        env->SetByteArrayRegion(result, 0, static_cast<jsize>(session_id_length), src);
     }
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_session_id => %p session_id_length=%d", ssl_session,
-              result, ssl_session->session_id_length);
+              result, session_id_length);
     return result;
 }
 
