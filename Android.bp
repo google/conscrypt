@@ -14,6 +14,35 @@
 // limitations under the License.
 //
 
+//
+// Definitions for building the Conscrypt Java library, native code,
+// and associated tests.
+//
+
+// Conscrypt is divided into modules.
+//
+// The structure is:
+//
+//   constants/
+//       src/gen             # Generates NativeConstants.java.
+//   common/
+//       src/main/java       # Common Java source for all platforms.
+//       src/jni/
+//            main           # Common C++ source for all platforms.
+//            unbundled      # C++ source used for OpenJDK and unbundled Android.
+//   android/
+//       src/main/java       # Java source for unbundled Android.
+//   openjdk/
+//       src/main/java       # Java source for OpenJDK.
+//       src/test
+//            java/          # Java source for common tests.
+//            resources/     # Support files for tests
+//   platform/
+//       src/main/java       # Java source for bundled Android.
+//       src/test
+//            java/          # Java source for bundled tests.
+//
+
 cc_defaults {
     name: "conscrypt_global",
 
@@ -42,7 +71,7 @@ cc_defaults {
 }
 
 cc_defaults {
-    name: "conscrypt_unbundled",
+    name: "conscrypt_unbundled-jni-defaults",
 
     local_include_dirs: [
         "common/src/jni/unbundled/include",
@@ -64,7 +93,10 @@ cc_defaults {
 
 cc_library {
     name: "libconscrypt_jni",
-    defaults: ["conscrypt_global", "conscrypt_unbundled"],
+    defaults: [
+        "conscrypt_global",
+        "conscrypt_unbundled-jni-defaults",
+    ],
 }
 
 cc_library_host_shared {
@@ -96,4 +128,163 @@ cc_library_host_shared {
     },
 
     stl: "libc++_static",
+}
+
+cc_binary_host {
+    name: "conscrypt_generate_constants",
+    srcs: ["constants/src/gen/cpp/generate_constants.cc"],
+    shared_libs: [
+        "libcrypto",
+        "libssl",
+    ],
+}
+
+genrule {
+    name: "conscrypt_generated_constants",
+    out: ["org/conscrypt/NativeConstants.java"],
+    cmd: "$(location conscrypt_generate_constants) > $(out)",
+    tools: ["conscrypt_generate_constants"],
+}
+
+// Create the conscrypt library without jarjar for tests
+java_library_static {
+    name: "conscrypt-nojarjar",
+    host_supported: true,
+    hostdex: true,
+
+    srcs: [
+        "common/src/main/java/**/*.java",
+        ":conscrypt_generated_constants",
+    ],
+
+    target: {
+        android: {
+            srcs: ["platform/src/main/java/**/*.java"],
+        },
+        host: {
+            srcs: ["openjdk/src/main/java/**/*.java"],
+            javacflags: ["-XDignore.symbol.file"],
+        },
+    },
+
+    no_framework_libs: true,
+
+    required: ["libjavacrypto"],
+    java_version: "1.7",
+}
+
+// Create the conscrypt library by running jarjar on conscrypt-nojarjar
+java_library {
+    name: "conscrypt",
+    host_supported: true,
+    hostdex: true,
+    no_framework_libs: true,
+    static_libs: ["conscrypt-nojarjar"],
+    required: ["libjavacrypto"],
+    target: {
+        android: {
+            jarjar_rules: "jarjar-rules.txt",
+        },
+    },
+}
+
+// A guaranteed unstripped version of conscrypt.
+// The build system may or may not strip the conscrypt jar, but this one will
+// not be stripped. See b/24535627.
+java_library {
+    name: "conscrypt-testdex",
+    no_framework_libs: true,
+    required: ["libjavacrypto"],
+    static_libs: ["conscrypt-nojarjar"],
+    jarjar_rules: "jarjar-rules.txt",
+}
+
+// Platform conscrypt crypto JNI library
+cc_defaults {
+    name: "libjavacrypto-defaults",
+
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wunused",
+        "-fvisibility=hidden",
+    ],
+
+    srcs: ["common/src/jni/main/cpp/**/*.cc"],
+    include_dirs: [
+        "libcore/luni/src/main/native",
+    ],
+    local_include_dirs: ["common/src/jni/main/include"],
+}
+
+// Platform conscrypt crypto JNI library
+cc_library_shared {
+    name: "libjavacrypto",
+    host_supported: true,
+    defaults: ["libjavacrypto-defaults"],
+
+    cflags: ["-DJNI_JARJAR_PREFIX=com/android/"],
+    shared_libs: [
+        "libcrypto",
+        "libjavacore",
+        "liblog",
+        "libnativehelper",
+        "libssl",
+    ],
+
+    target: {
+        darwin: {
+            enabled: false,
+        },
+    },
+}
+
+// Unbundled Conscrypt jar
+java_library_static {
+    name: "conscrypt_unbundled",
+
+    srcs: [
+        "common/src/main/java/**/*.java",
+        "android/src/main/java/**/*.java",
+        ":conscrypt_generated_constants",
+    ],
+
+    libs: ["conscrypt-stubs"],
+
+    // TODO(ccross): put this back to "current" once it is supported
+    sdk_version: "26",
+    java_version: "1.7",
+}
+
+// Stub library for unbundled builds
+java_library_static {
+    name: "conscrypt-stubs",
+
+    srcs: ["android-stub/src/main/java/**/*.java"],
+
+    // TODO(ccross): put this back to "current" once it is supported
+    sdk_version: "26",
+    java_version: "1.7",
+}
+
+// Static unbundled Conscrypt crypto JNI library
+cc_library_static {
+    name: "libconscrypt_static",
+    defaults: ["libjavacrypto-defaults"],
+
+    cflags: [
+        "-DJNI_JARJAR_PREFIX=com/google/android/gms/",
+        "-DCONSCRYPT_UNBUNDLED",
+        "-DSTATIC_LIB",
+    ],
+
+    local_include_dirs: ["common/src/jni/unbundled/include"],
+
+    static_libs: [
+        "libssl",
+        "libcrypto",
+    ],
+    sdk_version: "9",
+    stl: "c++_shared",
 }
