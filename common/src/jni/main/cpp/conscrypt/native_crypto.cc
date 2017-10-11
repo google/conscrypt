@@ -6066,15 +6066,7 @@ static int new_session_callback(SSL* ssl, SSL_SESSION* session) {
     return 0;
 }
 
-// TODO(davidben): Remove the version check once BoringSSL has switched to
-// advertising OpenSSL 1.1.0.
-static SSL_SESSION* server_session_requested_callback(SSL* ssl,
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-                                                      uint8_t* id,
-#else
-                                                      const uint8_t* id,
-#endif
-                                                      int id_len,
+static SSL_SESSION* server_session_requested_callback(SSL* ssl, const uint8_t* id, int id_len,
                                                       int* out_copy) {
     JNI_TRACE("ssl=%p server_session_requested_callback", ssl);
 
