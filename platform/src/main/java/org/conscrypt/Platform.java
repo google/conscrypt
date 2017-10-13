@@ -272,19 +272,19 @@ final class Platform {
     }
 
     static SSLEngine wrapEngine(ConscryptEngine engine) {
-        return Java8PlatformUtil.wrapEngine(engine);
+        return new Java8EngineWrapper(engine);
     }
 
     static SSLEngine unwrapEngine(SSLEngine engine) {
-        return Java8PlatformUtil.unwrapEngine(engine);
+        return Java8EngineWrapper.getDelegate(engine);
     }
 
     static SSLSocket wrapSocket(ConscryptSocketBase socket) {
-        return Java8PlatformUtil.wrapSocket(socket);
+        return new Java8SocketWrapper(socket);
     }
 
     static SSLSocket unwrapSocket(SSLSocket socket) {
-        return Java8PlatformUtil.unwrapSocket(socket);
+        return Java8SocketWrapper.getDelegate(socket);
     }
 
     /**
