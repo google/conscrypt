@@ -19,6 +19,7 @@
 
 #include <NetFd.h>
 #include <conscrypt/compat.h>
+#include <conscrypt/jniutil.h>
 #include <conscrypt/netutil.h>
 #include <conscrypt/trace.h>
 
