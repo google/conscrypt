@@ -1042,7 +1042,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
             }
         }
 
-        /** Constant time array comparison. */
+        /** Constant-time array comparison.  Since we are using this to compare keys, we want to
+         * ensure there's no opportunity for a timing attack. */
         private boolean arraysAreEqual(byte[] a, byte[] b) {
             if (a.length != b.length) {
                 return false;
