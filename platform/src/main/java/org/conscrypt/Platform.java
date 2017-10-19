@@ -33,12 +33,14 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
+import java.security.AlgorithmParameters;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
+import java.security.spec.InvalidParameterSpecException;
 import java.util.Collections;
 import java.util.List;
 import javax.crypto.spec.GCMParameterSpec;
@@ -304,6 +306,17 @@ final class Platform {
             return new GCMParameters(gcmParams.getTLen(), gcmParams.getIV());
         }
         return null;
+    }
+
+    /**
+     * Convert from an opaque AlgorithmParameters to the platform's GCMParameterSpec.
+     */
+    static AlgorithmParameterSpec fromGCMParameters(AlgorithmParameters params) {
+        try {
+            return params.getParameterSpec(GCMParameterSpec.class);
+        } catch (InvalidParameterSpecException e) {
+            return null;
+        }
     }
 
     /**

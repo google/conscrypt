@@ -75,6 +75,8 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.22", "AES");
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.42", "AES");
 
+        put("AlgorithmParameters.ChaCha20", PREFIX + "IvParameters$ChaCha20");
+
         put("AlgorithmParameters.DESEDE", PREFIX + "IvParameters$DESEDE");
         put("Alg.Alias.AlgorithmParameters.TDEA", "DESEDE");
         put("Alg.Alias.AlgorithmParameters.1.2.840.113549.3.7", "DESEDE");
@@ -114,6 +116,8 @@ public final class OpenSSLProvider extends Provider {
 
         /* == KeyGenerators == */
         put("KeyGenerator.AES", PREFIX + "KeyGeneratorImpl$AES");
+
+        put("KeyGenerator.ChaCha20", PREFIX + "KeyGeneratorImpl$ChaCha20");
 
         put("KeyGenerator.DESEDE", PREFIX + "KeyGeneratorImpl$DESEDE");
         put("Alg.Alias.KeyGenerator.TDEA", "DESEDE");
@@ -405,6 +409,9 @@ public final class OpenSSLProvider extends Provider {
                 "AES_128/GCM/NoPadding", "OpenSSLCipher$EVP_AEAD$AES$GCM$AES_128");
         putSymmetricCipherImplClass(
                 "AES_256/GCM/NoPadding", "OpenSSLCipher$EVP_AEAD$AES$GCM$AES_256");
+
+        putSymmetricCipherImplClass("ChaCha20",
+                "OpenSSLCipher$EVP_AEAD$ChaCha20");
 
         /* === Mac === */
 

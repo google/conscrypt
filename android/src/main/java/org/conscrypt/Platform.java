@@ -32,12 +32,14 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
+import java.security.AlgorithmParameters;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
+import java.security.spec.InvalidParameterSpecException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -605,6 +607,28 @@ final class Platform {
             } catch (InvocationTargetException e) {
                 throw new RuntimeException(
                         "Could not fetch GCM parameters", e.getTargetException());
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Convert from an opaque AlgorithmParameters to the platform's GCMParameterSpec.
+     */
+    @SuppressWarnings("LiteralClassName")
+    static AlgorithmParameterSpec fromGCMParameters(AlgorithmParameters params) {
+        Class<?> gcmSpecClass;
+        try {
+            gcmSpecClass = Class.forName("javax.crypto.spec.GCMParameterSpec");
+        } catch (ClassNotFoundException e) {
+            gcmSpecClass = null;
+        }
+
+        if (gcmSpecClass != null) {
+            try {
+                return params.getParameterSpec((Class) gcmSpecClass);
+            } catch (InvalidParameterSpecException e) {
+                return null;
             }
         }
         return null;
