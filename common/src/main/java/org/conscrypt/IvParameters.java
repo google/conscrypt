@@ -111,4 +111,5 @@ public class IvParameters extends AlgorithmParametersSpi {
 
     public static class AES extends IvParameters {}
     public static class DESEDE extends IvParameters {}
+    public static class ChaCha20 extends IvParameters {}
 }

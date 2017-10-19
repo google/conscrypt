@@ -165,4 +165,17 @@ public abstract class KeyGeneratorImpl extends KeyGeneratorSpi {
             }
         }
     }
+
+    public static final class ChaCha20 extends KeyGeneratorImpl {
+        public ChaCha20() {
+            super("ChaCha20", 256);
+        }
+
+        @Override
+        protected void checkKeySize(int keySize) {
+            if (keySize != 256) {
+                throw new InvalidParameterException("Key size must be 256 bits");
+            }
+        }
+    }
 }
