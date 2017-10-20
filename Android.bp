@@ -252,8 +252,7 @@ java_library_static {
 
     libs: ["conscrypt-stubs"],
 
-    // TODO(ccross): put this back to "current" once it is supported
-    sdk_version: "26",
+    sdk_version: "current",
     java_version: "1.7",
 }
 
@@ -263,8 +262,7 @@ java_library_static {
 
     srcs: ["android-stub/src/main/java/**/*.java"],
 
-    // TODO(ccross): put this back to "current" once it is supported
-    sdk_version: "26",
+    sdk_version: "current",
     java_version: "1.7",
 }
 
