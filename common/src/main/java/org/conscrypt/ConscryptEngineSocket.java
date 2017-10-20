@@ -113,17 +113,17 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     }
 
     @Override
-    public SSLParameters getSSLParameters() {
+    public final SSLParameters getSSLParameters() {
         return engine.getSSLParameters();
     }
 
     @Override
-    public void setSSLParameters(SSLParameters sslParameters) {
+    public final void setSSLParameters(SSLParameters sslParameters) {
         engine.setSSLParameters(sslParameters);
     }
 
     @Override
-    public void startHandshake() throws IOException {
+    public final void startHandshake() throws IOException {
         checkOpen();
 
         try {
@@ -209,7 +209,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     }
 
     @Override
-    public InputStream getInputStream() throws IOException {
+    public final InputStream getInputStream() throws IOException {
         checkOpen();
 
         // Block waiting for a handshake without a lock held. It's possible that the socket
@@ -220,7 +220,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     }
 
     @Override
-    public OutputStream getOutputStream() throws IOException {
+    public final OutputStream getOutputStream() throws IOException {
         checkOpen();
 
         // Block waiting for a handshake without a lock held. It's possible that the socket
@@ -232,12 +232,12 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     }
 
     @Override
-    public SSLSession getHandshakeSession() {
+    public final SSLSession getHandshakeSession() {
         return engine.handshakeSession();
     }
 
     @Override
-    public SSLSession getSession() {
+    public final SSLSession getSession() {
         SSLSession session = engine.getSession();
         if (SSLNullSession.isNullSession(session)) {
             boolean handshakeCompleted = false;
@@ -260,47 +260,47 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     }
 
     @Override
-    SSLSession getActiveSession() {
+    final SSLSession getActiveSession() {
         return engine.getSession();
     }
 
     @Override
-    public boolean getEnableSessionCreation() {
+    public final boolean getEnableSessionCreation() {
         return engine.getEnableSessionCreation();
     }
 
     @Override
-    public void setEnableSessionCreation(boolean flag) {
+    public final void setEnableSessionCreation(boolean flag) {
         engine.setEnableSessionCreation(flag);
     }
 
     @Override
-    public String[] getSupportedCipherSuites() {
+    public final String[] getSupportedCipherSuites() {
         return engine.getSupportedCipherSuites();
     }
 
     @Override
-    public String[] getEnabledCipherSuites() {
+    public final String[] getEnabledCipherSuites() {
         return engine.getEnabledCipherSuites();
     }
 
     @Override
-    public void setEnabledCipherSuites(String[] suites) {
+    public final void setEnabledCipherSuites(String[] suites) {
         engine.setEnabledCipherSuites(suites);
     }
 
     @Override
-    public String[] getSupportedProtocols() {
+    public final String[] getSupportedProtocols() {
         return engine.getSupportedProtocols();
     }
 
     @Override
-    public String[] getEnabledProtocols() {
+    public final String[] getEnabledProtocols() {
         return engine.getEnabledProtocols();
     }
 
     @Override
-    public void setEnabledProtocols(String[] protocols) {
+    public final void setEnabledProtocols(String[] protocols) {
         engine.setEnabledProtocols(protocols);
     }
 
@@ -310,64 +310,64 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
      * @param hostname the desired SNI hostname, or null to disable
      */
     @Override
-    public void setHostname(String hostname) {
+    public final void setHostname(String hostname) {
         engine.setHostname(hostname);
         super.setHostname(hostname);
     }
 
     @Override
-    public void setUseSessionTickets(boolean useSessionTickets) {
+    public final void setUseSessionTickets(boolean useSessionTickets) {
         engine.setUseSessionTickets(useSessionTickets);
     }
 
     @Override
-    public void setChannelIdEnabled(boolean enabled) {
+    public final void setChannelIdEnabled(boolean enabled) {
         engine.setChannelIdEnabled(enabled);
     }
 
     @Override
-    public byte[] getChannelId() throws SSLException {
+    public final byte[] getChannelId() throws SSLException {
         return engine.getChannelId();
     }
 
     @Override
-    public void setChannelIdPrivateKey(PrivateKey privateKey) {
+    public final void setChannelIdPrivateKey(PrivateKey privateKey) {
         engine.setChannelIdPrivateKey(privateKey);
     }
 
     @Override
-    public boolean getUseClientMode() {
+    public final boolean getUseClientMode() {
         return engine.getUseClientMode();
     }
 
     @Override
-    public void setUseClientMode(boolean mode) {
+    public final void setUseClientMode(boolean mode) {
         engine.setUseClientMode(mode);
     }
 
     @Override
-    public boolean getWantClientAuth() {
+    public final boolean getWantClientAuth() {
         return engine.getWantClientAuth();
     }
 
     @Override
-    public boolean getNeedClientAuth() {
+    public final boolean getNeedClientAuth() {
         return engine.getNeedClientAuth();
     }
 
     @Override
-    public void setNeedClientAuth(boolean need) {
+    public final void setNeedClientAuth(boolean need) {
         engine.setNeedClientAuth(need);
     }
 
     @Override
-    public void setWantClientAuth(boolean want) {
+    public final void setWantClientAuth(boolean want) {
         engine.setWantClientAuth(want);
     }
 
     @Override
     @SuppressWarnings("UnsynchronizedOverridesSynchronized")
-    public void close() throws IOException {
+    public final void close() throws IOException {
         // TODO: Close SSL sockets using a background thread so they close gracefully.
 
         synchronized (stateLock) {
@@ -390,33 +390,33 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     }
 
     @Override
-    void setApplicationProtocols(String[] protocols) {
+    final void setApplicationProtocols(String[] protocols) {
         engine.setApplicationProtocols(protocols);
     }
 
     @Override
-    String[] getApplicationProtocols() {
+    final String[] getApplicationProtocols() {
         return engine.getApplicationProtocols();
     }
 
     @Override
-    public String getApplicationProtocol​() {
+    public final String getApplicationProtocol​() {
         return engine.getApplicationProtocol​();
     }
 
     @Override
-    public String getHandshakeApplicationProtocol​() {
+    public final String getHandshakeApplicationProtocol​() {
         return engine.getHandshakeApplicationProtocol​();
     }
 
     @Override
-    public void setApplicationProtocolSelector(ApplicationProtocolSelector selector) {
+    public final void setApplicationProtocolSelector(ApplicationProtocolSelector selector) {
         setApplicationProtocolSelector(
                 selector == null ? null : new ApplicationProtocolSelectorAdapter(this, selector));
     }
 
     @Override
-    void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter selector) {
+    final void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter selector) {
         engine.setApplicationProtocolSelector(selector);
     }
 
