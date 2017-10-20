@@ -274,11 +274,11 @@ final class Platform {
     }
 
     static SSLEngine wrapEngine(ConscryptEngine engine) {
-        return Java8PlatformUtil.wrapEngine(engine);
+        return new Java8EngineWrapper(engine);
     }
 
     static SSLEngine unwrapEngine(SSLEngine engine) {
-        return Java8PlatformUtil.unwrapEngine(engine);
+        return Java8EngineWrapper.getDelegate(engine);
     }
 
     static ConscryptEngineSocket createEngineSocket(SSLParametersImpl sslParameters)
