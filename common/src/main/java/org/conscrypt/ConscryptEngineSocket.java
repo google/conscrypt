@@ -42,7 +42,7 @@ import javax.net.ssl.SSLSession;
 /**
  * Implements crypto handling by delegating to {@link ConscryptEngine}.
  */
-final class ConscryptEngineSocket extends OpenSSLSocketImpl {
+class ConscryptEngineSocket extends OpenSSLSocketImpl {
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
 
     private final ConscryptEngine engine;
@@ -55,6 +55,8 @@ final class ConscryptEngineSocket extends OpenSSLSocketImpl {
     // @GuardedBy("stateLock");
     private int state = STATE_NEW;
 
+    // The constructors should not be called except from the Platform class, because we may
+    // want to construct a subclass instead.
     ConscryptEngineSocket(SSLParametersImpl sslParameters) throws IOException {
         engine = newEngine(sslParameters, this);
     }

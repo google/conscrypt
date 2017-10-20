@@ -651,7 +651,7 @@ public class SSLSocketTest extends AbstractSSLTest {
                     TestSSLContext.assertCertificateInKeyStore(peerPrincipal, c.serverKeyStore);
                     assertNull(localPrincipal);
                     assertNotNull(socket);
-                    assertSame(unwrap(client), socket);
+                    assertSame(client, socket);
                     assertNull(getHandshakeSession((SSLSocket) socket));
                     synchronized (handshakeCompletedListenerCalled) {
                         handshakeCompletedListenerCalled[0] = true;
@@ -2465,10 +2465,22 @@ public class SSLSocketTest extends AbstractSSLTest {
         TestSSLSocketPair test = TestSSLSocketPair.create().connect();
         try {
             if (isConscryptFdSocket(test.client)) {
-                SSLSocket underlying = unwrap(test.client);
-                Method method = underlying.getClass().getDeclaredMethod("finalize");
+                // The finalize method might be declared on a superclass rather than this
+                // class.
+                Method method = null;
+                Class<?> clazz = test.client.getClass();
+                while (clazz != null) {
+                    try {
+                        method = clazz.getDeclaredMethod("finalize");
+                        break;
+                    } catch (NoSuchMethodException e) {
+                        // Try the superclass
+                    }
+                    clazz = clazz.getSuperclass();
+                }
+                assertNotNull(method);
                 method.setAccessible(true);
-                method.invoke(underlying);
+                method.invoke(test.client);
                 try {
                     test.client.getOutputStream().write(new byte[] { 0x01 });
                     fail("The socket shouldn't work after being finalized");
@@ -2523,22 +2535,20 @@ public class SSLSocketTest extends AbstractSSLTest {
         return isConscryptFdSocket(socket) || isConscryptEngineSocket(socket);
     }
 
-    private static SSLSocket unwrap(SSLSocket socket) {
-        try {
-            Class<?> platformClass = TestUtils.conscryptClass("Platform");
-            Method method = platformClass.getDeclaredMethod("unwrapSocket", SSLSocket.class);
-            method.setAccessible(true);
-            return (SSLSocket) method.invoke(null, socket);
-        } catch (Exception e) {
-            return socket;
-        }
-    }
     private static boolean isConscryptFdSocket(SSLSocket socket) {
-        return "ConscryptFileDescriptorSocket".equals(unwrap(socket).getClass().getSimpleName());
+        Class<?> clazz = socket.getClass();
+        while (clazz != Object.class && !"ConscryptFileDescriptorSocket".equals(clazz.getSimpleName())) {
+            clazz = clazz.getSuperclass();
+        }
+        return "ConscryptFileDescriptorSocket".equals(clazz.getSimpleName());
     }
 
     private static boolean isConscryptEngineSocket(SSLSocket socket) {
-        return "ConscryptEngineSocket".equals(unwrap(socket).getClass().getSimpleName());
+        Class<?> clazz = socket.getClass();
+        while (clazz != Object.class && !"ConscryptEngineSocket".equals(clazz.getSimpleName())) {
+            clazz = clazz.getSuperclass();
+        }
+        return "ConscryptEngineSocket".equals(clazz.getSimpleName());
     }
 
     private static String osName() {

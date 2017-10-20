@@ -56,7 +56,7 @@ import org.conscrypt.NativeRef.SSL_SESSION;
  * <li>Server Name Indication
  * </ul>
  */
-final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
+class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.AliasChooser,
                    SSLParametersImpl.PSKCallbacks {
     private static final boolean DBG_STATE = false;
@@ -101,6 +101,8 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     private int writeTimeoutMilliseconds = 0;
     private int handshakeTimeoutMilliseconds = -1; // -1 = same as timeout; 0 = infinite
 
+    // The constructors should not be called except from the Platform class, because we may
+    // want to construct a subclass instead.
     ConscryptFileDescriptorSocket(SSLParametersImpl sslParameters) throws IOException {
         this.sslParameters = sslParameters;
         this.ssl = newSsl(sslParameters, this);
