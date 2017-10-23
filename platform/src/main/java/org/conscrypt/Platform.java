@@ -25,6 +25,7 @@ import android.system.StructTimeval;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -49,7 +50,6 @@ import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509ExtendedTrustManager;
@@ -274,19 +274,77 @@ final class Platform {
     }
 
     static SSLEngine wrapEngine(ConscryptEngine engine) {
-        return Java8PlatformUtil.wrapEngine(engine);
+        return new Java8EngineWrapper(engine);
     }
 
     static SSLEngine unwrapEngine(SSLEngine engine) {
-        return Java8PlatformUtil.unwrapEngine(engine);
+        return Java8EngineWrapper.getDelegate(engine);
     }
 
-    static SSLSocket wrapSocket(ConscryptSocketBase socket) {
-        return Java8PlatformUtil.wrapSocket(socket);
+    static ConscryptEngineSocket createEngineSocket(SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8EngineSocket(sslParameters);
     }
 
-    static SSLSocket unwrapSocket(SSLSocket socket) {
-        return Java8PlatformUtil.unwrapSocket(socket);
+    static ConscryptEngineSocket createEngineSocket(String hostname, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        return new Java8EngineSocket(hostname, port, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(InetAddress address, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        return new Java8EngineSocket(address, port, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(String hostname, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8EngineSocket(hostname, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(InetAddress address, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8EngineSocket(address, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(Socket socket, String hostname, int port,
+            boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
+        return new Java8EngineSocket(socket, hostname, port, autoClose, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8FileDescriptorSocket(sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        return new Java8FileDescriptorSocket(hostname, port, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        return new Java8FileDescriptorSocket(address, port, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8FileDescriptorSocket(
+                hostname, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8FileDescriptorSocket(
+                address, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(Socket socket, String hostname,
+            int port, boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
+        return new Java8FileDescriptorSocket(socket, hostname, port, autoClose, sslParameters);
     }
 
     /**
