@@ -55,9 +55,10 @@ import org.junit.Assume;
 public final class TestUtils {
     public static final Charset UTF_8 = Charset.forName("UTF-8");
     private static final String PROTOCOL_TLS_V1_2 = "TLSv1.2";
+    private static final String PROTOCOL_TLS_V1_1 = "TLSv1.1";
     private static final String PROTOCOL_TLS_V1 = "TLSv1";
     private static final String[] DESIRED_PROTOCOLS =
-        new String[] {PROTOCOL_TLS_V1_2, /* For Java 6 */ PROTOCOL_TLS_V1};
+        new String[] {PROTOCOL_TLS_V1_2, PROTOCOL_TLS_V1_1, /* For Java 6 */ PROTOCOL_TLS_V1};
     private static final Provider JDK_PROVIDER = getDefaultTlsProvider();
     private static final byte[] CHARS =
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".getBytes(UTF_8);
