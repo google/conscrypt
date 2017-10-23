@@ -4,7 +4,8 @@
     <issue id="NewApi">
         <ignore path="**/org/conscrypt/Java7SessionWrapper.java" />
         <ignore path="**/org/conscrypt/Java8EngineWrapper.java" />
-        <ignore path="**/org/conscrypt/Java8SocketWrapper.java" />
+        <ignore path="**/org/conscrypt/Java8EngineSocket.java" />
+        <ignore path="**/org/conscrypt/Java8FileDescriptorSocket.java" />
     </issue>
 
     <!-- Android SparseArrays can't be used in common directory. -->
