@@ -56,7 +56,7 @@ import org.conscrypt.NativeRef.SSL_SESSION;
  * <li>Server Name Indication
  * </ul>
  */
-final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
+class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.AliasChooser,
                    SSLParametersImpl.PSKCallbacks {
     private static final boolean DBG_STATE = false;
@@ -101,6 +101,8 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     private int writeTimeoutMilliseconds = 0;
     private int handshakeTimeoutMilliseconds = -1; // -1 = same as timeout; 0 = infinite
 
+    // The constructors should not be called except from the Platform class, because we may
+    // want to construct a subclass instead.
     ConscryptFileDescriptorSocket(SSLParametersImpl sslParameters) throws IOException {
         this.sslParameters = sslParameters;
         this.ssl = newSsl(sslParameters, this);
@@ -164,7 +166,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      * listeners are notified at the end of the TLS/SSL handshake.
      */
     @Override
-    public void startHandshake() throws IOException {
+    public final void startHandshake() throws IOException {
         checkOpen();
         synchronized (ssl) {
             if (state == STATE_NEW) {
@@ -295,26 +297,26 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / client_cert_cb
-    public void clientCertificateRequested(byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals)
+    public final void clientCertificateRequested(byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals)
             throws CertificateEncodingException, SSLException {
         ssl.chooseClientCertificate(keyTypeBytes, asn1DerEncodedPrincipals);
     }
 
     @Override
     @SuppressWarnings("unused") // used by native psk_client_callback
-    public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key) {
+    public final int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key) {
         return ssl.clientPSKKeyRequested(identityHint, identity, key);
     }
 
     @Override
     @SuppressWarnings("unused") // used by native psk_server_callback
-    public int serverPSKKeyRequested(String identityHint, String identity, byte[] key) {
+    public final int serverPSKKeyRequested(String identityHint, String identity, byte[] key) {
         return ssl.serverPSKKeyRequested(identityHint, identity, key);
     }
 
     @Override
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / info_callback
-    public void onSSLStateChange(int type, int val) {
+    public final void onSSLStateChange(int type, int val) {
         if (type != NativeConstants.SSL_CB_HANDSHAKE_DONE) {
             // We only care about successful completion.
             return;
@@ -345,7 +347,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / new_session_callback
-    public void onNewSessionEstablished(long sslSessionNativePtr) {
+    public final void onNewSessionEstablished(long sslSessionNativePtr) {
         try {
             // Increment the reference count to "take ownership" of the session resource.
             NativeCrypto.SSL_SESSION_up_ref(sslSessionNativePtr);
@@ -366,13 +368,13 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    public long serverSessionRequested(byte[] id) {
+    public final long serverSessionRequested(byte[] id) {
         // TODO(nathanmittler): Implement server-side caching for TLS < 1.3
         return 0;
     }
 
     @Override
-    public void verifyCertificateChain(byte[][] certChain, String authMethod)
+    public final void verifyCertificateChain(byte[][] certChain, String authMethod)
             throws CertificateException {
         try {
             if (certChain == null || certChain.length == 0) {
@@ -401,7 +403,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    public InputStream getInputStream() throws IOException {
+    public final InputStream getInputStream() throws IOException {
         checkOpen();
 
         InputStream returnVal;
@@ -425,7 +427,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    public OutputStream getOutputStream() throws IOException {
+    public final OutputStream getOutputStream() throws IOException {
         checkOpen();
 
         OutputStream returnVal;
@@ -632,7 +634,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    public SSLSession getSession() {
+    public final SSLSession getSession() {
         boolean handshakeCompleted = false;
         synchronized (ssl) {
             try {
@@ -656,54 +658,54 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    SSLSession getActiveSession() {
+    final SSLSession getActiveSession() {
         return sslSession;
     }
 
     @Override
-    public SSLSession getHandshakeSession() {
+    public final SSLSession getHandshakeSession() {
         synchronized (ssl) {
             return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY ? sslSession : null;
         }
     }
 
     @Override
-    public boolean getEnableSessionCreation() {
+    public final boolean getEnableSessionCreation() {
         return sslParameters.getEnableSessionCreation();
     }
 
     @Override
-    public void setEnableSessionCreation(boolean flag) {
+    public final void setEnableSessionCreation(boolean flag) {
         sslParameters.setEnableSessionCreation(flag);
     }
 
     @Override
-    public String[] getSupportedCipherSuites() {
+    public final String[] getSupportedCipherSuites() {
         return NativeCrypto.getSupportedCipherSuites();
     }
 
     @Override
-    public String[] getEnabledCipherSuites() {
+    public final String[] getEnabledCipherSuites() {
         return sslParameters.getEnabledCipherSuites();
     }
 
     @Override
-    public void setEnabledCipherSuites(String[] suites) {
+    public final void setEnabledCipherSuites(String[] suites) {
         sslParameters.setEnabledCipherSuites(suites);
     }
 
     @Override
-    public String[] getSupportedProtocols() {
+    public final String[] getSupportedProtocols() {
         return NativeCrypto.getSupportedProtocols();
     }
 
     @Override
-    public String[] getEnabledProtocols() {
+    public final String[] getEnabledProtocols() {
         return sslParameters.getEnabledProtocols();
     }
 
     @Override
-    public void setEnabledProtocols(String[] protocols) {
+    public final void setEnabledProtocols(String[] protocols) {
         sslParameters.setEnabledProtocols(protocols);
     }
 
@@ -713,7 +715,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      * @param useSessionTickets True to enable session tickets
      */
     @Override
-    public void setUseSessionTickets(boolean useSessionTickets) {
+    public final void setUseSessionTickets(boolean useSessionTickets) {
         sslParameters.setUseSessionTickets(useSessionTickets);
     }
 
@@ -723,7 +725,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      * @param hostname the desired SNI hostname, or null to disable
      */
     @Override
-    public void setHostname(String hostname) {
+    public final void setHostname(String hostname) {
         sslParameters.setUseSni(hostname != null);
         super.setHostname(hostname);
     }
@@ -737,7 +739,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      *         started.
      */
     @Override
-    public void setChannelIdEnabled(boolean enabled) {
+    public final void setChannelIdEnabled(boolean enabled) {
         if (getUseClientMode()) {
             throw new IllegalStateException("Client mode");
         }
@@ -763,7 +765,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      * @throws SSLException if channel ID is available but could not be obtained.
      */
     @Override
-    public byte[] getChannelId() throws SSLException {
+    public final byte[] getChannelId() throws SSLException {
         if (getUseClientMode()) {
             throw new IllegalStateException("Client mode");
         }
@@ -790,7 +792,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      *         started.
      */
     @Override
-    public void setChannelIdPrivateKey(PrivateKey privateKey) {
+    public final void setChannelIdPrivateKey(PrivateKey privateKey) {
         if (!getUseClientMode()) {
             throw new IllegalStateException("Server mode");
         }
@@ -827,12 +829,12 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    public boolean getUseClientMode() {
+    public final boolean getUseClientMode() {
         return sslParameters.getUseClientMode();
     }
 
     @Override
-    public void setUseClientMode(boolean mode) {
+    public final void setUseClientMode(boolean mode) {
         synchronized (ssl) {
             if (state != STATE_NEW) {
                 throw new IllegalArgumentException(
@@ -843,22 +845,22 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    public boolean getWantClientAuth() {
+    public final boolean getWantClientAuth() {
         return sslParameters.getWantClientAuth();
     }
 
     @Override
-    public boolean getNeedClientAuth() {
+    public final boolean getNeedClientAuth() {
         return sslParameters.getNeedClientAuth();
     }
 
     @Override
-    public void setNeedClientAuth(boolean need) {
+    public final void setNeedClientAuth(boolean need) {
         sslParameters.setNeedClientAuth(need);
     }
 
     @Override
-    public void setWantClientAuth(boolean want) {
+    public final void setWantClientAuth(boolean want) {
         sslParameters.setWantClientAuth(want);
     }
 
@@ -866,7 +868,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      * Note write timeouts are not part of the javax.net.ssl.SSLSocket API
      */
     @Override
-    public void setSoWriteTimeout(int writeTimeoutMilliseconds) throws SocketException {
+    public final void setSoWriteTimeout(int writeTimeoutMilliseconds) throws SocketException {
         this.writeTimeoutMilliseconds = writeTimeoutMilliseconds;
 
         Platform.setSocketWriteTimeout(this, writeTimeoutMilliseconds);
@@ -876,7 +878,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      * Note write timeouts are not part of the javax.net.ssl.SSLSocket API
      */
     @Override
-    public int getSoWriteTimeout() throws SocketException {
+    public final int getSoWriteTimeout() throws SocketException {
         return writeTimeoutMilliseconds;
     }
 
@@ -885,13 +887,13 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      * milliseconds and will be used only during the handshake process.
      */
     @Override
-    public void setHandshakeTimeout(int handshakeTimeoutMilliseconds) throws SocketException {
+    public final void setHandshakeTimeout(int handshakeTimeoutMilliseconds) throws SocketException {
         this.handshakeTimeoutMilliseconds = handshakeTimeoutMilliseconds;
     }
 
     @Override
     @SuppressWarnings("UnsynchronizedOverridesSynchronized")
-    public void close() throws IOException {
+    public final void close() throws IOException {
         // TODO: Close SSL sockets using a background thread so they close gracefully.
 
         SSLInputStream sslInputStream;
@@ -982,7 +984,7 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    protected void finalize() throws Throwable {
+    protected final void finalize() throws Throwable {
         try {
             /*
              * Just worry about our own state. Notably we do not try and
@@ -1011,33 +1013,33 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    public void setApplicationProtocolSelector(ApplicationProtocolSelector selector) {
+    public final void setApplicationProtocolSelector(ApplicationProtocolSelector selector) {
         setApplicationProtocolSelector(
                 selector == null ? null : new ApplicationProtocolSelectorAdapter(this, selector));
     }
 
     @Override
-    void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter selector) {
+    final void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter selector) {
         sslParameters.setApplicationProtocolSelector(selector);
     }
 
     @Override
-    void setApplicationProtocols(String[] protocols) {
+    final void setApplicationProtocols(String[] protocols) {
         sslParameters.setApplicationProtocols(protocols);
     }
 
     @Override
-    String[] getApplicationProtocols() {
+    final String[] getApplicationProtocols() {
         return sslParameters.getApplicationProtocols();
     }
 
     @Override
-    public String getApplicationProtocol​() {
+    public final String getApplicationProtocol​() {
         return SSLUtils.toProtocolString(ssl.getApplicationProtocol());
     }
 
     @Override
-    public String getHandshakeApplicationProtocol​() {
+    public final String getHandshakeApplicationProtocol​() {
         synchronized (ssl) {
             return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY
                 ? getApplicationProtocol​() : null;
@@ -1045,44 +1047,44 @@ final class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    public SSLParameters getSSLParameters() {
+    public final SSLParameters getSSLParameters() {
         SSLParameters params = super.getSSLParameters();
         Platform.getSSLParameters(params, sslParameters, this);
         return params;
     }
 
     @Override
-    public void setSSLParameters(SSLParameters p) {
+    public final void setSSLParameters(SSLParameters p) {
         super.setSSLParameters(p);
         Platform.setSSLParameters(p, sslParameters, this);
     }
 
     @Override
-    public String chooseServerAlias(X509KeyManager keyManager, String keyType) {
+    public final String chooseServerAlias(X509KeyManager keyManager, String keyType) {
         return keyManager.chooseServerAlias(keyType, null, this);
     }
 
     @Override
-    public String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
+    public final String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
             String[] keyTypes) {
         return keyManager.chooseClientAlias(keyTypes, issuers, this);
     }
 
     @Override
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
+    public final String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
         return keyManager.chooseServerKeyIdentityHint(this);
     }
 
     @Override
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
+    public final String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
         return keyManager.chooseClientKeyIdentity(identityHint, this);
     }
 
     @Override
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
+    public final SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
         return keyManager.getKey(identityHint, identity, this);
     }
 

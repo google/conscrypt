@@ -16,7 +16,8 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.Platform.wrapSocket;
+import static org.conscrypt.Platform.createEngineSocket;
+import static org.conscrypt.Platform.createFileDescriptorSocket;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -87,22 +88,20 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
             throw instantiationException;
         }
         if (useEngineSocket) {
-            return wrapSocket(
-                    new ConscryptEngineSocket((SSLParametersImpl) sslParameters.clone()));
+            return createEngineSocket((SSLParametersImpl) sslParameters.clone());
         } else {
-            return wrapSocket(
-                    new ConscryptFileDescriptorSocket((SSLParametersImpl) sslParameters.clone()));
+            return createFileDescriptorSocket((SSLParametersImpl) sslParameters.clone());
         }
     }
 
     @Override
     public Socket createSocket(String hostname, int port) throws IOException, UnknownHostException {
         if (useEngineSocket) {
-            return wrapSocket(new ConscryptEngineSocket(
-                    hostname, port, (SSLParametersImpl) sslParameters.clone()));
+            return createEngineSocket(
+                    hostname, port, (SSLParametersImpl) sslParameters.clone());
         } else {
-            return wrapSocket(new ConscryptFileDescriptorSocket(
-                    hostname, port, (SSLParametersImpl) sslParameters.clone()));
+            return createFileDescriptorSocket(
+                    hostname, port, (SSLParametersImpl) sslParameters.clone());
         }
     }
 
@@ -110,22 +109,22 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
     public Socket createSocket(String hostname, int port, InetAddress localHost, int localPort)
             throws IOException, UnknownHostException {
         if (useEngineSocket) {
-            return wrapSocket(new ConscryptEngineSocket(hostname, port, localHost,
-                    localPort, (SSLParametersImpl) sslParameters.clone()));
+            return createEngineSocket(hostname, port, localHost,
+                    localPort, (SSLParametersImpl) sslParameters.clone());
         } else {
-            return wrapSocket(new ConscryptFileDescriptorSocket(hostname, port, localHost,
-                    localPort, (SSLParametersImpl) sslParameters.clone()));
+            return createFileDescriptorSocket(hostname, port, localHost,
+                    localPort, (SSLParametersImpl) sslParameters.clone());
         }
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port) throws IOException {
         if (useEngineSocket) {
-            return wrapSocket(new ConscryptEngineSocket(
-                    address, port, (SSLParametersImpl) sslParameters.clone()));
+            return createEngineSocket(
+                    address, port, (SSLParametersImpl) sslParameters.clone());
         } else {
-            return wrapSocket(new ConscryptFileDescriptorSocket(
-                    address, port, (SSLParametersImpl) sslParameters.clone()));
+            return createFileDescriptorSocket(
+                    address, port, (SSLParametersImpl) sslParameters.clone());
         }
     }
 
@@ -133,11 +132,11 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
     public Socket createSocket(InetAddress address, int port, InetAddress localAddress,
             int localPort) throws IOException {
         if (useEngineSocket) {
-            return wrapSocket(new ConscryptEngineSocket(address, port, localAddress,
-                    localPort, (SSLParametersImpl) sslParameters.clone()));
+            return createEngineSocket(address, port, localAddress,
+                    localPort, (SSLParametersImpl) sslParameters.clone());
         } else {
-            return wrapSocket(new ConscryptFileDescriptorSocket(address, port, localAddress,
-                    localPort, (SSLParametersImpl) sslParameters.clone()));
+            return createFileDescriptorSocket(address, port, localAddress,
+                    localPort, (SSLParametersImpl) sslParameters.clone());
         }
     }
 
@@ -150,11 +149,11 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
         }
 
         if (hasFileDescriptor(socket) && !useEngineSocket) {
-            return wrapSocket(new ConscryptFileDescriptorSocket(
-                    socket, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone()));
+            return createFileDescriptorSocket(
+                    socket, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
         } else {
-            return wrapSocket(new ConscryptEngineSocket(
-                    socket, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone()));
+            return createEngineSocket(
+                    socket, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
         }
     }
 

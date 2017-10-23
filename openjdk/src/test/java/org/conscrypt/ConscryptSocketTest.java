@@ -131,14 +131,14 @@ public class ConscryptSocketTest {
             @Override
             void assertSocketType(Socket socket) {
                 assertTrue("Unexpected socket type: " + socket.getClass().getName(),
-                        Platform.unwrapSocket((SSLSocket) socket) instanceof ConscryptFileDescriptorSocket);
+                        socket instanceof ConscryptFileDescriptorSocket);
             }
         },
         ENGINE(true) {
             @Override
             void assertSocketType(Socket socket) {
                 assertTrue("Unexpected socket type: " + socket.getClass().getName(),
-                    Platform.unwrapSocket((SSLSocket) socket) instanceof ConscryptEngineSocket);
+                        socket instanceof ConscryptEngineSocket);
             }
         };
 

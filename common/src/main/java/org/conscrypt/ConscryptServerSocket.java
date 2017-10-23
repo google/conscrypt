@@ -177,13 +177,13 @@ final class ConscryptServerSocket extends SSLServerSocket {
     public Socket accept() throws IOException {
         final ConscryptSocketBase socket;
         if (useEngineSocket) {
-            socket = new ConscryptEngineSocket(sslParameters);
+            socket = Platform.createEngineSocket(sslParameters);
         } else {
-            socket = new ConscryptFileDescriptorSocket(sslParameters);
+            socket = Platform.createFileDescriptorSocket(sslParameters);
         }
 
         socket.setChannelIdEnabled(channelIdEnabled);
         implAccept(socket);
-        return Platform.wrapSocket(socket);
+        return socket;
     }
 }
