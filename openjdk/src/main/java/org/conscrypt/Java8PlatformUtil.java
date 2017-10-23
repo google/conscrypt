@@ -24,7 +24,6 @@ import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSocket;
 
 /**
  * Utility methods supported on Java 8+.

@@ -1,24 +1,11 @@
 package org.conscrypt;
 
-import static org.conscrypt.Preconditions.checkNotNull;
-
-import java.io.FileDescriptor;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.SocketException;
-import java.nio.channels.SocketChannel;
-import java.security.PrivateKey;
 import java.util.List;
 import java.util.function.BiFunction;
-import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 
 /**
