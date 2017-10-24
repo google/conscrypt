@@ -56,6 +56,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
      * Modes that a block cipher may support.
      */
     enum Mode {
+        NONE,
         CBC,
         CTR,
         ECB,
@@ -958,12 +959,16 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
             @Override
             void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-                throw new NoSuchAlgorithmException("ARC4 does not support modes");
+                if (mode != Mode.NONE && mode != Mode.ECB) {
+                    throw new NoSuchAlgorithmException("Unsupported mode " + mode.toString());
+                }
             }
 
             @Override
             void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
-                throw new NoSuchPaddingException("ARC4 does not support padding");
+                if (padding != Padding.NOPADDING) {
+                    throw new NoSuchPaddingException("Unsupported padding " + padding.toString());
+                }
             }
 
             @Override
