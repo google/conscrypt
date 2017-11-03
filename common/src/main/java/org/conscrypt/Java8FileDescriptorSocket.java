@@ -10,7 +10,7 @@ import javax.net.ssl.SSLSocket;
 
 /**
  * A version of ConscryptFileDescriptorSocket that includes the new Java 9 (and potentially later
- * patches of 8) {@code setHandshakeApplicationProtocolSelector​} API (which requires Java 8 for
+ * patches of 8) {@code setHandshakeApplicationProtocolSelector} API (which requires Java 8 for
  * compilation, due to the use of {@link BiFunction}).
  */
 final class Java8FileDescriptorSocket extends ConscryptFileDescriptorSocket {
@@ -47,7 +47,7 @@ final class Java8FileDescriptorSocket extends ConscryptFileDescriptorSocket {
 
     /* @Override */
     @SuppressWarnings("MissingOverride") // For compilation with Java < 9.
-    public void setHandshakeApplicationProtocolSelector​(
+    public void setHandshakeApplicationProtocolSelector(
             final BiFunction<SSLSocket, List<String>, String> selector) {
         this.selector = selector;
         setApplicationProtocolSelector(toApplicationProtocolSelector(selector));
@@ -55,7 +55,7 @@ final class Java8FileDescriptorSocket extends ConscryptFileDescriptorSocket {
 
     /* @Override */
     @SuppressWarnings("MissingOverride") // For compilation with Java < 9.
-    public BiFunction<SSLSocket, List<String>, String> getHandshakeApplicationProtocolSelector​() {
+    public BiFunction<SSLSocket, List<String>, String> getHandshakeApplicationProtocolSelector() {
         return selector;
     }
 

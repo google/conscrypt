@@ -1706,14 +1706,14 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     @Override
-    public String getApplicationProtocol​() {
+    public String getApplicationProtocol() {
         return SSLUtils.toProtocolString(ssl.getApplicationProtocol());
     }
 
     @Override
-    public String getHandshakeApplicationProtocol​() {
+    public String getHandshakeApplicationProtocol() {
         synchronized (ssl) {
-            return state == STATE_HANDSHAKE_STARTED ? getApplicationProtocol​() : null;
+            return state == STATE_HANDSHAKE_STARTED ? getApplicationProtocol() : null;
         }
     }
 

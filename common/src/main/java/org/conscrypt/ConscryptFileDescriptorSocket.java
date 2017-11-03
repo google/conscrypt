@@ -1034,15 +1034,15 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    public final String getApplicationProtocol​() {
+    public final String getApplicationProtocol() {
         return SSLUtils.toProtocolString(ssl.getApplicationProtocol());
     }
 
     @Override
-    public final String getHandshakeApplicationProtocol​() {
+    public final String getHandshakeApplicationProtocol() {
         synchronized (ssl) {
             return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY
-                ? getApplicationProtocol​() : null;
+                ? getApplicationProtocol() : null;
         }
     }
 

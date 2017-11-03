@@ -400,13 +400,13 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     }
 
     @Override
-    public final String getApplicationProtocol​() {
-        return engine.getApplicationProtocol​();
+    public final String getApplicationProtocol() {
+        return engine.getApplicationProtocol();
     }
 
     @Override
-    public final String getHandshakeApplicationProtocol​() {
-        return engine.getHandshakeApplicationProtocol​();
+    public final String getHandshakeApplicationProtocol() {
+        return engine.getHandshakeApplicationProtocol();
     }
 
     @Override

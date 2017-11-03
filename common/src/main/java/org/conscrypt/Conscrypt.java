@@ -298,8 +298,8 @@ public final class Conscrypt {
      * @param socket the socket
      * @return the selected protocol or {@code null} if no protocol was agreed upon.
      */
-    public static String getApplicationProtocol​(SSLSocket socket) {
-        return toConscrypt(socket).getApplicationProtocol​();
+    public static String getApplicationProtocol(SSLSocket socket) {
+        return toConscrypt(socket).getApplicationProtocol();
     }
 
     /**
@@ -526,7 +526,7 @@ public final class Conscrypt {
      * @param engine the engine
      * @return the selected protocol or {@code null} if no protocol was agreed upon.
      */
-    public static String getApplicationProtocol​(SSLEngine engine) {
-        return toConscrypt(engine).getApplicationProtocol​();
+    public static String getApplicationProtocol(SSLEngine engine) {
+        return toConscrypt(engine).getApplicationProtocol();
     }
 }

@@ -131,7 +131,7 @@ public abstract class OpenSSLSocketImpl extends ConscryptSocketBase {
     @Deprecated
     @Override
     public final byte[] getAlpnSelectedProtocol() {
-        return SSLUtils.toProtocolBytes(getApplicationProtocol​());
+        return SSLUtils.toProtocolBytes(getApplicationProtocol());
     }
 
     /**
