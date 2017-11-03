@@ -125,7 +125,7 @@ public abstract class OpenSSLSocketImpl extends ConscryptSocketBase {
     @Override
     @Deprecated
     public final void setAlpnProtocols(String[] alpnProtocols) {
-        setApplicationProtocols(alpnProtocols);
+        setApplicationProtocols(alpnProtocols == null ? EmptyArray.STRING : alpnProtocols);
     }
 
     @Deprecated
@@ -140,6 +140,6 @@ public abstract class OpenSSLSocketImpl extends ConscryptSocketBase {
     @Override
     @Deprecated
     public final void setAlpnProtocols(byte[] protocols) {
-        setApplicationProtocols(SSLUtils.decodeProtocols(protocols));
+        setApplicationProtocols(SSLUtils.decodeProtocols(protocols == null ? EmptyArray.BYTE : protocols));
     }
 }
