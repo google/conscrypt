@@ -411,6 +411,8 @@ public final class OpenSSLProvider extends Provider {
                 "AES_256/GCM/NoPadding", "OpenSSLCipher$EVP_AEAD$AES$GCM$AES_256");
 
         putSymmetricCipherImplClass("ChaCha20",
+                "OpenSSLCipherChaCha20");
+        putSymmetricCipherImplClass("ChaCha20/Poly1305/NoPadding",
                 "OpenSSLCipher$EVP_AEAD$ChaCha20");
 
         /* === Mac === */
