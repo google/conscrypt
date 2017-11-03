@@ -29,9 +29,10 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.security.auth.x500.X500Principal;
@@ -49,16 +50,13 @@ import javax.security.auth.x500.X500Principal;
 class KeyManagerImpl extends X509ExtendedKeyManager {
 
     // hashed key store information
-    private final Hashtable<String, PrivateKeyEntry> hash;
+    private final HashMap<String, PrivateKeyEntry> hash;
 
     /**
      * Creates Key manager
-     *
-     * @param keyStore
-     * @param pwd
      */
     KeyManagerImpl(KeyStore keyStore, char[] pwd) {
-        this.hash = new Hashtable<String, PrivateKeyEntry>();
+        this.hash = new HashMap<String, PrivateKeyEntry>();
         final Enumeration<String> aliases;
         try {
             aliases = keyStore.aliases();
@@ -73,12 +71,12 @@ class KeyManagerImpl extends X509ExtendedKeyManager {
                             .getEntry(alias, new KeyStore.PasswordProtection(pwd));
                     hash.put(alias, entry);
                 }
-            } catch (KeyStoreException e) {
-                continue;
-            } catch (UnrecoverableEntryException e) {
-                continue;
-            } catch (NoSuchAlgorithmException e) {
-                continue;
+            } catch (KeyStoreException ignored) {
+                // Ignored.
+            } catch (UnrecoverableEntryException ignored) {
+                // Ignored.
+            } catch (NoSuchAlgorithmException ignored) {
+                // Ignored.
             }
         }
     }
@@ -153,10 +151,9 @@ class KeyManagerImpl extends X509ExtendedKeyManager {
         }
         List<Principal> issuersList = (issuers == null) ? null : Arrays.asList(issuers);
         ArrayList<String> found = new ArrayList<String>();
-        for (Enumeration<String> aliases = hash.keys(); aliases.hasMoreElements();) {
-            final String alias = aliases.nextElement();
-            final KeyStore.PrivateKeyEntry entry = hash.get(alias);
-            final Certificate[] chain = entry.getCertificateChain();
+        for (final Map.Entry<String, PrivateKeyEntry> entry : hash.entrySet()) {
+            final String alias = entry.getKey();
+            final Certificate[] chain = entry.getValue().getCertificateChain();
             final Certificate cert = chain[0];
             final String certKeyAlg = cert.getPublicKey().getAlgorithm();
             final String certSigAlg = (cert instanceof X509Certificate

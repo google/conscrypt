@@ -345,7 +345,9 @@ final class SSLUtils {
     /**
      * Decodes the given list of protocols into {@link String}s.
      * @param protocols the encoded protocol list
-     * @return the decoded protocols or {@code null} if {@code protocols} is {@code null}.
+     * @return the decoded protocols or {@link EmptyArray#BYTE} if {@code protocols} is
+     * empty.
+     * @throws NullPointerException if protocols is {@code null}.
      */
     static String[] decodeProtocols(byte[] protocols) {
         if (protocols.length == 0) {
@@ -382,6 +384,8 @@ final class SSLUtils {
      *
      * @param protocols the list of protocols to be encoded
      * @return the encoded form of the protocol list.
+     * @throws IllegalArgumentException if protocols is {@code null}, or if any element is
+     * {@code null} or an empty string.
      */
     static byte[] encodeProtocols(String[] protocols) {
         if (protocols == null) {
