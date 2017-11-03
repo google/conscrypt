@@ -277,8 +277,8 @@ public class ConscryptEngineTest {
         Conscrypt.setApplicationProtocols(serverEngine, serverAlpnProtocols);
 
         doHandshake(true);
-        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(clientEngine));
-        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(serverEngine));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol(clientEngine));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol(serverEngine));
     }
 
     @Test
@@ -293,8 +293,8 @@ public class ConscryptEngineTest {
         Conscrypt.setApplicationProtocols(serverEngine, serverAlpnProtocols);
 
         doHandshake(true);
-        assertNull(Conscrypt.getApplicationProtocol​(clientEngine));
-        assertNull(Conscrypt.getApplicationProtocol​(serverEngine));
+        assertNull(Conscrypt.getApplicationProtocol(clientEngine));
+        assertNull(Conscrypt.getApplicationProtocol(serverEngine));
     }
 
     @Test
@@ -312,8 +312,8 @@ public class ConscryptEngineTest {
         Conscrypt.setApplicationProtocolSelector(serverEngine, selector);
 
         doHandshake(true);
-        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(clientEngine));
-        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(serverEngine));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol(clientEngine));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol(serverEngine));
     }
 
     @Test
@@ -331,8 +331,8 @@ public class ConscryptEngineTest {
         Conscrypt.setApplicationProtocolSelector(serverEngine, selector);
 
         doHandshake(true);
-        assertNull(Conscrypt.getApplicationProtocol​(clientEngine));
-        assertNull(Conscrypt.getApplicationProtocol​(serverEngine));
+        assertNull(Conscrypt.getApplicationProtocol(clientEngine));
+        assertNull(Conscrypt.getApplicationProtocol(serverEngine));
     }
 
     /**

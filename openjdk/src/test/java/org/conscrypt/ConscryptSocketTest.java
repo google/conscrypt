@@ -426,8 +426,8 @@ public class ConscryptSocketTest {
 
         c.doHandshake();
 
-        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(c.client));
-        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(c.server));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol(c.client));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol(c.server));
     }
 
     @Test
@@ -443,8 +443,8 @@ public class ConscryptSocketTest {
 
         c.doHandshake();
 
-        assertNull(Conscrypt.getApplicationProtocol​(c.client));
-        assertNull(Conscrypt.getApplicationProtocol​(c.server));
+        assertNull(Conscrypt.getApplicationProtocol(c.client));
+        assertNull(Conscrypt.getApplicationProtocol(c.server));
     }
 
     @Test
@@ -463,8 +463,8 @@ public class ConscryptSocketTest {
 
         c.doHandshake();
 
-        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(c.client));
-        assertEquals("spdy/2", Conscrypt.getApplicationProtocol​(c.server));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol(c.client));
+        assertEquals("spdy/2", Conscrypt.getApplicationProtocol(c.server));
     }
 
     @Test
@@ -483,8 +483,8 @@ public class ConscryptSocketTest {
 
         c.doHandshake();
 
-        assertNull(Conscrypt.getApplicationProtocol​(c.client));
-        assertNull(Conscrypt.getApplicationProtocol​(c.server));
+        assertNull(Conscrypt.getApplicationProtocol(c.client));
+        assertNull(Conscrypt.getApplicationProtocol(c.server));
     }
 
     @Test

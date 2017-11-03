@@ -147,10 +147,10 @@ abstract class AbstractConscryptEngine extends SSLEngine {
     abstract String[] getApplicationProtocols();
 
     @SuppressWarnings("MissingOverride") // For compiling pre Java 9.
-    public abstract String getApplicationProtocol​();
+    public abstract String getApplicationProtocol();
 
     @SuppressWarnings("MissingOverride") // For compiling pre Java 9.
-    public abstract String getHandshakeApplicationProtocol​();
+    public abstract String getHandshakeApplicationProtocol();
 
     /**
      * Sets an application-provided ALPN protocol selector. If provided, this will override
