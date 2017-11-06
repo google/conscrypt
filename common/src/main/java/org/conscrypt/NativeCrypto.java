@@ -132,6 +132,14 @@ public final class NativeCrypto {
      */
     static native byte[][] get_RSA_private_params(NativeRef.EVP_PKEY rsa);
 
+    // --- ChaCha20 -----------------------
+
+    /**
+     * Returns the encrypted or decrypted version of the data.
+     */
+    static native void chacha20_encrypt_decrypt(byte[] in, int inOffset, byte[] out, int outOffset,
+            int length, byte[] key, byte[] nonce, int blockCounter);
+
     // --- EC functions --------------------------
 
     static native long EVP_PKEY_new_EC_KEY(

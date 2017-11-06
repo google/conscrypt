@@ -34,6 +34,7 @@
 
 #include <openssl/aead.h>
 #include <openssl/asn1.h>
+#include <openssl/chacha.h>
 #include <openssl/engine.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -1543,6 +1544,44 @@ static jobjectArray NativeCrypto_get_RSA_private_params(JNIEnv* env, jclass, job
     }
 
     return joa;
+}
+
+static void NativeCrypto_chacha20_encrypt_decrypt(JNIEnv* env, jclass, jbyteArray inBytes,
+        jint inOffset, jbyteArray outBytes, jint outOffset, jint length, jbyteArray keyBytes,
+        jbyteArray nonceBytes, jint blockCounter) {
+    JNI_TRACE("chacha20_encrypt_decrypt");
+    ScopedByteArrayRO in(env, inBytes);
+    if (in.get() == nullptr) {
+        conscrypt::jniutil::jniThrowNullPointerException(env, "Could not access input bytes");
+        JNI_TRACE("chacha20_encrypt_decrypt => threw exception");
+        return;
+    }
+    ScopedByteArrayRW out(env, outBytes);
+    if (out.get() == nullptr) {
+        conscrypt::jniutil::jniThrowNullPointerException(env, "Could not access output bytes");
+        JNI_TRACE("chacha20_encrypt_decrypt => threw exception");
+        return;
+    }
+    ScopedByteArrayRO key(env, keyBytes);
+    if (key.get() == nullptr) {
+        conscrypt::jniutil::jniThrowNullPointerException(env, "Could not access key bytes");
+        JNI_TRACE("chacha20_encrypt_decrypt => threw exception");
+        return;
+    }
+    ScopedByteArrayRO nonce(env, nonceBytes);
+    if (nonce.get() == nullptr) {
+        conscrypt::jniutil::jniThrowNullPointerException(env, "Could not access nonce bytes");
+        JNI_TRACE("chacha20_encrypt_decrypt => threw exception");
+        return;
+    }
+
+    CRYPTO_chacha_20(
+            reinterpret_cast<unsigned char*>(out.get()) + outOffset,
+            reinterpret_cast<const unsigned char*>(in.get()) + inOffset,
+            length,
+            reinterpret_cast<const unsigned char*>(key.get()),
+            reinterpret_cast<const unsigned char*>(nonce.get()),
+            blockCounter);
 }
 
 static jlong NativeCrypto_EC_GROUP_new_by_curve_name(JNIEnv* env, jclass, jstring curveNameJava) {
@@ -9355,6 +9394,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(RSA_private_decrypt, "(I[B[B" REF_EVP_PKEY "I)I"),
         CONSCRYPT_NATIVE_METHOD(get_RSA_private_params, "(" REF_EVP_PKEY ")[[B"),
         CONSCRYPT_NATIVE_METHOD(get_RSA_public_params, "(" REF_EVP_PKEY ")[[B"),
+        CONSCRYPT_NATIVE_METHOD(chacha20_encrypt_decrypt, "([BI[BII[B[BI)V"),
         CONSCRYPT_NATIVE_METHOD(EC_GROUP_new_by_curve_name, "(Ljava/lang/String;)J"),
         CONSCRYPT_NATIVE_METHOD(EC_GROUP_new_arbitrary, "([B[B[B[B[B[BI)J"),
         CONSCRYPT_NATIVE_METHOD(EC_GROUP_get_curve_name, "(" REF_EC_GROUP ")Ljava/lang/String;"),
