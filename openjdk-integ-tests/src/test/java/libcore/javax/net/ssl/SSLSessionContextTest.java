@@ -24,12 +24,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.security.Provider;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.Enumeration;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.SSLSocket;
@@ -163,8 +164,8 @@ public class SSLSessionContextTest extends AbstractSSLTest {
 
         String[] supportedCipherSuites = c.serverSocket.getSupportedCipherSuites();
         c.serverSocket.setEnabledCipherSuites(supportedCipherSuites);
-        LinkedList<String> uniqueCipherSuites =
-                new LinkedList<String>(Arrays.asList(supportedCipherSuites));
+        Deque<String> uniqueCipherSuites =
+                new ArrayDeque<String>(Arrays.asList(supportedCipherSuites));
         // only use RSA cipher suites which will work with our TrustProvider
         Iterator<String> i = uniqueCipherSuites.iterator();
         while (i.hasNext()) {
@@ -202,9 +203,9 @@ public class SSLSessionContextTest extends AbstractSSLTest {
          * session cache.
          */
         assertTrue(uniqueCipherSuites.size() >= 3);
-        String cipherSuite1 = uniqueCipherSuites.get(0);
-        String cipherSuite2 = uniqueCipherSuites.get(1);
-        String cipherSuite3 = uniqueCipherSuites.get(2);
+        String cipherSuite1 = uniqueCipherSuites.pop();
+        String cipherSuite2 = uniqueCipherSuites.pop();
+        String cipherSuite3 = uniqueCipherSuites.pop();
 
         List<SSLSocket[]> toClose = new ArrayList<SSLSocket[]>();
         toClose.add(

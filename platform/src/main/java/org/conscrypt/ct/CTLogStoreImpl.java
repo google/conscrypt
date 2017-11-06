@@ -16,12 +16,13 @@
 
 package org.conscrypt.ct;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.io.StringBufferInputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -39,6 +40,8 @@ import org.conscrypt.InternalUtil;
  */
 @Internal
 public class CTLogStoreImpl implements CTLogStore {
+    private static final Charset US_ASCII = Charset.forName("US-ASCII");
+
     /**
      * Thrown when parsing of a log file fails.
      */
@@ -223,10 +226,10 @@ public class CTLogStoreImpl implements CTLogStore {
 
         PublicKey pubkey;
         try {
-            pubkey = InternalUtil.readPublicKeyPem(new StringBufferInputStream(
-                        "-----BEGIN PUBLIC KEY-----\n" +
+            pubkey = InternalUtil.readPublicKeyPem(new ByteArrayInputStream(
+                    ("-----BEGIN PUBLIC KEY-----\n" +
                         key + "\n" +
-                        "-----END PUBLIC KEY-----"));
+                        "-----END PUBLIC KEY-----").getBytes(US_ASCII)));
         } catch (InvalidKeyException e) {
             throw new InvalidLogFileException(e);
         } catch (NoSuchAlgorithmException e) {
@@ -242,7 +245,7 @@ public class CTLogStoreImpl implements CTLogStore {
     };
 
     private static String hexEncode(byte[] data) {
-        StringBuffer sb = new StringBuffer(data.length * 2);
+        StringBuilder sb = new StringBuilder(data.length * 2);
         for (byte b: data) {
             sb.append(HEX_DIGITS[(b >> 4) & 0x0f]);
             sb.append(HEX_DIGITS[b & 0x0f]);

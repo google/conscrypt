@@ -544,21 +544,45 @@ public class ConscryptSocketTest {
         assertThat(connection.clientException.getCause(), instanceOf(CertificateException.class));
     }
 
+    @Test
+    @SuppressWarnings("deprecation")
+    public void setAlpnProtocolWithNullShouldSucceed() throws Exception {
+        ServerSocket listening = newServerSocket();
+        OpenSSLSocketImpl clientSocket = null;
+        try {
+            Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
+            clientSocket = (OpenSSLSocketImpl) socketType.newClientSocket(
+                    new ClientHooks().createContext(), listening, underlying);
+
+            // Both versions should succeed.
+            clientSocket.setAlpnProtocols((byte[]) null);
+            clientSocket.setAlpnProtocols((String[]) null);
+        } finally {
+            if (clientSocket != null) {
+                clientSocket.close();
+            }
+            listening.close();
+        }
+    }
+
     // http://b/27250522
     @Test
     public void test_setSoTimeout_doesNotCreateSocketImpl() throws Exception {
         ServerSocket listening = newServerSocket();
-        Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
+        try {
+            Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
+            Socket socket = socketType.newClientSocket(
+                    new ClientHooks().createContext(), listening, underlying);
+            socketType.assertSocketType(socket);
+            socket.setSoTimeout(1000);
+            socket.close();
 
-        Socket socket = socketType.newClientSocket(
-                new ClientHooks().createContext(), listening, underlying);
-        socketType.assertSocketType(socket);
-        socket.setSoTimeout(1000);
-        socket.close();
-
-        Field f = Socket.class.getDeclaredField("created");
-        f.setAccessible(true);
-        assertFalse(f.getBoolean(socket));
+            Field f = Socket.class.getDeclaredField("created");
+            f.setAccessible(true);
+            assertFalse(f.getBoolean(socket));
+        } finally {
+            listening.close();
+        }
     }
 
     @Test
