@@ -66,6 +66,16 @@ public class SSLUtilsTest {
         assertArrayEquals(expected, actual);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void decodeNullProtocolsShouldThrow() {
+        SSLUtils.decodeProtocols(null);
+    }
+
+    @Test
+    public void decodeEmptyProtocolsShouldSucceed() {
+        assertArrayEquals(EmptyArray.STRING, SSLUtils.decodeProtocols(EmptyArray.BYTE));
+    }
+
     @Test
     public void decodeProtocolsShouldSucceed() {
         byte[][] protocols = new byte[][]{

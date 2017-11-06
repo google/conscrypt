@@ -1336,6 +1336,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
                     }
                 }
 
+                @Override
                 protected AlgorithmParameterSpec getParameterSpec(AlgorithmParameters params)
                         throws InvalidAlgorithmParameterException {
                     if (params != null) {
