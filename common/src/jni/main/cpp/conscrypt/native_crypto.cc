@@ -1552,26 +1552,22 @@ static void NativeCrypto_chacha20_encrypt_decrypt(JNIEnv* env, jclass, jbyteArra
     JNI_TRACE("chacha20_encrypt_decrypt");
     ScopedByteArrayRO in(env, inBytes);
     if (in.get() == nullptr) {
-        conscrypt::jniutil::jniThrowNullPointerException(env, "Could not access input bytes");
-        JNI_TRACE("chacha20_encrypt_decrypt => threw exception");
+        JNI_TRACE("chacha20_encrypt_decrypt => threw exception: could not read input bytes");
         return;
     }
     ScopedByteArrayRW out(env, outBytes);
     if (out.get() == nullptr) {
-        conscrypt::jniutil::jniThrowNullPointerException(env, "Could not access output bytes");
-        JNI_TRACE("chacha20_encrypt_decrypt => threw exception");
+        JNI_TRACE("chacha20_encrypt_decrypt => threw exception: could not read output bytes");
         return;
     }
     ScopedByteArrayRO key(env, keyBytes);
     if (key.get() == nullptr) {
-        conscrypt::jniutil::jniThrowNullPointerException(env, "Could not access key bytes");
-        JNI_TRACE("chacha20_encrypt_decrypt => threw exception");
+        JNI_TRACE("chacha20_encrypt_decrypt => threw exception: could not read key bytes");
         return;
     }
     ScopedByteArrayRO nonce(env, nonceBytes);
     if (nonce.get() == nullptr) {
-        conscrypt::jniutil::jniThrowNullPointerException(env, "Could not access nonce bytes");
-        JNI_TRACE("chacha20_encrypt_decrypt => threw exception");
+        JNI_TRACE("chacha20_encrypt_decrypt => threw exception: could not read nonce bytes");
         return;
     }
 

@@ -42,7 +42,6 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
     // had unused keystream bytes at the end of the previous encryption operation, so that
     // we can use them before moving on to the next block.
     private int currentBlockConsumedBytes = 0;
-    private byte[] key;
     private int blockCounter = 0;
 
     public OpenSSLCipherChaCha20() {}
@@ -50,7 +49,6 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
     @Override
     void engineInitInternal(byte[] encodedKey, AlgorithmParameterSpec params, SecureRandom random)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
-        reset();
         if (params instanceof IvParameterSpec) {
             IvParameterSpec ivParams = (IvParameterSpec) params;
             if (ivParams.getIV().length != NONCE_SIZE_BYTES) {
@@ -69,7 +67,6 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
                 NativeCrypto.RAND_bytes(iv);
             }
         }
-        this.key = encodedKey;
     }
 
     @Override
@@ -84,7 +81,7 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
             byte[] singleBlockOut = new byte[BLOCK_SIZE_BYTES];
             System.arraycopy(input, inputOffset, singleBlock, currentBlockConsumedBytes, len);
             NativeCrypto.chacha20_encrypt_decrypt(singleBlock, 0, singleBlockOut, 0,
-                    BLOCK_SIZE_BYTES, key, iv, blockCounter);
+                    BLOCK_SIZE_BYTES, encodedKey, iv, blockCounter);
             System.arraycopy(singleBlockOut, currentBlockConsumedBytes, output, outputOffset, len);
             currentBlockConsumedBytes += len;
             if (currentBlockConsumedBytes < BLOCK_SIZE_BYTES) {
@@ -99,7 +96,7 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
             blockCounter++;
         }
         NativeCrypto.chacha20_encrypt_decrypt(input, inputOffset, output,
-                outputOffset, inputLenRemaining, key, iv, blockCounter);
+                outputOffset, inputLenRemaining, encodedKey, iv, blockCounter);
         currentBlockConsumedBytes = inputLenRemaining % BLOCK_SIZE_BYTES;
         blockCounter += inputLenRemaining / BLOCK_SIZE_BYTES;
         return inputLen;
@@ -113,8 +110,6 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
     }
 
     private void reset() {
-        key = null;
-        iv = null;
         blockCounter = 0;
         currentBlockConsumedBytes = 0;
     }
