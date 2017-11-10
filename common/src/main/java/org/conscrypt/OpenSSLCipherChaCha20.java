@@ -58,7 +58,7 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
         } else {
             if (!isEncrypting()) {
                 throw new InvalidAlgorithmParameterException(
-                        "IV must be specified when encrypting");
+                        "IV must be specified when decrypting");
             }
             iv = new byte[NONCE_SIZE_BYTES];
             if (random != null) {
