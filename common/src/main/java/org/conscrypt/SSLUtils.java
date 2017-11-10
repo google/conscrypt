@@ -46,6 +46,7 @@ import java.nio.charset.Charset;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import javax.net.ssl.SSLException;
@@ -359,7 +360,9 @@ final class SSLUtils {
             int protocolLength = protocols[i];
             if (protocolLength < 0 || protocolLength > protocols.length - i) {
                 throw new IllegalArgumentException(
-                        "Protocol has invalid length (" + protocolLength + "): " + protocols[i]);
+                    "Protocol has invalid length (" + protocolLength + " at position " + i
+                        + "): " + (protocols.length < 50
+                        ? Arrays.toString(protocols) : protocols.length + " byte array"));
             }
 
             numProtocols++;
