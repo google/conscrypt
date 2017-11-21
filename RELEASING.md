@@ -52,6 +52,9 @@ signing.keyId=<8-character-public-key-id>
 signing.password=<key-password>
 signing.secretKeyRingFile=<your-home-directory>/.gnupg/secring.gpg
 
+signingKeystore=<path-to-keystore>
+signingPassword=<keystore-password>
+
 ossrhUsername=<ossrh-username>
 ossrhPassword=<ossrh-password>
 checkstyle.ignoreFailures=false
@@ -154,10 +157,12 @@ system.
    ```
    $ docker cp ~/.gnupg <container-ID>:/root/
    $ docker cp ~/.gradle/gradle.properties <container-ID>:/root/.gradle/
+   $ docker cp <path to cert keystore> <container-ID>:/root/certkeystore
    ```
 
-   You'll also need to update `signing.secretKeyRingFile` in
-   `/root/.gradle/gradle.properties` to point to `/root/.gnupg/secring.gpg`.
+   You'll also need to update `signing.secretKeyRingFile` and `signingKeystore` in
+   `/root/.gradle/gradle.properties` to point to `/root/.gnupg/secring.gpg` and
+   `/root/certkeystore`, respectively.
 
 ### Windows and Mac
 
