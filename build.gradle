@@ -134,6 +134,14 @@ subprojects {
         sign configurations.archives
     }
 
+    signArchives.doFirst {
+        configurations.archives.allArtifacts.each {
+            if (it.type == 'jar' && it.classifier != 'sources' && it.classifier != 'javadoc') {
+                signJar(it.file.absolutePath)
+            }
+        }
+    }
+
     if (!androidProject) {
         sourceCompatibility = JavaVersion.VERSION_1_6
         targetCompatibility = JavaVersion.VERSION_1_6
@@ -191,13 +199,6 @@ subprojects {
 
         uploadArchives.repositories.mavenDeployer {
             beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-            beforeDeployment {
-                configurations.archives.allArtifacts.each {
-                    if (it.type == 'jar' && it.classifier != 'sources' && it.classifier != 'javadoc') {
-                        signJar(it.file.absolutePath)
-                    }
-                }
-            }
             String stagingUrl
             if (rootProject.hasProperty('repositoryId')) {
                 stagingUrl = 'https://oss.sonatype.org/service/local/staging/deployByRepositoryId/' +
