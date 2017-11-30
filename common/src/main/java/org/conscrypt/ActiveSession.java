@@ -42,6 +42,7 @@ final class ActiveSession implements SSLSession {
     private byte[] id;
     private long creationTime;
     private String protocol;
+    private String finalCipherSuite;
     private String peerHost;
     private int peerPort = -1;
     private long lastAccessedTime = 0;
@@ -273,11 +274,15 @@ final class ActiveSession implements SSLSession {
 
     @Override
     public String getCipherSuite() {
-        // Always get the Cipher from the SSL directly since it may have changed during a
-        // renegotiation.
+        // Always get the Cipher from the SSL directly unless the SSL has been closed, since it
+        // may change during a renegotiation.
         String cipher;
-        synchronized (ssl) {
-            cipher = ssl.getCipherSuite();
+        if (finalCipherSuite != null) {
+            cipher = finalCipherSuite;
+        } else {
+            synchronized (ssl) {
+                cipher = ssl.getCipherSuite();
+            }
         }
         return cipher == null ? SSLNullSession.INVALID_CIPHER : cipher;
     }
@@ -365,5 +370,16 @@ final class ActiveSession implements SSLSession {
             ((SSLSessionBindingListener) value)
                     .valueUnbound(new SSLSessionBindingEvent(this, name));
         }
+    }
+
+    /**
+     * Indicates that the SSL object is about to become invalid, so any values that are extracted
+     * from it should be cached.
+     */
+    void cacheCurrentValues() {
+        getId();
+        getCreationTime();
+        getProtocol();
+        finalCipherSuite = getCipherSuite();
     }
 }
