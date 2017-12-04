@@ -19,7 +19,10 @@ package org.conscrypt;
 
 import java.security.Principal;
 import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
@@ -32,7 +35,7 @@ import javax.net.ssl.SSLSessionContext;
  * javax.net.ssl.SSLSocket#getSession()} before {@link javax.net.ssl.SSLSocket#startHandshake()} is
  * called.
  */
-final class SSLNullSession implements SSLSession, Cloneable {
+final class SSLNullSession implements ConscryptSession, Cloneable {
     static final String INVALID_CIPHER = "SSL_NULL_WITH_NULL_NULL";
 
     /*
@@ -48,17 +51,32 @@ final class SSLNullSession implements SSLSession, Cloneable {
     private long creationTime;
     private long lastAccessedTime;
 
-    static SSLSession getNullSession() {
+    static ConscryptSession getNullSession() {
         return DefaultHolder.NULL_SESSION;
     }
 
     static boolean isNullSession(SSLSession session) {
-        return session == DefaultHolder.NULL_SESSION;
+        return SSLUtils.unwrapSession(session) == DefaultHolder.NULL_SESSION;
     }
 
     private SSLNullSession() {
         creationTime = System.currentTimeMillis();
         lastAccessedTime = creationTime;
+    }
+
+    @Override
+    public String getRequestedServerName() {
+        return null;
+    }
+
+    @Override
+    public List<byte[]> getStatusResponses() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public byte[] getPeerSignedCertificateTimestamp() {
+        return EmptyArray.BYTE;
     }
 
     @Override
@@ -108,7 +126,7 @@ final class SSLNullSession implements SSLSession, Cloneable {
     }
 
     @Override
-    public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
+    public X509Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
         throw new SSLPeerUnverifiedException("No peer certificate");
     }
 

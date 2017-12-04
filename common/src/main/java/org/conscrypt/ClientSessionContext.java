@@ -33,7 +33,7 @@ public final class ClientSessionContext extends AbstractSessionContext {
      * access by holding a lock on sessionsByHostAndPort.
      */
     @SuppressWarnings("serial")
-    private final Map<HostAndPort, SslSessionWrapper> sessionsByHostAndPort = new HashMap<HostAndPort, SslSessionWrapper>();
+    private final Map<HostAndPort, NativeSslSession> sessionsByHostAndPort = new HashMap<HostAndPort, NativeSslSession>();
 
     private SSLClientSessionCache persistentCache;
 
@@ -52,12 +52,12 @@ public final class ClientSessionContext extends AbstractSessionContext {
     /**
      * Gets the suitable session reference from the session cache container.
      */
-    SslSessionWrapper getCachedSession(String hostName, int port, SSLParametersImpl sslParameters) {
+    NativeSslSession getCachedSession(String hostName, int port, SSLParametersImpl sslParameters) {
         if (hostName == null) {
             return null;
         }
 
-        SslSessionWrapper session = getSession(hostName, port);
+        NativeSslSession session = getSession(hostName, port);
         if (session == null) {
             return null;
         }
@@ -100,13 +100,13 @@ public final class ClientSessionContext extends AbstractSessionContext {
      * @param port of server
      * @return cached session or null if none found
      */
-    private SslSessionWrapper getSession(String host, int port) {
+    private NativeSslSession getSession(String host, int port) {
         if (host == null) {
             return null;
         }
 
         HostAndPort key = new HostAndPort(host, port);
-        SslSessionWrapper session;
+        NativeSslSession session;
         synchronized (sessionsByHostAndPort) {
             session = sessionsByHostAndPort.get(key);
         }
@@ -118,7 +118,7 @@ public final class ClientSessionContext extends AbstractSessionContext {
         if (persistentCache != null) {
             byte[] data = persistentCache.getSessionData(host, port);
             if (data != null) {
-                session = SslSessionWrapper.newInstance(this, data, host, port);
+                session = NativeSslSession.newInstance(this, data, host, port);
                 if (session != null && session.isValid()) {
                     synchronized (sessionsByHostAndPort) {
                         sessionsByHostAndPort.put(key, session);
@@ -132,7 +132,7 @@ public final class ClientSessionContext extends AbstractSessionContext {
     }
 
     @Override
-    void onBeforeAddSession(SslSessionWrapper session) {
+    void onBeforeAddSession(NativeSslSession session) {
         String host = session.getPeerHost();
         int port = session.getPeerPort();
         if (host == null) {
@@ -154,7 +154,7 @@ public final class ClientSessionContext extends AbstractSessionContext {
     }
 
     @Override
-    void onBeforeRemoveSession(SslSessionWrapper session) {
+    void onBeforeRemoveSession(NativeSslSession session) {
         String host = session.getPeerHost();
         if (host == null) {
             return;
@@ -167,7 +167,7 @@ public final class ClientSessionContext extends AbstractSessionContext {
     }
 
     @Override
-    SslSessionWrapper getSessionFromPersistentCache(byte[] sessionId) {
+    NativeSslSession getSessionFromPersistentCache(byte[] sessionId) {
         // Not implemented for clients.
         return null;
     }

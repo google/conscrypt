@@ -121,12 +121,8 @@ final class Java7PlatformUtil {
         return file.canExecute();
     }
 
-    static SSLSession wrapSSLSession(ActiveSession sslSession) {
-        return new Java7SessionWrapper(sslSession);
-    }
-
-    static SSLSession unwrapSSLSession(SSLSession sslSession) {
-        return Java7SessionWrapper.getDelegate(sslSession);
+    static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+        return new Java7ExtendedSSLSession(sslSession);
     }
 
     private Java7PlatformUtil() {}

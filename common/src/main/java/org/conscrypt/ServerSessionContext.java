@@ -56,11 +56,11 @@ public final class ServerSessionContext extends AbstractSessionContext {
     }
 
     @Override
-    SslSessionWrapper getSessionFromPersistentCache(byte[] sessionId) {
+    NativeSslSession getSessionFromPersistentCache(byte[] sessionId) {
         if (persistentCache != null) {
             byte[] data = persistentCache.getSessionData(sessionId);
             if (data != null) {
-                SslSessionWrapper session = SslSessionWrapper.newInstance(this, data, null, -1);
+                NativeSslSession session = NativeSslSession.newInstance(this, data, null, -1);
                 if (session != null && session.isValid()) {
                     cacheSession(session);
                     return session;
@@ -72,7 +72,7 @@ public final class ServerSessionContext extends AbstractSessionContext {
     }
 
     @Override
-    void onBeforeAddSession(SslSessionWrapper session) {
+    void onBeforeAddSession(NativeSslSession session) {
         // TODO: Do this in background thread.
         if (persistentCache != null) {
             byte[] data = session.toBytes();
@@ -83,7 +83,7 @@ public final class ServerSessionContext extends AbstractSessionContext {
     }
 
     @Override
-    void onBeforeRemoveSession(SslSessionWrapper session) {
+    void onBeforeRemoveSession(NativeSslSession session) {
         // Do nothing.
     }
 }

@@ -116,7 +116,7 @@ final class Platform {
         }
     }
 
-    /*
+    /**
      * Call Os.setsockoptTimeval via reflection.
      */
     public static void setSocketWriteTimeout(Socket s, long timeoutMillis) throws SocketException {
@@ -849,24 +849,18 @@ final class Platform {
         return oid;
     }
 
-    /*
-     * Pre-Java 8 backward compatibility.
+    /**
+     * Provides extended capabilities for the session if supported by the platform.
      */
-
-    public static SSLSession wrapSSLSession(ActiveSession sslSession) {
-        if (Build.VERSION.SDK_INT <= 23) {
-            return sslSession;
+    public static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8ExtendedSSLSession(sslSession);
+        }
+        if (Build.VERSION.SDK_INT >= 19) {
+            return new Java7ExtendedSSLSession(sslSession);
         }
 
-        return new Java7SessionWrapper(sslSession);
-    }
-
-    public static SSLSession unwrapSSLSession(SSLSession sslSession) {
-        if (Build.VERSION.SDK_INT <= 23) {
-            return sslSession;
-        }
-
-        return Java7SessionWrapper.getDelegate(sslSession);
+        return sslSession;
     }
 
     public static String getOriginalHostNameFromInetAddress(InetAddress addr) {

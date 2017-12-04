@@ -24,6 +24,7 @@ import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSession;
 
 /**
  * Utility methods supported on Java 8+.
@@ -86,6 +87,10 @@ final class Java8PlatformUtil {
 
     static SSLEngine unwrapEngine(SSLEngine engine) {
         return Java8EngineWrapper.getDelegate(engine);
+    }
+
+    static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+        return new Java8ExtendedSSLSession(sslSession);
     }
 
     private Java8PlatformUtil() {}

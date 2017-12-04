@@ -42,11 +42,11 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     final long sslCtxNativePointer = NativeCrypto.SSL_CTX_new();
 
     @SuppressWarnings("serial")
-    private final Map<ByteArray, SslSessionWrapper> sessions =
-            new LinkedHashMap<ByteArray, SslSessionWrapper>() {
+    private final Map<ByteArray, NativeSslSession> sessions =
+            new LinkedHashMap<ByteArray, NativeSslSession>() {
                 @Override
                 protected boolean removeEldestEntry(
-                        Map.Entry<ByteArray, SslSessionWrapper> eldest) {
+                        Map.Entry<ByteArray, NativeSslSession> eldest) {
                     // NOTE: does not take into account any session that may have become
                     // invalid.
                     if (maximumSize > 0 && size() > maximumSize) {
@@ -74,13 +74,13 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     @Override
     public final Enumeration<byte[]> getIds() {
         // Make a copy of the IDs.
-        final Iterator<SslSessionWrapper> iter;
+        final Iterator<NativeSslSession> iter;
         synchronized (sessions) {
-            iter = Arrays.asList(sessions.values().toArray(new SslSessionWrapper[sessions.size()]))
+            iter = Arrays.asList(sessions.values().toArray(new NativeSslSession[sessions.size()]))
                     .iterator();
         }
         return new Enumeration<byte[]>() {
-            private SslSessionWrapper next;
+            private NativeSslSession next;
 
             @Override
             public boolean hasMoreElements() {
@@ -88,7 +88,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
                     return true;
                 }
                 while (iter.hasNext()) {
-                    SslSessionWrapper session = iter.next();
+                    NativeSslSession session = iter.next();
                     if (session.isValid()) {
                         next = session;
                         return true;
@@ -120,7 +120,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             throw new NullPointerException("sessionId");
         }
         ByteArray key = new ByteArray(sessionId);
-        SslSessionWrapper session;
+        NativeSslSession session;
         synchronized (sessions) {
             session = sessions.get(key);
         }
@@ -158,9 +158,9 @@ abstract class AbstractSessionContext implements SSLSessionContext {
                 NativeCrypto.SSL_CTX_set_timeout(sslCtxNativePointer, Integer.MAX_VALUE);
             }
 
-            Iterator<SslSessionWrapper> i = sessions.values().iterator();
+            Iterator<NativeSslSession> i = sessions.values().iterator();
             while (i.hasNext()) {
-                SslSessionWrapper session = i.next();
+                NativeSslSession session = i.next();
                 // SSLSession's know their context and consult the
                 // timeout as part of their validity condition.
                 if (!session.isValid()) {
@@ -199,7 +199,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     /**
      * Adds the given session to the cache.
      */
-    final void cacheSession(SslSessionWrapper session) {
+    final void cacheSession(NativeSslSession session) {
         byte[] id = session.getId();
         if (id == null || id.length == 0) {
             return;
@@ -218,13 +218,13 @@ abstract class AbstractSessionContext implements SSLSessionContext {
      * Called for server sessions only. Retrieves the session by its ID. Overridden by
      * {@link ServerSessionContext} to
      */
-    final SslSessionWrapper getSessionFromCache(byte[] sessionId) {
+    final NativeSslSession getSessionFromCache(byte[] sessionId) {
         if (sessionId == null) {
             return null;
         }
 
         // First, look in the in-memory cache.
-        SslSessionWrapper session;
+        NativeSslSession session;
         synchronized (sessions) {
             session = sessions.get(new ByteArray(sessionId));
         }
@@ -242,7 +242,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
      *
      * <p>Visible for extension only, not intended to be called directly.
      */
-    abstract void onBeforeAddSession(SslSessionWrapper session);
+    abstract void onBeforeAddSession(NativeSslSession session);
 
     /**
      * Called when a session is about to be removed. Used by {@link ClientSessionContext}
@@ -250,14 +250,14 @@ abstract class AbstractSessionContext implements SSLSessionContext {
      *
      * <p>Visible for extension only, not intended to be called directly.
      */
-    abstract void onBeforeRemoveSession(SslSessionWrapper session);
+    abstract void onBeforeRemoveSession(NativeSslSession session);
 
     /**
      * Called for server sessions only. Retrieves the session by ID from the persistent cache.
      *
      * <p>Visible for extension only, not intended to be called directly.
      */
-    abstract SslSessionWrapper getSessionFromPersistentCache(byte[] sessionId);
+    abstract NativeSslSession getSessionFromPersistentCache(byte[] sessionId);
 
     /**
      * Makes sure cache size is < maximumSize.
@@ -267,9 +267,9 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             int size = sessions.size();
             if (size > maximumSize) {
                 int removals = size - maximumSize;
-                Iterator<SslSessionWrapper> i = sessions.values().iterator();
+                Iterator<NativeSslSession> i = sessions.values().iterator();
                 while (removals-- > 0) {
-                    SslSessionWrapper session = i.next();
+                    NativeSslSession session = i.next();
                     onBeforeRemoveSession(session);
                     i.remove();
                 }
