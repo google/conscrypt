@@ -17,7 +17,6 @@ package org.conscrypt;
 
 import java.security.Principal;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.util.List;
 import javax.net.ssl.ExtendedSSLSession;
 import javax.net.ssl.SSLPeerUnverifiedException;
