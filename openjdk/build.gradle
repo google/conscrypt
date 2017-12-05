@@ -441,28 +441,19 @@ model {
             // Make sure we build and copy the native library to the output directory.
             compileJava.dependsOn "$copyTaskName"
 
-            if (osName == "linux") {
-                // Now define a task to extract debug symbols from the release binary.
-                def extractDebugSymbolsTaskName = "extractDebugSymbols${sourceSetName}"
-                task "${extractDebugSymbolsTaskName}"(type: Exec) {
-                    dependsOn binary.tasks.link
-                    commandLine "objcopy", "--only-keep-debug", binary.tasks.link.outputFile, "${binary.tasks.link.outputFile}.debuginfo"
+            // Now define a task to extract debug symbols from the release binary (linux only)
+            def extractDebugSymbolsTask = binary.tasks.taskName("extractDebugSymbols")
+            t.create(extractDebugSymbolsTask) {
+                dependsOn binary.tasks.link
+                doFirst {
+                    if (osName == 'linux') {
+                        ["objcopy", "--only-keep-debug", binary.tasks.link.outputFile, "${binary.tasks.link.outputFile}.debuginfo"].execute().waitForOrKill(60000)
+                        ["objcopy", "--strip-debug", binary.tasks.link.outputFile].execute().waitForOrKill(60000)
+                        ["objcopy", "--add-gnu-debuglink=${binary.tasks.link.outputFile}.debuginfo", binary.tasks.link.outputFile].execute().waitForOrKill(60000)
+                    }
                 }
-
-                def stripDebugSymbolsTaskName = "stripDebugSymbols${sourceSetName}"
-                task "${stripDebugSymbolsTaskName}"(type: Exec) {
-                    dependsOn extractDebugSymbolsTaskName
-                    commandLine "objcopy", "--only-keep-debug", binary.tasks.link.outputFile, "${binary.tasks.link.outputFile}.debuginfo"
-                }
-
-                def addDebugLinkTaskName = "addDebugLink${sourceSetName}"
-                task "${addDebugLinkTaskName}"(type: Exec) {
-                    dependsOn stripDebugSymbolsTaskName
-                    commandLine "objcopy", "--add-gnu-debuglink=${binary.tasks.link.outputFile}.debuginfo", binary.tasks.link.outputFile
-                }
-
-                binary.tasks.build.dependsOn addDebugLinkTaskName
             }
+            binary.tasks.build.dependsOn extractDebugSymbolsTask
         }
     }
 }
