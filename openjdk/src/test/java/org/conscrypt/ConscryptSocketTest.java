@@ -53,7 +53,6 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import libcore.java.security.TestKeyStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
