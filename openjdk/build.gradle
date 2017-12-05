@@ -443,7 +443,7 @@ model {
 
             // Now define a task to strip the release binary (linux only)
             if (osName == 'linux' && (!rootProject.hasProperty('nostrip') ||
-                !rootProject.nostrip.toBoolean())) {
+                    !rootProject.nostrip.toBoolean())) {
                 def stripTask = binary.tasks.taskName("strip")
                     task "$stripTask"(type: Exec) {
                         dependsOn binary.tasks.link
