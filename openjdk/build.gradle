@@ -440,20 +440,6 @@ model {
 
             // Make sure we build and copy the native library to the output directory.
             compileJava.dependsOn "$copyTaskName"
-
-            // Now define a task to extract debug symbols from the release binary (linux only)
-            def extractDebugSymbolsTask = binary.tasks.taskName("extractDebugSymbols")
-            t.create(extractDebugSymbolsTask) {
-                dependsOn binary.tasks.link
-                doFirst {
-                    if (osName == 'linux') {
-                        ["objcopy", "--only-keep-debug", binary.tasks.link.outputFile, "${binary.tasks.link.outputFile}.debuginfo"].execute().waitForOrKill(60000)
-                        ["objcopy", "--strip-debug", binary.tasks.link.outputFile].execute().waitForOrKill(60000)
-                        ["objcopy", "--add-gnu-debuglink=${binary.tasks.link.outputFile}.debuginfo", binary.tasks.link.outputFile].execute().waitForOrKill(60000)
-                    }
-                }
-            }
-            binary.tasks.build.dependsOn extractDebugSymbolsTask
         }
     }
 }
