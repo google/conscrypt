@@ -17,6 +17,7 @@
 package org.conscrypt;
 
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED;
+import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_COMPLETED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_STARTED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_NEW;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_READY;
@@ -113,6 +114,11 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             }
         }));
 
+    /**
+     * The handshake session object exposed externally from this class.
+     */
+    private SSLSession externalHandshakeSession;
+
     private int writeTimeoutMilliseconds = 0;
     private int handshakeTimeoutMilliseconds = -1; // -1 = same as timeout; 0 = infinite
 
@@ -185,7 +191,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         checkOpen();
         synchronized (ssl) {
             if (state == STATE_NEW) {
-                state = STATE_HANDSHAKE_STARTED;
+                transitionTo(STATE_HANDSHAKE_STARTED);
             } else {
                 // We've either started the handshake already or have been closed.
                 // Do nothing in both cases.
@@ -275,9 +281,9 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 releaseResources = (state == STATE_CLOSED);
 
                 if (state == STATE_HANDSHAKE_STARTED) {
-                    state = STATE_READY_HANDSHAKE_CUT_THROUGH;
+                    transitionTo(STATE_READY_HANDSHAKE_CUT_THROUGH);
                 } else {
-                    state = STATE_READY;
+                    transitionTo(STATE_READY);
                 }
 
                 if (!releaseResources) {
@@ -297,7 +303,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                     //
                     // The state will already be set to closed if we reach this as a result of
                     // an early return or an interruption due to a concurrent call to close().
-                    closeInternal();
+                    transitionTo(STATE_CLOSED);
                     ssl.notifyAll();
                 }
 
@@ -348,7 +354,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
             // Now that we've fixed up our state, we can tell waiting threads that
             // we're ready.
-            state = STATE_READY;
+            transitionTo(STATE_READY);
         }
 
         // Let listeners know we are finally done
@@ -688,7 +694,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     @Override
     public final SSLSession getHandshakeSession() {
         synchronized (ssl) {
-            return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY ? activeSession : null;
+            return externalHandshakeSession;
         }
     }
 
@@ -934,7 +940,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             }
 
             int oldState = state;
-            closeInternal();
+            transitionTo(STATE_CLOSED);
 
             if (oldState == STATE_NEW) {
                 // The handshake hasn't been started yet, so there's no OpenSSL related
@@ -981,16 +987,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         }
 
         shutdownAndFreeSslNative();
-    }
-
-    /**
-     * Marks the state as closed and creates the closedSession.
-     */
-    private void closeInternal() {
-        if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED ) {
-            closedSession = new SessionSnapshot(activeSession);
-        }
-        state = STATE_CLOSED;
     }
 
     private void shutdownAndFreeSslNative() throws IOException {
@@ -1132,5 +1128,35 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     private AbstractSessionContext sessionContext() {
         return sslParameters.getSessionContext();
+    }
+
+    private void transitionTo(int newState) {
+        switch (newState) {
+            case STATE_HANDSHAKE_STARTED: {
+                // Create the external handshake session.
+                externalHandshakeSession = Platform.wrapSSLSession(activeSession);
+                break;
+            }
+            case STATE_HANDSHAKE_COMPLETED:
+            case STATE_READY_HANDSHAKE_CUT_THROUGH: {
+                // Keep the external handshake session until we transition to READY.
+                break;
+            }
+            case STATE_CLOSED: {
+                if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED ) {
+                    closedSession = new SessionSnapshot(activeSession);
+                }
+
+                // Fall through...
+            }
+            default: {
+                // Handshake session is only available for STATE_HANDSHAKE_STARTED
+                externalHandshakeSession = null;
+                break;
+            }
+        }
+
+        // Update the state
+        this.state = newState;
     }
 }

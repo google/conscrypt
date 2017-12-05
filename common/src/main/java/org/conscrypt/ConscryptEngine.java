@@ -163,6 +163,11 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }));
 
     /**
+     * The handshake session object exposed externally from this class.
+     */
+    private SSLSession externalHandshakeSession;
+
+    /**
      * Private key for the TLS Channel ID extension. This field is client-side only. Set during
      * startHandshake.
      */
@@ -404,7 +409,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 return;
         }
 
-        state = STATE_HANDSHAKE_STARTED;
+        transitionTo(STATE_HANDSHAKE_STARTED);
 
         boolean releaseResources = true;
         try {
@@ -447,9 +452,9 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 return;
             }
             if (isOutboundDone()) {
-                close();
+                transitionTo(STATE_CLOSED);
             } else {
-                state = STATE_CLOSED_INBOUND;
+                transitionTo(STATE_CLOSED_INBOUND);
             }
         }
     }
@@ -465,7 +470,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 if (isInboundDone()) {
                     closeAndFreeResources();
                 } else {
-                    state = STATE_CLOSED_OUTBOUND;
+                    transitionTo(STATE_CLOSED_OUTBOUND);
                 }
             } else {
                 // Never started the handshake. Just close now.
@@ -562,7 +567,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     @Override
     SSLSession handshakeSession() {
         synchronized (ssl) {
-            return state == STATE_HANDSHAKE_STARTED ? activeSession : null;
+            return externalHandshakeSession;
         }
     }
 
@@ -646,7 +651,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 throw new IllegalArgumentException(
                         "Can not change mode after handshake: state == " + state);
             }
-            state = STATE_MODE_SET;
+            transitionTo(STATE_MODE_SET);
             sslParameters.setUseClientMode(mode);
         }
     }
@@ -1552,8 +1557,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 case SSL_CB_HANDSHAKE_START: {
                     // For clients, this will allow the NEED_UNWRAP status to be
                     // returned.
-                    state = STATE_HANDSHAKE_STARTED;
-                    handshakeFinished = false;
+                    transitionTo(STATE_HANDSHAKE_STARTED);
                     break;
                 }
                 case SSL_CB_HANDSHAKE_DONE: {
@@ -1562,7 +1566,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                         throw new IllegalStateException(
                                 "Completed handshake while in mode " + state);
                     }
-                    state = STATE_HANDSHAKE_COMPLETED;
+                    transitionTo(STATE_HANDSHAKE_COMPLETED);
                     break;
                 }
                 default:
@@ -1644,7 +1648,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     private void closeAndFreeResources() {
-        close();
+        transitionTo(STATE_CLOSED);
         if (!ssl.isClosed()) {
             ssl.close();
             networkBio.close();
@@ -1658,16 +1662,6 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         } finally {
             super.finalize();
         }
-    }
-
-    /**
-     * Marks the state as closed and creates the closedSession.
-     */
-    private void close() {
-        if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED ) {
-            closedSession = new SessionSnapshot(activeSession);
-        }
-        state = STATE_CLOSED;
     }
 
     @Override
@@ -1780,5 +1774,32 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
 
     private AbstractSessionContext sessionContext() {
         return sslParameters.getSessionContext();
+    }
+
+    private void transitionTo(int newState) {
+        switch (newState) {
+            case STATE_HANDSHAKE_STARTED: {
+                handshakeFinished = false;
+
+                // Create the external handshake session.
+                externalHandshakeSession = Platform.wrapSSLSession(activeSession);
+                break;
+            }
+            case STATE_CLOSED: {
+                if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED ) {
+                    closedSession = new SessionSnapshot(activeSession);
+                }
+
+                // Fall through...
+            }
+            default: {
+                // Handshake session is only available for STATE_HANDSHAKE_STARTED
+                externalHandshakeSession = null;
+                break;
+            }
+        }
+
+        // Update the state
+        this.state = newState;
     }
 }

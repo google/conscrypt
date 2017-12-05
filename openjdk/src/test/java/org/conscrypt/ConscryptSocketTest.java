@@ -48,10 +48,12 @@ import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import libcore.java.security.TestKeyStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -608,6 +610,19 @@ public class ConscryptSocketTest {
 
         assertFalse(connection.clientHooks.isHandshakeCompleted);
         assertFalse(connection.serverHooks.isHandshakeCompleted);
+    }
+
+    @Test
+    public void savedSessionWorksAfterClose() throws Exception {
+        TestConnection connection = new TestConnection(new X509Certificate[] {cert, ca}, certKey);
+        connection.doHandshake();
+
+        SSLSession session = connection.client.getSession();
+        String cipherSuite = session.getCipherSuite();
+
+        connection.client.close();
+
+        assertEquals(cipherSuite, session.getCipherSuite());
     }
 
     private static ServerSocket newServerSocket() throws IOException {
