@@ -5492,7 +5492,7 @@ static jobjectArray get_X509Type_ext_oids(JNIEnv* env, jlong x509Ref, jint criti
         JNI_TRACE("get_X509Type_ext_oids(%p, %d) => x509 == null", x509, critical);
         return nullptr;
     }
-    if (x509->*member == nullptr) {
+    if (member != nullptr && x509->*member == nullptr) {
         conscrypt::jniutil::jniThrowNullPointerException(env, "x509->*member == null");
         JNI_TRACE("get_X509Type_ext_oids(%p, %d) => x509->*member == null", x509, critical);
         return nullptr;
@@ -5551,7 +5551,7 @@ static jobjectArray NativeCrypto_get_X509_REVOKED_ext_oids(JNIEnv* env, jclass,
                                                            jlong x509RevokedRef, jint critical) {
     // NOLINTNEXTLINE(runtime/int)
     JNI_TRACE("get_X509_CRL_ext_oids(0x%llx, %d)", (long long)x509RevokedRef, critical);
-    return get_X509Type_ext_oids<X509_REVOKED, decltype(X509_REVOKED::extensions), &X509_REVOKED::extensions,
+    return get_X509Type_ext_oids<X509_REVOKED, decltype(X509_REVOKED::extensions), nullptr,
             X509_REVOKED_get_ext_by_critical, X509_REVOKED_get_ext>(env, x509RevokedRef, critical);
 }
 
