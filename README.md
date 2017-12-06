@@ -31,7 +31,7 @@ All Conscrypt artifacts target the **Java 6** runtime and are available on Maven
 
 #### Download JARs
 You can download
-[the JARs](http://search.maven.org/#search%7Cga%7C1%7Cg:%22org.conscrypt%22%20AND%20v:%221.1.0%22)
+[the JARs](http://search.maven.org/#search%7Cga%7C1%7Cg:%22org.conscrypt%22)
 directly from the Maven repositories.
 
 #### OpenJDK (i.e. non-Android)
