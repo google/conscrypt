@@ -323,7 +323,9 @@ bool throwExceptionIfNecessary(JNIEnv* env, CONSCRYPT_UNUSED const char* locatio
     unsigned long error = ERR_get_error_line_data(&file, &line, &data, &flags);
     bool result = false;
 
-    if (error != 0) {
+    // If there's an error from BoringSSL it may have been caused by an exception in Java code, so
+    // ensure there isn't a pending exception before we throw a new one.
+    if ((error != 0) && !env->ExceptionCheck()) {
         char message[256];
         ERR_error_string_n(error, message, sizeof(message));
         int library = ERR_GET_LIB(error);
