@@ -442,16 +442,15 @@ model {
             compileJava.dependsOn "$copyTaskName"
 
             // Now define a task to strip the release binary (linux only)
-            def stripTask = binary.tasks.taskName("strip")
-            t.create(stripTask) {
-                dependsOn binary.tasks.link
-                doFirst {
-                    if (osName == 'linux') {
-                        ["strip", binary.tasks.link.outputFile].execute().waitForOrKill(1000)
+            if (osName == 'linux' && (!rootProject.hasProperty('nostrip') ||
+                    !rootProject.nostrip.toBoolean())) {
+                def stripTask = binary.tasks.taskName("strip")
+                    task "$stripTask"(type: Exec) {
+                        dependsOn binary.tasks.link
+                        commandLine "strip", "${binary.tasks.link.outputFile}"
                     }
-                }
+                binary.tasks.build.dependsOn stripTask
             }
-            binary.tasks.build.dependsOn stripTask
         }
     }
 }
