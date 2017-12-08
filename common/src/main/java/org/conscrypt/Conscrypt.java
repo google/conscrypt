@@ -339,6 +339,15 @@ public final class Conscrypt {
     }
 
     /**
+     * Returns the tls-unique channel binding value for this connection, per RFC 5929.  This
+     * will return {@code null} if there is no such value available, such as if the handshake
+     * has not yet completed or this connection is closed.
+     */
+    public static byte[] getTlsUnique(SSLSocket socket) {
+        return toConscrypt(socket).getTlsUnique();
+    }
+
+    /**
      * Indicates whether the given {@link SSLEngine} was created by this distribution of Conscrypt.
      */
     public static boolean isConscrypt(SSLEngine engine) {
@@ -528,5 +537,14 @@ public final class Conscrypt {
      */
     public static String getApplicationProtocol(SSLEngine engine) {
         return toConscrypt(engine).getApplicationProtocol();
+    }
+
+    /**
+     * Returns the tls-unique channel binding value for this connection, per RFC 5929.  This
+     * will return {@code null} if there is no such value available, such as if the handshake
+     * has not yet completed or this connection is closed.
+     */
+    public static byte[] getTlsUnique(SSLEngine engine) {
+        return toConscrypt(engine).getTlsUnique();
     }
 }

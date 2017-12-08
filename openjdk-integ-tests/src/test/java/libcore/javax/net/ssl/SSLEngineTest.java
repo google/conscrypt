@@ -17,10 +17,12 @@
 package libcore.javax.net.ssl;
 
 import static org.conscrypt.TestUtils.UTF_8;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -47,6 +49,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
+import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -926,6 +929,28 @@ public class SSLEngineTest extends AbstractSSLTest {
             // registered that they're finished
             assertTrue(pair.client.isInboundDone() && pair.client.isOutboundDone());
             assertTrue(pair.server.isInboundDone() && pair.server.isOutboundDone());
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLEngine_TlsUnique() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
+            @Override
+            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                assertNull(Conscrypt.getTlsUnique(client));
+                assertNull(Conscrypt.getTlsUnique(server));
+            }
+        });
+        try {
+            assertConnected(pair);
+
+            byte[] clientTlsUnique = Conscrypt.getTlsUnique(pair.client);
+            byte[] serverTlsUnique = Conscrypt.getTlsUnique(pair.server);
+            assertNotNull(clientTlsUnique);
+            assertNotNull(serverTlsUnique);
+            assertArrayEquals(clientTlsUnique, serverTlsUnique);
         } finally {
             pair.close();
         }

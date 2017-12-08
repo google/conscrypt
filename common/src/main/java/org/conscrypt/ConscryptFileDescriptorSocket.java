@@ -829,6 +829,11 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
+    byte[] getTlsUnique() {
+        return ssl.getTlsUnique();
+    }
+
+    @Override
     public final boolean getUseClientMode() {
         return sslParameters.getUseClientMode();
     }

@@ -895,6 +895,8 @@ public final class NativeCrypto {
 
     static native void SSL_set_ocsp_response(long ssl, byte[] response);
 
+    static native byte[] SSL_get_tls_unique(long ssl);
+
     static native void SSL_use_psk_identity_hint(long ssl, String identityHint) throws SSLException;
 
     static native void set_SSL_psk_client_callback_enabled(long ssl, boolean enabled);
