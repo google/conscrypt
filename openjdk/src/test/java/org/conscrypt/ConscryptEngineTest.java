@@ -44,6 +44,7 @@ import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLSession;
 import libcore.java.security.TestKeyStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -358,6 +359,20 @@ public class ConscryptEngineTest {
         doHandshake(false);
 
         exchangeMessage(newMessage(MESSAGE_SIZE), serverEngine, clientEngine);
+    }
+
+    @Test
+    public void savedSessionWorksAfterClose() throws Exception {
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
+        doHandshake(true);
+
+        SSLSession session = clientEngine.getSession();
+        String cipherSuite = session.getCipherSuite();
+
+        clientEngine.closeOutbound();
+        clientEngine.closeInbound();
+
+        assertEquals(cipherSuite, session.getCipherSuite());
     }
 
     private void doMutualAuthHandshake(

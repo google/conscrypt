@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
@@ -36,8 +35,8 @@ import javax.net.ssl.SSLSessionContext;
  * A session that is dedicated a single connection and operates directly on the underlying
  * {@code SSL}.
  */
-final class ActiveSession implements SSLSession {
-    private final SslWrapper ssl;
+final class ActiveSession implements ConscryptSession {
+    private final NativeSsl ssl;
     private AbstractSessionContext sessionContext;
     private byte[] id;
     private long creationTime;
@@ -54,7 +53,7 @@ final class ActiveSession implements SSLSession {
     // lazy init for memory reasons
     private Map<String, Object> values;
 
-    ActiveSession(SslWrapper ssl, AbstractSessionContext sessionContext) {
+    ActiveSession(NativeSsl ssl, AbstractSessionContext sessionContext) {
         this.ssl = checkNotNull(ssl, "ssl");
         this.sessionContext = checkNotNull(sessionContext, "sessionContext");
     }
@@ -119,8 +118,7 @@ final class ActiveSession implements SSLSession {
      * @see <a href="https://tools.ietf.org/html/rfc6066">RFC 6066</a>
      * @see <a href="https://tools.ietf.org/html/rfc6961">RFC 6961</a>
      */
-    /* @Override */
-    @SuppressWarnings("MissingOverride") // For Pre-Java9 compatibility.
+    @Override
     public List<byte[]> getStatusResponses() {
         if (peerCertificateOcspData == null) {
             return Collections.<byte[]>emptyList();
@@ -135,14 +133,16 @@ final class ActiveSession implements SSLSession {
      *
      * @see <a href="https://tools.ietf.org/html/rfc6962">RFC 6962</a>
      */
-    byte[] getPeerSignedCertificateTimestamp() {
+    @Override
+    public byte[] getPeerSignedCertificateTimestamp() {
         if (peerTlsSctData == null) {
             return null;
         }
         return peerTlsSctData.clone();
     }
 
-    String getRequestedServerName() {
+    @Override
+    public String getRequestedServerName() {
         synchronized (ssl) {
             return ssl.getRequestedServerName();
         }

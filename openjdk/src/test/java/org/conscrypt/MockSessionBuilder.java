@@ -63,8 +63,8 @@ final class MockSessionBuilder {
         return this;
     }
 
-    SslSessionWrapper build() {
-        SslSessionWrapper session = mock(SslSessionWrapper.class);
+    NativeSslSession build() {
+        NativeSslSession session = mock(NativeSslSession.class);
         byte[] id = this.id == null ? host.getBytes(UTF_8) : this.id;
         when(session.getId()).thenReturn(id);
         when(session.isValid()).thenReturn(valid);

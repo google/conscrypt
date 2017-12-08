@@ -29,7 +29,7 @@ public class ServerSessionContextTest extends AbstractSessionContextTest<ServerS
     }
 
     @Override
-    SslSessionWrapper getCachedSession(ServerSessionContext context, SslSessionWrapper s) {
+    NativeSslSession getCachedSession(ServerSessionContext context, NativeSslSession s) {
         return context.getSessionFromCache(s.getId());
     }
 

@@ -426,16 +426,11 @@ final class Platform {
         }
     }
 
-    /*
-     * Pre-Java 8 backward compatibility.
+    /**
+     * Provides extended capabilities for the session if supported by the platform.
      */
-
-    static SSLSession wrapSSLSession(ActiveSession sslSession) {
-        return new Java7SessionWrapper(sslSession);
-    }
-
-    static SSLSession unwrapSSLSession(SSLSession sslSession) {
-        return Java7SessionWrapper.getDelegate(sslSession);
+    static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+        return new Java8ExtendedSSLSession(sslSession);
     }
 
     public static String getOriginalHostNameFromInetAddress(InetAddress addr) {
