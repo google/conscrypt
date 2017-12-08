@@ -125,6 +125,10 @@ final class SslWrapper {
         return NativeCrypto.SSL_get_ocsp_response(ssl);
     }
 
+    byte[] getTlsUnique() {
+        return NativeCrypto.SSL_get_tls_unique(ssl);
+    }
+
     byte[] getPeerTlsSctData() {
         return NativeCrypto.SSL_get_signed_cert_timestamp_list(ssl);
     }

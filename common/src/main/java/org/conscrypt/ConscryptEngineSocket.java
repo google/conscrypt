@@ -336,6 +336,11 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     }
 
     @Override
+    byte[] getTlsUnique() {
+        return engine.getTlsUnique();
+    }
+
+    @Override
     public final boolean getUseClientMode() {
         return engine.getUseClientMode();
     }
