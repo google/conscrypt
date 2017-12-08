@@ -296,6 +296,11 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     }
 
     @Override
+    byte[] getTlsUnique() {
+        return delegate.getTlsUnique();
+    }
+
+    @Override
     public String getHandshakeApplicationProtocol() {
         return delegate.getHandshakeApplicationProtocol();
     }

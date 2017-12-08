@@ -1701,6 +1701,11 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 selector == null ? null : new ApplicationProtocolSelectorAdapter(this, selector));
     }
 
+    @Override
+    byte[] getTlsUnique() {
+        return ssl.getTlsUnique();
+    }
+
     void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter adapter) {
         sslParameters.setApplicationProtocolSelector(adapter);
     }

@@ -17,6 +17,7 @@
 package libcore.javax.net.ssl;
 
 import static org.conscrypt.TestUtils.UTF_8;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -122,6 +123,7 @@ import libcore.tlswire.handshake.ServerNameHelloExtension;
 import libcore.tlswire.record.TlsProtocols;
 import libcore.tlswire.record.TlsRecord;
 import libcore.tlswire.util.TlsProtocolVersion;
+import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -2490,6 +2492,88 @@ public class SSLSocketTest extends AbstractSSLTest {
             }
         } finally {
             test.close();
+        }
+    }
+
+    @Test
+    public void test_SSLSocket_TlsUnique() throws Exception {
+        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        try {
+            assertNull(Conscrypt.getTlsUnique(pair.client));
+            assertNull(Conscrypt.getTlsUnique(pair.server));
+
+            pair.connect();
+
+            byte[] clientTlsUnique = Conscrypt.getTlsUnique(pair.client);
+            byte[] serverTlsUnique = Conscrypt.getTlsUnique(pair.server);
+            assertNotNull(clientTlsUnique);
+            assertNotNull(serverTlsUnique);
+            assertArrayEquals(clientTlsUnique, serverTlsUnique);
+        } finally {
+            pair.close();
+        }
+    }
+
+    // Tests that all cipher suites have a 12-byte tls-unique channel binding value.  If this
+    // test fails, that means some cipher suite has been added that uses a customized verify_data
+    // length and we need to update MAX_TLS_UNIQUE_LENGTH in native_crypto.cc to account for that.
+    @Test
+    public void test_SSLSocket_TlsUniqueLength() throws Exception {
+        // note the rare usage of non-RSA keys
+        TestKeyStore testKeyStore = new TestKeyStore.Builder()
+                .keyAlgorithms("RSA", "DSA", "EC", "EC_RSA")
+                .aliasPrefix("rsa-dsa-ec")
+                .ca(true)
+                .build();
+        KeyManager pskKeyManager =
+                PSKKeyManagerProxy.getConscryptPSKKeyManager(new PSKKeyManagerProxy() {
+                    @Override
+                    protected SecretKey getKey(
+                            String identityHint, String identity, Socket socket) {
+                        return newKey();
+                    }
+
+                    @Override
+                    protected SecretKey getKey(
+                            String identityHint, String identity, SSLEngine engine) {
+                        return newKey();
+                    }
+
+                    private SecretKey newKey() {
+                        return new SecretKeySpec("Just an arbitrary key".getBytes(UTF_8), "RAW");
+                    }
+                });
+        TestSSLContext c = TestSSLContext.newBuilder()
+                .client(testKeyStore)
+                .server(testKeyStore)
+                .additionalClientKeyManagers(new KeyManager[] {pskKeyManager})
+                .additionalServerKeyManagers(new KeyManager[] {pskKeyManager})
+                .build();
+        for (String cipherSuite : c.clientContext.getSocketFactory().getSupportedCipherSuites()) {
+            if (cipherSuite.equals(StandardNames.CIPHER_SUITE_FALLBACK)
+                    || cipherSuite.equals(StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION)) {
+                continue;
+            }
+            TestSSLSocketPair pair = TestSSLSocketPair.create(c);
+            try {
+                String[] cipherSuites =
+                        new String[] {cipherSuite, StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION};
+                pair.connect(cipherSuites, cipherSuites);
+
+                assertEquals(cipherSuite, pair.client.getSession().getCipherSuite());
+
+                byte[] clientTlsUnique = Conscrypt.getTlsUnique(pair.client);
+                byte[] serverTlsUnique = Conscrypt.getTlsUnique(pair.server);
+                assertNotNull(clientTlsUnique);
+                assertNotNull(serverTlsUnique);
+                assertArrayEquals(clientTlsUnique, serverTlsUnique);
+                assertEquals(12, clientTlsUnique.length);
+            } catch (Exception e) {
+                throw new AssertionError("Cipher suite is " + cipherSuite, e);
+            } finally {
+                pair.client.close();
+                pair.server.close();
+            }
         }
     }
 

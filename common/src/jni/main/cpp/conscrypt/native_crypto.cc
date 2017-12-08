@@ -6751,6 +6751,41 @@ static void NativeCrypto_SSL_set_ocsp_response(JNIEnv* env, jclass, jlong ssl_ad
     }
 }
 
+// All verify_data values are currently 12 bytes long, but cipher suites are allowed
+// to customize the length of their verify_data (with a default of 12 bytes).  We accept
+// up to 16 bytes so that we can check that the results are actually 12 bytes long in
+// tests and update this value if necessary.
+const size_t MAX_TLS_UNIQUE_LENGTH = 16;
+
+static jbyteArray NativeCrypto_SSL_get_tls_unique(JNIEnv* env, jclass, jlong ssl_address) {
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_tls_unique", ssl);
+    if (ssl == nullptr) {
+        return nullptr;
+    }
+
+    uint8_t data[MAX_TLS_UNIQUE_LENGTH];
+    size_t data_len;
+    int ret = SSL_get_tls_unique(ssl, data, &data_len, MAX_TLS_UNIQUE_LENGTH);
+
+    if (!ret || data_len == 0) {
+        JNI_TRACE("NativeCrypto_SSL_get_tls_unique(%p) => null", ssl);
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> byteArray(env, env->NewByteArray(static_cast<jsize>(data_len)));
+    if (byteArray.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_SSL_get_tls_unique(%p) => creating byte array failed", ssl);
+        return nullptr;
+    }
+
+    env->SetByteArrayRegion(byteArray.get(), 0, static_cast<jsize>(data_len), (const jbyte*)data);
+    JNI_TRACE("NativeCrypto_SSL_get_tls_unique(%p) => %p [size=%zd]", ssl, byteArray.get(),
+              data_len);
+
+    return byteArray.release();
+}
+
 static void NativeCrypto_SSL_use_psk_identity_hint(JNIEnv* env, jclass, jlong ssl_address,
                                                    jstring identityHintJava) {
     SSL* ssl = to_SSL(env, ssl_address, true);
@@ -9584,6 +9619,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_enable_ocsp_stapling, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_ocsp_response, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_set_ocsp_response, "(J[B)V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_get_tls_unique, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_use_psk_identity_hint, "(JLjava/lang/String;)V"),
         CONSCRYPT_NATIVE_METHOD(set_SSL_psk_client_callback_enabled, "(JZ)V"),
         CONSCRYPT_NATIVE_METHOD(set_SSL_psk_server_callback_enabled, "(JZ)V"),
