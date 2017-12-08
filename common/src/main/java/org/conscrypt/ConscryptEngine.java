@@ -1622,6 +1622,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     private void closeAndFreeResources() {
         state = STATE_CLOSED;
         if (!ssl.isClosed()) {
+            sslSession.cacheCurrentValues();
             ssl.close();
             networkBio.close();
         }

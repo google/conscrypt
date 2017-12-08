@@ -983,6 +983,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     private void free() {
         if (!ssl.isClosed()) {
+            sslSession.cacheCurrentValues();
             ssl.close();
             Platform.closeGuardClose(guard);
         }
