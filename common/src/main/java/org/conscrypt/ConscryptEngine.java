@@ -163,11 +163,6 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }));
 
     /**
-     * The handshake session object exposed externally from this class.
-     */
-    private SSLSession externalHandshakeSession;
-
-    /**
      * Private key for the TLS Channel ID extension. This field is client-side only. Set during
      * startHandshake.
      */
@@ -567,7 +562,15 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     @Override
     SSLSession handshakeSession() {
         synchronized (ssl) {
-            return externalHandshakeSession;
+            if (state == STATE_HANDSHAKE_STARTED) {
+                return Platform.wrapSSLSession(new ProvidedSessionDecorator(new Provider() {
+                    @Override
+                    public ConscryptSession provideSession() {
+                        return ConscryptEngine.this.provideHandshakeSession();
+                    }
+                }));
+            }
+            return null;
         }
     }
 
@@ -586,6 +589,13 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 return SSLNullSession.getNullSession();
             }
             return activeSession;
+        }
+    }
+
+    private ConscryptSession provideHandshakeSession() {
+        synchronized (ssl) {
+            return state == STATE_HANDSHAKE_STARTED ? activeSession
+                : SSLNullSession.getNullSession();
         }
     }
 
@@ -1780,21 +1790,15 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         switch (newState) {
             case STATE_HANDSHAKE_STARTED: {
                 handshakeFinished = false;
-
-                // Create the external handshake session.
-                externalHandshakeSession = Platform.wrapSSLSession(activeSession);
                 break;
             }
             case STATE_CLOSED: {
                 if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED ) {
                     closedSession = new SessionSnapshot(activeSession);
                 }
-
-                // Fall through...
+                break;
             }
             default: {
-                // Handshake session is only available for STATE_HANDSHAKE_STARTED
-                externalHandshakeSession = null;
                 break;
             }
         }

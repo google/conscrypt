@@ -17,7 +17,6 @@
 package org.conscrypt;
 
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED;
-import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_COMPLETED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_STARTED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_NEW;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_READY;
@@ -113,11 +112,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 return ConscryptFileDescriptorSocket.this.provideSession();
             }
         }));
-
-    /**
-     * The handshake session object exposed externally from this class.
-     */
-    private SSLSession externalHandshakeSession;
 
     private int writeTimeoutMilliseconds = 0;
     private int handshakeTimeoutMilliseconds = -1; // -1 = same as timeout; 0 = infinite
@@ -686,6 +680,13 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         return activeSession;
     }
 
+    private ConscryptSession provideHandshakeSession() {
+        synchronized (ssl) {
+            return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY ? activeSession
+                : SSLNullSession.getNullSession();
+        }
+    }
+
     @Override
     final SSLSession getActiveSession() {
         return activeSession;
@@ -694,7 +695,15 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     @Override
     public final SSLSession getHandshakeSession() {
         synchronized (ssl) {
-            return externalHandshakeSession;
+            if (state >= STATE_HANDSHAKE_STARTED && state < STATE_READY) {
+                return Platform.wrapSSLSession(new ProvidedSessionDecorator(new Provider() {
+                    @Override
+                    public ConscryptSession provideSession() {
+                        return ConscryptFileDescriptorSocket.this.provideHandshakeSession();
+                    }
+                }));
+            }
+            return null;
         }
     }
 
@@ -1132,26 +1141,13 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     private void transitionTo(int newState) {
         switch (newState) {
-            case STATE_HANDSHAKE_STARTED: {
-                // Create the external handshake session.
-                externalHandshakeSession = Platform.wrapSSLSession(activeSession);
-                break;
-            }
-            case STATE_HANDSHAKE_COMPLETED:
-            case STATE_READY_HANDSHAKE_CUT_THROUGH: {
-                // Keep the external handshake session until we transition to READY.
-                break;
-            }
             case STATE_CLOSED: {
                 if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED ) {
                     closedSession = new SessionSnapshot(activeSession);
                 }
-
-                // Fall through...
+                break;
             }
             default: {
-                // Handshake session is only available for STATE_HANDSHAKE_STARTED
-                externalHandshakeSession = null;
                 break;
             }
         }
