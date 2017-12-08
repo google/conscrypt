@@ -28,7 +28,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class SslSessionWrapperTest {
+public class NativeSslSessionTest {
     /*
      * Taken from external/boringssl/src/ssl/ssl_test.cc: kOpenSSLSession is a
      * serialized SSL_SESSION.
@@ -433,14 +433,8 @@ public class SslSessionWrapperTest {
         assertValidSession(getType3().build());
     }
 
-    private void assertTruncatedSessionFails(byte[] validSession) {
-        for (int i = 0; i < validSession.length - 1; i++) {
-            byte[] truncatedSession = new byte[i];
-            System.arraycopy(validSession, 0, truncatedSession, 0, i);
-            assertNull("Truncating to " + i + " bytes of " + validSession.length
-                            + " should not succeed",
-                    SslSessionWrapper.newInstance(null, truncatedSession, "www.google.com", 443));
-        }
+    private static void assertValidSession(byte[] data) {
+        assertNotNull(NativeSslSession.newInstance(null, data, "www.google.com", 443));
     }
 
     @Test
@@ -448,12 +442,31 @@ public class SslSessionWrapperTest {
         assertTruncatedSessionFails(getType3().build());
     }
 
-    private static void assertValidSession(byte[] data) {
-        assertNotNull(SslSessionWrapper.newInstance(null, data, "www.google.com", 443));
+    private static void assertInvalidSession(byte[] data) {
+        assertNull(NativeSslSession.newInstance(null, data, "www.google.com", 443));
     }
 
-    private static void assertInvalidSession(byte[] data) {
-        assertNull(SslSessionWrapper.newInstance(null, data, "www.google.com", 443));
+    private static void check_reserializableFromByteArray_roundTrip(
+            byte[] data, byte[] expectedTrailingBytesAfterReserialization) throws Exception {
+        NativeSslSession session =
+                NativeSslSession.newInstance(null, data, "www.example.com", 12345);
+        byte[] sessionBytes = session.toBytes();
+
+        NativeSslSession session2 =
+                NativeSslSession.newInstance(null, sessionBytes, "www.example.com", 12345);
+        byte[] sessionBytes2 = session2.toBytes();
+
+        assertSSLSessionEquals(session, session2);
+        assertByteArrayEquals(sessionBytes, sessionBytes2);
+
+        assertEquals("www.example.com", session.getPeerHost());
+        assertEquals(12345, session.getPeerPort());
+        assertTrue(sessionBytes.length >= data.length);
+
+        byte[] expectedReserializedData = concat(data, expectedTrailingBytesAfterReserialization);
+        // AbstractSessionContext.toBytes() always writes type 3 == OPEN_SSL_WITH_TLS_SCT
+        expectedReserializedData[3] = 3;
+        assertByteArrayEquals(expectedReserializedData, sessionBytes);
     }
 
     @Test
@@ -581,27 +594,13 @@ public class SslSessionWrapperTest {
         check_reserializableFromByteArray_roundTrip(getType3().build(), new byte[0]);
     }
 
-    private static void check_reserializableFromByteArray_roundTrip(
-            byte[] data, byte[] expectedTrailingBytesAfterReserialization) throws Exception {
-        SslSessionWrapper session =
-                SslSessionWrapper.newInstance(null, data, "www.example.com", 12345);
-        byte[] sessionBytes = session.toBytes();
-
-        SslSessionWrapper session2 =
-                SslSessionWrapper.newInstance(null, sessionBytes, "www.example.com", 12345);
-        byte[] sessionBytes2 = session2.toBytes();
-
-        assertSSLSessionEquals(session, session2);
-        assertByteArrayEquals(sessionBytes, sessionBytes2);
-
-        assertEquals("www.example.com", session.getPeerHost());
-        assertEquals(12345, session.getPeerPort());
-        assertTrue(sessionBytes.length >= data.length);
-
-        byte[] expectedReserializedData = concat(data, expectedTrailingBytesAfterReserialization);
-        // AbstractSessionContext.toBytes() always writes type 3 == OPEN_SSL_WITH_TLS_SCT
-        expectedReserializedData[3] = 3;
-        assertByteArrayEquals(expectedReserializedData, sessionBytes);
+    private static void assertSSLSessionEquals(NativeSslSession a, NativeSslSession b)
+            throws Exception {
+        assertEquals(a.getCipherSuite(), b.getCipherSuite());
+        assertByteArrayEquals(a.getId(), b.getId());
+        assertEquals(a.getPeerHost(), b.getPeerHost());
+        assertEquals(a.getPeerPort(), b.getPeerPort());
+        assertEquals(a.getProtocol(), b.getProtocol());
     }
 
     private static byte[] concat(byte[] a, byte[] b) {
@@ -611,13 +610,14 @@ public class SslSessionWrapperTest {
         return result;
     }
 
-    private static void assertSSLSessionEquals(SslSessionWrapper a, SslSessionWrapper b)
-            throws Exception {
-        assertEquals(a.getCipherSuite(), b.getCipherSuite());
-        assertByteArrayEquals(a.getId(), b.getId());
-        assertEquals(a.getPeerHost(), b.getPeerHost());
-        assertEquals(a.getPeerPort(), b.getPeerPort());
-        assertEquals(a.getProtocol(), b.getProtocol());
+    private void assertTruncatedSessionFails(byte[] validSession) {
+        for (int i = 0; i < validSession.length - 1; i++) {
+            byte[] truncatedSession = new byte[i];
+            System.arraycopy(validSession, 0, truncatedSession, 0, i);
+            assertNull("Truncating to " + i + " bytes of " + validSession.length
+                            + " should not succeed",
+                    NativeSslSession.newInstance(null, truncatedSession, "www.google.com", 443));
+        }
     }
 
     private static void assertByteArrayEquals(byte[] expected, byte[] actual) {

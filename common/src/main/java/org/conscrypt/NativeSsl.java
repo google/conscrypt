@@ -50,7 +50,7 @@ import org.conscrypt.SSLParametersImpl.PSKCallbacks;
 /**
  * A utility wrapper that abstracts operations on the underlying native SSL instance.
  */
-final class SslWrapper {
+final class NativeSsl {
     private final SSLParametersImpl parameters;
     private final SSLHandshakeCallbacks handshakeCallbacks;
     private final AliasChooser aliasChooser;
@@ -58,15 +58,7 @@ final class SslWrapper {
     private X509Certificate[] localCertificates;
     private volatile long ssl;
 
-    static SslWrapper newInstance(SSLParametersImpl parameters,
-            SSLHandshakeCallbacks handshakeCallbacks, AliasChooser chooser,
-            PSKCallbacks pskCallbacks) throws SSLException {
-        long ctx = parameters.getSessionContext().sslCtxNativePointer;
-        long ssl = NativeCrypto.SSL_new(ctx);
-        return new SslWrapper(ssl, parameters, handshakeCallbacks, chooser, pskCallbacks);
-    }
-
-    private SslWrapper(long ssl, SSLParametersImpl parameters,
+    private NativeSsl(long ssl, SSLParametersImpl parameters,
             SSLHandshakeCallbacks handshakeCallbacks, AliasChooser aliasChooser,
             PSKCallbacks pskCallbacks) {
         this.ssl = ssl;
@@ -74,6 +66,14 @@ final class SslWrapper {
         this.handshakeCallbacks = handshakeCallbacks;
         this.aliasChooser = aliasChooser;
         this.pskCallbacks = pskCallbacks;
+    }
+
+    static NativeSsl newInstance(SSLParametersImpl parameters,
+            SSLHandshakeCallbacks handshakeCallbacks, AliasChooser chooser,
+            PSKCallbacks pskCallbacks) throws SSLException {
+        long ctx = parameters.getSessionContext().sslCtxNativePointer;
+        long ssl = NativeCrypto.SSL_new(ctx);
+        return new NativeSsl(ssl, parameters, handshakeCallbacks, chooser, pskCallbacks);
     }
 
     long ssl() {

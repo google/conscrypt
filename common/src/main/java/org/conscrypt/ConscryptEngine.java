@@ -91,7 +91,8 @@ import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.NativeRef.SSL_SESSION;
-import org.conscrypt.SslWrapper.BioWrapper;
+import org.conscrypt.NativeSsl.BioWrapper;
+import org.conscrypt.ProvidedSessionDecorator.Provider;
 
 /**
  * Implements the {@link SSLEngine} API using OpenSSL's non-blocking interfaces.
@@ -132,7 +133,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     /**
      * Wrapper around the underlying SSL object.
      */
-    private final SslWrapper ssl;
+    private final NativeSsl ssl;
 
     /**
      * The BIO used for reading/writing encrypted bytes.
@@ -143,7 +144,23 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     /**
      * Set during startHandshake.
      */
-    private final ActiveSession sslSession;
+    private final ActiveSession activeSession;
+
+    /**
+     * A snapshot of the active session when the engine was closed.
+     */
+    private SessionSnapshot closedSession;
+
+    /**
+     * The session object exposed externally from this class.
+     */
+    private final SSLSession externalSession =
+        Platform.wrapSSLSession(new ProvidedSessionDecorator(new Provider() {
+            @Override
+            public ConscryptSession provideSession() {
+                return ConscryptEngine.this.provideSession();
+            }
+        }));
 
     /**
      * Private key for the TLS Channel ID extension. This field is client-side only. Set during
@@ -166,7 +183,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         peerInfoProvider = PeerInfoProvider.nullProvider();
         this.ssl = newSsl(sslParameters, this);
         this.networkBio = ssl.newBio();
-        sslSession = new ActiveSession(ssl, sslParameters.getSessionContext());
+        activeSession = new ActiveSession(ssl, sslParameters.getSessionContext());
     }
 
     ConscryptEngine(String host, int port, SSLParametersImpl sslParameters) {
@@ -174,7 +191,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         this.peerInfoProvider = PeerInfoProvider.forHostAndPort(host, port);
         this.ssl = newSsl(sslParameters, this);
         this.networkBio = ssl.newBio();
-        sslSession = new ActiveSession(ssl, sslParameters.getSessionContext());
+        activeSession = new ActiveSession(ssl, sslParameters.getSessionContext());
     }
 
     ConscryptEngine(SSLParametersImpl sslParameters, PeerInfoProvider peerInfoProvider) {
@@ -182,12 +199,12 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         this.peerInfoProvider = checkNotNull(peerInfoProvider, "peerInfoProvider");
         this.ssl = newSsl(sslParameters, this);
         this.networkBio = ssl.newBio();
-        sslSession = new ActiveSession(ssl, sslParameters.getSessionContext());
+        activeSession = new ActiveSession(ssl, sslParameters.getSessionContext());
     }
 
-    private static SslWrapper newSsl(SSLParametersImpl sslParameters, ConscryptEngine engine) {
+    private static NativeSsl newSsl(SSLParametersImpl sslParameters, ConscryptEngine engine) {
         try {
-            return SslWrapper.newInstance(sslParameters, engine, engine, engine);
+            return NativeSsl.newInstance(sslParameters, engine, engine, engine);
         } catch (SSLException e) {
             throw new RuntimeException(e);
         }
@@ -387,7 +404,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 return;
         }
 
-        state = STATE_HANDSHAKE_STARTED;
+        transitionTo(STATE_HANDSHAKE_STARTED);
 
         boolean releaseResources = true;
         try {
@@ -397,7 +414,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             // For clients, offer to resume a previously cached session to avoid the
             // full TLS handshake.
             if (getUseClientMode()) {
-                SslSessionWrapper cachedSession = clientSessionContext().getCachedSession(
+                NativeSslSession cachedSession = clientSessionContext().getCachedSession(
                         getHostname(), getPeerPort(), sslParameters);
                 if (cachedSession != null) {
                     cachedSession.offerToResume(ssl);
@@ -430,9 +447,9 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 return;
             }
             if (isOutboundDone()) {
-                state = STATE_CLOSED;
+                transitionTo(STATE_CLOSED);
             } else {
-                state = STATE_CLOSED_INBOUND;
+                transitionTo(STATE_CLOSED_INBOUND);
             }
         }
     }
@@ -448,7 +465,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 if (isInboundDone()) {
                     closeAndFreeResources();
                 } else {
-                    state = STATE_CLOSED_OUTBOUND;
+                    transitionTo(STATE_CLOSED_OUTBOUND);
                 }
             } else {
                 // Never started the handshake. Just close now.
@@ -545,18 +562,40 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     @Override
     SSLSession handshakeSession() {
         synchronized (ssl) {
-            return state == STATE_HANDSHAKE_STARTED ? sslSession : null;
+            if (state == STATE_HANDSHAKE_STARTED) {
+                return Platform.wrapSSLSession(new ProvidedSessionDecorator(new Provider() {
+                    @Override
+                    public ConscryptSession provideSession() {
+                        return ConscryptEngine.this.provideHandshakeSession();
+                    }
+                }));
+            }
+            return null;
         }
     }
 
     @Override
     public SSLSession getSession() {
+        return externalSession;
+    }
+
+    private ConscryptSession provideSession() {
         synchronized (ssl) {
+            if (state == STATE_CLOSED) {
+                return closedSession != null ? closedSession : SSLNullSession.getNullSession();
+            }
             if (state < STATE_HANDSHAKE_COMPLETED) {
                 // Return an invalid session with invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
                 return SSLNullSession.getNullSession();
             }
-            return Platform.wrapSSLSession(sslSession);
+            return activeSession;
+        }
+    }
+
+    private ConscryptSession provideHandshakeSession() {
+        synchronized (ssl) {
+            return state == STATE_HANDSHAKE_STARTED ? activeSession
+                : SSLNullSession.getNullSession();
         }
     }
 
@@ -622,7 +661,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 throw new IllegalArgumentException(
                         "Can not change mode after handshake: state == " + state);
             }
-            state = STATE_MODE_SET;
+            transitionTo(STATE_MODE_SET);
             sslParameters.setUseClientMode(mode);
         }
     }
@@ -955,7 +994,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             // The handshake has completed successfully...
 
             // Update the session from the current state of the SSL object.
-            sslSession.onPeerCertificateAvailable(getPeerHost(), getPeerPort());
+            activeSession.onPeerCertificateAvailable(getPeerHost(), getPeerPort());
 
             finishHandshake();
             return FINISHED;
@@ -1528,8 +1567,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 case SSL_CB_HANDSHAKE_START: {
                     // For clients, this will allow the NEED_UNWRAP status to be
                     // returned.
-                    state = STATE_HANDSHAKE_STARTED;
-                    handshakeFinished = false;
+                    transitionTo(STATE_HANDSHAKE_STARTED);
                     break;
                 }
                 case SSL_CB_HANDSHAKE_DONE: {
@@ -1538,7 +1576,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                         throw new IllegalStateException(
                                 "Completed handshake while in mode " + state);
                     }
-                    state = STATE_HANDSHAKE_COMPLETED;
+                    transitionTo(STATE_HANDSHAKE_COMPLETED);
                     break;
                 }
                 default:
@@ -1558,11 +1596,11 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             // BoringSSL guarantees will not happen.
             NativeRef.SSL_SESSION ref = new SSL_SESSION(sslSessionNativePtr);
 
-            SslSessionWrapper sessionWrapper = SslSessionWrapper.newInstance(ref, sslSession);
+            NativeSslSession nativeSession = NativeSslSession.newInstance(ref, activeSession);
 
             // Cache the newly established session.
             AbstractSessionContext ctx = sessionContext();
-            ctx.cacheSession(sessionWrapper);
+            ctx.cacheSession(nativeSession);
         } catch (Exception ignored) {
             // Ignore.
         }
@@ -1589,7 +1627,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             }
 
             // Update the peer information on the session.
-            sslSession.onPeerCertificatesReceived(getPeerHost(), getPeerPort(), peerCertChain);
+            activeSession.onPeerCertificatesReceived(getPeerHost(), getPeerPort(), peerCertChain);
 
             if (getUseClientMode()) {
                 Platform.checkServerTrusted(x509tm, peerCertChain, authMethod, this);
@@ -1620,7 +1658,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     private void closeAndFreeResources() {
-        state = STATE_CLOSED;
+        transitionTo(STATE_CLOSED);
         if (!ssl.isClosed()) {
             ssl.close();
             networkBio.close();
@@ -1746,5 +1784,26 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
 
     private AbstractSessionContext sessionContext() {
         return sslParameters.getSessionContext();
+    }
+
+    private void transitionTo(int newState) {
+        switch (newState) {
+            case STATE_HANDSHAKE_STARTED: {
+                handshakeFinished = false;
+                break;
+            }
+            case STATE_CLOSED: {
+                if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED ) {
+                    closedSession = new SessionSnapshot(activeSession);
+                }
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+
+        // Update the state
+        this.state = newState;
     }
 }

@@ -40,12 +40,16 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
 
     abstract T newContext();
     abstract int size(T context);
-    abstract SslSessionWrapper getCachedSession(T context, SslSessionWrapper s);
+    private static NativeSslSession[] toArray(NativeSslSession... sessions) {
+        return sessions;
+    }
+
+    abstract NativeSslSession getCachedSession(T context, NativeSslSession s);
 
     @Test
     public void testSimpleAddition() {
-        SslSessionWrapper a = newSession("a");
-        SslSessionWrapper b = newSession("b");
+        NativeSslSession a = newSession("a");
+        NativeSslSession b = newSession("b");
 
         context.cacheSession(a);
         assertSessionContextContents(toArray(a), toArray(b));
@@ -56,10 +60,10 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
 
     @Test
     public void testTrimToSize() {
-        SslSessionWrapper a = newSession("a");
-        SslSessionWrapper b = newSession("b");
-        SslSessionWrapper c = newSession("c");
-        SslSessionWrapper d = newSession("d");
+        NativeSslSession a = newSession("a");
+        NativeSslSession b = newSession("b");
+        NativeSslSession c = newSession("c");
+        NativeSslSession d = newSession("d");
 
         context.cacheSession(a);
         context.cacheSession(b);
@@ -74,10 +78,10 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
     @Test
     public void testImplicitRemovalOfOldest() {
         context.setSessionCacheSize(2);
-        SslSessionWrapper a = newSession("a");
-        SslSessionWrapper b = newSession("b");
-        SslSessionWrapper c = newSession("c");
-        SslSessionWrapper d = newSession("d");
+        NativeSslSession a = newSession("a");
+        NativeSslSession b = newSession("b");
+        NativeSslSession c = newSession("c");
+        NativeSslSession d = newSession("d");
 
         context.cacheSession(a);
         assertSessionContextContents(toArray(a), toArray(b, c, d));
@@ -98,7 +102,7 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
         when(mockCert.getEncoded()).thenReturn(new byte[] {0x05, 0x06, 0x07, 0x10});
 
         byte[] encodedBytes = new byte[] {0x01, 0x02, 0x03};
-        SslSessionWrapper session = new MockSessionBuilder()
+        NativeSslSession session = new MockSessionBuilder()
                 .id(new byte[] {0x11, 0x09, 0x03, 0x20})
                 .host("ssl.example.com")
                 .encodedBytes(encodedBytes)
@@ -113,22 +117,18 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
     }
 
     private void assertSessionContextContents(
-            SslSessionWrapper[] contains, SslSessionWrapper[] exludes) {
+            NativeSslSession[] contains, NativeSslSession[] exludes) {
         assertEquals(contains.length, size(context));
 
-        for (SslSessionWrapper s : contains) {
+        for (NativeSslSession s : contains) {
             assertSame(s.getPeerHost(), s, getCachedSession(context, s));
         }
-        for (SslSessionWrapper s : exludes) {
+        for (NativeSslSession s : exludes) {
             assertNull(s.getPeerHost(), getCachedSession(context, s));
         }
     }
 
-    private static SslSessionWrapper[] toArray(SslSessionWrapper... sessions) {
-        return sessions;
-    }
-
-    private SslSessionWrapper newSession(String host) {
+    private NativeSslSession newSession(String host) {
         return new MockSessionBuilder().host(host).build();
     }
 }

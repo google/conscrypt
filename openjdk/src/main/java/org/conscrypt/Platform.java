@@ -529,17 +529,12 @@ final class Platform {
      */
 
     @SuppressWarnings("unused")
-    static SSLSession wrapSSLSession(ActiveSession sslSession) {
+    static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+        if (JAVA_VERSION >= 8) {
+            return Java8PlatformUtil.wrapSSLSession(sslSession);
+        }
         if (JAVA_VERSION >= 7) {
             return Java7PlatformUtil.wrapSSLSession(sslSession);
-        }
-        return sslSession;
-    }
-
-    @SuppressWarnings("unused")
-    static SSLSession unwrapSSLSession(SSLSession sslSession) {
-        if (JAVA_VERSION >= 7) {
-            return Java7PlatformUtil.unwrapSSLSession(sslSession);
         }
         return sslSession;
     }
