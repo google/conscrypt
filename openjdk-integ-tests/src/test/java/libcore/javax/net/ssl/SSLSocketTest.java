@@ -123,7 +123,6 @@ import libcore.tlswire.handshake.ServerNameHelloExtension;
 import libcore.tlswire.record.TlsProtocols;
 import libcore.tlswire.record.TlsRecord;
 import libcore.tlswire.util.TlsProtocolVersion;
-
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.junit.After;
