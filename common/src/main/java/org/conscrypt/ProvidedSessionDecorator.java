@@ -18,17 +18,23 @@ package org.conscrypt;
 
 import java.security.Principal;
 import java.security.cert.Certificate;
+import java.util.HashMap;
 import java.util.List;
 import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSessionBindingEvent;
+import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 import javax.security.cert.X509Certificate;
 
 /**
  * A {@link SessionDecorator} that externalizes the provider of the delegate session. This allows
- * the underlying session to be changed externally.
+ * the underlying session to be changed externally.  This class implements the application-level
+ * value API itself, so that the underlying sessions don't need to.
  */
 final class ProvidedSessionDecorator implements SessionDecorator {
 
+  // Use an initialcapacity of 2 to keep it small in the average case.
+  private final HashMap<String, Object> values = new HashMap<String, Object>(2);
   private final Provider provider;
 
   public ProvidedSessionDecorator(Provider provider) {
@@ -86,26 +92,6 @@ final class ProvidedSessionDecorator implements SessionDecorator {
   }
 
   @Override
-  public void putValue(String s, Object o) {
-    getDelegate().putValue(s, o);
-  }
-
-  @Override
-  public Object getValue(String s) {
-    return getDelegate().getValue(s);
-  }
-
-  @Override
-  public void removeValue(String s) {
-    getDelegate().removeValue(s);
-  }
-
-  @Override
-  public String[] getValueNames() {
-    return getDelegate().getValueNames();
-  }
-
-  @Override
   public java.security.cert.X509Certificate[] getPeerCertificates()
       throws SSLPeerUnverifiedException {
     return getDelegate().getPeerCertificates();
@@ -159,6 +145,46 @@ final class ProvidedSessionDecorator implements SessionDecorator {
   @Override
   public int getApplicationBufferSize() {
     return getDelegate().getApplicationBufferSize();
+  }
+
+  @Override
+  public Object getValue(String name) {
+    if (name == null) {
+      throw new IllegalArgumentException("name == null");
+    }
+    return values.get(name);
+  }
+
+  @Override
+  public String[] getValueNames() {
+    return values.keySet().toArray(new String[values.size()]);
+  }
+
+  @Override
+  public void putValue(String name, Object value) {
+    if (name == null || value == null) {
+      throw new IllegalArgumentException("name == null || value == null");
+    }
+    Object old = values.put(name, value);
+    if (value instanceof SSLSessionBindingListener) {
+      ((SSLSessionBindingListener) value).valueBound(new SSLSessionBindingEvent(this, name));
+    }
+    if (old instanceof SSLSessionBindingListener) {
+      ((SSLSessionBindingListener) old).valueUnbound(new SSLSessionBindingEvent(this, name));
+    }
+
+  }
+
+  @Override
+  public void removeValue(String name) {
+    if (name == null) {
+      throw new IllegalArgumentException("name == null");
+    }
+    Object old = values.remove(name);
+    if (old instanceof SSLSessionBindingListener) {
+      SSLSessionBindingListener listener = (SSLSessionBindingListener) old;
+      listener.valueUnbound(new SSLSessionBindingEvent(this, name));
+    }
   }
 
   /**

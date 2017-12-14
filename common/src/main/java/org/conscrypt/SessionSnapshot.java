@@ -106,22 +106,26 @@ final class SessionSnapshot implements ConscryptSession {
 
     @Override
     public void putValue(String s, Object o) {
-        // Do nothing.
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 
     @Override
     public Object getValue(String s) {
-        return null;
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 
     @Override
     public void removeValue(String s) {
-        // Do nothing.
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 
     @Override
     public String[] getValueNames() {
-        return EmptyArray.STRING;
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 
     @Override

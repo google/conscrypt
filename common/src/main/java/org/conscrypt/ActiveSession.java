@@ -50,9 +50,6 @@ final class ActiveSession implements ConscryptSession {
     private byte[] peerCertificateOcspData;
     private byte[] peerTlsSctData;
 
-    // lazy init for memory reasons
-    private Map<String, Object> values;
-
     ActiveSession(NativeSsl ssl, AbstractSessionContext sessionContext) {
         this.ssl = checkNotNull(ssl, "ssl");
         this.sessionContext = checkNotNull(sessionContext, "sessionContext");
@@ -166,58 +163,26 @@ final class ActiveSession implements ConscryptSession {
 
     @Override
     public void putValue(String name, Object value) {
-        if (name == null) {
-            throw new NullPointerException("name");
-        }
-        if (value == null) {
-            throw new NullPointerException("value");
-        }
-        Map<String, Object> values = this.values;
-        if (values == null) {
-            // Use size of 2 to keep the memory overhead small
-            values = this.values = new HashMap<String, Object>(2);
-        }
-        Object old = values.put(name, value);
-        if (value instanceof SSLSessionBindingListener) {
-            ((SSLSessionBindingListener) value).valueBound(new SSLSessionBindingEvent(this, name));
-        }
-        if (old instanceof SSLSessionBindingListener) {
-            ((SSLSessionBindingListener) old).valueUnbound(new SSLSessionBindingEvent(this, name));
-        }
-        notifyUnbound(old, name);
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 
     @Override
     public Object getValue(String name) {
-        if (name == null) {
-            throw new NullPointerException("name");
-        }
-        if (values == null) {
-            return null;
-        }
-        return values.get(name);
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 
     @Override
     public void removeValue(String name) {
-        if (name == null) {
-            throw new NullPointerException("name");
-        }
-        Map<String, Object> values = this.values;
-        if (values == null) {
-            return;
-        }
-        Object old = values.remove(name);
-        notifyUnbound(old, name);
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 
     @Override
     public String[] getValueNames() {
-        Map<String, Object> values = this.values;
-        if (values == null || values.isEmpty()) {
-            return EmptyArray.STRING;
-        }
-        return values.keySet().toArray(new String[values.size()]);
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 
     @Override
