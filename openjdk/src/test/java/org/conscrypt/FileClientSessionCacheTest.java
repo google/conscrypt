@@ -19,7 +19,7 @@ package org.conscrypt;
 import java.io.File;
 import java.io.IOException;
 import junit.framework.TestCase;
-import libcore.javax.net.ssl.FakeSSLSession;
+import org.conscrypt.javax.net.ssl.FakeSSLSession;
 
 public class FileClientSessionCacheTest extends TestCase {
 

@@ -520,6 +520,10 @@ public final class StandardNames {
             provide("Cipher", "DESEDE/OFB/PKCS7PADDING");
 
             // Provided by our OpenSSL provider
+            provide("AlgorithmParameters", "ChaCha20");
+            provide("Cipher", "ChaCha20");
+            provide("Cipher", "ChaCha20/Poly1305/NoPadding");
+            provide("KeyGenerator", "ChaCha20");
             provideCipherPaddings("AES", new String[] {"PKCS7Padding"});
 
             // removed LDAP
@@ -553,7 +557,7 @@ public final class StandardNames {
             unprovide("AlgorithmParameters", "PBEWithMD5AndDES"); // 1.2.840.113549.1.5.3
 
             // EC support
-            // provide("AlgorithmParameters", "EC");
+            provide("AlgorithmParameters", "EC");
             provide("KeyAgreement", "ECDH");
             provide("KeyFactory", "EC");
             provide("KeyPairGenerator", "EC");
@@ -575,6 +579,10 @@ public final class StandardNames {
             // TimaKeyStore provider
             if (Security.getProvider("TimaKeyStore") != null) {
                 provide("KeyStore", "TimaKeyStore");
+            }
+            // KnoxAndroidKeyStore provider
+            if (Security.getProvider("KnoxAndroidKeyStore") != null) {
+                provide("KeyStore", "KnoxAndroidKeyStore");
             }
         }
 
