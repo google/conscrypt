@@ -90,9 +90,9 @@ import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.ExternalSession.Provider;
 import org.conscrypt.NativeRef.SSL_SESSION;
 import org.conscrypt.NativeSsl.BioWrapper;
-import org.conscrypt.ExternalSession.Provider;
 
 /**
  * Implements the {@link SSLEngine} API using OpenSSL's non-blocking interfaces.

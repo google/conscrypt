@@ -44,8 +44,8 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.NativeRef.SSL_SESSION;
 import org.conscrypt.ExternalSession.Provider;
+import org.conscrypt.NativeRef.SSL_SESSION;
 
 /**
  * Implementation of the class OpenSSLSocketImpl based on OpenSSL.
