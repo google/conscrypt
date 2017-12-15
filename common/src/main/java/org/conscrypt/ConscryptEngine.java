@@ -90,9 +90,9 @@ import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.ExternalSession.Provider;
 import org.conscrypt.NativeRef.SSL_SESSION;
 import org.conscrypt.NativeSsl.BioWrapper;
-import org.conscrypt.ProvidedSessionDecorator.Provider;
 
 /**
  * Implements the {@link SSLEngine} API using OpenSSL's non-blocking interfaces.
@@ -155,7 +155,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
      * The session object exposed externally from this class.
      */
     private final SSLSession externalSession =
-        Platform.wrapSSLSession(new ProvidedSessionDecorator(new Provider() {
+        Platform.wrapSSLSession(new ExternalSession(new Provider() {
             @Override
             public ConscryptSession provideSession() {
                 return ConscryptEngine.this.provideSession();
@@ -563,7 +563,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     SSLSession handshakeSession() {
         synchronized (ssl) {
             if (state == STATE_HANDSHAKE_STARTED) {
-                return Platform.wrapSSLSession(new ProvidedSessionDecorator(new Provider() {
+                return Platform.wrapSSLSession(new ExternalSession(new Provider() {
                     @Override
                     public ConscryptSession provideSession() {
                         return ConscryptEngine.this.provideHandshakeSession();

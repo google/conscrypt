@@ -18,20 +18,40 @@ package org.conscrypt;
 
 import java.security.Principal;
 import java.security.cert.Certificate;
+import java.util.HashMap;
 import java.util.List;
 import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSessionBindingEvent;
+import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 import javax.security.cert.X509Certificate;
 
 /**
- * A {@link SessionDecorator} that externalizes the provider of the delegate session. This allows
- * the underlying session to be changed externally.
+ * An externalized view of the underlying {@link SSLSession} used within a
+ * socket/engine. This class provides the caller with a consistent session
+ * handle which will continue to be usable regardless of internal changes
+ * to the connection.  It does this by delegating calls to the <b>current</b>
+ * internal session, which is provided by the session {@code Provider}
+ * (i.e. the socket or engine that owns the session).  This allows the provider
+ * to switch implementations (for instance, using a JNI implementation to
+ * access live values while the connection is open and a set of final values
+ * when the connection is closed), even if the caller stores a reference to
+ * the session object.
+ *
+ * <p>This class implements the {@link SSLSession} value API itself, rather
+ * than delegating to the provided session, to ensure the caller has a consistent
+ * value map, regardless of which internal session is currently being used by the
+ * socket/engine.  This class will never call the value API methods on the
+ * underlying sessions, so they need not be implemented.
  */
-final class ProvidedSessionDecorator implements SessionDecorator {
+final class ExternalSession implements SessionDecorator {
 
+  // Use an initialcapacity of 2 to keep it small in the average case.
+  private final HashMap<String, Object> values = new HashMap<String, Object>(2);
   private final Provider provider;
 
-  public ProvidedSessionDecorator(Provider provider) {
+  public ExternalSession(Provider provider) {
     this.provider = provider;
   }
 
@@ -83,26 +103,6 @@ final class ProvidedSessionDecorator implements SessionDecorator {
   @Override
   public boolean isValid() {
     return getDelegate().isValid();
-  }
-
-  @Override
-  public void putValue(String s, Object o) {
-    getDelegate().putValue(s, o);
-  }
-
-  @Override
-  public Object getValue(String s) {
-    return getDelegate().getValue(s);
-  }
-
-  @Override
-  public void removeValue(String s) {
-    getDelegate().removeValue(s);
-  }
-
-  @Override
-  public String[] getValueNames() {
-    return getDelegate().getValueNames();
   }
 
   @Override
@@ -159,6 +159,46 @@ final class ProvidedSessionDecorator implements SessionDecorator {
   @Override
   public int getApplicationBufferSize() {
     return getDelegate().getApplicationBufferSize();
+  }
+
+  @Override
+  public Object getValue(String name) {
+    if (name == null) {
+      throw new IllegalArgumentException("name == null");
+    }
+    return values.get(name);
+  }
+
+  @Override
+  public String[] getValueNames() {
+    return values.keySet().toArray(new String[values.size()]);
+  }
+
+  @Override
+  public void putValue(String name, Object value) {
+    if (name == null || value == null) {
+      throw new IllegalArgumentException("name == null || value == null");
+    }
+    Object old = values.put(name, value);
+    if (value instanceof SSLSessionBindingListener) {
+      ((SSLSessionBindingListener) value).valueBound(new SSLSessionBindingEvent(this, name));
+    }
+    if (old instanceof SSLSessionBindingListener) {
+      ((SSLSessionBindingListener) old).valueUnbound(new SSLSessionBindingEvent(this, name));
+    }
+
+  }
+
+  @Override
+  public void removeValue(String name) {
+    if (name == null) {
+      throw new IllegalArgumentException("name == null");
+    }
+    Object old = values.remove(name);
+    if (old instanceof SSLSessionBindingListener) {
+      SSLSessionBindingListener listener = (SSLSessionBindingListener) old;
+      listener.valueUnbound(new SSLSessionBindingEvent(this, name));
+    }
   }
 
   /**

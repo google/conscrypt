@@ -401,4 +401,21 @@ public class SSLSessionTest extends AbstractSSLTest {
         assertEquals(0, s.invalid.getValueNames().length);
         s.close();
     }
+
+    @Test
+    public void test_SSLSession_valueIndependence() {
+        // Multiple sessions should have independent value stores
+        for (int i = 0; i < 2; i++) {
+            TestSSLSessions s = TestSSLSessions.create();
+            String key = "KEY";
+            String value = "VALUE";
+            assertNull(s.invalid.getValue(key));
+            assertEquals(0, s.invalid.getValueNames().length);
+            s.invalid.putValue(key, value);
+            assertSame(value, s.invalid.getValue(key));
+            assertEquals(1, s.invalid.getValueNames().length);
+            assertEquals(key, s.invalid.getValueNames()[0]);
+            s.close();
+        }
+    }
 }

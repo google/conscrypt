@@ -21,12 +21,9 @@ import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSessionBindingEvent;
-import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 
 /**
@@ -45,8 +42,6 @@ final class SSLNullSession implements ConscryptSession, Cloneable {
     private static class DefaultHolder {
         static final SSLNullSession NULL_SESSION = new SSLNullSession();
     }
-
-    private final HashMap<String, Object> values = new HashMap<String, Object>();
 
     private long creationTime;
     private long lastAccessedTime;
@@ -157,15 +152,14 @@ final class SSLNullSession implements ConscryptSession, Cloneable {
 
     @Override
     public Object getValue(String name) {
-        if (name == null) {
-            throw new IllegalArgumentException("name == null");
-        }
-        return values.get(name);
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 
     @Override
     public String[] getValueNames() {
-        return values.keySet().toArray(new String[values.size()]);
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 
     @Override
@@ -179,28 +173,13 @@ final class SSLNullSession implements ConscryptSession, Cloneable {
 
     @Override
     public void putValue(String name, Object value) {
-        if (name == null || value == null) {
-            throw new IllegalArgumentException("name == null || value == null");
-        }
-        Object old = values.put(name, value);
-        if (value instanceof SSLSessionBindingListener) {
-            ((SSLSessionBindingListener) value).valueBound(new SSLSessionBindingEvent(this, name));
-        }
-        if (old instanceof SSLSessionBindingListener) {
-            ((SSLSessionBindingListener) old).valueUnbound(new SSLSessionBindingEvent(this, name));
-        }
-
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 
     @Override
     public void removeValue(String name) {
-        if (name == null) {
-            throw new IllegalArgumentException("name == null");
-        }
-        Object old = values.remove(name);
-        if (old instanceof SSLSessionBindingListener) {
-            SSLSessionBindingListener listener = (SSLSessionBindingListener) old;
-            listener.valueUnbound(new SSLSessionBindingEvent(this, name));
-        }
+        throw new UnsupportedOperationException(
+                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
     }
 }

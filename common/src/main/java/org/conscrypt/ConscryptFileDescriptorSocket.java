@@ -44,8 +44,8 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.ExternalSession.Provider;
 import org.conscrypt.NativeRef.SSL_SESSION;
-import org.conscrypt.ProvidedSessionDecorator.Provider;
 
 /**
  * Implementation of the class OpenSSLSocketImpl based on OpenSSL.
@@ -106,7 +106,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      * The session object exposed externally from this class.
      */
     private final SSLSession externalSession =
-        Platform.wrapSSLSession(new ProvidedSessionDecorator(new Provider() {
+        Platform.wrapSSLSession(new ExternalSession(new Provider() {
             @Override
             public ConscryptSession provideSession() {
                 return ConscryptFileDescriptorSocket.this.provideSession();
@@ -696,7 +696,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     public final SSLSession getHandshakeSession() {
         synchronized (ssl) {
             if (state >= STATE_HANDSHAKE_STARTED && state < STATE_READY) {
-                return Platform.wrapSSLSession(new ProvidedSessionDecorator(new Provider() {
+                return Platform.wrapSSLSession(new ExternalSession(new Provider() {
                     @Override
                     public ConscryptSession provideSession() {
                         return ConscryptFileDescriptorSocket.this.provideHandshakeSession();
