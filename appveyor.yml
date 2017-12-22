@@ -60,7 +60,7 @@ before_build:
   - cd "%BORINGSSL_HOME%"
   - mkdir build64
   - cd build64
-  - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+  - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release "-DCMAKE_C_FLAGS_RELEASE=/MT -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING" "-DCMAKE_CXX_FLAGS_RELEASE=/MT -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING" -GNinja ..
   - ninja
 
   # Build BoringSSL in 32-bit
@@ -68,7 +68,7 @@ before_build:
   - cd "%BORINGSSL_HOME%"
   - mkdir build32
   - cd build32
-  - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+  - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release "-DCMAKE_C_FLAGS_RELEASE=/MT -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING" "-DCMAKE_CXX_FLAGS_RELEASE=/MT -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING" -GNinja ..
   - ninja
 
   # Go to project directory
@@ -78,6 +78,7 @@ install:
   - mkdir %ANDROID_HOME%\licenses
   - ps: 'Add-Content -Value "`n8933bad161af4178b1185d1a37fbf41ea5269c55`n`nd56f5187479451eabf01fb78af6dfcb131a6481e" -Path $env:ANDROID_HOME\licenses\android-sdk-license -Encoding ASCII'
   - ps: 'Add-Content -Value "`n84831b9409646a918e30573bab4c9c91346d8abd`n504667f4c0de7af1a06de9f4b1727b84351f2910" -Path $env:ANDROID_HOME\licenses\android-sdk-preview-license -Encoding ASCII'
+  - ps: 'Add-Content -Value "`nd975f751698a77b662f1254ddbeed3901e976f5a" -Path $env:ANDROID_HOME\licenses\intel-android-extra-license -Encoding ASCII'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat tools'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat platform-tools'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat build-tools;25.0.0'
