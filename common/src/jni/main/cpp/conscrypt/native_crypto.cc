@@ -1143,7 +1143,10 @@ static jlong NativeCrypto_EVP_parse_private_key(JNIEnv* env, jclass, jbyteArray 
     CBS cbs;
     CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_parse_private_key(&cbs));
-    if (!pkey || CBS_len(&cbs) != 0) {
+    // We intentionally do not check that cbs is exhausted, as JCA providers typically
+    // allow parsing keys from buffers that are larger than the contained key structure
+    // so we do the same for compatibility.
+    if (!pkey) {
         conscrypt::jniutil::throwParsingException(env, "Error parsing private key");
         JNI_TRACE("bytes=%p EVP_parse_private_key => threw exception", keyJavaBytes);
         return 0;
@@ -1195,7 +1198,10 @@ static jlong NativeCrypto_EVP_parse_public_key(JNIEnv* env, jclass, jbyteArray k
     CBS cbs;
     CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_parse_public_key(&cbs));
-    if (!pkey || CBS_len(&cbs) != 0) {
+    // We intentionally do not check that cbs is exhausted, as JCA providers typically
+    // allow parsing keys from buffers that are larger than the contained key structure
+    // so we do the same for compatibility.
+    if (!pkey) {
         conscrypt::jniutil::throwParsingException(env, "Error parsing public key");
         JNI_TRACE("bytes=%p EVP_parse_public_key => threw exception", keyJavaBytes);
         return 0;
