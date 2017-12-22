@@ -90,15 +90,4 @@ public class SSLSocketFactoryTest {
         assertNotNull(ssl);
         assertTrue(SSLSocket.class.isAssignableFrom(ssl.getClass()));
     }
-
-    @Test
-    public void test_SSLSocketFactory_createSocket_withConsumedInputStream()
-            throws Exception {
-        try {
-            SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            Socket sslSocket = sf.createSocket(null, null, false);
-            fail();
-        } catch (UnsupportedOperationException expected) {
-        }
-    }
 }

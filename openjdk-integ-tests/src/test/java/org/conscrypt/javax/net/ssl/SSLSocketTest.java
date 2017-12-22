@@ -132,7 +132,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
 import tests.net.DelegatingSSLSocketFactory;
 import tests.util.ForEachRunner;
 import tests.util.ForEachRunner.Callback;
@@ -1789,19 +1788,14 @@ public class SSLSocketTest {
         });
         server.startHandshake();
 
-        Class<?> actualClass = client.getClass();
-        if (isConscryptFdSocket(client)) {
-            assertEquals("Java8FileDescriptorSocket", actualClass.getSimpleName());
-        } else {
-            assertEquals("Java8EngineSocket", actualClass.getSimpleName());
-        }
+        assertTrue(isConscryptSocket(client));
         // The concrete class that Conscrypt returns has methods on it that have no
         // equivalent on the public API (like setSoWriteTimeout), so users have
         // previously used reflection to access those otherwise-inaccessible methods
         // on that class.  The concrete class used to be named OpenSSLSocketImpl, so
         // check that OpenSSLSocketImpl is still in the class hierarchy so applications
         // that rely on getting that class back still work.
-        Class<?> superClass = actualClass;
+        Class<?> superClass = client.getClass();
         do {
             superClass = superClass.getSuperclass();
         } while (superClass != Object.class && !superClass.getName().endsWith("OpenSSLSocketImpl"));
@@ -1832,14 +1826,8 @@ public class SSLSocketTest {
         final TestSSLContext c = TestSSLContext.create();
         SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket();
 
-        String expectedClassName;
-        if (isConscryptFdSocket(client)) {
-            expectedClassName = "Java8FileDescriptorSocket";
-        } else {
-            expectedClassName = "Java8EngineSocket";
-        }
+        assertTrue(isConscryptSocket(client));
         Class<?> actualClass = client.getClass();
-        assertEquals(expectedClassName, actualClass.getSimpleName());
         Method setNpnProtocols = actualClass.getMethod("setNpnProtocols", byte[].class);
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -1850,7 +1838,7 @@ public class SSLSocketTest {
             client.connect(new InetSocketAddress(c.host, c.port));
 
             final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-            assertEquals(expectedClassName, server.getClass().getSimpleName());
+            assertTrue(isConscryptSocket(server));
             setNpnProtocols.invoke(server, npnProtocols);
 
             Future<Void> future = executor.submit(new Callable<Void>() {

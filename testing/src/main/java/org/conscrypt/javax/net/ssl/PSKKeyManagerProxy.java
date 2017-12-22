@@ -15,8 +15,6 @@
  */
 package org.conscrypt.javax.net.ssl;
 
-import org.conscrypt.TestUtils;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -24,6 +22,7 @@ import java.net.Socket;
 import javax.crypto.SecretKey;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLEngine;
+import org.conscrypt.TestUtils;
 
 /**
  * Reflection-based implementation of {@code PSKKeyManager} from Conscrypt on which these tests

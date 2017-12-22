@@ -16,9 +16,7 @@
 
 package org.conscrypt;
 
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 
 import org.conscrypt.javax.net.ssl.HttpsURLConnectionTest;
 import org.conscrypt.javax.net.ssl.KeyManagerFactoryTest;
@@ -35,8 +33,9 @@ import org.conscrypt.javax.net.ssl.SSLSocketFactoryTest;
 import org.conscrypt.javax.net.ssl.SSLSocketTest;
 import org.conscrypt.javax.net.ssl.TrustManagerFactoryTest;
 import org.conscrypt.javax.net.ssl.X509KeyManagerTest;
-
-import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
+import org.junit.BeforeClass;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({

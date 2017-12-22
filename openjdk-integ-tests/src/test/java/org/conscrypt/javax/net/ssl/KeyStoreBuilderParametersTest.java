@@ -28,14 +28,30 @@ import java.util.Arrays;
 import java.util.List;
 import javax.net.ssl.KeyStoreBuilderParameters;
 import libcore.java.security.TestKeyStore;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class KeyStoreBuilderParametersTest {
+
+    private static void assumeObjectsAvailable() {
+        boolean available = false;
+        try {
+            Class.forName("java.util.Objects");
+            available = true;
+        } catch (ClassNotFoundException ignore) {
+            // Ignored
+        }
+        Assume.assumeTrue("Skipping test: Objects unavailable", available);
+    }
+
     @Test
     public void test_init_Builder_null() {
+        // KeyStoreBuilderParameters' constructor didn't check for null until
+        // Objects.requireNonNull was added
+        assumeObjectsAvailable();
         try {
             new KeyStoreBuilderParameters((Builder) null);
             fail();

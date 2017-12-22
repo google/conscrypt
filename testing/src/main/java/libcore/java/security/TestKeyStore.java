@@ -52,8 +52,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.javax.net.ssl.TestKeyManager;
-import org.conscrypt.javax.net.ssl.TestTrustManager;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -81,6 +79,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.conscrypt.javax.net.ssl.TestKeyManager;
+import org.conscrypt.javax.net.ssl.TestTrustManager;
 
 /**
  * TestKeyStore is a convenience class for other tests that
