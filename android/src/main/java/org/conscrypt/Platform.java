@@ -856,9 +856,6 @@ final class Platform {
         if (Build.VERSION.SDK_INT >= 24) {
             return new Java8ExtendedSSLSession(sslSession);
         }
-        if (Build.VERSION.SDK_INT >= 19) {
-            return new Java7ExtendedSSLSession(sslSession);
-        }
 
         return sslSession;
     }
