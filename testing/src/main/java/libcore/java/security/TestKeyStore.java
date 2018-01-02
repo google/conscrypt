@@ -52,8 +52,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.security.auth.x500.X500Principal;
-import libcore.javax.net.ssl.TestKeyManager;
-import libcore.javax.net.ssl.TestTrustManager;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -69,7 +67,6 @@ import org.bouncycastle.asn1.x509.NameConstraints;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.cert.ocsp.BasicOCSPResp;
 import org.bouncycastle.cert.ocsp.BasicOCSPRespBuilder;
@@ -82,6 +79,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.conscrypt.javax.net.ssl.TestKeyManager;
+import org.conscrypt.javax.net.ssl.TestTrustManager;
 
 /**
  * TestKeyStore is a convenience class for other tests that
@@ -736,7 +735,9 @@ public final class TestKeyStore {
 
         X509CertificateHolder x509holder =
                 x509cg.build(new JcaContentSignerBuilder(signatureAlgorithm).build(privateKey));
-        X509Certificate x509c = new JcaX509CertificateConverter().getCertificate(x509holder);
+        CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+        X509Certificate x509c = (X509Certificate) certFactory.generateCertificate(
+                new ByteArrayInputStream(x509holder.getEncoded()));
         if (StandardNames.IS_RI) {
             /*
              * The RI can't handle the BC EC signature algorithm

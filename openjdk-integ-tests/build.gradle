@@ -24,12 +24,17 @@ dependencies {
                 project(':conscrypt-testing')
 }
 
+test {
+    include "org/conscrypt/ConscryptSuite.class"
+}
+
 // Add a second round of tests using the engine-based socket.
 task testEngineSocket(type: Test) {
     dependsOn testClasses
     // Use the engine socket by default.
     jvmArgs "-Dorg.conscrypt.useEngineSocketByDefault=true"
     testClassesDir = test.testClassesDir
+    includes = test.includes
     doFirst {
         classpath = test.classpath
     }

@@ -113,6 +113,18 @@ public final class TestUtils {
         Assume.assumeTrue(supported);
     }
 
+    public static void assumeAndroid() {
+        boolean android;
+        try {
+            Class.forName("android.app.Application", false, ClassLoader.getSystemClassLoader());
+            android = true;
+        } catch (Throwable ignored) {
+            // Failed to load the class uniquely available in Android.
+            android = false;
+        }
+        Assume.assumeTrue(android);
+    }
+
     public static InetAddress getLoopbackAddress() {
         try {
             Method method = InetAddress.class.getMethod("getLoopbackAddress");
