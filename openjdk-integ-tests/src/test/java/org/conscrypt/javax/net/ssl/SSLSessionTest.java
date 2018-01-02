@@ -39,6 +39,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import libcore.java.security.StandardNames;
 import libcore.java.security.TestKeyStore;
+import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -441,6 +442,7 @@ public class SSLSessionTest {
     // http://b/35942385
     @Test
     public void test_SSLSession_getPeerHostFromInetAddress() throws Exception {
+        TestUtils.assumeAndroid();
         InetAddress inetAddress = InetAddress.getByName("localhost");
         String oldOriginalHostName = alterOriginalHostName(inetAddress, "foobar");
         try {
