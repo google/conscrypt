@@ -78,7 +78,7 @@ import javax.net.ssl.SSLProtocolException;
 import javax.security.auth.x500.X500Principal;
 import libcore.io.IoUtils;
 import libcore.java.security.StandardNames;
-import libcore.java.security.TestKeyStore;
+import org.conscrypt.java.security.TestKeyStore;
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import org.junit.After;

@@ -22,7 +22,7 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import junit.framework.TestCase;
-import libcore.java.security.TestKeyStore;
+import org.conscrypt.java.security.TestKeyStore;
 
 public class CertPinManagerTest extends TestCase {
     private List<X509Certificate> expectedFullChain;

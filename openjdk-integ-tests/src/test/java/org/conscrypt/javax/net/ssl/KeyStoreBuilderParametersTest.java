@@ -27,7 +27,7 @@ import java.security.KeyStore.PasswordProtection;
 import java.util.Arrays;
 import java.util.List;
 import javax.net.ssl.KeyStoreBuilderParameters;
-import libcore.java.security.TestKeyStore;
+import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;

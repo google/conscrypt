@@ -113,7 +113,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import libcore.java.security.StandardNames;
-import libcore.java.security.TestKeyStore;
+import org.conscrypt.java.security.TestKeyStore;
 import libcore.tlswire.handshake.CipherSuite;
 import libcore.tlswire.handshake.ClientHello;
 import libcore.tlswire.handshake.CompressionMethod;

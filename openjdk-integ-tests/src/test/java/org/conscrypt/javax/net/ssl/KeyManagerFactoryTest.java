@@ -40,7 +40,7 @@ import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import libcore.java.security.StandardNames;
-import libcore.java.security.TestKeyStore;
+import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,8 +53,11 @@ public class KeyManagerFactoryTest {
     @Before
     public void setUp() throws Exception {
         // note the rare usage of DSA keys here in addition to RSA
+        String[] keyAlgorithms = StandardNames.IS_RI
+                ? new String[] { "RSA", "DSA", "EC", "EC_RSA" }
+                : new String[] { "RSA", "DH_RSA", "DSA", "DH_DSA", "EC", "EC_RSA" };
         testKeyStore = new TestKeyStore.Builder()
-                               .keyAlgorithms("RSA", "DSA", "EC", "EC_RSA")
+                               .keyAlgorithms(keyAlgorithms)
                                .aliasPrefix("rsa-dsa-ec-dh")
                                .build();
     }

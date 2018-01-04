@@ -48,7 +48,7 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
 import libcore.java.security.StandardNames;
-import libcore.java.security.TestKeyStore;
+import org.conscrypt.java.security.TestKeyStore;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.junit.Test;

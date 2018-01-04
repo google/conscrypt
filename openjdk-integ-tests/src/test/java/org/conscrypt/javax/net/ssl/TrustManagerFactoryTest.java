@@ -40,7 +40,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import libcore.java.security.StandardNames;
-import libcore.java.security.TestKeyStore;
+import org.conscrypt.java.security.TestKeyStore;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.junit.Test;
 import org.junit.runner.RunWith;
