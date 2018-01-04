@@ -28,7 +28,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.X509TrustManager;
 import junit.framework.TestCase;
-import libcore.java.security.TestKeyStore;
+import org.conscrypt.java.security.TestKeyStore;
 
 public class TrustManagerImplTest extends TestCase {
 

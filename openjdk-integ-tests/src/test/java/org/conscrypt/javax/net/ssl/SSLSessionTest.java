@@ -38,8 +38,8 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import libcore.java.security.StandardNames;
-import libcore.java.security.TestKeyStore;
 import org.conscrypt.TestUtils;
+import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -443,12 +443,12 @@ public class SSLSessionTest {
     @Test
     public void test_SSLSession_getPeerHostFromInetAddress() throws Exception {
         TestUtils.assumeAndroid();
-        InetAddress inetAddress = InetAddress.getByName("localhost");
+        InetAddress inetAddress = TestUtils.getLoopbackAddress();
         String oldOriginalHostName = alterOriginalHostName(inetAddress, "foobar");
         try {
             final TestSSLContext c = TestSSLContext.create();
             final SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
-                    InetAddress.getByName("localhost"), c.port);
+                    TestUtils.getLoopbackAddress(), c.port);
             final SSLSocket server = (SSLSocket) c.serverSocket.accept();
 
             ExecutorService executor = Executors.newSingleThreadExecutor();

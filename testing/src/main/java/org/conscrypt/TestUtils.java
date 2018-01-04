@@ -45,8 +45,8 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 import libcore.io.Streams;
-import libcore.java.security.TestKeyStore;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Assume;
 
 /**
