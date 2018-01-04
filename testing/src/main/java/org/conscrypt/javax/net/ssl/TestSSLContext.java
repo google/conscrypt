@@ -41,8 +41,8 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import org.conscrypt.java.security.TestKeyStore;
 import org.conscrypt.TestUtils;
+import org.conscrypt.java.security.TestKeyStore;
 
 /**
  * TestSSLContext is a convenience class for other tests that
