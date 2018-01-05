@@ -103,14 +103,13 @@ public final class TestUtils {
     public static void assumeSetEndpointIdentificationAlgorithmAvailable() {
         boolean supported = false;
         try {
-            SSLParameters.class.getMethod("Skipping test: "
-                            + "SSLParameters.setEndpointIdentificationAlgorithm unavailable",
-                    String.class);
+            SSLParameters.class.getMethod("setEndpointIdentificationAlgorithm", String.class);
             supported = true;
         } catch (NoSuchMethodException ignore) {
             // Ignored
         }
-        Assume.assumeTrue(supported);
+        Assume.assumeTrue("Skipping test: "
+                + "SSLParameters.setEndpointIdentificationAlgorithm unavailable", supported);
     }
 
     public static void assumeAndroid() {
