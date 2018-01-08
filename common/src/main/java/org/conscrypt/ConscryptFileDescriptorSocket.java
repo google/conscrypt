@@ -165,12 +165,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     private static NativeSsl newSsl(SSLParametersImpl sslParameters,
-            ConscryptFileDescriptorSocket engine) {
-        try {
-            return NativeSsl.newInstance(sslParameters, engine, engine, engine);
-        } catch (SSLException e) {
-            throw new RuntimeException(e);
-        }
+            ConscryptFileDescriptorSocket engine) throws SSLException {
+        return NativeSsl.newInstance(sslParameters, engine, engine, engine);
     }
 
     /**
