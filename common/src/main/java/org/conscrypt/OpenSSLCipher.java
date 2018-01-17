@@ -70,7 +70,16 @@ public abstract class OpenSSLCipher extends CipherSpi {
     enum Padding {
         NOPADDING,
         PKCS5PADDING,
-        ISO10126PADDING,
+        PKCS7PADDING,
+        ;
+
+        public static Padding getNormalized(String value) {
+            Padding p = Padding.valueOf(value);
+            if (p == PKCS7PADDING) {
+                return PKCS5PADDING;
+            }
+            return p;
+        }
     }
 
     /**
@@ -194,7 +203,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         final String paddingStrUpper = paddingStr.toUpperCase(Locale.US);
         final Padding padding;
         try {
-            padding = Padding.valueOf(paddingStrUpper);
+            padding = Padding.getNormalized(paddingStrUpper);
         } catch (IllegalArgumentException e) {
             NoSuchPaddingException newE = new NoSuchPaddingException("No such padding: "
                     + paddingStr);

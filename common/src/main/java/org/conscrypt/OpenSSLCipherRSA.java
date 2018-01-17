@@ -475,7 +475,7 @@ abstract class OpenSSLCipherRSA extends CipherSpi {
         @Override
         protected void engineSetPadding(String padding) throws NoSuchPaddingException {
             String paddingUpper = padding.toUpperCase(Locale.US);
-            if (paddingUpper.equals("OAEPPadding")) {
+            if (paddingUpper.equals("OAEPPADDING")) {
                 this.padding = NativeConstants.RSA_PKCS1_OAEP_PADDING;
                 return;
             }
