@@ -16,6 +16,7 @@
 
 package org.conscrypt.javax.net.ssl;
 
+import static org.conscrypt.Conscrypt.isConscrypt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -23,7 +24,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.Provider;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -336,8 +336,4 @@ public class SSLSessionContextTest {
         return Collections.list(s.getIds()).size();
     }
 
-    private boolean isConscrypt(Provider provider) {
-        String name = provider.getName();
-        return "AndroidOpenSSL".equals(name) || "Conscrypt".equals(name);
-    }
 }

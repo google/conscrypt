@@ -146,13 +146,11 @@ public final class TestUtils {
         }
     }
 
-    public static void installConscryptAsDefaultProvider() {
+    public static synchronized void installConscryptAsDefaultProvider() {
         final Provider conscryptProvider = getConscryptProvider();
-        synchronized (getConscryptProvider()) {
-            Provider[] providers = Security.getProviders();
-            if (providers.length == 0 || !providers[0].equals(conscryptProvider)) {
-                Security.insertProviderAt(conscryptProvider, 1);
-            }
+        Provider[] providers = Security.getProviders();
+        if (providers.length == 0 || !providers[0].equals(conscryptProvider)) {
+            Security.insertProviderAt(conscryptProvider, 1);
         }
     }
 
@@ -450,5 +448,86 @@ public final class TestUtils {
                 task.run();
             }
         }
+    }
+
+    /**
+     * Decodes the provided hexadecimal string into a byte array.  Odd-length inputs
+     * are not allowed.
+     *
+     * Throws an {@code IllegalArgumentException} if the input is malformed.
+     */
+    public static byte[] decodeHex(String encoded) throws IllegalArgumentException {
+        return decodeHex(encoded.toCharArray());
+    }
+
+    /**
+     * Decodes the provided hexadecimal string into a byte array. If {@code allowSingleChar}
+     * is {@code true} odd-length inputs are allowed and the first character is interpreted
+     * as the lower bits of the first result byte.
+     *
+     * Throws an {@code IllegalArgumentException} if the input is malformed.
+     */
+    public static byte[] decodeHex(String encoded, boolean allowSingleChar) throws IllegalArgumentException {
+        return decodeHex(encoded.toCharArray(), allowSingleChar);
+    }
+
+    /**
+     * Decodes the provided hexadecimal string into a byte array.  Odd-length inputs
+     * are not allowed.
+     *
+     * Throws an {@code IllegalArgumentException} if the input is malformed.
+     */
+    public static byte[] decodeHex(char[] encoded) throws IllegalArgumentException {
+        return decodeHex(encoded, false);
+    }
+
+    /**
+     * Decodes the provided hexadecimal string into a byte array. If {@code allowSingleChar}
+     * is {@code true} odd-length inputs are allowed and the first character is interpreted
+     * as the lower bits of the first result byte.
+     *
+     * Throws an {@code IllegalArgumentException} if the input is malformed.
+     */
+    public static byte[] decodeHex(char[] encoded, boolean allowSingleChar) throws IllegalArgumentException {
+        int resultLengthBytes = (encoded.length + 1) / 2;
+        byte[] result = new byte[resultLengthBytes];
+
+        int resultOffset = 0;
+        int i = 0;
+        if (allowSingleChar) {
+            if ((encoded.length % 2) != 0) {
+                // Odd number of digits -- the first digit is the lower 4 bits of the first result byte.
+                result[resultOffset++] = (byte) toDigit(encoded, i);
+                i++;
+            }
+        } else {
+            if ((encoded.length % 2) != 0) {
+                throw new IllegalArgumentException("Invalid input length: " + encoded.length);
+            }
+        }
+
+        for (int len = encoded.length; i < len; i += 2) {
+            result[resultOffset++] = (byte) ((toDigit(encoded, i) << 4) | toDigit(encoded, i + 1));
+        }
+
+        return result;
+    }
+
+
+    private static int toDigit(char[] str, int offset) throws IllegalArgumentException {
+        // NOTE: that this isn't really a code point in the traditional sense, since we're
+        // just rejecting surrogate pairs outright.
+        int pseudoCodePoint = str[offset];
+
+        if ('0' <= pseudoCodePoint && pseudoCodePoint <= '9') {
+            return pseudoCodePoint - '0';
+        } else if ('a' <= pseudoCodePoint && pseudoCodePoint <= 'f') {
+            return 10 + (pseudoCodePoint - 'a');
+        } else if ('A' <= pseudoCodePoint && pseudoCodePoint <= 'F') {
+            return 10 + (pseudoCodePoint - 'A');
+        }
+
+        throw new IllegalArgumentException("Illegal char: " + str[offset] +
+                " at offset " + offset);
     }
 }
