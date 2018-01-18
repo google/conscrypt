@@ -178,4 +178,17 @@ public abstract class KeyGeneratorImpl extends KeyGeneratorSpi {
             }
         }
     }
+
+    public static final class ARC4 extends KeyGeneratorImpl {
+        public ARC4() {
+            super("ARC4", 128);
+        }
+
+        @Override
+        protected void checkKeySize(int keySize) {
+            if (keySize < 40 || 2048 < keySize) {
+                throw new InvalidParameterException("Key size must be between 40 and 2048 bits");
+            }
+        }
+    }
 }

@@ -115,6 +115,10 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.MessageDigest.1.2.840.113549.2.5", "MD5");
 
         /* == KeyGenerators == */
+        put("KeyGenerator.ARC4", PREFIX + "KeyGeneratorImpl$ARC4");
+        put("Alg.Alias.KeyGenerator.RC4", "ARC4");
+        put("Alg.Alias.KeyGenerator.1.2.840.113549.3.4", "ARC4");
+
         put("KeyGenerator.AES", PREFIX + "KeyGeneratorImpl$AES");
 
         put("KeyGenerator.ChaCha20", PREFIX + "KeyGeneratorImpl$ChaCha20");
