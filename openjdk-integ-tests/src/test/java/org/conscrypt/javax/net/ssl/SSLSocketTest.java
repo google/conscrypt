@@ -2741,7 +2741,7 @@ public class SSLSocketTest {
         Exception ex = null;
         try {
             SSLSocket client =
-                (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, 0);
+                (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, 1);
         } catch (ConnectException e) {
             ex = e;
         }
