@@ -938,6 +938,12 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         SSLInputStream sslInputStream;
         SSLOutputStream sslOutputStream;
 
+        if (ssl == null) {
+            // close() has been called before we've initialized the socket, so just
+            // return.
+            return;
+        }
+
         synchronized (ssl) {
             if (state == STATE_CLOSED) {
                 // close() has already been called, so do nothing and return.
