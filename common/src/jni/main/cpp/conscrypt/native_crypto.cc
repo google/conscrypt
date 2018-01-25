@@ -4260,7 +4260,7 @@ static X509_EXTENSION* X509Type_get_ext(JNIEnv* env, T* x509Type, jstring oidStr
         return nullptr;
     }
 
-    int extIndex = get_ext_by_OBJ_func(x509Type, reinterpret_cast<ASN1_OBJECT*>(asn1.get()), -1);
+    int extIndex = get_ext_by_OBJ_func(x509Type, asn1.get(), -1);
     if (extIndex == -1) {
         JNI_TRACE("X509Type_get_ext(%p, %s) => ext not found", x509Type, oid.c_str());
         return nullptr;
