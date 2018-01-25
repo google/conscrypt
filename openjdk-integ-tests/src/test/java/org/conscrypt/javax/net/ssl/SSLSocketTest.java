@@ -2738,14 +2738,12 @@ public class SSLSocketTest {
     @Test
     public void test_SSLSocket_CloseCleanlyOnConstructorFailure() throws Exception {
         TestSSLContext c = TestSSLContext.create();
-        Exception ex = null;
         try {
-            SSLSocket client =
-                (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, 1);
-        } catch (ConnectException e) {
-            ex = e;
+            c.clientContext.getSocketFactory().createSocket(c.host, 1);
+            fail();
+        } catch (ConnectException ignored) {
+            // Ignored.
         }
-        assumeNoException(ex);
     }
 
     private static void setWriteTimeout(Object socket, int timeout) {
