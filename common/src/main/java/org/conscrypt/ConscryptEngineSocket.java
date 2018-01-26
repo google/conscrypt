@@ -375,6 +375,12 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     public final void close() throws IOException {
         // TODO: Close SSL sockets using a background thread so they close gracefully.
 
+        if (stateLock == null) {
+            // close() has been called before we've initialized the socket, so just
+            // return.
+            return;
+        }
+
         synchronized (stateLock) {
             if (state == STATE_CLOSED) {
                 // close() has already been called, so do nothing and return.

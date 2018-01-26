@@ -39,6 +39,7 @@ import java.io.OutputStream;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -2729,6 +2730,19 @@ public class SSLSocketTest {
                 pair.client.close();
                 pair.server.close();
             }
+        }
+    }
+
+    // Tests that a socket will close cleanly even if it fails to create due to an
+    // internal IOException
+    @Test
+    public void test_SSLSocket_CloseCleanlyOnConstructorFailure() throws Exception {
+        TestSSLContext c = TestSSLContext.create();
+        try {
+            c.clientContext.getSocketFactory().createSocket(c.host, 1);
+            fail();
+        } catch (ConnectException ignored) {
+            // Ignored.
         }
     }
 
