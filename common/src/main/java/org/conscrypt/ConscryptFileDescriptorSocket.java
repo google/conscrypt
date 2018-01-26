@@ -1050,7 +1050,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             if (guard != null) {
                 Platform.closeGuardWarnIfOpen(guard);
             }
-            free();
         } finally {
             super.finalize();
         }

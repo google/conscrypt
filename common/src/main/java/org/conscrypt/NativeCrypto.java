@@ -857,11 +857,11 @@ public final class NativeCrypto {
 
     static native long SSL_new(long ssl_ctx) throws SSLException;
 
-    static native void SSL_enable_tls_channel_id(long ssl) throws SSLException;
+    static native void SSL_enable_tls_channel_id(NativeSsl ssl) throws SSLException;
 
-    static native byte[] SSL_get_tls_channel_id(long ssl) throws SSLException;
+    static native byte[] SSL_get_tls_channel_id(NativeSsl ssl) throws SSLException;
 
-    static native void SSL_set1_tls_channel_id(long ssl, NativeRef.EVP_PKEY pkey);
+    static native void SSL_set1_tls_channel_id(NativeSsl ssl, NativeRef.EVP_PKEY pkey);
 
     /**
      * Sets the local certificates and private key.
@@ -871,37 +871,37 @@ public final class NativeCrypto {
      * @param pkey a reference to the private key.
      * @throws SSLException if a problem occurs setting the cert/key.
      */
-    static native void setLocalCertsAndPrivateKey(long ssl, byte[][] encodedCertificates,
+    static native void setLocalCertsAndPrivateKey(NativeSsl ssl, byte[][] encodedCertificates,
         NativeRef.EVP_PKEY pkey) throws SSLException;
 
-    static native void SSL_set_client_CA_list(long ssl, byte[][] asn1DerEncodedX500Principals)
+    static native void SSL_set_client_CA_list(NativeSsl ssl, byte[][] asn1DerEncodedX500Principals)
             throws SSLException;
 
-    static native long SSL_set_mode(long ssl, long mode);
+    static native long SSL_set_mode(NativeSsl ssl, long mode);
 
-    static native long SSL_set_options(long ssl, long options);
+    static native long SSL_set_options(NativeSsl ssl, long options);
 
-    static native long SSL_clear_options(long ssl, long options);
+    static native long SSL_clear_options(NativeSsl ssl, long options);
 
-    static native void SSL_enable_signed_cert_timestamps(long ssl);
+    static native void SSL_enable_signed_cert_timestamps(NativeSsl ssl);
 
-    static native byte[] SSL_get_signed_cert_timestamp_list(long ssl);
+    static native byte[] SSL_get_signed_cert_timestamp_list(NativeSsl ssl);
 
-    static native void SSL_set_signed_cert_timestamp_list(long ssl, byte[] list);
+    static native void SSL_set_signed_cert_timestamp_list(NativeSsl ssl, byte[] list);
 
-    static native void SSL_enable_ocsp_stapling(long ssl);
+    static native void SSL_enable_ocsp_stapling(NativeSsl ssl);
 
-    static native byte[] SSL_get_ocsp_response(long ssl);
+    static native byte[] SSL_get_ocsp_response(NativeSsl ssl);
 
-    static native void SSL_set_ocsp_response(long ssl, byte[] response);
+    static native void SSL_set_ocsp_response(NativeSsl ssl, byte[] response);
 
-    static native byte[] SSL_get_tls_unique(long ssl);
+    static native byte[] SSL_get_tls_unique(NativeSsl ssl);
 
-    static native void SSL_use_psk_identity_hint(long ssl, String identityHint) throws SSLException;
+    static native void SSL_use_psk_identity_hint(NativeSsl ssl, String identityHint) throws SSLException;
 
-    static native void set_SSL_psk_client_callback_enabled(long ssl, boolean enabled);
+    static native void set_SSL_psk_client_callback_enabled(NativeSsl ssl, boolean enabled);
 
-    static native void set_SSL_psk_server_callback_enabled(long ssl, boolean enabled);
+    static native void set_SSL_psk_server_callback_enabled(NativeSsl ssl, boolean enabled);
 
     /** Protocols to enable by default when "TLSv1.2" is requested. */
     static final String[] TLSV12_PROTOCOLS = new String[] {
@@ -930,7 +930,7 @@ public final class NativeCrypto {
         return TLSV12_PROTOCOLS.clone();
     }
 
-    static void setEnabledProtocols(long ssl, String[] protocols) {
+    static void setEnabledProtocols(NativeSsl ssl, String[] protocols) {
         checkEnabledProtocols(protocols);
         // openssl uses negative logic letting you disable protocols.
         // so first, assume we need to set all (disable all) and clear none (enable none).
@@ -980,16 +980,16 @@ public final class NativeCrypto {
         return protocols;
     }
 
-    static native void SSL_set_cipher_lists(long ssl, String[] ciphers);
+    static native void SSL_set_cipher_lists(NativeSsl ssl, String[] ciphers);
 
     /**
      * Gets the list of cipher suites enabled for the provided {@code SSL} instance.
      *
      * @return array of {@code SSL_CIPHER} references.
      */
-    static native long[] SSL_get_ciphers(long ssl);
+    static native long[] SSL_get_ciphers(NativeSsl ssl);
 
-    static void setEnabledCipherSuites(long ssl, String[] cipherSuites) {
+    static void setEnabledCipherSuites(NativeSsl ssl, String[] cipherSuites) {
         checkEnabledCipherSuites(cipherSuites);
         List<String> opensslSuites = new ArrayList<String>();
         for (int i = 0; i < cipherSuites.length; i++) {
@@ -1035,74 +1035,74 @@ public final class NativeCrypto {
         return cipherSuites;
     }
 
-    static native void SSL_set_accept_state(long sslNativePointer);
+    static native void SSL_set_accept_state(NativeSsl ssl);
 
-    static native void SSL_set_connect_state(long sslNativePointer);
+    static native void SSL_set_connect_state(NativeSsl ssl);
 
-    static native void SSL_set_verify(long sslNativePointer, int mode);
+    static native void SSL_set_verify(NativeSsl ssl, int mode);
 
-    static native void SSL_set_session(long sslNativePointer, long sslSessionNativePointer)
+    static native void SSL_set_session(NativeSsl ssl, long sslSessionNativePointer)
             throws SSLException;
 
     static native void SSL_set_session_creation_enabled(
-            long sslNativePointer, boolean creationEnabled) throws SSLException;
+            NativeSsl ssl, boolean creationEnabled) throws SSLException;
 
-    static native boolean SSL_session_reused(long sslNativePointer);
+    static native boolean SSL_session_reused(NativeSsl ssl);
 
-    static native void SSL_accept_renegotiations(long sslNativePointer) throws SSLException;
+    static native void SSL_accept_renegotiations(NativeSsl ssl) throws SSLException;
 
-    static native void SSL_set_tlsext_host_name(long sslNativePointer, String hostname)
+    static native void SSL_set_tlsext_host_name(NativeSsl ssl, String hostname)
             throws SSLException;
-    static native String SSL_get_servername(long sslNativePointer);
+    static native String SSL_get_servername(NativeSsl ssl);
 
     static native void SSL_do_handshake(
-            long sslNativePointer, FileDescriptor fd, SSLHandshakeCallbacks shc, int timeoutMillis)
+            NativeSsl ssl, FileDescriptor fd, SSLHandshakeCallbacks shc, int timeoutMillis)
             throws SSLException, SocketTimeoutException, CertificateException;
 
-    public static native String SSL_get_current_cipher(long sslNativePointer);
+    public static native String SSL_get_current_cipher(NativeSsl ssl);
 
-    public static native String SSL_get_version(long sslNativePointer);
+    public static native String SSL_get_version(NativeSsl ssl);
 
     /**
      * Returns the peer certificate chain.
      */
-    static native byte[][] SSL_get0_peer_certificates(long sslNativePointer);
+    static native byte[][] SSL_get0_peer_certificates(NativeSsl ssl);
 
     /**
      * Reads with the native SSL_read function from the encrypted data stream
      * @return -1 if error or the end of the stream is reached.
      */
-    static native int SSL_read(long sslNativePointer, FileDescriptor fd, SSLHandshakeCallbacks shc,
+    static native int SSL_read(NativeSsl ssl, FileDescriptor fd, SSLHandshakeCallbacks shc,
             byte[] b, int off, int len, int readTimeoutMillis) throws IOException;
 
     /**
      * Writes with the native SSL_write function to the encrypted data stream.
      */
-    static native void SSL_write(long sslNativePointer, FileDescriptor fd,
+    static native void SSL_write(NativeSsl ssl, FileDescriptor fd,
             SSLHandshakeCallbacks shc, byte[] b, int off, int len, int writeTimeoutMillis)
             throws IOException;
 
-    static native void SSL_interrupt(long sslNativePointer);
+    static native void SSL_interrupt(NativeSsl ssl);
     static native void SSL_shutdown(
-            long sslNativePointer, FileDescriptor fd, SSLHandshakeCallbacks shc) throws IOException;
+            NativeSsl ssl, FileDescriptor fd, SSLHandshakeCallbacks shc) throws IOException;
 
-    static native int SSL_get_shutdown(long sslNativePointer);
+    static native int SSL_get_shutdown(NativeSsl ssl);
 
-    static native void SSL_free(long sslNativePointer);
+    static native void SSL_free(NativeSsl ssl);
+
+    static native long SSL_get_time(NativeSsl ssl);
+
+    static native long SSL_set_timeout(NativeSsl ssl, long millis);
+
+    static native long SSL_get_timeout(NativeSsl ssl);
+
+    static native byte[] SSL_session_id(NativeSsl ssl);
 
     static native byte[] SSL_SESSION_session_id(long sslSessionNativePointer);
 
     static native long SSL_SESSION_get_time(long sslSessionNativePointer);
 
-    static native long SSL_get_time(long sslNativePointer);
-
-    static native long SSL_set_timeout(long sslNativePointer, long millis);
-
-    static native long SSL_get_timeout(long sslNativePointer);
-
     static native long SSL_SESSION_get_timeout(long sslSessionNativePointer);
-
-    static native byte[] SSL_session_id(long sslNativePointer);
 
     static native String SSL_SESSION_get_version(long sslSessionNativePointer);
 
@@ -1221,41 +1221,41 @@ public final class NativeCrypto {
      */
     static native long getDirectBufferAddress(Buffer buf);
 
-    static native long SSL_BIO_new(long ssl) throws SSLException;
+    static native long SSL_BIO_new(NativeSsl ssl) throws SSLException;
 
-    static native int SSL_get_error(long ssl, int ret);
+    static native int SSL_get_error(NativeSsl ssl, int ret);
 
     static native void SSL_clear_error();
 
-    static native int SSL_pending_readable_bytes(long ssl);
+    static native int SSL_pending_readable_bytes(NativeSsl ssl);
 
     static native int SSL_pending_written_bytes_in_BIO(long bio);
 
     /**
      * Returns the maximum overhead, in bytes, of sealing a record with SSL.
      */
-    static native int SSL_max_seal_overhead(long ssl);
+    static native int SSL_max_seal_overhead(NativeSsl ssl);
 
     /**
      * Enables ALPN for this TLS endpoint and sets the list of supported ALPN protocols in
      * wire-format (length-prefixed 8-bit strings).
      */
     static native void setApplicationProtocols(
-            long sslNativePointer, boolean client, byte[] protocols) throws IOException;
+            NativeSsl ssl, boolean client, byte[] protocols) throws IOException;
 
     /**
      * Called for a server endpoint only. Enables ALPN and sets a BiFunction that will
      * be called to delegate protocol selection to the application. Calling this method overrides
-     * {@link #setApplicationProtocols(long, boolean, byte[])}.
+     * {@link #setApplicationProtocols(NativeSsl, boolean, byte[])}.
      */
     static native void setApplicationProtocolSelector(
-            long sslNativePointer, ApplicationProtocolSelectorAdapter selector) throws IOException;
+            NativeSsl ssl, ApplicationProtocolSelectorAdapter selector) throws IOException;
 
     /**
      * Returns the selected ALPN protocol. If the server did not select a
      * protocol, {@code null} will be returned.
      */
-    static native byte[] getApplicationProtocol(long sslNativePointer);
+    static native byte[] getApplicationProtocol(NativeSsl ssl);
 
     /**
      * Variant of the {@link #SSL_do_handshake} used by {@link ConscryptEngine}. This differs
@@ -1267,7 +1267,7 @@ public final class NativeCrypto {
      * SSL_ERROR_NONE}, {@code SSL_ERROR_WANT_READ}, or {@code SSL_ERROR_WANT_WRITE}.
      * @throws IOException when the error code is anything except those returned by this method.
      */
-    static native int ENGINE_SSL_do_handshake(long ssl, SSLHandshakeCallbacks shc)
+    static native int ENGINE_SSL_do_handshake(NativeSsl ssl, SSLHandshakeCallbacks shc)
             throws IOException;
 
     /**
@@ -1284,39 +1284,39 @@ public final class NativeCrypto {
      * Only occurs during handshake processing.
      * @throws SSLException if any other error occurs.
      */
-    static native int ENGINE_SSL_read_direct(long sslNativePointer, long address, int length,
+    static native int ENGINE_SSL_read_direct(NativeSsl ssl, long address, int length,
             SSLHandshakeCallbacks shc) throws IOException, CertificateException;
 
     /**
      * Variant of the {@link #SSL_write} for a direct {@link java.nio.ByteBuffer} used by {@link
      * ConscryptEngine}. This version does not lock or and does no error pre-processing.
      */
-    static native int ENGINE_SSL_write_direct(long sslNativePointer, long address, int length,
+    static native int ENGINE_SSL_write_direct(NativeSsl ssl, long address, int length,
             SSLHandshakeCallbacks shc) throws IOException;
 
     /**
      * Writes data from the given direct {@link java.nio.ByteBuffer} to the BIO.
      */
-    static native int ENGINE_SSL_write_BIO_direct(long sslRef, long bioRef, long pos, int length,
+    static native int ENGINE_SSL_write_BIO_direct(NativeSsl ssl, long bioRef, long pos, int length,
             SSLHandshakeCallbacks shc) throws IOException;
 
     /**
      * Writes data from the given array to the BIO.
      */
-    static native int ENGINE_SSL_write_BIO_heap(long sslRef, long bioRef, byte[] sourceJava,
+    static native int ENGINE_SSL_write_BIO_heap(NativeSsl ssl, long bioRef, byte[] sourceJava,
             int sourceOffset, int sourceLength, SSLHandshakeCallbacks shc)
             throws IOException, IndexOutOfBoundsException;
 
     /**
      * Reads data from the given BIO into a direct {@link java.nio.ByteBuffer}.
      */
-    static native int ENGINE_SSL_read_BIO_direct(long sslRef, long bioRef, long address, int len,
+    static native int ENGINE_SSL_read_BIO_direct(NativeSsl ssl, long bioRef, long address, int len,
             SSLHandshakeCallbacks shc) throws IOException;
 
     /**
      * Reads data from the given BIO into an array.
      */
-    static native int ENGINE_SSL_read_BIO_heap(long sslRef, long bioRef, byte[] destJava,
+    static native int ENGINE_SSL_read_BIO_heap(NativeSsl ssl, long bioRef, byte[] destJava,
             int destOffset, int destLength, SSLHandshakeCallbacks shc)
             throws IOException, IndexOutOfBoundsException;
 
@@ -1324,7 +1324,7 @@ public final class NativeCrypto {
      * Variant of the {@link #SSL_shutdown} used by {@link ConscryptEngine}. This version does not
      * lock.
      */
-    static native void ENGINE_SSL_shutdown(long sslNativePointer, SSLHandshakeCallbacks shc)
+    static native void ENGINE_SSL_shutdown(NativeSsl ssl, SSLHandshakeCallbacks shc)
             throws IOException;
 
     /**
@@ -1334,8 +1334,8 @@ public final class NativeCrypto {
     static native void BIO_write(long bioRef, byte[] buffer, int offset, int length)
             throws IOException, IndexOutOfBoundsException;
     static native long ERR_peek_last_error();
-    static native long SSL_clear_mode(long ssl, long mode);
-    static native long SSL_get_mode(long ssl);
-    static native long SSL_get_options(long ssl);
-    static native long SSL_get1_session(long ssl);
+    static native long SSL_clear_mode(NativeSsl ssl, long mode);
+    static native long SSL_get_mode(NativeSsl ssl);
+    static native long SSL_get_options(NativeSsl ssl);
+    static native long SSL_get1_session(NativeSsl ssl);
 }

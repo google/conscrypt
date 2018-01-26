@@ -1668,7 +1668,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     @Override
     protected void finalize() throws Throwable {
         try {
-            closeAndFreeResources();
+            transitionTo(STATE_CLOSED);
         } finally {
             super.finalize();
         }
