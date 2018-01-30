@@ -392,9 +392,9 @@ public class NativeCryptoTest {
 
         long s2 = NativeCrypto.SSL_new(c);
         assertTrue(s_ptr != s2);
-        NativeCrypto.SSL_free(NativeSsl.newInstanceForTesting(s2));
+        NativeSsl.newInstanceForTesting(s2).close();
 
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -412,7 +412,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.setLocalCertsAndPrivateKey(s, null, getServerPrivateKey().getNativeRef());
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -424,7 +424,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.setLocalCertsAndPrivateKey(s, getEncodedServerCertificates(), null);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -437,7 +437,7 @@ public class NativeCryptoTest {
         NativeCrypto.setLocalCertsAndPrivateKey(
                 s, getEncodedServerCertificates(), getServerPrivateKey().getNativeRef());
 
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -455,7 +455,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_set1_tls_channel_id(s, null);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -471,7 +471,7 @@ public class NativeCryptoTest {
         // key is backed by OpenSSL.
         NativeCrypto.SSL_set1_tls_channel_id(s, CHANNEL_ID_PRIVATE_KEY.getNativeRef());
 
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -485,7 +485,7 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
         assertTrue(NativeCrypto.SSL_get_mode(s) != 0);
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -511,7 +511,7 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_clear_mode(s, SSL_MODE_ENABLE_FALSE_START);
         assertTrue((NativeCrypto.SSL_get_mode(s) & SSL_MODE_ENABLE_FALSE_START) == 0);
 
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -525,7 +525,7 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
         assertTrue(NativeCrypto.SSL_get_options(s) != 0);
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -541,7 +541,7 @@ public class NativeCryptoTest {
         assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_SSLv3) == 0);
         NativeCrypto.SSL_set_options(s, SSL_OP_NO_SSLv3);
         assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_SSLv3) != 0);
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -559,7 +559,7 @@ public class NativeCryptoTest {
         assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_SSLv3) != 0);
         NativeCrypto.SSL_clear_options(s, SSL_OP_NO_SSLv3);
         assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_SSLv3) == 0);
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -575,7 +575,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_set_cipher_lists(s, null);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -587,7 +587,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_set_cipher_lists(s, new String[] {null});
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -601,7 +601,7 @@ public class NativeCryptoTest {
         // b/21816861
         NativeCrypto.SSL_set_cipher_lists(s, new String[] {});
 
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -627,7 +627,7 @@ public class NativeCryptoTest {
             }
         }
 
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -639,7 +639,7 @@ public class NativeCryptoTest {
         List<String> ciphers = new ArrayList<String>(NativeCrypto.SUPPORTED_CIPHER_SUITES_SET);
         NativeCrypto.SSL_set_cipher_lists(s, ciphers.toArray(new String[ciphers.size()]));
 
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -656,7 +656,7 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_set_verify(s, SSL_VERIFY_PEER);
         NativeCrypto.SSL_set_verify(s, SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
         NativeCrypto.SSL_set_verify(s, (SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT));
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -712,7 +712,7 @@ public class NativeCryptoTest {
                 } catch (IOException e) {
                     // Expected.
                 }
-                NativeCrypto.SSL_free(ssl);
+                ssl.close();
             }
             if (context != NULL) {
                 NativeCrypto.SSL_CTX_free(context);
@@ -999,7 +999,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_do_handshake(s, null, null, 0);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -1012,7 +1012,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_do_handshake(s, INVALID_FD, null, 0);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -1674,7 +1674,7 @@ public class NativeCryptoTest {
                 // Expected.
             }
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -1689,7 +1689,7 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
         NativeCrypto.SSL_set_session(s, NULL);
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
 
         {
@@ -1789,7 +1789,7 @@ public class NativeCryptoTest {
         NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
         NativeCrypto.SSL_set_session_creation_enabled(s, false);
         NativeCrypto.SSL_set_session_creation_enabled(s, true);
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
 
         final ServerSocket listener = newServerSocket();
@@ -1868,7 +1868,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_set_tlsext_host_name(s, null);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -1883,7 +1883,7 @@ public class NativeCryptoTest {
             Arrays.fill(longHostname, 'w');
             NativeCrypto.SSL_set_tlsext_host_name(s, new String(longHostname));
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -1898,7 +1898,7 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_set_tlsext_host_name(s, hostname);
         assertEquals(hostname, NativeCrypto.SSL_get_servername(s));
 
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
 
         final ServerSocket listener = newServerSocket();
@@ -2085,7 +2085,7 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
         assertNull(NativeCrypto.SSL_get_servername(s));
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
 
         // additional positive testing by test_SSL_set_tlsext_host_name
@@ -2150,7 +2150,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_read(s, null, DUMMY_CB, null, 0, 0, 0);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2162,7 +2162,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_read(s, INVALID_FD, null, null, 0, 0, 0);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2174,7 +2174,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_read(s, INVALID_FD, DUMMY_CB, null, 0, 0, 0);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2186,7 +2186,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_read(s, INVALID_FD, DUMMY_CB, new byte[1], 0, 1, 0);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2268,7 +2268,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_write(s, null, DUMMY_CB, null, 0, 1, 0);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2280,7 +2280,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_write(s, INVALID_FD, null, null, 0, 1, 0);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2292,7 +2292,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_write(s, INVALID_FD, DUMMY_CB, null, 0, 1, 0);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2304,7 +2304,7 @@ public class NativeCryptoTest {
         try {
             NativeCrypto.SSL_write(s, INVALID_FD, DUMMY_CB, new byte[1], 0, 1, 0);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2321,7 +2321,7 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
         NativeCrypto.SSL_interrupt(s);
-        NativeCrypto.SSL_free(s);
+        s.close();
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -2373,7 +2373,7 @@ public class NativeCryptoTest {
         try {
             task.run(s);
         } finally {
-            NativeCrypto.SSL_free(s);
+            s.close();
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2427,7 +2427,7 @@ public class NativeCryptoTest {
     @Test
     public void test_SSL_free() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeCrypto.SSL_free(NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c)));
+        NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c)).close();
         NativeCrypto.SSL_CTX_free(c);
 
         // additional positive testing elsewhere because handshake
