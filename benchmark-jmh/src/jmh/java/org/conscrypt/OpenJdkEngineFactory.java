@@ -35,7 +35,7 @@ import java.security.cert.X509Certificate;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
-import libcore.java.security.TestKeyStore;
+import org.conscrypt.java.security.TestKeyStore;
 
 final class OpenJdkEngineFactoryConfig {
     private OpenJdkEngineFactoryConfig() {}
