@@ -92,10 +92,9 @@ import org.mockito.Mockito;
 @RunWith(JUnit4.class)
 public class NativeCryptoTest {
     private static final long NULL = 0;
-    private static final NativeSsl NULL_SSL = NativeSsl.newInstanceForTesting(NULL);
     private static final FileDescriptor INVALID_FD = new FileDescriptor();
     private static final SSLHandshakeCallbacks DUMMY_CB =
-            new TestSSLHandshakeCallbacks(null, NULL_SSL, null);
+            new TestSSLHandshakeCallbacks(null, 0, null);
 
     private static final long TIMEOUT_SECONDS = 5;
 
@@ -381,38 +380,36 @@ public class NativeCryptoTest {
     @Test
     public void test_SSL_new() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        long s_ptr = NativeCrypto.SSL_new(c);
-        NativeSsl s = NativeSsl.newInstanceForTesting(s_ptr);
+        long s = NativeCrypto.SSL_new(c);
 
-        assertFalse(s.isClosed());
-        assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_SSLv3) == 0);
-        assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_TLSv1) == 0);
-        assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_TLSv1_1) == 0);
-        assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_TLSv1_2) == 0);
+        assertTrue(s != NULL);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) == 0);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_TLSv1) == 0);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_TLSv1_1) == 0);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_TLSv1_2) == 0);
 
         long s2 = NativeCrypto.SSL_new(c);
-        assertTrue(s_ptr != s2);
-        NativeSsl.newInstanceForTesting(s2).close();
+        assertTrue(s != s2);
+        NativeCrypto.SSL_free(s2, null);
 
-        s.close();
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
     @Test(expected = NullPointerException.class)
     public void setLocalCertsAndPrivateKey_withNullSSLShouldThrow() throws Exception {
         NativeCrypto.setLocalCertsAndPrivateKey(
-                NULL_SSL, getEncodedServerCertificates(),
-                getServerPrivateKey().getNativeRef());
+                NULL, null, getEncodedServerCertificates(), getServerPrivateKey().getNativeRef());
     }
 
     @Test(expected = NullPointerException.class)
     public void setLocalCertsAndPrivateKey_withNullCertificatesShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.setLocalCertsAndPrivateKey(s, null, getServerPrivateKey().getNativeRef());
+            NativeCrypto.setLocalCertsAndPrivateKey(s, null, null, getServerPrivateKey().getNativeRef());
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -420,11 +417,11 @@ public class NativeCryptoTest {
     @Test(expected = NullPointerException.class)
     public void setLocalCertsAndPrivateKey_withNullKeyShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.setLocalCertsAndPrivateKey(s, getEncodedServerCertificates(), null);
+            NativeCrypto.setLocalCertsAndPrivateKey(s, null, getEncodedServerCertificates(), null);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -432,18 +429,18 @@ public class NativeCryptoTest {
     @Test
     public void setLocalCertsAndPrivateKey() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
 
         NativeCrypto.setLocalCertsAndPrivateKey(
-                s, getEncodedServerCertificates(), getServerPrivateKey().getNativeRef());
+                s, null, getEncodedServerCertificates(), getServerPrivateKey().getNativeRef());
 
-        s.close();
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_set1_tls_channel_id_withNullChannelShouldThrow() throws Exception {
-        NativeCrypto.SSL_set1_tls_channel_id(NULL_SSL, null);
+        NativeCrypto.SSL_set1_tls_channel_id(NULL, null, null);
     }
 
     @Test(expected = NullPointerException.class)
@@ -451,11 +448,11 @@ public class NativeCryptoTest {
         initChannelIdKey();
 
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_set1_tls_channel_id(s, null);
+            NativeCrypto.SSL_set1_tls_channel_id(s, null, null);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -465,117 +462,117 @@ public class NativeCryptoTest {
         initChannelIdKey();
 
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
 
         // Use the key natively. This works because the initChannelIdKey method ensures that the
         // key is backed by OpenSSL.
-        NativeCrypto.SSL_set1_tls_channel_id(s, CHANNEL_ID_PRIVATE_KEY.getNativeRef());
+        NativeCrypto.SSL_set1_tls_channel_id(s, null, CHANNEL_ID_PRIVATE_KEY.getNativeRef());
 
-        s.close();
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_get_mode_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_get_mode(NULL_SSL);
+        NativeCrypto.SSL_get_mode(NULL, null);
     }
 
     @Test
     public void test_SSL_get_mode() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
-        assertTrue(NativeCrypto.SSL_get_mode(s) != 0);
-        s.close();
+        long s = NativeCrypto.SSL_new(c);
+        assertTrue(NativeCrypto.SSL_get_mode(s, null) != 0);
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_set_mode_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_set_mode(NULL_SSL, 0);
+        NativeCrypto.SSL_set_mode(NULL, null, 0);
     }
 
     @Test
     public void test_SSL_set_mode_and_clear_mode() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         // check SSL_MODE_ENABLE_FALSE_START on by default for BoringSSL
         assertEquals(SSL_MODE_ENABLE_FALSE_START,
-                NativeCrypto.SSL_get_mode(s) & SSL_MODE_ENABLE_FALSE_START);
+                NativeCrypto.SSL_get_mode(s, null) & SSL_MODE_ENABLE_FALSE_START);
         // check SSL_MODE_CBC_RECORD_SPLITTING off by default
-        assertEquals(0, NativeCrypto.SSL_get_mode(s) & SSL_MODE_CBC_RECORD_SPLITTING);
+        assertEquals(0, NativeCrypto.SSL_get_mode(s, null) & SSL_MODE_CBC_RECORD_SPLITTING);
 
         // set SSL_MODE_ENABLE_FALSE_START on
-        NativeCrypto.SSL_set_mode(s, SSL_MODE_ENABLE_FALSE_START);
-        assertTrue((NativeCrypto.SSL_get_mode(s) & SSL_MODE_ENABLE_FALSE_START) != 0);
+        NativeCrypto.SSL_set_mode(s, null, SSL_MODE_ENABLE_FALSE_START);
+        assertTrue((NativeCrypto.SSL_get_mode(s, null) & SSL_MODE_ENABLE_FALSE_START) != 0);
         // clear SSL_MODE_ENABLE_FALSE_START off
-        NativeCrypto.SSL_clear_mode(s, SSL_MODE_ENABLE_FALSE_START);
-        assertTrue((NativeCrypto.SSL_get_mode(s) & SSL_MODE_ENABLE_FALSE_START) == 0);
+        NativeCrypto.SSL_clear_mode(s, null, SSL_MODE_ENABLE_FALSE_START);
+        assertTrue((NativeCrypto.SSL_get_mode(s, null) & SSL_MODE_ENABLE_FALSE_START) == 0);
 
-        s.close();
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_get_options_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_get_options(NULL_SSL);
+        NativeCrypto.SSL_get_options(NULL, null);
     }
 
     @Test
     public void test_SSL_get_options() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
-        assertTrue(NativeCrypto.SSL_get_options(s) != 0);
-        s.close();
+        long s = NativeCrypto.SSL_new(c);
+        assertTrue(NativeCrypto.SSL_get_options(s, null) != 0);
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_set_options_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_set_options(NULL_SSL, 0);
+        NativeCrypto.SSL_set_options(NULL, null, 0);
     }
 
     @Test
     public void test_SSL_set_options() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
-        assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_SSLv3) == 0);
-        NativeCrypto.SSL_set_options(s, SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_SSLv3) != 0);
-        s.close();
+        long s = NativeCrypto.SSL_new(c);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) == 0);
+        NativeCrypto.SSL_set_options(s, null, SSL_OP_NO_SSLv3);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) != 0);
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_clear_options_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_clear_options(NULL_SSL, 0);
+        NativeCrypto.SSL_clear_options(NULL, null, 0);
     }
 
     @Test
     public void test_SSL_clear_options() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
-        assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_SSLv3) == 0);
-        NativeCrypto.SSL_set_options(s, SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_SSLv3) != 0);
-        NativeCrypto.SSL_clear_options(s, SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s) & SSL_OP_NO_SSLv3) == 0);
-        s.close();
+        long s = NativeCrypto.SSL_new(c);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) == 0);
+        NativeCrypto.SSL_set_options(s, null, SSL_OP_NO_SSLv3);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) != 0);
+        NativeCrypto.SSL_clear_options(s, null, SSL_OP_NO_SSLv3);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) == 0);
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_set_cipher_lists_withNullSslShouldThrow() throws Exception {
-        NativeCrypto.SSL_set_cipher_lists(NULL_SSL, null);
+        NativeCrypto.SSL_set_cipher_lists(NULL, null, null);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_set_cipher_lists_withNullCiphersShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_set_cipher_lists(s, null);
+            NativeCrypto.SSL_set_cipher_lists(s, null, null);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -583,11 +580,11 @@ public class NativeCryptoTest {
     @Test(expected = NullPointerException.class)
     public void test_SSL_set_cipher_lists_withNullCipherShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_set_cipher_lists(s, new String[] {null});
+            NativeCrypto.SSL_set_cipher_lists(s, null, new String[] {null});
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -595,20 +592,20 @@ public class NativeCryptoTest {
     @Test
     public void SSL_set_cipher_lists_withEmptyCiphersShouldSucceed() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
 
         // Explicitly checking that the empty list is allowed.
         // b/21816861
-        NativeCrypto.SSL_set_cipher_lists(s, new String[] {});
+        NativeCrypto.SSL_set_cipher_lists(s, null, new String[] {});
 
-        s.close();
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
     @Test
     public void SSL_set_cipher_lists_withIllegalCipherShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
 
         // see OpenSSL ciphers man page
         String[] illegals = new String[] {// empty
@@ -620,45 +617,47 @@ public class NativeCryptoTest {
 
         for (String illegal : illegals) {
             try {
-                NativeCrypto.SSL_set_cipher_lists(s, new String[] {illegal});
+                NativeCrypto.SSL_set_cipher_lists(s, null, new String[] {illegal});
                 fail("Exception now thrown for illegal cipher: " + illegal);
             } catch (IllegalArgumentException expected) {
                 // Expected.
             }
         }
 
-        s.close();
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
     @Test
     public void SSL_set_cipher_lists_withValidCiphersShouldSucceed() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
 
         List<String> ciphers = new ArrayList<String>(NativeCrypto.SUPPORTED_CIPHER_SUITES_SET);
-        NativeCrypto.SSL_set_cipher_lists(s, ciphers.toArray(new String[ciphers.size()]));
+        NativeCrypto.SSL_set_cipher_lists(s, null, ciphers.toArray(new String[ciphers.size()]));
 
-        s.close();
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_set_verify_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_set_verify(NULL_SSL, 0);
+        NativeCrypto.SSL_set_verify(NULL, null, 0);
     }
 
     @Test
     public void test_SSL_set_verify() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
-        NativeCrypto.SSL_set_verify(s, SSL_VERIFY_NONE);
-        NativeCrypto.SSL_set_verify(s, SSL_VERIFY_PEER);
-        NativeCrypto.SSL_set_verify(s, SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
-        NativeCrypto.SSL_set_verify(s, (SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT));
-        s.close();
+        long s = NativeCrypto.SSL_new(c);
+        NativeCrypto.SSL_set_verify(s, null, SSL_VERIFY_NONE);
+        NativeCrypto.SSL_set_verify(s, null, SSL_VERIFY_PEER);
+        NativeCrypto.SSL_set_verify(s, null, SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
+        NativeCrypto.SSL_set_verify(s, null, (SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT));
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
+
+    private static final boolean DEBUG = false;
 
     public static class Hooks {
         String negotiatedCipherSuite;
@@ -674,8 +673,8 @@ public class NativeCryptoTest {
             return NativeCrypto.SSL_CTX_new();
         }
 
-        public NativeSsl beforeHandshake(long context) throws SSLException {
-            NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(context));
+        public long beforeHandshake(long context) throws SSLException {
+            long s = NativeCrypto.SSL_new(context);
             // Limit cipher suites to a known set so authMethod is known.
             List<String> cipherSuites = new ArrayList<String>();
             if (enabledCipherSuites == null) {
@@ -689,30 +688,30 @@ public class NativeCryptoTest {
                 cipherSuites.addAll(enabledCipherSuites);
             }
             NativeCrypto.setEnabledCipherSuites(
-                    s, cipherSuites.toArray(new String[cipherSuites.size()]));
+                    s, null, cipherSuites.toArray(new String[cipherSuites.size()]));
 
             if (channelIdPrivateKey != null) {
-                NativeCrypto.SSL_set1_tls_channel_id(s, channelIdPrivateKey.getNativeRef());
+                NativeCrypto.SSL_set1_tls_channel_id(s, null, channelIdPrivateKey.getNativeRef());
             }
             return s;
         }
         public void configureCallbacks(
                 @SuppressWarnings("unused") TestSSLHandshakeCallbacks callbacks) {}
-        public void clientCertificateRequested(@SuppressWarnings("unused") NativeSsl s)
+        public void clientCertificateRequested(@SuppressWarnings("unused") long s)
                 throws CertificateEncodingException, SSLException {}
-        public void afterHandshake(long session, NativeSsl ssl, long context, Socket socket,
+        public void afterHandshake(long session, long ssl, long context, Socket socket,
                 FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
             if (session != NULL) {
                 negotiatedCipherSuite = NativeCrypto.SSL_SESSION_cipher(session);
                 NativeCrypto.SSL_SESSION_free(session);
             }
-            if (!ssl.isClosed()) {
+            if (ssl != NULL) {
                 try {
-                    NativeCrypto.SSL_shutdown(ssl, fd, callback);
+                    NativeCrypto.SSL_shutdown(ssl, null, fd, callback);
                 } catch (IOException e) {
                     // Expected.
                 }
-                ssl.close();
+                NativeCrypto.SSL_free(ssl, null);
             }
             if (context != NULL) {
                 NativeCrypto.SSL_CTX_free(context);
@@ -725,12 +724,12 @@ public class NativeCryptoTest {
 
     static class TestSSLHandshakeCallbacks implements SSLHandshakeCallbacks {
         private final Socket socket;
-        private final NativeSsl ssl;
+        private final long sslNativePointer;
         private final Hooks hooks;
 
-        TestSSLHandshakeCallbacks(Socket socket, NativeSsl ssl, Hooks hooks) {
+        TestSSLHandshakeCallbacks(Socket socket, long sslNativePointer, Hooks hooks) {
             this.socket = socket;
-            this.ssl = ssl;
+            this.sslNativePointer = sslNativePointer;
             this.hooks = hooks;
         }
 
@@ -762,11 +761,18 @@ public class NativeCryptoTest {
         public void clientCertificateRequested(
                 byte[] keyTypes, byte[][] asn1DerEncodedX500Principals)
                 throws CertificateEncodingException, SSLException {
+            if (DEBUG) {
+                System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
+                        + " clientCertificateRequested"
+                        + " keyTypes=" + Arrays.toString(keyTypes)
+                        + " asn1DerEncodedX500Principals="
+                        + Arrays.toString(asn1DerEncodedX500Principals));
+            }
             this.keyTypes = keyTypes;
             this.asn1DerEncodedX500Principals = asn1DerEncodedX500Principals;
             this.clientCertificateRequestedCalled = true;
             if (hooks != null) {
-                hooks.clientCertificateRequested(ssl);
+                hooks.clientCertificateRequested(sslNativePointer);
             }
         }
 
@@ -774,6 +780,10 @@ public class NativeCryptoTest {
 
         @Override
         public void onSSLStateChange(int type, int val) {
+            if (DEBUG) {
+                System.out.println(
+                        "ssl=0x" + Long.toString(sslNativePointer, 16) + " onSSLStateChange");
+            }
             this.handshakeCompletedCalled = true;
         }
 
@@ -789,6 +799,12 @@ public class NativeCryptoTest {
 
         @Override
         public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key) {
+            if (DEBUG) {
+                System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
+                        + " clientPSKKeyRequested"
+                        + " identityHint=" + identityHint + " identity capacity=" + identity.length
+                        + " key capacity=" + key.length);
+            }
             clientPSKKeyRequestedInvoked = true;
             clientPSKKeyRequestedIdentityHint = identityHint;
             if (clientPSKKeyRequestedResultKey != null) {
@@ -810,6 +826,12 @@ public class NativeCryptoTest {
 
         @Override
         public int serverPSKKeyRequested(String identityHint, String identity, byte[] key) {
+            if (DEBUG) {
+                System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
+                        + " serverPSKKeyRequested"
+                        + " identityHint=" + identityHint + " identity=" + identity
+                        + " key capacity=" + key.length);
+            }
             serverPSKKeyRequestedInvoked = true;
             serverPSKKeyRequestedIdentityHint = identityHint;
             serverPSKKeyRequestedIdentity = identity;
@@ -826,6 +848,11 @@ public class NativeCryptoTest {
 
         @Override
         public void onNewSessionEstablished(long sslSessionNativePtr) {
+            if (DEBUG) {
+                System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
+                        + " onNewSessionCreated"
+                        + " ssl=0x" + Long.toString(sslSessionNativePtr, 16));
+            }
             onNewSessionEstablishedInvoked = true;
 
             if (onNewSessionEstablishedSaveSession) {
@@ -864,10 +891,10 @@ public class NativeCryptoTest {
         }
 
         @Override
-        public NativeSsl beforeHandshake(long c) throws SSLException {
-            NativeSsl s = super.beforeHandshake(c);
+        public long beforeHandshake(long c) throws SSLException {
+            long s = super.beforeHandshake(c);
             if (pskEnabled) {
-                NativeCrypto.set_SSL_psk_client_callback_enabled(s, true);
+                NativeCrypto.set_SSL_psk_client_callback_enabled(s, null, true);
             }
             return s;
         }
@@ -892,19 +919,19 @@ public class NativeCryptoTest {
         }
 
         @Override
-        public NativeSsl beforeHandshake(long c) throws SSLException {
-            NativeSsl s = super.beforeHandshake(c);
+        public long beforeHandshake(long c) throws SSLException {
+            long s = super.beforeHandshake(c);
             if (privateKey != null && certificates != null) {
-                NativeCrypto.setLocalCertsAndPrivateKey(s, certificates, privateKey.getNativeRef());
+                NativeCrypto.setLocalCertsAndPrivateKey(s, null, certificates, privateKey.getNativeRef());
             }
             if (channelIdEnabled) {
-                NativeCrypto.SSL_enable_tls_channel_id(s);
+                NativeCrypto.SSL_enable_tls_channel_id(s, null);
             }
             if (pskEnabled) {
-                NativeCrypto.set_SSL_psk_server_callback_enabled(s, true);
-                NativeCrypto.SSL_use_psk_identity_hint(s, pskIdentityHint);
+                NativeCrypto.set_SSL_psk_server_callback_enabled(s, null, true);
+                NativeCrypto.SSL_use_psk_identity_hint(s, null, pskIdentityHint);
             }
-            NativeCrypto.SSL_set_verify(s, SSL_VERIFY_NONE);
+            NativeCrypto.SSL_set_verify(s, null, SSL_VERIFY_NONE);
             return s;
         }
 
@@ -918,11 +945,11 @@ public class NativeCryptoTest {
         }
 
         @Override
-        public void afterHandshake(long session, NativeSsl ssl, long context, Socket socket,
+        public void afterHandshake(long session, long ssl, long context, Socket socket,
                 FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
             if (channelIdEnabled) {
                 try {
-                    channelIdAfterHandshake = NativeCrypto.SSL_get_tls_channel_id(ssl);
+                    channelIdAfterHandshake = NativeCrypto.SSL_get_tls_channel_id(ssl, null);
                 } catch (Exception e) {
                     channelIdAfterHandshakeException = e;
                 }
@@ -931,7 +958,7 @@ public class NativeCryptoTest {
         }
 
         @Override
-        public void clientCertificateRequested(NativeSsl s) {
+        public void clientCertificateRequested(long s) {
             fail("Server asked for client certificates");
         }
     }
@@ -950,31 +977,42 @@ public class NativeCryptoTest {
                                                           listener.getLocalPort())
                                                 : listener.accept());
                         if (timeout == -1) {
-                            return new TestSSLHandshakeCallbacks(socket, NULL_SSL, null);
+                            return new TestSSLHandshakeCallbacks(socket, 0, null);
                         }
                         FileDescriptor fd =
                                 (FileDescriptor) m_Platform_getFileDescriptor.invoke(
                                         null, socket);
                         long c = hooks.getContext();
-                        NativeSsl s = hooks.beforeHandshake(c);
+                        long s = hooks.beforeHandshake(c);
                         TestSSLHandshakeCallbacks callback =
                                 new TestSSLHandshakeCallbacks(socket, s, hooks);
                         hooks.configureCallbacks(callback);
+                        if (DEBUG) {
+                            System.out.println("ssl=0x" + Long.toString(s, 16) + " handshake"
+                                    + " context=0x" + Long.toString(c, 16) + " socket=" + socket
+                                    + " fd=" + fd + " timeout=" + timeout + " client="
+                                    + client);
+                        }
                         long session = NULL;
                         try {
                             if (client) {
-                                NativeCrypto.SSL_set_connect_state(s);
+                                NativeCrypto.SSL_set_connect_state(s, null);
                             } else {
-                                NativeCrypto.SSL_set_accept_state(s);
+                                NativeCrypto.SSL_set_accept_state(s, null);
                             }
                             if (alpnProtocols != null) {
-                                NativeCrypto.setApplicationProtocols(s, client, alpnProtocols);
+                                NativeCrypto.setApplicationProtocols(s, null, client, alpnProtocols);
                             }
                             if (!client && alpnSelector != null) {
-                                NativeCrypto.setApplicationProtocolSelector(s, alpnSelector);
+                                NativeCrypto.setApplicationProtocolSelector(s, null, alpnSelector);
                             }
-                            NativeCrypto.SSL_do_handshake(s, fd, callback, timeout);
-                            session = NativeCrypto.SSL_get1_session(s);
+                            NativeCrypto.SSL_do_handshake(s, null, fd, callback, timeout);
+                            session = NativeCrypto.SSL_get1_session(s, null);
+                            if (DEBUG) {
+                                System.out.println("ssl=0x" + Long.toString(s, 16)
+                                        + " handshake"
+                                        + " session=0x" + Long.toString(session, 16));
+                            }
                         } finally {
                             // Ensure afterHandshake is called to free resources
                             hooks.afterHandshake(session, s, c, socket, fd, callback);
@@ -988,18 +1026,18 @@ public class NativeCryptoTest {
 
     @Test(expected = NullPointerException.class)
     public void test_SSL_do_handshake_NULL_SSL() throws Exception {
-        NativeCrypto.SSL_do_handshake(NULL_SSL, null, null, 0);
+        NativeCrypto.SSL_do_handshake(NULL, null, null, null, 0);
     }
 
     @Test(expected = NullPointerException.class)
     public void test_SSL_do_handshake_withNullFdShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
-        NativeCrypto.SSL_set_connect_state(s);
+        long s = NativeCrypto.SSL_new(c);
+        NativeCrypto.SSL_set_connect_state(s, null);
         try {
-            NativeCrypto.SSL_do_handshake(s, null, null, 0);
+            NativeCrypto.SSL_do_handshake(s, null, null, null, 0);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -1007,12 +1045,12 @@ public class NativeCryptoTest {
     @Test(expected = NullPointerException.class)
     public void test_SSL_do_handshake_withNullShcShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
-        NativeCrypto.SSL_set_connect_state(s);
+        long s = NativeCrypto.SSL_new(c);
+        NativeCrypto.SSL_set_connect_state(s, null);
         try {
-            NativeCrypto.SSL_do_handshake(s, INVALID_FD, null, 0);
+            NativeCrypto.SSL_do_handshake(s, null, INVALID_FD, null, 0);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -1088,18 +1126,18 @@ public class NativeCryptoTest {
 
         Future<TestSSLHandshakeCallbacks> client2 = handshake(listener, 0, true, new ClientHooks() {
             @Override
-            public NativeSsl beforeHandshake(long c) throws SSLException {
-                NativeSsl sslNativePtr = super.beforeHandshake(c);
-                NativeCrypto.SSL_set_session(sslNativePtr, clientSessionContext);
+            public long beforeHandshake(long c) throws SSLException {
+                long sslNativePtr = super.beforeHandshake(c);
+                NativeCrypto.SSL_set_session(sslNativePtr, null, clientSessionContext);
                 return sslNativePtr;
             }
         }, null, null);
         Future<TestSSLHandshakeCallbacks> server2 = handshake(listener, 0,
                 false, new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
                     @Override
-                    public NativeSsl beforeHandshake(long c) throws SSLException {
-                        NativeSsl sslNativePtr = super.beforeHandshake(c);
-                        NativeCrypto.SSL_set_session(sslNativePtr, serverSessionContext);
+                    public long beforeHandshake(long c) throws SSLException {
+                        long sslNativePtr = super.beforeHandshake(c);
+                        NativeCrypto.SSL_set_session(sslNativePtr, null, serverSessionContext);
                         return sslNativePtr;
                     }
                 }, null, null);
@@ -1132,19 +1170,19 @@ public class NativeCryptoTest {
 
         Hooks cHooks = new Hooks() {
             @Override
-            public void clientCertificateRequested(NativeSsl s)
+            public void clientCertificateRequested(long s)
                     throws CertificateEncodingException, SSLException {
                 super.clientCertificateRequested(s);
                 NativeCrypto.setLocalCertsAndPrivateKey(
-                        s, getEncodedClientCertificates(), getClientPrivateKey().getNativeRef());
+                        s, null, getEncodedClientCertificates(), getClientPrivateKey().getNativeRef());
             }
         };
         Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
             @Override
-            public NativeSsl beforeHandshake(long c) throws SSLException {
-                NativeSsl s = super.beforeHandshake(c);
-                NativeCrypto.SSL_set_client_CA_list(s, getCaPrincipals());
-                NativeCrypto.SSL_set_verify(s, SSL_VERIFY_PEER);
+            public long beforeHandshake(long c) throws SSLException {
+                long s = super.beforeHandshake(c);
+                NativeCrypto.SSL_set_client_CA_list(s, null, getCaPrincipals());
+                NativeCrypto.SSL_set_verify(s, null, SSL_VERIFY_PEER);
                 return s;
             }
         };
@@ -1187,11 +1225,11 @@ public class NativeCryptoTest {
             Hooks cHooks = new Hooks();
             Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
                 @Override
-                public NativeSsl beforeHandshake(long c) throws SSLException {
-                    NativeSsl s = super.beforeHandshake(c);
-                    NativeCrypto.SSL_set_client_CA_list(s, getCaPrincipals());
+                public long beforeHandshake(long c) throws SSLException {
+                    long s = super.beforeHandshake(c);
+                    NativeCrypto.SSL_set_client_CA_list(s, null, getCaPrincipals());
                     NativeCrypto.SSL_set_verify(
-                            s, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
+                            s, null, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
                     return s;
                 }
             };
@@ -1574,25 +1612,25 @@ public class NativeCryptoTest {
         final ServerSocket listener = newServerSocket();
         Hooks cHooks = new Hooks() {
             @Override
-            public NativeSsl beforeHandshake(long c) throws SSLException {
-                NativeSsl s = super.beforeHandshake(c);
-                NativeCrypto.SSL_enable_ocsp_stapling(s);
+            public long beforeHandshake(long c) throws SSLException {
+                long s = super.beforeHandshake(c);
+                NativeCrypto.SSL_enable_ocsp_stapling(s, null);
                 return s;
             }
 
             @Override
-            public void afterHandshake(long session, NativeSsl ssl, long context, Socket socket,
+            public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                assertEqualByteArrays(OCSP_TEST_DATA, NativeCrypto.SSL_get_ocsp_response(ssl));
+                assertEqualByteArrays(OCSP_TEST_DATA, NativeCrypto.SSL_get_ocsp_response(ssl, null));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
 
         Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
             @Override
-            public NativeSsl beforeHandshake(long c) throws SSLException {
-                NativeSsl s = super.beforeHandshake(c);
-                NativeCrypto.SSL_set_ocsp_response(s, OCSP_TEST_DATA);
+            public long beforeHandshake(long c) throws SSLException {
+                long s = super.beforeHandshake(c);
+                NativeCrypto.SSL_set_ocsp_response(s, null, OCSP_TEST_DATA);
                 return s;
             }
         };
@@ -1616,26 +1654,26 @@ public class NativeCryptoTest {
         final ServerSocket listener = newServerSocket();
         Hooks cHooks = new Hooks() {
             @Override
-            public NativeSsl beforeHandshake(long c) throws SSLException {
-                NativeSsl s = super.beforeHandshake(c);
-                NativeCrypto.SSL_enable_signed_cert_timestamps(s);
+            public long beforeHandshake(long c) throws SSLException {
+                long s = super.beforeHandshake(c);
+                NativeCrypto.SSL_enable_signed_cert_timestamps(s, null);
                 return s;
             }
 
             @Override
-            public void afterHandshake(long session, NativeSsl ssl, long context, Socket socket,
+            public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                 assertEqualByteArrays(
-                        SCT_TEST_DATA, NativeCrypto.SSL_get_signed_cert_timestamp_list(ssl));
+                        SCT_TEST_DATA, NativeCrypto.SSL_get_signed_cert_timestamp_list(ssl, null));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
 
         Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
             @Override
-            public NativeSsl beforeHandshake(long c) throws SSLException {
-                NativeSsl s = super.beforeHandshake(c);
-                NativeCrypto.SSL_set_signed_cert_timestamp_list(s, SCT_TEST_DATA);
+            public long beforeHandshake(long c) throws SSLException {
+                long s = super.beforeHandshake(c);
+                NativeCrypto.SSL_set_signed_cert_timestamp_list(s, null, SCT_TEST_DATA);
                 return s;
             }
         };
@@ -1656,10 +1694,10 @@ public class NativeCryptoTest {
     @SuppressWarnings("deprecation")
     public void test_SSL_use_psk_identity_hint() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_use_psk_identity_hint(s, null);
-            NativeCrypto.SSL_use_psk_identity_hint(s, "test");
+            NativeCrypto.SSL_use_psk_identity_hint(s, null, null);
+            NativeCrypto.SSL_use_psk_identity_hint(s, null, "test");
 
             try {
                 // 800 characters is much longer than the permitted maximum.
@@ -1668,28 +1706,28 @@ public class NativeCryptoTest {
                     pskIdentityHint.append(" long");
                 }
                 assertTrue(pskIdentityHint.length() > PSKKeyManager.MAX_IDENTITY_HINT_LENGTH_BYTES);
-                NativeCrypto.SSL_use_psk_identity_hint(s, pskIdentityHint.toString());
+                NativeCrypto.SSL_use_psk_identity_hint(s, null, pskIdentityHint.toString());
                 fail();
             } catch (SSLException expected) {
                 // Expected.
             }
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_set_session_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_set_session(NULL_SSL, NULL);
+        NativeCrypto.SSL_set_session(NULL, null, NULL);
     }
 
     @Test
     public void test_SSL_set_session() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
-        NativeCrypto.SSL_set_session(s, NULL);
-        s.close();
+        long s = NativeCrypto.SSL_new(c);
+        NativeCrypto.SSL_set_session(s, null, NULL);
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
 
         {
@@ -1705,7 +1743,7 @@ public class NativeCryptoTest {
                         return clientContext;
                     }
                     @Override
-                    public void afterHandshake(long session, NativeSsl s, long c, Socket sock,
+                    public void afterHandshake(long session, long s, long c, Socket sock,
                             FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                         super.afterHandshake(NULL, s, NULL, sock, fd, callback);
                         clientSession[0] = session;
@@ -1718,7 +1756,7 @@ public class NativeCryptoTest {
                         return serverContext;
                     }
                     @Override
-                    public void afterHandshake(long session, NativeSsl s, long c, Socket sock,
+                    public void afterHandshake(long session, long s, long c, Socket sock,
                             FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                         super.afterHandshake(NULL, s, NULL, sock, fd, callback);
                         serverSession[0] = session;
@@ -1739,13 +1777,13 @@ public class NativeCryptoTest {
                         return clientContext;
                     }
                     @Override
-                    public NativeSsl beforeHandshake(long c) throws SSLException {
-                        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(clientContext));
-                        NativeCrypto.SSL_set_session(s, clientSession[0]);
+                    public long beforeHandshake(long c) throws SSLException {
+                        long s = NativeCrypto.SSL_new(clientContext);
+                        NativeCrypto.SSL_set_session(s, null, clientSession[0]);
                         return s;
                     }
                     @Override
-                    public void afterHandshake(long session, NativeSsl s, long c, Socket sock,
+                    public void afterHandshake(long session, long s, long c, Socket sock,
                             FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                         assertEqualSessions(clientSession[0], session);
                         super.afterHandshake(NULL, s, NULL, sock, fd, callback);
@@ -1758,7 +1796,7 @@ public class NativeCryptoTest {
                         return serverContext;
                     }
                     @Override
-                    public void afterHandshake(long session, NativeSsl s, long c, Socket sock,
+                    public void afterHandshake(long session, long s, long c, Socket sock,
                             FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                         assertEqualSessions(serverSession[0], session);
                         super.afterHandshake(NULL, s, NULL, sock, fd, callback);
@@ -1780,16 +1818,16 @@ public class NativeCryptoTest {
 
     @Test(expected = NullPointerException.class)
     public void SSL_set_session_creation_enabled_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_set_session_creation_enabled(NULL_SSL, false);
+        NativeCrypto.SSL_set_session_creation_enabled(NULL, null, false);
     }
 
     @Test
     public void test_SSL_set_session_creation_enabled() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
-        NativeCrypto.SSL_set_session_creation_enabled(s, false);
-        NativeCrypto.SSL_set_session_creation_enabled(s, true);
-        s.close();
+        long s = NativeCrypto.SSL_new(c);
+        NativeCrypto.SSL_set_session_creation_enabled(s, null, false);
+        NativeCrypto.SSL_set_session_creation_enabled(s, null, true);
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
 
         final ServerSocket listener = newServerSocket();
@@ -1798,9 +1836,9 @@ public class NativeCryptoTest {
         {
             Hooks cHooks = new Hooks() {
                 @Override
-                public NativeSsl beforeHandshake(long c) throws SSLException {
-                    NativeSsl s = super.beforeHandshake(c);
-                    NativeCrypto.SSL_set_session_creation_enabled(s, false);
+                public long beforeHandshake(long c) throws SSLException {
+                    long s = super.beforeHandshake(c);
+                    NativeCrypto.SSL_set_session_creation_enabled(s, null, false);
                     return s;
                 }
             };
@@ -1829,9 +1867,9 @@ public class NativeCryptoTest {
             Hooks cHooks = new Hooks();
             Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
                 @Override
-                public NativeSsl beforeHandshake(long c) throws SSLException {
-                    NativeSsl s = super.beforeHandshake(c);
-                    NativeCrypto.SSL_set_session_creation_enabled(s, false);
+                public long beforeHandshake(long c) throws SSLException {
+                    long s = super.beforeHandshake(c);
+                    NativeCrypto.SSL_set_session_creation_enabled(s, null, false);
                     return s;
                 }
             };
@@ -1857,18 +1895,18 @@ public class NativeCryptoTest {
 
     @Test(expected = NullPointerException.class)
     public void SSL_set_tlsext_host_name_withNullSslShouldThrow() throws Exception {
-        NativeCrypto.SSL_set_tlsext_host_name(NULL_SSL, null);
+        NativeCrypto.SSL_set_tlsext_host_name(NULL, null, null);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_set_tlsext_host_name_withNullHostnameShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
 
         try {
-            NativeCrypto.SSL_set_tlsext_host_name(s, null);
+            NativeCrypto.SSL_set_tlsext_host_name(s, null, null);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -1876,14 +1914,14 @@ public class NativeCryptoTest {
     @Test(expected = SSLException.class)
     public void SSL_set_tlsext_host_name_withTooLongHostnameShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
 
         try {
             char[] longHostname = new char[256];
             Arrays.fill(longHostname, 'w');
-            NativeCrypto.SSL_set_tlsext_host_name(s, new String(longHostname));
+            NativeCrypto.SSL_set_tlsext_host_name(s, null, new String(longHostname));
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -1892,13 +1930,13 @@ public class NativeCryptoTest {
     public void test_SSL_set_tlsext_host_name() throws Exception {
         final String hostname = "www.android.com";
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
 
-        assertNull(NativeCrypto.SSL_get_servername(s));
-        NativeCrypto.SSL_set_tlsext_host_name(s, hostname);
-        assertEquals(hostname, NativeCrypto.SSL_get_servername(s));
+        assertNull(NativeCrypto.SSL_get_servername(s, null));
+        NativeCrypto.SSL_set_tlsext_host_name(s, null, hostname);
+        assertEquals(hostname, NativeCrypto.SSL_get_servername(s, null));
 
-        s.close();
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
 
         final ServerSocket listener = newServerSocket();
@@ -1906,17 +1944,17 @@ public class NativeCryptoTest {
         // normal
         Hooks cHooks = new Hooks() {
             @Override
-            public NativeSsl beforeHandshake(long c) throws SSLException {
-                NativeSsl s = super.beforeHandshake(c);
-                NativeCrypto.SSL_set_tlsext_host_name(s, hostname);
+            public long beforeHandshake(long c) throws SSLException {
+                long s = super.beforeHandshake(c);
+                NativeCrypto.SSL_set_tlsext_host_name(s, null, hostname);
                 return s;
             }
         };
         Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
             @Override
-            public void afterHandshake(long session, NativeSsl s, long c, Socket sock, FileDescriptor fd,
+            public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
                     SSLHandshakeCallbacks callback) throws Exception {
-                assertEquals(hostname, NativeCrypto.SSL_get_servername(s));
+                assertEquals(hostname, NativeCrypto.SSL_get_servername(s, null));
                 super.afterHandshake(session, s, c, sock, fd, callback);
             }
         };
@@ -1936,18 +1974,18 @@ public class NativeCryptoTest {
 
         Hooks cHooks = new Hooks() {
             @Override
-            public void afterHandshake(long session, NativeSsl ssl, long context, Socket socket,
+            public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
                 assertEquals("spdy/2", new String(negotiated, "UTF-8"));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
         Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
             @Override
-            public void afterHandshake(long session, NativeSsl ssl, long c, Socket sock,
+            public void afterHandshake(long session, long ssl, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
                 assertEquals("spdy/2", new String(negotiated, "UTF-8"));
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
@@ -1971,18 +2009,18 @@ public class NativeCryptoTest {
 
         Hooks cHooks = new Hooks() {
             @Override
-            public void afterHandshake(long session, NativeSsl ssl, long context, Socket socket,
+            public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
                 assertNull(negotiated);
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
         Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
             @Override
-            public void afterHandshake(long session, NativeSsl ssl, long c, Socket sock,
+            public void afterHandshake(long session, long ssl, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
                 assertNull(negotiated);
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
@@ -2004,18 +2042,18 @@ public class NativeCryptoTest {
 
         Hooks cHooks = new Hooks() {
             @Override
-            public void afterHandshake(long session, NativeSsl ssl, long context, Socket socket,
+            public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
                 assertEquals("spdy/2", new String(negotiated, "UTF-8"));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
         Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
             @Override
-            public void afterHandshake(long session, NativeSsl ssl, long c, Socket sock,
+            public void afterHandshake(long session, long ssl, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
                 assertEquals("spdy/2", new String(negotiated, "UTF-8"));
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
@@ -2043,18 +2081,18 @@ public class NativeCryptoTest {
 
         Hooks cHooks = new Hooks() {
             @Override
-            public void afterHandshake(long session, NativeSsl ssl, long context, Socket socket,
+            public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
                 assertNull(negotiated);
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
         Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
             @Override
-            public void afterHandshake(long session, NativeSsl ssl, long c, Socket sock,
+            public void afterHandshake(long session, long ssl, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl);
+                byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
                 assertNull(negotiated);
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
@@ -2077,15 +2115,15 @@ public class NativeCryptoTest {
 
     @Test(expected = NullPointerException.class)
     public void test_SSL_get_servername_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_get_servername(NULL_SSL);
+        NativeCrypto.SSL_get_servername(NULL, null);
     }
 
     @Test
     public void SSL_get_servername_shouldReturnNull() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
-        assertNull(NativeCrypto.SSL_get_servername(s));
-        s.close();
+        long s = NativeCrypto.SSL_new(c);
+        assertNull(NativeCrypto.SSL_get_servername(s, null));
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
 
         // additional positive testing by test_SSL_set_tlsext_host_name
@@ -2093,7 +2131,7 @@ public class NativeCryptoTest {
 
     @Test(expected = NullPointerException.class)
     public void SSL_get0_peer_certificates_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_get0_peer_certificates(NULL_SSL);
+        NativeCrypto.SSL_get0_peer_certificates(NULL, null);
     }
 
     @Test
@@ -2102,9 +2140,9 @@ public class NativeCryptoTest {
 
         Hooks cHooks = new Hooks() {
             @Override
-            public void afterHandshake(long session, NativeSsl s, long c, Socket sock, FileDescriptor fd,
+            public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
                     SSLHandshakeCallbacks callback) throws Exception {
-                byte[][] cc = NativeCrypto.SSL_get0_peer_certificates(s);
+                byte[][] cc = NativeCrypto.SSL_get0_peer_certificates(s, null);
                 assertEqualByteArrays(getEncodedServerCertificates(), cc);
                 super.afterHandshake(session, s, c, sock, fd, callback);
             }
@@ -2140,17 +2178,17 @@ public class NativeCryptoTest {
 
     @Test(expected = NullPointerException.class)
     public void SSL_read_withNullSslShouldThrow() throws Exception {
-        NativeCrypto.SSL_read(NULL_SSL, null, null, null, 0, 0, 0);
+        NativeCrypto.SSL_read(NULL, null, null, null, null, 0, 0, 0);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_read_withNullFdShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_read(s, null, DUMMY_CB, null, 0, 0, 0);
+            NativeCrypto.SSL_read(s, null, null, DUMMY_CB, null, 0, 0, 0);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2158,11 +2196,11 @@ public class NativeCryptoTest {
     @Test(expected = NullPointerException.class)
     public void SSL_read_withNullCallbacksShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_read(s, INVALID_FD, null, null, 0, 0, 0);
+            NativeCrypto.SSL_read(s, null, INVALID_FD, null, null, 0, 0, 0);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2170,11 +2208,11 @@ public class NativeCryptoTest {
     @Test(expected = NullPointerException.class)
     public void SSL_read_withNullBytesShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_read(s, INVALID_FD, DUMMY_CB, null, 0, 0, 0);
+            NativeCrypto.SSL_read(s, null, INVALID_FD, DUMMY_CB, null, 0, 0, 0);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2182,11 +2220,11 @@ public class NativeCryptoTest {
     @Test(expected = SSLException.class)
     public void SSL_read_beforeHandshakeShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_read(s, INVALID_FD, DUMMY_CB, new byte[1], 0, 1, 0);
+            NativeCrypto.SSL_read(s, null, INVALID_FD, DUMMY_CB, new byte[1], 0, 1, 0);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2199,11 +2237,11 @@ public class NativeCryptoTest {
         {
             Hooks cHooks = new Hooks() {
                 @Override
-                public void afterHandshake(long session, NativeSsl s, long c, Socket sock,
+                public void afterHandshake(long session, long s, long c, Socket sock,
                         FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                     byte[] in = new byte[256];
                     assertEquals(BYTES.length,
-                            NativeCrypto.SSL_read(s, fd, callback, in, 0, BYTES.length, 0));
+                            NativeCrypto.SSL_read(s, null, fd, callback, in, 0, BYTES.length, 0));
                     for (int i = 0; i < BYTES.length; i++) {
                         assertEquals(BYTES[i], in[i]);
                     }
@@ -2212,9 +2250,9 @@ public class NativeCryptoTest {
             };
             Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
                 @Override
-                public void afterHandshake(long session, NativeSsl s, long c, Socket sock,
+                public void afterHandshake(long session, long s, long c, Socket sock,
                         FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                    NativeCrypto.SSL_write(s, fd, callback, BYTES, 0, BYTES.length, 0);
+                    NativeCrypto.SSL_write(s, null, fd, callback, BYTES, 0, BYTES.length, 0);
                     super.afterHandshake(session, s, c, sock, fd, callback);
                 }
             };
@@ -2230,17 +2268,17 @@ public class NativeCryptoTest {
         try {
             Hooks cHooks = new Hooks() {
                 @Override
-                public void afterHandshake(long session, NativeSsl s, long c, Socket sock,
+                public void afterHandshake(long session, long s, long c, Socket sock,
                         FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                    NativeCrypto.SSL_read(s, fd, callback, new byte[1], 0, 1, 1);
+                    NativeCrypto.SSL_read(s, null, fd, callback, new byte[1], 0, 1, 1);
                     fail();
                 }
             };
             Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
                 @Override
-                public void afterHandshake(long session, NativeSsl s, long c, Socket sock,
+                public void afterHandshake(long session, long s, long c, Socket sock,
                         FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                    NativeCrypto.SSL_read(s, fd, callback, new byte[1], 0, 1, 0);
+                    NativeCrypto.SSL_read(s, null, fd, callback, new byte[1], 0, 1, 0);
                     super.afterHandshake(session, s, c, sock, fd, callback);
                 }
             };
@@ -2258,17 +2296,17 @@ public class NativeCryptoTest {
 
     @Test(expected = NullPointerException.class)
     public void SSL_write_withNullSslShouldThrow() throws Exception {
-        NativeCrypto.SSL_write(NULL_SSL, null, null, null, 0, 0, 0);
+        NativeCrypto.SSL_write(NULL, null, null, null, null, 0, 0, 0);
     }
 
     @Test(expected = NullPointerException.class)
     public void SSL_write_withNullFdShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_write(s, null, DUMMY_CB, null, 0, 1, 0);
+            NativeCrypto.SSL_write(s, null, null, DUMMY_CB, null, 0, 1, 0);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2276,11 +2314,11 @@ public class NativeCryptoTest {
     @Test(expected = NullPointerException.class)
     public void SSL_write_withNullCallbacksShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_write(s, INVALID_FD, null, null, 0, 1, 0);
+            NativeCrypto.SSL_write(s, null, INVALID_FD, null, null, 0, 1, 0);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2288,11 +2326,11 @@ public class NativeCryptoTest {
     @Test(expected = NullPointerException.class)
     public void SSL_write_withNullBytesShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_write(s, INVALID_FD, DUMMY_CB, null, 0, 1, 0);
+            NativeCrypto.SSL_write(s, null, INVALID_FD, DUMMY_CB, null, 0, 1, 0);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2300,11 +2338,11 @@ public class NativeCryptoTest {
     @Test(expected = SSLException.class)
     public void SSL_write_beforeHandshakeShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
-            NativeCrypto.SSL_write(s, INVALID_FD, DUMMY_CB, new byte[1], 0, 1, 0);
+            NativeCrypto.SSL_write(s, null, INVALID_FD, DUMMY_CB, new byte[1], 0, 1, 0);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2312,16 +2350,16 @@ public class NativeCryptoTest {
     @Test
     public void SSL_interrupt_withNullShouldSucceed() {
         // SSL_interrupt is a rare case that tolerates a null SSL argument
-        NativeCrypto.SSL_interrupt(NULL_SSL);
+        NativeCrypto.SSL_interrupt(NULL, null);
     }
 
     @Test
     public void SSL_interrupt_withoutHandshakeShouldSucceed() throws Exception {
         // also works without handshaking
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
-        NativeCrypto.SSL_interrupt(s);
-        s.close();
+        long s = NativeCrypto.SSL_new(c);
+        NativeCrypto.SSL_interrupt(s, null);
+        NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c);
     }
 
@@ -2331,28 +2369,28 @@ public class NativeCryptoTest {
 
         Hooks cHooks = new Hooks() {
             @Override
-            public void afterHandshake(long session, NativeSsl s, long c, Socket sock, FileDescriptor fd,
+            public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
                     SSLHandshakeCallbacks callback) throws Exception {
-                NativeCrypto.SSL_read(s, fd, callback, new byte[1], 0, 1, 0);
+                NativeCrypto.SSL_read(s, null, fd, callback, new byte[1], 0, 1, 0);
                 super.afterHandshake(session, s, c, sock, fd, callback);
             }
         };
         Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
             @Override
-            public void afterHandshake(long session, final NativeSsl s, long c, Socket sock,
+            public void afterHandshake(long session, final long s, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                 new Thread() {
                     @Override
                     public void run() {
                         try {
                             Thread.sleep(1000);
-                            NativeCrypto.SSL_interrupt(s);
+                            NativeCrypto.SSL_interrupt(s, null);
                         } catch (Exception e) {
                             // Expected.
                         }
                     }
                 }.start();
-                assertEquals(-1, NativeCrypto.SSL_read(s, fd, callback, new byte[1], 0, 1, 0));
+                assertEquals(-1, NativeCrypto.SSL_read(s, null, fd, callback, new byte[1], 0, 1, 0));
                 super.afterHandshake(session, s, c, sock, fd, callback);
             }
         };
@@ -2364,16 +2402,16 @@ public class NativeCryptoTest {
     }
 
     private static abstract class SSLSessionWrappedTask {
-        public abstract void run(NativeSsl sslSession) throws Exception;
+        public abstract void run(long sslSession) throws Exception;
     }
 
     private void wrapWithSSLSession(SSLSessionWrappedTask task) throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl s = NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c));
+        long s = NativeCrypto.SSL_new(c);
         try {
             task.run(s);
         } finally {
-            s.close();
+            NativeCrypto.SSL_free(s, null);
             NativeCrypto.SSL_CTX_free(c);
         }
     }
@@ -2383,8 +2421,8 @@ public class NativeCryptoTest {
         // We tolerate a null FileDescriptor
         wrapWithSSLSession(new SSLSessionWrappedTask() {
             @Override
-            public void run(NativeSsl sslSession) throws Exception {
-                NativeCrypto.SSL_shutdown(sslSession, null, DUMMY_CB);
+            public void run(long sslSession) throws Exception {
+                NativeCrypto.SSL_shutdown(sslSession, null, null, DUMMY_CB);
             }
         });
     }
@@ -2393,8 +2431,8 @@ public class NativeCryptoTest {
     public void SSL_shutdown_withNullCallbacksShouldThrow() throws Exception {
         wrapWithSSLSession(new SSLSessionWrappedTask() {
             @Override
-            public void run(NativeSsl sslSession) throws Exception {
-                NativeCrypto.SSL_shutdown(sslSession, INVALID_FD, null);
+            public void run(long sslSession) throws Exception {
+                NativeCrypto.SSL_shutdown(sslSession, null, INVALID_FD, null);
             }
         });
     }
@@ -2402,7 +2440,7 @@ public class NativeCryptoTest {
     @Test
     public void SSL_shutdown_withNullSslShouldSucceed() throws Exception {
         // SSL_shutdown is a rare case that tolerates a null SSL argument
-        NativeCrypto.SSL_shutdown(NULL_SSL, INVALID_FD, DUMMY_CB);
+        NativeCrypto.SSL_shutdown(NULL, null, INVALID_FD, DUMMY_CB);
     }
 
     @Test(expected = SocketException.class)
@@ -2410,8 +2448,8 @@ public class NativeCryptoTest {
         // handshaking not yet performed
         wrapWithSSLSession(new SSLSessionWrappedTask() {
             @Override
-            public void run(NativeSsl sslSession) throws Exception {
-                NativeCrypto.SSL_shutdown(sslSession, INVALID_FD, DUMMY_CB);
+            public void run(long sslSession) throws Exception {
+                NativeCrypto.SSL_shutdown(sslSession, null, INVALID_FD, DUMMY_CB);
             }
         });
 
@@ -2421,13 +2459,13 @@ public class NativeCryptoTest {
 
     @Test(expected = NullPointerException.class)
     public void SSL_free_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_free(NULL_SSL);
+        NativeCrypto.SSL_free(NULL, null);
     }
 
     @Test
     public void test_SSL_free() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
-        NativeSsl.newInstanceForTesting(NativeCrypto.SSL_new(c)).close();
+        NativeCrypto.SSL_free(NativeCrypto.SSL_new(c), null);
         NativeCrypto.SSL_CTX_free(c);
 
         // additional positive testing elsewhere because handshake
@@ -2445,7 +2483,7 @@ public class NativeCryptoTest {
 
         Hooks cHooks = new Hooks() {
             @Override
-            public void afterHandshake(long session, NativeSsl s, long c, Socket sock, FileDescriptor fd,
+            public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
                     SSLHandshakeCallbacks callback) throws Exception {
                 byte[] id = NativeCrypto.SSL_SESSION_session_id(session);
                 assertNotNull(id);
@@ -2473,7 +2511,7 @@ public class NativeCryptoTest {
         {
             Hooks cHooks = new Hooks() {
                 @Override
-                public void afterHandshake(long session, NativeSsl s, long c, Socket sock,
+                public void afterHandshake(long session, long s, long c, Socket sock,
                         FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                     long time = NativeCrypto.SSL_SESSION_get_time(session);
                     assertTrue(time != 0);
@@ -2502,7 +2540,7 @@ public class NativeCryptoTest {
 
         Hooks cHooks = new Hooks() {
             @Override
-            public void afterHandshake(long session, NativeSsl s, long c, Socket sock, FileDescriptor fd,
+            public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
                     SSLHandshakeCallbacks callback) throws Exception {
                 String v = NativeCrypto.SSL_SESSION_get_version(session);
                 assertTrue(StandardNames.SSL_SOCKET_PROTOCOLS.contains(v));
@@ -2528,7 +2566,7 @@ public class NativeCryptoTest {
 
         Hooks cHooks = new Hooks() {
             @Override
-            public void afterHandshake(long session, NativeSsl s, long c, Socket sock, FileDescriptor fd,
+            public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
                     SSLHandshakeCallbacks callback) throws Exception {
                 String nativeCipher = NativeCrypto.SSL_SESSION_cipher(session);
                 String javaCipher = NativeCrypto.cipherSuiteFromJava(nativeCipher);
@@ -2566,7 +2604,7 @@ public class NativeCryptoTest {
 
         Hooks cHooks = new Hooks() {
             @Override
-            public void afterHandshake(long session, NativeSsl s, long c, Socket sock, FileDescriptor fd,
+            public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
                     SSLHandshakeCallbacks callback) throws Exception {
                 byte[] b = NativeCrypto.i2d_SSL_SESSION(session);
                 assertNotNull(b);

@@ -30,7 +30,6 @@ extern JavaVM* gJavaVM;
 extern jclass cryptoUpcallsClass;
 extern jclass openSslInputStreamClass;
 extern jclass nativeRefClass;
-extern jclass nativeSslClass;
 
 extern jclass byteArrayClass;
 extern jclass calendarClass;
@@ -42,7 +41,6 @@ extern jclass outputStreamClass;
 extern jclass stringClass;
 
 extern jfieldID nativeRef_context;
-extern jfieldID nativeSsl_ssl;
 
 extern jmethodID calendar_setMethod;
 extern jmethodID inputStream_readMethod;

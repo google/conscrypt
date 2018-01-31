@@ -68,10 +68,6 @@ final class NativeSsl {
         this.pskCallbacks = pskCallbacks;
     }
 
-    static NativeSsl newInstanceForTesting(long ssl) {
-        return new NativeSsl(ssl, null, null, null, null);
-    }
-
     static NativeSsl newInstance(SSLParametersImpl parameters,
             SSLHandshakeCallbacks handshakeCallbacks, AliasChooser chooser,
             PSKCallbacks pskCallbacks) throws SSLException {
@@ -89,31 +85,31 @@ final class NativeSsl {
     }
 
     void offerToResumeSession(long sslSessionNativePointer) throws SSLException {
-        NativeCrypto.SSL_set_session(this, sslSessionNativePointer);
+        NativeCrypto.SSL_set_session(ssl, this, sslSessionNativePointer);
     }
 
     byte[] getSessionId() {
-        return NativeCrypto.SSL_session_id(this);
+        return NativeCrypto.SSL_session_id(ssl, this);
     }
 
     long getTime() {
-        return NativeCrypto.SSL_get_time(this);
+        return NativeCrypto.SSL_get_time(ssl, this);
     }
 
     long getTimeout() {
-        return NativeCrypto.SSL_get_timeout(this);
+        return NativeCrypto.SSL_get_timeout(ssl, this);
     }
 
     void setTimeout(long millis) {
-        NativeCrypto.SSL_set_timeout(this, millis);
+        NativeCrypto.SSL_set_timeout(ssl, this, millis);
     }
 
     String getCipherSuite() {
-        return NativeCrypto.cipherSuiteToJava(NativeCrypto.SSL_get_current_cipher(this));
+        return NativeCrypto.cipherSuiteToJava(NativeCrypto.SSL_get_current_cipher(ssl, this));
     }
 
     X509Certificate[] getPeerCertificates() throws CertificateException {
-        byte[][] encoded = NativeCrypto.SSL_get0_peer_certificates(this);
+        byte[][] encoded = NativeCrypto.SSL_get0_peer_certificates(ssl, this);
         return encoded == null ? null : SSLUtils.decodeX509CertificateChain(encoded);
     }
 
@@ -122,15 +118,15 @@ final class NativeSsl {
     }
 
     byte[] getPeerCertificateOcspData() {
-        return NativeCrypto.SSL_get_ocsp_response(this);
+        return NativeCrypto.SSL_get_ocsp_response(ssl, this);
     }
 
     byte[] getTlsUnique() {
-        return NativeCrypto.SSL_get_tls_unique(this);
+        return NativeCrypto.SSL_get_tls_unique(ssl, this);
     }
 
     byte[] getPeerTlsSctData() {
-        return NativeCrypto.SSL_get_signed_cert_timestamp_list(this);
+        return NativeCrypto.SSL_get_signed_cert_timestamp_list(ssl, this);
     }
 
     /**
@@ -254,46 +250,46 @@ final class NativeSsl {
         }
 
         // Set the local certs and private key.
-        NativeCrypto.setLocalCertsAndPrivateKey(this, encodedLocalCerts, key.getNativeRef());
+        NativeCrypto.setLocalCertsAndPrivateKey(ssl, this, encodedLocalCerts, key.getNativeRef());
     }
 
     String getVersion() {
-        return NativeCrypto.SSL_get_version(this);
+        return NativeCrypto.SSL_get_version(ssl, this);
     }
 
     String getRequestedServerName() {
-        return NativeCrypto.SSL_get_servername(this);
+        return NativeCrypto.SSL_get_servername(ssl, this);
     }
 
     byte[] getTlsChannelId() throws SSLException {
-        return NativeCrypto.SSL_get_tls_channel_id(this);
+        return NativeCrypto.SSL_get_tls_channel_id(ssl, this);
     }
 
     void initialize(String hostname, OpenSSLKey channelIdPrivateKey) throws IOException {
         boolean enableSessionCreation = parameters.getEnableSessionCreation();
         if (!enableSessionCreation) {
-            NativeCrypto.SSL_set_session_creation_enabled(this, false);
+            NativeCrypto.SSL_set_session_creation_enabled(ssl, this, false);
         }
 
         // Allow servers to trigger renegotiation. Some inadvisable server
         // configurations cause them to attempt to renegotiate during
         // certain protocols.
-        NativeCrypto.SSL_accept_renegotiations(this);
+        NativeCrypto.SSL_accept_renegotiations(ssl, this);
 
         if (isClient()) {
-            NativeCrypto.SSL_set_connect_state(this);
+            NativeCrypto.SSL_set_connect_state(ssl, this);
 
             // Configure OCSP and CT extensions for client
-            NativeCrypto.SSL_enable_ocsp_stapling(this);
+            NativeCrypto.SSL_enable_ocsp_stapling(ssl, this);
             if (parameters.isCTVerificationEnabled(hostname)) {
-                NativeCrypto.SSL_enable_signed_cert_timestamps(this);
+                NativeCrypto.SSL_enable_signed_cert_timestamps(ssl, this);
             }
         } else {
-            NativeCrypto.SSL_set_accept_state(this);
+            NativeCrypto.SSL_set_accept_state(ssl, this);
 
             // Configure OCSP for server
             if (parameters.getOCSPResponse() != null) {
-                NativeCrypto.SSL_enable_ocsp_stapling(this);
+                NativeCrypto.SSL_enable_ocsp_stapling(ssl, this);
             }
         }
 
@@ -302,21 +298,21 @@ final class NativeSsl {
                     + NativeCrypto.OBSOLETE_PROTOCOL_SSLV3
                     + " is no longer supported and was filtered from the list");
         }
-        NativeCrypto.setEnabledProtocols(this, parameters.enabledProtocols);
-        NativeCrypto.setEnabledCipherSuites(this, parameters.enabledCipherSuites);
+        NativeCrypto.setEnabledProtocols(ssl, this, parameters.enabledProtocols);
+        NativeCrypto.setEnabledCipherSuites(ssl, this, parameters.enabledCipherSuites);
 
         if (parameters.applicationProtocols.length > 0) {
-            NativeCrypto.setApplicationProtocols(this, isClient(), parameters.applicationProtocols);
+            NativeCrypto.setApplicationProtocols(ssl, this, isClient(), parameters.applicationProtocols);
         }
         if (!isClient() && parameters.applicationProtocolSelector != null) {
-            NativeCrypto.setApplicationProtocolSelector(this, parameters.applicationProtocolSelector);
+            NativeCrypto.setApplicationProtocolSelector(ssl, this, parameters.applicationProtocolSelector);
         }
 
         // setup server certificates and private keys.
         // clients will receive a call back to request certificates.
         if (!isClient()) {
             Set<String> keyTypes = new HashSet<String>();
-            for (long sslCipherNativePointer : NativeCrypto.SSL_get_ciphers(this)) {
+            for (long sslCipherNativePointer : NativeCrypto.SSL_get_ciphers(ssl, this)) {
                 String keyType = SSLUtils.getServerX509KeyType(sslCipherNativePointer);
                 if (keyType != null) {
                     keyTypes.add(keyType);
@@ -333,33 +329,33 @@ final class NativeSsl {
                 }
             }
 
-            NativeCrypto.SSL_set_options(this, SSL_OP_CIPHER_SERVER_PREFERENCE);
+            NativeCrypto.SSL_set_options(ssl, this, SSL_OP_CIPHER_SERVER_PREFERENCE);
 
             if (parameters.sctExtension != null) {
-                NativeCrypto.SSL_set_signed_cert_timestamp_list(this, parameters.sctExtension);
+                NativeCrypto.SSL_set_signed_cert_timestamp_list(ssl, this, parameters.sctExtension);
             }
 
             if (parameters.ocspResponse != null) {
-                NativeCrypto.SSL_set_ocsp_response(this, parameters.ocspResponse);
+                NativeCrypto.SSL_set_ocsp_response(ssl, this, parameters.ocspResponse);
             }
         }
 
         enablePSKKeyManagerIfRequested();
 
         if (parameters.useSessionTickets) {
-            NativeCrypto.SSL_clear_options(this, SSL_OP_NO_TICKET);
+            NativeCrypto.SSL_clear_options(ssl, this, SSL_OP_NO_TICKET);
         } else {
             NativeCrypto.SSL_set_options(
-                    this, NativeCrypto.SSL_get_options(this) | SSL_OP_NO_TICKET);
+                    ssl, this, NativeCrypto.SSL_get_options(ssl, this) | SSL_OP_NO_TICKET);
         }
 
         if (parameters.getUseSni() && AddressUtils.isValidSniHostname(hostname)) {
-            NativeCrypto.SSL_set_tlsext_host_name(this, hostname);
+            NativeCrypto.SSL_set_tlsext_host_name(ssl, this, hostname);
         }
 
         // BEAST attack mitigation (1/n-1 record splitting for CBC cipher suites
         // with TLSv1 and SSLv3).
-        NativeCrypto.SSL_set_mode(this, SSL_MODE_CBC_RECORD_SPLITTING);
+        NativeCrypto.SSL_set_mode(ssl, this, SSL_MODE_CBC_RECORD_SPLITTING);
 
         setCertificateValidation();
         setTlsChannelId(channelIdPrivateKey);
@@ -371,11 +367,11 @@ final class NativeSsl {
         if (isClosed() || fd == null || !fd.valid()) {
             throw new SocketException("Socket is closed");
         }
-        NativeCrypto.SSL_do_handshake(this, fd, handshakeCallbacks, timeoutMillis);
+        NativeCrypto.SSL_do_handshake(ssl, this, fd, handshakeCallbacks, timeoutMillis);
     }
 
     int doHandshake() throws IOException {
-        return NativeCrypto.ENGINE_SSL_do_handshake(this, handshakeCallbacks);
+        return NativeCrypto.ENGINE_SSL_do_handshake(ssl, this, handshakeCallbacks);
     }
 
     // TODO(nathanmittler): Remove once after we switch to the engine socket.
@@ -384,7 +380,7 @@ final class NativeSsl {
         if (isClosed() || fd == null || !fd.valid()) {
             throw new SocketException("Socket is closed");
         }
-        return NativeCrypto.SSL_read(this, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
+        return NativeCrypto.SSL_read(ssl, this, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
     }
 
     // TODO(nathanmittler): Remove once after we switch to the engine socket.
@@ -393,7 +389,7 @@ final class NativeSsl {
         if (isClosed() || fd == null || !fd.valid()) {
             throw new SocketException("Socket is closed");
         }
-        NativeCrypto.SSL_write(this, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
+        NativeCrypto.SSL_write(ssl, this, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
     }
 
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
@@ -410,11 +406,11 @@ final class NativeSsl {
             }
             if (pskEnabled) {
                 if (isClient()) {
-                    NativeCrypto.set_SSL_psk_client_callback_enabled(this, true);
+                    NativeCrypto.set_SSL_psk_client_callback_enabled(ssl, this, true);
                 } else {
-                    NativeCrypto.set_SSL_psk_server_callback_enabled(this, true);
+                    NativeCrypto.set_SSL_psk_server_callback_enabled(ssl, this, true);
                     String identityHint = pskCallbacks.chooseServerPSKIdentityHint(pskKeyManager);
-                    NativeCrypto.SSL_use_psk_identity_hint(this, identityHint);
+                    NativeCrypto.SSL_use_psk_identity_hint(ssl, this, identityHint);
                 }
             }
         }
@@ -430,10 +426,10 @@ final class NativeSsl {
             if (channelIdPrivateKey == null) {
                 throw new SSLHandshakeException("Invalid TLS channel ID key specified");
             }
-            NativeCrypto.SSL_set1_tls_channel_id(this, channelIdPrivateKey.getNativeRef());
+            NativeCrypto.SSL_set1_tls_channel_id(ssl, this, channelIdPrivateKey.getNativeRef());
         } else {
             // Server-side TLS Channel ID
-            NativeCrypto.SSL_enable_tls_channel_id(this);
+            NativeCrypto.SSL_enable_tls_channel_id(ssl, this);
         }
     }
 
@@ -443,16 +439,16 @@ final class NativeSsl {
             // needing client auth takes priority...
             boolean certRequested;
             if (parameters.getNeedClientAuth()) {
-                NativeCrypto.SSL_set_verify(this, SSL_VERIFY_PEER
+                NativeCrypto.SSL_set_verify(ssl, this, SSL_VERIFY_PEER
                                 | SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
                 certRequested = true;
                 // ... over just wanting it...
             } else if (parameters.getWantClientAuth()) {
-                NativeCrypto.SSL_set_verify(this, SSL_VERIFY_PEER);
+                NativeCrypto.SSL_set_verify(ssl, this, SSL_VERIFY_PEER);
                 certRequested = true;
                 // ... and we must disable verification if we don't want client auth.
             } else {
-                NativeCrypto.SSL_set_verify(this, SSL_VERIFY_NONE);
+                NativeCrypto.SSL_set_verify(ssl, this, SSL_VERIFY_NONE);
                 certRequested = false;
             }
 
@@ -466,54 +462,54 @@ final class NativeSsl {
                     } catch (CertificateEncodingException e) {
                         throw new SSLException("Problem encoding principals", e);
                     }
-                    NativeCrypto.SSL_set_client_CA_list(this, issuersBytes);
+                    NativeCrypto.SSL_set_client_CA_list(ssl, this, issuersBytes);
                 }
             }
         }
     }
 
     void interrupt() {
-        NativeCrypto.SSL_interrupt(this);
+        NativeCrypto.SSL_interrupt(ssl, this);
     }
 
     // TODO(nathanmittler): Remove once after we switch to the engine socket.
     void shutdown(FileDescriptor fd) throws IOException {
-        NativeCrypto.SSL_shutdown(this, fd, handshakeCallbacks);
+        NativeCrypto.SSL_shutdown(ssl, this, fd, handshakeCallbacks);
     }
 
     void shutdown() throws IOException {
-        NativeCrypto.ENGINE_SSL_shutdown(this, handshakeCallbacks);
+        NativeCrypto.ENGINE_SSL_shutdown(ssl, this, handshakeCallbacks);
     }
 
     boolean wasShutdownReceived() {
-        return (NativeCrypto.SSL_get_shutdown(this) & SSL_RECEIVED_SHUTDOWN) != 0;
+        return (NativeCrypto.SSL_get_shutdown(ssl, this) & SSL_RECEIVED_SHUTDOWN) != 0;
     }
 
     boolean wasShutdownSent() {
-        return (NativeCrypto.SSL_get_shutdown(this) & SSL_SENT_SHUTDOWN) != 0;
+        return (NativeCrypto.SSL_get_shutdown(ssl, this) & SSL_SENT_SHUTDOWN) != 0;
     }
 
     int readDirectByteBuffer(long destAddress, int destLength)
             throws IOException, CertificateException {
         return NativeCrypto.ENGINE_SSL_read_direct(
-                this, destAddress, destLength, handshakeCallbacks);
+                ssl, this, destAddress, destLength, handshakeCallbacks);
     }
 
     int writeDirectByteBuffer(long sourceAddress, int sourceLength) throws IOException {
         return NativeCrypto.ENGINE_SSL_write_direct(
-                this, sourceAddress, sourceLength, handshakeCallbacks);
+                ssl, this, sourceAddress, sourceLength, handshakeCallbacks);
     }
 
     int getPendingReadableBytes() {
-        return NativeCrypto.SSL_pending_readable_bytes(this);
+        return NativeCrypto.SSL_pending_readable_bytes(ssl, this);
     }
 
     int getMaxSealOverhead() {
-        return NativeCrypto.SSL_max_seal_overhead(this);
+        return NativeCrypto.SSL_max_seal_overhead(ssl, this);
     }
 
     void close() {
-        NativeCrypto.SSL_free(this);
+        NativeCrypto.SSL_free(ssl, this);
         ssl = 0L;
     }
 
@@ -522,11 +518,11 @@ final class NativeSsl {
     }
 
     int getError(int result) {
-        return NativeCrypto.SSL_get_error(this, result);
+        return NativeCrypto.SSL_get_error(ssl, this, result);
     }
 
     byte[] getApplicationProtocol() {
-        return NativeCrypto.getApplicationProtocol(this);
+        return NativeCrypto.getApplicationProtocol(ssl, this);
     }
 
     private boolean isClient() {
@@ -551,7 +547,7 @@ final class NativeSsl {
         private long bio;
 
         private BioWrapper() throws SSLException {
-            this.bio = NativeCrypto.SSL_BIO_new(NativeSsl.this);
+            this.bio = NativeCrypto.SSL_BIO_new(ssl, NativeSsl.this);
         }
 
         int getPendingWrittenBytes() {
@@ -560,12 +556,12 @@ final class NativeSsl {
 
         int writeDirectByteBuffer(long address, int length) throws IOException {
             return NativeCrypto.ENGINE_SSL_write_BIO_direct(
-                    NativeSsl.this, bio, address, length, handshakeCallbacks);
+                    ssl, NativeSsl.this, bio, address, length, handshakeCallbacks);
         }
 
         int readDirectByteBuffer(long destAddress, int destLength) throws IOException {
             return NativeCrypto.ENGINE_SSL_read_BIO_direct(
-                    NativeSsl.this, bio, destAddress, destLength, handshakeCallbacks);
+                    ssl, NativeSsl.this, bio, destAddress, destLength, handshakeCallbacks);
         }
 
         void close() {

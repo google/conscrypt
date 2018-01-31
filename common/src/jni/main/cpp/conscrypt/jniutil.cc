@@ -28,7 +28,6 @@ JavaVM *gJavaVM;
 jclass cryptoUpcallsClass;
 jclass openSslInputStreamClass;
 jclass nativeRefClass;
-jclass nativeSslClass;
 
 jclass byteArrayClass;
 jclass calendarClass;
@@ -40,7 +39,6 @@ jclass outputStreamClass;
 jclass stringClass;
 
 jfieldID nativeRef_context;
-jfieldID nativeSsl_ssl;
 
 jmethodID calendar_setMethod;
 jmethodID inputStream_readMethod;
@@ -65,13 +63,10 @@ void init(JavaVM* vm, JNIEnv* env) {
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/CryptoUpcalls");
     nativeRefClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef");
-    nativeSslClass = getGlobalRefToClass(
-            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeSsl");
     openSslInputStreamClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream");
 
     nativeRef_context = getFieldRef(env, nativeRefClass, "context", "J");
-    nativeSsl_ssl = getFieldRef(env, nativeSslClass, "ssl", "J");
 
     calendar_setMethod = getMethodRef(env, calendarClass, "set", "(IIIIII)V");
     inputStream_readMethod = getMethodRef(env, inputStreamClass, "read", "([B)I");
