@@ -43,6 +43,13 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * Provides the Java side of our JNI glue for OpenSSL.
+ * <p>
+ * Note: Many methods in this class take a reference to a Java object that holds a
+ * native pointer in the form of a long in addition to the long itself and don't use
+ * the Java object in the native implementation.  This is to prevent the Java object
+ * from becoming eligible for GC while the native method is executing.  See
+ * <a href="https://github.com/google/error-prone/blob/master/docs/bugpattern/UnsafeFinalization.md">this</a>
+ * for more details.
  *
  * @hide
  */
