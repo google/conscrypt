@@ -3755,7 +3755,7 @@ static jobject GENERAL_NAME_to_jobject(JNIEnv* env, GENERAL_NAME* gen) {
 #define GN_STACK_ISSUER_ALT_NAME 2
 
 static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass, jlong x509Ref,
-                                                             jint type) {
+                                                             jobject holder, jint type) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_GENERAL_NAME_stack(%p, %d)", x509, type);
 
@@ -3849,7 +3849,7 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
     return joa.release();
 }
 
-static jlong NativeCrypto_X509_get_notBefore(JNIEnv* env, jclass, jlong x509Ref) {
+static jlong NativeCrypto_X509_get_notBefore(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_get_notBefore(%p)", x509);
 
@@ -3864,7 +3864,7 @@ static jlong NativeCrypto_X509_get_notBefore(JNIEnv* env, jclass, jlong x509Ref)
     return reinterpret_cast<uintptr_t>(notBefore);
 }
 
-static jlong NativeCrypto_X509_get_notAfter(JNIEnv* env, jclass, jlong x509Ref) {
+static jlong NativeCrypto_X509_get_notAfter(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_get_notAfter(%p)", x509);
 
@@ -3880,7 +3880,7 @@ static jlong NativeCrypto_X509_get_notAfter(JNIEnv* env, jclass, jlong x509Ref) 
 }
 
 // NOLINTNEXTLINE(runtime/int)
-static long NativeCrypto_X509_get_version(JNIEnv*, jclass, jlong x509Ref) {
+static long NativeCrypto_X509_get_version(JNIEnv*, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_get_version(%p)", x509);
 
@@ -3925,7 +3925,7 @@ static ASN1_INTEGER* X509_REVOKED_get_serialNumber(X509_REVOKED* x) {
 }
 #endif
 
-static jbyteArray NativeCrypto_X509_get_serialNumber(JNIEnv* env, jclass, jlong x509Ref) {
+static jbyteArray NativeCrypto_X509_get_serialNumber(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_get_serialNumber(%p)", x509);
     return get_X509Type_serialNumber<X509>(env, x509, X509_get_serialNumber);
@@ -3938,7 +3938,7 @@ static jbyteArray NativeCrypto_X509_REVOKED_get_serialNumber(JNIEnv* env, jclass
     return get_X509Type_serialNumber<X509_REVOKED>(env, revoked, X509_REVOKED_get_serialNumber);
 }
 
-static void NativeCrypto_X509_verify(JNIEnv* env, jclass, jlong x509Ref, jobject pkeyRef) {
+static void NativeCrypto_X509_verify(JNIEnv* env, jclass, jlong x509Ref, jobject holder, jobject pkeyRef) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     JNI_TRACE("X509_verify(%p, %p)", x509, pkey);
@@ -3962,13 +3962,13 @@ static void NativeCrypto_X509_verify(JNIEnv* env, jclass, jlong x509Ref, jobject
     }
 }
 
-static jbyteArray NativeCrypto_get_X509_cert_info_enc(JNIEnv* env, jclass, jlong x509Ref) {
+static jbyteArray NativeCrypto_get_X509_cert_info_enc(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_cert_info_enc(%p)", x509);
     return ASN1ToByteArray<X509_CINF>(env, x509->cert_info, i2d_X509_CINF);
 }
 
-static jint NativeCrypto_get_X509_ex_flags(JNIEnv* env, jclass, jlong x509Ref) {
+static jint NativeCrypto_get_X509_ex_flags(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_ex_flags(%p)", x509);
 
@@ -3983,7 +3983,8 @@ static jint NativeCrypto_get_X509_ex_flags(JNIEnv* env, jclass, jlong x509Ref) {
     return static_cast<jint>(x509->ex_flags);
 }
 
-static jboolean NativeCrypto_X509_check_issued(JNIEnv*, jclass, jlong x509Ref1, jlong x509Ref2) {
+static jboolean NativeCrypto_X509_check_issued(JNIEnv*, jclass, jlong x509Ref1, jobject holder,
+                                               jlong x509Ref2, jobject holder2) {
     X509* x509_1 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref1));
     X509* x509_2 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref2));
     JNI_TRACE("X509_check_issued(%p, %p)", x509_1, x509_2);
@@ -4034,20 +4035,20 @@ static jbyteArray get_X509Type_signature(JNIEnv* env, T* x509Type,
     return signatureArray.release();
 }
 
-static jbyteArray NativeCrypto_get_X509_signature(JNIEnv* env, jclass, jlong x509Ref) {
+static jbyteArray NativeCrypto_get_X509_signature(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_signature(%p)", x509);
     return get_X509Type_signature<X509>(env, x509, get_X509_signature);
 }
 
-static jbyteArray NativeCrypto_get_X509_CRL_signature(JNIEnv* env, jclass, jlong x509CrlRef) {
+static jbyteArray NativeCrypto_get_X509_CRL_signature(JNIEnv* env, jclass, jlong x509CrlRef, jobject holder) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("get_X509_CRL_signature(%p)", crl);
     return get_X509Type_signature<X509_CRL>(env, crl, get_X509_CRL_signature);
 }
 
-static jlong NativeCrypto_X509_CRL_get0_by_cert(JNIEnv* env, jclass, jlong x509crlRef,
-                                                jlong x509Ref) {
+static jlong NativeCrypto_X509_CRL_get0_by_cert(JNIEnv* env, jclass, jlong x509crlRef, jobject holder,
+                                                jlong x509Ref, jobject holder2) {
     X509_CRL* x509crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509crlRef));
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_CRL_get0_by_cert(%p, %p)", x509crl, x509);
@@ -4073,7 +4074,7 @@ static jlong NativeCrypto_X509_CRL_get0_by_cert(JNIEnv* env, jclass, jlong x509c
     return reinterpret_cast<uintptr_t>(revoked);
 }
 
-static jlong NativeCrypto_X509_CRL_get0_by_serial(JNIEnv* env, jclass, jlong x509crlRef,
+static jlong NativeCrypto_X509_CRL_get0_by_serial(JNIEnv* env, jclass, jlong x509crlRef, jobject holder,
                                                   jbyteArray serialArray) {
     X509_CRL* x509crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509crlRef));
     JNI_TRACE("X509_CRL_get0_by_serial(%p, %p)", x509crl, serialArray);
@@ -4116,7 +4117,7 @@ static jlong NativeCrypto_X509_CRL_get0_by_serial(JNIEnv* env, jclass, jlong x50
     return reinterpret_cast<uintptr_t>(revoked);
 }
 
-static jlongArray NativeCrypto_X509_CRL_get_REVOKED(JNIEnv* env, jclass, jlong x509CrlRef) {
+static jlongArray NativeCrypto_X509_CRL_get_REVOKED(JNIEnv* env, jclass, jlong x509CrlRef, jobject holder) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_get_REVOKED(%p)", crl);
 
@@ -4144,13 +4145,13 @@ static jlongArray NativeCrypto_X509_CRL_get_REVOKED(JNIEnv* env, jclass, jlong x
     return revokedArray.release();
 }
 
-static jbyteArray NativeCrypto_i2d_X509_CRL(JNIEnv* env, jclass, jlong x509CrlRef) {
+static jbyteArray NativeCrypto_i2d_X509_CRL(JNIEnv* env, jclass, jlong x509CrlRef, jobject holder) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("i2d_X509_CRL(%p)", crl);
     return ASN1ToByteArray<X509_CRL>(env, crl, i2d_X509_CRL);
 }
 
-static void NativeCrypto_X509_CRL_free(JNIEnv* env, jclass, jlong x509CrlRef) {
+static void NativeCrypto_X509_CRL_free(JNIEnv* env, jclass, jlong x509CrlRef, jobject holder) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_free(%p)", crl);
 
@@ -4163,7 +4164,7 @@ static void NativeCrypto_X509_CRL_free(JNIEnv* env, jclass, jlong x509CrlRef) {
     X509_CRL_free(crl);
 }
 
-static void NativeCrypto_X509_CRL_print(JNIEnv* env, jclass, jlong bioRef, jlong x509CrlRef) {
+static void NativeCrypto_X509_CRL_print(JNIEnv* env, jclass, jlong bioRef, jlong x509CrlRef, jobject holder) {
     BIO* bio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(bioRef));
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_print(%p, %p)", bio, crl);
@@ -4188,7 +4189,7 @@ static void NativeCrypto_X509_CRL_print(JNIEnv* env, jclass, jlong bioRef, jlong
     }
 }
 
-static jstring NativeCrypto_get_X509_CRL_sig_alg_oid(JNIEnv* env, jclass, jlong x509CrlRef) {
+static jstring NativeCrypto_get_X509_CRL_sig_alg_oid(JNIEnv* env, jclass, jlong x509CrlRef, jobject holder) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("get_X509_CRL_sig_alg_oid(%p)", crl);
 
@@ -4203,7 +4204,7 @@ static jstring NativeCrypto_get_X509_CRL_sig_alg_oid(JNIEnv* env, jclass, jlong 
 }
 
 static jbyteArray NativeCrypto_get_X509_CRL_sig_alg_parameter(JNIEnv* env, jclass,
-                                                              jlong x509CrlRef) {
+                                                              jlong x509CrlRef, jobject holder) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("get_X509_CRL_sig_alg_parameter(%p)", crl);
 
@@ -4221,14 +4222,14 @@ static jbyteArray NativeCrypto_get_X509_CRL_sig_alg_parameter(JNIEnv* env, jclas
     return ASN1ToByteArray<ASN1_TYPE>(env, crl->sig_alg->parameter, i2d_ASN1_TYPE);
 }
 
-static jbyteArray NativeCrypto_X509_CRL_get_issuer_name(JNIEnv* env, jclass, jlong x509CrlRef) {
+static jbyteArray NativeCrypto_X509_CRL_get_issuer_name(JNIEnv* env, jclass, jlong x509CrlRef, jobject holder) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_get_issuer_name(%p)", crl);
     return ASN1ToByteArray<X509_NAME>(env, X509_CRL_get_issuer(crl), i2d_X509_NAME);
 }
 
 // NOLINTNEXTLINE(runtime/int)
-static long NativeCrypto_X509_CRL_get_version(JNIEnv*, jclass, jlong x509CrlRef) {
+static long NativeCrypto_X509_CRL_get_version(JNIEnv*, jclass, jlong x509CrlRef, jobject holder) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_get_version(%p)", crl);
 
@@ -4285,7 +4286,7 @@ static jbyteArray X509Type_get_ext_oid(JNIEnv* env, T* x509Type, jstring oidStri
     return ASN1ToByteArray<ASN1_OCTET_STRING>(env, ext->value, i2d_ASN1_OCTET_STRING);
 }
 
-static jlong NativeCrypto_X509_CRL_get_ext(JNIEnv* env, jclass, jlong x509CrlRef, jstring oid) {
+static jlong NativeCrypto_X509_CRL_get_ext(JNIEnv* env, jclass, jlong x509CrlRef, jobject holder, jstring oid) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_get_ext(%p, %p)", crl, oid);
     X509_EXTENSION* ext =
@@ -4368,13 +4369,14 @@ static void NativeCrypto_X509_REVOKED_print(JNIEnv* env, jclass, jlong bioRef,
 #pragma GCC diagnostic pop
 #endif
 
-static jbyteArray NativeCrypto_get_X509_CRL_crl_enc(JNIEnv* env, jclass, jlong x509CrlRef) {
+static jbyteArray NativeCrypto_get_X509_CRL_crl_enc(JNIEnv* env, jclass, jlong x509CrlRef, jobject holder) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("get_X509_CRL_crl_enc(%p)", crl);
     return ASN1ToByteArray<X509_CRL_INFO>(env, crl->crl, i2d_X509_CRL_INFO);
 }
 
-static void NativeCrypto_X509_CRL_verify(JNIEnv* env, jclass, jlong x509CrlRef, jobject pkeyRef) {
+static void NativeCrypto_X509_CRL_verify(JNIEnv* env, jclass, jlong x509CrlRef, jobject holder,
+                                         jobject pkeyRef) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     JNI_TRACE("X509_CRL_verify(%p, %p)", crl, pkey);
@@ -4398,7 +4400,7 @@ static void NativeCrypto_X509_CRL_verify(JNIEnv* env, jclass, jlong x509CrlRef, 
     }
 }
 
-static jlong NativeCrypto_X509_CRL_get_lastUpdate(JNIEnv* env, jclass, jlong x509CrlRef) {
+static jlong NativeCrypto_X509_CRL_get_lastUpdate(JNIEnv* env, jclass, jlong x509CrlRef, jobject holder) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_get_lastUpdate(%p)", crl);
 
@@ -4413,7 +4415,7 @@ static jlong NativeCrypto_X509_CRL_get_lastUpdate(JNIEnv* env, jclass, jlong x50
     return reinterpret_cast<uintptr_t>(lastUpdate);
 }
 
-static jlong NativeCrypto_X509_CRL_get_nextUpdate(JNIEnv* env, jclass, jlong x509CrlRef) {
+static jlong NativeCrypto_X509_CRL_get_nextUpdate(JNIEnv* env, jclass, jlong x509CrlRef, jobject holder) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_get_nextUpdate(%p)", crl);
 
@@ -4860,13 +4862,13 @@ static jlong NativeCrypto_d2i_X509(JNIEnv* env, jclass, jbyteArray certBytes) {
     return reinterpret_cast<uintptr_t>(x);
 }
 
-static jbyteArray NativeCrypto_i2d_X509(JNIEnv* env, jclass, jlong x509Ref) {
+static jbyteArray NativeCrypto_i2d_X509(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("i2d_X509(%p)", x509);
     return ASN1ToByteArray<X509>(env, x509, i2d_X509);
 }
 
-static jbyteArray NativeCrypto_i2d_X509_PUBKEY(JNIEnv* env, jclass, jlong x509Ref) {
+static jbyteArray NativeCrypto_i2d_X509_PUBKEY(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("i2d_X509_PUBKEY(%p)", x509);
     return ASN1ToByteArray<X509_PUBKEY>(env, X509_get_X509_PUBKEY(x509), i2d_X509_PUBKEY);
@@ -5148,7 +5150,7 @@ static jbyteArray NativeCrypto_ASN1_seq_pack_X509(JNIEnv* env, jclass, jlongArra
     return CBBToByteArray(env, result.get());
 }
 
-static void NativeCrypto_X509_free(JNIEnv* env, jclass, jlong x509Ref) {
+static void NativeCrypto_X509_free(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_free(%p)", x509);
 
@@ -5161,7 +5163,7 @@ static void NativeCrypto_X509_free(JNIEnv* env, jclass, jlong x509Ref) {
     X509_free(x509);
 }
 
-static jlong NativeCrypto_X509_dup(JNIEnv* env, jclass, jlong x509Ref) {
+static jlong NativeCrypto_X509_dup(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_dup(%p)", x509);
 
@@ -5174,7 +5176,8 @@ static jlong NativeCrypto_X509_dup(JNIEnv* env, jclass, jlong x509Ref) {
     return reinterpret_cast<uintptr_t>(X509_dup(x509));
 }
 
-static jint NativeCrypto_X509_cmp(JNIEnv* env, jclass, jlong x509Ref1, jlong x509Ref2) {
+static jint NativeCrypto_X509_cmp(JNIEnv* env, jclass, jlong x509Ref1, jobject holder,
+                                  jlong x509Ref2, jobject holder2) {
     X509* x509_1 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref1));
     X509* x509_2 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref2));
     JNI_TRACE("X509_cmp(%p, %p)", x509_1, x509_2);
@@ -5196,7 +5199,7 @@ static jint NativeCrypto_X509_cmp(JNIEnv* env, jclass, jlong x509Ref1, jlong x50
     return ret;
 }
 
-static void NativeCrypto_X509_delete_ext(JNIEnv* env, jclass, jlong x509Ref, jstring oidString) {
+static void NativeCrypto_X509_delete_ext(JNIEnv* env, jclass, jlong x509Ref, jobject holder, jstring oidString) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_delete_ext(%p, %p)", x509, oidString);
 
@@ -5237,7 +5240,7 @@ static void NativeCrypto_X509_delete_ext(JNIEnv* env, jclass, jlong x509Ref, jst
 }
 
 static void NativeCrypto_X509_print_ex(JNIEnv* env, jclass, jlong bioRef, jlong x509Ref,
-                                       jlong nmflagJava, jlong certflagJava) {
+                                       jobject holder, jlong nmflagJava, jlong certflagJava) {
     BIO* bio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(bioRef));
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     // NOLINTNEXTLINE(runtime/int)
@@ -5266,7 +5269,7 @@ static void NativeCrypto_X509_print_ex(JNIEnv* env, jclass, jlong bioRef, jlong 
     }
 }
 
-static jlong NativeCrypto_X509_get_pubkey(JNIEnv* env, jclass, jlong x509Ref) {
+static jlong NativeCrypto_X509_get_pubkey(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_get_pubkey(%p)", x509);
 
@@ -5298,19 +5301,19 @@ static jlong NativeCrypto_X509_get_pubkey(JNIEnv* env, jclass, jlong x509Ref) {
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
-static jbyteArray NativeCrypto_X509_get_issuer_name(JNIEnv* env, jclass, jlong x509Ref) {
+static jbyteArray NativeCrypto_X509_get_issuer_name(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_get_issuer_name(%p)", x509);
     return ASN1ToByteArray<X509_NAME>(env, X509_get_issuer_name(x509), i2d_X509_NAME);
 }
 
-static jbyteArray NativeCrypto_X509_get_subject_name(JNIEnv* env, jclass, jlong x509Ref) {
+static jbyteArray NativeCrypto_X509_get_subject_name(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_get_subject_name(%p)", x509);
     return ASN1ToByteArray<X509_NAME>(env, X509_get_subject_name(x509), i2d_X509_NAME);
 }
 
-static jstring NativeCrypto_get_X509_pubkey_oid(JNIEnv* env, jclass, jlong x509Ref) {
+static jstring NativeCrypto_get_X509_pubkey_oid(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_pubkey_oid(%p)", x509);
 
@@ -5324,7 +5327,7 @@ static jstring NativeCrypto_get_X509_pubkey_oid(JNIEnv* env, jclass, jlong x509R
     return ASN1_OBJECT_to_OID_string(env, pubkey->algor->algorithm);
 }
 
-static jstring NativeCrypto_get_X509_sig_alg_oid(JNIEnv* env, jclass, jlong x509Ref) {
+static jstring NativeCrypto_get_X509_sig_alg_oid(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_sig_alg_oid(%p)", x509);
 
@@ -5338,7 +5341,7 @@ static jstring NativeCrypto_get_X509_sig_alg_oid(JNIEnv* env, jclass, jlong x509
     return ASN1_OBJECT_to_OID_string(env, x509->sig_alg->algorithm);
 }
 
-static jbyteArray NativeCrypto_get_X509_sig_alg_parameter(JNIEnv* env, jclass, jlong x509Ref) {
+static jbyteArray NativeCrypto_get_X509_sig_alg_parameter(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_sig_alg_parameter(%p)", x509);
 
@@ -5356,7 +5359,7 @@ static jbyteArray NativeCrypto_get_X509_sig_alg_parameter(JNIEnv* env, jclass, j
     return ASN1ToByteArray<ASN1_TYPE>(env, x509->sig_alg->parameter, i2d_ASN1_TYPE);
 }
 
-static jbooleanArray NativeCrypto_get_X509_issuerUID(JNIEnv* env, jclass, jlong x509Ref) {
+static jbooleanArray NativeCrypto_get_X509_issuerUID(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_issuerUID(%p)", x509);
 
@@ -5374,7 +5377,7 @@ static jbooleanArray NativeCrypto_get_X509_issuerUID(JNIEnv* env, jclass, jlong 
     return ASN1BitStringToBooleanArray(env, x509->cert_info->issuerUID);
 }
 
-static jbooleanArray NativeCrypto_get_X509_subjectUID(JNIEnv* env, jclass, jlong x509Ref) {
+static jbooleanArray NativeCrypto_get_X509_subjectUID(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_subjectUID(%p)", x509);
 
@@ -5392,7 +5395,7 @@ static jbooleanArray NativeCrypto_get_X509_subjectUID(JNIEnv* env, jclass, jlong
     return ASN1BitStringToBooleanArray(env, x509->cert_info->subjectUID);
 }
 
-static jbooleanArray NativeCrypto_get_X509_ex_kusage(JNIEnv* env, jclass, jlong x509Ref) {
+static jbooleanArray NativeCrypto_get_X509_ex_kusage(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_ex_kusage(%p)", x509);
 
@@ -5412,7 +5415,7 @@ static jbooleanArray NativeCrypto_get_X509_ex_kusage(JNIEnv* env, jclass, jlong 
     return ASN1BitStringToBooleanArray(env, bitStr.get());
 }
 
-static jobjectArray NativeCrypto_get_X509_ex_xkusage(JNIEnv* env, jclass, jlong x509Ref) {
+static jobjectArray NativeCrypto_get_X509_ex_xkusage(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_ex_xkusage(%p)", x509);
 
@@ -5447,7 +5450,7 @@ static jobjectArray NativeCrypto_get_X509_ex_xkusage(JNIEnv* env, jclass, jlong 
     return exKeyUsage.release();
 }
 
-static jint NativeCrypto_get_X509_ex_pathlen(JNIEnv* env, jclass, jlong x509Ref) {
+static jint NativeCrypto_get_X509_ex_pathlen(JNIEnv* env, jclass, jlong x509Ref, jobject holder) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_ex_pathlen(%p)", x509);
 
@@ -5465,14 +5468,14 @@ static jint NativeCrypto_get_X509_ex_pathlen(JNIEnv* env, jclass, jlong x509Ref)
 }
 
 static jbyteArray NativeCrypto_X509_get_ext_oid(JNIEnv* env, jclass, jlong x509Ref,
-                                                jstring oidString) {
+                                                jobject holder, jstring oidString) {
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_get_ext_oid(%p, %p)", x509, oidString);
     return X509Type_get_ext_oid<X509, X509_get_ext_by_OBJ, X509_get_ext>(env, x509, oidString);
 }
 
 static jbyteArray NativeCrypto_X509_CRL_get_ext_oid(JNIEnv* env, jclass, jlong x509CrlRef,
-                                                    jstring oidString) {
+                                                    jobject holder, jstring oidString) {
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_get_ext_oid(%p, %p)", crl, oidString);
     return X509Type_get_ext_oid<X509_CRL, X509_CRL_get_ext_by_OBJ, X509_CRL_get_ext>(env, crl,
@@ -5538,7 +5541,7 @@ static jobjectArray get_X509Type_ext_oids(JNIEnv* env, jlong x509Ref, jint criti
 }
 
 static jobjectArray NativeCrypto_get_X509_ext_oids(JNIEnv* env, jclass, jlong x509Ref,
-                                                   jint critical) {
+                                                   jobject holder, jint critical) {
     // NOLINTNEXTLINE(runtime/int)
     JNI_TRACE("get_X509_ext_oids(0x%llx, %d)", (long long)x509Ref, critical);
     return get_X509Type_ext_oids<X509, decltype(X509::cert_info), &X509::cert_info,
@@ -5546,7 +5549,7 @@ static jobjectArray NativeCrypto_get_X509_ext_oids(JNIEnv* env, jclass, jlong x5
 }
 
 static jobjectArray NativeCrypto_get_X509_CRL_ext_oids(JNIEnv* env, jclass, jlong x509CrlRef,
-                                                       jint critical) {
+                                                       jobject holder, jint critical) {
     // NOLINTNEXTLINE(runtime/int)
     JNI_TRACE("get_X509_CRL_ext_oids(0x%llx, %d)", (long long)x509CrlRef, critical);
     return get_X509Type_ext_oids<X509_CRL, decltype(X509_CRL::crl), &X509_CRL::crl,
@@ -8644,7 +8647,8 @@ static X509_EXTENSION* _X509v3_get_ext(X509_EXTENSIONS* exts, int loc) {
 */
 static jbyteArray NativeCrypto_get_ocsp_single_extension(JNIEnv* env, jclass,
                                                          jbyteArray ocspDataBytes, jstring oid,
-                                                         jlong x509Ref, jlong issuerX509Ref) {
+                                                         jlong x509Ref, jobject holder,
+                                                         jlong issuerX509Ref, jobject holder2) {
     ScopedByteArrayRO ocspData(env, ocspDataBytes);
     if (ocspData.get() == nullptr) {
         return nullptr;
@@ -9410,6 +9414,8 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
 #define REF_EVP_PKEY_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY_CTX;"
 #define REF_HMAC_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$HMAC_CTX;"
 #define REF_BIO_IN_STREAM "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream;"
+#define REF_X509 "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509Certificate;"
+#define REF_X509_CRL "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509CRL;"
 #define REF_SSL "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeSsl;"
 static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(clinit, "()V"),
@@ -9520,67 +9526,69 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(create_BIO_InputStream, ("(" REF_BIO_IN_STREAM "Z)J")),
         CONSCRYPT_NATIVE_METHOD(create_BIO_OutputStream, "(Ljava/io/OutputStream;)J"),
         CONSCRYPT_NATIVE_METHOD(BIO_free_all, "(J)V"),
-        CONSCRYPT_NATIVE_METHOD(d2i_X509_bio, "(J)J"), CONSCRYPT_NATIVE_METHOD(d2i_X509, "([B)J"),
-        CONSCRYPT_NATIVE_METHOD(i2d_X509, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(i2d_X509_PUBKEY, "(J)[B"),
+        CONSCRYPT_NATIVE_METHOD(d2i_X509_bio, "(J)J"),
+        CONSCRYPT_NATIVE_METHOD(d2i_X509, "([B)J"),
+        CONSCRYPT_NATIVE_METHOD(i2d_X509, "(J" REF_X509 ")[B"),
+        CONSCRYPT_NATIVE_METHOD(i2d_X509_PUBKEY, "(J" REF_X509 ")[B"),
         CONSCRYPT_NATIVE_METHOD(PEM_read_bio_X509, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(PEM_read_bio_PKCS7, "(JI)[J"),
         CONSCRYPT_NATIVE_METHOD(d2i_PKCS7_bio, "(JI)[J"),
         CONSCRYPT_NATIVE_METHOD(i2d_PKCS7, "([J)[B"),
         CONSCRYPT_NATIVE_METHOD(ASN1_seq_unpack_X509_bio, "(J)[J"),
         CONSCRYPT_NATIVE_METHOD(ASN1_seq_pack_X509, "([J)[B"),
-        CONSCRYPT_NATIVE_METHOD(X509_free, "(J)V"), CONSCRYPT_NATIVE_METHOD(X509_dup, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_cmp, "(JJ)I"),
-        CONSCRYPT_NATIVE_METHOD(X509_print_ex, "(JJJJ)V"),
-        CONSCRYPT_NATIVE_METHOD(X509_get_pubkey, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_get_issuer_name, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(X509_get_subject_name, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_pubkey_oid, "(J)Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_sig_alg_oid, "(J)Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_sig_alg_parameter, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_issuerUID, "(J)[Z"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_subjectUID, "(J)[Z"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_ex_kusage, "(J)[Z"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_ex_xkusage, "(J)[Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_ex_pathlen, "(J)I"),
-        CONSCRYPT_NATIVE_METHOD(X509_get_ext_oid, "(JLjava/lang/String;)[B"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_ext_oid, "(JLjava/lang/String;)[B"),
-        CONSCRYPT_NATIVE_METHOD(X509_delete_ext, "(JLjava/lang/String;)V"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_CRL_crl_enc, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_verify, "(J" REF_EVP_PKEY ")V"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_lastUpdate, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_nextUpdate, "(J)J"),
+        CONSCRYPT_NATIVE_METHOD(X509_free, "(J" REF_X509 ")V"),
+        CONSCRYPT_NATIVE_METHOD(X509_dup, "(J" REF_X509 ")J"),
+        CONSCRYPT_NATIVE_METHOD(X509_cmp, "(J" REF_X509 "J" REF_X509 ")I"),
+        CONSCRYPT_NATIVE_METHOD(X509_print_ex, "(JJ" REF_X509 "JJ)V"),
+        CONSCRYPT_NATIVE_METHOD(X509_get_pubkey, "(J" REF_X509 ")J"),
+        CONSCRYPT_NATIVE_METHOD(X509_get_issuer_name, "(J" REF_X509 ")[B"),
+        CONSCRYPT_NATIVE_METHOD(X509_get_subject_name, "(J" REF_X509 ")[B"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_pubkey_oid, "(J" REF_X509 ")Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_sig_alg_oid, "(J" REF_X509 ")Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_sig_alg_parameter, "(J" REF_X509 ")[B"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_issuerUID, "(J" REF_X509 ")[Z"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_subjectUID, "(J" REF_X509 ")[Z"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_ex_kusage, "(J" REF_X509 ")[Z"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_ex_xkusage, "(J" REF_X509 ")[Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_ex_pathlen, "(J" REF_X509 ")I"),
+        CONSCRYPT_NATIVE_METHOD(X509_get_ext_oid, "(J" REF_X509 "Ljava/lang/String;)[B"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_ext_oid, "(J" REF_X509_CRL "Ljava/lang/String;)[B"),
+        CONSCRYPT_NATIVE_METHOD(X509_delete_ext, "(J" REF_X509 "Ljava/lang/String;)V"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_CRL_crl_enc, "(J" REF_X509_CRL ")[B"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_verify, "(J" REF_X509_CRL REF_EVP_PKEY ")V"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_lastUpdate, "(J" REF_X509_CRL ")J"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_nextUpdate, "(J" REF_X509_CRL ")J"),
         CONSCRYPT_NATIVE_METHOD(X509_REVOKED_get_ext_oid, "(JLjava/lang/String;)[B"),
         CONSCRYPT_NATIVE_METHOD(X509_REVOKED_get_serialNumber, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(X509_REVOKED_print, "(JJ)V"),
         CONSCRYPT_NATIVE_METHOD(get_X509_REVOKED_revocationDate, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_ext_oids, "(JI)[Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_CRL_ext_oids, "(JI)[Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_ext_oids, "(J" REF_X509 "I)[Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_CRL_ext_oids, "(J" REF_X509_CRL "I)[Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(get_X509_REVOKED_ext_oids, "(JI)[Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_GENERAL_NAME_stack, "(JI)[[Ljava/lang/Object;"),
-        CONSCRYPT_NATIVE_METHOD(X509_get_notBefore, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_get_notAfter, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_get_version, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_get_serialNumber, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(X509_verify, "(J" REF_EVP_PKEY ")V"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_cert_info_enc, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_signature, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_CRL_signature, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_ex_flags, "(J)I"),
-        CONSCRYPT_NATIVE_METHOD(X509_check_issued, "(JJ)I"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_GENERAL_NAME_stack, "(J" REF_X509 "I)[[Ljava/lang/Object;"),
+        CONSCRYPT_NATIVE_METHOD(X509_get_notBefore, "(J" REF_X509 ")J"),
+        CONSCRYPT_NATIVE_METHOD(X509_get_notAfter, "(J" REF_X509 ")J"),
+        CONSCRYPT_NATIVE_METHOD(X509_get_version, "(J" REF_X509 ")J"),
+        CONSCRYPT_NATIVE_METHOD(X509_get_serialNumber, "(J" REF_X509 ")[B"),
+        CONSCRYPT_NATIVE_METHOD(X509_verify, "(J" REF_X509 REF_EVP_PKEY ")V"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_cert_info_enc, "(J" REF_X509 ")[B"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_signature, "(J" REF_X509 ")[B"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_CRL_signature, "(J" REF_X509_CRL ")[B"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_ex_flags, "(J" REF_X509 ")I"),
+        CONSCRYPT_NATIVE_METHOD(X509_check_issued, "(J" REF_X509 "J" REF_X509 ")I"),
         CONSCRYPT_NATIVE_METHOD(d2i_X509_CRL_bio, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(PEM_read_bio_X509_CRL, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_get0_by_cert, "(JJ)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_get0_by_serial, "(J[B)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_REVOKED, "(J)[J"),
-        CONSCRYPT_NATIVE_METHOD(i2d_X509_CRL, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_free, "(J)V"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_print, "(JJ)V"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_CRL_sig_alg_oid, "(J)Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_CRL_sig_alg_parameter, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_issuer_name, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_version, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_ext, "(JLjava/lang/String;)J"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_get0_by_cert, "(J" REF_X509_CRL "J" REF_X509 ")J"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_get0_by_serial, "(J" REF_X509_CRL "[B)J"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_REVOKED, "(J" REF_X509_CRL ")[J"),
+        CONSCRYPT_NATIVE_METHOD(i2d_X509_CRL, "(J" REF_X509_CRL ")[B"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_free, "(J" REF_X509_CRL ")V"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_print, "(JJ" REF_X509_CRL ")V"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_CRL_sig_alg_oid, "(J" REF_X509_CRL ")Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_CRL_sig_alg_parameter, "(J" REF_X509_CRL ")[B"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_issuer_name, "(J" REF_X509_CRL ")[B"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_version, "(J" REF_X509_CRL ")J"),
+        CONSCRYPT_NATIVE_METHOD(X509_CRL_get_ext, "(J" REF_X509_CRL "Ljava/lang/String;)J"),
         CONSCRYPT_NATIVE_METHOD(X509_REVOKED_get_ext, "(JLjava/lang/String;)J"),
         CONSCRYPT_NATIVE_METHOD(X509_REVOKED_dup, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(i2d_X509_REVOKED, "(J)[B"),
@@ -9671,7 +9679,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ERR_peek_last_error, "()J"),
         CONSCRYPT_NATIVE_METHOD(SSL_CIPHER_get_kx_name, "(J)Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(get_cipher_names, "(Ljava/lang/String;)[Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(get_ocsp_single_extension, "([BLjava/lang/String;JJ)[B"),
+        CONSCRYPT_NATIVE_METHOD(get_ocsp_single_extension, "([BLjava/lang/String;J" REF_X509 "J" REF_X509 ")[B"),
         CONSCRYPT_NATIVE_METHOD(getDirectBufferAddress, "(Ljava/nio/Buffer;)J"),
         CONSCRYPT_NATIVE_METHOD(SSL_BIO_new, "(J" REF_SSL ")J"),
         CONSCRYPT_NATIVE_METHOD(SSL_max_seal_overhead, "(J" REF_SSL ")I"),

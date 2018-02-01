@@ -219,7 +219,7 @@ public class CTVerifier {
         }
 
         byte[] extData = InternalUtil.getOcspSingleExtension(data, CTConstants.OCSP_SCT_LIST_OID,
-                                                             chain[0].getContext(), chain[1].getContext());
+                                                             chain[0], chain[1]);
         if (extData == null) {
             return Collections.emptyList();
         }
