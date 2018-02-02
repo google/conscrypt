@@ -44,8 +44,10 @@ public final class InternalUtil {
     }
 
     public static byte[] getOcspSingleExtension(
-            byte[] ocspResponse, String oid, long x509Ref, long issuerX509Ref) {
-        return NativeCrypto.get_ocsp_single_extension(ocspResponse, oid, x509Ref, issuerX509Ref);
+            byte[] ocspResponse, String oid, OpenSSLX509Certificate x509,
+            OpenSSLX509Certificate issuerX509) {
+        return NativeCrypto.get_ocsp_single_extension(ocspResponse, oid, x509.getContext(), x509,
+                issuerX509.getContext(), issuerX509);
     }
 
     private InternalUtil() {

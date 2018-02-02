@@ -276,7 +276,7 @@ public class NativeCryptoTest {
     public static void assertEqualCertificateChains(long[] expected, long[] actual) {
         assertEquals(expected.length, actual.length);
         for (int i = 0; i < expected.length; i++) {
-            NativeCrypto.X509_cmp(expected[i], actual[i]);
+            NativeCrypto.X509_cmp(expected[i], null, actual[i], null);
         }
     }
 
@@ -3009,7 +3009,7 @@ public class NativeCryptoTest {
                 OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("ca-cert.pem"));
 
         byte[] extension = NativeCrypto.get_ocsp_single_extension(
-                ocspResponse, OCSP_SCT_LIST_OID, certificate.getContext(), issuer.getContext());
+                ocspResponse, OCSP_SCT_LIST_OID, certificate.getContext(), certificate, issuer.getContext(), issuer);
 
         assertEqualByteArrays(expected, extension);
     }

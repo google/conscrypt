@@ -444,7 +444,7 @@ public class TrustedCertificateStore {
 
     private static boolean isSelfIssuedCertificate(OpenSSLX509Certificate cert) {
         final long ctx = cert.getContext();
-        return NativeCrypto.X509_check_issued(ctx, ctx) == 0;
+        return NativeCrypto.X509_check_issued(ctx, cert, ctx, cert) == 0;
     }
 
     /**

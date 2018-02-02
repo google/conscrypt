@@ -398,73 +398,73 @@ public final class NativeCrypto {
 
     static native long PEM_read_bio_X509(long bioCtx);
 
-    static native byte[] i2d_X509(long x509ctx);
+    static native byte[] i2d_X509(long x509ctx, OpenSSLX509Certificate holder);
 
     /** Takes an X509 context not an X509_PUBKEY context. */
-    static native byte[] i2d_X509_PUBKEY(long x509ctx);
+    static native byte[] i2d_X509_PUBKEY(long x509ctx, OpenSSLX509Certificate holder);
 
     static native byte[] ASN1_seq_pack_X509(long[] x509CertRefs);
 
     static native long[] ASN1_seq_unpack_X509_bio(long bioRef) throws ParsingException;
 
-    static native void X509_free(long x509ctx);
+    static native void X509_free(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_dup(long x509ctx);
+    static native long X509_dup(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native int X509_cmp(long x509ctx1, long x509ctx2);
+    static native int X509_cmp(long x509ctx1, OpenSSLX509Certificate holder, long x509ctx2, OpenSSLX509Certificate holder2);
 
-    static native void X509_print_ex(long bioCtx, long x509ctx, long nmflag, long certflag);
+    static native void X509_print_ex(long bioCtx, long x509ctx, OpenSSLX509Certificate holder, long nmflag, long certflag);
 
-    static native byte[] X509_get_issuer_name(long x509ctx);
+    static native byte[] X509_get_issuer_name(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native byte[] X509_get_subject_name(long x509ctx);
+    static native byte[] X509_get_subject_name(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native String get_X509_sig_alg_oid(long x509ctx);
+    static native String get_X509_sig_alg_oid(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native byte[] get_X509_sig_alg_parameter(long x509ctx);
+    static native byte[] get_X509_sig_alg_parameter(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native boolean[] get_X509_issuerUID(long x509ctx);
+    static native boolean[] get_X509_issuerUID(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native boolean[] get_X509_subjectUID(long x509ctx);
+    static native boolean[] get_X509_subjectUID(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_get_pubkey(long x509ctx)
+    static native long X509_get_pubkey(long x509ctx, OpenSSLX509Certificate holder)
             throws NoSuchAlgorithmException, InvalidKeyException;
 
-    static native String get_X509_pubkey_oid(long x509ctx);
+    static native String get_X509_pubkey_oid(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native byte[] X509_get_ext_oid(long x509ctx, String oid);
+    static native byte[] X509_get_ext_oid(long x509ctx, OpenSSLX509Certificate holder, String oid);
 
-    static native String[] get_X509_ext_oids(long x509ctx, int critical);
+    static native String[] get_X509_ext_oids(long x509ctx, OpenSSLX509Certificate holder, int critical);
 
-    static native Object[][] get_X509_GENERAL_NAME_stack(long x509ctx, int type)
+    static native Object[][] get_X509_GENERAL_NAME_stack(long x509ctx, OpenSSLX509Certificate holder, int type)
             throws CertificateParsingException;
 
-    static native boolean[] get_X509_ex_kusage(long x509ctx);
+    static native boolean[] get_X509_ex_kusage(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native String[] get_X509_ex_xkusage(long x509ctx);
+    static native String[] get_X509_ex_xkusage(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native int get_X509_ex_pathlen(long x509ctx);
+    static native int get_X509_ex_pathlen(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_get_notBefore(long x509ctx);
+    static native long X509_get_notBefore(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_get_notAfter(long x509ctx);
+    static native long X509_get_notAfter(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_get_version(long x509ctx);
+    static native long X509_get_version(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native byte[] X509_get_serialNumber(long x509ctx);
+    static native byte[] X509_get_serialNumber(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native void X509_verify(long x509ctx, NativeRef.EVP_PKEY pkeyCtx)
+    static native void X509_verify(long x509ctx, OpenSSLX509Certificate holder, NativeRef.EVP_PKEY pkeyCtx)
             throws BadPaddingException;
 
-    static native byte[] get_X509_cert_info_enc(long x509ctx);
+    static native byte[] get_X509_cert_info_enc(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native byte[] get_X509_signature(long x509ctx);
+    static native byte[] get_X509_signature(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native int get_X509_ex_flags(long x509ctx);
+    static native int get_X509_ex_flags(long x509ctx, OpenSSLX509Certificate holder);
 
     // Used by Android platform TrustedCertificateStore.
     @SuppressWarnings("unused")
-    static native int X509_check_issued(long ctx, long ctx2);
+    static native int X509_check_issued(long ctx, OpenSSLX509Certificate holder, long ctx2, OpenSSLX509Certificate holder2);
 
     // --- PKCS7 ---------------------------------------------------------------
 
@@ -489,46 +489,46 @@ public final class NativeCrypto {
 
     static native long PEM_read_bio_X509_CRL(long bioCtx);
 
-    static native byte[] i2d_X509_CRL(long x509CrlCtx);
+    static native byte[] i2d_X509_CRL(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native void X509_CRL_free(long x509CrlCtx);
+    static native void X509_CRL_free(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native void X509_CRL_print(long bioCtx, long x509CrlCtx);
+    static native void X509_CRL_print(long bioCtx, long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native String get_X509_CRL_sig_alg_oid(long x509CrlCtx);
+    static native String get_X509_CRL_sig_alg_oid(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native byte[] get_X509_CRL_sig_alg_parameter(long x509CrlCtx);
+    static native byte[] get_X509_CRL_sig_alg_parameter(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native byte[] X509_CRL_get_issuer_name(long x509CrlCtx);
-
-    /** Returns X509_REVOKED reference that is not duplicated! */
-    static native long X509_CRL_get0_by_cert(long x509CrlCtx, long x509Ctx);
+    static native byte[] X509_CRL_get_issuer_name(long x509CrlCtx, OpenSSLX509CRL holder);
 
     /** Returns X509_REVOKED reference that is not duplicated! */
-    static native long X509_CRL_get0_by_serial(long x509CrlCtx, byte[] serial);
+    static native long X509_CRL_get0_by_cert(long x509CrlCtx, OpenSSLX509CRL holder, long x509Ctx, OpenSSLX509Certificate holder2);
+
+    /** Returns X509_REVOKED reference that is not duplicated! */
+    static native long X509_CRL_get0_by_serial(long x509CrlCtx, OpenSSLX509CRL holder, byte[] serial);
 
     /** Returns an array of X509_REVOKED that are owned by the caller. */
-    static native long[] X509_CRL_get_REVOKED(long x509CrlCtx);
+    static native long[] X509_CRL_get_REVOKED(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native String[] get_X509_CRL_ext_oids(long x509ctx, int critical);
+    static native String[] get_X509_CRL_ext_oids(long x509Crlctx, OpenSSLX509CRL holder, int critical);
 
-    static native byte[] X509_CRL_get_ext_oid(long x509CrlCtx, String oid);
+    static native byte[] X509_CRL_get_ext_oid(long x509CrlCtx, OpenSSLX509CRL holder, String oid);
 
-    static native void X509_delete_ext(long x509, String oid);
+    static native void X509_delete_ext(long x509, OpenSSLX509Certificate holder, String oid);
 
-    static native long X509_CRL_get_version(long x509CrlCtx);
+    static native long X509_CRL_get_version(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native long X509_CRL_get_ext(long x509CrlCtx, String oid);
+    static native long X509_CRL_get_ext(long x509CrlCtx, OpenSSLX509CRL holder, String oid);
 
-    static native byte[] get_X509_CRL_signature(long x509ctx);
+    static native byte[] get_X509_CRL_signature(long x509ctx, OpenSSLX509CRL holder);
 
-    static native void X509_CRL_verify(long x509CrlCtx, NativeRef.EVP_PKEY pkeyCtx);
+    static native void X509_CRL_verify(long x509CrlCtx, OpenSSLX509CRL holder, NativeRef.EVP_PKEY pkeyCtx);
 
-    static native byte[] get_X509_CRL_crl_enc(long x509CrlCtx);
+    static native byte[] get_X509_CRL_crl_enc(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native long X509_CRL_get_lastUpdate(long x509CrlCtx);
+    static native long X509_CRL_get_lastUpdate(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native long X509_CRL_get_nextUpdate(long x509CrlCtx);
+    static native long X509_CRL_get_nextUpdate(long x509CrlCtx, OpenSSLX509CRL holder);
 
     // --- X509_REVOKED --------------------------------------------------------
 
@@ -1217,7 +1217,7 @@ public final class NativeCrypto {
     static native String[] get_cipher_names(String selection);
 
     static native byte[] get_ocsp_single_extension(
-            byte[] ocspResponse, String oid, long x509Ref, long issuerX509Ref);
+            byte[] ocspResponse, String oid, long x509Ref, OpenSSLX509Certificate holder, long issuerX509Ref, OpenSSLX509Certificate holder2);
 
     /**
      * Returns the starting address of the memory region referenced by the provided direct
