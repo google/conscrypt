@@ -8022,7 +8022,7 @@ static void NativeCrypto_SSL_interrupt(JNIEnv* env, jclass, jlong ssl_address, j
      */
     AppData* appData = toAppData(ssl);
     if (appData != nullptr) {
-        appData->aliveAndKicking = 0;
+        appData->aliveAndKicking = false;
 
         // At most two threads can be waiting.
         sslNotify(appData);

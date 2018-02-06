@@ -24,6 +24,7 @@
 #include <conscrypt/trace.h>
 
 #include <jni.h>
+#include <atomic>
 #include <mutex>  // NOLINT(build/c++11)
 
 #ifdef _WIN32
@@ -79,13 +80,6 @@ namespace conscrypt {
  * requirement. We use the same mutex to guard the field for counting the
  * waiting threads.
  *
- * Note: The current implementation assumes that we don't have to deal with
- * problems induced by multiple cores or processors and their respective
- * memory caches. One possible problem is that of inconsistent views on the
- * "aliveAndKicking" field. This could be worked around by also enclosing all
- * accesses to that field inside a lock/unlock sequence of our mutex, but
- * currently this seems a bit like overkill. Marking volatile at the very least.
- *
  * During handshaking, additional fields are used to up-call into
  * Java to perform certificate verification and handshake
  * completion. These are also used in any renegotiation.
@@ -110,7 +104,7 @@ namespace conscrypt {
  */
 class AppData {
  public:
-    volatile int aliveAndKicking;
+    std::atomic<bool> aliveAndKicking;
     int waitingThreads;
 #ifdef _WIN32
     HANDLE interruptEvent;
@@ -150,7 +144,7 @@ class AppData {
     }
 
     ~AppData() {
-        aliveAndKicking = 0;
+        aliveAndKicking = false;
 #ifdef _WIN32
         if (interruptEvent != nullptr) {
             CloseHandle(interruptEvent);
@@ -240,7 +234,7 @@ class AppData {
 
  private:
     AppData()
-        : aliveAndKicking(1),
+        : aliveAndKicking(true),
           waitingThreads(0),
           env(nullptr),
           sslHandshakeCallbacks(nullptr),
