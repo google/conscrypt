@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+     <!-- OpenSSLX509Certificate overrides a method added in API 26, but it does so knowingly. -->
+    <issue id="Override">
+        <ignore path="**/org/conscrypt/OpenSSLX509Certificate.java" />
+    </issue>
+
+    <!-- These won't actually be included in the platform build. -->
+    <issue id="Assert">
+        <ignore path="**/org/conscrypt/Platform.java" />
+    </issue>
+</lint>

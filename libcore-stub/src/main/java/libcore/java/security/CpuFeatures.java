@@ -16,9 +16,12 @@
 
 package libcore.java.security;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -40,20 +43,43 @@ public class CpuFeatures {
             return true;
         }
 
+        features = getCpuFeaturesMac();
+        if (features != null && features.contains("aes")) {
+            return true;
+        }
+
         // If we're in an emulated ABI, Conscrypt's NativeCrypto might bridge to
         // a library that has accelerated AES instructions. See if Conscrypt
         // detects that condition.
-        try {
-            Class<?> nativeCrypto = Class.forName("com.android.org.conscrypt.NativeCrypto");
-            Method EVP_has_aes_hardware = nativeCrypto.getDeclaredMethod("EVP_has_aes_hardware");
-            return ((Integer) EVP_has_aes_hardware.invoke(null)) == 1;
-        } catch (ClassNotFoundException | NoSuchMethodException | SecurityException
-                | IllegalAccessException | IllegalArgumentException ignored) {
-        } catch (InvocationTargetException e) {
-            throw new IllegalArgumentException(e);
+        Class<?> nativeCrypto = findNativeCrypto();
+        if (nativeCrypto != null) {
+            try {
+                Method EVP_has_aes_hardware =
+                        nativeCrypto.getDeclaredMethod("EVP_has_aes_hardware");
+                EVP_has_aes_hardware.setAccessible(true);
+                return ((Integer) EVP_has_aes_hardware.invoke(null)) == 1;
+            } catch (NoSuchMethodException ignored) {
+            } catch (SecurityException ignored) {
+            } catch (IllegalAccessException ignored) {
+            } catch (IllegalArgumentException ignored) {
+            } catch (InvocationTargetException e) {
+                throw new IllegalArgumentException(e);
+            }
         }
 
         return false;
+    }
+
+    private static Class<?> findNativeCrypto() {
+        for (String packageName : new String[]{"com.android.org.conscrypt", "org.conscrypt"}) {
+            String name = packageName + ".NativeCrypto";
+            try {
+                return Class.forName(name);
+            } catch (ClassNotFoundException e) {
+                // Try the next one.
+            }
+        }
+        return null;
     }
 
     private static String getFieldFromCpuinfo(String field) {
@@ -74,6 +100,7 @@ public class CpuFeatures {
                 br.close();
             }
         } catch (IOException ignored) {
+            // Ignored.
         }
 
         return null;
@@ -85,5 +112,36 @@ public class CpuFeatures {
             return null;
 
         return Arrays.asList(features.split("\\s"));
+    }
+
+    private static List<String> getCpuFeaturesMac() {
+        try {
+            StringBuilder output = new StringBuilder();
+            Process proc = Runtime.getRuntime().exec("sysctl -a");
+            if (proc.waitFor() == 0) {
+                BufferedReader reader =
+                        new BufferedReader(new InputStreamReader(proc.getInputStream(), UTF_8));
+
+                final String linePrefix = "machdep.cpu.features:";
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.toLowerCase();
+                    if (line.startsWith(linePrefix)) {
+                        // Strip the line prefix from the results.
+                        output.append(line.substring(linePrefix.length())).append(' ');
+                    }
+                }
+                if (output.length() > 0) {
+                    String outputString = output.toString();
+                    String[] parts = outputString.split("\\s+");
+                    return Arrays.asList(parts);
+                }
+            }
+        } catch (Exception ignored) {
+            // Ignored.
+        }
+
+        return null;
     }
 }

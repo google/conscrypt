@@ -12,12 +12,15 @@ buildscript {
         // so we can access Git from our
         // build script.
         classpath 'org.ajoberstar:grgit:1.1.0'
-        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.9'
+        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.10'
     }
 }
 
 subprojects {
-    def androidProject = (project.name == 'conscrypt-android') || (project.name == 'conscrypt-android-platform')
+    def androidProject = ((project.name == 'conscrypt-android')
+            || (project.name == 'conscrypt-android-platform')
+            || (project.name == 'conscrypt-benchmark-android')
+            || (project.name == 'conscrypt-benchmark-caliper'))
     if (!androidProject) {
         apply plugin: 'java'
         apply plugin: 'cpp'
@@ -58,11 +61,11 @@ subprojects {
         }
 
         boringsslHome = "$System.env.BORINGSSL_HOME"
-        boringsslIncludeDir = "$boringsslHome/include"
-        boringssl32BuildDir = "$boringsslHome/build32"
-        boringssl64BuildDir = "$boringsslHome/build64"
+        boringsslIncludeDir = normalizePath("$boringsslHome/include")
+        boringssl32BuildDir = normalizePath("$boringsslHome/build32")
+        boringssl64BuildDir = normalizePath("$boringsslHome/build64")
         jdkHome = "$System.env.JAVA_HOME"
-        jdkIncludeDir = "$jdkHome/include"
+        jdkIncludeDir = normalizePath("$jdkHome/include")
         // Needs to be binary compatible with androidMinSdkVersion
         androidMinJavaVersion = JavaVersion.VERSION_1_7
 
@@ -80,16 +83,21 @@ subprojects {
         boringSslGit = org.ajoberstar.grgit.Grgit.open(file("$boringsslHome"))
         boringSslVersion = boringSslGit.head().id
 
-        jmhVersion = '1.17.4'
+        // Allow the java executable to be specified via env/property for each architecture.
+        javaExecutable32 = System.getProperty('javaExecutable32', System.env.CONSCRYPT_JAVA_EXECUTABLE_32)
+        javaExecutable64 = System.getProperty('javaExecutable64', System.env.CONSCRYPT_JAVA_EXECUTABLE_64)
+
+        jmhVersion = '1.19'
         libraries = [
+                android_tools: 'com.android.tools.build:gradle:2.3.3',
                 roboelectric: 'org.robolectric:android-all:7.1.0_r7-robolectric-0',
 
                 // Test dependencies.
+                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.56',
+                bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.56',
                 junit  : 'junit:junit:4.12',
                 mockito: 'org.mockito:mockito-core:1.9.5',
                 truth  : 'com.google.truth:truth:0.28',
-                bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.56',
-                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.56',
 
                 // Benchmark dependencies
                 jmh_core: "org.openjdk.jmh:jmh-core:${jmhVersion}",
@@ -100,6 +108,19 @@ subprojects {
                 netty_handler: 'io.netty:netty-handler:4.1.8.Final',
                 netty_tcnative: 'io.netty:netty-tcnative-boringssl-static:1.1.33.Fork26',
         ]
+
+        signJar = { jarPath ->
+            if (rootProject.hasProperty('signingKeystore') && rootProject.hasProperty('signingPassword')) {
+                def command = 'jarsigner -keystore ' + rootProject.signingKeystore +
+                        ' -storepass ' + rootProject.signingPassword +
+                        ' ' + jarPath + ' signingcert'
+                def process = command.execute()
+                process.waitFor()
+                if (process.exitValue()) {
+                    throw new GradleException('Jar signing failed for ' + jarPath + ': ' + process.text)
+                }
+            }
+        }
     }
 
     repositories {
@@ -113,9 +134,17 @@ subprojects {
         sign configurations.archives
     }
 
+    signArchives.doFirst {
+        configurations.archives.allArtifacts.each {
+            if (it.type == 'jar' && it.classifier != 'sources' && it.classifier != 'javadoc') {
+                signJar(it.file.absolutePath)
+            }
+        }
+    }
+
     if (!androidProject) {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_1_6
+        targetCompatibility = JavaVersion.VERSION_1_6
 
         [compileJava, compileTestJava].each() {
             it.options.compilerArgs += ["-Xlint:all", "-Xlint:-options", '-Xmaxwarns', '9999999']
@@ -229,8 +258,22 @@ subprojects {
                 showExceptions true
                 showCauses true
                 showStackTraces true
+                showStandardStreams = true
             }
+            // Enable logging for all conscrypt classes while running tests.
+            systemProperty 'java.util.logging.config.file', "${rootDir}/test_logging.properties"
             maxHeapSize = '1500m'
+
+            // Override the default executable if manually specified
+            if (build64Bit && javaExecutable64 != null) {
+                executable javaExecutable64
+            } else if (build32Bit && javaExecutable32 != null) {
+                executable javaExecutable32
+            }
         }
     }
+}
+
+static String normalizePath(path) {
+    new File(path.toString()).absolutePath
 }

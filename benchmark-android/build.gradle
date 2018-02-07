@@ -1,0 +1,137 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath libraries.android_tools
+    }
+}
+
+description = 'Conscrypt: Android Benchmarks'
+
+ext {
+    androidHome = "$System.env.ANDROID_HOME"
+    androidSdkInstalled = file("$androidHome").exists()
+    androidVersionCode = 1
+    androidVersionName = "$version"
+    androidMinSdkVersion = 24
+    androidTargetSdkVersion = 25
+    androidBuildToolsVersion = "25.0.0"
+    androidBuildToolsDir = "${androidHome}/build-tools/${androidBuildToolsVersion}"
+}
+
+if (androidSdkInstalled) {
+    apply plugin: 'com.android.library'
+
+    android {
+        compileSdkVersion androidTargetSdkVersion
+        buildToolsVersion androidBuildToolsVersion
+
+        compileOptions {
+            sourceCompatibility androidMinJavaVersion;
+            targetCompatibility androidMinJavaVersion
+        }
+
+        defaultConfig {
+            minSdkVersion androidMinSdkVersion
+            targetSdkVersion androidTargetSdkVersion
+            versionCode androidVersionCode
+            versionName androidVersionName
+        }
+        lintOptions {
+            // Some Caliper classes reference packages that don't exist on Android
+            disable 'InvalidPackage'
+        }
+        sourceSets.main {
+            java {
+                srcDirs = [
+                        "src/main/java"
+                ]
+            }
+        }
+    }
+
+    dependencies {
+        compile project(':conscrypt-android'),
+                project(':conscrypt-benchmark-base'),
+                project(':conscrypt-testing')
+
+        compile 'com.google.caliper:caliper:1.0-beta-2'
+        compile libraries.bouncycastle_provider
+
+    }
+
+    // This task bundles up everything we're going to send to the device into a single jar.
+    // We need to include all the Conscrypt code plus the Bouncy Castle jar because the platform
+    // version of Bouncy Castle is jarjared.
+    task depsJar(type: Jar, dependsOn: 'assembleRelease') {
+        archiveName = 'bundled-deps.jar'
+        from {
+            configurations.compile.filter {
+                // Find the jars from our project plus BC
+                it.name.endsWith(".jar") && (it.path.startsWith("${rootDir}") || it.path.contains('org.bouncycastle'))
+            }.collect {
+                zipTree(it)
+            }
+        }
+        from {
+            // Also include the classes.jar from our Android libraries
+            ['.', "${rootDir}/android"].collect {
+                zipTree(it + '/build/intermediates/bundles/default/classes.jar')
+            }
+        }
+        // Bouncy Castle signs their jar, which causes our combined jar to fail to verify.  Just
+        // strip out the signature files.
+        exclude "META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA"
+    }
+
+    task runBenchmarks(dependsOn: depsJar) {
+        doLast {
+            // First, determine which ABI the device uses so that we can send the right native lib
+            new ByteArrayOutputStream().withStream { stream ->
+                exec {
+                    commandLine = ['adb', 'shell', 'getprop', 'ro.product.cpu.abi']
+                    standardOutput = stream
+                }
+                ext.androidDeviceAbi = stream.toString().trim()
+                ext.androidDevice64Bit = ext.androidDeviceAbi.contains('64')
+            }
+            def nativeLibPath = "/system/lib${androidDevice64Bit ? '64' : ''}/libconscrypt_jni.so"
+            // Send the native library to the device
+            exec {
+                executable "${androidHome}/platform-tools/adb"
+                args 'push'
+                args "${rootDir}/android/build/intermediates/bundles/default/jni/${androidDeviceAbi}/libconscrypt_jni.so"
+                args nativeLibPath
+            }
+            // Execute the benchmarks
+            exec {
+                workingDir "${rootDir}"
+                environment PATH: "${androidBuildToolsDir}:$System.env.PATH"
+                environment JACK_JAR: "${androidBuildToolsDir}/jack.jar"
+
+                executable 'java'
+                args '-cp', 'benchmark-android/vogar.jar', 'vogar.Vogar'
+                args '--classpath', 'benchmark-android/build/libs/bundled-deps.jar'
+                args '--benchmark'
+                args '--language=JN'
+                args '--mode=app_process'
+                args 'org.conscrypt.CaliperAlpnBenchmark'
+                args 'org.conscrypt.CaliperClientSocketBenchmark'
+                args 'org.conscrypt.CaliperEngineHandshakeBenchmark'
+                args 'org.conscrypt.CaliperEngineWrapBenchmark'
+            }
+            // Clean up the native library
+            exec {
+                commandLine = ['adb', 'shell', 'rm', '-f', nativeLibPath]
+            }
+        }
+    }
+} else {
+    logger.warn('Android SDK has not been detected. The Android Benchmark module will not be built.')
+
+    // Disable all tasks
+    tasks.collect {
+        it.enabled = false
+    }
+}

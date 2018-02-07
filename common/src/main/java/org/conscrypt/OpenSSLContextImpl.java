@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.Platform.wrapEngine;
+
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
@@ -30,17 +32,18 @@ import javax.net.ssl.TrustManager;
 /**
  * OpenSSL-backed SSLContext service provider interface.
  *
+ * <p>Public to allow contruction via the provider framework.
+ *
  * @hide
  */
 @Internal
 public abstract class OpenSSLContextImpl extends SSLContextSpi {
-
     /**
      * The default SSLContextImpl for use with
      * SSLContext.getInstance("Default"). Protected by the
      * DefaultSSLContextImpl.class monitor.
      */
-    private static DefaultSSLContextImpl DEFAULT_SSL_CONTEXT_IMPL;
+    private static DefaultSSLContextImpl defaultSslContextImpl;
 
     /** TLS algorithm to initialize all sockets. */
     private final String[] algorithms;
@@ -70,16 +73,16 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
     OpenSSLContextImpl() throws GeneralSecurityException, IOException {
         synchronized (DefaultSSLContextImpl.class) {
             this.algorithms = null;
-            if (DEFAULT_SSL_CONTEXT_IMPL == null) {
+            if (defaultSslContextImpl == null) {
                 clientSessionContext = new ClientSessionContext();
                 serverSessionContext = new ServerSessionContext();
-                DEFAULT_SSL_CONTEXT_IMPL = (DefaultSSLContextImpl) this;
+                defaultSslContextImpl = (DefaultSSLContextImpl) this;
             } else {
-                clientSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetClientSessionContext();
-                serverSessionContext = DEFAULT_SSL_CONTEXT_IMPL.engineGetServerSessionContext();
+                clientSessionContext = defaultSslContextImpl.engineGetClientSessionContext();
+                serverSessionContext = defaultSslContextImpl.engineGetServerSessionContext();
             }
-            sslParameters = new SSLParametersImpl(DEFAULT_SSL_CONTEXT_IMPL.getKeyManagers(),
-                    DEFAULT_SSL_CONTEXT_IMPL.getTrustManagers(), null, clientSessionContext,
+            sslParameters = new SSLParametersImpl(defaultSslContextImpl.getKeyManagers(),
+                    defaultSslContextImpl.getTrustManagers(), null, clientSessionContext,
                     serverSessionContext, algorithms);
         }
     }
@@ -97,8 +100,8 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
     @Override
     public void engineInit(KeyManager[] kms, TrustManager[] tms, SecureRandom sr)
             throws KeyManagementException {
-        sslParameters = new SSLParametersImpl(kms, tms, sr, clientSessionContext,
-                serverSessionContext, algorithms);
+        sslParameters = new SSLParametersImpl(
+                kms, tms, sr, clientSessionContext, serverSessionContext, algorithms);
     }
 
     @Override
@@ -124,7 +127,7 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
         }
         SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
         p.setUseClientMode(false);
-        return new OpenSSLEngineImpl(host, port, p);
+        return wrapEngine(new ConscryptEngine(host, port, p));
     }
 
     @Override
@@ -134,7 +137,7 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
         }
         SSLParametersImpl p = (SSLParametersImpl) sslParameters.clone();
         p.setUseClientMode(false);
-        return new OpenSSLEngineImpl(p);
+        return wrapEngine(new ConscryptEngine(p));
     }
 
     @Override
@@ -147,18 +150,27 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
         return clientSessionContext;
     }
 
+    /**
+     * Public to allow construction via the provider framework.
+     */
     public static final class TLSv12 extends OpenSSLContextImpl {
         public TLSv12() {
             super(NativeCrypto.TLSV12_PROTOCOLS);
         }
     }
 
+    /**
+     * Public to allow construction via the provider framework.
+     */
     public static final class TLSv11 extends OpenSSLContextImpl {
         public TLSv11() {
             super(NativeCrypto.TLSV11_PROTOCOLS);
         }
     }
 
+    /**
+     * Public to allow construction via the provider framework.
+     */
     public static final class TLSv1 extends OpenSSLContextImpl {
         public TLSv1() {
             super(NativeCrypto.TLSV1_PROTOCOLS);

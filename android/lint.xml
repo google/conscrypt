@@ -2,7 +2,11 @@
 <lint>
     <!-- ExtendedSSLSession only gets instantiated in new APIs on Android. -->
     <issue id="NewApi">
-        <ignore path="**/org/conscrypt/OpenSSLExtendedSessionImpl.java" />
+        <ignore path="**/org/conscrypt/Java7ExtendedSSLSession.java" />
+        <ignore path="**/org/conscrypt/Java8ExtendedSSLSession.java" />
+        <ignore path="**/org/conscrypt/Java8EngineWrapper.java" />
+        <ignore path="**/org/conscrypt/Java8EngineSocket.java" />
+        <ignore path="**/org/conscrypt/Java8FileDescriptorSocket.java" />
     </issue>
 
     <!-- Android SparseArrays can't be used in common directory. -->

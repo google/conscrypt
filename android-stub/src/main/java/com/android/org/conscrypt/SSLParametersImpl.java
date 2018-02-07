@@ -16,7 +16,7 @@
 
 package com.android.org.conscrypt;
 
-class SSLParametersImpl {
+final class SSLParametersImpl {
     public static SSLParametersImpl getDefault() {
         throw new RuntimeException("Stub!");
     }

@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.security.AlgorithmParameters;
@@ -57,10 +56,12 @@ public abstract class OpenSSLCipher extends CipherSpi {
      * Modes that a block cipher may support.
      */
     enum Mode {
+        NONE,
         CBC,
         CTR,
         ECB,
         GCM,
+        POLY1305,
     }
 
     /**
@@ -69,7 +70,16 @@ public abstract class OpenSSLCipher extends CipherSpi {
     enum Padding {
         NOPADDING,
         PKCS5PADDING,
-        ISO10126PADDING,
+        PKCS7PADDING,
+        ;
+
+        public static Padding getNormalized(String value) {
+            Padding p = Padding.valueOf(value);
+            if (p == PKCS7PADDING) {
+                return PKCS5PADDING;
+            }
+            return p;
+        }
     }
 
     /**
@@ -193,7 +203,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         final String paddingStrUpper = paddingStr.toUpperCase(Locale.US);
         final Padding padding;
         try {
-            padding = Padding.valueOf(paddingStrUpper);
+            padding = Padding.getNormalized(paddingStrUpper);
         } catch (IllegalArgumentException e) {
             NoSuchPaddingException newE = new NoSuchPaddingException("No such padding: "
                     + paddingStr);
@@ -232,7 +242,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     @Override
     protected int engineGetOutputSize(int inputLen) {
-        return getOutputSizeForFinal(inputLen);
+        return Math.max(getOutputSizeForUpdate(inputLen), getOutputSizeForFinal(inputLen));
     }
 
     @Override
@@ -245,12 +255,25 @@ public abstract class OpenSSLCipher extends CipherSpi {
         if (iv != null && iv.length > 0) {
             try {
                 AlgorithmParameters params = AlgorithmParameters.getInstance(getBaseCipherName());
-                params.init(iv);
+                params.init(new IvParameterSpec(iv));
                 return params;
             } catch (NoSuchAlgorithmException e) {
                 return null;
-            } catch (IOException e) {
+            } catch (InvalidParameterSpecException e) {
                 return null;
+            }
+        }
+        return null;
+    }
+
+    protected AlgorithmParameterSpec getParameterSpec(AlgorithmParameters params)
+            throws InvalidAlgorithmParameterException {
+        if (params != null) {
+            try {
+                return params.getParameterSpec(IvParameterSpec.class);
+            } catch (InvalidParameterSpecException e) {
+                throw new InvalidAlgorithmParameterException(
+                        "Params must be convertible to IvParameterSpec", e);
             }
         }
         return null;
@@ -277,18 +300,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
-        AlgorithmParameterSpec spec;
-        if (params != null) {
-            try {
-                spec = params.getParameterSpec(IvParameterSpec.class);
-            } catch (InvalidParameterSpecException e) {
-                throw new InvalidAlgorithmParameterException(
-                        "Params must be convertible to IvParameterSpec", e);
-            }
-        } else {
-            spec = null;
-        }
-
+        AlgorithmParameterSpec spec = getParameterSpec(params);
         engineInit(opmode, key, spec, random);
     }
 
@@ -421,6 +433,20 @@ public abstract class OpenSSLCipher extends CipherSpi {
         } catch (InvalidKeySpecException e) {
             throw new InvalidKeyException(e);
         }
+    }
+
+    @Override
+    protected int engineGetKeySize(Key key) throws InvalidKeyException {
+        if (!(key instanceof SecretKey)) {
+            throw new InvalidKeyException("Only SecretKey is supported");
+        }
+        byte[] encodedKey = key.getEncoded();
+        if (encodedKey == null) {
+            throw new InvalidKeyException("key.getEncoded() == null");
+        }
+        checkSupportedKeySize(encodedKey.length);
+        // The return value is in bits
+        return encodedKey.length * 8;
     }
 
     private byte[] checkAndSetEncodedKey(int opmode, Key key) throws InvalidKeyException {
@@ -942,12 +968,16 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
             @Override
             void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-                throw new NoSuchAlgorithmException("ARC4 does not support modes");
+                if (mode != Mode.NONE && mode != Mode.ECB) {
+                    throw new NoSuchAlgorithmException("Unsupported mode " + mode.toString());
+                }
             }
 
             @Override
             void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
-                throw new NoSuchPaddingException("ARC4 does not support padding");
+                if (padding != Padding.NOPADDING) {
+                    throw new NoSuchPaddingException("Unsupported padding " + padding.toString());
+                }
             }
 
             @Override
@@ -975,6 +1005,22 @@ public abstract class OpenSSLCipher extends CipherSpi {
         private static int lastGlobalMessageSize = 32;
 
         /**
+         * The previously used key to prevent key + nonce (IV) reuse.
+         */
+        private byte[] previousKey;
+
+        /**
+         * The previously used nonce (IV) to prevent key + nonce reuse.
+         */
+        private byte[] previousIv;
+
+        /**
+         * When set this instance must be initialized before use again. This prevents key
+         * and IV reuse.
+         */
+        private boolean mustInitialize;
+
+        /**
          * The byte array containing the bytes written.
          */
         byte[] buf;
@@ -997,10 +1043,31 @@ public abstract class OpenSSLCipher extends CipherSpi {
         /**
          * The length of the AEAD cipher tag in bytes.
          */
-        private int tagLengthInBytes;
+        int tagLengthInBytes;
 
         public EVP_AEAD(Mode mode) {
             super(mode, Padding.NOPADDING);
+        }
+
+        private void checkInitialization() {
+            if (mustInitialize) {
+                throw new IllegalStateException(
+                        "Cannot re-use same key and IV for multiple encryptions");
+            }
+        }
+
+        /** Constant-time array comparison.  Since we are using this to compare keys, we want to
+         * ensure there's no opportunity for a timing attack. */
+        private boolean arraysAreEqual(byte[] a, byte[] b) {
+            if (a.length != b.length) {
+                return false;
+            }
+
+            int diff = 0;
+            for (int i = 0; i < a.length; i++) {
+                diff |= a[i] ^ b[i];
+            }
+            return diff == 0;
         }
 
         private void expand(int i) {
@@ -1083,6 +1150,19 @@ public abstract class OpenSSLCipher extends CipherSpi {
                         + expectedIvLength + " but was " + iv.length);
             }
 
+            if (isEncrypting() && iv != null) {
+                if (previousKey != null && previousIv != null
+                        && arraysAreEqual(previousKey, encodedKey)
+                        && arraysAreEqual(previousIv, iv)) {
+                    mustInitialize = true;
+                    throw new InvalidAlgorithmParameterException(
+                            "When using AEAD key and IV must not be re-used");
+                }
+
+                this.previousKey = encodedKey;
+                this.previousIv = iv;
+            }
+            mustInitialize = false;
             this.iv = iv;
             reset();
         }
@@ -1090,6 +1170,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         @Override
         int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
                 int outputOffset, int maximumLen) throws ShortBufferException {
+            checkInitialization();
             if (buf == null) {
                 throw new IllegalStateException("Cipher not initialized");
             }
@@ -1134,6 +1215,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         @Override
         int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
                 throws IllegalBlockSizeException, BadPaddingException {
+            checkInitialization();
             final int bytesWritten;
             try {
                 if (isEncrypting()) {
@@ -1147,6 +1229,9 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 throwAEADBadTagExceptionIfAvailable(e.getMessage(), e.getCause());
                 throw e;
             }
+            if (isEncrypting()) {
+                mustInitialize = true;
+            }
             reset();
             return bytesWritten;
         }
@@ -1158,6 +1243,14 @@ public abstract class OpenSSLCipher extends CipherSpi {
             }
         }
 
+        /**
+         * AEAD buffers everything until a final output.
+         */
+        @Override
+        int getOutputSizeForUpdate(int inputLen) {
+            return 0;
+        }
+
         @Override
         int getOutputSizeForFinal(int inputLen) {
             return bufCount + inputLen
@@ -1167,6 +1260,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         // Intentionally missing Override to compile on old versions of Android
         @SuppressWarnings("MissingOverride")
         protected void engineUpdateAAD(byte[] input, int inputOffset, int inputLen) {
+            checkInitialization();
             if (aad == null) {
                 aad = Arrays.copyOfRange(input, inputOffset, inputOffset + inputLen);
             } else {
@@ -1175,31 +1269,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 System.arraycopy(aad, 0, newaad, 0, aad.length);
                 System.arraycopy(input, inputOffset, newaad, aad.length, inputLen);
                 aad = newaad;
-            }
-        }
-
-        @Override
-        protected AlgorithmParameters engineGetParameters() {
-            // iv will be non-null after initialization.
-            if (iv == null) {
-                return null;
-            }
-
-            AlgorithmParameterSpec spec = Platform.toGCMParameterSpec(tagLengthInBytes * 8, iv);
-            if (spec == null) {
-                // The platform doesn't support GCMParameterSpec. Fall back to
-                // the generic AES parameters so at least the caller can get the
-                // IV.
-                return super.engineGetParameters();
-            }
-
-            try {
-                AlgorithmParameters params = AlgorithmParameters.getInstance("GCM");
-                params.init(spec);
-                return params;
-            } catch (NoSuchAlgorithmException | InvalidParameterSpecException e) {
-                // This may happen since Conscrypt doesn't provide this itself.
-                return null;
             }
         }
 
@@ -1234,100 +1303,10 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 return AES_BLOCK_SIZE;
             }
 
-            /**
-             * AEAD buffers everything until a final output.
-             */
-            @Override
-            int getOutputSizeForUpdate(int inputLen) {
-                return 0;
-            }
-
             public static class GCM extends AES {
-                /**
-                 * The previously used key to prevent key + nonce (IV) reuse.
-                 */
-                private byte[] previousKey;
-
-                /**
-                 * The previously used nonce (IV) to prevent key + nonce reuse.
-                 */
-                private byte[] previousIv;
-
-                /**
-                 * When set this instance must be initialized before use again. This prevents key
-                 * and IV reuse.
-                 */
-                private boolean mustInitialize;
 
                 public GCM() {
                     super(Mode.GCM);
-                }
-
-                private void checkInitialization() {
-                    if (mustInitialize) {
-                        throw new IllegalStateException(
-                                "Cannot re-use same key and IV for multiple encryptions");
-                    }
-                }
-
-                /** Constant time array comparison. */
-                private boolean arraysAreEqual(byte[] a, byte[] b) {
-                    if (a.length != b.length) {
-                        return false;
-                    }
-
-                    int diff = 0;
-                    for (int i = 0; i < a.length; i++) {
-                        diff |= a[i] ^ b[i];
-                    }
-                    return diff == 0;
-                }
-
-                @Override
-                void engineInitInternal(
-                        byte[] encodedKey, AlgorithmParameterSpec params, SecureRandom random)
-                        throws InvalidKeyException, InvalidAlgorithmParameterException {
-                    super.engineInitInternal(encodedKey, params, random);
-
-                    if (isEncrypting() && iv != null) {
-                        if (previousKey != null && previousIv != null
-                                && arraysAreEqual(previousKey, encodedKey)
-                                && arraysAreEqual(previousIv, iv)) {
-                            mustInitialize = true;
-                            throw new InvalidAlgorithmParameterException(
-                                    "In GCM mode key and IV must not be re-used");
-                        }
-
-                        this.previousKey = encodedKey;
-                        this.previousIv = iv;
-                    }
-                    mustInitialize = false;
-                }
-
-                @Override
-                int updateInternal(byte[] input, int inputOffset, int inputLen,
-                        byte[] output, int outputOffset, int maximumLen)
-                        throws ShortBufferException {
-                    checkInitialization();
-                    return super.updateInternal(
-                            input, inputOffset, inputLen, output, outputOffset, maximumLen);
-                }
-
-                @Override
-                int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
-                        throws IllegalBlockSizeException, BadPaddingException {
-                    checkInitialization();
-                    int retVal = super.doFinalInternal(output, outputOffset, maximumLen);
-                    if (isEncrypting()) {
-                        mustInitialize = true;
-                    }
-                    return retVal;
-                }
-
-                @Override
-                protected void engineUpdateAAD(byte[] input, int inputOffset, int inputLen) {
-                    checkInitialization();
-                    super.engineUpdateAAD(input, inputOffset, inputLen);
                 }
 
                 @Override
@@ -1335,6 +1314,48 @@ public abstract class OpenSSLCipher extends CipherSpi {
                     if (mode != Mode.GCM) {
                         throw new NoSuchAlgorithmException("Mode must be GCM");
                     }
+                }
+
+                @Override
+                protected AlgorithmParameters engineGetParameters() {
+                    // iv will be non-null after initialization.
+                    if (iv == null) {
+                        return null;
+                    }
+
+                    AlgorithmParameterSpec spec = Platform.toGCMParameterSpec(
+                            tagLengthInBytes * 8, iv);
+                    if (spec == null) {
+                        // The platform doesn't support GCMParameterSpec. Fall back to
+                        // the generic AES parameters so at least the caller can get the
+                        // IV.
+                        return super.engineGetParameters();
+                    }
+
+                    try {
+                        AlgorithmParameters params = AlgorithmParameters.getInstance("GCM");
+                        params.init(spec);
+                        return params;
+                    } catch (NoSuchAlgorithmException e) {
+                        // We should not get here.
+                        throw (Error) new AssertionError("GCM not supported").initCause(e);
+                    } catch (InvalidParameterSpecException e) {
+                        // This may happen since Conscrypt doesn't provide this itself.
+                        return null;
+                    }
+                }
+
+                @Override
+                protected AlgorithmParameterSpec getParameterSpec(AlgorithmParameters params)
+                        throws InvalidAlgorithmParameterException {
+                    if (params != null) {
+                        AlgorithmParameterSpec spec = Platform.fromGCMParameters(params);
+                        if (spec != null) {
+                            return spec;
+                        }
+                        return super.getParameterSpec(params);
+                    }
+                    return null;
                 }
 
                 @Override
@@ -1366,6 +1387,46 @@ public abstract class OpenSSLCipher extends CipherSpi {
                                     "Unsupported key size: " + keyLength + " bytes (must be 32)");
                         }
                     }
+                }
+            }
+        }
+
+        public static class ChaCha20 extends EVP_AEAD {
+            public ChaCha20() {
+                super(Mode.POLY1305);
+            }
+
+            @Override
+            void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
+                if (keyLength != 32) {
+                    throw new InvalidKeyException("Unsupported key size: " + keyLength
+                            + " bytes (must be 32)");
+                }
+            }
+
+            @Override
+            String getBaseCipherName() {
+                return "ChaCha20";
+            }
+
+            @Override
+            int getCipherBlockSize() {
+                return 0;
+            }
+
+            @Override
+            void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
+                if (mode != Mode.POLY1305) {
+                    throw new NoSuchAlgorithmException("Mode must be Poly1305");
+                }
+            }
+
+            @Override
+            long getEVP_AEAD(int keyLength) throws InvalidKeyException {
+                if (keyLength == 32) {
+                    return NativeCrypto.EVP_aead_chacha20_poly1305();
+                } else {
+                    throw new RuntimeException("Unexpected key length: " + keyLength);
                 }
             }
         }

@@ -45,9 +45,9 @@ public class PreKitKatPlatformOpenSSLSocketImplAdapter
         extends org.apache.harmony.xnet.provider.jsse.OpenSSLSocketImpl {
 
 
-    private final org.conscrypt.OpenSSLSocketImpl delegate;
+    private final AbstractConscryptSocket delegate;
 
-    public PreKitKatPlatformOpenSSLSocketImplAdapter(org.conscrypt.OpenSSLSocketImpl delegate)
+    public PreKitKatPlatformOpenSSLSocketImplAdapter(AbstractConscryptSocket delegate)
             throws IOException {
         super(null);
         this.delegate = delegate;

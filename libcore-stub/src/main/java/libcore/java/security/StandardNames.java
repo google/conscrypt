@@ -28,7 +28,6 @@ import java.security.spec.ECPublicKeySpec;
 import java.security.spec.KeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import javax.crypto.spec.DHPrivateKeySpec;
 import javax.crypto.spec.DHPublicKeySpec;
 
@@ -69,7 +69,7 @@ import javax.crypto.spec.DHPublicKeySpec;
 public final class StandardNames {
     public static final boolean IS_RI =
             !"Dalvik Core Library".equals(System.getProperty("java.specification.name"));
-    public static final String JSSE_PROVIDER_NAME = (IS_RI) ? "SunJSSE" : "AndroidOpenSSL";
+    public static final String JSSE_PROVIDER_NAME = (IS_RI) ? "Conscrypt" : "AndroidOpenSSL";
     public static final String SECURITY_PROVIDER_NAME = (IS_RI) ? "SUN" : "BC";
 
     public static final String KEY_MANAGER_FACTORY_DEFAULT = (IS_RI) ? "SunX509" : "PKIX";
@@ -236,10 +236,6 @@ public final class StandardNames {
         provide("MessageDigest", "SHA-384");
         provide("MessageDigest", "SHA-512");
         provide("Policy", "JavaPolicy");
-        // Android does not support SSLv3
-        if (IS_RI) {
-            provide("SSLContext", "SSLv3");
-        }
         provide("SSLContext", "TLSv1");
         provide("SSLContext", "TLSv1.1");
         provide("SSLContext", "TLSv1.2");
@@ -303,10 +299,6 @@ public final class StandardNames {
 
         // Not documented as in RI 6 but mentioned in Standard Names
         provide("AlgorithmParameters", "PBE");
-        // Android does not support SSLv3
-        if (IS_RI) {
-            provide("SSLContext", "SSL");
-        }
         provide("SSLContext", "TLS");
 
         // Not documented as in RI 6 but that exist in RI 6
@@ -528,6 +520,10 @@ public final class StandardNames {
             provide("Cipher", "DESEDE/OFB/PKCS7PADDING");
 
             // Provided by our OpenSSL provider
+            provide("AlgorithmParameters", "ChaCha20");
+            provide("Cipher", "ChaCha20");
+            provide("Cipher", "ChaCha20/Poly1305/NoPadding");
+            provide("KeyGenerator", "ChaCha20");
             provideCipherPaddings("AES", new String[] {"PKCS7Padding"});
 
             // removed LDAP
@@ -561,7 +557,7 @@ public final class StandardNames {
             unprovide("AlgorithmParameters", "PBEWithMD5AndDES"); // 1.2.840.113549.1.5.3
 
             // EC support
-            // provide("AlgorithmParameters", "EC");
+            provide("AlgorithmParameters", "EC");
             provide("KeyAgreement", "ECDH");
             provide("KeyFactory", "EC");
             provide("KeyPairGenerator", "EC");
@@ -584,23 +580,17 @@ public final class StandardNames {
             if (Security.getProvider("TimaKeyStore") != null) {
                 provide("KeyStore", "TimaKeyStore");
             }
+            // KnoxAndroidKeyStore provider
+            if (Security.getProvider("KnoxAndroidKeyStore") != null) {
+                provide("KeyStore", "KnoxAndroidKeyStore");
+            }
         }
 
-        if (IS_RI) {
-            provideSslContextEnabledProtocols("SSL", TLSVersion.SSLv3, TLSVersion.TLSv1);
-            provideSslContextEnabledProtocols("SSLv3", TLSVersion.SSLv3, TLSVersion.TLSv1);
-            provideSslContextEnabledProtocols("TLS", TLSVersion.SSLv3, TLSVersion.TLSv1);
-            provideSslContextEnabledProtocols("TLSv1", TLSVersion.SSLv3, TLSVersion.TLSv1);
-            provideSslContextEnabledProtocols("TLSv1.1", TLSVersion.SSLv3, TLSVersion.TLSv11);
-            provideSslContextEnabledProtocols("TLSv1.2", TLSVersion.SSLv3, TLSVersion.TLSv12);
-            provideSslContextEnabledProtocols("Default", TLSVersion.SSLv3, TLSVersion.TLSv1);
-        } else {
-            provideSslContextEnabledProtocols("TLS", TLSVersion.TLSv1, TLSVersion.TLSv12);
-            provideSslContextEnabledProtocols("TLSv1", TLSVersion.TLSv1, TLSVersion.TLSv12);
-            provideSslContextEnabledProtocols("TLSv1.1", TLSVersion.TLSv1, TLSVersion.TLSv12);
-            provideSslContextEnabledProtocols("TLSv1.2", TLSVersion.TLSv1, TLSVersion.TLSv12);
-            provideSslContextEnabledProtocols("Default", TLSVersion.TLSv1, TLSVersion.TLSv12);
-        }
+        provideSslContextEnabledProtocols("TLS", TLSVersion.TLSv1, TLSVersion.TLSv12);
+        provideSslContextEnabledProtocols("TLSv1", TLSVersion.TLSv1, TLSVersion.TLSv12);
+        provideSslContextEnabledProtocols("TLSv1.1", TLSVersion.TLSv1, TLSVersion.TLSv12);
+        provideSslContextEnabledProtocols("TLSv1.2", TLSVersion.TLSv1, TLSVersion.TLSv12);
+        provideSslContextEnabledProtocols("Default", TLSVersion.TLSv1, TLSVersion.TLSv12);
     }
 
     public static final String SSL_CONTEXT_PROTOCOLS_DEFAULT = "Default";
@@ -624,23 +614,8 @@ public final class StandardNames {
             new HashSet<String>(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2"));
     public static final Set<String> SSL_SOCKET_PROTOCOLS_SERVER_DEFAULT =
             new HashSet<String>(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2"));
-    static {
-        if (IS_RI) {
-            /* Even though we use OpenSSL's SSLv23_method which
-             * supports sending SSLv2 client hello messages, the
-             * OpenSSL implementation in s23_client_hello disables
-             * this if SSL_OP_NO_SSLv2 is specified, which we always
-             * do to disable general use of SSLv2.
-             */
-            SSL_SOCKET_PROTOCOLS.add("SSLv2Hello");
 
-            /* The RI still has SSLv3 as a default protocol. */
-            SSL_SOCKET_PROTOCOLS_CLIENT_DEFAULT.add("SSLv3");
-            SSL_SOCKET_PROTOCOLS_SERVER_DEFAULT.add("SSLv3");
-        }
-    }
-
-    private static enum TLSVersion {
+    private enum TLSVersion {
         SSLv3("SSLv3"),
         TLSv1("TLSv1"),
         TLSv11("TLSv1.1"),
@@ -652,7 +627,6 @@ public final class StandardNames {
             this.name = name;
         }
     }
-    ;
 
     /**
      * Valid values for X509TrustManager.checkClientTrusted authType,
@@ -703,11 +677,9 @@ public final class StandardNames {
         addBoth("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA");
         addBoth("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
         addBoth("TLS_RSA_WITH_AES_256_CBC_SHA");
-        addBoth("TLS_DHE_RSA_WITH_AES_256_CBC_SHA");
         addBoth("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
         addBoth("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
         addBoth("TLS_RSA_WITH_AES_128_CBC_SHA");
-        addBoth("TLS_DHE_RSA_WITH_AES_128_CBC_SHA");
         addBoth("SSL_RSA_WITH_3DES_EDE_CBC_SHA");
 
         // TLSv1.2 cipher suites
@@ -715,10 +687,6 @@ public final class StandardNames {
         addBoth("TLS_RSA_WITH_AES_256_CBC_SHA256");
         addOpenSsl("TLS_RSA_WITH_AES_128_GCM_SHA256");
         addOpenSsl("TLS_RSA_WITH_AES_256_GCM_SHA384");
-        addBoth("TLS_DHE_RSA_WITH_AES_128_CBC_SHA256");
-        addBoth("TLS_DHE_RSA_WITH_AES_256_CBC_SHA256");
-        addOpenSsl("TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
-        addOpenSsl("TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
         addBoth("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
         addBoth("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
         addOpenSsl("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
@@ -778,9 +746,6 @@ public final class StandardNames {
         // Dropped
         addNeither("SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA");
         addNeither("SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA");
-        addRi("SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA");
-        addRi("SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA");
-        addRi("SSL_DHE_RSA_WITH_DES_CBC_SHA");
         addRi("SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
         addRi("SSL_DH_anon_EXPORT_WITH_RC4_40_MD5");
         addRi("SSL_DH_anon_WITH_3DES_EDE_CBC_SHA");
@@ -836,94 +801,92 @@ public final class StandardNames {
         addNeither("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA");
         addNeither("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5");
 
-        CIPHER_SUITES = (IS_RI) ? CIPHER_SUITES_RI : CIPHER_SUITES_OPENSSL;
+        CIPHER_SUITES = CIPHER_SUITES_OPENSSL;
     }
 
     /**
      * Cipher suites that are not negotiated when TLSv1.2 is selected on the RI.
      */
     public static final List<String> CIPHER_SUITES_OBSOLETE_TLS12 = Arrays.asList(
-            "SSL_RSA_WITH_DES_CBC_SHA", "SSL_DHE_RSA_WITH_DES_CBC_SHA",
-            "SSL_DHE_DSS_WITH_DES_CBC_SHA", "SSL_DH_anon_WITH_DES_CBC_SHA",
-            "SSL_RSA_EXPORT_WITH_RC4_40_MD5", "SSL_DH_anon_EXPORT_WITH_RC4_40_MD5",
-            "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA", "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
-            "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", "SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
+            "SSL_RSA_WITH_DES_CBC_SHA",
+            "SSL_DHE_RSA_WITH_DES_CBC_SHA",
+            "SSL_DHE_DSS_WITH_DES_CBC_SHA",
+            "SSL_DH_anon_WITH_DES_CBC_SHA",
+            "SSL_RSA_EXPORT_WITH_RC4_40_MD5",
+            "SSL_DH_anon_EXPORT_WITH_RC4_40_MD5",
+            "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",
+            "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
+            "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA",
+            "SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
 
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
-    private static final List<String> CIPHER_SUITES_ANDROID_AES_HARDWARE = Arrays.asList(
-            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+    private static final List<String> CIPHER_SUITES_AES_HARDWARE = Arrays.asList(
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_RSA_WITH_AES_256_GCM_SHA384", "TLS_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_RSA_WITH_AES_256_CBC_SHA", CIPHER_SUITE_SECURE_RENEGOTIATION);
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_WITH_AES_256_CBC_SHA",
+            CIPHER_SUITE_SECURE_RENEGOTIATION);
 
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
-    private static final List<String> CIPHER_SUITES_ANDROID_SOFTWARE = Arrays.asList(
+    private static final List<String> CIPHER_SUITES_SOFTWARE = Arrays.asList(
             "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384", "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_RSA_WITH_AES_256_GCM_SHA384", "TLS_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_RSA_WITH_AES_256_CBC_SHA", CIPHER_SUITE_SECURE_RENEGOTIATION);
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_WITH_AES_256_CBC_SHA",
+            CIPHER_SUITE_SECURE_RENEGOTIATION);
 
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
-    public static final List<String> CIPHER_SUITES_DEFAULT = (IS_RI)
-            ? Arrays.asList("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
-                      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384", "TLS_RSA_WITH_AES_256_CBC_SHA256",
-                      "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384",
-                      "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384", "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
-                      "TLS_DHE_DSS_WITH_AES_256_CBC_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-                      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA",
-                      "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA", "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",
-                      "TLS_DHE_RSA_WITH_AES_256_CBC_SHA", "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
-                      "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-                      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256", "TLS_RSA_WITH_AES_128_CBC_SHA256",
-                      "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
-                      "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
-                      "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-                      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_128_CBC_SHA",
-                      "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA", "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
-                      "TLS_DHE_RSA_WITH_AES_128_CBC_SHA", "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
-                      "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA", "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
-                      "SSL_RSA_WITH_RC4_128_SHA", "TLS_ECDH_ECDSA_WITH_RC4_128_SHA",
-                      "TLS_ECDH_RSA_WITH_RC4_128_SHA", "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA",
-                      "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA", "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
-                      "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA", "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",
-                      "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA", "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
-                      "SSL_RSA_WITH_RC4_128_MD5", "TLS_EMPTY_RENEGOTIATION_INFO_SCSV")
-            : CpuFeatures.isAESHardwareAccelerated() ? CIPHER_SUITES_ANDROID_AES_HARDWARE
-                                                     : CIPHER_SUITES_ANDROID_SOFTWARE;
+    public static final List<String> CIPHER_SUITES_DEFAULT = CpuFeatures.isAESHardwareAccelerated()
+            ? CIPHER_SUITES_AES_HARDWARE
+            : CIPHER_SUITES_SOFTWARE;
 
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
-    public static final List<String> CIPHER_SUITES_DEFAULT_PSK =
-            Arrays.asList("TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256",
-                    "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA", "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA",
-                    "TLS_PSK_WITH_AES_128_CBC_SHA", "TLS_PSK_WITH_AES_256_CBC_SHA");
+    public static final List<String> CIPHER_SUITES_DEFAULT_PSK = Arrays.asList(
+            "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA",
+            "TLS_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_PSK_WITH_AES_256_CBC_SHA");
 
     // Should be updated to match BoringSSL's defaults when they change.
-    // https://android.googlesource.com/platform/external/boringssl/+/master/src/ssl/t1_lib.c#305
+    // https://boringssl.googlesource.com/boringssl/+/master/ssl/t1_lib.c#306
     public static final List<String> ELLIPTIC_CURVES_DEFAULT =
-            Arrays.asList("x25519 (29)", "secp256r1 (23)", "secp384r1 (24)", "secp521r1 (25)");
+            Arrays.asList("x25519 (29)", "secp256r1 (23)", "secp384r1 (24)");
 
     private static final Set<String> PERMITTED_DEFAULT_KEY_EXCHANGE_ALGS = new HashSet<String>(
             Arrays.asList("RSA", "DHE_RSA", "DHE_DSS", "ECDHE_RSA", "ECDHE_ECDSA"));
 
     private static final Set<String> PERMITTED_DEFAULT_BULK_ENCRYPTION_CIPHERS =
-            new HashSet<String>(Arrays.asList("AES_128_CBC", "AES_256_CBC", "AES_128_GCM",
-                    "AES_256_GCM", "CHACHA20_POLY1305"));
+            new HashSet<String>(Arrays.asList(
+                    "AES_128_CBC",
+                    "AES_256_CBC",
+                    "AES_128_GCM",
+                    "AES_256_GCM",
+                    "CHACHA20_POLY1305"));
 
     private static final Set<String> PERMITTED_DEFAULT_MACS =
             new HashSet<String>(Arrays.asList("SHA", "SHA256", "SHA384"));
@@ -1058,21 +1021,10 @@ public final class StandardNames {
      */
     public static void assertDefaultCipherSuites(String[] cipherSuites) {
         assertValidCipherSuites(cipherSuites);
-        assertEquals(CIPHER_SUITES_DEFAULT, Arrays.asList(cipherSuites));
 
-        // Assert that all the cipher suites are permitted to be in the default list.
-        // This assertion is a backup for the stricter assertion above.
-        //
-        // There is no point in asserting this for the RI as it's outside of our control.
-        if (!IS_RI) {
-            List<String> disallowedDefaultCipherSuites = new ArrayList<String>();
-            for (String cipherSuite : cipherSuites) {
-                if (!isPermittedDefaultCipherSuite(cipherSuite)) {
-                    disallowedDefaultCipherSuites.add(cipherSuite);
-                }
-            }
-            assertEquals(Collections.EMPTY_LIST, disallowedDefaultCipherSuites);
-        }
+        Set<String> expected = new TreeSet<String>(CIPHER_SUITES_DEFAULT);
+        Set<String> actual = new TreeSet<String>(Arrays.asList(cipherSuites));
+        assertEquals(expected, actual);
     }
 
     public static void assertDefaultEllipticCurves(String[] curves) {

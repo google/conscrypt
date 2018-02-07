@@ -1,0 +1,46 @@
+description = 'Conscrypt: OpenJDK Integration Tests'
+
+evaluationDependsOn(':conscrypt-openjdk')
+
+def preferredNativeConfiguration = project(':conscrypt-openjdk').preferredNativeConfiguration
+def preferredNativeFileDir = project(':conscrypt-openjdk').preferredNativeFileDir
+
+sourceSets {
+    main {
+        resources {
+            // This shouldn't be needed but seems to help IntelliJ locate the native artifact.
+            srcDirs += preferredNativeFileDir
+        }
+    }
+}
+
+dependencies {
+    compile project(':conscrypt-openjdk')
+
+    // Add the preferred native openjdk configuration for this platform.
+    compile project(path: ':conscrypt-openjdk', configuration: "$preferredNativeConfiguration")
+
+    testCompile project(':conscrypt-constants'),
+                project(':conscrypt-testing')
+}
+
+test {
+    include "org/conscrypt/ConscryptSuite.class"
+}
+
+// Add a second round of tests using the engine-based socket.
+task testEngineSocket(type: Test) {
+    dependsOn testClasses
+    // Use the engine socket by default.
+    jvmArgs "-Dorg.conscrypt.useEngineSocketByDefault=true"
+    testClassesDir = test.testClassesDir
+    includes = test.includes
+    doFirst {
+        classpath = test.classpath
+    }
+}
+test.dependsOn testEngineSocket
+
+// Don't include this artifact in the distribution.
+tasks.install.enabled = false
+tasks.uploadArchives.enabled = false;

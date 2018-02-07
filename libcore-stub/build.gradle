@@ -1,12 +1,23 @@
 description = 'Conscrypt: libcore Stub'
 
-dependencies {
-    // Only compile against this. Other modules will embed the generated code directly.
-    compileOnly project(':conscrypt-constants')
+configurations {
+    publicApiDocs
+}
 
-    compile libraries.bouncycastle_provider,
-            libraries.bouncycastle_apis,
-            libraries.junit
+dependencies {
+    // This is used for the @hide annotation processing in JavaDoc
+    publicApiDocs project(':conscrypt-api-doclet')
+
+    // Only compile against this. Other modules will embed the generated code directly.
+    compileOnly project(':conscrypt-constants'),
+                configurations.publicApiDocs
+
+    compile libraries.junit
+}
+
+javadoc {
+    options.doclet = "org.conscrypt.doclet.FilterDoclet"
+    options.docletpath = configurations.publicApiDocs.files as List
 }
 
 // Don't include this artifact in the distribution.

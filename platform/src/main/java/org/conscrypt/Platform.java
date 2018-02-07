@@ -20,11 +20,11 @@ import static android.system.OsConstants.SOL_SOCKET;
 import static android.system.OsConstants.SO_SNDTIMEO;
 
 import android.system.ErrnoException;
-import android.system.Os;
 import android.system.StructTimeval;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -33,12 +33,14 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
+import java.security.AlgorithmParameters;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
+import java.security.spec.InvalidParameterSpecException;
 import java.util.Collections;
 import java.util.List;
 import javax.crypto.spec.GCMParameterSpec;
@@ -51,13 +53,12 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
+import libcore.io.Libcore;
 import libcore.net.NetworkSecurityPolicy;
 import sun.security.x509.AlgorithmId;
 
 final class Platform {
-    private static class NoPreloadHolder {
-        public static final Platform MAPPER = new Platform();
-    }
+    private static class NoPreloadHolder { public static final Platform MAPPER = new Platform(); }
 
     /**
      * Runs all the setup for the platform that only needs to run once.
@@ -69,21 +70,27 @@ final class Platform {
     /**
      * Just a placeholder to make sure the class is initialized.
      */
-    private void ping() {
-    }
+    private void ping() {}
 
-    private Platform() {
+    private Platform() {}
+
+    /**
+     * Default name used in the {@link java.security.Security JCE system} by {@code OpenSSLProvider}
+     * if the default constructor is used.
+     */
+    static String getDefaultProviderName() {
+        return "AndroidOpenSSL";
     }
 
     static FileDescriptor getFileDescriptor(Socket s) {
         return s.getFileDescriptor$();
     }
 
-    static FileDescriptor getFileDescriptorFromSSLSocket(OpenSSLSocketImpl openSSLSocketImpl) {
+    static FileDescriptor getFileDescriptorFromSSLSocket(AbstractConscryptSocket socket) {
         try {
             Field f_impl = Socket.class.getDeclaredField("impl");
             f_impl.setAccessible(true);
-            Object socketImpl = f_impl.get(openSSLSocketImpl);
+            Object socketImpl = f_impl.get(socket);
             Field f_fd = SocketImpl.class.getDeclaredField("fd");
             f_fd.setAccessible(true);
             return (FileDescriptor) f_fd.get(socketImpl);
@@ -103,14 +110,14 @@ final class Platform {
     static void setSocketWriteTimeout(Socket s, long timeoutMillis) throws SocketException {
         StructTimeval tv = StructTimeval.fromMillis(timeoutMillis);
         try {
-            Os.setsockoptTimeval(s.getFileDescriptor$(), SOL_SOCKET, SO_SNDTIMEO, tv);
+            Libcore.os.setsockoptTimeval(s.getFileDescriptor$(), SOL_SOCKET, SO_SNDTIMEO, tv);
         } catch (ErrnoException errnoException) {
             throw errnoException.rethrowAsSocketException();
         }
     }
 
-    static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
-            OpenSSLSocketImpl socket) {
+    static void setSSLParameters(
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
         List<SNIServerName> serverNames = params.getServerNames();
@@ -124,25 +131,25 @@ final class Platform {
         }
     }
 
-    static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
-            OpenSSLSocketImpl socket) {
+    static void getSSLParameters(
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
-            params.setServerNames(Collections.<SNIServerName> singletonList(
+            params.setServerNames(Collections.<SNIServerName>singletonList(
                     new SNIHostName(socket.getHostname())));
         }
     }
 
     static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
         List<SNIServerName> serverNames = params.getServerNames();
         if (serverNames != null) {
             for (SNIServerName serverName : serverNames) {
                 if (serverName.getType() == StandardConstants.SNI_HOST_NAME) {
-                    engine.setSniHostname(((SNIHostName) serverName).getAsciiName());
+                    engine.setHostname(((SNIHostName) serverName).getAsciiName());
                     break;
                 }
             }
@@ -150,12 +157,12 @@ final class Platform {
     }
 
     static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
-        if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getSniHostname())) {
+        if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             params.setServerNames(Collections.<SNIServerName>singletonList(
-                    new SNIHostName(engine.getSniHostname())));
+                    new SNIHostName(engine.getHostname())));
         }
     }
 
@@ -168,66 +175,64 @@ final class Platform {
             Object argumentInstance) throws CertificateException {
         // Use duck-typing to try and call the hostname-aware method if available.
         try {
-            Method method = tm.getClass().getMethod(methodName,
-                    X509Certificate[].class,
-                    String.class,
-                    argumentClass);
+            Method method = tm.getClass().getMethod(
+                    methodName, X509Certificate[].class, String.class, argumentClass);
             method.invoke(tm, chain, authType, argumentInstance);
             return true;
         } catch (NoSuchMethodException | IllegalAccessException ignored) {
         } catch (InvocationTargetException e) {
             if (e.getCause() instanceof CertificateException) {
-                throw (CertificateException) e.getCause();
+                throw(CertificateException) e.getCause();
             }
             throw new RuntimeException(e.getCause());
         }
         return false;
     }
 
-    static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+    static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
+            AbstractConscryptSocket socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkClientTrusted(chain, authType, socket);
         } else if (!checkTrusted("checkClientTrusted", tm, chain, authType, Socket.class, socket)
                 && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
-                                 socket.getHandshakeSession().getPeerHost())) {
+                           socket.getHandshakeSession().getPeerHost())) {
             tm.checkClientTrusted(chain, authType);
         }
     }
 
-    static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+    static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
+            AbstractConscryptSocket socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkServerTrusted(chain, authType, socket);
         } else if (!checkTrusted("checkServerTrusted", tm, chain, authType, Socket.class, socket)
                 && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
-                                 socket.getHandshakeSession().getPeerHost())) {
+                           socket.getHandshakeSession().getPeerHost())) {
             tm.checkServerTrusted(chain, authType);
         }
     }
 
-    static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+    static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
+            ConscryptEngine engine) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkClientTrusted(chain, authType, engine);
         } else if (!checkTrusted("checkClientTrusted", tm, chain, authType, SSLEngine.class, engine)
                 && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
-                                 engine.getHandshakeSession().getPeerHost())) {
+                           engine.getHandshakeSession().getPeerHost())) {
             tm.checkClientTrusted(chain, authType);
         }
     }
 
-    static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+    static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
+            ConscryptEngine engine) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkServerTrusted(chain, authType, engine);
         } else if (!checkTrusted("checkServerTrusted", tm, chain, authType, SSLEngine.class, engine)
                 && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
-                                 engine.getHandshakeSession().getPeerHost())) {
+                           engine.getHandshakeSession().getPeerHost())) {
             tm.checkServerTrusted(chain, authType);
         }
     }
@@ -252,10 +257,10 @@ final class Platform {
 
             Class eventLogClass = Class.forName("android.util.EventLog");
             Object eventLogInstance = eventLogClass.newInstance();
-            Method writeEventMethod = eventLogClass.getMethod("writeEvent",
-                    new Class[] { Integer.TYPE, Object[].class });
+            Method writeEventMethod = eventLogClass.getMethod(
+                    "writeEvent", new Class[] {Integer.TYPE, Object[].class});
             writeEventMethod.invoke(eventLogInstance, 0x534e4554 /* SNET */,
-                    new Object[] { "conscrypt", uid, message });
+                    new Object[] {"conscrypt", uid, message});
         } catch (Exception e) {
             // Do not log and fail silently
         }
@@ -266,6 +271,80 @@ final class Platform {
      */
     static boolean isLiteralIpAddress(String hostname) {
         return InetAddress.isNumeric(hostname);
+    }
+
+    static SSLEngine wrapEngine(ConscryptEngine engine) {
+        return new Java8EngineWrapper(engine);
+    }
+
+    static SSLEngine unwrapEngine(SSLEngine engine) {
+        return Java8EngineWrapper.getDelegate(engine);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8EngineSocket(sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(String hostname, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        return new Java8EngineSocket(hostname, port, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(InetAddress address, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        return new Java8EngineSocket(address, port, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(String hostname, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8EngineSocket(hostname, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(InetAddress address, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8EngineSocket(address, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(Socket socket, String hostname, int port,
+            boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
+        return new Java8EngineSocket(socket, hostname, port, autoClose, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8FileDescriptorSocket(sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        return new Java8FileDescriptorSocket(hostname, port, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        return new Java8FileDescriptorSocket(address, port, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8FileDescriptorSocket(
+                hostname, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        return new Java8FileDescriptorSocket(
+                address, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(Socket socket, String hostname,
+            int port, boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
+        return new Java8FileDescriptorSocket(socket, hostname, port, autoClose, sslParameters);
     }
 
     /**
@@ -285,6 +364,17 @@ final class Platform {
             return new GCMParameters(gcmParams.getTLen(), gcmParams.getIV());
         }
         return null;
+    }
+
+    /**
+     * Convert from an opaque AlgorithmParameters to the platform's GCMParameterSpec.
+     */
+    static AlgorithmParameterSpec fromGCMParameters(AlgorithmParameters params) {
+        try {
+            return params.getParameterSpec(GCMParameterSpec.class);
+        } catch (InvalidParameterSpecException e) {
+            return null;
+        }
     }
 
     /**
@@ -336,19 +426,35 @@ final class Platform {
         }
     }
 
-    /*
-     * Pre-Java 8 backward compatibility.
+    /**
+     * Provides extended capabilities for the session if supported by the platform.
      */
-
-    static SSLSession wrapSSLSession(AbstractOpenSSLSession sslSession) {
-        return new OpenSSLExtendedSessionImpl(sslSession);
+    static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+        return new Java8ExtendedSSLSession(sslSession);
     }
 
-    static SSLSession unwrapSSLSession(SSLSession sslSession) {
-        if (sslSession instanceof OpenSSLExtendedSessionImpl) {
-            return ((OpenSSLExtendedSessionImpl) sslSession).getDelegate();
+    public static String getOriginalHostNameFromInetAddress(InetAddress addr) {
+        try {
+            Method getHolder = InetAddress.class.getDeclaredMethod("holder");
+            getHolder.setAccessible(true);
+
+            Method getOriginalHostName = Class.forName("java.net.InetAddress$InetAddressHolder")
+                                                 .getDeclaredMethod("getOriginalHostName");
+            getOriginalHostName.setAccessible(true);
+
+            String originalHostName = (String) getOriginalHostName.invoke(getHolder.invoke(addr));
+            if (originalHostName == null) {
+                return addr.getHostAddress();
+            }
+            return originalHostName;
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException("Failed to get originalHostName", e);
+        } catch (ClassNotFoundException ignore) {
+            // passthrough and return addr.getHostAddress()
+        } catch (IllegalAccessException ignore) {
+        } catch (NoSuchMethodException ignore) {
         }
-        return sslSession;
+        return addr.getHostAddress();
     }
 
     /*
@@ -360,7 +466,7 @@ final class Platform {
     }
 
     static boolean isCTVerificationRequired(String hostname) {
-        return NetworkSecurityPolicy.getInstance()
-                .isCertificateTransparencyVerificationRequired(hostname);
+        return NetworkSecurityPolicy.getInstance().isCertificateTransparencyVerificationRequired(
+                hostname);
     }
 }

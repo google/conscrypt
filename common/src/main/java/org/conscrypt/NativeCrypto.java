@@ -32,11 +32,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -46,25 +43,49 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * Provides the Java side of our JNI glue for OpenSSL.
+ * <p>
+ * Note: Many methods in this class take a reference to a Java object that holds a
+ * native pointer in the form of a long in addition to the long itself and don't use
+ * the Java object in the native implementation.  This is to prevent the Java object
+ * from becoming eligible for GC while the native method is executing.  See
+ * <a href="https://github.com/google/error-prone/blob/master/docs/bugpattern/UnsafeFinalization.md">this</a>
+ * for more details.
  *
  * @hide
  */
 @Internal
 public final class NativeCrypto {
     // --- OpenSSL library initialization --------------------------------------
+    private static final UnsatisfiedLinkError loadError;
     static {
-        NativeCryptoJni.init();
-        clinit();
+        UnsatisfiedLinkError error = null;
+        try {
+            NativeCryptoJni.init();
+            clinit();
+        } catch (UnsatisfiedLinkError t) {
+            // Don't rethrow the error, so that we can later on interrogate the
+            // value of loadError.
+            error = t;
+        }
+        loadError = error;
     }
 
     private native static void clinit();
+
+    /**
+     * Checks to see whether or not the native library was successfully loaded. If not, throws
+     * the {@link UnsatisfiedLinkError} that was encountered while attempting to load the library.
+     */
+    static void checkAvailability() {
+        if (loadError != null) {
+            throw loadError;
+        }
+    }
 
     // --- DSA/RSA public/private key handling functions -----------------------
 
     static native long EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q,
             byte[] dmp1, byte[] dmq1, byte[] iqmp);
-
-    static native int EVP_PKEY_size(NativeRef.EVP_PKEY pkey);
 
     static native int EVP_PKEY_type(NativeRef.EVP_PKEY pkey);
 
@@ -76,13 +97,13 @@ public final class NativeCrypto {
 
     static native int EVP_PKEY_cmp(NativeRef.EVP_PKEY pkey1, NativeRef.EVP_PKEY pkey2);
 
-    static native byte[] i2d_PKCS8_PRIV_KEY_INFO(NativeRef.EVP_PKEY pkey);
+    static native byte[] EVP_marshal_private_key(NativeRef.EVP_PKEY pkey);
 
-    static native long d2i_PKCS8_PRIV_KEY_INFO(byte[] data);
+    static native long EVP_parse_private_key(byte[] data) throws ParsingException;
 
-    static native byte[] i2d_PUBKEY(NativeRef.EVP_PKEY pkey);
+    static native byte[] EVP_marshal_public_key(NativeRef.EVP_PKEY pkey);
 
-    static native long d2i_PUBKEY(byte[] data);
+    static native long EVP_parse_public_key(byte[] data) throws ParsingException;
 
     static native long PEM_read_bio_PUBKEY(long bioCtx);
 
@@ -118,9 +139,13 @@ public final class NativeCrypto {
      */
     static native byte[][] get_RSA_private_params(NativeRef.EVP_PKEY rsa);
 
-    static native byte[] i2d_RSAPublicKey(NativeRef.EVP_PKEY rsa);
+    // --- ChaCha20 -----------------------
 
-    static native byte[] i2d_RSAPrivateKey(NativeRef.EVP_PKEY rsa);
+    /**
+     * Returns the encrypted or decrypted version of the data.
+     */
+    static native void chacha20_encrypt_decrypt(byte[] in, int inOffset, byte[] out, int outOffset,
+            int length, byte[] key, byte[] nonce, int blockCounter);
 
     // --- EC functions --------------------------
 
@@ -164,8 +189,18 @@ public final class NativeCrypto {
 
     static native long EC_KEY_get_public_key(NativeRef.EVP_PKEY keyRef);
 
+    static native byte[] EC_KEY_marshal_curve_name(NativeRef.EC_GROUP groupRef) throws IOException;
+
+    static native long EC_KEY_parse_curve_name(byte[] encoded) throws IOException;
+
     static native int ECDH_compute_key(byte[] out, int outOffset, NativeRef.EVP_PKEY publicKeyRef,
-            NativeRef.EVP_PKEY privateKeyRef) throws InvalidKeyException;
+            NativeRef.EVP_PKEY privateKeyRef) throws InvalidKeyException, IndexOutOfBoundsException;
+
+    static native int ECDSA_size(NativeRef.EVP_PKEY pkey);
+
+    static native int ECDSA_sign(byte[] data, byte[] sig, NativeRef.EVP_PKEY pkey);
+
+    static native int ECDSA_verify(byte[] data, byte[] sig, NativeRef.EVP_PKEY pkey);
 
     // --- Message digest functions --------------
 
@@ -173,8 +208,6 @@ public final class NativeCrypto {
     static native long EVP_get_digestbyname(String name);
 
     static native int EVP_MD_size(long evp_md_const);
-
-    static native int EVP_MD_block_size(long evp_md_const);
 
     // --- Message digest context functions --------------
 
@@ -218,18 +251,20 @@ public final class NativeCrypto {
 
     static native byte[] EVP_DigestSignFinal(NativeRef.EVP_MD_CTX ctx);
 
-    static native boolean EVP_DigestVerifyFinal(
-            NativeRef.EVP_MD_CTX ctx, byte[] signature, int offset, int length);
+    static native boolean EVP_DigestVerifyFinal(NativeRef.EVP_MD_CTX ctx, byte[] signature,
+            int offset, int length) throws IndexOutOfBoundsException;
 
-    static native long EVP_PKEY_encrypt_init(NativeRef.EVP_PKEY pkey);
+    static native long EVP_PKEY_encrypt_init(NativeRef.EVP_PKEY pkey) throws InvalidKeyException;
 
     static native int EVP_PKEY_encrypt(NativeRef.EVP_PKEY_CTX ctx, byte[] out, int outOffset,
-            byte[] input, int inOffset, int inLength);
+            byte[] input, int inOffset, int inLength)
+            throws IndexOutOfBoundsException, BadPaddingException;
 
-    static native long EVP_PKEY_decrypt_init(NativeRef.EVP_PKEY pkey);
+    static native long EVP_PKEY_decrypt_init(NativeRef.EVP_PKEY pkey) throws InvalidKeyException;
 
     static native int EVP_PKEY_decrypt(NativeRef.EVP_PKEY_CTX ctx, byte[] out, int outOffset,
-            byte[] input, int inOffset, int inLength);
+            byte[] input, int inOffset, int inLength)
+            throws IndexOutOfBoundsException, BadPaddingException;
 
     static native void EVP_PKEY_CTX_free(long pkeyCtx);
 
@@ -257,7 +292,7 @@ public final class NativeCrypto {
             byte[] iv, boolean encrypting);
 
     static native int EVP_CipherUpdate(NativeRef.EVP_CIPHER_CTX ctx, byte[] out, int outOffset,
-            byte[] in, int inOffset, int inLength);
+            byte[] in, int inOffset, int inLength) throws IndexOutOfBoundsException;
 
     static native int EVP_CipherFinal_ex(NativeRef.EVP_CIPHER_CTX ctx, byte[] out, int outOffset)
             throws BadPaddingException, IllegalBlockSizeException;
@@ -284,19 +319,19 @@ public final class NativeCrypto {
 
     static native long EVP_aead_aes_256_gcm();
 
+    static native long EVP_aead_chacha20_poly1305();
+
     static native int EVP_AEAD_max_overhead(long evpAead);
 
     static native int EVP_AEAD_nonce_length(long evpAead);
 
-    static native int EVP_AEAD_max_tag_len(long evpAead);
-
     static native int EVP_AEAD_CTX_seal(long evpAead, byte[] key, int tagLengthInBytes, byte[] out,
             int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength, byte[] ad)
-            throws BadPaddingException;
+            throws BadPaddingException, IndexOutOfBoundsException;
 
     static native int EVP_AEAD_CTX_open(long evpAead, byte[] key, int tagLengthInBytes, byte[] out,
             int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength, byte[] ad)
-            throws BadPaddingException;
+            throws BadPaddingException, IndexOutOfBoundsException;
 
     // --- HMAC functions ------------------------------------------------------
 
@@ -315,14 +350,6 @@ public final class NativeCrypto {
     // --- RAND ----------------------------------------------------------------
 
     static native void RAND_bytes(byte[] output);
-
-    // --- ASN.1 objects -------------------------------------------------------
-
-    static native int OBJ_txt2nid(String oid);
-
-    static native String OBJ_txt2nid_longName(String oid);
-
-    static native String OBJ_txt2nid_oid(String oid);
 
     // --- X509_NAME -----------------------------------------------------------
 
@@ -343,8 +370,6 @@ public final class NativeCrypto {
             throw new AssertionError(e);
         }
     }
-
-    static native String X509_NAME_print_ex(long x509nameCtx, long flags);
 
     // --- X509 ----------------------------------------------------------------
 
@@ -373,71 +398,73 @@ public final class NativeCrypto {
 
     static native long PEM_read_bio_X509(long bioCtx);
 
-    static native byte[] i2d_X509(long x509ctx);
+    static native byte[] i2d_X509(long x509ctx, OpenSSLX509Certificate holder);
 
     /** Takes an X509 context not an X509_PUBKEY context. */
-    static native byte[] i2d_X509_PUBKEY(long x509ctx);
+    static native byte[] i2d_X509_PUBKEY(long x509ctx, OpenSSLX509Certificate holder);
 
     static native byte[] ASN1_seq_pack_X509(long[] x509CertRefs);
 
-    static native long[] ASN1_seq_unpack_X509_bio(long bioRef);
+    static native long[] ASN1_seq_unpack_X509_bio(long bioRef) throws ParsingException;
 
-    static native void X509_free(long x509ctx);
+    static native void X509_free(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_dup(long x509ctx);
+    static native long X509_dup(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native int X509_cmp(long x509ctx1, long x509ctx2);
+    static native int X509_cmp(long x509ctx1, OpenSSLX509Certificate holder, long x509ctx2, OpenSSLX509Certificate holder2);
 
-    static native void X509_print_ex(long bioCtx, long x509ctx, long nmflag, long certflag);
+    static native void X509_print_ex(long bioCtx, long x509ctx, OpenSSLX509Certificate holder, long nmflag, long certflag);
 
-    static native byte[] X509_get_issuer_name(long x509ctx);
+    static native byte[] X509_get_issuer_name(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native byte[] X509_get_subject_name(long x509ctx);
+    static native byte[] X509_get_subject_name(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native String get_X509_sig_alg_oid(long x509ctx);
+    static native String get_X509_sig_alg_oid(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native byte[] get_X509_sig_alg_parameter(long x509ctx);
+    static native byte[] get_X509_sig_alg_parameter(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native boolean[] get_X509_issuerUID(long x509ctx);
+    static native boolean[] get_X509_issuerUID(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native boolean[] get_X509_subjectUID(long x509ctx);
+    static native boolean[] get_X509_subjectUID(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_get_pubkey(long x509ctx)
+    static native long X509_get_pubkey(long x509ctx, OpenSSLX509Certificate holder)
             throws NoSuchAlgorithmException, InvalidKeyException;
 
-    static native String get_X509_pubkey_oid(long x509ctx);
+    static native String get_X509_pubkey_oid(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native byte[] X509_get_ext_oid(long x509ctx, String oid);
+    static native byte[] X509_get_ext_oid(long x509ctx, OpenSSLX509Certificate holder, String oid);
 
-    static native String[] get_X509_ext_oids(long x509ctx, int critical);
+    static native String[] get_X509_ext_oids(long x509ctx, OpenSSLX509Certificate holder, int critical);
 
-    static native Object[][] get_X509_GENERAL_NAME_stack(long x509ctx, int type)
+    static native Object[][] get_X509_GENERAL_NAME_stack(long x509ctx, OpenSSLX509Certificate holder, int type)
             throws CertificateParsingException;
 
-    static native boolean[] get_X509_ex_kusage(long x509ctx);
+    static native boolean[] get_X509_ex_kusage(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native String[] get_X509_ex_xkusage(long x509ctx);
+    static native String[] get_X509_ex_xkusage(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native int get_X509_ex_pathlen(long x509ctx);
+    static native int get_X509_ex_pathlen(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_get_notBefore(long x509ctx);
+    static native long X509_get_notBefore(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_get_notAfter(long x509ctx);
+    static native long X509_get_notAfter(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_get_version(long x509ctx);
+    static native long X509_get_version(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native byte[] X509_get_serialNumber(long x509ctx);
+    static native byte[] X509_get_serialNumber(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native void X509_verify(long x509ctx, NativeRef.EVP_PKEY pkeyCtx)
+    static native void X509_verify(long x509ctx, OpenSSLX509Certificate holder, NativeRef.EVP_PKEY pkeyCtx)
             throws BadPaddingException;
 
-    static native byte[] get_X509_cert_info_enc(long x509ctx);
+    static native byte[] get_X509_cert_info_enc(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native byte[] get_X509_signature(long x509ctx);
+    static native byte[] get_X509_signature(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native int get_X509_ex_flags(long x509ctx);
+    static native int get_X509_ex_flags(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native int X509_check_issued(long ctx, long ctx2);
+    // Used by Android platform TrustedCertificateStore.
+    @SuppressWarnings("unused")
+    static native int X509_check_issued(long ctx, OpenSSLX509Certificate holder, long ctx2, OpenSSLX509Certificate holder2);
 
     // --- PKCS7 ---------------------------------------------------------------
 
@@ -448,7 +475,7 @@ public final class NativeCrypto {
     static final int PKCS7_CRLS = 2;
 
     /** Returns an array of X509 or X509_CRL pointers. */
-    static native long[] d2i_PKCS7_bio(long bioCtx, int which);
+    static native long[] d2i_PKCS7_bio(long bioCtx, int which) throws ParsingException;
 
     /** Returns an array of X509 or X509_CRL pointers. */
     static native byte[] i2d_PKCS7(long[] certs);
@@ -462,46 +489,46 @@ public final class NativeCrypto {
 
     static native long PEM_read_bio_X509_CRL(long bioCtx);
 
-    static native byte[] i2d_X509_CRL(long x509CrlCtx);
+    static native byte[] i2d_X509_CRL(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native void X509_CRL_free(long x509CrlCtx);
+    static native void X509_CRL_free(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native void X509_CRL_print(long bioCtx, long x509CrlCtx);
+    static native void X509_CRL_print(long bioCtx, long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native String get_X509_CRL_sig_alg_oid(long x509CrlCtx);
+    static native String get_X509_CRL_sig_alg_oid(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native byte[] get_X509_CRL_sig_alg_parameter(long x509CrlCtx);
+    static native byte[] get_X509_CRL_sig_alg_parameter(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native byte[] X509_CRL_get_issuer_name(long x509CrlCtx);
-
-    /** Returns X509_REVOKED reference that is not duplicated! */
-    static native long X509_CRL_get0_by_cert(long x509CrlCtx, long x509Ctx);
+    static native byte[] X509_CRL_get_issuer_name(long x509CrlCtx, OpenSSLX509CRL holder);
 
     /** Returns X509_REVOKED reference that is not duplicated! */
-    static native long X509_CRL_get0_by_serial(long x509CrlCtx, byte[] serial);
+    static native long X509_CRL_get0_by_cert(long x509CrlCtx, OpenSSLX509CRL holder, long x509Ctx, OpenSSLX509Certificate holder2);
+
+    /** Returns X509_REVOKED reference that is not duplicated! */
+    static native long X509_CRL_get0_by_serial(long x509CrlCtx, OpenSSLX509CRL holder, byte[] serial);
 
     /** Returns an array of X509_REVOKED that are owned by the caller. */
-    static native long[] X509_CRL_get_REVOKED(long x509CrlCtx);
+    static native long[] X509_CRL_get_REVOKED(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native String[] get_X509_CRL_ext_oids(long x509ctx, int critical);
+    static native String[] get_X509_CRL_ext_oids(long x509Crlctx, OpenSSLX509CRL holder, int critical);
 
-    static native byte[] X509_CRL_get_ext_oid(long x509CrlCtx, String oid);
+    static native byte[] X509_CRL_get_ext_oid(long x509CrlCtx, OpenSSLX509CRL holder, String oid);
 
-    static native void X509_delete_ext(long x509, String oid);
+    static native void X509_delete_ext(long x509, OpenSSLX509Certificate holder, String oid);
 
-    static native long X509_CRL_get_version(long x509CrlCtx);
+    static native long X509_CRL_get_version(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native long X509_CRL_get_ext(long x509CrlCtx, String oid);
+    static native long X509_CRL_get_ext(long x509CrlCtx, OpenSSLX509CRL holder, String oid);
 
-    static native byte[] get_X509_CRL_signature(long x509ctx);
+    static native byte[] get_X509_CRL_signature(long x509ctx, OpenSSLX509CRL holder);
 
-    static native void X509_CRL_verify(long x509CrlCtx, NativeRef.EVP_PKEY pkeyCtx);
+    static native void X509_CRL_verify(long x509CrlCtx, OpenSSLX509CRL holder, NativeRef.EVP_PKEY pkeyCtx);
 
-    static native byte[] get_X509_CRL_crl_enc(long x509CrlCtx);
+    static native byte[] get_X509_CRL_crl_enc(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native long X509_CRL_get_lastUpdate(long x509CrlCtx);
+    static native long X509_CRL_get_lastUpdate(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native long X509_CRL_get_nextUpdate(long x509CrlCtx);
+    static native long X509_CRL_get_nextUpdate(long x509CrlCtx, OpenSSLX509CRL holder);
 
     // --- X509_REVOKED --------------------------------------------------------
 
@@ -530,16 +557,147 @@ public final class NativeCrypto {
 
     static native void ASN1_TIME_to_Calendar(long asn1TimeCtx, Calendar cal);
 
+    // --- ASN1 Encoding -------------------------------------------------------
+
+    /**
+     * Allocates and returns an opaque reference to an object that can be used with other
+     * asn1_read_* functions to read the ASN.1-encoded data in val.  The returned object must
+     * be freed after use by calling asn1_read_free.
+     */
+    static native long asn1_read_init(byte[] val) throws IOException;
+
+    /**
+     * Allocates and returns an opaque reference to an object that can be used with other
+     * asn1_read_* functions to read the ASN.1 sequence pointed to by cbsRef.  The returned
+     * object must be freed after use by calling asn1_read_free.
+     */
+    static native long asn1_read_sequence(long cbsRef) throws IOException;
+
+    /**
+     * Returns whether the next object in the given reference is explicitly tagged with the
+     * given tag number.
+     */
+    static native boolean asn1_read_next_tag_is(long cbsRef, int tag) throws IOException;
+
+    /**
+     * Allocates and returns an opaque reference to an object that can be used with
+     * other asn1_read_* functions to read the ASN.1 data pointed to by cbsRef.  The returned
+     * object must be freed after use by calling asn1_read_free.
+     */
+    static native long asn1_read_tagged(long cbsRef) throws IOException;
+
+    /**
+     * Returns the contents of an ASN.1 octet string from the given reference.
+     */
+    static native byte[] asn1_read_octetstring(long cbsRef) throws IOException;
+
+    /**
+     * Returns an ASN.1 integer from the given reference.  If the integer doesn't fit
+     * in a uint64, this method will throw an IOException.
+     */
+    static native long asn1_read_uint64(long cbsRef) throws IOException;
+
+    /**
+     * Consumes an ASN.1 NULL from the given reference.
+     */
+    static native void asn1_read_null(long cbsRef) throws IOException;
+
+    /**
+     * Returns an ASN.1 OID in dotted-decimal notation (eg, "1.3.14.3.2.26" for SHA-1) from the
+     * given reference.
+     */
+    static native String asn1_read_oid(long cbsRef) throws IOException;
+
+    /**
+     * Returns whether or not the given reference has been read completely.
+     */
+    static native boolean asn1_read_is_empty(long cbsRef);
+
+    /**
+     * Frees any resources associated with the given reference.  After calling, the reference
+     * must not be used again.  This may be called with a zero reference, in which case nothing
+     * will be done.
+     */
+    static native void asn1_read_free(long cbsRef);
+
+    /**
+     * Allocates and returns an opaque reference to an object that can be used with other
+     * asn1_write_* functions to write ASN.1-encoded data.  The returned object must be finalized
+     * after use by calling either asn1_write_finish or asn1_write_cleanup, and its resources
+     * must be freed by calling asn1_write_free.
+     */
+    static native long asn1_write_init() throws IOException;
+
+    /**
+     * Allocates and returns an opaque reference to an object that can be used with other
+     * asn1_write_* functions to write an ASN.1 sequence into the given reference.  The returned
+     * reference may only be used until the next call on the parent reference.  The returned
+     * object must be freed after use by calling asn1_write_free.
+     */
+    static native long asn1_write_sequence(long cbbRef) throws IOException;
+
+    /**
+     * Allocates and returns an opaque reference to an object that can be used with other
+     * asn1_write_* functions to write a explicitly-tagged ASN.1 object with the given tag
+     * into the given reference. The returned reference may only be used until the next
+     * call on the parent reference.  The returned object must be freed after use by
+     * calling asn1_write_free.
+     */
+    static native long asn1_write_tag(long cbbRef, int tag) throws IOException;
+
+    /**
+     * Writes the given data into the given reference as an ASN.1-encoded octet string.
+     */
+    static native void asn1_write_octetstring(long cbbRef, byte[] data) throws IOException;
+
+    /**
+     * Writes the given value into the given reference as an ASN.1-encoded integer.
+     */
+    static native void asn1_write_uint64(long cbbRef, long value) throws IOException;
+
+    /**
+     * Writes a NULL value into the given reference.
+     */
+    static native void asn1_write_null(long cbbRef) throws IOException;
+
+    /**
+     * Writes the given OID (which must be in dotted-decimal notation) into the given reference.
+     */
+    static native void asn1_write_oid(long cbbRef, String oid) throws IOException;
+
+    /**
+     * Flushes the given reference, invalidating any child references and completing their
+     * operations.  This must be called if the child references are to be freed before
+     * asn1_write_finish is called on the ultimate parent.  The child references must still
+     * be freed.
+     */
+    static native void asn1_write_flush(long cbbRef) throws IOException;
+
+    /**
+     * Completes any in-progress operations and returns the ASN.1-encoded data.  Either this
+     * or asn1_write_cleanup must be called on any reference returned from asn1_write_init
+     * before it is freed.
+     */
+    static native byte[] asn1_write_finish(long cbbRef) throws IOException;
+
+    /**
+     * Cleans up intermediate state in the given reference.  Either this or asn1_write_finish
+     * must be called on any reference returned from asn1_write_init before it is freed.
+     */
+    static native void asn1_write_cleanup(long cbbRef);
+
+    /**
+     * Frees resources associated with the given reference.  After calling, the reference
+     * must not be used again.  This may be called with a zero reference, in which case nothing
+     * will be done.
+     */
+    static native void asn1_write_free(long cbbRef);
+
     // --- BIO stream creation -------------------------------------------------
 
     static native long create_BIO_InputStream(OpenSSLBIOInputStream is, boolean isFinite);
 
     static native long create_BIO_OutputStream(OutputStream os);
-
-    static native int BIO_read(long bioRef, byte[] buffer);
-
-    static native void BIO_write(long bioRef, byte[] buffer, int offset, int length)
-            throws IOException;
 
     static native void BIO_free_all(long bioRef);
 
@@ -550,26 +708,12 @@ public final class NativeCrypto {
     private static final String SUPPORTED_PROTOCOL_TLSV1_1 = "TLSv1.1";
     private static final String SUPPORTED_PROTOCOL_TLSV1_2 = "TLSv1.2";
 
-    // STANDARD_TO_OPENSSL_CIPHER_SUITES is a map from OpenSSL-style
-    // cipher-suite names to the standard name for the same (i.e. the name that
-    // is registered with IANA).
-    static final Map<String, String> OPENSSL_TO_STANDARD_CIPHER_SUITES =
-            new HashMap<String, String>();
-
-    // STANDARD_TO_OPENSSL_CIPHER_SUITES is a map from "standard" cipher suite
-    // names (i.e. the names that are registered with IANA) to the
-    // OpenSSL-style name for the same.
-    static final Map<String, String> STANDARD_TO_OPENSSL_CIPHER_SUITES =
-            new LinkedHashMap<String, String>();
-
-    // SUPPORTED_CIPHER_SUITES_SET contains all the cipher suites supported by
-    // OpenSSL, named using "standard" (as opposed to OpenSSL-style) names.
+    // SUPPORTED_CIPHER_SUITES_SET contains all the supported cipher suites, using their Java names.
     static final Set<String> SUPPORTED_CIPHER_SUITES_SET = new HashSet<String>();
 
-    private static void add(String openssl, String standard) {
-        OPENSSL_TO_STANDARD_CIPHER_SUITES.put(openssl, standard);
-        STANDARD_TO_OPENSSL_CIPHER_SUITES.put(standard, openssl);
-    }
+    // SUPPORTED_LEGACY_CIPHER_SUITES_SET contains all the supported cipher suites using the legacy
+    // OpenSSL-style names.
+    private static final Set<String> SUPPORTED_LEGACY_CIPHER_SUITES_SET = new HashSet<String>();
 
     /**
      * TLS_EMPTY_RENEGOTIATION_INFO_SCSV is RFC 5746's renegotiation
@@ -592,109 +736,49 @@ public final class NativeCrypto {
      */
     static final String TLS_EMPTY_RENEGOTIATION_INFO_SCSV = "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
 
+    static String cipherSuiteToJava(String cipherSuite) {
+        // For historical reasons, Java uses a different name for TLS_RSA_WITH_3DES_EDE_CBC_SHA.
+        if ("TLS_RSA_WITH_3DES_EDE_CBC_SHA".equals(cipherSuite)) {
+            return "SSL_RSA_WITH_3DES_EDE_CBC_SHA";
+        }
+        return cipherSuite;
+    }
+
+    static String cipherSuiteFromJava(String javaCipherSuite) {
+        if ("SSL_RSA_WITH_3DES_EDE_CBC_SHA".equals(javaCipherSuite)) {
+            return "TLS_RSA_WITH_3DES_EDE_CBC_SHA";
+        }
+        return javaCipherSuite;
+    }
+
     /**
      * TLS_FALLBACK_SCSV is from
      * https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-00
      * to indicate to the server that this is a fallback protocol
      * request.
      */
-    static final String TLS_FALLBACK_SCSV = "TLS_FALLBACK_SCSV";
-
-    static {
-        add("ADH-AES128-GCM-SHA256", "TLS_DH_anon_WITH_AES_128_GCM_SHA256");
-        add("ADH-AES128-SHA256", "TLS_DH_anon_WITH_AES_128_CBC_SHA256");
-        add("ADH-AES128-SHA", "TLS_DH_anon_WITH_AES_128_CBC_SHA");
-        add("ADH-AES256-GCM-SHA384", "TLS_DH_anon_WITH_AES_256_GCM_SHA384");
-        add("ADH-AES256-SHA256", "TLS_DH_anon_WITH_AES_256_CBC_SHA256");
-        add("ADH-AES256-SHA", "TLS_DH_anon_WITH_AES_256_CBC_SHA");
-        add("ADH-DES-CBC3-SHA", "SSL_DH_anon_WITH_3DES_EDE_CBC_SHA");
-        add("ADH-DES-CBC-SHA", "SSL_DH_anon_WITH_DES_CBC_SHA");
-        add("AECDH-AES128-SHA", "TLS_ECDH_anon_WITH_AES_128_CBC_SHA");
-        add("AECDH-AES256-SHA", "TLS_ECDH_anon_WITH_AES_256_CBC_SHA");
-        add("AECDH-DES-CBC3-SHA", "TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA");
-        add("AECDH-NULL-SHA", "TLS_ECDH_anon_WITH_NULL_SHA");
-        add("AES128-GCM-SHA256", "TLS_RSA_WITH_AES_128_GCM_SHA256");
-        add("AES128-SHA256", "TLS_RSA_WITH_AES_128_CBC_SHA256");
-        add("AES128-SHA", "TLS_RSA_WITH_AES_128_CBC_SHA");
-        add("AES256-GCM-SHA384", "TLS_RSA_WITH_AES_256_GCM_SHA384");
-        add("AES256-SHA256", "TLS_RSA_WITH_AES_256_CBC_SHA256");
-        add("AES256-SHA", "TLS_RSA_WITH_AES_256_CBC_SHA");
-        add("DES-CBC3-SHA", "SSL_RSA_WITH_3DES_EDE_CBC_SHA");
-        add("DES-CBC-SHA", "SSL_RSA_WITH_DES_CBC_SHA");
-        add("ECDH-ECDSA-AES128-GCM-SHA256", "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256");
-        add("ECDH-ECDSA-AES128-SHA256", "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256");
-        add("ECDH-ECDSA-AES128-SHA", "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA");
-        add("ECDH-ECDSA-AES256-GCM-SHA384", "TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384");
-        add("ECDH-ECDSA-AES256-SHA384", "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384");
-        add("ECDH-ECDSA-AES256-SHA", "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA");
-        add("ECDH-ECDSA-DES-CBC3-SHA", "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA");
-        add("ECDH-ECDSA-NULL-SHA", "TLS_ECDH_ECDSA_WITH_NULL_SHA");
-        add("ECDHE-ECDSA-AES128-GCM-SHA256", "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
-        add("ECDHE-ECDSA-AES128-SHA256", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
-        add("ECDHE-ECDSA-AES128-SHA", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
-        add("ECDHE-ECDSA-AES256-GCM-SHA384", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
-        add("ECDHE-ECDSA-AES256-SHA384", "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384");
-        add("ECDHE-ECDSA-AES256-SHA", "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA");
-        add("ECDHE-ECDSA-CHACHA20-POLY1305", "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305");
-        add("ECDHE-ECDSA-CHACHA20-POLY1305", "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256");
-        add("ECDHE-ECDSA-DES-CBC3-SHA", "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA");
-        add("ECDHE-ECDSA-NULL-SHA", "TLS_ECDHE_ECDSA_WITH_NULL_SHA");
-        add("ECDHE-PSK-AES128-CBC-SHA", "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA");
-        add("ECDHE-PSK-AES128-GCM-SHA256", "TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256");
-        add("ECDHE-PSK-AES256-CBC-SHA", "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA");
-        add("ECDHE-PSK-AES256-GCM-SHA384", "TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384");
-        add("ECDHE-PSK-CHACHA20-POLY1305", "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256");
-        add("ECDHE-RSA-AES128-GCM-SHA256", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
-        add("ECDHE-RSA-AES128-SHA256", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
-        add("ECDHE-RSA-AES128-SHA", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
-        add("ECDHE-RSA-AES256-GCM-SHA384", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
-        add("ECDHE-RSA-AES256-SHA384", "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
-        add("ECDHE-RSA-AES256-SHA", "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
-        add("ECDHE-RSA-CHACHA20-POLY1305", "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305");
-        add("ECDHE-RSA-CHACHA20-POLY1305", "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256");
-        add("ECDHE-RSA-DES-CBC3-SHA", "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA");
-        add("ECDHE-RSA-NULL-SHA", "TLS_ECDHE_RSA_WITH_NULL_SHA");
-        add("ECDH-RSA-AES128-GCM-SHA256", "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256");
-        add("ECDH-RSA-AES128-SHA256", "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256");
-        add("ECDH-RSA-AES128-SHA", "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA");
-        add("ECDH-RSA-AES256-GCM-SHA384", "TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384");
-        add("ECDH-RSA-AES256-SHA384", "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384");
-        add("ECDH-RSA-AES256-SHA", "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA");
-        add("ECDH-RSA-DES-CBC3-SHA", "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA");
-        add("ECDH-RSA-NULL-SHA", "TLS_ECDH_RSA_WITH_NULL_SHA");
-        add("EXP-ADH-DES-CBC-SHA", "SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
-        add("EXP-DES-CBC-SHA", "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA");
-        add("NULL-MD5", "SSL_RSA_WITH_NULL_MD5");
-        add("NULL-SHA256", "TLS_RSA_WITH_NULL_SHA256");
-        add("NULL-SHA", "SSL_RSA_WITH_NULL_SHA");
-        add("PSK-3DES-EDE-CBC-SHA", "TLS_PSK_WITH_3DES_EDE_CBC_SHA");
-        add("PSK-AES128-CBC-SHA", "TLS_PSK_WITH_AES_128_CBC_SHA");
-        add("PSK-AES256-CBC-SHA", "TLS_PSK_WITH_AES_256_CBC_SHA");
-
-        // Signaling Cipher Suite Value for secure renegotiation handled as special case.
-        // add("TLS_EMPTY_RENEGOTIATION_INFO_SCSV", null);
-
-        // Similarly, the fallback SCSV is handled as a special case.
-        // add("TLS_FALLBACK_SCSV", null);
-    }
+    private static final String TLS_FALLBACK_SCSV = "TLS_FALLBACK_SCSV";
 
     private static final String[] SUPPORTED_CIPHER_SUITES;
     static {
-        String[] allOpenSSLCipherSuites = get_cipher_names("ALL:!DHE");
+        String[] allCipherSuites = get_cipher_names("ALL:!DHE");
 
-        int size = allOpenSSLCipherSuites.length;
-        SUPPORTED_CIPHER_SUITES = new String[size + 2];
-        for (int i = 0; i < size; i++) {
-            String standardName = OPENSSL_TO_STANDARD_CIPHER_SUITES.get(allOpenSSLCipherSuites[i]);
-            if (standardName == null) {
-                throw new IllegalArgumentException("Unknown cipher suite supported by native code: "
-                        + allOpenSSLCipherSuites[i]);
-            }
-            SUPPORTED_CIPHER_SUITES[i] = standardName;
-            SUPPORTED_CIPHER_SUITES_SET.add(standardName);
+        // get_cipher_names returns an array where even indices are the standard name and odd
+        // indices are the OpenSSL name.
+        int size = allCipherSuites.length;
+        if (size % 2 != 0) {
+            throw new IllegalArgumentException("Invalid cipher list returned by get_cipher_names");
         }
-        SUPPORTED_CIPHER_SUITES[size] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
-        SUPPORTED_CIPHER_SUITES[size + 1] = TLS_FALLBACK_SCSV;
+        SUPPORTED_CIPHER_SUITES = new String[size / 2 + 2];
+        for (int i = 0; i < size; i += 2) {
+            String cipherSuite = cipherSuiteToJava(allCipherSuites[i]);
+            SUPPORTED_CIPHER_SUITES[i / 2] = cipherSuite;
+            SUPPORTED_CIPHER_SUITES_SET.add(cipherSuite);
+
+            SUPPORTED_LEGACY_CIPHER_SUITES_SET.add(allCipherSuites[i + 1]);
+        }
+        SUPPORTED_CIPHER_SUITES[size / 2] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
+        SUPPORTED_CIPHER_SUITES[size / 2 + 1] = TLS_FALLBACK_SCSV;
     }
 
     /**
@@ -724,7 +808,8 @@ public final class NativeCrypto {
     // prevent apps from connecting to servers they were previously able to connect to.
 
     /** X.509 based cipher suites enabled by default (if requested), in preference order. */
-    static final String[] DEFAULT_X509_CIPHER_SUITES = EVP_has_aes_hardware() == 1 ?
+    private static final boolean HAS_AES_HARDWARE = EVP_has_aes_hardware() == 1;
+    static final String[] DEFAULT_X509_CIPHER_SUITES = HAS_AES_HARDWARE ?
             new String[] {
                     "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
                     "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
@@ -760,8 +845,10 @@ public final class NativeCrypto {
 
     /** TLS-PSK cipher suites enabled by default (if requested), in preference order. */
     static final String[] DEFAULT_PSK_CIPHER_SUITES = new String[] {
-            "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256", "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA", "TLS_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA",
+            "TLS_PSK_WITH_AES_128_CBC_SHA",
             "TLS_PSK_WITH_AES_256_CBC_SHA",
     };
 
@@ -773,76 +860,84 @@ public final class NativeCrypto {
 
     static native void SSL_CTX_set_session_id_context(long ssl_ctx, byte[] sid_ctx);
 
+    static native long SSL_CTX_set_timeout(long ssl_ctx, long seconds);
+
     static native long SSL_new(long ssl_ctx) throws SSLException;
 
-    static native void SSL_enable_tls_channel_id(long ssl) throws SSLException;
+    static native void SSL_enable_tls_channel_id(long ssl, NativeSsl ssl_holder) throws SSLException;
 
-    static native byte[] SSL_get_tls_channel_id(long ssl) throws SSLException;
+    static native byte[] SSL_get_tls_channel_id(long ssl, NativeSsl ssl_holder) throws SSLException;
 
-    static native void SSL_set1_tls_channel_id(long ssl, NativeRef.EVP_PKEY pkey);
+    static native void SSL_set1_tls_channel_id(long ssl, NativeSsl ssl_holder, NativeRef.EVP_PKEY pkey);
 
-    static native void SSL_use_certificate(long ssl, long[] x509refs);
+    /**
+     * Sets the local certificates and private key.
+     *
+     * @param ssl the SSL reference.
+     * @param encodedCertificates the encoded form of the local certificate chain.
+     * @param pkey a reference to the private key.
+     * @throws SSLException if a problem occurs setting the cert/key.
+     */
+    static native void setLocalCertsAndPrivateKey(long ssl, NativeSsl ssl_holder, byte[][] encodedCertificates,
+        NativeRef.EVP_PKEY pkey) throws SSLException;
 
-    static native void SSL_use_PrivateKey(long ssl, NativeRef.EVP_PKEY pkey);
+    static native void SSL_set_client_CA_list(long ssl, NativeSsl ssl_holder, byte[][] asn1DerEncodedX500Principals)
+            throws SSLException;
 
-    static native void SSL_check_private_key(long ssl) throws SSLException;
+    static native long SSL_set_mode(long ssl, NativeSsl ssl_holder, long mode);
 
-    static native void SSL_set_client_CA_list(long ssl, byte[][] asn1DerEncodedX500Principals);
+    static native long SSL_set_options(long ssl, NativeSsl ssl_holder, long options);
 
-    static native long SSL_get_mode(long ssl);
+    static native long SSL_clear_options(long ssl, NativeSsl ssl_holder, long options);
 
-    static native long SSL_set_mode(long ssl, long mode);
+    static native void SSL_enable_signed_cert_timestamps(long ssl, NativeSsl ssl_holder);
 
-    static native long SSL_clear_mode(long ssl, long mode);
+    static native byte[] SSL_get_signed_cert_timestamp_list(long ssl, NativeSsl ssl_holder);
 
-    static native long SSL_get_options(long ssl);
+    static native void SSL_set_signed_cert_timestamp_list(long ssl, NativeSsl ssl_holder, byte[] list);
 
-    static native long SSL_set_options(long ssl, long options);
+    static native void SSL_enable_ocsp_stapling(long ssl, NativeSsl ssl_holder);
 
-    static native long SSL_clear_options(long ssl, long options);
+    static native byte[] SSL_get_ocsp_response(long ssl, NativeSsl ssl_holder);
 
-    static native void SSL_enable_signed_cert_timestamps(long ssl);
+    static native void SSL_set_ocsp_response(long ssl, NativeSsl ssl_holder, byte[] response);
 
-    static native byte[] SSL_get_signed_cert_timestamp_list(long ssl);
+    static native byte[] SSL_get_tls_unique(long ssl, NativeSsl ssl_holder);
 
-    static native void SSL_set_signed_cert_timestamp_list(long ssl, byte[] list);
+    static native void SSL_use_psk_identity_hint(long ssl, NativeSsl ssl_holder, String identityHint) throws SSLException;
 
-    static native void SSL_enable_ocsp_stapling(long ssl);
+    static native void set_SSL_psk_client_callback_enabled(long ssl, NativeSsl ssl_holder, boolean enabled);
 
-    static native byte[] SSL_get_ocsp_response(long ssl);
-
-    static native void SSL_set_ocsp_response(long ssl, byte[] response);
-
-    static native void SSL_use_psk_identity_hint(long ssl, String identityHint) throws SSLException;
-
-    static native void set_SSL_psk_client_callback_enabled(long ssl, boolean enabled);
-
-    static native void set_SSL_psk_server_callback_enabled(long ssl, boolean enabled);
+    static native void set_SSL_psk_server_callback_enabled(long ssl, NativeSsl ssl_holder, boolean enabled);
 
     /** Protocols to enable by default when "TLSv1.2" is requested. */
     static final String[] TLSV12_PROTOCOLS = new String[] {
-            SUPPORTED_PROTOCOL_TLSV1, SUPPORTED_PROTOCOL_TLSV1_1, SUPPORTED_PROTOCOL_TLSV1_2,
+            SUPPORTED_PROTOCOL_TLSV1,
+            SUPPORTED_PROTOCOL_TLSV1_1,
+            SUPPORTED_PROTOCOL_TLSV1_2,
     };
 
     /** Protocols to enable by default when "TLSv1.1" is requested. */
     static final String[] TLSV11_PROTOCOLS = new String[] {
-            SUPPORTED_PROTOCOL_TLSV1, SUPPORTED_PROTOCOL_TLSV1_1, SUPPORTED_PROTOCOL_TLSV1_2,
+            SUPPORTED_PROTOCOL_TLSV1,
+            SUPPORTED_PROTOCOL_TLSV1_1,
+            SUPPORTED_PROTOCOL_TLSV1_2,
     };
 
     /** Protocols to enable by default when "TLSv1" is requested. */
     static final String[] TLSV1_PROTOCOLS = new String[] {
-            SUPPORTED_PROTOCOL_TLSV1, SUPPORTED_PROTOCOL_TLSV1_1, SUPPORTED_PROTOCOL_TLSV1_2,
+            SUPPORTED_PROTOCOL_TLSV1,
+            SUPPORTED_PROTOCOL_TLSV1_1,
+            SUPPORTED_PROTOCOL_TLSV1_2,
     };
 
     static final String[] DEFAULT_PROTOCOLS = TLSV12_PROTOCOLS;
 
     static String[] getSupportedProtocols() {
-        return new String[] {
-                SUPPORTED_PROTOCOL_TLSV1, SUPPORTED_PROTOCOL_TLSV1_1, SUPPORTED_PROTOCOL_TLSV1_2,
-        };
+        return TLSV12_PROTOCOLS.clone();
     }
 
-    static void setEnabledProtocols(long ssl, String[] protocols) {
+    static void setEnabledProtocols(long ssl, NativeSsl ssl_holder, String[] protocols) {
         checkEnabledProtocols(protocols);
         // openssl uses negative logic letting you disable protocols.
         // so first, assume we need to set all (disable all) and clear none (enable none).
@@ -870,8 +965,8 @@ public final class NativeCrypto {
             }
         }
 
-        SSL_set_options(ssl, optionsToSet);
-        SSL_clear_options(ssl, optionsToClear);
+        SSL_set_options(ssl, ssl_holder, optionsToSet);
+        SSL_clear_options(ssl, ssl_holder, optionsToClear);
     }
 
     static String[] checkEnabledProtocols(String[] protocols) {
@@ -892,16 +987,16 @@ public final class NativeCrypto {
         return protocols;
     }
 
-    static native void SSL_set_cipher_lists(long ssl, String[] ciphers);
+    static native void SSL_set_cipher_lists(long ssl, NativeSsl ssl_holder, String[] ciphers);
 
     /**
      * Gets the list of cipher suites enabled for the provided {@code SSL} instance.
      *
      * @return array of {@code SSL_CIPHER} references.
      */
-    static native long[] SSL_get_ciphers(long ssl);
+    static native long[] SSL_get_ciphers(long ssl, NativeSsl ssl_holder);
 
-    static void setEnabledCipherSuites(long ssl, String[] cipherSuites) {
+    static void setEnabledCipherSuites(long ssl, NativeSsl ssl_holder, String[] cipherSuites) {
         checkEnabledCipherSuites(cipherSuites);
         List<String> opensslSuites = new ArrayList<String>();
         for (int i = 0; i < cipherSuites.length; i++) {
@@ -910,14 +1005,12 @@ public final class NativeCrypto {
                 continue;
             }
             if (cipherSuite.equals(TLS_FALLBACK_SCSV)) {
-                SSL_set_mode(ssl, NativeConstants.SSL_MODE_SEND_FALLBACK_SCSV);
+                SSL_set_mode(ssl, ssl_holder, NativeConstants.SSL_MODE_SEND_FALLBACK_SCSV);
                 continue;
             }
-            String openssl = STANDARD_TO_OPENSSL_CIPHER_SUITES.get(cipherSuite);
-            String cs = (openssl == null) ? cipherSuite : openssl;
-            opensslSuites.add(cs);
+            opensslSuites.add(cipherSuiteFromJava(cipherSuite));
         }
-        SSL_set_cipher_lists(ssl, opensslSuites.toArray(new String[opensslSuites.size()]));
+        SSL_set_cipher_lists(ssl, ssl_holder, opensslSuites.toArray(new String[opensslSuites.size()]));
     }
 
     static String[] checkEnabledCipherSuites(String[] cipherSuites) {
@@ -926,117 +1019,103 @@ public final class NativeCrypto {
         }
         // makes sure all suites are valid, throwing on error
         for (int i = 0; i < cipherSuites.length; i++) {
-            String cipherSuite = cipherSuites[i];
-            if (cipherSuite == null) {
+            if (cipherSuites[i] == null) {
                 throw new IllegalArgumentException("cipherSuites[" + i + "] == null");
             }
-            if (cipherSuite.equals(TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
-                    || cipherSuite.equals(TLS_FALLBACK_SCSV)) {
+            if (cipherSuites[i].equals(TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
+                    || cipherSuites[i].equals(TLS_FALLBACK_SCSV)) {
                 continue;
             }
-            if (SUPPORTED_CIPHER_SUITES_SET.contains(cipherSuite)) {
+            if (SUPPORTED_CIPHER_SUITES_SET.contains(cipherSuites[i])) {
                 continue;
             }
 
             // For backwards compatibility, it's allowed for |cipherSuite| to
             // be an OpenSSL-style cipher-suite name.
-            String standardName = OPENSSL_TO_STANDARD_CIPHER_SUITES.get(cipherSuite);
-            if (standardName != null && SUPPORTED_CIPHER_SUITES_SET.contains(standardName)) {
+            if (SUPPORTED_LEGACY_CIPHER_SUITES_SET.contains(cipherSuites[i])) {
                 // TODO log warning about using backward compatability
                 continue;
             }
-            throw new IllegalArgumentException("cipherSuite " + cipherSuite + " is not supported.");
+            throw new IllegalArgumentException(
+                    "cipherSuite " + cipherSuites[i] + " is not supported.");
         }
         return cipherSuites;
     }
 
-    /*
-     * See the OpenSSL ssl.h header file for more information.
-     */
-    // TODO(nathanmittler): Should these move to NativeConstants.java?
-    static final int SSL_VERIFY_NONE = 0x00;
-    static final int SSL_VERIFY_PEER = 0x01;
-    static final int SSL_VERIFY_FAIL_IF_NO_PEER_CERT = 0x02;
+    static native void SSL_set_accept_state(long ssl, NativeSsl ssl_holder);
 
-    static native void SSL_set_accept_state(long sslNativePointer);
+    static native void SSL_set_connect_state(long ssl, NativeSsl ssl_holder);
 
-    static native void SSL_set_connect_state(long sslNativePointer);
+    static native void SSL_set_verify(long ssl, NativeSsl ssl_holder, int mode);
 
-    static native void SSL_set_verify(long sslNativePointer, int mode);
-
-    static native void SSL_set_session(long sslNativePointer, long sslSessionNativePointer)
+    static native void SSL_set_session(long ssl, NativeSsl ssl_holder, long sslSessionNativePointer)
             throws SSLException;
 
     static native void SSL_set_session_creation_enabled(
-            long sslNativePointer, boolean creationEnabled) throws SSLException;
+            long ssl, NativeSsl ssl_holder, boolean creationEnabled) throws SSLException;
 
-    static native boolean SSL_session_reused(long sslNativePointer);
+    static native boolean SSL_session_reused(long ssl, NativeSsl ssl_holder);
 
-    static native void SSL_accept_renegotiations(long sslNativePointer) throws SSLException;
+    static native void SSL_accept_renegotiations(long ssl, NativeSsl ssl_holder) throws SSLException;
 
-    static native void SSL_set_tlsext_host_name(long sslNativePointer, String hostname)
+    static native void SSL_set_tlsext_host_name(long ssl, NativeSsl ssl_holder, String hostname)
             throws SSLException;
-    static native String SSL_get_servername(long sslNativePointer);
+    static native String SSL_get_servername(long ssl, NativeSsl ssl_holder);
 
-    /**
-     * Returns the selected ALPN protocol. If the server did not select a
-     * protocol, {@code null} will be returned.
-     */
-    static native byte[] SSL_get0_alpn_selected(long sslPointer);
     static native void SSL_do_handshake(
-            long sslNativePointer, FileDescriptor fd, SSLHandshakeCallbacks shc, int timeoutMillis)
+            long ssl, NativeSsl ssl_holder, FileDescriptor fd, SSLHandshakeCallbacks shc, int timeoutMillis)
             throws SSLException, SocketTimeoutException, CertificateException;
 
-    /**
-     * Currently only intended for forcing renegotiation for testing.
-     * Not used within OpenSSLSocketImpl.
-     */
-    static native void SSL_renegotiate(long sslNativePointer) throws SSLException;
+    public static native String SSL_get_current_cipher(long ssl, NativeSsl ssl_holder);
+
+    public static native String SSL_get_version(long ssl, NativeSsl ssl_holder);
 
     /**
-     * Returns the local X509 certificate references. Must X509_free when done.
+     * Returns the peer certificate chain.
      */
-    static native long[] SSL_get_certificate(long sslNativePointer);
-
-    /**
-     * Returns the peer X509 certificate references. Must X509_free when done.
-     */
-    static native long[] SSL_get_peer_cert_chain(long sslNativePointer);
+    static native byte[][] SSL_get0_peer_certificates(long ssl, NativeSsl ssl_holder);
 
     /**
      * Reads with the native SSL_read function from the encrypted data stream
      * @return -1 if error or the end of the stream is reached.
      */
-    static native int SSL_read(long sslNativePointer, FileDescriptor fd, SSLHandshakeCallbacks shc,
+    static native int SSL_read(long ssl, NativeSsl ssl_holder, FileDescriptor fd, SSLHandshakeCallbacks shc,
             byte[] b, int off, int len, int readTimeoutMillis) throws IOException;
 
     /**
      * Writes with the native SSL_write function to the encrypted data stream.
      */
-    static native void SSL_write(long sslNativePointer, FileDescriptor fd,
+    static native void SSL_write(long ssl, NativeSsl ssl_holder, FileDescriptor fd,
             SSLHandshakeCallbacks shc, byte[] b, int off, int len, int writeTimeoutMillis)
             throws IOException;
 
-    static native void SSL_interrupt(long sslNativePointer);
+    static native void SSL_interrupt(long ssl, NativeSsl ssl_holder);
     static native void SSL_shutdown(
-            long sslNativePointer, FileDescriptor fd, SSLHandshakeCallbacks shc) throws IOException;
+            long ssl, NativeSsl ssl_holder, FileDescriptor fd, SSLHandshakeCallbacks shc) throws IOException;
 
-    static native void SSL_shutdown_BIO(long sslNativePointer, long sourceBioRef, long sinkBioRef,
-            SSLHandshakeCallbacks shc) throws IOException;
+    static native int SSL_get_shutdown(long ssl, NativeSsl ssl_holder);
 
-    static native int SSL_get_shutdown(long sslNativePointer);
+    static native void SSL_free(long ssl, NativeSsl ssl_holder);
 
-    static native void SSL_free(long sslNativePointer);
+    static native long SSL_get_time(long ssl, NativeSsl ssl_holder);
+
+    static native long SSL_set_timeout(long ssl, NativeSsl ssl_holder, long millis);
+
+    static native long SSL_get_timeout(long ssl, NativeSsl ssl_holder);
+
+    static native byte[] SSL_session_id(long ssl, NativeSsl ssl_holder);
 
     static native byte[] SSL_SESSION_session_id(long sslSessionNativePointer);
 
     static native long SSL_SESSION_get_time(long sslSessionNativePointer);
 
+    static native long SSL_SESSION_get_timeout(long sslSessionNativePointer);
+
     static native String SSL_SESSION_get_version(long sslSessionNativePointer);
 
     static native String SSL_SESSION_cipher(long sslSessionNativePointer);
 
-    static native String get_SSL_SESSION_tlsext_hostname(long sslSessionNativePointer);
+    static native void SSL_SESSION_up_ref(long sslSessionNativePointer);
 
     static native void SSL_SESSION_free(long sslSessionNativePointer);
 
@@ -1050,14 +1129,15 @@ public final class NativeCrypto {
      */
     interface SSLHandshakeCallbacks {
         /**
-         * Verify that we trust the certificate chain is trusted.
+         * Verify that the certificate chain is trusted.
          *
-         * @param certificateChainRefs chain of X.509 certificate references
+         * @param certificateChain chain of X.509 certificates in their encoded form
          * @param authMethod auth algorithm name
          *
          * @throws CertificateException if the certificate is untrusted
          */
-        void verifyCertificateChain(long[] certificateChainRefs, String authMethod)
+        @SuppressWarnings("unused")
+        void verifyCertificateChain(byte[][] certificateChain, String authMethod)
                 throws CertificateException;
 
         /**
@@ -1071,6 +1151,7 @@ public final class NativeCrypto {
          * convertible to strings with #keyType
          * @param asn1DerEncodedX500Principals CAs known to the server
          */
+        @SuppressWarnings("unused")
         void clientCertificateRequested(byte[] keyTypes, byte[][] asn1DerEncodedX500Principals)
                 throws CertificateEncodingException, SSLException;
 
@@ -1106,17 +1187,37 @@ public final class NativeCrypto {
         /**
          * Called when SSL state changes. This could be handshake completion.
          */
+        @SuppressWarnings("unused")
         void onSSLStateChange(int type, int val);
-    }
 
-    static native long ERR_peek_last_error();
+        /**
+         * Called when a new session has been established and may be added to the session cache.
+         * The callee is responsible for incrementing the reference count on the returned session.
+         */
+        @SuppressWarnings("unused")
+        void onNewSessionEstablished(long sslSessionNativePtr);
+
+        /**
+         * Called for servers where TLS < 1.3 (TLS 1.3 uses session tickets rather than
+         * application session caches).
+         *
+         * <p/>Looks up the session by ID in the application's session cache. If a valid session
+         * is returned, this callback is responsible for incrementing the reference count (and any
+         * required synchronization).
+         *
+         * @param id the ID of the session to find.
+         * @return the cached session or {@code 0} if no session was found matching the given ID.
+         */
+        @SuppressWarnings("unused")
+        long serverSessionRequested(byte[] id);
+    }
 
     static native String SSL_CIPHER_get_kx_name(long cipherAddress);
 
     static native String[] get_cipher_names(String selection);
 
     static native byte[] get_ocsp_single_extension(
-            byte[] ocspResponse, String oid, long x509Ref, long issuerX509Ref);
+            byte[] ocspResponse, String oid, long x509Ref, OpenSSLX509Certificate holder, long issuerX509Ref, OpenSSLX509Certificate holder2);
 
     /**
      * Returns the starting address of the memory region referenced by the provided direct
@@ -1127,97 +1228,121 @@ public final class NativeCrypto {
      */
     static native long getDirectBufferAddress(Buffer buf);
 
-    static native long SSL_BIO_new(long ssl) throws SSLException;
+    static native long SSL_BIO_new(long ssl, NativeSsl ssl_holder) throws SSLException;
 
-    static native int SSL_get_last_error_number();
-
-    static native int SSL_get_error(long ssl, int ret);
-
-    static native String SSL_get_error_string(long errorNumber);
+    static native int SSL_get_error(long ssl, NativeSsl ssl_holder, int ret);
 
     static native void SSL_clear_error();
 
-    static native int SSL_pending_readable_bytes(long ssl);
+    static native int SSL_pending_readable_bytes(long ssl, NativeSsl ssl_holder);
 
     static native int SSL_pending_written_bytes_in_BIO(long bio);
-
-    static native long SSL_get0_session(long ssl);
-
-    static native long SSL_get1_session(long ssl);
 
     /**
      * Returns the maximum overhead, in bytes, of sealing a record with SSL.
      */
-    static native int SSL_max_seal_overhead(long ssl);
+    static native int SSL_max_seal_overhead(long ssl, NativeSsl ssl_holder);
 
     /**
-     * Sets the list of supported ALPN protocols in wire-format (length-prefixed 8-bit strings).
+     * Enables ALPN for this TLS endpoint and sets the list of supported ALPN protocols in
+     * wire-format (length-prefixed 8-bit strings).
      */
-    static native void SSL_configure_alpn(
-            long sslNativePointer, boolean clientMode, byte[] alpnProtocols) throws IOException;
+    static native void setApplicationProtocols(
+            long ssl, NativeSsl ssl_holder, boolean client, byte[] protocols) throws IOException;
 
     /**
-     * Variant of the {@link #SSL_do_handshake} used by {@link OpenSSLEngineImpl}. This version
-     * does not lock and does no error preprocessing.
+     * Called for a server endpoint only. Enables ALPN and sets a BiFunction that will
+     * be called to delegate protocol selection to the application. Calling this method overrides
+     * {@link #setApplicationProtocols(long, NativeSsl, boolean, byte[])}.
      */
-    static native int ENGINE_SSL_do_handshake(long ssl, SSLHandshakeCallbacks shc);
+    static native void setApplicationProtocolSelector(
+            long ssl, NativeSsl ssl_holder, ApplicationProtocolSelectorAdapter selector) throws IOException;
+
+    /**
+     * Returns the selected ALPN protocol. If the server did not select a
+     * protocol, {@code null} will be returned.
+     */
+    static native byte[] getApplicationProtocol(long ssl, NativeSsl ssl_holder);
+
+    /**
+     * Variant of the {@link #SSL_do_handshake} used by {@link ConscryptEngine}. This differs
+     * slightly from the raw BoringSSL API in that it returns the SSL error code from the
+     * operation, rather than the return value from {@code SSL_do_handshake}. This is done in
+     * order to allow to properly handle SSL errors and propagate useful exceptions.
+     *
+     * @return Returns the SSL error code for the operation when the error was {@code
+     * SSL_ERROR_NONE}, {@code SSL_ERROR_WANT_READ}, or {@code SSL_ERROR_WANT_WRITE}.
+     * @throws IOException when the error code is anything except those returned by this method.
+     */
+    static native int ENGINE_SSL_do_handshake(long ssl, NativeSsl ssl_holder, SSLHandshakeCallbacks shc)
+            throws IOException;
 
     /**
      * Variant of the {@link #SSL_read} for a direct {@link java.nio.ByteBuffer} used by {@link
-     * OpenSSLEngineImpl}. This version does not lock or and does no error pre-processing.
+     * ConscryptEngine}.
+     *
+     * @return if positive, represents the number of bytes read into the given buffer.
+     * Returns {@code -SSL_ERROR_WANT_READ} if more data is needed. Returns
+     * {@code -SSL_ERROR_WANT_WRITE} if data needs to be written out to flush the BIO.
+     *
+     * @throws java.io.InterruptedIOException if the read was interrupted.
+     * @throws java.io.EOFException if the end of stream has been reached.
+     * @throws CertificateException if the application's certificate verification callback failed.
+     * Only occurs during handshake processing.
+     * @throws SSLException if any other error occurs.
      */
-    static native int ENGINE_SSL_read_direct(long sslNativePointer, long address, int length,
-            SSLHandshakeCallbacks shc) throws IOException;
-
-    /**
-     * Variant of the {@link #SSL_read} for a heap {@link java.nio.ByteBuffer} used by {@link
-     * OpenSSLEngineImpl}. This version does not lock or and does no error pre-processing.
-     */
-    static native int ENGINE_SSL_read_heap(long sslNativePointer, byte[] destJava, int destOffset,
-            int destLength, SSLHandshakeCallbacks shc) throws IOException;
+    static native int ENGINE_SSL_read_direct(long ssl, NativeSsl ssl_holder, long address, int length,
+            SSLHandshakeCallbacks shc) throws IOException, CertificateException;
 
     /**
      * Variant of the {@link #SSL_write} for a direct {@link java.nio.ByteBuffer} used by {@link
-     * OpenSSLEngineImpl}. This version does not lock or and does no error pre-processing.
+     * ConscryptEngine}. This version does not lock or and does no error pre-processing.
      */
-    static native int ENGINE_SSL_write_direct(long sslNativePointer, long address, int length,
+    static native int ENGINE_SSL_write_direct(long ssl, NativeSsl ssl_holder, long address, int length,
             SSLHandshakeCallbacks shc) throws IOException;
-
-    /**
-     * Variant of the {@link #SSL_write} for a heap {@link java.nio.ByteBuffer} used by {@link
-     * OpenSSLEngineImpl}. This version does not lock or and does no error pre-processing.
-     */
-    static native int ENGINE_SSL_write_heap(long sslNativePointer, byte[] sourceJava,
-            int sourceOffset, int sourceLength, SSLHandshakeCallbacks shc) throws IOException;
 
     /**
      * Writes data from the given direct {@link java.nio.ByteBuffer} to the BIO.
      */
-    static native int ENGINE_SSL_write_BIO_direct(long sslRef, long bioRef, long pos, int length,
+    static native int ENGINE_SSL_write_BIO_direct(long ssl, NativeSsl ssl_holder, long bioRef, long pos, int length,
             SSLHandshakeCallbacks shc) throws IOException;
 
     /**
      * Writes data from the given array to the BIO.
      */
-    static native int ENGINE_SSL_write_BIO_heap(long sslRef, long bioRef, byte[] sourceJava,
-            int sourceOffset, int sourceLength, SSLHandshakeCallbacks shc) throws IOException;
+    static native int ENGINE_SSL_write_BIO_heap(long ssl, NativeSsl ssl_holder, long bioRef, byte[] sourceJava,
+            int sourceOffset, int sourceLength, SSLHandshakeCallbacks shc)
+            throws IOException, IndexOutOfBoundsException;
 
     /**
      * Reads data from the given BIO into a direct {@link java.nio.ByteBuffer}.
      */
-    static native int ENGINE_SSL_read_BIO_direct(long sslRef, long bioRef, long address, int len,
+    static native int ENGINE_SSL_read_BIO_direct(long ssl, NativeSsl ssl_holder, long bioRef, long address, int len,
             SSLHandshakeCallbacks shc) throws IOException;
 
     /**
      * Reads data from the given BIO into an array.
      */
-    static native int ENGINE_SSL_read_BIO_heap(long sslRef, long bioRef, byte[] destJava,
-            int destOffset, int destLength, SSLHandshakeCallbacks shc) throws IOException;
+    static native int ENGINE_SSL_read_BIO_heap(long ssl, NativeSsl ssl_holder, long bioRef, byte[] destJava,
+            int destOffset, int destLength, SSLHandshakeCallbacks shc)
+            throws IOException, IndexOutOfBoundsException;
 
     /**
-     * Variant of the {@link #SSL_shutdown} used by {@link OpenSSLEngineImpl}. This version does not
+     * Variant of the {@link #SSL_shutdown} used by {@link ConscryptEngine}. This version does not
      * lock.
      */
-    static native void ENGINE_SSL_shutdown(long sslNativePointer, SSLHandshakeCallbacks shc)
+    static native void ENGINE_SSL_shutdown(long ssl, NativeSsl ssl_holder, SSLHandshakeCallbacks shc)
             throws IOException;
+
+    /**
+     * Used for testing only.
+     */
+    static native int BIO_read(long bioRef, byte[] buffer) throws IOException;
+    static native void BIO_write(long bioRef, byte[] buffer, int offset, int length)
+            throws IOException, IndexOutOfBoundsException;
+    static native long ERR_peek_last_error();
+    static native long SSL_clear_mode(long ssl, NativeSsl ssl_holder, long mode);
+    static native long SSL_get_mode(long ssl, NativeSsl ssl_holder);
+    static native long SSL_get_options(long ssl, NativeSsl ssl_holder);
+    static native long SSL_get1_session(long ssl, NativeSsl ssl_holder);
 }

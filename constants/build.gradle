@@ -36,8 +36,14 @@ model {
                     // Sources assumed to be in src/gen/cpp by default.
                     exportedHeaders {
                         srcDirs "${boringsslIncludeDir}"
-                        include "**/*.cpp"
+                        include "**/*.cc"
                     }
+                }
+            }
+
+            binaries.all {
+                if (toolChain in VisualCpp) {
+                    cppCompiler.define "WIN32_LEAN_AND_MEAN"
                 }
             }
         }

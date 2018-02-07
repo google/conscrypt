@@ -27,6 +27,7 @@ import java.security.spec.ECParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * Represents a BoringSSL {@code EVP_PKEY}.
@@ -73,7 +74,11 @@ final class OpenSSLKey {
             throw new InvalidKeyException("Key encoding is null");
         }
 
-        return new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(key.getEncoded()));
+        try {
+            return new OpenSSLKey(NativeCrypto.EVP_parse_private_key(key.getEncoded()));
+        } catch (ParsingException e) {
+            throw new InvalidKeyException(e);
+        }
     }
 
     /**
@@ -169,7 +174,7 @@ final class OpenSSLKey {
      * @return instance or {@code null} if the {@code key} does not export its key material in a
      *         suitable format.
      */
-    private static OpenSSLKey fromKeyMaterial(PrivateKey key) {
+    private static OpenSSLKey fromKeyMaterial(PrivateKey key) throws InvalidKeyException {
         if (!"PKCS#8".equals(key.getFormat())) {
             return null;
         }
@@ -177,7 +182,11 @@ final class OpenSSLKey {
         if (encoded == null) {
             return null;
         }
-        return new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(encoded));
+        try {
+            return new OpenSSLKey(NativeCrypto.EVP_parse_private_key(encoded));
+        } catch (ParsingException e) {
+            throw new InvalidKeyException(e);
+        }
     }
 
     /**
@@ -222,7 +231,7 @@ final class OpenSSLKey {
         }
 
         try {
-            return new OpenSSLKey(NativeCrypto.d2i_PUBKEY(key.getEncoded()));
+            return new OpenSSLKey(NativeCrypto.EVP_parse_public_key(key.getEncoded()));
         } catch (Exception e) {
             throw new InvalidKeyException(e);
         }
@@ -267,7 +276,7 @@ final class OpenSSLKey {
 
         final OpenSSLKey key;
         try {
-            key = new OpenSSLKey(NativeCrypto.d2i_PUBKEY(x509KeySpec.getEncoded()));
+            key = new OpenSSLKey(NativeCrypto.EVP_parse_public_key(x509KeySpec.getEncoded()));
         } catch (Exception e) {
             throw new InvalidKeySpecException(e);
         }
@@ -300,7 +309,7 @@ final class OpenSSLKey {
 
         final OpenSSLKey key;
         try {
-            key = new OpenSSLKey(NativeCrypto.d2i_PKCS8_PRIV_KEY_INFO(pkcs8KeySpec.getEncoded()));
+            key = new OpenSSLKey(NativeCrypto.EVP_parse_private_key(pkcs8KeySpec.getEncoded()));
         } catch (Exception e) {
             throw new InvalidKeySpecException(e);
         }

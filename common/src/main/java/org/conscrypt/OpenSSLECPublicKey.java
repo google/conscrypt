@@ -26,6 +26,7 @@ import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * An implementation of a {@link java.security.PublicKey} for EC keys based on BoringSSL.
@@ -87,7 +88,7 @@ final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
 
     @Override
     public byte[] getEncoded() {
-        return NativeCrypto.i2d_PUBKEY(key.getNativeRef());
+        return NativeCrypto.EVP_marshal_public_key(key.getNativeRef());
     }
 
     @Override
@@ -143,7 +144,7 @@ final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(NativeCrypto.i2d_PUBKEY(key.getNativeRef()));
+        return Arrays.hashCode(NativeCrypto.EVP_marshal_public_key(key.getNativeRef()));
     }
 
     @Override
@@ -156,7 +157,11 @@ final class OpenSSLECPublicKey implements ECPublicKey, OpenSSLKeyHolder {
 
         byte[] encoded = (byte[]) stream.readObject();
 
-        key = new OpenSSLKey(NativeCrypto.d2i_PUBKEY(encoded));
+        try {
+            key = new OpenSSLKey(NativeCrypto.EVP_parse_public_key(encoded));
+        } catch (ParsingException e) {
+            throw new IOException(e);
+        }
         group = new OpenSSLECGroupContext(new NativeRef.EC_GROUP(
                 NativeCrypto.EC_KEY_get1_group(key.getNativeRef())));
     }

@@ -40,9 +40,20 @@ import static org.conscrypt.NativeConstants.SSL3_RT_HANDSHAKE;
 import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
 import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
+import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.security.cert.CertificateException;
 
 /**
  * Utility methods for SSL packet processing. Copied from the Netty project.
@@ -50,9 +61,96 @@ import javax.net.ssl.SSLHandshakeException;
  * This is a public class to allow testing to occur on Android via CTS.
  */
 final class SSLUtils {
-    static final boolean USE_ENGINE_SOCKET_BY_DEFAULT =
-            Boolean.parseBoolean(System.getProperty("org.conscrypt.useEngineSocketByDefault"));
+    static final boolean USE_ENGINE_SOCKET_BY_DEFAULT = Boolean.parseBoolean(
+            System.getProperty("org.conscrypt.useEngineSocketByDefault", "false"));
     private static final int MAX_PROTOCOL_LENGTH = 255;
+
+    private static final Charset US_ASCII = Charset.forName("US-ASCII");
+
+    // TODO(nathanmittler): Should these be in NativeConstants?
+    enum SessionType {
+        /**
+         * Identifies OpenSSL sessions.
+         */
+        OPEN_SSL(1),
+
+        /**
+         * Identifies OpenSSL sessions with OCSP stapled data.
+         */
+        OPEN_SSL_WITH_OCSP(2),
+
+        /**
+         * Identifies OpenSSL sessions with TLS SCT data.
+         */
+        OPEN_SSL_WITH_TLS_SCT(3);
+
+        SessionType(int value) {
+            this.value = value;
+        }
+
+        static boolean isSupportedType(int type) {
+            return type == OPEN_SSL.value || type == OPEN_SSL_WITH_OCSP.value
+                    || type == OPEN_SSL_WITH_TLS_SCT.value;
+        }
+
+        final int value;
+    }
+
+    /**
+     * States for SSL engines.
+     */
+    static final class EngineStates {
+        private EngineStates() {}
+
+        /**
+         * The engine is constructed, but the initial handshake hasn't been started
+         */
+        static final int STATE_NEW = 0;
+
+        /**
+         * The client/server mode of the engine has been set.
+         */
+        static final int STATE_MODE_SET = 1;
+
+        /**
+         * The handshake has been started
+         */
+        static final int STATE_HANDSHAKE_STARTED = 2;
+
+        /**
+         * Listeners of the handshake have been notified of completion but the handshake call
+         * hasn't returned.
+         */
+        static final int STATE_HANDSHAKE_COMPLETED = 3;
+
+        /**
+         * The handshake call returned but the listeners have not yet been notified. This is expected
+         * behaviour in cut-through mode, where SSL_do_handshake returns before the handshake is
+         * complete. We can now start writing data to the socket.
+         */
+        static final int STATE_READY_HANDSHAKE_CUT_THROUGH = 4;
+
+        /**
+         * The handshake call has returned and the listeners have been notified. Ready to begin
+         * writing data.
+         */
+        static final int STATE_READY = 5;
+
+        /**
+         * The inbound direction of the engine has been closed.
+         */
+        static final int STATE_CLOSED_INBOUND = 6;
+
+        /**
+         * The outbound direction of the engine has been closed.
+         */
+        static final int STATE_CLOSED_OUTBOUND = 7;
+
+        /**
+         * The engine has been closed.
+         */
+        static final int STATE_CLOSED = 8;
+    }
 
     /**
      * This is the maximum overhead when encrypting plaintext as defined by
@@ -73,6 +171,145 @@ final class SSLUtils {
 
     private static final int MAX_ENCRYPTION_OVERHEAD_DIFF =
             Integer.MAX_VALUE - MAX_ENCRYPTION_OVERHEAD_LENGTH;
+
+    /** Key type: RSA certificate. */
+    private static final String KEY_TYPE_RSA = "RSA";
+
+    /** Key type: Elliptic Curve certificate. */
+    private static final String KEY_TYPE_EC = "EC";
+
+    /**
+     * If the given session is a {@link SessionDecorator}, unwraps the session and returns the
+     * underlying (non-decorated) session. Otherwise, returns the provided session.
+     */
+    static SSLSession unwrapSession(SSLSession session) {
+        while (session instanceof SessionDecorator) {
+            session = ((SessionDecorator) session).getDelegate();
+        }
+        return session;
+    }
+
+    static X509Certificate[] decodeX509CertificateChain(byte[][] certChain)
+            throws java.security.cert.CertificateException {
+        CertificateFactory certificateFactory = getCertificateFactory();
+        int numCerts = certChain.length;
+        X509Certificate[] decodedCerts = new X509Certificate[numCerts];
+        for (int i = 0; i < numCerts; i++) {
+            decodedCerts[i] = decodeX509Certificate(certificateFactory, certChain[i]);
+        }
+        return decodedCerts;
+    }
+
+    private static CertificateFactory getCertificateFactory() {
+        try {
+            return CertificateFactory.getInstance("X.509");
+        } catch (java.security.cert.CertificateException e) {
+            return null;
+        }
+    }
+
+    private static X509Certificate decodeX509Certificate(CertificateFactory certificateFactory,
+            byte[] bytes) throws java.security.cert.CertificateException {
+        if (certificateFactory != null) {
+            return (X509Certificate) certificateFactory.generateCertificate(
+                    new ByteArrayInputStream(bytes));
+        }
+        return OpenSSLX509Certificate.fromX509Der(bytes);
+    }
+
+    /**
+     * Returns key type constant suitable for calling X509KeyManager.chooseServerAlias or
+     * X509ExtendedKeyManager.chooseEngineServerAlias. Returns {@code null} for key exchanges that
+     * do not use X.509 for server authentication.
+     */
+    static String getServerX509KeyType(long sslCipherNative) throws SSLException {
+        String kx_name = NativeCrypto.SSL_CIPHER_get_kx_name(sslCipherNative);
+        if (kx_name.equals("RSA") || kx_name.equals("DHE_RSA") || kx_name.equals("ECDHE_RSA")) {
+            return KEY_TYPE_RSA;
+        } else if (kx_name.equals("ECDHE_ECDSA")) {
+            return KEY_TYPE_EC;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Similar to getServerKeyType, but returns value given TLS
+     * ClientCertificateType byte values from a CertificateRequest
+     * message for use with X509KeyManager.chooseClientAlias or
+     * X509ExtendedKeyManager.chooseEngineClientAlias.
+     * <p>
+     * Visible for testing.
+     */
+    static String getClientKeyType(byte clientCertificateType) {
+        // See also http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
+        switch (clientCertificateType) {
+            case NativeConstants.TLS_CT_RSA_SIGN:
+                return KEY_TYPE_RSA; // RFC rsa_sign
+            case NativeConstants.TLS_CT_ECDSA_SIGN:
+                return KEY_TYPE_EC; // RFC ecdsa_sign
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Gets the supported key types for client certificates based on the
+     * {@code ClientCertificateType} values provided by the server.
+     *
+     * @param clientCertificateTypes {@code ClientCertificateType} values provided by the server.
+     *        See https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml.
+     * @return supported key types that can be used in {@code X509KeyManager.chooseClientAlias} and
+     *         {@code X509ExtendedKeyManager.chooseEngineClientAlias}.
+     *
+     * Visible for testing.
+     */
+    static Set<String> getSupportedClientKeyTypes(byte[] clientCertificateTypes) {
+        Set<String> result = new HashSet<String>(clientCertificateTypes.length);
+        for (byte keyTypeCode : clientCertificateTypes) {
+            String keyType = SSLUtils.getClientKeyType(keyTypeCode);
+            if (keyType == null) {
+                // Unsupported client key type -- ignore
+                continue;
+            }
+            result.add(keyType);
+        }
+        return result;
+    }
+
+    static byte[][] encodeIssuerX509Principals(X509Certificate[] certificates)
+            throws CertificateEncodingException {
+        byte[][] principalBytes = new byte[certificates.length][];
+        for (int i = 0; i < certificates.length; i++) {
+            principalBytes[i] = certificates[i].getIssuerX500Principal().getEncoded();
+        }
+        return principalBytes;
+    }
+
+    /**
+     * Converts the peer certificates into a cert chain.
+     */
+    static javax.security.cert.X509Certificate[] toCertificateChain(X509Certificate[] certificates)
+            throws SSLPeerUnverifiedException {
+        try {
+            javax.security.cert.X509Certificate[] chain =
+                    new javax.security.cert.X509Certificate[certificates.length];
+
+            for (int i = 0; i < certificates.length; i++) {
+                byte[] encoded = certificates[i].getEncoded();
+                chain[i] = javax.security.cert.X509Certificate.getInstance(encoded);
+            }
+            return chain;
+        } catch (CertificateEncodingException e) {
+            SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
+            exception.initCause(exception);
+            throw exception;
+        } catch (CertificateException e) {
+            SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
+            exception.initCause(exception);
+            throw exception;
+        }
+    }
 
     /**
      * Calculates the minimum bytes required in the encrypted output buffer for the given number of
@@ -104,10 +341,119 @@ final class SSLUtils {
         return new SSLException(e);
     }
 
+    static String toProtocolString(byte[] bytes) {
+        if (bytes == null) {
+            return null;
+        }
+        return new String(bytes, US_ASCII);
+    }
+
+    static byte[] toProtocolBytes(String protocol) {
+        if (protocol == null) {
+            return null;
+        }
+        return protocol.getBytes(US_ASCII);
+    }
+
+    /**
+     * Decodes the given list of protocols into {@link String}s.
+     * @param protocols the encoded protocol list
+     * @return the decoded protocols or {@link EmptyArray#BYTE} if {@code protocols} is
+     * empty.
+     * @throws NullPointerException if protocols is {@code null}.
+     */
+    static String[] decodeProtocols(byte[] protocols) {
+        if (protocols.length == 0) {
+            return EmptyArray.STRING;
+        }
+
+        int numProtocols = 0;
+        for (int i = 0; i < protocols.length;) {
+            int protocolLength = protocols[i];
+            if (protocolLength < 0 || protocolLength > protocols.length - i) {
+                throw new IllegalArgumentException(
+                    "Protocol has invalid length (" + protocolLength + " at position " + i
+                        + "): " + (protocols.length < 50
+                        ? Arrays.toString(protocols) : protocols.length + " byte array"));
+            }
+
+            numProtocols++;
+            i += 1 + protocolLength;
+        }
+
+        String[] decoded = new String[numProtocols];
+        for (int i = 0, d = 0; i < protocols.length;) {
+            int protocolLength = protocols[i];
+            decoded[d++] = protocolLength > 0
+                    ? new String(protocols, i + 1, protocolLength, US_ASCII)
+                    : "";
+            i += 1 + protocolLength;
+        }
+
+        return decoded;
+    }
+
+    /**
+     * Encodes a list of protocols into the wire-format (length-prefixed 8-bit strings).
+     * Requires that all strings be encoded with US-ASCII.
+     *
+     * @param protocols the list of protocols to be encoded
+     * @return the encoded form of the protocol list.
+     * @throws IllegalArgumentException if protocols is {@code null}, or if any element is
+     * {@code null} or an empty string.
+     */
+    static byte[] encodeProtocols(String[] protocols) {
+        if (protocols == null) {
+            throw new IllegalArgumentException("protocols array must be non-null");
+        }
+
+        if (protocols.length == 0) {
+            return EmptyArray.BYTE;
+        }
+
+        // Calculate the encoded length.
+        int length = 0;
+        for (int i = 0; i < protocols.length; ++i) {
+            String protocol = protocols[i];
+            if (protocol == null) {
+                throw new IllegalArgumentException("protocol[" + i + "] is null");
+            }
+            int protocolLength = protocols[i].length();
+
+            // Verify that the length is valid here, so that we don't attempt to allocate an array
+            // below if the threshold is violated.
+            if (protocolLength == 0 || protocolLength > MAX_PROTOCOL_LENGTH) {
+                throw new IllegalArgumentException(
+                    "protocol[" + i + "] has invalid length: " + protocolLength);
+            }
+
+            // Include a 1-byte prefix for each protocol.
+            length += 1 + protocolLength;
+        }
+
+        byte[] data = new byte[length];
+        for (int dataIndex = 0, i = 0; i < protocols.length; ++i) {
+            String protocol = protocols[i];
+            int protocolLength = protocol.length();
+
+            // Add the length prefix.
+            data[dataIndex++] = (byte) protocolLength;
+            for (int ci = 0; ci < protocolLength; ++ci) {
+                char c = protocol.charAt(ci);
+                if (c > Byte.MAX_VALUE) {
+                    // Enforce US-ASCII
+                    throw new IllegalArgumentException("Protocol contains invalid character: "
+                        + c + "(protocol=" + protocol + ")");
+                }
+                data[dataIndex++] = (byte) c;
+            }
+        }
+        return data;
+    }
+
     /**
      * Return how much bytes can be read out of the encrypted data. Be aware that this method will
-     * not
-     * increase the readerIndex of the given {@link ByteBuffer}.
+     * not increase the readerIndex of the given {@link ByteBuffer}.
      *
      * @param buffers The {@link ByteBuffer}s to read from. Be aware that they must have at least
      * {@link org.conscrypt.NativeConstants#SSL3_RT_HEADER_LENGTH} bytes to read, otherwise it will
@@ -149,52 +495,7 @@ final class SSLUtils {
         return getEncryptedPacketLength(tmp);
     }
 
-    /**
-     * Encodes a list of protocols into the wire-format (length-prefixed 8-bit strings).
-     * Requires that all strings be encoded with US-ASCII.
-     *
-     * @param protocols the list of protocols to be encoded
-     * @return the encoded form of the protocol list.
-     */
-    static byte[] toLengthPrefixedList(String... protocols) {
-        // Calculate the encoded length.
-        int length = 0;
-        for (int i = 0; i < protocols.length; ++i) {
-            int protocolLength = protocols[i].length();
-
-            // Verify that the length is valid here, so that we don't attempt to allocate an array
-            // below if the threshold is violated.
-            if (protocolLength == 0 || protocolLength > MAX_PROTOCOL_LENGTH) {
-                throw new IllegalArgumentException("Protocol has invalid length ("
-                        + protocolLength + "): " + protocols[i]);
-            }
-
-            // Include a 1-byte prefix for each protocol.
-            length += 1 + protocolLength;
-        }
-
-        byte[] data = new byte[length];
-        for (int dataIndex = 0, i = 0; i < protocols.length; ++i) {
-            String protocol = protocols[i];
-            int protocolLength = protocol.length();
-
-            // Add the length prefix.
-            data[dataIndex++] = (byte) protocolLength;
-            for (int ci = 0; ci < protocolLength; ++ci) {
-                char c = protocol.charAt(ci);
-                if (c > Byte.MAX_VALUE) {
-                    // Enforce US-ASCII
-                    throw new IllegalArgumentException("Protocol contains invalid character: "
-                            + c + "(protocol=" + protocol + ")");
-                }
-                data[dataIndex++] = (byte) c;
-            }
-        }
-        return data;
-    }
-
     private static int getEncryptedPacketLength(ByteBuffer buffer) {
-        int packetLength = 0;
         int pos = buffer.position();
         // SSLv3 or TLS - Check ContentType
         switch (unsignedByte(buffer.get(pos))) {
@@ -216,7 +517,7 @@ final class SSLUtils {
         }
 
         // SSLv3 or TLS
-        packetLength = unsignedShort(buffer.getShort(pos + 3)) + SSL3_RT_HEADER_LENGTH;
+        int packetLength = unsignedShort(buffer.getShort(pos + 3)) + SSL3_RT_HEADER_LENGTH;
         if (packetLength <= SSL3_RT_HEADER_LENGTH) {
             // Neither SSLv3 or TLSv1 (i.e. SSLv2 or bad data)
             return -1;

@@ -1,0 +1,14 @@
+description = 'Conscrypt: Base library for benchmarks'
+
+// Needs to be binary-compatible with Android minSdkVersion.
+sourceCompatibility = androidMinJavaVersion
+targetCompatibility = androidMinJavaVersion
+
+dependencies {
+    compile project(':conscrypt-testing'),
+            libraries.junit
+}
+
+// Don't include this artifact in the distribution.
+tasks.install.enabled = false
+tasks.uploadArchives.enabled = false;

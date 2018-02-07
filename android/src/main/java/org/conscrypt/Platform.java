@@ -23,6 +23,7 @@ import android.util.Log;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 import java.io.FileDescriptor;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -32,12 +33,14 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
+import java.security.AlgorithmParameters;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
+import java.security.spec.InvalidParameterSpecException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -69,6 +72,14 @@ final class Platform {
 
     public static void setup() {}
 
+    /**
+     * Default name used in the {@link java.security.Security JCE system} by {@code OpenSSLProvider}
+     * if the default constructor is used.
+     */
+    public static String getDefaultProviderName() {
+        return "Conscrypt";
+    }
+
     public static FileDescriptor getFileDescriptor(Socket s) {
         try {
             Field f_impl = Socket.class.getDeclaredField("impl");
@@ -82,9 +93,8 @@ final class Platform {
         }
     }
 
-    public static FileDescriptor getFileDescriptorFromSSLSocket(
-            OpenSSLSocketImpl openSSLSocketImpl) {
-        return getFileDescriptor(openSSLSocketImpl);
+    public static FileDescriptor getFileDescriptorFromSSLSocket(AbstractConscryptSocket socket) {
+        return getFileDescriptor(socket);
     }
 
     public static String getCurveName(ECParameterSpec spec) {
@@ -106,7 +116,7 @@ final class Platform {
         }
     }
 
-    /*
+    /**
      * Call Os.setsockoptTimeval via reflection.
      */
     public static void setSocketWriteTimeout(Socket s, long timeoutMillis) throws SocketException {
@@ -175,11 +185,23 @@ final class Platform {
         } catch (Exception e) {
             // We don't want to spam the logcat since this isn't a fatal error, but we want to know
             // why this might be happening.
-            Log.w(TAG, "Could not set socket write timeout:");
-            StackTraceElement[] elements = e.getStackTrace();
-            for (int i = 0; i < 2 && i < elements.length; i++) {
-                Log.w(TAG, "   " + elements[i].toString());
+            logStackTraceSnippet("Could not set socket write timeout: " + e, e);
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                logStackTraceSnippet("Caused by: " + cause, cause);
+                cause = cause.getCause();
             }
+        }
+    }
+
+    /**
+     * Logs an abbreviated stacktrace (summary and a couple of StackTraceElements).
+     */
+    private static void logStackTraceSnippet(String summary, Throwable throwable) {
+        Log.w(TAG, summary);
+        StackTraceElement[] elements = throwable.getStackTrace();
+        for (int i = 0; i < 2 && i < elements.length; i++) {
+            Log.w(TAG, "\tat " + elements[i].toString());
         }
     }
 
@@ -195,7 +217,7 @@ final class Platform {
     }
 
     public static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket) {
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         try {
             setSSLParametersOnImpl(params, impl);
 
@@ -213,14 +235,14 @@ final class Platform {
     }
 
     public static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         try {
             setSSLParametersOnImpl(params, impl);
 
             if (Build.VERSION.SDK_INT >= 24) {
                 String sniHostname = getSniHostnameFromParams(params);
                 if (sniHostname != null) {
-                    engine.setSniHostname(sniHostname);
+                    engine.setHostname(sniHostname);
                 }
             }
         } catch (NoSuchMethodException ignored) {
@@ -260,7 +282,7 @@ final class Platform {
     }
 
     public static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket) {
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         try {
             getSSLParametersFromImpl(params, impl);
 
@@ -276,17 +298,18 @@ final class Platform {
 
     @TargetApi(24)
     private static void setParametersSniHostname(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLSocketImpl socket)
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
             Method m_setServerNames = params.getClass().getMethod("setServerNames", List.class);
-            m_setServerNames.invoke(params, Collections.<SNIServerName>singletonList(
-                                                    new SNIHostName(socket.getHostname())));
+            m_setServerNames.invoke(params,
+                    Collections.<SNIServerName>singletonList(
+                            new SNIHostName(socket.getHostname())));
         }
     }
 
     public static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine) {
+            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         try {
             getSSLParametersFromImpl(params, impl);
 
@@ -302,13 +325,13 @@ final class Platform {
 
     @TargetApi(24)
     private static void setParametersSniHostname(
-            SSLParameters params, SSLParametersImpl impl, OpenSSLEngineImpl engine)
+            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getSniHostname())) {
+        if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             Method m_setServerNames = params.getClass().getMethod("setServerNames", List.class);
             m_setServerNames.invoke(params,
                     Collections.<SNIServerName>singletonList(
-                            new SNIHostName(engine.getSniHostname())));
+                            new SNIHostName(engine.getHostname())));
         }
     }
 
@@ -359,9 +382,9 @@ final class Platform {
         return false;
     }
 
-    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // AbstractConscryptSocket defines getHandshakeSession()
     public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+            String authType, AbstractConscryptSocket socket) throws CertificateException {
         if (!checkTrusted("checkClientTrusted", tm, chain, authType, Socket.class, socket)
                 && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
                            socket.getHandshakeSession().getPeerHost())) {
@@ -369,9 +392,9 @@ final class Platform {
         }
     }
 
-    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // AbstractConscryptSocket defines getHandshakeSession()
     public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLSocketImpl socket) throws CertificateException {
+            String authType, AbstractConscryptSocket socket) throws CertificateException {
         if (!checkTrusted("checkServerTrusted", tm, chain, authType, Socket.class, socket)
                 && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
                            socket.getHandshakeSession().getPeerHost())) {
@@ -379,9 +402,9 @@ final class Platform {
         }
     }
 
-    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // AbstractConscryptSocket defines getHandshakeSession()
     public static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+            String authType, ConscryptEngine engine) throws CertificateException {
         if (!checkTrusted("checkClientTrusted", tm, chain, authType, SSLEngine.class, engine)
                 && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
                            engine.getHandshakeSession().getPeerHost())) {
@@ -389,9 +412,9 @@ final class Platform {
         }
     }
 
-    @SuppressLint("NewApi") // OpenSSLSocketImpl defines getHandshakeSession()
+    @SuppressLint("NewApi") // AbstractConscryptSocket defines getHandshakeSession()
     public static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain,
-            String authType, OpenSSLEngineImpl engine) throws CertificateException {
+            String authType, ConscryptEngine engine) throws CertificateException {
         if (!checkTrusted("checkServerTrusted", tm, chain, authType, SSLEngine.class, engine)
                 && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
                            engine.getHandshakeSession().getPeerHost())) {
@@ -426,11 +449,10 @@ final class Platform {
         }
         if (!superClass.isInstance(javaKey)) {
             // This may happen if the PrivateKey was not created by the
-            // "AndroidOpenSSL"
-            // provider, which should be the default. That could happen if an
-            // OEM decided
-            // to implement a different default provider. Also highly unlikely.
-            Log.e(TAG, "Private key is not an OpenSSLRSAPrivateKey instance, its class name is:"
+            // Conscrypt provider, which should be the default. That could happen if an
+            // OEM decided to implement a different default provider. Also highly unlikely.
+            Log.e(TAG,
+                    "Private key is not an OpenSSLRSAPrivateKey instance, its class name is:"
                             + javaKey.getClass().getCanonicalName());
             return null;
         }
@@ -523,6 +545,120 @@ final class Platform {
         return AddressUtils.isLiteralIpAddress(hostname);
     }
 
+    static SSLEngine wrapEngine(ConscryptEngine engine) {
+        // For now, don't wrap on Android.
+        return engine;
+    }
+
+    static SSLEngine unwrapEngine(SSLEngine engine) {
+        // For now, don't wrap on Android.
+        return engine;
+    }
+
+    static ConscryptEngineSocket createEngineSocket(SSLParametersImpl sslParameters)
+            throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8EngineSocket(sslParameters);
+        }
+        return new ConscryptEngineSocket(sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(String hostname, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8EngineSocket(hostname, port, sslParameters);
+        }
+        return new ConscryptEngineSocket(hostname, port, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(InetAddress address, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8EngineSocket(address, port, sslParameters);
+        }
+        return new ConscryptEngineSocket(address, port, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(String hostname, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8EngineSocket(hostname, port, clientAddress, clientPort, sslParameters);
+        }
+        return new ConscryptEngineSocket(hostname, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(InetAddress address, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8EngineSocket(address, port, clientAddress, clientPort, sslParameters);
+        }
+        return new ConscryptEngineSocket(address, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptEngineSocket createEngineSocket(Socket socket, String hostname, int port,
+            boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8EngineSocket(socket, hostname, port, autoClose, sslParameters);
+        }
+        return new ConscryptEngineSocket(socket, hostname, port, autoClose, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(SSLParametersImpl sslParameters)
+            throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8FileDescriptorSocket(sslParameters);
+        }
+        return new ConscryptFileDescriptorSocket(sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8FileDescriptorSocket(hostname, port, sslParameters);
+        }
+        return new ConscryptFileDescriptorSocket(hostname, port, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
+            SSLParametersImpl sslParameters) throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8FileDescriptorSocket(address, port, sslParameters);
+        }
+        return new ConscryptFileDescriptorSocket(address, port, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8FileDescriptorSocket(
+                    hostname, port, clientAddress, clientPort, sslParameters);
+        }
+        return new ConscryptFileDescriptorSocket(
+                hostname, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
+            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8FileDescriptorSocket(
+                    address, port, clientAddress, clientPort, sslParameters);
+        }
+        return new ConscryptFileDescriptorSocket(
+                address, port, clientAddress, clientPort, sslParameters);
+    }
+
+    static ConscryptFileDescriptorSocket createFileDescriptorSocket(Socket socket, String hostname,
+            int port, boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8FileDescriptorSocket(socket, hostname, port, autoClose, sslParameters);
+        }
+        return new ConscryptFileDescriptorSocket(socket, hostname, port, autoClose, sslParameters);
+    }
+
     /**
      * Wrap the SocketFactory with the platform wrapper if needed for compatability.
      */
@@ -565,6 +701,28 @@ final class Platform {
             } catch (InvocationTargetException e) {
                 throw new RuntimeException(
                         "Could not fetch GCM parameters", e.getTargetException());
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Convert from an opaque AlgorithmParameters to the platform's GCMParameterSpec.
+     */
+    @SuppressWarnings("LiteralClassName")
+    static AlgorithmParameterSpec fromGCMParameters(AlgorithmParameters params) {
+        Class<?> gcmSpecClass;
+        try {
+            gcmSpecClass = Class.forName("javax.crypto.spec.GCMParameterSpec");
+        } catch (ClassNotFoundException e) {
+            gcmSpecClass = null;
+        }
+
+        if (gcmSpecClass != null) {
+            try {
+                return params.getParameterSpec((Class) gcmSpecClass);
+            } catch (InvalidParameterSpecException e) {
+                return null;
             }
         }
         return null;
@@ -691,27 +849,42 @@ final class Platform {
         return oid;
     }
 
-    /*
-     * Pre-Java 8 backward compatibility.
+    /**
+     * Provides extended capabilities for the session if supported by the platform.
      */
-
-    public static SSLSession wrapSSLSession(AbstractOpenSSLSession sslSession) {
-        if (Build.VERSION.SDK_INT <= 23) {
-            return sslSession;
+    public static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return new Java8ExtendedSSLSession(sslSession);
         }
 
-        return new OpenSSLExtendedSessionImpl(sslSession);
+        return sslSession;
     }
 
-    public static SSLSession unwrapSSLSession(SSLSession sslSession) {
-        if (Build.VERSION.SDK_INT <= 23) {
-            return sslSession;
-        }
+    public static String getOriginalHostNameFromInetAddress(InetAddress addr) {
+        if (Build.VERSION.SDK_INT > 27) {
+            try {
+                Method getHolder = InetAddress.class.getDeclaredMethod("holder");
+                getHolder.setAccessible(true);
 
-        if (sslSession instanceof OpenSSLExtendedSessionImpl) {
-            return ((OpenSSLExtendedSessionImpl) sslSession).getDelegate();
+                Method getOriginalHostName = Class.forName("java.net.InetAddress$InetAddressHolder")
+                                                     .getDeclaredMethod("getOriginalHostName");
+                getOriginalHostName.setAccessible(true);
+
+                String originalHostName =
+                        (String) getOriginalHostName.invoke(getHolder.invoke(addr));
+                if (originalHostName == null) {
+                    return addr.getHostAddress();
+                }
+                return originalHostName;
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException("Failed to get originalHostName", e);
+            } catch (ClassNotFoundException ignore) {
+                // passthrough and return addr.getHostAddress()
+            } catch (IllegalAccessException ignore) {
+            } catch (NoSuchMethodException ignore) {
+            }
         }
-        return sslSession;
+        return addr.getHostAddress();
     }
 
     /*

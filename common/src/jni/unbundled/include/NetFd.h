@@ -14,25 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef NET_FD_H_included
-#define NET_FD_H_included
+#ifndef NETFD_H_
+#define NETFD_H_
 
-#include "Errors.h"
-#include "JniUtil.h"
+#include <conscrypt/jniutil.h>
 
 /**
  * Wraps access to the int inside a java.io.FileDescriptor, taking care of throwing exceptions.
  */
 class NetFd {
-public:
+ public:
     NetFd(JNIEnv* env, jobject fileDescriptor)
         : mEnv(env), mFileDescriptor(fileDescriptor), mFd(-1) {}
 
     bool isClosed() {
-        mFd = conscrypt::JniUtil::jniGetFDFromFileDescriptor(mEnv, mFileDescriptor);
+        mFd = conscrypt::jniutil::jniGetFDFromFileDescriptor(mEnv, mFileDescriptor);
         bool closed = (mFd == -1);
         if (closed) {
-            conscrypt::Errors::jniThrowException(mEnv, "java/net/SocketException", "Socket closed");
+            conscrypt::jniutil::jniThrowException(mEnv, "java/net/SocketException",
+                                                  "Socket closed");
         }
         return closed;
     }
@@ -41,7 +41,7 @@ public:
         return mFd;
     }
 
-private:
+ private:
     JNIEnv* mEnv;
     jobject mFileDescriptor;
     int mFd;
@@ -70,4 +70,4 @@ private:
         _rc;                                           \
     })
 
-#endif  // NET_FD_H_included
+#endif  // NETFD_H_

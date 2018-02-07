@@ -6,12 +6,12 @@ environment:
   ANDROID_TOOLS_URL: "https://dl.google.com/android/repository/tools_r25.2.3-windows.zip"
   NINJA_URL: "https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-win.zip"
   CMAKE_URL: "https://cmake.org/files/v3.4/cmake-3.4.0-win32-x86.zip"
-  MSVC: "14.0"
+  MSVC_HOME: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community"
 
 clone_folder: "C:\\projects\\conscrypt"
 shallow_clone: true
 
-os: Visual Studio 2015
+os: Visual Studio 2017
 
 platform:
   # - x86
@@ -43,7 +43,10 @@ init:
   - cmake --version
 
   # Install yasm
-  - choco install -y yasm
+  - choco install -y --allow-empty-checksums yasm
+
+  # Install Go for BoringSSL compile (embedding test data)
+  - choco install -y --allow-empty-checksums golang
 
   # Clone BoringSSL
   - git clone --depth 1 https://boringssl.googlesource.com/boringssl.git "%BORINGSSL_HOME%"
@@ -52,41 +55,37 @@ init:
   - set PATH=C:\Program Files (x86)\Windows Kits\8.1\bin\x86;%PATH%
 
 before_build:
-  # Set up Visual Studio in 64-bit mode
-  - call "C:\Program Files (x86)\Microsoft Visual Studio %MSVC%\VC\vcvarsall.bat" x64
-
   # Build BoringSSL in 64-bit
+  - call "%MSVC_HOME%\VC\Auxiliary\Build\vcvarsall.bat" x64
   - cd "%BORINGSSL_HOME%"
   - mkdir build64
   - cd build64
-  - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+  - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release "-DCMAKE_C_FLAGS_RELEASE=/MT -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING" "-DCMAKE_CXX_FLAGS_RELEASE=/MT -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING" -GNinja ..
   - ninja
 
-  # Set up Visual Studio in 32-bit mode
-  - call "C:\Program Files (x86)\Microsoft Visual Studio %MSVC%\VC\vcvarsall.bat"
-
-  # TODO(nathanmittler): Need to figure out how to make 32-bit builds work
   # Build BoringSSL in 32-bit
-  # - cd "%BORINGSSL_HOME%"
-  # - mkdir build32
-  # - cd build32
-  # - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
-  # - ninja
+  - call "%MSVC_HOME%\VC\Auxiliary\Build\vcvarsall.bat" x86
+  - cd "%BORINGSSL_HOME%"
+  - mkdir build32
+  - cd build32
+  - cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release "-DCMAKE_C_FLAGS_RELEASE=/MT -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING" "-DCMAKE_CXX_FLAGS_RELEASE=/MT -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING" -GNinja ..
+  - ninja
 
   # Go to project directory
   - cd C:\projects\conscrypt
 
 install:
   - mkdir %ANDROID_HOME%\licenses
-  - ps: 'Add-Content -Value "`n8933bad161af4178b1185d1a37fbf41ea5269c55" -Path $env:ANDROID_HOME\licenses\android-sdk-license -Encoding ASCII'
+  - ps: 'Add-Content -Value "`n8933bad161af4178b1185d1a37fbf41ea5269c55`n`nd56f5187479451eabf01fb78af6dfcb131a6481e" -Path $env:ANDROID_HOME\licenses\android-sdk-license -Encoding ASCII'
   - ps: 'Add-Content -Value "`n84831b9409646a918e30573bab4c9c91346d8abd`n504667f4c0de7af1a06de9f4b1727b84351f2910" -Path $env:ANDROID_HOME\licenses\android-sdk-preview-license -Encoding ASCII'
+  - ps: 'Add-Content -Value "`nd975f751698a77b662f1254ddbeed3901e976f5a" -Path $env:ANDROID_HOME\licenses\intel-android-extra-license -Encoding ASCII'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat tools'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat platform-tools'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat build-tools;25.0.0'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat platforms;android-25'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat extras;android;m2repository'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat --channel=1 ndk-bundle'
-  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat cmake;3.6.3155560'
+  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat cmake;3.6.4111459'
 
 build_script:
   - gradlew.bat assemble

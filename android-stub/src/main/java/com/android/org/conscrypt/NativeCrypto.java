@@ -20,6 +20,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import javax.net.ssl.SSLException;
 
+@SuppressWarnings("unused")
 final class NativeCrypto {
     public interface SSLHandshakeCallbacks {
         /**
