@@ -987,7 +987,7 @@ static jlong NativeCrypto_EVP_PKEY_new_EC_KEY(JNIEnv* env, jclass, jobject group
         if (pubkey == nullptr) {
             bssl::UniquePtr<EC_POINT> calcPubkey(EC_POINT_new(group));
             if (!EC_POINT_mul(group, calcPubkey.get(), key.get(), nullptr, nullptr, nullptr)) {
-                JNI_TRACE("EVP_PKEY_new_EC_KEY(%p, %p, %p) => can't calulate public key", group,
+                JNI_TRACE("EVP_PKEY_new_EC_KEY(%p, %p, %p) => can't calculate public key", group,
                           pubkey, keyJavaBytes);
                 conscrypt::jniutil::throwExceptionIfNecessary(env, "EC_KEY_set_private_key");
                 return 0;
