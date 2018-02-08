@@ -18,6 +18,10 @@ package org.conscrypt;
 
 import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 
+import org.conscrypt.javax.crypto.CipherBasicsTest;
+import org.conscrypt.javax.crypto.CipherTest;
+import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
+import org.conscrypt.javax.crypto.KeyGeneratorTest;
 import org.conscrypt.javax.net.ssl.HttpsURLConnectionTest;
 import org.conscrypt.javax.net.ssl.KeyManagerFactoryTest;
 import org.conscrypt.javax.net.ssl.KeyStoreBuilderParametersTest;
@@ -39,6 +43,12 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        // javax.crypto tests
+        CipherBasicsTest.class,
+        CipherTest.class,
+        ECDHKeyAgreementTest.class,
+        KeyGeneratorTest.class,
+        // javax.net.ssl tests
         HttpsURLConnectionTest.class,
         KeyManagerFactoryTest.class,
         KeyStoreBuilderParametersTest.class,
