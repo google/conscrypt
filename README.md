@@ -41,11 +41,12 @@ directly from the Maven repositories.
 The OpenJDK artifacts are platform-dependent since each embeds a native library for a particular
 platform. We publish artifacts to Maven Central for the following platforms:
 
-Classifier | Description
----------------- | -----------
-windows-x86_64 | Windows distribution
-osx-x86_64 | Mac distribution
-linux-x86_64 | Used for Linux
+Classifier | OS | Architecture
+-----------| ------- | ---------------- |
+linux-x86_64 | Linux | x86_64 (64-bit)
+osx-x86_64 | Mac | x86_64 (64-bit)
+windows-x86 | Windows | x86 (32-bit)
+windows-x86_64 | Windows | x86_64 (64-bit)
 
 ##### Maven
 
@@ -65,7 +66,7 @@ Use the [os-maven-plugin](https://github.com/trustin/os-maven-plugin) to add the
 <dependency>
   <groupId>org.conscrypt</groupId>
   <artifactId>conscrypt-openjdk</artifactId>
-  <version>1.1.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <classifier>${os.detected.classifier}</classifier>
 </dependency>
 ```
@@ -88,7 +89,7 @@ buildscript {
 apply plugin: "com.google.osdetector"
 
 dependencies {
-  compile 'org.conscrypt:conscrypt-jdk:1.1.0-SNAPSHOT:' + osdetector.classifier
+  compile 'org.conscrypt:conscrypt-jdk:1.0.0:' + osdetector.classifier
 }
 ```
 
@@ -106,14 +107,14 @@ To depend on the uber jar, simply use the `conscrypt-openjdk-uber` artifacts.
 <dependency>
   <groupId>org.conscrypt</groupId>
   <artifactId>conscrypt-openjdk-uber</artifactId>
-  <version>1.1.0-SNAPSHOT</version>
+  <version>1.0.0</version>
 </dependency>
 ```
 
 ###### Gradle
 ```gradle
 dependencies {
-  compile 'org.conscrypt:conscrypt-jdk-uber:1.1.0-SNAPSHOT'
+  compile 'org.conscrypt:conscrypt-jdk-uber:1.0.0'
 }
 ```
 
@@ -146,6 +147,5 @@ These modules provide the `Platform` class for non-Android (OpenJDK-based) syste
 a native library loader supports bundling the shared library with the JAR.
 
 ### Platform
-
-This is not an actual module and is not part of the default build. This is used for building
- Conscrypt as an embedded component of the Android platform.
+This module contains code that is bundled with the Android operating system. The inclusion in the
+build is only to ensure that changes to other modules do not accidentally break the Android build.
