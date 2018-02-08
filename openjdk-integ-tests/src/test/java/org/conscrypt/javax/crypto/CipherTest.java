@@ -16,8 +16,8 @@
 
 package org.conscrypt.javax.crypto;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -1034,6 +1034,14 @@ public final class CipherTest {
                 }
 
                 if (provider.getName().equals("SunJCE")) {
+                    // The SunJCE provider acts in numerous idiosyncratic ways that don't
+                    // match any other provider.  Examples include returning non-null IVs
+                    // when no IV was provided on init, NullPointerExceptions when null
+                    // SecureRandoms are supplied (but only to PBE ciphers), and not
+                    // supplying KeyGenerators for some algorithms.  We aren't sufficiently
+                    // interested in verifying this provider's behavior to adapt the
+                    // tests and Oracle presumably tests them well anyway, so just skip
+                    // verifying them.
                     continue;
                 }
 
@@ -1118,7 +1126,7 @@ public final class CipherTest {
 
         try {
             c.getOutputSize(0);
-            fail();
+            fail("getOutputSize() should throw if called before Cipher initialization");
         } catch (IllegalStateException expected) {
         }
 
