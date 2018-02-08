@@ -117,13 +117,13 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
     }
 
     private void assertSessionContextContents(
-            NativeSslSession[] contains, NativeSslSession[] exludes) {
+            NativeSslSession[] contains, NativeSslSession[] excludes) {
         assertEquals(contains.length, size(context));
 
         for (NativeSslSession s : contains) {
             assertSame(s.getPeerHost(), s, getCachedSession(context, s));
         }
-        for (NativeSslSession s : exludes) {
+        for (NativeSslSession s : excludes) {
             assertNull(s.getPeerHost(), getCachedSession(context, s));
         }
     }
