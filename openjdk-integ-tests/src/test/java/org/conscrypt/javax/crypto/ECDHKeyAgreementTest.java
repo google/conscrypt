@@ -49,6 +49,7 @@ import javax.crypto.ShortBufferException;
 import junit.framework.AssertionFailedError;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -96,6 +97,11 @@ public class ECDHKeyAgreementTest {
         } catch (Exception e) {
             throw new RuntimeException("Failed to decode KAT key pairs using default provider", e);
         }
+    }
+
+    @BeforeClass
+    public static void setUp() {
+        TestUtils.assumeAllowsUnsignedCrypto();
     }
 
     /**

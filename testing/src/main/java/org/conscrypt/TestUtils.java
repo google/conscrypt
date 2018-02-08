@@ -112,16 +112,24 @@ public final class TestUtils {
                 + "SSLParameters.setEndpointIdentificationAlgorithm unavailable", supported);
     }
 
-    public static void assumeAndroid() {
-        boolean android;
+    private static boolean isAndroid() {
         try {
             Class.forName("android.app.Application", false, ClassLoader.getSystemClassLoader());
-            android = true;
+            return true;
         } catch (Throwable ignored) {
             // Failed to load the class uniquely available in Android.
-            android = false;
+            return false;
         }
-        Assume.assumeTrue(android);
+    }
+
+    public static void assumeAndroid() {
+        Assume.assumeTrue(isAndroid());
+    }
+
+    public static void assumeAllowsUnsignedCrypto() {
+        // The Oracle JRE disallows loading crypto providers from unsigned jars
+        Assume.assumeTrue(isAndroid()
+                || !System.getProperty("java.vm.name").contains("HotSpot"));
     }
 
     public static InetAddress getLoopbackAddress() {

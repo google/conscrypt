@@ -40,6 +40,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.conscrypt.TestUtils;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -79,6 +80,11 @@ public final class CipherBasicsTest {
     private static final int CIPHERTEXT_INDEX = 3;
     private static final int TAG_INDEX = 4;
     private static final int AAD_INDEX = 5;
+
+    @BeforeClass
+    public static void setUp() {
+        TestUtils.assumeAllowsUnsignedCrypto();
+    }
 
     @Test
     public void testBasicEncryption() throws Exception {

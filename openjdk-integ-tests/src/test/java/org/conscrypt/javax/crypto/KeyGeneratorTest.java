@@ -30,6 +30,8 @@ import java.util.Set;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import libcore.java.security.StandardNames;
+import org.conscrypt.TestUtils;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -41,6 +43,11 @@ public class KeyGeneratorTest {
         // Don't bother testing "Sun..." KeyGenerators or BC outside of Android
         return kg.getProvider().getName().startsWith("Sun")
                 || (StandardNames.IS_RI && kg.getProvider().getName().equals("BC"));
+    }
+
+    @BeforeClass
+    public static void setUp() {
+        TestUtils.assumeAllowsUnsignedCrypto();
     }
 
     @Test

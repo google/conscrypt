@@ -72,14 +72,21 @@ import javax.crypto.spec.SecretKeySpec;
 import libcore.java.security.StandardNames;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.conscrypt.Conscrypt;
+import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public final class CipherTest {
+
+    @BeforeClass
+    public static void setUp() {
+        TestUtils.assumeAllowsUnsignedCrypto();
+    }
 
     /** GCM tag size used for tests. */
     private static final int GCM_TAG_SIZE_BITS = 96;
