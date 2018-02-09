@@ -139,6 +139,7 @@ public final class CipherBasicsTest {
 
     @Test
     public void testAeadEncryption() throws Exception {
+        TestUtils.assumeAEADAvailable();
         for (Provider p : Security.getProviders()) {
             for (Map.Entry<String, String> entry : AEAD_CIPHER_TO_TEST_DATA.entrySet()) {
                 String transformation = entry.getKey();

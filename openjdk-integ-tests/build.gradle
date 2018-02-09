@@ -24,8 +24,21 @@ dependencies {
                 project(':conscrypt-testing')
 }
 
+// Check which version
+def javaError = new ByteArrayOutputStream()
+exec {
+    executable test.executable
+    args = ['-version']
+    ignoreExitValue true
+    errorOutput = javaError
+}
+
 test {
-    include "org/conscrypt/ConscryptSuite.class"
+    if (javaError.toString() =~ /"1[.]6[.].*"/) {
+        include "org/conscrypt/ConscryptJava6Suite.class"
+    } else {
+        include "org/conscrypt/ConscryptSuite.class"
+    }
 }
 
 // Add a second round of tests using the engine-based socket.

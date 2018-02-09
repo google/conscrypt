@@ -89,15 +89,19 @@ public final class TestUtils {
         return JDK_PROVIDER;
     }
 
-    public static void assumeSNIHostnameAvailable() {
+    private static void assumeClassAvailable(String classname) {
         boolean available = false;
         try {
-            Class.forName("javax.net.ssl.SNIHostName");
+            Class.forName(classname);
             available = true;
         } catch (ClassNotFoundException ignore) {
             // Ignored
         }
-        Assume.assumeTrue("Skipping test: SNIHostName unavailable", available);
+        Assume.assumeTrue("Skipping test: " + classname + " unavailable", available);
+    }
+
+    public static void assumeSNIHostnameAvailable() {
+        assumeClassAvailable("javax.net.ssl.SNIHostName");
     }
 
     public static void assumeSetEndpointIdentificationAlgorithmAvailable() {
@@ -110,6 +114,10 @@ public final class TestUtils {
         }
         Assume.assumeTrue("Skipping test: "
                 + "SSLParameters.setEndpointIdentificationAlgorithm unavailable", supported);
+    }
+
+    public static void assumeAEADAvailable() {
+        assumeClassAvailable("javax.crypto.AEADBadTagException");
     }
 
     private static boolean isAndroid() {
