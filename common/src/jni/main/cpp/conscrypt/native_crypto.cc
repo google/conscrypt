@@ -1239,7 +1239,6 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
         JNI_TRACE("getRSAPrivateKeyWrapper failed");
         conscrypt::jniutil::throwRuntimeException(env,
                                                      "NativeCrypto_getRSAPrivateKeyWrapper failed");
-        ERR_clear_error();
         return 0;
     }
 
@@ -1288,7 +1287,6 @@ static jlong NativeCrypto_getECPrivateKeyWrapper(JNIEnv* env, jclass, jobject ja
         JNI_TRACE("getECPrivateKeyWrapper failed");
         conscrypt::jniutil::throwRuntimeException(env,
                                                      "NativeCrypto_getECPrivateKeyWrapper failed");
-        ERR_clear_error();
         return 0;
     }
 
@@ -5302,7 +5300,6 @@ static jlong NativeCrypto_X509_get_pubkey(JNIEnv* env, jclass, jlong x509Ref, CO
              ERR_GET_REASON(last_error) == EVP_R_UNKNOWN_PUBLIC_KEY_TYPE) ||
             (ERR_GET_LIB(first_error) == ERR_LIB_EC &&
              ERR_GET_REASON(first_error) == EC_R_UNKNOWN_GROUP)) {
-            ERR_clear_error();
             conscrypt::jniutil::throwNoSuchAlgorithmException(env, "X509_get_pubkey");
             return 0;
         }
@@ -6392,7 +6389,6 @@ static jlong NativeCrypto_SSL_new(JNIEnv* env, jclass, jlong ssl_ctx_address) {
     AppData* appData = AppData::create();
     if (appData == nullptr) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to create application data");
-        ERR_clear_error();
         JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_new appData => 0", ssl_ctx);
         return 0;
     }
@@ -6977,7 +6973,7 @@ static void NativeCrypto_SSL_set_cipher_lists(JNIEnv* env, jclass, jlong ssl_add
     if (!SSL_set_cipher_list(ssl, cipherString.get())) {
         ERR_clear_error();
         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
-                                              "Illegal cipher suite strings.");
+                                                "Illegal cipher suite strings.");
         return;
     }
 }
@@ -7427,7 +7423,6 @@ static void NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_address
             }
             if (selectResult == 0) {
                 conscrypt::jniutil::throwSocketTimeoutException(env, "SSL handshake timed out");
-                ERR_clear_error();
                 JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake selectResult == 0 => exception",
                           ssl);
                 return;
@@ -8809,7 +8804,6 @@ static jint NativeCrypto_ENGINE_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_
 
     if (!appData->setCallbackState(env, shc, nullptr)) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to set appdata callback");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake => exception", ssl);
         return 0;
     }
@@ -8882,7 +8876,6 @@ static void NativeCrypto_ENGINE_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_addr
     if (appData != nullptr) {
         if (!appData->setCallbackState(env, shc, nullptr)) {
             conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to set appdata callback");
-            ERR_clear_error();
             JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_shutdown => exception", ssl);
             return;
         }
@@ -8953,7 +8946,6 @@ static jint NativeCrypto_ENGINE_SSL_read_direct(JNIEnv* env, jclass, jlong ssl_a
     }
     if (!appData->setCallbackState(env, shc, nullptr)) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to set appdata callback");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct => exception", ssl);
         return -1;
     }
@@ -9048,13 +9040,11 @@ static int NativeCrypto_ENGINE_SSL_write_BIO_direct(JNIEnv* env, jclass, jlong s
     AppData* appData = toAppData(ssl);
     if (appData == nullptr) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to retrieve application data");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_BIO_direct appData => null", ssl);
         return -1;
     }
     if (!appData->setCallbackState(env, shc, nullptr)) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to set appdata callback");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_BIO_direct => exception", ssl);
         return -1;
     }
@@ -9112,13 +9102,11 @@ static int NativeCrypto_ENGINE_SSL_write_BIO_heap(JNIEnv* env, jclass, jlong ssl
     AppData* appData = toAppData(ssl);
     if (appData == nullptr) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to retrieve application data");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_BIO_heap appData => null", ssl);
         return -1;
     }
     if (!appData->setCallbackState(env, shc, nullptr)) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to set appdata callback");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_BIO_heap => exception", ssl);
         return -1;
     }
@@ -9162,13 +9150,11 @@ static int NativeCrypto_ENGINE_SSL_read_BIO_direct(JNIEnv* env, jclass, jlong ss
     AppData* appData = toAppData(ssl);
     if (appData == nullptr) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to retrieve application data");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_BIO_direct appData => null", ssl);
         return -1;
     }
     if (!appData->setCallbackState(env, shc, nullptr)) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to set appdata callback");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_BIO_direct => exception", ssl);
         return -1;
     }
@@ -9220,13 +9206,11 @@ static int NativeCrypto_ENGINE_SSL_read_BIO_heap(JNIEnv* env, jclass, jlong ssl_
     AppData* appData = toAppData(ssl);
     if (appData == nullptr) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to retrieve application data");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_BIO_heap appData => null", ssl);
         return -1;
     }
     if (!appData->setCallbackState(env, shc, nullptr)) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to set appdata callback");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_BIO_heap => exception", ssl);
         return -1;
     }
@@ -9266,13 +9250,11 @@ static int NativeCrypto_ENGINE_SSL_write_direct(JNIEnv* env, jclass, jlong ssl_a
     AppData* appData = toAppData(ssl);
     if (appData == nullptr) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to retrieve application data");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_direct appData => null", ssl);
         return -1;
     }
     if (!appData->setCallbackState(env, shc, nullptr)) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to set appdata callback");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_write_direct => exception", ssl);
         return -1;
     }
@@ -9345,7 +9327,6 @@ static void NativeCrypto_BIO_write(JNIEnv* env, jclass, jlong bioRef, jbyteArray
 
     env->GetByteArrayRegion(inputJavaBytes, offset, length, reinterpret_cast<jbyte*>(buffer.get()));
     if (BIO_write(bio, buffer.get(), length) != length) {
-        ERR_clear_error();
         conscrypt::jniutil::throwIOException(env, "BIO_write");
         JNI_TRACE("BIO_write(%p, %p, %d, %d) => IO error", bio, inputJavaBytes, offset, length);
         return;
