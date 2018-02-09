@@ -31,7 +31,7 @@ class NetFd {
         mFd = conscrypt::jniutil::jniGetFDFromFileDescriptor(mEnv, mFileDescriptor);
         bool closed = (mFd == -1);
         if (closed) {
-            conscrypt::jniutil::jniThrowException(mEnv, "java/net/SocketException",
+            conscrypt::jniutil::throwException(mEnv, "java/net/SocketException",
                                                   "Socket closed");
         }
         return closed;
