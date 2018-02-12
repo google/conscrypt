@@ -92,6 +92,9 @@ public final class CipherBasicsTest {
         for (Provider p : Security.getProviders()) {
             for (Map.Entry<String, String> entry : BASIC_CIPHER_TO_TEST_DATA.entrySet()) {
                 String transformation = entry.getKey();
+                if (p.getName().equals("SunPKCS11-NSS") && transformation.equals("AES/ECB/NoPadding")) {
+                    continue;
+                }
                 try {
                     Cipher cipher;
                     try {
