@@ -19,7 +19,7 @@ matrix:
     ### Linux build is the only platform that builds Android here.
     ###
     - os: linux
-      jdk: oraclejdk8
+      jdk: openjdk8
       sudo: false
 
       env:
