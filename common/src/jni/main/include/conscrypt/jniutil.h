@@ -146,25 +146,28 @@ extern bool isGetByteArrayElementsLikelyToReturnACopy(size_t size);
  *
  * Returns 0 on success, nonzero if something failed (e.g. the exception
  * class couldn't be found, so *an* exception will still be pending).
- *
- * Currently aborts the VM if it can't throw the exception.
  */
-extern int jniThrowException(JNIEnv* env, const char* className, const char* msg);
+extern int throwException(JNIEnv* env, const char* className, const char* msg);
 
 /**
  * Throw a java.lang.RuntimeException, with an optional message.
  */
-extern int jniThrowRuntimeException(JNIEnv* env, const char* msg);
+extern int throwRuntimeException(JNIEnv* env, const char* msg);
+
+/**
+ * Throw a java.lang.AssertionError, with an optional message.
+ */
+extern int throwAssertionError(JNIEnv* env, const char* msg);
 
 /*
  * Throw a java.lang.NullPointerException, with an optional message.
  */
-extern int jniThrowNullPointerException(JNIEnv* env, const char* msg);
+extern int throwNullPointerException(JNIEnv* env, const char* msg);
 
 /**
  * Throws a OutOfMemoryError with the given string as a message.
  */
-extern int jniThrowOutOfMemory(JNIEnv* env, const char* message);
+extern int throwOutOfMemory(JNIEnv* env, const char* message);
 
 /**
  * Throws a BadPaddingException with the given string as a message.
@@ -219,14 +222,13 @@ extern int throwForX509Error(JNIEnv* env, int reason, const char* message,
                              int (*defaultThrow)(JNIEnv*, const char*));
 
 /*
- * Checks this thread's OpenSSL error queue and throws a RuntimeException if
- * necessary.
- *
- * @return true if an exception was thrown, false if not.
+ * Checks this thread's OpenSSL error stack and throws an appropriate exception
+ * type based on the type of error found.  If no error is present, throws
+ * AssertionError.
  */
-extern bool throwExceptionIfNecessary(JNIEnv* env, const char* location,
-                                      int (*defaultThrow)(JNIEnv*,
-                                                          const char*) = jniThrowRuntimeException);
+extern void throwExceptionFromBoringSSLError(JNIEnv* env, const char* location,
+                                             int (*defaultThrow)(JNIEnv*,
+                                                                 const char*) = throwRuntimeException);
 
 /**
  * Throws an SocketTimeoutException with the given string as a message.
