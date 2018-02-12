@@ -17,6 +17,7 @@
 package org.conscrypt.javax.crypto;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -91,47 +92,51 @@ public final class CipherBasicsTest {
         for (Provider p : Security.getProviders()) {
             for (Map.Entry<String, String> entry : BASIC_CIPHER_TO_TEST_DATA.entrySet()) {
                 String transformation = entry.getKey();
-
-                Cipher cipher;
                 try {
-                    cipher = Cipher.getInstance(transformation, p);
-                } catch (NoSuchAlgorithmException e) {
-                    // This provider doesn't provide this algorithm, ignore it
-                    continue;
-                }
-
-                List<String[]> data = readCsvResource(entry.getValue());
-                for (String[] line : data) {
-                    Key key = new SecretKeySpec(toBytes(line[KEY_INDEX]),
-                            getBaseAlgorithm(transformation));
-                    byte[] iv = toBytes(line[IV_INDEX]);
-                    byte[] plaintext = toBytes(line[PLAINTEXT_INDEX]);
-                    byte[] ciphertext = toBytes(line[CIPHERTEXT_INDEX]);
-
-                    // Initialize the IV, if there is one
-                    AlgorithmParameters params;
-                    if (iv.length > 0) {
-                        params = AlgorithmParameters.getInstance(getBaseAlgorithm(transformation));
-                        params.init(iv, "RAW");
-                    } else {
-                        params = null;
-                    }
-
+                    Cipher cipher;
                     try {
-                        cipher.init(Cipher.ENCRYPT_MODE, key, params);
-                        assertTrue("Provider " + p.getName()
-                                        + ", algorithm " + transformation
-                                        + " failed on encryption, data is " + Arrays.toString(line),
-                                Arrays.equals(ciphertext, cipher.doFinal(plaintext)));
-
-                        cipher.init(Cipher.DECRYPT_MODE, key, params);
-                        assertTrue("Provider " + p.getName()
-                                        + ", algorithm " + transformation
-                                        + " failed on decryption, data is " + Arrays.toString(line),
-                                Arrays.equals(plaintext, cipher.doFinal(ciphertext)));
-                    } catch (InvalidKeyException e) {
-                        // Some providers may not support raw SecretKeySpec keys, that's allowed
+                        cipher = Cipher.getInstance(transformation, p);
+                    } catch (NoSuchAlgorithmException e) {
+                        // This provider doesn't provide this algorithm, ignore it
+                        continue;
                     }
+
+                    List<String[]> data = readCsvResource(entry.getValue());
+                    for (String[] line : data) {
+                        Key key = new SecretKeySpec(toBytes(line[KEY_INDEX]),
+                                getBaseAlgorithm(transformation));
+                        byte[] iv = toBytes(line[IV_INDEX]);
+                        byte[] plaintext = toBytes(line[PLAINTEXT_INDEX]);
+                        byte[] ciphertext = toBytes(line[CIPHERTEXT_INDEX]);
+
+                        // Initialize the IV, if there is one
+                        AlgorithmParameters params;
+                        if (iv.length > 0) {
+                            params = AlgorithmParameters
+                                    .getInstance(getBaseAlgorithm(transformation));
+                            params.init(iv, "RAW");
+                        } else {
+                            params = null;
+                        }
+
+                        try {
+                            cipher.init(Cipher.ENCRYPT_MODE, key, params);
+                            assertTrue("Provider " + p.getName()
+                                            + ", algorithm " + transformation
+                                            + " failed on encryption, data is " + Arrays.toString(line),
+                                    Arrays.equals(ciphertext, cipher.doFinal(plaintext)));
+
+                            cipher.init(Cipher.DECRYPT_MODE, key, params);
+                            assertTrue("Provider " + p.getName()
+                                            + ", algorithm " + transformation
+                                            + " failed on decryption, data is " + Arrays.toString(line),
+                                    Arrays.equals(plaintext, cipher.doFinal(ciphertext)));
+                        } catch (InvalidKeyException e) {
+                            // Some providers may not support raw SecretKeySpec keys, that's allowed
+                        }
+                    }
+                } catch (Exception e) {
+                    fail("Provider " + p.getName() + " algorithm " + transformation + " failed due to " + e.getMessage());
                 }
             }
         }

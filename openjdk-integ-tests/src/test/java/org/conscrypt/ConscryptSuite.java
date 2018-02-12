@@ -45,7 +45,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
         // javax.crypto tests
         CipherBasicsTest.class,
-        CipherTest.class,
+        //CipherTest.class,
         ECDHKeyAgreementTest.class,
         KeyGeneratorTest.class,
         // javax.net.ssl tests
