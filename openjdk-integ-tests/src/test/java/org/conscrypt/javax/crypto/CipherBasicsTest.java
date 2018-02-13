@@ -92,6 +92,15 @@ public final class CipherBasicsTest {
             for (Map.Entry<String, String> entry : BASIC_CIPHER_TO_TEST_DATA.entrySet()) {
                 String transformation = entry.getKey();
 
+                // In OpenJDK 6, the SunPKCS11-NSS implementation of AES/ECB/NoPadding thinks
+                // that it's AES/CTR/NoPadding during init() for some reason, which causes it
+                // to throw an exception due to a lack of IV (required for CTR, prohibited for ECB).
+                // We don't strongly care about checking this implementation, so just skip it.
+                if (p.getName().equals("SunPKCS11-NSS")
+                        && transformation.equals("AES/ECB/NoPadding")) {
+                    continue;
+                }
+
                 Cipher cipher;
                 try {
                     cipher = Cipher.getInstance(transformation, p);
