@@ -124,7 +124,6 @@ bool isGetByteArrayElementsLikelyToReturnACopy(size_t size) {
 
 int throwException(JNIEnv* env, const char* className, const char* msg) {
     jclass exceptionClass = env->FindClass(className);
-    ERR_clear_error();
 
     if (exceptionClass == nullptr) {
         ALOGD("Unable to find exception class %s", className);

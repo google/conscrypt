@@ -357,6 +357,10 @@ model {
                                 "-I$jdkIncludeDir/linux",
                                 "-I$jdkIncludeDir/darwin",
                                 "-I$jdkIncludeDir/win32"
+                        if (rootProject.hasProperty('checkErrorQueue')) {
+                            System.out.println("Compiling with error queue checking enabled")
+                            cppCompiler.define "CONSCRYPT_CHECK_ERROR_QUEUE"
+                        }
 
                         // Static link to BoringSSL
                         linker.args "-O3",
