@@ -112,7 +112,7 @@ script:
         git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git diff-tree --no-commit-id --name-only -r {} | grep -E '\.java$' | xargs -r git ls-files | xargs -r java -jar $HOME/gjf.jar -a -i --fix-imports-only && git diff --exit-code || { git reset --hard; false; }
     fi
 
-  - ./gradlew build
+  - ./gradlew build -PcheckErrorQueue
 
   # Also test with Java 6 on linux
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
@@ -121,7 +121,7 @@ script:
       fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
-      ./gradlew check -DjavaExecutable64=${JAVA6_HOME}/bin/java;
+      ./gradlew check -DjavaExecutable64=${JAVA6_HOME}/bin/java -PcheckErrorQueue;
     fi
 
 after_script:

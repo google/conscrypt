@@ -264,6 +264,39 @@ extern int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCod
                                           const char* message,
                                           int (*actualThrow)(JNIEnv*,
                                                              const char*) = throwSSLExceptionStr);
+
+#ifdef CONSCRYPT_CHECK_ERROR_QUEUE
+/**
+ * Class that checks that the error queue is empty on destruction.  It should only be used
+ * via the macro CHECK_ERROR_QUEUE_ON_RETURN, which can be placed at the top of a function to
+ * ensure that the error queue is empty whenever the function exits.
+ */
+class ErrorQueueChecker {
+public:
+    ErrorQueueChecker(JNIEnv* env) : env(env) {}
+    ~ErrorQueueChecker() {
+        if (ERR_peek_error() != 0) {
+            const char* file;
+            int line;
+            unsigned long error = ERR_get_error_line(&file, &line);
+            char message[256];
+            ERR_error_string_n(error, message, sizeof(message));
+            char result[500];
+            snprintf(result, sizeof(result), "Error queue should have been empty but was (%s:%d) %s", file, line, message);
+            // If there's a pending exception, we want to throw the assertion error instead
+            env->ExceptionClear();
+            throwAssertionError(env, result);
+        }
+    }
+private:
+    JNIEnv* env;
+};
+
+#define CHECK_ERROR_QUEUE_ON_RETURN conscrypt::jniutil::ErrorQueueChecker __checker(env)
+#else
+#define CHECK_ERROR_QUEUE_ON_RETURN ((void)0)
+#endif  // CONSCRYPT_CHECK_ERROR_QUEUE
+
 }  // namespace jniutil
 }  // namespace conscrypt
 
