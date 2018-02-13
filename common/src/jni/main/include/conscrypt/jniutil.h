@@ -294,7 +294,7 @@ private:
 
 #define CHECK_ERROR_QUEUE_ON_RETURN conscrypt::jniutil::ErrorQueueChecker __checker(env)
 #else
-#define CHECK_ERROR_QUEUE_ON_RETURN ((void)0)
+#define CHECK_ERROR_QUEUE_ON_RETURN UNUSED_ARGUMENT(env)
 #endif  // CONSCRYPT_CHECK_ERROR_QUEUE
 
 }  // namespace jniutil
