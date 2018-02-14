@@ -8,6 +8,7 @@ RUN yum install -y git \
                    wget \
                    which \
                    make \
+                   emacs \
                    autoconf \
                    curl-devel \
                    unzip \
