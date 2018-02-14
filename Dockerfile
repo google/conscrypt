@@ -1,5 +1,8 @@
 FROM centos:6.6
 
+# This enables compatibility with Docker overlayfs
+RUN yum install -y yum-plugin-ovl
+
 RUN yum install -y git \
                    tar \
                    wget \
