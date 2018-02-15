@@ -4484,7 +4484,7 @@ public final class CipherTest {
                 "DESEDE/CBC/PKCS7PADDING" };
         for (String c : androidOpenSSLCiphers) {
             Cipher cipher = Cipher.getInstance(c);
-            assertEquals("Conscrypt", cipher.getProvider().getName());
+            assertTrue(Conscrypt.isConscrypt(cipher.getProvider()));
             if (c.contains("/CBC/")) {
                 cipher.init(Cipher.DECRYPT_MODE,
                         new SecretKeySpec("0123456789012345".getBytes(StandardCharsets.US_ASCII),
