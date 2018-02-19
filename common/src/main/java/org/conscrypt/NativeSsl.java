@@ -71,8 +71,8 @@ final class NativeSsl {
     static NativeSsl newInstance(SSLParametersImpl parameters,
             SSLHandshakeCallbacks handshakeCallbacks, AliasChooser chooser,
             PSKCallbacks pskCallbacks) throws SSLException {
-        long ctx = parameters.getSessionContext().sslCtxNativePointer;
-        long ssl = NativeCrypto.SSL_new(ctx);
+        AbstractSessionContext ctx = parameters.getSessionContext();
+        long ssl = NativeCrypto.SSL_new(ctx.sslCtxNativePointer, ctx);
         return new NativeSsl(ssl, parameters, handshakeCallbacks, chooser, pskCallbacks);
     }
 
