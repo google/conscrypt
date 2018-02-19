@@ -44,7 +44,7 @@ public final class ServerSessionContext extends AbstractSessionContext {
         // sure you don't reuse sessions externalized with i2d_SSL_SESSION
         // between apps. However our sessions are either in memory or
         // exported to a app's SSLServerSessionCache.
-        NativeCrypto.SSL_CTX_set_session_id_context(sslCtxNativePointer, new byte[] { ' ' });
+        NativeCrypto.SSL_CTX_set_session_id_context(sslCtxNativePointer, this, new byte[] { ' ' });
     }
 
     /**

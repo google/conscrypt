@@ -856,13 +856,13 @@ public final class NativeCrypto {
         return SUPPORTED_CIPHER_SUITES.clone();
     }
 
-    static native void SSL_CTX_free(long ssl_ctx);
+    static native void SSL_CTX_free(long ssl_ctx, AbstractSessionContext holder);
 
-    static native void SSL_CTX_set_session_id_context(long ssl_ctx, byte[] sid_ctx);
+    static native void SSL_CTX_set_session_id_context(long ssl_ctx, AbstractSessionContext holder, byte[] sid_ctx);
 
-    static native long SSL_CTX_set_timeout(long ssl_ctx, long seconds);
+    static native long SSL_CTX_set_timeout(long ssl_ctx, AbstractSessionContext holder, long seconds);
 
-    static native long SSL_new(long ssl_ctx) throws SSLException;
+    static native long SSL_new(long ssl_ctx, AbstractSessionContext holder) throws SSLException;
 
     static native void SSL_enable_tls_channel_id(long ssl, NativeSsl ssl_holder) throws SSLException;
 

@@ -6533,7 +6533,7 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
 /**
  * public static native void SSL_CTX_free(long ssl_ctx)
  */
-static void NativeCrypto_SSL_CTX_free(JNIEnv* env, jclass, jlong ssl_ctx_address) {
+static void NativeCrypto_SSL_CTX_free(JNIEnv* env, jclass, jlong ssl_ctx_address, CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
     JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_CTX_free", ssl_ctx);
@@ -6544,6 +6544,7 @@ static void NativeCrypto_SSL_CTX_free(JNIEnv* env, jclass, jlong ssl_ctx_address
 }
 
 static void NativeCrypto_SSL_CTX_set_session_id_context(JNIEnv* env, jclass, jlong ssl_ctx_address,
+                                                        CONSCRYPT_UNUSED jobject holder,
                                                         jbyteArray sid_ctx) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
@@ -6578,6 +6579,7 @@ static void NativeCrypto_SSL_CTX_set_session_id_context(JNIEnv* env, jclass, jlo
 }
 
 static jlong NativeCrypto_SSL_CTX_set_timeout(JNIEnv* env, jclass, jlong ssl_ctx_address,
+                                              CONSCRYPT_UNUSED jobject holder,
                                               jlong seconds) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
@@ -6592,7 +6594,7 @@ static jlong NativeCrypto_SSL_CTX_set_timeout(JNIEnv* env, jclass, jlong ssl_ctx
 /**
  * public static native int SSL_new(long ssl_ctx) throws SSLException;
  */
-static jlong NativeCrypto_SSL_new(JNIEnv* env, jclass, jlong ssl_ctx_address) {
+static jlong NativeCrypto_SSL_new(JNIEnv* env, jclass, jlong ssl_ctx_address, CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
     JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_new", ssl_ctx);
@@ -9734,6 +9736,7 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
 #define REF_X509 "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509Certificate;"
 #define REF_X509_CRL "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509CRL;"
 #define REF_SSL "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeSsl;"
+#define REF_SSL_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/AbstractSessionContext;"
 static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(clinit, "()V"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_new_RSA, "([B[B[B[B[B[B[B[B)J"),
@@ -9934,10 +9937,10 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(asn1_write_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_has_aes_hardware, "()I"),
         CONSCRYPT_NATIVE_METHOD(SSL_CTX_new, "()J"),
-        CONSCRYPT_NATIVE_METHOD(SSL_CTX_free, "(J)V"),
-        CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_session_id_context, "(J[B)V"),
-        CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_timeout, "(JJ)J"),
-        CONSCRYPT_NATIVE_METHOD(SSL_new, "(J)J"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CTX_free, "(J" REF_SSL_CTX ")V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_session_id_context, "(J" REF_SSL_CTX "[B)V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_timeout, "(J" REF_SSL_CTX "J)J"),
+        CONSCRYPT_NATIVE_METHOD(SSL_new, "(J" REF_SSL_CTX ")J"),
         CONSCRYPT_NATIVE_METHOD(SSL_enable_tls_channel_id, "(J" REF_SSL ")V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_tls_channel_id, "(J" REF_SSL ")[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_set1_tls_channel_id, "(J" REF_SSL REF_EVP_PKEY ")V"),
