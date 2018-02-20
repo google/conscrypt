@@ -67,7 +67,7 @@ ifeq ($(LIBCORE_SKIP_TESTS),)
 # Make the conscrypt-tests library.
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(bundled_test_java_files)
-LOCAL_JAVA_RESOURCE_DIRS := openjdk/src/test/resources
+LOCAL_JAVA_RESOURCE_DIRS := openjdk/src/test/resources openjdk-integ-tests/src/test/resources
 LOCAL_NO_STANDARD_LIBRARIES := true
 LOCAL_JAVA_LIBRARIES := \
     core-oj \
@@ -126,7 +126,7 @@ ifeq ($(HOST_OS),linux)
 ifeq ($(LIBCORE_SKIP_TESTS),)
     include $(CLEAR_VARS)
     LOCAL_SRC_FILES := $(bundled_test_java_files)
-    LOCAL_JAVA_RESOURCE_DIRS := openjdk/src/test/resources
+    LOCAL_JAVA_RESOURCE_DIRS := openjdk/src/test/resources openjdk-integ-tests/src/test/resources
     LOCAL_JAVA_LIBRARIES := \
         bouncycastle-nojarjar-hostdex \
         bouncycastle-bcpkix-nojarjar-hostdex \
