@@ -14,9 +14,9 @@ ext {
     androidSdkInstalled = file("$androidHome").exists()
     androidVersionCode = 1
     androidVersionName = "$version"
-    androidMinSdkVersion = 24
-    androidTargetSdkVersion = 25
-    androidBuildToolsVersion = "25.0.0"
+    androidMinSdkVersion = 26
+    androidTargetSdkVersion = 26
+    androidBuildToolsVersion = "26.0.0"
     androidBuildToolsDir = "${androidHome}/build-tools/${androidBuildToolsVersion}"
 }
 

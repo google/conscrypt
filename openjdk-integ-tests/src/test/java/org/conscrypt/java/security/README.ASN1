@@ -1,0 +1,14 @@
+Many tests in this package check the ASN.1 encoding for various kinds of parameters.  The openssl
+command line tool can be used to view and encode data in ASN.1.
+
+Test data for encoding tests is preceded by its definition in the OpenSSL generation string
+format described at https://wiki.openssl.org/index.php/Manual:ASN1_generate_nconf(3).  To
+reproduce the base64-encoded values in the test files, do:
+
+# Put data definition in a file, eg input.cnf
+openssl asn1parse -genconf input.cnf -out /tmp/asn1.der
+openssl base64 -in /tmp/asn1.der
+
+To view the ASN.1 data encoded in a base64-encoded string, do:
+
+echo 'BASE64-ENCODED DATA HERE' | openssl asn1parse -i
