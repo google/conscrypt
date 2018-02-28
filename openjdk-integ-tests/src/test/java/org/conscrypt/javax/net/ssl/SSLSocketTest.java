@@ -1955,8 +1955,16 @@ public class SSLSocketTest {
         // Read from the socket.
         try {
             toRead.setSoTimeout(readingTimeoutMillis);
-            toRead.getInputStream().read();
-            fail();
+            int read = toRead.getInputStream().read();
+            // In the case of reading the wrapper and closing the underlying socket,
+            // there is a race condition between the reading thread being woken and
+            // reading the socket again and the closing thread marking the file descriptor
+            // as invalid.  If the latter happens first, a SocketException is thrown,
+            // but if the former happens first it just looks like the peer closed the
+            // connection and a -1 return is acceptable.
+            if (read != -1 || readUnderlying || !closeUnderlying) {
+                fail();
+            }
         } catch (SocketTimeoutException e) {
             throw e;
         } catch (IOException expected) {

@@ -7886,12 +7886,10 @@ static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* b
             // A problem occurred during a system call, but this is not
             // necessarily an error.
             case SSL_ERROR_SYSCALL: {
-                // Connection closed without proper shutdown.  Throw a SocketException to
-                // indicate that the socket is closed.
+                // Connection closed without proper shutdown. Tell caller we
+                // have reached end-of-stream.
                 if (result == 0) {
-                    conscrypt::jniutil::throwException(env, "java/net/SocketException",
-                                                       "Socket closed");
-                    return THROWN_EXCEPTION;
+                    return -1;
                 }
 
                 // System call has been interrupted. Simply retry.
