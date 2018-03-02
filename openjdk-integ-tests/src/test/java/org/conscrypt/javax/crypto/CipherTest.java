@@ -92,12 +92,12 @@ public final class CipherTest {
     private static final int GCM_TAG_SIZE_BITS = 96;
 
     private static final String[] RSA_PROVIDERS = ((StandardNames.IS_RI)
-                                                   ? new String[] { "SunJCE", "Conscrypt" }
-                                                   : new String[] { "BC" , "AndroidOpenSSL" });
+        ? new String[] { "SunJCE", StandardNames.JSSE_PROVIDER_NAME }
+        : new String[] { "BC" , StandardNames.JSSE_PROVIDER_NAME });
 
     private static final String[] AES_PROVIDERS = ((StandardNames.IS_RI)
-                                                   ? new String[] { "SunJCE", "Conscrypt" }
-                                                   : new String[] { "BC", "AndroidOpenSSL" });
+        ? new String[] { "SunJCE", StandardNames.JSSE_PROVIDER_NAME }
+        : new String[] { "BC", StandardNames.JSSE_PROVIDER_NAME });
 
     private static boolean isSupported(String algorithm, String provider) {
         if (algorithm.equals("RC2")) {
