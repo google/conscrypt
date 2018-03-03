@@ -89,7 +89,7 @@ buildscript {
 apply plugin: "com.google.osdetector"
 
 dependencies {
-  compile 'org.conscrypt:conscrypt-jdk:1.0.1:' + osdetector.classifier
+  compile 'org.conscrypt:conscrypt-openjdk:1.0.1:' + osdetector.classifier
 }
 ```
 
@@ -114,7 +114,7 @@ To depend on the uber jar, simply use the `conscrypt-openjdk-uber` artifacts.
 ###### Gradle
 ```gradle
 dependencies {
-  compile 'org.conscrypt:conscrypt-jdk-uber:1.0.1'
+  compile 'org.conscrypt:conscrypt-openjdk-uber:1.0.1'
 }
 ```
 
