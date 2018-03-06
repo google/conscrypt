@@ -18,25 +18,14 @@ package org.conscrypt.java.security;
 
 import static org.junit.Assert.assertEquals;
 
-import java.lang.reflect.Method;
 import java.security.MessageDigest;
-import java.security.MessageDigestSpi;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import junit.framework.TestCase;
 import org.junit.Test;
 
 public final class MessageDigestTest {

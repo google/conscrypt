@@ -20,6 +20,7 @@ import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 
 import org.conscrypt.java.security.AlgorithmParameterGeneratorTestDH;
 import org.conscrypt.java.security.AlgorithmParameterGeneratorTestDSA;
+import org.conscrypt.java.security.AlgorithmParametersPSSTest;
 import org.conscrypt.java.security.AlgorithmParametersTestAES;
 import org.conscrypt.java.security.AlgorithmParametersTestDES;
 import org.conscrypt.java.security.AlgorithmParametersTestDESede;
@@ -37,7 +38,6 @@ import org.conscrypt.java.security.KeyPairGeneratorTestRSA;
 import org.conscrypt.java.security.MessageDigestTest;
 import org.conscrypt.java.security.SignatureTest;
 import org.conscrypt.java.security.cert.CertificateFactoryTest;
-import org.conscrypt.java.security.AlgorithmParametersPSSTest;
 import org.conscrypt.javax.crypto.CipherBasicsTest;
 import org.conscrypt.javax.crypto.CipherTest;
 import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;

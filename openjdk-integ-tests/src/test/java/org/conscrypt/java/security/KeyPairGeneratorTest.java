@@ -89,7 +89,7 @@ public class KeyPairGeneratorTest {
         assertTrue(providers.size() > 0);
         // If this fails remember to add _provider methods below. This test is sharded because it
         // takes a long time to execute.
-        assertTrue("Saw " + providers.size() + " providers", providers.size() <= 10);
+        assertTrue("Saw " + providers.size() + " providers", providers.size() <= 15);
     }
 
     @Test
@@ -140,6 +140,31 @@ public class KeyPairGeneratorTest {
     @Test
     public void test_getInstance_provider9() throws Exception {
         test_getInstance(9);
+    }
+
+    @Test
+    public void test_getInstance_provider10() throws Exception {
+        test_getInstance(10);
+    }
+
+    @Test
+    public void test_getInstance_provider11() throws Exception {
+        test_getInstance(11);
+    }
+
+    @Test
+    public void test_getInstance_provider12() throws Exception {
+        test_getInstance(12);
+    }
+
+    @Test
+    public void test_getInstance_provider13() throws Exception {
+        test_getInstance(13);
+    }
+
+    @Test
+    public void test_getInstance_provider14() throws Exception {
+        test_getInstance(14);
     }
 
     private void test_getInstance(int providerIndex) throws Exception {
