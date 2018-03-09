@@ -73,7 +73,8 @@ public final class MessageDigestTest {
                     assertEquals(provider, md3.getProvider());
                     test_MessageDigest(md3);
                 } catch (Exception e) {
-                    throw new Exception("Problem testing MessageDigest." + algorithm, e);
+                    throw new Exception("Problem testing MessageDigest." + algorithm
+                            + " from provider " + provider.getName(), e);
                 }
             }
         }
@@ -111,6 +112,11 @@ public final class MessageDigestTest {
                        new byte[] { -44, 29, -116, -39, -113, 0, -78, 4,
                                     -23, -128, 9, -104, -20, -8, 66, 126 });
         putExpectation("SHA",
+                       INPUT_EMPTY,
+                       new byte[] { -38, 57, -93, -18, 94, 107, 75, 13,
+                                    50, 85, -65, -17, -107, 96, 24, -112,
+                                    -81, -40, 7, 9});
+        putExpectation("SHA1",
                        INPUT_EMPTY,
                        new byte[] { -38, 57, -93, -18, 94, 107, 75, 13,
                                     50, 85, -65, -17, -107, 96, 24, -112,

@@ -106,7 +106,8 @@ public class SignatureTest {
                     assertEquals(provider, sig3.getProvider());
                     test_Signature(sig3, kp);
                 } catch (Exception e) {
-                    throw new Exception("Problem testing Signature." + algorithm, e);
+                    throw new Exception("Problem testing Signature." + algorithm
+                            + " from provider " + provider.getName(), e);
                 }
             }
         }
@@ -163,7 +164,9 @@ public class SignatureTest {
          * The RI appears to clear out the input data in RawDSA while calling
          * verify a second time.
          */
-        if (StandardNames.IS_RI && "NONEwithDSA".equalsIgnoreCase(sig.getAlgorithm())) {
+        if (StandardNames.IS_RI && (
+                "NONEwithDSA".equalsIgnoreCase(sig.getAlgorithm())
+                || "RawDSA".equalsIgnoreCase(sig.getAlgorithm()))) {
             try {
                 sig.verify(signature);
                 fail("Expected RI to have a NONEwithDSA bug");

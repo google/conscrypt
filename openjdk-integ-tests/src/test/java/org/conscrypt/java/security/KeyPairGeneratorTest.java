@@ -225,7 +225,8 @@ public class KeyPairGeneratorTest {
                 }
                 test_KeyPairGenerator(kpg3);
             } catch (Exception e) {
-                throw new Exception("Problem testing KeyPairGenerator." + algorithm, e);
+                throw new Exception("Problem testing KeyPairGenerator." + algorithm
+                        + " from provider " + provider.getName(), e);
             }
         }
     }
