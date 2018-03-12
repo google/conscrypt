@@ -72,6 +72,9 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
     @Override
     int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset,
             int maximumLen) throws ShortBufferException {
+        if (inputLen > output.length - outputOffset) {
+            throw new ShortBufferException("Insufficient output space");
+        }
         int inputLenRemaining = inputLen;
         if (currentBlockConsumedBytes > 0) {
             // A previous operation ended with a partial block, so we need to encrypt using

@@ -1168,6 +1168,22 @@ public abstract class OpenSSLCipher extends CipherSpi {
         }
 
         @Override
+        protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
+                int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
+                BadPaddingException {
+            // Because the EVP_AEAD updateInternal processes input but doesn't create any output
+            // (and thus can't check the output buffer), we need to add this check before the
+            // superclass' processing to ensure that updateInternal is never called if the
+            // output buffer isn't large enough.
+            if (output != null) {
+                if (getOutputSizeForFinal(inputLen) > output.length - outputOffset) {
+                    throw new ShortBufferException("Insufficient output space");
+                }
+            }
+            return super.engineDoFinal(input, inputOffset, inputLen, output, outputOffset);
+        }
+
+        @Override
         int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
                 int outputOffset, int maximumLen) throws ShortBufferException {
             checkInitialization();
@@ -1214,7 +1230,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
         @Override
         int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
-                throws IllegalBlockSizeException, BadPaddingException {
+                throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
             checkInitialization();
             final int bytesWritten;
             try {

@@ -178,6 +178,12 @@ int throwIllegalBlockSizeException(JNIEnv* env, const char* message) {
             env, "javax/crypto/IllegalBlockSizeException", message);
 }
 
+int throwShortBufferException(JNIEnv* env, const char* message) {
+    JNI_TRACE("throwShortBufferException %s", message);
+    return conscrypt::jniutil::throwException(
+            env, "javax/crypto/ShortBufferException", message);
+}
+
 int throwNoSuchAlgorithmException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwUnknownAlgorithmException %s", message);
     return conscrypt::jniutil::throwException(
@@ -241,6 +247,9 @@ int throwForCipherError(JNIEnv* env, int reason, const char* message,
         case CIPHER_R_BAD_KEY_LENGTH:
         case CIPHER_R_UNSUPPORTED_KEY_SIZE:
             return throwInvalidKeyException(env, message);
+            break;
+        case CIPHER_R_BUFFER_TOO_SMALL:
+            return throwShortBufferException(env, message);
             break;
     }
     return defaultThrow(env, message);
