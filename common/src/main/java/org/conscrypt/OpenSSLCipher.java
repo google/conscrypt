@@ -1369,6 +1369,18 @@ public abstract class OpenSSLCipher extends CipherSpi {
                     }
                 }
 
+                @Override
+                int getOutputSizeForFinal(int inputLen) {
+                    // For GCM, the tag is a fixed length and there is no padding or other
+                    // concerns, so we can calculate the exact length required without a
+                    // native call
+                    if (isEncrypting()) {
+                        return bufCount + inputLen + tagLengthInBytes;
+                    } else {
+                        return Math.max(0, bufCount + inputLen - tagLengthInBytes);
+                    }
+                }
+
                 public static class AES_128 extends GCM {
                     @Override
                     void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
@@ -1427,6 +1439,18 @@ public abstract class OpenSSLCipher extends CipherSpi {
                     return NativeCrypto.EVP_aead_chacha20_poly1305();
                 } else {
                     throw new RuntimeException("Unexpected key length: " + keyLength);
+                }
+            }
+
+            @Override
+            int getOutputSizeForFinal(int inputLen) {
+                // For ChaCha20+Poly1305, the tag is always 16 bytes long and there is no
+                // padding or other concerns, so we can calculate the exact length required
+                // without a native call
+                if (isEncrypting()) {
+                    return bufCount + inputLen + 16;
+                } else {
+                    return Math.max(0, bufCount + inputLen - 16);
                 }
             }
         }
