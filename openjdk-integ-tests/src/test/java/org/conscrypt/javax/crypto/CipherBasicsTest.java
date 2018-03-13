@@ -16,6 +16,7 @@
 
 package org.conscrypt.javax.crypto;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
@@ -128,12 +129,20 @@ public final class CipherBasicsTest {
 
                     try {
                         cipher.init(Cipher.ENCRYPT_MODE, key, params);
+                        assertEquals("Provider " + p.getName()
+                                        + ", algorithm " + transformation
+                                        + " reported the wrong output size",
+                                ciphertext.length, cipher.getOutputSize(plaintext.length));
                         assertTrue("Provider " + p.getName()
                                         + ", algorithm " + transformation
                                         + " failed on encryption, data is " + Arrays.toString(line),
                                 Arrays.equals(ciphertext, cipher.doFinal(plaintext)));
 
                         cipher.init(Cipher.DECRYPT_MODE, key, params);
+                        assertEquals("Provider " + p.getName()
+                                        + ", algorithm " + transformation
+                                        + " reported the wrong output size",
+                                plaintext.length, cipher.getOutputSize(ciphertext.length));
                         assertTrue("Provider " + p.getName()
                                         + ", algorithm " + transformation
                                         + " failed on decryption, data is " + Arrays.toString(line),
@@ -190,6 +199,10 @@ public final class CipherBasicsTest {
                             cipher.updateAAD(aad);
                         }
                         byte[] combinedOutput = new byte[ciphertext.length + tag.length];
+                        assertEquals("Provider " + p.getName()
+                                        + ", algorithm " + transformation
+                                        + " reported the wrong output size",
+                                combinedOutput.length, cipher.getOutputSize(plaintext.length));
                         System.arraycopy(ciphertext, 0, combinedOutput, 0, ciphertext.length);
                         System.arraycopy(tag, 0, combinedOutput, ciphertext.length, tag.length);
                         assertTrue("Provider " + p.getName()
@@ -201,6 +214,10 @@ public final class CipherBasicsTest {
                         if (aad.length > 0) {
                             cipher.updateAAD(aad);
                         }
+                        assertEquals("Provider " + p.getName()
+                                        + ", algorithm " + transformation
+                                        + " reported the wrong output size",
+                                plaintext.length, cipher.getOutputSize(combinedOutput.length));
                         assertTrue("Provider " + p.getName()
                                         + ", algorithm " + transformation
                                         + " failed on decryption, data is " + Arrays.toString(line),
