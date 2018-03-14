@@ -111,8 +111,10 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             new SSLEngineResult(CLOSED, NOT_HANDSHAKING, 0, 0);
     private static final ByteBuffer EMPTY = ByteBuffer.allocateDirect(0);
 
+    private static BufferAllocator defaultBufferAllocator = null;
+
     private final SSLParametersImpl sslParameters;
-    private BufferAllocator bufferAllocator;
+    private BufferAllocator bufferAllocator = defaultBufferAllocator;
 
     /**
      * A lazy-created direct buffer used as a bridge between heap buffers provided by the
@@ -208,6 +210,14 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         } catch (SSLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Configures the default {@link BufferAllocator} to be used by all future
+     * {@link SSLEngine} instances from this provider.
+     */
+    static void setDefaultBufferAllocator(BufferAllocator bufferAllocator) {
+        defaultBufferAllocator = bufferAllocator;
     }
 
     @Override
