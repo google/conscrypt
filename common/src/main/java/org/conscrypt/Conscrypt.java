@@ -371,6 +371,15 @@ public final class Conscrypt {
     }
 
     /**
+     * Configures the default {@link BufferAllocator} to be used by all future
+     * {@link SSLEngine} instances from this provider.
+     */
+    @ExperimentalApi
+    public static void setDefaultBufferAllocator(BufferAllocator bufferAllocator) {
+        ConscryptEngine.setDefaultBufferAllocator(bufferAllocator);
+    }
+
+    /**
      * This method enables Server Name Indication (SNI) and overrides the hostname supplied
      * during engine creation.
      *
