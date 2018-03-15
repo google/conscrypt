@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Set;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.ShortBufferException;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
@@ -327,11 +328,11 @@ public final class NativeCrypto {
 
     static native int EVP_AEAD_CTX_seal(long evpAead, byte[] key, int tagLengthInBytes, byte[] out,
             int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength, byte[] ad)
-            throws BadPaddingException, IndexOutOfBoundsException;
+            throws ShortBufferException, BadPaddingException, IndexOutOfBoundsException;
 
     static native int EVP_AEAD_CTX_open(long evpAead, byte[] key, int tagLengthInBytes, byte[] out,
             int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength, byte[] ad)
-            throws BadPaddingException, IndexOutOfBoundsException;
+            throws ShortBufferException, BadPaddingException, IndexOutOfBoundsException;
 
     // --- HMAC functions ------------------------------------------------------
 
