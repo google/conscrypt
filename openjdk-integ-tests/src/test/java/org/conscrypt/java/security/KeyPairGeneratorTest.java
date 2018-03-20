@@ -293,7 +293,9 @@ public class KeyPairGeneratorTest {
         List<Integer> keySizes = getKeySizes(algorithm);
         for (int keySize : keySizes) {
             // TODO(flooey): Remove when we don't support Java 6 anymore
-            if ("DSA".equals(algorithm) && "SUN".equalsIgnoreCase(kpg.getProvider().getName())
+            if ("DSA".equals(algorithm)
+                    && ("SUN".equalsIgnoreCase(kpg.getProvider().getName())
+                        || "SunPKCS11-NSS".equalsIgnoreCase(kpg.getProvider().getName()))
                     && keySize != 512 && keySize != 1024) {
                 // The Sun provider doesn't support DSA in all the key sizes, so ignore
                 // the uncommon ones.
@@ -385,6 +387,12 @@ public class KeyPairGeneratorTest {
                 if (!service.getAlgorithm().equals(keyAlgo)) {
                     continue;
                 }
+                if ("EC".equals(k.getAlgorithm())
+                        && "SunPKCS11-NSS".equalsIgnoreCase(p.getName())) {
+                    // SunPKCS11 doesn't support some of the named curves that we expect, so it
+                    // fails.  Skip testing that combination.
+                    continue;
+                }
 
                 if ("PKCS#8".equals(k.getFormat())) {
                     PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(encoded);
@@ -399,6 +407,13 @@ public class KeyPairGeneratorTest {
                     if (k instanceof ECPrivateKey) {
                         assertECPrivateKeyEquals((ECPrivateKey) k, (ECPrivateKey) privKey);
                     } else {
+                        if ("DH".equals(k.getAlgorithm())
+                                && "SunPKCS11-NSS".equalsIgnoreCase(p.getName())) {
+                            // SunPKCS11 omits the privateValueLength field from the DHParameter
+                            // structure in its encoded keys, unlike every other provider seen,
+                            // so ignore it.
+                            continue;
+                        }
                         assertEquals(k.getAlgorithm() + ", provider=" + p.getName(),
                                 TestUtils.encodeBase64(encoded),
                                 TestUtils.encodeBase64(privKey.getEncoded()));
