@@ -32,6 +32,7 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.Provider;
+import java.security.ProviderException;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
@@ -171,6 +172,15 @@ public class SignatureTest {
                 sig.verify(signature);
                 fail("Expected RI to have a NONEwithDSA bug");
             } catch (SignatureException bug) {
+            }
+        } else if (StandardNames.IS_RI
+                && "NONEwithECDSA".equalsIgnoreCase(sig.getAlgorithm())
+                && "SunPKCS11-NSS".equalsIgnoreCase(sig.getProvider().getName())) {
+            // This provider doesn't work properly
+            try {
+                sig.verify(signature);
+                fail("Expected RI to have a NONEwithECDSA bug");
+            } catch (ProviderException bug) {
             }
         } else {
             // Calling Signature.verify a second time should not throw

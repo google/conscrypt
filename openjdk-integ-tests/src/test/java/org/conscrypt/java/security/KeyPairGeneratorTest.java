@@ -57,6 +57,7 @@ import javax.crypto.interfaces.DHPrivateKey;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
 import libcore.java.security.StandardNames;
+import org.conscrypt.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -291,6 +292,13 @@ public class KeyPairGeneratorTest {
 
         List<Integer> keySizes = getKeySizes(algorithm);
         for (int keySize : keySizes) {
+            // TODO(flooey): Remove when we don't support Java 6 anymore
+            if ("DSA".equals(algorithm) && "SUN".equalsIgnoreCase(kpg.getProvider().getName())
+                    && keySize != 512 && keySize != 1024) {
+                // The Sun provider doesn't support DSA in all the key sizes, so ignore
+                // the uncommon ones.
+                continue;
+            }
             kpg.initialize(keySize);
             test_KeyPair(kpg, kpg.genKeyPair());
             test_KeyPair(kpg, kpg.generateKeyPair());
@@ -392,8 +400,8 @@ public class KeyPairGeneratorTest {
                         assertECPrivateKeyEquals((ECPrivateKey) k, (ECPrivateKey) privKey);
                     } else {
                         assertEquals(k.getAlgorithm() + ", provider=" + p.getName(),
-                                Arrays.toString(encoded),
-                                Arrays.toString(privKey.getEncoded()));
+                                TestUtils.encodeBase64(encoded),
+                                TestUtils.encodeBase64(privKey.getEncoded()));
                     }
                 } else if ("X.509".equals(k.getFormat())) {
                     X509EncodedKeySpec spec = new X509EncodedKeySpec(encoded);
