@@ -393,6 +393,13 @@ public class KeyPairGeneratorTest {
                     // fails.  Skip testing that combination.
                     continue;
                 }
+                if ("DH".equals(k.getAlgorithm())
+                        && "SunPKCS11-NSS".equalsIgnoreCase(p.getName())) {
+                    // SunPKCS11 omits the privateValueLength field from the DHParameter
+                    // structure in its encoded keys, unlike every other provider seen,
+                    // so ignore it.
+                    continue;
+                }
 
                 if ("PKCS#8".equals(k.getFormat())) {
                     PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(encoded);
@@ -407,13 +414,6 @@ public class KeyPairGeneratorTest {
                     if (k instanceof ECPrivateKey) {
                         assertECPrivateKeyEquals((ECPrivateKey) k, (ECPrivateKey) privKey);
                     } else {
-                        if ("DH".equals(k.getAlgorithm())
-                                && "SunPKCS11-NSS".equalsIgnoreCase(p.getName())) {
-                            // SunPKCS11 omits the privateValueLength field from the DHParameter
-                            // structure in its encoded keys, unlike every other provider seen,
-                            // so ignore it.
-                            continue;
-                        }
                         assertEquals(k.getAlgorithm() + ", provider=" + p.getName(),
                                 TestUtils.encodeBase64(encoded),
                                 TestUtils.encodeBase64(privKey.getEncoded()));
