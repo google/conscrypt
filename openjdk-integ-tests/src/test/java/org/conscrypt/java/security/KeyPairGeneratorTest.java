@@ -423,7 +423,9 @@ public class KeyPairGeneratorTest {
                     KeyFactory kf = KeyFactory.getInstance(k.getAlgorithm(), p);
                     PublicKey pubKey = kf.generatePublic(spec);
                     assertNotNull(pubKey);
-                    assertTrue(Arrays.equals(encoded, pubKey.getEncoded()));
+                    assertEquals(k.getAlgorithm() + ", provider=" + p.getName(),
+                            TestUtils.encodeBase64(encoded),
+                            TestUtils.encodeBase64(pubKey.getEncoded()));
                 }
             }
         }
