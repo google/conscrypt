@@ -301,6 +301,13 @@ public class KeyPairGeneratorTest {
                 // the uncommon ones.
                 continue;
             }
+            if ("EC".equals(algorithm)
+                    && ("SunPKCS11-NSS".equalsIgnoreCase(kpg.getProvider().getName()))
+                    && keySize == 224) {
+                // TODO(flooey): Remove when we stop supporting Java 6
+                // This Sun provider doesn't support 224-bit EC keys
+                continue;
+            }
             kpg.initialize(keySize);
             test_KeyPair(kpg, kpg.genKeyPair());
             test_KeyPair(kpg, kpg.generateKeyPair());

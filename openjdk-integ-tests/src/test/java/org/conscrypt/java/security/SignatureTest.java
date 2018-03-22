@@ -87,6 +87,11 @@ public class SignatureTest {
                 if (!type.equals("Signature")) {
                     continue;
                 }
+                if (service.getProvider().getName().equalsIgnoreCase("SunMSCAPI")) {
+                    // The SunMSCAPI is very strange, including only supporting its own keys,
+                    // so don't test it.
+                    continue;
+                }
                 String algorithm = service.getAlgorithm();
                 try {
                     KeyPair kp = keyPair(algorithm, provider.getName());
