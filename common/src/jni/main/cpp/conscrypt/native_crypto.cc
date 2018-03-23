@@ -7062,11 +7062,11 @@ static void NativeCrypto_SSL_set_token_binding_params(JNIEnv* env, jclass, jlong
         JNI_TRACE("ssl=%p NativeCrypto_SSL_set_token_binding_params params==null", ssl);
         ret = SSL_set_token_binding_params(ssl, nullptr, 0);
     } else {
-        uint8_t paramsBytes[paramsValues.size()];
+        std::unique_ptr<uint8_t[]> paramsBytes(new uint8_t[paramsValues.size()]);
         for (int i = 0; i < paramsValues.size(); i++) {
-            paramsBytes[i] = static_cast<uint8_t>(paramsValues[i]);
+            paramsBytes.get()[i] = static_cast<uint8_t>(paramsValues[i]);
         }
-        ret = SSL_set_token_binding_params(ssl, paramsBytes, paramsValues.size());
+        ret = SSL_set_token_binding_params(ssl, paramsBytes.get(), paramsValues.size());
     }
 
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set_token_binding_params => %d", ssl, ret);
@@ -7108,10 +7108,10 @@ static jbyteArray NativeCrypto_SSL_export_keying_material(JNIEnv* env, jclass, j
         JNI_TRACE("ssl=%p NativeCrypto_SSL_export_keying_material label == null => exception", ssl);
         return nullptr;
     }
-    uint8_t out[num_bytes];
+    std::unique_ptr<uint8_t[]> out(new uint8_t[num_bytes]);
     int ret;
     if (context == nullptr) {
-        ret = SSL_export_keying_material(ssl, out, num_bytes,
+        ret = SSL_export_keying_material(ssl, out.get(), num_bytes,
                         reinterpret_cast<const char*>(labelBytes.get()), labelBytes.size(),
                         nullptr, 0, 0);
     } else {
@@ -7120,7 +7120,7 @@ static jbyteArray NativeCrypto_SSL_export_keying_material(JNIEnv* env, jclass, j
             JNI_TRACE("ssl=%p NativeCrypto_SSL_export_keying_material context == null => exception", ssl);
             return nullptr;
         }
-        ret = SSL_export_keying_material(ssl, out, num_bytes,
+        ret = SSL_export_keying_material(ssl, out.get(), num_bytes,
                         reinterpret_cast<const char*>(labelBytes.get()), labelBytes.size(),
                         reinterpret_cast<const uint8_t*>(contextBytes.get()), contextBytes.size(), 1);
     }
@@ -7132,7 +7132,7 @@ static jbyteArray NativeCrypto_SSL_export_keying_material(JNIEnv* env, jclass, j
     }
     jbyteArray result = env->NewByteArray(static_cast<jsize>(num_bytes));
     if (result != nullptr) {
-        const jbyte* src = reinterpret_cast<jbyte*>(out);
+        const jbyte* src = reinterpret_cast<jbyte*>(out.get());
         env->SetByteArrayRegion(result, 0, static_cast<jsize>(num_bytes), src);
     }
     JNI_TRACE("ssl=%p NativeCrypto_SSL_export_keying_material => success", ssl);
