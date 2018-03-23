@@ -32,9 +32,13 @@ import java.util.TimeZone;
  */
 final class OpenSSLX509CRLEntry extends X509CRLEntry {
     private final long mContext;
+    private final Date revocationDate;
 
-    OpenSSLX509CRLEntry(long ctx) {
+    OpenSSLX509CRLEntry(long ctx) throws CRLException {
         mContext = ctx;
+        // The legacy X509 OpenSSL APIs don't validate ASN1_TIME structures until access, so
+        // parse them here because this is the only time we're allowed to throw ParsingException
+        revocationDate = OpenSSLX509CRL.toDate(NativeCrypto.get_X509_REVOKED_revocationDate(mContext));
     }
 
     @Override
@@ -109,11 +113,7 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
 
     @Override
     public Date getRevocationDate() {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        calendar.set(Calendar.MILLISECOND, 0);
-        NativeCrypto.ASN1_TIME_to_Calendar(NativeCrypto.get_X509_REVOKED_revocationDate(mContext),
-                calendar);
-        return calendar.getTime();
+        return (Date) revocationDate.clone();
     }
 
     @Override

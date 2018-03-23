@@ -556,6 +556,11 @@ public final class NativeCrypto {
 
     // --- ASN1_TIME -----------------------------------------------------------
 
+    /**
+     * Returns whether the provided ASN1_TIME* pointer is a valid time value.
+     */
+    static native boolean ASN1_TIME_check(long asn1TimeCtx);
+
     static native void ASN1_TIME_to_Calendar(long asn1TimeCtx, Calendar cal);
 
     // --- ASN1 Encoding -------------------------------------------------------

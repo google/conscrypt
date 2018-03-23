@@ -63,8 +63,32 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     private transient final long mContext;
     private transient Integer mHashCode;
 
-    OpenSSLX509Certificate(long ctx) {
+    private final Date notBefore;
+    private final Date notAfter;
+
+    OpenSSLX509Certificate(long ctx) throws CertificateParsingException {
         mContext = ctx;
+        // The legacy X509 OpenSSL APIs don't validate ASN1_TIME structures until access, so
+        // parse them here because this is the only time we're allowed to throw ParsingException
+        notBefore = toDate(NativeCrypto.X509_get_notBefore(mContext, this));
+        notAfter = toDate(NativeCrypto.X509_get_notAfter(mContext, this));
+    }
+
+    // A non-throwing constructor used when we have already parsed the dates
+    private OpenSSLX509Certificate(long ctx, Date notBefore, Date notAfter) {
+        mContext = ctx;
+        this.notBefore = notBefore;
+        this.notAfter = notAfter;
+    }
+
+    private static Date toDate(long asn1time) throws CertificateParsingException {
+        if (!NativeCrypto.ASN1_TIME_check(asn1time)) {
+            throw new CertificateParsingException("Invalid date format");
+        }
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        calendar.set(Calendar.MILLISECOND, 0);
+        NativeCrypto.ASN1_TIME_to_Calendar(asn1time, calendar);
+        return calendar.getTime();
     }
 
     public static OpenSSLX509Certificate fromX509DerInputStream(InputStream is)
@@ -90,6 +114,8 @@ public final class OpenSSLX509Certificate extends X509Certificate {
         try {
             return new OpenSSLX509Certificate(NativeCrypto.d2i_X509(encoded));
         } catch (ParsingException e) {
+            throw new CertificateEncodingException(e);
+        } catch (CertificateParsingException e) {
             throw new CertificateEncodingException(e);
         }
     }
@@ -118,7 +144,11 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             if (certRefs[i] == 0) {
                 continue;
             }
-            certs.add(new OpenSSLX509Certificate(certRefs[i]));
+            try {
+                certs.add(new OpenSSLX509Certificate(certRefs[i]));
+            } catch (CertificateParsingException e) {
+                throw new ParsingException(e);
+            }
         }
         return certs;
     }
@@ -162,7 +192,11 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             if (certRefs[i] == 0) {
                 continue;
             }
-            certs.add(new OpenSSLX509Certificate(certRefs[i]));
+            try {
+                certs.add(new OpenSSLX509Certificate(certRefs[i]));
+            } catch (CertificateParsingException e) {
+                throw new ParsingException(e);
+            }
         }
         return certs;
     }
@@ -268,18 +302,12 @@ public final class OpenSSLX509Certificate extends X509Certificate {
 
     @Override
     public Date getNotBefore() {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        calendar.set(Calendar.MILLISECOND, 0);
-        NativeCrypto.ASN1_TIME_to_Calendar(NativeCrypto.X509_get_notBefore(mContext, this), calendar);
-        return calendar.getTime();
+        return (Date) notBefore.clone();
     }
 
     @Override
     public Date getNotAfter() {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        calendar.set(Calendar.MILLISECOND, 0);
-        NativeCrypto.ASN1_TIME_to_Calendar(NativeCrypto.X509_get_notAfter(mContext, this), calendar);
-        return calendar.getTime();
+        return (Date) notAfter.clone();
     }
 
     @Override
@@ -555,7 +583,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
      * If the extension is not present, an unmodified copy is returned.
      */
     public OpenSSLX509Certificate withDeletedExtension(String oid) {
-        OpenSSLX509Certificate copy = new OpenSSLX509Certificate(NativeCrypto.X509_dup(mContext, this));
+        OpenSSLX509Certificate copy = new OpenSSLX509Certificate(NativeCrypto.X509_dup(mContext, this), notBefore, notAfter);
         NativeCrypto.X509_delete_ext(copy.getContext(), copy, oid);
         return copy;
     }
@@ -569,20 +597,5 @@ public final class OpenSSLX509Certificate extends X509Certificate {
         } finally {
             super.finalize();
         }
-    }
-
-    /**
-     * Return a possibly null array of X509Certificates given the possibly null
-     * array of DER encoded bytes.
-     */
-    static OpenSSLX509Certificate[] createCertChain(long[] certificateRefs) {
-        if (certificateRefs == null) {
-            return null;
-        }
-        OpenSSLX509Certificate[] certificates = new OpenSSLX509Certificate[certificateRefs.length];
-        for (int i = 0; i < certificateRefs.length; i++) {
-            certificates[i] = new OpenSSLX509Certificate(certificateRefs[i]);
-        }
-        return certificates;
     }
 }
