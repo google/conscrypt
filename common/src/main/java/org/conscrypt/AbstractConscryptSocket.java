@@ -217,4 +217,40 @@ abstract class AbstractConscryptSocket extends SSLSocket {
      * has not yet completed or this connection is closed.
      */
     abstract byte[] getTlsUnique();
+
+    /**
+     * Enables token binding parameter negotiation on this socket, or disables it if an
+     * empty set of parameters are provided.
+     *
+     * <p>This method needs to be invoked before the handshake starts.
+     *
+     * @param params a list of Token Binding key parameters in descending order of preference,
+     * as described in draft-ietf-tokbind-negotiation-09.
+     * @throws IllegalStateException if the handshake has already started.
+     * @throws SSLException if the setting could not be applied.
+     */
+    abstract void setTokenBindingParams(int... params) throws SSLException;
+
+    /**
+     * Returns the token binding parameters that were negotiated during the handshake, or -1 if
+     * token binding parameters were not negotiated, the handshake has not yet completed,
+     * or the connection has been closed.
+     */
+    abstract int getTokenBindingParams();
+
+    /**
+     * Exports a value derived from the TLS master secret as described in RFC 5705.
+     *
+     * @param label the label to use in calculating the exported value.  This must be
+     * an ASCII-only string.
+     * @param context the application-specific context value to use in calculating the
+     * exported value.  This may be {@code null} to use no application context, which is
+     * treated differently than an empty byte array.
+     * @param length the number of bytes of keying material to return.
+     * @return a value of the specified length, or {@code null} if the handshake has not yet
+     * completed or the connection has been closed.
+     * @throws SSLException if the value could not be exported.
+     */
+    abstract byte[] exportKeyingMaterial(String label, byte[] context, int length)
+            throws SSLException;
 }

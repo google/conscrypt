@@ -348,6 +348,48 @@ public final class Conscrypt {
     }
 
     /**
+     * Enables token binding parameter negotiation on this socket, or disables it if an
+     * empty set of parameters are provided.
+     *
+     * <p>This method needs to be invoked before the handshake starts.
+     *
+     * @param params a list of Token Binding key parameters in descending order of preference,
+     * as described in draft-ietf-tokbind-negotiation-09.
+     * @throws IllegalStateException if the handshake has already started.
+     * @throws SSLException if the setting could not be applied.
+     */
+    public static void setTokenBindingParams(SSLSocket socket, int... params) throws SSLException {
+        toConscrypt(socket).setTokenBindingParams(params);
+    }
+
+    /**
+     * Returns the token binding parameters that were negotiated during the handshake, or -1 if
+     * token binding parameters were not negotiated, the handshake has not yet completed,
+     * or the connection has been closed.
+     */
+    public static int getTokenBindingParams(SSLSocket socket) {
+        return toConscrypt(socket).getTokenBindingParams();
+    }
+
+    /**
+     * Exports a value derived from the TLS master secret as described in RFC 5705.
+     *
+     * @param label the label to use in calculating the exported value.  This must be
+     * an ASCII-only string.
+     * @param context the application-specific context value to use in calculating the
+     * exported value.  This may be {@code null} to use no application context, which is
+     * treated differently than an empty byte array.
+     * @param length the number of bytes of keying material to return.
+     * @return a value of the specified length, or {@code null} if the handshake has not yet
+     * completed or the connection has been closed.
+     * @throws SSLException if the value could not be exported.
+     */
+    public static byte[] exportKeyingMaterial(SSLSocket socket, String label, byte[] context,
+            int length) throws SSLException {
+        return toConscrypt(socket).exportKeyingMaterial(label, context, length);
+    }
+
+    /**
      * Indicates whether the given {@link SSLEngine} was created by this distribution of Conscrypt.
      */
     public static boolean isConscrypt(SSLEngine engine) {
@@ -555,5 +597,47 @@ public final class Conscrypt {
      */
     public static byte[] getTlsUnique(SSLEngine engine) {
         return toConscrypt(engine).getTlsUnique();
+    }
+
+    /**
+     * Enables token binding parameter negotiation on this engine, or disables it if an
+     * empty set of parameters are provided.
+     *
+     * <p>This method needs to be invoked before the handshake starts.
+     *
+     * @param params a list of Token Binding key parameters in descending order of preference,
+     * as described in draft-ietf-tokbind-negotiation-09.
+     * @throws IllegalStateException if the handshake has already started.
+     * @throws SSLException if the setting could not be applied.
+     */
+    public static void setTokenBindingParams(SSLEngine engine, int... params) throws SSLException {
+        toConscrypt(engine).setTokenBindingParams(params);
+    }
+
+    /**
+     * Returns the token binding parameters that were negotiated during the handshake, or -1 if
+     * token binding parameters were not negotiated, the handshake has not yet completed,
+     * or the connection has been closed.
+     */
+    public static int getTokenBindingParams(SSLEngine engine) {
+        return toConscrypt(engine).getTokenBindingParams();
+    }
+
+    /**
+     * Exports a value derived from the TLS master secret as described in RFC 5705.
+     *
+     * @param label the label to use in calculating the exported value.  This must be
+     * an ASCII-only string.
+     * @param context the application-specific context value to use in calculating the
+     * exported value.  This may be {@code null} to use no application context, which is
+     * treated differently than an empty byte array.
+     * @param length the number of bytes of keying material to return.
+     * @return a value of the specified length, or {@code null} if the handshake has not yet
+     * completed or the connection has been closed.
+     * @throws SSLException if the value could not be exported.
+     */
+    public static byte[] exportKeyingMaterial(SSLEngine engine, String label, byte[] context,
+            int length) throws SSLException {
+        return toConscrypt(engine).exportKeyingMaterial(label, context, length);
     }
 }

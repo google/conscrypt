@@ -17,6 +17,7 @@
 package org.conscrypt;
 
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED;
+import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_COMPLETED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_STARTED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_NEW;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_READY;
@@ -865,6 +866,32 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     @Override
     byte[] getTlsUnique() {
         return ssl.getTlsUnique();
+    }
+
+    @Override
+    void setTokenBindingParams(int... params) throws SSLException {
+        synchronized (ssl) {
+            if (state != STATE_NEW) {
+                throw new IllegalStateException(
+                        "Cannot set token binding params after handshake has started.");
+            }
+        }
+        ssl.setTokenBindingParams(params);
+    };
+
+    @Override
+    int getTokenBindingParams() {
+        return ssl.getTokenBindingParams();
+    }
+
+    @Override
+    byte[] exportKeyingMaterial(String label, byte[] context, int length) throws SSLException {
+        synchronized (ssl) {
+            if (state < STATE_HANDSHAKE_COMPLETED || state == STATE_CLOSED) {
+                return null;
+            }
+        }
+        return ssl.exportKeyingMaterial(label, context, length);
     }
 
     @Override
