@@ -1091,10 +1091,12 @@ public class SSLEngineTest {
 
             try {
                 Conscrypt.setTokenBindingParams(pair.client, 1);
+                fail("setTokenBindingParams after handshake should throw");
             } catch (IllegalStateException expected) {
             }
             try {
                 Conscrypt.setTokenBindingParams(pair.server, 1);
+                fail("setTokenBindingParams after handshake should throw");
             } catch (IllegalStateException expected) {
             }
         } finally {

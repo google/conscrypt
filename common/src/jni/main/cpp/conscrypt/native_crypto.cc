@@ -7131,10 +7131,13 @@ static jbyteArray NativeCrypto_SSL_export_keying_material(JNIEnv* env, jclass, j
         return nullptr;
     }
     jbyteArray result = env->NewByteArray(static_cast<jsize>(num_bytes));
-    if (result != nullptr) {
-        const jbyte* src = reinterpret_cast<jbyte*>(out.get());
-        env->SetByteArrayRegion(result, 0, static_cast<jsize>(num_bytes), src);
+    if (result == nullptr) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "Could not create result array");
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_export_keying_material => could not create array", ssl);
+        return nullptr;
     }
+    const jbyte* src = reinterpret_cast<jbyte*>(out.get());
+    env->SetByteArrayRegion(result, 0, static_cast<jsize>(num_bytes), src);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_export_keying_material => success", ssl);
     return result;
 }

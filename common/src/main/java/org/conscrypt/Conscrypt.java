@@ -353,11 +353,15 @@ public final class Conscrypt {
      *
      * <p>This method needs to be invoked before the handshake starts.
      *
+     * <p>Token binding is currently an Internet Draft that's subject to change, so the
+     * current implementation may not be compatible with future changes in the protocol.
+     *
      * @param params a list of Token Binding key parameters in descending order of preference,
      * as described in draft-ietf-tokbind-negotiation-09.
      * @throws IllegalStateException if the handshake has already started.
      * @throws SSLException if the setting could not be applied.
      */
+    @ExperimentalApi
     public static void setTokenBindingParams(SSLSocket socket, int... params) throws SSLException {
         toConscrypt(socket).setTokenBindingParams(params);
     }
@@ -367,6 +371,7 @@ public final class Conscrypt {
      * token binding parameters were not negotiated, the handshake has not yet completed,
      * or the connection has been closed.
      */
+    @ExperimentalApi
     public static int getTokenBindingParams(SSLSocket socket) {
         return toConscrypt(socket).getTokenBindingParams();
     }
