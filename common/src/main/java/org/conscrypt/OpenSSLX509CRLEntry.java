@@ -21,11 +21,10 @@ import java.math.BigInteger;
 import java.security.cert.CRLException;
 import java.security.cert.X509CRLEntry;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.TimeZone;
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * An implementation of {@link X509CRLEntry} based on BoringSSL.
@@ -34,7 +33,7 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
     private final long mContext;
     private final Date revocationDate;
 
-    OpenSSLX509CRLEntry(long ctx) throws CRLException {
+    OpenSSLX509CRLEntry(long ctx) throws ParsingException {
         mContext = ctx;
         // The legacy X509 OpenSSL APIs don't validate ASN1_TIME structures until access, so
         // parse them here because this is the only time we're allowed to throw ParsingException

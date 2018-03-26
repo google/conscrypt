@@ -4618,21 +4618,6 @@ static inline void get_ASN1_TIME_data(char** data, int* output, size_t len) {
     *(*data + len) = c;
 }
 
-static jboolean NativeCrypto_ASN1_TIME_check(JNIEnv* env, jclass, jlong asn1TimeRef) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-    ASN1_TIME* asn1Time = reinterpret_cast<ASN1_TIME*>(static_cast<uintptr_t>(asn1TimeRef));
-    JNI_TRACE("ASN1_TIME_check(%p)", asn1Time);
-
-    if (asn1Time == nullptr) {
-        JNI_TRACE("ASN1_TIME_check(%p) => asn1Time == null", asn1Time);
-        return JNI_FALSE;
-    }
-
-    jboolean ret = ASN1_TIME_check(asn1Time) ? JNI_TRUE : JNI_FALSE;
-    JNI_TRACE("ASN1_TIME_check(%p) => %s", asn1Time, ret ? "true" : "false");
-    return ret;
-}
-
 static void NativeCrypto_ASN1_TIME_to_Calendar(JNIEnv* env, jclass, jlong asn1TimeRef,
                                                jobject calendar) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -4644,9 +4629,14 @@ static void NativeCrypto_ASN1_TIME_to_Calendar(JNIEnv* env, jclass, jlong asn1Ti
         return;
     }
 
+    if (!ASN1_TIME_check(asn1Time)) {
+        conscrypt::jniutil::throwParsingException("Invalid date format");
+        return;
+    }
+
     bssl::UniquePtr<ASN1_GENERALIZEDTIME> gen(ASN1_TIME_to_generalizedtime(asn1Time, nullptr));
     if (gen.get() == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "gen == null");
+        conscrypt::jniutil::throwParsingException(env, "ASN1_TIME_to_generalizedtime returned null");
         return;
     }
 
@@ -9928,7 +9918,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(X509_REVOKED_dup, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(i2d_X509_REVOKED, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(X509_supported_extension, "(J)I"),
-        CONSCRYPT_NATIVE_METHOD(ASN1_TIME_check, "(J)Z"),
         CONSCRYPT_NATIVE_METHOD(ASN1_TIME_to_Calendar, "(JLjava/util/Calendar;)V"),
         CONSCRYPT_NATIVE_METHOD(asn1_read_init, "([B)J"),
         CONSCRYPT_NATIVE_METHOD(asn1_read_sequence, "(J)J"),

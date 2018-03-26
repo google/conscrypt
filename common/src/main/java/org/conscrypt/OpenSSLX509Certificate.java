@@ -66,7 +66,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     private final Date notBefore;
     private final Date notAfter;
 
-    OpenSSLX509Certificate(long ctx) throws CertificateParsingException {
+    OpenSSLX509Certificate(long ctx) throws ParsingException {
         mContext = ctx;
         // The legacy X509 OpenSSL APIs don't validate ASN1_TIME structures until access, so
         // parse them here because this is the only time we're allowed to throw ParsingException
@@ -81,10 +81,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
         this.notAfter = notAfter;
     }
 
-    private static Date toDate(long asn1time) throws CertificateParsingException {
-        if (!NativeCrypto.ASN1_TIME_check(asn1time)) {
-            throw new CertificateParsingException("Invalid date format");
-        }
+    private static Date toDate(long asn1time) throws ParsingException {
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.set(Calendar.MILLISECOND, 0);
         NativeCrypto.ASN1_TIME_to_Calendar(asn1time, calendar);
@@ -115,8 +112,6 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             return new OpenSSLX509Certificate(NativeCrypto.d2i_X509(encoded));
         } catch (ParsingException e) {
             throw new CertificateEncodingException(e);
-        } catch (CertificateParsingException e) {
-            throw new CertificateEncodingException(e);
         }
     }
 
@@ -144,11 +139,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             if (certRefs[i] == 0) {
                 continue;
             }
-            try {
-                certs.add(new OpenSSLX509Certificate(certRefs[i]));
-            } catch (CertificateParsingException e) {
-                throw new ParsingException(e);
-            }
+            certs.add(new OpenSSLX509Certificate(certRefs[i]));
         }
         return certs;
     }
@@ -192,11 +183,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             if (certRefs[i] == 0) {
                 continue;
             }
-            try {
-                certs.add(new OpenSSLX509Certificate(certRefs[i]));
-            } catch (CertificateParsingException e) {
-                throw new ParsingException(e);
-            }
+            certs.add(new OpenSSLX509Certificate(certRefs[i]));
         }
         return certs;
     }

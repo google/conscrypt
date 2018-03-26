@@ -23,6 +23,7 @@ import java.security.cert.CertPath;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -173,7 +174,11 @@ final class OpenSSLX509CertPath extends CertPath {
             if (certRefs[i] == 0) {
                 continue;
             }
-            certs.add(new OpenSSLX509Certificate(certRefs[i]));
+            try {
+                certs.add(new OpenSSLX509Certificate(certRefs[i]));
+            } catch (ParsingException e) {
+                throw new CertificateParsingException(e);
+            }
         }
 
         return new OpenSSLX509CertPath(certs);

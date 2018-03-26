@@ -29,7 +29,6 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.cert.CRLException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateParsingException;
 import java.security.cert.X509CRL;
 import java.security.cert.X509CRLEntry;
 import java.security.cert.X509Certificate;
@@ -52,7 +51,7 @@ final class OpenSSLX509CRL extends X509CRL {
     private final Date thisUpdate;
     private final Date nextUpdate;
 
-    private OpenSSLX509CRL(long ctx) throws CRLException {
+    private OpenSSLX509CRL(long ctx) throws ParsingException {
         mContext = ctx;
         // The legacy X509 OpenSSL APIs don't validate ASN1_TIME structures until access, so
         // parse them here because this is the only time we're allowed to throw ParsingException
@@ -61,10 +60,7 @@ final class OpenSSLX509CRL extends X509CRL {
     }
 
     // Package-visible because it's also used by OpenSSLX509CRLEntry
-    static Date toDate(long asn1time) throws CRLException {
-        if (!NativeCrypto.ASN1_TIME_check(asn1time)) {
-            throw new CRLException("Invalid date format");
-        }
+    static Date toDate(long asn1time) throws ParsingException {
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         calendar.set(Calendar.MILLISECOND, 0);
         NativeCrypto.ASN1_TIME_to_Calendar(asn1time, calendar);
@@ -105,11 +101,7 @@ final class OpenSSLX509CRL extends X509CRL {
             if (certRefs[i] == 0) {
                 continue;
             }
-            try {
-                certs.add(new OpenSSLX509CRL(certRefs[i]));
-            } catch (CRLException e) {
-                throw new ParsingException(e);
-            }
+            certs.add(new OpenSSLX509CRL(certRefs[i]));
         }
         return certs;
     }
@@ -149,11 +141,7 @@ final class OpenSSLX509CRL extends X509CRL {
             if (certRefs[i] == 0) {
                 continue;
             }
-            try {
-                certs.add(new OpenSSLX509CRL(certRefs[i]));
-            } catch (CRLException e) {
-                throw new ParsingException(e);
-            }
+            certs.add(new OpenSSLX509CRL(certRefs[i]));
         }
         return certs;
     }
@@ -302,7 +290,7 @@ final class OpenSSLX509CRL extends X509CRL {
         }
         try {
             return new OpenSSLX509CRLEntry(NativeCrypto.X509_REVOKED_dup(revokedRef));
-        } catch (CRLException e) {
+        } catch (ParsingException e) {
             return null;
         }
     }
@@ -320,7 +308,7 @@ final class OpenSSLX509CRL extends X509CRL {
 
             try {
                 return new OpenSSLX509CRLEntry(NativeCrypto.X509_REVOKED_dup(x509RevokedRef));
-            } catch (CRLException e) {
+            } catch (ParsingException e) {
                 return null;
             }
         }
@@ -339,7 +327,7 @@ final class OpenSSLX509CRL extends X509CRL {
         for (long entryRef : entryRefs) {
             try {
                 crlSet.add(new OpenSSLX509CRLEntry(entryRef));
-            } catch (CRLException e) {
+            } catch (ParsingException e) {
                 // Skip this entry
             }
         }
