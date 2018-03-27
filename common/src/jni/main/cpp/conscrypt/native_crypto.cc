@@ -7068,7 +7068,7 @@ static void NativeCrypto_SSL_set_token_binding_params(JNIEnv* env, jclass, jlong
         ret = SSL_set_token_binding_params(ssl, nullptr, 0);
     } else {
         std::unique_ptr<uint8_t[]> paramsBytes(new uint8_t[paramsValues.size()]);
-        for (int i = 0; i < paramsValues.size(); i++) {
+        for (size_t i = 0; i < paramsValues.size(); i++) {
             paramsBytes.get()[i] = static_cast<uint8_t>(paramsValues[i]);
         }
         ret = SSL_set_token_binding_params(ssl, paramsBytes.get(), paramsValues.size());
