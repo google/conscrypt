@@ -2741,6 +2741,154 @@ public class SSLSocketTest {
         }
     }
 
+    @Test
+    public void test_SSLSocket_TokenBinding_Success() throws Exception {
+        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        try {
+            Conscrypt.setTokenBindingParams(pair.client, 1, 2);
+            Conscrypt.setTokenBindingParams(pair.server, 2, 3);
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.server));
+
+            pair.connect();
+
+            assertEquals(2, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(2, Conscrypt.getTokenBindingParams(pair.server));
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLSocket_TokenBinding_NoClientSupport() throws Exception {
+        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        try {
+            // Do not enable on client
+            Conscrypt.setTokenBindingParams(pair.server, 2, 3);
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.server));
+
+            pair.connect();
+
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.server));
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLSocket_TokenBinding_NoServerSupport() throws Exception {
+        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        try {
+            // Do not enable on server
+            Conscrypt.setTokenBindingParams(pair.client, 2, 3);
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.server));
+
+            pair.connect();
+
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.server));
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLSocket_TokenBinding_MismatchedSupport() throws Exception {
+        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        try {
+            Conscrypt.setTokenBindingParams(pair.client, 2);
+            Conscrypt.setTokenBindingParams(pair.server, 1, 3);
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.server));
+
+            pair.connect();
+
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.server));
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLSocket_TokenBinding_MismatchedOrdering() throws Exception {
+        // When the server and client disagree on the preference order, the server should
+        // select the server's most highly preferred value.
+        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        try {
+            Conscrypt.setTokenBindingParams(pair.client, 1, 2, 3, 4);
+            Conscrypt.setTokenBindingParams(pair.server, 3, 2);
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.server));
+
+            pair.connect();
+
+            assertEquals(3, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(3, Conscrypt.getTokenBindingParams(pair.server));
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLSocket_TokenBinding_ExceptionAfterConnect() throws Exception {
+        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        try {
+            pair.connect();
+
+            try {
+                Conscrypt.setTokenBindingParams(pair.client, 1);
+                fail("setTokenBindingParams after handshake should throw");
+            } catch (IllegalStateException expected) {
+            }
+            try {
+                Conscrypt.setTokenBindingParams(pair.server, 1);
+                fail("setTokenBindingParams after handshake should throw");
+            } catch (IllegalStateException expected) {
+            }
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLSocket_EKM() throws Exception {
+        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        try {
+            // No EKM values available before handshaking
+            assertNull(Conscrypt.exportKeyingMaterial(pair.client, "FOO", null, 20));
+            assertNull(Conscrypt.exportKeyingMaterial(pair.server, "FOO", null, 20));
+
+            pair.connect();
+
+            byte[] clientEkm = Conscrypt.exportKeyingMaterial(pair.client, "FOO", null, 20);
+            byte[] serverEkm = Conscrypt.exportKeyingMaterial(pair.server, "FOO", null, 20);
+            assertNotNull(clientEkm);
+            assertNotNull(serverEkm);
+            assertEquals(20, clientEkm.length);
+            assertEquals(20, serverEkm.length);
+            assertArrayEquals(clientEkm, serverEkm);
+
+            byte[] clientContextEkm = Conscrypt.exportKeyingMaterial(
+                    pair.client, "FOO", new byte[0], 20);
+            byte[] serverContextEkm = Conscrypt.exportKeyingMaterial(
+                    pair.server, "FOO", new byte[0], 20);
+            assertNotNull(clientContextEkm);
+            assertNotNull(serverContextEkm);
+            assertEquals(20, clientContextEkm.length);
+            assertEquals(20, serverContextEkm.length);
+            assertArrayEquals(clientContextEkm, serverContextEkm);
+
+            // An empty context should be different than a null context
+            assertFalse(Arrays.equals(clientEkm, clientContextEkm));
+        } finally {
+            pair.close();
+        }
+    }
+
     // Tests that a socket will close cleanly even if it fails to create due to an
     // internal IOException
     @Test

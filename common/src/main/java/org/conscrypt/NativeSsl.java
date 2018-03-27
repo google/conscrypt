@@ -29,6 +29,7 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.SocketException;
+import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -123,6 +124,22 @@ final class NativeSsl {
 
     byte[] getTlsUnique() {
         return NativeCrypto.SSL_get_tls_unique(ssl, this);
+    }
+
+    void setTokenBindingParams(int... params) throws SSLException {
+        NativeCrypto.SSL_set_token_binding_params(ssl, this, params);
+    }
+
+    int getTokenBindingParams() {
+        return NativeCrypto.SSL_get_token_binding_params(ssl, this);
+    }
+
+    byte[] exportKeyingMaterial(String label, byte[] context, int length) throws SSLException {
+        if (label == null) {
+            throw new NullPointerException("Label is null");
+        }
+        byte[] labelBytes = label.getBytes(Charset.forName("US-ASCII"));
+        return NativeCrypto.SSL_export_keying_material(ssl, this, labelBytes, context, length);
     }
 
     byte[] getPeerTlsSctData() {

@@ -341,6 +341,21 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     }
 
     @Override
+    void setTokenBindingParams(int... params) throws SSLException {
+        engine.setTokenBindingParams(params);
+    }
+
+    @Override
+    int getTokenBindingParams() {
+        return engine.getTokenBindingParams();
+    }
+
+    @Override
+    byte[] exportKeyingMaterial(String label, byte[] context, int length) throws SSLException {
+        return engine.exportKeyingMaterial(label, context, length);
+    }
+
+    @Override
     public final boolean getUseClientMode() {
         return engine.getUseClientMode();
     }

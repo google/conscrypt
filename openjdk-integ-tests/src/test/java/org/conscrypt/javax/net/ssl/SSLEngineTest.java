@@ -956,6 +956,195 @@ public class SSLEngineTest {
         }
     }
 
+    @Test
+    public void test_SSLEngine_TokenBinding_Success() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
+            @Override
+            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                try {
+                    Conscrypt.setTokenBindingParams(client, 1, 2);
+                    Conscrypt.setTokenBindingParams(server, 2, 3);
+                } catch (SSLException e) {
+                    throw new RuntimeException(e);
+                }
+                assertEquals(-1, Conscrypt.getTokenBindingParams(client));
+                assertEquals(-1, Conscrypt.getTokenBindingParams(server));
+            }
+        });
+        try {
+            assertConnected(pair);
+
+            assertEquals(2, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(2, Conscrypt.getTokenBindingParams(pair.server));
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLEngine_TokenBinding_NoClientSupport() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
+            @Override
+            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                try {
+                    // Do not enable on client
+                    Conscrypt.setTokenBindingParams(server, 2, 3);
+                } catch (SSLException e) {
+                    throw new RuntimeException(e);
+                }
+                assertEquals(-1, Conscrypt.getTokenBindingParams(client));
+                assertEquals(-1, Conscrypt.getTokenBindingParams(server));
+            }
+        });
+        try {
+            assertConnected(pair);
+
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.server));
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLEngine_TokenBinding_NoServerSupport() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
+            @Override
+            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                try {
+                    // Do not enable on server
+                    Conscrypt.setTokenBindingParams(client, 2, 3);
+                } catch (SSLException e) {
+                    throw new RuntimeException(e);
+                }
+                assertEquals(-1, Conscrypt.getTokenBindingParams(client));
+                assertEquals(-1, Conscrypt.getTokenBindingParams(server));
+            }
+        });
+        try {
+            assertConnected(pair);
+
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.server));
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLEngine_TokenBinding_MismatchedSupport() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
+            @Override
+            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                try {
+                    Conscrypt.setTokenBindingParams(client, 2);
+                    Conscrypt.setTokenBindingParams(server, 1, 3);
+                } catch (SSLException e) {
+                    throw new RuntimeException(e);
+                }
+                assertEquals(-1, Conscrypt.getTokenBindingParams(client));
+                assertEquals(-1, Conscrypt.getTokenBindingParams(server));
+            }
+        });
+        try {
+            assertConnected(pair);
+
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(-1, Conscrypt.getTokenBindingParams(pair.server));
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLEngine_TokenBinding_MismatchedOrdering() throws Exception {
+        // When the server and client disagree on the preference order, the server should
+        // select the server's most highly preferred value.
+        TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
+            @Override
+            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                try {
+                    Conscrypt.setTokenBindingParams(client, 1, 2, 3, 4);
+                    Conscrypt.setTokenBindingParams(server, 3, 2);
+                } catch (SSLException e) {
+                    throw new RuntimeException(e);
+                }
+                assertEquals(-1, Conscrypt.getTokenBindingParams(client));
+                assertEquals(-1, Conscrypt.getTokenBindingParams(server));
+            }
+        });
+        try {
+            assertConnected(pair);
+
+            assertEquals(3, Conscrypt.getTokenBindingParams(pair.client));
+            assertEquals(3, Conscrypt.getTokenBindingParams(pair.server));
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLEngine_TokenBinding_ExceptionAfterConnect() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create();
+        try {
+            assertConnected(pair);
+
+            try {
+                Conscrypt.setTokenBindingParams(pair.client, 1);
+                fail("setTokenBindingParams after handshake should throw");
+            } catch (IllegalStateException expected) {
+            }
+            try {
+                Conscrypt.setTokenBindingParams(pair.server, 1);
+                fail("setTokenBindingParams after handshake should throw");
+            } catch (IllegalStateException expected) {
+            }
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
+    public void test_SSLEngine_EKM() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
+            @Override
+            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                try {
+                    assertNull(Conscrypt.exportKeyingMaterial(client, "FOO", null, 20));
+                    assertNull(Conscrypt.exportKeyingMaterial(server, "FOO", null, 20));
+                } catch (SSLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+        try {
+            assertConnected(pair);
+
+            byte[] clientEkm = Conscrypt.exportKeyingMaterial(pair.client, "FOO", null, 20);
+            byte[] serverEkm = Conscrypt.exportKeyingMaterial(pair.server, "FOO", null, 20);
+            assertNotNull(clientEkm);
+            assertNotNull(serverEkm);
+            assertEquals(20, clientEkm.length);
+            assertEquals(20, serverEkm.length);
+            assertArrayEquals(clientEkm, serverEkm);
+
+            byte[] clientContextEkm = Conscrypt.exportKeyingMaterial(
+                    pair.client, "FOO", new byte[0], 20);
+            byte[] serverContextEkm = Conscrypt.exportKeyingMaterial(
+                    pair.server, "FOO", new byte[0], 20);
+            assertNotNull(clientContextEkm);
+            assertNotNull(serverContextEkm);
+            assertEquals(20, clientContextEkm.length);
+            assertEquals(20, serverContextEkm.length);
+            assertArrayEquals(clientContextEkm, serverContextEkm);
+
+            // An empty context should be different than a null context
+            assertFalse(Arrays.equals(clientEkm, clientContextEkm));
+        } finally {
+            pair.close();
+        }
+    }
+
     private void assertConnected(TestSSLEnginePair e) {
         assertConnected(e.client, e.server);
     }

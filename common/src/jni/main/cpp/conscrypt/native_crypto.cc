@@ -7053,6 +7053,100 @@ static jbyteArray NativeCrypto_SSL_get_tls_unique(JNIEnv* env, jclass, jlong ssl
     return byteArray.release();
 }
 
+static void NativeCrypto_SSL_set_token_binding_params(JNIEnv* env, jclass, jlong ssl_address,
+        CONSCRYPT_UNUSED jobject ssl_holder, jintArray params) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_token_binding_params", ssl);
+    if (ssl == nullptr) {
+        return;
+    }
+    ScopedIntArrayRO paramsValues(env, params);
+    int ret;
+    if (paramsValues.get() == nullptr) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_token_binding_params params==null", ssl);
+        ret = SSL_set_token_binding_params(ssl, nullptr, 0);
+    } else {
+        std::unique_ptr<uint8_t[]> paramsBytes(new uint8_t[paramsValues.size()]);
+        for (int i = 0; i < paramsValues.size(); i++) {
+            paramsBytes.get()[i] = static_cast<uint8_t>(paramsValues[i]);
+        }
+        ret = SSL_set_token_binding_params(ssl, paramsBytes.get(), paramsValues.size());
+    }
+
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_token_binding_params => %d", ssl, ret);
+
+    if (!ret) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "Could not set token binding parameters");
+        ERR_clear_error();
+    }
+}
+
+static int NativeCrypto_SSL_get_token_binding_params(JNIEnv* env, jclass, jlong ssl_address,
+        CONSCRYPT_UNUSED jobject ssl_holder) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_token_binding_params", ssl);
+    if (ssl == nullptr) {
+        return 0;
+    }
+    int ret;
+    if (!SSL_is_token_binding_negotiated(ssl)) {
+        ret = -1;
+    } else {
+        ret = SSL_get_negotiated_token_binding_param(ssl);
+    }
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_token_binding_params => %d", ssl, ret);
+    return ret;
+}
+
+static jbyteArray NativeCrypto_SSL_export_keying_material(JNIEnv* env, jclass, jlong ssl_address,
+        CONSCRYPT_UNUSED jobject ssl_holder, jbyteArray label, jbyteArray context, jint num_bytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_export_keying_material", ssl);
+    if (ssl == nullptr) {
+        return nullptr;
+    }
+    ScopedByteArrayRO labelBytes(env, label);
+    if (labelBytes.get() == nullptr) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_export_keying_material label == null => exception", ssl);
+        return nullptr;
+    }
+    std::unique_ptr<uint8_t[]> out(new uint8_t[num_bytes]);
+    int ret;
+    if (context == nullptr) {
+        ret = SSL_export_keying_material(ssl, out.get(), num_bytes,
+                        reinterpret_cast<const char*>(labelBytes.get()), labelBytes.size(),
+                        nullptr, 0, 0);
+    } else {
+        ScopedByteArrayRO contextBytes(env, context);
+        if (contextBytes.get() == nullptr) {
+            JNI_TRACE("ssl=%p NativeCrypto_SSL_export_keying_material context == null => exception", ssl);
+            return nullptr;
+        }
+        ret = SSL_export_keying_material(ssl, out.get(), num_bytes,
+                        reinterpret_cast<const char*>(labelBytes.get()), labelBytes.size(),
+                        reinterpret_cast<const uint8_t*>(contextBytes.get()), contextBytes.size(), 1);
+    }
+    if (!ret) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SSL_export_keying_material",
+                conscrypt::jniutil::throwSSLExceptionStr);
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_export_keying_material => exception", ssl);
+        return nullptr;
+    }
+    jbyteArray result = env->NewByteArray(static_cast<jsize>(num_bytes));
+    if (result == nullptr) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "Could not create result array");
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_export_keying_material => could not create array", ssl);
+        return nullptr;
+    }
+    const jbyte* src = reinterpret_cast<jbyte*>(out.get());
+    env->SetByteArrayRegion(result, 0, static_cast<jsize>(num_bytes), src);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_export_keying_material => success", ssl);
+    return result;
+}
+
 static void NativeCrypto_SSL_use_psk_identity_hint(JNIEnv* env, jclass, jlong ssl_address, CONSCRYPT_UNUSED jobject ssl_holder,
                                                    jstring identityHintJava) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -9961,6 +10055,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_get_ocsp_response, "(J" REF_SSL ")[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_set_ocsp_response, "(J" REF_SSL "[B)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_tls_unique, "(J" REF_SSL ")[B"),
+        CONSCRYPT_NATIVE_METHOD(SSL_set_token_binding_params, "(J" REF_SSL "[I)V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_get_token_binding_params, "(J" REF_SSL ")I"),
+        CONSCRYPT_NATIVE_METHOD(SSL_export_keying_material, "(J" REF_SSL "[B[BI)[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_use_psk_identity_hint, "(J" REF_SSL "Ljava/lang/String;)V"),
         CONSCRYPT_NATIVE_METHOD(set_SSL_psk_client_callback_enabled, "(J" REF_SSL "Z)V"),
         CONSCRYPT_NATIVE_METHOD(set_SSL_psk_server_callback_enabled, "(J" REF_SSL "Z)V"),
