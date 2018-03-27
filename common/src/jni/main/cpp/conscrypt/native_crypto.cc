@@ -4630,7 +4630,7 @@ static void NativeCrypto_ASN1_TIME_to_Calendar(JNIEnv* env, jclass, jlong asn1Ti
     }
 
     if (!ASN1_TIME_check(asn1Time)) {
-        conscrypt::jniutil::throwParsingException("Invalid date format");
+        conscrypt::jniutil::throwParsingException(env, "Invalid date format");
         return;
     }
 
