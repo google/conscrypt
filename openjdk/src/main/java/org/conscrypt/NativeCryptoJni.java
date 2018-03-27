@@ -88,11 +88,11 @@ final class NativeCryptoJni {
     }
 
     private static String osName() {
-        return HostProperties.OS.name().toLowerCase();
+        return HostProperties.OS.getFileComponent();
     }
 
     private static String archName() {
-        return HostProperties.ARCH.name().toLowerCase();
+        return HostProperties.ARCH.getFileComponent();
     }
 
     /**
