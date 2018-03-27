@@ -4629,9 +4629,14 @@ static void NativeCrypto_ASN1_TIME_to_Calendar(JNIEnv* env, jclass, jlong asn1Ti
         return;
     }
 
+    if (!ASN1_TIME_check(asn1Time)) {
+        conscrypt::jniutil::throwParsingException(env, "Invalid date format");
+        return;
+    }
+
     bssl::UniquePtr<ASN1_GENERALIZEDTIME> gen(ASN1_TIME_to_generalizedtime(asn1Time, nullptr));
     if (gen.get() == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "asn1Time == null");
+        conscrypt::jniutil::throwParsingException(env, "ASN1_TIME_to_generalizedtime returned null");
         return;
     }
 
