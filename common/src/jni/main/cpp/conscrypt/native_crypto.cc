@@ -9357,6 +9357,15 @@ static jint NativeCrypto_ENGINE_SSL_read_direct(JNIEnv* env, jclass, jlong ssl_a
         JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct => THROWN_EXCEPTION", ssl);
         return -1;
     }
+    if (length == 0 && result == 0) {
+        // A result of 0 normally means an EOF (and that's how SSL_get_error() will interpret it),
+        // but if we passed in an empty destination buffer, it can also mean a successful operation
+        // that produced 0 bytes of output.  Assume it means the latter.  If it actually meant
+        // EOF, a later operation with a nonempty buffer will get that error anyway.
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_read_direct address=%p length=%d shc=%p result=%d",
+                  ssl, destPtr, length, shc, result);
+        return result;
+    }
 
     SslError sslError(ssl, result);
     switch (sslError.get()) {
