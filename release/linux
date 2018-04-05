@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# Release automation script for Linux builds.  This should be run
+# first.  Must be run from the top-level conscrypt directory.
+
+set -e
+
+if [ -z "$1" ]; then
+  echo "Usage: $0 <version>"
+  exit 1
+fi
+
+# Replace the last numerical component of the release with and x, so
+# 1.2.3 becomes 1.2.x
+BRANCH=$(echo "$1" | sed -E 's/([0-9]+[.][0-9]+[.])[0-9]+/\1x/')
+
+git checkout "$BRANCH"
+
+# Update the build.gradle file for the new version
+sed -i 's/version = ".*"/version = "'"$1"'"/' build.gradle
+
+# Commit the build.gradle, tag the release, and push upstream
+git commit -a -m "Preparing version $1"
+git tag -a "$1" -m "Version $1"
+git push upstream "$BRANCH"
+git push upstream "$1"
+
+# Build and start the Docker container
+docker build -t conscrypt-deploy release
+CONTAINER_ID=$(docker run -itd conscrypt-deploy)
+
+# Copy the relevant files from the host machine into the container
+docker exec $CONTAINER_ID mkdir /root/.gradle
+docker cp ~/.gnupg $CONTAINER_ID:/root/
+docker cp ~/.gradle/gradle.properties $CONTAINER_ID:/root/.gradle/
+docker cp "$(grep signingKeystore ~/.gradle/gradle.properties | cut -d= -f2)" $CONTAINER_ID:/root/certkeystore
+
+# Run the release automation script for the docker container
+docker exec $CONTAINER_ID scl enable devtoolset-2 "/conscrypt/release/docker $1"

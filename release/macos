@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# Release automation script for MacOS builds.  This should be run
+# after the Linux build has created the staging repository and
+# selected the BoringSSL revision.  Must be run from the top-level
+# conscrypt directory, which should be synced to the appropriate
+# release branch.
+
+set -e
+
+if [ -z "$2" ]; then
+  echo "Usage: $0 <boringssl revision> <repository ID>"
+  exit 1
+fi
+
+if [ -z "$JAVA_HOME" ]; then
+  export JAVA_HOME=$(/usr/libexec/java_home)
+fi
+
+# If BORINGSSL_HOME isn't set, assume it's located at ../boringssl
+if [ -z "$BORINGSSL_HOME" ]; then
+  export BORINGSSL_HOME=$(cd ../boringssl; pwd -P)
+fi
+
+pushd "$BORINGSSL_HOME" >/dev/null
+git checkout master
+git pull
+git checkout $1
+cd build64
+ninja
+popd >/dev/null
+
+./gradlew conscrypt-openjdk:build
+./gradlew conscrypt-openjdk:uploadArchives -Dorg.gradle.parallel=false -PrepositoryId="$2"

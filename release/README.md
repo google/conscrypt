@@ -132,7 +132,7 @@ on Linux.
 1. From the conscrypt source directory:
 
    ```bash
-   $ docker build -t conscrypt-deploy .
+   $ docker build -t conscrypt-deploy release
    ```
 1. Start a Docker container that has the deploy environment set up for you. The
    Conscrypt source is cloned into `/conscrypt`.
