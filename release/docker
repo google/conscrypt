@@ -1,0 +1,41 @@
+#!/bin/sh
+#
+# Release automation script for running within the Docker container.
+# This script is invoked from the Linux script.
+#
+# Because this is run in the Docker container, we can use absolute
+# paths to everything and generally count on everything being where we
+# expect it to be.
+
+set -e
+
+if [ -z "$1" ]; then
+  echo "Usage: $0 <version>"
+  exit 1
+fi
+
+cd /conscrypt
+
+BRANCH=$(echo "$1" | sed -E 's/([0-9]+[.][0-9]+[.])[0-9]+/\1x/')
+git checkout "$BRANCH"
+
+# Update the gradle.properties file for the location of files in the
+# container.
+
+# The host copy may have the signingKeystore and
+# signingPassword properties commented out because signing isn't
+# routinely done for development builds, so ensure they're
+# uncommented.
+sed -i 's/#signingKeystore/signingKeystore/' /root/.gradle/gradle.properties
+sed -i 's/#signingPassword/signingPassword/' /root/.gradle/gradle.properties
+sed -i 's\signing.secretKeyRingFile=.*\signing.secretKeyRingFile=/root/.gnupg/secring.gpg\' /root/.gradle/gradle.properties
+sed -i 's\signingKeystore=.*\signingKeystore=/root/certkeystore\' /root/.gradle/gradle.properties
+
+./gradlew conscrypt-openjdk:build
+./gradlew -Dorg.gradle.parallel=false uploadArchives
+
+cd /usr/src/boringssl
+
+echo "***************************************************************"
+echo "** BoringSSL revision: $(git rev-parse HEAD)"
+echo "***************************************************************"
