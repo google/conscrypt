@@ -178,11 +178,13 @@
 
 #else  // !ANDROID
 
+#include <conscrypt/log.h>
+
 #define LOG_INFO ((void)0)
 
 #define ALOG(...) VA_ARGS_UNUSED(__VA_ARGS__)
 #define ALOGD(...) VA_ARGS_UNUSED(__VA_ARGS__)
-#define ALOGE(...) VA_ARGS_UNUSED(__VA_ARGS__)
+#define ALOGE(...) conscrypt::loge(__VA_ARGS__)
 #define ALOGV(...) VA_ARGS_UNUSED(__VA_ARGS__)
 
 #define UNUSED_1(a) ((void)(a))
