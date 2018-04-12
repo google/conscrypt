@@ -18,8 +18,8 @@
 
 #include <conscrypt/compatibility_close_monitor.h>
 #include <conscrypt/jniutil.h>
+#include <conscrypt/logging.h>
 #include <conscrypt/native_crypto.h>
-#include <conscrypt/macros.h>
 
 #ifndef CONSCRYPT_JNI_VERSION
 #define CONSCRYPT_JNI_VERSION JNI_VERSION_1_6
@@ -32,7 +32,7 @@ using conscrypt::NativeCrypto;
 jint libconscrypt_JNI_OnLoad(JavaVM* vm, void*) {
     JNIEnv* env;
     if (vm->GetEnv(reinterpret_cast<void**>(&env), CONSCRYPT_JNI_VERSION) != JNI_OK) {
-        ALOGE("Could not get JNIEnv");
+        CONSCRYPT_LOG_ERROR("Could not get JNIEnv");
         return JNI_ERR;
     }
 
