@@ -35,7 +35,7 @@
 #define CONSCRYPT_LOG_VERBOSE(...) ALOG(LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
 #endif  // LOG_DEBUG
 
-#elif defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)
+#elif defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)  // !CONSCRYPT_UNBUNDLED
 
 #include <android/log.h>
 #ifndef ALOG
