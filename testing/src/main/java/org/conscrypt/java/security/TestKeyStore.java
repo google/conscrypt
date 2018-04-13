@@ -688,13 +688,13 @@ public final class TestKeyStore {
         String keyAlgorithm = privateKey.getAlgorithm();
         String signatureAlgorithm;
         if (keyAlgorithm.equals("RSA")) {
-            signatureAlgorithm = "sha1WithRSA";
+            signatureAlgorithm = "sha256WithRSA";
         } else if (keyAlgorithm.equals("DSA")) {
-            signatureAlgorithm = "sha1WithDSA";
+            signatureAlgorithm = "sha256WithDSA";
         } else if (keyAlgorithm.equals("EC")) {
-            signatureAlgorithm = "sha1WithECDSA";
+            signatureAlgorithm = "sha256WithECDSA";
         } else if (keyAlgorithm.equals("EC_RSA")) {
-            signatureAlgorithm = "sha1WithRSA";
+            signatureAlgorithm = "sha256WithRSA";
         } else {
             throw new IllegalArgumentException("Unknown key algorithm " + keyAlgorithm);
         }
