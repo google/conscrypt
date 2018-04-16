@@ -7868,7 +7868,7 @@ static jobjectArray NativeCrypto_SSL_get0_peer_certificates(JNIEnv* env, jclass,
         return nullptr;
     }
 
-    STACK_OF(CRYPTO_BUFFER)* chain = SSL_get0_peer_certificates(ssl);
+    const STACK_OF(CRYPTO_BUFFER)* chain = SSL_get0_peer_certificates(ssl);
     if (chain == nullptr) {
         return nullptr;
     }
