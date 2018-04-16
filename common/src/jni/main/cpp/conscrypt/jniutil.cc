@@ -126,13 +126,13 @@ int throwException(JNIEnv* env, const char* className, const char* msg) {
     jclass exceptionClass = env->FindClass(className);
 
     if (exceptionClass == nullptr) {
-        CONSCRYPT_LOG_DEBUG("Unable to find exception class %s", className);
+        CONSCRYPT_LOG_ERROR("Unable to find exception class %s", className);
         /* ClassNotFoundException now pending */
         return -1;
     }
 
     if (env->ThrowNew(exceptionClass, msg) != JNI_OK) {
-        CONSCRYPT_LOG_DEBUG("Failed throwing '%s' '%s'", className, msg);
+        CONSCRYPT_LOG_ERROR("Failed throwing '%s' '%s'", className, msg);
         /* an exception, most likely OOM, will now be pending */
         return -1;
     }
