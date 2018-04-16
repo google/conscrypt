@@ -28,7 +28,6 @@
 #define CONSCRYPT_LOG(priority, tag, ...) ALOG(priority, tag, __VA_ARGS__)
 #define CONSCRYPT_LOG_ERROR(...) ALOG(LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define CONSCRYPT_LOG_INFO(...) ALOG(LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define CONSCRYPT_LOG_DEBUG(...) ALOG(LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #if LOG_NDEBUG
 #define CONSCRYPT_LOG_VERBOSE(...) ((void)0)
 #else
@@ -45,7 +44,6 @@
 #define CONSCRYPT_LOG(priority, tag, ...) ALOG(priority, tag, __VA_ARGS__)
 #define CONSCRYPT_LOG_ERROR(...) ALOG(LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define CONSCRYPT_LOG_INFO(...) ALOG(LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define CONSCRYPT_LOG_DEBUG(...) ALOG(LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #if LOG_NDEBUG
 #define CONSCRYPT_LOG_VERBOSE(...) ((void)0)
 #else
@@ -68,10 +66,6 @@
     fprintf(stderr, "\n");           \
 }
 #define CONSCRYPT_LOG_INFO(...) {    \
-    fprintf(stderr, __VA_ARGS__);    \
-    fprintf(stderr, "\n");           \
-}
-#define CONSCRYPT_LOG_DEBUG(...) {   \
     fprintf(stderr, __VA_ARGS__);    \
     fprintf(stderr, "\n");           \
 }
