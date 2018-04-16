@@ -19,7 +19,7 @@
 
 #include <stdio.h>
 #include <cstddef>
-#include <conscrypt/macros.h>
+#include <conscrypt/logging.h>
 
 namespace conscrypt {
 namespace trace {
@@ -65,41 +65,18 @@ extern const std::size_t kWithJniTraceDataChunkSize;
 }  // namespace trace
 }  // namespace conscrypt
 
-#ifdef ANDROID
-
-#define JNI_TRACE(...)                               \
-    if (conscrypt::trace::kWithJniTrace) {           \
-        ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
+#define JNI_TRACE(...)                                        \
+    if (conscrypt::trace::kWithJniTrace) {                    \
+        CONSCRYPT_LOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
     }
-#define JNI_TRACE_MD(...)                            \
-    if (conscrypt::trace::kWithJniTraceMd) {         \
-        ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
+#define JNI_TRACE_MD(...)                                     \
+    if (conscrypt::trace::kWithJniTraceMd) {                  \
+        CONSCRYPT_LOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
     }
-#define JNI_TRACE_KEYS(...)                          \
-    if (conscrypt::trace::kWithJniTraceKeys) {       \
-        ALOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
+#define JNI_TRACE_KEYS(...)                                   \
+    if (conscrypt::trace::kWithJniTraceKeys) {                \
+        CONSCRYPT_LOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
     }
-
-#else
-
-#define JNI_TRACE(...)                               \
-    if (conscrypt::trace::kWithJniTrace) {           \
-        printf(__VA_ARGS__);                         \
-        printf("\n");                                \
-    }
-#define JNI_TRACE_MD(...)                            \
-    if (conscrypt::trace::kWithJniTraceMd) {         \
-        printf(__VA_ARGS__);                         \
-        printf("\n");                                \
-    }
-#define JNI_TRACE_KEYS(...)                          \
-    if (conscrypt::trace::kWithJniTraceKeys) {       \
-        printf(__VA_ARGS__);                         \
-        printf("\n");                                \
-    }
-
-#endif  // ANDROID
-
 #define JNI_TRACE_PACKET_DATA(ssl, dir, data, len)    \
     if (conscrypt::trace::kWithJniTracePackets) {     \
         debug_print_packet_data(ssl, dir, data, len); \

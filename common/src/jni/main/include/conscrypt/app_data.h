@@ -132,11 +132,11 @@ class AppData {
         appData.get()->interruptEvent = interruptEvent;
 #else
         if (pipe(appData.get()->fdsEmergency) == -1) {
-            ALOGE("AppData::create pipe(2) failed: %s", strerror(errno));
+            CONSCRYPT_LOG_ERROR("AppData::create pipe(2) failed: %s", strerror(errno));
             return nullptr;
         }
         if (!netutil::setBlocking(appData.get()->fdsEmergency[0], false)) {
-            ALOGE("AppData::create fcntl(2) failed: %s", strerror(errno));
+            CONSCRYPT_LOG_ERROR("AppData::create fcntl(2) failed: %s", strerror(errno));
             return nullptr;
         }
 #endif
