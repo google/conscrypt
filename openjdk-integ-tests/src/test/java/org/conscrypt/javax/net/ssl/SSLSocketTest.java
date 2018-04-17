@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.ConnectException;
@@ -2307,6 +2308,33 @@ public class SSLSocketTest {
             client.connect(new InetSocketAddress(context.host, context.port));
             setHostname(client);
             assertTrue(client.getPort() > 0);
+        } finally {
+            client.close();
+            context.close();
+        }
+    }
+
+    @Test
+    public void test_SSLSocket_setInvalidHostname() throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        SSLSocket client =
+                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
+        try {
+            client.connect(new InetSocketAddress(context.host, context.port));
+            Method getHostname = client.getClass().getMethod("getHostname");
+            getHostname.setAccessible(true);
+            String originalHostname = (String) getHostname.invoke(client);
+
+            try {
+                Method setHostname = client.getClass().getMethod("setHostname", String.class);
+                setHostname.setAccessible(true);
+                setHostname.invoke(client, "sslsockettest.androidcts.google.com.");
+            } catch (InvocationTargetException expected) {
+                assertTrue(expected.getCause() instanceof IllegalArgumentException);
+            }
+            
+            // Ensure that setting an illegal hostname doesn't change getHostname
+            assertEquals(originalHostname, getHostname.invoke(client));
         } finally {
             client.close();
             context.close();
