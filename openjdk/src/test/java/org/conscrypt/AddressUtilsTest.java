@@ -38,6 +38,14 @@ public class AddressUtilsTest extends TestCase {
         assertFalse(AddressUtils.isValidSniHostname("2001:db8::1"));
     }
 
+    public void test_isValidSniHostname_TrailingDot() throws Exception {
+        assertFalse(AddressUtils.isValidSniHostname("www.google.com."));
+    }
+
+    public void test_isValidSniHostname_NullByte() throws Exception {
+        assertFalse(AddressUtils.isValidSniHostname("www\0.google.com"));
+    }
+
     public void test_isLiteralIpAddress_IPv4_Success() throws Exception {
         assertTrue(AddressUtils.isLiteralIpAddress("127.0.0.1"));
         assertTrue(AddressUtils.isLiteralIpAddress("255.255.255.255"));

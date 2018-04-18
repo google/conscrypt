@@ -758,9 +758,13 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      * This method enables Server Name Indication
      *
      * @param hostname the desired SNI hostname, or null to disable
+     * @throws IllegalArgumentException if the supplied hostname is not a valid SNI hostname.
      */
     @Override
     public final void setHostname(String hostname) {
+        if ((hostname != null) && !AddressUtils.isValidSniHostname(hostname)) {
+            throw new IllegalArgumentException("Invalid SNI hostname: " + hostname);
+        }
         sslParameters.setUseSni(hostname != null);
         super.setHostname(hostname);
     }
