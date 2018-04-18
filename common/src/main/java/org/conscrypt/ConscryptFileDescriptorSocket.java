@@ -1081,8 +1081,10 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             if (guard != null) {
                 Platform.closeGuardWarnIfOpen(guard);
             }
-            synchronized (ssl) {
-                transitionTo(STATE_CLOSED);
+            if (ssl != null) {
+                synchronized (ssl) {
+                    transitionTo(STATE_CLOSED);
+                }
             }
         } finally {
             super.finalize();
