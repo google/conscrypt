@@ -42,7 +42,7 @@ final class AddressUtils {
 
         // Must be a FQDN that does not have a trailing dot.
         return sniHostname.indexOf('.') != -1 && !Platform.isLiteralIpAddress(sniHostname)
-                && !sniHostname.endsWith(".");
+                && !sniHostname.endsWith(".") && sniHostname.indexOf('\0') == -1;
     }
 
     /**
