@@ -148,7 +148,7 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
             throw new SocketException("Socket is not connected.");
         }
 
-        if (hasFileDescriptor(socket) && !useEngineSocket) {
+        if (!useEngineSocket && hasFileDescriptor(socket)) {
             return createFileDescriptorSocket(
                     socket, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
         } else {
