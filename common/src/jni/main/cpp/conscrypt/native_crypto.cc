@@ -6424,7 +6424,7 @@ static void debug_print_packet_data(const SSL* ssl, char direction, const char* 
 
     // Packet preamble for text2pcap
     CONSCRYPT_LOG(LOG_INFO, LOG_TAG "-jni", "ssl=%p SSL_DATA: %c %ld.%06ld", ssl, direction, tv.tv_sec,
-         tv.tv_usec);
+         static_cast<long>(tv.tv_usec));
 
     char out[kDataWidth * 3 + 1];
     for (size_t i = 0; i < len; i += kDataWidth) {
