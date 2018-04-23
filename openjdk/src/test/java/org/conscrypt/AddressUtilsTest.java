@@ -30,6 +30,10 @@ public class AddressUtilsTest extends TestCase {
         assertFalse(AddressUtils.isValidSniHostname("www"));
     }
 
+    public void test_isValidSniHostname_Localhost_Success() throws Exception {
+        assertTrue(AddressUtils.isValidSniHostname("LOCALhost"));
+    }
+
     public void test_isValidSniHostname_IPv4_Failure() throws Exception {
         assertFalse(AddressUtils.isValidSniHostname("192.168.0.1"));
     }
