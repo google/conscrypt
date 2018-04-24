@@ -145,7 +145,11 @@ public class SignatureTest {
 
         KeyPair kp = keypairAlgorithmToInstance.get(kpAlgorithm);
         if (kp == null) {
-            kp = KeyPairGenerator.getInstance(kpAlgorithm).generateKeyPair();
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance(kpAlgorithm);
+            if (kpAlgorithm.equals("DSA")) {
+                kpg.initialize(1024);
+            }
+            kp = kpg.generateKeyPair();
             keypairAlgorithmToInstance.put(kpAlgorithm, kp);
         }
         return kp;
