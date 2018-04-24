@@ -362,7 +362,7 @@ public class KeyPairGeneratorTest {
                 fail("not a public or private key!?");
             }
         }
-        assertNotNull(k.getEncoded());
+        assertNotNull("Provider: " + kpg.getProvider().getName() + ", alg: " + expectedAlgorithm, k.getEncoded());
         assertNotNull(k.getFormat());
 
         // Test serialization
@@ -375,7 +375,7 @@ public class KeyPairGeneratorTest {
             ObjectInputStream ois = new ObjectInputStream(bais);
             Key inflatedKey = (Key) ois.readObject();
 
-            assertEquals(k, inflatedKey);
+            assertEquals("Provider: " + kpg.getProvider(), k, inflatedKey);
         }
 
         test_KeyWithAllKeyFactories(k);
