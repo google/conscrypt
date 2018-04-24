@@ -77,8 +77,6 @@ cc_defaults {
         "common/src/jni/unbundled/include",
     ],
 
-    host_ldlibs: ["-ldl"],
-
     shared_libs: [
         "liblog",
     ],
@@ -111,8 +109,6 @@ cc_library_host_shared {
         "common/src/jni/unbundled/include",
     ],
 
-    host_ldlibs: ["-lpthread"],
-
     static_libs: [
         "libssl",
         "libcrypto",
@@ -133,6 +129,10 @@ cc_library_host_shared {
 cc_binary_host {
     name: "conscrypt_generate_constants",
     srcs: ["constants/src/gen/cpp/generate_constants.cc"],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
     shared_libs: [
         "libcrypto",
         "libssl",
