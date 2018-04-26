@@ -475,7 +475,7 @@ final class NativeSsl {
                 if (issuers != null && issuers.length != 0) {
                     byte[][] issuersBytes;
                     try {
-                        issuersBytes = SSLUtils.encodeIssuerX509Principals(issuers);
+                        issuersBytes = SSLUtils.encodeSubjectX509Principals(issuers);
                     } catch (CertificateEncodingException e) {
                         throw new SSLException("Problem encoding principals", e);
                     }
