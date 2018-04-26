@@ -2315,33 +2315,6 @@ public class SSLSocketTest {
     }
 
     @Test
-    public void test_SSLSocket_setInvalidHostname() throws Exception {
-        TestSSLContext context = TestSSLContext.create();
-        SSLSocket client =
-                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        try {
-            client.connect(new InetSocketAddress(context.host, context.port));
-            Method getHostname = client.getClass().getMethod("getHostname");
-            getHostname.setAccessible(true);
-            String originalHostname = (String) getHostname.invoke(client);
-
-            try {
-                Method setHostname = client.getClass().getMethod("setHostname", String.class);
-                setHostname.setAccessible(true);
-                setHostname.invoke(client, "sslsockettest.androidcts.google.com.");
-            } catch (InvocationTargetException expected) {
-                assertTrue(expected.getCause() instanceof IllegalArgumentException);
-            }
-            
-            // Ensure that setting an illegal hostname doesn't change getHostname
-            assertEquals(originalHostname, getHostname.invoke(client));
-        } finally {
-            client.close();
-            context.close();
-        }
-    }
-
-    @Test
     public void test_SSLSocket_SNIHostName() throws Exception {
         TestUtils.assumeSNIHostnameAvailable();
         TestSSLContext c = TestSSLContext.create();
