@@ -323,6 +323,11 @@ public class KeyPairGeneratorTest {
 
         if (("EC".equals(algorithm)) || ("ECDH".equals(algorithm))
                 || ("ECDSA".equals(algorithm))) {
+            if ("SunPKCS11-NSS".equalsIgnoreCase(kpg.getProvider().getName())) {
+                // SunPKCS11 doesn't support some of the named curves that we expect, so it
+                // fails.  Skip it.
+                return;
+            }
             for (String curveName : EC_NAMED_CURVES) {
                 kpg.initialize(new ECGenParameterSpec(curveName));
                 test_KeyPair(kpg, kpg.genKeyPair());
