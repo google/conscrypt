@@ -362,11 +362,19 @@ public class KeyPairGeneratorTest {
                 fail("not a public or private key!?");
             }
         }
-        assertNotNull("Provider: " + kpg.getProvider().getName() + ", alg: " + expectedAlgorithm, k.getEncoded());
+        if (kpg.getProvider().getName().equalsIgnoreCase("SunMSCAPI")
+                && expectedAlgorithm.equals("RSA")) {
+            // The SunMSCAPI RSA keys don't provide encoded versions at all, nor are they
+            // serializable, so just skip them.
+            return;
+        }
+        assertNotNull(k.getEncoded());
         assertNotNull(k.getFormat());
 
         // Test serialization
-        {
+        // SunPKCS11-NSS on Java 6 replaces serialized keys with one from the default provider,
+        // so the deserialized key doesn't match the original.
+        if (!kpg.getProvider().getName().equalsIgnoreCase("SunPKCS11-NSS")) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
             ObjectOutputStream oos = new ObjectOutputStream(baos);
             oos.writeObject(k);
