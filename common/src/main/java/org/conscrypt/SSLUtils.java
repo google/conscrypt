@@ -277,11 +277,11 @@ final class SSLUtils {
         return result;
     }
 
-    static byte[][] encodeIssuerX509Principals(X509Certificate[] certificates)
+    static byte[][] encodeSubjectX509Principals(X509Certificate[] certificates)
             throws CertificateEncodingException {
         byte[][] principalBytes = new byte[certificates.length][];
         for (int i = 0; i < certificates.length; i++) {
-            principalBytes[i] = certificates[i].getIssuerX500Principal().getEncoded();
+            principalBytes[i] = certificates[i].getSubjectX500Principal().getEncoded();
         }
         return principalBytes;
     }
