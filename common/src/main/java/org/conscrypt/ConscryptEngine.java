@@ -361,15 +361,11 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
 
     /**
      * This method enables Server Name Indication (SNI) and overrides the {@link PeerInfoProvider}
-     * supplied during engine creation.
-     *
-     * @throws IllegalArgumentException if the supplied hostname is not a valid SNI hostname.
+     * supplied during engine creation.  If the hostname is not a valid SNI hostname, the SNI
+     * extension will be omitted from the handshake.
      */
     @Override
     void setHostname(String hostname) {
-        if ((hostname != null) && !AddressUtils.isValidSniHostname(hostname)) {
-            throw new IllegalArgumentException("Invalid SNI hostname: " + hostname);
-        }
         sslParameters.setUseSni(hostname != null);
         this.peerHostname = hostname;
     }
