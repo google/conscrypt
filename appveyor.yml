@@ -4,9 +4,11 @@ environment:
   JAVA_HOME: "C:\\Program Files\\Java\\jdk1.8.0"
   BORINGSSL_HOME: "C:\\boringssl"
   ANDROID_TOOLS_URL: "https://dl.google.com/android/repository/tools_r25.2.3-windows.zip"
-  NINJA_URL: "https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-win.zip"
-  CMAKE_URL: "https://cmake.org/files/v3.4/cmake-3.4.0-win32-x86.zip"
+  NINJA_URL: "https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-win.zip"
+  CMAKE_URL: "https://cmake.org/files/v3.11/cmake-3.11.1-win32-x86.zip"
   MSVC_HOME: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community"
+  YASM_URL: "http://www.tortall.net/projects/yasm/releases/yasm-1.3.0-win32.exe"
+  YASM_SHA256: "db8ef9348ae858354cee4cc2f99e0f36de8a47a121de4cfeea5a16d45dd5ac1b"
 
 clone_folder: "C:\\projects\\conscrypt"
 shallow_clone: true
@@ -43,7 +45,10 @@ init:
   - cmake --version
 
   # Install yasm
-  - choco install -y --allow-empty-checksums yasm
+  - mkdir C:\yasm
+  - appveyor DownloadFile %YASM_URL% -FileName C:\yasm\yasm.exe
+  - ps: if ((Get-FileHash C:\yasm\yasm.exe -Algorithm SHA256).Hash.ToLower() -ne $env:YASM_SHA256) { Throw "Yasm hash mismatch" }
+  - set PATH=C:\yasm;%PATH%
 
   # Install Go for BoringSSL compile (embedding test data)
   - choco install -y --allow-empty-checksums golang
