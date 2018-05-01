@@ -31,8 +31,10 @@ import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
+import java.security.Signature;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -44,6 +46,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocketFactory;
+import javax.xml.bind.DatatypeConverter;
 import libcore.io.Streams;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.conscrypt.java.security.TestKeyStore;
@@ -89,15 +92,19 @@ public final class TestUtils {
         return JDK_PROVIDER;
     }
 
-    private static void assumeClassAvailable(String classname) {
-        boolean available = false;
+    private static boolean isClassAvailable(String classname) {
         try {
             Class.forName(classname);
-            available = true;
+            return true;
         } catch (ClassNotFoundException ignore) {
             // Ignored
         }
-        Assume.assumeTrue("Skipping test: " + classname + " unavailable", available);
+        return false;
+    }
+
+    private static void assumeClassAvailable(String classname) {
+        Assume.assumeTrue("Skipping test: " + classname + " unavailable",
+                isClassAvailable(classname));
     }
 
     public static void assumeSNIHostnameAvailable() {
@@ -138,6 +145,17 @@ public final class TestUtils {
         // The Oracle JRE disallows loading crypto providers from unsigned jars
         Assume.assumeTrue(isAndroid()
                 || !System.getProperty("java.vm.name").contains("HotSpot"));
+    }
+
+    public static void assumeSHA2WithDSAAvailable() {
+        boolean available;
+        try {
+            Signature.getInstance("SHA256withDSA");
+            available = true;
+        } catch (NoSuchAlgorithmException e) {
+            available = false;
+        }
+        Assume.assumeTrue("SHA2 with DSA signatures not available", available);
     }
 
     public static InetAddress getLoopbackAddress() {
@@ -545,5 +563,26 @@ public final class TestUtils {
 
         throw new IllegalArgumentException("Illegal char: " + str[offset] +
                 " at offset " + offset);
+    }
+
+
+    public static String encodeBase64(byte[] data) {
+        // Base64 was introduced in Java 8, so if it's not available we can use a hacky
+        // solution available in previous versions
+        if (isClassAvailable("java.util.Base64")) {
+            return Base64.getEncoder().encodeToString(data);
+        } else {
+            return DatatypeConverter.printBase64Binary(data);
+        }
+    }
+
+    public static byte[] decodeBase64(String data) {
+        // Base64 was introduced in Java 8, so if it's not available we can use a hacky
+        // solution available in previous versions
+        if (isClassAvailable("java.util.Base64")) {
+            return Base64.getDecoder().decode(data);
+        } else {
+            return DatatypeConverter.parseBase64Binary(data);
+        }
     }
 }
