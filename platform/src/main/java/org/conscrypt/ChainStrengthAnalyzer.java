@@ -42,6 +42,9 @@ public final class ChainStrengthAnalyzer {
         "1.2.840.113549.1.1.2", // md2WithRSAEncryption
         "1.2.840.113549.1.1.3", // md4WithRSAEncryption
         "1.2.840.113549.1.1.4", // md5WithRSAEncryption
+        "1.2.840.113549.1.1.5", // sha1WithRSAEncryption
+        "1.2.840.10040.4.3", //dsa-with-sha1
+        "1.2.840.10045.4.1", //ecdsa-with-sha1
     };
 
     public static final void check(X509Certificate[] chain) throws CertificateException {

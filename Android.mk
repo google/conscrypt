@@ -77,9 +77,9 @@ LOCAL_JAVA_LIBRARIES := \
 LOCAL_STATIC_JAVA_LIBRARIES := \
     core-tests-support \
     conscrypt-nojarjar \
-    bouncycastle-nojarjar \
-    bouncycastle-bcpkix-nojarjar \
-    bouncycastle-ocsp-nojarjar
+    bouncycastle-unbundled \
+    bouncycastle-bcpkix-unbundled \
+    bouncycastle-ocsp-unbundled
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt-tests
@@ -102,9 +102,9 @@ LOCAL_JAVA_LIBRARIES := \
     core-oj \
     core-libart \
     junit \
-    bouncycastle-nojarjar \
-    bouncycastle-bcpkix-nojarjar \
-    bouncycastle-ocsp-nojarjar \
+    bouncycastle-unbundled \
+    bouncycastle-bcpkix-unbundled \
+    bouncycastle-ocsp-unbundled \
     caliper-api-target
 LOCAL_STATIC_JAVA_LIBRARIES := core-tests-support conscrypt-nojarjar
 LOCAL_JAVACFLAGS := $(local_javac_flags)
@@ -128,9 +128,9 @@ ifeq ($(LIBCORE_SKIP_TESTS),)
     LOCAL_SRC_FILES := $(bundled_test_java_files)
     LOCAL_JAVA_RESOURCE_DIRS := openjdk/src/test/resources openjdk-integ-tests/src/test/resources
     LOCAL_JAVA_LIBRARIES := \
-        bouncycastle-nojarjar-hostdex \
-        bouncycastle-bcpkix-nojarjar-hostdex \
-        bouncycastle-ocsp-nojarjar-hostdex \
+        bouncycastle-unbundled-hostdex \
+        bouncycastle-bcpkix-unbundled-hostdex \
+        bouncycastle-ocsp-unbundled-hostdex \
         junit-hostdex \
         core-tests-support-hostdex \
         mockito-api-hostdex

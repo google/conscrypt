@@ -755,7 +755,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     /**
-     * This method enables Server Name Indication
+     * This method enables Server Name Indication.  If the hostname is not a valid SNI hostname,
+     * the SNI extension will be omitted from the handshake.
      *
      * @param hostname the desired SNI hostname, or null to disable
      */
@@ -1077,8 +1078,10 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             if (guard != null) {
                 Platform.closeGuardWarnIfOpen(guard);
             }
-            synchronized (ssl) {
-                transitionTo(STATE_CLOSED);
+            if (ssl != null) {
+                synchronized (ssl) {
+                    transitionTo(STATE_CLOSED);
+                }
             }
         } finally {
             super.finalize();

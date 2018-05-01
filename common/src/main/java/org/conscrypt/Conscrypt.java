@@ -210,7 +210,8 @@ public final class Conscrypt {
 
     /**
      * This method enables Server Name Indication (SNI) and overrides the hostname supplied
-     * during socket creation.
+     * during socket creation.  If the hostname is not a valid SNI hostname, the SNI extension
+     * will be omitted from the handshake.
      *
      * @param socket the socket
      * @param hostname the desired SNI hostname, or null to disable

@@ -30,12 +30,24 @@ public class AddressUtilsTest extends TestCase {
         assertFalse(AddressUtils.isValidSniHostname("www"));
     }
 
+    public void test_isValidSniHostname_Localhost_Success() throws Exception {
+        assertTrue(AddressUtils.isValidSniHostname("LOCALhost"));
+    }
+
     public void test_isValidSniHostname_IPv4_Failure() throws Exception {
         assertFalse(AddressUtils.isValidSniHostname("192.168.0.1"));
     }
 
     public void test_isValidSniHostname_IPv6_Failure() throws Exception {
         assertFalse(AddressUtils.isValidSniHostname("2001:db8::1"));
+    }
+
+    public void test_isValidSniHostname_TrailingDot() throws Exception {
+        assertFalse(AddressUtils.isValidSniHostname("www.google.com."));
+    }
+
+    public void test_isValidSniHostname_NullByte() throws Exception {
+        assertFalse(AddressUtils.isValidSniHostname("www\0.google.com"));
     }
 
     public void test_isLiteralIpAddress_IPv4_Success() throws Exception {

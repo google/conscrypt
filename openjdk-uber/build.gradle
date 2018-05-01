@@ -6,6 +6,7 @@ ext {
             'osx-x86_64,linux-x86_64,windows-x86,windows-x86_64')).split(',')
     classesDir = "${buildDir}/classes"
     resourcesDir = "${buildDir}/resources"
+    sourcesDir = "${buildDir}/sources"
 }
 
 if (buildUberJar) {
@@ -17,6 +18,10 @@ if (buildUberJar) {
     jar {
         from classesDir
         from resourcesDir
+    }
+
+    sourcesJar {
+        from sourcesDir
     }
 
     // Add the dependencies for the uber jar.
@@ -51,6 +56,14 @@ if (buildUberJar) {
         into file(classesDir)
     }
     jar.dependsOn copyClasses
+
+    task copySources(type: Copy, dependsOn: ":conscrypt-openjdk:sourcesJar") {
+        from {
+            project(":conscrypt-openjdk").sourceSets.main.java
+        }
+        into file(sourcesDir)
+    }
+    sourcesJar.dependsOn copySources
 
     // Append the BoringSSL-Version to the manifest. Note that this assumes that the
     // version of BoringSSL for each artifact exactly matches the one on the
