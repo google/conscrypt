@@ -8706,14 +8706,7 @@ static jstring NativeCrypto_SSL_SESSION_cipher(JNIEnv* env, jclass, jlong ssl_se
     if (ssl_session == nullptr) {
         return nullptr;
     }
-#if BORINGSSL_API_VERSION < 8
-    // TODO(davidben): Remove this ifdef once
-    // https://boringssl.googlesource.com/boringssl/+/b8b1a9d8de02c5b8ba7151a70c140a91877e9f6d
-    // has propagated to all Conscrypt downstreams.
-    const SSL_CIPHER* cipher = ssl_session->cipher;
-#else
     const SSL_CIPHER* cipher = SSL_SESSION_get0_cipher(ssl_session);
-#endif
     const char* name = SSL_CIPHER_standard_name(cipher);
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_cipher => %s", ssl_session, name);
     return env->NewStringUTF(name);
