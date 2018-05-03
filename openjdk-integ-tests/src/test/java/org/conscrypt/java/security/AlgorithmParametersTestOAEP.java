@@ -28,7 +28,10 @@ import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class AlgorithmParametersTestOAEP extends AbstractAlgorithmParametersTest {
 
     // The ASN.1 encoding for OAEP params (specified in RFC 4055 section 4.1) specifies

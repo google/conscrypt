@@ -17,7 +17,10 @@ package org.conscrypt.java.security;
 
 import java.math.BigInteger;
 import javax.crypto.spec.DHParameterSpec;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class AlgorithmParametersTestDH extends AbstractAlgorithmParametersTest {
 
     private static final byte[] P = new byte[] {

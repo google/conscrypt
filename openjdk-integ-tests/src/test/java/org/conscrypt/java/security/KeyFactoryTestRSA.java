@@ -23,7 +23,11 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class KeyFactoryTestRSA extends
         AbstractKeyFactoryTest<RSAPublicKeySpec, RSAPrivateKeySpec> {
 
@@ -37,6 +41,7 @@ public class KeyFactoryTestRSA extends
         new CipherAsymmetricCryptHelper("RSA").test(keyPair);
     }
 
+    @Test
     public void testExtraBufferSpace_Private() throws Exception {
         PrivateKey privateKey = DefaultKeys.getPrivateKey("RSA");
         byte[] encoded = privateKey.getEncoded();
@@ -45,6 +50,7 @@ public class KeyFactoryTestRSA extends
         KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(longBuffer));
     }
 
+    @Test
     public void testExtraBufferSpace_Public() throws Exception {
         PublicKey publicKey = DefaultKeys.getPublicKey("RSA");
         byte[] encoded = publicKey.getEncoded();

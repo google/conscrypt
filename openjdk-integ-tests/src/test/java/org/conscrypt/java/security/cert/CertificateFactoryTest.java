@@ -63,7 +63,10 @@ import org.bouncycastle.x509.X509V3CertificateGenerator;
 import org.bouncycastle.x509.extension.AuthorityKeyIdentifierStructure;
 import org.conscrypt.Conscrypt;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class CertificateFactoryTest {
 
     private static final String VALID_CERTIFICATE_PEM =
