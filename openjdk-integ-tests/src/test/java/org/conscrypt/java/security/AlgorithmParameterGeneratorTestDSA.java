@@ -16,7 +16,10 @@
 package org.conscrypt.java.security;
 
 import java.security.spec.DSAParameterSpec;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class AlgorithmParameterGeneratorTestDSA extends
         AbstractAlgorithmParameterGeneratorTest {
 

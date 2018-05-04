@@ -33,7 +33,10 @@ import java.util.Map;
 import java.util.TreeMap;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class AlgorithmParametersPSSTest {
 
     // ASN.1 DER-encoded forms of DEFAULT_SPEC and WEIRD_SPEC were generated using

@@ -26,7 +26,10 @@ import java.util.Arrays;
 import javax.crypto.spec.IvParameterSpec;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class AlgorithmParametersTestDESede extends AbstractAlgorithmParametersTest {
 
     private static final byte[] parameterData = new byte[] {

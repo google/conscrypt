@@ -67,7 +67,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
         this.digestInitializedInContext = digestInitializedInContext;
     }
 
-    private void ensureDigestInitializedInContext() {
+    private synchronized void ensureDigestInitializedInContext() {
         if (!digestInitializedInContext) {
             final NativeRef.EVP_MD_CTX ctxLocal = ctx;
             NativeCrypto.EVP_DigestInit_ex(ctxLocal, evp_md);
@@ -76,7 +76,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     }
 
     @Override
-    protected void engineReset() {
+    protected synchronized void engineReset() {
         // Reset to the same state as at the end of the <init>(long evp_md, int size). We can avoid
         // allocating a new EVP_MD_CTX by invoking EVP_MD_CTX_cleanup on the existing one.
         // EVP_MD_CTX_cleanup cleans up and reinitializes the EVP_MD_CTX.
@@ -91,19 +91,19 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     }
 
     @Override
-    protected void engineUpdate(byte input) {
+    protected synchronized void engineUpdate(byte input) {
         singleByte[0] = input;
         engineUpdate(singleByte, 0, 1);
     }
 
     @Override
-    protected void engineUpdate(byte[] input, int offset, int len) {
+    protected synchronized void engineUpdate(byte[] input, int offset, int len) {
         ensureDigestInitializedInContext();
         NativeCrypto.EVP_DigestUpdate(ctx, input, offset, len);
     }
 
     @Override
-    protected void engineUpdate(ByteBuffer input) {
+    protected synchronized void engineUpdate(ByteBuffer input) {
         // Optimization: Avoid copying/allocation for direct buffers because their contents are
         // stored as a contiguous region in memory and thus can be efficiently accessed from native
         // code.
@@ -142,7 +142,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     }
 
     @Override
-    protected byte[] engineDigest() {
+    protected synchronized byte[] engineDigest() {
         ensureDigestInitializedInContext();
         final byte[] result = new byte[size];
         NativeCrypto.EVP_DigestFinal_ex(ctx, result, 0);
