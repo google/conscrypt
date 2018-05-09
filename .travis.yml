@@ -121,7 +121,7 @@ script:
       fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
-      ./gradlew check -DjavaExecutable64=${JAVA6_HOME}/bin/java -PcheckErrorQueue --info;
+      ./gradlew check -DjavaExecutable64=${JAVA6_HOME}/bin/java -PcheckErrorQueue --debug;
     fi
 
 after_script:
