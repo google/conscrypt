@@ -95,9 +95,15 @@ public class SignatureTest {
                 if (!type.equals("Signature")) {
                     continue;
                 }
-                if (service.getProvider().getName().equalsIgnoreCase("SunMSCAPI")) {
+                if (service.getProvider().getName().equalsIgnoreCase("SunMSCAPI")
+                    || service.getProvider().getName().equalsIgnoreCase("SunPKCS11-NSS")) {
                     // The SunMSCAPI is very strange, including only supporting its own keys,
                     // so don't test it.
+                    // SunPKCS11-NSS has a problem where failed verifications can leave the
+                    // operation open, which results in future init() calls to throw an exception.
+                    // This appears to be a problem in the underlying library (see
+                    // https://bugs.openjdk.java.net/browse/JDK-8044554), but skip verifying it all
+                    // the same.
                     continue;
                 }
                 String algorithm = service.getAlgorithm();
