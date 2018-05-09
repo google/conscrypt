@@ -67,6 +67,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import libcore.java.security.StandardNames;
+import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -204,7 +205,9 @@ public class SignatureTest {
             sig.verify(signature);
         }
 
-        testSignature_MultipleThreads_Misuse(sig, keyPair.getPrivate());
+        if (Conscrypt.isConscrypt(sig.getProvider())) {
+            testSignature_MultipleThreads_Misuse(sig, keyPair.getPrivate());
+        }
     }
 
     private static final byte[] PK_BYTES = TestUtils.decodeHex(
