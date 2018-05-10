@@ -311,7 +311,43 @@ public class SSLEngineTest {
             assertEquals(sourceCipherSuite, 2, numUnwrapCalls);
         } else {
             assertEquals(sourceCipherSuite, 1, numUnwrapCalls);
+            assertSendsCorrectlyWhenSplit(sourceBytes, source, dest);
         }
+    }
+
+    private static void assertSendsCorrectlyWhenSplit(final byte[] sourceBytes, SSLEngine source,
+            SSLEngine dest) throws SSLException {
+        // Split the input into three to test the version that accepts ByteBuffer[].  Three
+        // is chosen somewhat arbitrarily as a number larger than the minimum of 2 but small
+        // enough that it's not unwieldy.
+        ByteBuffer[] sourceBufs = new ByteBuffer[3];
+        int sourceLen = sourceBytes.length;
+        sourceBufs[0] = ByteBuffer.wrap(sourceBytes, 0, sourceLen / 3);
+        sourceBufs[1] = ByteBuffer.wrap(sourceBytes, sourceLen / 3, sourceLen / 3);
+        sourceBufs[2] = ByteBuffer.wrap(
+            sourceBytes, 2 * (sourceLen / 3), sourceLen - 2 * (sourceLen / 3));
+        SSLSession sourceSession = source.getSession();
+        ByteBuffer sourceToDest = ByteBuffer.allocate(sourceSession.getPacketBufferSize());
+        SSLEngineResult sourceOutRes = source.wrap(sourceBufs, sourceToDest);
+        sourceToDest.flip();
+        String sourceCipherSuite = source.getSession().getCipherSuite();
+        assertEquals(sourceCipherSuite, sourceBytes.length, sourceOutRes.bytesConsumed());
+        assertEquals(sourceCipherSuite, HandshakeStatus.NOT_HANDSHAKING,
+                sourceOutRes.getHandshakeStatus());
+        SSLSession destSession = dest.getSession();
+        ByteBuffer destIn = ByteBuffer.allocate(destSession.getApplicationBufferSize());
+        int numUnwrapCalls = 0;
+        while (destIn.position() != sourceBytes.length) {
+            SSLEngineResult destRes = dest.unwrap(sourceToDest, destIn);
+            assertEquals(sourceCipherSuite, HandshakeStatus.NOT_HANDSHAKING,
+                    destRes.getHandshakeStatus());
+            numUnwrapCalls++;
+        }
+        destIn.flip();
+        byte[] actual = new byte[destIn.remaining()];
+        destIn.get(actual);
+        assertEquals(sourceCipherSuite, Arrays.toString(sourceBytes), Arrays.toString(actual));
+        assertEquals(sourceCipherSuite, 3, numUnwrapCalls);
     }
 
     @Test
