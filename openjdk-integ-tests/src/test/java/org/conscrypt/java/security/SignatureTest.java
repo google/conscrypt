@@ -67,6 +67,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import libcore.java.security.StandardNames;
+import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -94,9 +95,15 @@ public class SignatureTest {
                 if (!type.equals("Signature")) {
                     continue;
                 }
-                if (service.getProvider().getName().equalsIgnoreCase("SunMSCAPI")) {
+                if (service.getProvider().getName().equalsIgnoreCase("SunMSCAPI")
+                    || service.getProvider().getName().equalsIgnoreCase("SunPKCS11-NSS")) {
                     // The SunMSCAPI is very strange, including only supporting its own keys,
                     // so don't test it.
+                    // SunPKCS11-NSS has a problem where failed verifications can leave the
+                    // operation open, which results in future init() calls to throw an exception.
+                    // This appears to be a problem in the underlying library (see
+                    // https://bugs.openjdk.java.net/browse/JDK-8044554), but skip verifying it all
+                    // the same.
                     continue;
                 }
                 String algorithm = service.getAlgorithm();
@@ -204,7 +211,9 @@ public class SignatureTest {
             sig.verify(signature);
         }
 
-        testSignature_MultipleThreads_Misuse(sig, keyPair.getPrivate());
+        if (Conscrypt.isConscrypt(sig.getProvider())) {
+            testSignature_MultipleThreads_Misuse(sig, keyPair.getPrivate());
+        }
     }
 
     private static final byte[] PK_BYTES = TestUtils.decodeHex(
