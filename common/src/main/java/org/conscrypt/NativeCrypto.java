@@ -1335,6 +1335,12 @@ public final class NativeCrypto {
             throws IOException, IndexOutOfBoundsException;
 
     /**
+     * Forces the SSL object to process any data pending in the BIO.
+     */
+    static native void ENGINE_SSL_force_read(long ssl, NativeSsl ssl_holder,
+            SSLHandshakeCallbacks shc) throws IOException;
+
+    /**
      * Variant of the {@link #SSL_shutdown} used by {@link ConscryptEngine}. This version does not
      * lock.
      */

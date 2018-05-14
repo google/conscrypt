@@ -109,7 +109,6 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             new SSLEngineResult(CLOSED, NEED_WRAP, 0, 0);
     private static final SSLEngineResult CLOSED_NOT_HANDSHAKING =
             new SSLEngineResult(CLOSED, NOT_HANDSHAKING, 0, 0);
-    private static final ByteBuffer EMPTY = ByteBuffer.allocateDirect(0);
 
     private static BufferAllocator defaultBufferAllocator = null;
 
@@ -885,7 +884,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                     // If the capacity of all destination buffers is 0 we need to trigger a SSL_read
                     // anyway to ensure everything is flushed in the BIO pair and so we can detect
                     // it in the pendingInboundCleartextBytes() call.
-                    readPlaintextData(EMPTY);
+                    ssl.forceRead();
                 }
             } catch (SSLException e) {
                 if (pendingOutboundEncryptedBytes() > 0) {

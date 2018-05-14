@@ -517,6 +517,10 @@ final class NativeSsl {
                 ssl, this, sourceAddress, sourceLength, handshakeCallbacks);
     }
 
+    void forceRead() throws IOException {
+        NativeCrypto.ENGINE_SSL_force_read(ssl, this, handshakeCallbacks);
+    }
+
     int getPendingReadableBytes() {
         return NativeCrypto.SSL_pending_readable_bytes(ssl, this);
     }

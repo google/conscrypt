@@ -9639,6 +9639,85 @@ static int NativeCrypto_ENGINE_SSL_read_BIO_heap(JNIEnv* env, jclass, jlong ssl_
     return result;
 }
 
+static void NativeCrypto_ENGINE_SSL_force_read(JNIEnv* env, jclass, jlong ssl_address, CONSCRYPT_UNUSED jobject ssl_holder,
+                                               jobject shc) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    if (ssl == nullptr) {
+        return;
+    }
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_force_read shc=%p", ssl, shc);
+    if (shc == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "sslHandshakeCallbacks == null");
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_force_read => sslHandshakeCallbacks == null",
+                  ssl);
+        return;
+    }
+    AppData* appData = toAppData(ssl);
+    if (appData == nullptr) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to retrieve application data");
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_force_read => appData == null", ssl);
+        return;
+    }
+    if (!appData->setCallbackState(env, shc, nullptr)) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to set appdata callback");
+        ERR_clear_error();
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_force_read => exception", ssl);
+        return;
+    }
+    char c;
+    int result = SSL_peek(ssl, &c, 1);
+    appData->clearCallbackState();
+    if (env->ExceptionCheck()) {
+        // An exception was thrown by one of the callbacks. Just propagate that exception.
+        ERR_clear_error();
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_force_read => THROWN_EXCEPTION", ssl);
+        return;
+    }
+
+    SslError sslError(ssl, result);
+    switch (sslError.get()) {
+        case SSL_ERROR_NONE:
+        case SSL_ERROR_ZERO_RETURN:
+        case SSL_ERROR_WANT_READ:
+        case SSL_ERROR_WANT_WRITE: {
+            // The call succeeded, lacked data, or the SSL is closed.  All is well.
+            break;
+        }
+        case SSL_ERROR_SYSCALL: {
+            // A problem occurred during a system call, but this is not
+            // necessarily an error.
+            if (result == 0) {
+                // TODO(nmittler): Can this happen with memory BIOs?
+                // Connection closed without proper shutdown. Tell caller we
+                // have reached end-of-stream.
+                conscrypt::jniutil::throwException(env, "java/io/EOFException", "Read error");
+                break;
+            }
+
+            if (errno == EINTR) {
+                // TODO(nmittler): Can this happen with memory BIOs?
+                // System call has been interrupted. Simply retry.
+                conscrypt::jniutil::throwException(env, "java/io/InterruptedIOException",
+                                                      "Read error");
+                break;
+            }
+
+            // Note that for all other system call errors we fall through
+            // to the default case, which results in an Exception.
+            FALLTHROUGH_INTENDED;
+        }
+        default: {
+            // Everything else is basically an error.
+            conscrypt::jniutil::throwSSLExceptionWithSslErrors(env, ssl, sslError.release(),
+                                                               "Read error");
+            break;
+        }
+    }
+
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_force_read shc=%p", ssl, shc);
+}
+
 /**
  * OpenSSL write function (2): write into buffer at offset n chunks.
  */
@@ -10117,6 +10196,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_read_BIO_direct, "(J" REF_SSL "JJI" SSL_CALLBACKS ")I"),
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_write_BIO_heap, "(J" REF_SSL "J[BII" SSL_CALLBACKS ")I"),
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_read_BIO_heap, "(J" REF_SSL "J[BII" SSL_CALLBACKS ")I"),
+        CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_force_read, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
 
         // Used for testing only.
