@@ -46,7 +46,6 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocketFactory;
-import javax.xml.bind.DatatypeConverter;
 import libcore.io.Streams;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.conscrypt.java.security.TestKeyStore;
