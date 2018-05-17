@@ -55,11 +55,11 @@ public class AlgorithmParameterSymmetricHelper extends TestHelper<AlgorithmParam
 
         Cipher cipher = Cipher.getInstance(transformation);
         cipher.init(Cipher.ENCRYPT_MODE, key, parameters);
-        byte[] bs = cipher.doFinal(plainData.getBytes());
+        byte[] bs = cipher.doFinal(plainData.getBytes("UTF-8"));
 
         cipher.init(Cipher.DECRYPT_MODE, key, parameters);
         byte[] decrypted = cipher.doFinal(bs);
 
-        assertTrue(Arrays.equals(plainData.getBytes(), decrypted));
+        assertTrue(Arrays.equals(plainData.getBytes("UTF-8"), decrypted));
     }
 }

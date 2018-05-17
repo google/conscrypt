@@ -232,17 +232,13 @@ public final class MessageDigestTest {
             } else {
                 throw new AssertionError(inputName);
             }
-            assertDigest(algorithm, expected, actual);
+            assertEquals(algorithm, javaBytes(expected), javaBytes(actual));
             assertEquals(algorithm, expected.length, md.getDigestLength());
         }
     }
 
-    private void assertDigest(String algorithm, byte[] actual, byte[] expected) {
-        assertEquals(algorithm, javaBytes(actual), javaBytes(expected));
-    }
-
     private String javaBytes(byte[] bytes) {
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("new byte[] { ");
         for (byte b : bytes) {
             buf.append(b);

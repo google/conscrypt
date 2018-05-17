@@ -399,11 +399,8 @@ public class CertificateFactoryTest {
                 // to accept them
                 {
                     final CertPath duplicatedPath = cf.generateCertPath(duplicatedCerts);
-                    try {
-                        duplicatedPath.getEncoded();
-                    } catch (CertificateEncodingException expected) {
-                        fail("duplicate certificates should pass: " + p.getName());
-                    }
+                    // This shouldn't cause an exception
+                    duplicatedPath.getEncoded();
                 }
             }
 

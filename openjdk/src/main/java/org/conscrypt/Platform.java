@@ -658,7 +658,7 @@ final class Platform {
     }
 
     private static int majorVersion(final String javaSpecVersion) {
-        final String[] components = javaSpecVersion.split("\\.");
+        final String[] components = javaSpecVersion.split("\\.", -1);
         final int[] version = new int[components.length];
         for (int i = 0; i < components.length; i++) {
             version[i] = Integer.parseInt(components[i]);
