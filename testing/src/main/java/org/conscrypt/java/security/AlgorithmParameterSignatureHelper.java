@@ -46,11 +46,11 @@ public class AlgorithmParameterSignatureHelper<T extends AlgorithmParameterSpec>
         KeyPair keyPair = generator.genKeyPair();
 
         signature.initSign(keyPair.getPrivate());
-        signature.update(plainData.getBytes());
+        signature.update(plainData.getBytes("UTF-8"));
         byte[] signed = signature.sign();
 
         signature.initVerify(keyPair.getPublic());
-        signature.update(plainData.getBytes());
+        signature.update(plainData.getBytes("UTF-8"));
         assertTrue("signature should verify", signature.verify(signed));
     }
 }

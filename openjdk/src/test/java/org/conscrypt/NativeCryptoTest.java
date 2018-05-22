@@ -990,8 +990,8 @@ public class NativeCryptoTest {
                         if (DEBUG) {
                             System.out.println("ssl=0x" + Long.toString(s, 16) + " handshake"
                                     + " context=0x" + Long.toString(c, 16) + " socket=" + socket
-                                    + " fd=" + fd + " timeout=" + timeout + " client="
-                                    + client);
+                                    + " fd=0x" + Long.toString(System.identityHashCode(fd), 16)
+                                    + " timeout=" + timeout + " client=" + client);
                         }
                         long session = NULL;
                         try {

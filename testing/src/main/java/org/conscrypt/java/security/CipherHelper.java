@@ -38,11 +38,11 @@ public abstract class CipherHelper<T> extends TestHelper<T> {
     public void test(Key encryptKey, Key decryptKey) throws Exception {
         Cipher cipher = Cipher.getInstance(algorithmName);
         cipher.init(mode1, encryptKey);
-        byte[] encrypted = cipher.doFinal(plainData.getBytes());
+        byte[] encrypted = cipher.doFinal(plainData.getBytes("UTF-8"));
 
         cipher.init(mode2, decryptKey);
         byte[] decrypted = cipher.doFinal(encrypted);
-        String decryptedString = new String(decrypted);
+        String decryptedString = new String(decrypted, "UTF-8");
 
         assertEquals("transformed data does not match", plainData, decryptedString);
     }

@@ -2650,7 +2650,7 @@ public class SignatureTest {
         final int oneTooBig = RSA_2048_modulus.bitLength() + 1;
         final byte[] vector = new byte[oneTooBig];
         for (int i = 0; i < oneTooBig; i++) {
-            vector[i] = (byte) Vector1Data[i % Vector1Data.length];
+            vector[i] = Vector1Data[i % Vector1Data.length];
         }
         sig.update(vector);
 
@@ -2760,13 +2760,16 @@ public class SignatureTest {
     }
 
     @Test
+    // Suppress ErrorProne's warning about the try block that doesn't call fail() but
+    // expects an exception, it's intentional
+    @SuppressWarnings("MissingFail")
     public void testVerify_NONEwithECDSA_Key_SingleByte_Failure() throws Exception {
         PublicKey pub = getNamedCurveEcPublicKey();
         MessageDigest sha1 = MessageDigest.getInstance("SHA1");
         Signature sig = Signature.getInstance("NONEwithECDSA");
 
         byte[] corrupted = new byte[NAMED_CURVE_SIGNATURE.length];
-        corrupted[0] ^= 1;
+        corrupted[0] = (byte) (corrupted[0] ^ 1);
 
         sig.initVerify(pub);
         sig.update(sha1.digest(NAMED_CURVE_VECTOR));

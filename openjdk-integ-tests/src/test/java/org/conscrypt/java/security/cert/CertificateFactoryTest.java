@@ -41,7 +41,6 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.security.cert.CertPath;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -399,11 +398,8 @@ public class CertificateFactoryTest {
                 // to accept them
                 {
                     final CertPath duplicatedPath = cf.generateCertPath(duplicatedCerts);
-                    try {
-                        duplicatedPath.getEncoded();
-                    } catch (CertificateEncodingException expected) {
-                        fail("duplicate certificates should pass: " + p.getName());
-                    }
+                    // This shouldn't cause an exception
+                    duplicatedPath.getEncoded();
                 }
             }
 

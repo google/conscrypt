@@ -40,11 +40,11 @@ public class SignatureHelper extends TestHelper<KeyPair> {
     public void test(PrivateKey encryptKey, PublicKey decryptKey) throws Exception {
         Signature signature = Signature.getInstance(algorithmName);
         signature.initSign(encryptKey);
-        signature.update(plainData.getBytes());
+        signature.update(plainData.getBytes("UTF-8"));
         byte[] signed = signature.sign();
 
         signature.initVerify(decryptKey);
-        signature.update(plainData.getBytes());
+        signature.update(plainData.getBytes("UTF-8"));
         assertTrue("signature could not be verified", signature.verify(signed));
     }
 }
