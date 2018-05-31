@@ -611,14 +611,18 @@ final class NativeSsl {
      * A utility wrapper that abstracts operations on the underlying native BIO instance.
      */
     final class BioWrapper {
-        private long bio;
+        private volatile long bio;
 
         private BioWrapper() throws SSLException {
             this.bio = NativeCrypto.SSL_BIO_new(ssl, NativeSsl.this);
         }
 
         int getPendingWrittenBytes() {
-            return NativeCrypto.SSL_pending_written_bytes_in_BIO(bio);
+            if (bio != 0) {
+                return NativeCrypto.SSL_pending_written_bytes_in_BIO(bio);
+            } else {
+                return 0;
+            }
         }
 
         int writeDirectByteBuffer(long address, int length) throws IOException {
@@ -632,8 +636,9 @@ final class NativeSsl {
         }
 
         void close() {
-            NativeCrypto.BIO_free_all(bio);
+            long toFree = bio;
             bio = 0L;
+            NativeCrypto.BIO_free_all(toFree);
         }
     }
 }

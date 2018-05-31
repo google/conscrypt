@@ -992,6 +992,20 @@ public class SSLEngineTest {
     }
 
     @Test
+    public void test_SSLEngine_Closed() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create();
+        pair.close();
+        ByteBuffer out = ByteBuffer.allocate(pair.client.getSession().getPacketBufferSize());
+        SSLEngineResult res = pair.client.wrap(ByteBuffer.wrap(new byte[] { 0x01 }), out);
+        assertEquals(Status.CLOSED, res.getStatus());
+        assertEquals(0, res.bytesProduced());
+
+        res = pair.client.unwrap(ByteBuffer.wrap(new byte[] { 0x01} ), out);
+        assertEquals(Status.CLOSED, res.getStatus());
+        assertEquals(0, res.bytesConsumed());
+    }
+
+    @Test
     public void test_SSLEngine_TlsUnique() throws Exception {
         TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
             @Override
