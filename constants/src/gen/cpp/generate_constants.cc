@@ -66,7 +66,6 @@ int main(int /* argc */, char ** /* argv */) {
 
   CONST(SSL_OP_CIPHER_SERVER_PREFERENCE);
   CONST(SSL_OP_NO_TICKET);
-  CONST(SSL_OP_NO_SSLv3);  // Only for testing
 
   CONST(SSL_ERROR_NONE);
   CONST(SSL_ERROR_WANT_READ);

@@ -6887,8 +6887,9 @@ static jint NativeCrypto_SSL_set_protocol_versions(JNIEnv* env, jclass, jlong ss
     int min_result = SSL_set_min_proto_version(ssl, static_cast<uint16_t>(min_version));
     int max_result = SSL_set_max_proto_version(ssl, static_cast<uint16_t>(max_version));
     // Return failure if either call failed.
-    int result = std::min(min_result, max_result);
-    if (result == 0) {
+    int result = 1;
+    if (!min_result || !max_result) {
+        result = 0;
         // The only possible error is an invalid version, so we don't need the details.
         ERR_clear_error();
     }

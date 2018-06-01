@@ -18,7 +18,7 @@ package org.conscrypt;
 
 import static org.conscrypt.NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING;
 import static org.conscrypt.NativeConstants.SSL_MODE_ENABLE_FALSE_START;
-import static org.conscrypt.NativeConstants.SSL_OP_NO_SSLv3;
+import static org.conscrypt.NativeConstants.SSL_OP_CIPHER_SERVER_PREFERENCE;
 import static org.conscrypt.NativeConstants.SSL_OP_NO_TICKET;
 import static org.conscrypt.NativeConstants.SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
 import static org.conscrypt.NativeConstants.SSL_VERIFY_NONE;
@@ -533,9 +533,9 @@ public class NativeCryptoTest {
     public void test_SSL_set_options() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) == 0);
-        NativeCrypto.SSL_set_options(s, null, SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) != 0);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_CIPHER_SERVER_PREFERENCE) == 0);
+        NativeCrypto.SSL_set_options(s, null, SSL_OP_CIPHER_SERVER_PREFERENCE);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_CIPHER_SERVER_PREFERENCE) != 0);
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
     }
@@ -549,11 +549,11 @@ public class NativeCryptoTest {
     public void test_SSL_clear_options() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) == 0);
-        NativeCrypto.SSL_set_options(s, null, SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) != 0);
-        NativeCrypto.SSL_clear_options(s, null, SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) == 0);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_CIPHER_SERVER_PREFERENCE) == 0);
+        NativeCrypto.SSL_set_options(s, null, SSL_OP_CIPHER_SERVER_PREFERENCE);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_CIPHER_SERVER_PREFERENCE) != 0);
+        NativeCrypto.SSL_clear_options(s, null, SSL_OP_CIPHER_SERVER_PREFERENCE);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_CIPHER_SERVER_PREFERENCE) == 0);
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
     }

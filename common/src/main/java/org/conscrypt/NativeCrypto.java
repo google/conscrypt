@@ -942,6 +942,11 @@ public final class NativeCrypto {
 
     static void setEnabledProtocols(long ssl, NativeSsl ssl_holder, String[] protocols) {
         checkEnabledProtocols(protocols);
+        // TLS protocol negotiation only allows a min and max version
+        // to be set, despite the Java API allowing a sparse set of
+        // protocols to be enabled.  Use the lowest contiguous range
+        // of protocols provided by the caller, which is what we've
+        // done historically.
         List<String> protocolsList = Arrays.asList(protocols);
         String min = null;
         String max = null;
