@@ -6475,14 +6475,14 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_options(
             sslCtx.get(),
             SSL_OP_ALL
-                    // Note: We explicitly do not allow SSLv2 to be used.
-                    | SSL_OP_NO_SSLv2
                     // We also disable session tickets for better compatibility b/2682876
                     | SSL_OP_NO_TICKET
                     // We also disable compression for better compatibility b/2710492 b/2710497
                     | SSL_OP_NO_COMPRESSION
                     // Generate a fresh ECDH keypair for each key exchange.
                     | SSL_OP_SINGLE_ECDH_USE);
+    SSL_CTX_set_min_proto_version(sslCtx.get(), TLS1_VERSION);
+    SSL_CTX_set_max_proto_version(sslCtx.get(), TLS1_2_VERSION);
 
     uint32_t mode = SSL_CTX_get_mode(sslCtx.get());
     /*
@@ -6874,6 +6874,26 @@ static jlong NativeCrypto_SSL_clear_options(JNIEnv* env, jclass, jlong ssl_addre
     jlong result = static_cast<jlong>(SSL_clear_options(ssl, static_cast<uint32_t>(options)));
     // NOLINTNEXTLINE(runtime/int)
     JNI_TRACE("ssl=%p NativeCrypto_SSL_clear_options => 0x%lx", ssl, (long)result);
+    return result;
+}
+
+static jint NativeCrypto_SSL_set_protocol_versions(JNIEnv* env, jclass, jlong ssl_address, CONSCRYPT_UNUSED jobject ssl_holder, jint min_version, jint max_version) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_protocol_versions min=0x%x max=0x%x", ssl, min_version, max_version);
+    if (ssl == nullptr) {
+        return 0;
+    }
+    int min_result = SSL_set_min_proto_version(ssl, static_cast<uint16_t>(min_version));
+    int max_result = SSL_set_max_proto_version(ssl, static_cast<uint16_t>(max_version));
+    // Return failure if either call failed.
+    int result = 1;
+    if (!min_result || !max_result) {
+        result = 0;
+        // The only possible error is an invalid version, so we don't need the details.
+        ERR_clear_error();
+    }
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_protocol_versions => (min: %d, max: %d) == %d", ssl, min_result, max_result, result);
     return result;
 }
 
@@ -10128,6 +10148,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_set_mode, "(J" REF_SSL "J)J"),
         CONSCRYPT_NATIVE_METHOD(SSL_set_options, "(J" REF_SSL "J)J"),
         CONSCRYPT_NATIVE_METHOD(SSL_clear_options, "(J" REF_SSL "J)J"),
+        CONSCRYPT_NATIVE_METHOD(SSL_set_protocol_versions, "(J" REF_SSL "II)I"),
         CONSCRYPT_NATIVE_METHOD(SSL_enable_signed_cert_timestamps, "(J" REF_SSL ")V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_signed_cert_timestamp_list, "(J" REF_SSL ")[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_set_signed_cert_timestamp_list, "(J" REF_SSL "[B)V"),
