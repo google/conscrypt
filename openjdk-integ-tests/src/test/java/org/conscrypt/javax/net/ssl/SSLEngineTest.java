@@ -102,12 +102,33 @@ public class SSLEngineTest {
     @Test
     public void test_SSLEngine_underflowsOnEmptyBuffersAfterHandshake() throws Exception {
         // Note that create performs the handshake.
-        final TestSSLEnginePair engines = TestSSLEnginePair.create(null /* hooks */);
+        final TestSSLEnginePair engines = TestSSLEnginePair.create();
         ByteBuffer input = ByteBuffer.allocate(1024);
         input.flip();
         ByteBuffer output = ByteBuffer.allocate(1024);
         assertEquals(SSLEngineResult.Status.BUFFER_UNDERFLOW,
                 engines.client.unwrap(input, output).getStatus());
+    }
+
+    @Test
+    public void test_SSLEngine_wrap_overflowOnEmptyOutputBuffer() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create();
+        ByteBuffer input = ByteBuffer.allocate(10);
+        ByteBuffer output = ByteBuffer.allocate(1024);
+        output.flip();
+        assertEquals(Status.BUFFER_OVERFLOW, pair.client.wrap(input, output).getStatus());
+    }
+
+    @Test
+    public void test_SSLEngine_unwrap_overflowOnEmptyOutputBuffer() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create();
+        ByteBuffer input = ByteBuffer.allocate(10);
+        ByteBuffer wrapped = ByteBuffer.allocate(1024);
+        assertEquals(Status.OK, pair.client.wrap(input, wrapped).getStatus());
+        wrapped.flip();
+        ByteBuffer output = ByteBuffer.allocate(1024);
+        output.flip();
+        assertEquals(Status.BUFFER_OVERFLOW, pair.server.unwrap(wrapped, output).getStatus());
     }
 
     private void test_SSLEngine_getSupportedCipherSuites_connect(
@@ -968,6 +989,20 @@ public class SSLEngineTest {
         } finally {
             pair.close();
         }
+    }
+
+    @Test
+    public void test_SSLEngine_Closed() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create();
+        pair.close();
+        ByteBuffer out = ByteBuffer.allocate(pair.client.getSession().getPacketBufferSize());
+        SSLEngineResult res = pair.client.wrap(ByteBuffer.wrap(new byte[] { 0x01 }), out);
+        assertEquals(Status.CLOSED, res.getStatus());
+        assertEquals(0, res.bytesProduced());
+
+        res = pair.client.unwrap(ByteBuffer.wrap(new byte[] { 0x01} ), out);
+        assertEquals(Status.CLOSED, res.getStatus());
+        assertEquals(0, res.bytesConsumed());
     }
 
     @Test

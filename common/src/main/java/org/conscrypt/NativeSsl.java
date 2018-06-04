@@ -38,6 +38,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
@@ -57,6 +59,7 @@ final class NativeSsl {
     private final AliasChooser aliasChooser;
     private final PSKCallbacks pskCallbacks;
     private X509Certificate[] localCertificates;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private volatile long ssl;
 
     private NativeSsl(long ssl, SSLParametersImpl parameters,
@@ -381,32 +384,54 @@ final class NativeSsl {
     // TODO(nathanmittler): Remove once after we switch to the engine socket.
     void doHandshake(FileDescriptor fd, int timeoutMillis)
             throws CertificateException, IOException {
-        if (isClosed() || fd == null || !fd.valid()) {
-            throw new SocketException("Socket is closed");
+        lock.readLock().lock();
+        try {
+            if (isClosed() || fd == null || !fd.valid()) {
+                throw new SocketException("Socket is closed");
+            }
+            NativeCrypto.SSL_do_handshake(ssl, this, fd, handshakeCallbacks, timeoutMillis);
+        } finally {
+            lock.readLock().unlock();
         }
-        NativeCrypto.SSL_do_handshake(ssl, this, fd, handshakeCallbacks, timeoutMillis);
     }
 
     int doHandshake() throws IOException {
-        return NativeCrypto.ENGINE_SSL_do_handshake(ssl, this, handshakeCallbacks);
+        lock.readLock().lock();
+        try {
+            return NativeCrypto.ENGINE_SSL_do_handshake(ssl, this, handshakeCallbacks);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     // TODO(nathanmittler): Remove once after we switch to the engine socket.
     int read(FileDescriptor fd, byte[] buf, int offset, int len, int timeoutMillis)
             throws IOException {
-        if (isClosed() || fd == null || !fd.valid()) {
-            throw new SocketException("Socket is closed");
+        lock.readLock().lock();
+        try {
+            if (isClosed() || fd == null || !fd.valid()) {
+                throw new SocketException("Socket is closed");
+            }
+            return NativeCrypto
+                    .SSL_read(ssl, this, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
+        } finally {
+            lock.readLock().unlock();
         }
-        return NativeCrypto.SSL_read(ssl, this, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
     }
 
     // TODO(nathanmittler): Remove once after we switch to the engine socket.
     void write(FileDescriptor fd, byte[] buf, int offset, int len, int timeoutMillis)
             throws IOException {
-        if (isClosed() || fd == null || !fd.valid()) {
-            throw new SocketException("Socket is closed");
+        lock.readLock().lock();
+        try {
+            if (isClosed() || fd == null || !fd.valid()) {
+                throw new SocketException("Socket is closed");
+            }
+            NativeCrypto
+                    .SSL_write(ssl, this, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
+        } finally {
+            lock.readLock().unlock();
         }
-        NativeCrypto.SSL_write(ssl, this, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
     }
 
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
@@ -508,13 +533,32 @@ final class NativeSsl {
 
     int readDirectByteBuffer(long destAddress, int destLength)
             throws IOException, CertificateException {
-        return NativeCrypto.ENGINE_SSL_read_direct(
-                ssl, this, destAddress, destLength, handshakeCallbacks);
+        lock.readLock().lock();
+        try {
+            return NativeCrypto.ENGINE_SSL_read_direct(
+                    ssl, this, destAddress, destLength, handshakeCallbacks);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     int writeDirectByteBuffer(long sourceAddress, int sourceLength) throws IOException {
-        return NativeCrypto.ENGINE_SSL_write_direct(
-                ssl, this, sourceAddress, sourceLength, handshakeCallbacks);
+        lock.readLock().lock();
+        try {
+            return NativeCrypto.ENGINE_SSL_write_direct(
+                    ssl, this, sourceAddress, sourceLength, handshakeCallbacks);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    void forceRead() throws IOException {
+        lock.readLock().lock();
+        try {
+            NativeCrypto.ENGINE_SSL_force_read(ssl, this, handshakeCallbacks);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     int getPendingReadableBytes() {
@@ -526,8 +570,16 @@ final class NativeSsl {
     }
 
     void close() {
-        NativeCrypto.SSL_free(ssl, this);
-        ssl = 0L;
+        lock.writeLock().lock();
+        try {
+            if (!isClosed()) {
+                long toFree = ssl;
+                ssl = 0L;
+                NativeCrypto.SSL_free(toFree, this);
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     boolean isClosed() {
@@ -549,9 +601,7 @@ final class NativeSsl {
     @Override
     protected final void finalize() throws Throwable {
         try {
-            if (!isClosed()) {
-                close();
-            }
+            close();
         } finally {
             super.finalize();
         }
@@ -561,14 +611,18 @@ final class NativeSsl {
      * A utility wrapper that abstracts operations on the underlying native BIO instance.
      */
     final class BioWrapper {
-        private long bio;
+        private volatile long bio;
 
         private BioWrapper() throws SSLException {
             this.bio = NativeCrypto.SSL_BIO_new(ssl, NativeSsl.this);
         }
 
         int getPendingWrittenBytes() {
-            return NativeCrypto.SSL_pending_written_bytes_in_BIO(bio);
+            if (bio != 0) {
+                return NativeCrypto.SSL_pending_written_bytes_in_BIO(bio);
+            } else {
+                return 0;
+            }
         }
 
         int writeDirectByteBuffer(long address, int length) throws IOException {
@@ -582,8 +636,9 @@ final class NativeSsl {
         }
 
         void close() {
-            NativeCrypto.BIO_free_all(bio);
+            long toFree = bio;
             bio = 0L;
+            NativeCrypto.BIO_free_all(toFree);
         }
     }
 }

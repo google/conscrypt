@@ -18,13 +18,14 @@ package org.conscrypt;
 
 import static org.conscrypt.NativeConstants.SSL_MODE_CBC_RECORD_SPLITTING;
 import static org.conscrypt.NativeConstants.SSL_MODE_ENABLE_FALSE_START;
-import static org.conscrypt.NativeConstants.SSL_OP_NO_SSLv3;
-import static org.conscrypt.NativeConstants.SSL_OP_NO_TLSv1;
-import static org.conscrypt.NativeConstants.SSL_OP_NO_TLSv1_1;
-import static org.conscrypt.NativeConstants.SSL_OP_NO_TLSv1_2;
+import static org.conscrypt.NativeConstants.SSL_OP_CIPHER_SERVER_PREFERENCE;
+import static org.conscrypt.NativeConstants.SSL_OP_NO_TICKET;
 import static org.conscrypt.NativeConstants.SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
 import static org.conscrypt.NativeConstants.SSL_VERIFY_NONE;
 import static org.conscrypt.NativeConstants.SSL_VERIFY_PEER;
+import static org.conscrypt.NativeConstants.TLS1_1_VERSION;
+import static org.conscrypt.NativeConstants.TLS1_2_VERSION;
+import static org.conscrypt.NativeConstants.TLS1_VERSION;
 import static org.conscrypt.TestUtils.openTestFile;
 import static org.conscrypt.TestUtils.readTestFile;
 import static org.junit.Assert.assertEquals;
@@ -383,10 +384,7 @@ public class NativeCryptoTest {
         long s = NativeCrypto.SSL_new(c, null);
 
         assertTrue(s != NULL);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) == 0);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_TLSv1) == 0);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_TLSv1_1) == 0);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_TLSv1_2) == 0);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_TICKET) != 0);
 
         long s2 = NativeCrypto.SSL_new(c, null);
         assertTrue(s != s2);
@@ -535,9 +533,9 @@ public class NativeCryptoTest {
     public void test_SSL_set_options() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) == 0);
-        NativeCrypto.SSL_set_options(s, null, SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) != 0);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_CIPHER_SERVER_PREFERENCE) == 0);
+        NativeCrypto.SSL_set_options(s, null, SSL_OP_CIPHER_SERVER_PREFERENCE);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_CIPHER_SERVER_PREFERENCE) != 0);
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
     }
@@ -551,11 +549,28 @@ public class NativeCryptoTest {
     public void test_SSL_clear_options() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) == 0);
-        NativeCrypto.SSL_set_options(s, null, SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) != 0);
-        NativeCrypto.SSL_clear_options(s, null, SSL_OP_NO_SSLv3);
-        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_NO_SSLv3) == 0);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_CIPHER_SERVER_PREFERENCE) == 0);
+        NativeCrypto.SSL_set_options(s, null, SSL_OP_CIPHER_SERVER_PREFERENCE);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_CIPHER_SERVER_PREFERENCE) != 0);
+        NativeCrypto.SSL_clear_options(s, null, SSL_OP_CIPHER_SERVER_PREFERENCE);
+        assertTrue((NativeCrypto.SSL_get_options(s, null) & SSL_OP_CIPHER_SERVER_PREFERENCE) == 0);
+        NativeCrypto.SSL_free(s, null);
+        NativeCrypto.SSL_CTX_free(c, null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void SSL_set_protocol_versions_withNullShouldThrow() throws Exception {
+        NativeCrypto.SSL_set_protocol_versions(NULL, null, 0, 0);
+    }
+
+    @Test
+    public void SSL_set_protocol_versions() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c, null);
+        assertEquals(1, NativeCrypto.SSL_set_protocol_versions(s, null, TLS1_VERSION, TLS1_1_VERSION));
+        assertEquals(1, NativeCrypto.SSL_set_protocol_versions(s, null, TLS1_2_VERSION, TLS1_2_VERSION));
+        assertEquals(0, NativeCrypto.SSL_set_protocol_versions(s, null, TLS1_2_VERSION + 413, TLS1_1_VERSION));
+        assertEquals(0, NativeCrypto.SSL_set_protocol_versions(s, null, TLS1_1_VERSION, TLS1_2_VERSION + 413));
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
     }
@@ -990,8 +1005,8 @@ public class NativeCryptoTest {
                         if (DEBUG) {
                             System.out.println("ssl=0x" + Long.toString(s, 16) + " handshake"
                                     + " context=0x" + Long.toString(c, 16) + " socket=" + socket
-                                    + " fd=" + fd + " timeout=" + timeout + " client="
-                                    + client);
+                                    + " fd=0x" + Long.toString(System.identityHashCode(fd), 16)
+                                    + " timeout=" + timeout + " client=" + client);
                         }
                         long session = NULL;
                         try {

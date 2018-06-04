@@ -18,6 +18,24 @@ package org.conscrypt;
 
 import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 
+import org.conscrypt.java.security.AlgorithmParameterGeneratorTestDH;
+import org.conscrypt.java.security.AlgorithmParameterGeneratorTestDSA;
+import org.conscrypt.java.security.AlgorithmParametersPSSTest;
+import org.conscrypt.java.security.AlgorithmParametersTestAES;
+import org.conscrypt.java.security.AlgorithmParametersTestDES;
+import org.conscrypt.java.security.AlgorithmParametersTestDESede;
+import org.conscrypt.java.security.AlgorithmParametersTestDH;
+import org.conscrypt.java.security.AlgorithmParametersTestDSA;
+import org.conscrypt.java.security.KeyFactoryTestDH;
+import org.conscrypt.java.security.KeyFactoryTestDSA;
+import org.conscrypt.java.security.KeyFactoryTestRSA;
+import org.conscrypt.java.security.KeyPairGeneratorTest;
+import org.conscrypt.java.security.KeyPairGeneratorTestDH;
+import org.conscrypt.java.security.KeyPairGeneratorTestDSA;
+import org.conscrypt.java.security.KeyPairGeneratorTestRSA;
+import org.conscrypt.java.security.MessageDigestTest;
+import org.conscrypt.java.security.SignatureTest;
+import org.conscrypt.java.security.cert.CertificateFactoryTest;
 import org.conscrypt.javax.crypto.CipherBasicsTest;
 import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
 import org.conscrypt.javax.crypto.KeyGeneratorTest;
@@ -42,8 +60,31 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        // java.security tests
+        CertificateFactoryTest.class,
+        AlgorithmParameterGeneratorTestDH.class,
+        AlgorithmParameterGeneratorTestDSA.class,
+        AlgorithmParametersPSSTest.class,
+        AlgorithmParametersTestAES.class,
+        AlgorithmParametersTestDES.class,
+        AlgorithmParametersTestDESede.class,
+        AlgorithmParametersTestDH.class,
+        AlgorithmParametersTestDSA.class,
+        // AlgorithmParametersTestGCM.class,  // No GCM in Java 6
+        // AlgorithmParametersTestOAEP.class,  // OpenJDK 6 has weird crypto provider loading that
+                                               // doesn't work with this test
+        KeyFactoryTestDH.class,
+        KeyFactoryTestDSA.class,
+        KeyFactoryTestRSA.class,
+        KeyPairGeneratorTest.class,
+        KeyPairGeneratorTestDH.class,
+        KeyPairGeneratorTestDSA.class,
+        KeyPairGeneratorTestRSA.class,
+        MessageDigestTest.class,
+        SignatureTest.class,
         // javax.crypto tests
         CipherBasicsTest.class,
+        // CipherTest.class,  // CipherTest uses GCM too heavily, which isn't available in Java 6
         ECDHKeyAgreementTest.class,
         KeyGeneratorTest.class,
         // javax.net.ssl tests

@@ -31,8 +31,10 @@ import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
+import java.security.Signature;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -89,15 +91,19 @@ public final class TestUtils {
         return JDK_PROVIDER;
     }
 
-    private static void assumeClassAvailable(String classname) {
-        boolean available = false;
+    private static boolean isClassAvailable(String classname) {
         try {
             Class.forName(classname);
-            available = true;
+            return true;
         } catch (ClassNotFoundException ignore) {
             // Ignored
         }
-        Assume.assumeTrue("Skipping test: " + classname + " unavailable", available);
+        return false;
+    }
+
+    private static void assumeClassAvailable(String classname) {
+        Assume.assumeTrue("Skipping test: " + classname + " unavailable",
+                isClassAvailable(classname));
     }
 
     public static void assumeSNIHostnameAvailable() {
@@ -138,6 +144,17 @@ public final class TestUtils {
         // The Oracle JRE disallows loading crypto providers from unsigned jars
         Assume.assumeTrue(isAndroid()
                 || !System.getProperty("java.vm.name").contains("HotSpot"));
+    }
+
+    public static void assumeSHA2WithDSAAvailable() {
+        boolean available;
+        try {
+            Signature.getInstance("SHA256withDSA");
+            available = true;
+        } catch (NoSuchAlgorithmException e) {
+            available = false;
+        }
+        Assume.assumeTrue("SHA2 with DSA signatures not available", available);
     }
 
     public static InetAddress getLoopbackAddress() {
@@ -545,5 +562,75 @@ public final class TestUtils {
 
         throw new IllegalArgumentException("Illegal char: " + str[offset] +
                 " at offset " + offset);
+    }
+
+    private static final String BASE64_ALPHABET =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    public static String encodeBase64(byte[] data) {
+        // Base64 was introduced in Java 8, so if it's not available we can use a hacky
+        // solution that works in previous versions
+        if (isClassAvailable("java.util.Base64")) {
+            return Base64.getEncoder().encodeToString(data);
+        } else {
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < data.length; i += 3) {
+                int padding = (i + 2 < data.length) ? 0 : (i + 3 - data.length);
+                byte b1 = data[i];
+                byte b2 = padding >= 2 ? 0 : data[i+1];
+                byte b3 = padding >= 1 ? 0 : data[i+2];
+
+                char c1 = BASE64_ALPHABET.charAt((b1 & 0xFF) >>> 2);
+                char c2 = BASE64_ALPHABET.charAt(((b1 & 0x03) << 4) | ((b2 & 0xFF) >>> 4));
+                char c3 = BASE64_ALPHABET.charAt(((b2 & 0x0F) << 2) | ((b3 & 0xFF) >>> 6));
+                char c4 = BASE64_ALPHABET.charAt(b3 & 0x3F);
+
+                if (padding >= 1) {
+                    c4 = '=';
+                }
+                if (padding >= 2) {
+                    c3 = '=';
+                }
+                builder.append(c1).append(c2).append(c3).append(c4);
+            }
+            return builder.toString();
+        }
+    }
+
+    public static byte[] decodeBase64(String data) {
+        // Base64 was introduced in Java 8, so if it's not available we can use a hacky
+        // solution that works in previous versions
+        if (isClassAvailable("java.util.Base64")) {
+            return Base64.getDecoder().decode(data);
+        } else {
+            while (data.endsWith("=")) {
+                data = data.substring(0, data.length() - 1);
+            }
+            int padding = (data.length() % 4 == 0) ? 0 : 4 - (data.length() % 4);
+            byte[] output = new byte[((data.length() - 1) / 4) * 3 + 3 - padding];
+            int outputindex = 0;
+            for (int i = 0; i < data.length(); i += 4) {
+                char c1 = data.charAt(i);
+                char c2 = data.charAt(i+1);
+                char c3 = (i+2 < data.length()) ? data.charAt(i+2) : 'A';
+                char c4 = (i+3 < data.length()) ? data.charAt(i+3) : 'A';
+
+                byte b1 = (byte)
+                        (BASE64_ALPHABET.indexOf(c1) << 2 | BASE64_ALPHABET.indexOf(c2) >>> 4);
+                byte b2 = (byte)
+                        ((BASE64_ALPHABET.indexOf(c2) & 0x0F) << 4 | BASE64_ALPHABET.indexOf(c3) >>> 2);
+                byte b3 = (byte)
+                        ((BASE64_ALPHABET.indexOf(c3) & 0x03) << 6 | BASE64_ALPHABET.indexOf(c4));
+
+                output[outputindex++] = b1;
+                if (outputindex < output.length) {
+                    output[outputindex++] = b2;
+                }
+                if (outputindex < output.length) {
+                    output[outputindex++] = b3;
+                }
+            }
+            return output;
+        }
     }
 }
