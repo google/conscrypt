@@ -16,11 +16,20 @@
 
 package org.conscrypt.ct;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
-import junit.framework.TestCase;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-public class SerializationTest extends TestCase {
+@RunWith(JUnit4.class)
+public class SerializationTest {
+
+    @Test
     public void test_decode_SignedCertificateTimestamp() throws Exception {
         byte[] in = new byte[] {
             0x00,                            // version
@@ -49,6 +58,7 @@ public class SerializationTest extends TestCase {
         assertEquals(SignedCertificateTimestamp.Origin.EMBEDDED, sct.getOrigin());
     }
 
+    @Test
     public void test_decode_invalid_SignedCertificateTimestamp() throws Exception {
         byte[] sct = new byte[] {
             0x00,                            // version
@@ -81,6 +91,7 @@ public class SerializationTest extends TestCase {
         } catch (SerializationException e) {}
     }
 
+    @Test
     public void test_decode_DigitallySigned() throws Exception {
         byte[] in = new byte[] {
             0x04, 0x03,            // hash & signature algorithm
@@ -94,6 +105,7 @@ public class SerializationTest extends TestCase {
         assertEqualByteArrays(new byte[] { 0x12, 0x34, 0x56, 0x78}, dst.getSignature());
     }
 
+    @Test
     public void test_decode_invalid_DigitallySigned() throws Exception {
         try {
             DigitallySigned.decode(new byte[] {
@@ -130,6 +142,7 @@ public class SerializationTest extends TestCase {
         } catch (SerializationException e) {}
     }
 
+    @Test
     public void test_encode_CertificateEntry_X509Certificate() throws Exception {
         // Use a dummy certificate. It doesn't matter, CertificateEntry doesn't care about the contents.
         CertificateEntry entry = CertificateEntry.createForX509Certificate(new byte[] { 0x12, 0x34, 0x56, 0x78 });
@@ -143,6 +156,7 @@ public class SerializationTest extends TestCase {
         }, output.toByteArray());
     }
 
+    @Test
     public void test_encode_CertificateEntry_PreCertificate() throws Exception {
         // Use a dummy certificate and issuer key hash. It doesn't matter,
         // CertificateEntry doesn't care about the contents.
@@ -161,6 +175,7 @@ public class SerializationTest extends TestCase {
         }, output.toByteArray());
     }
 
+    @Test
     public void test_readDEROctetString() throws Exception {
         byte[] in, expected;
 

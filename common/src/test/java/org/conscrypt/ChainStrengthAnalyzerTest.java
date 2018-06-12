@@ -16,15 +16,20 @@
 
 package org.conscrypt;
 
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import junit.framework.TestCase;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-public class ChainStrengthAnalyzerTest extends TestCase {
+@RunWith(JUnit4.class)
+public class ChainStrengthAnalyzerTest {
 
     //openssl req -x509 -nodes -days 365 -subj '/C=US/ST=Testsota/L=Testville/CN=test.com' \
     //-newkey rsa:2048 -sha256 -keyout k.pem -out good.pem
@@ -291,36 +296,44 @@ public class ChainStrengthAnalyzerTest extends TestCase {
                             "-----END CERTIFICATE-----";
 
 
+    @Test
     public void testMD2() throws Exception {
         assertBad(MD2_RSA_PEM, "Weak hash check did not fail as expected");
     }
 
+    @Test
     public void testMD4() throws Exception {
         assertBad(MD4_RSA_PEM, "Weak hash check did not fail as expected");
     }
 
+    @Test
     public void testMD5() throws Exception {
         assertBad(MD5_RSA_PEM, "Weak hash check did not fail as expected");
     }
 
+    @Test
     public void testSHA1() throws Exception {
         assertBad(SHA1_RSA_PEM, "Weak SHA1 RSA signature did not fail as expected");
         assertBad(SHA1_ECDSA_PEM, "Weak SHA1 ECDSA signature did not fail as expected");
         assertBad(SHA1_DSA_PEM, "Weak SHA1 DSA signature did not fail as expected");
     }
 
+    @Test
     public void testRsa512() throws Exception {
         assertBad(SHORT_RSA_PEM, "Short RSA modulus check did not fail as expected");
     }
 
+    @Test
     public void testDsa768() throws Exception {
         assertBad(SHORT_DSA_PEM, "Short DSA key check did not fail as expected");
     }
 
+    @Test
     public void testEcdsa128() throws Exception {
         assertBad(SHORT_ECDSA_PEM, "Short EC key check did not fail as expected");
     }
 
+    @Test
     public void testGoodChain() throws Exception {
         assertGood(GOOD_RSA_PEM);
         assertGood(GOOD_DSA_PEM);

@@ -33,6 +33,7 @@
 #       src/jni/
 #            main           # Common C++ source for all platforms.
 #            unbundled      # C++ source used for OpenJDK and unbundled Android.
+#       src/test/java       # Common test files for all platforms.
 #   android/
 #       src/main/java       # Java source for unbundled Android.
 #   openjdk/
@@ -57,6 +58,7 @@ local_javac_flags:=-Xmaxwarns 9999999
 #
 
 bundled_test_java_files := $(call all-java-files-under,platform/src/test/java)
+bundled_test_java_files += $(call all-java-files-under,common/src/test/java)
 bundled_test_java_files += $(filter-out %/ConscryptSuite.java %/ConscryptJava6Suite.java,\
     $(call all-java-files-under,openjdk-integ-tests/src/test/java))
 bundled_test_java_files += $(call all-java-files-under,testing/src/main/java)

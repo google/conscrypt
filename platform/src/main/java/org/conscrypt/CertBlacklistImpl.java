@@ -38,8 +38,8 @@ import java.util.logging.Logger;
  * @hide
  */
 @Internal
-public final class CertBlacklist {
-    private static final Logger logger = Logger.getLogger(CertBlacklist.class.getName());
+public final class CertBlacklistImpl implements CertBlacklist {
+    private static final Logger logger = Logger.getLogger(CertBlacklistImpl.class.getName());
 
     private final Set<BigInteger> serialBlacklist;
     private final Set<byte[]> pubkeyBlacklist;
@@ -47,7 +47,7 @@ public final class CertBlacklist {
     /**
      * public for testing only.
      */
-    public CertBlacklist(Set<BigInteger> serialBlacklist, Set<byte[]> pubkeyBlacklist) {
+    public CertBlacklistImpl(Set<BigInteger> serialBlacklist, Set<byte[]> pubkeyBlacklist) {
         this.serialBlacklist = serialBlacklist;
         this.pubkeyBlacklist = pubkeyBlacklist;
     }
@@ -60,7 +60,7 @@ public final class CertBlacklist {
 
         Set<byte[]> pubkeyBlacklist = readPublicKeyBlackList(defaultPubkeyBlacklistPath);
         Set<BigInteger> serialBlacklist = readSerialBlackList(defaultSerialBlacklistPath);
-        return new CertBlacklist(serialBlacklist, pubkeyBlacklist);
+        return new CertBlacklistImpl(serialBlacklist, pubkeyBlacklist);
     }
 
     private static boolean isHex(String value) {
@@ -223,6 +223,7 @@ public final class CertBlacklist {
         return bl;
     }
 
+    @Override
     public boolean isPublicKeyBlackListed(PublicKey publicKey) {
         byte[] encoded = publicKey.getEncoded();
         MessageDigest md;
@@ -256,6 +257,7 @@ public final class CertBlacklist {
         return out;
     }
 
+    @Override
     public boolean isSerialNumberBlackListed(BigInteger serial) {
         return serialBlacklist.contains(serial);
     }

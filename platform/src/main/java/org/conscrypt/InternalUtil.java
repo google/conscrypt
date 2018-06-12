@@ -43,13 +43,6 @@ public final class InternalUtil {
         return OpenSSLKey.fromPublicKeyPemInputStream(pem).getPublicKey();
     }
 
-    public static byte[] getOcspSingleExtension(
-            byte[] ocspResponse, String oid, OpenSSLX509Certificate x509,
-            OpenSSLX509Certificate issuerX509) {
-        return NativeCrypto.get_ocsp_single_extension(ocspResponse, oid, x509.getContext(), x509,
-                issuerX509.getContext(), issuerX509);
-    }
-
     private InternalUtil() {
     }
 }

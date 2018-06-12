@@ -38,7 +38,7 @@ public class CertBlacklistTest extends TestCase {
      */
     public void testBlacklistedPublicKey() throws Exception {
         X509Certificate blacklistedCa = loadCertificate(BLACKLIST_CA);
-        CertBlacklist blacklist = CertBlacklist.getDefault();
+        CertBlacklist blacklist = CertBlacklistImpl.getDefault();
         assertTrue(blacklist.isPublicKeyBlackListed(blacklistedCa.getPublicKey()));
     }
 

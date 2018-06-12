@@ -26,8 +26,8 @@ import org.conscrypt.Internal;
  */
 @Internal
 public class CTVerificationResult {
-    private final ArrayList<VerifiedSCT> validSCTs = new ArrayList<>();
-    private final ArrayList<VerifiedSCT> invalidSCTs = new ArrayList<>();
+    private final ArrayList<VerifiedSCT> validSCTs = new ArrayList<VerifiedSCT>();
+    private final ArrayList<VerifiedSCT> invalidSCTs = new ArrayList<VerifiedSCT>();
 
     public void add(VerifiedSCT result) {
         if (result.status == VerifiedSCT.Status.VALID) {
