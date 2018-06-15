@@ -71,7 +71,7 @@ public class Serialization {
      */
     public static byte[][] readList(InputStream input, int listWidth, int elemWidth)
             throws SerializationException {
-        ArrayList<byte[]> result = new ArrayList();
+        ArrayList<byte[]> result = new ArrayList<byte[]>();
         byte[] data = readVariableBytes(input, listWidth);
         input = new ByteArrayInputStream(data);
         try {

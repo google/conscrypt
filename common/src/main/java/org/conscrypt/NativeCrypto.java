@@ -1226,7 +1226,7 @@ public final class NativeCrypto {
 
     static native String[] get_cipher_names(String selection);
 
-    static native byte[] get_ocsp_single_extension(
+    public static native byte[] get_ocsp_single_extension(
             byte[] ocspResponse, String oid, long x509Ref, OpenSSLX509Certificate holder, long issuerX509Ref, OpenSSLX509Certificate holder2);
 
     /**

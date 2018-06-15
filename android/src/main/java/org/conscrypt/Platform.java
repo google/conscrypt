@@ -52,6 +52,8 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509TrustManager;
+import org.conscrypt.ct.CTLogStore;
+import org.conscrypt.ct.CTPolicy;
 
 /**
  * Platform-specific methods for unbundled Android.
@@ -952,5 +954,25 @@ final class Platform {
             enable = Boolean.valueOf(property);
         }
         return enable;
+    }
+
+    static boolean supportsConscryptCertStore() {
+        return false;
+    }
+
+    static ConscryptCertStore newDefaultCertStore() {
+        return null;
+    }
+
+    static CertBlacklist newDefaultBlacklist() {
+        return null;
+    }
+
+    static CTLogStore newDefaultLogStore() {
+        return null;
+    }
+
+    static CTPolicy newDefaultPolicy(CTLogStore logStore) {
+        return null;
     }
 }

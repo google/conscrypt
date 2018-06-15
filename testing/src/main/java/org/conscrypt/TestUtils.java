@@ -28,10 +28,14 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
+import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -108,6 +112,10 @@ public final class TestUtils {
 
     public static void assumeSNIHostnameAvailable() {
         assumeClassAvailable("javax.net.ssl.SNIHostName");
+    }
+
+    public static void assumeExtendedTrustManagerAvailable() {
+        assumeClassAvailable("javax.net.ssl.X509ExtendedTrustManager");
     }
 
     public static void assumeSetEndpointIdentificationAlgorithmAvailable() {
@@ -197,6 +205,16 @@ public final class TestUtils {
 
     public static byte[] readTestFile(String name) throws IOException {
         return Streams.readFully(openTestFile(name));
+    }
+
+    public static PublicKey readPublicKeyPemFile(String name)
+            throws InvalidKeySpecException, NoSuchAlgorithmException, IOException {
+        String keyData = new String(readTestFile(name), "US-ASCII");
+        keyData = keyData.replace("-----BEGIN PUBLIC KEY-----", "");
+        keyData = keyData.replace("-----END PUBLIC KEY-----", "");
+        keyData = keyData.replace("\n", "");
+        return KeyFactory.getInstance("EC").generatePublic(
+                new X509EncodedKeySpec(decodeBase64(keyData)));
     }
 
     /**

@@ -16,21 +16,28 @@
 
 package org.conscrypt;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
-import junit.framework.TestCase;
 import org.conscrypt.java.security.TestKeyStore;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-public class CertPinManagerTest extends TestCase {
+@RunWith(JUnit4.class)
+public class CertPinManagerTest {
     private List<X509Certificate> expectedFullChain;
     private X509Certificate[] chain;
 
-    @Override
-    public void setUp() throws Exception {
-        super.setUp();
+    @Before
+    public void setUp() {
         KeyStore.PrivateKeyEntry pke = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
         X509Certificate[] certs = (X509Certificate[]) pke.getCertificateChain();
         expectedFullChain = Arrays.asList(certs);
@@ -40,12 +47,12 @@ public class CertPinManagerTest extends TestCase {
         chain[1] = certs[1];
     }
 
+    @Test
     public void testCertPinManagerCalled() throws Exception {
         class TestCertPinManager implements CertPinManager {
             public boolean called = false;
             @Override
-            public void checkChainPinning(String hostname, List<X509Certificate> chain)
-                    throws CertificateException {
+            public void checkChainPinning(String hostname, List<X509Certificate> chain) {
                 called = true;
             }
         }
@@ -54,10 +61,12 @@ public class CertPinManagerTest extends TestCase {
         assertTrue(manager.called);
     }
 
+    @Test
     public void testNullPinManager() throws Exception {
         callCheckServerTrusted(null, null);
     }
 
+    @Test
     public void testFailure() throws Exception {
         CertPinManager manager = new CertPinManager() {
             @Override
@@ -74,13 +83,13 @@ public class CertPinManagerTest extends TestCase {
         }
     }
 
+    @Test
     public void testHostnameProvided() throws Exception {
         final String expectedHostname = "example.com";
         class TestCertPinManager implements CertPinManager {
             public boolean hostnameMatched = false;
             @Override
-            public void checkChainPinning(String hostname, List<X509Certificate> chain)
-                    throws CertificateException {
+            public void checkChainPinning(String hostname, List<X509Certificate> chain) {
                 hostnameMatched = expectedHostname.equals(hostname);
             }
         }
@@ -89,6 +98,7 @@ public class CertPinManagerTest extends TestCase {
         assertTrue(manager.hostnameMatched);
     }
 
+    @Test
     public void testFullChainProvided() throws Exception {
         class TestCertPinManager implements CertPinManager {
             public boolean fullChainProvided = false;
@@ -105,6 +115,7 @@ public class CertPinManagerTest extends TestCase {
 
     private void callCheckServerTrusted(String hostname, CertPinManager manager)
             throws CertificateException {
+        TestUtils.assumeExtendedTrustManagerAvailable();
         TrustManagerImpl tm = new TrustManagerImpl(TestKeyStore.getClient().keyStore, manager);
         tm.checkServerTrusted(chain, "RSA", hostname);
     }

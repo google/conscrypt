@@ -60,6 +60,9 @@ sourceSets {
     }
 
     test {
+        java {
+            srcDirs += "${rootDir}/common/src/test/java"
+        }
         resources {
             // This shouldn't be needed but seems to help IntelliJ locate the native artifact.
             srcDirs += preferredNativeFileDir

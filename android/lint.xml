@@ -7,6 +7,8 @@
         <ignore path="**/org/conscrypt/Java8EngineWrapper.java" />
         <ignore path="**/org/conscrypt/Java8EngineSocket.java" />
         <ignore path="**/org/conscrypt/Java8FileDescriptorSocket.java" />
+        <!-- We don't provide the trust manager in the Android build -->
+        <ignore path="**/org/conscrypt/TrustManagerImpl.java" />
     </issue>
 
     <!-- Android SparseArrays can't be used in common directory. -->
