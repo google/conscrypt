@@ -21,8 +21,7 @@ import static android.system.OsConstants.SO_SNDTIMEO;
 
 import android.system.ErrnoException;
 import android.system.StructTimeval;
-import dalvik.system.BlockGuard;
-import dalvik.system.CloseGuard;
+
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -36,7 +35,6 @@ import java.net.SocketImpl;
 import java.security.AlgorithmParameters;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.cert.CertStore;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
@@ -60,6 +58,8 @@ import org.conscrypt.ct.CTLogStore;
 import org.conscrypt.ct.CTLogStoreImpl;
 import org.conscrypt.ct.CTPolicy;
 import org.conscrypt.ct.CTPolicyImpl;
+import dalvik.system.BlockGuard;
+import dalvik.system.CloseGuard;
 import sun.security.x509.AlgorithmId;
 
 final class Platform {

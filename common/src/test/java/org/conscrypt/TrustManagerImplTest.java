@@ -45,6 +45,7 @@ public class TrustManagerImplTest {
      */
     @Test
     public void testLearnIntermediate() throws Exception {
+        TestUtils.assumeExtendedTrustManagerAvailable();
         // chain3 should be server/intermediate/root
         KeyStore.PrivateKeyEntry pke = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
         X509Certificate[] chain3 = (X509Certificate[])pke.getCertificateChain();
@@ -79,6 +80,7 @@ public class TrustManagerImplTest {
     // See https://code.google.com/p/android/issues/detail?id=52295 http://b/8313312
     @Test
     public void testDuplicateInChain() throws Exception {
+        TestUtils.assumeExtendedTrustManagerAvailable();
         // chain3 should be server/intermediate/root
         KeyStore.PrivateKeyEntry pke = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
         X509Certificate[] chain3 = (X509Certificate[])pke.getCertificateChain();
@@ -94,6 +96,7 @@ public class TrustManagerImplTest {
 
     @Test
     public void testGetFullChain() throws Exception {
+        TestUtils.assumeExtendedTrustManagerAvailable();
         // build the trust manager
         KeyStore.PrivateKeyEntry pke = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
         X509Certificate[] chain3 = (X509Certificate[])pke.getCertificateChain();

@@ -114,6 +114,10 @@ public final class TestUtils {
         assumeClassAvailable("javax.net.ssl.SNIHostName");
     }
 
+    public static void assumeExtendedTrustManagerAvailable() {
+        assumeClassAvailable("javax.net.ssl.X509ExtendedTrustManager");
+    }
+
     public static void assumeSetEndpointIdentificationAlgorithmAvailable() {
         boolean supported = false;
         try {

@@ -115,6 +115,7 @@ public class CertPinManagerTest {
 
     private void callCheckServerTrusted(String hostname, CertPinManager manager)
             throws CertificateException {
+        TestUtils.assumeExtendedTrustManagerAvailable();
         TrustManagerImpl tm = new TrustManagerImpl(TestKeyStore.getClient().keyStore, manager);
         tm.checkServerTrusted(chain, "RSA", hostname);
     }

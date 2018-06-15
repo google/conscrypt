@@ -9,7 +9,7 @@ import java.util.Set;
  * Android platform.
  */
 @Internal
-interface ConscryptCertStore {
+public interface ConscryptCertStore {
 
     /**
      * Returns a stored CA certificate with the same name and public key as the
