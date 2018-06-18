@@ -34,6 +34,9 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
 import java.security.AlgorithmParameters;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
@@ -958,6 +961,20 @@ final class Platform {
 
     static boolean supportsConscryptCertStore() {
         return false;
+    }
+
+    static KeyStore getDefaultCertKeyStore() throws KeyStoreException {
+        KeyStore keyStore = KeyStore.getInstance("AndroidCAStore");
+        try {
+            keyStore.load(null, null);
+        } catch (IOException e) {
+            throw new KeyStoreException(e);
+        } catch (CertificateException e) {
+            throw new KeyStoreException(e);
+        } catch (NoSuchAlgorithmException e) {
+            throw new KeyStoreException(e);
+        }
+        return keyStore;
     }
 
     static ConscryptCertStore newDefaultCertStore() {

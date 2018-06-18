@@ -34,12 +34,9 @@
 
 package org.conscrypt;
 
-import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactorySpi;
@@ -64,16 +61,7 @@ public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {
         if (ks != null) {
             keyStore = ks;
         } else {
-            keyStore = KeyStore.getInstance("AndroidCAStore");
-            try {
-                keyStore.load(null, null);
-            } catch (IOException e) {
-                throw new KeyStoreException(e);
-            } catch (CertificateException e) {
-                throw new KeyStoreException(e);
-            } catch (NoSuchAlgorithmException e) {
-                throw new KeyStoreException(e);
-            }
+            keyStore = Platform.getDefaultCertKeyStore();
         }
     }
 
