@@ -46,9 +46,12 @@ import java.net.SocketImpl;
 import java.nio.channels.SocketChannel;
 import java.security.AccessController;
 import java.security.AlgorithmParameters;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PrivilegedAction;
+import java.security.Provider;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -64,6 +67,8 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import org.conscrypt.ct.CTLogStore;
 import org.conscrypt.ct.CTPolicy;
@@ -629,6 +634,57 @@ final class Platform {
 
     static boolean supportsConscryptCertStore() {
         return false;
+    }
+
+    static KeyStore getDefaultCertKeyStore() throws KeyStoreException {
+        // Start with an empty KeyStore.  In the worst case, we'll end up returning it.
+        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+        try {
+            ks.load(null, null);
+        } catch (CertificateException ignored) {
+        } catch (NoSuchAlgorithmException ignored) {
+        } catch (IOException ignored) {
+            // We're not loading anything, so ignore it
+        }
+        // Find the highest-priority non-Conscrypt provider that provides a PKIX
+        // TrustManagerFactory implementation and ask it for its trusted CAs.  This is most
+        // likely the OpenJDK-provided provider, in which case the platform default properties
+        // for configuring CA certs will be used, but we'll accept any provider that can give
+        // us at least one cert.
+        Provider[] providers = Security.getProviders("TrustManagerFactory.PKIX");
+        for (Provider p : providers) {
+            if (Conscrypt.isConscrypt(p)) {
+                // We need to skip any Conscrypt provider we find because this method is called
+                // when we're trying to determine the default set of CA certs for one of our
+                // TrustManagers, so trying to construct a TrustManager from this provider
+                // would result in calling this method again and recursing infinitely.
+                continue;
+            }
+            try {
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX", p);
+                tmf.init((KeyStore) null);
+                TrustManager[] tms = tmf.getTrustManagers();
+                if (tms.length > 0) {
+                    // Aliases are irrelevant for our purposes, so just number the certs
+                    int certNum = 1;
+                    for (TrustManager tm : tms) {
+                        if (tm instanceof X509TrustManager) {
+                            X509TrustManager xtm = (X509TrustManager) tm;
+                            for (X509Certificate cert : xtm.getAcceptedIssuers()) {
+                                ks.setCertificateEntry(Integer.toString(certNum++), cert);
+                            }
+                        }
+                    }
+                    if (certNum > 1) {
+                        // We've loaded at least one certificate, so we're done.
+                        break;
+                    }
+                }
+            } catch (NoSuchAlgorithmException ignored) {
+                // This TrustManagerFactory didn't work, try another one
+            }
+        }
+        return ks;
     }
 
     static ConscryptCertStore newDefaultCertStore() {
