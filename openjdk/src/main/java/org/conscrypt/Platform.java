@@ -654,6 +654,10 @@ final class Platform {
         Provider[] providers = Security.getProviders("TrustManagerFactory.PKIX");
         for (Provider p : providers) {
             if (Conscrypt.isConscrypt(p)) {
+                // We need to skip any Conscrypt provider we find because this method is called
+                // when we're trying to determine the default set of CA certs for one of our
+                // TrustManagers, so trying to construct a TrustManager from this provider
+                // would result in calling this method again and recursing infinitely.
                 continue;
             }
             try {
