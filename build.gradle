@@ -1,19 +1,8 @@
-buildscript {
-    repositories {
-        mavenCentral()
-        mavenLocal()
-        jcenter()
-        maven {
-            url 'https://plugins.gradle.org/m2/'
-        }
-    }
-    dependencies {
-        // Add dependency for build script,
-        // so we can access Git from our
-        // build script.
-        classpath 'org.ajoberstar:grgit:1.1.0'
-        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.10'
-    }
+plugins {
+  // Add dependency for build script so we can access Git from our
+  // build script.
+  id 'org.ajoberstar.grgit' version '2.2.1'
+  id 'net.ltgt.errorprone' version '0.0.11'
 }
 
 subprojects {
@@ -21,17 +10,17 @@ subprojects {
             || (project.name == 'conscrypt-android-platform')
             || (project.name == 'conscrypt-benchmark-android')
             || (project.name == 'conscrypt-benchmark-caliper'))
-    if (!androidProject) {
-        apply plugin: 'java'
+    if (androidProject) {
+        repositories {
+            google()
+        }
+    } else {
+        apply plugin: 'java-library'
         apply plugin: 'cpp'
 
         model {
             toolChains {
-                visualCpp(VisualCpp) {
-                    // Temporary hack for https://github.com/gradle/gradle/issues/929
-                    installDir "file:///C:/Program%20Files%20(x86)/Microsoft%20Visual%20Studio%2014.0"
-                    windowsSdkDir "file:///C:/Program%20Files%20(x86)/Windows%20Kits/8.1"
-                }
+                visualCpp(VisualCpp)
                 // Prefer Clang over Gcc (order here matters!)
                 clang(Clang)
                 gcc(Gcc)
@@ -90,7 +79,7 @@ subprojects {
         assert file("$jdkIncludeDir").exists()
 
         // Get the commit hash for BoringSSL.
-        boringSslGit = org.ajoberstar.grgit.Grgit.open(file("$boringsslHome"))
+        boringSslGit = org.ajoberstar.grgit.Grgit.open(dir: boringsslHome)
         boringSslVersion = boringSslGit.head().id
 
         // Allow the java executable to be specified via env/property for each architecture.
@@ -99,7 +88,7 @@ subprojects {
 
         jmhVersion = '1.19'
         libraries = [
-                android_tools: 'com.android.tools.build:gradle:2.3.3',
+                android_tools: 'com.android.tools.build:gradle:3.1.0',
                 roboelectric: 'org.robolectric:android-all:7.1.0_r7-robolectric-0',
 
                 // Test dependencies.

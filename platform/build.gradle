@@ -1,13 +1,15 @@
 buildscript {
     repositories {
-        mavenCentral()
-        mavenLocal()
+        google()
         jcenter()
     }
     dependencies {
         classpath libraries.android_tools
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
     }
+}
+
+plugins {
+    id 'com.github.dcendents.android-maven' version '2.1'
 }
 
 description = 'Conscrypt: Android Platform'
@@ -20,7 +22,6 @@ ext {
     // Platform is always built against head, so we can use newer API versions.
     androidMinSdkVersion = 26
     androidTargetSdkVersion = 26
-    androidBuildToolsVersion = "26.0.1"
 }
 
 if (androidSdkInstalled) {
@@ -28,7 +29,6 @@ if (androidSdkInstalled) {
 
     android {
         compileSdkVersion androidTargetSdkVersion
-        buildToolsVersion androidBuildToolsVersion
 
         compileOptions {
             sourceCompatibility androidMinJavaVersion;
@@ -89,10 +89,10 @@ if (androidSdkInstalled) {
     }
 
     dependencies {
-        compile fileTree(dir: 'libs', include: ['*.jar'])
-        compile project(path: ':conscrypt-openjdk', configuration: 'platform')
+        implementation fileTree(dir: 'libs', include: ['*.jar'])
+        implementation project(path: ':conscrypt-openjdk', configuration: 'platform')
         publicApiDocs project(':conscrypt-api-doclet')
-        androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
             exclude module: 'support-annotations'
             exclude module: 'support-v4'
             exclude module: 'support-v13'
@@ -100,13 +100,13 @@ if (androidSdkInstalled) {
             exclude module: 'appcompat-v7'
             exclude module: 'design'
         })
-        testCompile project(':conscrypt-testing'),
-                    libraries.junit
-        provided project(':conscrypt-android-stub'),
-                 project(':conscrypt-libcore-stub')
+        testImplementation project(':conscrypt-testing'),
+                           libraries.junit
+        compileOnly project(':conscrypt-android-stub'),
+                    project(':conscrypt-libcore-stub')
 
         // Adds the constants module as a dependency so that we can include its generated source
-        provided project(':conscrypt-constants')
+        compileOnly project(':conscrypt-constants')
     }
 
     // Disable running the tests.

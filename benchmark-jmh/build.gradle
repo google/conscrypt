@@ -9,7 +9,7 @@ description = 'Conscrypt: JMH on OpenJDK Benchmarks'
 evaluationDependsOn(':conscrypt-openjdk')
 
 ext {
-    preferredNativeConfiguration = project(':conscrypt-openjdk').preferredNativeConfiguration
+    preferredSourceSet = project(':conscrypt-openjdk').preferredSourceSet
     preferredNativeFileDir = project(':conscrypt-openjdk').preferredNativeFileDir
 
     genDir = "${buildDir}/jmh-generated-classes"
@@ -68,7 +68,7 @@ dependencies {
     compile project(':conscrypt-openjdk'),
             project(':conscrypt-benchmark-base'),
             // Add the preferred native openjdk configuration for this platform.
-            project(path: ':conscrypt-openjdk', configuration: "$preferredNativeConfiguration"),
+            project(':conscrypt-openjdk').sourceSets["$preferredSourceSet"].output,
             libraries.junit,
             libraries.netty_handler,
             libraries.netty_tcnative

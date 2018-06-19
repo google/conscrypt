@@ -19,5 +19,11 @@
     <!-- TrulyRandom flips out over KeyPairGenerator. -->
     <issue id="TrulyRandom">
         <ignore path="**/common/src/main/java/org/conscrypt/OpenSSLECKeyPairGenerator.java" />
+        <ignore path="**/common/src/main/java/org/conscrypt/AbstractConscryptEngine.java" />
+    </issue>
+
+    <!-- Asserts don't work in Android, but this code is for OpenJDK as well. -->
+    <issue id="Assert">
+        <ignore path="**/common/src/main/java/org/conscrypt/OpenSSLCipherChaCha20.java" />
     </issue>
 </lint>

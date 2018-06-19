@@ -2,7 +2,7 @@ description = 'Conscrypt: OpenJDK Integration Tests'
 
 evaluationDependsOn(':conscrypt-openjdk')
 
-def preferredNativeConfiguration = project(':conscrypt-openjdk').preferredNativeConfiguration
+def preferredSourceSet = project(':conscrypt-openjdk').preferredSourceSet
 def preferredNativeFileDir = project(':conscrypt-openjdk').preferredNativeFileDir
 
 sourceSets {
@@ -15,13 +15,13 @@ sourceSets {
 }
 
 dependencies {
-    compile project(':conscrypt-openjdk')
+    implementation project(':conscrypt-openjdk')
 
     // Add the preferred native openjdk configuration for this platform.
-    compile project(path: ':conscrypt-openjdk', configuration: "$preferredNativeConfiguration")
+    implementation project(':conscrypt-openjdk').sourceSets["$preferredSourceSet"].output
 
-    testCompile project(':conscrypt-constants'),
-                project(':conscrypt-testing')
+    testImplementation project(':conscrypt-constants'),
+                       project(':conscrypt-testing')
 }
 
 // Check which version
@@ -33,26 +33,18 @@ exec {
     errorOutput = javaError
 }
 
+def suiteClass = (javaError.toString() =~ /"1[.]6[.].*"/) ?
+    "org/conscrypt/ConscryptJava6Suite.class" : "org/conscrypt/ConscryptSuite.class";
+
 test {
-    if (javaError.toString() =~ /"1[.]6[.].*"/) {
-        include "org/conscrypt/ConscryptJava6Suite.class"
-    } else {
-        include "org/conscrypt/ConscryptSuite.class"
-    }
+    include suiteClass
 }
 
-// Add a second round of tests using the engine-based socket.
-task testEngineSocket(type: Test) {
-    dependsOn testClasses
-    // Use the engine socket by default.
+task testEngineSocket(type: Test, dependsOn: test) {
     jvmArgs "-Dorg.conscrypt.useEngineSocketByDefault=true"
-    testClassesDir = test.testClassesDir
-    includes = test.includes
-    doFirst {
-        classpath = test.classpath
-    }
+    include suiteClass
 }
-test.dependsOn testEngineSocket
+check.dependsOn testEngineSocket
 
 // Don't include this artifact in the distribution.
 tasks.install.enabled = false

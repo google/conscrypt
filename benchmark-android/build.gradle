@@ -1,5 +1,6 @@
 buildscript {
     repositories {
+        google()
         jcenter()
     }
     dependencies {
@@ -16,7 +17,6 @@ ext {
     androidVersionName = "$version"
     androidMinSdkVersion = 26
     androidTargetSdkVersion = 26
-    androidBuildToolsVersion = "26.0.0"
 }
 
 if (androidSdkInstalled) {
@@ -24,10 +24,9 @@ if (androidSdkInstalled) {
 
     android {
         compileSdkVersion androidTargetSdkVersion
-        buildToolsVersion androidBuildToolsVersion
 
         compileOptions {
-            sourceCompatibility androidMinJavaVersion;
+            sourceCompatibility androidMinJavaVersion
             targetCompatibility androidMinJavaVersion
         }
 
@@ -60,8 +59,8 @@ if (androidSdkInstalled) {
         depsJarImplementation
         depsJarImplementation.transitive = false
 
-        compile.extendsFrom(depsJarApi)
-        compile.extendsFrom(depsJarImplementation)
+        implementation.extendsFrom(depsJarApi)
+        implementation.extendsFrom(depsJarImplementation)
     }
 
     dependencies {
@@ -73,7 +72,7 @@ if (androidSdkInstalled) {
                               project(':conscrypt-testing'),
                               project(':conscrypt-libcore-stub')
 
-        compile 'com.google.caliper:caliper:1.0-beta-2'
+        implementation 'com.google.caliper:caliper:1.0-beta-2'
     }
 
     // This task bundles up everything we're going to send to the device into a single jar.
