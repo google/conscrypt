@@ -17,7 +17,6 @@ ext {
     androidMinSdkVersion = 26
     androidTargetSdkVersion = 26
     androidBuildToolsVersion = "26.0.0"
-    androidBuildToolsDir = "${androidHome}/build-tools/${androidBuildToolsVersion}"
 }
 
 if (androidSdkInstalled) {
@@ -51,68 +50,138 @@ if (androidSdkInstalled) {
         }
     }
 
+    configurations {
+        // For the depsJar task, we need to create a config we can pull libraries from to
+        // make the complete JAR. Some we do not want the transitive dependencies because
+        // they are already included on the Android system.
+        depsJarApi
+        depsJarApi.transitive = true
+
+        depsJarImplementation
+        depsJarImplementation.transitive = false
+
+        compile.extendsFrom(depsJarApi)
+        compile.extendsFrom(depsJarImplementation)
+    }
+
     dependencies {
-        compile project(':conscrypt-android'),
-                project(':conscrypt-benchmark-base'),
-                project(':conscrypt-testing')
+        depsJarApi project(':conscrypt-android'),
+                   libraries.bouncycastle_provider,
+                   libraries.bouncycastle_apis
+
+        depsJarImplementation project(':conscrypt-benchmark-base'),
+                              project(':conscrypt-testing'),
+                              project(':conscrypt-libcore-stub')
 
         compile 'com.google.caliper:caliper:1.0-beta-2'
-        compile libraries.bouncycastle_provider
-
     }
 
     // This task bundles up everything we're going to send to the device into a single jar.
     // We need to include all the Conscrypt code plus the Bouncy Castle jar because the platform
     // version of Bouncy Castle is jarjared.
-    task depsJar(type: Jar, dependsOn: 'assembleRelease') {
-        archiveName = 'bundled-deps.jar'
-        from {
-            configurations.compile.filter {
-                // Find the jars from our project plus BC
-                it.name.endsWith(".jar") && (it.path.startsWith("${rootDir}") || it.path.contains('org.bouncycastle'))
-            }.collect {
-                zipTree(it)
+    //
+    // Since we're examining the contents of the archive files, we need to prevent evaluation of
+    // the .aar and .jar contents before the actual archives are built. To do this we create a
+    // configure task where the "from" contents is set inside a doLast stanza to ensure it is run
+    // after the execution phase of the "assemble" task.
+    task configureDepsJar {
+        dependsOn assemble
+        doLast {
+            depsJar.from {
+                [
+                    configurations.depsJarApi,
+                    configurations.depsJarImplementation,
+                    configurations.archives.artifacts.file
+                ].collect { config ->
+                    config.findResults { archive ->
+                        // For Android library archives (.aar), we need to expand the classes.jar
+                        // inside as well as including all the jni libraries.
+                        if (archive.name.endsWith(".aar")) {
+                            [
+                                zipTree(archive).matching {
+                                    include 'classes.jar'
+                                }.collect { file ->
+                                    zipTree(file)
+                                },
+                                zipTree(archive).matching {
+                                    include '**/*.so'
+                                }
+                            ]
+                        } else if (archive.name.endsWith(".jar")) {
+                            // Bouncy Castle signs their jar, which causes our combined jar to fail
+                            // to verify.  Just strip out the signature files.
+                            zipTree(archive).matching {
+                                exclude 'META-INF/*.SF'
+                                exclude 'META-INF/*.DSA'
+                                exclude 'META-INF/*.EC'
+                                exclude 'META-INF/*.RSA'
+                            }
+                        }
+                    }
+                }
             }
         }
-        from {
-            // Also include the classes.jar from our Android libraries
-            ['.', "${rootDir}/android"].collect {
-                zipTree(it + '/build/intermediates/bundles/default/classes.jar')
-            }
-        }
-        // Bouncy Castle signs their jar, which causes our combined jar to fail to verify.  Just
-        // strip out the signature files.
-        exclude "META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA"
     }
 
-    task runBenchmarks(dependsOn: depsJar) {
+    task depsJar(type: Jar, dependsOn: configureDepsJar) {
+        archiveName = 'bundled-deps.jar'
+    }
+
+    task getAndroidDeviceAbi {
         doLast {
-            // First, determine which ABI the device uses so that we can send the right native lib
-            new ByteArrayOutputStream().withStream { stream ->
-                exec {
-                    commandLine = ['adb', 'shell', 'getprop', 'ro.product.cpu.abi']
-                    standardOutput = stream
+            new ByteArrayOutputStream().withStream { os ->
+                def result = exec {
+                    executable android.adbExecutable
+                    args 'shell', 'getprop', 'ro.product.cpu.abi'
+                    standardOutput = os
                 }
-                ext.androidDeviceAbi = stream.toString().trim()
-                ext.androidDevice64Bit = ext.androidDeviceAbi.contains('64')
+                project.ext.androidDeviceAbi = os.toString().trim()
+                project.ext.androidDevice64Bit = androidDeviceAbi.contains('64')
             }
-            def nativeLibPath = "/system/lib${androidDevice64Bit ? '64' : ''}/libconscrypt_jni.so"
-            // Send the native library to the device
-            exec {
-                executable "${androidHome}/platform-tools/adb"
-                args 'push'
-                args "${rootDir}/android/build/intermediates/bundles/default/jni/${androidDeviceAbi}/libconscrypt_jni.so"
-                args nativeLibPath
+        }
+    }
+
+    task configureExtractNativeLib {
+        dependsOn getAndroidDeviceAbi, depsJar
+        doLast {
+            extractNativeLib.from {
+                zipTree(depsJar.archivePath).matching {
+                    include "jni/${androidDeviceAbi}/*.so"
+                }.collect {
+                    // Using collect flattens out the directory.
+                    it
+                }
             }
+        }
+    }
+
+    task extractNativeLib(type: Copy, dependsOn: configureExtractNativeLib) {
+        into "$buildDir/extracted-native-libs"
+    }
+
+    task configurePushNativeLibrary {
+        dependsOn extractNativeLib
+        doLast {
+            project.ext.nativeLibPath = "/system/lib${androidDevice64Bit ? '64' : ''}/libconscrypt_jni.so"
+            pushNativeLibrary.args 'push', "${extractNativeLib.destinationDir}/libconscrypt_jni.so", nativeLibPath
+        }
+    }
+
+    task pushNativeLibrary(type: Exec, dependsOn: configurePushNativeLibrary) {
+        pushNativeLibrary.executable android.adbExecutable
+    }
+
+    task runBenchmarks(dependsOn: [depsJar, pushNativeLibrary]) {
+        doLast {
             // Execute the benchmarks
             exec {
                 workingDir "${rootDir}"
-                environment PATH: "${androidBuildToolsDir}:$System.env.PATH"
-                environment JACK_JAR: "${androidBuildToolsDir}/jack.jar"
+                environment PATH: "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}:$System.env.PATH"
+                environment JACK_JAR: "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}/jack.jar"
 
                 executable 'java'
                 args '-cp', 'benchmark-android/vogar.jar', 'vogar.Vogar'
-                args '--classpath', 'benchmark-android/build/libs/bundled-deps.jar'
+                args '--classpath', depsJar.archivePath
                 args '--benchmark'
                 args '--language=JN'
                 args '--mode=app_process'
@@ -123,7 +192,8 @@ if (androidSdkInstalled) {
             }
             // Clean up the native library
             exec {
-                commandLine = ['adb', 'shell', 'rm', '-f', nativeLibPath]
+                executable android.adbExecutable
+                args 'shell', 'rm', '-f', nativeLibPath
             }
         }
     }
