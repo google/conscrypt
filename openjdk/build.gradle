@@ -253,26 +253,6 @@ def addNativeTest(nativeClassifier) {
             mustRunAfter test
             jvmArgs javaArchFlag
             executable = javaExecutable
-            testClassesDir = testSourceSet.output.classesDir
-
-            // TODO(nmittler): Is there a way to copy all properties of the test task?
-
-            // Copy the logging configuration from the test task.
-            org.codehaus.groovy.runtime.InvokerHelper.setProperties(testLogging,
-                    test.testLogging.properties)
-
-            // Copy heap settings.
-            minHeapSize = test.minHeapSize
-            maxHeapSize = test.maxHeapSize
-
-            // Copy system properties
-            systemProperties = test.systemProperties
-
-            // Set the classpath just before we run the test so that the runtime classpath
-            // is fully resolved.
-            doFirst {
-                classpath = testSourceSet.runtimeClasspath
-            }
         }
         check.dependsOn "$testTaskName"
     }
