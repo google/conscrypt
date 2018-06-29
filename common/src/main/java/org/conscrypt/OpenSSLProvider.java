@@ -187,59 +187,59 @@ public final class OpenSSLProvider extends Provider {
         putECDHKeyAgreementImplClass("OpenSSLECDHKeyAgreement");
 
         /* == Signatures == */
-        putSignatureImplClass("MD5WithRSA", "OpenSSLSignature$MD5RSA");
-        put("Alg.Alias.Signature.MD5WithRSAEncryption", "MD5WithRSA");
-        put("Alg.Alias.Signature.MD5/RSA", "MD5WithRSA");
-        put("Alg.Alias.Signature.1.2.840.113549.1.1.4", "MD5WithRSA");
-        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.4", "MD5WithRSA");
-        put("Alg.Alias.Signature.1.2.840.113549.2.5with1.2.840.113549.1.1.1", "MD5WithRSA");
+        putSignatureImplClass("MD5withRSA", "OpenSSLSignature$MD5RSA");
+        put("Alg.Alias.Signature.MD5withRSAEncryption", "MD5withRSA");
+        put("Alg.Alias.Signature.MD5/RSA", "MD5withRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.4", "MD5withRSA");
+        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.4", "MD5withRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.2.5with1.2.840.113549.1.1.1", "MD5withRSA");
 
-        putSignatureImplClass("SHA1WithRSA", "OpenSSLSignature$SHA1RSA");
-        put("Alg.Alias.Signature.SHA1WithRSAEncryption", "SHA1WithRSA");
-        put("Alg.Alias.Signature.SHA1/RSA", "SHA1WithRSA");
-        put("Alg.Alias.Signature.SHA-1/RSA", "SHA1WithRSA");
-        put("Alg.Alias.Signature.1.2.840.113549.1.1.5", "SHA1WithRSA");
-        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.5", "SHA1WithRSA");
-        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.113549.1.1.1", "SHA1WithRSA");
-        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.113549.1.1.5", "SHA1WithRSA");
-        put("Alg.Alias.Signature.1.3.14.3.2.29", "SHA1WithRSA");
-        put("Alg.Alias.Signature.OID.1.3.14.3.2.29", "SHA1WithRSA");
+        putSignatureImplClass("SHA1withRSA", "OpenSSLSignature$SHA1RSA");
+        put("Alg.Alias.Signature.SHA1withRSAEncryption", "SHA1withRSA");
+        put("Alg.Alias.Signature.SHA1/RSA", "SHA1withRSA");
+        put("Alg.Alias.Signature.SHA-1/RSA", "SHA1withRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.5", "SHA1withRSA");
+        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.5", "SHA1withRSA");
+        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.113549.1.1.1", "SHA1withRSA");
+        put("Alg.Alias.Signature.1.3.14.3.2.26with1.2.840.113549.1.1.5", "SHA1withRSA");
+        put("Alg.Alias.Signature.1.3.14.3.2.29", "SHA1withRSA");
+        put("Alg.Alias.Signature.OID.1.3.14.3.2.29", "SHA1withRSA");
 
-        putSignatureImplClass("SHA224WithRSA", "OpenSSLSignature$SHA224RSA");
-        put("Alg.Alias.Signature.SHA224WithRSAEncryption", "SHA224WithRSA");
-        put("Alg.Alias.Signature.SHA224/RSA", "SHA224WithRSA");
-        put("Alg.Alias.Signature.1.2.840.113549.1.1.14", "SHA224WithRSA");
-        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.14", "SHA224WithRSA");
+        putSignatureImplClass("SHA224withRSA", "OpenSSLSignature$SHA224RSA");
+        put("Alg.Alias.Signature.SHA224withRSAEncryption", "SHA224withRSA");
+        put("Alg.Alias.Signature.SHA224/RSA", "SHA224withRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.14", "SHA224withRSA");
+        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.14", "SHA224withRSA");
         put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.4with1.2.840.113549.1.1.1",
-                "SHA224WithRSA");
+                "SHA224withRSA");
         put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.4with1.2.840.113549.1.1.14",
-                "SHA224WithRSA");
+                "SHA224withRSA");
 
-        putSignatureImplClass("SHA256WithRSA", "OpenSSLSignature$SHA256RSA");
-        put("Alg.Alias.Signature.SHA256WithRSAEncryption", "SHA256WithRSA");
-        put("Alg.Alias.Signature.SHA256/RSA", "SHA256WithRSA");
-        put("Alg.Alias.Signature.1.2.840.113549.1.1.11", "SHA256WithRSA");
-        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.11", "SHA256WithRSA");
+        putSignatureImplClass("SHA256withRSA", "OpenSSLSignature$SHA256RSA");
+        put("Alg.Alias.Signature.SHA256withRSAEncryption", "SHA256withRSA");
+        put("Alg.Alias.Signature.SHA256/RSA", "SHA256withRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.11", "SHA256withRSA");
+        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.11", "SHA256withRSA");
         put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.1with1.2.840.113549.1.1.1",
-                "SHA256WithRSA");
+                "SHA256withRSA");
         put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.1with1.2.840.113549.1.1.11",
-                "SHA256WithRSA");
+                "SHA256withRSA");
 
-        putSignatureImplClass("SHA384WithRSA", "OpenSSLSignature$SHA384RSA");
-        put("Alg.Alias.Signature.SHA384WithRSAEncryption", "SHA384WithRSA");
-        put("Alg.Alias.Signature.SHA384/RSA", "SHA384WithRSA");
-        put("Alg.Alias.Signature.1.2.840.113549.1.1.12", "SHA384WithRSA");
-        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.12", "SHA384WithRSA");
+        putSignatureImplClass("SHA384withRSA", "OpenSSLSignature$SHA384RSA");
+        put("Alg.Alias.Signature.SHA384withRSAEncryption", "SHA384withRSA");
+        put("Alg.Alias.Signature.SHA384/RSA", "SHA384withRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.12", "SHA384withRSA");
+        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.12", "SHA384withRSA");
         put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.2with1.2.840.113549.1.1.1",
-                "SHA384WithRSA");
+                "SHA384withRSA");
 
-        putSignatureImplClass("SHA512WithRSA", "OpenSSLSignature$SHA512RSA");
-        put("Alg.Alias.Signature.SHA512WithRSAEncryption", "SHA512WithRSA");
-        put("Alg.Alias.Signature.SHA512/RSA", "SHA512WithRSA");
-        put("Alg.Alias.Signature.1.2.840.113549.1.1.13", "SHA512WithRSA");
-        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.13", "SHA512WithRSA");
+        putSignatureImplClass("SHA512withRSA", "OpenSSLSignature$SHA512RSA");
+        put("Alg.Alias.Signature.SHA512withRSAEncryption", "SHA512withRSA");
+        put("Alg.Alias.Signature.SHA512/RSA", "SHA512withRSA");
+        put("Alg.Alias.Signature.1.2.840.113549.1.1.13", "SHA512withRSA");
+        put("Alg.Alias.Signature.OID.1.2.840.113549.1.1.13", "SHA512withRSA");
         put("Alg.Alias.Signature.2.16.840.1.101.3.4.2.3with1.2.840.113549.1.1.1",
-                "SHA512WithRSA");
+                "SHA512withRSA");
 
         putRAWRSASignatureImplClass("OpenSSLSignatureRawRSA");
 

@@ -71,9 +71,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509ExtendedTrustManager;
 import org.conscrypt.ct.CTLogStore;
-import org.conscrypt.ct.CTLogStoreImpl;
 import org.conscrypt.ct.CTPolicy;
-import org.conscrypt.ct.CTPolicyImpl;
 import org.conscrypt.ct.CTVerificationResult;
 import org.conscrypt.ct.CTVerifier;
 
@@ -110,7 +108,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      * be null when the rootKeyStore is null, implying we are not
      * using the AndroidCAStore.
      */
-    private final TrustedCertificateStore trustedCertificateStore;
+    private final ConscryptCertStore trustedCertificateStore;
 
     private final CertPathValidator validator;
 
@@ -156,12 +154,12 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     }
 
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
-                            TrustedCertificateStore certStore) {
+            ConscryptCertStore certStore) {
         this(keyStore, manager, certStore, null);
     }
 
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
-                            TrustedCertificateStore certStore,
+            ConscryptCertStore certStore,
                             CertBlacklist blacklist) {
         this(keyStore, manager, certStore, blacklist, null, null, null);
     }
@@ -170,12 +168,12 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      * For testing only.
      */
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
-            TrustedCertificateStore certStore, CertBlacklist blacklist, CTLogStore ctLogStore,
+            ConscryptCertStore certStore, CertBlacklist blacklist, CTLogStore ctLogStore,
             CTVerifier ctVerifier, CTPolicy ctPolicy) {
         CertPathValidator validatorLocal = null;
         CertificateFactory factoryLocal = null;
         KeyStore rootKeyStoreLocal = null;
-        TrustedCertificateStore trustedCertificateStoreLocal = null;
+        ConscryptCertStore trustedCertificateStoreLocal = null;
         TrustedCertificateIndex trustedCertificateIndexLocal = null;
         X509Certificate[] acceptedIssuersLocal = null;
         Exception errLocal = null;
@@ -184,10 +182,11 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             factoryLocal = CertificateFactory.getInstance("X509");
 
             // if we have an AndroidCAStore, we will lazily load CAs
-            if ("AndroidCAStore".equals(keyStore.getType())) {
+            if ("AndroidCAStore".equals(keyStore.getType())
+                    && Platform.supportsConscryptCertStore()) {
                 rootKeyStoreLocal = keyStore;
                 trustedCertificateStoreLocal =
-                    (certStore != null) ? certStore : new TrustedCertificateStore();
+                    (certStore != null) ? certStore : Platform.newDefaultCertStore();
                 acceptedIssuersLocal = null;
                 trustedCertificateIndexLocal = new TrustedCertificateIndex();
             } else {
@@ -203,14 +202,14 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         }
 
         if (blacklist == null) {
-            blacklist = CertBlacklist.getDefault();
+            blacklist = Platform.newDefaultBlacklist();
         }
         if (ctLogStore == null) {
-            ctLogStore = new CTLogStoreImpl();
+            ctLogStore = Platform.newDefaultLogStore();
         }
 
         if (ctPolicy == null) {
-            ctPolicy = new CTPolicyImpl(ctLogStore, 2);
+            ctPolicy = Platform.newDefaultPolicy(ctLogStore);
         }
 
         this.pinManager = manager;
@@ -366,14 +365,6 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         getTrustedChainForServer(chain, authType, engine);
     }
 
-    public boolean isUserAddedCertificate(X509Certificate cert) {
-        if (trustedCertificateStore == null) {
-            return false;
-        } else {
-            return trustedCertificateStore.isUserAddedCertificate(cert);
-        }
-    }
-
     /**
      * Validates whether a server is trusted. If session is given and non-null
      * it also checks if chain is pinned appropriately for that peer host. If
@@ -432,8 +423,10 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 if (rawResponses instanceof List) {
                     ocspResponses = (List<byte[]>) rawResponses;
                 }
-            } catch (NoSuchMethodException | SecurityException | IllegalAccessException
-                    | IllegalArgumentException ignored) {
+            } catch (NoSuchMethodException ignored) {
+            } catch (SecurityException ignored) {
+            } catch (IllegalAccessException ignored) {
+            } catch (IllegalArgumentException ignored) {
             } catch (InvocationTargetException e) {
                 throw new RuntimeException(e.getCause());
             }
@@ -460,8 +453,10 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             if (rawData instanceof byte[]) {
                 data = (byte[]) rawData;
             }
-        } catch (NoSuchMethodException | SecurityException | IllegalAccessException
-                | IllegalArgumentException ignored) {
+        } catch (NoSuchMethodException ignored) {
+        } catch (SecurityException ignored) {
+        } catch (IllegalAccessException ignored) {
+        } catch (IllegalArgumentException ignored) {
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e.getCause());
         }
@@ -716,7 +711,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     }
 
     private void checkBlacklist(X509Certificate cert) throws CertificateException {
-        if (blacklist.isPublicKeyBlackListed(cert.getPublicKey())) {
+        if (blacklist != null && blacklist.isPublicKeyBlackListed(cert.getPublicKey())) {
             throw new CertificateException("Certificate blacklisted by public key: " + cert);
         }
     }
@@ -742,7 +737,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         }
 
         PKIXRevocationChecker revChecker = null;
-        List<PKIXCertPathChecker> checkers = new ArrayList<>(params.getCertPathCheckers());
+        List<PKIXCertPathChecker> checkers =
+                new ArrayList<PKIXCertPathChecker>(params.getCertPathCheckers());
         for (PKIXCertPathChecker checker : checkers) {
             if (checker instanceof PKIXRevocationChecker) {
                 revChecker = (PKIXRevocationChecker) checker;

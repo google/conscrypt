@@ -18,28 +18,32 @@ package org.conscrypt.ct;
 
 import static org.conscrypt.TestUtils.openTestFile;
 import static org.conscrypt.TestUtils.readTestFile;
+import static org.junit.Assert.assertEquals;
 
 import java.security.PublicKey;
 import java.util.Arrays;
-import junit.framework.TestCase;
-import org.conscrypt.InternalUtil;
 import org.conscrypt.OpenSSLX509Certificate;
+import org.conscrypt.TestUtils;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-public class CTVerifierTest extends TestCase {
+@RunWith(JUnit4.class)
+public class CTVerifierTest {
     private OpenSSLX509Certificate ca;
     private OpenSSLX509Certificate cert;
     private OpenSSLX509Certificate certEmbedded;
     private CTVerifier ctVerifier;
 
-    @Override
+    @Before
     public void setUp() throws Exception {
-        super.setUp();
         ca = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("ca-cert.pem"));
         cert = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("cert.pem"));
         certEmbedded = OpenSSLX509Certificate.fromX509PemInputStream(
                 openTestFile("cert-ct-embedded.pem"));
 
-        PublicKey key = InternalUtil.readPublicKeyPem(openTestFile("ct-server-key-public.pem"));
+        PublicKey key = TestUtils.readPublicKeyPemFile("ct-server-key-public.pem");
 
         final CTLogInfo log = new CTLogInfo(key, "Test Log", "foo");
         CTLogStore store = new CTLogStore() {
@@ -56,6 +60,7 @@ public class CTVerifierTest extends TestCase {
         ctVerifier = new CTVerifier(store);
     }
 
+    @Test
     public void test_verifySignedCertificateTimestamps_withOCSPResponse() throws Exception {
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
 
@@ -66,6 +71,7 @@ public class CTVerifierTest extends TestCase {
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
+    @Test
     public void test_verifySignedCertificateTimestamps_withTLSExtension() throws Exception {
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
 
@@ -76,6 +82,7 @@ public class CTVerifierTest extends TestCase {
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
+    @Test
     public void test_verifySignedCertificateTimestamps_withEmbeddedExtension() throws Exception {
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { certEmbedded, ca };
 
@@ -85,6 +92,7 @@ public class CTVerifierTest extends TestCase {
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
+    @Test
     public void test_verifySignedCertificateTimestamps_withoutTimestamp() throws Exception {
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
 
@@ -94,6 +102,7 @@ public class CTVerifierTest extends TestCase {
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
+    @Test
     public void test_verifySignedCertificateTimestamps_withInvalidSignature() throws Exception {
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
 
@@ -107,6 +116,7 @@ public class CTVerifierTest extends TestCase {
                      result.getInvalidSCTs().get(0).status);
     }
 
+    @Test
     public void test_verifySignedCertificateTimestamps_withUnknownLog() throws Exception {
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
 
@@ -120,6 +130,7 @@ public class CTVerifierTest extends TestCase {
                      result.getInvalidSCTs().get(0).status);
     }
 
+    @Test
     public void test_verifySignedCertificateTimestamps_withInvalidEncoding() throws Exception {
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
 
@@ -132,6 +143,7 @@ public class CTVerifierTest extends TestCase {
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
+    @Test
     public void test_verifySignedCertificateTimestamps_withInvalidOCSPResponse() throws Exception {
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
 
@@ -144,6 +156,7 @@ public class CTVerifierTest extends TestCase {
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
+    @Test
     public void test_verifySignedCertificateTimestamps_withMultipleTimestamps() throws Exception {
         OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
 

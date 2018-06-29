@@ -59,7 +59,7 @@ public final class CertificatePriorityComparator implements Comparator<X509Certi
     private static final Integer PRIORITY_SHA512 = 1;
     private static final Integer PRIORITY_UNKNOWN = -1;
     static {
-        ALGORITHM_OID_PRIORITY_MAP = new HashMap<>();
+        ALGORITHM_OID_PRIORITY_MAP = new HashMap<String, Integer>();
         // RSA oids
         ALGORITHM_OID_PRIORITY_MAP.put("1.2.840.113549.1.1.13", PRIORITY_SHA512);
         ALGORITHM_OID_PRIORITY_MAP.put("1.2.840.113549.1.1.12", PRIORITY_SHA384);

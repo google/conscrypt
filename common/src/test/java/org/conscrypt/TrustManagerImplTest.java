@@ -16,6 +16,10 @@
 
 package org.conscrypt;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.security.KeyStore;
 import java.security.Principal;
 import java.security.cert.Certificate;
@@ -27,16 +31,21 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.X509TrustManager;
-import junit.framework.TestCase;
 import org.conscrypt.java.security.TestKeyStore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-public class TrustManagerImplTest extends TestCase {
+@RunWith(JUnit4.class)
+public class TrustManagerImplTest {
 
     /**
      * Ensure that our non-standard behavior of learning to trust new
      * intermediate CAs does not regress. http://b/3404902
      */
+    @Test
     public void testLearnIntermediate() throws Exception {
+        TestUtils.assumeExtendedTrustManagerAvailable();
         // chain3 should be server/intermediate/root
         KeyStore.PrivateKeyEntry pke = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
         X509Certificate[] chain3 = (X509Certificate[])pke.getCertificateChain();
@@ -69,7 +78,9 @@ public class TrustManagerImplTest extends TestCase {
 
     // We should ignore duplicate cruft in the certificate chain
     // See https://code.google.com/p/android/issues/detail?id=52295 http://b/8313312
+    @Test
     public void testDuplicateInChain() throws Exception {
+        TestUtils.assumeExtendedTrustManagerAvailable();
         // chain3 should be server/intermediate/root
         KeyStore.PrivateKeyEntry pke = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
         X509Certificate[] chain3 = (X509Certificate[])pke.getCertificateChain();
@@ -83,7 +94,9 @@ public class TrustManagerImplTest extends TestCase {
         assertValid(chain4, trustManager(root));
     }
 
+    @Test
     public void testGetFullChain() throws Exception {
+        TestUtils.assumeExtendedTrustManagerAvailable();
         // build the trust manager
         KeyStore.PrivateKeyEntry pke = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
         X509Certificate[] chain3 = (X509Certificate[])pke.getCertificateChain();

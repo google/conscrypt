@@ -83,7 +83,7 @@ import libcore.io.IoUtils;
  * @hide
  */
 @Internal
-public class TrustedCertificateStore {
+public class TrustedCertificateStore implements ConscryptCertStore {
 
     private static final String PREFIX_SYSTEM = "system:";
     private static final String PREFIX_USER = "user:";
@@ -344,6 +344,7 @@ public class TrustedCertificateStore {
      * with other differences (for example when switching signature
      * from md2WithRSAEncryption to SHA1withRSA)
      */
+    @Override
     public X509Certificate getTrustAnchor(final X509Certificate c) {
         // compare X509Certificate.getPublicKey values
         CertSelector selector = new CertSelector() {
@@ -399,6 +400,7 @@ public class TrustedCertificateStore {
         return null;
     }
 
+    @Override
     public Set<X509Certificate> findAllIssuers(final X509Certificate c) {
         Set<X509Certificate> issuers = null;
         CertSelector selector = new CertSelector() {

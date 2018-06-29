@@ -34,6 +34,9 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImpl;
 import java.security.AlgorithmParameters;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
@@ -52,6 +55,8 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509TrustManager;
+import org.conscrypt.ct.CTLogStore;
+import org.conscrypt.ct.CTPolicy;
 
 /**
  * Platform-specific methods for unbundled Android.
@@ -952,5 +957,39 @@ final class Platform {
             enable = Boolean.valueOf(property);
         }
         return enable;
+    }
+
+    static boolean supportsConscryptCertStore() {
+        return false;
+    }
+
+    static KeyStore getDefaultCertKeyStore() throws KeyStoreException {
+        KeyStore keyStore = KeyStore.getInstance("AndroidCAStore");
+        try {
+            keyStore.load(null, null);
+        } catch (IOException e) {
+            throw new KeyStoreException(e);
+        } catch (CertificateException e) {
+            throw new KeyStoreException(e);
+        } catch (NoSuchAlgorithmException e) {
+            throw new KeyStoreException(e);
+        }
+        return keyStore;
+    }
+
+    static ConscryptCertStore newDefaultCertStore() {
+        return null;
+    }
+
+    static CertBlacklist newDefaultBlacklist() {
+        return null;
+    }
+
+    static CTLogStore newDefaultLogStore() {
+        return null;
+    }
+
+    static CTPolicy newDefaultPolicy(CTLogStore logStore) {
+        return null;
     }
 }

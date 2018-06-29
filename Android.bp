@@ -30,6 +30,7 @@
 //       src/jni/
 //            main           # Common C++ source for all platforms.
 //            unbundled      # C++ source used for OpenJDK and unbundled Android.
+//       src/test/java       # Common test files for all platforms.
 //   android/
 //       src/main/java       # Java source for unbundled Android.
 //   openjdk/
