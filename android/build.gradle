@@ -1,13 +1,15 @@
 buildscript {
     repositories {
-        mavenCentral()
-        mavenLocal()
+        google()
         jcenter()
     }
     dependencies {
         classpath libraries.android_tools
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
     }
+}
+
+plugins {
+    id 'com.github.dcendents.android-maven' version '2.1'
 }
 
 description = 'Conscrypt: Android'
@@ -18,8 +20,7 @@ ext {
     androidVersionCode = 1
     androidVersionName = "$version"
     androidMinSdkVersion = 9
-    androidTargetSdkVersion = 25
-    androidBuildToolsVersion = "25.0.0"
+    androidTargetSdkVersion = 26
 }
 
 if (androidSdkInstalled) {
@@ -32,10 +33,9 @@ if (androidSdkInstalled) {
 
     android {
         compileSdkVersion androidTargetSdkVersion
-        buildToolsVersion androidBuildToolsVersion
 
         compileOptions {
-            sourceCompatibility androidMinJavaVersion;
+            sourceCompatibility androidMinJavaVersion
             targetCompatibility androidMinJavaVersion
         }
 
@@ -97,9 +97,8 @@ if (androidSdkInstalled) {
     }
 
     dependencies {
-        compile fileTree(dir: 'libs', include: ['*.jar'])
         publicApiDocs project(':conscrypt-api-doclet')
-        androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
             exclude module: 'support-annotations'
             exclude module: 'support-v4'
             exclude module: 'support-v13'
@@ -107,13 +106,20 @@ if (androidSdkInstalled) {
             exclude module: 'appcompat-v7'
             exclude module: 'design'
         })
-        provided project(':conscrypt-android-stub')
+        compileOnly project(':conscrypt-android-stub')
 
         // Adds the constants module as a dependency so that we can include its generated source
-        provided project(':conscrypt-constants')
+        compileOnly project(':conscrypt-constants')
     }
 
-    task javadocs(type: Javadoc) {
+    task configureJavadocs {
+        dependsOn configurations.publicApiDocs
+        doLast {
+            javadocs.options.docletpath = configurations.publicApiDocs.files as List
+        }
+    }
+
+    task javadocs(type: Javadoc, dependsOn: [configureJavadocs]) {
         source = android.sourceSets.main.java.srcDirs
         classpath += project.files(android.getBootClasspath().join(File.pathSeparator)) + project(':conscrypt-android-stub').sourceSets.main.output
         // TODO(nmittler): Fix the javadoc errors.
@@ -122,7 +128,6 @@ if (androidSdkInstalled) {
             encoding = 'UTF-8'
             links "https://docs.oracle.com/javase/7/docs/api/"
             doclet = "org.conscrypt.doclet.FilterDoclet"
-            docletpath = configurations.publicApiDocs.files as List
             // Disable JavaDoc doclint on Java 8. It's annoying.
             if (JavaVersion.current().isJava8Compatible()) {
                 addStringOption('Xdoclint:none', '-quiet')

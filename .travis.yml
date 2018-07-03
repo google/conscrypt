@@ -38,10 +38,10 @@ matrix:
         # Append tr '\r' '\n' | uniq to all the commands to suppress it
         - $ANDROID_HOME/tools/bin/sdkmanager tools | tr '\r' '\n' | uniq
         - $ANDROID_HOME/tools/bin/sdkmanager platform-tools | tr '\r' '\n' | uniq
-        - $ANDROID_HOME/tools/bin/sdkmanager 'build-tools;25.0.0' | tr '\r' '\n' | uniq
-        - $ANDROID_HOME/tools/bin/sdkmanager 'platforms;android-25' | tr '\r' '\n' | uniq
+        - $ANDROID_HOME/tools/bin/sdkmanager 'build-tools;27.0.3' | tr '\r' '\n' | uniq
+        - $ANDROID_HOME/tools/bin/sdkmanager 'platforms;android-26' | tr '\r' '\n' | uniq
         - $ANDROID_HOME/tools/bin/sdkmanager 'extras;android;m2repository' | tr '\r' '\n' | uniq
-        - $ANDROID_HOME/tools/bin/sdkmanager --channel=1 ndk-bundle | tr '\r' '\n' | uniq
+        - $ANDROID_HOME/tools/bin/sdkmanager ndk-bundle | tr '\r' '\n' | uniq
         - $ANDROID_HOME/tools/bin/sdkmanager 'cmake;3.6.4111459' | tr '\r' '\n' | uniq
 
       addons:

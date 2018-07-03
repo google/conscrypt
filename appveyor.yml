@@ -86,10 +86,10 @@ install:
   - ps: 'Add-Content -Value "`nd975f751698a77b662f1254ddbeed3901e976f5a" -Path $env:ANDROID_HOME\licenses\intel-android-extra-license -Encoding ASCII'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat tools'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat platform-tools'
-  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat build-tools;25.0.0'
-  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat platforms;android-25'
+  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat build-tools;27.0.3'
+  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat platforms;android-26'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat extras;android;m2repository'
-  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat --channel=1 ndk-bundle'
+  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat ndk-bundle'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat cmake;3.6.4111459'
 
 build_script:

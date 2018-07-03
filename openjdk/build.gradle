@@ -10,9 +10,6 @@ ext {
     nativeClassifiers = []
     nativeClassifier64Bit = null
     nativeClassifier32Bit = null
-    nativeConfiguration64Bit = null
-    nativeConfiguration32Bit = null
-    preferredNativeConfiguration = null
     preferredClassifier = null
     preferredSourceSet = null
     preferredNativeFileDir = null
@@ -23,9 +20,6 @@ ext {
         preferredClassifier = nativeClassifier64Bit
         preferredSourceSet = sourceSetName(preferredClassifier)
         preferredNativeFileDir = nativeResourcesDir(preferredClassifier)
-
-        nativeConfiguration64Bit = compileConfigurationName(nativeClassifier64Bit)
-        preferredNativeConfiguration = nativeConfiguration64Bit
     }
     if (build32Bit) {
         nativeClassifier32Bit = classifierFor(osName, arch32Name)
@@ -34,11 +28,6 @@ ext {
             preferredClassifier = nativeClassifier32Bit
             preferredSourceSet = sourceSetName(preferredClassifier)
             preferredNativeFileDir = nativeResourcesDir(preferredClassifier)
-        }
-
-        nativeConfiguration32Bit = compileConfigurationName(nativeClassifier32Bit)
-        if (preferredNativeConfiguration == null) {
-            preferredNativeConfiguration = nativeConfiguration32Bit
         }
     }
 }
@@ -76,21 +65,19 @@ sourceSets {
 
         // Main sources for the native build
         "$sourceSetName" {
-            resources {
-                srcDirs = [nativeResourcesDir(nativeClassifier)]
-            }
+            output.dir(nativeResourcesDir(nativeClassifier), builtBy: "copyNativeLib${sourceSetName}")
         }
 
         // Test sources for the native build
-        "${testSourceSetName}" {
+        "$testSourceSetName" {
             java {
                 // Include the test source.
                 srcDirs = test.java.srcDirs
             }
             resources {
                 srcDirs = ["src/test/resources"]
-                srcDirs += sourceSets["$sourceSetName"].resources.srcDirs
             }
+            output.dir(nativeResourcesDir(nativeClassifier), builtBy: "copyNativeLib${sourceSetName}")
         }
     }
 }
@@ -173,13 +160,12 @@ dependencies {
     compileOnly project(':conscrypt-constants'),
                 configurations.publicApiDocs
 
-    testCompile project(':conscrypt-constants'),
+    testImplementation project(':conscrypt-constants'),
             project(':conscrypt-testing'),
             libraries.junit,
             libraries.mockito
 
-    // Need to add the native artifact to classpath when running the tests.
-    testRuntime configurations["${preferredNativeConfiguration}"]
+    testRuntimeClasspath sourceSets["$preferredSourceSet"].output
 
     // Configure the dependencies for the native tests.
     nativeClassifiers.each { nativeClassifier ->
@@ -264,31 +250,11 @@ def addNativeTest(nativeClassifier) {
     def archSupported = !javaError.toString().toLowerCase().contains('error')
     if (archSupported) {
         task "$testTaskName"(type: Test) {
-            dependsOn testSourceSet.classesTaskName
+            mustRunAfter test
             jvmArgs javaArchFlag
             executable = javaExecutable
-            testClassesDir = testSourceSet.output.classesDir
-
-            // TODO(nmittler): Is there a way to copy all properties of the test task?
-
-            // Copy the logging configuration from the test task.
-            org.codehaus.groovy.runtime.InvokerHelper.setProperties(testLogging,
-                    test.testLogging.properties)
-
-            // Copy heap settings.
-            minHeapSize = test.minHeapSize
-            maxHeapSize = test.maxHeapSize
-
-            // Copy system properties
-            systemProperties = test.systemProperties
-
-            // Set the classpath just before we run the test so that the runtime classpath
-            // is fully resolved.
-            doFirst {
-                classpath = testSourceSet.runtimeClasspath
-            }
         }
-        test.dependsOn "$testTaskName"
+        check.dependsOn "$testTaskName"
     }
 }
 
@@ -437,7 +403,7 @@ model {
 
             // Copies the native library to a resource location that will be included in the jar.
             def copyTaskName = "copyNativeLib${sourceSetName}"
-            task "$copyTaskName"(type: Copy, dependsOn: binary.buildTask) {
+            task "$copyTaskName"(type: Copy, dependsOn: binary.tasks.link) {
                 from source
                 // Rename the artifact to include the generated classifier
                 rename '(.+)(\\.[^\\.]+)', "\$1-$classifier\$2"
@@ -445,18 +411,16 @@ model {
                 into nativeResourcesDir(classifier) + '/META-INF/native'
             }
 
-            // Make sure we build and copy the native library to the output directory.
-            compileJava.dependsOn "$copyTaskName"
-
             // Now define a task to strip the release binary (linux only)
             if (osName == 'linux' && (!rootProject.hasProperty('nostrip') ||
                     !rootProject.nostrip.toBoolean())) {
                 def stripTask = binary.tasks.taskName("strip")
                     task "$stripTask"(type: Exec) {
                         dependsOn binary.tasks.link
-                        commandLine "strip", "${binary.tasks.link.outputFile}"
+                        executable "strip"
+                        args binary.tasks.link.linkedFile.asFile.get()
                     }
-                binary.tasks.build.dependsOn stripTask
+                project.tasks["$copyTaskName"].dependsOn stripTask
             }
         }
     }
@@ -480,7 +444,7 @@ boolean isExecutableOnPath(executable) {
 
 String nativeResourcesDir(nativeClassifier) {
     def sourceSetName = sourceSetName(nativeClassifier)
-    "${buildDir}/${sourceSetName}/resources"
+    "${buildDir}/${sourceSetName}/native-resources"
 }
 
 SourceSet sourceSet(classifier) {
@@ -501,9 +465,5 @@ static String sourceSetName(classifier) {
 
 static String testSourceSetName(classifier) {
     "${sourceSetName(classifier)}Test"
-}
-
-static String compileConfigurationName(classifier) {
-    sourceSetName(classifier) + "Compile"
 }
 
