@@ -56,23 +56,15 @@ final class CryptoUpcalls {
         return providers;
     }
 
-    static byte[] rawSignDigestWithPrivateKey(PrivateKey javaKey, byte[] message) {
-        // Get the raw signature algorithm for this key type.
-        String algorithm;
+    static byte[] ECSignDigestWithPrivateKey(PrivateKey javaKey, byte[] message) {
         // Hint: Algorithm names come from:
         // http://docs.oracle.com/javase/6/docs/technotes/guides/security/StandardNames.html
         String keyAlgorithm = javaKey.getAlgorithm();
-        if ("RSA".equals(keyAlgorithm)) {
-            // IMPORTANT: Due to a platform bug, this will throw
-            // NoSuchAlgorithmException
-            // on Android 4.0.x and 4.1.x. Fixed in 4.2 and higher.
-            // See https://android-review.googlesource.com/#/c/40352/
-            algorithm = "NONEwithRSA";
-        } else if ("EC".equals(keyAlgorithm)) {
-            algorithm = "NONEwithECDSA";
-        } else {
+        if (!"EC".equals(keyAlgorithm)) {
             throw new RuntimeException("Unexpected key type: " + javaKey.toString());
         }
+
+        String algorithm = "NONEwithECDSA";
 
         Signature signature;
 
@@ -130,7 +122,17 @@ final class CryptoUpcalls {
         }
     }
 
+    static byte[] rsaSignDigestWithPrivateKey(PrivateKey javaKey, int openSSLPadding,
+            byte[] message) {
+        return rsaOpWithPrivateKey(javaKey, openSSLPadding, Cipher.ENCRYPT_MODE, message);
+    }
+
     static byte[] rsaDecryptWithPrivateKey(PrivateKey javaKey, int openSSLPadding, byte[] input) {
+        return rsaOpWithPrivateKey(javaKey, openSSLPadding, Cipher.DECRYPT_MODE, input);
+    }
+
+    private static byte[] rsaOpWithPrivateKey(PrivateKey javaKey, int openSSLPadding,
+            int cipherMode, byte[] input) {
         String keyAlgorithm = javaKey.getAlgorithm();
         if (!"RSA".equals(keyAlgorithm)) {
             logger.warning("Unexpected key type: " + keyAlgorithm);
@@ -161,7 +163,7 @@ final class CryptoUpcalls {
         // try to get the most preferred provider as long as it isn't us.
         try {
             c = Cipher.getInstance(transformation);
-            c.init(Cipher.DECRYPT_MODE, javaKey);
+            c.init(cipherMode, javaKey);
 
             // Ignore it if it points back to us.
             if (Conscrypt.isConscrypt(c.getProvider())) {
@@ -185,7 +187,7 @@ final class CryptoUpcalls {
             for (Provider p : providers) {
                 try {
                     c = Cipher.getInstance(transformation, p);
-                    c.init(Cipher.DECRYPT_MODE, javaKey);
+                    c.init(cipherMode, javaKey);
                     break;
                 } catch (NoSuchAlgorithmException e) {
                     c = null;
