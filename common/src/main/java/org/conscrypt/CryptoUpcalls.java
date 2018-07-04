@@ -56,7 +56,7 @@ final class CryptoUpcalls {
         return providers;
     }
 
-    static byte[] ECSignDigestWithPrivateKey(PrivateKey javaKey, byte[] message) {
+    static byte[] ecSignDigestWithPrivateKey(PrivateKey javaKey, byte[] message) {
         // Hint: Algorithm names come from:
         // http://docs.oracle.com/javase/6/docs/technotes/guides/security/StandardNames.html
         String keyAlgorithm = javaKey.getAlgorithm();
@@ -64,8 +64,11 @@ final class CryptoUpcalls {
             throw new RuntimeException("Unexpected key type: " + javaKey.toString());
         }
 
-        String algorithm = "NONEwithECDSA";
+        return signDigestWithPrivateKey(javaKey, message, "NONEwithECDSA");
+    }
 
+    private static byte[] signDigestWithPrivateKey(PrivateKey javaKey, byte[] message,
+            String algorithm) {
         Signature signature;
 
         // Since this is a delegated key, we cannot handle providing a signature using this key.
@@ -124,7 +127,19 @@ final class CryptoUpcalls {
 
     static byte[] rsaSignDigestWithPrivateKey(PrivateKey javaKey, int openSSLPadding,
             byte[] message) {
-        return rsaOpWithPrivateKey(javaKey, openSSLPadding, Cipher.ENCRYPT_MODE, message);
+        if (!"RSA".equals(javaKey.getAlgorithm())) {
+            throw new RuntimeException("Unexpected key type: " + javaKey.toString());
+        }
+        switch (openSSLPadding) {
+            case NativeConstants.RSA_PKCS1_PADDING:
+                return signDigestWithPrivateKey(javaKey, message, "NONEwithRSA");
+            case NativeConstants.RSA_NO_PADDING:
+            case NativeConstants.RSA_PKCS1_OAEP_PADDING:
+                return rsaOpWithPrivateKey(javaKey, openSSLPadding, Cipher.ENCRYPT_MODE, message);
+            default:
+                logger.warning("Unsupported OpenSSL/BoringSSL padding: " + openSSLPadding);
+                return null;
+        }
     }
 
     static byte[] rsaDecryptWithPrivateKey(PrivateKey javaKey, int openSSLPadding, byte[] input) {

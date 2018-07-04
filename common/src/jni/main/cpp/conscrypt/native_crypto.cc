@@ -47,6 +47,7 @@
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
+#include <limits>
 #include <vector>
 
 using conscrypt::AppData;
@@ -530,19 +531,23 @@ static BIO_METHOD stream_bio_method = {
         nullptr,            /* no bio_callback_ctrl */
 };
 
-static jbyteArray ECSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, const char* message,
+static jbyteArray ecSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, const char* message,
                                               size_t message_len) {
-    JNI_TRACE("ECSignDigestWithPrivateKey(%p)", privateKey);
-    ScopedLocalRef<jbyteArray> messageArray(env, env->NewByteArray(static_cast<int>(message_len)));
+    JNI_TRACE("ecSignDigestWithPrivateKey(%p)", privateKey);
+    if (message_len > std::numeric_limits<jsize>::max()) {
+        JNI_TRACE("ecSignDigestWithPrivateKey(%p) => argument too large", privateKey);
+        return nullptr;
+    }
+    ScopedLocalRef<jbyteArray> messageArray(env, env->NewByteArray(static_cast<jsize>(message_len)));
     if (env->ExceptionCheck()) {
-        JNI_TRACE("ECSignDigestWithPrivateKey(%p) => threw exception", privateKey);
+        JNI_TRACE("ecSignDigestWithPrivateKey(%p) => threw exception", privateKey);
         return nullptr;
     }
 
     {
         ScopedByteArrayRW messageBytes(env, messageArray.get());
         if (messageBytes.get() == nullptr) {
-            JNI_TRACE("ECSignDigestWithPrivateKey(%p) => using byte array failed", privateKey);
+            JNI_TRACE("ecSignDigestWithPrivateKey(%p) => using byte array failed", privateKey);
             return nullptr;
         }
 
@@ -550,10 +555,10 @@ static jbyteArray ECSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, co
     }
 
     jmethodID rawSignMethod = env->GetStaticMethodID(conscrypt::jniutil::cryptoUpcallsClass,
-                                                     "ECSignDigestWithPrivateKey",
+                                                     "ecSignDigestWithPrivateKey",
                                                      "(Ljava/security/PrivateKey;[B)[B");
     if (rawSignMethod == nullptr) {
-        CONSCRYPT_LOG_ERROR("Could not find ECSignDigestWithPrivateKey");
+        CONSCRYPT_LOG_ERROR("Could not find ecSignDigestWithPrivateKey");
         return nullptr;
     }
 
@@ -563,8 +568,12 @@ static jbyteArray ECSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, co
 
 static jbyteArray rsaSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, jint padding,
                                               const char* message, size_t message_len) {
+    if (message_len > std::numeric_limits<jsize>::max()) {
+        JNI_TRACE("rsaSignDigestWithPrivateKey(%p) => argument too large", privateKey);
+        return nullptr;
+    }
     ScopedLocalRef<jbyteArray> messageArray(env,
-                                               env->NewByteArray(static_cast<int>(message_len)));
+                                               env->NewByteArray(static_cast<jsize>(message_len)));
     if (env->ExceptionCheck()) {
         JNI_TRACE("rsaSignDigestWithPrivateKey(%p) => threw exception", privateKey);
         return nullptr;
@@ -599,8 +608,12 @@ static jbyteArray rsaSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, j
 // OpenSSL.
 static jbyteArray rsaDecryptWithPrivateKey(JNIEnv* env, jobject privateKey, jint padding,
                                            const char* ciphertext, size_t ciphertext_len) {
+    if (ciphertext_len > std::numeric_limits<jsize>::max()) {
+        JNI_TRACE("rsaDecryptWithPrivateKey(%p) => argument too large", privateKey);
+        return nullptr;
+    }
     ScopedLocalRef<jbyteArray> ciphertextArray(env,
-                                               env->NewByteArray(static_cast<int>(ciphertext_len)));
+                                               env->NewByteArray(static_cast<jsize>(ciphertext_len)));
     if (env->ExceptionCheck()) {
         JNI_TRACE("rsaDecryptWithPrivateKey(%p) => threw exception", privateKey);
         return nullptr;
@@ -814,7 +827,7 @@ int EcdsaMethodSign(const uint8_t* digest, size_t digest_len, uint8_t* sig, unsi
 
     // Sign message with it through JNI.
     ScopedLocalRef<jbyteArray> signature(
-            env, ECSignDigestWithPrivateKey(env, private_key,
+            env, ecSignDigestWithPrivateKey(env, private_key,
                                              reinterpret_cast<const char*>(digest), digest_len));
     if (signature.get() == nullptr) {
         CONSCRYPT_LOG_ERROR("Could not sign message in EcdsaMethodDoSign!");
