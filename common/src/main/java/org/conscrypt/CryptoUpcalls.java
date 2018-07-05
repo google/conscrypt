@@ -127,19 +127,7 @@ final class CryptoUpcalls {
 
     static byte[] rsaSignDigestWithPrivateKey(PrivateKey javaKey, int openSSLPadding,
             byte[] message) {
-        if (!"RSA".equals(javaKey.getAlgorithm())) {
-            throw new RuntimeException("Unexpected key type: " + javaKey.toString());
-        }
-        switch (openSSLPadding) {
-            case NativeConstants.RSA_PKCS1_PADDING:
-                return signDigestWithPrivateKey(javaKey, message, "NONEwithRSA");
-            case NativeConstants.RSA_NO_PADDING:
-            case NativeConstants.RSA_PKCS1_OAEP_PADDING:
-                return rsaOpWithPrivateKey(javaKey, openSSLPadding, Cipher.ENCRYPT_MODE, message);
-            default:
-                logger.warning("Unsupported OpenSSL/BoringSSL padding: " + openSSLPadding);
-                return null;
-        }
+        return rsaOpWithPrivateKey(javaKey, openSSLPadding, Cipher.ENCRYPT_MODE, message);
     }
 
     static byte[] rsaDecryptWithPrivateKey(PrivateKey javaKey, int openSSLPadding, byte[] input) {
