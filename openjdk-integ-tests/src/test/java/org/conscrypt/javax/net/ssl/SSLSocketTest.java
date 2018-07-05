@@ -1040,6 +1040,9 @@ public class SSLSocketTest {
         run_SSLSocket_clientAuth_OpaqueKey(TestKeyStore.getClientEcEcCertificate());
     }
     private void run_SSLSocket_clientAuth_OpaqueKey(TestKeyStore keyStore) throws Exception {
+        // OpaqueProvider will not be allowed to operate if the VM we're running on
+        // requires Oracle signatures for provider jars, since we don't sign the test jar.
+        TestUtils.assumeAllowsUnsignedCrypto();
         try {
             Security.insertProviderAt(new OpaqueProvider(), 1);
             final TestSSLContext c = TestSSLContext.create(keyStore, TestKeyStore.getServer());
