@@ -53,6 +53,7 @@ import java.security.InvalidParameterException;
 import java.security.Key;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.Provider;
@@ -188,6 +189,7 @@ public class SSLSocketTest {
                     + "test_SSLSocket_getSupportedCipherSuites_connect:\n" + error);
         }
     }
+
     private void test_SSLSocket_getSupportedCipherSuites_connect(
             TestKeyStore testKeyStore, StringBuilder error) throws Exception {
         String clientToServerString = "this is sent from the client to the server...";
@@ -1038,6 +1040,9 @@ public class SSLSocketTest {
         run_SSLSocket_clientAuth_OpaqueKey(TestKeyStore.getClientEcEcCertificate());
     }
     private void run_SSLSocket_clientAuth_OpaqueKey(TestKeyStore keyStore) throws Exception {
+        // OpaqueProvider will not be allowed to operate if the VM we're running on
+        // requires Oracle signatures for provider jars, since we don't sign the test jar.
+        TestUtils.assumeAllowsUnsignedCrypto();
         try {
             Security.insertProviderAt(new OpaqueProvider(), 1);
             final TestSSLContext c = TestSSLContext.create(keyStore, TestKeyStore.getServer());
@@ -1109,9 +1114,9 @@ public class SSLSocketTest {
         static final String NAME = "OpaqueProvider";
         public OpaqueProvider() {
             super(NAME, 1.0, "test provider");
-            put("Signature.NONEwithRSA", OpaqueSignatureSpi.RSA.class.getName());
             put("Signature.NONEwithECDSA", OpaqueSignatureSpi.ECDSA.class.getName());
-            put("Cipher.RSA/ECB/NoPadding", OpaqueCipherSpi.class.getName());
+            put("Cipher.RSA/ECB/NoPadding", OpaqueCipherSpi.NoPadding.class.getName());
+            put("Cipher.RSA/ECB/PKCS1Padding", OpaqueCipherSpi.PKCS1Padding.class.getName());
         }
     }
     protected static class OpaqueSignatureSpi extends SignatureSpi {
@@ -1119,11 +1124,6 @@ public class SSLSocketTest {
         private Signature delegate;
         OpaqueSignatureSpi(String algorithm) {
             this.algorithm = algorithm;
-        }
-        public final static class RSA extends OpaqueSignatureSpi {
-            public RSA() {
-                super("NONEwithRSA");
-            }
         }
         public final static class ECDSA extends OpaqueSignatureSpi {
             public ECDSA() {
@@ -1172,9 +1172,22 @@ public class SSLSocketTest {
             return delegate.getParameter(param);
         }
     }
-    public static class OpaqueCipherSpi extends CipherSpi {
+    protected static class OpaqueCipherSpi extends CipherSpi {
         private Cipher delegate;
-        public OpaqueCipherSpi() {}
+        private final String algorithm;
+        public OpaqueCipherSpi(String algorithm) {
+            this.algorithm = algorithm;
+        }
+        public static final class NoPadding extends OpaqueCipherSpi {
+            public NoPadding() {
+                super("RSA/ECB/NoPadding");
+            }
+        }
+        public static final class PKCS1Padding extends OpaqueCipherSpi {
+            public PKCS1Padding() {
+                super("RSA/ECB/PKCS1Padding");
+            }
+        }
         @Override
         protected void engineSetMode(String mode) throws NoSuchAlgorithmException {
             fail();
@@ -1203,14 +1216,16 @@ public class SSLSocketTest {
         protected void engineInit(int opmode, Key key, SecureRandom random)
                 throws InvalidKeyException {
             getCipher();
-            delegate.init(opmode, key, random);
+            delegate.init(opmode, ((OpaqueDelegatingRSAPrivateKey) key).getDelegate(), random);
         }
         void getCipher() throws InvalidKeyException {
             try {
-                delegate = Cipher.getInstance("RSA/ECB/NoPadding");
+                delegate = Cipher.getInstance(algorithm, StandardNames.JSSE_PROVIDER_NAME);
             } catch (NoSuchAlgorithmException e) {
                 throw new InvalidKeyException(e);
             } catch (NoSuchPaddingException e) {
+                throw new InvalidKeyException(e);
+            } catch (NoSuchProviderException e) {
                 throw new InvalidKeyException(e);
             }
         }
@@ -1219,14 +1234,16 @@ public class SSLSocketTest {
                 int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random)
                 throws InvalidKeyException, InvalidAlgorithmParameterException {
             getCipher();
-            delegate.init(opmode, key, params, random);
+            delegate.init(opmode, ((OpaqueDelegatingRSAPrivateKey) key).getDelegate(), params,
+                    random);
         }
         @Override
         protected void engineInit(
                 int opmode, Key key, AlgorithmParameters params, SecureRandom random)
                 throws InvalidKeyException, InvalidAlgorithmParameterException {
             getCipher();
-            delegate.init(opmode, key, params, random);
+            delegate.init(opmode, ((OpaqueDelegatingRSAPrivateKey) key).getDelegate(), params,
+                    random);
         }
         @Override
         protected byte[] engineUpdate(byte[] input, int inputOffset, int inputLen) {
@@ -1240,7 +1257,7 @@ public class SSLSocketTest {
         @Override
         protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
                 throws IllegalBlockSizeException, BadPaddingException {
-            return delegate.update(input, inputOffset, inputLen);
+            return delegate.doFinal(input, inputOffset, inputLen);
         }
         @Override
         protected int engineDoFinal(

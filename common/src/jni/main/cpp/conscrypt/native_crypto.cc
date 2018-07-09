@@ -47,6 +47,7 @@
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
+#include <limits>
 #include <vector>
 
 using conscrypt::AppData;
@@ -530,18 +531,23 @@ static BIO_METHOD stream_bio_method = {
         nullptr,            /* no bio_callback_ctrl */
 };
 
-static jbyteArray rawSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, const char* message,
+static jbyteArray ecSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, const char* message,
                                               size_t message_len) {
-    ScopedLocalRef<jbyteArray> messageArray(env, env->NewByteArray(static_cast<int>(message_len)));
+    JNI_TRACE("ecSignDigestWithPrivateKey(%p)", privateKey);
+    if (message_len > std::numeric_limits<jsize>::max()) {
+        JNI_TRACE("ecSignDigestWithPrivateKey(%p) => argument too large", privateKey);
+        return nullptr;
+    }
+    ScopedLocalRef<jbyteArray> messageArray(env, env->NewByteArray(static_cast<jsize>(message_len)));
     if (env->ExceptionCheck()) {
-        JNI_TRACE("rawSignDigestWithPrivateKey(%p) => threw exception", privateKey);
+        JNI_TRACE("ecSignDigestWithPrivateKey(%p) => threw exception", privateKey);
         return nullptr;
     }
 
     {
         ScopedByteArrayRW messageBytes(env, messageArray.get());
         if (messageBytes.get() == nullptr) {
-            JNI_TRACE("rawSignDigestWithPrivateKey(%p) => using byte array failed", privateKey);
+            JNI_TRACE("ecSignDigestWithPrivateKey(%p) => using byte array failed", privateKey);
             return nullptr;
         }
 
@@ -549,15 +555,51 @@ static jbyteArray rawSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, c
     }
 
     jmethodID rawSignMethod = env->GetStaticMethodID(conscrypt::jniutil::cryptoUpcallsClass,
-                                                     "rawSignDigestWithPrivateKey",
+                                                     "ecSignDigestWithPrivateKey",
                                                      "(Ljava/security/PrivateKey;[B)[B");
     if (rawSignMethod == nullptr) {
-        CONSCRYPT_LOG_ERROR("Could not find rawSignDigestWithPrivateKey");
+        CONSCRYPT_LOG_ERROR("Could not find ecSignDigestWithPrivateKey");
         return nullptr;
     }
 
     return reinterpret_cast<jbyteArray>(env->CallStaticObjectMethod(
             conscrypt::jniutil::cryptoUpcallsClass, rawSignMethod, privateKey, messageArray.get()));
+}
+
+static jbyteArray rsaSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, jint padding,
+                                              const char* message, size_t message_len) {
+    if (message_len > std::numeric_limits<jsize>::max()) {
+        JNI_TRACE("rsaSignDigestWithPrivateKey(%p) => argument too large", privateKey);
+        return nullptr;
+    }
+    ScopedLocalRef<jbyteArray> messageArray(env,
+                                               env->NewByteArray(static_cast<jsize>(message_len)));
+    if (env->ExceptionCheck()) {
+        JNI_TRACE("rsaSignDigestWithPrivateKey(%p) => threw exception", privateKey);
+        return nullptr;
+    }
+
+    {
+        ScopedByteArrayRW messageBytes(env, messageArray.get());
+        if (messageBytes.get() == nullptr) {
+            JNI_TRACE("rsaSignDigestWithPrivateKey(%p) => using byte array failed", privateKey);
+            return nullptr;
+        }
+
+        memcpy(messageBytes.get(), message, message_len);
+    }
+
+    jmethodID rsaSignMethod =
+            env->GetStaticMethodID(conscrypt::jniutil::cryptoUpcallsClass,
+                                   "rsaSignDigestWithPrivateKey", "(Ljava/security/PrivateKey;I[B)[B");
+    if (rsaSignMethod == nullptr) {
+        CONSCRYPT_LOG_ERROR("Could not find rsaSignDigestWithPrivateKey");
+        return nullptr;
+    }
+
+    return reinterpret_cast<jbyteArray>(
+            env->CallStaticObjectMethod(conscrypt::jniutil::cryptoUpcallsClass, rsaSignMethod,
+                                        privateKey, padding, messageArray.get()));
 }
 
 // rsaDecryptWithPrivateKey uses privateKey to decrypt |ciphertext_len| bytes
@@ -566,8 +608,12 @@ static jbyteArray rawSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, c
 // OpenSSL.
 static jbyteArray rsaDecryptWithPrivateKey(JNIEnv* env, jobject privateKey, jint padding,
                                            const char* ciphertext, size_t ciphertext_len) {
+    if (ciphertext_len > std::numeric_limits<jsize>::max()) {
+        JNI_TRACE("rsaDecryptWithPrivateKey(%p) => argument too large", privateKey);
+        return nullptr;
+    }
     ScopedLocalRef<jbyteArray> ciphertextArray(env,
-                                               env->NewByteArray(static_cast<int>(ciphertext_len)));
+                                               env->NewByteArray(static_cast<jsize>(ciphertext_len)));
     if (env->ExceptionCheck()) {
         JNI_TRACE("rsaDecryptWithPrivateKey(%p) => threw exception", privateKey);
         return nullptr;
@@ -665,14 +711,7 @@ size_t RsaMethodSize(const RSA* rsa) {
 
 int RsaMethodSignRaw(RSA* rsa, size_t* out_len, uint8_t* out, size_t max_out, const uint8_t* in,
                      size_t in_len, int padding) {
-    if (padding != RSA_PKCS1_PADDING) {
-        // TODO(davidben): If we need to, we can implement RSA_NO_PADDING
-        // by using javax.crypto.Cipher and picking either the
-        // "RSA/ECB/NoPadding" or "RSA/ECB/PKCS1Padding" transformation as
-        // appropriate. I believe support for both of these was added in
-        // the same Android version as the "NONEwithRSA"
-        // java.security.Signature algorithm, so the same version checks
-        // for GetRsaLegacyKey should work.
+    if (padding != RSA_PKCS1_PADDING && padding != RSA_NO_PADDING) {
         OPENSSL_PUT_ERROR(RSA, RSA_R_UNKNOWN_PADDING_TYPE);
         return 0;
     }
@@ -691,9 +730,9 @@ int RsaMethodSignRaw(RSA* rsa, size_t* out_len, uint8_t* out, size_t max_out, co
     }
 
     // For RSA keys, this function behaves as RSA_private_encrypt with
-    // PKCS#1 padding.
+    // the specified padding.
     ScopedLocalRef<jbyteArray> signature(
-            env, rawSignDigestWithPrivateKey(env, ex_data->private_key,
+            env, rsaSignDigestWithPrivateKey(env, ex_data->private_key, padding,
                                              reinterpret_cast<const char*>(in), in_len));
 
     if (signature.get() == nullptr) {
@@ -714,7 +753,7 @@ int RsaMethodSignRaw(RSA* rsa, size_t* out_len, uint8_t* out, size_t max_out, co
         return 0;
     }
 
-    // Copy result to OpenSSL-provided buffer. RawSignDigestWithPrivateKey
+    // Copy result to OpenSSL-provided buffer. rsaSignDigestWithPrivateKey
     // should pad with leading 0s, but if it doesn't, pad the result.
     size_t zero_pad = expected_size - result.size();
     memset(out, 0, zero_pad);
@@ -788,7 +827,7 @@ int EcdsaMethodSign(const uint8_t* digest, size_t digest_len, uint8_t* sig, unsi
 
     // Sign message with it through JNI.
     ScopedLocalRef<jbyteArray> signature(
-            env, rawSignDigestWithPrivateKey(env, private_key,
+            env, ecSignDigestWithPrivateKey(env, private_key,
                                              reinterpret_cast<const char*>(digest), digest_len));
     if (signature.get() == nullptr) {
         CONSCRYPT_LOG_ERROR("Could not sign message in EcdsaMethodDoSign!");
@@ -1249,6 +1288,12 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
         return 0;
     }
 
+    // The PSS padding code needs access to the actual n, so set it even though we
+    // don't set any other parts of the key
+    if (!arrayToBignum(env, modulusBytes, &rsa->n)) {
+        return 0;
+    }
+
     auto ex_data = new KeyExData;
     ex_data->private_key = env->NewGlobalRef(javaKey);
     ex_data->cached_size = cached_size;
@@ -1269,6 +1314,7 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
         return 0;
     }
     OWNERSHIP_TRANSFERRED(rsa);
+    JNI_TRACE("getRSAPrivateKeyWrapper(%p, %p) => %p", javaKey, modulusBytes, pkey.get());
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
@@ -6448,22 +6494,6 @@ static void debug_print_packet_data(const SSL* ssl, char direction, const char* 
 }
 
 /*
- * Make sure we don't inadvertently have RSA-PSS here for now
- * since we don't support this with wrapped RSA keys yet.
- * Remove this once CryptoUpcalls supports it.
- */
-static const uint16_t kDefaultSignatureAlgorithms[] = {
-        SSL_SIGN_ECDSA_SECP256R1_SHA256,
-        SSL_SIGN_RSA_PKCS1_SHA256,
-        SSL_SIGN_ECDSA_SECP384R1_SHA384,
-        SSL_SIGN_RSA_PKCS1_SHA384,
-        SSL_SIGN_ECDSA_SECP521R1_SHA512,
-        SSL_SIGN_RSA_PKCS1_SHA512,
-        SSL_SIGN_ECDSA_SHA1,
-        SSL_SIGN_RSA_PKCS1_SHA1,
-};
-
-/*
  * public static native int SSL_CTX_new();
  */
 static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
@@ -6524,14 +6554,6 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_session_cache_mode(sslCtx.get(), SSL_SESS_CACHE_BOTH);
     SSL_CTX_sess_set_new_cb(sslCtx.get(), new_session_callback);
     SSL_CTX_sess_set_get_cb(sslCtx.get(), server_session_requested_callback);
-
-    // Disable RSA-PSS deliberately until CryptoUpcalls supports it.
-    if (!SSL_CTX_set_signing_algorithm_prefs(
-                sslCtx.get(), kDefaultSignatureAlgorithms,
-                sizeof(kDefaultSignatureAlgorithms) / sizeof(kDefaultSignatureAlgorithms[0]))) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable set signing algorithms");
-        return 0;
-    }
 
     JNI_TRACE("NativeCrypto_SSL_CTX_new => %p", sslCtx.get());
     return (jlong)sslCtx.release();
