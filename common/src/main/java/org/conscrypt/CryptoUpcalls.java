@@ -127,6 +127,7 @@ final class CryptoUpcalls {
 
     static byte[] rsaSignDigestWithPrivateKey(PrivateKey javaKey, int openSSLPadding,
             byte[] message) {
+        // An RSA cipher + ENCRYPT_MODE produces a standard RSA signature
         return rsaOpWithPrivateKey(javaKey, openSSLPadding, Cipher.ENCRYPT_MODE, message);
     }
 
@@ -145,6 +146,8 @@ final class CryptoUpcalls {
         String jcaPadding;
         switch (openSSLPadding) {
             case NativeConstants.RSA_PKCS1_PADDING:
+                // Since we're using this with a private key, this will produce RSASSA-PKCS1-v1_5
+                // (signature) padding rather than RSAES-PKCS1-v1_5 (encryption) padding
                 jcaPadding = "PKCS1Padding";
                 break;
             case NativeConstants.RSA_NO_PADDING:
