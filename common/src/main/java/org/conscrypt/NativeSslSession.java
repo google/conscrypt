@@ -166,6 +166,11 @@ abstract class NativeSslSession {
 
     abstract boolean isValid();
 
+    /**
+     * Returns whether this session should only ever be used for resumption once.
+     */
+    abstract boolean isSingleUse();
+
     abstract void offerToResume(NativeSsl ssl) throws SSLException;
 
     abstract String getCipherSuite();
@@ -255,6 +260,11 @@ abstract class NativeSslSession {
                                                  NativeCrypto.SSL_SESSION_get_timeout(ref.context)))
                     * 1000;
             return (System.currentTimeMillis() - timeoutMillis) < creationTimeMillis;
+        }
+
+        @Override
+        boolean isSingleUse() {
+            return NativeCrypto.SSL_SESSION_should_be_single_use(ref.context);
         }
 
         @Override

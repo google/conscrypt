@@ -28,6 +28,7 @@ final class MockSessionBuilder {
 
     private byte[] id;
     private boolean valid = true;
+    private boolean singleUse = false;
     private String host;
     private int port = DEFAULT_PORT;
     private String cipherSuite = DEFAULT_CIPHER_SUITE;
@@ -63,11 +64,17 @@ final class MockSessionBuilder {
         return this;
     }
 
+    MockSessionBuilder singleUse(boolean singleUse) {
+        this.singleUse = singleUse;
+        return this;
+    }
+
     NativeSslSession build() {
         NativeSslSession session = mock(NativeSslSession.class);
         byte[] id = this.id == null ? host.getBytes(UTF_8) : this.id;
         when(session.getId()).thenReturn(id);
         when(session.isValid()).thenReturn(valid);
+        when(session.isSingleUse()).thenReturn(singleUse);
         when(session.getProtocol()).thenReturn(TestUtils.getProtocols()[0]);
         when(session.getPeerHost()).thenReturn(host);
         when(session.getPeerPort()).thenReturn(port);

@@ -8755,6 +8755,18 @@ static jstring NativeCrypto_SSL_SESSION_cipher(JNIEnv* env, jclass, jlong ssl_se
     return env->NewStringUTF(name);
 }
 
+static jboolean NativeCrypto_SSL_SESSION_should_be_single_use(JNIEnv* env, jclass, jlong ssl_session_address) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
+    JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_should_be_single_use", ssl_session);
+    if (ssl_session == nullptr) {
+        return JNI_FALSE;
+    }
+    int single_use = SSL_SESSION_should_be_single_use(ssl_session);
+    JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_should_be_single_use => %d", ssl_session, single_use);
+    return single_use ? JNI_TRUE : JNI_FALSE;
+}
+
 /**
  * Increments the reference count of the session.
  */
@@ -10215,6 +10227,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_session_id, "(J" REF_SSL ")[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_SESSION_get_version, "(J)Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_SESSION_cipher, "(J)Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(SSL_SESSION_should_be_single_use, "(J)Z"),
         CONSCRYPT_NATIVE_METHOD(SSL_SESSION_up_ref, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_SESSION_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(i2d_SSL_SESSION, "(J)[B"),

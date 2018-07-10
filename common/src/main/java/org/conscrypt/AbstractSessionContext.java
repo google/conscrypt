@@ -215,6 +215,23 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     }
 
     /**
+     * Removes the given session from the cache.
+     */
+    final void removeSession(NativeSslSession session) {
+        byte[] id = session.getId();
+        if (id == null || id.length == 0) {
+            return;
+        }
+
+        onBeforeRemoveSession(session);
+
+        ByteArray key = new ByteArray(id);
+        synchronized (sessions) {
+            sessions.remove(key);
+        }
+    }
+
+    /**
      * Called for server sessions only. Retrieves the session by its ID. Overridden by
      * {@link ServerSessionContext} to
      */
@@ -229,6 +246,9 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             session = sessions.get(new ByteArray(sessionId));
         }
         if (session != null && session.isValid()) {
+            if (session.isSingleUse()) {
+                removeSession(session);
+            }
             return session;
         }
 
