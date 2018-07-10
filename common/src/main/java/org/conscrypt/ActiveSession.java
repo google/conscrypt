@@ -63,13 +63,6 @@ final class ActiveSession implements ConscryptSession {
         return id != null ? id.clone() : EmptyArray.BYTE;
     }
 
-    /**
-     * Indicates that this session's ID may have changed and should be re-cached.
-     */
-    void resetId() {
-        id = null;
-    }
-
     @Override
     public SSLSessionContext getSessionContext() {
         return isValid() ? sessionContext : null;

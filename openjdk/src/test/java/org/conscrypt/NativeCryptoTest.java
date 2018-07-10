@@ -648,7 +648,7 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
-        List<String> ciphers = new ArrayList<String>(NativeCrypto.SUPPORTED_CIPHER_SUITES_SET);
+        List<String> ciphers = new ArrayList<String>(NativeCrypto.SUPPORTED_TLS_1_2_CIPHER_SUITES_SET);
         NativeCrypto.SSL_set_cipher_lists(s, null, ciphers.toArray(new String[ciphers.size()]));
 
         NativeCrypto.SSL_free(s, null);
@@ -2589,7 +2589,7 @@ public class NativeCryptoTest {
                     SSLHandshakeCallbacks callback) throws Exception {
                 String nativeCipher = NativeCrypto.SSL_SESSION_cipher(session);
                 String javaCipher = NativeCrypto.cipherSuiteFromJava(nativeCipher);
-                assertTrue(NativeCrypto.SUPPORTED_CIPHER_SUITES_SET.contains(javaCipher));
+                assertTrue(NativeCrypto.SUPPORTED_TLS_1_2_CIPHER_SUITES_SET.contains(javaCipher));
                 // SSL_SESSION_cipher should return a standard name rather than an OpenSSL name.
                 assertTrue(nativeCipher.startsWith("TLS_"));
                 super.afterHandshake(session, s, c, sock, fd, callback);

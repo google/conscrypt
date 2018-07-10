@@ -609,7 +609,7 @@ public final class StandardNames {
     }
 
     public static final Set<String> SSL_SOCKET_PROTOCOLS =
-            new HashSet<String>(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2"));
+            new HashSet<String>(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"));
     public static final Set<String> SSL_SOCKET_PROTOCOLS_CLIENT_DEFAULT =
             new HashSet<String>(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2"));
     public static final Set<String> SSL_SOCKET_PROTOCOLS_SERVER_DEFAULT =
@@ -619,7 +619,9 @@ public final class StandardNames {
         SSLv3("SSLv3"),
         TLSv1("TLSv1"),
         TLSv11("TLSv1.1"),
-        TLSv12("TLSv1.2");
+        TLSv12("TLSv1.2"),
+        TLSv13("TLSv1.3"),
+        ;
 
         private final String name;
 
@@ -637,62 +639,38 @@ public final class StandardNames {
 
     /**
      * Valid values for X509TrustManager.checkServerTrusted authType,
-     * either key exchange algorithm part of the cipher suite
-     * or UNKNOWN.
+     * either key exchange algorithm part of the cipher suite, UNKNOWN,
+     * or GENERIC (for TLS 1.3 cipher suites that don't imply a specific
+     * key exchange method).
      */
     public static final Set<String> SERVER_AUTH_TYPES = new HashSet<String>(Arrays.asList("DHE_DSS",
             "DHE_DSS_EXPORT", "DHE_RSA", "DHE_RSA_EXPORT", "DH_DSS_EXPORT", "DH_RSA_EXPORT",
             "DH_anon", "DH_anon_EXPORT", "KRB5", "KRB5_EXPORT", "RSA", "RSA_EXPORT",
-            "RSA_EXPORT1024", "ECDH_ECDSA", "ECDH_RSA", "ECDHE_ECDSA", "ECDHE_RSA", "UNKNOWN"));
+            "RSA_EXPORT1024", "ECDH_ECDSA", "ECDH_RSA", "ECDHE_ECDSA", "ECDHE_RSA", "UNKNOWN",
+            "GENERIC"));
 
     public static final String CIPHER_SUITE_INVALID = "SSL_NULL_WITH_NULL_NULL";
 
-    public static final Set<String> CIPHER_SUITES_NEITHER = new HashSet<String>();
-
-    public static final Set<String> CIPHER_SUITES_RI = new LinkedHashSet<String>();
-    public static final Set<String> CIPHER_SUITES_OPENSSL = new LinkedHashSet<String>();
-
-    public static final Set<String> CIPHER_SUITES;
-
-    private static final void addRi(String cipherSuite) {
-        CIPHER_SUITES_RI.add(cipherSuite);
-    }
+    public static final Set<String> CIPHER_SUITES = new LinkedHashSet<String>();
 
     private static final void addOpenSsl(String cipherSuite) {
-        CIPHER_SUITES_OPENSSL.add(cipherSuite);
-    }
-
-    private static final void addBoth(String cipherSuite) {
-        addRi(cipherSuite);
-        addOpenSsl(cipherSuite);
-    }
-
-    private static final void addNeither(String cipherSuite) {
-        CIPHER_SUITES_NEITHER.add(cipherSuite);
+        CIPHER_SUITES.add(cipherSuite);
     }
 
     static {
-        // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
-        // javax.net.ssl.SSLEngine.
-        addBoth("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA");
-        addBoth("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
-        addBoth("TLS_RSA_WITH_AES_256_CBC_SHA");
-        addBoth("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
-        addBoth("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
-        addBoth("TLS_RSA_WITH_AES_128_CBC_SHA");
-        addBoth("SSL_RSA_WITH_3DES_EDE_CBC_SHA");
+        addOpenSsl("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA");
+        addOpenSsl("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
+        addOpenSsl("TLS_RSA_WITH_AES_256_CBC_SHA");
+        addOpenSsl("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
+        addOpenSsl("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
+        addOpenSsl("TLS_RSA_WITH_AES_128_CBC_SHA");
+        addOpenSsl("SSL_RSA_WITH_3DES_EDE_CBC_SHA");
 
         // TLSv1.2 cipher suites
-        addRi("TLS_RSA_WITH_AES_128_CBC_SHA256");
-        addRi("TLS_RSA_WITH_AES_256_CBC_SHA256");
         addOpenSsl("TLS_RSA_WITH_AES_128_GCM_SHA256");
         addOpenSsl("TLS_RSA_WITH_AES_256_GCM_SHA384");
-        addRi("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
-        addRi("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
         addOpenSsl("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
         addOpenSsl("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
-        addRi("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
-        addRi("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384");
         addOpenSsl("TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
         addOpenSsl("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
         addOpenSsl("TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256");
@@ -705,103 +683,17 @@ public final class StandardNames {
         addOpenSsl("TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA");
         addOpenSsl("TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256");
 
+        // TLS 1.3 cipher suites
+        addOpenSsl("TLS_AES_128_GCM_SHA256");
+        addOpenSsl("TLS_AES_256_GCM_SHA384");
+        addOpenSsl("TLS_CHACHA20_POLY1305_SHA256");
+
         // RFC 5746's Signaling Cipher Suite Value to indicate a request for secure renegotiation
-        addBoth(CIPHER_SUITE_SECURE_RENEGOTIATION);
+        addOpenSsl(CIPHER_SUITE_SECURE_RENEGOTIATION);
 
         // From https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-00 to indicate
         // TLS fallback request
         addOpenSsl(CIPHER_SUITE_FALLBACK);
-
-        // non-defaultCipherSuites
-
-        // Android does not have Kerberos support
-        addRi("TLS_KRB5_WITH_RC4_128_SHA");
-        addRi("TLS_KRB5_WITH_RC4_128_MD5");
-        addRi("TLS_KRB5_WITH_3DES_EDE_CBC_SHA");
-        addRi("TLS_KRB5_WITH_3DES_EDE_CBC_MD5");
-        addRi("TLS_KRB5_WITH_DES_CBC_SHA");
-        addRi("TLS_KRB5_WITH_DES_CBC_MD5");
-        addRi("TLS_KRB5_EXPORT_WITH_RC4_40_SHA");
-        addRi("TLS_KRB5_EXPORT_WITH_RC4_40_MD5");
-        addRi("TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA");
-        addRi("TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5");
-
-        // Android does not have DSS support
-        addRi("SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA");
-        addRi("SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA");
-        addRi("SSL_DHE_DSS_WITH_DES_CBC_SHA");
-        addRi("TLS_DHE_DSS_WITH_AES_128_CBC_SHA");
-        addRi("TLS_DHE_DSS_WITH_AES_128_CBC_SHA256");
-        addNeither("TLS_DHE_DSS_WITH_AES_128_GCM_SHA256");
-        addRi("TLS_DHE_DSS_WITH_AES_256_CBC_SHA");
-        addRi("TLS_DHE_DSS_WITH_AES_256_CBC_SHA256");
-        addNeither("TLS_DHE_DSS_WITH_AES_256_GCM_SHA384");
-
-        // Android does not have RC4 support
-        addRi("TLS_ECDHE_ECDSA_WITH_RC4_128_SHA");
-        addRi("TLS_ECDHE_RSA_WITH_RC4_128_SHA");
-        addRi("SSL_RSA_WITH_RC4_128_SHA");
-        addRi("SSL_RSA_WITH_RC4_128_MD5");
-
-        // Dropped
-        addNeither("SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA");
-        addNeither("SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA");
-        addRi("SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
-        addRi("SSL_DH_anon_EXPORT_WITH_RC4_40_MD5");
-        addRi("SSL_DH_anon_WITH_3DES_EDE_CBC_SHA");
-        addRi("SSL_DH_anon_WITH_DES_CBC_SHA");
-        addRi("SSL_DH_anon_WITH_RC4_128_MD5");
-        addRi("SSL_RSA_EXPORT_WITH_DES40_CBC_SHA");
-        addRi("SSL_RSA_EXPORT_WITH_RC4_40_MD5");
-        addRi("SSL_RSA_WITH_DES_CBC_SHA");
-        addRi("SSL_RSA_WITH_NULL_MD5");
-        addRi("SSL_RSA_WITH_NULL_SHA");
-        addRi("TLS_DH_anon_WITH_AES_128_CBC_SHA");
-        addRi("TLS_DH_anon_WITH_AES_128_CBC_SHA256");
-        addNeither("TLS_DH_anon_WITH_AES_128_GCM_SHA256");
-        addRi("TLS_DH_anon_WITH_AES_256_CBC_SHA");
-        addRi("TLS_DH_anon_WITH_AES_256_CBC_SHA256");
-        addNeither("TLS_DH_anon_WITH_AES_256_GCM_SHA384");
-        addRi("TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA");
-        addRi("TLS_ECDHE_ECDSA_WITH_NULL_SHA");
-        addRi("TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA");
-        addRi("TLS_ECDHE_RSA_WITH_NULL_SHA");
-        addRi("TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA");
-        addRi("TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA");
-        addRi("TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256");
-        addNeither("TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256");
-        addRi("TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA");
-        addRi("TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384");
-        addNeither("TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384");
-        addRi("TLS_ECDH_ECDSA_WITH_NULL_SHA");
-        addRi("TLS_ECDH_ECDSA_WITH_RC4_128_SHA");
-        addRi("TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA");
-        addRi("TLS_ECDH_RSA_WITH_AES_128_CBC_SHA");
-        addRi("TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256");
-        addNeither("TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256");
-        addRi("TLS_ECDH_RSA_WITH_AES_256_CBC_SHA");
-        addRi("TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384");
-        addNeither("TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384");
-        addRi("TLS_ECDH_RSA_WITH_NULL_SHA");
-        addRi("TLS_ECDH_RSA_WITH_RC4_128_SHA");
-        addRi("TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA");
-        addRi("TLS_ECDH_anon_WITH_AES_128_CBC_SHA");
-        addRi("TLS_ECDH_anon_WITH_AES_256_CBC_SHA");
-        addRi("TLS_ECDH_anon_WITH_NULL_SHA");
-        addRi("TLS_ECDH_anon_WITH_RC4_128_SHA");
-        addNeither("TLS_PSK_WITH_3DES_EDE_CBC_SHA");
-        addRi("TLS_RSA_WITH_NULL_SHA256");
-
-        // Old non standard exportable encryption
-        addNeither("SSL_RSA_EXPORT1024_WITH_DES_CBC_SHA");
-        addNeither("SSL_RSA_EXPORT1024_WITH_RC4_56_SHA");
-
-        // No RC2
-        addNeither("SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5");
-        addNeither("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA");
-        addNeither("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5");
-
-        CIPHER_SUITES = CIPHER_SUITES_OPENSSL;
     }
 
     /**
@@ -818,6 +710,14 @@ public final class StandardNames {
             "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
             "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA",
             "SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
+
+    /**
+     * Cipher suites that are only supported with TLS 1.3.
+     */
+    public static final List<String> CIPHER_SUITES_TLS13 = Arrays.asList(
+            "TLS_AES_128_GCM_SHA256",
+            "TLS_AES_256_GCM_SHA384",
+            "TLS_CHACHA20_POLY1305_SHA256");
 
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.

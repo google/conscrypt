@@ -17,10 +17,16 @@
 package org.conscrypt.javax.net.ssl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
+import libcore.java.security.StandardNames;
+import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -38,7 +44,9 @@ public class SSLServerSocketTest {
     public void testSetEnabledCipherSuitesAffectsGetter() throws Exception {
         SSLServerSocket socket =
                 (SSLServerSocket) SSLServerSocketFactory.getDefault().createServerSocket();
-        String[] cipherSuites = new String[] {socket.getSupportedCipherSuites()[0]};
+        String[] cipherSuites = new String[] {
+                TestUtils.pickArbitraryNonTls13Suite(socket.getSupportedCipherSuites())
+        };
         socket.setEnabledCipherSuites(cipherSuites);
         assertEquals(Arrays.asList(cipherSuites), Arrays.asList(socket.getEnabledCipherSuites()));
     }
@@ -72,5 +80,31 @@ public class SSLServerSocketTest {
         socket.setEnabledProtocols(array);
         array[0] = "Modified after having been set";
         assertEquals(originalFirstElement, socket.getEnabledProtocols()[0]);
+    }
+
+    @Test
+    public void test_SSLSocket_setEnabledCipherSuites_TLS13() throws Exception {
+        SSLContext context = SSLContext.getInstance("TLSv1.3");
+        context.init(null, null, null);
+        SSLServerSocketFactory sf = context.getServerSocketFactory();
+        SSLServerSocket ssl = (SSLServerSocket) sf.createServerSocket();
+        // The TLS 1.3 cipher suites should be enabled by default
+        assertTrue(new HashSet<String>(Arrays.asList(ssl.getEnabledCipherSuites()))
+                .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+        // Disabling them should be ignored
+        ssl.setEnabledCipherSuites(new String[0]);
+        assertTrue(new HashSet<String>(Arrays.asList(ssl.getEnabledCipherSuites()))
+                .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+
+        ssl.setEnabledCipherSuites(new String[] {
+                TestUtils.pickArbitraryNonTls13Suite(ssl.getSupportedCipherSuites())
+        });
+        assertTrue(new HashSet<String>(Arrays.asList(ssl.getEnabledCipherSuites()))
+                .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+
+        // Disabling TLS 1.3 should disable 1.3 cipher suites
+        ssl.setEnabledProtocols(new String[] { "TLSv1.2" });
+        assertFalse(new HashSet<String>(Arrays.asList(ssl.getEnabledCipherSuites()))
+                .containsAll(StandardNames.CIPHER_SUITES_TLS13));
     }
 }

@@ -153,6 +153,15 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
     /**
      * Public to allow construction via the provider framework.
      */
+    public static final class TLSv13 extends OpenSSLContextImpl {
+        public TLSv13() {
+            super(NativeCrypto.TLSV13_PROTOCOLS);
+        }
+    }
+
+    /**
+     * Public to allow construction via the provider framework.
+     */
     public static final class TLSv12 extends OpenSSLContextImpl {
         public TLSv12() {
             super(NativeCrypto.TLSV12_PROTOCOLS);

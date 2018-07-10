@@ -71,6 +71,7 @@ public final class OpenSSLProvider extends Provider {
         put("SSLContext.TLSv1", classOpenSSLContextImpl + "$TLSv1");
         put("SSLContext.TLSv1.1", classOpenSSLContextImpl + "$TLSv11");
         put("SSLContext.TLSv1.2", tls12SSLContext);
+        put("SSLContext.TLSv1.3", classOpenSSLContextImpl + "$TLSv13");
         put("SSLContext.Default", PREFIX + "DefaultSSLContextImpl");
 
         if (includeTrustManager) {

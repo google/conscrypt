@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -52,6 +53,7 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 import libcore.io.Streams;
+import libcore.java.security.StandardNames;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Assume;
@@ -510,6 +512,20 @@ public final class TestUtils {
                 task.run();
             }
         }
+    }
+
+    public static String pickArbitraryNonTls13Suite(String[] cipherSuites) {
+        return pickArbitraryNonTls13Suite(Arrays.asList(cipherSuites));
+    }
+
+    public static String pickArbitraryNonTls13Suite(Iterable<String> cipherSuites) {
+        for (String cipherSuite : cipherSuites) {
+            if (!StandardNames.CIPHER_SUITES_TLS13.contains(cipherSuite)) {
+                return cipherSuite;
+            }
+        }
+        fail("No non-TLSv1.3 cipher suite available.");
+        return null;
     }
 
     /**
