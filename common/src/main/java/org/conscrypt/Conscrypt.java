@@ -82,6 +82,23 @@ public final class Conscrypt {
     }
 
     /**
+     * Constructs a new {@link Provider} with the default name that also provides an implementation
+     * of {@link javax.net.ssl.TrustManagerFactory}.
+     */
+    public static Provider newProviderWithTrustManager() {
+        return newProviderWithTrustManager(Platform.getDefaultProviderName());
+    }
+
+    /**
+     * Constructs a new {@link Provider} with the given name that also provides an implementation
+     * of {@link javax.net.ssl.TrustManagerFactory}.
+     */
+    public static Provider newProviderWithTrustManager(String providerName) {
+        checkAvailability();
+        return new OpenSSLProvider(providerName, true);
+    }
+
+    /**
      * Returns the maximum length (in bytes) of an encrypted packet.
      */
     public static int maxEncryptedPacketLength() {

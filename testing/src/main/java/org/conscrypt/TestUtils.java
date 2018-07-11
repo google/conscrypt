@@ -181,7 +181,8 @@ public final class TestUtils {
 
     public static Provider getConscryptProvider() {
         try {
-            return (Provider) conscryptClass("OpenSSLProvider").getConstructor().newInstance();
+            return (Provider) conscryptClass("Conscrypt")
+                    .getMethod("newProviderWithTrustManager").invoke(null);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

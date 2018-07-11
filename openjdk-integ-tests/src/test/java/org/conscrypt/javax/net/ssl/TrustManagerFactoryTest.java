@@ -41,6 +41,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import libcore.java.security.StandardNames;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
+import org.conscrypt.Conscrypt;
 import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,8 +64,9 @@ public class TrustManagerFactoryTest {
         return TEST_KEY_STORE;
     }
 
-    private static boolean supportsManagerFactoryParameters(String algorithm) {
-        return (StandardNames.IS_RI && algorithm.equals("PKIX"));
+    private static boolean supportsManagerFactoryParameters(TrustManagerFactory tmf) {
+        return (StandardNames.IS_RI && tmf.getAlgorithm().equals("PKIX")
+            && !Conscrypt.isConscrypt(tmf.getProvider()));
     }
 
     @Test
@@ -120,7 +122,7 @@ public class TrustManagerFactoryTest {
         X509CertSelector xcs = new X509CertSelector();
         PKIXBuilderParameters pbp = new PKIXBuilderParameters(getTestKeyStore().keyStore, xcs);
         CertPathTrustManagerParameters cptmp = new CertPathTrustManagerParameters(pbp);
-        if (supportsManagerFactoryParameters(tmf.getAlgorithm())) {
+        if (supportsManagerFactoryParameters(tmf)) {
             tmf.init(cptmp);
             test_TrustManagerFactory_getTrustManagers(tmf);
         } else {
@@ -149,12 +151,12 @@ public class TrustManagerFactoryTest {
         for (TrustManager trustManager : trustManagers) {
             assertNotNull(trustManager);
             if (trustManager instanceof X509TrustManager) {
-                test_X509TrustManager((X509TrustManager) trustManager);
+                test_X509TrustManager(tmf.getProvider(), (X509TrustManager) trustManager);
             }
         }
     }
 
-    private void test_X509TrustManager(X509TrustManager tm) throws Exception {
+    private void test_X509TrustManager(Provider p, X509TrustManager tm) throws Exception {
         for (String keyType : KEY_TYPES) {
             X509Certificate[] issuers = tm.getAcceptedIssuers();
             assertNotNull(issuers);
@@ -162,7 +164,8 @@ public class TrustManagerFactoryTest {
             assertNotSame(issuers, tm.getAcceptedIssuers());
             boolean defaultTrustManager
                     // RI de-duplicates certs from TrustedCertificateEntry and PrivateKeyEntry
-                    = issuers.length > (StandardNames.IS_RI ? 1 : 2) * KEY_TYPES.length;
+                    = issuers.length >
+                    (StandardNames.IS_RI && !Conscrypt.isConscrypt(p) ? 1 : 2) * KEY_TYPES.length;
 
             String keyAlgName = TestKeyStore.keyAlgorithm(keyType);
             String sigAlgName = TestKeyStore.signatureAlgorithm(keyType);

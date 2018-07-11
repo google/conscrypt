@@ -50,6 +50,10 @@ public final class OpenSSLProvider extends Provider {
     }
 
     public OpenSSLProvider(String providerName) {
+        this(providerName, false);
+    }
+
+    public OpenSSLProvider(String providerName, boolean includeTrustManager) {
         super(providerName, 1.0, "Android's OpenSSL-backed security provider");
 
         // Ensure that the native library has been loaded.
@@ -68,6 +72,11 @@ public final class OpenSSLProvider extends Provider {
         put("SSLContext.TLSv1.1", classOpenSSLContextImpl + "$TLSv11");
         put("SSLContext.TLSv1.2", tls12SSLContext);
         put("SSLContext.Default", PREFIX + "DefaultSSLContextImpl");
+
+        if (includeTrustManager) {
+            put("TrustManagerFactory.PKIX", TrustManagerFactoryImpl.class.getName());
+            put("Alg.Alias.TrustManagerFactory.X509", "PKIX");
+        }
 
         /* === AlgorithmParameters === */
         put("AlgorithmParameters.AES", PREFIX + "IvParameters$AES");
