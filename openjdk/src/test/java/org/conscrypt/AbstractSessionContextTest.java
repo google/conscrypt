@@ -98,7 +98,6 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
 
     @Test
     public void testRemoveIfSingleUse() {
-        context.setSessionCacheSize(10);
         NativeSslSession a = new MockSessionBuilder().host("a").singleUse(false).build();
         NativeSslSession b = new MockSessionBuilder().host("b").singleUse(true).build();
 

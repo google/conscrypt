@@ -17,8 +17,11 @@
 package org.conscrypt;
 
 import static org.conscrypt.MockSessionBuilder.DEFAULT_PORT;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.security.KeyManagementException;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -47,5 +50,43 @@ public class ClientSessionContextTest extends AbstractSessionContextTest<ClientS
         } catch (KeyManagementException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Test
+    public void testNoMixingOfSingleAndMultiUseSessions() {
+        ClientSessionContext context = newContext();
+
+        NativeSslSession a = new MockSessionBuilder().host("a").singleUse(false).build();
+        NativeSslSession bSingle1 = new MockSessionBuilder()
+                .id(new byte[] {1}).host("b").singleUse(true).build();
+        NativeSslSession bSingle2 = new MockSessionBuilder()
+                .id(new byte[] {2}).host("b").singleUse(true).build();
+        NativeSslSession bMulti = new MockSessionBuilder()
+                .id(new byte[] {3}).host("b").singleUse(false).build();
+
+        context.cacheSession(a);
+        assertEquals(1, size(context));
+
+        context.cacheSession(bSingle1);
+        assertEquals(2, size(context));
+
+        context.cacheSession(bSingle2);
+        assertEquals(3, size(context));
+
+        context.cacheSession(bMulti);
+        assertEquals(2, size(context));
+
+        NativeSslSession out = context.getCachedSession(
+                "b", DEFAULT_PORT, getDefaultSSLParameters());
+        assertEquals(bMulti, out);
+
+        context.cacheSession(bSingle2);
+        assertEquals(2, size(context));
+
+        out = context.getCachedSession("b", DEFAULT_PORT, getDefaultSSLParameters());
+        assertEquals(bSingle2, out);
+
+        out = context.getCachedSession("b", DEFAULT_PORT, getDefaultSSLParameters());
+        assertNull(out);
     }
 }

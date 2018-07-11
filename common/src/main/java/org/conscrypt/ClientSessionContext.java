@@ -33,6 +33,10 @@ public final class ClientSessionContext extends AbstractSessionContext {
     /**
      * Sessions indexed by host and port. Protect from concurrent
      * access by holding a lock on sessionsByHostAndPort.
+     *
+     * Invariant: Each list includes either exactly one multi-use session or one
+     * or more single-use sessions.  The types of sessions are never mixed, and adding
+     * a session of one kind will remove all sessions of the other kind.
      */
     @SuppressWarnings("serial")
     private final Map<HostAndPort, List<NativeSslSession>> sessionsByHostAndPort = new HashMap<HostAndPort, List<NativeSslSession>>();
@@ -95,7 +99,13 @@ public final class ClientSessionContext extends AbstractSessionContext {
     }
 
     int size() {
-        return sessionsByHostAndPort.size();
+        int size = 0;
+        synchronized (sessionsByHostAndPort) {
+            for (List<NativeSslSession> sessions : sessionsByHostAndPort.values()) {
+                size += sessions.size();
+            }
+        }
+        return size;
     }
 
     /**
@@ -143,6 +153,19 @@ public final class ClientSessionContext extends AbstractSessionContext {
             if (sessions == null) {
                 sessions = new ArrayList<NativeSslSession>();
                 sessionsByHostAndPort.put(key, sessions);
+            }
+            // To maintain the invariant that single- and multi-use sessions aren't
+            // mixed, check what the current list contains and remove those sessions if
+            // they're of the other type.
+            if (sessions.size() > 0) {
+                if (sessions.get(0).isSingleUse() != session.isSingleUse()) {
+                    while (!sessions.isEmpty()) {
+                        removeSession(sessions.get(0));
+                    }
+                    // The last removeSession() call will have removed the list from
+                    // the map, so put it back.
+                    sessionsByHostAndPort.put(key, sessions);
+                }
             }
             sessions.add(session);
         }
