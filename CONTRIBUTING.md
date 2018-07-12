@@ -31,7 +31,30 @@ beforehand.
 
 ## Proposing changes
 
-Make sure that `./gradlew build` (`gradlew build` on Windows) completes
+Make sure that `./gradlew check` (`gradlew check` on Windows) completes
 successfully without any new warnings (see [Building](BUILDING.md)). Then create a Pull Request
 with your changes. When the changes are accepted, they will be merged or cherry-picked by
 a Conscrypt developer.
+
+## Source Overview
+
+The high-level modules are __Common__, __Android__, __OpenJDK__, and __Platform__.
+
+### Common
+
+This contains the bulk of the code for both Java and C. This isn't an actual module and builds no
+artifacts. Rather, the other modules just point to this directory as source.
+
+### Android
+
+This module provides the `Platform` class for Android and also adds compatibility classes for
+supporting various versions of Android. This generates an `aar` library artifact.
+
+### OpenJDK
+
+These modules provide the `Platform` class for non-Android (OpenJDK-based) systems. It also provides
+a native library loader supports bundling the shared library with the JAR.
+
+### Platform
+This module contains code that is bundled with the Android operating system. The inclusion in the
+build is only to ensure that changes to other modules do not accidentally break the Android build.
