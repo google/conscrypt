@@ -763,24 +763,31 @@ public final class NativeCrypto {
 
     private static final String[] SUPPORTED_CIPHER_SUITES;
     static {
-        String[] allCipherSuites = get_cipher_names("ALL:!DHE");
+        if (loadError == null) {
+            // If loadError is not null, it means the native code was not loaded, so
+            // get_cipher_names will throw UnsatisfiedLinkError.
+            String[] allCipherSuites = get_cipher_names("ALL:!DHE");
 
-        // get_cipher_names returns an array where even indices are the standard name and odd
-        // indices are the OpenSSL name.
-        int size = allCipherSuites.length;
-        if (size % 2 != 0) {
-            throw new IllegalArgumentException("Invalid cipher list returned by get_cipher_names");
-        }
-        SUPPORTED_CIPHER_SUITES = new String[size / 2 + 2];
-        for (int i = 0; i < size; i += 2) {
-            String cipherSuite = cipherSuiteToJava(allCipherSuites[i]);
-            SUPPORTED_CIPHER_SUITES[i / 2] = cipherSuite;
-            SUPPORTED_CIPHER_SUITES_SET.add(cipherSuite);
+            // get_cipher_names returns an array where even indices are the standard name and odd
+            // indices are the OpenSSL name.
+            int size = allCipherSuites.length;
+            if (size % 2 != 0) {
+                throw new IllegalArgumentException(
+                        "Invalid cipher list returned by get_cipher_names");
+            }
+            SUPPORTED_CIPHER_SUITES = new String[size / 2 + 2];
+            for (int i = 0; i < size; i += 2) {
+                String cipherSuite = cipherSuiteToJava(allCipherSuites[i]);
+                SUPPORTED_CIPHER_SUITES[i / 2] = cipherSuite;
+                SUPPORTED_CIPHER_SUITES_SET.add(cipherSuite);
 
-            SUPPORTED_LEGACY_CIPHER_SUITES_SET.add(allCipherSuites[i + 1]);
+                SUPPORTED_LEGACY_CIPHER_SUITES_SET.add(allCipherSuites[i + 1]);
+            }
+            SUPPORTED_CIPHER_SUITES[size / 2] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
+            SUPPORTED_CIPHER_SUITES[size / 2 + 1] = TLS_FALLBACK_SCSV;
+        } else {
+            SUPPORTED_CIPHER_SUITES = new String[0];
         }
-        SUPPORTED_CIPHER_SUITES[size / 2] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
-        SUPPORTED_CIPHER_SUITES[size / 2 + 1] = TLS_FALLBACK_SCSV;
     }
 
     /**
