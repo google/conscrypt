@@ -181,12 +181,15 @@ public final class TestUtils {
 
     public static Provider getConscryptProvider() {
         try {
-            if (isClassAvailable("javax.net.ssl.X509ExtendedTrustManager")) {
-                return (Provider) conscryptClass("Conscrypt")
-                        .getMethod("newProviderWithTrustManager").invoke(null);
+            if (!isClassAvailable("javax.net.ssl.X509ExtendedTrustManager")) {
+                return (Provider) conscryptClass("OpenSSLProvider").getConstructor().newInstance();
             } else {
-                return (Provider) conscryptClass("Conscrypt")
-                        .getMethod("newProvider").invoke(null);
+                String defaultName = (String) conscryptClass("Platform")
+                    .getDeclaredMethod("getDefaultProviderName")
+                    .invoke(null);
+                return (Provider) conscryptClass("OpenSSLProvider")
+                    .getDeclaredConstructor(String.class, Boolean.TYPE)
+                    .newInstance(defaultName, true);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

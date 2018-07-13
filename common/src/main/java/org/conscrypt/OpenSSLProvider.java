@@ -53,7 +53,7 @@ public final class OpenSSLProvider extends Provider {
         this(providerName, false);
     }
 
-    public OpenSSLProvider(String providerName, boolean includeTrustManager) {
+    OpenSSLProvider(String providerName, boolean includeTrustManager) {
         super(providerName, 1.0, "Android's OpenSSL-backed security provider");
 
         // Ensure that the native library has been loaded.
