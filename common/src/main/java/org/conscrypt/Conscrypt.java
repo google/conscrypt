@@ -81,12 +81,12 @@ public final class Conscrypt {
     @Deprecated
     public static Provider newProvider(String providerName) {
         checkAvailability();
-        return new OpenSSLProvider(providerName);
+        return new OpenSSLProvider(providerName, false);
     }
 
     public static class ProviderBuilder {
-        private String name;
-        private boolean provideTrustManager = false;
+        private String name = Platform.getDefaultProviderName();
+        private boolean provideTrustManager;
 
         private ProviderBuilder() {}
 
