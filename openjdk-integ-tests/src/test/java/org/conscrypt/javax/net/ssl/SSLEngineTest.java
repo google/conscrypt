@@ -36,6 +36,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -754,17 +756,25 @@ public class SSLEngineTest {
     @Test
     public void test_SSLEngine_endpointVerification_Success() throws Exception {
         TestUtils.assumeSetEndpointIdentificationAlgorithmAvailable();
-        TestSSLContext c = TestSSLContext.create();
-        TestSSLEnginePair p = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
-            @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
-                SSLParameters p = client.getSSLParameters();
-                p.setEndpointIdentificationAlgorithm("HTTPS");
-                client.setSSLParameters(p);
-            }
-        });
-        assertConnected(p);
-        c.close();
+        // The default hostname verifier on OpenJDK just rejects all hostnames,
+        // which is not helpful, so replace with a basic functional one.
+        HostnameVerifier oldDefault = HttpsURLConnection.getDefaultHostnameVerifier();
+        HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
+        try {
+            TestSSLContext c = TestSSLContext.create();
+            TestSSLEnginePair p = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
+                @Override
+                void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                    SSLParameters p = client.getSSLParameters();
+                    p.setEndpointIdentificationAlgorithm("HTTPS");
+                    client.setSSLParameters(p);
+                }
+            });
+            assertConnected(p);
+            c.close();
+        } finally {
+            HttpsURLConnection.setDefaultHostnameVerifier(oldDefault);
+        }
     }
 
     @Test

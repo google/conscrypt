@@ -96,6 +96,8 @@ import javax.net.SocketFactory;
 import javax.net.ssl.ExtendedSSLSession;
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
@@ -1651,44 +1653,53 @@ public class SSLSocketTest {
     @Test
     public void test_SSLSocket_endpointIdentification_Success() throws Exception {
         TestUtils.assumeSetEndpointIdentificationAlgorithmAvailable();
-        final TestSSLContext c = TestSSLContext.create();
-        SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket();
-        SSLParameters p = client.getSSLParameters();
-        p.setEndpointIdentificationAlgorithm("HTTPS");
-        client.setSSLParameters(p);
-        client.connect(new InetSocketAddress(c.host, c.port));
-        final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                server.startHandshake();
-                assertNotNull(server.getSession());
-                try {
-                    server.getSession().getPeerCertificates();
-                    fail();
-                } catch (SSLPeerUnverifiedException expected) {
-                    // Ignored.
+        // The default hostname verifier on OpenJDK just rejects all hostnames,
+        // which is not helpful, so replace with a basic functional one.
+        HostnameVerifier oldDefault = HttpsURLConnection.getDefaultHostnameVerifier();
+        HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
+        try {
+            final TestSSLContext c = TestSSLContext.create();
+            SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket();
+            SSLParameters p = client.getSSLParameters();
+            p.setEndpointIdentificationAlgorithm("HTTPS");
+            client.setSSLParameters(p);
+            client.connect(new InetSocketAddress(c.host, c.port));
+            final SSLSocket server = (SSLSocket) c.serverSocket.accept();
+            Future<Void> future = runAsync(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    server.startHandshake();
+                    assertNotNull(server.getSession());
+                    try {
+                        server.getSession().getPeerCertificates();
+                        fail();
+                    } catch (SSLPeerUnverifiedException expected) {
+                        // Ignored.
+                    }
+                    Certificate[] localCertificates = server.getSession().getLocalCertificates();
+                    assertNotNull(localCertificates);
+                    TestKeyStore.assertChainLength(localCertificates);
+                    assertNotNull(localCertificates[0]);
+                    TestSSLContext
+                            .assertCertificateInKeyStore(localCertificates[0], c.serverKeyStore);
+                    return null;
                 }
-                Certificate[] localCertificates = server.getSession().getLocalCertificates();
-                assertNotNull(localCertificates);
-                TestKeyStore.assertChainLength(localCertificates);
-                assertNotNull(localCertificates[0]);
-                TestSSLContext.assertCertificateInKeyStore(localCertificates[0], c.serverKeyStore);
-                return null;
-            }
-        });
-        client.startHandshake();
-        assertNotNull(client.getSession());
-        assertNull(client.getSession().getLocalCertificates());
-        Certificate[] peerCertificates = client.getSession().getPeerCertificates();
-        assertNotNull(peerCertificates);
-        TestKeyStore.assertChainLength(peerCertificates);
-        assertNotNull(peerCertificates[0]);
-        TestSSLContext.assertCertificateInKeyStore(peerCertificates[0], c.serverKeyStore);
-        future.get();
-        client.close();
-        server.close();
-        c.close();
+            });
+            client.startHandshake();
+            assertNotNull(client.getSession());
+            assertNull(client.getSession().getLocalCertificates());
+            Certificate[] peerCertificates = client.getSession().getPeerCertificates();
+            assertNotNull(peerCertificates);
+            TestKeyStore.assertChainLength(peerCertificates);
+            assertNotNull(peerCertificates[0]);
+            TestSSLContext.assertCertificateInKeyStore(peerCertificates[0], c.serverKeyStore);
+            future.get();
+            client.close();
+            server.close();
+            c.close();
+        } finally {
+            HttpsURLConnection.setDefaultHostnameVerifier(oldDefault);
+        }
     }
 
     @Test

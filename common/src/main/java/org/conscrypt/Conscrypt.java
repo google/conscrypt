@@ -75,10 +75,45 @@ public final class Conscrypt {
 
     /**
      * Constructs a new {@link Provider} with the given name.
+     *
+     * @deprecated Use {@link #newProviderBuilder()} instead.
      */
+    @Deprecated
     public static Provider newProvider(String providerName) {
         checkAvailability();
-        return new OpenSSLProvider(providerName);
+        return new OpenSSLProvider(providerName, false);
+    }
+
+    public static class ProviderBuilder {
+        private String name = Platform.getDefaultProviderName();
+        private boolean provideTrustManager;
+
+        private ProviderBuilder() {}
+
+        /**
+         * Sets the name of the Provider to be built.
+         */
+        public ProviderBuilder setName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        /**
+         * Causes the returned provider to provide an implementation of
+         * {@link javax.net.ssl.TrustManagerFactory}.
+         */
+        public ProviderBuilder provideTrustManager() {
+            this.provideTrustManager = true;
+            return this;
+        }
+
+        public Provider build() {
+            return new OpenSSLProvider(name, provideTrustManager);
+        }
+    }
+
+    public static ProviderBuilder newProviderBuilder() {
+        return new ProviderBuilder();
     }
 
     /**

@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -181,7 +182,17 @@ public final class TestUtils {
 
     public static Provider getConscryptProvider() {
         try {
-            return (Provider) conscryptClass("OpenSSLProvider").getConstructor().newInstance();
+            String defaultName = (String) conscryptClass("Platform")
+                .getDeclaredMethod("getDefaultProviderName")
+                .invoke(null);
+            Constructor<?> c = conscryptClass("OpenSSLProvider")
+                .getDeclaredConstructor(String.class, Boolean.TYPE);
+
+            if (!isClassAvailable("javax.net.ssl.X509ExtendedTrustManager")) {
+                return (Provider) c.newInstance(defaultName, false);
+            } else {
+                return (Provider) c.newInstance(defaultName, true);
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
