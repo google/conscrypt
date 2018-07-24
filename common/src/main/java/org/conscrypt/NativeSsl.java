@@ -215,9 +215,10 @@ final class NativeSsl {
         return secretKeyBytes.length;
     }
 
-    void chooseClientCertificate(byte[] keyTypeBytes, byte[][] asn1DerEncodedPrincipals)
+    void chooseClientCertificate(byte[] keyTypeBytes, int[] signatureAlgs,
+            byte[][] asn1DerEncodedPrincipals)
             throws SSLException, CertificateEncodingException {
-        Set<String> keyTypesSet = SSLUtils.getSupportedClientKeyTypes(keyTypeBytes);
+        Set<String> keyTypesSet = SSLUtils.getSupportedClientKeyTypes(keyTypeBytes, signatureAlgs);
         String[] keyTypes = keyTypesSet.toArray(new String[keyTypesSet.size()]);
 
         X500Principal[] issuers;

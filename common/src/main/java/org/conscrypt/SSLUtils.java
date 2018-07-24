@@ -242,7 +242,8 @@ final class SSLUtils {
      * Visible for testing.
      */
     static String getClientKeyType(byte clientCertificateType) {
-        // See also http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
+        // See also
+        // https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml#tls-parameters-2
         switch (clientCertificateType) {
             case NativeConstants.TLS_CT_RSA_SIGN:
                 return KEY_TYPE_RSA; // RFC rsa_sign
@@ -253,28 +254,76 @@ final class SSLUtils {
         }
     }
 
+    static String getClientKeyTypeFromSignatureAlg(int signatureAlg) {
+        // See also
+        // https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml#tls-signaturescheme
+        switch (signatureAlg) {
+            case NativeConstants.SSL_SIGN_RSA_PKCS1_SHA1:
+            case NativeConstants.SSL_SIGN_RSA_PKCS1_SHA256:
+            case NativeConstants.SSL_SIGN_RSA_PKCS1_SHA384:
+            case NativeConstants.SSL_SIGN_RSA_PKCS1_SHA512:
+            case NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA256:
+            case NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA384:
+            case NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA512:
+                return KEY_TYPE_RSA;
+            case NativeConstants.SSL_SIGN_ECDSA_SHA1:
+            case NativeConstants.SSL_SIGN_ECDSA_SECP256R1_SHA256:
+            case NativeConstants.SSL_SIGN_ECDSA_SECP384R1_SHA384:
+            case NativeConstants.SSL_SIGN_ECDSA_SECP521R1_SHA512:
+                // We have no way to communicate the curve to the KeyManager, so we'll just
+                // have to hope the EC key it chooses uses a supported curve.
+                return KEY_TYPE_EC;
+            default:
+                return null;
+        }
+    }
+
     /**
      * Gets the supported key types for client certificates based on the
      * {@code ClientCertificateType} values provided by the server.
      *
-     * @param clientCertificateTypes {@code ClientCertificateType} values provided by the server.
-     *        See https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml.
+     * @param clientCertificateTypes
+     *         {@code ClientCertificateType} values provided by the server.
+     *         See https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml#tls-parameters-2.
+     * @param signatureAlgs
+     *         {@code SignatureScheme} values provided by the server.
+     *         See https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml#tls-signaturescheme
      * @return supported key types that can be used in {@code X509KeyManager.chooseClientAlias} and
-     *         {@code X509ExtendedKeyManager.chooseEngineClientAlias}.
+     * {@code X509ExtendedKeyManager.chooseEngineClientAlias}.
      *
      * Visible for testing.
      */
-    static Set<String> getSupportedClientKeyTypes(byte[] clientCertificateTypes) {
-        Set<String> result = new HashSet<String>(clientCertificateTypes.length);
+    static Set<String> getSupportedClientKeyTypes(byte[] clientCertificateTypes,
+            int[] signatureAlgs) {
+        Set<String> fromClientCerts = new HashSet<String>(clientCertificateTypes.length);
         for (byte keyTypeCode : clientCertificateTypes) {
             String keyType = SSLUtils.getClientKeyType(keyTypeCode);
             if (keyType == null) {
                 // Unsupported client key type -- ignore
                 continue;
             }
-            result.add(keyType);
+            fromClientCerts.add(keyType);
         }
-        return result;
+        Set<String> fromSigAlgs = new HashSet<String>(signatureAlgs.length);
+        for (int signatureAlg : signatureAlgs) {
+            String keyType = SSLUtils.getClientKeyTypeFromSignatureAlg(signatureAlg);
+            if (keyType == null) {
+                // Unsupported client key type -- ignore
+                continue;
+            }
+            fromSigAlgs.add(keyType);
+        }
+        // If both are specified, the key needs to meet both sets of requirements.  Otherwise,
+        // just meet the set of requirements that were specified.  See RFC 5246, section 7.4.4.
+        // (In TLS 1.3, certificate_types is no longer used and is never present.)
+        if (clientCertificateTypes.length > 0 && signatureAlgs.length > 0) {
+            fromClientCerts.retainAll(fromSigAlgs);
+            return fromClientCerts;
+        } else if (signatureAlgs.length > 0) {
+            return fromSigAlgs;
+        } else {
+            return fromClientCerts;
+        }
     }
 
     static byte[][] encodeSubjectX509Principals(X509Certificate[] certificates)

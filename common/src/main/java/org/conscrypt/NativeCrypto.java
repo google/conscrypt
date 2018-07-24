@@ -1169,7 +1169,8 @@ public final class NativeCrypto {
          * @param asn1DerEncodedX500Principals CAs known to the server
          */
         @SuppressWarnings("unused")
-        void clientCertificateRequested(byte[] keyTypes, byte[][] asn1DerEncodedX500Principals)
+        void clientCertificateRequested(byte[] keyTypes, int[] signatureAlgs,
+                byte[][] asn1DerEncodedX500Principals)
                 throws CertificateEncodingException, SSLException;
 
         /**

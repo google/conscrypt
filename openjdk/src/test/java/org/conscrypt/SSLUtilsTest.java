@@ -110,14 +110,49 @@ public class SSLUtilsTest {
     }
 
     @Test
-    public void testGetSupportedClientKeyTypes() throws Exception {
+    public void testGetSupportedClientKeyTypes_onlyCertTypes() throws Exception {
         // Create an array with all possible values. Also, duplicate all values.
         byte[] allClientCertificateTypes = new byte[512];
         for (int i = 0; i < allClientCertificateTypes.length; i++) {
             allClientCertificateTypes[i] = (byte) i;
         }
         assertEquals(new HashSet<String>(Arrays.asList("RSA", "EC")),
-                SSLUtils.getSupportedClientKeyTypes(allClientCertificateTypes));
+                SSLUtils.getSupportedClientKeyTypes(allClientCertificateTypes, new int[0]));
+    }
+
+    @Test
+    public void testGetSupportedClientKeyTypes_onlySignatureAlgs() {
+        // Create an array with lots of values in the supported range
+        int[] allSignatureAlgTypes = new int[7 * 7];
+        int i = 0;
+        for (int upper = 0x02; upper < 0x09; upper++) {
+            for (int lower = 0x01; lower < 0x08; lower++) {
+                allSignatureAlgTypes[i++] = (upper << 8) | lower;
+            }
+        }
+        assertEquals(new HashSet<String>(Arrays.asList("RSA", "EC")),
+                SSLUtils.getSupportedClientKeyTypes(new byte[0], allSignatureAlgTypes));
+    }
+
+    @Test
+    public void testGetSupportedClientKeyTypes_intersection() {
+        assertEquals(new HashSet<String>(Arrays.asList("EC")),
+                SSLUtils.getSupportedClientKeyTypes(
+                        new byte[] { NativeConstants.TLS_CT_RSA_SIGN,
+                                NativeConstants.TLS_CT_ECDSA_SIGN },
+                        new int[] { NativeConstants.SSL_SIGN_ECDSA_SECP256R1_SHA256,
+                                NativeConstants.SSL_SIGN_ECDSA_SECP384R1_SHA384,
+                                NativeConstants.SSL_SIGN_ECDSA_SECP521R1_SHA512 }));
+    }
+
+    @Test
+    public void testGetSupportedClientKeyTypes_intersection_empty() {
+        assertEquals(new HashSet<String>(),
+                SSLUtils.getSupportedClientKeyTypes(
+                        new byte[] { NativeConstants.TLS_CT_RSA_SIGN },
+                        new int[] { NativeConstants.SSL_SIGN_ECDSA_SECP256R1_SHA256,
+                                NativeConstants.SSL_SIGN_ECDSA_SECP384R1_SHA384,
+                                NativeConstants.SSL_SIGN_ECDSA_SECP521R1_SHA512 }));
     }
 
     private static String[] toStrings(byte[][] protocols) {
