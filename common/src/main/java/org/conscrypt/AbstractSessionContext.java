@@ -205,11 +205,14 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             return;
         }
 
-        // Let the subclass know.
-        onBeforeAddSession(session);
-
-        ByteArray key = new ByteArray(id);
         synchronized (sessions) {
+            ByteArray key = new ByteArray(id);
+            if (sessions.containsKey(key)) {
+                removeSession(sessions.get(key));
+            }
+            // Let the subclass know.
+            onBeforeAddSession(session);
+
             sessions.put(key, session);
         }
     }

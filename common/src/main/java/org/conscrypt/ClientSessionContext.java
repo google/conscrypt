@@ -58,7 +58,8 @@ public final class ClientSessionContext extends AbstractSessionContext {
     /**
      * Gets the suitable session reference from the session cache container.
      */
-    NativeSslSession getCachedSession(String hostName, int port, SSLParametersImpl sslParameters) {
+    synchronized NativeSslSession getCachedSession(String hostName, int port,
+            SSLParametersImpl sslParameters) {
         if (hostName == null) {
             return null;
         }
@@ -157,15 +158,13 @@ public final class ClientSessionContext extends AbstractSessionContext {
             // To maintain the invariant that single- and multi-use sessions aren't
             // mixed, check what the current list contains and remove those sessions if
             // they're of the other type.
-            if (sessions.size() > 0) {
-                if (sessions.get(0).isSingleUse() != session.isSingleUse()) {
-                    while (!sessions.isEmpty()) {
-                        removeSession(sessions.get(0));
-                    }
-                    // The last removeSession() call will have removed the list from
-                    // the map, so put it back.
-                    sessionsByHostAndPort.put(key, sessions);
+            if (sessions.size() > 0 && sessions.get(0).isSingleUse() != session.isSingleUse()) {
+                while (!sessions.isEmpty()) {
+                    removeSession(sessions.get(0));
                 }
+                // The last removeSession() call will have removed the list from
+                // the map, so put it back.
+                sessionsByHostAndPort.put(key, sessions);
             }
             sessions.add(session);
         }
