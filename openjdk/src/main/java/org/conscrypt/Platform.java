@@ -201,9 +201,6 @@ final class Platform {
         // This doesn't appear to be needed.
     }
 
-    /*
-     * Call Os.setsockoptTimeval via reflection.
-     */
     @SuppressWarnings("unused")
     static void setSocketWriteTimeout(@SuppressWarnings("unused") Socket s,
             @SuppressWarnings("unused") long timeoutMillis) throws SocketException {

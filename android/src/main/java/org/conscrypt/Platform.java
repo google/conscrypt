@@ -126,6 +126,11 @@ final class Platform {
      */
     public static void setSocketWriteTimeout(Socket s, long timeoutMillis) throws SocketException {
         try {
+            FileDescriptor fd = getFileDescriptor(s);
+            if (fd == null || !fd.valid()) {
+                // Mirror the behavior of platform sockets when calling methods with bad fds
+                throw new SocketException("Socket closed");
+            }
             Class<?> c_structTimeval =
                     getClass("android.system.StructTimeval", "libcore.io.StructTimeval");
             if (c_structTimeval == null) {
@@ -185,7 +190,7 @@ final class Platform {
                 return;
             }
 
-            m_setsockoptTimeval.invoke(instance_os, getFileDescriptor(s), f_SOL_SOCKET.get(null),
+            m_setsockoptTimeval.invoke(instance_os, fd, f_SOL_SOCKET.get(null),
                     f_SO_SNDTIMEO.get(null), timeval);
         } catch (Exception e) {
             // We don't want to spam the logcat since this isn't a fatal error, but we want to know
