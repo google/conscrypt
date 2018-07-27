@@ -1120,6 +1120,8 @@ public final class NativeCrypto {
 
     static native long SSL_get_timeout(long ssl, NativeSsl ssl_holder);
 
+    static native int SSL_get_signature_algorithm_key_type(int signatureAlg);
+
     static native byte[] SSL_session_id(long ssl, NativeSsl ssl_holder);
 
     static native byte[] SSL_SESSION_session_id(long sslSessionNativePointer);

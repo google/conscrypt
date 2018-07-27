@@ -258,21 +258,10 @@ final class SSLUtils {
     static String getClientKeyTypeFromSignatureAlg(int signatureAlg) {
         // See also
         // https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml#tls-signaturescheme
-        switch (signatureAlg) {
-            case NativeConstants.SSL_SIGN_RSA_PKCS1_SHA1:
-            case NativeConstants.SSL_SIGN_RSA_PKCS1_SHA256:
-            case NativeConstants.SSL_SIGN_RSA_PKCS1_SHA384:
-            case NativeConstants.SSL_SIGN_RSA_PKCS1_SHA512:
-            case NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA256:
-            case NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA384:
-            case NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA512:
+        switch (NativeCrypto.SSL_get_signature_algorithm_key_type(signatureAlg)) {
+            case NativeConstants.EVP_PKEY_RSA:
                 return KEY_TYPE_RSA;
-            case NativeConstants.SSL_SIGN_ECDSA_SHA1:
-            case NativeConstants.SSL_SIGN_ECDSA_SECP256R1_SHA256:
-            case NativeConstants.SSL_SIGN_ECDSA_SECP384R1_SHA384:
-            case NativeConstants.SSL_SIGN_ECDSA_SECP521R1_SHA512:
-                // We have no way to communicate the curve to the KeyManager, so we'll just
-                // have to hope the EC key it chooses uses a supported curve.
+            case NativeConstants.EVP_PKEY_EC:
                 return KEY_TYPE_EC;
             default:
                 return null;

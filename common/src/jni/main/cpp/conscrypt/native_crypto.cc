@@ -8696,6 +8696,11 @@ static jlong NativeCrypto_SSL_get_timeout(JNIEnv* env, jclass, jlong ssl_address
     return result;
 }
 
+static jint NativeCrypto_SSL_get_signature_algorithm_key_type(JNIEnv* env, jclass, jint signatureAlg) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    return SSL_get_signature_algorithm_key_type(signatureAlg);
+}
+
 /**
  * Gets the timeout for the SSL session.
  */
@@ -10228,6 +10233,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_get_time, "(J" REF_SSL ")J"),
         CONSCRYPT_NATIVE_METHOD(SSL_set_timeout, "(J" REF_SSL "J)J"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_timeout, "(J" REF_SSL ")J"),
+        CONSCRYPT_NATIVE_METHOD(SSL_get_signature_algorithm_key_type, "(I)I"),
         CONSCRYPT_NATIVE_METHOD(SSL_SESSION_get_timeout, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(SSL_session_id, "(J" REF_SSL ")[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_SESSION_get_version, "(J)Ljava/lang/String;"),
