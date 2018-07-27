@@ -48,6 +48,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
@@ -289,7 +290,9 @@ final class SSLUtils {
      *         {@code SignatureScheme} values provided by the server.
      *         See https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml#tls-signaturescheme
      * @return supported key types that can be used in {@code X509KeyManager.chooseClientAlias} and
-     * {@code X509ExtendedKeyManager.chooseEngineClientAlias}.
+     * {@code X509ExtendedKeyManager.chooseEngineClientAlias}.  If the inputs imply a preference
+     * order, the returned set will have an iteration order that respects that preference order,
+     * otherwise it will be in an arbitrary order.
      *
      * Visible for testing.
      */
@@ -304,7 +307,8 @@ final class SSLUtils {
             }
             fromClientCerts.add(keyType);
         }
-        Set<String> fromSigAlgs = new HashSet<String>(signatureAlgs.length);
+        // Signature algorithms are listed in preference order
+        Set<String> fromSigAlgs = new LinkedHashSet<String>(signatureAlgs.length);
         for (int signatureAlg : signatureAlgs) {
             String keyType = SSLUtils.getClientKeyTypeFromSignatureAlg(signatureAlg);
             if (keyType == null) {
@@ -317,8 +321,8 @@ final class SSLUtils {
         // just meet the set of requirements that were specified.  See RFC 5246, section 7.4.4.
         // (In TLS 1.3, certificate_types is no longer used and is never present.)
         if (clientCertificateTypes.length > 0 && signatureAlgs.length > 0) {
-            fromClientCerts.retainAll(fromSigAlgs);
-            return fromClientCerts;
+            fromSigAlgs.retainAll(fromClientCerts);
+            return fromSigAlgs;
         } else if (signatureAlgs.length > 0) {
             return fromSigAlgs;
         } else {
