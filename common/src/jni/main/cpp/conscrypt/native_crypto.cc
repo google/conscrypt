@@ -6206,11 +6206,13 @@ static int cert_cb(SSL* ssl, CONSCRYPT_UNUSED void* arg) {
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
 
     jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID = env->GetMethodID(cls, "clientCertificateRequested", "([B[[B)V");
+    jmethodID methodID = env->GetMethodID(cls, "clientCertificateRequested", "([B[I[[B)V");
 
     // Call Java callback which can reconfigure the client certificate.
     const uint8_t* ctype = nullptr;
     size_t ctype_num = SSL_get0_certificate_types(ssl, &ctype);
+    const uint16_t* sigalgs = nullptr;
+    size_t sigalgs_num = SSL_get0_peer_verify_algorithms(ssl, &sigalgs);
     ScopedLocalRef<jobjectArray> issuers(
             env, CryptoBuffersToObjectArray(env, SSL_get0_server_requested_CAs(ssl)));
     if (issuers.get() == nullptr) {
@@ -6221,21 +6223,36 @@ static int cert_cb(SSL* ssl, CONSCRYPT_UNUSED void* arg) {
         for (size_t i = 0; i < ctype_num; i++) {
             JNI_TRACE("ssl=%p clientCertificateRequested keyTypes[%zu]=%d", ssl, i, ctype[i]);
         }
+        for (size_t i = 0; i < sigalgs_num; i++) {
+            JNI_TRACE("ssl=%p clientCertificateRequested sigAlgs[%zu]=%d", ssl, i, sigalgs[i]);
+        }
     }
 
     jbyteArray keyTypes = env->NewByteArray(static_cast<jsize>(ctype_num));
     if (keyTypes == nullptr) {
-        JNI_TRACE("ssl=%p cert_cb bytes == null => 0", ssl);
+        JNI_TRACE("ssl=%p cert_cb keyTypes == null => 0", ssl);
         return 0;
     }
     env->SetByteArrayRegion(keyTypes, 0, static_cast<jsize>(ctype_num),
                             reinterpret_cast<const jbyte*>(ctype));
 
+    jintArray signatureAlgs = env->NewIntArray(static_cast<jsize>(sigalgs_num));
+    if (signatureAlgs == nullptr) {
+        JNI_TRACE("ssl=%p cert_cb signatureAlgs == null => 0", ssl);
+        return 0;
+    }
+    {
+        ScopedIntArrayRW sigAlgsRW(env, signatureAlgs);
+        for (size_t i = 0; i < sigalgs_num; i++) {
+            sigAlgsRW[i] = sigalgs[i];
+        }
+    }
+
     JNI_TRACE(
             "ssl=%p clientCertificateRequested calling clientCertificateRequested "
-            "keyTypes=%p issuers=%p",
-            ssl, keyTypes, issuers.get());
-    env->CallVoidMethod(sslHandshakeCallbacks, methodID, keyTypes, issuers.get());
+            "keyTypes=%p signatureAlgs=%p issuers=%p",
+            ssl, keyTypes, signatureAlgs, issuers.get());
+    env->CallVoidMethod(sslHandshakeCallbacks, methodID, keyTypes, signatureAlgs, issuers.get());
 
     if (env->ExceptionCheck()) {
         JNI_TRACE("ssl=%p cert_cb exception => 0", ssl);
@@ -8679,6 +8696,11 @@ static jlong NativeCrypto_SSL_get_timeout(JNIEnv* env, jclass, jlong ssl_address
     return result;
 }
 
+static jint NativeCrypto_SSL_get_signature_algorithm_key_type(JNIEnv* env, jclass, jint signatureAlg) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    return SSL_get_signature_algorithm_key_type(signatureAlg);
+}
+
 /**
  * Gets the timeout for the SSL session.
  */
@@ -10211,6 +10233,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_get_time, "(J" REF_SSL ")J"),
         CONSCRYPT_NATIVE_METHOD(SSL_set_timeout, "(J" REF_SSL "J)J"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_timeout, "(J" REF_SSL ")J"),
+        CONSCRYPT_NATIVE_METHOD(SSL_get_signature_algorithm_key_type, "(I)I"),
         CONSCRYPT_NATIVE_METHOD(SSL_SESSION_get_timeout, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(SSL_session_id, "(J" REF_SSL ")[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_SESSION_get_version, "(J)Ljava/lang/String;"),

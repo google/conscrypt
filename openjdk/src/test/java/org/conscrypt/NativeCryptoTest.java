@@ -769,12 +769,13 @@ public class NativeCryptoTest {
         }
 
         private byte[] keyTypes;
+        private int[] signatureAlgs;
         private byte[][] asn1DerEncodedX500Principals;
         private boolean clientCertificateRequestedCalled;
 
         @Override
         public void clientCertificateRequested(
-                byte[] keyTypes, byte[][] asn1DerEncodedX500Principals)
+                byte[] keyTypes, int[] signatureAlgs, byte[][] asn1DerEncodedX500Principals)
                 throws CertificateEncodingException, SSLException {
             if (DEBUG) {
                 System.out.println("ssl=0x" + Long.toString(sslNativePointer, 16)
@@ -784,6 +785,7 @@ public class NativeCryptoTest {
                         + Arrays.toString(asn1DerEncodedX500Principals));
             }
             this.keyTypes = keyTypes;
+            this.signatureAlgs = signatureAlgs;
             this.asn1DerEncodedX500Principals = asn1DerEncodedX500Principals;
             this.clientCertificateRequestedCalled = true;
             if (hooks != null) {
@@ -1217,8 +1219,10 @@ public class NativeCryptoTest {
 
         assertTrue(clientCallback.clientCertificateRequestedCalled);
         assertNotNull(clientCallback.keyTypes);
+        assertNotNull(clientCallback.signatureAlgs);
         assertEquals(new HashSet<String>(Arrays.asList("EC", "RSA")),
-                SSLUtils.getSupportedClientKeyTypes(clientCallback.keyTypes));
+                SSLUtils.getSupportedClientKeyTypes(
+                        clientCallback.keyTypes, clientCallback.signatureAlgs));
         assertEqualPrincipals(getCaPrincipals(), clientCallback.asn1DerEncodedX500Principals);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
 

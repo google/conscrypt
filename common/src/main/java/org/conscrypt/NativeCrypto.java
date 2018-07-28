@@ -1120,6 +1120,8 @@ public final class NativeCrypto {
 
     static native long SSL_get_timeout(long ssl, NativeSsl ssl_holder);
 
+    static native int SSL_get_signature_algorithm_key_type(int signatureAlg);
+
     static native byte[] SSL_session_id(long ssl, NativeSsl ssl_holder);
 
     static native byte[] SSL_SESSION_session_id(long sslSessionNativePointer);
@@ -1169,7 +1171,8 @@ public final class NativeCrypto {
          * @param asn1DerEncodedX500Principals CAs known to the server
          */
         @SuppressWarnings("unused")
-        void clientCertificateRequested(byte[] keyTypes, byte[][] asn1DerEncodedX500Principals)
+        void clientCertificateRequested(byte[] keyTypes, int[] signatureAlgs,
+                byte[][] asn1DerEncodedX500Principals)
                 throws CertificateEncodingException, SSLException;
 
         /**
