@@ -133,7 +133,9 @@ public final class ClientSessionContext extends AbstractSessionContext {
             return session;
         }
 
-        // Look in persistent cache.
+        // Look in persistent cache.  We don't currently delete sessions from the persistent
+        // cache, so we may find a multi-use (aka TLS 1.2) session after having received and
+        // then used up one or more single-use (aka TLS 1.3) sessions.
         if (persistentCache != null) {
             byte[] data = persistentCache.getSessionData(host, port);
             if (data != null) {

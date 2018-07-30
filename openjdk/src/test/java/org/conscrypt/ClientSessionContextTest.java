@@ -19,6 +19,7 @@ package org.conscrypt;
 import static org.conscrypt.MockSessionBuilder.DEFAULT_PORT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 
 import java.security.KeyManagementException;
 import org.junit.Test;
@@ -88,5 +89,28 @@ public class ClientSessionContextTest extends AbstractSessionContextTest<ClientS
 
         out = context.getCachedSession("b", DEFAULT_PORT, getDefaultSSLParameters());
         assertNull(out);
+    }
+
+    @Test
+    public void testCanRetrieveMultipleSingleUseSessions() {
+        ClientSessionContext context = newContext();
+
+        NativeSslSession single1 = new MockSessionBuilder()
+                .id(new byte[] {1}).host("host").singleUse(true).build();
+        NativeSslSession single2 = new MockSessionBuilder()
+                .id(new byte[] {2}).host("host").singleUse(true).build();
+
+        context.cacheSession(single1);
+        assertEquals(1, size(context));
+
+        context.cacheSession(single2);
+        assertEquals(2, size(context));
+
+        assertSame(single1,
+                context.getCachedSession("host", DEFAULT_PORT, getDefaultSSLParameters()));
+        assertEquals(1, size(context));
+        assertSame(single2,
+                context.getCachedSession("host", DEFAULT_PORT, getDefaultSSLParameters()));
+        assertEquals(0, size(context));
     }
 }

@@ -255,7 +255,9 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             return session;
         }
 
-        // Not found in-memory - look it up in the persistent cache.
+        // Look in persistent cache.  We don't currently delete sessions from the persistent
+        // cache, so we may find a multi-use (aka TLS 1.2) session after having received and
+        // then used up one or more single-use (aka TLS 1.3) sessions.
         return getSessionFromPersistentCache(sessionId);
     }
 

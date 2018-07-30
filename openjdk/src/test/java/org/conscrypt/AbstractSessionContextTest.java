@@ -98,24 +98,24 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
 
     @Test
     public void testRemoveIfSingleUse() {
-        NativeSslSession a = new MockSessionBuilder().host("a").singleUse(false).build();
-        NativeSslSession b = new MockSessionBuilder().host("b").singleUse(true).build();
+        NativeSslSession multi = new MockSessionBuilder().host("multi").singleUse(false).build();
+        NativeSslSession single = new MockSessionBuilder().host("single").singleUse(true).build();
 
-        context.cacheSession(a);
+        context.cacheSession(multi);
         assertEquals(1, size(context));
 
-        context.cacheSession(b);
+        context.cacheSession(single);
         assertEquals(2, size(context));
 
-        NativeSslSession out = getCachedSession(context, a);
-        assertEquals(a, out);
+        NativeSslSession out = getCachedSession(context, multi);
+        assertEquals(multi, out);
         assertEquals(2, size(context));
 
-        out = getCachedSession(context, b);
-        assertEquals(b, out);
+        out = getCachedSession(context, single);
+        assertEquals(single, out);
         assertEquals(1, size(context));
 
-        assertNull(getCachedSession(context, b));
+        assertNull(getCachedSession(context, single));
     }
 
     @Test
