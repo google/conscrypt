@@ -98,7 +98,7 @@ public final class TestUtils {
         return JDK_PROVIDER;
     }
 
-    private static boolean isClassAvailable(String classname) {
+    public static boolean isClassAvailable(String classname) {
         try {
             Class.forName(classname);
             return true;

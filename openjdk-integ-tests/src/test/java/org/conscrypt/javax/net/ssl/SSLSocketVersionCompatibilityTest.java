@@ -143,12 +143,18 @@ public class SSLSocketVersionCompatibilityTest {
 
     @Parameterized.Parameters(name = "{index}: {0} client, {1} server")
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-                {"TLSv1.2", "TLSv1.2"},
-                {"TLSv1.2", "TLSv1.3"},
-                {"TLSv1.3", "TLSv1.2"},
-                {"TLSv1.3", "TLSv1.3"},
-        });
+        // We can't support TLS 1.3 without our own trust manager (which requires
+        // X509ExtendedTrustManager), so only test TLS 1.2 if it's not available.
+        if (TestUtils.isClassAvailable("javax.net.ssl.X509ExtendedTrustManager")) {
+            return Arrays.asList(new Object[][] {
+                    { "TLSv1.2", "TLSv1.2" },
+                    { "TLSv1.2", "TLSv1.3" },
+                    { "TLSv1.3", "TLSv1.2" },
+                    { "TLSv1.3", "TLSv1.3" },
+            });
+        } else {
+            return Arrays.asList(new Object[][]{{ "TLSv1.2", "TLSv1.2"}});
+        }
     }
 
     private final String clientVersion;
