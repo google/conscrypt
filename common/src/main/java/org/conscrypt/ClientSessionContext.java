@@ -16,7 +16,9 @@
 
 package org.conscrypt;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLContext;
 
@@ -31,9 +33,13 @@ public final class ClientSessionContext extends AbstractSessionContext {
     /**
      * Sessions indexed by host and port. Protect from concurrent
      * access by holding a lock on sessionsByHostAndPort.
+     *
+     * Invariant: Each list includes either exactly one multi-use session or one
+     * or more single-use sessions.  The types of sessions are never mixed, and adding
+     * a session of one kind will remove all sessions of the other kind.
      */
     @SuppressWarnings("serial")
-    private final Map<HostAndPort, NativeSslSession> sessionsByHostAndPort = new HashMap<HostAndPort, NativeSslSession>();
+    private final Map<HostAndPort, List<NativeSslSession>> sessionsByHostAndPort = new HashMap<HostAndPort, List<NativeSslSession>>();
 
     private SSLClientSessionCache persistentCache;
 
@@ -52,7 +58,8 @@ public final class ClientSessionContext extends AbstractSessionContext {
     /**
      * Gets the suitable session reference from the session cache container.
      */
-    NativeSslSession getCachedSession(String hostName, int port, SSLParametersImpl sslParameters) {
+    synchronized NativeSslSession getCachedSession(String hostName, int port,
+            SSLParametersImpl sslParameters) {
         if (hostName == null) {
             return null;
         }
@@ -76,7 +83,7 @@ public final class ClientSessionContext extends AbstractSessionContext {
 
         String cipherSuite = session.getCipherSuite();
         boolean cipherSuiteFound = false;
-        for (String enabledCipherSuite : sslParameters.enabledCipherSuites) {
+        for (String enabledCipherSuite : sslParameters.getEnabledCipherSuites()) {
             if (cipherSuite.equals(enabledCipherSuite)) {
                 cipherSuiteFound = true;
                 break;
@@ -86,11 +93,20 @@ public final class ClientSessionContext extends AbstractSessionContext {
             return null;
         }
 
+        if (session.isSingleUse()) {
+            removeSession(session);
+        }
         return session;
     }
 
     int size() {
-        return sessionsByHostAndPort.size();
+        int size = 0;
+        synchronized (sessionsByHostAndPort) {
+            for (List<NativeSslSession> sessions : sessionsByHostAndPort.values()) {
+                size += sessions.size();
+            }
+        }
+        return size;
     }
 
     /**
@@ -106,29 +122,66 @@ public final class ClientSessionContext extends AbstractSessionContext {
         }
 
         HostAndPort key = new HostAndPort(host, port);
-        NativeSslSession session;
+        NativeSslSession session = null;
         synchronized (sessionsByHostAndPort) {
-            session = sessionsByHostAndPort.get(key);
+            List<NativeSslSession> sessions = sessionsByHostAndPort.get(key);
+            if (sessions != null && sessions.size() > 0) {
+                session = sessions.get(0);
+            }
         }
         if (session != null && session.isValid()) {
             return session;
         }
 
-        // Look in persistent cache.
+        // Look in persistent cache.  We don't currently delete sessions from the persistent
+        // cache, so we may find a multi-use (aka TLS 1.2) session after having received and
+        // then used up one or more single-use (aka TLS 1.3) sessions.
         if (persistentCache != null) {
             byte[] data = persistentCache.getSessionData(host, port);
             if (data != null) {
                 session = NativeSslSession.newInstance(this, data, host, port);
                 if (session != null && session.isValid()) {
-                    synchronized (sessionsByHostAndPort) {
-                        sessionsByHostAndPort.put(key, session);
-                    }
+                    putSession(key, session);
                     return session;
                 }
             }
         }
 
         return null;
+    }
+
+    private void putSession(HostAndPort key, NativeSslSession session) {
+        synchronized (sessionsByHostAndPort) {
+            List<NativeSslSession> sessions = sessionsByHostAndPort.get(key);
+            if (sessions == null) {
+                sessions = new ArrayList<NativeSslSession>();
+                sessionsByHostAndPort.put(key, sessions);
+            }
+            // To maintain the invariant that single- and multi-use sessions aren't
+            // mixed, check what the current list contains and remove those sessions if
+            // they're of the other type.
+            if (sessions.size() > 0 && sessions.get(0).isSingleUse() != session.isSingleUse()) {
+                while (!sessions.isEmpty()) {
+                    removeSession(sessions.get(0));
+                }
+                // The last removeSession() call will have removed the list from
+                // the map, so put it back.
+                sessionsByHostAndPort.put(key, sessions);
+            }
+            sessions.add(session);
+        }
+    }
+
+    private void removeSession(HostAndPort key, NativeSslSession session) {
+        synchronized (sessionsByHostAndPort) {
+            List<NativeSslSession> sessions = sessionsByHostAndPort.get(key);
+            if (sessions != null) {
+                sessions.remove(session);
+                if (sessions.isEmpty()) {
+                    sessionsByHostAndPort.remove(key);
+                }
+            }
+        }
     }
 
     @Override
@@ -140,12 +193,10 @@ public final class ClientSessionContext extends AbstractSessionContext {
         }
 
         HostAndPort key = new HostAndPort(host, port);
-        synchronized (sessionsByHostAndPort) {
-            sessionsByHostAndPort.put(key, session);
-        }
+        putSession(key, session);
 
         // TODO: Do this in a background thread.
-        if (persistentCache != null) {
+        if (persistentCache != null && !session.isSingleUse()) {
             byte[] data = session.toBytes();
             if (data != null) {
                 persistentCache.putSessionData(session.toSSLSession(), data);
@@ -161,9 +212,7 @@ public final class ClientSessionContext extends AbstractSessionContext {
         }
         int port = session.getPeerPort();
         HostAndPort hostAndPortKey = new HostAndPort(host, port);
-        synchronized (sessionsByHostAndPort) {
-            sessionsByHostAndPort.remove(hostAndPortKey);
-        }
+        removeSession(hostAndPortKey, session);
     }
 
     @Override

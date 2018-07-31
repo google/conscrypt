@@ -97,6 +97,28 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
     }
 
     @Test
+    public void testRemoveIfSingleUse() {
+        NativeSslSession multi = new MockSessionBuilder().host("multi").singleUse(false).build();
+        NativeSslSession single = new MockSessionBuilder().host("single").singleUse(true).build();
+
+        context.cacheSession(multi);
+        assertEquals(1, size(context));
+
+        context.cacheSession(single);
+        assertEquals(2, size(context));
+
+        NativeSslSession out = getCachedSession(context, multi);
+        assertEquals(multi, out);
+        assertEquals(2, size(context));
+
+        out = getCachedSession(context, single);
+        assertEquals(single, out);
+        assertEquals(1, size(context));
+
+        assertNull(getCachedSession(context, single));
+    }
+
+    @Test
     public void testSerializeSession() throws Exception {
         Certificate mockCert = mock(Certificate.class);
         when(mockCert.getEncoded()).thenReturn(new byte[] {0x05, 0x06, 0x07, 0x10});

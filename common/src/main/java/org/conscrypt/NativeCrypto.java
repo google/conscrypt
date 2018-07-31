@@ -1134,6 +1134,8 @@ public final class NativeCrypto {
 
     static native String SSL_SESSION_cipher(long sslSessionNativePointer);
 
+    static native boolean SSL_SESSION_should_be_single_use(long sslSessionNativePointer);
+
     static native void SSL_SESSION_up_ref(long sslSessionNativePointer);
 
     static native void SSL_SESSION_free(long sslSessionNativePointer);

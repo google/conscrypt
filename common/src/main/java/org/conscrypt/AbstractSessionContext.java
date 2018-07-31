@@ -205,12 +205,32 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             return;
         }
 
-        // Let the subclass know.
-        onBeforeAddSession(session);
+        synchronized (sessions) {
+            ByteArray key = new ByteArray(id);
+            if (sessions.containsKey(key)) {
+                removeSession(sessions.get(key));
+            }
+            // Let the subclass know.
+            onBeforeAddSession(session);
+
+            sessions.put(key, session);
+        }
+    }
+
+    /**
+     * Removes the given session from the cache.
+     */
+    final void removeSession(NativeSslSession session) {
+        byte[] id = session.getId();
+        if (id == null || id.length == 0) {
+            return;
+        }
+
+        onBeforeRemoveSession(session);
 
         ByteArray key = new ByteArray(id);
         synchronized (sessions) {
-            sessions.put(key, session);
+            sessions.remove(key);
         }
     }
 
@@ -229,10 +249,15 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             session = sessions.get(new ByteArray(sessionId));
         }
         if (session != null && session.isValid()) {
+            if (session.isSingleUse()) {
+                removeSession(session);
+            }
             return session;
         }
 
-        // Not found in-memory - look it up in the persistent cache.
+        // Look in persistent cache.  We don't currently delete sessions from the persistent
+        // cache, so we may find a multi-use (aka TLS 1.2) session after having received and
+        // then used up one or more single-use (aka TLS 1.3) sessions.
         return getSessionFromPersistentCache(sessionId);
     }
 
