@@ -263,6 +263,7 @@ def addNativeTest(nativeClassifier) {
 test.exclude("**")
 
 javadoc {
+    dependsOn(configurations.publicApiDocs)
     options.doclet = "org.conscrypt.doclet.FilterDoclet"
     options.docletpath = configurations.publicApiDocs.files as List
 }
