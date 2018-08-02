@@ -8578,17 +8578,18 @@ static void NativeCrypto_SSL_free(JNIEnv* env, jclass, jlong ssl_address, CONSCR
 }
 
 static jbyteArray get_session_id(JNIEnv* env, SSL_SESSION* ssl_session) {
-    jbyteArray result = nullptr;
     unsigned int length;
     const uint8_t* id = SSL_SESSION_get_id(ssl_session, &length);
     JNI_TRACE("ssl_session=%p get_session_id id=%p length=%u", ssl_session, id, length);
     if (id && length > 0) {
-        result = env->NewByteArray(static_cast<jsize>(length));
+        jbyteArray result = env->NewByteArray(static_cast<jsize>(length));
         if (result != nullptr) {
             const jbyte* src = reinterpret_cast<const jbyte*>(id);
             env->SetByteArrayRegion(result, 0, static_cast<jsize>(length), src);
         }
-    } else if (SSL_SESSION_has_ticket(ssl_session)) {
+        return result;
+    }
+    if (SSL_SESSION_has_ticket(ssl_session)) {
         JNI_TRACE("ssl_session=%p get_session_id has_ticket=true", ssl_session);
         const uint8_t* ticket;
         size_t tick_len;
@@ -8597,15 +8598,15 @@ static jbyteArray get_session_id(JNIEnv* env, SSL_SESSION* ssl_session) {
         if (!EVP_Digest(ticket, tick_len, data, &length, EVP_sha256(), NULL)) {
             return nullptr;
         }
-        result = env->NewByteArray(static_cast<jsize>(length));
+        jbyteArray result = env->NewByteArray(static_cast<jsize>(length));
         if (result != nullptr) {
             const jbyte* src = reinterpret_cast<const jbyte*>(data);
             env->SetByteArrayRegion(result, 0, static_cast<jsize>(length), src);
         }
-    } else {
-        JNI_TRACE("ssl_session=%p get_session_id has_ticket=false", ssl_session);
+        return result;
     }
-    return result;
+    JNI_TRACE("ssl_session=%p get_session_id has_ticket=false", ssl_session);
+    return nullptr;
 }
 
 /**
