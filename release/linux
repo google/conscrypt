@@ -26,8 +26,9 @@ git push upstream "$BRANCH"
 git push upstream "$1"
 
 # Build and start the Docker container
-docker build -t conscrypt-deploy release
-CONTAINER_ID=$(docker run -itd conscrypt-deploy)
+CONTAINER_TAG="conscrypt-deploy-$1"
+docker build -t $CONTAINER_TAG release
+CONTAINER_ID=$(docker run -itd $CONTAINER_TAG)
 
 # Copy the relevant files from the host machine into the container
 docker exec $CONTAINER_ID mkdir /root/.gradle
