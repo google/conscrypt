@@ -22,6 +22,5 @@
 -dontwarn dalvik.system.CloseGuard
 -dontwarn com.android.org.conscrypt.AbstractConscryptSocket
 -dontwarn com.android.org.conscrypt.ConscryptFileDescriptorSocket
--dontwarn com.android.org.conscrypt.ConscryptSocketBase
 -dontwarn com.android.org.conscrypt.OpenSSLSocketImpl
 -dontwarn org.apache.harmony.xnet.provider.jsse.OpenSSLSocketImpl
