@@ -175,7 +175,7 @@ final class ConscryptServerSocket extends SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
-        final ConscryptSocketBase socket;
+        final AbstractConscryptSocket socket;
         if (useEngineSocket) {
             socket = Platform.createEngineSocket(sslParameters);
         } else {
