@@ -132,6 +132,8 @@ For maximum compatibility, you should use `RSA/ECB/OAEPPadding` and initialize i
 * `OAEP`
 * `PSS`
 
+Conscrypt's EC AlgorithmParameters implementation only supports named curves.
+
 ### CertificateFactory
 * `X509`
 
@@ -199,3 +201,12 @@ For maximum compatibility, you should use `RSA/ECB/OAEPPadding` and initialize i
 * `SHA512withRSA`
 * `SHA512withECDSA`
 * `SHA512withRSA/PSS`
+
+### Elliptic Curves
+
+Conscrypt supports the following curves:
+
+* secp224r1
+* prime256v1 (aka secp256r1)
+* secp384r1
+* secp521r1
