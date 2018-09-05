@@ -8589,23 +8589,6 @@ static jbyteArray get_session_id(JNIEnv* env, SSL_SESSION* ssl_session) {
         }
         return result;
     }
-    if (SSL_SESSION_has_ticket(ssl_session)) {
-        JNI_TRACE("ssl_session=%p get_session_id has_ticket=true", ssl_session);
-        const uint8_t* ticket;
-        size_t tick_len;
-        SSL_SESSION_get0_ticket(ssl_session, &ticket, &tick_len);
-        uint8_t data[32];
-        if (!EVP_Digest(ticket, tick_len, data, &length, EVP_sha256(), NULL)) {
-            return nullptr;
-        }
-        jbyteArray result = env->NewByteArray(static_cast<jsize>(length));
-        if (result != nullptr) {
-            const jbyte* src = reinterpret_cast<const jbyte*>(data);
-            env->SetByteArrayRegion(result, 0, static_cast<jsize>(length), src);
-        }
-        return result;
-    }
-    JNI_TRACE("ssl_session=%p get_session_id has_ticket=false", ssl_session);
     return nullptr;
 }
 
