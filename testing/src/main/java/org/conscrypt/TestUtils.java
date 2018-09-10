@@ -225,6 +225,7 @@ public final class TestUtils {
         String keyData = new String(readTestFile(name), "US-ASCII");
         keyData = keyData.replace("-----BEGIN PUBLIC KEY-----", "");
         keyData = keyData.replace("-----END PUBLIC KEY-----", "");
+        keyData = keyData.replace("\r", "");
         keyData = keyData.replace("\n", "");
         return KeyFactory.getInstance("EC").generatePublic(
                 new X509EncodedKeySpec(decodeBase64(keyData)));
