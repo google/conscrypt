@@ -156,19 +156,19 @@ final class SSLUtils {
     /**
      * This is the maximum overhead when encrypting plaintext as defined by
      * <a href="https://www.ietf.org/rfc/rfc5246.txt">rfc5264</a>,
-     * <a href="https://www.ietf.org/rfc/rfc5289.txt">rfc5289</a> and openssl implementation itself.
+     * <a href="https://www.ietf.org/rfc/rfc5289.txt">rfc5289</a>, and the BoringSSL
+     * implementation itself.
      *
-     * Please note that we use a padding of 16 here as openssl uses PKC#5 which uses 16 bytes
-     * whilethe spec itself allow up to 255 bytes. 16 bytes is the max for PKC#5 (which handles it
-     * the same way as PKC#7) as we use a block size of 16. See <a
+     * Please note that we use a padding of 16 here as BoringSSL uses PKCS#5 which uses 16 bytes
+     * while the spec itself allow up to 255 bytes. 16 bytes is the max for PKCS#5 (which handles it
+     * the same way as PKCS#7) as we use a block size of 16. See <a
      * href="https://tools.ietf.org/html/rfc5652#section-6.3">rfc5652#section-6.3</a>.
      *
-     * 16 (IV) + 48 (MAC) + 1 (Padding_length field) + 15 (Padding) + 1 (ContentType) + 2
-     * (ProtocolVersion) + 2 (Length)
-     *
-     * TODO: We may need to review this calculation once TLS 1.3 becomes available.
+     * 16 (IV) + 48 (MAC) + 1 (Padding_length field) + 15 (Padding)
+     * + 1 (ContentType in TLSCiphertext) + 2 (ProtocolVersion) + 2 (Length)
+     * + 1 (ContentType in TLSInnerPlaintext)
      */
-    private static final int MAX_ENCRYPTION_OVERHEAD_LENGTH = 15 + 48 + 1 + 16 + 1 + 2 + 2;
+    private static final int MAX_ENCRYPTION_OVERHEAD_LENGTH = 15 + 48 + 1 + 16 + 1 + 2 + 2 + 1;
 
     private static final int MAX_ENCRYPTION_OVERHEAD_DIFF =
             Integer.MAX_VALUE - MAX_ENCRYPTION_OVERHEAD_LENGTH;
@@ -573,6 +573,20 @@ final class SSLUtils {
 
     private static int unsignedShort(short s) {
         return s & 0xFFFF;
+    }
+
+    static String[] concat(String[]... arrays) {
+        int resultLength = 0;
+        for (String[] array : arrays) {
+            resultLength += array.length;
+        }
+        String[] result = new String[resultLength];
+        int resultOffset = 0;
+        for (String[] array : arrays) {
+            System.arraycopy(array, 0, result, resultOffset, array.length);
+            resultOffset += array.length;
+        }
+        return result;
     }
 
     private SSLUtils() {}

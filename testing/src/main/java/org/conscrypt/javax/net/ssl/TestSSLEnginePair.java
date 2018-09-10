@@ -46,7 +46,11 @@ public final class TestSSLEnginePair implements Closeable {
     }
 
     public static TestSSLEnginePair create() throws IOException {
-        return create(null);
+        return create((Hooks) null);
+    }
+
+    public static TestSSLEnginePair create(TestSSLContext c) throws IOException {
+        return create(c, null);
     }
 
     public static TestSSLEnginePair create(Hooks hooks) throws IOException {
@@ -109,21 +113,16 @@ public final class TestSSLEnginePair implements Closeable {
                 break;
             }
 
-            boolean progress = false;
-            if (!clientDone) {
-                progress = handshakeCompleted(client,
-                        clientToServer,
-                        serverToClient,
-                        scratch,
-                        clientFinished);
-            }
-            if (!serverDone) {
-                progress |= handshakeCompleted(server,
-                        serverToClient,
-                        clientToServer,
-                        scratch,
-                        serverFinished);
-            }
+            boolean progress = handshakeCompleted(client,
+                    clientToServer,
+                    serverToClient,
+                    scratch,
+                    clientFinished);
+            progress |= handshakeCompleted(server,
+                    serverToClient,
+                    clientToServer,
+                    scratch,
+                    serverFinished);
             if (!progress) {
                 break;
             }
@@ -183,6 +182,9 @@ public final class TestSSLEnginePair implements Closeable {
                     }
                 }
 
+                case NOT_HANDSHAKING:
+                    // If we're not handshaking, our peer might still be.  Check if there's
+                    // any input for us to consume.
                 case NEED_UNWRAP: {
                     // avoid underflow
                     if (input.remaining() == 0) {
@@ -216,8 +218,6 @@ public final class TestSSLEnginePair implements Closeable {
                     return true;
                 }
 
-                case NOT_HANDSHAKING:
-                    // should have been checked by caller before calling
                 case FINISHED:
                     // only returned by wrap/unrap status, not getHandshakeStatus
                     throw new IllegalStateException("Unexpected HandshakeStatus = " + status);

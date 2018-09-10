@@ -8577,6 +8577,21 @@ static void NativeCrypto_SSL_free(JNIEnv* env, jclass, jlong ssl_address, CONSCR
     SSL_free(ssl);
 }
 
+static jbyteArray get_session_id(JNIEnv* env, SSL_SESSION* ssl_session) {
+    unsigned int length;
+    const uint8_t* id = SSL_SESSION_get_id(ssl_session, &length);
+    JNI_TRACE("ssl_session=%p get_session_id id=%p length=%u", ssl_session, id, length);
+    if (id && length > 0) {
+        jbyteArray result = env->NewByteArray(static_cast<jsize>(length));
+        if (result != nullptr) {
+            const jbyte* src = reinterpret_cast<const jbyte*>(id);
+            env->SetByteArrayRegion(result, 0, static_cast<jsize>(length), src);
+        }
+        return result;
+    }
+    return nullptr;
+}
+
 /**
  * Gets and returns in a byte array the ID of the actual SSL session.
  */
@@ -8588,15 +8603,8 @@ static jbyteArray NativeCrypto_SSL_SESSION_session_id(JNIEnv* env, jclass,
     if (ssl_session == nullptr) {
         return nullptr;
     }
-    unsigned length;
-    const uint8_t* id = SSL_SESSION_get_id(ssl_session, &length);
-    jbyteArray result = env->NewByteArray(static_cast<jsize>(length));
-    if (result != nullptr) {
-        const jbyte* src = reinterpret_cast<const jbyte*>(id);
-        env->SetByteArrayRegion(result, 0, static_cast<jsize>(length), src);
-    }
-    JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_session_id => %p length=%d", ssl_session,
-              result, length);
+    jbyteArray result = get_session_id(env, ssl_session);
+    JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_session_id => %p", ssl_session, result);
     return result;
 }
 
@@ -8731,16 +8739,8 @@ static jbyteArray NativeCrypto_SSL_session_id(JNIEnv* env, jclass, jlong ssl_add
     if (ssl_session == nullptr) {
         return nullptr;
     }
-
-    unsigned session_id_length;
-    const uint8_t* session_id = SSL_SESSION_get_id(ssl_session, &session_id_length);
-    jbyteArray result = env->NewByteArray(static_cast<jsize>(session_id_length));
-    if (result != nullptr) {
-        const jbyte* src = reinterpret_cast<const jbyte*>(session_id);
-        env->SetByteArrayRegion(result, 0, static_cast<jsize>(session_id_length), src);
-    }
-    JNI_TRACE("ssl_session=%p NativeCrypto_SSL_session_id => %p session_id_length=%d", ssl_session,
-              result, session_id_length);
+    jbyteArray result = get_session_id(env, ssl_session);
+    JNI_TRACE("ssl_session=%p NativeCrypto_SSL_session_id => %p", ssl_session, result);
     return result;
 }
 

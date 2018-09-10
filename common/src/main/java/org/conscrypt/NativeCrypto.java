@@ -709,13 +709,24 @@ public final class NativeCrypto {
     private static final String SUPPORTED_PROTOCOL_TLSV1 = "TLSv1";
     private static final String SUPPORTED_PROTOCOL_TLSV1_1 = "TLSv1.1";
     private static final String SUPPORTED_PROTOCOL_TLSV1_2 = "TLSv1.2";
+    static final String SUPPORTED_PROTOCOL_TLSV1_3 = "TLSv1.3";
 
-    // SUPPORTED_CIPHER_SUITES_SET contains all the supported cipher suites, using their Java names.
-    static final Set<String> SUPPORTED_CIPHER_SUITES_SET = new HashSet<String>();
+    static final String[] SUPPORTED_TLS_1_3_CIPHER_SUITES = new String[] {
+            "TLS_AES_128_GCM_SHA256",
+            "TLS_AES_256_GCM_SHA384",
+            "TLS_CHACHA20_POLY1305_SHA256",
+    };
+
+    // SUPPORTED_TLS_1_2_CIPHER_SUITES_SET contains all the supported cipher suites for TLS 1.2,
+    // using their Java names.
+    static final Set<String> SUPPORTED_TLS_1_2_CIPHER_SUITES_SET = new HashSet<String>();
 
     // SUPPORTED_LEGACY_CIPHER_SUITES_SET contains all the supported cipher suites using the legacy
     // OpenSSL-style names.
     private static final Set<String> SUPPORTED_LEGACY_CIPHER_SUITES_SET = new HashSet<String>();
+
+    static final Set<String> SUPPORTED_TLS_1_3_CIPHER_SUITES_SET = new HashSet<String>(
+            Arrays.asList(SUPPORTED_TLS_1_3_CIPHER_SUITES));
 
     /**
      * TLS_EMPTY_RENEGOTIATION_INFO_SCSV is RFC 5746's renegotiation
@@ -761,7 +772,7 @@ public final class NativeCrypto {
      */
     private static final String TLS_FALLBACK_SCSV = "TLS_FALLBACK_SCSV";
 
-    private static final String[] SUPPORTED_CIPHER_SUITES;
+    private static final String[] SUPPORTED_TLS_1_2_CIPHER_SUITES;
     static {
         if (loadError == null) {
             // If loadError is not null, it means the native code was not loaded, so
@@ -775,18 +786,18 @@ public final class NativeCrypto {
                 throw new IllegalArgumentException(
                         "Invalid cipher list returned by get_cipher_names");
             }
-            SUPPORTED_CIPHER_SUITES = new String[size / 2 + 2];
+            SUPPORTED_TLS_1_2_CIPHER_SUITES = new String[size / 2 + 2];
             for (int i = 0; i < size; i += 2) {
                 String cipherSuite = cipherSuiteToJava(allCipherSuites[i]);
-                SUPPORTED_CIPHER_SUITES[i / 2] = cipherSuite;
-                SUPPORTED_CIPHER_SUITES_SET.add(cipherSuite);
+                SUPPORTED_TLS_1_2_CIPHER_SUITES[i / 2] = cipherSuite;
+                SUPPORTED_TLS_1_2_CIPHER_SUITES_SET.add(cipherSuite);
 
                 SUPPORTED_LEGACY_CIPHER_SUITES_SET.add(allCipherSuites[i + 1]);
             }
-            SUPPORTED_CIPHER_SUITES[size / 2] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
-            SUPPORTED_CIPHER_SUITES[size / 2 + 1] = TLS_FALLBACK_SCSV;
+            SUPPORTED_TLS_1_2_CIPHER_SUITES[size / 2] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
+            SUPPORTED_TLS_1_2_CIPHER_SUITES[size / 2 + 1] = TLS_FALLBACK_SCSV;
         } else {
-            SUPPORTED_CIPHER_SUITES = new String[0];
+            SUPPORTED_TLS_1_2_CIPHER_SUITES = new String[0];
         }
     }
 
@@ -862,7 +873,7 @@ public final class NativeCrypto {
     };
 
     static String[] getSupportedCipherSuites() {
-        return SUPPORTED_CIPHER_SUITES.clone();
+        return SSLUtils.concat(SUPPORTED_TLS_1_3_CIPHER_SUITES, SUPPORTED_TLS_1_2_CIPHER_SUITES.clone());
     }
 
     static native void SSL_CTX_free(long ssl_ctx, AbstractSessionContext holder);
@@ -927,6 +938,14 @@ public final class NativeCrypto {
 
     static native void set_SSL_psk_server_callback_enabled(long ssl, NativeSsl ssl_holder, boolean enabled);
 
+    /** Protocols to enable by default when "TLSv1.3" is requested. */
+    static final String[] TLSV13_PROTOCOLS = new String[] {
+            SUPPORTED_PROTOCOL_TLSV1,
+            SUPPORTED_PROTOCOL_TLSV1_1,
+            SUPPORTED_PROTOCOL_TLSV1_2,
+            SUPPORTED_PROTOCOL_TLSV1_3,
+    };
+
     /** Protocols to enable by default when "TLSv1.2" is requested. */
     static final String[] TLSV12_PROTOCOLS = new String[] {
             SUPPORTED_PROTOCOL_TLSV1,
@@ -941,7 +960,12 @@ public final class NativeCrypto {
     static final String[] TLSV1_PROTOCOLS = TLSV11_PROTOCOLS;
 
     static final String[] DEFAULT_PROTOCOLS = TLSV12_PROTOCOLS;
-    private static final String[] SUPPORTED_PROTOCOLS = DEFAULT_PROTOCOLS;
+    private static final String[] SUPPORTED_PROTOCOLS = new String[] {
+            SUPPORTED_PROTOCOL_TLSV1,
+            SUPPORTED_PROTOCOL_TLSV1_1,
+            SUPPORTED_PROTOCOL_TLSV1_2,
+            SUPPORTED_PROTOCOL_TLSV1_3,
+    };;
 
     static String[] getSupportedProtocols() {
         return SUPPORTED_PROTOCOLS.clone();
@@ -981,6 +1005,8 @@ public final class NativeCrypto {
             return NativeConstants.TLS1_1_VERSION;
         } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1_2)) {
             return NativeConstants.TLS1_2_VERSION;
+        } else if (protocol.equals(SUPPORTED_PROTOCOL_TLSV1_3)) {
+            return NativeConstants.TLS1_3_VERSION;
         } else {
             throw new AssertionError("Unknown protocol encountered: " + protocol);
         }
@@ -997,6 +1023,7 @@ public final class NativeCrypto {
             if (!protocol.equals(SUPPORTED_PROTOCOL_TLSV1)
                     && !protocol.equals(SUPPORTED_PROTOCOL_TLSV1_1)
                     && !protocol.equals(SUPPORTED_PROTOCOL_TLSV1_2)
+                    && !protocol.equals(SUPPORTED_PROTOCOL_TLSV1_3)
                     && !protocol.equals(OBSOLETE_PROTOCOL_SSLV3)) {
                 throw new IllegalArgumentException("protocol " + protocol + " is not supported");
             }
@@ -1043,7 +1070,7 @@ public final class NativeCrypto {
                     || cipherSuites[i].equals(TLS_FALLBACK_SCSV)) {
                 continue;
             }
-            if (SUPPORTED_CIPHER_SUITES_SET.contains(cipherSuites[i])) {
+            if (SUPPORTED_TLS_1_2_CIPHER_SUITES_SET.contains(cipherSuites[i])) {
                 continue;
             }
 

@@ -210,6 +210,8 @@ public final class TestSSLContext {
         private TrustManager serverTrustManager;
         private SSLContext clientContext;
         private SSLContext serverContext;
+        private String clientProtocol = "TLSv1.2";
+        private String serverProtocol = "TLSv1.2";
         private int serverReceiveBufferSize;
         private boolean useDefaults = true;
 
@@ -268,6 +270,16 @@ public final class TestSSLContext {
             return this;
         }
 
+        public Builder clientProtocol(String clientProtocol) {
+            this.clientProtocol = clientProtocol;
+            return this;
+        }
+
+        public Builder serverProtocol(String serverProtocol) {
+            this.serverProtocol = serverProtocol;
+            return this;
+        }
+
         public Builder serverReceiveBufferSize(int serverReceiveBufferSize) {
             this.serverReceiveBufferSize = serverReceiveBufferSize;
             return this;
@@ -305,14 +317,13 @@ public final class TestSSLContext {
                 serverTrustManager =
                         serverTrustManager != null ? serverTrustManager : server.trustManagers[0];
 
-                String protocol = "TLSv1.2";
                 clientContext = clientContext != null
                         ? clientContext
-                        : createSSLContext(protocol, clientKeyManagers,
+                        : createSSLContext(clientProtocol, clientKeyManagers,
                                   new TrustManager[] {clientTrustManager});
                 serverContext = serverContext != null
                         ? serverContext
-                        : createSSLContext(protocol, serverKeyManagers,
+                        : createSSLContext(serverProtocol, serverKeyManagers,
                                   new TrustManager[] {serverTrustManager});
             }
 

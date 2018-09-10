@@ -24,6 +24,7 @@ public class TlsProtocolVersion {
     public static final TlsProtocolVersion TLSv1_0 = new TlsProtocolVersion(3, 1, "TLSv1.0");
     public static final TlsProtocolVersion TLSv1_1 = new TlsProtocolVersion(3, 2, "TLSv1.1");
     public static final TlsProtocolVersion TLSv1_2 = new TlsProtocolVersion(3, 3, "TLSv1.2");
+    public static final TlsProtocolVersion TLSv1_3 = new TlsProtocolVersion(3, 4, "TLSv1.3");
     public final int major;
     public final int minor;
     public final String name;
@@ -43,6 +44,8 @@ public class TlsProtocolVersion {
                     return TLSv1_1;
                 case 3:
                     return TLSv1_2;
+                case 4:
+                    return TLSv1_3;
             }
         }
         return new TlsProtocolVersion(major, minor, major + "." + minor);
