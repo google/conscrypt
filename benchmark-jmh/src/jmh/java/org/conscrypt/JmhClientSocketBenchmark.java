@@ -36,6 +36,11 @@ import org.openjdk.jmh.annotations.Threads;
 @Fork(1)
 @Threads(1)
 public class JmhClientSocketBenchmark {
+
+    static {
+        TestUtils.installConscryptAsDefaultProvider();
+    }
+
     /**
      * Use an AuxCounter so we can measure that bytes per second as they accumulate without
      * consuming CPU in the benchmark method.
@@ -64,6 +69,9 @@ public class JmhClientSocketBenchmark {
 
     @Param({TestUtils.TEST_CIPHER})
     public String cipher;
+
+    @Param
+    public BenchmarkProtocol protocol;
 
     @Param
     public ChannelType channelType;
@@ -111,6 +119,11 @@ public class JmhClientSocketBenchmark {
         @Override
         public ChannelType channelType() {
             return channelType;
+        }
+
+        @Override
+        public BenchmarkProtocol protocol() {
+            return protocol;
         }
     }
 }

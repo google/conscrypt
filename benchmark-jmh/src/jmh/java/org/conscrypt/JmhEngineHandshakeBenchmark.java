@@ -50,6 +50,11 @@ import org.openjdk.jmh.annotations.Threads;
 @Fork(1)
 @Threads(1)
 public class JmhEngineHandshakeBenchmark {
+
+    static {
+        TestUtils.installConscryptAsDefaultProvider();
+    }
+
     private final JmhConfig config = new JmhConfig();
 
     @Param({TestUtils.TEST_CIPHER})
@@ -60,6 +65,12 @@ public class JmhEngineHandshakeBenchmark {
 
     @Param
     public OpenJdkEngineFactory c_engine;
+
+    @Param
+    public BenchmarkProtocol d_protocol;
+
+    @Param({"100"})
+    public int e_rtt;
 
     private EngineHandshakeBenchmark benchmark;
 
@@ -93,6 +104,16 @@ public class JmhEngineHandshakeBenchmark {
         @Override
         public boolean useAlpn() {
             return false;
+        }
+
+        @Override
+        public int rttMillis() {
+            return e_rtt;
+        }
+
+        @Override
+        public BenchmarkProtocol protocol() {
+            return d_protocol;
         }
     }
 }

@@ -40,6 +40,9 @@ public class CaliperClientSocketBenchmark {
   public String cipher;
 
   @Param
+  public BenchmarkProtocol protocol;
+
+  @Param
   public ChannelType channelType;
 
   private ClientSocketBenchmark benchmark;
@@ -84,6 +87,11 @@ public class CaliperClientSocketBenchmark {
     @Override
     public ChannelType channelType() {
       return channelType;
+    }
+
+    @Override
+    public BenchmarkProtocol protocol() {
+      return protocol;
     }
   }
 }
