@@ -201,6 +201,11 @@ extern int throwNoSuchAlgorithmException(JNIEnv* env, const char* message);
 extern int throwIOException(JNIEnv* env, const char* message);
 
 /**
+ * Throws a CertificateException with the given string as a message.
+ */
+extern int throwCertificateException(JNIEnv* env, const char* message);
+
+/**
  * Throws a ParsingException with the given string as a message.
  */
 extern int throwParsingException(JNIEnv* env, const char* message);

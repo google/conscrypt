@@ -4137,8 +4137,16 @@ static void NativeCrypto_X509_verify(JNIEnv* env, jclass, jlong x509Ref, CONSCRY
         return;
     }
 
+    if (X509_ALGOR_cmp(x509->sig_alg, X509_CINF_get_signature(X509_get_cert_info(x509)))) {
+        conscrypt::jniutil::throwCertificateException(env,
+                "Certificate signature algorithms do not match");
+        JNI_TRACE("X509_verify(%p, %p) => signature alg mismatch", x509, pkey);
+        return;
+    }
+
     if (X509_verify(x509, pkey) != 1) {
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "X509_verify");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(
+                env, "X509_verify", conscrypt::jniutil::throwCertificateException);
         JNI_TRACE("X509_verify(%p, %p) => verify failure", x509, pkey);
         return;
     }
