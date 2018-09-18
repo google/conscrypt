@@ -195,6 +195,12 @@ int throwIOException(JNIEnv* env, const char* message) {
     return conscrypt::jniutil::throwException(env, "java/io/IOException", message);
 }
 
+int throwCertificateException(JNIEnv* env, const char* message) {
+    JNI_TRACE("throwCertificateException %s", message);
+    return conscrypt::jniutil::throwException(
+            env, "java/security/cert/CertificateException", message);
+}
+
 int throwParsingException(JNIEnv* env, const char* message) {
     return conscrypt::jniutil::throwException(env, TO_STRING(JNI_JARJAR_PREFIX)
                             "org/conscrypt/OpenSSLX509CertificateFactory$ParsingException",

@@ -36,6 +36,7 @@ import org.conscrypt.java.security.KeyPairGeneratorTestRSA;
 import org.conscrypt.java.security.MessageDigestTest;
 import org.conscrypt.java.security.SignatureTest;
 import org.conscrypt.java.security.cert.CertificateFactoryTest;
+import org.conscrypt.java.security.cert.X509CertificateTest;
 import org.conscrypt.javax.crypto.CipherBasicsTest;
 import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
 import org.conscrypt.javax.crypto.KeyGeneratorTest;
@@ -64,6 +65,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
         // java.security tests
         CertificateFactoryTest.class,
+        X509CertificateTest.class,
         AlgorithmParameterGeneratorTestDH.class,
         AlgorithmParameterGeneratorTestDSA.class,
         AlgorithmParametersPSSTest.class,
