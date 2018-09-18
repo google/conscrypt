@@ -25,7 +25,6 @@ import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -104,7 +103,7 @@ public class X509CertificateTest {
             + "-----END CERTIFICATE-----\n";
 
 
-    // See b/113174702
+    // See issue #539.
     @Test
     public void testMismatchedAlgorithm() throws Exception {
         Provider[] providers = Security.getProviders("CertificateFactory.X509");
