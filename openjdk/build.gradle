@@ -38,6 +38,8 @@ sourceSets {
         java {
             srcDirs += "${rootDir}/common/src/main/java"
             srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
+            srcDirs += "build/modified"
+            excludes = [ "org/conscrypt/Conscrypt.java" ]
         }
     }
 
@@ -80,6 +82,22 @@ sourceSets {
             output.dir(nativeResourcesDir(nativeClassifier), builtBy: "copyNativeLib${sourceSetName}")
         }
     }
+}
+
+task addVersionToConscryptClass(type: Copy) {
+    ext {
+        parsedVersion = VersionNumber.parse(version)
+    }
+    from "${rootDir}/common/src/main/java/org/conscrypt/Conscrypt.java"
+    into 'build/modified'
+    filter {
+        line -> line.replace("new Version(-1, -1, -1)",
+                "new Version(${parsedVersion.getMajor()}, ${parsedVersion.getMinor()}, ${parsedVersion.getMicro()})")
+    }
+}
+
+compileJava {
+    dependsOn addVersionToConscryptClass
 }
 
 task platformJar(type: Jar) {

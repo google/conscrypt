@@ -49,6 +49,29 @@ public final class Conscrypt {
         }
     }
 
+    public static class Version {
+        private final int major;
+        private final int minor;
+        private final int patch;
+
+        private Version(int major, int minor, int patch) {
+            this.major = major;
+            this.minor = minor;
+            this.patch = patch;
+        }
+
+        public int major() { return major; }
+        public int minor() { return minor; }
+        public int patch() { return patch; }
+    }
+
+    // NOTE: This constant definition is replaced by the addVersionToConscryptClass Gradle task
+    private static final Version VERSION = new Version(-1, -1, -1);
+
+    public static Version version() {
+        return VERSION;
+    }
+
     /**
      * Checks that the Conscrypt support is available for the system.
      *
