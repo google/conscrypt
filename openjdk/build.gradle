@@ -38,8 +38,9 @@ sourceSets {
         java {
             srcDirs += "${rootDir}/common/src/main/java"
             srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
-            srcDirs += "build/modified"
-            excludes = [ "org/conscrypt/Conscrypt.java" ]
+        }
+        resources {
+            srcDirs += "build/generated/resources"
         }
     }
 
@@ -84,20 +85,8 @@ sourceSets {
     }
 }
 
-task addVersionToConscryptClass(type: Copy) {
-    ext {
-        parsedVersion = VersionNumber.parse(version)
-    }
-    from "${rootDir}/common/src/main/java/org/conscrypt/Conscrypt.java"
-    into 'build/modified'
-    filter {
-        line -> line.replace("new Version(-1, -1, -1)",
-                "new Version(${parsedVersion.getMajor()}, ${parsedVersion.getMinor()}, ${parsedVersion.getMicro()})")
-    }
-}
-
 compileJava {
-    dependsOn addVersionToConscryptClass
+    dependsOn generateProperties
 }
 
 task platformJar(type: Jar) {

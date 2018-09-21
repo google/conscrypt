@@ -76,12 +76,13 @@ if (androidSdkInstalled) {
             java {
                 srcDirs = [
                         "${rootDir}/common/src/main/java",
-                        "src/main/java",
-                        "build/modified"
+                        "src/main/java"
                 ]
                 // Requires evaluationDependsOn(':conscrypt-constants') above.
                 srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
-                excludes = [ "org/conscrypt/Conscrypt.java" ]
+            }
+            resources {
+                srcDirs += "build/generated/resources"
             }
         }
         externalNativeBuild {
@@ -98,20 +99,8 @@ if (androidSdkInstalled) {
         publicApiDocs
     }
 
-    task addVersionToConscryptClass(type: Copy) {
-        ext {
-            parsedVersion = VersionNumber.parse(version)
-        }
-        from "${rootDir}/common/src/main/java/org/conscrypt/Conscrypt.java"
-        into 'build/modified'
-        filter {
-            line -> line.replace("new Version(-1, -1, -1)",
-                    "new Version(${parsedVersion.getMajor()}, ${parsedVersion.getMinor()}, ${parsedVersion.getMicro()})")
-        }
-    }
-
-    build {
-        dependsOn addVersionToConscryptClass
+    preBuild {
+        dependsOn generateProperties
     }
 
     dependencies {

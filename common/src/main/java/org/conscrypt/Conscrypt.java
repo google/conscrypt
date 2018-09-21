@@ -15,10 +15,13 @@
  */
 package org.conscrypt;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.PrivateKey;
 import java.security.Provider;
+import java.util.Properties;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLContextSpi;
 import javax.net.ssl.SSLEngine;
@@ -65,9 +68,34 @@ public final class Conscrypt {
         public int patch() { return patch; }
     }
 
-    // NOTE: This constant definition is replaced by the addVersionToConscryptClass Gradle task
-    private static final Version VERSION = new Version(-1, -1, -1);
+    private static final Version VERSION;
 
+    static {
+        int major = -1;
+        int minor = -1;
+        int patch = -1;
+        try {
+            InputStream stream = Conscrypt.class.getResourceAsStream("conscrypt.properties");
+            if (stream != null) {
+                Properties props = new Properties();
+                props.load(stream);
+                major = Integer.parseInt(props.getProperty("version.major", "-1"));
+                minor = Integer.parseInt(props.getProperty("version.minor", "-1"));
+                patch = Integer.parseInt(props.getProperty("version.patch", "-1"));
+            }
+        } catch (IOException e) {
+        }
+        if ((major >= 0) && (minor >= 0) && (patch >= 0)) {
+            VERSION = new Version(major, minor, patch);
+        } else {
+            VERSION = null;
+        }
+    }
+
+    /**
+     * Returns the version of this distribution of Conscrypt.  If version information is
+     * unavailable, returns {@code null}.
+     */
     public static Version version() {
         return VERSION;
     }

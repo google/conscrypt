@@ -1,6 +1,7 @@
 package org.conscrypt;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -17,6 +18,7 @@ public class ConscryptTest {
     @Test
     public void testVersionIsSensible() {
         Conscrypt.Version version = Conscrypt.version();
+        assertNotNull(version);
         // The version object should be a singleton
         assertSame(version, Conscrypt.version());
 
