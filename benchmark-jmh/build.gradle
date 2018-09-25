@@ -1,5 +1,5 @@
 plugins {
-    id 'me.champeau.gradle.jmh' version '0.3.1'
+    id 'me.champeau.gradle.jmh' version '0.4.7'
 }
 
 apply plugin: 'idea'
@@ -14,6 +14,7 @@ ext {
 
     genDir = "${buildDir}/jmh-generated-classes"
     jmhInclude = System.getProperty('jmh.include')
+    jmhParams = System.getProperty('jmh.parameters')
     jmhWarmupIterations = System.getProperty('jmh.wi', '10')
     jmhIterations = System.getProperty('jmh.i', '10')
     jmhFork = System.getProperty('jmh.f', '1')
@@ -29,6 +30,9 @@ jmh {
     jmhVersion = "$jmhVersion"
     if (jmhInclude != null) {
         setInclude(jmhInclude.toString())
+    }
+    if (jmhParams != null) {
+        setBenchmarkParameters(parseParams(jmhParams))
     }
     warmupIterations = "$jmhWarmupIterations".toInteger()
     iterations = "$jmhIterations".toInteger();
@@ -85,6 +89,19 @@ dependencies {
 // See https://github.com/melix/jmh-gradle-plugin/issues/39
 idea.module {
     scopes.PROVIDED.plus += [ configurations.compile, configurations.jmh ]
+}
+
+// Param strings are in the form "param:VAL1,VAL2;param2:VAL3,VAL4"
+def parseParams(s) {
+    // It's really easy to type jmh.parameters=foo=bar instead of jmh.parameters=foo:bar,
+    // so check for that.
+    if (s.contains("=")) {
+        throw new IllegalArgumentException("jmh.parameters value shouldn't include '='.  (Did you mean ':'?)")
+    }
+    return s.split(";").collectEntries { entry ->
+        def pair = entry.split(":")
+        [ (pair.first().trim()) : pair.last().split(",").collect { it.trim() } ]
+    }
 }
 
 // Don't include this artifact in the distribution.

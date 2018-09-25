@@ -79,6 +79,16 @@ public class JmhAlpnBenchmark {
     public boolean useAlpn() {
       return true;
     }
+
+    @Override
+    public int rttMillis() {
+      return 0;
+    }
+
+    @Override
+    public BenchmarkProtocol protocol() {
+      return BenchmarkProtocol.TLSv12;
+    }
   }
 }
 

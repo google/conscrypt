@@ -32,10 +32,10 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.TestUtils.doEngineHandshake;
-
 import java.nio.ByteBuffer;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 
 /**
@@ -50,11 +50,17 @@ public final class EngineHandshakeBenchmark {
         EngineFactory engineFactory();
         String cipher();
         boolean useAlpn();
+        BenchmarkProtocol protocol();
+        int rttMillis();
     }
+
+    private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocateDirect(0);
 
     private final EngineFactory engineFactory;
     private final String cipher;
     private final boolean useAlpn;
+    private final String[] protocols;
+    private final int rttMillis;
 
     private final ByteBuffer clientApplicationBuffer;
     private final ByteBuffer clientPacketBuffer;
@@ -65,6 +71,8 @@ public final class EngineHandshakeBenchmark {
         engineFactory = config.engineFactory();
         cipher = config.cipher();
         useAlpn = config.useAlpn();
+        protocols = config.protocol().getProtocols();
+        rttMillis = config.rttMillis();
         BufferType bufferType = config.bufferType();
 
         SSLEngine clientEngine = engineFactory.newClientEngine(cipher, useAlpn);
@@ -88,9 +96,75 @@ public final class EngineHandshakeBenchmark {
         serverApplicationBuffer.clear();
         serverPacketBuffer.clear();
 
-        doEngineHandshake(client, server, clientApplicationBuffer, clientPacketBuffer,
-                serverApplicationBuffer, serverPacketBuffer, true);
+        client.setEnabledProtocols(protocols);
+        server.setEnabledProtocols(protocols);
+
+        client.beginHandshake();
+        server.beginHandshake();
+
+        doHandshake(client, server);
+
         engineFactory.dispose(client);
         engineFactory.dispose(server);
+    }
+
+    private void doHandshake(SSLEngine client, SSLEngine server) throws SSLException {
+        while (true) {
+            // Send as many client-to-server messages as possible
+            doHalfHandshake(client, server, clientPacketBuffer, serverApplicationBuffer);
+
+            if (client.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING
+                    && server.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING) {
+                return;
+            }
+
+            // Do the same with server-to-client messages
+            doHalfHandshake(server, client, serverPacketBuffer, clientApplicationBuffer);
+
+            if (client.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING
+                    && server.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING) {
+                return;
+            }
+        }
+    }
+
+    private void doHalfHandshake(SSLEngine sender, SSLEngine receiver,
+            ByteBuffer senderPacketBuffer, ByteBuffer receiverApplicationBuffer)
+            throws SSLException {
+        SSLEngineResult senderResult;
+        SSLEngineResult receiverResult;
+
+        do {
+            senderResult = sender.wrap(EMPTY_BUFFER, senderPacketBuffer);
+            runDelegatedTasks(senderResult, sender);
+            senderPacketBuffer.flip();
+            receiverResult = receiver.unwrap(senderPacketBuffer, receiverApplicationBuffer);
+            runDelegatedTasks(receiverResult, receiver);
+            senderPacketBuffer.compact();
+        } while (senderResult.getHandshakeStatus() == HandshakeStatus.NEED_WRAP);
+
+        if (rttMillis > 0) {
+            try {
+                Thread.sleep(rttMillis / 2);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private static void runDelegatedTasks(SSLEngineResult result, SSLEngine engine) {
+        if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_TASK) {
+            for (;;) {
+                Runnable task = engine.getDelegatedTask();
+                if (task == null) {
+                    break;
+                }
+                task.run();
+            }
+        }
+    }
+
+    private static boolean isHandshakeFinished(SSLEngineResult result) {
+        return result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.FINISHED;
     }
 }
