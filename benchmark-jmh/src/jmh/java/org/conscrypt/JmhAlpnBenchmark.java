@@ -87,7 +87,7 @@ public class JmhAlpnBenchmark {
 
     @Override
     public BenchmarkProtocol protocol() {
-      return BenchmarkProtocol.TLSv12_ONLY;
+      return BenchmarkProtocol.TLSv12;
     }
   }
 }

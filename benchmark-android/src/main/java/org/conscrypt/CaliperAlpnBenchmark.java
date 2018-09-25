@@ -75,7 +75,7 @@ public class CaliperAlpnBenchmark {
 
         @Override
         public BenchmarkProtocol protocol() {
-            return BenchmarkProtocol.TLSv12_ONLY;
+            return BenchmarkProtocol.TLSv12;
         }
 
         @Override
