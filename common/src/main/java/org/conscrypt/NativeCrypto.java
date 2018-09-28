@@ -926,10 +926,6 @@ public final class NativeCrypto {
 
     static native byte[] SSL_get_tls_unique(long ssl, NativeSsl ssl_holder);
 
-    static native void SSL_set_token_binding_params(long ssl, NativeSsl ssl_holder, int[] params) throws SSLException;
-
-    static native int SSL_get_token_binding_params(long ssl, NativeSsl ssl_holder);
-
     static native byte[] SSL_export_keying_material(long ssl, NativeSsl ssl_holder, byte[] label, byte[] context, int num_bytes) throws SSLException;
 
     static native void SSL_use_psk_identity_hint(long ssl, NativeSsl ssl_holder, String identityHint) throws SSLException;
