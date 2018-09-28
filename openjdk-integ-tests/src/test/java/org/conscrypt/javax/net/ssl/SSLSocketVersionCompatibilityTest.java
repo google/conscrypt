@@ -2360,8 +2360,8 @@ public class SSLSocketVersionCompatibilityTest {
             assertEquals(20, serverContextEkm.length);
             assertArrayEquals(clientContextEkm, serverContextEkm);
 
-            // In TLS 1.2, an empty context and a null context are different (RFC 7505, section 4),
-            // but in TLS 1.3 they are the same (draft-ietf-tls-tls13-28, section 7.5).
+            // In TLS 1.2, an empty context and a null context are different (RFC 5705, section 4),
+            // but in TLS 1.3 they are the same (RFC 8446, section 7.5).
             if ("TLSv1.2".equals(negotiatedVersion())) {
                 assertFalse(Arrays.equals(clientEkm, clientContextEkm));
             } else {
