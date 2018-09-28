@@ -871,22 +871,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    void setTokenBindingParams(int... params) throws SSLException {
-        synchronized (ssl) {
-            if (state != STATE_NEW) {
-                throw new IllegalStateException(
-                        "Cannot set token binding params after handshake has started.");
-            }
-        }
-        ssl.setTokenBindingParams(params);
-    };
-
-    @Override
-    int getTokenBindingParams() {
-        return ssl.getTokenBindingParams();
-    }
-
-    @Override
     byte[] exportKeyingMaterial(String label, byte[] context, int length) throws SSLException {
         synchronized (ssl) {
             if (state < STATE_HANDSHAKE_COMPLETED || state == STATE_CLOSED) {

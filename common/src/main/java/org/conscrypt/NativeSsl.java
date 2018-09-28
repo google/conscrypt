@@ -129,14 +129,6 @@ final class NativeSsl {
         return NativeCrypto.SSL_get_tls_unique(ssl, this);
     }
 
-    void setTokenBindingParams(int... params) throws SSLException {
-        NativeCrypto.SSL_set_token_binding_params(ssl, this, params);
-    }
-
-    int getTokenBindingParams() {
-        return NativeCrypto.SSL_get_token_binding_params(ssl, this);
-    }
-
     byte[] exportKeyingMaterial(String label, byte[] context, int length) throws SSLException {
         if (label == null) {
             throw new NullPointerException("Label is null");

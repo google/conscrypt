@@ -166,26 +166,6 @@ abstract class AbstractConscryptEngine extends SSLEngine {
     abstract byte[] getTlsUnique();
 
     /**
-     * Enables token binding parameter negotiation on this engine, or disables it if an
-     * empty set of parameters are provided.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @param params a list of Token Binding key parameters in descending order of preference,
-     * as described in draft-ietf-tokbind-negotiation-09.
-     * @throws IllegalStateException if the handshake has already started.
-     * @throws SSLException if the setting could not be applied.
-     */
-    abstract void setTokenBindingParams(int... params) throws SSLException;
-
-    /**
-     * Returns the token binding parameters that were negotiated during the handshake, or -1 if
-     * token binding parameters were not negotiated, the handshake has not yet completed,
-     * or the connection has been closed.
-     */
-    abstract int getTokenBindingParams();
-
-    /**
      * Exports a value derived from the TLS master secret as described in RFC 5705.
      *
      * @param label the label to use in calculating the exported value.  This must be
