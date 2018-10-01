@@ -161,6 +161,7 @@ subprojects {
         property("version.major", parsedVersion.getMajor())
         property("version.minor", parsedVersion.getMinor())
         property("version.patch", parsedVersion.getMicro())
+        property("version.boringssl", boringSslVersion)
         outputFile "build/generated/resources/org/conscrypt/conscrypt.properties"
     }
 
