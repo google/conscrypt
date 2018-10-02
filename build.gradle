@@ -158,10 +158,10 @@ subprojects {
         ext {
             parsedVersion = VersionNumber.parse(version)
         }
-        property("version.major", parsedVersion.getMajor())
-        property("version.minor", parsedVersion.getMinor())
-        property("version.patch", parsedVersion.getMicro())
-        property("version.boringssl", boringSslVersion)
+        property("org.conscrypt.version.major", parsedVersion.getMajor())
+        property("org.conscrypt.version.minor", parsedVersion.getMinor())
+        property("org.conscrypt.version.patch", parsedVersion.getMicro())
+        property("org.conscrypt.boringssl.version", boringSslVersion)
         outputFile "build/generated/resources/org/conscrypt/conscrypt.properties"
     }
 

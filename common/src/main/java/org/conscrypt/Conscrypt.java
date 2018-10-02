@@ -79,9 +79,9 @@ public final class Conscrypt {
             if (stream != null) {
                 Properties props = new Properties();
                 props.load(stream);
-                major = Integer.parseInt(props.getProperty("version.major", "-1"));
-                minor = Integer.parseInt(props.getProperty("version.minor", "-1"));
-                patch = Integer.parseInt(props.getProperty("version.patch", "-1"));
+                major = Integer.parseInt(props.getProperty("org.conscrypt.version.major", "-1"));
+                minor = Integer.parseInt(props.getProperty("org.conscrypt.version.minor", "-1"));
+                patch = Integer.parseInt(props.getProperty("org.conscrypt.version.patch", "-1"));
             }
         } catch (IOException e) {
         }
