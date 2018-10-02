@@ -20,11 +20,13 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.Charset;
+import java.security.InvalidKeyException;
 import java.security.Provider;
 import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.CertificateParsingException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -102,6 +104,23 @@ public class X509CertificateTest {
             + "KStYq7X9PKseN+PvmfeoffIKc5R/Ha39oi7cGMVHCr8aiEhsf94=\n"
             + "-----END CERTIFICATE-----\n";
 
+    /**
+     * This cert has an EC key with curve prime256v1 encoded using explicit params.
+     */
+    private static final String EC_EXPLICIT_KEY_CERT =
+            "-----BEGIN CERTIFICATE-----\n"
+            + "MIICAjCCAagCCQCrIzClvU58azAKBggqhkjOPQQDAjAPMQ0wCwYDVQQDDARUZXN0\n"
+            + "MB4XDTE4MTAwMjEyNDQzMloXDTE4MTEwMTEyNDQzMlowDzENMAsGA1UEAwwEVGVz\n"
+            + "dDCCAUswggEDBgcqhkjOPQIBMIH3AgEBMCwGByqGSM49AQECIQD/////AAAAAQAA\n"
+            + "AAAAAAAAAAAAAP///////////////zBbBCD/////AAAAAQAAAAAAAAAAAAAAAP//\n"
+            + "/////////////AQgWsY12Ko6k+ez671VdpiGvGUdBrDMU7D2O848PifSYEsDFQDE\n"
+            + "nTYIhucEk2pmeOETnSa3gZ9+kARBBGsX0fLhLEJH+Lzm5WOkQPJ3A32BLeszoPSh\n"
+            + "OUXYmMKWT+NC4v4af5uO5+tKfA+eFivOM1drMV7Oy7ZAaDe/UfUCIQD/////AAAA\n"
+            + "AP//////////vOb6racXnoTzucrC/GMlUQIBAQNCAAQXU+GFdLabcY/RvzoNjLhC\n"
+            + "6uN1Yt1baN2NYyKYEhwR9nb8nLa/m7f30OOi/8OrxQhnUl5qW0I0IbHflGnsqQ6s\n"
+            + "MAoGCCqGSM49BAMCA0gAMEUCIQDRXoZwmnsIJfg4mTemkM+heMS1iXRYUO0Dar5u\n"
+            + "Qhy0YgIgYWr0qSCLqxUQv3oQHMUpSmfHtP0Pwvb3DbbH6lY7TkI=\n"
+            + "-----END CERTIFICATE-----\n";
 
     // See issue #539.
     @Test
@@ -119,6 +138,27 @@ public class X509CertificateTest {
                 }
             } catch (Throwable e) {
                 throw new Exception("Failed testing " + p.getName(), e);
+            }
+        }
+    }
+
+    /**
+     * Confirm that explicit EC params aren't accepted in certificates.
+     */
+    @Test
+    public void testExplicitEcParams() throws Exception {
+        Provider[] providers = Security.getProviders("CertificateFactory.X509");
+        for (Provider p : providers) {
+            try {
+                CertificateFactory cf = CertificateFactory.getInstance("X509", p);
+                Certificate c = cf.generateCertificate(new ByteArrayInputStream(
+                        EC_EXPLICIT_KEY_CERT.getBytes(Charset.forName("US-ASCII"))));
+                c.verify(c.getPublicKey());
+                fail("Provider: " + p.getName());
+            } catch (InvalidKeyException expected) {
+                // TODO: Should we throw CertificateParsingException at parse time
+                // instead of waiting for when the user accesses the key?
+            } catch (CertificateParsingException expected) {
             }
         }
     }
