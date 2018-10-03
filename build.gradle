@@ -154,6 +154,17 @@ subprojects {
         }
     }
 
+    task generateProperties(type: WriteProperties) {
+        ext {
+            parsedVersion = VersionNumber.parse(version)
+        }
+        property("org.conscrypt.version.major", parsedVersion.getMajor())
+        property("org.conscrypt.version.minor", parsedVersion.getMinor())
+        property("org.conscrypt.version.patch", parsedVersion.getMicro())
+        property("org.conscrypt.boringssl.version", boringSslVersion)
+        outputFile "build/generated/resources/org/conscrypt/conscrypt.properties"
+    }
+
     if (!androidProject) {
         sourceCompatibility = JavaVersion.VERSION_1_6
         targetCompatibility = JavaVersion.VERSION_1_6

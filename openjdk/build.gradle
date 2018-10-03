@@ -39,6 +39,9 @@ sourceSets {
             srcDirs += "${rootDir}/common/src/main/java"
             srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
         }
+        resources {
+            srcDirs += "build/generated/resources"
+        }
     }
 
     platform {
@@ -80,6 +83,10 @@ sourceSets {
             output.dir(nativeResourcesDir(nativeClassifier), builtBy: "copyNativeLib${sourceSetName}")
         }
     }
+}
+
+compileJava {
+    dependsOn generateProperties
 }
 
 task platformJar(type: Jar) {

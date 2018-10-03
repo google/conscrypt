@@ -81,6 +81,9 @@ if (androidSdkInstalled) {
                 // Requires evaluationDependsOn(':conscrypt-constants') above.
                 srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
             }
+            resources {
+                srcDirs += "build/generated/resources"
+            }
         }
         externalNativeBuild {
             cmake {
@@ -94,6 +97,10 @@ if (androidSdkInstalled) {
 
     configurations {
         publicApiDocs
+    }
+
+    preBuild {
+        dependsOn generateProperties
     }
 
     dependencies {
