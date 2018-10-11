@@ -403,11 +403,11 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
         try {
             // Close the underlying socket.
             super.close();
-
+        } finally {
             // Close the engine.
             engine.closeInbound();
             engine.closeOutbound();
-        } finally {
+            
             // Release any resources we're holding
             if (in != null) {
                 in.release();
