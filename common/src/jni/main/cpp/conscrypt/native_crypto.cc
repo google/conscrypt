@@ -5073,7 +5073,11 @@ static jlong d2i_ASN1Object_to_jlong(JNIEnv* env, jlong bioRef) {
 
     T* x = d2i_func(bio, nullptr);
     if (x == nullptr) {
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "d2i_ASN1Object_to_jlong");
+        if (ERR_peek_error() != 0) {
+            conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "d2i_ASN1Object_to_jlong");
+        } else {
+            conscrypt::jniutil::throwRuntimeException(env, "d2i_ASN1Object_to_jlong");
+        }
         return 0;
     }
 
