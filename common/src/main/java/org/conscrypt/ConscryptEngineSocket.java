@@ -52,6 +52,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     private SSLOutputStream out;
     private SSLInputStream in;
 
+    private BufferAllocator bufferAllocator = ConscryptEngine.getDefaultBufferAllocator();
+
     // @GuardedBy("stateLock");
     private int state = STATE_NEW;
 
@@ -398,12 +400,19 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
             stateLock.notifyAll();
         }
 
-        // Close the underlying socket.
-        super.close();
-
-        // Close the engine.
-        engine.closeInbound();
-        engine.closeOutbound();
+        try {
+            // Close the underlying socket.
+            super.close();
+        } finally {
+            // Close the engine.
+            engine.closeInbound();
+            engine.closeOutbound();
+            
+            // Release any resources we're holding
+            if (in != null) {
+                in.release();
+            }
+        }
     }
 
     @Override
@@ -435,6 +444,11 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     @Override
     final void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter selector) {
         engine.setApplicationProtocolSelector(selector);
+    }
+
+    void setBufferAllocator(BufferAllocator bufferAllocator) {
+        engine.setBufferAllocator(bufferAllocator);
+        this.bufferAllocator = bufferAllocator;
     }
 
     private void onHandshakeFinished() {
@@ -600,10 +614,18 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
         private final ByteBuffer fromEngine;
         private final ByteBuffer fromSocket;
         private final int fromSocketArrayOffset;
+        private final AllocatedBuffer allocatedBuffer;
         private InputStream socketInputStream;
 
         SSLInputStream() {
-            fromEngine = ByteBuffer.allocateDirect(engine.getSession().getApplicationBufferSize());
+            if (bufferAllocator != null) {
+                allocatedBuffer = bufferAllocator.allocateDirectBuffer(
+                        engine.getSession().getApplicationBufferSize());
+                fromEngine = allocatedBuffer.nioBuffer();
+            } else {
+                allocatedBuffer = null;
+                fromEngine = ByteBuffer.allocateDirect(engine.getSession().getApplicationBufferSize());
+            }
             // Initially fromEngine.remaining() == 0.
             fromEngine.flip();
             fromSocket = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
@@ -613,6 +635,14 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
         @Override
         public void close() throws IOException {
             ConscryptEngineSocket.this.close();
+        }
+
+        void release() {
+            synchronized (readLock) {
+                if (allocatedBuffer != null) {
+                    allocatedBuffer.release();
+                }
+            }
         }
 
         @Override
