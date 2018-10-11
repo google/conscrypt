@@ -400,16 +400,18 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
             stateLock.notifyAll();
         }
 
-        // Close the underlying socket.
-        super.close();
+        try {
+            // Close the underlying socket.
+            super.close();
 
-        // Close the engine.
-        engine.closeInbound();
-        engine.closeOutbound();
-
-        // Release any resources we're holding
-        if (in != null) {
-            in.release();
+            // Close the engine.
+            engine.closeInbound();
+            engine.closeOutbound();
+        } finally {
+            // Release any resources we're holding
+            if (in != null) {
+                in.release();
+            }
         }
     }
 
