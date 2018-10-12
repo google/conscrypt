@@ -46,16 +46,20 @@ public abstract class AllocatedBuffer {
     public abstract ByteBuffer nioBuffer();
 
     /**
-     * Increases the reference count by {@code 1}.
+     * Returns the current instance for backward compatibility.
+     *
+     * @deprecated this method is not used
      */
-    public abstract AllocatedBuffer retain();
+    @Deprecated
+    public AllocatedBuffer retain() {
+        // Do nothing.
+        return this;
+    }
 
     /**
-     * Decreases the reference count by {@code 1} and deallocates this object if the reference count
-     * reaches at {@code 0}.
+     * Returns the delegate {@link ByteBuffer} for reuse or garbage collection.
      *
-     * @return {@code true} if and only if the reference count became {@code 0} and this object has
-     * been deallocated
+     * @return this {@link AllocatedBuffer} instance
      */
     public abstract AllocatedBuffer release();
 
@@ -70,12 +74,6 @@ public abstract class AllocatedBuffer {
             @Override
             public ByteBuffer nioBuffer() {
                 return buffer;
-            }
-
-            @Override
-            public AllocatedBuffer retain() {
-                // Do nothing.
-                return this;
             }
 
             @Override
