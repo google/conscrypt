@@ -342,7 +342,7 @@ void throwExceptionFromBoringSSLError(JNIEnv* env, CONSCRYPT_UNUSED const char* 
     unsigned long error = ERR_get_error_line_data(&file, &line, &data, &flags);
 
     if (error == 0) {
-        throwAssertionError(env, "throwExceptionFromBoringSSLError called with no error");
+        defaultThrow(env, "Unknown BoringSSL error");
         return;
     }
 
@@ -353,7 +353,7 @@ void throwExceptionFromBoringSSLError(JNIEnv* env, CONSCRYPT_UNUSED const char* 
         ERR_error_string_n(error, message, sizeof(message));
         int library = ERR_GET_LIB(error);
         int reason = ERR_GET_REASON(error);
-        JNI_TRACE("OpenSSL error in %s error=%lx library=%x reason=%x (%s:%d): %s %s", location,
+        JNI_TRACE("BoringSSL error in %s error=%lx library=%x reason=%x (%s:%d): %s %s", location,
                   error, library, reason, file, line, message,
                   (flags & ERR_TXT_STRING) ? data : "(no data)");
         switch (library) {

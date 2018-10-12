@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -383,11 +382,6 @@ public class NativeSslSessionTest {
     private static final byte[] DUMMY_OCSP_DATA = new byte[1];
 
     private static final byte[] DUMMY_TLS_SCT_DATA = new byte[1];
-
-    @After
-    public void tearDown() throws Exception {
-        assertEquals(0, NativeCrypto.ERR_peek_last_error());
-    }
 
     private static TestSessionBuilder getType1() {
         return new TestSessionBuilder()
