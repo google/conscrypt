@@ -1,1 +1,0 @@
-rule org.conscrypt.** com.android.@0
