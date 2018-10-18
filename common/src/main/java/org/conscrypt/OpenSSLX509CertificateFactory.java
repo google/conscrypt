@@ -272,6 +272,8 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
                 }
             };
 
+    public OpenSSLX509CertificateFactory() {}
+
     @Override
     public Certificate engineGenerateCertificate(InputStream inStream) throws CertificateException {
         try {
