@@ -109,7 +109,13 @@ public class IvParameters extends AlgorithmParametersSpi {
         return "Conscrypt IV AlgorithmParameters";
     }
 
-    public static class AES extends IvParameters {}
-    public static class DESEDE extends IvParameters {}
-    public static class ChaCha20 extends IvParameters {}
+    public static class AES extends IvParameters {
+        public AES() {}
+    }
+    public static class DESEDE extends IvParameters {
+        public DESEDE() {}
+    }
+    public static class ChaCha20 extends IvParameters {
+        public ChaCha20() {}
+    }
 }

@@ -35,6 +35,8 @@ public class ECParameters extends AlgorithmParametersSpi {
 
     private OpenSSLECGroupContext curve;
 
+    public ECParameters() {}
+
     @Override
     protected void engineInit(AlgorithmParameterSpec algorithmParameterSpec)
             throws InvalidParameterSpecException {

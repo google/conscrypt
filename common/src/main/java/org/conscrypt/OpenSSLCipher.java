@@ -1398,6 +1398,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 }
 
                 public static class AES_128 extends GCM {
+                    public AES_128() {}
+
                     @Override
                     void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
                         if (keyLength != 16) { // 128 bits
@@ -1408,6 +1410,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 }
 
                 public static class AES_256 extends GCM {
+                    public AES_256() {}
+
                     @Override
                     void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
                         if (keyLength != 32) { // 256 bits
