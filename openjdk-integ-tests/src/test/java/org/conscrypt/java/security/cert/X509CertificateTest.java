@@ -149,6 +149,11 @@ public class X509CertificateTest {
     public void testExplicitEcParams() throws Exception {
         Provider[] providers = Security.getProviders("CertificateFactory.X509");
         for (Provider p : providers) {
+            if (p.getName().equals("BC")) {
+                // Bouncy Castle allows explicit EC params in certificates, even though they're
+                // barred by RFC 5480
+                continue;
+            }
             try {
                 CertificateFactory cf = CertificateFactory.getInstance("X509", p);
                 Certificate c = cf.generateCertificate(new ByteArrayInputStream(
