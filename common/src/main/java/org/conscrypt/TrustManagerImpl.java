@@ -63,6 +63,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.logging.Logger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLEngine;
@@ -86,6 +87,8 @@ import org.conscrypt.ct.CTVerifier;
  */
 @Internal
 public final class TrustManagerImpl extends X509ExtendedTrustManager {
+
+    private static final Logger logger = Logger.getLogger(TrustManagerImpl.class.getName());
 
     /**
      * Comparator used for ordering trust anchors during certificate path building.
@@ -646,68 +649,74 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             List<TrustAnchor> trustAnchorChain, String host, boolean clientAuth, byte[] ocspData,
             byte[] tlsSctData)
             throws CertificateException {
-        // build the cert path from the list of certs sans trust anchors
-        // TODO: check whether this is slow and should be replaced by a minimalistic CertPath impl
-        // since we already have built the path.
-        CertPath certPath = factory.generateCertPath(untrustedChain);
-
-        // Check that there are at least some trust anchors
-        if (trustAnchorChain.isEmpty()) {
-            throw new CertificateException(new CertPathValidatorException(
-                    "Trust anchor for certification path not found.", null, certPath, -1));
-        }
-
-        List<X509Certificate> wholeChain = new ArrayList<X509Certificate>();
-        wholeChain.addAll(untrustedChain);
-        for (TrustAnchor anchor : trustAnchorChain) {
-            wholeChain.add(anchor.getTrustedCert());
-        }
-
-        if (pinManager != null) {
-            pinManager.checkChainPinning(host, wholeChain);
-        }
-        // Check whole chain against the blacklist
-        for (X509Certificate cert : wholeChain) {
-            checkBlacklist(cert);
-        }
-
-        // Check CT (if required).
-        if (!clientAuth &&
-                (ctEnabledOverride || (host != null && Platform.isCTVerificationRequired(host)))) {
-            checkCT(host, wholeChain, ocspData, tlsSctData);
-        }
-
-        if (untrustedChain.isEmpty()) {
-            // The chain consists of only trust anchors, skip the validator
-            return wholeChain;
-        }
-
-        ChainStrengthAnalyzer.check(untrustedChain);
-
-        // Validate the untrusted part of the chain
         try {
-            Set<TrustAnchor> anchorSet = new HashSet<TrustAnchor>();
-            // We know that untrusted chains to the first trust anchor, only add that.
-            anchorSet.add(trustAnchorChain.get(0));
-            PKIXParameters params = new PKIXParameters(anchorSet);
-            params.setRevocationEnabled(false);
-            X509Certificate endPointCert = untrustedChain.get(0);
-            setOcspResponses(params, endPointCert, ocspData);
-            params.addCertPathChecker(
-                    new ExtendedKeyUsagePKIXCertPathChecker(clientAuth, endPointCert));
-            validator.validate(certPath, params);
-        } catch (InvalidAlgorithmParameterException e) {
-            throw new CertificateException("Chain validation failed", e);
-        } catch (CertPathValidatorException e) {
-            throw new CertificateException("Chain validation failed", e);
+            // build the cert path from the list of certs sans trust anchors
+            // TODO: check whether this is slow and should be replaced by a minimalistic CertPath impl
+            // since we already have built the path.
+            CertPath certPath = factory.generateCertPath(untrustedChain);
+
+            // Check that there are at least some trust anchors
+            if (trustAnchorChain.isEmpty()) {
+                throw new CertificateException(new CertPathValidatorException(
+                        "Trust anchor for certification path not found.", null, certPath, -1));
+            }
+
+            List<X509Certificate> wholeChain = new ArrayList<X509Certificate>();
+            wholeChain.addAll(untrustedChain);
+            for (TrustAnchor anchor : trustAnchorChain) {
+                wholeChain.add(anchor.getTrustedCert());
+            }
+
+            if (pinManager != null) {
+                pinManager.checkChainPinning(host, wholeChain);
+            }
+            // Check whole chain against the blacklist
+            for (X509Certificate cert : wholeChain) {
+                checkBlacklist(cert);
+            }
+
+            // Check CT (if required).
+            if (!clientAuth &&
+                    (ctEnabledOverride || (host != null && Platform
+                            .isCTVerificationRequired(host)))) {
+                checkCT(host, wholeChain, ocspData, tlsSctData);
+            }
+
+            if (untrustedChain.isEmpty()) {
+                // The chain consists of only trust anchors, skip the validator
+                return wholeChain;
+            }
+
+            ChainStrengthAnalyzer.check(untrustedChain);
+
+            // Validate the untrusted part of the chain
+            try {
+                Set<TrustAnchor> anchorSet = new HashSet<TrustAnchor>();
+                // We know that untrusted chains to the first trust anchor, only add that.
+                anchorSet.add(trustAnchorChain.get(0));
+                PKIXParameters params = new PKIXParameters(anchorSet);
+                params.setRevocationEnabled(false);
+                X509Certificate endPointCert = untrustedChain.get(0);
+                setOcspResponses(params, endPointCert, ocspData);
+                params.addCertPathChecker(
+                        new ExtendedKeyUsagePKIXCertPathChecker(clientAuth, endPointCert));
+                validator.validate(certPath, params);
+            } catch (InvalidAlgorithmParameterException e) {
+                throw new CertificateException("Chain validation failed", e);
+            } catch (CertPathValidatorException e) {
+                throw new CertificateException("Chain validation failed", e);
+            }
+            // Add intermediate CAs to the index to tolerate sites
+            // that assume that the browser will have cached these.
+            // http://b/3404902
+            for (int i = 1; i < untrustedChain.size(); i++) {
+                intermediateIndex.index(untrustedChain.get(i));
+            }
+            return wholeChain;
+        } catch (CertificateException e) {
+            logger.fine("Rejected candidate cert chain due to error: " + e.getMessage());
+            throw e;
         }
-        // Add intermediate CAs to the index to tolerate sites
-        // that assume that the browser will have cached these.
-        // http://b/3404902
-        for (int i = 1; i < untrustedChain.size(); i++) {
-            intermediateIndex.index(untrustedChain.get(i));
-        }
-        return wholeChain;
     }
 
     private void checkBlacklist(X509Certificate cert) throws CertificateException {

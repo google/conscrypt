@@ -22,7 +22,6 @@ import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Analyzes the cryptographic strength of a chain of X.509 certificates.
@@ -31,8 +30,6 @@ import java.util.logging.Logger;
  */
 @Internal
 public final class ChainStrengthAnalyzer {
-
-    private static final Logger logger = Logger.getLogger(ChainStrengthAnalyzer.class.getName());
 
     private static final int MIN_RSA_MODULUS_LEN_BITS = 1024;
 
@@ -82,8 +79,6 @@ public final class ChainStrengthAnalyzer {
         if (pubkey instanceof RSAPublicKey) {
             int modulusLength = ((RSAPublicKey) pubkey).getModulus().bitLength();
             if (modulusLength < MIN_RSA_MODULUS_LEN_BITS) {
-                logger.fine("RSA modulus of " + modulusLength
-                        + " is less than " + MIN_RSA_MODULUS_LEN_BITS);
                 throw new CertificateException(
                         "RSA modulus is < " + MIN_RSA_MODULUS_LEN_BITS + " bits");
             }
@@ -91,8 +86,6 @@ public final class ChainStrengthAnalyzer {
             int fieldSizeBits =
                     ((ECPublicKey) pubkey).getParams().getCurve().getField().getFieldSize();
             if (fieldSizeBits < MIN_EC_FIELD_SIZE_BITS) {
-                logger.fine("EC key field size of " + fieldSizeBits
-                        + " is less than " + MIN_EC_FIELD_SIZE_BITS);
                 throw new CertificateException(
                         "EC key field size is < " + MIN_EC_FIELD_SIZE_BITS + " bits");
             }
@@ -100,14 +93,11 @@ public final class ChainStrengthAnalyzer {
             int pLength = ((DSAPublicKey) pubkey).getParams().getP().bitLength();
             int qLength = ((DSAPublicKey) pubkey).getParams().getQ().bitLength();
             if ((pLength < MIN_DSA_P_LEN_BITS) || (qLength < MIN_DSA_Q_LEN_BITS)) {
-                logger.fine("DSA key length of (" + pLength + ", " + qLength + ")"
-                        + " is less than (" + MIN_DSA_P_LEN_BITS + ", " + MIN_DSA_Q_LEN_BITS + ")");
                 throw new CertificateException(
                         "DSA key length is < (" + MIN_DSA_P_LEN_BITS + ", " + MIN_DSA_Q_LEN_BITS
                         + ") bits");
             }
         } else {
-            logger.fine("Certificate uses unknown key type: " + pubkey.getClass().getName());
             // Unknown keys will be of type X509PublicKey.
             throw new CertificateException("Rejecting unknown key class " + pubkey.getClass().getName());
         }
@@ -118,7 +108,6 @@ public final class ChainStrengthAnalyzer {
         String oid = cert.getSigAlgOID();
         for (String blacklisted : SIGNATURE_ALGORITHM_OID_BLACKLIST) {
             if (oid.equals(blacklisted)) {
-                logger.fine("Signature uses an insecure hash function: " + oid);
                 throw new CertificateException("Signature uses an insecure hash function: " + oid);
             }
         }
