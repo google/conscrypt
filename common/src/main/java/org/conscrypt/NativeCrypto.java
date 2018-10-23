@@ -772,6 +772,7 @@ public final class NativeCrypto {
      */
     private static final String TLS_FALLBACK_SCSV = "TLS_FALLBACK_SCSV";
 
+    private static final boolean HAS_AES_HARDWARE;
     private static final String[] SUPPORTED_TLS_1_2_CIPHER_SUITES;
     static {
         if (loadError == null) {
@@ -796,7 +797,10 @@ public final class NativeCrypto {
             }
             SUPPORTED_TLS_1_2_CIPHER_SUITES[size / 2] = TLS_EMPTY_RENEGOTIATION_INFO_SCSV;
             SUPPORTED_TLS_1_2_CIPHER_SUITES[size / 2 + 1] = TLS_FALLBACK_SCSV;
+
+            HAS_AES_HARDWARE = EVP_has_aes_hardware() == 1;
         } else {
+            HAS_AES_HARDWARE = false;
             SUPPORTED_TLS_1_2_CIPHER_SUITES = new String[0];
         }
     }
@@ -828,7 +832,6 @@ public final class NativeCrypto {
     // prevent apps from connecting to servers they were previously able to connect to.
 
     /** X.509 based cipher suites enabled by default (if requested), in preference order. */
-    private static final boolean HAS_AES_HARDWARE = EVP_has_aes_hardware() == 1;
     static final String[] DEFAULT_X509_CIPHER_SUITES = HAS_AES_HARDWARE ?
             new String[] {
                     "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
