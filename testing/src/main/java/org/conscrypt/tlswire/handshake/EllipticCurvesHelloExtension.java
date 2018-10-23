@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package libcore.tlswire.handshake;
+package org.conscrypt.tlswire.handshake;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import libcore.tlswire.util.IoUtils;
+import org.conscrypt.tlswire.util.IoUtils;
 
 /**
  * {@code elliptic_curves} {@link HelloExtension} from RFC 4492 section 5.1.1.

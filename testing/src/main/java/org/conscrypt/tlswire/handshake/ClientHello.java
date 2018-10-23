@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package libcore.tlswire.handshake;
+package org.conscrypt.tlswire.handshake;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import libcore.tlswire.util.IoUtils;
-import libcore.tlswire.util.TlsProtocolVersion;
+import org.conscrypt.tlswire.util.IoUtils;
+import org.conscrypt.tlswire.util.TlsProtocolVersion;
 
 /**
  * {@link ClientHello} {@link HandshakeMessage} from TLS 1.2 RFC 5246.

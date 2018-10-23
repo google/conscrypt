@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package libcore.tlswire.record;
+package org.conscrypt.tlswire.record;
 /**
  * Protocols that can run over the TLS Record Protocol from TLS 1.2 RFC 5246.
  */
