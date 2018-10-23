@@ -25,8 +25,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,7 +48,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import javax.net.ServerSocketFactory;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -61,18 +58,16 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import libcore.java.security.StandardNames;
-import libcore.tlswire.handshake.CipherSuite;
-import libcore.tlswire.handshake.ClientHello;
-import libcore.tlswire.handshake.CompressionMethod;
-import libcore.tlswire.handshake.EllipticCurve;
-import libcore.tlswire.handshake.EllipticCurvesHelloExtension;
-import libcore.tlswire.handshake.HandshakeMessage;
-import libcore.tlswire.handshake.HelloExtension;
-import libcore.tlswire.record.TlsProtocols;
-import libcore.tlswire.record.TlsRecord;
-import libcore.tlswire.util.TlsProtocolVersion;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.TestKeyStore;
+import org.conscrypt.tlswire.TlsTester;
+import org.conscrypt.tlswire.handshake.CipherSuite;
+import org.conscrypt.tlswire.handshake.ClientHello;
+import org.conscrypt.tlswire.handshake.CompressionMethod;
+import org.conscrypt.tlswire.handshake.EllipticCurve;
+import org.conscrypt.tlswire.handshake.EllipticCurvesHelloExtension;
+import org.conscrypt.tlswire.handshake.HelloExtension;
+import org.conscrypt.tlswire.util.TlsProtocolVersion;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -645,8 +640,8 @@ public class SSLSocketTest {
         ForEachRunner.runNamed(new Callback<SSLSocketFactory>() {
             @Override
             public void run(SSLSocketFactory sslSocketFactory) throws Exception {
-                ClientHello clientHello = SSLSocketTest.this
-                    .captureTlsHandshakeClientHello(sslSocketFactory);
+                ClientHello clientHello = TlsTester
+                        .captureTlsHandshakeClientHello(executor, sslSocketFactory);
                 final String[] cipherSuites;
                 // RFC 5746 allows you to send an empty "renegotiation_info" extension *or*
                 // a special signaling cipher suite. The TLS API has no way to check or
@@ -676,8 +671,8 @@ public class SSLSocketTest {
         ForEachRunner.runNamed(new Callback<SSLSocketFactory>() {
             @Override
             public void run(SSLSocketFactory sslSocketFactory) throws Exception {
-                ClientHello clientHello = SSLSocketTest.this
-                    .captureTlsHandshakeClientHello(sslSocketFactory);
+                ClientHello clientHello = TlsTester
+                        .captureTlsHandshakeClientHello(executor, sslSocketFactory);
                 EllipticCurvesHelloExtension ecExtension =
                     (EllipticCurvesHelloExtension) clientHello.findExtensionByType(
                         HelloExtension.TYPE_ELLIPTIC_CURVES);
@@ -702,8 +697,8 @@ public class SSLSocketTest {
         ForEachRunner.runNamed(new Callback<SSLSocketFactory>() {
             @Override
             public void run(SSLSocketFactory sslSocketFactory) throws Exception {
-                ClientHello clientHello = SSLSocketTest.this
-                    .captureTlsHandshakeClientHello(sslSocketFactory);
+                ClientHello clientHello = TlsTester
+                        .captureTlsHandshakeClientHello(executor, sslSocketFactory);
                 assertEquals(TlsProtocolVersion.TLSv1_2, clientHello.clientVersion);
             }
         }, getSSLSocketFactoriesToTest());
@@ -714,8 +709,8 @@ public class SSLSocketTest {
         ForEachRunner.runNamed(new Callback<SSLSocketFactory>() {
             @Override
             public void run(SSLSocketFactory sslSocketFactory) throws Exception {
-                ClientHello clientHello = SSLSocketTest.this
-                    .captureTlsHandshakeClientHello(sslSocketFactory);
+                ClientHello clientHello = TlsTester
+                        .captureTlsHandshakeClientHello(executor, sslSocketFactory);
                 assertEquals(Collections.singletonList(CompressionMethod.NULL),
                     clientHello.compressionMethods);
             }
@@ -737,99 +732,6 @@ public class SSLSocketTest {
                     sslContext.getSocketFactory()));
         }
         return result;
-    }
-    private ClientHello captureTlsHandshakeClientHello(SSLSocketFactory sslSocketFactory)
-            throws Exception {
-        TlsRecord record = captureTlsHandshakeFirstTlsRecord(sslSocketFactory);
-        assertEquals("TLS record type", TlsProtocols.HANDSHAKE, record.type);
-        ByteArrayInputStream fragmentIn = new ByteArrayInputStream(record.fragment);
-        HandshakeMessage handshakeMessage = HandshakeMessage.read(new DataInputStream(fragmentIn));
-        assertEquals(
-                "HandshakeMessage type", HandshakeMessage.TYPE_CLIENT_HELLO, handshakeMessage.type);
-        // Assert that the fragment does not contain any more messages
-        assertEquals(0, fragmentIn.available());
-        return (ClientHello) handshakeMessage;
-    }
-    private TlsRecord captureTlsHandshakeFirstTlsRecord(SSLSocketFactory sslSocketFactory)
-            throws Exception {
-        byte[] firstReceivedChunk = captureTlsHandshakeFirstTransmittedChunkBytes(sslSocketFactory);
-        ByteArrayInputStream firstReceivedChunkIn = new ByteArrayInputStream(firstReceivedChunk);
-        TlsRecord record = TlsRecord.read(new DataInputStream(firstReceivedChunkIn));
-        // Assert that the chunk does not contain any more data
-        assertEquals(0, firstReceivedChunkIn.available());
-        return record;
-    }
-    @SuppressWarnings("FutureReturnValueIgnored")
-    private byte[] captureTlsHandshakeFirstTransmittedChunkBytes(
-            final SSLSocketFactory sslSocketFactory) throws Exception {
-        // Since there's no straightforward way to obtain a ClientHello from SSLSocket, this test
-        // does the following:
-        // 1. Creates a listening server socket (a plain one rather than a TLS/SSL one).
-        // 2. Creates a client SSLSocket, which connects to the server socket and initiates the
-        //    TLS/SSL handshake.
-        // 3. Makes the server socket accept an incoming connection on the server socket, and reads
-        //    the first chunk of data received. This chunk is assumed to be the ClientHello.
-        // NOTE: Steps 2 and 3 run concurrently.
-        ServerSocket listeningSocket = null;
-        // Some Socket operations are not interruptible via Thread.interrupt for some reason. To
-        // work around, we unblock these sockets using Socket.close.
-        final Socket[] sockets = new Socket[2];
-        try {
-            // 1. Create the listening server socket.
-            listeningSocket = ServerSocketFactory.getDefault().createServerSocket(0);
-            final ServerSocket finalListeningSocket = listeningSocket;
-            // 2. (in background) Wait for an incoming connection and read its first chunk.
-            final Future<byte[]> readFirstReceivedChunkFuture = runAsync(new Callable<byte[]>() {
-                @Override
-                public byte[] call() throws Exception {
-                    Socket socket = finalListeningSocket.accept();
-                    sockets[1] = socket;
-                    try {
-                        byte[] buffer = new byte[64 * 1024];
-                        int bytesRead = socket.getInputStream().read(buffer);
-                        if (bytesRead == -1) {
-                            throw new EOFException("Failed to read anything");
-                        }
-                        return Arrays.copyOf(buffer, bytesRead);
-                    } finally {
-                        closeQuietly(socket);
-                    }
-                }
-            });
-            // 3. Create a client socket, connect it to the server socket, and start the TLS/SSL
-            //    handshake.
-            runAsync(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    Socket client = new Socket();
-                    sockets[0] = client;
-                    try {
-                        client.connect(finalListeningSocket.getLocalSocketAddress());
-                        // Initiate the TLS/SSL handshake which is expected to fail as soon as the
-                        // server socket receives a ClientHello.
-                        try {
-                            SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(client,
-                                    "localhost.localdomain", finalListeningSocket.getLocalPort(),
-                                    true);
-                            sslSocket.startHandshake();
-                            fail();
-                            return null;
-                        } catch (IOException expected) {
-                            // Ignored.
-                        }
-                        return null;
-                    } finally {
-                        closeQuietly(client);
-                    }
-                }
-            });
-            // Wait for the ClientHello to arrive
-            return readFirstReceivedChunkFuture.get(10, TimeUnit.SECONDS);
-        } finally {
-            closeQuietly(listeningSocket);
-            closeQuietly(sockets[0]);
-            closeQuietly(sockets[1]);
-        }
     }
 
     @Test
@@ -980,26 +882,6 @@ public class SSLSocketTest {
             return (SSLSession) method.invoke(socket);
         } catch (Exception e) {
             return null;
-        }
-    }
-
-    private static void closeQuietly(Socket socket) {
-        if (socket != null) {
-            try {
-                socket.close();
-            } catch (Exception ignored) {
-                // Ignored.
-            }
-        }
-    }
-
-    private static void closeQuietly(ServerSocket serverSocket) {
-        if (serverSocket != null) {
-            try {
-                serverSocket.close();
-            } catch (Exception ignored) {
-                // Ignored.
-            }
         }
     }
 }
