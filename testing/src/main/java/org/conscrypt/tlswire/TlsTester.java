@@ -29,6 +29,14 @@ public class TlsTester {
     public static ClientHello captureTlsHandshakeClientHello(ExecutorService executor,
             SSLSocketFactory sslSocketFactory) throws Exception {
         TlsRecord record = captureTlsHandshakeFirstTlsRecord(executor, sslSocketFactory);
+        return parseClientHello(record);
+    }
+
+    public static ClientHello parseClientHello(byte[] data) throws Exception {
+        return parseClientHello(parseRecord(data));
+    }
+
+    private static ClientHello parseClientHello(TlsRecord record) throws Exception {
         assertEquals("TLS record type", TlsProtocols.HANDSHAKE, record.type);
         ByteArrayInputStream fragmentIn = new ByteArrayInputStream(record.fragment);
         HandshakeMessage handshakeMessage = HandshakeMessage.read(new DataInputStream(fragmentIn));
@@ -42,7 +50,11 @@ public class TlsTester {
     public static TlsRecord captureTlsHandshakeFirstTlsRecord(ExecutorService executor,
             SSLSocketFactory sslSocketFactory) throws Exception {
         byte[] firstReceivedChunk = captureTlsHandshakeFirstTransmittedChunkBytes(executor, sslSocketFactory);
-        ByteArrayInputStream firstReceivedChunkIn = new ByteArrayInputStream(firstReceivedChunk);
+        return parseRecord(firstReceivedChunk);
+    }
+
+    public static TlsRecord parseRecord(byte[] data) throws Exception {
+        ByteArrayInputStream firstReceivedChunkIn = new ByteArrayInputStream(data);
         TlsRecord record = TlsRecord.read(new DataInputStream(firstReceivedChunkIn));
         // Assert that the chunk does not contain any more data
         assertEquals(0, firstReceivedChunkIn.available());
