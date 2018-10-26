@@ -126,7 +126,7 @@ static T* fromContextObject(JNIEnv* env, jobject contextObject) {
         return nullptr;
     }
     T* ref = reinterpret_cast<T*>(
-            env->GetLongField(contextObject, conscrypt::jniutil::nativeRef_context));
+            env->GetLongField(contextObject, conscrypt::jniutil::nativeRef_address));
     if (ref == nullptr) {
         JNI_TRACE("ref == null");
         conscrypt::jniutil::throwNullPointerException(env, "ref == null");

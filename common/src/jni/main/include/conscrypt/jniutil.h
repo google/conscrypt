@@ -41,7 +41,7 @@ extern jclass inputStreamClass;
 extern jclass outputStreamClass;
 extern jclass stringClass;
 
-extern jfieldID nativeRef_context;
+extern jfieldID nativeRef_address;
 
 extern jmethodID calendar_setMethod;
 extern jmethodID inputStream_readMethod;
