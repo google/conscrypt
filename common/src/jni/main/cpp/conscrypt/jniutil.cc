@@ -38,7 +38,7 @@ jclass inputStreamClass;
 jclass outputStreamClass;
 jclass stringClass;
 
-jfieldID nativeRef_context;
+jfieldID nativeRef_address;
 
 jmethodID calendar_setMethod;
 jmethodID inputStream_readMethod;
@@ -66,7 +66,7 @@ void init(JavaVM* vm, JNIEnv* env) {
     openSslInputStreamClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream");
 
-    nativeRef_context = getFieldRef(env, nativeRefClass, "context", "J");
+    nativeRef_address = getFieldRef(env, nativeRefClass, "address", "J");
 
     calendar_setMethod = getMethodRef(env, calendarClass, "set", "(IIIIII)V");
     inputStream_readMethod = getMethodRef(env, inputStreamClass, "read", "([B)I");
