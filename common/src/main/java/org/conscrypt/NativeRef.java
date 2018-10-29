@@ -23,12 +23,12 @@ package org.conscrypt;
 abstract class NativeRef {
     final long address;
 
-    NativeRef(long context) {
-        if (context == 0) {
-            throw new NullPointerException("context == 0");
+    NativeRef(long address) {
+        if (address == 0) {
+            throw new NullPointerException("address == 0");
         }
 
-        this.address = context;
+        this.address = address;
     }
 
     @Override
