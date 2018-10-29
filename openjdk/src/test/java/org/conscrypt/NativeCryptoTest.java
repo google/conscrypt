@@ -82,7 +82,6 @@ import libcore.java.security.StandardNames;
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import org.conscrypt.java.security.TestKeyStore;
-import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -118,11 +117,6 @@ public class NativeCryptoTest {
         m_Platform_getFileDescriptor =
                 c_Platform.getDeclaredMethod("getFileDescriptor", Socket.class);
         m_Platform_getFileDescriptor.setAccessible(true);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        assertEquals(0, NativeCrypto.ERR_peek_last_error());
     }
 
     private static OpenSSLKey getServerPrivateKey() {

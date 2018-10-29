@@ -1394,7 +1394,6 @@ public final class NativeCrypto {
     static native int BIO_read(long bioRef, byte[] buffer) throws IOException;
     static native void BIO_write(long bioRef, byte[] buffer, int offset, int length)
             throws IOException, IndexOutOfBoundsException;
-    static native long ERR_peek_last_error();
     static native long SSL_clear_mode(long ssl, NativeSsl ssl_holder, long mode);
     static native long SSL_get_mode(long ssl, NativeSsl ssl_holder);
     static native long SSL_get_options(long ssl, NativeSsl ssl_holder);

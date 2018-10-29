@@ -1464,14 +1464,9 @@ static jint RSA_crypt_operation(RSACryptOperation operation, const char* caller,
             operation(static_cast<size_t>(flen), reinterpret_cast<const unsigned char*>(from.get()),
                       reinterpret_cast<unsigned char*>(to.get()), rsa.get(), padding);
     if (resultSize == -1) {
-        if (ERR_peek_error() != 0) {
-            conscrypt::jniutil::throwExceptionFromBoringSSLError(env, caller);
-            JNI_TRACE("%s => threw error", caller);
-        } else {
-            conscrypt::jniutil::throwBadPaddingException(env, caller);
-            ERR_clear_error();
-            JNI_TRACE("%s => threw padding exception", caller);
-        }
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, caller,
+                conscrypt::jniutil::throwBadPaddingException);
+        JNI_TRACE("%s => threw error", caller);
         return -1;
     }
 
@@ -2378,10 +2373,8 @@ static jint NativeCrypto_ECDSA_sign(JNIEnv* env, jclass, jbyteArray data, jbyteA
                             data_array.size(), reinterpret_cast<unsigned char*>(sig_array.get()),
                             &sig_size, ec_key.get());
     if (result == 0) {
-        if (ERR_peek_error() != 0) {
-            conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "ECDSA_sign");
-            JNI_TRACE("ECDSA_sign => threw error");
-        }
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "ECDSA_sign");
+        JNI_TRACE("ECDSA_sign => threw error");
         return -1;
     }
 
@@ -2552,11 +2545,9 @@ static jint NativeCrypto_EVP_DigestInit_ex(JNIEnv* env, jclass, jobject evpMdCtx
 
     int ok = EVP_DigestInit_ex(ctx, evp_md, nullptr);
     if (ok == 0) {
-        if (ERR_peek_error() != 0) {
-            conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_DigestInit_ex");
-            JNI_TRACE("EVP_DigestInit_ex(%p) => threw exception", evp_md);
-            return 0;
-        }
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_DigestInit_ex");
+        JNI_TRACE("EVP_DigestInit_ex(%p) => threw exception", evp_md);
+        return 0;
     }
     JNI_TRACE_MD("EVP_DigestInit_ex(%p, %p) => %d", ctx, evp_md, ok);
     return ok;
@@ -3319,13 +3310,9 @@ static jint NativeCrypto_EVP_CipherFinal_ex(JNIEnv* env, jclass, jobject ctxRef,
 
     int outl;
     if (!EVP_CipherFinal_ex(ctx, out + outOffset, &outl)) {
-        if (ERR_peek_error() != 0) {
-            conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_CipherFinal_ex");
-            JNI_TRACE("ctx=%p EVP_CipherFinal_ex => threw error", ctx);
-        } else {
-            conscrypt::jniutil::throwBadPaddingException(env, "EVP_CipherFinal_ex");
-            JNI_TRACE("ctx=%p EVP_CipherFinal_ex => threw padding exception", ctx);
-        }
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_CipherFinal_ex",
+                conscrypt::jniutil::throwBadPaddingException);
+        JNI_TRACE("ctx=%p EVP_CipherFinal_ex => threw error", ctx);
         return 0;
     }
 
@@ -5073,11 +5060,7 @@ static jlong d2i_ASN1Object_to_jlong(JNIEnv* env, jlong bioRef) {
 
     T* x = d2i_func(bio, nullptr);
     if (x == nullptr) {
-        if (ERR_peek_error() != 0) {
-            conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "d2i_ASN1Object_to_jlong");
-        } else {
-            conscrypt::jniutil::throwRuntimeException(env, "d2i_ASN1Object_to_jlong");
-        }
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "d2i_ASN1Object_to_jlong");
         return 0;
     }
 
@@ -5140,11 +5123,7 @@ static jlong PEM_to_jlong(JNIEnv* env, jlong bioRef) {
 
     T* x = PEM_read_func(bio, nullptr, nullptr, nullptr);
     if (x == nullptr) {
-        if (ERR_peek_error() != 0) {
-            conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "PEM_to_jlong");
-        } else {
-            conscrypt::jniutil::throwRuntimeException(env, "Failure parsing PEM");
-        }
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "PEM_to_jlong");
         JNI_TRACE("PEM_to_jlong(%p) => threw exception", bio);
         return 0;
     }
@@ -5275,11 +5254,8 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
     uint8_t* data;
     size_t len;
     if (!BIO_read_asn1(bio, &data, &len, 256 * 1024 * 1024 /* max length, 256MB for sanity */)) {
-        if (ERR_peek_error() != 0) {
-            conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "Error reading PKCS#7 data");
-        } else {
-            conscrypt::jniutil::throwParsingException(env, "Error reading PKCS#7 data");
-        }
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "Error reading PKCS#7 data",
+                conscrypt::jniutil::throwParsingException);
         JNI_TRACE("d2i_PKCS7_bio(%p, %d) => error reading BIO", bio, which);
         return nullptr;
     }
@@ -5291,12 +5267,8 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
     if (which == PKCS7_CERTS) {
         bssl::UniquePtr<STACK_OF(X509)> outCerts(sk_X509_new_null());
         if (!PKCS7_get_certificates(outCerts.get(), &cbs)) {
-            if (ERR_peek_error() != 0) {
-                conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "PKCS7_get_certificates");
-            } else {
-                conscrypt::jniutil::throwParsingException(env,
-                                                          "Error parsing PKCS#7 certificate data");
-            }
+            conscrypt::jniutil::throwExceptionFromBoringSSLError(env,
+                    "PKCS7_get_certificates", conscrypt::jniutil::throwParsingException);
             JNI_TRACE("d2i_PKCS7_bio(%p, %d) => error reading certs", bio, which);
             return nullptr;
         }
@@ -5305,11 +5277,8 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
     } else if (which == PKCS7_CRLS) {
         bssl::UniquePtr<STACK_OF(X509_CRL)> outCRLs(sk_X509_CRL_new_null());
         if (!PKCS7_get_CRLs(outCRLs.get(), &cbs)) {
-            if (ERR_peek_error() != 0) {
-                conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "PKCS7_get_CRLs");
-            } else {
-                conscrypt::jniutil::throwParsingException(env, "Error parsing PKCS#7 CRL data");
-            }
+            conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "PKCS7_get_CRLs",
+                    conscrypt::jniutil::throwParsingException);
             JNI_TRACE("d2i_PKCS7_bio(%p, %d) => error reading CRLs", bio, which);
             return nullptr;
         }
@@ -5329,11 +5298,8 @@ static jlongArray NativeCrypto_ASN1_seq_unpack_X509_bio(JNIEnv* env, jclass, jlo
     uint8_t* data;
     size_t len;
     if (!BIO_read_asn1(bio, &data, &len, 256 * 1024 * 1024 /* max length, 256MB for sanity */)) {
-        if (ERR_peek_error() != 0) {
-            conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "Error reading X.509 data");
-        } else {
-            conscrypt::jniutil::throwParsingException(env, "Error reading X.509 data");
-        }
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "Error reading X.509 data",
+                conscrypt::jniutil::throwParsingException);
         JNI_TRACE("ASN1_seq_unpack_X509_bio(%p) => error reading BIO", bio);
         return nullptr;
     }
@@ -8813,22 +8779,14 @@ static jlong NativeCrypto_d2i_SSL_SESSION(JNIEnv* env, jclass, jbyteArray javaBy
 
     if (ssl_session == nullptr ||
         ucp != (reinterpret_cast<const unsigned char*>(bytes.get()) + bytes.size())) {
-        if (ERR_peek_error() != 0) {
-            conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "d2i_SSL_SESSION",
-                                                           conscrypt::jniutil::throwIOException);
-        } else {
-            conscrypt::jniutil::throwIOException(env, "d2i_SSL_SESSION");
-        }
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "d2i_SSL_SESSION",
+                                                       conscrypt::jniutil::throwIOException);
         JNI_TRACE("NativeCrypto_d2i_SSL_SESSION => failure to convert");
         return 0L;
     }
 
     JNI_TRACE("NativeCrypto_d2i_SSL_SESSION => %p", ssl_session);
     return reinterpret_cast<uintptr_t>(ssl_session);
-}
-
-static jlong NativeCrypto_ERR_peek_last_error(JNIEnv*, jclass) {
-    return ERR_peek_last_error();
 }
 
 static jstring NativeCrypto_SSL_CIPHER_get_kx_name(JNIEnv* env, jclass, jlong cipher_address) {
@@ -10221,7 +10179,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(getApplicationProtocol, "(J" REF_SSL ")[B"),
         CONSCRYPT_NATIVE_METHOD(setApplicationProtocols, "(J" REF_SSL "Z[B)V"),
         CONSCRYPT_NATIVE_METHOD(setApplicationProtocolSelector, "(J" REF_SSL ALPN_PROTOCOL_SELECTOR ")V"),
-        CONSCRYPT_NATIVE_METHOD(ERR_peek_last_error, "()J"),
         CONSCRYPT_NATIVE_METHOD(SSL_CIPHER_get_kx_name, "(J)Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(get_cipher_names, "(Ljava/lang/String;)[Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(get_ocsp_single_extension, "([BLjava/lang/String;J" REF_X509 "J" REF_X509 ")[B"),
