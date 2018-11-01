@@ -21,14 +21,14 @@ package org.conscrypt;
  * objects. Individual types must subclass this and implement finalizer.
  */
 abstract class NativeRef {
-    final long context;
+    final long address;
 
-    NativeRef(long context) {
-        if (context == 0) {
-            throw new NullPointerException("context == 0");
+    NativeRef(long address) {
+        if (address == 0) {
+            throw new NullPointerException("address == 0");
         }
 
-        this.context = context;
+        this.address = address;
     }
 
     @Override
@@ -37,19 +37,19 @@ abstract class NativeRef {
             return false;
         }
 
-        return ((NativeRef) o).context == context;
+        return ((NativeRef) o).address == address;
     }
 
     @Override
     public int hashCode() {
-        return (int) context;
+        return (int) (address ^ (address >>> 32));
     }
 
     @Override
     protected void finalize() throws Throwable {
         try {
-            if (context != 0) {
-                doFree(context);
+            if (address != 0) {
+                doFree(address);
             }
         } finally {
             super.finalize();

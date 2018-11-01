@@ -41,6 +41,8 @@ import java.security.spec.X509EncodedKeySpec;
 @Internal
 public final class OpenSSLECKeyFactory extends KeyFactorySpi {
 
+    public OpenSSLECKeyFactory() {}
+
     @Override
     protected PublicKey engineGeneratePublic(KeySpec keySpec) throws InvalidKeySpecException {
         if (keySpec == null) {

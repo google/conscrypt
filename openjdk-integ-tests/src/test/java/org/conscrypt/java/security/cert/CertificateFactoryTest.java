@@ -210,6 +210,22 @@ public class CertificateFactoryTest {
             fail();
         } catch (CertificateException expected) {
         }
+
+        try {
+            Certificate c = cf.generateCertificate(new ByteArrayInputStream(new byte[0]));
+            // Bouncy Castle returns null on empty inputs rather than throwing an exception,
+            // which technically doesn't satisfy the method contract, but we'll accept it
+            assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
+        } catch (CertificateException expected) {
+        }
+
+        try {
+            Certificate c = cf.generateCertificate(new ByteArrayInputStream(new byte[] { 0x00 }));
+            // Bouncy Castle returns null on short inputs rather than throwing an exception,
+            // which technically doesn't satisfy the method contract, but we'll accept it
+            assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
+        } catch (CertificateException expected) {
+        }
     }
 
     /*

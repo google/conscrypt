@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package libcore.tlswire.handshake;
+package org.conscrypt.tlswire.handshake;
 /**
  * {@code CompressionMethod} enum from TLS 1.2 RFC 5246.
  */

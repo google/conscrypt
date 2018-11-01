@@ -469,10 +469,26 @@ public final class Conscrypt {
 
     /**
      * Provides the given engine with the provided bufferAllocator.
+     * @throws IllegalArgumentException if the provided engine is not a Conscrypt engine.
+     * @throws IllegalStateException if the provided engine has already begun its handshake.
      */
     @ExperimentalApi
     public static void setBufferAllocator(SSLEngine engine, BufferAllocator bufferAllocator) {
         toConscrypt(engine).setBufferAllocator(bufferAllocator);
+    }
+
+    /**
+     * Provides the given socket with the provided bufferAllocator.  If the given socket is a
+     * Conscrypt socket but does not use buffer allocators, this method does nothing.
+     * @throws IllegalArgumentException if the provided socket is not a Conscrypt socket.
+     * @throws IllegalStateException if the provided socket has already begun its handshake.
+     */
+    @ExperimentalApi
+    public static void setBufferAllocator(SSLSocket socket, BufferAllocator bufferAllocator) {
+        AbstractConscryptSocket s = toConscrypt(socket);
+        if (s instanceof ConscryptEngineSocket) {
+            ((ConscryptEngineSocket) s).setBufferAllocator(bufferAllocator);
+        }
     }
 
     /**

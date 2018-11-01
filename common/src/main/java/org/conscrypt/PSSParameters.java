@@ -34,6 +34,8 @@ public class PSSParameters extends AlgorithmParametersSpi {
 
     private PSSParameterSpec spec = PSSParameterSpec.DEFAULT;
 
+    public PSSParameters() {}
+
     @Override
     protected void engineInit(AlgorithmParameterSpec algorithmParameterSpec)
             throws InvalidParameterSpecException {

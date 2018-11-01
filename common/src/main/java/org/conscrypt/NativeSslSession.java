@@ -236,19 +236,19 @@ abstract class NativeSslSession {
             this.peerCertificates = peerCertificates;
             this.peerOcspStapledResponse = peerOcspStapledResponse;
             this.peerSignedCertificateTimestamp = peerSignedCertificateTimestamp;
-            this.protocol = NativeCrypto.SSL_SESSION_get_version(ref.context);
+            this.protocol = NativeCrypto.SSL_SESSION_get_version(ref.address);
             this.cipherSuite =
-                    NativeCrypto.cipherSuiteToJava(NativeCrypto.SSL_SESSION_cipher(ref.context));
+                    NativeCrypto.cipherSuiteToJava(NativeCrypto.SSL_SESSION_cipher(ref.address));
             this.ref = ref;
         }
 
         @Override
         byte[] getId() {
-            return NativeCrypto.SSL_SESSION_session_id(ref.context);
+            return NativeCrypto.SSL_SESSION_session_id(ref.address);
         }
 
         private long getCreationTime() {
-            return NativeCrypto.SSL_SESSION_get_time(ref.context);
+            return NativeCrypto.SSL_SESSION_get_time(ref.address);
         }
 
         @Override
@@ -257,19 +257,19 @@ abstract class NativeSslSession {
             // Use the minimum of the timeout from the context and the session.
             long timeoutMillis = Math.max(0,
                                          Math.min(context.getSessionTimeout(),
-                                                 NativeCrypto.SSL_SESSION_get_timeout(ref.context)))
+                                                 NativeCrypto.SSL_SESSION_get_timeout(ref.address)))
                     * 1000;
             return (System.currentTimeMillis() - timeoutMillis) < creationTimeMillis;
         }
 
         @Override
         boolean isSingleUse() {
-            return NativeCrypto.SSL_SESSION_should_be_single_use(ref.context);
+            return NativeCrypto.SSL_SESSION_should_be_single_use(ref.address);
         }
 
         @Override
         void offerToResume(NativeSsl ssl) throws SSLException {
-            ssl.offerToResumeSession(ref.context);
+            ssl.offerToResumeSession(ref.address);
         }
 
         @Override
@@ -311,7 +311,7 @@ abstract class NativeSslSession {
                 daos.writeInt(OPEN_SSL_WITH_TLS_SCT.value); // session type ID
 
                 // Session data.
-                byte[] data = NativeCrypto.i2d_SSL_SESSION(ref.context);
+                byte[] data = NativeCrypto.i2d_SSL_SESSION(ref.address);
                 daos.writeInt(data.length);
                 daos.write(data);
 

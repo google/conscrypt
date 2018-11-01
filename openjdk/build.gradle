@@ -155,9 +155,9 @@ artifacts {
     platform platformJar
 }
 
-// Append the BoringSSL-Version to the manifest.
 jar.manifest {
-    attributes 'BoringSSL-Version' : boringSslVersion
+    attributes ('BoringSSL-Version' : boringSslVersion,
+                'Automatic-Module-Name' : 'org.conscrypt')
 }
 
 dependencies {
