@@ -91,13 +91,13 @@ public final class CipherTest {
     /** GCM tag size used for tests. */
     private static final int GCM_TAG_SIZE_BITS = 96;
 
-    private static final String[] RSA_PROVIDERS = ((StandardNames.IS_RI)
+    private static final String[] RSA_PROVIDERS = StandardNames.IS_RI
         ? new String[] { "SunJCE", StandardNames.JSSE_PROVIDER_NAME }
-        : new String[] { "BC" , StandardNames.JSSE_PROVIDER_NAME });
+        : new String[] { "BC" , StandardNames.JSSE_PROVIDER_NAME };
 
-    private static final String[] AES_PROVIDERS = ((StandardNames.IS_RI)
+    private static final String[] AES_PROVIDERS = StandardNames.IS_RI
         ? new String[] { "SunJCE", StandardNames.JSSE_PROVIDER_NAME }
-        : new String[] { "BC", StandardNames.JSSE_PROVIDER_NAME });
+        : new String[] { "BC", StandardNames.JSSE_PROVIDER_NAME };
 
     private static boolean isSupported(String algorithm, String provider) {
         if (algorithm.equals("RC2")) {
@@ -1372,7 +1372,7 @@ public final class CipherTest {
                     Arrays.toString(
                             ((PSource.PSpecified) expectedOaepSpec.getPSource()).getValue()),
                     Arrays.toString(
-                            (((PSource.PSpecified) actualOaepSpec.getPSource()).getValue())));
+                            ((PSource.PSpecified) actualOaepSpec.getPSource()).getValue()));
         } else {
             fail("Unknown PSource type");
         }
@@ -4570,14 +4570,14 @@ public final class CipherTest {
             if (c.contains("/CBC/")) {
                 cipher.init(Cipher.DECRYPT_MODE,
                         new SecretKeySpec("0123456789012345".getBytes(StandardCharsets.US_ASCII),
-                                (c.startsWith("AES/")) ? "AES" : "DESEDE"),
+                                c.startsWith("AES/") ? "AES" : "DESEDE"),
                         new IvParameterSpec(
-                                ("01234567" + ((c.startsWith("AES/")) ? "89012345" : ""))
+                                ("01234567" + (c.startsWith("AES/") ? "89012345" : ""))
                                         .getBytes(StandardCharsets.US_ASCII)));
             } else {
                 cipher.init(Cipher.DECRYPT_MODE,
                         new SecretKeySpec("0123456789012345".getBytes(StandardCharsets.US_ASCII),
-                                (c.startsWith("AES/")) ? "AES" : "DESEDE"));
+                                c.startsWith("AES/") ? "AES" : "DESEDE"));
             }
 
             byte[] buffer = new byte[0];

@@ -23,7 +23,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyStore.Builder;
+import java.security.KeyStore;
 import java.security.KeyStore.PasswordProtection;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.PrivateKey;
@@ -119,7 +119,7 @@ public class KeyManagerFactoryTest {
 
         // init with KeyStoreBuilderParameters ManagerFactoryParameters
         PasswordProtection pp = new PasswordProtection(getTestKeyStore().storePassword);
-        Builder builder = Builder.newInstance(getTestKeyStore().keyStore, pp);
+        KeyStore.Builder builder = KeyStore.Builder.newInstance(getTestKeyStore().keyStore, pp);
         KeyStoreBuilderParameters ksbp = new KeyStoreBuilderParameters(builder);
         if (supportsManagerFactoryParameters(kmf.getAlgorithm())) {
             kmf.init(ksbp);

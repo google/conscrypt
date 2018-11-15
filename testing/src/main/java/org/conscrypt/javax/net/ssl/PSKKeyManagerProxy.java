@@ -70,7 +70,7 @@ class PSKKeyManagerProxy implements InvocationHandler {
         String methodName = method.getName();
         Class<?>[] parameterTypes = method.getParameterTypes();
         boolean sslEngineVariant = (parameterTypes.length > 0)
-                && (SSLEngine.class.equals(parameterTypes[parameterTypes.length - 1]));
+                && SSLEngine.class.equals(parameterTypes[parameterTypes.length - 1]);
         if ("getKey".equals(methodName)) {
             if (sslEngineVariant) {
                 return getKey((String) args[0], (String) args[1], (SSLEngine) args[2]);

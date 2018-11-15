@@ -32,18 +32,20 @@ final class EvpMdRef {
      */
     static String getJcaDigestAlgorithmStandardName(String algorithm) {
         String algorithmUpper = algorithm.toUpperCase(Locale.US);
-        if ((SHA256.JCA_NAME.equals(algorithmUpper)) || (SHA256.OID.equals(algorithmUpper))) {
+        if (SHA256.JCA_NAME.equals(algorithmUpper)
+            || SHA256.OID.equals(algorithmUpper)) {
             return SHA256.JCA_NAME;
-        } else if ((SHA512.JCA_NAME.equals(algorithmUpper))
-                || (SHA512.OID.equals(algorithmUpper))) {
+        } else if (SHA512.JCA_NAME.equals(algorithmUpper)
+                || SHA512.OID.equals(algorithmUpper)) {
             return SHA512.JCA_NAME;
-        } else if ((SHA1.JCA_NAME.equals(algorithmUpper)) || (SHA1.OID.equals(algorithmUpper))) {
+        } else if (SHA1.JCA_NAME.equals(algorithmUpper)
+                || SHA1.OID.equals(algorithmUpper)) {
             return SHA1.JCA_NAME;
-        } else if ((SHA384.JCA_NAME.equals(algorithmUpper))
-                || (SHA384.OID.equals(algorithmUpper))) {
+        } else if (SHA384.JCA_NAME.equals(algorithmUpper)
+                || SHA384.OID.equals(algorithmUpper)) {
             return SHA384.JCA_NAME;
-        } else if ((SHA224.JCA_NAME.equals(algorithmUpper))
-                || (SHA224.OID.equals(algorithmUpper))) {
+        } else if (SHA224.JCA_NAME.equals(algorithmUpper)
+                || SHA224.OID.equals(algorithmUpper)) {
             return SHA224.JCA_NAME;
         } else {
             return null;
