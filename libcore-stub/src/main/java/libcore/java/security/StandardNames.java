@@ -69,13 +69,13 @@ import javax.crypto.spec.DHPublicKeySpec;
 public final class StandardNames {
     public static final boolean IS_RI =
             !"Dalvik Core Library".equals(System.getProperty("java.specification.name"));
-    public static final String JSSE_PROVIDER_NAME = (IS_RI) ? "Conscrypt" : "AndroidOpenSSL";
-    public static final String SECURITY_PROVIDER_NAME = (IS_RI) ? "SUN" : "BC";
+    public static final String JSSE_PROVIDER_NAME = IS_RI ? "Conscrypt" : "AndroidOpenSSL";
+    public static final String SECURITY_PROVIDER_NAME = IS_RI ? "SUN" : "BC";
 
-    public static final String KEY_MANAGER_FACTORY_DEFAULT = (IS_RI) ? "SunX509" : "PKIX";
+    public static final String KEY_MANAGER_FACTORY_DEFAULT = IS_RI ? "SunX509" : "PKIX";
     public static final String TRUST_MANAGER_FACTORY_DEFAULT = "PKIX";
 
-    public static final String KEY_STORE_ALGORITHM = (IS_RI) ? "JKS" : "BKS";
+    public static final String KEY_STORE_ALGORITHM = IS_RI ? "JKS" : "BKS";
 
     /**
      * RFC 5746's Signaling Cipher Suite Value to indicate a request for secure renegotiation

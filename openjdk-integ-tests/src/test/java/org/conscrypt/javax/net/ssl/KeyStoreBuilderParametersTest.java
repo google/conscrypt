@@ -22,7 +22,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import java.security.KeyStore.Builder;
+import java.security.KeyStore;
 import java.security.KeyStore.PasswordProtection;
 import java.util.Arrays;
 import java.util.List;
@@ -53,7 +53,7 @@ public class KeyStoreBuilderParametersTest {
         // Objects.requireNonNull was added
         assumeObjectsAvailable();
         try {
-            new KeyStoreBuilderParameters((Builder) null);
+            new KeyStoreBuilderParameters((KeyStore.Builder) null);
             fail();
         } catch (NullPointerException expected) {
         }
@@ -62,7 +62,7 @@ public class KeyStoreBuilderParametersTest {
     @Test
     public void test_init_Builder() {
         TestKeyStore testKeyStore = TestKeyStore.getClient();
-        Builder builder = Builder.newInstance(
+        KeyStore.Builder builder = KeyStore.Builder.newInstance(
                 testKeyStore.keyStore, new PasswordProtection(testKeyStore.storePassword));
         KeyStoreBuilderParameters ksbp = new KeyStoreBuilderParameters(builder);
         assertNotNull(ksbp);
@@ -74,7 +74,7 @@ public class KeyStoreBuilderParametersTest {
     @Test
     public void test_init_List_null() {
         try {
-            new KeyStoreBuilderParameters((List<Builder>) null);
+            new KeyStoreBuilderParameters((List<KeyStore.Builder>) null);
             fail();
         } catch (NullPointerException expected) {
             // Ignored.
@@ -85,12 +85,12 @@ public class KeyStoreBuilderParametersTest {
     public void test_init_List() {
         TestKeyStore testKeyStore1 = TestKeyStore.getClient();
         TestKeyStore testKeyStore2 = TestKeyStore.getServer();
-        Builder builder1 = Builder.newInstance(
+        KeyStore.Builder builder1 = KeyStore.Builder.newInstance(
                 testKeyStore1.keyStore, new PasswordProtection(testKeyStore1.storePassword));
-        Builder builder2 = Builder.newInstance(
+        KeyStore.Builder builder2 = KeyStore.Builder.newInstance(
                 testKeyStore2.keyStore, new PasswordProtection(testKeyStore2.storePassword));
 
-        List<Builder> list = Arrays.asList(builder1, builder2);
+        List<KeyStore.Builder> list = Arrays.asList(builder1, builder2);
         KeyStoreBuilderParameters ksbp = new KeyStoreBuilderParameters(list);
         assertNotNull(ksbp);
         assertNotNull(ksbp.getParameters());

@@ -1581,8 +1581,8 @@ public class SSLSocketVersionCompatibilityTest {
         server.getOutputStream().write(42);
         assertEquals(42, handshakeFuture.get().intValue());
 
-        final Socket toRead = (readUnderlying) ? underlying : clientWrapping;
-        final Socket toClose = (closeUnderlying) ? underlying : clientWrapping;
+        final Socket toRead = readUnderlying ? underlying : clientWrapping;
+        final Socket toClose = closeUnderlying ? underlying : clientWrapping;
 
         // Schedule the socket to be closed in 1 second.
         Future<Void> future = runAsync(new Callable<Void>() {
