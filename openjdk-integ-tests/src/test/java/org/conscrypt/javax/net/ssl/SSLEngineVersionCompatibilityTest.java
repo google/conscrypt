@@ -20,6 +20,7 @@ import static org.conscrypt.TestUtils.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -29,6 +30,8 @@ import static org.junit.Assume.assumeTrue;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.nio.ByteBuffer;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -46,6 +49,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509TrustManager;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.TestKeyStore;
@@ -473,15 +477,19 @@ public class SSLEngineVersionCompatibilityTest {
         ByteBuffer out = ByteBuffer.allocate(pair.client.getSession().getPacketBufferSize());
         SSLEngineResult res = pair.client.wrap(ByteBuffer.wrap(new byte[] { 0x01 }), out);
         assertEquals(Status.CLOSED, res.getStatus());
-        assertEquals(0, res.bytesProduced());
+        // The engine should have a close_notify alert pending, so it should ignore the
+        // proffered data and push the alert into out
+        assertEquals(0, res.bytesConsumed());
+        assertNotEquals(0, res.bytesProduced());
 
         res = pair.client.unwrap(ByteBuffer.wrap(new byte[] { 0x01} ), out);
         assertEquals(Status.CLOSED, res.getStatus());
         assertEquals(0, res.bytesConsumed());
+        assertEquals(0, res.bytesProduced());
     }
 
     @Test
-    public void test_SSLSocket_ClientHello_record_size() throws Exception {
+    public void test_SSLEngine_ClientHello_record_size() throws Exception {
         // This test checks the size of ClientHello of the default SSLEngine. TLS/SSL handshakes
         // with older/unpatched F5/BIG-IP appliances are known to stall and time out when
         // the fragment containing ClientHello is between 256 and 511 (inclusive) bytes long.
@@ -514,7 +522,7 @@ public class SSLEngineVersionCompatibilityTest {
     }
 
     @Test
-    public void test_SSLSocket_ClientHello_SNI() throws Exception {
+    public void test_SSLEngine_ClientHello_SNI() throws Exception {
         SSLContext context = SSLContext.getInstance(clientVersion);
         context.init(null, null, null);
         SSLEngine e = context.createSSLEngine();
@@ -532,7 +540,7 @@ public class SSLEngineVersionCompatibilityTest {
     }
 
     @Test
-    public void test_SSLSocket_ClientHello_ALPN() throws Exception {
+    public void test_SSLEngine_ClientHello_ALPN() throws Exception {
         String[] protocolList = new String[] { "h2", "http/1.1" };
 
         SSLContext context = SSLContext.getInstance(clientVersion);
@@ -639,6 +647,82 @@ public class SSLEngineVersionCompatibilityTest {
         } finally {
             pair.close();
         }
+    }
+
+    // Test whether an exception thrown from within the TrustManager properly flows immediately
+    // to the caller and doesn't get caught and held by the SSLEngine.  This was previously
+    // the behavior of Conscrypt, see https://github.com/google/conscrypt/issues/577.
+    @Test
+    public void test_SSLEngine_Exception() throws Exception {
+        final TestSSLContext referenceContext = TestSSLContext.create();
+        class ThrowingTrustManager implements X509TrustManager {
+            public boolean threw = false;
+            @Override
+            public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
+                throws CertificateException {
+            }
+            @Override
+            public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
+                throws CertificateException {
+                threw = true;
+                throw new CertificateException("Nope!");
+            }
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return referenceContext.clientTrustManager.getAcceptedIssuers();
+            }
+        }
+        ThrowingTrustManager trustManager = new ThrowingTrustManager();
+        final TestSSLContext c = TestSSLContext.newBuilder()
+            .clientProtocol(clientVersion)
+            .serverProtocol(serverVersion)
+            .clientTrustManager(trustManager).build();
+
+        // The following code is taken from TestSSLEnginePair.connect()
+        SSLSession session = c.clientContext.createSSLEngine().getSession();
+
+        int packetBufferSize = session.getPacketBufferSize();
+        ByteBuffer clientToServer = ByteBuffer.allocate(packetBufferSize);
+        ByteBuffer serverToClient = ByteBuffer.allocate(packetBufferSize);
+
+        int applicationBufferSize = session.getApplicationBufferSize();
+        ByteBuffer scratch = ByteBuffer.allocate(applicationBufferSize);
+
+        SSLEngine client = c.clientContext.createSSLEngine(c.host.getHostName(), c.port);
+        SSLEngine server = c.serverContext.createSSLEngine();
+        client.setUseClientMode(true);
+        server.setUseClientMode(false);
+        client.beginHandshake();
+        server.beginHandshake();
+
+        try {
+            while (true) {
+                boolean clientDone = client.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING;
+                boolean serverDone = server.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING;
+                if (clientDone && serverDone) {
+                    break;
+                }
+
+                boolean progress = TestSSLEnginePair.handshakeStep(client,
+                    clientToServer,
+                    serverToClient,
+                    scratch,
+                    new boolean[1]);
+                progress |= TestSSLEnginePair.handshakeStep(server,
+                    serverToClient,
+                    clientToServer,
+                    scratch,
+                    new boolean[1]);
+                assertFalse(trustManager.threw);
+                if (!progress) {
+                    break;
+                }
+            }
+            fail();
+        } catch (SSLHandshakeException expected) {
+            assertTrue(expected.getCause() instanceof CertificateException);
+        }
+        assertTrue(trustManager.threw);
     }
 
     private void assertConnected(TestSSLEnginePair e) {
