@@ -391,8 +391,8 @@ public class OpenSSLSignature extends SignatureSpi {
             }
 
             String specMgfAlgorithm = spec.getMGFAlgorithm();
-            if ((!EvpMdRef.MGF1_ALGORITHM_NAME.equalsIgnoreCase(specMgfAlgorithm))
-                    && (!EvpMdRef.MGF1_OID.equals(specMgfAlgorithm))) {
+            if (!EvpMdRef.MGF1_ALGORITHM_NAME.equalsIgnoreCase(specMgfAlgorithm)
+                    && !EvpMdRef.MGF1_OID.equals(specMgfAlgorithm)) {
                 throw new InvalidAlgorithmParameterException(
                         "Unsupported MGF algorithm: " + specMgfAlgorithm + ". Only "
                                 + EvpMdRef.MGF1_ALGORITHM_NAME + " supported");
