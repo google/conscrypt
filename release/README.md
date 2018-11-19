@@ -22,7 +22,7 @@ The following software is necessary and may not be installed by default:
 <!-- TODO(flooey): Expand and link these, there's probably more -->
 * Linux: [Docker](https://www.docker.com/), [Android SDK](https://developer.android.com/studio/index.html)
 * MacOS: Java SDK
-* Windows: MSVC, git, yasm, Java
+* Windows: MSVC, git, NASM, Java
 
 ### Setup OSSRH and GPG
 
