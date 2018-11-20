@@ -99,7 +99,7 @@ public class OpenSSLRSAPublicKey implements RSAPublicKey, OpenSSLKeyHolder {
         return NativeCrypto.EVP_marshal_public_key(key.getNativeRef());
     }
 
-    private void ensureReadParams() {
+    private synchronized void ensureReadParams() {
         if (fetchedParams) {
             return;
         }
