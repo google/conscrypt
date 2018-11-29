@@ -73,4 +73,35 @@ class OpenSSLBIOInputStream extends FilterInputStream {
 
         return offset;
     }
+
+    @Override
+    public int read(byte[] buffer) throws IOException {
+        return read(buffer, 0, buffer.length);
+    }
+
+    // InputStream.read() is allowed to return less than len bytes, and the socket InputStreams
+    // that are used with this class typically do so when the length requested is more than what
+    // is already buffered, but some users of BoringSSL's BIO APIs expect that any read call either
+    // fills the buffer completely, fails, or reaches EOF.  We patch over this difference by
+    // repeatedly calling super.read() until it indicates EOF or we fill the buffer.
+    @Override
+    public int read(byte[] buffer, int offset, int len) throws IOException {
+        if (offset < 0 || len < 0 || len > buffer.length - offset) {
+            throw new IndexOutOfBoundsException("Invalid bounds");
+        }
+        if (len == 0) {
+            return 0;
+        }
+        int totalRead = 0;
+        int read;
+        do {
+            read = super.read(buffer, offset + totalRead, len - totalRead - offset);
+            if (read == -1) {
+                break;
+            }
+            totalRead += read;
+        } while (offset + totalRead < len);
+
+        return totalRead == 0 ? -1 : totalRead;
+    }
 }

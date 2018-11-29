@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -61,6 +62,7 @@ import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
 import org.bouncycastle.x509.extension.AuthorityKeyIdentifierStructure;
 import org.conscrypt.Conscrypt;
+import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -174,6 +176,23 @@ public class CertificateFactoryTest {
             + "AAAAAAAA\n"
             + "-----END CERTIFICATE-----";
 
+    private static final String VALID_CERTIFICATE_DER_BASE64 =
+        "MIIDITCCAoqgAwIBAgIQL9+89q6RUm0PmqPfQDQ+mjANBgkqhkiG9w0BAQUFADBMMQswCQYDVQQG"
+        + "EwJaQTElMCMGA1UEChMcVGhhd3RlIENvbnN1bHRpbmcgKFB0eSkgTHRkLjEWMBQGA1UEAxMNVGhh"
+        + "d3RlIFNHQyBDQTAeFw0wOTEyMTgwMDAwMDBaFw0xMTEyMTgyMzU5NTlaMGgxCzAJBgNVBAYTAlVT"
+        + "MRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHFA1Nb3VudGFpbiBWaWV3MRMwEQYDVQQKFApH"
+        + "b29nbGUgSW5jMRcwFQYDVQQDFA53d3cuZ29vZ2xlLmNvbTCBnzANBgkqhkiG9w0BAQEFAAOBjQAw"
+        + "gYkCgYEA6PmGD5D6htffvXImttdEAoN4c9kCKO+IRTn7EOh8rqk41XXGOOsKFQebg+jNgtXj9xVo"
+        + "RaELGYW84u+E593y17iYwqG7tcFR39SDAqc9BkJb4SLD3muFXxzW2k6L05vuuWciKh0R73mkszeK"
+        + "9P4Y/bz5RiNQl/Os/CRGK1w7t0UCAwEAAaOB5zCB5DAMBgNVHRMBAf8EAjAAMDYGA1UdHwQvMC0w"
+        + "K6ApoCeGJWh0dHA6Ly9jcmwudGhhd3RlLmNvbS9UaGF3dGVTR0NDQS5jcmwwKAYDVR0lBCEwHwYI"
+        + "KwYBBQUHAwEGCCsGAQUFBwMCBglghkgBhvhCBAEwcgYIKwYBBQUHAQEEZjBkMCIGCCsGAQUFBzAB"
+        + "hhZodHRwOi8vb2NzcC50aGF3dGUuY29tMD4GCCsGAQUFBzAChjJodHRwOi8vd3d3LnRoYXd0ZS5j"
+        + "b20vcmVwb3NpdG9yeS9UaGF3dGVfU0dDX0NBLmNydDANBgkqhkiG9w0BAQUFAAOBgQCfQ89bxFAp"
+        + "sb/isJr/aiEdLRLDLE5a+RLizrmCUi3nHX4adpaQedEkUjh5u2ONgJd8IyAPkU0Wueru9G2Jysa9"
+        + "zCRo1kNbzipYvzwY4OA8Ys+WAi0oR1A04Se6z5nRUP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqA"
+        + "ibAxWEEHXw==";
+
     @Test
     public void test_generateCertificate() throws Exception {
         Provider[] providers = Security.getProviders("CertificateFactory.X509");
@@ -185,6 +204,7 @@ public class CertificateFactoryTest {
                 test_generateCertificate_InputStream_Empty(cf);
                 test_generateCertificate_InputStream_InvalidStart_Failure(cf);
                 test_generateCertificate_AnyLineLength_Success(cf);
+                test_generateCertificate_PartialInput(cf);
             } catch (Throwable e) {
                 throw new Exception("Problem testing " + p.getName(), e);
             }
@@ -200,6 +220,12 @@ public class CertificateFactoryTest {
 
         {
             byte[] valid = VALID_CERTIFICATE_PEM_CRLF.getBytes(Charset.defaultCharset());
+            Certificate c = cf.generateCertificate(new ByteArrayInputStream(valid));
+            assertNotNull(c);
+        }
+
+        {
+            byte[] valid = TestUtils.decodeBase64(VALID_CERTIFICATE_DER_BASE64);
             Certificate c = cf.generateCertificate(new ByteArrayInputStream(valid));
             assertNotNull(c);
         }
@@ -226,6 +252,7 @@ public class CertificateFactoryTest {
             assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
         } catch (CertificateException expected) {
         }
+
     }
 
     /*
@@ -387,6 +414,43 @@ public class CertificateFactoryTest {
             mCount = mMarked;
             mStream.reset();
         }
+    }
+
+    /**
+     * An InputStream that only returns two bytes at a time, no matter how many were requested.
+     */
+    private static class SlowInputStream extends FilterInputStream {
+        protected SlowInputStream(InputStream inputStream) {
+            super(inputStream);
+        }
+
+        @Override
+        public int read(byte[] buffer) throws IOException {
+            if (buffer.length < 2) {
+                return super.read(buffer);
+            }
+            return super.read(buffer, 0, 2);
+        }
+
+        @Override
+        public int read(byte[] buffer, int offset, int len) throws IOException {
+            if (len < 2) {
+                return super.read(buffer, offset, len);
+            }
+            return super.read(buffer, offset, 2);
+        }
+    }
+
+    // Test that certificates are decoded properly even if the InputStream is unhelpful and only
+    // returns partial inputs on basically every request.
+    private void test_generateCertificate_PartialInput(CertificateFactory cf) throws Exception {
+        byte[] valid = VALID_CERTIFICATE_PEM.getBytes(Charset.defaultCharset());
+        Certificate c = cf.generateCertificate(new SlowInputStream(new ByteArrayInputStream(valid)));
+        assertNotNull(c);
+
+        valid = TestUtils.decodeBase64(VALID_CERTIFICATE_DER_BASE64);
+        c = cf.generateCertificate(new SlowInputStream(new ByteArrayInputStream(valid)));
+        assertNotNull(c);
     }
 
     /* CertPath tests */
