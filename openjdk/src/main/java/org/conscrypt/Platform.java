@@ -317,15 +317,6 @@ final class Platform {
     static void logEvent(@SuppressWarnings("unused") String message) {}
 
     /**
-     * Returns true if the supplied hostname is an literal IP address.
-     */
-    @SuppressWarnings("unused")
-    static boolean isLiteralIpAddress(String hostname) {
-        // TODO: any RI API to make this better?
-        return AddressUtils.isLiteralIpAddress(hostname);
-    }
-
-    /**
      * For unbundled versions, SNI is always enabled by default.
      */
     @SuppressWarnings("unused")
