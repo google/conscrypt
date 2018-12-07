@@ -248,8 +248,8 @@ public class SSLEngineTest {
                 boolean serverAuthenticatedUsingPublicKey = true;
                 if (cipherSuite.contains("_anon_")) {
                     serverAuthenticatedUsingPublicKey = false;
-                } else if ((cipherSuite.startsWith("TLS_PSK_"))
-                        || (cipherSuite.startsWith("TLS_ECDHE_PSK_"))) {
+                } else if (cipherSuite.startsWith("TLS_PSK_")
+                        || cipherSuite.startsWith("TLS_ECDHE_PSK_")) {
                     serverAuthenticatedUsingPublicKey = false;
                 }
                 if (serverAuthenticatedUsingPublicKey) {

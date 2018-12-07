@@ -304,7 +304,7 @@ public class KeyPairGeneratorTest {
                 continue;
             }
             if ("EC".equals(algorithm)
-                    && ("SunPKCS11-NSS".equalsIgnoreCase(kpg.getProvider().getName()))
+                    && "SunPKCS11-NSS".equalsIgnoreCase(kpg.getProvider().getName())
                     && keySize == 224) {
                 // TODO(flooey): Remove when we stop supporting Java 6
                 // This Sun provider doesn't support 224-bit EC keys
@@ -323,8 +323,8 @@ public class KeyPairGeneratorTest {
             test_KeyPair(kpg, kpg.generateKeyPair());
         }
 
-        if (("EC".equals(algorithm)) || ("ECDH".equals(algorithm))
-                || ("ECDSA".equals(algorithm))) {
+        if ("EC".equals(algorithm) || "ECDH".equals(algorithm)
+                || "ECDSA".equals(algorithm)) {
             if ("SunPKCS11-NSS".equalsIgnoreCase(kpg.getProvider().getName())) {
                 // SunPKCS11 doesn't support some of the named curves that we expect, so it
                 // fails.  Skip it.

@@ -149,8 +149,8 @@ public class SignatureTest {
             kpAlgorithm = "EC";
         } else if (sigAlgorithmUpperCase.endsWith("DSA")) {
             kpAlgorithm = "DSA";
-        } else if ((sigAlgorithmUpperCase.endsWith("RSA"))
-                || (sigAlgorithmUpperCase.endsWith("RSA/PSS"))) {
+        } else if (sigAlgorithmUpperCase.endsWith("RSA")
+                || sigAlgorithmUpperCase.endsWith("RSA/PSS")) {
             kpAlgorithm = "RSA";
         } else {
             throw new Exception("Unknown KeyPair algorithm for Signature algorithm "

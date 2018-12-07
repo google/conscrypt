@@ -434,7 +434,7 @@ final class NativeSsl {
         if (pskKeyManager != null) {
             boolean pskEnabled = false;
             for (String enabledCipherSuite : parameters.enabledCipherSuites) {
-                if ((enabledCipherSuite != null) && (enabledCipherSuite.contains("PSK"))) {
+                if ((enabledCipherSuite != null) && enabledCipherSuite.contains("PSK")) {
                     pskEnabled = true;
                     break;
                 }

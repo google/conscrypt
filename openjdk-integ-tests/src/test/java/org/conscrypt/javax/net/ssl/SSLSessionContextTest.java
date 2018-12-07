@@ -329,7 +329,7 @@ public class SSLSessionContextTest {
     }
 
     private int expectedSslSessionCacheTimeout(TestSSLContext c) {
-        return (isConscrypt(c.serverContext.getProvider())) ? 8 * 3600 : 24 * 3600;
+        return isConscrypt(c.serverContext.getProvider()) ? 8 * 3600 : 24 * 3600;
     }
 
     private static int numSessions(SSLSessionContext s) {

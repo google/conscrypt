@@ -77,7 +77,7 @@ final class Java8PlatformUtil {
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             params.setServerNames(Collections.singletonList(
-                    (SNIServerName) new SNIHostName((engine.getHostname()))));
+                    (SNIServerName) new SNIHostName(engine.getHostname())));
         }
     }
 

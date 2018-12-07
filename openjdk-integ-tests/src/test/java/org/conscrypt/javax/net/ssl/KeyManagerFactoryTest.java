@@ -23,7 +23,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyStore.Builder;
+import java.security.KeyStore;
 import java.security.KeyStore.PasswordProtection;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.PrivateKey;
@@ -119,7 +119,7 @@ public class KeyManagerFactoryTest {
 
         // init with KeyStoreBuilderParameters ManagerFactoryParameters
         PasswordProtection pp = new PasswordProtection(getTestKeyStore().storePassword);
-        Builder builder = Builder.newInstance(getTestKeyStore().keyStore, pp);
+        KeyStore.Builder builder = KeyStore.Builder.newInstance(getTestKeyStore().keyStore, pp);
         KeyStoreBuilderParameters ksbp = new KeyStoreBuilderParameters(builder);
         if (supportsManagerFactoryParameters(kmf.getAlgorithm())) {
             kmf.init(ksbp);
@@ -195,8 +195,11 @@ public class KeyManagerFactoryTest {
             }
         }
 
-        String a = km.chooseClientAlias(keyTypes, null, null);
-        test_X509KeyManager_alias(km, a, null, true, empty);
+        String[][] rotatedTypes = rotate(nonEmpty(keyTypes));
+        for (String[] keyList : rotatedTypes) {
+            String alias = km.chooseClientAlias(keyList, null, null);
+            test_X509KeyManager_alias(km, alias, null, true, empty);
+        }
 
         for (String keyType : keyTypes) {
             String[] array = new String[] {keyType};
@@ -215,8 +218,12 @@ public class KeyManagerFactoryTest {
     private void test_X509ExtendedKeyManager(
             X509ExtendedKeyManager km, boolean empty, String algorithm) throws Exception {
         String[] keyTypes = keyTypes(algorithm);
-        String a = km.chooseEngineClientAlias(keyTypes, null, null);
-        test_X509KeyManager_alias(km, a, null, true, empty);
+        String[][] rotatedTypes = rotate(nonEmpty(keyTypes));
+        for (String[] keyList : rotatedTypes) {
+            String alias = km.chooseEngineClientAlias(keyList, null, null);
+            test_X509KeyManager_alias(km, alias, null, true, empty);
+        }
+
         for (String keyType : keyTypes) {
             String[] array = new String[] {keyType};
             String alias = km.chooseEngineClientAlias(array, null, null);
@@ -228,6 +235,30 @@ public class KeyManagerFactoryTest {
         }
     }
 
+    // Filters null or empty values from a String array and returns a new array with the results.
+    private static String[] nonEmpty(String[] input) {
+        String[] nonEmpty = new String[input.length];
+        int size = 0;
+        for (String keyType : input) {
+            if (keyType != null && !keyType.isEmpty()) {
+                nonEmpty[size++] = keyType;
+            }
+        }
+        return Arrays.copyOfRange(nonEmpty, 0, size);
+    }
+
+    // Generates an array of arrays of all the rotational permutations of its input.
+    private static String[][] rotate(String[] input) {
+        int size = input.length;
+        String[][] result = new String[size][size];
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                result[i][j] = input[(i + j) % size];
+            }
+        }
+        return result;
+    }
+
     private void test_X509KeyManager_alias(X509KeyManager km, String alias, String keyType,
             boolean many, boolean empty) throws Exception {
         if (empty || (!many && (keyType == null || keyType.isEmpty()))) {
@@ -236,8 +267,7 @@ public class KeyManagerFactoryTest {
             assertNull(keyType, km.getPrivateKey(alias));
             return;
         }
-        assertNotNull(keyType, alias);
-
+        assertNotNull(alias);
         X509Certificate[] certificateChain = km.getCertificateChain(alias);
         PrivateKey privateKey = km.getPrivateKey(alias);
 

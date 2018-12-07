@@ -1581,8 +1581,8 @@ public class SSLSocketVersionCompatibilityTest {
         server.getOutputStream().write(42);
         assertEquals(42, handshakeFuture.get().intValue());
 
-        final Socket toRead = (readUnderlying) ? underlying : clientWrapping;
-        final Socket toClose = (closeUnderlying) ? underlying : clientWrapping;
+        final Socket toRead = readUnderlying ? underlying : clientWrapping;
+        final Socket toClose = closeUnderlying ? underlying : clientWrapping;
 
         // Schedule the socket to be closed in 1 second.
         Future<Void> future = runAsync(new Callable<Void>() {
@@ -2101,6 +2101,12 @@ public class SSLSocketVersionCompatibilityTest {
                     || cipherSuite.equals(StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION)) {
                 continue;
             }
+            /*
+             * tls_unique only works on 1.2, so skip TLS 1.3 cipher suites.
+             */
+            if (StandardNames.CIPHER_SUITES_TLS13.contains(cipherSuite)) {
+                continue;
+            }
             TestSSLSocketPair pair = TestSSLSocketPair.create(c);
             try {
                 String[] cipherSuites =
@@ -2277,9 +2283,9 @@ public class SSLSocketVersionCompatibilityTest {
         }
     }
 
-    // Assumes that the negotiated connection will be
+    // Assumes that the negotiated connection will be TLS 1.2
     private void assumeTlsV1_2Connection() {
-        assumeTrue("TLSv1.2.".equals(negotiatedVersion()));
+        assumeTrue("TLSv1.2".equals(negotiatedVersion()));
     }
 
     /**
