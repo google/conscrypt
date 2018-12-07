@@ -37,4 +37,4 @@ docker cp ~/.gradle/gradle.properties $CONTAINER_ID:/root/.gradle/
 docker cp "$(grep signingKeystore ~/.gradle/gradle.properties | cut -d= -f2)" $CONTAINER_ID:/root/certkeystore
 
 # Run the release automation script for the docker container
-docker exec $CONTAINER_ID scl enable devtoolset-2 "/conscrypt/release/docker $1"
+docker exec $CONTAINER_ID scl enable llvm-toolset-7 "/conscrypt/release/docker $1"
