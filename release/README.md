@@ -175,7 +175,7 @@ on Linux.
 
 ### Build the Mac and Windows OpenJDK Releases
 
-See [BUILDING](BUILDING.md) for instructions for setting up the build environment.
+See [BUILDING](../BUILDING.md) for instructions for setting up the build environment.
 
 1. Ensure BoringSSL is synced to the same revision as for the Linux build.
    ```bash
