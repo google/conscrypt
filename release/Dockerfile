@@ -1,7 +1,4 @@
-FROM centos:6.6
-
-# This enables compatibility with Docker overlayfs
-RUN yum install -y yum-plugin-ovl
+FROM centos:7
 
 RUN yum install -y git \
                    tar \
@@ -18,10 +15,6 @@ RUN yum install -y git \
                    glibc-devel \
                    glibc-devel.i686
 
-# Install clang.
-RUN yum install -y epel-release
-RUN yum install -y clang
-
 RUN yum update -y nss
 
 # Install Java 8
@@ -32,24 +25,17 @@ RUN wget -q --no-cookies --no-check-certificate \
 ENV JAVA_HOME /var/local/jdk1.8.0_131
 ENV PATH $JAVA_HOME/bin:$PATH
 
-# Install GCC 4.8
-# We'll get and "Rpmdb checksum is invalid: dCDPT(pkg checksums)" error caused by
-# docker issue when using overlay storage driver, but all the stuff we need
-# will be installed, so for now we just ignore the error.
-WORKDIR /etc/yum.repos.d
-RUN wget --no-check-certificate http://people.centos.org/tru/devtools-2/devtools-2.repo
-RUN yum install -y devtoolset-2-gcc \
-                   devtoolset-2-binutils \
-                   devtoolset-2-gcc-c++ \
-                   || true
-ENV CC /opt/rh/devtoolset-2/root/usr/bin/gcc
-ENV CXX /opt/rh/devtoolset-2/root/usr/bin/g++
+# Install Clang 5
+RUN yum install -y centos-release-scl
+RUN yum install -y llvm-toolset-7
+ENV CC /opt/rh/llvm-toolset-7/root/usr/bin/clang
+ENV CXX /opt/rh/llvm-toolset-7/root/usr/bin/clang++
 
 # Download and install Golang
 WORKDIR /
-ENV GOLANG_VERSION 1.6.4
+ENV GOLANG_VERSION 1.10.5
 ENV GOLANG_DOWNLOAD_URL https://golang.org/dl/go$GOLANG_VERSION.linux-amd64.tar.gz
-ENV GOLANG_DOWNLOAD_SHA256 b58bf5cede40b21812dfa031258db18fc39746cc0972bc26dae0393acc377aaf
+ENV GOLANG_DOWNLOAD_SHA256 a035d9beda8341b645d3f45a1b620cf2d8fb0c5eb409be36b389c0fd384ecc3a
 RUN curl -fsSL "$GOLANG_DOWNLOAD_URL" -o golang.tar.gz \
 	&& echo "$GOLANG_DOWNLOAD_SHA256  golang.tar.gz" | sha256sum -c - \
 	&& tar -C /usr/local -xzf golang.tar.gz \
@@ -77,7 +63,7 @@ RUN git clone git://cmake.org/cmake.git CMake && \
 
 # Build and install Python from source.
 WORKDIR /usr/src
-ENV PYTHON_VERSION 2.7.10
+ENV PYTHON_VERSION 2.7.14
 RUN wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
   tar xvzf Python-${PYTHON_VERSION}.tgz && \
   cd Python-${PYTHON_VERSION} && \
@@ -88,7 +74,7 @@ RUN wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VER
 
 # Build and install ninja from source.
 WORKDIR /usr/src
-ENV NINJA_VERSION 1.6.0
+ENV NINJA_VERSION 1.8.2
 RUN git clone https://github.com/martine/ninja.git && \
   cd ninja && \
   git checkout v$NINJA_VERSION && \
@@ -107,7 +93,7 @@ RUN ninja
 
 # Download conscrypt.
 WORKDIR /
-RUN git clone --depth 1 https://github.com/google/conscrypt.git
+RUN git clone --depth 1 --no-single-branch https://github.com/google/conscrypt.git
 
-# Start in devtoolset environment that uses GCC 4.8
-CMD ["scl", "enable", "devtoolset-2", "bash"]
+# Start in toolset environment that uses Clang 5
+CMD ["scl", "enable", "llvm-toolset-7", "bash"]

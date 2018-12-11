@@ -542,19 +542,6 @@ final class Platform {
         }
     }
 
-    /**
-     * Returns true if the supplied hostname is an literal IP address.
-     */
-    public static boolean isLiteralIpAddress(String hostname) {
-        try {
-            Method m_isNumeric = InetAddress.class.getMethod("isNumeric", String.class);
-            return (Boolean) m_isNumeric.invoke(null, hostname);
-        } catch (Exception ignored) {
-        }
-
-        return AddressUtils.isLiteralIpAddress(hostname);
-    }
-
     static SSLEngine wrapEngine(ConscryptEngine engine) {
         // For now, don't wrap on Android.
         return engine;

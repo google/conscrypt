@@ -272,13 +272,6 @@ final class Platform {
         }
     }
 
-    /**
-     * Returns true if the supplied hostname is an literal IP address.
-     */
-    static boolean isLiteralIpAddress(String hostname) {
-        return InetAddress.isNumeric(hostname);
-    }
-
     static SSLEngine wrapEngine(ConscryptEngine engine) {
         return new Java8EngineWrapper(engine);
     }
