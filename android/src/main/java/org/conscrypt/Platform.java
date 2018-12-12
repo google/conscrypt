@@ -849,7 +849,7 @@ final class Platform {
     /**
      * Provides extended capabilities for the session if supported by the platform.
      */
-    public static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+    public static SSLSession wrapSSLSession(ExternalSession sslSession) {
         if (Build.VERSION.SDK_INT >= 24) {
             return new Java8ExtendedSSLSession(sslSession);
         }

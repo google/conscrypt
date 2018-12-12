@@ -179,17 +179,6 @@ final class SSLUtils {
     /** Key type: Elliptic Curve certificate. */
     private static final String KEY_TYPE_EC = "EC";
 
-    /**
-     * If the given session is a {@link SessionDecorator}, unwraps the session and returns the
-     * underlying (non-decorated) session. Otherwise, returns the provided session.
-     */
-    static SSLSession unwrapSession(SSLSession session) {
-        while (session instanceof SessionDecorator) {
-            session = ((SessionDecorator) session).getDelegate();
-        }
-        return session;
-    }
-
     static X509Certificate[] decodeX509CertificateChain(byte[][] certChain)
             throws java.security.cert.CertificateException {
         CertificateFactory certificateFactory = getCertificateFactory();

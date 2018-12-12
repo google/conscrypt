@@ -315,11 +315,4 @@ final class ActiveSession implements ConscryptSession {
             throw new SSLPeerUnverifiedException("No peer certificates");
         }
     }
-
-    private void notifyUnbound(Object value, String name) {
-        if (value instanceof SSLSessionBindingListener) {
-            ((SSLSessionBindingListener) value)
-                    .valueUnbound(new SSLSessionBindingEvent(this, name));
-        }
-    }
 }

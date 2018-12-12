@@ -121,7 +121,7 @@ final class Java7PlatformUtil {
         return file.canExecute();
     }
 
-    static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+    static SSLSession wrapSSLSession(ExternalSession sslSession) {
         return new Java7ExtendedSSLSession(sslSession);
     }
 

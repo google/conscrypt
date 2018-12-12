@@ -240,25 +240,14 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
 
     @Override
     public final SSLSession getSession() {
-        SSLSession session = engine.getSession();
-        if (SSLNullSession.isNullSession(session)) {
-            boolean handshakeCompleted = false;
+        if (isConnected()) {
             try {
-                if (isConnected()) {
-                    waitForHandshake();
-                    handshakeCompleted = true;
-                }
+                waitForHandshake();
             } catch (IOException e) {
-                // Fall through.
+                // Fall through
             }
-
-            if (!handshakeCompleted) {
-                // Return an invalid session with invalid cipher suite of "SSL_NULL_WITH_NULL_NULL"
-                return session;
-            }
-            session = engine.getSession();
         }
-        return session;
+        return engine.getSession();
     }
 
     @Override
