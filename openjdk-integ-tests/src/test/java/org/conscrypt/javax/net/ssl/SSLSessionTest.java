@@ -36,6 +36,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSessionBindingEvent;
+import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSocket;
 import libcore.java.security.StandardNames;
 import org.conscrypt.TestUtils;
@@ -405,6 +407,35 @@ public class SSLSessionTest {
         assertNull(s.invalid.getValue(key));
         assertEquals(0, s.invalid.getValueNames().length);
         s.close();
+    }
+
+    @Test
+    public void test_SSLSession_BindingListener() {
+        final TestSSLSessions s = TestSSLSessions.create();
+        final String key = "KEY";
+        final boolean[] bound = new boolean[] { false };
+        final Object value = new SSLSessionBindingListener() {
+            @Override
+            public void valueBound(SSLSessionBindingEvent e) {
+                assertEquals(s.client, e.getSession());
+                assertEquals(key, e.getName());
+                assertFalse(bound[0]);
+                bound[0] = true;
+            }
+
+            @Override
+            public void valueUnbound(SSLSessionBindingEvent e) {
+                assertEquals(s.client, e.getSession());
+                assertEquals(key, e.getName());
+                assertTrue(bound[0]);
+                bound[0] = false;
+            }
+        };
+        s.client.putValue(key, value);
+        assertSame(value, s.client.getValue(key));
+        assertTrue(bound[0]);
+        s.client.removeValue(key);
+        assertFalse(bound[0]);
     }
 
     @Test

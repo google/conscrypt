@@ -524,7 +524,7 @@ final class Platform {
      */
 
     @SuppressWarnings("unused")
-    static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+    static SSLSession wrapSSLSession(ExternalSession sslSession) {
         if (JAVA_VERSION >= 8) {
             return Java8PlatformUtil.wrapSSLSession(sslSession);
         }
