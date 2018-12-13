@@ -68,7 +68,7 @@ public final class TestSSLContext {
     public static boolean sslServerSocketSupportsSessionTickets() {
         // Disabled session tickets for better compatability b/2682876
         // return !IS_RI;
-        return false;
+        return true;
     }
     public final KeyStore clientKeyStore;
     public final char[] clientStorePassword;
@@ -210,8 +210,8 @@ public final class TestSSLContext {
         private TrustManager serverTrustManager;
         private SSLContext clientContext;
         private SSLContext serverContext;
-        private String clientProtocol = "TLSv1.2";
-        private String serverProtocol = "TLSv1.2";
+        private String clientProtocol = "TLS";
+        private String serverProtocol = "TLS";
         private int serverReceiveBufferSize;
         private boolean useDefaults = true;
 

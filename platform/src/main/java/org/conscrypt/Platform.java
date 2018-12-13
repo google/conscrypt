@@ -88,6 +88,10 @@ final class Platform {
         return "AndroidOpenSSL";
     }
 
+    static boolean provideTrustManagerByDefault() {
+        return false;
+    }
+
     static FileDescriptor getFileDescriptor(Socket s) {
         return s.getFileDescriptor$();
     }

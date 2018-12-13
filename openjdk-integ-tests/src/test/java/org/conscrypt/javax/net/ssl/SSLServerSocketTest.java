@@ -20,8 +20,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
@@ -41,14 +43,29 @@ public class SSLServerSocketTest {
     }
 
     @Test
-    public void testSetEnabledCipherSuitesAffectsGetter() throws Exception {
+    public void testSetEnabledCipherSuitesAffectsGetter_TLS12() throws Exception {
+        SSLContext context = SSLContext.getInstance("TLSv1.2");
+        context.init(null, null, null);
         SSLServerSocket socket =
-                (SSLServerSocket) SSLServerSocketFactory.getDefault().createServerSocket();
+                (SSLServerSocket) context.getServerSocketFactory().createServerSocket();
         String[] cipherSuites = new String[] {
                 TestUtils.pickArbitraryNonTls13Suite(socket.getSupportedCipherSuites())
         };
         socket.setEnabledCipherSuites(cipherSuites);
         assertEquals(Arrays.asList(cipherSuites), Arrays.asList(socket.getEnabledCipherSuites()));
+    }
+
+    @Test
+    public void testSetEnabledCipherSuitesAffectsGetter_TLS13() throws Exception {
+        SSLServerSocket socket =
+            (SSLServerSocket) SSLServerSocketFactory.getDefault().createServerSocket();
+        String[] cipherSuites = new String[] {
+            TestUtils.pickArbitraryNonTls13Suite(socket.getSupportedCipherSuites())
+        };
+        socket.setEnabledCipherSuites(cipherSuites);
+        List<String> expected = new ArrayList<String>(StandardNames.CIPHER_SUITES_TLS13);
+        expected.addAll(Arrays.asList(cipherSuites));
+        assertEquals(expected, Arrays.asList(socket.getEnabledCipherSuites()));
     }
 
     @Test
