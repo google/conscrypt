@@ -32,13 +32,11 @@ import java.util.Deque;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.SSLSocket;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
