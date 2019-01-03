@@ -110,26 +110,38 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
     @Override
     public abstract void setChannelIdPrivateKey(PrivateKey privateKey);
 
+    /**
+     * @deprecated NPN is not supported
+     */
     @Override
     @Deprecated
     public final byte[] getNpnSelectedProtocol() {
         return super.getNpnSelectedProtocol();
     }
 
+    /**
+     * @deprecated NPN is not supported
+     */
     @Override
     @Deprecated
     public final void setNpnProtocols(byte[] npnProtocols) {
         super.setNpnProtocols(npnProtocols);
     }
 
+    /**
+     * @deprecated use {@link #setApplicationProtocols(String[])} instead.
+     */
     @Override
     @Deprecated
     public final void setAlpnProtocols(String[] alpnProtocols) {
         setApplicationProtocols(alpnProtocols == null ? EmptyArray.STRING : alpnProtocols);
     }
 
-    @Deprecated
+    /**
+     * @deprecated use {@link #getApplicationProtocol()} instead.
+     */
     @Override
+    @Deprecated
     public final byte[] getAlpnSelectedProtocol() {
         return SSLUtils.toProtocolBytes(getApplicationProtocol());
     }
