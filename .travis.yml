@@ -26,7 +26,7 @@ matrix:
         - ANDROID_TOOLS_URL="https://dl.google.com/android/repository/tools_r25.2.3-linux.zip"
         - ANDROID_HOME="$HOME/android-sdk-linux"
         - ANDROID_NDK_HOME="$ANDROID_HOME/ndk-bundle"
-        - JAVA6_HOME=/usr/lib/jvm/java-6-openjdk-amd64
+        - JAVA7_HOME=/usr/lib/jvm/java-7-openjdk-amd64
 
       before_install:
         - curl -L $ANDROID_TOOLS_URL -o $HOME/tools.zip
@@ -59,7 +59,7 @@ matrix:
             - libc6-dev-i386
             - libc6-dev:i386
             - ninja-build
-            - openjdk-6-jre # for running tests with Java 6
+            - openjdk-7-jre # for running tests with Java 7
 
     ###
     ### MacOS build only does x86-64.
@@ -114,14 +114,14 @@ script:
 
   - ./gradlew build -PcheckErrorQueue
 
-  # Also test with Java 6 on linux
+  # Also test with Java 7 on linux
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
       then
-        ${JAVA6_HOME}/bin/java -version;
+        ${JAVA7_HOME}/bin/java -version;
       fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
-      ./gradlew check -DjavaExecutable64=${JAVA6_HOME}/bin/java -PcheckErrorQueue;
+      ./gradlew check -DjavaExecutable64=${JAVA7_HOME}/bin/java -PcheckErrorQueue;
     fi
 
 after_script:

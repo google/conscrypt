@@ -26,6 +26,8 @@ import org.conscrypt.java.security.AlgorithmParametersTestDES;
 import org.conscrypt.java.security.AlgorithmParametersTestDESede;
 import org.conscrypt.java.security.AlgorithmParametersTestDH;
 import org.conscrypt.java.security.AlgorithmParametersTestDSA;
+import org.conscrypt.java.security.AlgorithmParametersTestGCM;
+import org.conscrypt.java.security.AlgorithmParametersTestOAEP;
 import org.conscrypt.java.security.KeyFactoryTestDH;
 import org.conscrypt.java.security.KeyFactoryTestDSA;
 import org.conscrypt.java.security.KeyFactoryTestRSA;
@@ -38,7 +40,6 @@ import org.conscrypt.java.security.SignatureTest;
 import org.conscrypt.java.security.cert.CertificateFactoryTest;
 import org.conscrypt.java.security.cert.X509CertificateTest;
 import org.conscrypt.javax.crypto.CipherBasicsTest;
-import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
 import org.conscrypt.javax.crypto.KeyGeneratorTest;
 import org.conscrypt.javax.net.ssl.HttpsURLConnectionTest;
 import org.conscrypt.javax.net.ssl.KeyManagerFactoryTest;
@@ -74,9 +75,8 @@ import org.junit.runners.Suite;
         AlgorithmParametersTestDESede.class,
         AlgorithmParametersTestDH.class,
         AlgorithmParametersTestDSA.class,
-        // AlgorithmParametersTestGCM.class,  // No GCM in Java 6
-        // AlgorithmParametersTestOAEP.class,  // OpenJDK 6 has weird crypto provider loading that
-                                               // doesn't work with this test
+        AlgorithmParametersTestGCM.class,
+        AlgorithmParametersTestOAEP.class,
         KeyFactoryTestDH.class,
         KeyFactoryTestDSA.class,
         KeyFactoryTestRSA.class,
@@ -88,8 +88,8 @@ import org.junit.runners.Suite;
         SignatureTest.class,
         // javax.crypto tests
         CipherBasicsTest.class,
-        // CipherTest.class,  // CipherTest uses GCM too heavily, which isn't available in Java 6
-        ECDHKeyAgreementTest.class,
+        // CipherTest.class,  // Lots of weird, broken behaviors in Sun* providers on OpenJDK 7
+        // ECDHKeyAgreementTest.class,  // EC keys are broken on OpenJDK 7
         KeyGeneratorTest.class,
         // javax.net.ssl tests
         HttpsURLConnectionTest.class,
@@ -110,7 +110,7 @@ import org.junit.runners.Suite;
         TrustManagerFactoryTest.class,
         X509KeyManagerTest.class,
 })
-public class ConscryptJava6Suite {
+public class ConscryptJava7Suite {
 
     @BeforeClass
     public static void setupStatic() {
