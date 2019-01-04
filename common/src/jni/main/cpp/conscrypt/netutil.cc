@@ -25,7 +25,6 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/socket.h>
-#include <sys/syscall.h>
 #include <sys/time.h>
 #include <unistd.h>
 #ifdef CONSCRYPT_UNBUNDLED
