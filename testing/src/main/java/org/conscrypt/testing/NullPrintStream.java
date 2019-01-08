@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package libcore.java.io;
+package org.conscrypt.testing;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;

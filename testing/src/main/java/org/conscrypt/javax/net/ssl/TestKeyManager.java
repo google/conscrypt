@@ -24,8 +24,8 @@ import java.security.cert.X509Certificate;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedKeyManager;
-import libcore.java.io.NullPrintStream;
-import libcore.java.security.StandardNames;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.testing.NullPrintStream;
 
 /**
  * TestKeyManager is a simple proxy class that wraps an existing
