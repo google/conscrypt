@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package libcore.java.security;
+package org.conscrypt.java.security;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 

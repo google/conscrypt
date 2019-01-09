@@ -24,8 +24,8 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
-import libcore.java.io.NullPrintStream;
-import libcore.java.security.StandardNames;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.testing.NullPrintStream;
 
 /**
  * TestTrustManager is a simple proxy class that wraps an existing

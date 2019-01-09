@@ -52,10 +52,10 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocketFactory;
-import libcore.io.Streams;
-import libcore.java.security.StandardNames;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
+import org.conscrypt.testing.Streams;
 import org.junit.Assume;
 
 /**

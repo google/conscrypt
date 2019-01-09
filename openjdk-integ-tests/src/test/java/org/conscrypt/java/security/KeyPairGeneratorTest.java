@@ -55,7 +55,6 @@ import java.util.Set;
 import javax.crypto.interfaces.DHPrivateKey;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
-import libcore.java.security.StandardNames;
 import org.conscrypt.TestUtils;
 import org.junit.After;
 import org.junit.Before;
