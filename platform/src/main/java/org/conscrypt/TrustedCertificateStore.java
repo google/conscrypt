@@ -35,7 +35,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import javax.security.auth.x500.X500Principal;
-import libcore.io.IoUtils;
+import org.conscrypt.io.IoUtils;
 
 /**
  * A source for trusted root certificate authority (CA) certificates
