@@ -291,7 +291,8 @@ public class KeyManagerFactoryTest {
             // "EC_RSA", etc. since we don't know what the expected
             // algorithm was.
             if (!keyType.equals("DH") && !keyType.equals("EC")) {
-                assertTrue(sigAlgName.contains(TestKeyStore.signatureAlgorithm(keyType)));
+                assertTrue("SigAlg: " + sigAlgName + ", KeyType: " + keyType,
+                    sigAlgName.contains(TestKeyStore.signatureAlgorithm(keyType)));
             }
         }
     }

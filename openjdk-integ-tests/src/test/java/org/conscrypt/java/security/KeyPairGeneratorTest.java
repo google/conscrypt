@@ -186,6 +186,12 @@ public class KeyPairGeneratorTest {
             // AlgorithmParameterSpec, so the KeyPairGenerator can't be initialized.
             return;
         }
+        if (provider.getName().equals("SunPKCS11-NSS")) {
+            // The SunPKCS11-NSS provider on OpenJDK 7 attempts to delegate to the SunEC provider,
+            // which doesn't exist on OpenJDK 7, and thus totally fails.  This appears to be a bug
+            // introduced into later revisions of OpenJDK 7.
+            return;
+        }
         Set<Provider.Service> services = provider.getServices();
         for (Provider.Service service : services) {
             String type = service.getType();

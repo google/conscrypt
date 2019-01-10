@@ -108,13 +108,13 @@ cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE ^
 ninja
 ```
 
-Running tests on Java 6
+Running tests on Java 7
 -------------------------
-Conscrypt is built with Java 8+, but targets the Java 6 runtime. To run the tests
-under Java 6 (or any Java runtime), you can specify the `javaExecutable64` property from the command line.
+Conscrypt is built with Java 8+, but targets the Java 7 runtime. To run the tests
+under Java 7 (or any Java runtime), you can specify the `javaExecutable64` property from the command line.
  This will run all tests under `openjdk` and `openjdk-integ-tests` with the specified
  runtime.
 
 ```bash
-./gradlew check -DjavaExecutable64=${JAVA6_HOME}/bin/java
+./gradlew check -DjavaExecutable64=${JAVA7_HOME}/bin/java
 ```
