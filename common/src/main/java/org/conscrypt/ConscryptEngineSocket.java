@@ -170,7 +170,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
             while (!finished) {
                 switch (engine.getHandshakeStatus()) {
                     case NEED_UNWRAP:
-                        if (in.readInternal(EmptyArray.BYTE, 0, 0) < 0) {
+                        if (in.processDataFromSocket(EmptyArray.BYTE, 0, 0) < 0) {
                             // Can't complete the handshake due to EOF.
                             throw SSLUtils.toSSLHandshakeException(new EOFException());
                         }
@@ -663,7 +663,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
         public int read(byte[] b, int off, int len) throws IOException {
             startHandshake();
             synchronized (readLock) {
-                return readInternal(b, off, len);
+                return readUntilDataAvailable(b, off, len);
             }
         }
 
@@ -688,7 +688,21 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
             }
         }
 
-        private int readInternal(byte[] b, int off, int len) throws IOException {
+        private int readUntilDataAvailable(byte[] b, int off, int len) throws IOException {
+            int count;
+            do {
+                count = processDataFromSocket(b, off, len);
+            } while (count == 0);
+            return count;
+        }
+
+        // Returns any decrypted data from the engine.  If no data is currently present in the
+        // engine's output buffer, reads from the input socket until the engine has processed
+        // at least one TLS record, then returns any data in the output buffer or 0 if no
+        // data is available.  This is used both during handshaking (in which case, the records
+        // will produce no data and this method will return 0) and by the InputStream read()
+        // methods that expect records to produce application data.
+        private int processDataFromSocket(byte[] b, int off, int len) throws IOException {
             Platform.blockGuardOnNetwork();
             checkOpen();
 

@@ -155,6 +155,8 @@ public class SSLSocketTest {
         TestSSLContext c = TestSSLContext.newBuilder()
                                    .client(testKeyStore)
                                    .server(testKeyStore)
+                                   .clientProtocol("TLSv1.2")
+                                   .serverProtocol("TLSv1.2")
                                    .additionalClientKeyManagers(new KeyManager[] {pskKeyManager})
                                    .additionalServerKeyManagers(new KeyManager[] {pskKeyManager})
                                    .build();
@@ -250,9 +252,10 @@ public class SSLSocketTest {
     }
 
     @Test
-    public void test_SSLSocket_setEnabledCipherSuites() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
-        SSLSocket ssl = (SSLSocket) sf.createSocket();
+    public void test_SSLSocket_setEnabledCipherSuites_TLS12() throws Exception {
+        SSLContext context = SSLContext.getInstance("TLSv1.2");
+        context.init(null, null, null);
+        SSLSocket ssl = (SSLSocket) context.getSocketFactory().createSocket();
         try {
             ssl.setEnabledCipherSuites(null);
             fail();
@@ -722,7 +725,7 @@ public class SSLSocketTest {
         List<Pair<String, SSLSocketFactory>> result =
                 new ArrayList<Pair<String, SSLSocketFactory>>();
         result.add(Pair.of("default", (SSLSocketFactory) SSLSocketFactory.getDefault()));
-        for (String sslContextProtocol : StandardNames.SSL_CONTEXT_PROTOCOLS) {
+        for (String sslContextProtocol : StandardNames.SSL_CONTEXT_PROTOCOLS_WITH_DEFAULT_CONFIG) {
             SSLContext sslContext = SSLContext.getInstance(sslContextProtocol);
             if (StandardNames.SSL_CONTEXT_PROTOCOLS_DEFAULT.equals(sslContextProtocol)) {
                 continue;

@@ -141,6 +141,10 @@ final class Platform {
         return "Conscrypt";
     }
 
+    static boolean provideTrustManagerByDefault() {
+        return true;
+    }
+
     static boolean canExecuteExecutable(File file) throws IOException {
         if (JAVA_VERSION >= 7) {
             return Java7PlatformUtil.canExecuteExecutable(file);

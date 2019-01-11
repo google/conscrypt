@@ -102,9 +102,17 @@ public class SSLSessionTest {
         s.close();
     }
 
+    // TLS 1.2 and TLS 1.3 sessions are philosophically different: In TLS 1.3, sessions for
+    // resumption are sent outside the handshake, are generally single-use, and there can be
+    // multiple cached at any time, whereas in TLS 1.2 the session caching info is sent as part of
+    // the handshake and effectively enhances the current session.  So in TLS 1.3, the current
+    // session has no ID (and cannot be resumed), whereas in TLS 1.2, the current session gets
+    // an ID and can be used for session resumption.
+
     @Test
-    public void test_SSLSession_getId() {
-        TestSSLSessions s = TestSSLSessions.create();
+    public void test_SSLSession_getId_TLS12() {
+        TestSSLSessions s = TestSSLSessions.create(TestSSLContext.newBuilder()
+            .clientProtocol("TLSv1.2").serverProtocol("TLSv1.2").build());
         assertNotNull(s.invalid.getId());
         assertNotNull(s.server.getId());
         assertNotNull(s.client.getId());
@@ -116,6 +124,19 @@ public class SSLSessionTest {
             assertTrue(Arrays.equals(s.server.getId(), s.client.getId()));
         }
         assertEquals(32, s.client.getId().length);
+        s.close();
+    }
+
+    @Test
+    public void test_SSLSession_getId_TLS13() {
+        TestSSLSessions s = TestSSLSessions.create(TestSSLContext.newBuilder()
+            .clientProtocol("TLSv1.3").serverProtocol("TLSv1.3").build());
+        assertNotNull(s.invalid.getId());
+        assertNotNull(s.server.getId());
+        assertNotNull(s.client.getId());
+        assertEquals(0, s.invalid.getId().length);
+        assertEquals(0, s.server.getId().length);
+        assertEquals(0, s.client.getId().length);
         s.close();
     }
 

@@ -37,8 +37,9 @@ import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
@@ -105,7 +106,7 @@ public class SSLContextTest {
     public void test_SSLContext_defaultConfiguration() throws Exception {
         SSLConfigurationAsserts.assertSSLContextDefaultConfiguration(SSLContext.getDefault());
 
-        for (String protocol : StandardNames.SSL_CONTEXT_PROTOCOLS) {
+        for (String protocol : StandardNames.SSL_CONTEXT_PROTOCOLS_WITH_DEFAULT_CONFIG) {
             SSLContext sslContext = SSLContext.getInstance(protocol);
             if (!protocol.equals(StandardNames.SSL_CONTEXT_PROTOCOLS_DEFAULT)) {
                 sslContext.init(null, null, null);
@@ -123,7 +124,8 @@ public class SSLContextTest {
                                 new PSKKeyManagerProxy())},
                 new TrustManager[0], null);
         List<String> expectedCipherSuites =
-                new ArrayList<String>(StandardNames.CIPHER_SUITES_DEFAULT_PSK);
+                new ArrayList<String>(StandardNames.CIPHER_SUITES_TLS13);
+        expectedCipherSuites.addAll(StandardNames.CIPHER_SUITES_DEFAULT_PSK);
         expectedCipherSuites.add(StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION);
         assertEnabledCipherSuites(expectedCipherSuites, sslContext);
     }
@@ -136,9 +138,12 @@ public class SSLContextTest {
                                 new PSKKeyManagerProxy())},
                 null, // Use default trust managers, one of which is an X.509 one.
                 null);
-        List<String> expectedCipherSuites =
-                new ArrayList<String>(StandardNames.CIPHER_SUITES_DEFAULT_PSK);
-        expectedCipherSuites.addAll(StandardNames.CIPHER_SUITES_DEFAULT);
+        // The TLS 1.3 cipher suites appear before the PSK ones, so we need to dedup them
+        Set<String> expectedCipherSuiteSet = new LinkedHashSet<String>();
+        expectedCipherSuiteSet.addAll(StandardNames.CIPHER_SUITES_TLS13);
+        expectedCipherSuiteSet.addAll(StandardNames.CIPHER_SUITES_DEFAULT_PSK);
+        expectedCipherSuiteSet.addAll(StandardNames.CIPHER_SUITES_DEFAULT);
+        List<String> expectedCipherSuites = new ArrayList<String>(expectedCipherSuiteSet);
         assertEnabledCipherSuites(expectedCipherSuites, sslContext);
 
         // Test the scenario where an X509KeyManager and PSKKeyManager are provided.
@@ -157,9 +162,12 @@ public class SSLContextTest {
         // Test the scenario where neither X.509 nor PSK KeyManagers or TrustManagers are provided.
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(new KeyManager[0], new TrustManager[0], null);
-        assertEnabledCipherSuites(
-                Collections.singletonList(StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION),
-                sslContext);
+        // No TLS 1.2 cipher suites should be enabled, since neither PSK nor X.509 key exchange
+        // can be done.  The TLS 1.3 cipher suites should be there, since key exchange isn't
+        // part of the cipher suite in 1.3.
+        List<String> expected = new ArrayList<String>(StandardNames.CIPHER_SUITES_TLS13);
+        expected.add(StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION);
+        assertEnabledCipherSuites(expected, sslContext);
     }
 
     @Test

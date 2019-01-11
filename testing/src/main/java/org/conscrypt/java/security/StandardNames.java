@@ -586,17 +586,19 @@ public final class StandardNames {
             }
         }
 
-        provideSslContextEnabledProtocols("TLS", TLSVersion.TLSv1, TLSVersion.TLSv12);
+        provideSslContextEnabledProtocols("TLS", TLSVersion.TLSv1, TLSVersion.TLSv13);
         provideSslContextEnabledProtocols("TLSv1", TLSVersion.TLSv1, TLSVersion.TLSv12);
         provideSslContextEnabledProtocols("TLSv1.1", TLSVersion.TLSv1, TLSVersion.TLSv12);
         provideSslContextEnabledProtocols("TLSv1.2", TLSVersion.TLSv1, TLSVersion.TLSv12);
-        provideSslContextEnabledProtocols("Default", TLSVersion.TLSv1, TLSVersion.TLSv12);
+        provideSslContextEnabledProtocols("TLSv1.3", TLSVersion.TLSv1, TLSVersion.TLSv13);
+        provideSslContextEnabledProtocols("Default", TLSVersion.TLSv1, TLSVersion.TLSv13);
     }
 
     public static final String SSL_CONTEXT_PROTOCOLS_DEFAULT = "Default";
     public static final Set<String> SSL_CONTEXT_PROTOCOLS = new HashSet<String>(
-            Arrays.asList(SSL_CONTEXT_PROTOCOLS_DEFAULT, "TLS", "TLSv1", "TLSv1.1", "TLSv1.2"));
-    public static final String SSL_CONTEXT_PROTOCOL_DEFAULT = "TLS";
+            Arrays.asList(SSL_CONTEXT_PROTOCOLS_DEFAULT, "TLS", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"));
+    public static final Set<String> SSL_CONTEXT_PROTOCOLS_WITH_DEFAULT_CONFIG = new HashSet<String>(
+            Arrays.asList(SSL_CONTEXT_PROTOCOLS_DEFAULT, "TLS", "TLSv1.3"));
 
     public static final Set<String> KEY_TYPES = new HashSet<String>(
             Arrays.asList("RSA", "DSA", "DH_RSA", "DH_DSA", "EC", "EC_EC", "EC_RSA"));
@@ -610,10 +612,6 @@ public final class StandardNames {
 
     public static final Set<String> SSL_SOCKET_PROTOCOLS =
             new HashSet<String>(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"));
-    public static final Set<String> SSL_SOCKET_PROTOCOLS_CLIENT_DEFAULT =
-            new HashSet<String>(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2"));
-    public static final Set<String> SSL_SOCKET_PROTOCOLS_SERVER_DEFAULT =
-            new HashSet<String>(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2"));
 
     private enum TLSVersion {
         SSLv3("SSLv3"),
@@ -722,6 +720,9 @@ public final class StandardNames {
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
     private static final List<String> CIPHER_SUITES_AES_HARDWARE = Arrays.asList(
+            "TLS_AES_128_GCM_SHA256",
+            "TLS_AES_256_GCM_SHA384",
+            "TLS_CHACHA20_POLY1305_SHA256",
             "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
             "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
@@ -741,6 +742,9 @@ public final class StandardNames {
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
     private static final List<String> CIPHER_SUITES_SOFTWARE = Arrays.asList(
+            "TLS_AES_128_GCM_SHA256",
+            "TLS_AES_256_GCM_SHA384",
+            "TLS_CHACHA20_POLY1305_SHA256",
             "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
             "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
             "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
