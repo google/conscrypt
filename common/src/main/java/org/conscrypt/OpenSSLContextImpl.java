@@ -58,7 +58,7 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
 
     /** Allows outside callers to get the preferred SSLContext. */
     static OpenSSLContextImpl getPreferred() {
-        return new TLSv12();
+        return new TLSv13();
     }
 
     OpenSSLContextImpl(String[] algorithms) {
