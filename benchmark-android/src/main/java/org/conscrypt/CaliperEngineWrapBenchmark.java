@@ -55,7 +55,7 @@ public class CaliperEngineWrapBenchmark {
     @Param({"64", "512", "4096"})
     public int c_message;
 
-    @Param
+    @Param({"CONSCRYPT_UNPOOLED"})
     public AndroidEngineFactory d_engine;
 
     private EngineWrapBenchmark benchmark;
