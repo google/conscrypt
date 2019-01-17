@@ -16,7 +16,6 @@
 
 #include <jni.h>
 
-#include <conscrypt/compatibility_close_monitor.h>
 #include <conscrypt/jniutil.h>
 #include <conscrypt/logging.h>
 #include <conscrypt/native_crypto.h>
@@ -25,7 +24,6 @@
 #define CONSCRYPT_JNI_VERSION JNI_VERSION_1_6
 #endif  // !CONSCRYPT_JNI_VERSION
 
-using conscrypt::CompatibilityCloseMonitor;
 using conscrypt::NativeCrypto;
 
 // Give client libs everything they need to initialize our JNI
@@ -42,8 +40,6 @@ jint libconscrypt_JNI_OnLoad(JavaVM* vm, void*) {
     // Register all of the native JNI methods.
     NativeCrypto::registerNativeMethods(env);
 
-    // Perform static initialization of the close monitor (if required on this platform).
-    CompatibilityCloseMonitor::init();
     return CONSCRYPT_JNI_VERSION;
 }
 
