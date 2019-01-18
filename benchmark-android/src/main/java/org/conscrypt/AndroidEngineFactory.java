@@ -15,7 +15,6 @@
  */
 package org.conscrypt;
 
-import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
