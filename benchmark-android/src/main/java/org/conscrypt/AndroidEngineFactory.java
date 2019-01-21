@@ -15,7 +15,7 @@
  */
 package org.conscrypt;
 
-import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
@@ -46,12 +46,33 @@ public enum AndroidEngineFactory implements EngineFactory {
             return engine;
         }
 
-        private SSLContext newContext() {
-            try {
-                return SSLContext.getInstance(TestUtils.getProtocols()[0], new OpenSSLProvider());
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
+        @Override
+        public void dispose(SSLEngine engine) {
+            engine.closeOutbound();
+        }
+    },
+    PLATFORM {
+        private final SSLContext clientContext = TestUtils.newClientSslContext(
+            Security.getProvider("AndroidOpenSSL"));
+        private final SSLContext serverContext = TestUtils.newServerSslContext(
+            Security.getProvider("AndroidOpenSSL"));
+
+        @Override
+        public SSLEngine newClientEngine(String cipher, boolean useAlpn) {
+            SSLEngine engine = initEngine(clientContext.createSSLEngine(), cipher, true);
+            if (useAlpn) {
+                Conscrypt.setApplicationProtocols(engine, new String[] {"h2"});
             }
+            return engine;
+        }
+
+        @Override
+        public SSLEngine newServerEngine(String cipher, boolean useAlpn) {
+            SSLEngine engine = initEngine(serverContext.createSSLEngine(), cipher, false);
+            if (useAlpn) {
+                Conscrypt.setApplicationProtocols(engine, new String[] {"h2"});
+            }
+            return engine;
         }
 
         @Override
