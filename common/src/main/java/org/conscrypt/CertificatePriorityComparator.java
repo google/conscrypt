@@ -22,7 +22,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -118,15 +117,15 @@ public final class CertificatePriorityComparator implements Comparator<X509Certi
     }
 
     private int compareKeyAlgorithm(PublicKey lhs, PublicKey rhs) {
-        String lhsAlgorithm = lhs.getAlgorithm().toUpperCase(Locale.US);
-        String rhsAlgorithm = rhs.getAlgorithm().toUpperCase(Locale.US);
+        String lhsAlgorithm = lhs.getAlgorithm();
+        String rhsAlgorithm = rhs.getAlgorithm();
 
-        if (lhsAlgorithm.equals(rhsAlgorithm)) {
+        if (lhsAlgorithm.equalsIgnoreCase(rhsAlgorithm)) {
             return 0;
         }
 
         // Prefer EC to RSA.
-        if ("EC".equals(lhsAlgorithm)) {
+        if ("EC".equalsIgnoreCase(lhsAlgorithm)) {
             return 1;
         } else {
             return -1;
@@ -134,9 +133,9 @@ public final class CertificatePriorityComparator implements Comparator<X509Certi
     }
 
     private int compareKeySize(PublicKey lhs, PublicKey rhs) {
-        String lhsAlgorithm = lhs.getAlgorithm().toUpperCase(Locale.US);
-        String rhsAlgorithm = rhs.getAlgorithm().toUpperCase(Locale.US);
-        if (!lhsAlgorithm.equals(rhsAlgorithm)) {
+        String lhsAlgorithm = lhs.getAlgorithm();
+        String rhsAlgorithm = rhs.getAlgorithm();
+        if (!lhsAlgorithm.equalsIgnoreCase(rhsAlgorithm)) {
             throw new IllegalArgumentException("Keys are not of the same type");
         }
         int lhsSize = getKeySize(lhs);

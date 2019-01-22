@@ -64,7 +64,7 @@ if (androidSdkInstalled) {
     }
 
     dependencies {
-        depsJarApi project(':conscrypt-android'),
+        depsJarApi project(path: ':conscrypt-android', configuration: 'default'),
                    libraries.bouncycastle_provider,
                    libraries.bouncycastle_apis
 

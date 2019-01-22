@@ -88,6 +88,10 @@ final class Platform {
         return "AndroidOpenSSL";
     }
 
+    static boolean provideTrustManagerByDefault() {
+        return false;
+    }
+
     static FileDescriptor getFileDescriptor(Socket s) {
         return s.getFileDescriptor$();
     }
@@ -272,13 +276,6 @@ final class Platform {
         }
     }
 
-    /**
-     * Returns true if the supplied hostname is an literal IP address.
-     */
-    static boolean isLiteralIpAddress(String hostname) {
-        return InetAddress.isNumeric(hostname);
-    }
-
     static SSLEngine wrapEngine(ConscryptEngine engine) {
         return new Java8EngineWrapper(engine);
     }
@@ -435,7 +432,7 @@ final class Platform {
     /**
      * Provides extended capabilities for the session if supported by the platform.
      */
-    static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+    static SSLSession wrapSSLSession(ExternalSession sslSession) {
         return new Java8ExtendedSSLSession(sslSession);
     }
 

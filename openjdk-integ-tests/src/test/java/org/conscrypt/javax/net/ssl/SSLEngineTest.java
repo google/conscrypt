@@ -41,8 +41,8 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
-import libcore.java.security.StandardNames;
 import org.conscrypt.TestUtils;
+import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -137,6 +137,8 @@ public class SSLEngineTest {
         TestSSLContext c = TestSSLContext.newBuilder()
                                    .client(testKeyStore)
                                    .server(testKeyStore)
+                                   .clientProtocol("TLSv1.2")
+                                   .serverProtocol("TLSv1.2")
                                    .additionalClientKeyManagers(new KeyManager[] {pskKeyManager})
                                    .additionalServerKeyManagers(new KeyManager[] {pskKeyManager})
                                    .build();
@@ -383,9 +385,10 @@ public class SSLEngineTest {
     }
 
     @Test
-    public void test_SSLEngine_setEnabledCipherSuites() throws Exception {
-        TestSSLContext c = TestSSLContext.create();
-        SSLEngine e = c.clientContext.createSSLEngine();
+    public void test_SSLEngine_setEnabledCipherSuites_TLS12() throws Exception {
+        SSLContext context = SSLContext.getInstance("TLSv1.2");
+        context.init(null, null, null);
+        SSLEngine e = context.createSSLEngine();
 
         try {
             e.setEnabledCipherSuites(null);
@@ -416,8 +419,6 @@ public class SSLEngineTest {
         };
         e.setEnabledCipherSuites(cipherSuites);
         assertEquals(Arrays.asList(cipherSuites), Arrays.asList(e.getEnabledCipherSuites()));
-
-        c.close();
     }
 
     @Test

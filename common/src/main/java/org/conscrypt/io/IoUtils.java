@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package libcore.io;
+package org.conscrypt.io;
 
 import java.io.Closeable;
 import java.io.InterruptedIOException;

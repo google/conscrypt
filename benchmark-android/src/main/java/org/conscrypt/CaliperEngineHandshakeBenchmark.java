@@ -50,7 +50,7 @@ public class CaliperEngineHandshakeBenchmark {
     @Param
     public BufferType b_buffer;
 
-    @Param
+    @Param({"CONSCRYPT_UNPOOLED"})
     public AndroidEngineFactory c_engine;
 
     @Param

@@ -55,7 +55,6 @@ import java.util.Set;
 import javax.crypto.interfaces.DHPrivateKey;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
-import libcore.java.security.StandardNames;
 import org.conscrypt.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -185,6 +184,12 @@ public class KeyPairGeneratorTest {
             // is the highest-ranked provider when running our tests, its implementation of
             // AlgorithmParameters:EC is returned, and it doesn't understand the special
             // AlgorithmParameterSpec, so the KeyPairGenerator can't be initialized.
+            return;
+        }
+        if (provider.getName().equals("SunPKCS11-NSS")) {
+            // The SunPKCS11-NSS provider on OpenJDK 7 attempts to delegate to the SunEC provider,
+            // which doesn't exist on OpenJDK 7, and thus totally fails.  This appears to be a bug
+            // introduced into later revisions of OpenJDK 7.
             return;
         }
         Set<Provider.Service> services = provider.getServices();

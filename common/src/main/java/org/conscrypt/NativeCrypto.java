@@ -958,7 +958,7 @@ public final class NativeCrypto {
     /** Protocols to enable by default when "TLSv1" is requested. */
     static final String[] TLSV1_PROTOCOLS = TLSV11_PROTOCOLS;
 
-    static final String[] DEFAULT_PROTOCOLS = TLSV12_PROTOCOLS;
+    static final String[] DEFAULT_PROTOCOLS = TLSV13_PROTOCOLS;
     private static final String[] SUPPORTED_PROTOCOLS = new String[] {
             SUPPORTED_PROTOCOL_TLSV1,
             SUPPORTED_PROTOCOL_TLSV1_1,

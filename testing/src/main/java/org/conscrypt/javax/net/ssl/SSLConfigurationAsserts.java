@@ -31,7 +31,7 @@ import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import libcore.java.security.StandardNames;
+import org.conscrypt.java.security.StandardNames;
 
 /**
  * Assertions about the configuration of TLS/SSL primitives.

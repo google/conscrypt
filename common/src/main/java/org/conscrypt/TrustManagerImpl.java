@@ -61,7 +61,6 @@ import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.logging.Logger;
 import javax.net.ssl.HostnameVerifier;
@@ -401,8 +400,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
         if (session != null && parameters != null) {
             String identificationAlgorithm = parameters.getEndpointIdentificationAlgorithm();
-            if (identificationAlgorithm != null
-                    && "HTTPS".equals(identificationAlgorithm.toUpperCase(Locale.US))) {
+            if ("HTTPS".equalsIgnoreCase(identificationAlgorithm)) {
                 HostnameVerifier verifier = HttpsURLConnection.getDefaultHostnameVerifier();
                 if (!verifier.verify(hostname, session)) {
                     throw new CertificateException("No subjectAltNames on the certificate match");

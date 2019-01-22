@@ -25,8 +25,6 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
 import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSessionBindingEvent;
-import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
 
 /**
@@ -313,13 +311,6 @@ final class ActiveSession implements ConscryptSession {
     private void checkPeerCertificatesPresent() throws SSLPeerUnverifiedException {
         if (peerCertificates == null || peerCertificates.length == 0) {
             throw new SSLPeerUnverifiedException("No peer certificates");
-        }
-    }
-
-    private void notifyUnbound(Object value, String name) {
-        if (value instanceof SSLSessionBindingListener) {
-            ((SSLSessionBindingListener) value)
-                    .valueUnbound(new SSLSessionBindingEvent(this, name));
         }
     }
 }

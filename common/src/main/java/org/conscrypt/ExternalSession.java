@@ -45,7 +45,7 @@ import javax.security.cert.X509Certificate;
  * socket/engine.  This class will never call the value API methods on the
  * underlying sessions, so they need not be implemented.
  */
-final class ExternalSession implements SessionDecorator {
+final class ExternalSession implements ConscryptSession {
 
   // Use an initialcapacity of 2 to keep it small in the average case.
   private final HashMap<String, Object> values = new HashMap<String, Object>(2);
@@ -56,109 +56,104 @@ final class ExternalSession implements SessionDecorator {
   }
 
   @Override
-  public ConscryptSession getDelegate() {
-    return provider.provideSession();
-  }
-
-  @Override
   public String getRequestedServerName() {
-    return getDelegate().getRequestedServerName();
+    return provider.provideSession().getRequestedServerName();
   }
 
   @Override
   public List<byte[]> getStatusResponses() {
-    return getDelegate().getStatusResponses();
+    return provider.provideSession().getStatusResponses();
   }
 
   @Override
   public byte[] getPeerSignedCertificateTimestamp() {
-    return getDelegate().getPeerSignedCertificateTimestamp();
+    return provider.provideSession().getPeerSignedCertificateTimestamp();
   }
 
   @Override
   public byte[] getId() {
-    return getDelegate().getId();
+    return provider.provideSession().getId();
   }
 
   @Override
   public SSLSessionContext getSessionContext() {
-    return getDelegate().getSessionContext();
+    return provider.provideSession().getSessionContext();
   }
 
   @Override
   public long getCreationTime() {
-    return getDelegate().getCreationTime();
+    return provider.provideSession().getCreationTime();
   }
 
   @Override
   public long getLastAccessedTime() {
-    return getDelegate().getLastAccessedTime();
+    return provider.provideSession().getLastAccessedTime();
   }
 
   @Override
   public void invalidate() {
-    getDelegate().invalidate();
+    provider.provideSession().invalidate();
   }
 
   @Override
   public boolean isValid() {
-    return getDelegate().isValid();
+    return provider.provideSession().isValid();
   }
 
   @Override
   public java.security.cert.X509Certificate[] getPeerCertificates()
       throws SSLPeerUnverifiedException {
-    return getDelegate().getPeerCertificates();
+    return provider.provideSession().getPeerCertificates();
   }
 
   @Override
   public Certificate[] getLocalCertificates() {
-    return getDelegate().getLocalCertificates();
+    return provider.provideSession().getLocalCertificates();
   }
 
   @Override
   public X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
-    return getDelegate().getPeerCertificateChain();
+    return provider.provideSession().getPeerCertificateChain();
   }
 
   @Override
   public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
-    return getDelegate().getPeerPrincipal();
+    return provider.provideSession().getPeerPrincipal();
   }
 
   @Override
   public Principal getLocalPrincipal() {
-    return getDelegate().getLocalPrincipal();
+    return provider.provideSession().getLocalPrincipal();
   }
 
   @Override
   public String getCipherSuite() {
-    return getDelegate().getCipherSuite();
+    return provider.provideSession().getCipherSuite();
   }
 
   @Override
   public String getProtocol() {
-    return getDelegate().getProtocol();
+    return provider.provideSession().getProtocol();
   }
 
   @Override
   public String getPeerHost() {
-    return getDelegate().getPeerHost();
+    return provider.provideSession().getPeerHost();
   }
 
   @Override
   public int getPeerPort() {
-    return getDelegate().getPeerPort();
+    return provider.provideSession().getPeerPort();
   }
 
   @Override
   public int getPacketBufferSize() {
-    return getDelegate().getPacketBufferSize();
+    return provider.provideSession().getPacketBufferSize();
   }
 
   @Override
   public int getApplicationBufferSize() {
-    return getDelegate().getApplicationBufferSize();
+    return provider.provideSession().getApplicationBufferSize();
   }
 
   @Override
@@ -176,28 +171,35 @@ final class ExternalSession implements SessionDecorator {
 
   @Override
   public void putValue(String name, Object value) {
+    putValue(this, name, value);
+  }
+
+  void putValue(SSLSession session, String name, Object value) {
     if (name == null || value == null) {
       throw new IllegalArgumentException("name == null || value == null");
     }
     Object old = values.put(name, value);
     if (value instanceof SSLSessionBindingListener) {
-      ((SSLSessionBindingListener) value).valueBound(new SSLSessionBindingEvent(this, name));
+      ((SSLSessionBindingListener) value).valueBound(new SSLSessionBindingEvent(session, name));
     }
     if (old instanceof SSLSessionBindingListener) {
-      ((SSLSessionBindingListener) old).valueUnbound(new SSLSessionBindingEvent(this, name));
+      ((SSLSessionBindingListener) old).valueUnbound(new SSLSessionBindingEvent(session, name));
     }
-
   }
 
   @Override
   public void removeValue(String name) {
+    removeValue(this, name);
+  }
+
+  void removeValue(SSLSession session, String name) {
     if (name == null) {
       throw new IllegalArgumentException("name == null");
     }
     Object old = values.remove(name);
     if (old instanceof SSLSessionBindingListener) {
       SSLSessionBindingListener listener = (SSLSessionBindingListener) old;
-      listener.valueUnbound(new SSLSessionBindingEvent(this, name));
+      listener.valueUnbound(new SSLSessionBindingEvent(session, name));
     }
   }
 

@@ -85,6 +85,10 @@ final class Platform {
         return "Conscrypt";
     }
 
+    static boolean provideTrustManagerByDefault() {
+        return false;
+    }
+
     public static FileDescriptor getFileDescriptor(Socket s) {
         try {
             Field f_impl = Socket.class.getDeclaredField("impl");
@@ -542,19 +546,6 @@ final class Platform {
         }
     }
 
-    /**
-     * Returns true if the supplied hostname is an literal IP address.
-     */
-    public static boolean isLiteralIpAddress(String hostname) {
-        try {
-            Method m_isNumeric = InetAddress.class.getMethod("isNumeric", String.class);
-            return (Boolean) m_isNumeric.invoke(null, hostname);
-        } catch (Exception ignored) {
-        }
-
-        return AddressUtils.isLiteralIpAddress(hostname);
-    }
-
     static SSLEngine wrapEngine(ConscryptEngine engine) {
         // For now, don't wrap on Android.
         return engine;
@@ -862,7 +853,7 @@ final class Platform {
     /**
      * Provides extended capabilities for the session if supported by the platform.
      */
-    public static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+    public static SSLSession wrapSSLSession(ExternalSession sslSession) {
         if (Build.VERSION.SDK_INT >= 24) {
             return new Java8ExtendedSSLSession(sslSession);
         }

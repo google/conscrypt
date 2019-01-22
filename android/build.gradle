@@ -45,7 +45,7 @@ if (androidSdkInstalled) {
             versionCode androidVersionCode
             versionName androidVersionName
 
-            testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+            testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
             consumerProguardFiles 'proguard-rules.pro'
 
@@ -105,7 +105,7 @@ if (androidSdkInstalled) {
 
     dependencies {
         publicApiDocs project(':conscrypt-api-doclet')
-        androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
+        androidTestImplementation('androidx.test.espresso:espresso-core:3.1.1', {
             exclude module: 'support-annotations'
             exclude module: 'support-v4'
             exclude module: 'support-v13'

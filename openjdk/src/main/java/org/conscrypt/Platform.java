@@ -141,6 +141,10 @@ final class Platform {
         return "Conscrypt";
     }
 
+    static boolean provideTrustManagerByDefault() {
+        return true;
+    }
+
     static boolean canExecuteExecutable(File file) throws IOException {
         if (JAVA_VERSION >= 7) {
             return Java7PlatformUtil.canExecuteExecutable(file);
@@ -315,15 +319,6 @@ final class Platform {
      */
     @SuppressWarnings("unused")
     static void logEvent(@SuppressWarnings("unused") String message) {}
-
-    /**
-     * Returns true if the supplied hostname is an literal IP address.
-     */
-    @SuppressWarnings("unused")
-    static boolean isLiteralIpAddress(String hostname) {
-        // TODO: any RI API to make this better?
-        return AddressUtils.isLiteralIpAddress(hostname);
-    }
 
     /**
      * For unbundled versions, SNI is always enabled by default.
@@ -533,7 +528,7 @@ final class Platform {
      */
 
     @SuppressWarnings("unused")
-    static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+    static SSLSession wrapSSLSession(ExternalSession sslSession) {
         if (JAVA_VERSION >= 8) {
             return Java8PlatformUtil.wrapSSLSession(sslSession);
         }

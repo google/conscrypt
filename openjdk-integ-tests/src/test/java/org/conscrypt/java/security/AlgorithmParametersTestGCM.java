@@ -23,8 +23,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
 import java.util.Arrays;
-import java.util.Base64;
 import javax.crypto.spec.GCMParameterSpec;
+import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -71,12 +71,12 @@ public class AlgorithmParametersTestGCM extends AbstractAlgorithmParametersTest 
             }
 
             params.init(new GCMParameterSpec(TLEN, IV));
-            String encoded = Base64.getEncoder().encodeToString(params.getEncoded());
+            String encoded = TestUtils.encodeBase64(params.getEncoded());
             assertTrue("Provider: " + p.getName() + ", encoded: " + encoded,
                     encoded.equals(ENCODED_DATA_TLEN) || encoded.equals(ENCODED_DATA_NO_TLEN));
 
             params = AlgorithmParameters.getInstance("GCM", p);
-            params.init(Base64.getDecoder().decode(ENCODED_DATA_NO_TLEN));
+            params.init(TestUtils.decodeBase64(ENCODED_DATA_NO_TLEN));
             GCMParameterSpec spec = params.getParameterSpec(GCMParameterSpec.class);
             if (!p.getName().equals("SunJCE")) {
                 assertEquals("Provider: " + p.getName(), TLEN, spec.getTLen());
@@ -88,7 +88,7 @@ public class AlgorithmParametersTestGCM extends AbstractAlgorithmParametersTest 
             assertTrue("Provider: " + p.getName(), Arrays.equals(IV, spec.getIV()));
 
             params = AlgorithmParameters.getInstance("GCM", p);
-            params.init(Base64.getDecoder().decode(ENCODED_DATA_TLEN));
+            params.init(TestUtils.decodeBase64(ENCODED_DATA_TLEN));
             spec = params.getParameterSpec(GCMParameterSpec.class);
             assertEquals("Provider: " + p.getName(), TLEN, spec.getTLen());
             assertTrue("Provider: " + p.getName(), Arrays.equals(IV, spec.getIV()));

@@ -113,9 +113,9 @@ import javax.net.ssl.StandardConstants;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
-import libcore.java.security.StandardNames;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
+import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
 import org.conscrypt.tlswire.TlsTester;
 import org.conscrypt.tlswire.handshake.AlpnHelloExtension;
@@ -645,7 +645,7 @@ public class SSLSocketVersionCompatibilityTest {
                 .clientProtocol(clientVersion)
                 .serverProtocol(serverVersion)
                 .build();
-        SSLContext clientContext = SSLContext.getInstance("TLS");
+        SSLContext clientContext = SSLContext.getInstance(clientVersion);
         X509KeyManager keyManager = new X509KeyManager() {
             @Override
             public String chooseClientAlias(String[] keyType, Principal[] issuers, Socket socket) {
@@ -694,8 +694,11 @@ public class SSLSocketVersionCompatibilityTest {
         });
         try {
             client.startHandshake();
+            // In TLS 1.3, the alert will only show up once we try to use the connection, since
+            // the client finishes the handshake without feedback from the server
+            client.getInputStream().read();
             fail();
-        } catch (SSLHandshakeException expected) {
+        } catch (SSLException expected) {
             // before we would get a NullPointerException from passing
             // due to the null PrivateKey return by the X509KeyManager.
         }
