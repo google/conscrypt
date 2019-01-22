@@ -185,9 +185,10 @@ public final class TestUtils {
 
     public static Provider getConscryptProvider() {
         try {
-            String defaultName = (String) conscryptClass("Platform")
-                .getDeclaredMethod("getDefaultProviderName")
-                .invoke(null);
+            Method method = conscryptClass("Platform")
+                .getDeclaredMethod("getDefaultProviderName");
+            method.setAccessible(true);
+            String defaultName = (String) method.invoke(null);
             Constructor<?> c = conscryptClass("OpenSSLProvider")
                 .getDeclaredConstructor(String.class, Boolean.TYPE);
 
