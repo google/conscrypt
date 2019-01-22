@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.4.1)
 add_library(conscrypt_jni
             SHARED
+            ../common/src/jni/main/cpp/conscrypt/compatibility_close_monitor.cc
             ../common/src/jni/main/cpp/conscrypt/jniload.cc
             ../common/src/jni/main/cpp/conscrypt/jniutil.cc
             ../common/src/jni/main/cpp/conscrypt/native_crypto.cc
