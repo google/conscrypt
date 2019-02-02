@@ -158,6 +158,10 @@ abstract class AbstractConscryptEngine extends SSLEngine {
      */
     abstract void setApplicationProtocolSelector(ApplicationProtocolSelector selector);
 
+    abstract byte[] getClientRandom();
+
+    abstract byte[] getServerRandom();
+
     /**
      * Returns the tls-unique channel binding value for this connection, per RFC 5929.  This
      * will return {@code null} if there is no such value available, such as if the handshake

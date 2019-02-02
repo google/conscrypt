@@ -30,11 +30,13 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -561,6 +563,39 @@ public class SSLEngineVersionCompatibilityTest {
         out.get(data);
 
         return data;
+    }
+
+    @Test
+    public void test_SSLSocket_HelloRandom() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create(
+                TestSSLContext.newBuilder()
+                        .clientProtocol(clientVersion)
+                        .serverProtocol(serverVersion).build());
+        try {
+            assertConnected(pair);
+
+            byte[] clientRandom = Conscrypt.getClientRandom(pair.client);
+            byte[] serverRandom = Conscrypt.getServerRandom(pair.client);
+            byte[] clientRandom2 = Conscrypt.getClientRandom(pair.server);
+            byte[] serverRandom2 = Conscrypt.getServerRandom(pair.server);
+            assertEquals(32, clientRandom.length);
+            assertEquals(32, serverRandom.length);
+            assertArrayEquals(clientRandom, clientRandom2);
+            assertArrayEquals(serverRandom, serverRandom2);
+            assertFalse(Arrays.equals(clientRandom, serverRandom));
+
+            if (!"TLSv1.3".equals(negotiatedVersion())) {
+                long time = TimeUnit.MILLISECONDS.toSeconds(new Date().getTime());
+                long serverTime =
+                    (serverRandom[0] << 030 & 0xFF000000L) |
+                    (serverRandom[1] << 020 & 0x00FF0000L) |
+                    (serverRandom[2] << 010 & 0x0000FF00L) |
+                    (serverRandom[3] << 000 & 0x000000FFL);
+                assertTrue(Math.abs(time - serverTime) < 2);
+            }
+        } finally {
+            pair.close();
+        }
     }
 
     @Test

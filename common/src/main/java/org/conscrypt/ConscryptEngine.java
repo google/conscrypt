@@ -1761,6 +1761,16 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     @Override
+    byte[] getClientRandom() {
+        return ssl.getClientRandom();
+    }
+
+    @Override
+    byte[] getServerRandom() {
+        return ssl.getServerRandom();
+    }
+
+    @Override
     byte[] getTlsUnique() {
         return ssl.getTlsUnique();
     }

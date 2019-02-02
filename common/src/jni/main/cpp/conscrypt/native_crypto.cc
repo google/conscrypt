@@ -7874,6 +7874,46 @@ static jobjectArray NativeCrypto_SSL_get0_peer_certificates(JNIEnv* env, jclass,
     return array.release();
 }
 
+static jbyteArray NativeCrypto_SSL_get_client_random(JNIEnv* env, jclass,
+                                                     jlong ssl_address, CONSCRYPT_UNUSED jobject ssl_holder) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_client_random", ssl);
+    if (ssl == nullptr) {
+        return nullptr;
+    }
+
+    unsigned char b[SSL3_RANDOM_SIZE];
+    if (SSL_get_client_random(ssl, &b[0], SSL3_RANDOM_SIZE) == SSL3_RANDOM_SIZE) {
+        jbyteArray out = env->NewByteArray(static_cast<jsize>(SSL3_RANDOM_SIZE));
+        if (out != nullptr) {
+            env->SetByteArrayRegion(out, 0, static_cast<jsize>(SSL3_RANDOM_SIZE), reinterpret_cast<const jbyte*>(&b[0]));
+        }
+        return out;
+    }
+    return nullptr;
+}
+
+static jbyteArray NativeCrypto_SSL_get_server_random(JNIEnv* env, jclass,
+                                                     jlong ssl_address, CONSCRYPT_UNUSED jobject ssl_holder) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_server_random", ssl);
+    if (ssl == nullptr) {
+        return nullptr;
+    }
+
+    unsigned char b[SSL3_RANDOM_SIZE];
+    if (SSL_get_server_random(ssl, &b[0], SSL3_RANDOM_SIZE) == SSL3_RANDOM_SIZE) {
+        jbyteArray out = env->NewByteArray(static_cast<jsize>(SSL3_RANDOM_SIZE));
+        if (out != nullptr) {
+            env->SetByteArrayRegion(out, 0, static_cast<jsize>(SSL3_RANDOM_SIZE), reinterpret_cast<const jbyte*>(&b[0]));
+        }
+        return out;
+    }
+    return nullptr;
+}
+
 static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* buf, jint len,
                    SslError* sslError, int read_timeout_millis) {
     JNI_TRACE("ssl=%p sslRead buf=%p len=%d", ssl, buf, len);
@@ -10156,6 +10196,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_get_current_cipher, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_version, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_get0_peer_certificates, "(J" REF_SSL ")[[B"),
+        CONSCRYPT_NATIVE_METHOD(SSL_get_client_random, "(J" REF_SSL ")[B"),
+        CONSCRYPT_NATIVE_METHOD(SSL_get_server_random, "(J" REF_SSL ")[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_read, "(J" REF_SSL FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)I"),
         CONSCRYPT_NATIVE_METHOD(SSL_write, "(J" REF_SSL FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_interrupt, "(J" REF_SSL ")V"),

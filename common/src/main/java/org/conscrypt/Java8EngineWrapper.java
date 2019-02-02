@@ -296,6 +296,16 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     }
 
     @Override
+    byte[] getClientRandom() {
+        return delegate.getClientRandom();
+    }
+
+    @Override
+    byte[] getServerRandom() {
+        return delegate.getServerRandom();
+    }
+
+    @Override
     byte[] getTlsUnique() {
         return delegate.getTlsUnique();
     }

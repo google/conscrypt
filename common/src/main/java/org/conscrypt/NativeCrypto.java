@@ -1118,6 +1118,10 @@ public final class NativeCrypto {
      */
     static native byte[][] SSL_get0_peer_certificates(long ssl, NativeSsl ssl_holder);
 
+    static native byte[] SSL_get_client_random(long ssl, NativeSsl ssl_holder);
+
+    static native byte[] SSL_get_server_random(long ssl, NativeSsl ssl_holder);
+
     /**
      * Reads with the native SSL_read function from the encrypted data stream
      * @return -1 if error or the end of the stream is reached.

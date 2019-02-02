@@ -435,6 +435,14 @@ public final class Conscrypt {
         return toConscrypt(socket).getApplicationProtocols();
     }
 
+    public static byte[] getClientRandom(SSLSocket socket) {
+        return toConscrypt(socket).getClientRandom();
+    }
+
+    public static byte[] getServerRandom(SSLSocket socket) {
+        return toConscrypt(socket).getServerRandom();
+    }
+
     /**
      * Returns the tls-unique channel binding value for this connection, per RFC 5929.  This
      * will return {@code null} if there is no such value available, such as if the handshake
@@ -677,6 +685,14 @@ public final class Conscrypt {
      */
     public static String getApplicationProtocol(SSLEngine engine) {
         return toConscrypt(engine).getApplicationProtocol();
+    }
+
+    public static byte[] getClientRandom(SSLEngine engine) {
+        return toConscrypt(engine).getClientRandom();
+    }
+
+    public static byte[] getServerRandom(SSLEngine engine) {
+        return toConscrypt(engine).getServerRandom();
     }
 
     /**

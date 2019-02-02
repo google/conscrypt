@@ -2036,6 +2036,27 @@ public class SSLSocketVersionCompatibilityTest {
     }
 
     @Test
+    public void test_SSLSocket_HelloRandom() throws Exception {
+        TestSSLContext context = new TestSSLContext.Builder()
+                .clientProtocol(clientVersion)
+                .serverProtocol(serverVersion)
+                .build();
+        TestSSLSocketPair pair = TestSSLSocketPair.create(context);
+        try {
+            byte[] clientRandom = Conscrypt.getClientRandom(pair.client);
+            byte[] serverRandom = Conscrypt.getServerRandom(pair.client);
+            byte[] clientRandom2 = Conscrypt.getClientRandom(pair.server);
+            byte[] serverRandom2 = Conscrypt.getServerRandom(pair.server);
+            assertEquals(32, clientRandom.length);
+            assertEquals(32, serverRandom.length);
+            assertArrayEquals(clientRandom, clientRandom2);
+            assertArrayEquals(serverRandom, serverRandom2);
+        } finally {
+            pair.close();
+        }
+    }
+
+    @Test
     public void test_SSLSocket_TlsUnique() throws Exception {
         // tls_unique isn't supported in TLS 1.3
         assumeTlsV1_2Connection();

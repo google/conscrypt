@@ -125,6 +125,14 @@ final class NativeSsl {
         return NativeCrypto.SSL_get_ocsp_response(ssl, this);
     }
 
+    byte[] getClientRandom() {
+        return NativeCrypto.SSL_get_client_random(ssl, this);
+    }
+
+    byte[] getServerRandom() {
+        return NativeCrypto.SSL_get_server_random(ssl, this);
+    }
+
     byte[] getTlsUnique() {
         return NativeCrypto.SSL_get_tls_unique(ssl, this);
     }

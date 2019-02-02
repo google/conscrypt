@@ -328,6 +328,16 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
     }
 
     @Override
+    byte[] getClientRandom() {
+        return engine.getClientRandom();
+    }
+
+    @Override
+    byte[] getServerRandom() {
+        return engine.getServerRandom();
+    }
+
+    @Override
     byte[] getTlsUnique() {
         return engine.getTlsUnique();
     }
