@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <NetFd.h>
+#include <conscrypt/NetFd.h>
 #include <conscrypt/app_data.h>
 #include <conscrypt/bio_input_stream.h>
 #include <conscrypt/bio_output_stream.h>
@@ -28,8 +28,9 @@
 #include <conscrypt/netutil.h>
 #include <conscrypt/scoped_ssl_bio.h>
 #include <conscrypt/ssl_error.h>
-#include <nativehelper/ScopedPrimitiveArray.h>
-#include <nativehelper/ScopedUtfChars.h>
+
+#include <nativehelper/scoped_primitive_array.h>
+#include <nativehelper/scoped_utf_chars.h>
 
 #include <limits.h>
 

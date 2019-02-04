@@ -16,27 +16,21 @@
 
 #include <conscrypt/compatibility_close_monitor.h>
 
-#if defined(CONSCRYPT_UNBUNDLED) && !defined(CONSCRYPT_OPENJDK)
-
 #include <dlfcn.h>
 
 namespace conscrypt {
 
-CompatibilityCloseMonitor::acm_ctor_func CompatibilityCloseMonitor::asyncCloseMonitorConstructor =
+CompatibilityCloseMonitor::acm_create_func CompatibilityCloseMonitor::asyncCloseMonitorCreate =
         nullptr;
-CompatibilityCloseMonitor::acm_dtor_func CompatibilityCloseMonitor::asyncCloseMonitorDestructor =
+CompatibilityCloseMonitor::acm_destroy_func CompatibilityCloseMonitor::asyncCloseMonitorDestroy =
         nullptr;
 
 void CompatibilityCloseMonitor::init() {
     void *lib = dlopen("libjavacore.so", RTLD_NOW);
     if (lib != nullptr) {
-        asyncCloseMonitorConstructor =
-                (acm_ctor_func)dlsym(lib, "_ZN24AsynchronousCloseMonitorC1Ei");
-        asyncCloseMonitorDestructor =
-                (acm_dtor_func)dlsym(lib, "_ZN24AsynchronousCloseMonitorD1Ev");
+        asyncCloseMonitorCreate = (acm_create_func)dlsym(lib, "async_close_monitor_create");
+        asyncCloseMonitorDestroy = (acm_destroy_func)dlsym(lib, "async_close_monitor_destroy");
     }
 }
 
 }  // namespace conscrypt
-
-#endif  // CONSCRYPT_UNBUNDLED && !CONSCRYPT_OPENJDK

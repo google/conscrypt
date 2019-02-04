@@ -23,7 +23,7 @@
  * Wraps access to the int inside a java.io.FileDescriptor, taking care of throwing exceptions.
  */
 class NetFd {
- public:
+public:
     NetFd(JNIEnv* env, jobject fileDescriptor)
         : mEnv(env), mFileDescriptor(fileDescriptor), mFd(-1) {}
 
@@ -31,8 +31,7 @@ class NetFd {
         mFd = conscrypt::jniutil::jniGetFDFromFileDescriptor(mEnv, mFileDescriptor);
         bool closed = (mFd == -1);
         if (closed) {
-            conscrypt::jniutil::throwException(mEnv, "java/net/SocketException",
-                                                  "Socket closed");
+            conscrypt::jniutil::throwException(mEnv, "java/net/SocketException", "Socket closed");
         }
         return closed;
     }
@@ -41,7 +40,7 @@ class NetFd {
         return mFd;
     }
 
- private:
+private:
     JNIEnv* mEnv;
     jobject mFileDescriptor;
     int mFd;

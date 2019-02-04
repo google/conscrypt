@@ -23,11 +23,10 @@
 #include <stddef.h>
 
 // A smart pointer that deletes a JNI local reference when it goes out of scope.
-template<typename T>
+template <typename T>
 class ScopedLocalRef {
- public:
-    ScopedLocalRef(JNIEnv* env, T localRef) : mEnv(env), mLocalRef(localRef) {
-    }
+public:
+    ScopedLocalRef(JNIEnv* env, T localRef) : mEnv(env), mLocalRef(localRef) {}
 
     ~ScopedLocalRef() {
         reset();
@@ -53,7 +52,7 @@ class ScopedLocalRef {
         return mLocalRef;
     }
 
- private:
+private:
     JNIEnv* mEnv;
     T mLocalRef;
 
