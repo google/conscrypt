@@ -3,7 +3,7 @@ environment:
   ANDROID_NDK_HOME: "C:\\android-sdk-windows\\ndk-bundle"
   JAVA_HOME: "C:\\Program Files\\Java\\jdk1.8.0"
   BORINGSSL_HOME: "C:\\boringssl"
-  ANDROID_TOOLS_URL: "https://dl.google.com/android/repository/tools_r25.2.3-windows.zip"
+  ANDROID_TOOLS_URL: "https://dl.google.com/android/repository/sdk-tools-windows-4333796.zip"
   NINJA_URL: "https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-win.zip"
   CMAKE_URL: "https://cmake.org/files/v3.11/cmake-3.11.1-win32-x86.zip"
   MSVC_HOME: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community"
@@ -75,10 +75,7 @@ before_build:
   - cd C:\projects\conscrypt
 
 install:
-  - mkdir %ANDROID_HOME%\licenses
-  - ps: 'Add-Content -Value "`n8933bad161af4178b1185d1a37fbf41ea5269c55`n`nd56f5187479451eabf01fb78af6dfcb131a6481e" -Path $env:ANDROID_HOME\licenses\android-sdk-license -Encoding ASCII'
-  - ps: 'Add-Content -Value "`n84831b9409646a918e30573bab4c9c91346d8abd`n504667f4c0de7af1a06de9f4b1727b84351f2910" -Path $env:ANDROID_HOME\licenses\android-sdk-preview-license -Encoding ASCII'
-  - ps: 'Add-Content -Value "`nd975f751698a77b662f1254ddbeed3901e976f5a" -Path $env:ANDROID_HOME\licenses\intel-android-extra-license -Encoding ASCII'
+  - yes 2> nul | "%ANDROID_HOME%\tools\bin\sdkmanager.bat" --licenses
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat tools'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat platform-tools'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat build-tools;27.0.3'
