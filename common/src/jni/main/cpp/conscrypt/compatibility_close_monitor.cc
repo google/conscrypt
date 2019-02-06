@@ -25,12 +25,27 @@ CompatibilityCloseMonitor::acm_create_func CompatibilityCloseMonitor::asyncClose
 CompatibilityCloseMonitor::acm_destroy_func CompatibilityCloseMonitor::asyncCloseMonitorDestroy =
         nullptr;
 
+#ifdef CONSCRYPT_UNBUNDLED
+CompatibilityCloseMonitor::acm_ctor_func CompatibilityCloseMonitor::asyncCloseMonitorConstructor =
+        nullptr;
+CompatibilityCloseMonitor::acm_dtor_func CompatibilityCloseMonitor::asyncCloseMonitorDestructor =
+        nullptr;
+#endif  // CONSCRYPT_UNBUNDLED
+
 void CompatibilityCloseMonitor::init() {
     void *lib = dlopen("libjavacore.so", RTLD_NOW);
     if (lib != nullptr) {
-        asyncCloseMonitorCreate = (acm_create_func)dlsym(lib, "async_close_monitor_create");
-        asyncCloseMonitorDestroy = (acm_destroy_func)dlsym(lib, "async_close_monitor_destroy");
+        asyncCloseMonitorCreate = (acm_create_func) dlsym(lib, "async_close_monitor_create");
+        asyncCloseMonitorDestroy = (acm_destroy_func) dlsym(lib, "async_close_monitor_destroy");
+#ifdef CONSCRYPT_UNBUNDLED
+        // Only attempt to initialise the C++ API if the C API symbols were not found.
+        if (asyncCloseMonitorCreate == nullptr) {
+            asyncCloseMonitorConstructor =
+                (acm_ctor_func) dlsym(lib, "_ZN24AsynchronousCloseMonitorC1Ei");
+            asyncCloseMonitorDestructor =
+                (acm_dtor_func) dlsym(lib, "_ZN24AsynchronousCloseMonitorD1Ev");
+        }
+#endif  // CONSCRYPT_UNBUNDLED
     }
 }
-
 }  // namespace conscrypt
