@@ -3,8 +3,6 @@ language: android
 env:
   global:
     - BORINGSSL_HOME="$HOME/boringssl"
-    - CC=clang
-    - CXX=clang++
     - CXXFLAGS="-std=c++11"
     - GOOGLE_JAVA_FORMAT_VERSION=1.1
 
@@ -23,17 +21,18 @@ matrix:
       sudo: false
 
       env:
-        - ANDROID_TOOLS_URL="https://dl.google.com/android/repository/tools_r25.2.3-linux.zip"
+        - ANDROID_TOOLS_URL="https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip"
         - ANDROID_HOME="$HOME/android-sdk-linux"
         - ANDROID_NDK_HOME="$ANDROID_HOME/ndk-bundle"
         - JAVA7_HOME=/usr/lib/jvm/java-7-openjdk-amd64
+        - CC=clang-5.0
+        - CXX=clang++-5.0
 
       before_install:
         - curl -L $ANDROID_TOOLS_URL -o $HOME/tools.zip
         - unzip -q $HOME/tools.zip -d $ANDROID_HOME
-        - mkdir $ANDROID_HOME/licenses
-        - echo -ne "\n8933bad161af4178b1185d1a37fbf41ea5269c55\n\nd56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
-        - echo -ne "\n84831b9409646a918e30573bab4c9c91346d8abd\n" >> $ANDROID_HOME/licenses/android-sdk-preview-license
+        # Accept all the license agreements
+        - yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses
         # sdkmanager 26.1.1 produces an enormous amount of progress info
         # Append tr '\r' '\n' | uniq to all the commands to suppress it
         - $ANDROID_HOME/tools/bin/sdkmanager tools | tr '\r' '\n' | uniq
@@ -48,11 +47,11 @@ matrix:
         apt:
           sources:
             - kalakris-cmake
-            - llvm-toolchain-precise-3.9  # for clang-format-3.9
+            - llvm-toolchain-trusty-5.0
             - ubuntu-toolchain-r-test
           packages:
-            - clang-3.9
-            - clang-format-3.9  # for style checks
+            - clang-5.0
+            - clang-format-5.0  # for style checks
             - cmake
             - g++-multilib
             - gcc-multilib
@@ -66,6 +65,10 @@ matrix:
     ###
     - os: osx
       osx_image: xcode8
+      env:
+        - CC=clang
+        - CXX=clang++
+
       before_install:
         - brew update
         - brew install ninja
@@ -105,7 +108,7 @@ script:
   # MacOS (BSD) xargs is missing some nice features that make this easy, so skip it.
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
-        git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git clang-format --binary=$(which clang-format-3.9) --style=file --diff {}^ {} | ( git apply; true ) && git diff --exit-code || { git reset --hard; false; }
+        git rev-list $(git merge-base HEAD origin/master)..HEAD | xargs -i git clang-format --binary=$(which clang-format-5.0) --style=file --diff {}^ {} | ( git apply; true ) && git diff --exit-code || { git reset --hard; false; }
     fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
