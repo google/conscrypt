@@ -16,7 +16,9 @@
 
 #include <conscrypt/compatibility_close_monitor.h>
 
+#ifndef _WIN32
 #include <dlfcn.h>
+#endif
 
 namespace conscrypt {
 
@@ -33,6 +35,7 @@ CompatibilityCloseMonitor::acm_dtor_func CompatibilityCloseMonitor::asyncCloseMo
 #endif  // CONSCRYPT_UNBUNDLED
 
 void CompatibilityCloseMonitor::init() {
+#ifndef _WIN32
     void *lib = dlopen("libjavacore.so", RTLD_NOW);
     if (lib != nullptr) {
         asyncCloseMonitorCreate = (acm_create_func) dlsym(lib, "async_close_monitor_create");
@@ -47,5 +50,6 @@ void CompatibilityCloseMonitor::init() {
         }
 #endif  // CONSCRYPT_UNBUNDLED
     }
+#endif // _WIN32
 }
 }  // namespace conscrypt
