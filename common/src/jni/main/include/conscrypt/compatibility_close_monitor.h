@@ -19,92 +19,73 @@
 
 #include <conscrypt/macros.h>
 
-#ifndef CONSCRYPT_UNBUNDLED
-
-/* If we're compiled unbundled from Android system image, we use the
- * CompatibilityCloseMonitor
- */
-#include <nativehelper/AsynchronousCloseMonitor.h>
-
-namespace conscrypt {
-
-/**
- * When bundled with Android, this just wraps around AsynchronousCloseMonitor.
- */
-class CompatibilityCloseMonitor {
- private:
-    AsynchronousCloseMonitor monitor;
-
- public:
-    explicit CompatibilityCloseMonitor(int fd) : monitor(fd) {}
-
-    ~CompatibilityCloseMonitor() {}
-
-    static void init() {}
-};
-
-}  // namespace conscrypt
-
-#elif !defined(CONSCRYPT_OPENJDK)  // && CONSCRYPT_UNBUNDLED
-
 namespace conscrypt {
 
 /*
- * This is a big hack; don't learn from this. Basically what happened is we do
- * not have an API way to insert ourselves into the AsynchronousCloseMonitor
- * that's compiled into the native libraries for libcore when we're unbundled.
- * So we try to look up the symbol from the main library to find it.
+ * Where possible, this class hooks into the Android C API for AsynchronousCloseMonitor,
+ * allowing Java thread wakeup semantics during POSIX system calls. It is only used in sslSelect().
+ *
+ * When unbundled, if the C API methods are not available, this class will fall
+ * back to looking for the C++ API methods which existed on Android P and below.
+ *
+ * On non-Android platforms, this class becomes a no-op as the all of the function pointers
+ * to create and destroy AsynchronousCloseMonitor instances will be null.
  */
 class CompatibilityCloseMonitor {
  public:
-    explicit CompatibilityCloseMonitor(int fd) {
-        if (asyncCloseMonitorConstructor != nullptr) {
-            asyncCloseMonitorConstructor(objBuffer, fd);
-        }
+     explicit CompatibilityCloseMonitor(int fd) : monitor(nullptr) {
+         if (asyncCloseMonitorCreate != nullptr) {
+             monitor = asyncCloseMonitorCreate(fd);
+         }
+#ifdef CONSCRYPT_UNBUNDLED
+         else if(asyncCloseMonitorConstructor != nullptr) {
+             asyncCloseMonitorConstructor(objBuffer, fd);
+         }
+#endif  // CONSCRYPT_UNBUNDLED
     }
 
     ~CompatibilityCloseMonitor() {
-        if (asyncCloseMonitorDestructor != nullptr) {
+        if (asyncCloseMonitorDestroy != nullptr) {
+            if (monitor != nullptr) {
+                asyncCloseMonitorDestroy(monitor);
+            }
+        }
+#ifdef CONSCRYPT_UNBUNDLED
+        else if (asyncCloseMonitorDestructor != nullptr) {
             asyncCloseMonitorDestructor(objBuffer);
         }
+#endif  // CONSCRYPT_UNBUNDLED
     }
 
     static void init();
 
  private:
-    typedef void (*acm_ctor_func)(void*, int);
-    typedef void (*acm_dtor_func)(void*);
+     // C API: Not available on Android P and below. Maintains pointers to the C
+     // create and destroy methods, which will be null on non-Android platforms.
+     // The handle returned by the create method is stored in monitor.
+     typedef void* (*acm_create_func)(int);
+     typedef void (*acm_destroy_func)(void*);
 
-    static acm_ctor_func asyncCloseMonitorConstructor;
-    static acm_dtor_func asyncCloseMonitorDestructor;
+     static acm_create_func asyncCloseMonitorCreate;
+     static acm_destroy_func asyncCloseMonitorDestroy;
+     void* monitor;
 
-    char objBuffer[256];
-#if 0
-    static_assert(sizeof(objBuffer) > 2*sizeof(AsynchronousCloseMonitor),
-                  "CompatibilityCloseMonitor must be larger than the actual object");
-#endif
+#ifdef CONSCRYPT_UNBUNDLED
+     // C++ API: Only available on Android P and below. Maintains pointers to
+     // the C++ constructor and destructor methods, which will be null on
+     // non-Android platforms.  Calls them directly, passing in a pointer to
+     // objBuffer, which is large enough to fit an AsynchronousCloseMonitor object on
+     // Android versions where this class will be using this API.
+     // This is equivalent to placement new and explicit destruction.
+     typedef void (*acm_ctor_func)(void*, int);
+     typedef void (*acm_dtor_func)(void*);
+
+     static acm_ctor_func asyncCloseMonitorConstructor;
+     static acm_dtor_func asyncCloseMonitorDestructor;
+     char objBuffer[256];
+#endif  // CONSCRYPT_UNBUNDLED
 };
 
 }  // namespace conscrypt
-
-#else  // CONSCRYPT_UNBUNDLED && CONSCRYPT_OPENJDK
-
-namespace conscrypt {
-
-/**
- * For OpenJDK, do nothing.
- */
-class CompatibilityCloseMonitor {
- public:
-    explicit CompatibilityCloseMonitor(int) {}
-
-    ~CompatibilityCloseMonitor() {}
-
-    static void init() {}
-};
-
-}  // namespace conscrypt
-
-#endif  // CONSCRYPT_UNBUNDLED && CONSCRYPT_OPENJDK
 
 #endif  // CONSCRYPT_COMPATIBILITY_CLOSE_MONITOR_H_

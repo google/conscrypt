@@ -21,7 +21,7 @@
 #include <openssl/ssl.h>
 
 #include <conscrypt/bio_stream.h>
-#include <nativehelper/ScopedLocalRef.h>
+#include <nativehelper/scoped_local_ref.h>
 
 namespace conscrypt {
 

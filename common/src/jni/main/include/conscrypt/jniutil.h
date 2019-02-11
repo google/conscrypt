@@ -22,7 +22,7 @@
 
 #include <conscrypt/logging.h>
 #include <conscrypt/macros.h>
-#include <nativehelper/ScopedLocalRef.h>
+#include <nativehelper/scoped_local_ref.h>
 
 namespace conscrypt {
 namespace jniutil {
