@@ -28,7 +28,7 @@ namespace conscrypt {
  * When unbundled, if the C API methods are not available, this class will fall
  * back to looking for the C++ API methods which existed on Android P and below.
  *
- * On non-Android platforms, this class becomes a no-op as the all of the function pointers
+ * On non-Android platforms, this class becomes a no-op as all of the function pointers
  * to create and destroy AsynchronousCloseMonitor instances will be null.
  */
 class CompatibilityCloseMonitor {
