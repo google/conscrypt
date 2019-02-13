@@ -224,6 +224,8 @@ and build the Uber jar.
 
 1. Build the code.
    ```bash
+   # If you left the container, reattach to it
+   $ docker container attach {CONTAINER_ID}
    $ ./gradlew conscrypt-openjdk-uber:build -Dorg.conscrypt.openjdk.buildUberJar=true
    $ ./gradlew conscrypt-openjdk-uber:uploadArchives -Dorg.gradle.parallel=false -Dorg.conscrypt.openjdk.buildUberJar=true
    ```
