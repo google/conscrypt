@@ -22,7 +22,7 @@ public class ConscryptTest {
         // The version object should be a singleton
         assertSame(version, Conscrypt.version());
 
-        assertEquals("Major version: " + version.major(), 1, version.major());
+        assertTrue("Major version: " + version.major(), 1 <= version.major());
         assertTrue("Minor version: " + version.minor(), 0 <= version.minor());
         assertTrue("Patch version: " + version.patch(), 0 <= version.patch());
     }
