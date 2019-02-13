@@ -18,9 +18,7 @@ and other identifiers that are supported by Conscrypt.
 Conscrypt supports TLS v1.0-1.3.  For backwards compatibility it will accept
 `SSLv3` in calls to methods like
 [`setEnabledProtocols()`](https://docs.oracle.com/javase/9/docs/api/javax/net/ssl/SSLSocket.html#setEnabledProtocols-java.lang.String:A-)
-but will ignore it.  TLS 1.3 is not enabled unless `SSLContext.TLSv1.3` is
-requested or it's explicitly enabled by a call to
-[`setEnabledProtocols()`](https://docs.oracle.com/javase/9/docs/api/javax/net/ssl/SSLSocket.html#setEnabledProtocols-java.lang.String:A-).
+but will ignore it.
 
 ### SSLContext
 
@@ -36,8 +34,8 @@ Conscrypt provides the above set of SSLContext algorithm names for JSSE
 purposes, including the special value `Default`, which is used to determine the
 value of
 [`SSLContext.getDefault()`](https://docs.oracle.com/javase/9/docs/api/javax/net/ssl/SSLContext.html#getDefault--).
-All of these values return a context where TLS v1.0-1.2 are all enabled except
-`TLSv1.3`, which has TLS v1.0-1.3 enabled.
+The `Default`, `SSL`, `TLS`, and `TLSv1.3` values return a context where TLS
+v1.0-1.3 are all enabled; the others return a context with TLS v1.0-1.2 enabled.
 
 ### Cipher Suites
 
