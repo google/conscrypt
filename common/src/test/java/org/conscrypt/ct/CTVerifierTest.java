@@ -34,6 +34,7 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class CTVerifierTest {
+    private static boolean installedProvider;
     private OpenSSLX509Certificate ca;
     private OpenSSLX509Certificate cert;
     private OpenSSLX509Certificate certEmbedded;
@@ -41,12 +42,15 @@ public class CTVerifierTest {
 
     @BeforeClass
     public static void installConscrypt() {
-        TestUtils.installConscryptAsDefaultProvider();
+        installedProvider = TestUtils.installConscryptIfNotPresent();
     }
 
     @AfterClass
     public static void removeConscrypt() {
-        Security.removeProvider(TestUtils.getConscryptProvider().getName());
+        if (installedProvider) {
+            Security.removeProvider(TestUtils.getConscryptProvider().getName());
+            installedProvider = false;
+        }
     }
 
     @Before

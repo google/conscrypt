@@ -201,6 +201,15 @@ public final class TestUtils {
         }
     }
 
+    public static synchronized boolean installConscryptIfNotPresent() {
+        Provider conscryptProvider = getConscryptProvider();
+        if (Security.getProvider(conscryptProvider.getName()) == null) {
+            Security.insertProviderAt(conscryptProvider, 1);
+            return true;
+        }
+        return false;
+    }
+
     public static synchronized void installConscryptAsDefaultProvider() {
         final Provider conscryptProvider = getConscryptProvider();
         Provider[] providers = Security.getProviders();
