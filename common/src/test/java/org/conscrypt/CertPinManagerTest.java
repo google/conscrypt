@@ -36,17 +36,21 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class CertPinManagerTest {
+    private static boolean installedProvider;
     private List<X509Certificate> expectedFullChain;
     private X509Certificate[] chain;
 
     @BeforeClass
     public static void installConscrypt() {
-        TestUtils.installConscryptAsDefaultProvider();
+        installedProvider = TestUtils.installConscryptIfNotPresent();
     }
 
     @AfterClass
     public static void removeConscrypt() {
-        Security.removeProvider(TestUtils.getConscryptProvider().getName());
+        if (installedProvider) {
+            Security.removeProvider(TestUtils.getConscryptProvider().getName());
+            installedProvider = false;
+        }
     }
 
     @Before
