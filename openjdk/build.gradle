@@ -161,7 +161,7 @@ jar.manifest {
 }
 
 dependencies {
-    // This is used for the @hide annotation processing in JavaDoc
+    // This is used for the @Internal annotation processing in JavaDoc
     publicApiDocs project(':conscrypt-api-doclet')
 
     compileOnly project(':conscrypt-constants'),

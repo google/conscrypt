@@ -28,8 +28,6 @@ import javax.net.ssl.SSLSession;
 /**
  * Public shim allowing us to stay backward-compatible with legacy applications which were using
  * Conscrypt's extended socket API before the introduction of the {@link Conscrypt} class.
- *
- * @hide
  */
 @Internal
 public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {

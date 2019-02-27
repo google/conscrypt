@@ -35,8 +35,6 @@ import java.util.List;
 
 /**
  * An implementation of {@link java.security.cert.CertificateFactory} based on BoringSSL.
- *
- * @hide
  */
 @Internal
 public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {

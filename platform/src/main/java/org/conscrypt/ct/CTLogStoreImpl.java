@@ -35,9 +35,6 @@ import java.util.Set;
 import org.conscrypt.Internal;
 import org.conscrypt.InternalUtil;
 
-/**
- * @hide
- */
 @Internal
 public class CTLogStoreImpl implements CTLogStore {
     private static final Charset US_ASCII = Charset.forName("US-ASCII");

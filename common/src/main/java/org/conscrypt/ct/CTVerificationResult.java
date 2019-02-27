@@ -21,9 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import org.conscrypt.Internal;
 
-/**
- * @hide
- */
 @Internal
 public class CTVerificationResult {
     private final ArrayList<VerifiedSCT> validSCTs = new ArrayList<VerifiedSCT>();

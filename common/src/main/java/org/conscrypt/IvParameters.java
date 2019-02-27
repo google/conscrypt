@@ -25,8 +25,6 @@ import javax.crypto.spec.IvParameterSpec;
 /**
  * An implementation of {@link java.security.AlgorithmParameters} that contains only an IV.  The
  * supported encoding formats are ASN.1 (primary) and RAW.
- *
- * @hide
  */
 @Internal
 public class IvParameters extends AlgorithmParametersSpi {

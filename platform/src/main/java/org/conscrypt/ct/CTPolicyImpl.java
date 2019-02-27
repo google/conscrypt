@@ -21,9 +21,6 @@ import java.util.HashSet;
 import java.util.Set;
 import org.conscrypt.Internal;
 
-/**
- * @hide
- */
 @Internal
 public class CTPolicyImpl implements CTPolicy {
     private final CTLogStore logStore;

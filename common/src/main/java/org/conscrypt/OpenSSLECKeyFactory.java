@@ -35,8 +35,6 @@ import java.security.spec.X509EncodedKeySpec;
 
 /**
  * An implementation of a {@link KeyFactorySpi} for EC keys based on BoringSSL.
- *
- * @hide
  */
 @Internal
 public final class OpenSSLECKeyFactory extends KeyFactorySpi {

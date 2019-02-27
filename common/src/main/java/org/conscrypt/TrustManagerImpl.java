@@ -82,7 +82,6 @@ import org.conscrypt.ct.CTVerifier;
  * be provided by some certification provider.
  *
  * @see javax.net.ssl.X509ExtendedTrustManager
- * @hide
  */
 @Internal
 public final class TrustManagerImpl extends X509ExtendedTrustManager {

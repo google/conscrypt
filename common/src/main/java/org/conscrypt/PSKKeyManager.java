@@ -95,7 +95,6 @@ import javax.net.ssl.SSLEngine;
  * }</pre>
  *
  * @deprecated This abstraction is deprecated because it does not work with TLS 1.3.
- * @hide
  */
 @Deprecated
 @Internal

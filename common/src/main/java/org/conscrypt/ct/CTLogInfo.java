@@ -29,8 +29,6 @@ import org.conscrypt.Internal;
  * Properties about a Certificate Transparency Log.
  * This object stores information about a CT log, its public key, description and URL.
  * It allows verification of SCTs against the log's public key.
- *
- * @hide
  */
 @Internal
 public class CTLogInfo {

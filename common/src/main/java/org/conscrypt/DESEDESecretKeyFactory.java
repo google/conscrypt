@@ -27,8 +27,6 @@ import javax.crypto.spec.SecretKeySpec;
 /**
  * An implementation of {@link javax.crypto.SecretKeyFactory} for use with DESEDE keys.  This
  * class supports {@link SecretKeySpec} and {@link DESedeKeySpec} for key specs.
- *
- * @hide
  */
 @Internal
 public class DESEDESecretKeyFactory extends SecretKeyFactorySpi {

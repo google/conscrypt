@@ -19,7 +19,9 @@ package org.conscrypt.io;
 import java.io.Closeable;
 import java.io.InterruptedIOException;
 import java.net.Socket;
+import org.conscrypt.Internal;
 
+@Internal
 public final class IoUtils {
     private IoUtils() {}
 

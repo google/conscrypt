@@ -17,10 +17,7 @@
 package org.conscrypt;
 
 /**
- *
  * Helper class for dealing with hexadecimal strings.
- *
- * @hide
  */
 @Internal
 // public for testing by TrustedCertificateStoreTest

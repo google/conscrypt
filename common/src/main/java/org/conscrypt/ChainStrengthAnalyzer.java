@@ -25,8 +25,6 @@ import java.util.List;
 
 /**
  * Analyzes the cryptographic strength of a chain of X.509 certificates.
- *
- * @hide
  */
 @Internal
 public final class ChainStrengthAnalyzer {

@@ -29,8 +29,6 @@ import java.security.spec.RSAKeyGenParameterSpec;
 /**
  * An implementation of {@link java.security.KeyPairGenerator} which uses BoringSSL to perform all
  * the operations.
- *
- * @hide
  */
 @Internal
 public final class OpenSSLRSAKeyPairGenerator extends KeyPairGeneratorSpi {

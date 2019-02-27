@@ -22,8 +22,6 @@ import java.util.List;
 
 /**
  * Interface for classes that implement certificate pinning for use in {@link TrustManagerImpl}.
- *
- * @hide
  */
 @Internal
 public interface CertPinManager {

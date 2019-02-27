@@ -21,8 +21,6 @@ import libcore.util.Objects;
 /**
  * Corresponds to C's {@code struct timeval} from
  * <a href="http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_time.h.html">&lt;sys/time.h&gt;</a>
- *
- * @hide
  */
 public final class StructTimeval {
     /** Seconds. */
