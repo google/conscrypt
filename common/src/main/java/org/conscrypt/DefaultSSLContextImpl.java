@@ -32,8 +32,6 @@ import javax.net.ssl.TrustManagerFactory;
 
 /**
  * Support class for this package.
- *
- * @hide
  */
 @Internal
 public final class DefaultSSLContextImpl extends OpenSSLContextImpl {

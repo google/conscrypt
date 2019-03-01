@@ -29,8 +29,6 @@ import javax.crypto.spec.IvParameterSpec;
 
 /**
  * Implementation of the ChaCha20 stream cipher.
- *
- * @hide
  */
 @Internal
 public class OpenSSLCipherChaCha20 extends OpenSSLCipher {

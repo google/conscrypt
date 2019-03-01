@@ -36,8 +36,6 @@ import javax.net.ssl.SSLSession;
 /**
  * File-based cache implementation. Only one process should access the
  * underlying directory at a time.
- *
- * @hide
  */
 @Internal
 public final class FileClientSessionCache {

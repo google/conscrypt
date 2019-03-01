@@ -38,8 +38,6 @@ import org.conscrypt.OpenSSLX509Certificate;
  *         case precert_entry: PreCert;
  *     } signed_entry;
  * } CertificateEntry;
- *
- * @hide
  */
 @Internal
 public class CertificateEntry {

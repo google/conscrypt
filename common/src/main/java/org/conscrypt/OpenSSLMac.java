@@ -27,8 +27,6 @@ import javax.crypto.SecretKey;
 
 /**
  * An implementation of {@link javax.crypto.Mac} which uses BoringSSL to perform all the operations.
- *
- * @hide
  */
 @Internal
 public abstract class OpenSSLMac extends MacSpi {

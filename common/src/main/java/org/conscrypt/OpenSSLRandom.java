@@ -21,8 +21,6 @@ import java.security.SecureRandomSpi;
 
 /**
  * Implements {@link java.security.SecureRandom} using BoringSSL's RAND interface.
- *
- * @hide
  */
 @Internal
 public final class OpenSSLRandom extends SecureRandomSpi implements Serializable {

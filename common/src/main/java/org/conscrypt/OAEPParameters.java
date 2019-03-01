@@ -29,8 +29,6 @@ import javax.crypto.spec.PSource;
 /**
  * AlgorithmParameters implementation for OAEP.  The only supported encoding format is ASN.1,
  * as specified in RFC 4055 section 4.1.
- *
- * @hide
  */
 @Internal
 public class OAEPParameters extends AlgorithmParametersSpi {

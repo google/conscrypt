@@ -18,9 +18,6 @@ package org.conscrypt.ct;
 
 import org.conscrypt.Internal;
 
-/**
- * @hide
- */
 @Internal
 public interface CTLogStore {
     CTLogInfo getKnownLog(byte[] logId);

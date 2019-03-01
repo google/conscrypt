@@ -18,9 +18,6 @@ package org.conscrypt.ct;
 
 import org.conscrypt.Internal;
 
-/**
- * @hide
- */
 @Internal
 public class CTConstants {
     public static final String X509_SCT_LIST_OID = "1.3.6.1.4.1.11129.2.4.2";

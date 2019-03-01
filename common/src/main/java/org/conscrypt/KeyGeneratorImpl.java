@@ -27,8 +27,6 @@ import javax.crypto.spec.SecretKeySpec;
 /**
  * An implementation of {@link javax.crypto.KeyGenerator} suitable for use with other Conscrypt
  * algorithms.
- *
- * @hide
  */
 @Internal
 public abstract class KeyGeneratorImpl extends KeyGeneratorSpi {

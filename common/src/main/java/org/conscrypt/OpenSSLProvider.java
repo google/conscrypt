@@ -29,8 +29,6 @@ import java.security.Provider;
  * href="http://csrc.nist.gov/groups/ST/crypto_apps_infra/csor/algorithms.html">NIST cryptographic
  * algorithms</a></li>
  * </ul>
- *
- * @hide
  */
 @Internal
 public final class OpenSSLProvider extends Provider {

@@ -52,8 +52,6 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
  * from becoming eligible for GC while the native method is executing.  See
  * <a href="https://github.com/google/error-prone/blob/master/docs/bugpattern/UnsafeFinalization.md">this</a>
  * for more details.
- *
- * @hide
  */
 @Internal
 public final class NativeCrypto {

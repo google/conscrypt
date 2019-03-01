@@ -21,8 +21,6 @@ import javax.net.ssl.SSLContext;
 /**
  * Caches server sessions. Indexes by session ID. Users typically look up
  * sessions using the ID provided by an SSL client.
- *
- * @hide
  */
 @Internal
 public final class ServerSessionContext extends AbstractSessionContext {

@@ -24,8 +24,6 @@ import org.conscrypt.Internal;
 
 /**
  * SignedCertificateTimestamp structure, as defined by RFC6962 Section 3.2.
- *
- * @hide
  */
 @Internal
 public class SignedCertificateTimestamp {

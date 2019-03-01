@@ -26,9 +26,6 @@ import org.conscrypt.Internal;
 import org.conscrypt.NativeCrypto;
 import org.conscrypt.OpenSSLX509Certificate;
 
-/**
- * @hide
- */
 @Internal
 public class CTVerifier {
     private final CTLogStore store;

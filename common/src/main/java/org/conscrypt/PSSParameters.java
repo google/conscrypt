@@ -26,8 +26,6 @@ import java.security.spec.PSSParameterSpec;
 /**
  * AlgorithmParameters implementation for PSS.  The only supported encoding format is ASN.1
  * (with X.509 accepted as an alias), as specified in RFC 4055 section 3.1.
- *
- * @hide
  */
 @Internal
 public class PSSParameters extends AlgorithmParametersSpi {

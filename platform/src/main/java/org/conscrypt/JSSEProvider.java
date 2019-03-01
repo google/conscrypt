@@ -35,8 +35,6 @@ import java.security.Provider;
  * Trust manager implementation requires:
  *     CertPathValidator    PKIX
  *     CertificateFactory    X509
- *
- * @hide
  */
 @Internal
 public final class JSSEProvider extends Provider {

@@ -30,8 +30,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Elliptic Curve Diffie-Hellman key agreement backed by the OpenSSL engine.
- *
- * @hide
  */
 @Internal
 public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {

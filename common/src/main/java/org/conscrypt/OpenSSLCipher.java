@@ -46,8 +46,6 @@ import org.conscrypt.NativeRef.EVP_CIPHER_CTX;
 
 /**
  * An implementation of {@link Cipher} using BoringSSL as the backing library.
- *
- * @hide
  */
 @Internal
 public abstract class OpenSSLCipher extends CipherSpi {

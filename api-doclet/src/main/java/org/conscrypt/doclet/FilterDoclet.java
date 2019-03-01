@@ -33,8 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This Doclet filters out all classes, methods, fields, etc. that have the {@code @hide} annotation
- * on them.
+ * This Doclet filters out all classes, methods, fields, etc. that have the {@code @Internal}
+ * annotation on them.
  */
 public class FilterDoclet extends com.sun.tools.doclets.standard.Standard {
     public static void main(String[] args) throws FileNotFoundException {
@@ -47,11 +47,15 @@ public class FilterDoclet extends com.sun.tools.doclets.standard.Standard {
     }
 
     /**
-     * Returns true if the given element has an @hide annotation.
+     * Returns true if the given element has an @Internal annotation.
      */
-    private static boolean hasHideAnnotation(Doc doc) {
-        String comment = doc.getRawCommentText();
-        return comment.contains("@hide");
+    private static boolean hasHideAnnotation(ProgramElementDoc doc) {
+        for (AnnotationDesc ann : doc.annotations()) {
+            if (ann.annotationType().qualifiedTypeName().equals("org.conscrypt.Internal")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -60,18 +64,13 @@ public class FilterDoclet extends com.sun.tools.doclets.standard.Standard {
     private static boolean isHidden(Doc doc) {
         // Methods, fields, constructors.
         if (doc instanceof MemberDoc) {
-            return hasHideAnnotation(doc);
+            return hasHideAnnotation((MemberDoc) doc);
         }
         // Classes, interfaces, enums, annotation types.
         if (doc instanceof ClassDoc) {
-            ClassDoc classDoc = (ClassDoc) doc;
-            // Check the containing package.
-            if (hasHideAnnotation(classDoc.containingPackage())) {
-                return true;
-            }
             // Check the class doc and containing class docs if this is a
             // nested class.
-            ClassDoc current = classDoc;
+            ClassDoc current = (ClassDoc) doc;
             do {
                 if (hasHideAnnotation(current)) {
                     return true;
