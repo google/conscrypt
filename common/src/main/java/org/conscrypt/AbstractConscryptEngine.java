@@ -26,7 +26,7 @@ import javax.net.ssl.SSLSession;
 /**
  * Abstract base class for all Conscrypt {@link SSLEngine} classes.
  */
-abstract class AbstractConscryptEngine extends SSLEngine {
+public abstract class AbstractConscryptEngine extends SSLEngine {
     abstract void setBufferAllocator(BufferAllocator bufferAllocator);
 
     /**
@@ -139,12 +139,12 @@ abstract class AbstractConscryptEngine extends SSLEngine {
      *
      * @param protocols the list of ALPN protocols
      */
-    abstract void setApplicationProtocols(String[] protocols);
+    public abstract void setApplicationProtocols(String[] protocols);
 
     /**
      * Returns the list of supported ALPN protocols.
      */
-    abstract String[] getApplicationProtocols();
+    public abstract String[] getApplicationProtocols();
 
     @SuppressWarnings("MissingOverride") // For compiling pre Java 9.
     public abstract String getApplicationProtocol();

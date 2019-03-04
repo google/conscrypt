@@ -35,7 +35,7 @@ import javax.net.ssl.SSLSocket;
  * patches of 8) {@code setHandshakeApplicationProtocolSelector} API (which requires Java 8 for
  * compilation, due to the use of {@link BiFunction}).
  */
-final class Java8EngineWrapper extends AbstractConscryptEngine {
+public final class Java8EngineWrapper extends AbstractConscryptEngine {
     private final ConscryptEngine delegate;
     private BiFunction<SSLEngine, List<String>, String> selector;
 
@@ -275,12 +275,12 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     }
 
     @Override
-    void setApplicationProtocols(String[] protocols) {
+    public void setApplicationProtocols(String[] protocols) {
         delegate.setApplicationProtocols(protocols);
     }
 
     @Override
-    String[] getApplicationProtocols() {
+    public String[] getApplicationProtocols() {
         return delegate.getApplicationProtocols();
     }
 

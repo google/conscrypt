@@ -97,7 +97,7 @@ import org.conscrypt.NativeSsl.BioWrapper;
 /**
  * Implements the {@link SSLEngine} API using OpenSSL's non-blocking interfaces.
  */
-final class ConscryptEngine extends AbstractConscryptEngine implements NativeCrypto.SSLHandshakeCallbacks,
+public final class ConscryptEngine extends AbstractConscryptEngine implements NativeCrypto.SSLHandshakeCallbacks,
                                                          SSLParametersImpl.AliasChooser,
                                                          SSLParametersImpl.PSKCallbacks {
     private static final SSLEngineResult NEED_UNWRAP_OK =
@@ -1745,12 +1745,12 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     @Override
-    String[] getApplicationProtocols() {
+    public String[] getApplicationProtocols() {
         return sslParameters.getApplicationProtocols();
     }
 
     @Override
-    void setApplicationProtocols(String[] protocols) {
+    public void setApplicationProtocols(String[] protocols) {
         sslParameters.setApplicationProtocols(protocols);
     }
 
