@@ -260,6 +260,7 @@ def addNativeTest(nativeClassifier) {
             mustRunAfter test
             jvmArgs javaArchFlag
             executable = javaExecutable
+            systemProperties = test.systemProperties
         }
         check.dependsOn "$testTaskName"
     }
