@@ -29,7 +29,6 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import javax.net.ssl.HandshakeCompletedListener;
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -38,7 +37,6 @@ import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509TrustManager;
 import org.conscrypt.java.security.TestKeyStore;
-import org.conscrypt.javax.net.ssl.TestHostnameVerifier;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -138,7 +136,7 @@ public class TrustManagerImplTest {
         String badHostname = "definitelywrong.nopenopenope";
 
         // The default hostname verifier on OpenJDK rejects all hostnames, so use our own
-        HostnameVerifier oldDefault = HttpsURLConnection.getDefaultHostnameVerifier();
+        javax.net.ssl.HostnameVerifier oldDefault = HttpsURLConnection.getDefaultHostnameVerifier();
         try {
             HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
 
@@ -475,4 +473,8 @@ public class TrustManagerImplTest {
             throw new UnsupportedOperationException();
         }
     }
+
+    private static class TestHostnameVerifier
+        extends org.conscrypt.javax.net.ssl.TestHostnameVerifier
+        implements HostnameVerifier {}
 }

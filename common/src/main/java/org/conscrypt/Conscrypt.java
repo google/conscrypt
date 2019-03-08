@@ -22,7 +22,6 @@ import java.security.KeyManagementException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.util.Properties;
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLContextSpi;

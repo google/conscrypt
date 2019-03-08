@@ -63,7 +63,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
@@ -969,7 +968,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     /**
      * Set the default hostname verifier that will be used for HTTPS endpoint identification.  If
      * {@code null} (the default), endpoint identification will use the default hostname verifier
-     * set in {@link HttpsURLConnection#setDefaultHostnameVerifier(HostnameVerifier)}.
+     * set in {@link HttpsURLConnection#setDefaultHostnameVerifier(javax.net.ssl.HostnameVerifier)}.
      */
     synchronized static void setDefaultHostnameVerifier(HostnameVerifier verifier) {
         defaultHostnameVerifier = verifier;
@@ -1010,7 +1009,13 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         if (defaultVerifier != null) {
             return defaultVerifier;
         }
-        return HttpsURLConnection.getDefaultHostnameVerifier();
+        final javax.net.ssl.HostnameVerifier httpsUrlVerifier =
+            HttpsURLConnection.getDefaultHostnameVerifier();
+        return new HostnameVerifier() {
+            @Override public boolean verify(String hostname, SSLSession session) {
+                return httpsUrlVerifier.verify(hostname, session);
+            }
+        };
     }
 
     public void setCTEnabledOverride(boolean enabled) {
