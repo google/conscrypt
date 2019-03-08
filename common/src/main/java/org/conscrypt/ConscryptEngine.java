@@ -1514,7 +1514,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                                 // to read more data [1]. It is also possible that event loop will
                                 // detect the socket
                                 // has been closed. [1]
-                                // https://www.openssl.org/docs/manmaster/ssl/SSL_write.html
+                                // https://www.openssl.org/docs/manmaster/man3/SSL_write.html
                                 pendingNetResult = readPendingBytesFromBIO(
                                         dst, bytesConsumed, bytesProduced, handshakeStatus);
                                 return pendingNetResult != null
@@ -1540,7 +1540,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                                 // data this condition
                                 // is undefined and we assume their is a fatal error with the
                                 // openssl engine and close.
-                                // [1] https://www.openssl.org/docs/manmaster/ssl/SSL_write.html
+                                // [1] https://www.openssl.org/docs/manmaster/man3/SSL_write.html
                                 pendingNetResult = readPendingBytesFromBIO(
                                         dst, bytesConsumed, bytesProduced, handshakeStatus);
                                 return pendingNetResult != null ? pendingNetResult

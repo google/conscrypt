@@ -320,7 +320,7 @@ public final class StandardNames {
             "TLS_PSK_WITH_AES_256_CBC_SHA");
 
     // Should be updated to match BoringSSL's defaults when they change.
-    // https://boringssl.googlesource.com/boringssl/+/master/ssl/t1_lib.c#306
+    // https://boringssl.googlesource.com/boringssl/+/master/ssl/t1_lib.cc#289
     private static final List<String> ELLIPTIC_CURVES_DEFAULT =
             Arrays.asList("x25519 (29)", "secp256r1 (23)", "secp384r1 (24)");
 
