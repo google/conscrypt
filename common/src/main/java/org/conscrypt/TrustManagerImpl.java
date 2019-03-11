@@ -93,7 +93,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private static final TrustAnchorComparator TRUST_ANCHOR_COMPARATOR =
             new TrustAnchorComparator();
 
-    private static HostnameVerifier defaultHostnameVerifier;
+    private static ConscryptHostnameVerifier defaultHostnameVerifier;
 
     /**
      * The AndroidCAStore if non-null, null otherwise.
@@ -139,7 +139,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private CTVerifier ctVerifier;
     private CTPolicy ctPolicy;
 
-    private HostnameVerifier hostnameVerifier;
+    private ConscryptHostnameVerifier hostnameVerifier;
 
     // Forces CT verification to always to done. For tests.
     private boolean ctEnabledOverride;
@@ -403,7 +403,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         if (session != null && parameters != null) {
             String identificationAlgorithm = parameters.getEndpointIdentificationAlgorithm();
             if ("HTTPS".equalsIgnoreCase(identificationAlgorithm)) {
-                HostnameVerifier verifier = getHttpsVerifier();
+                ConscryptHostnameVerifier verifier = getHttpsVerifier();
                 if (!verifier.verify(hostname, session)) {
                     throw new CertificateException("No subjectAltNames on the certificate match");
                 }
@@ -970,52 +970,55 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      * {@code null} (the default), endpoint identification will use the default hostname verifier
      * set in {@link HttpsURLConnection#setDefaultHostnameVerifier(javax.net.ssl.HostnameVerifier)}.
      */
-    synchronized static void setDefaultHostnameVerifier(HostnameVerifier verifier) {
+    synchronized static void setDefaultHostnameVerifier(ConscryptHostnameVerifier verifier) {
         defaultHostnameVerifier = verifier;
     }
 
     /**
      * Returns the currently-set default hostname verifier.
      *
-     * @see #setDefaultHostnameVerifier(HostnameVerifier)
+     * @see #setDefaultHostnameVerifier(ConscryptHostnameVerifier)
      */
-    synchronized static HostnameVerifier getDefaultHostnameVerifier() {
+    synchronized static ConscryptHostnameVerifier getDefaultHostnameVerifier() {
         return defaultHostnameVerifier;
     }
 
     /**
      * Set the hostname verifier that will be used for HTTPS endpoint identification.  If
      * {@code null} (the default), endpoint identification will use the default hostname verifier
-     * set in {@link #setDefaultHostnameVerifier(HostnameVerifier)}.
+     * set in {@link #setDefaultHostnameVerifier(ConscryptHostnameVerifier)}.
      */
-    void setHostnameVerifier(HostnameVerifier verifier) {
+    void setHostnameVerifier(ConscryptHostnameVerifier verifier) {
         this.hostnameVerifier = verifier;
     }
 
     /**
      * Returns the currently-set hostname verifier for this instance.
      *
-     * @see #setHostnameVerifier(HostnameVerifier)
+     * @see #setHostnameVerifier(ConscryptHostnameVerifier)
      */
-    HostnameVerifier getHostnameVerifier() {
+    ConscryptHostnameVerifier getHostnameVerifier() {
         return hostnameVerifier;
     }
 
-    private HostnameVerifier getHttpsVerifier() {
+    private enum GlobalHostnameVerifierAdapter implements ConscryptHostnameVerifier {
+        INSTANCE;
+
+        @Override
+        public boolean verify(String hostname, SSLSession session) {
+            return HttpsURLConnection.getDefaultHostnameVerifier().verify(hostname, session);
+        }
+    }
+
+    private ConscryptHostnameVerifier getHttpsVerifier() {
         if (hostnameVerifier != null) {
             return hostnameVerifier;
         }
-        HostnameVerifier defaultVerifier = getDefaultHostnameVerifier();
+        ConscryptHostnameVerifier defaultVerifier = getDefaultHostnameVerifier();
         if (defaultVerifier != null) {
             return defaultVerifier;
         }
-        final javax.net.ssl.HostnameVerifier httpsUrlVerifier =
-            HttpsURLConnection.getDefaultHostnameVerifier();
-        return new HostnameVerifier() {
-            @Override public boolean verify(String hostname, SSLSession session) {
-                return httpsUrlVerifier.verify(hostname, session);
-            }
-        };
+        return GlobalHostnameVerifierAdapter.INSTANCE;
     }
 
     public void setCTEnabledOverride(boolean enabled) {

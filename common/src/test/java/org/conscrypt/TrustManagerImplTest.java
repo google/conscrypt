@@ -164,7 +164,7 @@ public class TrustManagerImplTest {
 
             // Override the global default hostname verifier with a Conscrypt-specific one that
             // always passes.  Both scenarios should pass.
-            Conscrypt.setDefaultHostnameVerifier(new HostnameVerifier() {
+            Conscrypt.setDefaultHostnameVerifier(new ConscryptHostnameVerifier() {
                 @Override public boolean verify(String s, SSLSession sslSession) { return true; }
             });
 
@@ -476,5 +476,5 @@ public class TrustManagerImplTest {
 
     private static class TestHostnameVerifier
         extends org.conscrypt.javax.net.ssl.TestHostnameVerifier
-        implements HostnameVerifier {}
+        implements ConscryptHostnameVerifier {}
 }
