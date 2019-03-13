@@ -45,9 +45,6 @@ init:
   # Install NASM
   - choco install -y --allow-empty-checksums nasm
 
-  # Install Go for BoringSSL compile (embedding test data)
-  - choco install -y --allow-empty-checksums golang
-
   # Clone BoringSSL
   - git clone --depth 1 https://boringssl.googlesource.com/boringssl.git "%BORINGSSL_HOME%"
 
