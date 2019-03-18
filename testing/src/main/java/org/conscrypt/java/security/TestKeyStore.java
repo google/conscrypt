@@ -135,6 +135,7 @@ public final class TestKeyStore {
     private static TestKeyStore INTERMEDIATE_CA_EC;
 
     private static TestKeyStore SERVER;
+    private static TestKeyStore SERVER_HOSTNAME;
     private static TestKeyStore CLIENT;
     private static TestKeyStore CLIENT_CERTIFICATE;
     private static TestKeyStore CLIENT_EC_RSA_CERTIFICATE;
@@ -159,6 +160,7 @@ public final class TestKeyStore {
     private static final byte[] LOCAL_HOST_ADDRESS = {127, 0, 0, 1};
     private static final String LOCAL_HOST_NAME = "localhost";
     private static final String LOCAL_HOST_NAME_IPV6 = "ip6-localhost";
+    public static final String CERT_HOSTNAME = "example.com";
 
     public final KeyStore keyStore;
     public final char[] storePassword;
@@ -235,6 +237,13 @@ public final class TestKeyStore {
                          .addSubjectAltNameIpAddress(LOCAL_HOST_ADDRESS)
                          .certificateSerialNumber(BigInteger.valueOf(3))
                          .build();
+        SERVER_HOSTNAME = new Builder()
+            .aliasPrefix("server-hostname")
+            .signer(INTERMEDIATE_CA.getPrivateKey("RSA", "RSA"))
+            .rootCa(INTERMEDIATE_CA.getRootCertificate("RSA"))
+            .addSubjectAltNameDnsName(CERT_HOSTNAME)
+            .certificateSerialNumber(BigInteger.valueOf(4))
+            .build();
         CLIENT = new TestKeyStore(createClient(INTERMEDIATE_CA.keyStore), null, null);
         CLIENT_EC_RSA_CERTIFICATE = new Builder()
                                             .aliasPrefix("client-ec")
@@ -302,6 +311,15 @@ public final class TestKeyStore {
     public static TestKeyStore getServer() {
         initCerts();
         return SERVER;
+    }
+
+    /**
+     * Return a server keystore with a matched RSA certificate with SAN hostname and private key
+     * as well as a CA certificate.
+     */
+    public static TestKeyStore getServerHostname() {
+        initCerts();
+        return SERVER_HOSTNAME;
     }
 
     /**

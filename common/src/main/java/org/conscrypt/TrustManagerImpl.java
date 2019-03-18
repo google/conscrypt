@@ -63,7 +63,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
@@ -93,6 +92,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      */
     private static final TrustAnchorComparator TRUST_ANCHOR_COMPARATOR =
             new TrustAnchorComparator();
+
+    private static ConscryptHostnameVerifier defaultHostnameVerifier;
 
     /**
      * The AndroidCAStore if non-null, null otherwise.
@@ -137,6 +138,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private final CertBlacklist blacklist;
     private CTVerifier ctVerifier;
     private CTPolicy ctPolicy;
+
+    private ConscryptHostnameVerifier hostnameVerifier;
 
     // Forces CT verification to always to done. For tests.
     private boolean ctEnabledOverride;
@@ -400,7 +403,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         if (session != null && parameters != null) {
             String identificationAlgorithm = parameters.getEndpointIdentificationAlgorithm();
             if ("HTTPS".equalsIgnoreCase(identificationAlgorithm)) {
-                HostnameVerifier verifier = HttpsURLConnection.getDefaultHostnameVerifier();
+                ConscryptHostnameVerifier verifier = getHttpsVerifier();
                 if (!verifier.verify(hostname, session)) {
                     throw new CertificateException("No subjectAltNames on the certificate match");
                 }
@@ -960,6 +963,62 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     @Override
     public X509Certificate[] getAcceptedIssuers() {
         return (acceptedIssuers != null) ? acceptedIssuers.clone() : acceptedIssuers(rootKeyStore);
+    }
+
+    /**
+     * Set the default hostname verifier that will be used for HTTPS endpoint identification.  If
+     * {@code null} (the default), endpoint identification will use the default hostname verifier
+     * set in {@link HttpsURLConnection#setDefaultHostnameVerifier(javax.net.ssl.HostnameVerifier)}.
+     */
+    synchronized static void setDefaultHostnameVerifier(ConscryptHostnameVerifier verifier) {
+        defaultHostnameVerifier = verifier;
+    }
+
+    /**
+     * Returns the currently-set default hostname verifier.
+     *
+     * @see #setDefaultHostnameVerifier(ConscryptHostnameVerifier)
+     */
+    synchronized static ConscryptHostnameVerifier getDefaultHostnameVerifier() {
+        return defaultHostnameVerifier;
+    }
+
+    /**
+     * Set the hostname verifier that will be used for HTTPS endpoint identification.  If
+     * {@code null} (the default), endpoint identification will use the default hostname verifier
+     * set in {@link #setDefaultHostnameVerifier(ConscryptHostnameVerifier)}.
+     */
+    void setHostnameVerifier(ConscryptHostnameVerifier verifier) {
+        this.hostnameVerifier = verifier;
+    }
+
+    /**
+     * Returns the currently-set hostname verifier for this instance.
+     *
+     * @see #setHostnameVerifier(ConscryptHostnameVerifier)
+     */
+    ConscryptHostnameVerifier getHostnameVerifier() {
+        return hostnameVerifier;
+    }
+
+    private enum GlobalHostnameVerifierAdapter implements ConscryptHostnameVerifier {
+        INSTANCE;
+
+        @Override
+        public boolean verify(String hostname, SSLSession session) {
+            return HttpsURLConnection.getDefaultHostnameVerifier().verify(hostname, session);
+        }
+    }
+
+    private ConscryptHostnameVerifier getHttpsVerifier() {
+        if (hostnameVerifier != null) {
+            return hostnameVerifier;
+        }
+        ConscryptHostnameVerifier defaultVerifier = getDefaultHostnameVerifier();
+        if (defaultVerifier != null) {
+            return defaultVerifier;
+        }
+        return GlobalHostnameVerifierAdapter.INSTANCE;
     }
 
     public void setCTEnabledOverride(boolean enabled) {

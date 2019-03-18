@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.security.KeyStore;
 import java.security.Principal;
 import java.security.cert.Certificate;
@@ -27,9 +28,13 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
+import javax.net.ssl.HandshakeCompletedListener;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509TrustManager;
 import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Test;
@@ -99,7 +104,7 @@ public class TrustManagerImplTest {
         TestUtils.assumeExtendedTrustManagerAvailable();
         // build the trust manager
         KeyStore.PrivateKeyEntry pke = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
-        X509Certificate[] chain3 = (X509Certificate[])pke.getCertificateChain();
+        X509Certificate[] chain3 = (X509Certificate[]) pke.getCertificateChain();
         X509Certificate root = chain3[2];
         X509TrustManager tm = trustManager(root);
 
@@ -111,13 +116,95 @@ public class TrustManagerImplTest {
 
         assertTrue(tm instanceof TrustManagerImpl);
         TrustManagerImpl tmi = (TrustManagerImpl) tm;
-        List<X509Certificate> certs = tmi.checkServerTrusted(chain2, "RSA", new MySSLSession(
+        List<X509Certificate> certs = tmi.checkServerTrusted(chain2, "RSA", new FakeSSLSession(
                 "purple.com"));
         assertEquals(Arrays.asList(chain3), certs);
-        certs = tmi.checkServerTrusted(chain1, "RSA", new MySSLSession("purple.com"));
+        certs = tmi.checkServerTrusted(chain1, "RSA", new FakeSSLSession("purple.com"));
         assertEquals(Arrays.asList(chain3), certs);
     }
 
+    @Test
+    public void testHttpsEndpointIdentification() throws Exception {
+        TestUtils.assumeExtendedTrustManagerAvailable();
+
+        KeyStore.PrivateKeyEntry pke = TestKeyStore.getServerHostname().getPrivateKey("RSA", "RSA");
+        X509Certificate[] chain = (X509Certificate[]) pke.getCertificateChain();
+        X509Certificate root = chain[2];
+        TrustManagerImpl tmi = (TrustManagerImpl) trustManager(root);
+
+        String goodHostname = TestKeyStore.CERT_HOSTNAME;
+        String badHostname = "definitelywrong.nopenopenope";
+
+        // The default hostname verifier on OpenJDK rejects all hostnames, so use our own
+        javax.net.ssl.HostnameVerifier oldDefault = HttpsURLConnection.getDefaultHostnameVerifier();
+        try {
+            HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
+
+            SSLParameters params = new SSLParameters();
+
+            // Without endpoint identification this should pass despite the mismatched hostname
+            params.setEndpointIdentificationAlgorithm(null);
+
+            List<X509Certificate> certs = tmi.getTrustedChainForServer(chain, "RSA",
+                new FakeSSLSocket(new FakeSSLSession(badHostname, chain), params));
+            assertEquals(Arrays.asList(chain), certs);
+
+            // Turn on endpoint identification
+            params.setEndpointIdentificationAlgorithm("HTTPS");
+
+            try {
+                tmi.getTrustedChainForServer(chain, "RSA",
+                    new FakeSSLSocket(new FakeSSLSession(badHostname, chain), params));
+            } catch (CertificateException expected) {
+            }
+
+            certs = tmi.getTrustedChainForServer(chain, "RSA",
+                new FakeSSLSocket(new FakeSSLSession(goodHostname, chain), params));
+            assertEquals(Arrays.asList(chain), certs);
+
+            // Override the global default hostname verifier with a Conscrypt-specific one that
+            // always passes.  Both scenarios should pass.
+            Conscrypt.setDefaultHostnameVerifier(new ConscryptHostnameVerifier() {
+                @Override public boolean verify(String s, SSLSession sslSession) { return true; }
+            });
+
+            certs = tmi.getTrustedChainForServer(chain, "RSA",
+                new FakeSSLSocket(new FakeSSLSession(badHostname, chain), params));
+            assertEquals(Arrays.asList(chain), certs);
+
+            certs = tmi.getTrustedChainForServer(chain, "RSA",
+                new FakeSSLSocket(new FakeSSLSession(goodHostname, chain), params));
+            assertEquals(Arrays.asList(chain), certs);
+
+            // Now set an instance-specific verifier on the trust manager.  The bad hostname should
+            // fail again.
+            Conscrypt.setHostnameVerifier(tmi, new TestHostnameVerifier());
+
+            try {
+                tmi.getTrustedChainForServer(chain, "RSA",
+                    new FakeSSLSocket(new FakeSSLSession(badHostname, chain), params));
+            } catch (CertificateException expected) {
+            }
+
+            certs = tmi.getTrustedChainForServer(chain, "RSA",
+                new FakeSSLSocket(new FakeSSLSession(goodHostname, chain), params));
+            assertEquals(Arrays.asList(chain), certs);
+
+            // Remove the instance-specific verifier, and both should pass again.
+            Conscrypt.setHostnameVerifier(tmi, null);
+
+            certs = tmi.getTrustedChainForServer(chain, "RSA",
+                new FakeSSLSocket(new FakeSSLSession(badHostname, chain), params));
+            assertEquals(Arrays.asList(chain), certs);
+
+            certs = tmi.getTrustedChainForServer(chain, "RSA",
+                new FakeSSLSocket(new FakeSSLSession(goodHostname, chain), params));
+            assertEquals(Arrays.asList(chain), certs);
+        } finally {
+            Conscrypt.setDefaultHostnameVerifier(null);
+            HttpsURLConnection.setDefaultHostnameVerifier(oldDefault);
+        }
+    }
 
     private X509TrustManager trustManager(X509Certificate ca) throws Exception {
         KeyStore keyStore = TestKeyStore.createKeyStore();
@@ -149,11 +236,18 @@ public class TrustManagerImplTest {
         }
     }
 
-    private static class MySSLSession implements SSLSession {
+    private static class FakeSSLSession implements SSLSession {
         private final String hostname;
+        private final X509Certificate[] peerCerts;
 
-        MySSLSession(String hostname) {
+        FakeSSLSession(String hostname) {
             this.hostname = hostname;
+            peerCerts = null;
+        }
+
+        FakeSSLSession(String hostname, X509Certificate[] peerCerts) {
+            this.hostname = hostname;
+            this.peerCerts = peerCerts.clone();
         }
 
         @Override
@@ -204,7 +298,11 @@ public class TrustManagerImplTest {
 
         @Override
         public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
-            throw new UnsupportedOperationException();
+            if (peerCerts == null) {
+                throw new SSLPeerUnverifiedException("Null peerCerts");
+            } else {
+                return peerCerts.clone();
+            }
         }
 
         @Override
@@ -262,4 +360,121 @@ public class TrustManagerImplTest {
             throw new UnsupportedOperationException();
         }
     }
+
+    private static class FakeSSLSocket extends SSLSocket {
+
+        private final SSLSession session;
+        private final SSLParameters parameters;
+
+        public FakeSSLSocket(SSLSession session, SSLParameters parameters) {
+            this.session = session;
+            this.parameters = parameters;
+        }
+
+        @Override
+        public SSLParameters getSSLParameters() {
+            return parameters;
+        }
+
+        @Override
+        public String[] getSupportedCipherSuites() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String[] getEnabledCipherSuites() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void setEnabledCipherSuites(String[] strings) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String[] getSupportedProtocols() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public String[] getEnabledProtocols() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void setEnabledProtocols(String[] strings) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public SSLSession getSession() {
+            return session;
+        }
+
+        @Override
+        public SSLSession getHandshakeSession() {
+            return session;
+        }
+
+        @Override
+        public void addHandshakeCompletedListener(
+            HandshakeCompletedListener handshakeCompletedListener) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void removeHandshakeCompletedListener(
+            HandshakeCompletedListener handshakeCompletedListener) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void startHandshake() throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void setUseClientMode(boolean b) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean getUseClientMode() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void setNeedClientAuth(boolean b) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean getNeedClientAuth() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void setWantClientAuth(boolean b) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean getWantClientAuth() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void setEnableSessionCreation(boolean b) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean getEnableSessionCreation() {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    private static class TestHostnameVerifier
+        extends org.conscrypt.javax.net.ssl.TestHostnameVerifier
+        implements ConscryptHostnameVerifier {}
 }
