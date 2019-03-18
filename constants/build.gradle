@@ -57,6 +57,7 @@ model {
             def gen = $.binaries.get("genExecutable")
 
             dependsOn gen
+            outputs.dir genDir
             File genDir = new File("${genDir}/org/conscrypt")
 
             executable gen.executable.file

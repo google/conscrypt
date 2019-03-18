@@ -89,7 +89,6 @@ if (androidSdkInstalled) {
     }
 
     dependencies {
-        implementation fileTree(dir: 'libs', include: ['*.jar'])
         implementation project(path: ':conscrypt-openjdk', configuration: 'platform')
         publicApiDocs project(':conscrypt-api-doclet')
         androidTestImplementation('androidx.test.espresso:espresso-core:3.1.1', {
