@@ -473,6 +473,11 @@ final class Platform {
         return addr.getHostString();
     }
 
+    // The platform always has X509ExtendedTrustManager
+    static boolean supportsX509ExtendedTrustManager() {
+        return true;
+    }
+
     static boolean isCTVerificationRequired(String hostname) {
         return NetworkSecurityPolicy.getInstance().isCertificateTransparencyVerificationRequired(
                 hostname);

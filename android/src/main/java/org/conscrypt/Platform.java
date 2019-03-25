@@ -905,6 +905,11 @@ final class Platform {
         return null;
     }
 
+    // X509ExtendedTrustManager was added in API 24
+    static boolean supportsX509ExtendedTrustManager() {
+        return Build.VERSION.SDK_INT > 23;
+    }
+
     /**
      * Check if SCT verification is required for a given hostname.
      *

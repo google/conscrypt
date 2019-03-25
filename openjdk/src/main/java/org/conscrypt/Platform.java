@@ -575,6 +575,11 @@ final class Platform {
         return null;
     }
 
+    // OpenJDK always has X509ExtendedTrustManager
+    static boolean supportsX509ExtendedTrustManager() {
+        return true;
+    }
+
     /**
      * Check if SCT verification is required for a given hostname.
      *

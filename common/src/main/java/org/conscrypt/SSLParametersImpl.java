@@ -150,6 +150,43 @@ final class SSLParametersImpl implements Cloneable {
         // directly accesses /dev/urandom, which makes it irrelevant.
     }
 
+    // Copy constructor for the purposes of changing the final fields
+    private SSLParametersImpl(ClientSessionContext clientSessionContext,
+        ServerSessionContext serverSessionContext,
+        X509KeyManager x509KeyManager,
+        PSKKeyManager pskKeyManager,
+        X509TrustManager x509TrustManager,
+        SSLParametersImpl sslParams) {
+        this.clientSessionContext = clientSessionContext;
+        this.serverSessionContext = serverSessionContext;
+        this.x509KeyManager = x509KeyManager;
+        this.pskKeyManager = pskKeyManager;
+        this.x509TrustManager = x509TrustManager;
+
+        this.enabledProtocols =
+            (sslParams.enabledProtocols == null) ? null : sslParams.enabledProtocols.clone();
+        this.isEnabledProtocolsFiltered = sslParams.isEnabledProtocolsFiltered;
+        this.enabledCipherSuites =
+            (sslParams.enabledCipherSuites == null) ? null : sslParams.enabledCipherSuites.clone();
+        this.client_mode = sslParams.client_mode;
+        this.need_client_auth = sslParams.need_client_auth;
+        this.want_client_auth = sslParams.want_client_auth;
+        this.enable_session_creation = sslParams.enable_session_creation;
+        this.endpointIdentificationAlgorithm = sslParams.endpointIdentificationAlgorithm;
+        this.useCipherSuitesOrder = sslParams.useCipherSuitesOrder;
+        this.ctVerificationEnabled = sslParams.ctVerificationEnabled;
+        this.sctExtension =
+            (sslParams.sctExtension == null) ? null : sslParams.sctExtension.clone();
+        this.ocspResponse =
+            (sslParams.ocspResponse == null) ? null : sslParams.ocspResponse.clone();
+        this.applicationProtocols =
+            (sslParams.applicationProtocols == null) ? null : sslParams.applicationProtocols.clone();
+        this.applicationProtocolSelector = sslParams.applicationProtocolSelector;
+        this.useSessionTickets = sslParams.useSessionTickets;
+        this.useSni = sslParams.useSni;
+        this.channelIdEnabled = sslParams.channelIdEnabled;
+    }
+
     static SSLParametersImpl getDefault() throws KeyManagementException {
         SSLParametersImpl result = defaultParameters;
         if (result == null) {
@@ -464,6 +501,11 @@ final class SSLParametersImpl implements Cloneable {
         } catch (CloneNotSupportedException e) {
             throw new AssertionError(e);
         }
+    }
+
+    SSLParametersImpl cloneWithTrustManager(X509TrustManager newTrustManager) {
+        return new SSLParametersImpl(clientSessionContext, serverSessionContext,
+            x509KeyManager, pskKeyManager, newTrustManager, this);
     }
 
     private static X509KeyManager getDefaultX509KeyManager() throws KeyManagementException {
