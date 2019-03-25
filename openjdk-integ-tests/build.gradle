@@ -1,3 +1,5 @@
+import org.codehaus.groovy.runtime.InvokerHelper
+
 description = 'Conscrypt: OpenJDK Integration Tests'
 
 evaluationDependsOn(':conscrypt-openjdk')
@@ -43,6 +45,8 @@ test {
 task testEngineSocket(type: Test, dependsOn: test) {
     jvmArgs "-Dorg.conscrypt.useEngineSocketByDefault=true"
     include suiteClass
+    InvokerHelper.setProperties(testLogging, test.testLogging.properties)
+    systemProperties = test.systemProperties
 }
 check.dependsOn testEngineSocket
 

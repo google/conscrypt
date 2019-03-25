@@ -1,3 +1,5 @@
+import org.codehaus.groovy.runtime.InvokerHelper
+
 description = 'Conscrypt: OpenJdk'
 
 ext {
@@ -260,6 +262,7 @@ def addNativeTest(nativeClassifier) {
             mustRunAfter test
             jvmArgs javaArchFlag
             executable = javaExecutable
+            InvokerHelper.setProperties(testLogging, test.testLogging.properties)
             systemProperties = test.systemProperties
         }
         check.dependsOn "$testTaskName"
