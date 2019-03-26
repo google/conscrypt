@@ -25,7 +25,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.HashSet;
 import javax.crypto.SecretKey;
@@ -41,6 +44,7 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
@@ -539,6 +543,71 @@ public class SSLEngineTest {
         client.beginHandshake();
         client.beginHandshake(); // This call should be ignored
         c.close();
+    }
+
+    @Test
+    public void test_SSLEngine_getHandshakeSession_duringHandshake() throws Exception {
+        // We can't reference the actual context we're using, since we need to pass
+        // the test trust manager in to construct it, so create reference objects that
+        // we can test against.
+        final TestSSLContext referenceContext = TestSSLContext.create();
+        final SSLEngine referenceEngine = referenceContext.clientContext.createSSLEngine();
+
+        TestSSLContext c = TestSSLContext.newBuilder()
+            .clientTrustManager(new X509ExtendedTrustManager() {
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
+                    Socket socket) throws CertificateException {
+                    throw new CertificateException("Shouldn't be called");
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
+                    Socket socket) throws CertificateException {
+                    throw new CertificateException("Shouldn't be called");
+                }
+
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
+                    SSLEngine sslEngine) throws CertificateException {
+                    throw new CertificateException("Shouldn't be called");
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
+                    SSLEngine sslEngine) throws CertificateException {
+                    try {
+                        SSLSession session = sslEngine.getHandshakeSession();
+                        assertNotNull(session);
+                        // By the point of the handshake where we're validating certificates,
+                        // the hostname is known and the cipher suite should be agreed
+                        assertEquals(referenceContext.host.getHostName(), session.getPeerHost());
+                        assertEquals(referenceEngine.getEnabledCipherSuites()[0],
+                            session.getCipherSuite());
+                    } catch (Exception e) {
+                        throw new CertificateException("Something broke", e);
+                    }
+                }
+
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
+                    throws CertificateException {
+                    throw new CertificateException("Shouldn't be called");
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
+                    throws CertificateException {
+                    throw new CertificateException("Shouldn't be called");
+                }
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+            }).build();
+        TestSSLEnginePair pair = TestSSLEnginePair.create(c);
+        pair.close();
     }
 
     @Test

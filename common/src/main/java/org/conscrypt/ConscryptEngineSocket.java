@@ -33,11 +33,16 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509ExtendedTrustManager;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * Implements crypto handling by delegating to {@link ConscryptEngine}.
@@ -95,7 +100,14 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
 
     private static ConscryptEngine newEngine(
             SSLParametersImpl sslParameters, final ConscryptEngineSocket socket) {
-        ConscryptEngine engine = new ConscryptEngine(sslParameters, socket.peerInfoProvider());
+        SSLParametersImpl modifiedParams;
+        if (Platform.supportsX509ExtendedTrustManager()) {
+            modifiedParams = sslParameters.cloneWithTrustManager(
+                getDelegatingTrustManager(sslParameters.getX509TrustManager(), socket));
+        } else {
+            modifiedParams = sslParameters;
+        }
+        ConscryptEngine engine = new ConscryptEngine(modifiedParams, socket.peerInfoProvider());
 
         // When the handshake completes, notify any listeners.
         engine.setHandshakeListener(new HandshakeListener() {
@@ -112,6 +124,47 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
         // Transition the engine state to MODE_SET
         engine.setUseClientMode(sslParameters.getUseClientMode());
         return engine;
+    }
+
+    // Returns a trust manager that delegates to the given trust manager, but maps SSLEngine
+    // references to the given ConscryptEngineSocket.  Our internal engine will call
+    // the SSLEngine-receiving methods, but our callers expect the SSLSocket-receiving
+    // methods to get called.
+    private static X509TrustManager getDelegatingTrustManager(final X509TrustManager delegate,
+        final ConscryptEngineSocket socket) {
+        if (delegate instanceof X509ExtendedTrustManager) {
+            final X509ExtendedTrustManager extendedDelegate = (X509ExtendedTrustManager) delegate;
+            return new X509ExtendedTrustManager() {
+                @Override public void checkClientTrusted(X509Certificate[] x509Certificates,
+                    String s, Socket socket) throws CertificateException {
+                    throw new AssertionError("Should not be called");
+                }
+                @Override public void checkServerTrusted(X509Certificate[] x509Certificates,
+                    String s, Socket socket) throws CertificateException {
+                    throw new AssertionError("Should not be called");
+                }
+                @Override public void checkClientTrusted(X509Certificate[] x509Certificates,
+                    String s, SSLEngine sslEngine) throws CertificateException {
+                    extendedDelegate.checkClientTrusted(x509Certificates, s, socket);
+                }
+                @Override public void checkServerTrusted(X509Certificate[] x509Certificates,
+                    String s, SSLEngine sslEngine) throws CertificateException {
+                    extendedDelegate.checkServerTrusted(x509Certificates, s, socket);
+                }
+                @Override public void checkClientTrusted(X509Certificate[] x509Certificates,
+                    String s) throws CertificateException {
+                    extendedDelegate.checkClientTrusted(x509Certificates, s);
+                }
+                @Override public void checkServerTrusted(X509Certificate[] x509Certificates,
+                    String s) throws CertificateException {
+                    extendedDelegate.checkServerTrusted(x509Certificates, s);
+                }
+                @Override public X509Certificate[] getAcceptedIssuers() {
+                    return extendedDelegate.getAcceptedIssuers();
+                }
+            };
+        }
+        return delegate;
     }
 
     @Override
