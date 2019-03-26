@@ -164,7 +164,7 @@ final class Platform {
         // fail to execute. The File#canExecute() method honors this behavior, probably via
         // parsing the noexec flag when initializing the UnixFileStore, though the flag is not
         // exposed via a public API.  To find out if library is being loaded off a volume with
-        // noexec, confirm or add executalbe permissions, then check File#canExecute().
+        // noexec, confirm or add executable permissions, then check File#canExecute().
 
         Set<PosixFilePermission> existingFilePermissions =
                 Files.getPosixFilePermissions(file.toPath());
