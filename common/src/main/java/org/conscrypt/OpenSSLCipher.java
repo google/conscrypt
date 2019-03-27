@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.ByteBuffer;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -1282,6 +1283,22 @@ public abstract class OpenSSLCipher extends CipherSpi {
                 byte[] newaad = new byte[newSize];
                 System.arraycopy(aad, 0, newaad, 0, aad.length);
                 System.arraycopy(input, inputOffset, newaad, aad.length, inputLen);
+                aad = newaad;
+            }
+        }
+
+        // Intentionally missing Override to compile on old versions of Android
+        @SuppressWarnings("MissingOverride")
+        protected void engineUpdateAAD(ByteBuffer buf) {
+            checkInitialization();
+            if (aad == null) {
+                aad = new byte[buf.remaining()];
+                buf.get(aad);
+            } else {
+                int newSize = aad.length + buf.remaining();
+                byte[] newaad = new byte[newSize];
+                System.arraycopy(aad, 0, newaad, 0, aad.length);
+                buf.get(newaad, aad.length, buf.remaining());
                 aad = newaad;
             }
         }
