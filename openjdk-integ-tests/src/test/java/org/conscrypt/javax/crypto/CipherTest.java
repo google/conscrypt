@@ -4072,7 +4072,7 @@ public final class CipherTest {
         Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
         c.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(new byte[128 / 8], "AES"));
         c.updateAAD(new byte[8]);
-        c.updateAAD(new byte[8]);
+        c.updateAAD(ByteBuffer.wrap(new byte[8]));
     }
 
     @Test
@@ -4081,7 +4081,7 @@ public final class CipherTest {
         c.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(new byte[128 / 8], "AES"));
         c.updateAAD(new byte[8]);
         c.update(new byte[8]);
-        c.updateAAD(new byte[8]);
+        c.updateAAD(ByteBuffer.wrap(new byte[8]));
     }
 
     @Test
@@ -4625,6 +4625,161 @@ public final class CipherTest {
         });
 
         assertEquals(Arrays.toString(c1.doFinal()), Arrays.toString(c2.doFinal()));
+    }
+
+    @Test
+    public void test_AESGCMNoPadding_UpdateAADByteBuffer_Simple() throws Exception {
+        SecretKeySpec key = new SecretKeySpec(new byte[16], "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, new byte[12]);
+        Cipher c1 = Cipher.getInstance("AES/GCM/NoPadding");
+        Cipher c2 = Cipher.getInstance("AES/GCM/NoPadding");
+        Cipher c3 = Cipher.getInstance("AES/GCM/NoPadding");
+
+        c1.init(Cipher.ENCRYPT_MODE, key, spec);
+        c1.updateAAD(new byte[] {
+            0x01, 0x02, 0x03, 0x04, 0x05,
+            0x06, 0x07, 0x08, 0x09, 0x10,
+        });
+
+        c2.init(Cipher.ENCRYPT_MODE, key, spec);
+        c2.updateAAD(ByteBuffer.wrap(new byte[] {
+            0x01, 0x02, 0x03, 0x04, 0x05,
+            0x06, 0x07, 0x08, 0x09, 0x10,
+        }));
+
+        c3.init(Cipher.ENCRYPT_MODE, key, spec);
+        ByteBuffer buf = ByteBuffer.allocateDirect(10);
+        buf.put(new byte[] {
+            0x01, 0x02, 0x03, 0x04, 0x05,
+            0x06, 0x07, 0x08, 0x09, 0x10,
+        });
+        buf.flip();
+        c3.updateAAD(buf);
+
+        byte[] c1Final = c1.doFinal();
+        byte[] c2Final = c2.doFinal();
+        byte[] c3Final = c3.doFinal();
+        assertEquals(Arrays.toString(c1Final), Arrays.toString(c2Final));
+        assertEquals(Arrays.toString(c1Final), Arrays.toString(c3Final));
+    }
+
+    @Test
+    public void test_AESGCMNoPadding_UpdateAADByteBuffer_MultipleUpdates() throws Exception {
+        SecretKeySpec key = new SecretKeySpec(new byte[16], "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, new byte[12]);
+        Cipher c1 = Cipher.getInstance("AES/GCM/NoPadding");
+        Cipher c2 = Cipher.getInstance("AES/GCM/NoPadding");
+        Cipher c3 = Cipher.getInstance("AES/GCM/NoPadding");
+
+        c1.init(Cipher.ENCRYPT_MODE, key, spec);
+        c1.updateAAD(new byte[] {
+            0x01, 0x02, 0x03, 0x04, 0x05,
+        });
+        c1.updateAAD(new byte[] {
+            0x06, 0x07, 0x08, 0x09, 0x10,
+        });
+
+        c2.init(Cipher.ENCRYPT_MODE, key, spec);
+        c2.updateAAD(ByteBuffer.wrap(new byte[] {
+            0x01, 0x02, 0x03, 0x04, 0x05,
+        }));
+        c2.updateAAD(ByteBuffer.wrap(new byte[] {
+            0x06, 0x07, 0x08, 0x09, 0x10,
+        }));
+
+        c3.init(Cipher.ENCRYPT_MODE, key, spec);
+        ByteBuffer buf = ByteBuffer.allocateDirect(10);
+        buf.put(new byte[] {
+            0x01, 0x02, 0x03, 0x04, 0x05,
+            0x06, 0x07, 0x08, 0x09, 0x10,
+        });
+        buf.flip();
+        buf.limit(5);
+        c3.updateAAD(buf);
+        buf.limit(10);
+        c3.updateAAD(buf);
+
+        byte[] c1Final = c1.doFinal();
+        byte[] c2Final = c2.doFinal();
+        byte[] c3Final = c3.doFinal();
+        assertEquals(Arrays.toString(c1Final), Arrays.toString(c2Final));
+        assertEquals(Arrays.toString(c1Final), Arrays.toString(c3Final));
+    }
+
+    @Test
+    public void test_AESGCMNoPadding_UpdateAADByteBuffer_MixedCalls() throws Exception {
+        SecretKeySpec key = new SecretKeySpec(new byte[16], "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, new byte[12]);
+        Cipher c1 = Cipher.getInstance("AES/GCM/NoPadding");
+        Cipher c2 = Cipher.getInstance("AES/GCM/NoPadding");
+        Cipher c3 = Cipher.getInstance("AES/GCM/NoPadding");
+
+        c1.init(Cipher.ENCRYPT_MODE, key, spec);
+        c1.updateAAD(new byte[] {
+            0x01, 0x02, 0x03, 0x04, 0x05,
+            0x06, 0x07, 0x08, 0x09, 0x10,
+        });
+
+        c2.init(Cipher.ENCRYPT_MODE, key, spec);
+        c2.updateAAD(new byte[] {
+            0x01, 0x02, 0x03, 0x04, 0x05,
+        });
+        c2.updateAAD(ByteBuffer.wrap(new byte[] {
+            0x06, 0x07, 0x08, 0x09, 0x10,
+        }));
+
+        c3.init(Cipher.ENCRYPT_MODE, key, spec);
+        ByteBuffer buf = ByteBuffer.allocateDirect(10);
+        buf.put(new byte[] {
+            0x01, 0x02, 0x03, 0x04, 0x05,
+            0x06, 0x07, 0x08, 0x09, 0x10,
+        });
+        buf.flip();
+        buf.limit(5);
+        c3.updateAAD(buf);
+        c3.updateAAD(new byte[] {
+            0x06, 0x07, 0x08, 0x09, 0x10,
+        });
+
+        byte[] c1Final = c1.doFinal();
+        byte[] c2Final = c2.doFinal();
+        byte[] c3Final = c3.doFinal();
+        assertEquals(Arrays.toString(c1Final), Arrays.toString(c2Final));
+        assertEquals(Arrays.toString(c1Final), Arrays.toString(c3Final));
+    }
+
+    @Test
+    public void test_AESGCMNoPadding_UpdateAADByteBuffer_Unequal() throws Exception {
+        SecretKeySpec key = new SecretKeySpec(new byte[16], "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, new byte[12]);
+        Cipher c1 = Cipher.getInstance("AES/GCM/NoPadding");
+        Cipher c2 = Cipher.getInstance("AES/GCM/NoPadding");
+        Cipher c3 = Cipher.getInstance("AES/GCM/NoPadding");
+
+        c1.init(Cipher.ENCRYPT_MODE, key, spec);
+        c1.updateAAD(ByteBuffer.wrap(new byte[] {
+            0x01, 0x02, 0x03, 0x04, 0x05,
+        }));
+
+        c2.init(Cipher.ENCRYPT_MODE, key, spec);
+        c2.updateAAD(new byte[] {
+            0x06, 0x07, 0x08, 0x09, 0x10,
+        });
+
+        c3.init(Cipher.ENCRYPT_MODE, key, spec);
+        ByteBuffer buf = ByteBuffer.allocateDirect(10);
+        buf.put(new byte[] {
+            0x11, 0x12, 0x13, 0x14, 0x15,
+        });
+        buf.flip();
+        c3.updateAAD(buf);
+
+        byte[] c1Final = c1.doFinal();
+        byte[] c2Final = c2.doFinal();
+        byte[] c3Final = c3.doFinal();
+        assertFalse(Arrays.equals(c1Final, c2Final));
+        assertFalse(Arrays.equals(c2Final, c3Final));
+        assertFalse(Arrays.equals(c1Final, c3Final));
     }
 
     /**
