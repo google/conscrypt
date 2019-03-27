@@ -68,8 +68,8 @@ final class NativeCryptoJni {
         Throwable bestError = results.get(0).error;
         for (LoadResult result : results.subList(1, results.size())) {
             // Suppress all of the other errors, so that they're available to the caller if
-            // desired. Note: suppression is only supported on Java 7+.
-            Platform.addSuppressed(bestError, result.error);
+            // desired.
+            bestError.addSuppressed(result.error);
         }
 
         if (bestError instanceof Error) {
