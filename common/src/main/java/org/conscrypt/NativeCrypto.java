@@ -968,16 +968,16 @@ public final class NativeCrypto {
         return SUPPORTED_PROTOCOLS.clone();
     }
 
-    private static class MinMax {
-        final String min;
-        final String max;
-        public MinMax(String min, String max) {
+    private static class Range {
+        public final String min;
+        public final String max;
+        public Range(String min, String max) {
             this.min = min;
             this.max = max;
         }
     }
 
-    private static MinMax getProtocolRange(String[] protocols) {
+    private static Range getProtocolRange(String[] protocols) {
         // TLS protocol negotiation only allows a min and max version
         // to be set, despite the Java API allowing a sparse set of
         // protocols to be enabled.  Use the lowest contiguous range
@@ -1000,14 +1000,14 @@ public final class NativeCrypto {
         if ((min == null) || (max == null)) {
             throw new IllegalArgumentException("No protocols enabled.");
         }
-        return new MinMax(min, max);
+        return new Range(min, max);
     }
 
     static void setEnabledProtocols(long ssl, NativeSsl ssl_holder, String[] protocols) {
         checkEnabledProtocols(protocols);
-        MinMax minMax = getProtocolRange(protocols);
+        Range range = getProtocolRange(protocols);
         SSL_set_protocol_versions(
-            ssl, ssl_holder, getProtocolConstant(minMax.min), getProtocolConstant(minMax.max));
+            ssl, ssl_holder, getProtocolConstant(range.min), getProtocolConstant(range.max));
     }
 
     private static int getProtocolConstant(String protocol) {
