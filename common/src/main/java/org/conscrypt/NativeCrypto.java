@@ -968,8 +968,16 @@ public final class NativeCrypto {
         return SUPPORTED_PROTOCOLS.clone();
     }
 
-    static void setEnabledProtocols(long ssl, NativeSsl ssl_holder, String[] protocols) {
-        checkEnabledProtocols(protocols);
+    private static class MinMax {
+        final String min;
+        final String max;
+        public MinMax(String min, String max) {
+            this.min = min;
+            this.max = max;
+        }
+    }
+
+    private static MinMax getProtocolRange(String[] protocols) {
         // TLS protocol negotiation only allows a min and max version
         // to be set, despite the Java API allowing a sparse set of
         // protocols to be enabled.  Use the lowest contiguous range
@@ -992,7 +1000,14 @@ public final class NativeCrypto {
         if ((min == null) || (max == null)) {
             throw new IllegalArgumentException("No protocols enabled.");
         }
-        SSL_set_protocol_versions(ssl, ssl_holder, getProtocolConstant(min), getProtocolConstant(max));
+        return new MinMax(min, max);
+    }
+
+    static void setEnabledProtocols(long ssl, NativeSsl ssl_holder, String[] protocols) {
+        checkEnabledProtocols(protocols);
+        MinMax minMax = getProtocolRange(protocols);
+        SSL_set_protocol_versions(
+            ssl, ssl_holder, getProtocolConstant(minMax.min), getProtocolConstant(minMax.max));
     }
 
     private static int getProtocolConstant(String protocol) {
@@ -1037,15 +1052,19 @@ public final class NativeCrypto {
      */
     static native long[] SSL_get_ciphers(long ssl, NativeSsl ssl_holder);
 
-    static void setEnabledCipherSuites(long ssl, NativeSsl ssl_holder, String[] cipherSuites) {
+    static void setEnabledCipherSuites(long ssl, NativeSsl ssl_holder, String[] cipherSuites,
+            String[] protocols) {
         checkEnabledCipherSuites(cipherSuites);
+        String maxProtocol = getProtocolRange(protocols).max;
         List<String> opensslSuites = new ArrayList<String>();
         for (int i = 0; i < cipherSuites.length; i++) {
             String cipherSuite = cipherSuites[i];
             if (cipherSuite.equals(TLS_EMPTY_RENEGOTIATION_INFO_SCSV)) {
                 continue;
             }
-            if (cipherSuite.equals(TLS_FALLBACK_SCSV)) {
+            if (cipherSuite.equals(TLS_FALLBACK_SCSV)
+                    && !maxProtocol.equals(SUPPORTED_PROTOCOL_TLSV1_3)
+                    && !maxProtocol.equals(SUPPORTED_PROTOCOL_TLSV1_2)) {
                 SSL_set_mode(ssl, ssl_holder, NativeConstants.SSL_MODE_SEND_FALLBACK_SCSV);
                 continue;
             }

@@ -74,6 +74,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.net.DelegatingSSLSocketFactory;
 import tests.util.ForEachRunner;
 import tests.util.ForEachRunner.Callback;
 import tests.util.Pair;
@@ -944,6 +945,29 @@ public class SSLSocketTest {
         client.close();
         server.close();
         context.close();
+    }
+
+    @Test
+    public void test_SSLSocket_tlsFallback_byVersion() throws Exception {
+        for (final String protocol : new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3" }) {
+            SSLSocketFactory factory = new DelegatingSSLSocketFactory((SSLSocketFactory) SSLSocketFactory.getDefault()) {
+                @Override protected SSLSocket configureSocket(SSLSocket socket) {
+                    socket.setEnabledProtocols(new String[] {protocol});
+                    String[] enabled = socket.getEnabledCipherSuites();
+                    String[] cipherSuites = new String[socket.getEnabledCipherSuites().length + 1];
+                    System.arraycopy(enabled, 0, cipherSuites, 0, enabled.length);
+                    cipherSuites[cipherSuites.length - 1] = StandardNames.CIPHER_SUITE_FALLBACK;
+                    socket.setEnabledCipherSuites(cipherSuites);
+                    return socket;
+                }
+            };
+            ClientHello clientHello = TlsTester.captureTlsHandshakeClientHello(executor, factory);
+            if (protocol.equals("TLSv1.2") || protocol.equals("TLSv1.3")) {
+                assertFalse(clientHello.cipherSuites.contains(CipherSuite.valueOf("TLS_FALLBACK_SCSV")));
+            } else {
+                assertTrue(clientHello.cipherSuites.contains(CipherSuite.valueOf("TLS_FALLBACK_SCSV")));
+            }
+        }
     }
 
     private <T> Future<T> runAsync(Callable<T> callable) {

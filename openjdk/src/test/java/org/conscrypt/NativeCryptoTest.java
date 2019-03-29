@@ -697,7 +697,7 @@ public class NativeCryptoTest {
                 cipherSuites.addAll(enabledCipherSuites);
             }
             NativeCrypto.setEnabledCipherSuites(
-                    s, null, cipherSuites.toArray(new String[cipherSuites.size()]));
+                    s, null, cipherSuites.toArray(new String[cipherSuites.size()]), new String[] {"TLSv1.2"});
 
             if (channelIdPrivateKey != null) {
                 NativeCrypto.SSL_set1_tls_channel_id(s, null, channelIdPrivateKey.getNativeRef());
