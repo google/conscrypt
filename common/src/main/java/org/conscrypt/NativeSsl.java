@@ -312,7 +312,8 @@ final class NativeSsl {
                     + " is no longer supported and was filtered from the list");
         }
         NativeCrypto.setEnabledProtocols(ssl, this, parameters.enabledProtocols);
-        NativeCrypto.setEnabledCipherSuites(ssl, this, parameters.enabledCipherSuites);
+        NativeCrypto.setEnabledCipherSuites(
+            ssl, this, parameters.enabledCipherSuites, parameters.enabledProtocols);
 
         if (parameters.applicationProtocols.length > 0) {
             NativeCrypto.setApplicationProtocols(ssl, this, isClient(), parameters.applicationProtocols);
