@@ -427,6 +427,7 @@ public final class OpenSSLProvider extends Provider {
                 "OpenSSLCipherChaCha20");
         putSymmetricCipherImplClass("ChaCha20/Poly1305/NoPadding",
                 "OpenSSLCipher$EVP_AEAD$ChaCha20");
+        put("Alg.Alias.Cipher.ChaCha20-Poly1305", "ChaCha20/Poly1305/NoPadding");
 
         /* === Mac === */
 
