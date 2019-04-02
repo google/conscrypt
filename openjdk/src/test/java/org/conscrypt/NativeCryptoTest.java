@@ -696,6 +696,7 @@ public class NativeCryptoTest {
             } else {
                 cipherSuites.addAll(enabledCipherSuites);
             }
+            // Protocol list is included for determining whether to send TLS_FALLBACK_SCSV
             NativeCrypto.setEnabledCipherSuites(
                     s, null, cipherSuites.toArray(new String[cipherSuites.size()]), new String[] {"TLSv1.2"});
 

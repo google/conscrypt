@@ -1062,9 +1062,12 @@ public final class NativeCrypto {
             if (cipherSuite.equals(TLS_EMPTY_RENEGOTIATION_INFO_SCSV)) {
                 continue;
             }
+            // Only send TLS_FALLBACK_SCSV if max version >= 1.2 to prevent inadvertent connection
+            // problems when servers upgrade.  See https://github.com/google/conscrypt/issues/574
+            // for more discussion.
             if (cipherSuite.equals(TLS_FALLBACK_SCSV)
-                    && !maxProtocol.equals(SUPPORTED_PROTOCOL_TLSV1_3)
-                    && !maxProtocol.equals(SUPPORTED_PROTOCOL_TLSV1_2)) {
+                    && (maxProtocol.equals(SUPPORTED_PROTOCOL_TLSV1)
+                        || maxProtocol.equals(SUPPORTED_PROTOCOL_TLSV1_1))) {
                 SSL_set_mode(ssl, ssl_holder, NativeConstants.SSL_MODE_SEND_FALLBACK_SCSV);
                 continue;
             }
