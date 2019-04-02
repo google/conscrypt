@@ -3462,6 +3462,20 @@ static jlong NativeCrypto_EVP_aead_chacha20_poly1305(JNIEnv* env, jclass) {
     return reinterpret_cast<jlong>(ctx);
 }
 
+static jlong NativeCrypto_EVP_aead_aes_128_gcm_siv(JNIEnv* env, jclass) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    const EVP_AEAD* ctx = EVP_aead_aes_128_gcm_siv();
+    JNI_TRACE("EVP_aead_aes_128_gcm_siv => ctx=%p", ctx);
+    return reinterpret_cast<jlong>(ctx);
+}
+
+static jlong NativeCrypto_EVP_aead_aes_256_gcm_siv(JNIEnv* env, jclass) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    const EVP_AEAD* ctx = EVP_aead_aes_256_gcm_siv();
+    JNI_TRACE("EVP_aead_aes_256_gcm_siv => ctx=%p", ctx);
+    return reinterpret_cast<jlong>(ctx);
+}
+
 static jint NativeCrypto_EVP_AEAD_max_overhead(JNIEnv* env, jclass, jlong evpAeadRef) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     const EVP_AEAD* evpAead = reinterpret_cast<const EVP_AEAD*>(evpAeadRef);
@@ -10012,6 +10026,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(EVP_aead_aes_128_gcm, "()J"),
         CONSCRYPT_NATIVE_METHOD(EVP_aead_aes_256_gcm, "()J"),
         CONSCRYPT_NATIVE_METHOD(EVP_aead_chacha20_poly1305, "()J"),
+        CONSCRYPT_NATIVE_METHOD(EVP_aead_aes_128_gcm_siv, "()J"),
+        CONSCRYPT_NATIVE_METHOD(EVP_aead_aes_256_gcm_siv, "()J"),
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_max_overhead, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_nonce_length, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_seal, "(J[BI[BI[B[BII[B)I"),

@@ -90,6 +90,7 @@ public final class CipherTest {
 
     /** GCM tag size used for tests. */
     private static final int GCM_TAG_SIZE_BITS = 96;
+    private static final int GCM_SIV_TAG_SIZE_BITS = 128;
 
     private static final String[] RSA_PROVIDERS = StandardNames.IS_RI
         ? new String[] { "SunJCE", StandardNames.JSSE_PROVIDER_NAME }
@@ -264,6 +265,7 @@ public final class CipherTest {
 
     private static boolean isAEAD(String algorithm) {
         return "GCM".equals(algorithm) || algorithm.contains("/GCM/")
+                || algorithm.contains("/GCM-SIV/")
                 || algorithm.equals("CHACHA20/POLY1305/NOPADDING");
     }
 
@@ -360,6 +362,7 @@ public final class CipherTest {
         setExpectedBlockSize("AES/ECB/PKCS7PADDING", 16);
         setExpectedBlockSize("AES/ECB/NOPADDING", 16);
         setExpectedBlockSize("AES/GCM/NOPADDING", 16);
+        setExpectedBlockSize("AES/GCM-SIV/NOPADDING", 16);
         setExpectedBlockSize("AES/OFB/PKCS5PADDING", 16);
         setExpectedBlockSize("AES/OFB/PKCS7PADDING", 16);
         setExpectedBlockSize("AES/OFB/NOPADDING", 16);
@@ -370,6 +373,7 @@ public final class CipherTest {
         setExpectedBlockSize("AES_128/ECB/PKCS7PADDING", 16);
         setExpectedBlockSize("AES_128/ECB/NOPADDING", 16);
         setExpectedBlockSize("AES_128/GCM/NOPADDING", 16);
+        setExpectedBlockSize("AES_128/GCM-SIV/NOPADDING", 16);
         setExpectedBlockSize("AES_256/CBC/PKCS5PADDING", 16);
         setExpectedBlockSize("AES_256/CBC/PKCS7PADDING", 16);
         setExpectedBlockSize("AES_256/CBC/NOPADDING", 16);
@@ -377,6 +381,7 @@ public final class CipherTest {
         setExpectedBlockSize("AES_256/ECB/PKCS7PADDING", 16);
         setExpectedBlockSize("AES_256/ECB/NOPADDING", 16);
         setExpectedBlockSize("AES_256/GCM/NOPADDING", 16);
+        setExpectedBlockSize("AES_256/GCM-SIV/NOPADDING", 16);
         setExpectedBlockSize("PBEWITHMD5AND128BITAES-CBC-OPENSSL", 16);
         setExpectedBlockSize("PBEWITHMD5AND192BITAES-CBC-OPENSSL", 16);
         setExpectedBlockSize("PBEWITHMD5AND256BITAES-CBC-OPENSSL", 16);
@@ -574,6 +579,7 @@ public final class CipherTest {
         setExpectedOutputSize("AES/ECB/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES/ECB/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES/GCM/NOPADDING", Cipher.ENCRYPT_MODE, GCM_TAG_SIZE_BITS / 8);
+        setExpectedOutputSize("AES/GCM-SIV/NOPADDING", Cipher.ENCRYPT_MODE, GCM_SIV_TAG_SIZE_BITS / 8);
         setExpectedOutputSize("AES/OFB/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES/OFB/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_128/CBC/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
@@ -581,11 +587,13 @@ public final class CipherTest {
         setExpectedOutputSize("AES_128/ECB/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_128/ECB/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_128/GCM/NOPADDING", Cipher.ENCRYPT_MODE, GCM_TAG_SIZE_BITS / 8);
+        setExpectedOutputSize("AES_128/GCM-SIV/NOPADDING", Cipher.ENCRYPT_MODE, GCM_SIV_TAG_SIZE_BITS / 8);
         setExpectedOutputSize("AES_256/CBC/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_256/CBC/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_256/ECB/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_256/ECB/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_256/GCM/NOPADDING", Cipher.ENCRYPT_MODE, GCM_TAG_SIZE_BITS / 8);
+        setExpectedOutputSize("AES_256/GCM-SIV/NOPADDING", Cipher.ENCRYPT_MODE, GCM_SIV_TAG_SIZE_BITS / 8);
         setExpectedOutputSize("PBEWITHMD5AND128BITAES-CBC-OPENSSL", 16);
         setExpectedOutputSize("PBEWITHMD5AND192BITAES-CBC-OPENSSL", 16);
         setExpectedOutputSize("PBEWITHMD5AND256BITAES-CBC-OPENSSL", 16);
@@ -617,6 +625,7 @@ public final class CipherTest {
         setExpectedOutputSize("AES/ECB/PKCS5PADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES/ECB/PKCS7PADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES/GCM/NOPADDING", Cipher.DECRYPT_MODE, 0);
+        setExpectedOutputSize("AES/GCM-SIV/NOPADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES/OFB/PKCS5PADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES/OFB/PKCS7PADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES_128/CBC/PKCS5PADDING", Cipher.DECRYPT_MODE, 0);
@@ -624,11 +633,13 @@ public final class CipherTest {
         setExpectedOutputSize("AES_128/ECB/PKCS5PADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES_128/ECB/PKCS7PADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES_128/GCM/NOPADDING", Cipher.DECRYPT_MODE, 0);
+        setExpectedOutputSize("AES_128/GCM-SIV/NOPADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES_256/CBC/PKCS5PADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES_256/CBC/PKCS7PADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES_256/ECB/PKCS5PADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES_256/ECB/PKCS7PADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES_256/GCM/NOPADDING", Cipher.DECRYPT_MODE, 0);
+        setExpectedOutputSize("AES_256/GCM-SIV/NOPADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("PBEWITHMD5AND128BITAES-CBC-OPENSSL", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("PBEWITHMD5AND192BITAES-CBC-OPENSSL", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("PBEWITHMD5AND256BITAES-CBC-OPENSSL", Cipher.DECRYPT_MODE, 0);
@@ -916,6 +927,13 @@ public final class CipherTest {
             new SecureRandom().nextBytes(iv);
             return new GCMParameterSpec(GCM_TAG_SIZE_BITS, iv);
         }
+        if (algorithm.equals("AES/GCM-SIV/NOPADDING")
+            || algorithm.equals("AES_128/GCM-SIV/NOPADDING")
+            || algorithm.equals("AES_256/GCM-SIV/NOPADDING")) {
+            final byte[] iv = new byte[12];
+            new SecureRandom().nextBytes(iv);
+            return new GCMParameterSpec(GCM_SIV_TAG_SIZE_BITS, iv);
+        }
         if (algorithm.equals("AES/CBC/NOPADDING")
             || algorithm.equals("AES/CBC/PKCS5PADDING")
             || algorithm.equals("AES/CBC/PKCS7PADDING")
@@ -968,6 +986,11 @@ public final class CipherTest {
                     || "AES_128/GCM/NOPADDING".equals(algorithm)
                     || "AES_256/GCM/NOPADDING".equals(algorithm)) {
                 return new GCMParameterSpec(GCM_TAG_SIZE_BITS, iv);
+            }
+            if ("AES/GCM-SIV/NOPADDING".equals(algorithm)
+                || "AES_128/GCM-SIV/NOPADDING".equals(algorithm)
+                || "AES_256/GCM-SIV/NOPADDING".equals(algorithm)) {
+                return new GCMParameterSpec(GCM_SIV_TAG_SIZE_BITS, iv);
             }
             return new IvParameterSpec(iv);
         }
