@@ -56,7 +56,22 @@ public abstract class OpenSSLCipher extends CipherSpi {
         CTR,
         ECB,
         GCM,
+        GCM_SIV,
         POLY1305,
+        ;
+
+        public static Mode getNormalized(String modeString) {
+            modeString = modeString.toUpperCase(Locale.US);
+            // We use GCM-SIV as the mode string, but - isn't a valid identifier character, so
+            // we need to ensure GCM-SIV is recognized and GCM_SIV isn't.
+            if (modeString.equals("GCM-SIV")) {
+                return GCM_SIV;
+            } else if (modeString.equals("GCM_SIV")) {
+                throw new IllegalArgumentException("Invalid mode");
+            } else {
+                return Mode.valueOf(modeString);
+            }
+        }
     }
 
     /**
@@ -69,7 +84,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
         ;
 
         public static Padding getNormalized(String value) {
-            Padding p = Padding.valueOf(value);
+            Padding p = Padding.valueOf(value.toUpperCase(Locale.US));
             if (p == PKCS7PADDING) {
                 return PKCS5PADDING;
             }
@@ -183,7 +198,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
     protected void engineSetMode(String modeStr) throws NoSuchAlgorithmException {
         final Mode mode;
         try {
-            mode = Mode.valueOf(modeStr.toUpperCase(Locale.US));
+            mode = Mode.getNormalized(modeStr);
         } catch (IllegalArgumentException e) {
             NoSuchAlgorithmException newE = new NoSuchAlgorithmException("No such mode: " + modeStr);
             newE.initCause(e);
@@ -195,10 +210,9 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     @Override
     protected void engineSetPadding(String paddingStr) throws NoSuchPaddingException {
-        final String paddingStrUpper = paddingStr.toUpperCase(Locale.US);
         final Padding padding;
         try {
-            padding = Padding.getNormalized(paddingStrUpper);
+            padding = Padding.getNormalized(paddingStr);
         } catch (IllegalArgumentException e) {
             NoSuchPaddingException newE = new NoSuchPaddingException("No such padding: "
                     + paddingStr);

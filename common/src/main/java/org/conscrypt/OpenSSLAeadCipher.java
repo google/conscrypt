@@ -36,7 +36,7 @@ abstract class OpenSSLAeadCipher extends OpenSSLCipher {
      * The default tag size when one is not specified. Default to
      * full-length tags (128-bits or 16 octets).
      */
-    private static final int DEFAULT_TAG_SIZE_BITS = 16 * 8;
+    static final int DEFAULT_TAG_SIZE_BITS = 16 * 8;
 
     /**
      * Keeps track of the last used block size.
@@ -158,10 +158,7 @@ abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             }
         }
 
-        if (tagLenBits % 8 != 0) {
-            throw new InvalidAlgorithmParameterException(
-                    "Tag length must be a multiple of 8; was " + tagLengthInBytes);
-        }
+        checkSupportedTagLength(tagLenBits);
 
         tagLengthInBytes = tagLenBits / 8;
 
@@ -189,7 +186,7 @@ abstract class OpenSSLAeadCipher extends OpenSSLCipher {
                     + expectedIvLength + " but was " + iv.length);
         }
 
-        if (isEncrypting() && iv != null) {
+        if (isEncrypting() && iv != null && !allowsNonceReuse()) {
             if (previousKey != null && previousIv != null
                     && arraysAreEqual(previousKey, encodedKey)
                     && arraysAreEqual(previousIv, iv)) {
@@ -204,6 +201,23 @@ abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         mustInitialize = false;
         this.iv = iv;
         reset();
+    }
+
+    void checkSupportedTagLength(int tagLenBits)
+            throws InvalidAlgorithmParameterException {
+        if (tagLenBits % 8 != 0) {
+            throw new InvalidAlgorithmParameterException(
+                    "Tag length must be a multiple of 8; was " + tagLenBits);
+        }
+    }
+
+    /**
+     * Returns whether reusing nonces is allowed (aka, whether this is nonce misuse-resistant).
+     * Most AEAD ciphers are not, but some are specially constructed so that reusing a key/nonce
+     * pair is safe.
+     */
+    boolean allowsNonceReuse() {
+        return false;
     }
 
     @Override

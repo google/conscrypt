@@ -72,6 +72,7 @@ public final class CipherBasicsTest {
     private static final Map<String, String> AEAD_CIPHER_TO_TEST_DATA = new HashMap<String, String>();
     static {
         AEAD_CIPHER_TO_TEST_DATA.put("AES/GCM/NoPadding", "/crypto/aes-gcm.csv");
+        AEAD_CIPHER_TO_TEST_DATA.put("AES/GCM-SIV/NoPadding", "/crypto/aes-gcm-siv.csv");
         AEAD_CIPHER_TO_TEST_DATA.put("ChaCha20/Poly1305/NoPadding", "/crypto/chacha20-poly1305.csv");
     }
 

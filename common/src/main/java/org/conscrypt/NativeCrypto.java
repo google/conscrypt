@@ -321,6 +321,10 @@ public final class NativeCrypto {
 
     static native long EVP_aead_chacha20_poly1305();
 
+    static native long EVP_aead_aes_128_gcm_siv();
+
+    static native long EVP_aead_aes_256_gcm_siv();
+
     static native int EVP_AEAD_max_overhead(long evpAead);
 
     static native int EVP_AEAD_nonce_length(long evpAead);

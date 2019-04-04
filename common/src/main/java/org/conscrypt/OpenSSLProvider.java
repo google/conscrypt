@@ -423,6 +423,12 @@ public final class OpenSSLProvider extends Provider {
         putSymmetricCipherImplClass(
                 "AES_256/GCM/NoPadding", "OpenSSLAeadCipherAES$GCM$AES_256");
 
+        putSymmetricCipherImplClass("AES/GCM-SIV/NoPadding", "OpenSSLAeadCipherAES$GCM_SIV");
+        putSymmetricCipherImplClass(
+            "AES_128/GCM-SIV/NoPadding", "OpenSSLAeadCipherAES$GCM_SIV$AES_128");
+        putSymmetricCipherImplClass(
+            "AES_256/GCM-SIV/NoPadding", "OpenSSLAeadCipherAES$GCM_SIV$AES_256");
+
         putSymmetricCipherImplClass("ChaCha20",
                 "OpenSSLCipherChaCha20");
         putSymmetricCipherImplClass("ChaCha20/Poly1305/NoPadding",
