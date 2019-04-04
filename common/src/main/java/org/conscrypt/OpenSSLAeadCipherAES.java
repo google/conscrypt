@@ -165,7 +165,7 @@ abstract class OpenSSLAeadCipherAES extends OpenSSLAeadCipher {
         @Override
         void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
             if (mode != Mode.GCM_SIV) {
-                throw new NoSuchAlgorithmException("Mode must be GCM");
+                throw new NoSuchAlgorithmException("Mode must be GCM-SIV");
             }
         }
 
