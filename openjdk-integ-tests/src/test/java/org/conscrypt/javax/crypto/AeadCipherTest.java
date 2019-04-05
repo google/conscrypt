@@ -58,7 +58,7 @@ public class AeadCipherTest {
       nonce[0] = counter++;
       return new IvParameterSpec(nonce);
     } else {
-      throw new IllegalStateException("Couldn't generate algorithm paramter spec for " + cipher);
+      throw new IllegalStateException("Couldn't generate algorithm parameter spec for " + cipher);
     }
   }
 
