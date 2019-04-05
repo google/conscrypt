@@ -39,6 +39,7 @@ import org.conscrypt.java.security.MessageDigestTest;
 import org.conscrypt.java.security.SignatureTest;
 import org.conscrypt.java.security.cert.CertificateFactoryTest;
 import org.conscrypt.java.security.cert.X509CertificateTest;
+import org.conscrypt.javax.crypto.AeadCipherTest;
 import org.conscrypt.javax.crypto.CipherBasicsTest;
 import org.conscrypt.javax.crypto.KeyGeneratorTest;
 import org.conscrypt.javax.net.ssl.HttpsURLConnectionTest;
@@ -87,6 +88,7 @@ import org.junit.runners.Suite;
         MessageDigestTest.class,
         SignatureTest.class,
         // javax.crypto tests
+        AeadCipherTest.class,
         CipherBasicsTest.class,
         // CipherTest.class,  // Lots of weird, broken behaviors in Sun* providers on OpenJDK 7
         // ECDHKeyAgreementTest.class,  // EC keys are broken on OpenJDK 7
