@@ -71,6 +71,7 @@ import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class SignatureTest {
@@ -80,33 +81,24 @@ public class SignatureTest {
 
     @Test
     public void test_getInstance() throws Exception {
-        Provider[] providers = Security.getProviders();
-        for (Provider provider : providers) {
+        ServiceTester.test("Signature")
             // Do not test AndroidKeyStore's Signature. It needs an AndroidKeyStore-specific key.
             // It's OKish not to test AndroidKeyStore's Signature here because it's tested
             // by cts/tests/test/keystore.
-            if (provider.getName().startsWith("AndroidKeyStore")) {
-                continue;
-            }
-            Set<Provider.Service> services = provider.getServices();
-            for (Provider.Service service : services) {
-                String type = service.getType();
-                if (!type.equals("Signature")) {
-                    continue;
-                }
-                if (service.getProvider().getName().equalsIgnoreCase("SunMSCAPI")
-                    || service.getProvider().getName().equalsIgnoreCase("SunPKCS11-NSS")) {
-                    // The SunMSCAPI is very strange, including only supporting its own keys,
-                    // so don't test it.
-                    // SunPKCS11-NSS has a problem where failed verifications can leave the
-                    // operation open, which results in future init() calls to throw an exception.
-                    // This appears to be a problem in the underlying library (see
-                    // https://bugs.openjdk.java.net/browse/JDK-8044554), but skip verifying it all
-                    // the same.
-                    continue;
-                }
-                String algorithm = service.getAlgorithm();
-                try {
+            .skipProvider("AndroidKeyStore")
+            .skipProvider("AndroidKeyStoreBCWorkaround")
+            // The SunMSCAPI is very strange, including only supporting its own keys,
+            // so don't test it.
+            .skipProvider("SunMSCAPI")
+            // SunPKCS11-NSS has a problem where failed verifications can leave the
+            // operation open, which results in future init() calls to throw an exception.
+            // This appears to be a problem in the underlying library (see
+            // https://bugs.openjdk.java.net/browse/JDK-8044554), but skip verifying it all
+            // the same.
+            .skipProvider("SunPKCS11-NSS")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider provider, String algorithm) throws Exception {
                     KeyPair kp = keyPair(algorithm, provider.getName());
                     // Signature.getInstance(String)
                     Signature sig1 = Signature.getInstance(algorithm);
@@ -124,12 +116,8 @@ public class SignatureTest {
                     assertEquals(algorithm, sig3.getAlgorithm());
                     assertEquals(provider, sig3.getProvider());
                     test_Signature(sig3, kp);
-                } catch (Exception e) {
-                    throw new Exception("Problem testing Signature." + algorithm
-                            + " from provider " + provider.getName(), e);
                 }
-            }
-        }
+            });
     }
 
     private final Map<String, KeyPair> keypairAlgorithmToInstance

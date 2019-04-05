@@ -28,11 +28,9 @@ import java.security.KeyStore.PasswordProtection;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.PrivateKey;
 import java.security.Provider;
-import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
-import java.util.Set;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.KeyStoreBuilderParameters;
@@ -45,6 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class KeyManagerFactoryTest {
@@ -299,40 +298,24 @@ public class KeyManagerFactoryTest {
 
     @Test
     public void test_KeyManagerFactory_getInstance() throws Exception {
-        Provider[] providers = Security.getProviders();
-        for (Provider provider : providers) {
-            Set<Provider.Service> services = provider.getServices();
-            for (Provider.Service service : services) {
-                String type = service.getType();
-                if (!type.equals("KeyManagerFactory")) {
-                    continue;
-                }
-                String algorithm = service.getAlgorithm();
-                try {
-                    {
-                        KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm);
-                        assertEquals(algorithm, kmf.getAlgorithm());
-                        test_KeyManagerFactory(kmf);
-                    }
+        ServiceTester.test("KeyManagerFactory")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider provider, String algorithm) throws Exception {
+                    KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm);
+                    assertEquals(algorithm, kmf.getAlgorithm());
+                    test_KeyManagerFactory(kmf);
 
-                    {
-                        KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm, provider);
-                        assertEquals(algorithm, kmf.getAlgorithm());
-                        assertEquals(provider, kmf.getProvider());
-                        test_KeyManagerFactory(kmf);
-                    }
+                    kmf = KeyManagerFactory.getInstance(algorithm, provider);
+                    assertEquals(algorithm, kmf.getAlgorithm());
+                    assertEquals(provider, kmf.getProvider());
+                    test_KeyManagerFactory(kmf);
 
-                    {
-                        KeyManagerFactory kmf =
-                                KeyManagerFactory.getInstance(algorithm, provider.getName());
-                        assertEquals(algorithm, kmf.getAlgorithm());
-                        assertEquals(provider, kmf.getProvider());
-                        test_KeyManagerFactory(kmf);
-                    }
-                } catch (Exception e) {
-                    throw new Exception("Problem with algorithm " + algorithm, e);
+                    kmf = KeyManagerFactory.getInstance(algorithm, provider.getName());
+                    assertEquals(algorithm, kmf.getAlgorithm());
+                    assertEquals(provider, kmf.getProvider());
+                    test_KeyManagerFactory(kmf);
                 }
-            }
-        }
+            });
     }
 }

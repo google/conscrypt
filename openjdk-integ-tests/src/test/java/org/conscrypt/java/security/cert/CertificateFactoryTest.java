@@ -66,6 +66,7 @@ import org.conscrypt.java.security.StandardNames;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class CertificateFactoryTest {
@@ -195,20 +196,20 @@ public class CertificateFactoryTest {
 
     @Test
     public void test_generateCertificate() throws Exception {
-        Provider[] providers = Security.getProviders("CertificateFactory.X509");
-        for (Provider p : providers) {
-            CertificateFactory cf = CertificateFactory.getInstance("X509", p);
-            try {
-                test_generateCertificate(cf);
-                test_generateCertificate_InputStream_Offset_Correct(cf);
-                test_generateCertificate_InputStream_Empty(cf);
-                test_generateCertificate_InputStream_InvalidStart_Failure(cf);
-                test_generateCertificate_AnyLineLength_Success(cf);
-                test_generateCertificate_PartialInput(cf);
-            } catch (Throwable e) {
-                throw new Exception("Problem testing " + p.getName(), e);
-            }
-        }
+        ServiceTester.test("CertificateFactory")
+            .withAlgorithm("X509")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider p, String algorithm) throws Exception {
+                    CertificateFactory cf = CertificateFactory.getInstance("X509", p);
+                    test_generateCertificate(cf);
+                    test_generateCertificate_InputStream_Offset_Correct(cf);
+                    test_generateCertificate_InputStream_Empty(cf);
+                    test_generateCertificate_InputStream_InvalidStart_Failure(cf);
+                    test_generateCertificate_AnyLineLength_Success(cf);
+                    test_generateCertificate_PartialInput(cf);
+                }
+            });
     }
 
     private void test_generateCertificate(CertificateFactory cf) throws Exception {

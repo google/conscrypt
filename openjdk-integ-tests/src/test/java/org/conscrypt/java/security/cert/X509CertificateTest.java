@@ -22,7 +22,6 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
 import java.security.Provider;
-import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -30,6 +29,7 @@ import java.security.cert.CertificateParsingException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class X509CertificateTest {
@@ -125,21 +125,21 @@ public class X509CertificateTest {
     // See issue #539.
     @Test
     public void testMismatchedAlgorithm() throws Exception {
-        Provider[] providers = Security.getProviders("CertificateFactory.X509");
-        for (Provider p : providers) {
-            CertificateFactory cf = CertificateFactory.getInstance("X509", p);
-            try {
-                try {
-                    Certificate c = cf.generateCertificate(new ByteArrayInputStream(
+        ServiceTester.test("CertificateFactory")
+            .withAlgorithm("X509")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider p, String algorithm) throws Exception {
+                    CertificateFactory cf = CertificateFactory.getInstance("X509", p);
+                    try {
+                        Certificate c = cf.generateCertificate(new ByteArrayInputStream(
                             MISMATCHED_ALGORITHM_CERT.getBytes(Charset.forName("US-ASCII"))));
-                    c.verify(c.getPublicKey());
-                    fail();
-                } catch (CertificateException expected) {
+                        c.verify(c.getPublicKey());
+                        fail();
+                    } catch (CertificateException expected) {
+                    }
                 }
-            } catch (Throwable e) {
-                throw new Exception("Failed testing " + p.getName(), e);
-            }
-        }
+            });
     }
 
     /**
@@ -147,24 +147,26 @@ public class X509CertificateTest {
      */
     @Test
     public void testExplicitEcParams() throws Exception {
-        Provider[] providers = Security.getProviders("CertificateFactory.X509");
-        for (Provider p : providers) {
-            if (p.getName().equals("BC")) {
-                // Bouncy Castle allows explicit EC params in certificates, even though they're
-                // barred by RFC 5480
-                continue;
-            }
-            try {
-                CertificateFactory cf = CertificateFactory.getInstance("X509", p);
-                Certificate c = cf.generateCertificate(new ByteArrayInputStream(
-                        EC_EXPLICIT_KEY_CERT.getBytes(Charset.forName("US-ASCII"))));
-                c.verify(c.getPublicKey());
-                fail("Provider: " + p.getName());
-            } catch (InvalidKeyException expected) {
-                // TODO: Should we throw CertificateParsingException at parse time
-                // instead of waiting for when the user accesses the key?
-            } catch (CertificateParsingException expected) {
-            }
-        }
+        ServiceTester.test("CertificateFactory")
+            .withAlgorithm("X509")
+            // Bouncy Castle allows explicit EC params in certificates, even though they're
+            // barred by RFC 5480
+            .skipProvider("BC")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider p, String algorithm) throws Exception {
+                    try {
+                        CertificateFactory cf = CertificateFactory.getInstance("X509", p);
+                        Certificate c = cf.generateCertificate(new ByteArrayInputStream(
+                            EC_EXPLICIT_KEY_CERT.getBytes(Charset.forName("US-ASCII"))));
+                        c.verify(c.getPublicKey());
+                        fail();
+                    } catch (InvalidKeyException expected) {
+                        // TODO: Should we throw CertificateParsingException at parse time
+                        // instead of waiting for when the user accesses the key?
+                    } catch (CertificateParsingException expected) {
+                    }
+                }
+            });
     }
 }

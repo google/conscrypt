@@ -144,12 +144,8 @@ public final class TestKeyStore {
     private static TestKeyStore CLIENT_2;
 
     static {
-        if (StandardNames.IS_RI) {
-            // Needed to create BKS keystore but add at end so most
-            // algorithm come from the default providers
-            Security.insertProviderAt(
-                    new BouncyCastleProvider(), Security.getProviders().length + 1);
-        } else if (!BouncyCastleProvider.class.getName().startsWith("com.android")) {
+        if (!StandardNames.IS_RI
+            && !BouncyCastleProvider.class.getName().startsWith("com.android")) {
             // If we run outside of the Android system, we need to make sure
             // that the BouncyCastleProvider's static field keyInfoConverters
             // is initialized. This happens in the default constructor only.
