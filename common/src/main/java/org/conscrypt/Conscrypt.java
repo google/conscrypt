@@ -22,6 +22,8 @@ import java.security.KeyManagementException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLContextSpi;
@@ -34,6 +36,8 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
+import static java.lang.Integer.*;
 
 /**
  * Core API for creating and configuring all Conscrypt types.
@@ -54,12 +58,14 @@ public final class Conscrypt {
         }
     }
 
-    public static class Version {
+    public static class Version implements Comparable<Version> {
+        private static Pattern VERSION_PATTERN = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)");
+
         private final int major;
         private final int minor;
         private final int patch;
 
-        private Version(int major, int minor, int patch) {
+        public Version(int major, int minor, int patch) {
             this.major = major;
             this.minor = minor;
             this.patch = patch;
@@ -68,6 +74,54 @@ public final class Conscrypt {
         public int major() { return major; }
         public int minor() { return minor; }
         public int patch() { return patch; }
+
+        @Override public int compareTo(Version o) {
+            if (major != o.major)
+                return compare(major, o.major);
+
+            if (minor != o.minor)
+                return compare(minor, o.minor);
+
+            return compare(patch, o.patch);
+        }
+
+        @Override public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Version version = (Version) o;
+
+            if (major != version.major) return false;
+            if (minor != version.minor) return false;
+            return patch == version.patch;
+        }
+
+        @Override public int hashCode() {
+            int result = major;
+            result = 31 * result + minor;
+            result = 31 * result + patch;
+            return result;
+        }
+
+        @Override public String toString() {
+            return major + "." + minor + "." + patch;
+        }
+
+        public boolean atLeast(Version o) {
+            return compareTo(o) >= 0;
+        }
+
+        public static Version fromString(String version) {
+            Matcher matcher = VERSION_PATTERN.matcher(version);
+
+            if (!matcher.matches())
+                throw new IllegalArgumentException("Bad version string '" + version + "'");
+
+            return new Version(
+                parseInt(matcher.group(1)),
+                parseInt(matcher.group(2)),
+                parseInt(matcher.group(3)));
+        }
     }
 
     private static final Version VERSION;
@@ -81,9 +135,9 @@ public final class Conscrypt {
             if (stream != null) {
                 Properties props = new Properties();
                 props.load(stream);
-                major = Integer.parseInt(props.getProperty("org.conscrypt.version.major", "-1"));
-                minor = Integer.parseInt(props.getProperty("org.conscrypt.version.minor", "-1"));
-                patch = Integer.parseInt(props.getProperty("org.conscrypt.version.patch", "-1"));
+                major = parseInt(props.getProperty("org.conscrypt.version.major", "-1"));
+                minor = parseInt(props.getProperty("org.conscrypt.version.minor", "-1"));
+                patch = parseInt(props.getProperty("org.conscrypt.version.patch", "-1"));
             }
         } catch (IOException e) {
         }
