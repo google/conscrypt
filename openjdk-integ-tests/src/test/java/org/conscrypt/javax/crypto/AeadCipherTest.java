@@ -12,12 +12,19 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.conscrypt.TestUtils;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class AeadCipherTest {
+
+  @BeforeClass
+  public static void setUp() {
+    TestUtils.assumeAllowsUnsignedCrypto();
+  }
 
   @Parameterized.Parameters(name = "{0}")
   public static Iterable<String> ciphers() {
