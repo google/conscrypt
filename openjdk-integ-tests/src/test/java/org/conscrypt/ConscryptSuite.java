@@ -39,6 +39,7 @@ import org.conscrypt.java.security.MessageDigestTest;
 import org.conscrypt.java.security.SignatureTest;
 import org.conscrypt.java.security.cert.CertificateFactoryTest;
 import org.conscrypt.java.security.cert.X509CertificateTest;
+import org.conscrypt.javax.crypto.AeadCipherTest;
 import org.conscrypt.javax.crypto.CipherBasicsTest;
 import org.conscrypt.javax.crypto.CipherTest;
 import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
@@ -89,6 +90,7 @@ import org.junit.runners.Suite;
         MessageDigestTest.class,
         SignatureTest.class,
         // javax.crypto tests
+        AeadCipherTest.class,
         CipherBasicsTest.class,
         CipherTest.class,
         ECDHKeyAgreementTest.class,
