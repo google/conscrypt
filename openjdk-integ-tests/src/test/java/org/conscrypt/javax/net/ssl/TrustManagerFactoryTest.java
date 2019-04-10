@@ -27,13 +27,11 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.Provider;
-import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.PKIXBuilderParameters;
 import java.security.cert.PKIXParameters;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
-import java.util.Set;
 import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.TrustManager;
@@ -46,6 +44,7 @@ import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class TrustManagerFactoryTest {
@@ -193,74 +192,57 @@ public class TrustManagerFactoryTest {
 
     @Test
     public void test_TrustManagerFactory_getInstance() throws Exception {
-        Provider[] providers = Security.getProviders();
-        for (Provider provider : providers) {
-            Set<Provider.Service> services = provider.getServices();
-            for (Provider.Service service : services) {
-                String type = service.getType();
-                if (!type.equals("TrustManagerFactory")) {
-                    continue;
-                }
-                String algorithm = service.getAlgorithm();
-                {
+        ServiceTester.test("TrustManagerFactory")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider provider, String algorithm) throws Exception {
                     TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
                     assertEquals(algorithm, tmf.getAlgorithm());
                     test_TrustManagerFactory(tmf);
-                }
 
-                {
-                    TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm, provider);
+                    tmf = TrustManagerFactory.getInstance(algorithm, provider);
+                    assertEquals(algorithm, tmf.getAlgorithm());
+                    assertEquals(provider, tmf.getProvider());
+                    test_TrustManagerFactory(tmf);
+
+                    tmf = TrustManagerFactory.getInstance(algorithm, provider.getName());
                     assertEquals(algorithm, tmf.getAlgorithm());
                     assertEquals(provider, tmf.getProvider());
                     test_TrustManagerFactory(tmf);
                 }
-
-                {
-                    TrustManagerFactory tmf =
-                            TrustManagerFactory.getInstance(algorithm, provider.getName());
-                    assertEquals(algorithm, tmf.getAlgorithm());
-                    assertEquals(provider, tmf.getProvider());
-                    test_TrustManagerFactory(tmf);
-                }
-            }
-        }
+            });
     }
 
     @Test
     public void test_TrustManagerFactory_intermediate() throws Exception {
         // chain should be server/intermediate/root
         PrivateKeyEntry pke = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
-        X509Certificate[] chain = (X509Certificate[]) pke.getCertificateChain();
+        final X509Certificate[] chain = (X509Certificate[]) pke.getCertificateChain();
         assertEquals(3, chain.length);
 
         // keyStore should contain only the intermediate CA so we can
         // test proper validation even if there are extra certs after
         // the trusted one (in this case the original root is "extra")
-        KeyStore keyStore = TestKeyStore.createKeyStore();
+        final KeyStore keyStore = TestKeyStore.createKeyStore();
         keyStore.setCertificateEntry("alias", chain[1]);
 
-        Provider[] providers = Security.getProviders();
-        for (Provider provider : providers) {
-            Set<Provider.Service> services = provider.getServices();
-            for (Provider.Service service : services) {
-                String type = service.getType();
-                if (!type.equals("TrustManagerFactory")) {
-                    continue;
-                }
-                String algorithm = service.getAlgorithm();
-                TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
-                tmf.init(keyStore);
-                TrustManager[] trustManagers = tmf.getTrustManagers();
-                for (TrustManager trustManager : trustManagers) {
-                    if (!(trustManager instanceof X509TrustManager)) {
-                        continue;
+        ServiceTester.test("TrustManagerFactory")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider p, String algorithm) throws Exception {
+                    TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
+                    tmf.init(keyStore);
+                    TrustManager[] trustManagers = tmf.getTrustManagers();
+                    for (TrustManager trustManager : trustManagers) {
+                        if (!(trustManager instanceof X509TrustManager)) {
+                            continue;
+                        }
+                        X509TrustManager tm = (X509TrustManager) trustManager;
+                        tm.checkClientTrusted(chain, "RSA");
+                        tm.checkServerTrusted(chain, "RSA");
                     }
-                    X509TrustManager tm = (X509TrustManager) trustManager;
-                    tm.checkClientTrusted(chain, "RSA");
-                    tm.checkServerTrusted(chain, "RSA");
                 }
-            }
-        }
+            });
     }
 
     @Test

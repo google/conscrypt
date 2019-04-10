@@ -21,14 +21,13 @@ import static org.junit.Assert.assertEquals;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
-import java.security.Security;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public final class MessageDigestTest {
@@ -49,16 +48,10 @@ public final class MessageDigestTest {
 
     @Test
     public void test_getInstance() throws Exception {
-        Provider[] providers = Security.getProviders();
-        for (Provider provider : providers) {
-            Set<Provider.Service> services = provider.getServices();
-            for (Provider.Service service : services) {
-                String type = service.getType();
-                if (!type.equals("MessageDigest")) {
-                    continue;
-                }
-                String algorithm = service.getAlgorithm();
-                try {
+        ServiceTester.test("MessageDigest")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider provider, String algorithm) throws Exception {
                     // MessageDigest.getInstance(String)
                     MessageDigest md1 = MessageDigest.getInstance(algorithm);
                     assertEquals(algorithm, md1.getAlgorithm());
@@ -75,12 +68,8 @@ public final class MessageDigestTest {
                     assertEquals(algorithm, md3.getAlgorithm());
                     assertEquals(provider, md3.getProvider());
                     test_MessageDigest(md3);
-                } catch (Exception e) {
-                    throw new Exception("Problem testing MessageDigest." + algorithm
-                            + " from provider " + provider.getName(), e);
                 }
-            }
-        }
+            });
     }
 
     private static final Map<String, Map<String, byte[]>> EXPECTATIONS

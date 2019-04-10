@@ -19,14 +19,13 @@ import static org.junit.Assert.assertEquals;
 
 import java.math.BigInteger;
 import java.security.AlgorithmParameters;
-import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
-import java.security.Security;
 import java.security.spec.DSAParameterSpec;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class AlgorithmParametersTestDSA extends AbstractAlgorithmParametersTest {
@@ -121,30 +120,28 @@ public class AlgorithmParametersTestDSA extends AbstractAlgorithmParametersTest 
 
     @Test
     public void testEncoding() throws Exception {
-        for (Provider p : Security.getProviders()) {
-            AlgorithmParameters params;
-            try {
-                params = AlgorithmParameters.getInstance("DSA", p);
-            } catch (NoSuchAlgorithmException e) {
-                // This provider doesn't support DSA, ignore
-                continue;
-            }
+        ServiceTester.test("AlgorithmParameters")
+            .withAlgorithm("DSA")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider p, String algorithm) throws Exception {
+                    AlgorithmParameters params = AlgorithmParameters.getInstance("DSA", p);
 
-            DSAParameterSpec spec = new DSAParameterSpec(
-                    new BigInteger(1, P), new BigInteger(1, Q), new BigInteger(1, G));
+                    DSAParameterSpec spec = new DSAParameterSpec(
+                            new BigInteger(1, P), new BigInteger(1, Q), new BigInteger(1, G));
 
-            params.init(spec);
-            assertEquals("Provider: " + p.getName(),
-                    ENCODED_DATA, TestUtils.encodeBase64(params.getEncoded()));
+                    params.init(spec);
+                    assertEquals(ENCODED_DATA, TestUtils.encodeBase64(params.getEncoded()));
 
-            params = AlgorithmParameters.getInstance("DSA", p);
-            params.init(TestUtils.decodeBase64(ENCODED_DATA));
-            DSAParameterSpec derivedSpec = params.getParameterSpec(DSAParameterSpec.class);
+                    params = AlgorithmParameters.getInstance("DSA", p);
+                    params.init(TestUtils.decodeBase64(ENCODED_DATA));
+                    DSAParameterSpec derivedSpec = params.getParameterSpec(DSAParameterSpec.class);
 
-            assertEquals("Provider: " + p.getName(), new BigInteger(1, P), derivedSpec.getP());
-            assertEquals("Provider: " + p.getName(), new BigInteger(1, Q), derivedSpec.getQ());
-            assertEquals("Provider: " + p.getName(), new BigInteger(1, G), derivedSpec.getG());
-        }
+                    assertEquals(new BigInteger(1, P), derivedSpec.getP());
+                    assertEquals(new BigInteger(1, Q), derivedSpec.getQ());
+                    assertEquals(new BigInteger(1, G), derivedSpec.getG());
+                }
+            });
     }
 
 }
