@@ -238,9 +238,16 @@ int throwForCipherError(JNIEnv* env, int reason, const char* message,
         case CIPHER_R_WRONG_FINAL_BLOCK_LENGTH:
             return throwIllegalBlockSizeException(env, message);
             break;
-        case CIPHER_R_AES_KEY_SETUP_FAILED:
+        // TODO(davidben): Remove these ifdefs after
+        // https://boringssl-review.googlesource.com/c/boringssl/+/35565 has
+        // rolled out to relevant BoringSSL copies.
+#if defined(CIPHER_R_BAD_KEY_LENGTH)
         case CIPHER_R_BAD_KEY_LENGTH:
+#endif
+#if defined(CIPHER_R_UNSUPPORTED_KEY_SIZE)
         case CIPHER_R_UNSUPPORTED_KEY_SIZE:
+#endif
+        case CIPHER_R_INVALID_KEY_LENGTH:
             return throwInvalidKeyException(env, message);
             break;
         case CIPHER_R_BUFFER_TOO_SMALL:
