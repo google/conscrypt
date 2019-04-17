@@ -103,6 +103,12 @@ public final class CipherBasicsTest {
                     continue;
                 }
 
+                // The SunJCE implementation of ChaCha20 only supports initializing with
+                // ChaCha20ParameterSpec, introduced in Java 11.  For now, just skip testing it.
+                if (transformation.equals("ChaCha20") && p.getName().equals("SunJCE")) {
+                    continue;
+                }
+
                 Cipher cipher;
                 try {
                     cipher = Cipher.getInstance(transformation, p);
