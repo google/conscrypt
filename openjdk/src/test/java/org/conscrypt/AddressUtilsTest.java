@@ -64,6 +64,8 @@ public class AddressUtilsTest extends TestCase {
         assertFalse(AddressUtils.isLiteralIpAddress("0.0.00.0009"));
         assertFalse(AddressUtils.isLiteralIpAddress("192.009z.010.19"));
         assertFalse(AddressUtils.isLiteralIpAddress("254.249..094"));
+        assertFalse(AddressUtils.isLiteralIpAddress("192.168.2.1%1"));
+        assertFalse(AddressUtils.isLiteralIpAddress("192.168.2.1%eth0"));
     }
 
     public void test_isLiteralIpAddress_IPv4_NumbersTooLarge_Failure() throws Exception {
@@ -78,6 +80,9 @@ public class AddressUtilsTest extends TestCase {
         assertTrue(AddressUtils.isLiteralIpAddress("2001:cdbA:0000:0000:0000:0000:3257:9652"));
         assertTrue(AddressUtils.isLiteralIpAddress("2001:cdba:0:0:0:0:3257:9652"));
         assertTrue(AddressUtils.isLiteralIpAddress("2001:cdBA::3257:9652"));
+        assertTrue(AddressUtils.isLiteralIpAddress("2001:cdba::3257:9652%1"));
+        assertTrue(AddressUtils.isLiteralIpAddress("2001:cdba::3257:9652%eth0"));
+        assertTrue(AddressUtils.isLiteralIpAddress("2001:cdba::3257:9652%int2.3!"));
     }
 
     public void test_isLiteralIpAddress_IPv6_Failure() throws Exception {
@@ -90,5 +95,6 @@ public class AddressUtilsTest extends TestCase {
         assertFalse(AddressUtils.isLiteralIpAddress("2001:cdba:0::0:0:0:3257:9652"));
         assertFalse(AddressUtils.isLiteralIpAddress("02001:cdba::3257:9652"));
         assertFalse(AddressUtils.isLiteralIpAddress("2001:cdba::3257:96521"));
+        assertFalse(AddressUtils.isLiteralIpAddress("2001:cdba::3257:9652%"));
     }
 }
