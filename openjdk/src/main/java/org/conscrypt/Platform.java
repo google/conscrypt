@@ -544,7 +544,10 @@ final class Platform {
     static String oidToAlgorithmName(String oid) {
         try {
             return AlgorithmId.get(oid).getName();
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Exception e) {
+            return oid;
+        } catch (IllegalAccessError e) {
+            // This can happen under JPMS because AlgorithmId isn't exported by java.base
             return oid;
         }
     }

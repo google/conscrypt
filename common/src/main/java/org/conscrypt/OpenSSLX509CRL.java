@@ -348,7 +348,11 @@ final class OpenSSLX509CRL extends X509CRL {
     @Override
     public String getSigAlgName() {
         String oid = getSigAlgOID();
-        String algName = Platform.oidToAlgorithmName(oid);
+        String algName = OidData.oidToAlgorithmName(oid);
+        if (algName != null) {
+            return algName;
+        }
+        algName = Platform.oidToAlgorithmName(oid);
         if (algName != null) {
             return algName;
         }
