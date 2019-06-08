@@ -129,7 +129,7 @@ arm64-v8a.
 
 ```gradle
 dependencies {
-  compile 'org.conscrypt:conscrypt-android:2.1.0'
+  implementation 'org.conscrypt:conscrypt-android:2.1.0'
 }
 ```
 
