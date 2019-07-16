@@ -1,4 +1,5 @@
 language: android
+dist: trusty
 
 env:
   global:
@@ -18,7 +19,6 @@ matrix:
     ###
     - os: linux
       jdk: openjdk8
-      sudo: false
 
       env:
         - ANDROID_TOOLS_URL="https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip"
@@ -46,13 +46,11 @@ matrix:
       addons:
         apt:
           sources:
-            - kalakris-cmake
             - llvm-toolchain-trusty-5.0
             - ubuntu-toolchain-r-test
           packages:
             - clang-5.0
             - clang-format-5.0  # for style checks
-            - cmake
             - g++-multilib
             - gcc-multilib
             - libc6-dev-i386
