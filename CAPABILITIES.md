@@ -221,9 +221,12 @@ Conscrypt's EC AlgorithmParameters implementation only supports named curves.
 
 ### Elliptic Curves
 
-Conscrypt supports the following curves:
+Conscrypt supports the following curves in EC crypto operations (such as ECDSA signatures) and TLS:
 
-* secp224r1
-* prime256v1 (aka secp256r1)
-* secp384r1
-* secp521r1
+| Curve | EC Crypto |  TLS  |
+| ----- | :-------: | :---: |
+| secp224r1 | X |   |
+| prime256v1<br/>(aka secp256r1) | X | X |
+| secp384r1 | X | X |
+| secp521r1 | X |   |
+| x25519 |   | X |
