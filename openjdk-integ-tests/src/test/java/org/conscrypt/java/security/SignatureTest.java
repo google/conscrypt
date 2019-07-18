@@ -36,6 +36,7 @@ import java.security.ProviderException;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.DSAPrivateKeySpec;
 import java.security.spec.DSAPublicKeySpec;
 import java.security.spec.ECFieldFp;
@@ -130,12 +131,15 @@ public class SignatureTest {
 
         String kpAlgorithm;
         // note ECDSA must be before DSA
-        if (sigAlgorithmUpperCase.endsWith("ECDSA")) {
+        if (sigAlgorithmUpperCase.endsWith("ECDSA")
+            || sigAlgorithmUpperCase.endsWith("ECDSAINP1363FORMAT")) {
             kpAlgorithm = "EC";
-        } else if (sigAlgorithmUpperCase.endsWith("DSA")) {
+        } else if (sigAlgorithmUpperCase.endsWith("DSA")
+                || sigAlgorithmUpperCase.endsWith("DSAINP1363FORMAT")) {
             kpAlgorithm = "DSA";
         } else if (sigAlgorithmUpperCase.endsWith("RSA")
-                || sigAlgorithmUpperCase.endsWith("RSA/PSS")) {
+                || sigAlgorithmUpperCase.endsWith("RSA/PSS")
+                || sigAlgorithmUpperCase.endsWith("RSASSA-PSS")) {
             kpAlgorithm = "RSA";
         } else {
             throw new Exception("Unknown KeyPair algorithm for Signature algorithm "
@@ -154,14 +158,28 @@ public class SignatureTest {
         return kp;
     }
 
+    private AlgorithmParameterSpec getAlgParamSpec(String algorithm, Provider p) {
+        if (algorithm.equalsIgnoreCase("RSASSA-PSS")) {
+            return PSSParameterSpec.DEFAULT;
+        }
+        return null;
+    }
+
     private void test_Signature(Signature sig, KeyPair keyPair) throws Exception {
+        AlgorithmParameterSpec params = getAlgParamSpec(sig.getAlgorithm(), sig.getProvider());
         sig.initSign(keyPair.getPrivate());
+        if (params != null) {
+            sig.setParameter(params);
+        }
         sig.update(DATA);
         byte[] signature = sig.sign();
         assertNotNull(sig.getAlgorithm(), signature);
         assertTrue(sig.getAlgorithm(), signature.length > 0);
 
         sig.initVerify(keyPair.getPublic());
+        if (params != null) {
+            sig.setParameter(params);
+        }
         sig.update(DATA);
         assertTrue(sig.getAlgorithm(), sig.verify(signature));
 
@@ -175,6 +193,7 @@ public class SignatureTest {
          */
         if (StandardNames.IS_RI && (
                 "NONEwithDSA".equalsIgnoreCase(sig.getAlgorithm())
+                || "NONEwithDSAinP1363Format".equalsIgnoreCase(sig.getAlgorithm())
                 || "RawDSA".equalsIgnoreCase(sig.getAlgorithm()))) {
             try {
                 sig.verify(signature);
