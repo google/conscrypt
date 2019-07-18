@@ -29,11 +29,14 @@ import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
+import java.security.interfaces.ECKey;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
@@ -372,6 +375,42 @@ public class ECDHKeyAgreementTest {
         } catch (NoSuchAlgorithmException e) {
             // This provider doesn't support AES, that's fine as long as it's not Conscrypt
             assertFalse(Conscrypt.isConscrypt(provider));
+        }
+    }
+
+    @Test
+    public void testDoPhase_IncompatibleCurves_Failure() throws Exception {
+        invokeCallingMethodForEachKeyAgreementProvider();
+    }
+
+    void testDoPhase_IncompatibleCurves_Failure(Provider provider) throws Exception {
+        // The SunEC provider tries to pass a sun-only AlgorithmParameterSpec to the default
+        // AlgorithmParameters:EC when its KeyPairGenerator is initialized.  Since Conscrypt
+        // is the highest-ranked provider when running our tests, its implementation of
+        // AlgorithmParameters:EC is returned, and it doesn't understand the special
+        // AlgorithmParameterSpec, so the KeyPairGenerator can't be initialized.
+        if (provider.getName().equalsIgnoreCase("SunEC")) {
+            return;
+        }
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC", provider);
+        ECGenParameterSpec ecSpec256 = new ECGenParameterSpec("secp256r1");
+        keyGen.initialize(ecSpec256);
+        KeyPair keyPairA = keyGen.generateKeyPair();
+
+        ECGenParameterSpec ecSpec224 = new ECGenParameterSpec("secp224r1");
+        keyGen.initialize(ecSpec224);
+        KeyPair keyPairB = keyGen.generateKeyPair();
+
+        assertFalse(((ECKey) keyPairA.getPublic()).getParams().equals(
+            ((ECKey) keyPairB.getPublic()).getParams()));
+
+        KeyAgreement kaA = KeyAgreement.getInstance("ECDH", provider);
+        kaA.init(keyPairA.getPrivate());
+        try {
+            kaA.doPhase(keyPairB.getPublic(), true);
+            kaA.generateSecret();
+            fail("Generated secrets with mixed keys");
+        } catch (InvalidKeyException expected) {
         }
     }
 
