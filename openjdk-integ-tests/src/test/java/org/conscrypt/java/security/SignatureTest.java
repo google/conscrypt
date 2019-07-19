@@ -34,6 +34,7 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.ProviderException;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.spec.AlgorithmParameterSpec;
@@ -67,6 +68,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
+import org.conscrypt.testing.BrokenProvider;
+import org.conscrypt.testing.OpaqueProvider;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -2763,10 +2766,10 @@ public class SignatureTest {
         assertFalse(sig.verify(NAMED_CURVE_SIGNATURE));
     }
 
-    @Test
     // Suppress ErrorProne's warning about the try block that doesn't call fail() but
     // expects an exception, it's intentional
     @SuppressWarnings("MissingFail")
+    @Test
     public void testVerify_NONEwithECDSA_Key_SingleByte_Failure() throws Exception {
         PublicKey pub = getNamedCurveEcPublicKey();
         MessageDigest sha1 = MessageDigest.getInstance("SHA1");
@@ -2781,6 +2784,61 @@ public class SignatureTest {
             assertFalse(sig.verify(corrupted));
         } catch (SignatureException expected) {
             // It's valid to either return false or throw an exception, accept either
+        }
+    }
+
+    // Tests that an opaque key will be accepted by the ECDSA signature and will delegate to a
+    // functioning alternative provider
+    @Test
+    public void test_NONEwithECDSA_OpaqueKey() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC");
+        keyGen.initialize(256);
+        KeyPair kp = keyGen.generateKeyPair();
+
+        // Insert this at #2 so that Conscrypt is still the first provider and CryptoUpcalls
+        // has to drop to manual provider selection rather than relying on Signature's internals
+        Security.insertProviderAt(new OpaqueProvider(), 2);
+        try {
+            Signature sig = Signature.getInstance(
+                "NONEwithECDSA", TestUtils.getConscryptProvider());
+            sig.initSign(OpaqueProvider.wrapKeyMarked(kp.getPrivate()));
+            sig.update(new byte[]{1, 2, 3, 4, 5, 6, 7, 8});
+            byte[] data = sig.sign();
+
+            sig.initVerify(kp.getPublic());
+            sig.update(new byte[]{1, 2, 3, 4, 5, 6, 7, 8});
+            assertTrue(sig.verify(data));
+        } finally {
+            Security.removeProvider(OpaqueProvider.NAME);
+        }
+    }
+
+    // Tests that an opaque key will be accepted by the ECDSA signature and that a broken
+    // alternative provider that throws UnsupportedOperationException will be skipped and
+    // a functioning provider that follows will work.
+    @Test
+    public void test_NONEwithECDSA_OpaqueKey_BrokenProvider() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("EC");
+        keyGen.initialize(256);
+        KeyPair kp = keyGen.generateKeyPair();
+
+        // Insert these at #2 so that Conscrypt is still the first provider and CryptoUpcalls
+        // has to drop to manual provider selection rather than relying on Signature's internals
+        Security.insertProviderAt(new OpaqueProvider(), 2);
+        Security.insertProviderAt(new BrokenProvider(), 2);
+        try {
+            Signature sig = Signature.getInstance(
+                "NONEwithECDSA", TestUtils.getConscryptProvider());
+            sig.initSign(OpaqueProvider.wrapKeyMarked(kp.getPrivate()));
+            sig.update(new byte[]{1, 2, 3, 4, 5, 6, 7, 8});
+            byte[] data = sig.sign();
+
+            sig.initVerify(kp.getPublic());
+            sig.update(new byte[]{1, 2, 3, 4, 5, 6, 7, 8});
+            assertTrue(sig.verify(data));
+        } finally {
+            Security.removeProvider(OpaqueProvider.NAME);
+            Security.removeProvider(BrokenProvider.NAME);
         }
     }
 
