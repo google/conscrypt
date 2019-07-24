@@ -67,8 +67,17 @@ class KeyManagerImpl extends X509ExtendedKeyManager {
             final String alias = aliases.nextElement();
             try {
                 if (keyStore.entryInstanceOf(alias, KeyStore.PrivateKeyEntry.class)) {
-                    final KeyStore.PrivateKeyEntry entry = (KeyStore.PrivateKeyEntry) keyStore
+                    KeyStore.PrivateKeyEntry entry;
+                    try {
+                        entry = (KeyStore.PrivateKeyEntry) keyStore
                             .getEntry(alias, new KeyStore.PasswordProtection(pwd));
+                    } catch (UnsupportedOperationException e) {
+                        // If the KeyStore doesn't support getEntry(), as Android Keystore
+                        // doesn't, fall back to reading the two values separately.
+                        PrivateKey key = (PrivateKey) keyStore.getKey(alias, pwd);
+                        Certificate[] certs = keyStore.getCertificateChain(alias);
+                        entry = new KeyStore.PrivateKeyEntry(key, certs);
+                    }
                     hash.put(alias, entry);
                 }
             } catch (KeyStoreException ignored) {
