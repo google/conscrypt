@@ -158,10 +158,23 @@ public class ConscryptEngineTest {
         clientEngine.closeOutbound();
         serverEngine.closeOutbound();
 
-        assertFalse(clientEngine.isInboundDone());
+        // After closing the outbound direction, a shutdown alert should still be pending
+        assertFalse(clientEngine.isOutboundDone());
+        assertFalse(serverEngine.isOutboundDone());
+
+        ByteBuffer drain = bufferType.newBuffer(
+            Math.max(clientEngine.getSession().getPacketBufferSize(),
+                serverEngine.getSession().getPacketBufferSize()));
+        clientEngine.wrap(ByteBuffer.wrap(new byte[0]), drain);
+        drain.clear();
+        serverEngine.wrap(ByteBuffer.wrap(new byte[0]), drain);
+
         assertTrue(clientEngine.isOutboundDone());
-        assertFalse(serverEngine.isInboundDone());
         assertTrue(serverEngine.isOutboundDone());
+
+        // The inbound directions should still be open
+        assertFalse(clientEngine.isInboundDone());
+        assertFalse(serverEngine.isInboundDone());
     }
 
     @Test

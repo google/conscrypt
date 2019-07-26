@@ -514,15 +514,30 @@ final class NativeSsl {
     }
 
     void shutdown() throws IOException {
-        NativeCrypto.ENGINE_SSL_shutdown(ssl, this, handshakeCallbacks);
+        lock.readLock().lock();
+        try {
+            NativeCrypto.ENGINE_SSL_shutdown(ssl, this, handshakeCallbacks);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     boolean wasShutdownReceived() {
-        return (NativeCrypto.SSL_get_shutdown(ssl, this) & SSL_RECEIVED_SHUTDOWN) != 0;
+        lock.readLock().lock();
+        try {
+            return (NativeCrypto.SSL_get_shutdown(ssl, this) & SSL_RECEIVED_SHUTDOWN) != 0;
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     boolean wasShutdownSent() {
-        return (NativeCrypto.SSL_get_shutdown(ssl, this) & SSL_SENT_SHUTDOWN) != 0;
+        lock.readLock().lock();
+        try {
+            return (NativeCrypto.SSL_get_shutdown(ssl, this) & SSL_SENT_SHUTDOWN) != 0;
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     int readDirectByteBuffer(long destAddress, int destLength)
@@ -556,7 +571,15 @@ final class NativeSsl {
     }
 
     int getPendingReadableBytes() {
-        return NativeCrypto.SSL_pending_readable_bytes(ssl, this);
+        lock.readLock().lock();
+        try {
+            if (!isClosed()) {
+                return NativeCrypto.SSL_pending_readable_bytes(ssl, this);
+            }
+            return 0;
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     int getMaxSealOverhead() {

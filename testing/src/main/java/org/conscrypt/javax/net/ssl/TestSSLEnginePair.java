@@ -73,10 +73,7 @@ public final class TestSSLEnginePair implements Closeable {
 
     /**
      * Create a new connected server/client engine pair within a
-     * existing SSLContext. Optionally specify clientCipherSuites to
-     * allow forcing new SSLSession to test SSLSessionContext
-     * caching. Optionally specify serverCipherSuites for testing
-     * cipher suite negotiation.
+     * existing SSLContext.
      */
     public static SSLEngine[] connect(final TestSSLContext c,
             Hooks hooks,
@@ -113,12 +110,12 @@ public final class TestSSLEnginePair implements Closeable {
                 break;
             }
 
-            boolean progress = handshakeCompleted(client,
+            boolean progress = handshakeStep(client,
                     clientToServer,
                     serverToClient,
                     scratch,
                     clientFinished);
-            progress |= handshakeCompleted(server,
+            progress |= handshakeStep(server,
                     serverToClient,
                     clientToServer,
                     scratch,
@@ -158,7 +155,7 @@ public final class TestSSLEnginePair implements Closeable {
         }
     }
 
-    private static boolean handshakeCompleted(SSLEngine engine,
+    public static boolean handshakeStep(SSLEngine engine,
             ByteBuffer output,
             ByteBuffer input,
             ByteBuffer scratch,
