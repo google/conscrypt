@@ -729,16 +729,8 @@ public class SSLEngineVersionCompatibilityTest {
         assertConnected(e.client, e.server);
     }
 
-    private void assertNotConnected(TestSSLEnginePair e) {
-        assertNotConnected(e.client, e.server);
-    }
-
     private void assertConnected(SSLEngine a, SSLEngine b) {
         assertTrue(connected(a, b));
-    }
-
-    private void assertNotConnected(SSLEngine a, SSLEngine b) {
-        assertFalse(connected(a, b));
     }
 
     private boolean connected(SSLEngine a, SSLEngine b) {

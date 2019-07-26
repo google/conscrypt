@@ -101,7 +101,7 @@ public class SignatureTest {
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(Provider provider, String algorithm) throws Exception {
-                    KeyPair kp = keyPair(algorithm, provider.getName());
+                    KeyPair kp = keyPair(algorithm);
                     // Signature.getInstance(String)
                     Signature sig1 = Signature.getInstance(algorithm);
                     assertEquals(algorithm, sig1.getAlgorithm());
@@ -125,7 +125,7 @@ public class SignatureTest {
     private final Map<String, KeyPair> keypairAlgorithmToInstance
             = new HashMap<String, KeyPair>();
 
-    private KeyPair keyPair(String sigAlgorithm, String providerName) throws Exception {
+    private KeyPair keyPair(String sigAlgorithm) throws Exception {
         String sigAlgorithmUpperCase = sigAlgorithm.toUpperCase(Locale.US);
         if (sigAlgorithmUpperCase.endsWith("ENCRYPTION")) {
             sigAlgorithm = sigAlgorithm.substring(0, sigAlgorithm.length()-"ENCRYPTION".length());
@@ -161,7 +161,7 @@ public class SignatureTest {
         return kp;
     }
 
-    private AlgorithmParameterSpec getAlgParamSpec(String algorithm, Provider p) {
+    private AlgorithmParameterSpec getAlgParamSpec(String algorithm) {
         if (algorithm.equalsIgnoreCase("RSASSA-PSS")) {
             return PSSParameterSpec.DEFAULT;
         }
@@ -169,7 +169,7 @@ public class SignatureTest {
     }
 
     private void test_Signature(Signature sig, KeyPair keyPair) throws Exception {
-        AlgorithmParameterSpec params = getAlgParamSpec(sig.getAlgorithm(), sig.getProvider());
+        AlgorithmParameterSpec params = getAlgParamSpec(sig.getAlgorithm());
         sig.initSign(keyPair.getPrivate());
         if (params != null) {
             sig.setParameter(params);
@@ -2729,7 +2729,7 @@ public class SignatureTest {
 
     @Test
     public void testSign_NONEwithECDSA_Key_Success() throws Exception {
-        KeyPair keys = keyPair("NONEwithECDSA", null);
+        KeyPair keys = keyPair("NONEwithECDSA");
         Signature sig = Signature.getInstance("NONEwithECDSA");
 
         sig.initSign(keys.getPrivate());

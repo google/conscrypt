@@ -388,7 +388,6 @@ public class SSLSocketTest {
     @Test
     public void test_SSLSocket_noncontiguousProtocols_useLower() throws Exception {
         TestSSLContext c = TestSSLContext.create();
-        SSLContext serverContext = c.serverContext;
         SSLContext clientContext = c.clientContext;
         SSLSocket client = (SSLSocket)
                 clientContext.getSocketFactory().createSocket(c.host, c.port);
@@ -420,7 +419,6 @@ public class SSLSocketTest {
     @Test
     public void test_SSLSocket_noncontiguousProtocols_canNegotiate() throws Exception {
         TestSSLContext c = TestSSLContext.create();
-        SSLContext serverContext = c.serverContext;
         SSLContext clientContext = c.clientContext;
         SSLSocket client = (SSLSocket)
                 clientContext.getSocketFactory().createSocket(c.host, c.port);
