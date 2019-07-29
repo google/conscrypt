@@ -4321,6 +4321,7 @@ public final class CipherTest {
             (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0 });
         cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, AES), param);
         byte[] ciphertext = cipher.update(input);
+        assertEquals(16, ciphertext.length);
         byte[] tag = cipher.doFinal();
         assertEquals(12, tag.length);
     }
