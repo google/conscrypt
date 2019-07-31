@@ -27,7 +27,7 @@ import javax.crypto.spec.IvParameterSpec;
 import org.conscrypt.NativeRef.EVP_CIPHER_CTX;
 
 @Internal
-abstract class OpenSSLEvpCipher extends OpenSSLCipher {
+public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
     /**
      * Native pointer for the OpenSSL EVP_CIPHER context.
      */
