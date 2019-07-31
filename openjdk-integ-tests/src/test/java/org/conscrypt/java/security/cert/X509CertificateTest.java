@@ -182,7 +182,8 @@ public class X509CertificateTest {
                     CertificateFactory cf = CertificateFactory.getInstance("X509", p);
                     Certificate c = cf.generateCertificate(new ByteArrayInputStream(
                         VALID_CERT.getBytes(Charset.forName("US-ASCII"))));
-                    assertEquals("SHA256withRSA", ((X509Certificate) c).getSigAlgName());
+                    assertEquals("SHA256WITHRSA",
+                        ((X509Certificate) c).getSigAlgName().toUpperCase());
                 }
             });
     }
