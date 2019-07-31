@@ -22,14 +22,14 @@ import java.util.Locale;
 import javax.crypto.NoSuchPaddingException;
 
 @Internal
-abstract class OpenSSLEvpCipherDESEDE extends OpenSSLEvpCipher {
+public abstract class OpenSSLEvpCipherDESEDE extends OpenSSLEvpCipher {
     private static final int DES_BLOCK_SIZE = 8;
 
     OpenSSLEvpCipherDESEDE(Mode mode, Padding padding) {
         super(mode, padding);
     }
 
-    static class CBC extends OpenSSLEvpCipherDESEDE {
+    public static class CBC extends OpenSSLEvpCipherDESEDE {
         CBC(Padding padding) {
             super(Mode.CBC, padding);
         }

@@ -21,7 +21,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 import javax.crypto.NoSuchPaddingException;
 
-abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
+@Internal
+public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
     private static final int AES_BLOCK_SIZE = 16;
 
     OpenSSLEvpCipherAES(Mode mode, Padding padding) {
@@ -67,12 +68,12 @@ abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
         return AES_BLOCK_SIZE;
     }
 
-    static class AES extends OpenSSLEvpCipherAES {
+    public static class AES extends OpenSSLEvpCipherAES {
         AES(Mode mode, Padding padding) {
             super(mode, padding);
         }
 
-        static class CBC extends AES {
+        public static class CBC extends AES {
             CBC(Padding padding) {
                 super(Mode.CBC, padding);
             }
@@ -96,7 +97,7 @@ abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
             }
         }
 
-        static class ECB extends AES {
+        public static class ECB extends AES {
             ECB(Padding padding) {
                 super(Mode.ECB, padding);
             }
@@ -128,12 +129,12 @@ abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
         }
     }
 
-    static class AES_128 extends OpenSSLEvpCipherAES {
+    public static class AES_128 extends OpenSSLEvpCipherAES {
         AES_128(Mode mode, Padding padding) {
             super(mode, padding);
         }
 
-        static class CBC extends AES_128 {
+        public static class CBC extends AES_128 {
             CBC(Padding padding) {
                 super(Mode.CBC, padding);
             }
@@ -157,7 +158,7 @@ abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
             }
         }
 
-        static class ECB extends AES_128 {
+        public static class ECB extends AES_128 {
             ECB(Padding padding) {
                 super(Mode.ECB, padding);
             }
@@ -183,12 +184,12 @@ abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
         }
     }
 
-    static class AES_256 extends OpenSSLEvpCipherAES {
+    public static class AES_256 extends OpenSSLEvpCipherAES {
         AES_256(Mode mode, Padding padding) {
             super(mode, padding);
         }
 
-        static class CBC extends AES_256 {
+        public static class CBC extends AES_256 {
             CBC(Padding padding) {
                 super(Mode.CBC, padding);
             }
@@ -212,7 +213,7 @@ abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
             }
         }
 
-        static class ECB extends AES_256 {
+        public static class ECB extends AES_256 {
             ECB(Padding padding) {
                 super(Mode.ECB, padding);
             }

@@ -31,7 +31,7 @@ import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 
 @Internal
-abstract class OpenSSLAeadCipher extends OpenSSLCipher {
+public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     /**
      * The default tag size when one is not specified. Default to
      * full-length tags (128-bits or 16 octets).

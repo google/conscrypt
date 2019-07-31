@@ -24,7 +24,7 @@ import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidParameterSpecException;
 
 @Internal
-abstract class OpenSSLAeadCipherAES extends OpenSSLAeadCipher {
+public abstract class OpenSSLAeadCipherAES extends OpenSSLAeadCipher {
     private static final int AES_BLOCK_SIZE = 16;
 
     OpenSSLAeadCipherAES(Mode mode) {
