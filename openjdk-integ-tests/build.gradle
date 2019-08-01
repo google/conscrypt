@@ -42,11 +42,11 @@ test {
     include suiteClass
 }
 
-task testEngineSocket(type: Test, dependsOn: test) {
-    jvmArgs "-Dorg.conscrypt.useEngineSocketByDefault=true"
+task testEngineSocket(type: Test) {
     include suiteClass
     InvokerHelper.setProperties(testLogging, test.testLogging.properties)
     systemProperties = test.systemProperties
+    systemProperty "org.conscrypt.useEngineSocketByDefault", true
 }
 check.dependsOn testEngineSocket
 
