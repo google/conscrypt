@@ -558,6 +558,11 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             }
         }
 
+        @Override
+        public int available() {
+            return ssl.getPendingReadableBytes();
+        }
+
         void awaitPendingOps() {
             if (DBG_STATE) {
                 synchronized (ssl) {
