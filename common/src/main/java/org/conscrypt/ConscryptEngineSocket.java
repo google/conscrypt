@@ -738,8 +738,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
             startHandshake();
             synchronized (readLock) {
                 init();
-                return fromEngine.remaining()
-                        + (fromSocket.hasRemaining() || socketInputStream.available() > 0 ? 1 : 0);
+                return fromEngine.remaining();
             }
         }
 

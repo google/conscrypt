@@ -236,6 +236,29 @@ public class SSLSocketTest {
     }
 
     @Test
+    public void test_SSLSocket_getInputStream_available() throws Exception {
+        TestSSLSocketPair pair = TestSSLSocketPair.create().connect();
+
+        pair.client.getOutputStream().write(new byte[] { 1, 2, 3, 4 });
+        // We read a single byte first because it's okay if available() returns zero
+        // before we've checked the network to see if any packets are available to
+        // be decrypted, but we should show available bytes once we've decrypted a packet
+        assertEquals(1, pair.server.getInputStream().read());
+        assertTrue(pair.server.getInputStream().available() > 0);
+        assertEquals(3, pair.server.getInputStream().read(new byte[4]));
+        assertEquals(0, pair.server.getInputStream().available());
+
+        pair.server.getOutputStream().write(new byte[] { 1, 2, 3, 4 });
+        // We read a single byte first because it's okay if available() returns zero
+        // before we've checked the network to see if any packets are available to
+        // be decrypted, but we should show available bytes once we've decrypted a packet
+        assertEquals(1, pair.client.getInputStream().read());
+        assertTrue(pair.client.getInputStream().available() > 0);
+        assertEquals(3, pair.client.getInputStream().read(new byte[4]));
+        assertEquals(0, pair.client.getInputStream().available());
+    }
+
+    @Test
     public void test_SSLSocket_getEnabledCipherSuites_returnsCopies() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket ssl = (SSLSocket) sf.createSocket();
