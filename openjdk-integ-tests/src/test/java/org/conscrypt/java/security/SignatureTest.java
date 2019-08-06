@@ -16,6 +16,7 @@
 
 package org.conscrypt.java.security;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -23,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
@@ -1551,6 +1553,31 @@ public class SignatureTest {
         assertNotNull(Signature.getInstance("SHA1withDSA"));
     }
 
+    private void verify(Signature sig, PublicKey key, byte[] data, byte[] signature)
+            throws Exception {
+        sig.initVerify(key);
+        sig.update(data);
+
+        assertTrue("Signature must match expected signature",
+                sig.verify(signature));
+
+        ByteBuffer heap = ByteBuffer.wrap(data);
+        sig.initVerify(key);
+        sig.update(heap);
+
+        assertTrue("Signature must match expected signature",
+                sig.verify(signature));
+
+        ByteBuffer direct = ByteBuffer.allocateDirect(data.length);
+        direct.put(data);
+        direct.flip();
+        sig.initVerify(key);
+        sig.update(direct);
+
+        assertTrue("Signature must match expected signature",
+                sig.verify(signature));
+    }
+
     @Test
     public void testVerify_SHA1withRSA_Key_Success() throws Exception {
         KeyFactory kf = KeyFactory.getInstance("RSA");
@@ -1558,11 +1585,7 @@ public class SignatureTest {
         PublicKey pubKey = kf.generatePublic(keySpec);
 
         Signature sig = Signature.getInstance("SHA1withRSA");
-        sig.initVerify(pubKey);
-        sig.update(Vector1Data);
-
-        assertTrue("Signature must match expected signature",
-                sig.verify(SHA1withRSA_Vector1Signature));
+        verify(sig, pubKey, Vector1Data, SHA1withRSA_Vector1Signature);
     }
 
     @Test
@@ -1572,11 +1595,7 @@ public class SignatureTest {
         PublicKey pubKey = kf.generatePublic(keySpec);
 
         Signature sig = Signature.getInstance("SHA256withRSA");
-        sig.initVerify(pubKey);
-        sig.update(Vector2Data);
-
-        assertTrue("Signature must match expected signature",
-                sig.verify(SHA256withRSA_Vector2Signature));
+        verify(sig, pubKey, Vector2Data, SHA256withRSA_Vector2Signature);
     }
 
     @Test
@@ -1586,11 +1605,7 @@ public class SignatureTest {
         PublicKey pubKey = kf.generatePublic(keySpec);
 
         Signature sig = Signature.getInstance("SHA384withRSA");
-        sig.initVerify(pubKey);
-        sig.update(Vector2Data);
-
-        assertTrue("Signature must match expected signature",
-                sig.verify(SHA384withRSA_Vector2Signature));
+        verify(sig, pubKey, Vector2Data, SHA384withRSA_Vector2Signature);
     }
 
     @Test
@@ -1600,11 +1615,7 @@ public class SignatureTest {
         PublicKey pubKey = kf.generatePublic(keySpec);
 
         Signature sig = Signature.getInstance("SHA512withRSA");
-        sig.initVerify(pubKey);
-        sig.update(Vector2Data);
-
-        assertTrue("Signature must match expected signature",
-                sig.verify(SHA512withRSA_Vector2Signature));
+        verify(sig, pubKey, Vector2Data, SHA512withRSA_Vector2Signature);
     }
 
     @Test
@@ -1614,11 +1625,7 @@ public class SignatureTest {
         PublicKey pubKey = kf.generatePublic(keySpec);
 
         Signature sig = Signature.getInstance("MD5withRSA");
-        sig.initVerify(pubKey);
-        sig.update(Vector2Data);
-
-        assertTrue("Signature must match expected signature",
-                sig.verify(MD5withRSA_Vector2Signature));
+        verify(sig, pubKey, Vector2Data, MD5withRSA_Vector2Signature);
     }
 
     @Test
@@ -2017,28 +2024,61 @@ public class SignatureTest {
         }
     }
 
+    private void sign(Signature sig, PrivateKey privKey, PublicKey pubKey, byte[] data,
+            byte[] signature) throws Exception {
+        sig.initSign(privKey);
+        sig.update(data);
+
+        byte[] generatedSignature = sig.sign();
+        assertNotNull("Signature must not be null", generatedSignature);
+        assertArrayEquals("Signature should match expected", signature, generatedSignature);
+
+        sig.initVerify(pubKey);
+        sig.update(data);
+        assertTrue("Signature must verify correctly", sig.verify(generatedSignature));
+
+        ByteBuffer heap = ByteBuffer.wrap(data);
+        sig.initSign(privKey);
+        sig.update(heap);
+
+        generatedSignature = sig.sign();
+        assertNotNull("Signature must not be null", generatedSignature);
+        assertArrayEquals("Signature should match expected", signature, generatedSignature);
+
+        heap.rewind();
+        sig.initVerify(pubKey);
+        sig.update(heap);
+        assertTrue("Signature must verify correctly", sig.verify(generatedSignature));
+
+        ByteBuffer direct = ByteBuffer.allocateDirect(data.length);
+        direct.put(data);
+        direct.flip();
+        sig.initSign(privKey);
+        sig.update(direct);
+
+        generatedSignature = sig.sign();
+        assertNotNull("Signature must not be null", generatedSignature);
+        assertArrayEquals("Signature should match expected", signature, generatedSignature);
+
+        direct.rewind();
+        sig.initVerify(pubKey);
+        sig.update(direct);
+        assertTrue("Signature must verify correctly", sig.verify(generatedSignature));
+
+    }
+
     @Test
     public void testSign_SHA1withRSA_Key_Success() throws Exception {
         KeyFactory kf = KeyFactory.getInstance("RSA");
         RSAPrivateKeySpec keySpec = new RSAPrivateKeySpec(RSA_2048_modulus,
                 RSA_2048_privateExponent);
         PrivateKey privKey = kf.generatePrivate(keySpec);
-
-        Signature sig = Signature.getInstance("SHA1withRSA");
-        sig.initSign(privKey);
-        sig.update(Vector1Data);
-
-        byte[] signature = sig.sign();
-        assertNotNull("Signature must not be null", signature);
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, SHA1withRSA_Vector1Signature));
-
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
         PublicKey pubKey = kf.generatePublic(pubKeySpec);
-        sig.initVerify(pubKey);
-        sig.update(Vector1Data);
-        assertTrue("Signature must verify correctly", sig.verify(signature));
+
+        Signature sig = Signature.getInstance("SHA1withRSA");
+        sign(sig, privKey, pubKey, Vector1Data, SHA1withRSA_Vector1Signature);
     }
 
     @Test
@@ -2046,24 +2086,13 @@ public class SignatureTest {
         KeyFactory kf = KeyFactory.getInstance("RSA");
         RSAPrivateKeySpec keySpec = new RSAPrivateKeySpec(RSA_2048_modulus,
                 RSA_2048_privateExponent);
-
-        final PrivateKey privKey = kf.generatePrivate(keySpec);
-
-        Signature sig = Signature.getInstance("SHA224withRSA");
-        sig.initSign(privKey);
-        sig.update(Vector2Data);
-
-        byte[] signature = sig.sign();
-        assertNotNull("Signature must not be null", signature);
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, SHA224withRSA_Vector2Signature));
-
+        PrivateKey privKey = kf.generatePrivate(keySpec);
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
         PublicKey pubKey = kf.generatePublic(pubKeySpec);
-        sig.initVerify(pubKey);
-        sig.update(Vector2Data);
-        assertTrue("Signature must verify correctly", sig.verify(signature));
+
+        Signature sig = Signature.getInstance("SHA224withRSA");
+        sign(sig, privKey, pubKey, Vector2Data, SHA224withRSA_Vector2Signature);
     }
 
     @Test
@@ -2071,24 +2100,13 @@ public class SignatureTest {
         KeyFactory kf = KeyFactory.getInstance("RSA");
         RSAPrivateKeySpec keySpec = new RSAPrivateKeySpec(RSA_2048_modulus,
                 RSA_2048_privateExponent);
-
-        final PrivateKey privKey = kf.generatePrivate(keySpec);
-
-        Signature sig = Signature.getInstance("SHA256withRSA");
-        sig.initSign(privKey);
-        sig.update(Vector2Data);
-
-        byte[] signature = sig.sign();
-        assertNotNull("Signature must not be null", signature);
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, SHA256withRSA_Vector2Signature));
-
+        PrivateKey privKey = kf.generatePrivate(keySpec);
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
         PublicKey pubKey = kf.generatePublic(pubKeySpec);
-        sig.initVerify(pubKey);
-        sig.update(Vector2Data);
-        assertTrue("Signature must verify correctly", sig.verify(signature));
+
+        Signature sig = Signature.getInstance("SHA256withRSA");
+        sign(sig, privKey, pubKey, Vector2Data, SHA256withRSA_Vector2Signature);
     }
 
     @Test
@@ -2097,22 +2115,12 @@ public class SignatureTest {
         RSAPrivateKeySpec keySpec = new RSAPrivateKeySpec(RSA_2048_modulus,
                 RSA_2048_privateExponent);
         PrivateKey privKey = kf.generatePrivate(keySpec);
-
-        Signature sig = Signature.getInstance("SHA384withRSA");
-        sig.initSign(privKey);
-        sig.update(Vector2Data);
-
-        byte[] signature = sig.sign();
-        assertNotNull("Signature must not be null", signature);
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, SHA384withRSA_Vector2Signature));
-
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
         PublicKey pubKey = kf.generatePublic(pubKeySpec);
-        sig.initVerify(pubKey);
-        sig.update(Vector2Data);
-        assertTrue("Signature must verify correctly", sig.verify(signature));
+
+        Signature sig = Signature.getInstance("SHA384withRSA");
+        sign(sig, privKey, pubKey, Vector2Data, SHA384withRSA_Vector2Signature);
     }
 
     @Test
@@ -2121,22 +2129,12 @@ public class SignatureTest {
         RSAPrivateKeySpec keySpec = new RSAPrivateKeySpec(RSA_2048_modulus,
                 RSA_2048_privateExponent);
         PrivateKey privKey = kf.generatePrivate(keySpec);
-
-        Signature sig = Signature.getInstance("SHA512withRSA");
-        sig.initSign(privKey);
-        sig.update(Vector2Data);
-
-        byte[] signature = sig.sign();
-        assertNotNull("Signature must not be null", signature);
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, SHA512withRSA_Vector2Signature));
-
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
         PublicKey pubKey = kf.generatePublic(pubKeySpec);
-        sig.initVerify(pubKey);
-        sig.update(Vector2Data);
-        assertTrue("Signature must verify correctly", sig.verify(signature));
+
+        Signature sig = Signature.getInstance("SHA512withRSA");
+        sign(sig, privKey, pubKey, Vector2Data, SHA512withRSA_Vector2Signature);
     }
 
     @Test
@@ -2145,22 +2143,12 @@ public class SignatureTest {
         RSAPrivateKeySpec keySpec = new RSAPrivateKeySpec(RSA_2048_modulus,
                 RSA_2048_privateExponent);
         PrivateKey privKey = kf.generatePrivate(keySpec);
-
-        Signature sig = Signature.getInstance("MD5withRSA");
-        sig.initSign(privKey);
-        sig.update(Vector2Data);
-
-        byte[] signature = sig.sign();
-        assertNotNull("Signature must not be null", signature);
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, MD5withRSA_Vector2Signature));
-
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
         PublicKey pubKey = kf.generatePublic(pubKeySpec);
-        sig.initVerify(pubKey);
-        sig.update(Vector2Data);
-        assertTrue("Signature must verify correctly", sig.verify(signature));
+
+        Signature sig = Signature.getInstance("MD5withRSA");
+        sign(sig, privKey, pubKey, Vector2Data, MD5withRSA_Vector2Signature);
     }
 
     @Test
