@@ -526,7 +526,9 @@ public final class NativeCrypto {
 
     static native byte[] get_X509_CRL_signature(long x509ctx, OpenSSLX509CRL holder);
 
-    static native void X509_CRL_verify(long x509CrlCtx, OpenSSLX509CRL holder, NativeRef.EVP_PKEY pkeyCtx);
+    static native void X509_CRL_verify(long x509CrlCtx, OpenSSLX509CRL holder,
+        NativeRef.EVP_PKEY pkeyCtx) throws BadPaddingException, SignatureException,
+        NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException;
 
     static native byte[] get_X509_CRL_crl_enc(long x509CrlCtx, OpenSSLX509CRL holder);
 

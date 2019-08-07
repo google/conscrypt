@@ -40,6 +40,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
@@ -209,9 +211,13 @@ final class OpenSSLX509CRL extends X509CRL {
         return NativeCrypto.i2d_X509_CRL(mContext, this);
     }
 
-    private void verifyOpenSSL(OpenSSLKey pkey) throws CRLException, NoSuchAlgorithmException,
-            InvalidKeyException, NoSuchProviderException, SignatureException {
-        NativeCrypto.X509_CRL_verify(mContext, this, pkey.getNativeRef());
+    private void verifyOpenSSL(OpenSSLKey pkey) throws NoSuchAlgorithmException,
+            InvalidKeyException, SignatureException {
+        try {
+            NativeCrypto.X509_CRL_verify(mContext, this, pkey.getNativeRef());
+        } catch (BadPaddingException | IllegalBlockSizeException e) {
+            throw new SignatureException(e);
+        }
     }
 
     private void verifyInternal(PublicKey key, String sigProvider) throws CRLException,
