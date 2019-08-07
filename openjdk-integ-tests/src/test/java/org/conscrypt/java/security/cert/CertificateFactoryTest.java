@@ -40,6 +40,8 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
+import java.security.cert.CRL;
+import java.security.cert.CRLException;
 import java.security.cert.CertPath;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -194,6 +196,78 @@ public class CertificateFactoryTest {
         + "zCRo1kNbzipYvzwY4OA8Ys+WAi0oR1A04Se6z5nRUP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqA"
         + "ibAxWEEHXw==";
 
+    private static final String VALID_CRL_PEM =
+        "-----BEGIN X509 CRL-----\n"
+            + "MIIBUTCBuwIBATANBgkqhkiG9w0BAQsFADBVMQswCQYDVQQGEwJHQjEkMCIGA1UE\n"
+            + "ChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVXYWxlczEQ\n"
+            + "MA4GA1UEBxMHRXJ3IFdlbhcNMTkwODA3MTAyNzEwWhcNMTkwOTA2MTAyNzEwWjAi\n"
+            + "MCACAQcXDTE5MDgwNzEwMjY1NFowDDAKBgNVHRUEAwoBAaAOMAwwCgYDVR0UBAMC\n"
+            + "AQIwDQYJKoZIhvcNAQELBQADgYEAzF/DLiIvZDX4FpSjNCnwKRblnhJLZ1NNBAHx\n"
+            + "cRbfFY3psobvbGGOjxzCQW/03gkngG5VrSfdVOLMmQDrAxpKqeYqFDj0HAenWugb\n"
+            + "CCHWAw8WN9XSJ4nGxdRiacG/5vEIx00ICUGCeGcnqWsSnFtagDtvry2c4MMexbSP\n"
+            + "nDN0LLg=\n"
+            + "-----END X509 CRL-----\n";
+
+    private static final String VALID_CRL_PEM_CRLF =
+        "-----BEGIN X509 CRL-----\r\n"
+            + "MIIBUTCBuwIBATANBgkqhkiG9w0BAQsFADBVMQswCQYDVQQGEwJHQjEkMCIGA1UE\r\n"
+            + "ChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVXYWxlczEQ\r\n"
+            + "MA4GA1UEBxMHRXJ3IFdlbhcNMTkwODA3MTAyNzEwWhcNMTkwOTA2MTAyNzEwWjAi\r\n"
+            + "MCACAQcXDTE5MDgwNzEwMjY1NFowDDAKBgNVHRUEAwoBAaAOMAwwCgYDVR0UBAMC\r\n"
+            + "AQIwDQYJKoZIhvcNAQELBQADgYEAzF/DLiIvZDX4FpSjNCnwKRblnhJLZ1NNBAHx\r\n"
+            + "cRbfFY3psobvbGGOjxzCQW/03gkngG5VrSfdVOLMmQDrAxpKqeYqFDj0HAenWugb\r\n"
+            + "CCHWAw8WN9XSJ4nGxdRiacG/5vEIx00ICUGCeGcnqWsSnFtagDtvry2c4MMexbSP\r\n"
+            + "nDN0LLg=\r\n"
+            + "-----END X509 CRL-----\r\n";
+
+    private static final String VALID_CRL_DER_BASE64 =
+        "MIIBUTCBuwIBATANBgkqhkiG9w0BAQsFADBVMQswCQYDVQQGEwJHQjEkMCIGA1UE"
+            + "ChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVXYWxlczEQ"
+            + "MA4GA1UEBxMHRXJ3IFdlbhcNMTkwODA3MTAyNzEwWhcNMTkwOTA2MTAyNzEwWjAi"
+            + "MCACAQcXDTE5MDgwNzEwMjY1NFowDDAKBgNVHRUEAwoBAaAOMAwwCgYDVR0UBAMC"
+            + "AQIwDQYJKoZIhvcNAQELBQADgYEAzF/DLiIvZDX4FpSjNCnwKRblnhJLZ1NNBAHx"
+            + "cRbfFY3psobvbGGOjxzCQW/03gkngG5VrSfdVOLMmQDrAxpKqeYqFDj0HAenWugb"
+            + "CCHWAw8WN9XSJ4nGxdRiacG/5vEIx00ICUGCeGcnqWsSnFtagDtvry2c4MMexbSP"
+            + "nDN0LLg=";
+
+    private static final String INVALID_CRL_PEM =
+        "-----BEGIN X509 CRL-----\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+            + "AAAAAAAA\n"
+            + "-----END X509 CRL-----\n";
+
     @Test
     public void test_generateCertificate() throws Exception {
         ServiceTester.test("CertificateFactory")
@@ -208,6 +282,8 @@ public class CertificateFactoryTest {
                     test_generateCertificate_InputStream_InvalidStart_Failure(cf);
                     test_generateCertificate_AnyLineLength_Success(cf);
                     test_generateCertificate_PartialInput(cf);
+
+                    test_generateCrl(cf);
                 }
             });
     }
@@ -686,5 +762,43 @@ public class CertificateFactoryTest {
             throw new RuntimeException("SHA-1 not available");
         }
         return sha1digest.digest(spki.getPublicKeyData().getBytes());
+    }
+
+    private void test_generateCrl(CertificateFactory cf) throws Exception {
+        byte[] valid = VALID_CRL_PEM.getBytes(Charset.defaultCharset());
+        CRL c = cf.generateCRL(new ByteArrayInputStream(valid));
+        assertNotNull(c);
+
+        valid = VALID_CRL_PEM_CRLF.getBytes(Charset.defaultCharset());
+        c = cf.generateCRL(new ByteArrayInputStream(valid));
+        assertNotNull(c);
+
+        valid = TestUtils.decodeBase64(VALID_CRL_DER_BASE64);
+        c = cf.generateCRL(new ByteArrayInputStream(valid));
+        assertNotNull(c);
+
+        try {
+            byte[] invalid = INVALID_CRL_PEM.getBytes(Charset.defaultCharset());
+            cf.generateCRL(new ByteArrayInputStream(invalid));
+            fail();
+        } catch (CRLException expected) {
+        }
+
+        try {
+            c = cf.generateCRL(new ByteArrayInputStream(new byte[0]));
+            // Bouncy Castle returns null on empty inputs rather than throwing an exception,
+            // which technically doesn't satisfy the method contract, but we'll accept it
+            assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
+        } catch (CRLException expected) {
+        }
+
+        try {
+            c = cf.generateCRL(new ByteArrayInputStream(new byte[] { 0x00 }));
+            // Bouncy Castle returns null on short inputs rather than throwing an exception,
+            // which technically doesn't satisfy the method contract, but we'll accept it
+            assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
+        } catch (CRLException expected) {
+        }
+
     }
 }
