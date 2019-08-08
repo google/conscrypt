@@ -18,17 +18,17 @@ package org.conscrypt.java.security;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.PrivateKey;
+import java.security.Provider;
 import java.security.PublicKey;
 import java.security.spec.KeySpec;
-import org.junit.Before;
 import org.junit.Test;
+import tests.util.ServiceTester;
 
 public abstract class AbstractKeyFactoryTest<PublicKeySpec extends KeySpec, PrivateKeySpec extends KeySpec> {
 
     private final String algorithmName;
     private final Class<PublicKeySpec> publicKeySpecClass;
     private final Class<PrivateKeySpec> privateKeySpecClass;
-    private KeyFactory factory;
 
     public AbstractKeyFactoryTest(String algorithmName,
             Class<PublicKeySpec> publicKeySpecClass,
@@ -38,24 +38,45 @@ public abstract class AbstractKeyFactoryTest<PublicKeySpec extends KeySpec, Priv
         this.privateKeySpecClass = privateKeySpecClass;
     }
 
-    @Before
-    public void setUp() throws Exception {
-        factory = getFactory();
-    }
-
-    private KeyFactory getFactory() throws Exception {
-        return KeyFactory.getInstance(algorithmName);
-    }
-
     @Test
     public void testKeyFactory() throws Exception {
-        PrivateKeySpec privateKeySpec = factory.getKeySpec(DefaultKeys.getPrivateKey(algorithmName),
-                                                           privateKeySpecClass);
-        PrivateKey privateKey =  factory.generatePrivate(privateKeySpec);
-        PublicKeySpec publicKeySpec = factory.getKeySpec(DefaultKeys.getPublicKey(algorithmName),
-                                                         publicKeySpecClass);
-        PublicKey publicKey = factory.generatePublic(publicKeySpec);
-        check(new KeyPair(publicKey, privateKey));
+        ServiceTester.test("KeyFactory")
+            .withAlgorithm(algorithmName)
+            // On OpenJDK 7, the SunPKCS11-NSS provider sometimes doesn't accept keys created by
+            // other providers in getKeySpec(), so it fails some of the tests.
+            .skipProvider("SunPKCS11-NSS")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider p, String algorithm) throws Exception {
+                    final KeyFactory factory = KeyFactory.getInstance(algorithm, p);
+
+                    final PrivateKeySpec privateKeySpec = factory.getKeySpec(DefaultKeys.getPrivateKey(algorithmName),
+                        privateKeySpecClass);
+                    PrivateKey privateKey = factory.generatePrivate(privateKeySpec);
+                    final PublicKeySpec publicKeySpec = factory.getKeySpec(DefaultKeys.getPublicKey(algorithmName),
+                        publicKeySpecClass);
+                    PublicKey publicKey = factory.generatePublic(publicKeySpec);
+                    check(new KeyPair(publicKey, privateKey));
+
+                    // Test that keys from any other KeyFactory can be translated into working
+                    // keys from this KeyFactory
+                    ServiceTester.test("KeyFactory")
+                        .withAlgorithm(algorithmName)
+                        .skipProvider(p.getName())
+                        .skipProvider("SunPKCS11-NSS")
+                        .run(new ServiceTester.Test() {
+                            @Override
+                            public void test(Provider p2, String algorithm) throws Exception {
+                                KeyFactory factory2 = KeyFactory.getInstance(algorithm, p2);
+                                PrivateKey privateKey2 = factory2.generatePrivate(privateKeySpec);
+                                PublicKey publicKey2 = factory2.generatePublic(publicKeySpec);
+
+                                check(new KeyPair((PublicKey) factory.translateKey(publicKey2),
+                                    (PrivateKey) factory.translateKey(privateKey2)));
+                            }
+                        });
+                }
+            });
     }
 
     protected void check(KeyPair keyPair) throws Exception {}

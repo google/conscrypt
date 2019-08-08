@@ -24,6 +24,7 @@ import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
+import org.conscrypt.TestUtils;
 
 public class DefaultKeys {
     private static final byte[] RSA_private = new byte[] {
@@ -180,7 +181,13 @@ public class DefaultKeys {
         (byte) 0xA5, (byte) 0xC9, (byte) 0x93, (byte) 0xCE, (byte) 0xC1, (byte) 0x1D, (byte) 0x30, (byte) 0x73, (byte) 0xA3, (byte) 0xE1, (byte) 0x69, (byte) 0xA8, (byte) 0x11, (byte) 0x98, (byte) 0x78, (byte) 0xF3, (byte) 0xF9,
         (byte) 0x8F, (byte) 0x04    };
 
-
+        private static final byte[] EC_private = TestUtils.decodeBase64(
+            "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgXbi5zGvh/MoXidykzJKs1yEbrN99"
+                + "/A3bQy1bMNQR/c2hRANCAAQqgfCMR3JAG/JhR386L6bTmo7XTd1B0oHCPaqPP5+YLzL5wY"
+                + "AbDExaCdzXEljDvrupjn1HfqjZNCVAc0j13QIM");
+        private static final byte[] EC_public = TestUtils.decodeBase64(
+            "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKoHwjEdyQBvyYUd/Oi+m05qO103dQdKBwj2qjz+f"
+                + "mC8y+cGAGwxMWgnc1xJYw767qY59R36o2TQlQHNI9d0CDA==");
 
     private static final HashMap<String, KeySpec> keys = new HashMap<String, KeySpec>();
     static {
@@ -190,6 +197,8 @@ public class DefaultKeys {
         keys.put("DSA_private", new PKCS8EncodedKeySpec(DSA_private));
         keys.put("RSA_public", new X509EncodedKeySpec(RSA_public));
         keys.put("RSA_private", new PKCS8EncodedKeySpec(RSA_private));
+        keys.put("EC_public", new X509EncodedKeySpec(EC_public));
+        keys.put("EC_private", new PKCS8EncodedKeySpec(EC_private));
     }
 
     public static PrivateKey getPrivateKey(String algorithmName) throws NoSuchAlgorithmException, InvalidKeySpecException
