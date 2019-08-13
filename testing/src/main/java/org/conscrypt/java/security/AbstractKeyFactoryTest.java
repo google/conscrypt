@@ -45,6 +45,9 @@ public abstract class AbstractKeyFactoryTest<PublicKeySpec extends KeySpec, Priv
             // On OpenJDK 7, the SunPKCS11-NSS provider sometimes doesn't accept keys created by
             // other providers in getKeySpec(), so it fails some of the tests.
             .skipProvider("SunPKCS11-NSS")
+            // Android Keystore's KeyFactory must be initialized with its own classes, it can't use
+            // the standard init() calls
+            .skipProvider("AndroidKeyStore")
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(Provider p, String algorithm) throws Exception {
@@ -64,6 +67,7 @@ public abstract class AbstractKeyFactoryTest<PublicKeySpec extends KeySpec, Priv
                         .withAlgorithm(algorithmName)
                         .skipProvider(p.getName())
                         .skipProvider("SunPKCS11-NSS")
+                        .skipProvider("AndroidKeyStore")
                         .run(new ServiceTester.Test() {
                             @Override
                             public void test(Provider p2, String algorithm) throws Exception {
