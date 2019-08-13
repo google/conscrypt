@@ -20,6 +20,7 @@ import java.security.spec.ECPrivateKeySpec;
 import java.security.spec.ECPublicKeySpec;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class KeyFactoryTestEC extends
@@ -27,6 +28,13 @@ public class KeyFactoryTestEC extends
 
   public KeyFactoryTestEC() {
     super("EC", ECPublicKeySpec.class, ECPrivateKeySpec.class);
+  }
+
+  @Override
+  public ServiceTester customizeTester(ServiceTester tester) {
+    // BC's EC keys always use explicit params, even though it's a bad idea, and we don't support
+    // those, so don't test BC keys
+    return tester.skipProvider("BC");
   }
 
   @Override
