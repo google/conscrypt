@@ -44,7 +44,7 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
      */
     private static DefaultSSLContextImpl defaultSslContextImpl;
 
-    /** TLS algorithm to initialize all sockets. */
+    /** TLS protocols to enable by default. */
     private final String[] protocols;
 
     /** Client session cache. */
