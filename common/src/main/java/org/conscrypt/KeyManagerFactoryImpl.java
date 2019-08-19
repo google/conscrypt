@@ -30,6 +30,8 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactorySpi;
 import javax.net.ssl.ManagerFactoryParameters;
 
+import org.conscrypt.io.IoUtils;
+
 /**
  * KeyManagerFactory implementation.
  * @see KeyManagerFactorySpi
@@ -76,14 +78,18 @@ public class KeyManagerFactoryImpl extends KeyManagerFactorySpi {
                 } else {
                     pwd = keyStorePwd.toCharArray();
                 }
+                FileInputStream fis = null;
                 try {
-                    keyStore.load(new FileInputStream(new File(keyStoreName)), pwd);
+                    fis = new FileInputStream(new File(keyStoreName));
+                    keyStore.load(fis, pwd);
                 } catch (FileNotFoundException e) {
                     throw new KeyStoreException(e);
                 } catch (IOException e) {
                     throw new KeyStoreException(e);
                 } catch (CertificateException e) {
                     throw new KeyStoreException(e);
+                } finally {
+                    IoUtils.closeQuietly(fis);
                 }
             }
 
