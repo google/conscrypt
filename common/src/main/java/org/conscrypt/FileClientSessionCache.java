@@ -32,7 +32,6 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLSession;
-
 import org.conscrypt.io.IoUtils;
 
 /**
