@@ -36,11 +36,14 @@ import java.security.PublicKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.crypto.SecretKey;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.X509KeyManager;
@@ -229,7 +232,7 @@ final class NativeSsl {
         setCertificate(alias);
     }
 
-    void setCertificate(String alias) throws CertificateEncodingException, SSLException {
+    private void setCertificate(String alias) throws CertificateEncodingException, SSLException {
         if (alias == null) {
             return;
         }
@@ -325,24 +328,6 @@ final class NativeSsl {
         // setup server certificates and private keys.
         // clients will receive a call back to request certificates.
         if (!isClient()) {
-            Set<String> keyTypes = new HashSet<String>();
-            for (long sslCipherNativePointer : NativeCrypto.SSL_get_ciphers(ssl, this)) {
-                String keyType = SSLUtils.getServerX509KeyType(sslCipherNativePointer);
-                if (keyType != null) {
-                    keyTypes.add(keyType);
-                }
-            }
-            X509KeyManager keyManager = parameters.getX509KeyManager();
-            if (keyManager != null) {
-                for (String keyType : keyTypes) {
-                    try {
-                        setCertificate(aliasChooser.chooseServerAlias(keyManager, keyType));
-                    } catch (CertificateEncodingException e) {
-                        throw new IOException(e);
-                    }
-                }
-            }
-
             NativeCrypto.SSL_set_options(ssl, this, SSL_OP_CIPHER_SERVER_PREFERENCE);
 
             if (parameters.sctExtension != null) {
@@ -373,6 +358,53 @@ final class NativeSsl {
 
         setCertificateValidation();
         setTlsChannelId(channelIdPrivateKey);
+    }
+
+    void configureServerCertificate() throws IOException {
+        verifyWithSniMatchers(getRequestedServerName());
+        if (isClient()) {
+            return;
+        }
+        X509KeyManager keyManager = parameters.getX509KeyManager();
+        if (keyManager != null) {
+            for (String keyType : getCipherKeyTypes()) {
+                try {
+                    setCertificate(aliasChooser.chooseServerAlias(keyManager, keyType));
+                } catch (CertificateEncodingException e) {
+                    throw new IOException(e);
+                }
+            }
+        }
+    }
+
+    private void verifyWithSniMatchers(String serverName) {
+        if (!AddressUtils.isValidSniHostname(serverName)) {
+            return;
+        }
+
+        Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
+        if (sniMatchers == null || sniMatchers.isEmpty()){
+            return;
+        }
+
+        for (SNIMatcher m : sniMatchers) {
+            boolean match = m.matches(new SNIHostName(serverName));
+            if (match) {
+                return;
+            }
+        }
+        throw new IllegalArgumentException("SNI match failed: " + serverName);
+    }
+
+    private Set<String> getCipherKeyTypes() {
+        Set<String> keyTypes = new HashSet<>();
+        for (long sslCipherNativePointer : NativeCrypto.SSL_get_ciphers(ssl, this)) {
+            String keyType = SSLUtils.getServerX509KeyType(sslCipherNativePointer);
+            if (keyType != null) {
+                keyTypes.add(keyType);
+            }
+        }
+        return keyTypes;
     }
 
     // TODO(nathanmittler): Remove once after we switch to the engine socket.

@@ -878,6 +878,13 @@ public class NativeCryptoTest {
             // TODO(nathanmittler): Implement server-side caching for TLS < 1.3
             return 0;
         }
+
+        private boolean serverCertificateRequestedInvoked;
+
+        @Override
+        public void serverCertificateRequested() {
+            serverCertificateRequestedInvoked = true;
+        }
     }
 
     static class ClientHooks extends Hooks {

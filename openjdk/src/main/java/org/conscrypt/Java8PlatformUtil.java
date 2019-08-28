@@ -32,24 +32,17 @@ import javax.net.ssl.SSLSession;
 final class Java8PlatformUtil {
     static void setSSLParameters(
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
-        impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
-        impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
-        List<SNIServerName> serverNames = params.getServerNames();
+        setSSLParameters(params, impl);
 
-        if (serverNames != null) {
-            for (SNIServerName serverName : serverNames) {
-                if (serverName.getType() == SNI_HOST_NAME) {
-                    socket.setHostname(((SNIHostName) serverName).getAsciiName());
-                    break;
-                }
-            }
+        String sniHost = getSniHostName(params);
+        if (sniHost != null) {
+            socket.setHostname(sniHost);
         }
     }
 
     static void getSSLParameters(
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
-        params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
-        params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
+        getSSLParameters(params, impl);
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
             params.setServerNames(Collections.singletonList(
                     (SNIServerName) new SNIHostName(socket.getHostname())));
@@ -58,27 +51,46 @@ final class Java8PlatformUtil {
 
     static void setSSLParameters(
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
-        impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
-        impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
-        List<SNIServerName> serverNames = params.getServerNames();
+        setSSLParameters(params, impl);
 
-        if (serverNames != null) {
-            for (SNIServerName serverName : serverNames) {
-                if (serverName.getType() == SNI_HOST_NAME) {
-                    engine.setHostname(((SNIHostName) serverName).getAsciiName());
-                    break;
-                }
-            }
+        String sniHost = getSniHostName(params);
+        if (sniHost != null) {
+            engine.setHostname(sniHost);
         }
     }
     static void getSSLParameters(
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
-        params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
-        params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
+        getSSLParameters(params, impl);
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             params.setServerNames(Collections.singletonList(
                     (SNIServerName) new SNIHostName(engine.getHostname())));
         }
+    }
+
+    private static String getSniHostName(SSLParameters params) {
+        List<SNIServerName> serverNames = params.getServerNames();
+        if (serverNames != null) {
+            for (SNIServerName serverName : serverNames) {
+                if (serverName.getType() == SNI_HOST_NAME) {
+                    return ((SNIHostName) serverName).getAsciiName();
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void setSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+        impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
+        impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
+        impl.setSNIMatchers(params.getSNIMatchers());
+        impl.setAlgorithmConstraints(params.getAlgorithmConstraints());
+    }
+
+    private static void getSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+        params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
+        params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
+        params.setSNIMatchers(impl.getSNIMatchers());
+        params.setAlgorithmConstraints(impl.getAlgorithmConstraints());
     }
 
     static SSLEngine wrapEngine(ConscryptEngine engine) {

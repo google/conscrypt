@@ -1590,6 +1590,13 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     @Override
+    public void serverCertificateRequested() throws IOException {
+        synchronized (ssl) {
+            ssl.configureServerCertificate();
+        }
+    }
+
+    @Override
     public void onNewSessionEstablished(long sslSessionNativePtr) {
         try {
             // Increment the reference count to "take ownership" of the session resource.

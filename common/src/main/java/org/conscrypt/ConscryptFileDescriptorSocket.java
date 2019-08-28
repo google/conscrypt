@@ -59,7 +59,8 @@ import org.conscrypt.NativeRef.SSL_SESSION;
  * </ul>
  */
 class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
-        implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.AliasChooser,
+        implements NativeCrypto.SSLHandshakeCallbacks,
+                   SSLParametersImpl.AliasChooser,
                    SSLParametersImpl.PSKCallbacks {
     private static final boolean DBG_STATE = false;
 
@@ -384,6 +385,13 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     public final long serverSessionRequested(byte[] id) {
         // TODO(nathanmittler): Implement server-side caching for TLS < 1.3
         return 0;
+    }
+
+    @Override
+    public final void serverCertificateRequested() throws IOException {
+        synchronized (ssl) {
+            ssl.configureServerCertificate();
+        }
     }
 
     @Override

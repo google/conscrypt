@@ -33,10 +33,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
 import java.security.Provider;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.ExtendedSSLSession;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIMatcher;
+import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -44,8 +52,12 @@ import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509ExtendedKeyManager;
+
 import org.conscrypt.java.security.TestKeyStore;
+import org.conscrypt.javax.net.ssl.ForwardingX509ExtendedKeyManager;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -386,6 +398,55 @@ public class ConscryptEngineTest {
         clientEngine.closeInbound();
 
         assertEquals(cipherSuite, session.getCipherSuite());
+    }
+
+    @Test
+    public void sniHandlerIsCalledAfterHandshakeAndBeforeServerCert() throws Exception {
+        final String host = "sni.con-scry.pt";
+
+        final AtomicReference<String> serverHost = new AtomicReference<>();
+        final AtomicBoolean serverAliasCalled = new AtomicBoolean(false);
+
+        TestKeyStore serverKeys = TestKeyStore.getServer().copy();
+        addServerCertListener(serverKeys, new Runnable() {
+            @Override
+            public void run() {
+                assertEquals(host, serverHost.get());
+                serverAliasCalled.set(true);
+            }
+        });
+
+        setupEngines(TestKeyStore.getClient(), serverKeys);
+        Conscrypt.setHostname(clientEngine, host);
+
+        SSLParameters sslParameters = serverEngine.getSSLParameters();
+        sslParameters.setSNIMatchers(Collections.<SNIMatcher> singleton(new SNIMatcher(0) {
+            @Override
+            public boolean matches(SNIServerName sniServerName) {
+                String host = ((SNIHostName)sniServerName).getAsciiName();
+                serverHost.set(host);
+                return true;
+            }
+        }));
+        serverEngine.setSSLParameters(sslParameters);
+
+        doHandshake(true);
+
+        ExtendedSSLSession session = (ExtendedSSLSession) serverEngine.getSession();
+        assertEquals(Collections.singletonList(new SNIHostName(host)), session.getRequestedServerNames());
+        assertEquals(host, serverHost.get());
+        assertTrue(serverAliasCalled.get());
+    }
+
+    private void addServerCertListener(TestKeyStore store, final Runnable callback) {
+        X509ExtendedKeyManager tm = new ForwardingX509ExtendedKeyManager((X509ExtendedKeyManager) store.keyManagers[0]) {
+            @Override
+            public String chooseEngineServerAlias(String keyType, Principal[] issuers, SSLEngine engine) {
+                callback.run();
+                return super.chooseEngineServerAlias(keyType, issuers, engine);
+            }
+        };
+        store.keyManagers[0] = tm;
     }
 
     private void doMutualAuthHandshake(

@@ -1284,6 +1284,9 @@ public final class NativeCrypto {
          */
         @SuppressWarnings("unused")
         long serverSessionRequested(byte[] id);
+
+        @SuppressWarnings("unused")
+        void serverCertificateRequested() throws IOException;
     }
 
     static native String SSL_CIPHER_get_kx_name(long cipherAddress);

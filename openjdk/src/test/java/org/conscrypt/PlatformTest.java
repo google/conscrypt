@@ -22,11 +22,19 @@ import static org.junit.Assert.assertFalse;
 
 import java.lang.reflect.Method;
 import java.net.Socket;
+import java.security.AlgorithmConstraints;
+import java.security.AlgorithmParameters;
+import java.security.CryptoPrimitive;
+import java.security.Key;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLParameters;
+
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -34,144 +42,200 @@ import org.junit.Test;
  * Test for Platform
  */
 public class PlatformTest {
-    private static final Method SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD;
-    private static final Method SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD;
+  private static final Method SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD;
+  private static final Method SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD;
 
-    static {
-        Class<?> sslParameters = SSLParameters.class;
-        Method getApplicationProtocolsMethod;
-        Method setApplicationProtocolsMethod;
-        try {
-            getApplicationProtocolsMethod = sslParameters.getMethod("getApplicationProtocols");
-            setApplicationProtocolsMethod =
-                sslParameters.getMethod("setApplicationProtocols", String[].class);
-        } catch (NoSuchMethodException e) {
-            getApplicationProtocolsMethod = null;
-            setApplicationProtocolsMethod = null;
-        }
-
-        SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD = getApplicationProtocolsMethod;
-        SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD = setApplicationProtocolsMethod;
+  static {
+    Class<?> sslParameters = SSLParameters.class;
+    Method getApplicationProtocolsMethod;
+    Method setApplicationProtocolsMethod;
+    try {
+      getApplicationProtocolsMethod = sslParameters.getMethod("getApplicationProtocols");
+      setApplicationProtocolsMethod =
+          sslParameters.getMethod("setApplicationProtocols", String[].class);
+    } catch (NoSuchMethodException e) {
+      getApplicationProtocolsMethod = null;
+      setApplicationProtocolsMethod = null;
     }
 
-    private static boolean isJavaVersion(int version) {
-        return Platform.javaVersion() >= version;
-    }
+    SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD = getApplicationProtocolsMethod;
+    SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD = setApplicationProtocolsMethod;
+  }
 
-    private static void assumeJava8() {
-        Assume.assumeTrue("Require Java 8: " + Platform.javaVersion(), isJavaVersion(8));
-    }
+  private static boolean isJavaVersion(int version) {
+    return Platform.javaVersion() >= version;
+  }
 
-    @Test
-    public void test_setSSLParameters_Socket() throws Exception {
-        assumeJava8();
-        Socket socket = new OpenSSLSocketFactoryImpl().createSocket();
-        SSLParametersImpl impl = SSLParametersImpl.getDefault();
-        SSLParameters params = new SSLParameters();
-        List<SNIServerName> names = new ArrayList<SNIServerName>();
-        names.add(new SNIHostName("some.host"));
-        params.setServerNames(names);
-        params.setUseCipherSuitesOrder(false);
-        params.setEndpointIdentificationAlgorithm("ABC");
-        String[] applicationProtocols = new String[] {"foo", "bar"};
-        if (isJavaVersion(9)) {
-            setApplicationProtocols(params, applicationProtocols);
-        }
-        Platform.setSSLParameters(params, impl, (AbstractConscryptSocket) socket);
-        assertEquals("some.host", ((AbstractConscryptSocket) socket).getHostname());
-        assertFalse(impl.getUseCipherSuitesOrder());
-        assertEquals("ABC", impl.getEndpointIdentificationAlgorithm());
-        if (isJavaVersion(9)) {
-            assertArrayEquals(applicationProtocols, impl.getApplicationProtocols());
-        }
-    }
+  private static void assumeJava8() {
+    Assume.assumeTrue("Require Java 8: " + Platform.javaVersion(), isJavaVersion(8));
+  }
 
-    @Test
-    public void test_getSSLParameters_Socket() throws Exception {
-        assumeJava8();
-        Socket socket = new OpenSSLSocketFactoryImpl().createSocket();
-        SSLParametersImpl impl = SSLParametersImpl.getDefault();
-        SSLParameters params = new SSLParameters();
-        impl.setUseCipherSuitesOrder(false);
-        impl.setEndpointIdentificationAlgorithm("ABC");
-        String[] applicationProtocols = new String[] {"foo", "bar"};
-        if (isJavaVersion(9)) {
-            impl.setApplicationProtocols(applicationProtocols);
-        }
-        ((AbstractConscryptSocket) socket).setHostname("some.host");
-        Platform.getSSLParameters(params, impl, (AbstractConscryptSocket) socket);
-        assertEquals("some.host", ((SNIHostName) params.getServerNames().get(0)).getAsciiName());
-        assertFalse(params.getUseCipherSuitesOrder());
-        assertEquals("ABC", params.getEndpointIdentificationAlgorithm());
-        if (isJavaVersion(9)) {
-            assertArrayEquals(applicationProtocols, getApplicationProtocols(params));
-        }
+  @Test
+  public void test_setSSLParameters_Socket() throws Exception {
+    assumeJava8();
+    Socket socket = new OpenSSLSocketFactoryImpl().createSocket();
+    SSLParametersImpl impl = SSLParametersImpl.getDefault();
+    SSLParameters params = new SSLParameters();
+    List<SNIServerName> names = new ArrayList<SNIServerName>();
+    names.add(new SNIHostName("some.host"));
+    params.setServerNames(names);
+    params.setUseCipherSuitesOrder(false);
+    params.setEndpointIdentificationAlgorithm("ABC");
+    String[] applicationProtocols = new String[]{"foo", "bar"};
+    if (isJavaVersion(9)) {
+      setApplicationProtocols(params, applicationProtocols);
     }
+    Platform.setSSLParameters(params, impl, (AbstractConscryptSocket) socket);
+    assertEquals("some.host", ((AbstractConscryptSocket) socket).getHostname());
+    assertFalse(impl.getUseCipherSuitesOrder());
+    assertEquals("ABC", impl.getEndpointIdentificationAlgorithm());
+    if (isJavaVersion(9)) {
+      assertArrayEquals(applicationProtocols, impl.getApplicationProtocols());
+    }
+  }
 
-    @Test
-    public void test_setSSLParameters_Engine() throws Exception {
-        assumeJava8();
-        SSLParametersImpl impl = SSLParametersImpl.getDefault();
-        SSLParameters params = new SSLParameters();
-        ConscryptEngine engine = new ConscryptEngine(impl);
-        List<SNIServerName> names = new ArrayList<SNIServerName>();
-        names.add(new SNIHostName("some.host"));
-        params.setServerNames(names);
-        params.setUseCipherSuitesOrder(false);
-        params.setEndpointIdentificationAlgorithm("ABC");
-        String[] applicationProtocols = new String[] {"foo", "bar"};
-        if (isJavaVersion(9)) {
-            setApplicationProtocols(params, applicationProtocols);
-        }
-        Platform.setSSLParameters(params, impl, engine);
-        assertEquals("some.host", engine.getHostname());
-        assertFalse(impl.getUseCipherSuitesOrder());
-        assertEquals("ABC", impl.getEndpointIdentificationAlgorithm());
-        if (isJavaVersion(9)) {
-            assertArrayEquals(applicationProtocols, impl.getApplicationProtocols());
-        }
+  @Test
+  public void test_getSSLParameters_Socket() throws Exception {
+    assumeJava8();
+    Socket socket = new OpenSSLSocketFactoryImpl().createSocket();
+    SSLParametersImpl impl = SSLParametersImpl.getDefault();
+    SSLParameters params = new SSLParameters();
+    impl.setUseCipherSuitesOrder(false);
+    impl.setEndpointIdentificationAlgorithm("ABC");
+    String[] applicationProtocols = new String[]{"foo", "bar"};
+    if (isJavaVersion(9)) {
+      impl.setApplicationProtocols(applicationProtocols);
     }
+    ((AbstractConscryptSocket) socket).setHostname("some.host");
+    Platform.getSSLParameters(params, impl, (AbstractConscryptSocket) socket);
+    assertEquals("some.host", ((SNIHostName) params.getServerNames().get(0)).getAsciiName());
+    assertFalse(params.getUseCipherSuitesOrder());
+    assertEquals("ABC", params.getEndpointIdentificationAlgorithm());
+    if (isJavaVersion(9)) {
+      assertArrayEquals(applicationProtocols, getApplicationProtocols(params));
+    }
+  }
 
-    @Test
-    public void test_getSSLParameters_Engine() throws Exception {
-        assumeJava8();
-        SSLParametersImpl impl = SSLParametersImpl.getDefault();
-        SSLParameters params = new SSLParameters();
-        ConscryptEngine engine = new ConscryptEngine(impl);
-        impl.setUseCipherSuitesOrder(false);
-        impl.setEndpointIdentificationAlgorithm("ABC");
-        engine.setHostname("some.host");
-        String[] applicationProtocols = new String[] {"foo", "bar"};
-        if (isJavaVersion(9)) {
-            impl.setApplicationProtocols(applicationProtocols);
-        }
-        Platform.getSSLParameters(params, impl, engine);
-        assertEquals("some.host", ((SNIHostName) params.getServerNames().get(0)).getAsciiName());
-        assertFalse(params.getUseCipherSuitesOrder());
-        assertEquals("ABC", params.getEndpointIdentificationAlgorithm());
-        if (isJavaVersion(9)) {
-            assertArrayEquals(applicationProtocols, getApplicationProtocols(params));
-        }
+  @Test
+  public void test_setSSLParameters_Engine() throws Exception {
+    assumeJava8();
+    SSLParametersImpl impl = SSLParametersImpl.getDefault();
+    SSLParameters params = new SSLParameters();
+    ConscryptEngine engine = new ConscryptEngine(impl);
+    List<SNIServerName> names = new ArrayList<SNIServerName>();
+    names.add(new SNIHostName("some.host"));
+    params.setServerNames(names);
+    params.setUseCipherSuitesOrder(false);
+    params.setEndpointIdentificationAlgorithm("ABC");
+    String[] applicationProtocols = new String[]{"foo", "bar"};
+    if (isJavaVersion(9)) {
+      setApplicationProtocols(params, applicationProtocols);
     }
+    Platform.setSSLParameters(params, impl, engine);
+    assertEquals("some.host", engine.getHostname());
+    assertFalse(impl.getUseCipherSuitesOrder());
+    assertEquals("ABC", impl.getEndpointIdentificationAlgorithm());
+    if (isJavaVersion(9)) {
+      assertArrayEquals(applicationProtocols, impl.getApplicationProtocols());
+    }
+  }
 
-    private static String[] getApplicationProtocols(SSLParameters params) {
-        if (SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD != null) {
-            try {
-                return (String[]) SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD.invoke(params);
-            } catch (Exception ignored) {
-                // TODO(nmittler): Should we throw here?
-            }
-        }
-        return EmptyArray.STRING;
+  @Test
+  public void test_getSSLParameters_Engine() throws Exception {
+    assumeJava8();
+    SSLParametersImpl impl = SSLParametersImpl.getDefault();
+    SSLParameters params = new SSLParameters();
+    ConscryptEngine engine = new ConscryptEngine(impl);
+    impl.setUseCipherSuitesOrder(false);
+    impl.setEndpointIdentificationAlgorithm("ABC");
+    engine.setHostname("some.host");
+    String[] applicationProtocols = new String[]{"foo", "bar"};
+    if (isJavaVersion(9)) {
+      impl.setApplicationProtocols(applicationProtocols);
     }
+    Platform.getSSLParameters(params, impl, engine);
+    assertEquals("some.host", ((SNIHostName) params.getServerNames().get(0)).getAsciiName());
+    assertFalse(params.getUseCipherSuitesOrder());
+    assertEquals("ABC", params.getEndpointIdentificationAlgorithm());
+    if (isJavaVersion(9)) {
+      assertArrayEquals(applicationProtocols, getApplicationProtocols(params));
+    }
+  }
 
-    private static void setApplicationProtocols(SSLParameters params, String[] protocols) {
-        if (SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD != null) {
-            try {
-                SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD.invoke(params, (Object) protocols);
-            } catch (Exception ignored) {
-                // TODO(nmittler): Should we throw here?
-            }
-        }
+  @Test
+  public void test_setAndGetSSLParameters() throws Exception {
+    assumeJava8();
+
+    ConscryptEngine engine = new ConscryptEngine(SSLParametersImpl.getDefault());
+    SSLParameters paramsIn = new SSLParameters();
+
+    List<SNIServerName> names = new ArrayList<>();
+    names.add(new SNIHostName("some.host"));
+    paramsIn.setServerNames(names);
+    paramsIn.setUseCipherSuitesOrder(true);
+    paramsIn.setEndpointIdentificationAlgorithm("ABC");
+    paramsIn.setWantClientAuth(true);
+    paramsIn.setSNIMatchers(Collections.singleton(newSniMatcher()));
+    paramsIn.setAlgorithmConstraints(newAlgorithmConstraints());
+
+    engine.setSSLParameters(paramsIn);
+    SSLParameters paramsOut = engine.getSSLParameters();
+
+    assertEquals(paramsIn.getServerNames(), paramsOut.getServerNames());
+    assertEquals(paramsIn.getUseCipherSuitesOrder(), paramsOut.getUseCipherSuitesOrder());
+    assertEquals(paramsIn.getEndpointIdentificationAlgorithm(), paramsOut.getEndpointIdentificationAlgorithm());
+    assertEquals(paramsIn.getWantClientAuth(), paramsOut.getWantClientAuth());
+    assertEquals(paramsIn.getNeedClientAuth(), paramsOut.getNeedClientAuth());
+    assertEquals(paramsIn.getSNIMatchers(), paramsOut.getSNIMatchers());
+    assertEquals(paramsIn.getAlgorithmConstraints(), paramsOut.getAlgorithmConstraints());
+  }
+
+  private static String[] getApplicationProtocols(SSLParameters params) {
+    if (SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD != null) {
+      try {
+        return (String[]) SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD.invoke(params);
+      } catch (Exception ignored) {
+        // TODO(nmittler): Should we throw here?
+      }
     }
+    return EmptyArray.STRING;
+  }
+
+  private static void setApplicationProtocols(SSLParameters params, String[] protocols) {
+    if (SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD != null) {
+      try {
+        SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD.invoke(params, (Object) protocols);
+      } catch (Exception ignored) {
+        // TODO(nmittler): Should we throw here?
+      }
+    }
+  }
+
+  private static SNIMatcher newSniMatcher() {
+    return new SNIMatcher(0) {
+      @Override
+      public boolean matches(SNIServerName sniServerName) {
+        return false;
+      }
+    };
+  }
+
+  private static AlgorithmConstraints newAlgorithmConstraints() {
+    return new AlgorithmConstraints() {
+      @Override
+      public boolean permits(Set<CryptoPrimitive> primitives, String algorithm, AlgorithmParameters parameters) {
+        return false;
+      }
+
+      @Override
+      public boolean permits(Set<CryptoPrimitive> primitives, Key key) {
+        return false;
+      }
+
+      @Override
+      public boolean permits(Set<CryptoPrimitive> primitives, String algorithm, Key key, AlgorithmParameters parameters) {
+        return false;
+      }
+    };
+  }
 }

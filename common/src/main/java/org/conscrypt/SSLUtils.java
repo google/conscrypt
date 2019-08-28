@@ -211,7 +211,7 @@ final class SSLUtils {
      * X509ExtendedKeyManager.chooseEngineServerAlias. Returns {@code null} for key exchanges that
      * do not use X.509 for server authentication.
      */
-    static String getServerX509KeyType(long sslCipherNative) throws SSLException {
+    static String getServerX509KeyType(long sslCipherNative) {
         String kx_name = NativeCrypto.SSL_CIPHER_get_kx_name(sslCipherNative);
         if (kx_name.equals("RSA") || kx_name.equals("DHE_RSA") || kx_name.equals("ECDHE_RSA")) {
             return KEY_TYPE_RSA;
