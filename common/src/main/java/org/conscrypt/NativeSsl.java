@@ -36,14 +36,11 @@ import java.security.PublicKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.crypto.SecretKey;
-import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.X509KeyManager;
@@ -382,18 +379,9 @@ final class NativeSsl {
             return;
         }
 
-        Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
-        if (sniMatchers == null || sniMatchers.isEmpty()){
-            return;
+        if (Platform.allSniMatchersFail(parameters, serverName)) {
+            throw new IllegalArgumentException("SNI match failed: " + serverName);
         }
-
-        for (SNIMatcher m : sniMatchers) {
-            boolean match = m.matches(new SNIHostName(serverName));
-            if (match) {
-                return;
-            }
-        }
-        throw new IllegalArgumentException("SNI match failed: " + serverName);
     }
 
     private Set<String> getCipherKeyTypes() {

@@ -45,9 +45,11 @@ import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.InvalidParameterSpecException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
@@ -992,5 +994,28 @@ final class Platform {
 
     static CTPolicy newDefaultPolicy(CTLogStore logStore) {
         return null;
+    }
+
+    static boolean allSniMatchersFail(SSLParametersImpl parameters, String serverName) {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return allSniMatchersFailVersioned(parameters, serverName);
+        }
+        return false;
+    }
+
+    @TargetApi(24)
+    private static boolean allSniMatchersFailVersioned(SSLParametersImpl parameters, String serverName) {
+        Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
+        if (sniMatchers == null || sniMatchers.isEmpty()){
+            return false;
+        }
+
+        for (SNIMatcher m : sniMatchers) {
+            boolean match = m.matches(new SNIHostName(serverName));
+            if (match) {
+                return false;
+            }
+        }
+        return true;
     }
 }

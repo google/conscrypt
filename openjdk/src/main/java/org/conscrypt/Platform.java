@@ -65,12 +65,15 @@ import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.InvalidParameterSpecException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
@@ -717,6 +720,21 @@ final class Platform {
 
     static CTPolicy newDefaultPolicy(CTLogStore logStore) {
         return null;
+    }
+
+    static boolean allSniMatchersFail(SSLParametersImpl parameters, String serverName) {
+        Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
+        if (sniMatchers == null || sniMatchers.isEmpty()){
+            return false;
+        }
+
+        for (SNIMatcher m : sniMatchers) {
+            boolean match = m.matches(new SNIHostName(serverName));
+            if (match) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean isAndroid() {
