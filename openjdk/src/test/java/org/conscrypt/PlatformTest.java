@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.PlatformTestUtil.assumeJava8;
+import static org.conscrypt.PlatformTestUtil.isJavaVersion;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -35,7 +37,6 @@ import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLParameters;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 /**
@@ -60,14 +61,6 @@ public class PlatformTest {
 
     SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD = getApplicationProtocolsMethod;
     SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD = setApplicationProtocolsMethod;
-  }
-
-  private static boolean isJavaVersion(int version) {
-    return Platform.javaVersion() >= version;
-  }
-
-  private static void assumeJava8() {
-    Assume.assumeTrue("Require Java 8: " + Platform.javaVersion(), isJavaVersion(8));
   }
 
   @Test

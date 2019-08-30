@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.PlatformTestUtil.assumeJava8;
 import static org.conscrypt.TestUtils.getConscryptProvider;
 import static org.conscrypt.TestUtils.getJdkProvider;
 import static org.conscrypt.TestUtils.getProtocols;
@@ -402,6 +403,8 @@ public class ConscryptEngineTest {
 
     @Test
     public void sniHandlerIsCalledAfterHandshakeAndBeforeServerCert() throws Exception {
+        assumeJava8();
+
         final String host = "sni.con-scry.pt";
 
         final AtomicReference<String> serverHost = new AtomicReference<>();

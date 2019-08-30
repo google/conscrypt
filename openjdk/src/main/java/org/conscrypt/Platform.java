@@ -723,16 +723,8 @@ final class Platform {
     }
 
     static boolean allSniMatchersFail(SSLParametersImpl parameters, String serverName) {
-        Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
-        if (sniMatchers == null || sniMatchers.isEmpty()){
-            return false;
-        }
-
-        for (SNIMatcher m : sniMatchers) {
-            boolean match = m.matches(new SNIHostName(serverName));
-            if (match) {
-                return false;
-            }
+        if (JAVA_VERSION >= 8) {
+            return Java8PlatformUtil.allSniMatchersFail(parameters, serverName);
         }
         return true;
     }

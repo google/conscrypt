@@ -18,9 +18,11 @@ package org.conscrypt;
 
 import static javax.net.ssl.StandardConstants.SNI_HOST_NAME;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
@@ -91,6 +93,21 @@ final class Java8PlatformUtil {
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
         params.setSNIMatchers(impl.getSNIMatchers());
         params.setAlgorithmConstraints(impl.getAlgorithmConstraints());
+    }
+
+    static boolean allSniMatchersFail(SSLParametersImpl parameters, String serverName) {
+        Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
+        if (sniMatchers == null || sniMatchers.isEmpty()){
+            return false;
+        }
+
+        for (SNIMatcher m : sniMatchers) {
+            boolean match = m.matches(new SNIHostName(serverName));
+            if (match) {
+                return false;
+            }
+        }
+        return true;
     }
 
     static SSLEngine wrapEngine(ConscryptEngine engine) {
