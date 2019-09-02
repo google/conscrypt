@@ -8,7 +8,7 @@ import java.security.CryptoPrimitive;
 import java.security.Key;
 import java.util.Set;
 
-public final class PlatformTestObjectUtil {
+final class PlatformTestObjectUtil {
 
   static SNIMatcher newSniMatcher() {
     return new SNIMatcher(0) {
