@@ -24,16 +24,10 @@ import static org.junit.Assert.assertFalse;
 
 import java.lang.reflect.Method;
 import java.net.Socket;
-import java.security.AlgorithmConstraints;
-import java.security.AlgorithmParameters;
-import java.security.CryptoPrimitive;
-import java.security.Key;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLParameters;
 
@@ -66,6 +60,7 @@ public class PlatformTest {
   @Test
   public void test_setSSLParameters_Socket() throws Exception {
     assumeJava8();
+
     Socket socket = new OpenSSLSocketFactoryImpl().createSocket();
     SSLParametersImpl impl = SSLParametersImpl.getDefault();
     SSLParameters params = new SSLParameters();
@@ -90,6 +85,7 @@ public class PlatformTest {
   @Test
   public void test_getSSLParameters_Socket() throws Exception {
     assumeJava8();
+
     Socket socket = new OpenSSLSocketFactoryImpl().createSocket();
     SSLParametersImpl impl = SSLParametersImpl.getDefault();
     SSLParameters params = new SSLParameters();
@@ -112,6 +108,7 @@ public class PlatformTest {
   @Test
   public void test_setSSLParameters_Engine() throws Exception {
     assumeJava8();
+
     SSLParametersImpl impl = SSLParametersImpl.getDefault();
     SSLParameters params = new SSLParameters();
     ConscryptEngine engine = new ConscryptEngine(impl);
@@ -136,6 +133,7 @@ public class PlatformTest {
   @Test
   public void test_getSSLParameters_Engine() throws Exception {
     assumeJava8();
+
     SSLParametersImpl impl = SSLParametersImpl.getDefault();
     SSLParameters params = new SSLParameters();
     ConscryptEngine engine = new ConscryptEngine(impl);
@@ -168,8 +166,8 @@ public class PlatformTest {
     paramsIn.setUseCipherSuitesOrder(true);
     paramsIn.setEndpointIdentificationAlgorithm("ABC");
     paramsIn.setWantClientAuth(true);
-    paramsIn.setSNIMatchers(Collections.singleton(newSniMatcher()));
-    paramsIn.setAlgorithmConstraints(newAlgorithmConstraints());
+    paramsIn.setSNIMatchers(Collections.singleton(PlatformTestObjectUtil.newSniMatcher()));
+    paramsIn.setAlgorithmConstraints(PlatformTestObjectUtil.newAlgorithmConstraints());
 
     engine.setSSLParameters(paramsIn);
     SSLParameters paramsOut = engine.getSSLParameters();
@@ -204,31 +202,4 @@ public class PlatformTest {
     }
   }
 
-  private static SNIMatcher newSniMatcher() {
-    return new SNIMatcher(0) {
-      @Override
-      public boolean matches(SNIServerName sniServerName) {
-        return false;
-      }
-    };
-  }
-
-  private static AlgorithmConstraints newAlgorithmConstraints() {
-    return new AlgorithmConstraints() {
-      @Override
-      public boolean permits(Set<CryptoPrimitive> primitives, String algorithm, AlgorithmParameters parameters) {
-        return false;
-      }
-
-      @Override
-      public boolean permits(Set<CryptoPrimitive> primitives, Key key) {
-        return false;
-      }
-
-      @Override
-      public boolean permits(Set<CryptoPrimitive> primitives, String algorithm, Key key, AlgorithmParameters parameters) {
-        return false;
-      }
-    };
-  }
 }

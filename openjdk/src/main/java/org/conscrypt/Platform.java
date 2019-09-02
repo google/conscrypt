@@ -726,7 +726,7 @@ final class Platform {
         if (JAVA_VERSION >= 8) {
             return Java8PlatformUtil.allSniMatchersFail(parameters, serverName);
         }
-        return true;
+        return false;
     }
 
     private static boolean isAndroid() {
