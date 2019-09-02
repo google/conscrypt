@@ -968,7 +968,7 @@ public final class NativeCrypto {
             SUPPORTED_PROTOCOL_TLSV1_1,
             SUPPORTED_PROTOCOL_TLSV1_2,
             SUPPORTED_PROTOCOL_TLSV1_3,
-    };;
+    };
 
     static String[] getSupportedProtocols() {
         return SUPPORTED_PROTOCOLS.clone();
@@ -1261,15 +1261,13 @@ public final class NativeCrypto {
         /**
          * Called when SSL state changes. This could be handshake completion.
          */
-        @SuppressWarnings("unused")
-        void onSSLStateChange(int type, int val);
+        @SuppressWarnings("unused") void onSSLStateChange(int type, int val);
 
         /**
          * Called when a new session has been established and may be added to the session cache.
          * The callee is responsible for incrementing the reference count on the returned session.
          */
-        @SuppressWarnings("unused")
-        void onNewSessionEstablished(long sslSessionNativePtr);
+        @SuppressWarnings("unused") void onNewSessionEstablished(long sslSessionNativePtr);
 
         /**
          * Called for servers where TLS < 1.3 (TLS 1.3 uses session tickets rather than
@@ -1282,11 +1280,9 @@ public final class NativeCrypto {
          * @param id the ID of the session to find.
          * @return the cached session or {@code 0} if no session was found matching the given ID.
          */
-        @SuppressWarnings("unused")
-        long serverSessionRequested(byte[] id);
+        @SuppressWarnings("unused") long serverSessionRequested(byte[] id);
 
-        @SuppressWarnings("unused")
-        void serverCertificateRequested() throws IOException;
+        @SuppressWarnings("unused") void serverCertificateRequested() throws IOException;
     }
 
     static native String SSL_CIPHER_get_kx_name(long cipherAddress);

@@ -1084,7 +1084,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         } finally {
             super.finalize();
         }
-
     }
 
     @Override
@@ -1174,7 +1173,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     private void transitionTo(int newState) {
         switch (newState) {
             case STATE_CLOSED: {
-                if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED ) {
+                if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED) {
                     closedSession = new SessionSnapshot(activeSession);
                 }
                 break;

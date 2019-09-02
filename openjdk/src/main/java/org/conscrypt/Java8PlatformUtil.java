@@ -97,7 +97,7 @@ final class Java8PlatformUtil {
 
     static boolean allSniMatchersFail(SSLParametersImpl parameters, String serverName) {
         Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
-        if (sniMatchers == null || sniMatchers.isEmpty()){
+        if (sniMatchers == null || sniMatchers.isEmpty()) {
             return false;
         }
 

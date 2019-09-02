@@ -1004,9 +1004,10 @@ final class Platform {
     }
 
     @TargetApi(24)
-    private static boolean allSniMatchersFailVersioned(SSLParametersImpl parameters, String serverName) {
+    private static boolean allSniMatchersFailVersioned(
+            SSLParametersImpl parameters, String serverName) {
         Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
-        if (sniMatchers == null || sniMatchers.isEmpty()){
+        if (sniMatchers == null || sniMatchers.isEmpty()) {
             return false;
         }
 

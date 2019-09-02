@@ -56,7 +56,6 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
-
 import org.conscrypt.java.security.TestKeyStore;
 import org.conscrypt.javax.net.ssl.ForwardingX509ExtendedKeyManager;
 import org.junit.Test;
@@ -423,10 +422,10 @@ public class ConscryptEngineTest {
         Conscrypt.setHostname(clientEngine, host);
 
         SSLParameters sslParameters = serverEngine.getSSLParameters();
-        sslParameters.setSNIMatchers(Collections.<SNIMatcher> singleton(new SNIMatcher(0) {
+        sslParameters.setSNIMatchers(Collections.<SNIMatcher>singleton(new SNIMatcher(0) {
             @Override
             public boolean matches(SNIServerName sniServerName) {
-                String host = ((SNIHostName)sniServerName).getAsciiName();
+                String host = ((SNIHostName) sniServerName).getAsciiName();
                 serverHost.set(host);
                 return true;
             }
@@ -436,15 +435,18 @@ public class ConscryptEngineTest {
         doHandshake(true);
 
         ExtendedSSLSession session = (ExtendedSSLSession) serverEngine.getSession();
-        assertEquals(Collections.singletonList(new SNIHostName(host)), session.getRequestedServerNames());
+        assertEquals(Collections.singletonList(new SNIHostName(host)),
+                session.getRequestedServerNames());
         assertEquals(host, serverHost.get());
         assertTrue(serverAliasCalled.get());
     }
 
     private void addServerCertListener(TestKeyStore store, final Runnable callback) {
-        X509ExtendedKeyManager tm = new ForwardingX509ExtendedKeyManager((X509ExtendedKeyManager) store.keyManagers[0]) {
+        X509ExtendedKeyManager tm = new ForwardingX509ExtendedKeyManager(
+                (X509ExtendedKeyManager) store.keyManagers[0]) {
             @Override
-            public String chooseEngineServerAlias(String keyType, Principal[] issuers, SSLEngine engine) {
+            public String chooseEngineServerAlias(
+                    String keyType, Principal[] issuers, SSLEngine engine) {
                 callback.run();
                 return super.chooseEngineServerAlias(keyType, issuers, engine);
             }
@@ -546,7 +548,9 @@ public class ConscryptEngineTest {
                 case OK: {
                     break;
                 }
-                default: { throw new RuntimeException("Unexpected SSLEngine status: " + status); }
+                default: {
+                    throw new RuntimeException("Unexpected SSLEngine status: " + status);
+                }
             }
             int newPos = decryptedBuffer.position();
             int bytesProduced = unwrapResult.bytesProduced();
