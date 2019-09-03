@@ -1,14 +1,5 @@
 description = 'Conscrypt: OpenJdk UberJAR'
 
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'biz.aQute.bnd:biz.aQute.bnd.gradle:4.2.0'
-    }
-}
-
 ext {
     buildUberJar = Boolean.parseBoolean(System.getProperty('org.conscrypt.openjdk.buildUberJar', 'false'))
     uberJarClassifiers = (System.getProperty('org.conscrypt.openjdk.uberJarClassifiers',
