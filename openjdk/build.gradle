@@ -1,4 +1,7 @@
+import aQute.bnd.gradle.BundleTaskConvention
 import org.codehaus.groovy.runtime.InvokerHelper
+
+apply plugin: 'biz.aQute.bnd.builder'
 
 description = 'Conscrypt: OpenJdk'
 
@@ -159,7 +162,9 @@ artifacts {
 
 jar.manifest {
     attributes ('BoringSSL-Version' : boringSslVersion,
-                'Automatic-Module-Name' : 'org.conscrypt')
+                'Automatic-Module-Name' : 'org.conscrypt',
+                'Bundle-SymbolicName': 'org.conscrypt',
+                '-exportcontents': 'org.conscrypt.*')
 }
 
 dependencies {
@@ -208,13 +213,19 @@ def addNativeJar(nativeClassifier) {
     // Create a JAR for this configuration and add it to the output archives.
     SourceSet sourceSet = sourceSet(nativeClassifier)
     def jarTaskName = sourceSet.jarTaskName
-    task "$jarTaskName"(type: Jar) {
+    task "$jarTaskName"(type: Jar) { Jar t ->
         // Depend on the regular classes task
         dependsOn classes
         manifest = jar.manifest
         classifier = nativeClassifier
 
         from sourceSet.output + sourceSets.main.output
+
+        // add OSGI headers
+        t.convention.plugins.bundle = new BundleTaskConvention(t)
+        t.doLast {
+            t.buildBundle()
+        }
     }
 
     def jarTask = tasks["$jarTaskName"]

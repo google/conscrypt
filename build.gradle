@@ -8,6 +8,7 @@ buildscript {
         // This must be applied in the root project otherwise each subproject will
         // have it in a different ClassLoader.
         classpath android_tools
+        classpath 'biz.aQute.bnd:biz.aQute.bnd.gradle:4.2.0'
     }
 }
 

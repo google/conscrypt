@@ -10,6 +10,8 @@ ext {
 }
 
 if (buildUberJar) {
+    apply plugin: 'biz.aQute.bnd.builder'
+
     configurations {
         uberJar
     }
@@ -69,7 +71,9 @@ if (buildUberJar) {
     // artifact exactly matches the one on the current system.
     jar.manifest {
         attributes ('BoringSSL-Version': boringSslVersion,
-                    'Automatic-Module-Name': 'org.conscrypt')
+                    'Automatic-Module-Name': 'org.conscrypt',
+                    'Bundle-SymbolicName': 'org.conscrypt',
+                    '-exportcontents': 'org.conscrypt.*')
     }
 } else {
     // Not building an uber jar - disable all tasks.
