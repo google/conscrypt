@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import static javax.net.ssl.SSLEngineResult.Status.CLOSED;
 import static javax.net.ssl.SSLEngineResult.Status.OK;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_COMPLETED;
@@ -608,14 +609,13 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
             init();
 
             // Need to loop through at least once to enable handshaking where no application
-            // bytes are
-            // processed.
+            // bytes are processed.
             int len = buffer.remaining();
             SSLEngineResult engineResult;
             do {
                 target.clear();
                 engineResult = engine.wrap(buffer, target);
-                if (engineResult.getStatus() != OK) {
+                if (engineResult.getStatus() != OK && engineResult.getStatus() != CLOSED) {
                     throw new SSLException("Unexpected engine result " + engineResult.getStatus());
                 }
                 if (target.position() != engineResult.bytesProduced()) {
