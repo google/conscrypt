@@ -60,6 +60,7 @@ if (androidSdkInstalled) {
                             '-DOPENSSL_SMALL',
                             '-D_XOPEN_SOURCE=700',
                             '-Wno-unused-parameter'
+                    targets 'conscrypt_jni'
                 }
             }
             ndk {
