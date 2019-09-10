@@ -511,8 +511,15 @@ public class SSLSocketTest {
                         // By the point of the handshake where we're validating certificates,
                         // the hostname is known and the cipher suite should be agreed
                         assertEquals(referenceContext.host.getHostName(), session.getPeerHost());
-                        assertEquals(referenceClientSocket.getEnabledCipherSuites()[0],
-                            session.getCipherSuite());
+
+                        // The negotiated cipher suite should be one of the enabled ones, but
+                        // BoringSSL may have reordered them based on things like hardware support,
+                        // so we don't know which one may have been negotiated.
+                        String sessionSuite = session.getCipherSuite();
+                        List<String> enabledSuites =
+                            Arrays.asList(referenceClientSocket.getEnabledCipherSuites());
+                        assertTrue(enabledSuites.contains(sessionSuite));
+
                         wasCalled[0] = true;
                     } catch (Exception e) {
                         throw new CertificateException("Something broke", e);
