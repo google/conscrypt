@@ -637,11 +637,14 @@ final class SSLParametersImpl implements Cloneable {
     }
 
     Collection<SNIMatcher> getSNIMatchers() {
-        return sniMatchers;
+        if (sniMatchers == null) {
+            return null;
+        }
+        return new ArrayList<>(sniMatchers);
     }
 
     void setSNIMatchers(Collection<SNIMatcher> sniMatchers) {
-        this.sniMatchers = sniMatchers;
+        this.sniMatchers = sniMatchers != null ? new ArrayList<>(sniMatchers) : null;
     }
 
     AlgorithmConstraints getAlgorithmConstraints() {

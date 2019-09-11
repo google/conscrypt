@@ -374,13 +374,13 @@ final class NativeSsl {
         }
     }
 
-    private void verifyWithSniMatchers(String serverName) {
+    private void verifyWithSniMatchers(String serverName) throws SSLHandshakeException {
         if (!AddressUtils.isValidSniHostname(serverName)) {
             return;
         }
 
-        if (Platform.allSniMatchersFail(parameters, serverName)) {
-            throw new IllegalArgumentException("SNI match failed: " + serverName);
+        if (Platform.serverNamePermitted(parameters, serverName)) {
+            throw new SSLHandshakeException("SNI match failed: " + serverName);
         }
     }
 

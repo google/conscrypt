@@ -719,9 +719,9 @@ final class Platform {
         return null;
     }
 
-    static boolean allSniMatchersFail(SSLParametersImpl parameters, String serverName) {
+    static boolean serverNamePermitted(SSLParametersImpl parameters, String serverName) {
         if (JAVA_VERSION >= 8) {
-            return Java8PlatformUtil.allSniMatchersFail(parameters, serverName);
+            return Java8PlatformUtil.serverNamePermitted(parameters, serverName);
         }
         return false;
     }

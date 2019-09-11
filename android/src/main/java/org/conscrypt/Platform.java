@@ -996,15 +996,15 @@ final class Platform {
         return null;
     }
 
-    static boolean allSniMatchersFail(SSLParametersImpl parameters, String serverName) {
+    static boolean serverNamePermitted(SSLParametersImpl parameters, String serverName) {
         if (Build.VERSION.SDK_INT >= 24) {
-            return allSniMatchersFailVersioned(parameters, serverName);
+            return serverNamePermittedInternal(parameters, serverName);
         }
         return false;
     }
 
     @TargetApi(24)
-    private static boolean allSniMatchersFailVersioned(
+    private static boolean serverNamePermittedInternal(
             SSLParametersImpl parameters, String serverName) {
         Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
         if (sniMatchers == null || sniMatchers.isEmpty()) {

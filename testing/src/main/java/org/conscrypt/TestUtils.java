@@ -699,4 +699,20 @@ public final class TestUtils {
             return output;
         }
     }
+
+    public static boolean isJavaVersion(int version) {
+        return javaVersion() >= version;
+    }
+
+    private static int javaVersion() {
+        String[] v = System.getProperty("java.specification.version", "1.6").split("\\.");
+        if ("1".equals(v[0])) {
+            return Integer.parseInt(v[1]);
+        }
+        return Integer.parseInt(v[0]);
+    }
+
+    public static void assumeJava8() {
+        Assume.assumeTrue("Require Java 8: " + javaVersion(), isJavaVersion(8));
+    }
 }

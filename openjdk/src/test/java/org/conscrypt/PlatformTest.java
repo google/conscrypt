@@ -16,8 +16,8 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.PlatformTestUtil.assumeJava8;
-import static org.conscrypt.PlatformTestUtil.isJavaVersion;
+import static org.conscrypt.TestUtils.assumeJava8;
+import static org.conscrypt.TestUtils.isJavaVersion;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -30,6 +30,9 @@ import java.util.List;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLParameters;
+
+import org.conscrypt.testing.FailingSniMatcher;
+import org.conscrypt.testing.RestrictedAlgorithmConstraints;
 import org.junit.Test;
 
 /**
@@ -160,8 +163,8 @@ public class PlatformTest {
         paramsIn.setUseCipherSuitesOrder(true);
         paramsIn.setEndpointIdentificationAlgorithm("ABC");
         paramsIn.setWantClientAuth(true);
-        paramsIn.setSNIMatchers(Collections.singleton(PlatformTestObjectUtil.newSniMatcher()));
-        paramsIn.setAlgorithmConstraints(PlatformTestObjectUtil.newAlgorithmConstraints());
+        paramsIn.setSNIMatchers(Collections.singleton(FailingSniMatcher.create()));
+        paramsIn.setAlgorithmConstraints(new RestrictedAlgorithmConstraints());
 
         engine.setSSLParameters(paramsIn);
         SSLParameters paramsOut = engine.getSSLParameters();
