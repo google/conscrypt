@@ -30,7 +30,6 @@ import java.util.List;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLParameters;
-
 import org.conscrypt.testing.FailingSniMatcher;
 import org.conscrypt.testing.RestrictedAlgorithmConstraints;
 import org.junit.Test;
