@@ -53,7 +53,6 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
 import org.conscrypt.testing.Streams;
@@ -68,8 +67,8 @@ public final class TestUtils {
     private static final String PROTOCOL_TLS_V1_1 = "TLSv1.1";
     private static final String PROTOCOL_TLS_V1 = "TLSv1";
     private static final String[] DESIRED_PROTOCOLS =
-        new String[] {PROTOCOL_TLS_V1_2, PROTOCOL_TLS_V1_1, /* For Java 6 */ PROTOCOL_TLS_V1};
-    private static final Provider JDK_PROVIDER = getDefaultTlsProvider();
+        new String[] {PROTOCOL_TLS_V1_2, PROTOCOL_TLS_V1_1, PROTOCOL_TLS_V1};
+    private static final Provider JDK_PROVIDER = getNonConscryptTlsProvider();
     private static final byte[] CHARS =
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".getBytes(UTF_8);
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocateDirect(0);
@@ -79,16 +78,16 @@ public final class TestUtils {
 
     private TestUtils() {}
 
-    private static Provider getDefaultTlsProvider() {
+    private static Provider getNonConscryptTlsProvider() {
         for (String protocol : DESIRED_PROTOCOLS) {
             for (Provider p : Security.getProviders()) {
-                if (hasProtocol(p, protocol)) {
+                if (!p.getClass().getPackage().getName().contains("conscrypt")
+                        && hasProtocol(p, protocol)) {
                     return p;
                 }
             }
         }
-        // For Java 1.6 testing
-        return new BouncyCastleProvider();
+        throw new AssertionError();
     }
 
     private static boolean hasProtocol(Provider p, String protocol) {
@@ -201,17 +200,8 @@ public final class TestUtils {
         }
     }
 
-    public static synchronized boolean installConscryptIfNotPresent() {
-        Provider conscryptProvider = getConscryptProvider();
-        if (Security.getProvider(conscryptProvider.getName()) == null) {
-            Security.insertProviderAt(conscryptProvider, 1);
-            return true;
-        }
-        return false;
-    }
-
     public static synchronized void installConscryptAsDefaultProvider() {
-        final Provider conscryptProvider = getConscryptProvider();
+        Provider conscryptProvider = getConscryptProvider();
         Provider[] providers = Security.getProviders();
         if (providers.length == 0 || !providers[0].equals(conscryptProvider)) {
             Security.insertProviderAt(conscryptProvider, 1);

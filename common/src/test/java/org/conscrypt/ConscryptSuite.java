@@ -18,6 +18,8 @@ package org.conscrypt;
 
 import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 
+import org.conscrypt.ct.CTVerifierTest;
+import org.conscrypt.ct.SerializationTest;
 import org.conscrypt.java.security.AlgorithmParameterGeneratorTestDH;
 import org.conscrypt.java.security.AlgorithmParameterGeneratorTestDSA;
 import org.conscrypt.java.security.AlgorithmParametersPSSTest;
@@ -70,6 +72,13 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        // org.conscrypt tests
+        CertPinManagerTest.class,
+        ChainStrengthAnalyzerTest.class,
+        TrustManagerImplTest.class,
+        // org.conscrypt.ct tests
+        CTVerifierTest.class,
+        SerializationTest.class,
         // java.security tests
         CertificateFactoryTest.class,
         X509CertificateTest.class,

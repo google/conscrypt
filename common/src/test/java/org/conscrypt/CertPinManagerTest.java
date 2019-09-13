@@ -21,37 +21,20 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.security.KeyStore;
-import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import org.conscrypt.java.security.TestKeyStore;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class CertPinManagerTest {
-    private static boolean installedProvider;
     private List<X509Certificate> expectedFullChain;
     private X509Certificate[] chain;
-
-    @BeforeClass
-    public static void installConscrypt() {
-        installedProvider = TestUtils.installConscryptIfNotPresent();
-    }
-
-    @AfterClass
-    public static void removeConscrypt() {
-        if (installedProvider) {
-            Security.removeProvider(TestUtils.getConscryptProvider().getName());
-            installedProvider = false;
-        }
-    }
 
     @Before
     public void setUp() {

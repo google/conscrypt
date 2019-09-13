@@ -90,7 +90,7 @@ test_script:
 after_test:
   - ps: |
       $url = "https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)"
-      $files = Get-ChildItem '.\openjdk\build\test-results\windows_x86_64Test\TEST-*.xml'
+      $files = Get-ChildItem '.\openjdk\build\test-results\test\TEST-*.xml'
       ForEach ($file in $files) {
           (New-Object 'System.Net.WebClient').UploadFile($url, (Resolve-Path $file))
       }
