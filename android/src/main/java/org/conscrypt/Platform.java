@@ -996,27 +996,27 @@ final class Platform {
         return null;
     }
 
-    static boolean serverNameRestricted(SSLParametersImpl parameters, String serverName) {
+    static boolean serverNamePermitted(SSLParametersImpl parameters, String serverName) {
         if (Build.VERSION.SDK_INT >= 24) {
             return serverNamePermittedInternal(parameters, serverName);
         }
-        return false;
+        return true;
     }
 
     @TargetApi(24)
-    private static boolean serverNameRestrictedInternal(
+    private static boolean serverNamePermittedInternal(
             SSLParametersImpl parameters, String serverName) {
         Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
         if (sniMatchers == null || sniMatchers.isEmpty()) {
-            return false;
+            return true;
         }
 
         for (SNIMatcher m : sniMatchers) {
             boolean match = m.matches(new SNIHostName(serverName));
             if (match) {
-                return false;
+                return true;
             }
         }
-        return true;
+        return false;
     }
 }

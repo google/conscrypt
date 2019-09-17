@@ -379,7 +379,7 @@ final class NativeSsl {
             return;
         }
 
-        if (Platform.serverNameRestricted(parameters, serverName)) {
+        if (!Platform.serverNamePermitted(parameters, serverName)) {
             throw new SSLHandshakeException("SNI match failed: " + serverName);
         }
     }
