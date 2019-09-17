@@ -95,7 +95,7 @@ final class Java8PlatformUtil {
         params.setAlgorithmConstraints(impl.getAlgorithmConstraints());
     }
 
-    static boolean serverNamePermitted(SSLParametersImpl parameters, String serverName) {
+    static boolean serverNameRestricted(SSLParametersImpl parameters, String serverName) {
         Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
         if (sniMatchers == null || sniMatchers.isEmpty()) {
             return false;

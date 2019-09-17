@@ -996,7 +996,7 @@ final class Platform {
         return null;
     }
 
-    static boolean serverNamePermitted(SSLParametersImpl parameters, String serverName) {
+    static boolean serverNameRestricted(SSLParametersImpl parameters, String serverName) {
         if (Build.VERSION.SDK_INT >= 24) {
             return serverNamePermittedInternal(parameters, serverName);
         }
@@ -1004,7 +1004,7 @@ final class Platform {
     }
 
     @TargetApi(24)
-    private static boolean serverNamePermittedInternal(
+    private static boolean serverNameRestrictedInternal(
             SSLParametersImpl parameters, String serverName) {
         Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
         if (sniMatchers == null || sniMatchers.isEmpty()) {
