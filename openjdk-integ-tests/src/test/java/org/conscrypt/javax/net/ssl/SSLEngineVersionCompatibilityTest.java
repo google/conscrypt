@@ -16,7 +16,9 @@
 
 package org.conscrypt.javax.net.ssl;
 
+import static java.util.Collections.singleton;
 import static org.conscrypt.TestUtils.UTF_8;
+import static org.conscrypt.TestUtils.assumeJava8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -30,16 +32,24 @@ import static org.junit.Assume.assumeTrue;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.nio.ByteBuffer;
+import java.security.Principal;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.ExtendedSSLSession;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIMatcher;
+import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -49,10 +59,12 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509TrustManager;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.TestKeyStore;
+import org.conscrypt.testing.FailingSniMatcher;
 import org.conscrypt.tlswire.TlsTester;
 import org.conscrypt.tlswire.handshake.AlpnHelloExtension;
 import org.conscrypt.tlswire.handshake.ClientHello;
@@ -723,6 +735,92 @@ public class SSLEngineVersionCompatibilityTest {
             assertTrue(expected.getCause() instanceof CertificateException);
         }
         assertTrue(trustManager.threw);
+    }
+
+    @Test
+    public void sniHandlerFailureResultsInHandshakeError() throws Exception {
+        assumeJava8();
+
+        try {
+            TestSSLEnginePair.create(TestSSLContext.newBuilder()
+                                             .clientProtocol(clientVersion)
+                                             .serverProtocol(serverVersion)
+                                             .build(),
+                    new TestSSLEnginePair.Hooks() {
+                        @Override
+                        void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                            Conscrypt.setHostname(client, "any.host");
+
+                            SSLParameters sslParameters = server.getSSLParameters();
+                            sslParameters.setSNIMatchers(singleton(FailingSniMatcher.create()));
+                            server.setSSLParameters(sslParameters);
+                        }
+                    });
+        } catch (SSLHandshakeException e) {
+            assertEquals(e.getMessage(), "SNI match failed: any.host");
+        }
+    }
+
+    @Test
+    public void sniHandlerIsCalledAfterHandshakeAndBeforeServerCert() throws Exception {
+        assumeJava8();
+
+        final String host = "sni.con-scry.pt";
+
+        final AtomicReference<String> serverHost = new AtomicReference<>();
+        final AtomicBoolean serverAliasCalled = new AtomicBoolean(false);
+
+        TestSSLEnginePair pair = TestSSLEnginePair.create(
+                TestSSLContext.newBuilder()
+                        .clientProtocol(clientVersion)
+                        .serverProtocol(serverVersion)
+                        .server(addServerCertListener(new Runnable() {
+                            @Override
+                            public void run() {
+                                assertEquals("cert is loaded after sni", host, serverHost.get());
+                                serverAliasCalled.set(true);
+                            }
+                        }))
+                        .build(),
+                new TestSSLEnginePair.Hooks() {
+                    @Override
+                    void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                        Conscrypt.setHostname(client, host);
+
+                        SSLParameters sslParameters = server.getSSLParameters();
+                        sslParameters.setSNIMatchers(
+                                Collections.<SNIMatcher>singleton(new SNIMatcher(0) {
+                                    @Override
+                                    public boolean matches(SNIServerName sniServerName) {
+                                        String host = ((SNIHostName) sniServerName).getAsciiName();
+                                        serverHost.set(host);
+                                        return true;
+                                    }
+                                }));
+                        server.setSSLParameters(sslParameters);
+                    }
+                });
+
+        ExtendedSSLSession session = (ExtendedSSLSession) pair.server.getSession();
+        assertEquals(Collections.singletonList(new SNIHostName(host)),
+                session.getRequestedServerNames());
+        assertEquals(host, serverHost.get());
+        assertTrue(serverAliasCalled.get());
+    }
+
+    private TestKeyStore addServerCertListener(final Runnable callback) {
+        TestKeyStore store = TestKeyStore.getServer().copy();
+        X509ExtendedKeyManager tm = new ForwardingX509ExtendedKeyManager(
+                (X509ExtendedKeyManager) store.keyManagers[0]) {
+            @Override
+            public String chooseEngineServerAlias(
+                    String keyType, Principal[] issuers, SSLEngine engine) {
+                callback.run();
+                return super.chooseEngineServerAlias(keyType, issuers, engine);
+            }
+        };
+        store.keyManagers[0] = tm;
+        return store;
     }
 
     private void assertConnected(TestSSLEnginePair e) {

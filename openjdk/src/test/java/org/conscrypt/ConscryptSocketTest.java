@@ -386,6 +386,16 @@ public class ConscryptSocketTest {
             }
         }
 
+        void doHandshakeSuccess() throws Exception {
+            doHandshake();
+            if (clientException != null) {
+                throw clientException;
+            }
+            if (serverException != null) {
+                throw serverException;
+            }
+        }
+
         void doHandshake() throws Exception {
             ServerSocket listener = newServerSocket();
             Future<AbstractConscryptSocket> clientFuture = handshake(listener, clientHooks);
@@ -421,7 +431,7 @@ public class ConscryptSocketTest {
     @Test
     public void test_handshake() throws Exception {
         TestConnection connection = new TestConnection(new X509Certificate[] {cert, ca}, certKey);
-        connection.doHandshake();
+        connection.doHandshakeSuccess();
 
         assertTrue(connection.clientHooks.isHandshakeCompleted);
         assertTrue(connection.serverHooks.isHandshakeCompleted);
@@ -438,7 +448,7 @@ public class ConscryptSocketTest {
         c.clientHooks.alpnProtocols = clientAlpnProtocols;
         c.serverHooks.alpnProtocols = serverAlpnProtocols;
 
-        c.doHandshake();
+        c.doHandshakeSuccess();
 
         assertEquals("spdy/2", Conscrypt.getApplicationProtocol(c.client));
         assertEquals("spdy/2", Conscrypt.getApplicationProtocol(c.server));
@@ -475,7 +485,7 @@ public class ConscryptSocketTest {
                 .thenReturn("spdy/2");
         c.serverHooks.alpnProtocolSelector = selector;
 
-        c.doHandshake();
+        c.doHandshakeSuccess();
 
         assertEquals("spdy/2", Conscrypt.getApplicationProtocol(c.client));
         assertEquals("spdy/2", Conscrypt.getApplicationProtocol(c.server));
@@ -506,7 +516,7 @@ public class ConscryptSocketTest {
         TestConnection connection =
                 new TestConnection(new X509Certificate[] {certEmbedded, ca}, certKey);
 
-        connection.doHandshake();
+        connection.doHandshakeSuccess();
 
         assertTrue(connection.clientHooks.isHandshakeCompleted);
         assertTrue(connection.serverHooks.isHandshakeCompleted);
@@ -518,7 +528,7 @@ public class ConscryptSocketTest {
 
         connection.serverHooks.ocspResponse = readTestFile("ocsp-response.der");
 
-        connection.doHandshake();
+        connection.doHandshakeSuccess();
 
         assertTrue(connection.clientHooks.isHandshakeCompleted);
         assertTrue(connection.serverHooks.isHandshakeCompleted);
@@ -530,7 +540,7 @@ public class ConscryptSocketTest {
 
         connection.serverHooks.sctTLSExtension = readTestFile("ct-signed-timestamp-list");
 
-        connection.doHandshake();
+        connection.doHandshakeSuccess();
 
         assertTrue(connection.clientHooks.isHandshakeCompleted);
         assertTrue(connection.serverHooks.isHandshakeCompleted);
@@ -627,7 +637,7 @@ public class ConscryptSocketTest {
     @Test
     public void savedSessionWorksAfterClose() throws Exception {
         TestConnection connection = new TestConnection(new X509Certificate[] {cert, ca}, certKey);
-        connection.doHandshake();
+        connection.doHandshakeSuccess();
 
         SSLSession session = connection.client.getSession();
         String cipherSuite = session.getCipherSuite();

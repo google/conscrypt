@@ -59,7 +59,8 @@ import org.conscrypt.NativeRef.SSL_SESSION;
  * </ul>
  */
 class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
-        implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.AliasChooser,
+        implements NativeCrypto.SSLHandshakeCallbacks,
+                   SSLParametersImpl.AliasChooser,
                    SSLParametersImpl.PSKCallbacks {
     private static final boolean DBG_STATE = false;
 
@@ -384,6 +385,13 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     public final long serverSessionRequested(byte[] id) {
         // TODO(nathanmittler): Implement server-side caching for TLS < 1.3
         return 0;
+    }
+
+    @Override
+    public final void serverCertificateRequested() throws IOException {
+        synchronized (ssl) {
+            ssl.configureServerCertificate();
+        }
     }
 
     @Override
@@ -1076,7 +1084,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         } finally {
             super.finalize();
         }
-
     }
 
     @Override
@@ -1166,7 +1173,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     private void transitionTo(int newState) {
         switch (newState) {
             case STATE_CLOSED: {
-                if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED ) {
+                if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED) {
                     closedSession = new SessionSnapshot(activeSession);
                 }
                 break;

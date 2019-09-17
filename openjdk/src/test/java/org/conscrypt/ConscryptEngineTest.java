@@ -482,7 +482,9 @@ public class ConscryptEngineTest {
                 case OK: {
                     break;
                 }
-                default: { throw new RuntimeException("Unexpected SSLEngine status: " + status); }
+                default: {
+                    throw new RuntimeException("Unexpected SSLEngine status: " + status);
+                }
             }
             int newPos = decryptedBuffer.position();
             int bytesProduced = unwrapResult.bytesProduced();
