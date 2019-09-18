@@ -28,11 +28,20 @@ public class AlgorithmParameterSignatureHelper<T extends AlgorithmParameterSpec>
         extends TestHelper<AlgorithmParameters> {
 
     private final String algorithmName;
+    private final String keyPairAlgorithmName;
     private final String plainData = "some data do sign and verify";
     private final Class<T> parameterSpecClass;
 
     public AlgorithmParameterSignatureHelper(String algorithmName, Class<T> parameterSpecCla1ss) {
         this.algorithmName = algorithmName;
+        this.keyPairAlgorithmName = algorithmName;
+        this.parameterSpecClass = parameterSpecCla1ss;
+    }
+
+    public AlgorithmParameterSignatureHelper(String algorithmName, String keyPairAlgorithmName,
+            Class<T> parameterSpecCla1ss) {
+        this.algorithmName = algorithmName;
+        this.keyPairAlgorithmName = keyPairAlgorithmName;
         this.parameterSpecClass = parameterSpecCla1ss;
     }
 
@@ -40,7 +49,7 @@ public class AlgorithmParameterSignatureHelper<T extends AlgorithmParameterSpec>
     public void test(AlgorithmParameters parameters) throws Exception {
         Signature signature = Signature.getInstance(algorithmName);
         T parameterSpec = parameters.getParameterSpec(parameterSpecClass);
-        KeyPairGenerator generator = KeyPairGenerator.getInstance(algorithmName);
+        KeyPairGenerator generator = KeyPairGenerator.getInstance(keyPairAlgorithmName);
 
         generator.initialize(parameterSpec);
         KeyPair keyPair = generator.genKeyPair();

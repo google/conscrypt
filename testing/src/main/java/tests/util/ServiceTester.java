@@ -164,7 +164,7 @@ public final class ServiceTester {
   private void doTest(Test test, Provider p, String algorithm, PrintStream errors) {
     try {
       test.test(p, algorithm);
-    } catch (Exception e) {
+    } catch (Exception|AssertionError e) {
       errors.append("Failure testing " + service + ":" + algorithm
           + " from provider " + p.getName() + ":\n");
       e.printStackTrace(errors);

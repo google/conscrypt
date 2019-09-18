@@ -26,6 +26,7 @@ import org.conscrypt.java.security.AlgorithmParametersTestDES;
 import org.conscrypt.java.security.AlgorithmParametersTestDESede;
 import org.conscrypt.java.security.AlgorithmParametersTestDH;
 import org.conscrypt.java.security.AlgorithmParametersTestDSA;
+import org.conscrypt.java.security.AlgorithmParametersTestEC;
 import org.conscrypt.java.security.AlgorithmParametersTestGCM;
 import org.conscrypt.java.security.AlgorithmParametersTestOAEP;
 import org.conscrypt.java.security.KeyFactoryTestDH;
@@ -81,6 +82,7 @@ import org.junit.runners.Suite;
         AlgorithmParametersTestDESede.class,
         AlgorithmParametersTestDH.class,
         AlgorithmParametersTestDSA.class,
+        AlgorithmParametersTestEC.class,
         AlgorithmParametersTestGCM.class,
         AlgorithmParametersTestOAEP.class,
         KeyFactoryTestDH.class,

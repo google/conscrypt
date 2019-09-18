@@ -87,7 +87,7 @@ public class ECParameters extends AlgorithmParametersSpi {
         if (aClass == ECParameterSpec.class) {
             return (T) curve.getECParameterSpec();
         } else if (aClass == ECGenParameterSpec.class) {
-            return (T) new ECGenParameterSpec(Platform.getCurveName(curve.getECParameterSpec()));
+            return (T) new ECGenParameterSpec(curve.getCurveName());
         } else {
             throw new InvalidParameterSpecException("Unsupported class: " + aClass);
         }
