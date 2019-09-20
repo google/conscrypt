@@ -41,7 +41,7 @@ final class OpenSSLECGroupContext {
         ALIASES.put("1.3.132.0.33", "secp224r1");
         ALIASES.put("1.3.132.0.34", "secp384r1");
         ALIASES.put("1.3.132.0.35", "secp521r1");
-        ALIASES.put("1.2.840.10045.3.1.7", "prime256r1");
+        ALIASES.put("1.2.840.10045.3.1.7", "prime256v1");
     }
 
     private final NativeRef.EC_GROUP groupCtx;

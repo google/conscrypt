@@ -21,6 +21,9 @@ import static org.junit.Assert.assertTrue;
 import java.security.AlgorithmParameters;
 import java.security.Provider;
 import java.security.spec.ECGenParameterSpec;
+import java.security.spec.InvalidParameterSpecException;
+import java.util.Arrays;
+import java.util.List;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,6 +68,35 @@ public class AlgorithmParametersTestEC extends AbstractAlgorithmParametersTest {
                     assertTrue(CURVE_NAME.equals(name) || CURVE_OID.equals(name));
                 }
             });
+    }
+
+    // This should be an exhaustive list of all curves that are supported in Conscrypt
+    private static final List<String> SUPPORTED_CURVES =
+        Arrays.asList("secp224r1", "secp256r1", "secp384r1", "secp521r1", "prime256v1",
+            "1.3.132.0.33", "1.3.132.0.34", "1.3.132.0.35", "1.2.840.10045.3.1.7");
+
+    // A selection of curves that aren't supported
+    private static final List<String> UNSUPPORTED_CURVES =
+        Arrays.asList("secp192r1", "secp256k1", "prime192v1", "curve25519", "x25519",
+            "1.2.840.10045.3.1.1", "1.3.132.0.10");
+
+    @Test
+    public void testCurveSupport() throws Exception {
+        AlgorithmParameterSignatureHelper<ECGenParameterSpec> helper =
+            new AlgorithmParameterSignatureHelper<>(
+                "SHA256withECDSA", "EC", ECGenParameterSpec.class);
+        for (String curve : SUPPORTED_CURVES) {
+            AlgorithmParameters params = AlgorithmParameters.getInstance("EC");
+            params.init(new ECGenParameterSpec(curve));
+            helper.test(params);
+        }
+        for (String curve : UNSUPPORTED_CURVES) {
+            try {
+                AlgorithmParameters params = AlgorithmParameters.getInstance("EC");
+                params.init(new ECGenParameterSpec(curve));
+            } catch (InvalidParameterSpecException expected) {
+            }
+        }
     }
 
 }
