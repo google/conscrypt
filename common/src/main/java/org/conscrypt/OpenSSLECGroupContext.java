@@ -24,11 +24,26 @@ import java.security.spec.ECFieldFp;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.EllipticCurve;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Represents a BoringSSL EC_GROUP object.
  */
 final class OpenSSLECGroupContext {
+    private static final Map<String, String> ALIASES = new HashMap<>();
+    static {
+        // Workaround for OpenSSL not supporting SECG names for NIST P-256 (aka
+        // ANSI X9.62 prime256v1).
+        ALIASES.put("secp256r1", "prime256v1");
+        // OpenJDK uses string OIDs as names in lots of places, and expects them to
+        // be accepted in ECGenParameterSpec as well, so accept those
+        ALIASES.put("1.3.132.0.33", "secp224r1");
+        ALIASES.put("1.3.132.0.34", "secp384r1");
+        ALIASES.put("1.3.132.0.35", "secp521r1");
+        ALIASES.put("1.2.840.10045.3.1.7", "prime256v1");
+    }
+
     private final NativeRef.EC_GROUP groupCtx;
 
     OpenSSLECGroupContext(NativeRef.EC_GROUP groupCtx) {
@@ -36,10 +51,8 @@ final class OpenSSLECGroupContext {
     }
 
     static OpenSSLECGroupContext getCurveByName(String curveName) {
-        // Workaround for OpenSSL not supporting SECG names for NIST P-256 (aka
-        // ANSI X9.62 prime256v1).
-        if ("secp256r1".equals(curveName)) {
-            curveName = "prime256v1";
+        if (ALIASES.containsKey(curveName)) {
+            curveName = ALIASES.get(curveName);
         }
 
         final long ctx = NativeCrypto.EC_GROUP_new_by_curve_name(curveName);
@@ -152,6 +165,10 @@ final class OpenSSLECGroupContext {
         NativeRef.EC_GROUP groupRef = new NativeRef.EC_GROUP(group);
 
         return new OpenSSLECGroupContext(groupRef);
+    }
+
+    String getCurveName() {
+        return NativeCrypto.EC_GROUP_get_curve_name(groupCtx);
     }
 
     ECParameterSpec getECParameterSpec() {
