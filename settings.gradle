@@ -10,7 +10,6 @@ include ":conscrypt-benchmark-jmh"
 include ":conscrypt-constants"
 include ":conscrypt-libcore-stub"
 include ":conscrypt-openjdk"
-include ":conscrypt-openjdk-integ-tests"
 include ":conscrypt-openjdk-uber"
 include ":conscrypt-testing"
 
@@ -25,6 +24,5 @@ project(':conscrypt-benchmark-jmh').projectDir = "$rootDir/benchmark-jmh" as Fil
 project(':conscrypt-constants').projectDir = "$rootDir/constants" as File
 project(':conscrypt-libcore-stub').projectDir = "$rootDir/libcore-stub" as File
 project(':conscrypt-openjdk').projectDir = "$rootDir/openjdk" as File
-project(':conscrypt-openjdk-integ-tests').projectDir = "$rootDir/openjdk-integ-tests" as File
 project(':conscrypt-openjdk-uber').projectDir = "$rootDir/openjdk-uber" as File
 project(':conscrypt-testing').projectDir = "$rootDir/testing" as File

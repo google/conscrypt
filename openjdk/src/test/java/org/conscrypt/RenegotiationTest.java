@@ -58,7 +58,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class RenegotiationTest {
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocateDirect(0);
-    private static final String[] CIPHERS = TestUtils.getCommonCipherSuites();
     private static final byte[] MESSAGE_BYTES = "Hello".getBytes(TestUtils.UTF_8);
     private static final ByteBuffer MESSAGE_BUFFER =
             ByteBuffer.wrap(MESSAGE_BYTES).asReadOnlyBuffer();
@@ -146,7 +145,8 @@ public class RenegotiationTest {
                 Conscrypt.setUseEngineSocket(socketFactory, useEngineSocket);
                 socket = (SSLSocket) socketFactory.createSocket(
                         TestUtils.getLoopbackAddress(), port);
-                socket.setEnabledCipherSuites(CIPHERS);
+                socket.setEnabledProtocols(TestUtils.getProtocols());
+                socket.setEnabledCipherSuites(TestUtils.getCommonCipherSuites());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -225,7 +225,8 @@ public class RenegotiationTest {
         private final ByteBuffer inboundPacketBuffer;
         private final ByteBuffer inboundAppBuffer;
         private final ByteBuffer outboundPacketBuffer;
-        private final Set<String> ciphers = new LinkedHashSet<String>(Arrays.asList(CIPHERS));
+        private final Set<String> ciphers = new LinkedHashSet<String>(Arrays.asList(
+            TestUtils.getCommonCipherSuites()));
         private SocketChannel channel;
         private ExecutorService executor;
         private volatile boolean stopping;
@@ -235,7 +236,8 @@ public class RenegotiationTest {
             serverChannel = ServerSocketChannel.open();
             serverChannel.socket().bind(new InetSocketAddress(TestUtils.getLoopbackAddress(), 0));
             engine = newJdkServerContext().createSSLEngine();
-            engine.setEnabledCipherSuites(CIPHERS);
+            engine.setEnabledProtocols(TestUtils.getProtocols());
+            engine.setEnabledCipherSuites(TestUtils.getCommonCipherSuites());
             engine.setUseClientMode(false);
 
             inboundPacketBuffer =

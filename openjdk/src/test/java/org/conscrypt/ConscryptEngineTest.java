@@ -58,8 +58,6 @@ import org.mockito.Mockito;
 public class ConscryptEngineTest {
     private static final int MESSAGE_SIZE = 4096;
     private static final int LARGE_MESSAGE_SIZE = 16413;
-    private static final String[] CIPHERS = TestUtils.getCommonCipherSuites();
-    private static final String RENEGOTIATION_CIPHER = CIPHERS[CIPHERS.length - 1];
 
     @SuppressWarnings("ImmutableEnumChecker")
     public enum BufferType {
@@ -367,7 +365,8 @@ public class ConscryptEngineTest {
         exchangeMessage(newMessage(MESSAGE_SIZE), clientEngine, serverEngine);
 
         // Trigger a renegotiation from the server and send a message back from Server->Client
-        serverEngine.setEnabledCipherSuites(new String[] {RENEGOTIATION_CIPHER});
+        String[] ciphers = TestUtils.getCommonCipherSuites();
+        serverEngine.setEnabledCipherSuites(new String[] {ciphers[ciphers.length - 1]});
         serverEngine.beginHandshake();
         doHandshake(false);
 
@@ -429,7 +428,7 @@ public class ConscryptEngineTest {
             Provider provider, TestKeyStore keyStore, boolean client) {
         SSLContext serverContext = newContext(provider, keyStore);
         SSLEngine engine = serverContext.createSSLEngine();
-        engine.setEnabledCipherSuites(CIPHERS);
+        engine.setEnabledCipherSuites(TestUtils.getCommonCipherSuites());
         engine.setUseClientMode(client);
         if (Conscrypt.isConscrypt(engine)) {
             Conscrypt.setBufferAllocator(engine, bufferType.allocator);

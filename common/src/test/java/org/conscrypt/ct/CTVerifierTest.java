@@ -21,37 +21,20 @@ import static org.conscrypt.TestUtils.readTestFile;
 import static org.junit.Assert.assertEquals;
 
 import java.security.PublicKey;
-import java.security.Security;
 import java.util.Arrays;
 import org.conscrypt.OpenSSLX509Certificate;
 import org.conscrypt.TestUtils;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class CTVerifierTest {
-    private static boolean installedProvider;
     private OpenSSLX509Certificate ca;
     private OpenSSLX509Certificate cert;
     private OpenSSLX509Certificate certEmbedded;
     private CTVerifier ctVerifier;
-
-    @BeforeClass
-    public static void installConscrypt() {
-        installedProvider = TestUtils.installConscryptIfNotPresent();
-    }
-
-    @AfterClass
-    public static void removeConscrypt() {
-        if (installedProvider) {
-            Security.removeProvider(TestUtils.getConscryptProvider().getName());
-            installedProvider = false;
-        }
-    }
 
     @Before
     public void setUp() throws Exception {
