@@ -44,10 +44,12 @@ import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.InvalidParameterSpecException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
@@ -511,5 +513,21 @@ final class Platform {
 
     static CTPolicy newDefaultPolicy(CTLogStore logStore) {
         return new CTPolicyImpl(logStore, 2);
+    }
+
+    static boolean serverNamePermitted(SSLParametersImpl parameters, String serverName) {
+        Collection<SNIMatcher> sniMatchers = parameters.getSNIMatchers();
+        if (sniMatchers == null || sniMatchers.isEmpty()) {
+            return true;
+        }
+
+        SNIHostName hostname = new SNIHostName(serverName);
+        for (SNIMatcher m : sniMatchers) {
+            boolean match = m.matches(hostname);
+            if (match) {
+                return true;
+            }
+        }
+        return false;
     }
 }
