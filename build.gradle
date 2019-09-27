@@ -44,6 +44,7 @@ subprojects {
     apply plugin: "maven"
     apply plugin: "signing"
     apply plugin: "idea"
+    apply plugin: "jacoco"
     apply plugin: "net.ltgt.errorprone"
 
     group = "org.conscrypt"
@@ -152,6 +153,10 @@ subprojects {
                 signJar(it.file.absolutePath)
             }
         }
+    }
+
+    jacoco {
+        toolVersion = "0.8.4"
     }
 
     task generateProperties(type: WriteProperties) {
