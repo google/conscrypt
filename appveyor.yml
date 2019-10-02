@@ -75,11 +75,11 @@ install:
   - yes 2> nul | "%ANDROID_HOME%\tools\bin\sdkmanager.bat" --licenses
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat tools'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat platform-tools'
-  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat build-tools;27.0.3'
+  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat build-tools;29.0.2'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat platforms;android-26'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat extras;android;m2repository'
   - '%ANDROID_HOME%\tools\bin\sdkmanager.bat ndk-bundle'
-  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat cmake;3.6.4111459'
+  - '%ANDROID_HOME%\tools\bin\sdkmanager.bat cmake;3.10.2.4988404'
 
 build_script:
   - gradlew.bat assemble
