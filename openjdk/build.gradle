@@ -148,6 +148,13 @@ artifacts {
     platform platformJar
 }
 
+apply from: "$rootDir/gradle/publishing.gradle"
+publishing.publications.maven {
+    from components.java
+    artifact sourcesJar
+    artifact javadocJar
+}
+
 jar.manifest {
     attributes ('BoringSSL-Version' : boringSslVersion,
                 'Automatic-Module-Name' : 'org.conscrypt',
@@ -159,8 +166,8 @@ dependencies {
     // This is used for the @Internal annotation processing in JavaDoc
     publicApiDocs project(':conscrypt-api-doclet')
 
-    compileOnly project(':conscrypt-constants'),
-                configurations.publicApiDocs
+    // This is listed as compile-only, but we absorb its contents.
+    compileOnly project(':conscrypt-constants')
 
     testImplementation project(':conscrypt-constants'),
             project(':conscrypt-testing'),
