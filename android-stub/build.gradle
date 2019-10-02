@@ -7,8 +7,3 @@ targetCompatibility = androidMinJavaVersion
 dependencies {
     compileOnly project(':conscrypt-libcore-stub')
 }
-
-// Don't include this artifact in the distribution.
-tasks.install.enabled = false
-tasks.uploadArchives.enabled = false;
-

@@ -9,7 +9,7 @@ buildscript {
 }
 
 plugins {
-    id 'com.github.dcendents.android-maven' version '2.1'
+    id 'digital.wup.android-maven-publish' version '3.6.2'
 }
 
 description = 'Conscrypt: Android'
@@ -25,7 +25,6 @@ ext {
 
 if (androidSdkInstalled) {
     apply plugin: 'com.android.library'
-    apply plugin: 'com.github.dcendents.android-maven'
 
     // Since we're not taking a direct dependency on the constants module, we need to add an
     // explicit task dependency to make sure the code is generated.
@@ -153,64 +152,12 @@ if (androidSdkInstalled) {
         from android.sourceSets.main.java.srcDirs
     }
 
-    artifacts {
-        archives sourcesJar
-        archives javadocsJar
+    apply from: "$rootDir/gradle/publishing.gradle"
+    publishing.publications.maven {
+        from components.android
+        artifact sourcesJar
+        artifact javadocsJar
     }
-
-    uploadArchives.repositories.mavenDeployer {
-        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-        String stagingUrl
-        if (rootProject.hasProperty('repositoryId')) {
-            stagingUrl = 'https://oss.sonatype.org/service/local/staging/deployByRepositoryId/' +
-                    rootProject.repositoryId
-        } else {
-            stagingUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-        }
-        def configureAuth = {
-            if (rootProject.hasProperty('ossrhUsername') && rootProject.hasProperty('ossrhPassword')) {
-                authentication(userName: rootProject.ossrhUsername, password: rootProject.ossrhPassword)
-            }
-        }
-        repository(url: stagingUrl, configureAuth)
-        snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots/', configureAuth)
-    }
-
-    [
-            install.repositories.mavenInstaller,
-            uploadArchives.repositories.mavenDeployer,
-    ]*.pom*.whenConfigured { pom ->
-        pom.project {
-            name "$project.group:$project.name"
-            description project.description
-            url 'https://conscrypt.org/'
-
-            scm {
-                connection 'scm:git:https://github.com/google/conscrypt.git'
-                developerConnection 'scm:git:git@github.com:google/conscrypt.git'
-                url 'https://github.com/google/conscrypt'
-            }
-
-            licenses {
-                license {
-                    name 'Apache 2'
-                    url 'https://www.apache.org/licenses/LICENSE-2.0'
-                }
-            }
-
-            developers {
-                developer {
-                    id "conscrypt"
-                    name "Conscrypt Contributors"
-                    email "conscrypt@googlegroups.com"
-                    url "https://conscrypt.org/"
-                    organization = "Google, Inc."
-                    organizationUrl "https://www.google.com"
-                }
-            }
-        }
-    }
-
 } else {
     logger.warn('Android SDK has not been detected. The Android module will not be built.')
 
