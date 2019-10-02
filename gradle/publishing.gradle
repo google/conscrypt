@@ -8,7 +8,7 @@ signing {
     sign publishing.publications
 }
 
-task("signPublications").doFirst {
+tasks.register("signPublications").configure {
     configurations.archives.allArtifacts.each {
         if (it.type == 'jar' && it.classifier != 'sources' && it.classifier != 'javadoc') {
             signJar(it.file.absolutePath)
