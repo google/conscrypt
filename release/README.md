@@ -163,7 +163,7 @@ on Linux.
    ```bash
    $ git checkout 1.0.x
    $ ./gradlew conscrypt-openjdk:build
-   $ ./gradlew -Dorg.gradle.parallel=false uploadArchives
+   $ ./gradlew -Dorg.gradle.parallel=false publish
    ```
 1. Note the BoringSSL commit used for this build.
    ```bash
@@ -189,7 +189,7 @@ See [BUILDING](../BUILDING.md) for instructions for setting up the build environ
 1. Build the code and upload it to the staging repository noted previously.
    ```bash
    $ ./gradlew conscrypt-openjdk:build
-   $ ./gradlew conscrypt-openjdk:uploadArchives -Dorg.gradle.parallel=false -PrepositoryId=<repository-id>
+   $ ./gradlew conscrypt-openjdk:publish -Dorg.gradle.parallel=false -PrepositoryId=<repository-id>
    ```
    (Omit the `./` for the Windows build.)
 
@@ -213,7 +213,7 @@ the Android SDK installed, do the following:
 1. Build the code.
    ```bash
    $ ./gradlew conscrypt-android:build
-   $ ./gradlew conscrypt-android:uploadArchives -Dorg.gradle.parallel=false
+   $ ./gradlew conscrypt-android:publish -Dorg.gradle.parallel=false
    ```
 1. Visit the OSSRH site and close and release the repository.
 
@@ -227,7 +227,7 @@ and build the Uber jar.
    # If you left the container, reattach to it
    $ docker container attach {CONTAINER_ID}
    $ ./gradlew conscrypt-openjdk-uber:build -Dorg.conscrypt.openjdk.buildUberJar=true
-   $ ./gradlew conscrypt-openjdk-uber:uploadArchives -Dorg.gradle.parallel=false -Dorg.conscrypt.openjdk.buildUberJar=true
+   $ ./gradlew conscrypt-openjdk-uber:publish -Dorg.gradle.parallel=false -Dorg.conscrypt.openjdk.buildUberJar=true
    ```
 1. Visit the OSSRH site and close and release the repository.
 

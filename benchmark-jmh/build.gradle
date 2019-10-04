@@ -103,7 +103,3 @@ def parseParams(s) {
         [ (pair.first().trim()) : pair.last().split(",").collect { it.trim() } ]
     }
 }
-
-// Don't include this artifact in the distribution.
-tasks.install.enabled = false
-tasks.uploadArchives.enabled = false;
