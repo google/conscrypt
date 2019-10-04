@@ -19,3 +19,6 @@ javadoc {
     options.doclet = "org.conscrypt.doclet.FilterDoclet"
     options.docletpath = configurations.publicApiDocs.files as List
 }
+
+// Disable the javadoc task.
+tasks.withType(Javadoc).all { enabled = false }
