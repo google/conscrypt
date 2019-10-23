@@ -6115,12 +6115,8 @@ static ssl_verify_result_t cert_verify_callback(SSL* ssl, CONSCRYPT_UNUSED uint8
 
     JNI_TRACE("ssl=%p cert_verify_callback calling verifyCertificateChain authMethod=%s", ssl,
               authMethod);
-    jstring authMethodString = env->NewStringUTF(authMethod);
-    env->CallVoidMethod(sslHandshakeCallbacks, methodID, array.get(), authMethodString);
-
-    // We need to delete the local references so we not leak memory as this method is called
-    // via callback.
-    env->DeleteLocalRef(authMethodString);
+    ScopedLocalRef<jstring> authMethodString(env, env->NewStringUTF(authMethod));
+    env->CallVoidMethod(sslHandshakeCallbacks, methodID, array.get(), authMethodString.get());
 
     ssl_verify_result_t result = env->ExceptionCheck() ? ssl_verify_invalid : ssl_verify_ok;
     JNI_TRACE("ssl=%p cert_verify_callback => %d", ssl, result);
