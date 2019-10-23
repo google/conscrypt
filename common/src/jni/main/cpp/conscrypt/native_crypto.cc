@@ -7540,7 +7540,7 @@ static int selectApplicationProtocol(SSL* ssl, unsigned char** out, unsigned cha
 /**
  * Calls out to an application-provided selector to choose the ALPN protocol.
  */
-static int selectApplicationProtocol(SSL* ssl, JNIEnv* env, jobject selector,
+static int selectApplicationProtocol(SSL* ssl, JNIEnv* env, jobject sslHandshakeCallbacks,
                                      unsigned char** out,
                                      unsigned char* outLen, const unsigned char* in,
                                      const unsigned int inLen) {
@@ -7554,9 +7554,9 @@ static int selectApplicationProtocol(SSL* ssl, JNIEnv* env, jobject selector,
         reinterpret_cast<const jbyte*>(in));
 
     // Invoke the selection method.
-    jclass cls = env->GetObjectClass(selector);
+    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
     jmethodID methodID = env->GetMethodID(cls, "selectApplicationProtocol", "([B)I");
-    jint offset = env->CallIntMethod(selector, methodID, protocols.get());
+    jint offset = env->CallIntMethod(sslHandshakeCallbacks, methodID, protocols.get());
 
     if (offset < 0) {
         JNI_TRACE("ssl=%p selectApplicationProtocol selection failed", ssl);
@@ -7591,7 +7591,7 @@ static int alpn_select_callback(SSL* ssl, const unsigned char** out, unsigned ch
 
     if (in == nullptr ||
         (appData->applicationProtocolsData == nullptr
-         && appData->applicationProtocolSelector == nullptr)) {
+         && !appData->hasApplicationProtocolSelector)) {
         if (out != nullptr && outLen != nullptr) {
             *out = nullptr;
             *outLen = 0;
@@ -7600,8 +7600,8 @@ static int alpn_select_callback(SSL* ssl, const unsigned char** out, unsigned ch
         return SSL_TLSEXT_ERR_NOACK;
     }
 
-    if (appData->applicationProtocolSelector != nullptr) {
-        return selectApplicationProtocol(ssl, env, appData->applicationProtocolSelector,
+    if (appData->hasApplicationProtocolSelector) {
+        return selectApplicationProtocol(ssl, env, appData->sslHandshakeCallbacks,
                                   const_cast<unsigned char**>(out), outLen, in, inLen);
     }
 
@@ -7679,23 +7679,23 @@ static void NativeCrypto_setApplicationProtocols(JNIEnv* env, jclass, jlong ssl_
     }
 }
 
-static void NativeCrypto_setApplicationProtocolSelector(JNIEnv* env, jclass, jlong ssl_address, CONSCRYPT_UNUSED jobject ssl_holder,
-                                                 jobject selector) {
+static void NativeCrypto_setHasApplicationProtocolSelector(JNIEnv* env, jclass, jlong ssl_address, CONSCRYPT_UNUSED jobject ssl_holder,
+                                                 jboolean hasSelector) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_setApplicationProtocolSelector selector=%p", ssl, selector);
+    JNI_TRACE("ssl=%p NativeCrypto_setHasApplicationProtocolSelector selector=%d", ssl, hasSelector);
     if (ssl == nullptr) {
         return;
     }
     AppData* appData = toAppData(ssl);
     if (appData == nullptr) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to retrieve application data");
-        JNI_TRACE("ssl=%p NativeCrypto_setApplicationProtocolSelector appData => 0", ssl);
+        JNI_TRACE("ssl=%p NativeCrypto_setHasApplicationProtocolSelector appData => 0", ssl);
         return;
     }
 
-    appData->setApplicationProtocolSelector(env, selector);
-    if (selector != nullptr) {
+    appData->hasApplicationProtocolSelector = hasSelector;
+    if (hasSelector) {
         SSL_CTX_set_alpn_select_cb(SSL_get_SSL_CTX(ssl), alpn_select_callback, nullptr);
     }
 }
@@ -9944,8 +9944,6 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
 #define FILE_DESCRIPTOR "Ljava/io/FileDescriptor;"
 #define SSL_CALLBACKS \
     "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks;"
-#define ALPN_PROTOCOL_SELECTOR \
-    "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/ApplicationProtocolSelectorAdapter;"
 #define REF_EC_GROUP "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_GROUP;"
 #define REF_EC_POINT "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_POINT;"
 #define REF_EVP_CIPHER_CTX \
@@ -10223,7 +10221,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(d2i_SSL_SESSION, "([B)J"),
         CONSCRYPT_NATIVE_METHOD(getApplicationProtocol, "(J" REF_SSL ")[B"),
         CONSCRYPT_NATIVE_METHOD(setApplicationProtocols, "(J" REF_SSL "Z[B)V"),
-        CONSCRYPT_NATIVE_METHOD(setApplicationProtocolSelector, "(J" REF_SSL ALPN_PROTOCOL_SELECTOR ")V"),
+        CONSCRYPT_NATIVE_METHOD(setHasApplicationProtocolSelector, "(J" REF_SSL "Z)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_CIPHER_get_kx_name, "(J)Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(get_cipher_names, "(Ljava/lang/String;)[Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(get_ocsp_single_extension, "([BLjava/lang/String;J" REF_X509 "J" REF_X509 ")[B"),
