@@ -15,6 +15,7 @@
 /* This program generates output that is expected to become
  * NativeConstants.java. This reifies several OpenSSL constants into Java. */
 
+#include <openssl/tls1.h>
 #include <stdio.h>
 
 #include <openssl/ec.h>
@@ -76,6 +77,8 @@ int main(int /* argc */, char ** /* argv */) {
   CONST(TLS1_1_VERSION);
   CONST(TLS1_2_VERSION);
   CONST(TLS1_3_VERSION);
+
+  CONST(SSL_TLSEXT_ERR_NOACK);
 
   CONST(SSL_SENT_SHUTDOWN);
   CONST(SSL_RECEIVED_SHUTDOWN);
