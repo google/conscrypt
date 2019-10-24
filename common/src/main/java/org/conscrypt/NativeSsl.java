@@ -319,7 +319,7 @@ final class NativeSsl {
             NativeCrypto.setApplicationProtocols(ssl, this, isClient(), parameters.applicationProtocols);
         }
         if (!isClient() && parameters.applicationProtocolSelector != null) {
-            NativeCrypto.setApplicationProtocolSelector(ssl, this, parameters.applicationProtocolSelector);
+            NativeCrypto.setHasApplicationProtocolSelector(ssl, this, true);
         }
 
         // setup server certificates and private keys.

@@ -116,7 +116,7 @@ class AppData {
     jobject sslHandshakeCallbacks;
     char* applicationProtocolsData;
     size_t applicationProtocolsLength;
-    jobject applicationProtocolSelector;
+    bool hasApplicationProtocolSelector;
 
     /**
      * Creates the application data context for the SSL*.
@@ -158,7 +158,6 @@ class AppData {
         }
 #endif
         clearApplicationProtocols();
-        clearApplicationProtocolSelector(env);
         clearCallbackState();
     }
 
@@ -189,19 +188,6 @@ class AppData {
             e->ReleaseByteArrayElements(applicationProtocolsJava, applicationProtocols, JNI_ABORT);
         }
         return true;
-    }
-
-    /**
-     * Only called in server mode. Sets the application-provided ALPN protocol selector.
-     * This overrides the list of ALPN protocols, if set.
-     */
-    void setApplicationProtocolSelector(JNIEnv* e, jobject selector) {
-        clearApplicationProtocolSelector(e);
-        if (selector != nullptr) {
-            // Need to a global reference since we keep this around beyond a single JNI
-            // invocation.
-            applicationProtocolSelector = e->NewGlobalRef(selector);
-        }
     }
 
     /**
@@ -240,7 +226,7 @@ class AppData {
           sslHandshakeCallbacks(nullptr),
           applicationProtocolsData(nullptr),
           applicationProtocolsLength(static_cast<size_t>(-1)),
-          applicationProtocolSelector(nullptr) {
+          hasApplicationProtocolSelector(false) {
 #ifdef _WIN32
         interruptEvent = nullptr;
 #else
@@ -254,16 +240,6 @@ class AppData {
             delete applicationProtocolsData;
             applicationProtocolsData = nullptr;
             applicationProtocolsLength = static_cast<size_t>(-1);
-        }
-    }
-
-    void clearApplicationProtocolSelector(JNIEnv* e) {
-        if (applicationProtocolSelector != nullptr) {
-            if (e == nullptr) {
-                e = conscrypt::jniutil::getJNIEnv();
-            }
-            e->DeleteGlobalRef(applicationProtocolSelector);
-            applicationProtocolSelector = nullptr;
         }
     }
 };

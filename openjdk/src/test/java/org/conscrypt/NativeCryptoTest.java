@@ -94,7 +94,7 @@ public class NativeCryptoTest {
     private static final long NULL = 0;
     private static final FileDescriptor INVALID_FD = new FileDescriptor();
     private static final SSLHandshakeCallbacks DUMMY_CB =
-            new TestSSLHandshakeCallbacks(null, 0, null);
+            new TestSSLHandshakeCallbacks(null, 0, null, null);
 
     private static final long TIMEOUT_SECONDS = 5;
 
@@ -736,11 +736,13 @@ public class NativeCryptoTest {
         private final Socket socket;
         private final long sslNativePointer;
         private final Hooks hooks;
+        private final ApplicationProtocolSelectorAdapter alpnSelector;
 
-        TestSSLHandshakeCallbacks(Socket socket, long sslNativePointer, Hooks hooks) {
+        TestSSLHandshakeCallbacks(Socket socket, long sslNativePointer, Hooks hooks, ApplicationProtocolSelectorAdapter alpnSelector) {
             this.socket = socket;
             this.sslNativePointer = sslNativePointer;
             this.hooks = hooks;
+            this.alpnSelector = alpnSelector;
         }
 
         private long[] certificateChainRefs;
@@ -883,7 +885,15 @@ public class NativeCryptoTest {
 
         @Override
         public void serverCertificateRequested() {
-          serverCertificateRequestedInvoked = true;
+            serverCertificateRequestedInvoked = true;
+        }
+
+        @Override
+        public int selectApplicationProtocol(byte[] protocols) {
+            if (alpnSelector == null) {
+                fail("Should not be called when no alpnSelector");
+            }
+            return alpnSelector.selectApplicationProtocol(protocols);
         }
     }
 
@@ -996,7 +1006,7 @@ public class NativeCryptoTest {
                                                           listener.getLocalPort())
                                                 : listener.accept());
                         if (timeout == -1) {
-                            return new TestSSLHandshakeCallbacks(socket, 0, null);
+                            return new TestSSLHandshakeCallbacks(socket, 0, null, null);
                         }
                         FileDescriptor fd =
                                 (FileDescriptor) m_Platform_getFileDescriptor.invoke(
@@ -1004,7 +1014,7 @@ public class NativeCryptoTest {
                         long c = hooks.getContext();
                         long s = hooks.beforeHandshake(c);
                         TestSSLHandshakeCallbacks callback =
-                                new TestSSLHandshakeCallbacks(socket, s, hooks);
+                                new TestSSLHandshakeCallbacks(socket, s, hooks, alpnSelector);
                         hooks.configureCallbacks(callback);
                         if (DEBUG) {
                             System.out.println("ssl=0x" + Long.toString(s, 16) + " handshake"
@@ -1023,7 +1033,7 @@ public class NativeCryptoTest {
                                 NativeCrypto.setApplicationProtocols(s, null, client, alpnProtocols);
                             }
                             if (!client && alpnSelector != null) {
-                                NativeCrypto.setApplicationProtocolSelector(s, null, alpnSelector);
+                                NativeCrypto.setHasApplicationProtocolSelector(s, null, true);
                             }
                             NativeCrypto.SSL_do_handshake(s, null, fd, callback, timeout);
                             session = NativeCrypto.SSL_get1_session(s, null);

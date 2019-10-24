@@ -1762,6 +1762,15 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     @Override
+    public int selectApplicationProtocol(byte[] protocols) {
+        ApplicationProtocolSelectorAdapter adapter = sslParameters.getApplicationProtocolSelector();
+        if (adapter == null) {
+            return NativeConstants.SSL_TLSEXT_ERR_NOACK;
+        }
+        return adapter.selectApplicationProtocol(protocols);
+    }
+
+    @Override
     public String getApplicationProtocol() {
         return SSLUtils.toProtocolString(ssl.getApplicationProtocol());
     }
