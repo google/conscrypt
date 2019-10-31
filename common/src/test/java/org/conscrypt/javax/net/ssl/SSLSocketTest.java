@@ -259,6 +259,18 @@ public class SSLSocketTest {
     }
 
     @Test
+    public void test_SSLSocket_InputStream_read() throws Exception {
+        // Regression test for https://github.com/google/conscrypt/issues/738
+        // Ensure values returned from InputStream.read() are unsigned.
+        TestSSLSocketPair pair = TestSSLSocketPair.create().connect();
+
+        for (int i = 0; i < 256; i++) {
+            pair.client.getOutputStream().write(i);
+            assertEquals(i, pair.server.getInputStream().read());
+        }
+    }
+
+    @Test
     public void test_SSLSocket_getEnabledCipherSuites_returnsCopies() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket ssl = (SSLSocket) sf.createSocket();
