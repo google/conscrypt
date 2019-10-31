@@ -713,7 +713,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
                 if (count != 1) {
                     throw new SSLException("read incorrect number of bytes " + count);
                 }
-                return (int) singleByte[0];
+                return singleByte[0] & 0xff;
             }
         }
 
