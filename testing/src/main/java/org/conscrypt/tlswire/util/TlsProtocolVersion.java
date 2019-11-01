@@ -75,7 +75,7 @@ public class TlsProtocolVersion {
         if (obj == null) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
+        if (!(obj instanceof TlsProtocolVersion)) {
             return false;
         }
         TlsProtocolVersion other = (TlsProtocolVersion) obj;

@@ -448,7 +448,7 @@ public class CipherSuite {
         if (obj == null) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
+        if (!(obj instanceof CipherSuite)) {
             return false;
         }
         CipherSuite other = (CipherSuite) obj;
