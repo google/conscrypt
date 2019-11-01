@@ -81,7 +81,7 @@ import tests.util.ServiceTester;
 public class SignatureTest {
 
     // 20 bytes for DSA
-    private final byte[] DATA = new byte[20];
+    private final byte[] EMPTY_DATA = new byte[20];
 
     @Test
     public void test_getInstance() throws Exception {
@@ -176,7 +176,7 @@ public class SignatureTest {
         if (params != null) {
             sig.setParameter(params);
         }
-        sig.update(DATA);
+        sig.update(EMPTY_DATA);
         byte[] signature = sig.sign();
         assertNotNull(sig.getAlgorithm(), signature);
         assertTrue(sig.getAlgorithm(), signature.length > 0);
@@ -185,11 +185,11 @@ public class SignatureTest {
         if (params != null) {
             sig.setParameter(params);
         }
-        sig.update(DATA);
+        sig.update(EMPTY_DATA);
         assertTrue(sig.getAlgorithm(), sig.verify(signature));
 
         // After verify, should be reusable as if we are after initVerify
-        sig.update(DATA);
+        sig.update(EMPTY_DATA);
         assertTrue(sig.getAlgorithm(), sig.verify(signature));
 
         /*
