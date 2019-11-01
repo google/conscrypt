@@ -712,7 +712,7 @@ final class Platform {
     /**
      * Convert from an opaque AlgorithmParameters to the platform's GCMParameterSpec.
      */
-    @SuppressWarnings("LiteralClassName")
+    @SuppressWarnings({"LiteralClassName", "unchecked"})
     static AlgorithmParameterSpec fromGCMParameters(AlgorithmParameters params) {
         Class<?> gcmSpecClass;
         try {
