@@ -696,7 +696,7 @@ public final class TestUtils {
     }
 
     private static int javaVersion() {
-        String[] v = System.getProperty("java.specification.version", "1.6").split("\\.");
+        String[] v = System.getProperty("java.specification.version", "1.6").split("\\.", -1);
         if ("1".equals(v[0])) {
             return Integer.parseInt(v[1]);
         }
