@@ -756,6 +756,7 @@ public class SSLEngineVersionCompatibilityTest {
                             server.setSSLParameters(sslParameters);
                         }
                     });
+            fail();
         } catch (SSLHandshakeException e) {
             assertEquals(e.getMessage(), "SNI match failed: any.host");
         }

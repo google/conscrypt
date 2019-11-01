@@ -319,7 +319,8 @@ public class CertificateFactoryTest {
             // Bouncy Castle returns null on empty inputs rather than throwing an exception,
             // which technically doesn't satisfy the method contract, but we'll accept it
             assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
-        } catch (CertificateException expected) {
+        } catch (CertificateException maybeExpected) {
+            assertFalse(cf.getProvider().getName().equals("BC"));
         }
 
         try {
@@ -327,7 +328,8 @@ public class CertificateFactoryTest {
             // Bouncy Castle returns null on short inputs rather than throwing an exception,
             // which technically doesn't satisfy the method contract, but we'll accept it
             assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
-        } catch (CertificateException expected) {
+        } catch (CertificateException maybeExpected) {
+            assertFalse(cf.getProvider().getName().equals("BC"));
         }
 
     }
@@ -789,7 +791,8 @@ public class CertificateFactoryTest {
             // Bouncy Castle returns null on empty inputs rather than throwing an exception,
             // which technically doesn't satisfy the method contract, but we'll accept it
             assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
-        } catch (CRLException expected) {
+        } catch (CRLException maybeExpected) {
+            assertFalse(cf.getProvider().getName().equals("BC"));
         }
 
         try {
@@ -797,7 +800,8 @@ public class CertificateFactoryTest {
             // Bouncy Castle returns null on short inputs rather than throwing an exception,
             // which technically doesn't satisfy the method contract, but we'll accept it
             assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
-        } catch (CRLException expected) {
+        } catch (CRLException maybeExpected) {
+            assertFalse(cf.getProvider().getName().equals("BC"));
         }
 
     }
