@@ -34,6 +34,7 @@ public class TestHostnameVerifier implements HostnameVerifier {
 
     private static final int DNS_NAME_TYPE = 2;
 
+    @SuppressWarnings("MixedMutabilityReturnType")
     private List<String> getHostnames(X509Certificate cert) {
         List<String> result = new ArrayList<String>();
         try {

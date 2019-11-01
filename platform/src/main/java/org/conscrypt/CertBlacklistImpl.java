@@ -153,7 +153,7 @@ public final class CertBlacklistImpl implements CertBlacklist {
         // attempt to augment it with values taken from gservices
         String serialBlacklist = readBlacklist(path);
         if (!serialBlacklist.equals("")) {
-            for(String value : serialBlacklist.split(",")) {
+            for (String value : serialBlacklist.split(",", -1)) {
                 try {
                     bl.add(new BigInteger(value, 16));
                 } catch (NumberFormatException e) {
