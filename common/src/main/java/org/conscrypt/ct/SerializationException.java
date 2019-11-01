@@ -20,6 +20,8 @@ import org.conscrypt.Internal;
 
 @Internal
 public class SerializationException extends Exception {
+    private static final long serialVersionUID = -5317873136664833411L;
+
     public SerializationException() {
     }
 
