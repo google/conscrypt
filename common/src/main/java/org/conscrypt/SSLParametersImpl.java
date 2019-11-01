@@ -156,6 +156,7 @@ final class SSLParametersImpl implements Cloneable {
     }
 
     // Copy constructor for the purposes of changing the final fields
+    @SuppressWarnings("deprecation")  // for PSKKeyManager
     private SSLParametersImpl(ClientSessionContext clientSessionContext,
         ServerSessionContext serverSessionContext,
         X509KeyManager x509KeyManager,
