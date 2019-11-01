@@ -100,6 +100,12 @@ public class SignatureTest {
             // https://bugs.openjdk.java.net/browse/JDK-8044554), but skip verifying it all
             // the same.
             .skipProvider("SunPKCS11-NSS")
+            // Azul Systems's Zulu release of Java 8 apparently backported parts of the JCE
+            // but did not add the actual implementations.
+            .skipRuntimeProviderAlgorithm("Azul Systems, Inc.", "SUN", "NONEwithDSAinP1363Format")
+            .skipRuntimeProviderAlgorithm("Azul Systems, Inc.", "SUN", "SHA1withDSAinP1363Format")
+            .skipRuntimeProviderAlgorithm("Azul Systems, Inc.", "SUN", "SHA224withDSAinP1363Format")
+            .skipRuntimeProviderAlgorithm("Azul Systems, Inc.", "SUN", "SHA256withDSAinP1363Format")
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(Provider provider, String algorithm) throws Exception {

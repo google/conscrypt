@@ -24,6 +24,7 @@ import java.security.Provider;
 import java.security.Security;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -49,6 +50,7 @@ public final class ServiceTester {
   private Set<Provider> skipProviders = new HashSet<>();
   private Set<String> algorithms = new LinkedHashSet<>();
   private Set<String> skipAlgorithms = new HashSet<>();
+  private HashMap<String, Set<String>> skipProviderAlgorithms = new HashMap<>();
 
   private ServiceTester(String service) {
     this.service = service;
@@ -128,6 +130,32 @@ public final class ServiceTester {
   }
 
   /**
+   * Causes the given provider and algorithm name combination to be omitted from this instance's
+   * testing.  If any of the tested providers don't provide the given algorithm, it does nothing.
+   */
+  public ServiceTester skipProviderAlgorithm(String provider, String algorithm) {
+    Set<String> skipAlgorithms = skipProviderAlgorithms.get(provider);
+    if (skipAlgorithms == null) {
+      skipAlgorithms = new HashSet<>();
+      skipProviderAlgorithms.put(provider, skipAlgorithms);
+    }
+    skipAlgorithms.add(algorithm);
+    return this;
+  }
+
+  /**
+   * Causes the given runtime vendor, provider, and algorithm name combination to be omitted from
+   * this instance's testing.  If we are not running on the given runtime or any of the tested
+   * providers don't provide the given algorithm, it does nothing.
+   */
+  public ServiceTester skipRuntimeProviderAlgorithm(String runtime, String provider, String algorithm) {
+    if (runtime.equals(vmVendor())) {
+      skipProviderAlgorithm(provider, algorithm);
+    }
+    return this;
+  }
+
+  /**
    * Runs the given test against the configured combination of providers and algorithms.  Continues
    * running all combinations even if some fail.  If any of the test runs fail, this throws
    * an exception with the details of the failure(s).
@@ -140,15 +168,22 @@ public final class ServiceTester {
     final ByteArrayOutputStream errBuffer = new ByteArrayOutputStream();
     PrintStream errors = new PrintStream(errBuffer);
     for (Provider p : providers) {
+      Set<String> providerSkipAlgorithms = skipProviderAlgorithms.get(p.getName());
+      if (providerSkipAlgorithms == null) {
+        providerSkipAlgorithms = skipAlgorithms;
+      } else {
+        providerSkipAlgorithms.addAll(skipAlgorithms);
+      }
       if (algorithms.isEmpty()) {
         for (Provider.Service s : p.getServices()) {
-          if (s.getType().equals(service) && !skipAlgorithms.contains(s.getAlgorithm())) {
+          if (s.getType().equals(service) && !providerSkipAlgorithms.contains(s.getAlgorithm())) {
             doTest(test, p, s.getAlgorithm(), errors);
           }
         }
       } else {
-        algorithms.removeAll(skipAlgorithms);
-        for (String algorithm : algorithms) {
+        Set<String> algorithmsCopy = new LinkedHashSet<>(algorithms);
+        algorithmsCopy.removeAll(providerSkipAlgorithms);
+        for (String algorithm : algorithmsCopy) {
           if (p.getService(service, algorithm) != null) {
             doTest(test, p, algorithm, errors);
           }
@@ -161,12 +196,16 @@ public final class ServiceTester {
     }
   }
 
+  private static String vmVendor() {
+    return System.getProperty("java.vendor", "[unknown]");
+  }
+
   private void doTest(Test test, Provider p, String algorithm, PrintStream errors) {
     try {
       test.test(p, algorithm);
     } catch (Exception|AssertionError e) {
       errors.append("Failure testing " + service + ":" + algorithm
-          + " from provider " + p.getName() + ":\n");
+          + " from provider " + p.getName() + " on JVM vendor " + vmVendor() + ":\n");
       e.printStackTrace(errors);
     }
   }
