@@ -412,6 +412,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         return checkTrusted(certs, ocspData, tlsSctData, authType, hostname, clientAuth);
     }
 
+    @SuppressWarnings("unchecked")
     private byte[] getOcspDataFromSession(SSLSession session) {
         List<byte[]> ocspResponses = null;
         if (session instanceof ConscryptSession) {
