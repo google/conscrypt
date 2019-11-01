@@ -207,7 +207,7 @@ public final class CertBlacklistImpl implements CertBlacklist {
         // attempt to augment it with values taken from gservices
         String pubkeyBlacklist = readBlacklist(path);
         if (!pubkeyBlacklist.equals("")) {
-            for (String value : pubkeyBlacklist.split(",")) {
+            for (String value : pubkeyBlacklist.split(",", -1)) {
                 value = value.trim();
                 if (isPubkeyHash(value)) {
                     bl.add(value.getBytes(UTF_8));
