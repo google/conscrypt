@@ -127,7 +127,9 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
             }
             try {
                 if (inStream.available() == 0) {
-                    return Collections.emptyList();
+                    // To avoid returning a immutable list in only one path, we create an
+                    // empty list here instead of using Collections.emptyList()
+                    return new ArrayList<T>();
                 }
             } catch (IOException e) {
                 throw new ParsingException("Problem reading input stream", e);

@@ -162,6 +162,7 @@ public class CTVerifier {
      * list fails to be parsed, an empty list is returned.
      * @param origin used to create the SignedCertificateTimestamp instances.
      */
+    @SuppressWarnings("MixedMutabilityReturnType")
     private List<SignedCertificateTimestamp> getSCTsFromSCTList(byte[] data,
             SignedCertificateTimestamp.Origin origin) {
         if (data == null) {

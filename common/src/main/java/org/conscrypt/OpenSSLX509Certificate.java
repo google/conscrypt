@@ -128,7 +128,9 @@ public final class OpenSSLX509Certificate extends X509Certificate {
         }
 
         if (certRefs == null) {
-            return Collections.emptyList();
+            // To avoid returning a immutable list in only one path, we create an
+            // empty list here instead of using Collections.emptyList()
+            return new ArrayList<OpenSSLX509Certificate>();
         }
 
         final List<OpenSSLX509Certificate> certs = new ArrayList<OpenSSLX509Certificate>(
