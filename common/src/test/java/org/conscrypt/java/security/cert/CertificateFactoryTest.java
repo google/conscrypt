@@ -60,8 +60,6 @@ import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.x509.X509V3CertificateGenerator;
-import org.bouncycastle.x509.extension.AuthorityKeyIdentifierStructure;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
@@ -720,7 +718,8 @@ public class CertificateFactoryTest {
             basicConstraints = new BasicConstraints(false);
         }
 
-        X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
+        org.bouncycastle.x509.X509V3CertificateGenerator certGen =
+                new org.bouncycastle.x509.X509V3CertificateGenerator();
 
         PublicKey pubKey = keyPair.getPublic();
         certGen.setSerialNumber(serial);
@@ -733,7 +732,8 @@ public class CertificateFactoryTest {
 
         if (issuer != null) {
             certGen.addExtension(Extension.authorityKeyIdentifier, false,
-                    new AuthorityKeyIdentifierStructure(issuer.certificate));
+                    new org.bouncycastle.x509.extension.AuthorityKeyIdentifierStructure(
+                            issuer.certificate));
         } else {
             certGen.addExtension(Extension.authorityKeyIdentifier, false,
                     new AuthorityKeyIdentifier(generatePublicKeyDigest(pubKey)));
