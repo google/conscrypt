@@ -47,6 +47,7 @@ import javax.security.auth.x500.X500Principal;
 import junit.framework.TestCase;
 import org.conscrypt.java.security.TestKeyStore;
 
+@SuppressWarnings("unused")
 public class TrustedCertificateStoreTest extends TestCase {
     private static final Random tempFileRandom = new Random();
 
