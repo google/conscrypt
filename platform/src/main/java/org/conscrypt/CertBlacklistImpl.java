@@ -27,9 +27,11 @@ import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.PublicKey;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,12 +41,12 @@ public final class CertBlacklistImpl implements CertBlacklist {
     private static final Logger logger = Logger.getLogger(CertBlacklistImpl.class.getName());
 
     private final Set<BigInteger> serialBlacklist;
-    private final Set<byte[]> pubkeyBlacklist;
+    private final Set<ByteString> pubkeyBlacklist;
 
     /**
      * public for testing only.
      */
-    public CertBlacklistImpl(Set<BigInteger> serialBlacklist, Set<byte[]> pubkeyBlacklist) {
+    public CertBlacklistImpl(Set<BigInteger> serialBlacklist, Set<ByteString> pubkeyBlacklist) {
         this.serialBlacklist = serialBlacklist;
         this.pubkeyBlacklist = pubkeyBlacklist;
     }
@@ -55,7 +57,7 @@ public final class CertBlacklistImpl implements CertBlacklist {
         String defaultPubkeyBlacklistPath = blacklistRoot + "pubkey_blacklist.txt";
         String defaultSerialBlacklistPath = blacklistRoot + "serial_blacklist.txt";
 
-        Set<byte[]> pubkeyBlacklist = readPublicKeyBlackList(defaultPubkeyBlacklistPath);
+        Set<ByteString> pubkeyBlacklist = readPublicKeyBlackList(defaultPubkeyBlacklistPath);
         Set<BigInteger> serialBlacklist = readSerialBlackList(defaultSerialBlacklistPath);
         return new CertBlacklistImpl(serialBlacklist, pubkeyBlacklist);
     }
@@ -166,10 +168,10 @@ public final class CertBlacklistImpl implements CertBlacklist {
         return Collections.unmodifiableSet(bl);
     }
 
-    private static Set<byte[]> readPublicKeyBlackList(String path) {
+    private static Set<ByteString> readPublicKeyBlackList(String path) {
 
         // start out with a base set of known bad values
-        Set<byte[]> bl = new HashSet<byte[]>(Arrays.asList(
+        Set<ByteString> bl = new HashSet<ByteString>(toByteStrings(
             // Blacklist test cert for CTS. The cert and key can be found in
             // src/test/resources/blacklist_test_ca.pem and
             // src/test/resources/blacklist_test_ca_key.pem.
@@ -210,7 +212,7 @@ public final class CertBlacklistImpl implements CertBlacklist {
             for (String value : pubkeyBlacklist.split(",", -1)) {
                 value = value.trim();
                 if (isPubkeyHash(value)) {
-                    bl.add(value.getBytes(UTF_8));
+                    bl.add(new ByteString(value.getBytes(UTF_8)));
                 } else {
                     logger.log(Level.WARNING, "Tried to blacklist invalid pubkey " + value);
                 }
@@ -231,8 +233,8 @@ public final class CertBlacklistImpl implements CertBlacklist {
             return false;
         }
         byte[] out = toHex(md.digest(encoded));
-        for (byte[] blacklisted : pubkeyBlacklist) {
-            if (Arrays.equals(blacklisted, out)) {
+        for (ByteString blacklisted : pubkeyBlacklist) {
+            if (Arrays.equals(blacklisted.bytes, out)) {
                 return true;
             }
         }
@@ -259,4 +261,37 @@ public final class CertBlacklistImpl implements CertBlacklist {
         return serialBlacklist.contains(serial);
     }
 
+    private static List<ByteString> toByteStrings(byte[]... allBytes) {
+        List<ByteString> byteStrings = new ArrayList<>(allBytes.length + 1);
+        for (byte[] bytes : allBytes) {
+            byteStrings.add(new ByteString(bytes));
+        }
+        return byteStrings;
+    }
+
+    private static class ByteString {
+        final byte[] bytes;
+
+        public ByteString(byte[] bytes) {
+            this.bytes = bytes;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            }
+            if (!(o instanceof ByteString)) {
+                return false;
+            }
+
+            ByteString other = (ByteString) o;
+            return Arrays.equals(bytes, other.bytes);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(bytes);
+        }
+    }
 }
