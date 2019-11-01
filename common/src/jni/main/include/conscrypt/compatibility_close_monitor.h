@@ -38,7 +38,7 @@ class CompatibilityCloseMonitor {
              monitor = asyncCloseMonitorCreate(fd);
          }
 #ifdef CONSCRYPT_UNBUNDLED
-         else if(asyncCloseMonitorConstructor != nullptr) {
+         else if (asyncCloseMonitorConstructor != nullptr) {  // NOLINT(readability/braces)
              asyncCloseMonitorConstructor(objBuffer, fd);
          }
 #endif  // CONSCRYPT_UNBUNDLED
@@ -51,7 +51,7 @@ class CompatibilityCloseMonitor {
             }
         }
 #ifdef CONSCRYPT_UNBUNDLED
-        else if (asyncCloseMonitorDestructor != nullptr) {
+        else if (asyncCloseMonitorDestructor != nullptr) {  // NOLINT(readability/braces)
             asyncCloseMonitorDestructor(objBuffer);
         }
 #endif  // CONSCRYPT_UNBUNDLED

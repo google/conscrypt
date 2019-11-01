@@ -23,7 +23,7 @@
  * Wraps access to the int inside a java.io.FileDescriptor, taking care of throwing exceptions.
  */
 class NetFd {
-public:
+ public:
     NetFd(JNIEnv* env, jobject fileDescriptor)
         : mEnv(env), mFileDescriptor(fileDescriptor), mFd(-1) {}
 
@@ -40,7 +40,7 @@ public:
         return mFd;
     }
 
-private:
+ private:
     JNIEnv* mEnv;
     jobject mFileDescriptor;
     int mFd;

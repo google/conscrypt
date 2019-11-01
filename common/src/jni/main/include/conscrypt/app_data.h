@@ -25,6 +25,7 @@
 
 #include <jni.h>
 #include <atomic>
+#include <memory>
 #include <mutex>  // NOLINT(build/c++11)
 
 #ifdef _WIN32
