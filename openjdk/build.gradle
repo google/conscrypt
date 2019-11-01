@@ -150,7 +150,6 @@ artifacts {
 
 apply from: "$rootDir/gradle/publishing.gradle"
 publishing.publications.maven {
-    from components.java
     artifact sourcesJar
     artifact javadocJar
 }
@@ -212,9 +211,8 @@ def addNativeJar(nativeClassifier) {
     // Add the jar task to the standard build.
     jar.dependsOn jarTask
 
-    // Add it to the 'archives' configuration so that the artifact will be automatically built and
-    // installed/deployed.
-    artifacts.add('archives', jarTask)
+    // Add it to the publishing archives list.
+    publishing.publications.maven.artifact jarTask
 }
 
 
