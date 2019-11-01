@@ -11,6 +11,7 @@ import java.security.SignatureSpi;
 /**
  * A provider that throws UnsupportedOperationException whenever its features are used.
  */
+@SuppressWarnings("serial")
 public class BrokenProvider extends Provider {
 
   public static final String NAME = "BrokenProvider";
