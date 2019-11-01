@@ -30,7 +30,7 @@
 //     return nullptr;
 //   }
 class ScopedUtfChars {
-public:
+ public:
     ScopedUtfChars(JNIEnv* env, jstring s) : env_(env), string_(s) {
         if (s == nullptr) {
             utf_chars_ = nullptr;
@@ -58,7 +58,7 @@ public:
         return utf_chars_[n];
     }
 
-private:
+ private:
     JNIEnv* env_;
     jstring string_;
     const char* utf_chars_;

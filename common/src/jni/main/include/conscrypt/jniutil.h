@@ -232,9 +232,9 @@ extern int throwForX509Error(JNIEnv* env, int reason, const char* message,
  * type based on the type of error found.  If no error is present, throws
  * AssertionError.
  */
-extern void throwExceptionFromBoringSSLError(JNIEnv* env, const char* location,
-                                             int (*defaultThrow)(JNIEnv*,
-                                                                 const char*) = throwRuntimeException);
+extern void throwExceptionFromBoringSSLError(
+        JNIEnv* env, const char* location,
+        int (*defaultThrow)(JNIEnv*, const char*) = throwRuntimeException);
 
 /**
  * Throws an SocketTimeoutException with the given string as a message.
@@ -278,23 +278,25 @@ extern int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCod
  * ensure that the error queue is empty whenever the function exits.
  */
 class ErrorQueueChecker {
-public:
-    ErrorQueueChecker(JNIEnv* env) : env(env) {}
+ public:
+    explicit ErrorQueueChecker(JNIEnv* env) : env(env) {}
     ~ErrorQueueChecker() {
         if (ERR_peek_error() != 0) {
             const char* file;
             int line;
-            unsigned long error = ERR_get_error_line(&file, &line);
+            uint32_t error = ERR_get_error_line(&file, &line);
             char message[256];
             ERR_error_string_n(error, message, sizeof(message));
             char result[500];
-            snprintf(result, sizeof(result), "Error queue should have been empty but was (%s:%d) %s", file, line, message);
+            snprintf(result, sizeof(result),
+                     "Error queue should have been empty but was (%s:%d) %s", file, line, message);
             // If there's a pending exception, we want to throw the assertion error instead
             env->ExceptionClear();
             throwAssertionError(env, result);
         }
     }
-private:
+
+ private:
     JNIEnv* env;
 };
 

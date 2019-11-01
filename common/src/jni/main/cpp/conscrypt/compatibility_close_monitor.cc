@@ -54,6 +54,6 @@ void CompatibilityCloseMonitor::init() {
         }
     }
 #endif  // CONSCRYPT_UNBUNDLED
-#endif // _WIN32
+#endif  // _WIN32
 }
 }  // namespace conscrypt
