@@ -34,7 +34,7 @@ public class CTPolicyImpl implements CTPolicy {
     @Override
     public boolean doesResultConformToPolicy(CTVerificationResult result, String hostname,
                                              X509Certificate[] chain) {
-        Set<CTLogInfo> logSet = new HashSet();
+        Set<CTLogInfo> logSet = new HashSet<>();
         for (VerifiedSCT verifiedSCT: result.getValidSCTs()) {
             CTLogInfo log = logStore.getKnownLog(verifiedSCT.sct.getLogID());
             if (log != null) {
