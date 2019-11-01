@@ -25,9 +25,12 @@ import static org.junit.Assert.assertFalse;
 import java.lang.reflect.Method;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLParameters;
 import org.conscrypt.testing.FailingSniMatcher;
@@ -174,8 +177,16 @@ public class PlatformTest {
                 paramsOut.getEndpointIdentificationAlgorithm());
         assertEquals(paramsIn.getWantClientAuth(), paramsOut.getWantClientAuth());
         assertEquals(paramsIn.getNeedClientAuth(), paramsOut.getNeedClientAuth());
-        assertEquals(paramsIn.getSNIMatchers(), paramsOut.getSNIMatchers());
+        assertSNIMatchersEqual(paramsIn.getSNIMatchers(), paramsOut.getSNIMatchers());
         assertEquals(paramsIn.getAlgorithmConstraints(), paramsOut.getAlgorithmConstraints());
+    }
+
+    private static void assertSNIMatchersEqual(Collection<SNIMatcher> a, Collection<SNIMatcher> b) {
+        assertEquals(a.size(), b.size());
+
+        HashSet<SNIMatcher> aSet = new HashSet<>(a);
+        aSet.removeAll(b);
+        assertEquals(0, aSet.size());
     }
 
     private static String[] getApplicationProtocols(SSLParameters params) {
