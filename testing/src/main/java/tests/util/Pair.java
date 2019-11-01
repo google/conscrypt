@@ -74,7 +74,7 @@ public class Pair<F, S> {
         if (obj == null) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
+        if (!(obj instanceof Pair)) {
             return false;
         }
         @SuppressWarnings("rawtypes")

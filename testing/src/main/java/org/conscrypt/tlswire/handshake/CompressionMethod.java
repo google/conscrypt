@@ -55,7 +55,7 @@ public class CompressionMethod {
         if (obj == null) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
+        if (!(obj instanceof CompressionMethod)) {
             return false;
         }
         CompressionMethod other = (CompressionMethod) obj;
