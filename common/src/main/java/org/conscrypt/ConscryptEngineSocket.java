@@ -226,7 +226,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
                     case NEED_UNWRAP:
                         if (in.processDataFromSocket(EmptyArray.BYTE, 0, 0) < 0) {
                             // Can't complete the handshake due to EOF.
-                            throw SSLUtils.toSSLHandshakeException(new EOFException());
+                            throw SSLUtils.toSSLHandshakeException(
+                                    new EOFException("connection closed"));
                         }
                         break;
                     case NEED_WRAP: {
