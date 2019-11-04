@@ -31,4 +31,4 @@ ninja
 popd >/dev/null
 
 ./gradlew conscrypt-openjdk:build
-./gradlew conscrypt-openjdk:uploadArchives -Dorg.gradle.parallel=false -PrepositoryId="$2"
+./gradlew conscrypt-openjdk:publish -Dorg.gradle.parallel=false -PrepositoryId="$2"
