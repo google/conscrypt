@@ -35,7 +35,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.same;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
@@ -86,7 +86,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 @RunWith(JUnit4.class)
@@ -2113,7 +2113,7 @@ public class NativeCryptoTest {
         ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
         SSLEngine engine = Mockito.mock(SSLEngine.class);
         ApplicationProtocolSelectorAdapter adapter = new ApplicationProtocolSelectorAdapter(engine, selector);
-        when(selector.selectApplicationProtocol(same(engine), Matchers.anyListOf(String.class)))
+        when(selector.selectApplicationProtocol(same(engine), ArgumentMatchers.<String>anyList()))
                 .thenReturn("spdy/2");
 
         ServerSocket listener = newServerSocket();
@@ -2152,7 +2152,7 @@ public class NativeCryptoTest {
         ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
         SSLEngine engine = Mockito.mock(SSLEngine.class);
         ApplicationProtocolSelectorAdapter adapter = new ApplicationProtocolSelectorAdapter(engine, selector);
-        when(selector.selectApplicationProtocol(same(engine), Matchers.anyListOf(String.class)))
+        when(selector.selectApplicationProtocol(same(engine), ArgumentMatchers.<String>anyList()))
                 .thenReturn("h2");
 
         ServerSocket listener = newServerSocket();
