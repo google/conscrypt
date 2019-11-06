@@ -78,7 +78,6 @@ if (buildUberJar) {
 
     apply from: "$rootDir/gradle/publishing.gradle"
     publishing.publications.maven {
-        from components.java
         artifact sourcesJar
         artifact jar
     }
