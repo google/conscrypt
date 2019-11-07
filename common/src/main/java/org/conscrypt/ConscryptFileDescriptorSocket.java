@@ -40,6 +40,7 @@ import javax.crypto.SecretKey;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
@@ -1118,7 +1119,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     public final String getApplicationProtocol() {
-        return SSLUtils.toProtocolString(ssl.getApplicationProtocol());
+        return provideSession().getApplicationProtocol();
     }
 
     @Override
