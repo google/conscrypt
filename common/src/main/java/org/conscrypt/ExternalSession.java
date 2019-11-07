@@ -47,7 +47,7 @@ import javax.security.cert.X509Certificate;
  */
 final class ExternalSession implements ConscryptSession {
 
-  // Use an initialcapacity of 2 to keep it small in the average case.
+  // Use an initial capacity of 2 to keep it small in the average case.
   private final HashMap<String, Object> values = new HashMap<String, Object>(2);
   private final Provider provider;
 
@@ -154,6 +154,11 @@ final class ExternalSession implements ConscryptSession {
   @Override
   public int getApplicationBufferSize() {
     return provider.provideSession().getApplicationBufferSize();
+  }
+
+  @Override
+  public String getApplicationProtocol() {
+    return provider.provideSession().getApplicationProtocol();
   }
 
   @Override
