@@ -37,6 +37,7 @@ final class ActiveSession implements ConscryptSession {
     private byte[] id;
     private long creationTime;
     private String protocol;
+    private String applicationProtocol;
     private String peerHost;
     private int peerPort = -1;
     private long lastAccessedTime = 0;
@@ -153,25 +154,25 @@ final class ActiveSession implements ConscryptSession {
     @Override
     public void putValue(String name, Object value) {
         throw new UnsupportedOperationException(
-                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
+                "All calls to this method should be intercepted by ExternalSession.");
     }
 
     @Override
     public Object getValue(String name) {
         throw new UnsupportedOperationException(
-                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
+                "All calls to this method should be intercepted by ExternalSession.");
     }
 
     @Override
     public void removeValue(String name) {
         throw new UnsupportedOperationException(
-                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
+                "All calls to this method should be intercepted by ExternalSession.");
     }
 
     @Override
     public String[] getValueNames() {
         throw new UnsupportedOperationException(
-                "All calls to this method should be intercepted by ProvidedSessionDecorator.");
+                "All calls to this method should be intercepted by ExternalSession.");
     }
 
     @Override
@@ -273,6 +274,18 @@ final class ActiveSession implements ConscryptSession {
     @Override
     public int getApplicationBufferSize() {
         return NativeConstants.SSL3_RT_MAX_PLAIN_LENGTH;
+    }
+
+    @Override
+    public String getApplicationProtocol() {
+        String applicationProtocol = this.applicationProtocol;
+        if (applicationProtocol == null) {
+            synchronized (ssl) {
+                applicationProtocol = SSLUtils.toProtocolString(ssl.getApplicationProtocol());
+            }
+            this.applicationProtocol = applicationProtocol;
+        }
+        return applicationProtocol;
     }
 
     /**

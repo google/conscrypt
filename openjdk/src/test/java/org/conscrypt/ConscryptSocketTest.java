@@ -623,15 +623,23 @@ public class ConscryptSocketTest {
 
     @Test
     public void savedSessionWorksAfterClose() throws Exception {
+        String alpnProtocol = "spdy/2";
+        String[] alpnProtocols = new String[]{alpnProtocol};
         TestConnection connection = new TestConnection(new X509Certificate[] {cert, ca}, certKey);
+        connection.clientHooks.alpnProtocols = alpnProtocols;
+        connection.serverHooks.alpnProtocols = alpnProtocols;
         connection.doHandshakeSuccess();
 
         SSLSession session = connection.client.getSession();
         String cipherSuite = session.getCipherSuite();
+        String protocol = session.getProtocol();
+        assertEquals(alpnProtocol, Conscrypt.getApplicationProtocol(connection.client));
 
         connection.client.close();
 
         assertEquals(cipherSuite, session.getCipherSuite());
+        assertEquals(protocol, session.getProtocol());
+        assertEquals(alpnProtocol, Conscrypt.getApplicationProtocol(connection.client));
     }
 
     private static ServerSocket newServerSocket() throws IOException {

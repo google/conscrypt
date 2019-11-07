@@ -375,16 +375,26 @@ public class ConscryptEngineTest {
 
     @Test
     public void savedSessionWorksAfterClose() throws Exception {
+        String alpnProtocol = "spdy/2";
+        String[] alpnProtocols = new String[]{alpnProtocol};
+
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
+        Conscrypt.setApplicationProtocols(clientEngine, alpnProtocols);
+        Conscrypt.setApplicationProtocols(serverEngine, alpnProtocols);
+
         doHandshake(true);
 
         SSLSession session = clientEngine.getSession();
         String cipherSuite = session.getCipherSuite();
+        String protocol = session.getProtocol();
+        assertEquals(alpnProtocol, Conscrypt.getApplicationProtocol(clientEngine));
 
         clientEngine.closeOutbound();
         clientEngine.closeInbound();
 
         assertEquals(cipherSuite, session.getCipherSuite());
+        assertEquals(protocol, session.getProtocol());
+        assertEquals(alpnProtocol, Conscrypt.getApplicationProtocol(clientEngine));
     }
 
     private void doMutualAuthHandshake(
