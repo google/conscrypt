@@ -64,7 +64,7 @@ if (androidSdkInstalled) {
     }
 
     dependencies {
-        depsJarApi project(path: ':conscrypt-android', configuration: 'default'),
+        depsJarApi project(path: ':conscrypt-android'),
                    libraries.bouncycastle_provider,
                    libraries.bouncycastle_apis
 
@@ -84,7 +84,9 @@ if (androidSdkInstalled) {
     // configure task where the "from" contents is set inside a doLast stanza to ensure it is run
     // after the execution phase of the "assemble" task.
     task configureDepsJar {
-        dependsOn assemble
+        dependsOn assemble, \
+                  configurations.depsJarApi.artifacts, \
+                  configurations.depsJarImplementation.artifacts
         doLast {
             depsJar.from {
                 [

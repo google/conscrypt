@@ -254,7 +254,7 @@ task testInterop(type: Test) {
 check.dependsOn testInterop
 
 jacocoTestReport {
-    additionalSourceDirs = files("$rootDir/openjdk/src/test/java", "$rootDir/common/src/main/java")
+    additionalSourceDirs.from files("$rootDir/openjdk/src/test/java", "$rootDir/common/src/main/java")
     executionData tasks.withType(Test)
 }
 
