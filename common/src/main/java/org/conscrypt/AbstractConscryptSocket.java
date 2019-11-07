@@ -588,10 +588,10 @@ abstract class AbstractConscryptSocket extends SSLSocket {
     abstract void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter selector);
 
     final void notifyHandshakeCompletedListeners() {
-        if (listeners != null && !listeners.isEmpty()) {
+        if (!listeners.isEmpty()) {
             // notify the listeners
             HandshakeCompletedEvent event = new HandshakeCompletedEvent(this, getActiveSession());
-            for (HandshakeCompletedListener listener : listeners) {
+            for (HandshakeCompletedListener listener : new ArrayList<>(listeners)) {
                 try {
                     listener.handshakeCompleted(event);
                 } catch (RuntimeException e) {
