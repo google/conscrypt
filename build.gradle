@@ -143,24 +143,6 @@ subprojects {
         jcenter()
     }
 
-<<<<<<< HEAD
-    signing {
-        required false
-        sign configurations.archives
-    }
-
-    signArchives.doFirst {
-        configurations.archives.allArtifacts.each {
-            if (it.type == 'jar' && it.classifier != 'sources' && it.classifier != 'javadoc') {
-                signJar(it.file.absolutePath)
-            }
-        }
-=======
-    jacoco {
-        toolVersion = "0.8.4"
->>>>>>> 21e19dd7... Migrate to using maven-publish plugin
-    }
-
     dependencies {
         errorprone("com.google.errorprone:error_prone_core:$errorproneVersion")
         errorproneJavac("com.google.errorprone:javac:$errorproneJavacVersion")
