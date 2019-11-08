@@ -1,5 +1,5 @@
 plugins {
-    id 'me.champeau.gradle.jmh' version '0.4.7'
+    id 'me.champeau.gradle.jmh' version '0.4.8'
 }
 
 apply plugin: 'idea'
@@ -103,7 +103,3 @@ def parseParams(s) {
         [ (pair.first().trim()) : pair.last().split(",").collect { it.trim() } ]
     }
 }
-
-// Don't include this artifact in the distribution.
-tasks.install.enabled = false
-tasks.uploadArchives.enabled = false;

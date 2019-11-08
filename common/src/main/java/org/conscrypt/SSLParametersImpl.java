@@ -308,6 +308,13 @@ final class SSLParametersImpl implements Cloneable {
     }
 
     /**
+     * Returns the application protocol (ALPN) selector for this socket.
+     */
+    ApplicationProtocolSelectorAdapter getApplicationProtocolSelector() {
+        return applicationProtocolSelector;
+    }
+
+    /**
      * Tunes the peer holding this parameters to work in client mode.
      * @param   mode if the peer is configured to work in client mode
      */

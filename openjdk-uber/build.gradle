@@ -75,10 +75,15 @@ if (buildUberJar) {
                     'Bundle-SymbolicName': 'org.conscrypt',
                     '-exportcontents': 'org.conscrypt.*')
     }
+
+    apply from: "$rootDir/gradle/publishing.gradle"
+    publishing.publications.maven {
+        artifact sourcesJar
+        artifact jar
+    }
 } else {
     // Not building an uber jar - disable all tasks.
     tasks.collect {
         it.enabled = false
     }
 }
-

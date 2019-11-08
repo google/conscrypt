@@ -1,0 +1,70 @@
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+def isSnapshot = project.version.contains('SNAPSHOT')
+
+signing {
+    required false
+    sign publishing.publications
+}
+
+tasks.register("signPublications").configure {
+    configurations.archives.allArtifacts.each {
+        if (it.type == 'jar' && it.classifier != 'sources' && it.classifier != 'javadoc') {
+            signJar(it.file.absolutePath)
+        }
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                afterEvaluate {
+                    name = "$project.group:$project.name" as String
+                    description = project.description
+                }
+
+                url = 'https://conscrypt.org/'
+
+                scm {
+                    connection = 'scm:git:https://github.com/google/conscrypt.git'
+                    developerConnection = 'scm:git:git@github.com:google/conscrypt.git'
+                    url = 'https://github.com/google/conscrypt'
+                }
+
+                licenses {
+                    license {
+                        name = 'Apache 2'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'conscrypt'
+                        name = 'Conscrypt Contributors'
+                        email = 'conscrypt@googlegroups.com'
+                        url = 'https://conscrypt.org/'
+                        organization = 'Google, Inc.'
+                        organizationUrl = 'https://www.google.com'
+                    }
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            def snapshotUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
+            def stagingUrl = rootProject.hasProperty('repositoryId') ? \
+                'https://oss.sonatype.org/service/local/staging/deployByRepositoryId/' : \
+                'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            url isSnapshot ? snapshotUrl : stagingUrl
+            credentials {
+                username = rootProject.findProperty('ossrhUsername') ?: ''
+                password = rootProject.findProperty('ossrhPassword') ?: ''
+            }
+        }
+    }
+}

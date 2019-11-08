@@ -53,6 +53,7 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
 import org.conscrypt.testing.Streams;
@@ -87,7 +88,7 @@ public final class TestUtils {
                 }
             }
         }
-        throw new AssertionError();
+        return new BouncyCastleProvider();
     }
 
     private static boolean hasProtocol(Provider p, String protocol) {

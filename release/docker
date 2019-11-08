@@ -32,7 +32,7 @@ sed -i 's\signing.secretKeyRingFile=.*\signing.secretKeyRingFile=/root/.gnupg/se
 sed -i 's\signingKeystore=.*\signingKeystore=/root/certkeystore\' /root/.gradle/gradle.properties
 
 ./gradlew conscrypt-openjdk:build
-./gradlew -Dorg.gradle.parallel=false uploadArchives
+./gradlew -Dorg.gradle.parallel=false publish
 
 cd /usr/src/boringssl
 

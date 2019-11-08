@@ -10,10 +10,10 @@ Then to build, run:
 $ ./gradlew build
 ```
 
-To install the artifacts to your Maven local repository for use in your own project, run:
+To publish the artifacts to your Maven local repository for use in your own project, run:
 
 ```bash
-$ ./gradlew install
+$ ./gradlew publishToMavenLocal
 ```
 
 Prerequisites

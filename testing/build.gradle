@@ -16,7 +16,3 @@ dependencies {
             libraries.bouncycastle_apis,
             libraries.bouncycastle_provider
 }
-
-// Don't include this artifact in the distribution.
-tasks.install.enabled = false
-tasks.uploadArchives.enabled = false;

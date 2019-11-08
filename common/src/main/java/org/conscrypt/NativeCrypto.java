@@ -1289,6 +1289,16 @@ public final class NativeCrypto {
          * @return the cached session or {@code 0} if no session was found matching the given ID.
          */
         @SuppressWarnings("unused") long serverSessionRequested(byte[] id);
+
+        /**
+         * Called when acting as a server, the socket has an {@link
+         * ApplicationProtocolSelectorAdapter} associated with it,  and the application protocol
+         * needs to be selected.
+         *
+         * @param applicationProtocols list of application protocols in length-prefix format
+         * @return the index offset of the selected protocol
+         */
+        @SuppressWarnings("unused") int selectApplicationProtocol(byte[] applicationProtocols);
     }
 
     static native String SSL_CIPHER_get_kx_name(long cipherAddress);
@@ -1330,12 +1340,13 @@ public final class NativeCrypto {
             long ssl, NativeSsl ssl_holder, boolean client, byte[] protocols) throws IOException;
 
     /**
-     * Called for a server endpoint only. Enables ALPN and sets a BiFunction that will
-     * be called to delegate protocol selection to the application. Calling this method overrides
+     * Called for a server endpoint only. Enables ALPN and indicates that the {@link
+     * SSLHandshakeCallbacks#selectApplicationProtocol} will be called to select the
+     * correct protocol during a handshake. Calling this method overrides
      * {@link #setApplicationProtocols(long, NativeSsl, boolean, byte[])}.
      */
-    static native void setApplicationProtocolSelector(
-            long ssl, NativeSsl ssl_holder, ApplicationProtocolSelectorAdapter selector) throws IOException;
+    static native void setHasApplicationProtocolSelector(long ssl, NativeSsl ssl_holder, boolean hasSelector)
+            throws IOException;
 
     /**
      * Returns the selected ALPN protocol. If the server did not select a

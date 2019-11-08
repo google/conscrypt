@@ -1,5 +1,4 @@
-language: android
-dist: trusty
+language: minimal
 
 env:
   global:
@@ -18,16 +17,18 @@ matrix:
     ### Linux build is the only platform that builds Android here.
     ###
     - os: linux
-      jdk: openjdk8
+      dist: xenial
 
       env:
         - ANDROID_TOOLS_URL="https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip"
         - ANDROID_HOME="$HOME/android-sdk-linux"
-        - ANDROID_NDK_HOME="$ANDROID_HOME/ndk-bundle"
+        - JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
         - JAVA7_HOME=/usr/lib/jvm/java-7-openjdk-amd64
         - JAVA11_HOME=/usr/lib/jvm/java-11-openjdk-amd64
         - CC=clang-5.0
         - CXX=clang++-5.0
+        - PATH="$JAVA_HOME/bin:$PATH"
+        - TERM=dumb # to stop verbose build output
 
       before_install:
         - curl -L $ANDROID_TOOLS_URL -o $HOME/tools.zip
@@ -38,16 +39,18 @@ matrix:
         # Append tr '\r' '\n' | uniq to all the commands to suppress it
         - $ANDROID_HOME/tools/bin/sdkmanager tools | tr '\r' '\n' | uniq
         - $ANDROID_HOME/tools/bin/sdkmanager platform-tools | tr '\r' '\n' | uniq
-        - $ANDROID_HOME/tools/bin/sdkmanager 'build-tools;27.0.3' | tr '\r' '\n' | uniq
+        - $ANDROID_HOME/tools/bin/sdkmanager 'build-tools;28.0.3' | tr '\r' '\n' | uniq
         - $ANDROID_HOME/tools/bin/sdkmanager 'platforms;android-26' | tr '\r' '\n' | uniq
         - $ANDROID_HOME/tools/bin/sdkmanager 'extras;android;m2repository' | tr '\r' '\n' | uniq
         - $ANDROID_HOME/tools/bin/sdkmanager ndk-bundle | tr '\r' '\n' | uniq
-        - $ANDROID_HOME/tools/bin/sdkmanager 'cmake;3.6.4111459' | tr '\r' '\n' | uniq
+        - $ANDROID_HOME/tools/bin/sdkmanager 'cmake;3.10.2.4988404' | tr '\r' '\n' | uniq
+        - gimme 1.13 # Needed for BoringSSL build
+        - source ~/.gimme/envs/go1.13.env
 
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-5.0
+            - llvm-toolchain-xenial-5.0
             - openjdk-r-java
             - ubuntu-toolchain-r-test
           packages:
@@ -57,8 +60,10 @@ matrix:
             - gcc-multilib
             - libc6-dev-i386
             - libc6-dev:i386
+            - linux-libc-dev
             - ninja-build
             - openjdk-7-jre # for running tests with Java 7
+            - openjdk-8-jdk # for building
             - openjdk-11-jre # for running tests with Java 11
 
     ###
@@ -69,6 +74,7 @@ matrix:
       env:
         - CC=clang
         - CXX=clang++
+        - TERM=dumb # to stop verbose build output
 
       before_install:
         - brew update

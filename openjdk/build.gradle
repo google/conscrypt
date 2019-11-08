@@ -148,6 +148,12 @@ artifacts {
     platform platformJar
 }
 
+apply from: "$rootDir/gradle/publishing.gradle"
+publishing.publications.maven {
+    artifact sourcesJar
+    artifact javadocJar
+}
+
 jar.manifest {
     attributes ('BoringSSL-Version' : boringSslVersion,
                 'Automatic-Module-Name' : 'org.conscrypt',
@@ -159,8 +165,8 @@ dependencies {
     // This is used for the @Internal annotation processing in JavaDoc
     publicApiDocs project(':conscrypt-api-doclet')
 
-    compileOnly project(':conscrypt-constants'),
-                configurations.publicApiDocs
+    // This is listed as compile-only, but we absorb its contents.
+    compileOnly project(':conscrypt-constants')
 
     testImplementation project(':conscrypt-constants'),
             project(':conscrypt-testing'),
@@ -205,9 +211,8 @@ def addNativeJar(nativeClassifier) {
     // Add the jar task to the standard build.
     jar.dependsOn jarTask
 
-    // Add it to the 'archives' configuration so that the artifact will be automatically built and
-    // installed/deployed.
-    artifacts.add('archives', jarTask)
+    // Add it to the publishing archives list.
+    publishing.publications.maven.artifact jarTask
 }
 
 
