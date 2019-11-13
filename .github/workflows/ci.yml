@@ -1,0 +1,229 @@
+name: Continuous integration
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Run every day at midnight UTC
+    - cron: '0 0 * * *'
+
+jobs:
+  boringssl_clone:
+    # This step ensures that all builders have the same version of BoringSSL
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone BoringSSL repo
+        run: |
+          git clone --depth 1 https://boringssl.googlesource.com/boringssl.git "${{ runner.temp }}/boringssl"
+          echo Using BoringSSL commit: $(cd "${{ runner.temp }}/boringssl"; git rev-parse HEAD)
+
+      - name: Archive BoringSSL source
+        uses: actions/upload-artifact@v1
+        with:
+          name: boringssl-source
+          path: ${{ runner.temp }}/boringssl
+
+  build:
+    needs: boringssl_clone
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - platform: ubuntu-latest
+            tools_url: https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip
+          - platform: macos-latest
+            tools_url: https://dl.google.com/android/repository/sdk-tools-darwin-4333796.zip
+          - platform: windows-latest
+            tools_url: https://dl.google.com/android/repository/sdk-tools-windows-4333796.zip
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Set runner-specific environment variables
+        shell: bash
+        run: |
+          echo "::set-env name=ANDROID_HOME::${{ runner.temp }}/android-sdk"
+          echo "::set-env name=ANDROID_NDK::${{ runner.temp }}/android-sdk/ndk-bundle"
+          echo "::set-env name=BORINGSSL_HOME::${{ runner.temp }}/boringssl"
+          echo "::set-env name=SDKMANAGER::${{ runner.temp }}/android-sdk/tools/bin/sdkmanager"
+          echo "::set-env name=M2_REPO::${{ runner.temp }}/m2"
+
+      - uses: actions/checkout@v1
+
+      - name: install Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: '1.13.2'
+
+      - name: Setup Linux environment
+        if: runner.os == 'Linux'
+        run: |
+          echo "::set-env name=CC::clang"
+          echo "::set-env name=CXX::clang++"
+
+          sudo dpkg --add-architecture i386
+          sudo add-apt-repository ppa:openjdk-r/ppa
+          sudo apt-get -qq update
+          sudo apt-get -qq install -y --no-install-recommends \
+            gcc-multilib \
+            g++-multilib \
+            ninja-build \
+            openjdk-8-jdk-headless \
+            openjdk-11-jre-headless
+
+      - name: Setup macOS environment
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install ninja
+          echo "::set-env name=JAVA_HOME::$(/usr/libexec/java_home -v 1.8)"
+
+      - name: Setup Windows environment
+        if: runner.os == 'Windows'
+        run: |
+          choco install nasm -y
+          choco install ninja -y
+
+      - name: Fetch BoringSSL source
+        uses: actions/download-artifact@v1
+        with:
+          name: boringssl-source
+          path: ${{ runner.temp }}/boringssl
+
+      - name: Build BoringSSL 64-bit Linux and MacOS
+        if: runner.os != 'Windows'
+        env:
+          # For compatibility, but 10.15 target requires 16-byte stack alignment.
+          MACOSX_DEPLOYMENT_TARGET: 10.11
+        run: |
+          mkdir -p "$BORINGSSL_HOME/build64"
+          pushd "$BORINGSSL_HOME/build64"
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -GNinja ..
+          ninja
+          popd
+
+      - name: Build BoringSSL 32-bit Linux
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p "$BORINGSSL_HOME/build32"
+          pushd "$BORINGSSL_HOME/build32"
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS="-m32 -msse2" -DCMAKE_CXX_FLAGS="-m32 -msse2" -DCMAKE_C_FLAGS="-m32 -msse2" -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=x86 -GNinja ..
+          ninja
+          popd
+
+      - name: Build BoringSSL 64 and 32-bit Windows
+        if: runner.os == 'Windows'
+        run: |
+          cd $Env:BORINGSSL_HOME
+
+          & $Env:GITHUB_WORKSPACE\.github\workflows\vsenv.ps1 -arch x86 -hostArch x64
+          mkdir build32
+          cd build32
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+          ninja
+          cd ..
+
+          & $Env:GITHUB_WORKSPACE\.github\workflows\vsenv.ps1 -arch x64 -hostArch x64
+          mkdir build64
+          cd build64
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+          ninja
+          cd ..
+
+      - name: Upload BoringSSL build
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v1
+        with:
+          name: boringssl-${{ runner.os }}
+          path: ${{ runner.temp }}/boringssl
+
+      - name: Setup Android environment
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          cd "${{ runner.temp }}"
+          curl -L "${{ matrix.tools_url }}" -o android-tools.zip
+          mkdir -p "$ANDROID_HOME"
+          unzip -q android-tools.zip -d "$ANDROID_HOME"
+          yes | "$SDKMANAGER" --licenses || true
+          "$SDKMANAGER" tools | tr '\r' '\n' | uniq
+          "$SDKMANAGER" platform-tools | tr '\r' '\n' | uniq
+          "$SDKMANAGER" 'build-tools;28.0.3' | tr '\r' '\n' | uniq
+          "$SDKMANAGER" 'platforms;android-26' | tr '\r' '\n' | uniq
+          "$SDKMANAGER" 'extras;android;m2repository' | tr '\r' '\n' | uniq
+          "$SDKMANAGER" ndk-bundle | tr '\r' '\n' | uniq
+          "$SDKMANAGER" 'cmake;3.10.2.4988404' | tr '\r' '\n' | uniq
+
+      - name: Build with Gradle
+        shell: bash
+        run: ./gradlew assemble -PcheckErrorQueue
+
+      - name: Test with Gradle
+        shell: bash
+        run: ./gradlew test -PcheckErrorQueue
+
+      - name: Other checks with Gradle
+        shell: bash
+        run: ./gradlew check -PcheckErrorQueue
+
+      - name: Publish to local Maven repo
+        shell: bash
+        run: ./gradlew publishToMavenLocal -Dmaven.repo.local="$M2_REPO"
+
+      - name: Upload Maven respository
+        uses: actions/upload-artifact@v1
+        with:
+          name: m2repo-${{ runner.os }}
+          path: ${{ runner.temp }}/m2
+
+  uberjar:
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Set runner-specific environment variables
+        shell: bash
+        run: |
+          echo "::set-env name=BORINGSSL_HOME::${{ runner.temp }}/boringssl"
+          echo "::set-env name=M2_REPO::${{ runner.temp }}/m2"
+
+      - name: Download BoringSSL build
+        uses: actions/download-artifact@v1
+        with:
+          name: boringssl-${{ runner.os }}
+          path: ${{ runner.temp }}/boringssl
+
+      - name: Download Maven repository for Linux
+        uses: actions/download-artifact@v1
+        with:
+          name: m2repo-Linux
+          path: ${{ runner.temp }}/m2
+
+      - name: Download Maven repository for MacOS
+        uses: actions/download-artifact@v1
+        with:
+          name: m2repo-macOS
+          path: ${{ runner.temp }}/m2
+
+      - name: Download Maven repository for Windows
+        uses: actions/download-artifact@v1
+        with:
+          name: m2repo-Windows
+          path: ${{ runner.temp }}/m2
+
+      - name: Build UberJAR with Gradle
+        shell: bash
+        run: |
+          ./gradlew :conscrypt-openjdk-uber:build -Dorg.conscrypt.openjdk.buildUberJar=true -Dmaven.repo.local="$M2_REPO"
+
+      - name: Upload Maven respository
+        uses: actions/upload-artifact@v1
+        with:
+          name: m2repo-uber
+          path: ${{ runner.temp }}/m2
