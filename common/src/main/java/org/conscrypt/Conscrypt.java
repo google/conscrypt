@@ -76,8 +76,9 @@ public final class Conscrypt {
         int major = -1;
         int minor = -1;
         int patch = -1;
+        InputStream stream = null;
         try {
-            InputStream stream = Conscrypt.class.getResourceAsStream("conscrypt.properties");
+            stream = Conscrypt.class.getResourceAsStream("conscrypt.properties");
             if (stream != null) {
                 Properties props = new Properties();
                 props.load(stream);
@@ -86,6 +87,9 @@ public final class Conscrypt {
                 patch = Integer.parseInt(props.getProperty("org.conscrypt.version.patch", "-1"));
             }
         } catch (IOException e) {
+        } finally {
+            if (stream != null)
+                stream.close();
         }
         if ((major >= 0) && (minor >= 0) && (patch >= 0)) {
             VERSION = new Version(major, minor, patch);
