@@ -15,6 +15,7 @@ import org.junit.runners.Suite;
   ConscryptTest.class,
   DuckTypedPSKKeyManagerTest.class,
   FileClientSessionCacheTest.class,
+  MoreAssertionsTest.class,
   NativeCryptoTest.class,
   NativeRefTest.class,
   NativeSslSessionTest.class,

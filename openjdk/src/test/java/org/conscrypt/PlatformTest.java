@@ -177,16 +177,8 @@ public class PlatformTest {
                 paramsOut.getEndpointIdentificationAlgorithm());
         assertEquals(paramsIn.getWantClientAuth(), paramsOut.getWantClientAuth());
         assertEquals(paramsIn.getNeedClientAuth(), paramsOut.getNeedClientAuth());
-        assertSNIMatchersEqual(paramsIn.getSNIMatchers(), paramsOut.getSNIMatchers());
+        MoreAssertions.assertContentsEqual(paramsIn.getSNIMatchers(), paramsOut.getSNIMatchers());
         assertEquals(paramsIn.getAlgorithmConstraints(), paramsOut.getAlgorithmConstraints());
-    }
-
-    private static void assertSNIMatchersEqual(Collection<SNIMatcher> a, Collection<SNIMatcher> b) {
-        assertEquals(a.size(), b.size());
-
-        HashSet<SNIMatcher> aSet = new HashSet<>(a);
-        aSet.removeAll(b);
-        assertEquals(0, aSet.size());
     }
 
     private static String[] getApplicationProtocols(SSLParameters params) {
