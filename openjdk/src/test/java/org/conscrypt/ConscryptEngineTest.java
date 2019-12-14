@@ -397,6 +397,25 @@ public class ConscryptEngineTest {
         assertEquals(alpnProtocol, Conscrypt.getApplicationProtocol(clientEngine));
     }
 
+    @Test
+    // getApplicationProtocol should initially return null and not trigger handshake. b/146235331
+    public void getAlpnIsNullBeforeHandshake() throws Exception {
+        String alpnProtocol = "spdy/2";
+        String[] alpnProtocols = new String[]{alpnProtocol};
+
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
+
+        assertNull(Conscrypt.getApplicationProtocol(clientEngine));
+        assertNull(Conscrypt.getApplicationProtocol(serverEngine));
+
+        Conscrypt.setApplicationProtocols(clientEngine, alpnProtocols);
+        Conscrypt.setApplicationProtocols(serverEngine, alpnProtocols);
+
+        doHandshake(true);
+
+        assertEquals(alpnProtocol, Conscrypt.getApplicationProtocol(clientEngine));
+    }
+
     private void doMutualAuthHandshake(
             TestKeyStore clientKs, TestKeyStore serverKs, ClientAuth clientAuth) throws Exception {
         setupEngines(clientKs, serverKs);

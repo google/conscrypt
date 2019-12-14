@@ -691,6 +691,12 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         return activeSession;
     }
 
+    private ConscryptSession provideAfterHandshakeSession() {
+        return (state < STATE_HANDSHAKE_STARTED)
+            ? SSLNullSession.getNullSession()
+            : provideSession();
+    }
+
     private ConscryptSession provideHandshakeSession() {
         synchronized (ssl) {
             return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY ? activeSession
@@ -1118,7 +1124,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     public final String getApplicationProtocol() {
-        return provideSession().getApplicationProtocol();
+        return provideAfterHandshakeSession().getApplicationProtocol();
     }
 
     @Override
