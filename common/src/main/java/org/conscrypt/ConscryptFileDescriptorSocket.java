@@ -691,6 +691,15 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         return activeSession;
     }
 
+    // After handshake has started, provide active session otherwise a null session,
+    // for code which needs to read session attributes without triggering the handshake.
+    private ConscryptSession provideAfterHandshakeSession() {
+        return (state < STATE_HANDSHAKE_STARTED)
+            ? SSLNullSession.getNullSession()
+            : provideSession();
+    }
+
+    // If handshake is in progress, provide active session otherwise a null session.
     private ConscryptSession provideHandshakeSession() {
         synchronized (ssl) {
             return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY ? activeSession
@@ -1118,7 +1127,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     public final String getApplicationProtocol() {
-        return provideSession().getApplicationProtocol();
+        return provideAfterHandshakeSession().getApplicationProtocol();
     }
 
     @Override

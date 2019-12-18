@@ -284,6 +284,9 @@ public class ConscryptSocketTest {
             AbstractConscryptSocket socket =
                     socketType.newClientSocket(createContext(), listener, underlyingSocketType);
             socket.setHostname(hostname);
+            // getApplicationProtocol should initially return null and not trigger handshake:
+            // b/146235331
+            assertNull(Conscrypt.getApplicationProtocol(socket));
             if (alpnProtocols != null) {
                 Conscrypt.setApplicationProtocols(socket, alpnProtocols);
             }
