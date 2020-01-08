@@ -17,7 +17,6 @@
 package org.conscrypt;
 
 import static org.conscrypt.Preconditions.checkArgument;
-import static org.conscrypt.Preconditions.checkNotNull;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -32,6 +31,7 @@ import java.nio.channels.SocketChannel;
 import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
@@ -128,7 +128,7 @@ abstract class AbstractConscryptSocket extends SSLSocket {
 
     AbstractConscryptSocket(Socket socket, String hostname, int port, boolean autoClose)
             throws IOException {
-        this.socket = checkNotNull(socket, "socket");
+        this.socket = Objects.requireNonNull(socket, "socket");
         this.peerHostname = hostname;
         this.peerPort = port;
         this.autoClose = autoClose;

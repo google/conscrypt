@@ -16,14 +16,13 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.Preconditions.checkNotNull;
-
 import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSessionContext;
 
@@ -48,8 +47,8 @@ final class ActiveSession implements ConscryptSession {
     private byte[] peerTlsSctData;
 
     ActiveSession(NativeSsl ssl, AbstractSessionContext sessionContext) {
-        this.ssl = checkNotNull(ssl, "ssl");
-        this.sessionContext = checkNotNull(sessionContext, "sessionContext");
+        this.ssl = Objects.requireNonNull(ssl, "ssl");
+        this.sessionContext = Objects.requireNonNull(sessionContext, "sessionContext");
     }
 
     @Override

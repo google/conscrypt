@@ -31,9 +31,8 @@
  */
 package org.conscrypt;
 
-import static org.conscrypt.Preconditions.checkNotNull;
-
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 /**
  * A buffer that was allocated by a {@link BufferAllocator}.
@@ -67,7 +66,7 @@ public abstract class AllocatedBuffer {
      * Creates a new {@link AllocatedBuffer} that is backed by the given {@link ByteBuffer}.
      */
     public static AllocatedBuffer wrap(final ByteBuffer buffer) {
-        checkNotNull(buffer, "buffer");
+        Objects.requireNonNull(buffer, "buffer");
 
         return new AllocatedBuffer() {
 

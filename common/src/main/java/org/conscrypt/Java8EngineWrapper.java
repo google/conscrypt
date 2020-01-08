@@ -16,11 +16,10 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.Preconditions.checkNotNull;
-
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -40,7 +39,7 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     private BiFunction<SSLEngine, List<String>, String> selector;
 
     Java8EngineWrapper(ConscryptEngine delegate) {
-        this.delegate = checkNotNull(delegate, "delegate");
+        this.delegate = Objects.requireNonNull(delegate, "delegate");
     }
 
     static SSLEngine getDelegate(SSLEngine engine) {

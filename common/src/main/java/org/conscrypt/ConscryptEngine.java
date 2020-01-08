@@ -51,7 +51,6 @@ import static org.conscrypt.NativeConstants.SSL_ERROR_WANT_READ;
 import static org.conscrypt.NativeConstants.SSL_ERROR_WANT_WRITE;
 import static org.conscrypt.NativeConstants.SSL_ERROR_ZERO_RETURN;
 import static org.conscrypt.Preconditions.checkArgument;
-import static org.conscrypt.Preconditions.checkNotNull;
 import static org.conscrypt.Preconditions.checkPositionIndexes;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED_INBOUND;
@@ -76,6 +75,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECKey;
 import java.security.spec.ECParameterSpec;
+import java.util.Objects;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -192,7 +192,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
 
     ConscryptEngine(SSLParametersImpl sslParameters, PeerInfoProvider peerInfoProvider) {
         this.sslParameters = sslParameters;
-        this.peerInfoProvider = checkNotNull(peerInfoProvider, "peerInfoProvider");
+        this.peerInfoProvider = Objects.requireNonNull(peerInfoProvider, "peerInfoProvider");
         this.ssl = newSsl(sslParameters, this);
         this.networkBio = ssl.newBio();
     }

@@ -16,10 +16,9 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.Preconditions.checkNotNull;
-
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSocket;
 
@@ -34,15 +33,15 @@ final class ApplicationProtocolSelectorAdapter {
     private final ApplicationProtocolSelector selector;
 
     ApplicationProtocolSelectorAdapter(SSLEngine engine, ApplicationProtocolSelector selector) {
-        this.engine = checkNotNull(engine, "engine");
+        this.engine = Objects.requireNonNull(engine, "engine");
         this.socket = null;
-        this.selector = checkNotNull(selector, "selector");
+        this.selector = Objects.requireNonNull(selector, "selector");
     }
 
     ApplicationProtocolSelectorAdapter(SSLSocket socket, ApplicationProtocolSelector selector) {
         this.engine = null;
-        this.socket = checkNotNull(socket, "socket");
-        this.selector = checkNotNull(selector, "selector");
+        this.socket = Objects.requireNonNull(socket, "socket");
+        this.selector = Objects.requireNonNull(selector, "selector");
     }
 
     /**
