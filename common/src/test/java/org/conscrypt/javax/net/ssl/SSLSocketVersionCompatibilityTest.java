@@ -1462,14 +1462,16 @@ public class SSLSocketVersionCompatibilityTest {
         final Socket underlying = new Socket(c.host, c.port);
         final SSLSocket wrapping = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
             underlying, c.host.getHostName(), c.port, true);
-        final byte[] data = new byte[1024 * 220];
+        final byte[] data = new byte[1024 * 64];
 
         Future<Void> clientFuture = runAsync(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 wrapping.startHandshake();
                 try {
-                    wrapping.getOutputStream().write(data);
+                    for (int i = 0; i < 64; i++) {
+                        wrapping.getOutputStream().write(data);
+                    }
                     // Failure here means that no exception was thrown, so the data buffer is
                     // probably too small.
                     fail();
@@ -1484,7 +1486,7 @@ public class SSLSocketVersionCompatibilityTest {
 
         // Read one byte so that both ends are in a fully connected state and data has
         // started to flow, and then close the socket from this thread.
-        server.getInputStream().read();
+        int unused = server.getInputStream().read();
         wrapping.close();
 
         clientFuture.get();
