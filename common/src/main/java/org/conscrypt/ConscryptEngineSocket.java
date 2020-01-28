@@ -632,6 +632,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
                 if (len != buffer.remaining()) {
                     throw new SSLException("Engine did not read the correct number of bytes");
                 }
+                if (engineResult.getStatus() == CLOSED && engineResult.bytesProduced() == 0) {
+                    throw new SocketException("Socket closed");
+                }
 
                 target.flip();
 
