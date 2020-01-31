@@ -51,7 +51,7 @@ jobs:
           echo "::set-env name=SDKMANAGER::${{ runner.temp }}/android-sdk/tools/bin/sdkmanager"
           echo "::set-env name=M2_REPO::${{ runner.temp }}/m2"
 
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
       - name: install Go
         uses: actions/setup-go@v1
@@ -191,7 +191,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
       - name: Set runner-specific environment variables
         shell: bash
