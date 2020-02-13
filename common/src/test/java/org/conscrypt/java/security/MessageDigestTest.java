@@ -50,10 +50,6 @@ public final class MessageDigestTest {
     @Test
     public void test_getInstance() throws Exception {
         ServiceTester.test("MessageDigest")
-            // Azul Systems's Zulu release of Java 8 apparently backported parts of the JCE
-            // but did not add the actual implementations.
-            .skipRuntimeProviderAlgorithm("Azul Systems, Inc.", "SUN", "SHA-512/256")
-            .skipRuntimeProviderAlgorithm("Azul Systems, Inc.", "SUN", "SHA-512/224")
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(Provider provider, String algorithm) throws Exception {
