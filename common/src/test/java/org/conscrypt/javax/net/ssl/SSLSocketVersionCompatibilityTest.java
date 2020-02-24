@@ -86,6 +86,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import org.conscrypt.Conscrypt;
@@ -120,18 +121,12 @@ public class SSLSocketVersionCompatibilityTest {
 
     @Parameterized.Parameters(name = "{index}: {0} client, {1} server")
     public static Iterable<Object[]> data() {
-        // We can't support TLS 1.3 without our own trust manager (which requires
-        // X509ExtendedTrustManager), so only test TLS 1.2 if it's not available.
-        if (TestUtils.isClassAvailable("javax.net.ssl.X509ExtendedTrustManager")) {
-            return Arrays.asList(new Object[][] {
-                    { "TLSv1.2", "TLSv1.2" },
-                    { "TLSv1.2", "TLSv1.3" },
-                    { "TLSv1.3", "TLSv1.2" },
-                    { "TLSv1.3", "TLSv1.3" },
-            });
-        } else {
-            return Arrays.asList(new Object[][]{{ "TLSv1.2", "TLSv1.2"}});
-        }
+        return Arrays.asList(new Object[][] {
+            { "TLSv1.2", "TLSv1.2" },
+            { "TLSv1.2", "TLSv1.3" },
+            { "TLSv1.3", "TLSv1.2" },
+            { "TLSv1.3", "TLSv1.3" },
+        });
     }
 
     private final String clientVersion;
@@ -623,7 +618,7 @@ public class SSLSocketVersionCompatibilityTest {
                 .serverProtocol(serverVersion)
                 .build();
         SSLContext clientContext = SSLContext.getInstance(clientVersion);
-        X509KeyManager keyManager = new X509KeyManager() {
+        X509ExtendedKeyManager keyManager = new X509ExtendedKeyManager() {
             @Override
             public String chooseClientAlias(String[] keyType, Principal[] issuers, Socket socket) {
                 return "bogus";
@@ -643,6 +638,16 @@ public class SSLSocketVersionCompatibilityTest {
             }
             @Override
             public String[] getServerAliases(String keyType, Principal[] issuers) {
+                throw new AssertionError();
+            }
+            @Override
+            public String chooseEngineClientAlias(String[] keyType, Principal[] issuers,
+                SSLEngine engine) {
+                throw new AssertionError();
+            }
+            @Override
+            public String chooseEngineServerAlias(String keyType, Principal[] issuers,
+                SSLEngine engine) {
                 throw new AssertionError();
             }
             @Override
@@ -713,7 +718,7 @@ public class SSLSocketVersionCompatibilityTest {
                     .build();
             SSLContext clientContext = SSLContext.getInstance("TLS");
             final X509KeyManager delegateKeyManager = (X509KeyManager) c.clientKeyManagers[0];
-            X509KeyManager keyManager = new X509KeyManager() {
+            X509ExtendedKeyManager keyManager = new X509ExtendedKeyManager() {
                 @Override
                 public String chooseClientAlias(
                         String[] keyType, Principal[] issuers, Socket socket) {
@@ -740,6 +745,16 @@ public class SSLSocketVersionCompatibilityTest {
                 public PrivateKey getPrivateKey(String alias) {
                     PrivateKey privKey = delegateKeyManager.getPrivateKey(alias);
                     return OpaqueProvider.wrapKey(privKey);
+                }
+                @Override
+                public String chooseEngineClientAlias(String[] keyType, Principal[] issuers,
+                    SSLEngine engine) {
+                    throw new AssertionError();
+                }
+                @Override
+                public String chooseEngineServerAlias(String keyType, Principal[] issuers,
+                    SSLEngine engine) {
+                    throw new AssertionError();
                 }
             };
             clientContext.init(
