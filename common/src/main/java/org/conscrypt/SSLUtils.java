@@ -41,6 +41,7 @@ import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
 import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.cert.CertificateEncodingException;
@@ -61,10 +62,8 @@ import javax.security.cert.CertificateException;
  * This is a public class to allow testing to occur on Android via CTS.
  */
 final class SSLUtils {
-    static final boolean USE_ENGINE_SOCKET_BY_DEFAULT = Boolean.parseBoolean(
-            System.getProperty("org.conscrypt.useEngineSocketByDefault", "false"));
+    static final boolean USE_ENGINE_SOCKET_BY_DEFAULT = useEngineSocketByDefault();
     private static final int MAX_PROTOCOL_LENGTH = 255;
-
     private static final Charset US_ASCII = Charset.forName("US-ASCII");
 
     // TODO(nathanmittler): Should these be in NativeConstants?
@@ -575,6 +574,22 @@ final class SSLUtils {
             resultOffset += array.length;
         }
         return result;
+    }
+
+    // Flag file created by CtsConscryptFdSocketTestCases.  This is a temporary measure
+    // so CTS can test both implementations easily until FdSocket is retired.
+    // Name chosen so that it is unlikely to exist by accident on other platforms.
+    // If this file exists, always use fd-based socket.  Otherwise default to true but
+    // allow overriding by system property.
+    // TODO(prb): Consider gating on target API level on Android.
+    private static final String CTS_FDSOCKET_FILE
+        = "/data/local/tmp/ctslibcore/org.conscrypt.use_fd_socket";
+    private static boolean useEngineSocketByDefault() {
+        if (new File(CTS_FDSOCKET_FILE).exists()) {
+            return false;
+        }
+        return Boolean.parseBoolean(
+            System.getProperty("org.conscrypt.useEngineSocketByDefault", "true"));
     }
 
     private SSLUtils() {}
