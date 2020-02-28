@@ -108,7 +108,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
         } else {
             modifiedParams = sslParameters;
         }
-        ConscryptEngine engine = new ConscryptEngine(modifiedParams, socket.peerInfoProvider());
+        ConscryptEngine engine =
+            new ConscryptEngine(modifiedParams, socket.peerInfoProvider(), socket);
 
         // When the handshake completes, notify any listeners.
         engine.setHandshakeListener(new HandshakeListener() {

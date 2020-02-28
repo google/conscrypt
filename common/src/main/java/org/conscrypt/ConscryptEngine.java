@@ -92,6 +92,7 @@ import javax.security.auth.x500.X500Principal;
 import org.conscrypt.ExternalSession.Provider;
 import org.conscrypt.NativeRef.SSL_SESSION;
 import org.conscrypt.NativeSsl.BioWrapper;
+import org.conscrypt.SSLParametersImpl.AliasChooser;
 
 /**
  * Implements the {@link SSLEngine} API using OpenSSL's non-blocking interfaces.
@@ -179,27 +180,29 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     ConscryptEngine(SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
         peerInfoProvider = PeerInfoProvider.nullProvider();
-        this.ssl = newSsl(sslParameters, this);
+        this.ssl = newSsl(sslParameters, this, this);
         this.networkBio = ssl.newBio();
     }
 
     ConscryptEngine(String host, int port, SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
         this.peerInfoProvider = PeerInfoProvider.forHostAndPort(host, port);
-        this.ssl = newSsl(sslParameters, this);
+        this.ssl = newSsl(sslParameters, this, this);
         this.networkBio = ssl.newBio();
     }
 
-    ConscryptEngine(SSLParametersImpl sslParameters, PeerInfoProvider peerInfoProvider) {
+    ConscryptEngine(SSLParametersImpl sslParameters, PeerInfoProvider peerInfoProvider,
+        AliasChooser aliasChooser) {
         this.sslParameters = sslParameters;
         this.peerInfoProvider = checkNotNull(peerInfoProvider, "peerInfoProvider");
-        this.ssl = newSsl(sslParameters, this);
+        this.ssl = newSsl(sslParameters, this, aliasChooser);
         this.networkBio = ssl.newBio();
     }
 
-    private static NativeSsl newSsl(SSLParametersImpl sslParameters, ConscryptEngine engine) {
+    private static NativeSsl newSsl(SSLParametersImpl sslParameters, ConscryptEngine engine,
+        AliasChooser aliasChooser) {
         try {
-            return NativeSsl.newInstance(sslParameters, engine, engine, engine);
+            return NativeSsl.newInstance(sslParameters, engine, aliasChooser, engine);
         } catch (SSLException e) {
             throw new RuntimeException(e);
         }
