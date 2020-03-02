@@ -51,7 +51,7 @@ subprojects {
 
     group = "org.conscrypt"
     description = 'Conscrypt is an alternate Java Security Provider that uses BoringSSL'
-    version = "2.4.0-SNAPSHOT"
+    version = "2.5.0-SNAPSHOT"
 
     ext {
         os = org.gradle.internal.os.OperatingSystem.current();
@@ -111,8 +111,8 @@ subprojects {
                 bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.63',
                 bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.63',
                 junit  : 'junit:junit:4.12',
-                mockito: 'org.mockito:mockito-core:1.9.5',
-                truth  : 'com.google.truth:truth:0.28',
+                mockito: 'org.mockito:mockito-core:2.28.2',
+                truth  : 'com.google.truth:truth:1.0',
 
                 // Benchmark dependencies
                 jmh_core: "org.openjdk.jmh:jmh-core:${jmhVersion}",

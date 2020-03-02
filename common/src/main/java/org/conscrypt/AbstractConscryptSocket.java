@@ -37,11 +37,14 @@ import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.X509KeyManager;
+import javax.security.auth.x500.X500Principal;
+import org.conscrypt.SSLParametersImpl.AliasChooser;
 
 /**
  * Abstract base class for all Conscrypt {@link SSLSocket} classes.
  */
-abstract class AbstractConscryptSocket extends SSLSocket {
+abstract class AbstractConscryptSocket extends SSLSocket implements AliasChooser {
     final Socket socket;
     private final boolean autoClose;
 
@@ -510,6 +513,17 @@ abstract class AbstractConscryptSocket extends SSLSocket {
             builder.append(super.toString());
         }
         return builder.toString();
+    }
+
+    @Override
+    public final String chooseServerAlias(X509KeyManager keyManager, String keyType) {
+        return keyManager.chooseServerAlias(keyType, null, this);
+    }
+
+    @Override
+    public final String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
+        String[] keyTypes) {
+        return keyManager.chooseClientAlias(keyTypes, issuers, this);
     }
 
     /**

@@ -42,9 +42,7 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
-import javax.security.auth.x500.X500Principal;
 import org.conscrypt.ExternalSession.Provider;
 import org.conscrypt.NativeRef.SSL_SESSION;
 
@@ -60,7 +58,6 @@ import org.conscrypt.NativeRef.SSL_SESSION;
  */
 class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         implements NativeCrypto.SSLHandshakeCallbacks,
-                   SSLParametersImpl.AliasChooser,
                    SSLParametersImpl.PSKCallbacks {
     private static final boolean DBG_STATE = false;
 
@@ -691,6 +688,15 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         return activeSession;
     }
 
+    // After handshake has started, provide active session otherwise a null session,
+    // for code which needs to read session attributes without triggering the handshake.
+    private ConscryptSession provideAfterHandshakeSession() {
+        return (state < STATE_HANDSHAKE_STARTED)
+            ? SSLNullSession.getNullSession()
+            : provideSession();
+    }
+
+    // If handshake is in progress, provide active session otherwise a null session.
     private ConscryptSession provideHandshakeSession() {
         synchronized (ssl) {
             return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY ? activeSession
@@ -1118,7 +1124,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     public final String getApplicationProtocol() {
-        return provideSession().getApplicationProtocol();
+        return provideAfterHandshakeSession().getApplicationProtocol();
     }
 
     @Override
@@ -1140,17 +1146,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     public final void setSSLParameters(SSLParameters p) {
         super.setSSLParameters(p);
         Platform.setSSLParameters(p, sslParameters, this);
-    }
-
-    @Override
-    public final String chooseServerAlias(X509KeyManager keyManager, String keyType) {
-        return keyManager.chooseServerAlias(keyType, null, this);
-    }
-
-    @Override
-    public final String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
-            String[] keyTypes) {
-        return keyManager.chooseClientAlias(keyTypes, issuers, this);
     }
 
     @Override

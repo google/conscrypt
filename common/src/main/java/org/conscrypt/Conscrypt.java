@@ -34,6 +34,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import org.conscrypt.io.IoUtils;
 
 /**
  * Core API for creating and configuring all Conscrypt types.
@@ -76,8 +77,9 @@ public final class Conscrypt {
         int major = -1;
         int minor = -1;
         int patch = -1;
+        InputStream stream = null;
         try {
-            InputStream stream = Conscrypt.class.getResourceAsStream("conscrypt.properties");
+            stream = Conscrypt.class.getResourceAsStream("conscrypt.properties");
             if (stream != null) {
                 Properties props = new Properties();
                 props.load(stream);
@@ -86,6 +88,8 @@ public final class Conscrypt {
                 patch = Integer.parseInt(props.getProperty("org.conscrypt.version.patch", "-1"));
             }
         } catch (IOException e) {
+        } finally {
+            IoUtils.closeQuietly(stream);
         }
         if ((major >= 0) && (minor >= 0) && (patch >= 0)) {
             VERSION = new Version(major, minor, patch);

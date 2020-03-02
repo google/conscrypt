@@ -26,7 +26,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.same;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
@@ -51,7 +51,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 @RunWith(Parameterized.class)
@@ -319,7 +319,7 @@ public class ConscryptEngineTest {
 
         // Configure server selector
         ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
-        when(selector.selectApplicationProtocol(same(serverEngine), Matchers.anyListOf(String.class)))
+        when(selector.selectApplicationProtocol(same(serverEngine), ArgumentMatchers.<String>anyList()))
                 .thenReturn("spdy/2");
         Conscrypt.setApplicationProtocolSelector(serverEngine, selector);
 
@@ -338,7 +338,7 @@ public class ConscryptEngineTest {
 
         // Configure server selector
         ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
-        when(selector.selectApplicationProtocol(same(serverEngine), Matchers.anyListOf(String.class)))
+        when(selector.selectApplicationProtocol(same(serverEngine), ArgumentMatchers.<String>anyList()))
                 .thenReturn("h2");
         Conscrypt.setApplicationProtocolSelector(serverEngine, selector);
 
@@ -394,6 +394,25 @@ public class ConscryptEngineTest {
 
         assertEquals(cipherSuite, session.getCipherSuite());
         assertEquals(protocol, session.getProtocol());
+        assertEquals(alpnProtocol, Conscrypt.getApplicationProtocol(clientEngine));
+    }
+
+    @Test
+    // getApplicationProtocol should initially return null and not trigger handshake. b/146235331
+    public void getAlpnIsNullBeforeHandshake() throws Exception {
+        String alpnProtocol = "spdy/2";
+        String[] alpnProtocols = new String[]{alpnProtocol};
+
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
+
+        assertNull(Conscrypt.getApplicationProtocol(clientEngine));
+        assertNull(Conscrypt.getApplicationProtocol(serverEngine));
+
+        Conscrypt.setApplicationProtocols(clientEngine, alpnProtocols);
+        Conscrypt.setApplicationProtocols(serverEngine, alpnProtocols);
+
+        doHandshake(true);
+
         assertEquals(alpnProtocol, Conscrypt.getApplicationProtocol(clientEngine));
     }
 
