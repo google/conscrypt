@@ -66,21 +66,6 @@ matrix:
             - openjdk-8-jdk # for building
             - openjdk-11-jre # for running tests with Java 11
 
-    ###
-    ### MacOS build only does x86-64.
-    ###
-    - os: osx
-      osx_image: xcode8
-      env:
-        - CC=clang
-        - CXX=clang++
-        - TERM=dumb # to stop verbose build output
-
-      before_install:
-        - brew update
-        - brew install ninja
-        - export JAVA_HOME=`/usr/libexec/java_home -v 1.8`
-
 before_cache:
   - find $HOME/.gradle -name "*.lock" -exec rm {} \;
   - rm -rf $HOME/.gradle/caches/[1-9]*
