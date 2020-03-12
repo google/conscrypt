@@ -68,7 +68,7 @@ Use the [os-maven-plugin](https://github.com/trustin/os-maven-plugin) to add the
 <dependency>
   <groupId>org.conscrypt</groupId>
   <artifactId>conscrypt-openjdk</artifactId>
-  <version>2.2.1</version>
+  <version>2.4.0</version>
   <classifier>${os.detected.classifier}</classifier>
 </dependency>
 ```
@@ -91,7 +91,7 @@ buildscript {
 apply plugin: "com.google.osdetector"
 
 dependencies {
-  compile 'org.conscrypt:conscrypt-openjdk:2.2.1:' + osdetector.classifier
+  compile 'org.conscrypt:conscrypt-openjdk:2.4.0:' + osdetector.classifier
 }
 ```
 
@@ -109,14 +109,14 @@ To depend on the uber jar, simply use the `conscrypt-openjdk-uber` artifacts.
 <dependency>
   <groupId>org.conscrypt</groupId>
   <artifactId>conscrypt-openjdk-uber</artifactId>
-  <version>2.2.1</version>
+  <version>2.4.0</version>
 </dependency>
 ```
 
 ##### Gradle
 ```gradle
 dependencies {
-  compile 'org.conscrypt:conscrypt-openjdk-uber:2.2.1'
+  compile 'org.conscrypt:conscrypt-openjdk-uber:2.4.0'
 }
 ```
 
@@ -129,7 +129,7 @@ arm64-v8a.
 
 ```gradle
 dependencies {
-  implementation 'org.conscrypt:conscrypt-android:2.2.1'
+  implementation 'org.conscrypt:conscrypt-android:2.4.0'
 }
 ```
 
