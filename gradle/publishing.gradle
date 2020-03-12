@@ -58,7 +58,8 @@ publishing {
         maven {
             def snapshotUrl = 'https://oss.sonatype.org/content/repositories/snapshots/'
             def stagingUrl = rootProject.hasProperty('repositoryId') ? \
-                'https://oss.sonatype.org/service/local/staging/deployByRepositoryId/' : \
+                'https://oss.sonatype.org/service/local/staging/deployByRepositoryId/' \
+                    + rootProject.repositoryId : \
                 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
             url isSnapshot ? snapshotUrl : stagingUrl
             credentials {
