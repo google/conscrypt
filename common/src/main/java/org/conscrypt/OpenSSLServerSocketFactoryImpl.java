@@ -19,6 +19,7 @@ package org.conscrypt;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import javax.net.ServerSocketFactory;
 import java.security.KeyManagementException;
 import javax.net.ssl.SSLServerSocketFactory;
 
@@ -51,10 +52,16 @@ final class OpenSSLServerSocketFactoryImpl extends SSLServerSocketFactory {
     }
 
     /**
-     * Configures the default socket to be created for all instances.
+     * Configures the default socket type to be created for the default and all new instances.
      */
     static void setUseEngineSocketByDefault(boolean useEngineSocket) {
         useEngineSocketByDefault = useEngineSocket;
+        // The default SSLServerSocketFactory may already have been created, so also change its
+        // setting.
+        ServerSocketFactory defaultFactory = SSLServerSocketFactory.getDefault();
+        if (defaultFactory instanceof OpenSSLServerSocketFactoryImpl) {
+            ((OpenSSLServerSocketFactoryImpl) defaultFactory).setUseEngineSocket(useEngineSocket);
+        }
     }
 
     /**
