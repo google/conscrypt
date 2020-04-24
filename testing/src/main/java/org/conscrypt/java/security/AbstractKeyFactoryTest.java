@@ -17,10 +17,14 @@ package org.conscrypt.java.security;
 
 import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.Test;
 import tests.util.ServiceTester;
 
@@ -53,32 +57,34 @@ public abstract class AbstractKeyFactoryTest<PublicKeySpec extends KeySpec, Priv
                 public void test(Provider p, String algorithm) throws Exception {
                     final KeyFactory factory = KeyFactory.getInstance(algorithm, p);
 
-                    final PrivateKeySpec privateKeySpec = factory.getKeySpec(DefaultKeys.getPrivateKey(algorithmName),
-                        privateKeySpecClass);
-                    PrivateKey privateKey = factory.generatePrivate(privateKeySpec);
-                    final PublicKeySpec publicKeySpec = factory.getKeySpec(DefaultKeys.getPublicKey(algorithmName),
-                        publicKeySpecClass);
-                    PublicKey publicKey = factory.generatePublic(publicKeySpec);
-                    check(new KeyPair(publicKey, privateKey));
+                    for (KeyPair pair : getKeys()) {
+                        final PrivateKeySpec privateKeySpec = factory.getKeySpec(pair.getPrivate(),
+                            privateKeySpecClass);
+                        PrivateKey privateKey = factory.generatePrivate(privateKeySpec);
+                        final PublicKeySpec publicKeySpec = factory.getKeySpec(pair.getPublic(),
+                            publicKeySpecClass);
+                        PublicKey publicKey = factory.generatePublic(publicKeySpec);
+                        check(new KeyPair(publicKey, privateKey));
 
-                    // Test that keys from any other KeyFactory can be translated into working
-                    // keys from this KeyFactory
-                    customizeTester(ServiceTester.test("KeyFactory")
-                        .withAlgorithm(algorithmName)
-                        .skipProvider(p.getName())
-                        .skipProvider("SunPKCS11-NSS")
-                        .skipProvider("AndroidKeyStore"))
-                        .run(new ServiceTester.Test() {
-                            @Override
-                            public void test(Provider p2, String algorithm) throws Exception {
-                                KeyFactory factory2 = KeyFactory.getInstance(algorithm, p2);
-                                PrivateKey privateKey2 = factory2.generatePrivate(privateKeySpec);
-                                PublicKey publicKey2 = factory2.generatePublic(publicKeySpec);
+                        // Test that keys from any other KeyFactory can be translated into working
+                        // keys from this KeyFactory
+                        customizeTester(ServiceTester.test("KeyFactory")
+                            .withAlgorithm(algorithmName)
+                            .skipProvider(p.getName())
+                            .skipProvider("SunPKCS11-NSS")
+                            .skipProvider("AndroidKeyStore"))
+                            .run(new ServiceTester.Test() {
+                                @Override
+                                public void test(Provider p2, String algorithm) throws Exception {
+                                    KeyFactory factory2 = KeyFactory.getInstance(algorithm, p2);
+                                    PrivateKey privateKey2 = factory2.generatePrivate(privateKeySpec);
+                                    PublicKey publicKey2 = factory2.generatePublic(publicKeySpec);
 
-                                check(new KeyPair((PublicKey) factory.translateKey(publicKey2),
-                                    (PrivateKey) factory.translateKey(privateKey2)));
-                            }
-                        });
+                                    check(new KeyPair((PublicKey) factory.translateKey(publicKey2),
+                                        (PrivateKey) factory.translateKey(privateKey2)));
+                                }
+                            });
+                    }
                 }
             });
     }
@@ -88,4 +94,13 @@ public abstract class AbstractKeyFactoryTest<PublicKeySpec extends KeySpec, Priv
     }
 
     protected void check(KeyPair keyPair) throws Exception {}
+
+    protected List<KeyPair> getKeys() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        return Arrays.asList(
+            new KeyPair(
+                DefaultKeys.getPublicKey(algorithmName),
+                DefaultKeys.getPrivateKey(algorithmName)
+            )
+        );
+    }
 }

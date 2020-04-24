@@ -15,14 +15,23 @@
  */
 package org.conscrypt.java.security;
 
+import static org.junit.Assert.fail;
+
 import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.Provider;
 import java.security.PublicKey;
+import java.security.Security;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -56,5 +65,35 @@ public class KeyFactoryTestRSA extends
         byte[] longBuffer = new byte[encoded.length + 147];
         System.arraycopy(encoded, 0, longBuffer, 0, encoded.length);
         KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(longBuffer));
+    }
+
+    @Test
+    public void testInvalidKeySpec() throws Exception {
+        Provider p = Security.getProvider(StandardNames.JSSE_PROVIDER_NAME);
+        final KeyFactory factory = KeyFactory.getInstance("RSA", p);
+
+        try {
+            factory.getKeySpec(new TestPrivateKey(DefaultKeys.getPrivateKey("RSA"), "Invalid"),
+                RSAPrivateKeySpec.class);
+            fail();
+        } catch (InvalidKeySpecException e) {
+            // expected
+        }
+
+        try {
+            factory.getKeySpec(new TestPrivateKey(DefaultKeys.getPrivateKey("RSA"), "Invalid"),
+                RSAPrivateCrtKeySpec.class);
+            fail();
+        } catch (InvalidKeySpecException e) {
+            // expected
+        }
+
+        try {
+            factory.getKeySpec(new TestPublicKey(DefaultKeys.getPublicKey("RSA"), "Invalid"),
+                RSAPublicKeySpec.class);
+            fail();
+        } catch (InvalidKeySpecException e) {
+            // expected
+        }
     }
 }
