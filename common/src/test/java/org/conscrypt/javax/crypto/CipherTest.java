@@ -367,18 +367,14 @@ public final class CipherTest {
         setExpectedBlockSize("AES/OFB/PKCS7PADDING", 16);
         setExpectedBlockSize("AES/OFB/NOPADDING", 16);
         setExpectedBlockSize("AES_128/CBC/PKCS5PADDING", 16);
-        setExpectedBlockSize("AES_128/CBC/PKCS7PADDING", 16);
         setExpectedBlockSize("AES_128/CBC/NOPADDING", 16);
         setExpectedBlockSize("AES_128/ECB/PKCS5PADDING", 16);
-        setExpectedBlockSize("AES_128/ECB/PKCS7PADDING", 16);
         setExpectedBlockSize("AES_128/ECB/NOPADDING", 16);
         setExpectedBlockSize("AES_128/GCM/NOPADDING", 16);
         setExpectedBlockSize("AES_128/GCM-SIV/NOPADDING", 16);
         setExpectedBlockSize("AES_256/CBC/PKCS5PADDING", 16);
-        setExpectedBlockSize("AES_256/CBC/PKCS7PADDING", 16);
         setExpectedBlockSize("AES_256/CBC/NOPADDING", 16);
         setExpectedBlockSize("AES_256/ECB/PKCS5PADDING", 16);
-        setExpectedBlockSize("AES_256/ECB/PKCS7PADDING", 16);
         setExpectedBlockSize("AES_256/ECB/NOPADDING", 16);
         setExpectedBlockSize("AES_256/GCM/NOPADDING", 16);
         setExpectedBlockSize("AES_256/GCM-SIV/NOPADDING", 16);
@@ -399,7 +395,6 @@ public final class CipherTest {
         }
 
         setExpectedBlockSize("ARC4", 0);
-        setExpectedBlockSize("ARCFOUR", 0);
         setExpectedBlockSize("CHACHA20", 0);
         setExpectedBlockSize("CHACHA20/POLY1305/NOPADDING", 0);
         setExpectedBlockSize("PBEWITHSHAAND40BITRC4", 0);
@@ -413,27 +408,9 @@ public final class CipherTest {
 
         setExpectedBlockSize("DESEDE", 8);
         setExpectedBlockSize("DESEDE/CBC/PKCS5PADDING", 8);
-        setExpectedBlockSize("DESEDE/CBC/PKCS7PADDING", 8);
         setExpectedBlockSize("DESEDE/CBC/NOPADDING", 8);
-        setExpectedBlockSize("DESEDE/CFB/PKCS5PADDING", 8);
-        setExpectedBlockSize("DESEDE/CFB/PKCS7PADDING", 8);
-        setExpectedBlockSize("DESEDE/CFB/NOPADDING", 8);
-        setExpectedBlockSize("DESEDE/CTR/PKCS5PADDING", 8);
-        setExpectedBlockSize("DESEDE/CTR/PKCS7PADDING", 8);
-        setExpectedBlockSize("DESEDE/CTR/NOPADDING", 8);
-        setExpectedBlockSize("DESEDE/CTS/PKCS5PADDING", 8);
-        setExpectedBlockSize("DESEDE/CTS/PKCS7PADDING", 8);
-        setExpectedBlockSize("DESEDE/CTS/NOPADDING", 8);
-        setExpectedBlockSize("DESEDE/ECB/PKCS5PADDING", 8);
-        setExpectedBlockSize("DESEDE/ECB/PKCS7PADDING", 8);
-        setExpectedBlockSize("DESEDE/ECB/NOPADDING", 8);
-        setExpectedBlockSize("DESEDE/OFB/PKCS5PADDING", 8);
-        setExpectedBlockSize("DESEDE/OFB/PKCS7PADDING", 8);
-        setExpectedBlockSize("DESEDE/OFB/NOPADDING", 8);
         setExpectedBlockSize("PBEWITHSHAAND2-KEYTRIPLEDES-CBC", 8);
         setExpectedBlockSize("PBEWITHSHAAND3-KEYTRIPLEDES-CBC", 8);
-        setExpectedBlockSize("PBEWITHMD5ANDTRIPLEDES", 8);
-        setExpectedBlockSize("PBEWITHSHA1ANDDESEDE", 8);
 
 
         if (StandardNames.IS_RI) {
