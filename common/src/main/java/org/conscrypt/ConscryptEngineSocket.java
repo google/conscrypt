@@ -435,7 +435,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
             return;
         }
 
+        int previousState;
         synchronized (stateLock) {
+            previousState = state;
             if (state == STATE_CLOSED) {
                 // close() has already been called, so do nothing and return.
                 return;
@@ -446,18 +448,28 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
             stateLock.notifyAll();
         }
 
+        // Close the engine.
         try {
-            // Close the underlying socket.
-            super.close();
-        } finally {
-            // Close the engine.
             engine.closeInbound();
             engine.closeOutbound();
-            
-            // Release any resources we're holding
-            if (in != null) {
-                in.release();
+            // Closing the outbound direction of a connected engine will trigger a TLS close
+            // notify, which we should try and send.
+            // If we don't, then closeOutbound won't be able to free resources because there are
+            // bytes queued for transmission so drain the queue those and call closeOutbound a
+            // second time.
+            if (previousState >= STATE_HANDSHAKE_STARTED && out != null) {
+                drainOutgoingQueue();
+                engine.closeOutbound();
             }
+        } finally {
+            // In case of an exception thrown while closing the engine, we still need to close the
+            // underlying socket.
+            super.close();
+        }
+
+        // Release any resources we're holding
+        if (in != null) {
+            in.release();
         }
     }
 
@@ -559,6 +571,18 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
         }
     }
 
+    private void drainOutgoingQueueAfterClose() {
+        try {
+            while (engine.pendingOutboundEncryptedBytes() > 0) {
+                out.writeBuffer(EMPTY_BUFFER);
+                // Always flush handshake frames immediately.
+                out.flushInternal();
+            }
+        } catch (IOException e) {
+            // Ignore
+        }
+    }
+
     private OutputStream getUnderlyingOutputStream() throws IOException {
         return super.getOutputStream();
     }
@@ -614,7 +638,10 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
             Platform.blockGuardOnNetwork();
             checkOpen();
             init();
+            writeBuffer(buffer);
+        }
 
+        private void writeBuffer(ByteBuffer buffer) throws IOException {
             // Need to loop through at least once to enable handshaking where no application
             // bytes are processed.
             int len = buffer.remaining();
@@ -634,7 +661,10 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
                     throw new SSLException("Engine did not read the correct number of bytes");
                 }
                 if (engineResult.getStatus() == CLOSED && engineResult.bytesProduced() == 0) {
-                    throw new SocketException("Socket closed");
+                    if (len > 0) {
+                        throw new SocketException("Socket closed");
+                    }
+                    break;
                 }
 
                 target.flip();
