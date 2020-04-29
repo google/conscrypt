@@ -413,7 +413,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             case STATE_CLOSED_INBOUND:
             case STATE_CLOSED_OUTBOUND:
             case STATE_CLOSED:
-                throw new IllegalStateException("Engine has already been closed");
+                throw new SSLHandshakeException("Engine has already been closed");
             default:
                 // We've already started the handshake, just return
                 return;
