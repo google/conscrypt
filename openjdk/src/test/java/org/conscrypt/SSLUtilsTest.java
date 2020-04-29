@@ -186,6 +186,29 @@ public class SSLUtilsTest {
         assertEquals(Arrays.asList("EC", "RSA"), keyTypes);
     }
 
+    @Test
+    public void engineStateValues() {
+        int[] expectedValues = {
+                SSLUtils.EngineStates.STATE_NEW,
+                SSLUtils.EngineStates.STATE_MODE_SET,
+                SSLUtils.EngineStates.STATE_HANDSHAKE_STARTED,
+                SSLUtils.EngineStates.STATE_HANDSHAKE_COMPLETED,
+                SSLUtils.EngineStates.STATE_READY_HANDSHAKE_CUT_THROUGH,
+                SSLUtils.EngineStates.STATE_READY,
+                SSLUtils.EngineStates.STATE_CLOSED_INBOUND,
+                SSLUtils.EngineStates.STATE_CLOSED_OUTBOUND,
+                SSLUtils.EngineStates.STATE_CLOSED,
+        };
+
+        // Check the values for the engine state are as expected because logic
+        // in the engine and sockets relies on it,
+        // e.g. STATE_NEW < STATE_HANDSHAKE_STARTED < STATE_READY < STATE_CLOSED
+        // But to be sure we assert the exact ordering.
+        for (int i = 0; i < expectedValues.length; i++) {
+            assertEquals(i, expectedValues[i]);
+        }
+    }
+
     private static String[] toStrings(byte[][] protocols) {
         int numProtocols = protocols.length;
         String[] out = new String[numProtocols];
