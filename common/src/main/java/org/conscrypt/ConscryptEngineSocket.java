@@ -451,9 +451,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
             super.close();
         } finally {
             // Close the engine.
-            engine.closeInbound();
             engine.closeOutbound();
-            
+            engine.closeInbound();
+
             // Release any resources we're holding
             if (in != null) {
                 in.release();

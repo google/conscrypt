@@ -146,8 +146,8 @@ public final class TestSSLEnginePair implements Closeable {
         try {
             for (SSLEngine engine : engines) {
                 if (engine != null) {
-                    engine.closeInbound();
                     engine.closeOutbound();
+                    engine.closeInbound();
                 }
             }
         } catch (Exception e) {
