@@ -25,7 +25,7 @@ import javax.crypto.ShortBufferException;
  * many times. e.g. OpenJDK 8.
  */
 @Internal
-public class ShortBufferWithoutStackTraceException extends ShortBufferException {
+final class ShortBufferWithoutStackTraceException extends ShortBufferException {
     private static final long serialVersionUID = 676150236007842683L;
 
     public ShortBufferWithoutStackTraceException() {
@@ -36,7 +36,7 @@ public class ShortBufferWithoutStackTraceException extends ShortBufferException 
         super(msg);
     }
 
-    @Override public synchronized Throwable fillInStackTrace() {
+    @Override public Throwable fillInStackTrace() {
         return this;
     }
 }
