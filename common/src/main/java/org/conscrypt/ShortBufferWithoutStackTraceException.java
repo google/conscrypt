@@ -20,9 +20,8 @@ import javax.crypto.ShortBufferException;
 
 /**
  * This class basically does the same thing the ShortBufferException class does
- * except not filling in stack trace in the exception to get better performance
- * stack trace to save CPU-time for it in an environment where this can be thrown
- * many times. e.g. OpenJDK 8.
+ * except not filling in stack trace in the exception to save CPU-time for it
+ * in an environment where this can be thrown many times. e.g. OpenJDK 8.
  */
 @Internal
 final class ShortBufferWithoutStackTraceException extends ShortBufferException {
