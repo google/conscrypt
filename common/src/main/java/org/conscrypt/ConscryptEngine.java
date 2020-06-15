@@ -457,7 +457,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     @Override
-    public void closeInbound() {
+    public void closeInbound() throws SSLException {
         synchronized (ssl) {
             if (state == STATE_CLOSED || state == STATE_CLOSED_INBOUND) {
                 return;
@@ -466,7 +466,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 if (state == STATE_CLOSED_OUTBOUND) {
                     transitionTo(STATE_CLOSED);
                 } else {
-                    transitionTo(STATE_CLOSED_INBOUND);
+                    throw new SSLException("Closed SSLEngine inbound before outbound");
                 }
                 freeIfDone();
             } else {
@@ -1337,7 +1337,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private void closeAll() {
+    private void closeAll() throws SSLException {
         closeOutbound();
         closeInbound();
     }
