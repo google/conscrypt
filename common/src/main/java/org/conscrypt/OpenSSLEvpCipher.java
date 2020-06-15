@@ -115,7 +115,7 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
 
         final int bytesLeft = output.length - outputOffset;
         if (bytesLeft < maximumLen) {
-            throw new ShortBufferException("output buffer too small during update: "
+            throw new ShortBufferWithoutStackTraceException("output buffer too small during update: "
                     + bytesLeft + " < " + maximumLen);
         }
 
@@ -150,7 +150,7 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
             final byte[] lastBlock = new byte[maximumLen];
             writtenBytes = NativeCrypto.EVP_CipherFinal_ex(cipherCtx, lastBlock, 0);
             if (writtenBytes > bytesLeft) {
-                throw new ShortBufferException("buffer is too short: " + writtenBytes + " > "
+                throw new ShortBufferWithoutStackTraceException("buffer is too short: " + writtenBytes + " > "
                         + bytesLeft);
             } else if (writtenBytes > 0) {
                 System.arraycopy(lastBlock, 0, output, outputOffset, writtenBytes);
