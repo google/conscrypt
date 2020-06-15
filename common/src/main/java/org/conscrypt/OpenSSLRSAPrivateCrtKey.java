@@ -17,6 +17,7 @@
 package org.conscrypt;
 
 import java.io.IOException;
+import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
@@ -217,19 +218,28 @@ final class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSAP
             ensureReadParams();
             RSAPrivateCrtKey other = (RSAPrivateCrtKey) o;
 
-            return getModulus().equals(other.getModulus())
-                    && publicExponent.equals(other.getPublicExponent())
-                    && getPrivateExponent().equals(other.getPrivateExponent())
-                    && primeP.equals(other.getPrimeP()) && primeQ.equals(other.getPrimeQ())
-                    && primeExponentP.equals(other.getPrimeExponentP())
-                    && primeExponentQ.equals(other.getPrimeExponentQ())
-                    && crtCoefficient.equals(other.getCrtCoefficient());
+            if (getOpenSSLKey().isHardwareBacked()) {
+                return getModulus().equals(other.getModulus())
+                        && publicExponent.equals(other.getPublicExponent());
+            } else {
+                return getModulus().equals(other.getModulus())
+                        && publicExponent.equals(other.getPublicExponent())
+                        && getPrivateExponent().equals(other.getPrivateExponent())
+                        && primeP.equals(other.getPrimeP()) && primeQ.equals(other.getPrimeQ())
+                        && primeExponentP.equals(other.getPrimeExponentP())
+                        && primeExponentQ.equals(other.getPrimeExponentQ())
+                        && crtCoefficient.equals(other.getCrtCoefficient());
+            }
         } else if (o instanceof RSAPrivateKey) {
             ensureReadParams();
             RSAPrivateKey other = (RSAPrivateKey) o;
 
-            return getModulus().equals(other.getModulus())
-                    && getPrivateExponent().equals(other.getPrivateExponent());
+            if (getOpenSSLKey().isHardwareBacked()) {
+                return getModulus().equals(other.getModulus());
+            } else {
+                return getModulus().equals(other.getModulus())
+                        && getPrivateExponent().equals(other.getPrivateExponent());
+            }
         }
 
         return false;
@@ -278,6 +288,10 @@ final class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSAP
     }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
+        if (getOpenSSLKey().isHardwareBacked()) {
+            throw new NotSerializableException("Hardware backed keys cannot be serialized");
+        }
+
         ensureReadParams();
         stream.defaultWriteObject();
     }
