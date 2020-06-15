@@ -43,12 +43,14 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedTrustManager;
+import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
+import javax.security.auth.x500.X500Principal;
 
 /**
  * Implements crypto handling by delegating to {@link ConscryptEngine}.
  */
-class ConscryptEngineSocket extends OpenSSLSocketImpl {
+class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersImpl.AliasChooser {
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
 
     private final ConscryptEngine engine;
@@ -565,6 +567,17 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
 
     private InputStream getUnderlyingInputStream() throws IOException {
         return super.getInputStream();
+    }
+
+    @Override
+    public final String chooseServerAlias(X509KeyManager keyManager, String keyType) {
+        return keyManager.chooseServerAlias(keyType, null, this);
+    }
+
+    @Override
+    public final String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
+                                          String[] keyTypes) {
+        return keyManager.chooseClientAlias(keyTypes, issuers, this);
     }
 
     /**
