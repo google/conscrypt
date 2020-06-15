@@ -97,7 +97,7 @@ public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
         checkCompleted();
         int available = sharedSecret.length - offset;
         if (mResult.length > available) {
-            throw new ShortBufferException(
+            throw new ShortBufferWithoutStackTraceException(
                     "Needed: " + mResult.length + ", available: " + available);
         }
 

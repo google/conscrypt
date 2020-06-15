@@ -230,7 +230,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         // output buffer isn't large enough.
         if (output != null) {
             if (getOutputSizeForFinal(inputLen) > output.length - outputOffset) {
-                throw new ShortBufferException("Insufficient output space");
+                throw new ShortBufferWithoutStackTraceException("Insufficient output space");
             }
         }
         return super.engineDoFinal(input, inputOffset, inputLen, output, outputOffset);
