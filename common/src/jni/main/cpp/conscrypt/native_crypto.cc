@@ -428,7 +428,7 @@ static jobjectArray CryptoBuffersToObjectArray(JNIEnv* env,
  * Converts ASN.1 BIT STRING to a jbooleanArray.
  */
 jbooleanArray ASN1BitStringToBooleanArray(JNIEnv* env, ASN1_BIT_STRING* bitStr) {
-    int size = bitStr->length * 8;
+    int size = ASN1_STRING_length(bitStr) * 8;
     if (bitStr->flags & ASN1_STRING_FLAG_BITS_LEFT) {
         size -= bitStr->flags & 0x07;
     }
@@ -1078,7 +1078,7 @@ static int NativeCrypto_EVP_PKEY_type(JNIEnv* env, jclass, jobject pkeyRef) {
         return -1;
     }
 
-    int result = EVP_PKEY_type(pkey->type);
+    int result = EVP_PKEY_id(pkey);
     JNI_TRACE("EVP_PKEY_type(%p) => %d", pkey, result);
     return result;
 }
@@ -1529,13 +1529,13 @@ static jobjectArray NativeCrypto_get_RSA_public_params(JNIEnv* env, jclass, jobj
         return nullptr;
     }
 
-    jbyteArray n = bignumToArray(env, rsa->n, "n");
+    jbyteArray n = bignumToArray(env, RSA_get0_n(rsa.get()), "n");
     if (env->ExceptionCheck()) {
         return nullptr;
     }
     env->SetObjectArrayElement(joa, 0, n);
 
-    jbyteArray e = bignumToArray(env, rsa->e, "e");
+    jbyteArray e = bignumToArray(env, RSA_get0_e(rsa.get()), "e");
     if (env->ExceptionCheck()) {
         return nullptr;
     }
@@ -1567,62 +1567,62 @@ static jobjectArray NativeCrypto_get_RSA_private_params(JNIEnv* env, jclass, job
         return nullptr;
     }
 
-    jbyteArray n = bignumToArray(env, rsa->n, "n");
+    jbyteArray n = bignumToArray(env, RSA_get0_n(rsa.get()), "n");
     if (env->ExceptionCheck()) {
         return nullptr;
     }
     env->SetObjectArrayElement(joa, 0, n);
 
-    if (rsa->e != nullptr) {
-        jbyteArray e = bignumToArray(env, rsa->e, "e");
+    if (RSA_get0_e(rsa.get()) != nullptr) {
+        jbyteArray e = bignumToArray(env, RSA_get0_e(rsa.get()), "e");
         if (env->ExceptionCheck()) {
             return nullptr;
         }
         env->SetObjectArrayElement(joa, 1, e);
     }
 
-    if (rsa->d != nullptr) {
-        jbyteArray d = bignumToArray(env, rsa->d, "d");
+    if (RSA_get0_d(rsa.get()) != nullptr) {
+        jbyteArray d = bignumToArray(env, RSA_get0_d(rsa.get()), "d");
         if (env->ExceptionCheck()) {
             return nullptr;
         }
         env->SetObjectArrayElement(joa, 2, d);
     }
 
-    if (rsa->p != nullptr) {
-        jbyteArray p = bignumToArray(env, rsa->p, "p");
+    if (RSA_get0_p(rsa.get()) != nullptr) {
+        jbyteArray p = bignumToArray(env, RSA_get0_p(rsa.get()), "p");
         if (env->ExceptionCheck()) {
             return nullptr;
         }
         env->SetObjectArrayElement(joa, 3, p);
     }
 
-    if (rsa->q != nullptr) {
-        jbyteArray q = bignumToArray(env, rsa->q, "q");
+    if (RSA_get0_q(rsa.get()) != nullptr) {
+        jbyteArray q = bignumToArray(env, RSA_get0_q(rsa.get()), "q");
         if (env->ExceptionCheck()) {
             return nullptr;
         }
         env->SetObjectArrayElement(joa, 4, q);
     }
 
-    if (rsa->dmp1 != nullptr) {
-        jbyteArray dmp1 = bignumToArray(env, rsa->dmp1, "dmp1");
+    if (RSA_get0_dmp1(rsa.get()) != nullptr) {
+        jbyteArray dmp1 = bignumToArray(env, RSA_get0_dmp1(rsa.get()), "dmp1");
         if (env->ExceptionCheck()) {
             return nullptr;
         }
         env->SetObjectArrayElement(joa, 5, dmp1);
     }
 
-    if (rsa->dmq1 != nullptr) {
-        jbyteArray dmq1 = bignumToArray(env, rsa->dmq1, "dmq1");
+    if (RSA_get0_dmq1(rsa.get()) != nullptr) {
+        jbyteArray dmq1 = bignumToArray(env, RSA_get0_dmq1(rsa.get()), "dmq1");
         if (env->ExceptionCheck()) {
             return nullptr;
         }
         env->SetObjectArrayElement(joa, 6, dmq1);
     }
 
-    if (rsa->iqmp != nullptr) {
-        jbyteArray iqmp = bignumToArray(env, rsa->iqmp, "iqmp");
+    if (RSA_get0_iqmp(rsa.get()) != nullptr) {
+        jbyteArray iqmp = bignumToArray(env, RSA_get0_iqmp(rsa.get()), "iqmp");
         if (env->ExceptionCheck()) {
             return nullptr;
         }
@@ -2128,14 +2128,13 @@ static jlong NativeCrypto_EC_KEY_get1_group(JNIEnv* env, jclass, jobject pkeyRef
         return 0;
     }
 
-    if (EVP_PKEY_type(pkey->type) != EVP_PKEY_EC) {
+    if (EVP_PKEY_id(pkey) != EVP_PKEY_EC) {
         conscrypt::jniutil::throwRuntimeException(env, "not EC key");
-        JNI_TRACE("EC_KEY_get1_group(%p) => not EC key (type == %d)", pkey,
-                  EVP_PKEY_type(pkey->type));
+        JNI_TRACE("EC_KEY_get1_group(%p) => not EC key (type == %d)", pkey, EVP_PKEY_id(pkey));
         return 0;
     }
 
-    EC_GROUP* group = EC_GROUP_dup(EC_KEY_get0_group(pkey->pkey.ec));
+    EC_GROUP* group = EC_GROUP_dup(EC_KEY_get0_group(EVP_PKEY_get0_EC_KEY(pkey)));
     JNI_TRACE("EC_KEY_get1_group(%p) => %p", pkey, group);
     return reinterpret_cast<uintptr_t>(group);
 }
@@ -4177,9 +4176,7 @@ static jint NativeCrypto_get_X509_ex_flags(JNIEnv* env, jclass, jlong x509Ref,
         return 0;
     }
 
-    X509_check_ca(x509);
-
-    return static_cast<jint>(x509->ex_flags);
+    return X509_get_extension_flags(x509);
 }
 
 static jboolean NativeCrypto_X509_check_issued(JNIEnv* env, jclass, jlong x509Ref1,
@@ -4195,17 +4192,21 @@ static jboolean NativeCrypto_X509_check_issued(JNIEnv* env, jclass, jlong x509Re
     return static_cast<jboolean>(ret);
 }
 
-static void get_X509_signature(X509* x509, ASN1_BIT_STRING** signature) {
-    *signature = x509->signature;
+static const ASN1_BIT_STRING* get_X509_signature(X509* x509) {
+    const ASN1_BIT_STRING* signature;
+    X509_get0_signature(&signature, nullptr, x509);
+    return signature;
 }
 
-static void get_X509_CRL_signature(X509_CRL* crl, ASN1_BIT_STRING** signature) {
-    *signature = crl->signature;
+static const ASN1_BIT_STRING* get_X509_CRL_signature(X509_CRL* crl) {
+    const ASN1_BIT_STRING* signature;
+    X509_CRL_get0_signature(crl, &signature, nullptr);
+    return signature;
 }
 
 template <typename T>
 static jbyteArray get_X509Type_signature(JNIEnv* env, T* x509Type,
-                                         void (*get_signature_func)(T*, ASN1_BIT_STRING**)) {
+                                         const ASN1_BIT_STRING* (*get_signature_func)(T*)) {
     JNI_TRACE("get_X509Type_signature(%p)", x509Type);
 
     if (x509Type == nullptr) {
@@ -4214,10 +4215,10 @@ static jbyteArray get_X509Type_signature(JNIEnv* env, T* x509Type,
         return nullptr;
     }
 
-    ASN1_BIT_STRING* signature;
-    get_signature_func(x509Type, &signature);
+    const ASN1_BIT_STRING* signature = get_signature_func(x509Type);
 
-    ScopedLocalRef<jbyteArray> signatureArray(env, env->NewByteArray(signature->length));
+    ScopedLocalRef<jbyteArray> signatureArray(env,
+                                              env->NewByteArray(ASN1_STRING_length(signature)));
     if (env->ExceptionCheck()) {
         JNI_TRACE("get_X509Type_signature(%p) => threw exception", x509Type);
         return nullptr;
@@ -4229,10 +4230,10 @@ static jbyteArray get_X509Type_signature(JNIEnv* env, T* x509Type,
         return nullptr;
     }
 
-    memcpy(signatureBytes.get(), signature->data, signature->length);
+    memcpy(signatureBytes.get(), ASN1_STRING_get0_data(signature), ASN1_STRING_length(signature));
 
     JNI_TRACE("get_X509Type_signature(%p) => %p (%d bytes)", x509Type, signatureArray.get(),
-              signature->length);
+              ASN1_STRING_length(signature));
     return signatureArray.release();
 }
 
@@ -4412,13 +4413,14 @@ static jstring NativeCrypto_get_X509_CRL_sig_alg_oid(JNIEnv* env, jclass, jlong 
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("get_X509_CRL_sig_alg_oid(%p)", crl);
 
-    if (crl == nullptr || crl->sig_alg == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "crl == null || crl->sig_alg == null");
+    if (crl == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "crl == null");
         JNI_TRACE("get_X509_CRL_sig_alg_oid(%p) => crl == null", crl);
         return nullptr;
     }
 
-    return ASN1_OBJECT_to_OID_string(env, crl->sig_alg->algorithm);
+    int nid = X509_CRL_get_signature_nid(crl);
+    return ASN1_OBJECT_to_OID_string(env, OBJ_nid2obj(nid));
 }
 
 static jbyteArray NativeCrypto_get_X509_CRL_sig_alg_parameter(JNIEnv* env, jclass, jlong x509CrlRef,
@@ -4433,12 +4435,14 @@ static jbyteArray NativeCrypto_get_X509_CRL_sig_alg_parameter(JNIEnv* env, jclas
         return nullptr;
     }
 
-    if (crl->sig_alg->parameter == nullptr) {
+    const X509_ALGOR *sig_alg;
+    X509_CRL_get0_signature(crl, nullptr, &sig_alg);
+    if (sig_alg->parameter == nullptr) {
         JNI_TRACE("get_X509_CRL_sig_alg_parameter(%p) => null", crl);
         return nullptr;
     }
 
-    return ASN1ToByteArray<ASN1_TYPE>(env, crl->sig_alg->parameter, i2d_ASN1_TYPE);
+    return ASN1ToByteArray<ASN1_TYPE>(env, sig_alg->parameter, i2d_ASN1_TYPE);
 }
 
 static jbyteArray NativeCrypto_X509_CRL_get_issuer_name(JNIEnv* env, jclass, jlong x509CrlRef,
@@ -4505,8 +4509,10 @@ static jbyteArray X509Type_get_ext_oid(JNIEnv* env, T* x509Type, jstring oidStri
         return nullptr;
     }
 
-    JNI_TRACE("X509Type_get_ext_oid(%p, %p) => %p", x509Type, oidString, ext->value);
-    return ASN1ToByteArray<ASN1_OCTET_STRING>(env, ext->value, i2d_ASN1_OCTET_STRING);
+    JNI_TRACE("X509Type_get_ext_oid(%p, %p) => %p", x509Type, oidString,
+              X509_EXTENSION_get_data(ext));
+    return ASN1ToByteArray<ASN1_OCTET_STRING>(env, X509_EXTENSION_get_data(ext),
+                                              i2d_ASN1_OCTET_STRING);
 }
 
 static jlong NativeCrypto_X509_CRL_get_ext(JNIEnv* env, jclass, jlong x509CrlRef,
@@ -4560,8 +4566,9 @@ static jlong NativeCrypto_get_X509_REVOKED_revocationDate(JNIEnv* env, jclass,
         return 0;
     }
 
-    JNI_TRACE("get_X509_REVOKED_revocationDate(%p) => %p", revoked, revoked->revocationDate);
-    return reinterpret_cast<uintptr_t>(revoked->revocationDate);
+    JNI_TRACE("get_X509_REVOKED_revocationDate(%p) => %p", revoked,
+              X509_REVOKED_get0_revocationDate(revoked));
+    return reinterpret_cast<uintptr_t>(X509_REVOKED_get0_revocationDate(revoked));
 }
 
 #ifdef __GNUC__
@@ -4687,12 +4694,17 @@ static jint NativeCrypto_X509_supported_extension(JNIEnv* env, jclass, jlong x50
     return X509_supported_extension(ext);
 }
 
-static inline void get_ASN1_TIME_data(char** data, int* output, size_t len) {
-    char c = **data;
-    **data = '\0';
-    *data -= len;
-    *output = atoi(*data);
-    *(*data + len) = c;
+static inline bool decimal_to_integer(const char* data, size_t len, int* out) {
+    int ret = 0;
+    for (size_t i = 0; i < len; i++) {
+        ret *= 10;
+        if (data[i] < '0' || data[i] > '9') {
+            return false;
+        }
+        ret += data[i] - '0';
+    }
+    *out = ret;
+    return true;
 }
 
 static void NativeCrypto_ASN1_TIME_to_Calendar(JNIEnv* env, jclass, jlong asn1TimeRef,
@@ -4718,21 +4730,22 @@ static void NativeCrypto_ASN1_TIME_to_Calendar(JNIEnv* env, jclass, jlong asn1Ti
         return;
     }
 
-    if (gen->length < 14 || gen->data == nullptr) {
+    if (ASN1_STRING_length(gen.get()) < 14 || ASN1_STRING_get0_data(gen.get()) == nullptr) {
         conscrypt::jniutil::throwNullPointerException(env, "gen->length < 14 || gen->data == null");
         return;
     }
 
-    int sec, min, hour, mday, mon, year;
-
-    char* p = reinterpret_cast<char*>(&gen->data[14]);
-
-    get_ASN1_TIME_data(&p, &sec, 2);
-    get_ASN1_TIME_data(&p, &min, 2);
-    get_ASN1_TIME_data(&p, &hour, 2);
-    get_ASN1_TIME_data(&p, &mday, 2);
-    get_ASN1_TIME_data(&p, &mon, 2);
-    get_ASN1_TIME_data(&p, &year, 4);
+    int year, mon, mday, hour, min, sec;
+    const char* data = reinterpret_cast<const char*>(ASN1_STRING_get0_data(gen.get()));
+    if (!decimal_to_integer(data, 4, &year) ||
+        !decimal_to_integer(data + 4, 2, &mon) ||
+        !decimal_to_integer(data + 6, 2, &mday) ||
+        !decimal_to_integer(data + 8, 2, &hour) ||
+        !decimal_to_integer(data + 10, 2, &min) ||
+        !decimal_to_integer(data + 12, 2, &sec)) {
+        conscrypt::jniutil::throwParsingException(env, "Invalid date format");
+        return;
+    }
 
     env->CallVoidMethod(calendar, conscrypt::jniutil::calendar_setMethod, year, mon - 1, mday, hour,
                         min, sec);
@@ -5626,13 +5639,14 @@ static jstring NativeCrypto_get_X509_sig_alg_oid(JNIEnv* env, jclass, jlong x509
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("get_X509_sig_alg_oid(%p)", x509);
 
-    if (x509 == nullptr || x509->sig_alg == nullptr) {
+    if (x509 == nullptr) {
         conscrypt::jniutil::throwNullPointerException(env, "x509 == null || x509->sig_alg == null");
         JNI_TRACE("get_X509_sig_alg_oid(%p) => x509 == null", x509);
         return nullptr;
     }
 
-    return ASN1_OBJECT_to_OID_string(env, x509->sig_alg->algorithm);
+    int nid = X509_get_signature_nid(x509);
+    return ASN1_OBJECT_to_OID_string(env, OBJ_nid2obj(nid));
 }
 
 static jbyteArray NativeCrypto_get_X509_sig_alg_parameter(JNIEnv* env, jclass, jlong x509Ref,
@@ -5647,12 +5661,14 @@ static jbyteArray NativeCrypto_get_X509_sig_alg_parameter(JNIEnv* env, jclass, j
         return nullptr;
     }
 
-    if (x509->sig_alg->parameter == nullptr) {
+    const X509_ALGOR *sig_alg;
+    X509_get0_signature(nullptr, &sig_alg, x509);
+    if (sig_alg->parameter == nullptr) {
         JNI_TRACE("get_X509_sig_alg_parameter(%p) => null", x509);
         return nullptr;
     }
 
-    return ASN1ToByteArray<ASN1_TYPE>(env, x509->sig_alg->parameter, i2d_ASN1_TYPE);
+    return ASN1ToByteArray<ASN1_TYPE>(env, sig_alg->parameter, i2d_ASN1_TYPE);
 }
 
 static jbooleanArray NativeCrypto_get_X509_issuerUID(JNIEnv* env, jclass, jlong x509Ref,
@@ -9022,7 +9038,7 @@ static bool ocsp_cert_id_matches_certificate(CBS* cert_id, X509* x509, X509* iss
     bssl::UniquePtr<ASN1_INTEGER> serial_number(
             c2i_ASN1_INTEGER(nullptr, &p,
                              static_cast<long>(CBS_len(&serial))));  // NOLINT(runtime/int)
-    ASN1_INTEGER* expected_serial_number = X509_get_serialNumber(x509);
+    const ASN1_INTEGER* expected_serial_number = X509_get_serialNumber(x509);
     if (serial_number.get() == nullptr ||
         ASN1_INTEGER_cmp(expected_serial_number, serial_number.get()) != 0) {
         return false;
@@ -9036,15 +9052,16 @@ static bool ocsp_cert_id_matches_certificate(CBS* cert_id, X509* x509, X509* iss
 
     // Hash the issuer's name and compare the hash with the one from the Cert ID
     uint8_t md[EVP_MAX_MD_SIZE];
-    X509_NAME* issuer_name = X509_get_subject_name(issuerX509);
+    const X509_NAME* issuer_name = X509_get_subject_name(issuerX509);
     if (!X509_NAME_digest(issuer_name, digest, md, nullptr) ||
         !CBS_mem_equal(&issuer_name_hash, md, EVP_MD_size(digest))) {
         return false;
     }
 
     // Same thing with the issuer's key
-    ASN1_BIT_STRING* issuer_key = X509_get0_pubkey_bitstr(issuerX509);
-    if (!EVP_Digest(issuer_key->data, static_cast<size_t>(issuer_key->length), md, nullptr, digest,
+    const ASN1_BIT_STRING* issuer_key = X509_get0_pubkey_bitstr(issuerX509);
+    if (!EVP_Digest(ASN1_STRING_get0_data(issuer_key),
+                    static_cast<size_t>(ASN1_STRING_length(issuer_key)), md, nullptr, digest,
                     nullptr) ||
         !CBS_mem_equal(&issuer_key_hash, md, EVP_MD_size(digest))) {
         return false;
