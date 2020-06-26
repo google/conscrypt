@@ -23,6 +23,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -31,6 +33,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
 import java.security.spec.AlgorithmParameterSpec;
+import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -240,6 +243,116 @@ public final class CipherBasicsTest {
         }
     }
 
+//doggo
+    @Test
+    public void testAeadByteBufferEncryption() throws Exception {
+        TestUtils.assumeAEADAvailable();
+//        assertEquals("Forced Error", 1, 0);
+        for (Provider p : Security.getProviders()) {
+            for (Map.Entry<String, String> entry : AEAD_CIPHER_TO_TEST_DATA.entrySet()) {
+                String transformation = entry.getKey();
+                System.out.println(transformation + " Transformation ");
+
+                Cipher cipher;
+                try {
+                    cipher = Cipher.getInstance(transformation, p);
+                } catch (NoSuchAlgorithmException e) {
+                    // This provider doesn't provide this algorithm, ignore it
+                    continue;
+                }
+
+                List<String[]> data = readCsvResource(entry.getValue());
+                for (String[] line : data) {
+                    Key key = new SecretKeySpec(toBytes(line[KEY_INDEX]),
+                            getBaseAlgorithm(transformation));
+                    byte[] iv = toBytes(line[IV_INDEX]);
+                    byte[] _plaintext = toBytes(line[PLAINTEXT_INDEX]);
+                    byte[] _ciphertext = toBytes(line[CIPHERTEXT_INDEX]);
+                    byte[] tag = toBytes(line[TAG_INDEX]);
+                    byte[] aad = toBytes(line[AAD_INDEX]);
+
+                    ByteBuffer plaintext = ByteBuffer.wrap(_plaintext);
+//                    ByteBuffer ciphertext = ByteBuffer.wrap(_ciphertext);
+
+                    // Some ChaCha20 tests include truncated tags, which the Java API doesn't
+                    // support.  Skip those tests.
+                    if (transformation.startsWith("ChaCha20") && tag.length < 16) {
+                        continue;
+                    }
+
+                    AlgorithmParameterSpec params;
+                    if (transformation.contains("GCM")) {
+                        params = new GCMParameterSpec(8 * tag.length, iv);
+                    } else {
+                        params = new IvParameterSpec(iv);
+                    }
+
+                    try {
+                        cipher.init(Cipher.ENCRYPT_MODE, key, params);
+                        if (aad.length > 0) {
+                            cipher.updateAAD(aad);
+                        }
+                        byte[] _combinedOutput = new byte[_ciphertext.length + tag.length];
+
+                        assertEquals("Provider " + p.getName()
+                                        + ", algorithm " + transformation
+                                        + " reported the wrong output size",
+                                _combinedOutput.length, cipher.getOutputSize(_plaintext.length));
+                        System.arraycopy(_ciphertext, 0, _combinedOutput, 0, _ciphertext.length);
+                        System.arraycopy(tag, 0, _combinedOutput, _ciphertext.length, tag.length);
+
+                        System.out.println(Arrays.toString(tag) + " " + tag.length + " tag length");
+
+                        ByteBuffer combinedOutput = ByteBuffer.wrap(_combinedOutput);
+                        combinedOutput.position(tag.length);
+                        ByteBuffer outputbuffer = ByteBuffer.allocate(cipher.getOutputSize(plaintext.remaining()));
+//                        System.out.println(Arrays.toString(outputbuffer.array()));
+//                        System.out.println(cipher.getOutputSize(plaintext.remaining()));
+                        System.out.println(plaintext.position() + " " + plaintext.limit() + " " + plaintext.capacity() + " plaintext");
+                        System.out.println(outputbuffer.position() + " " + outputbuffer.limit() + " " + outputbuffer.capacity() + " output");
+//                        System.out.println(plaintext.remaining() + " " + ciphertext.remaining() + " " + outputbuffer.remaining() + " plaintext.remaining() ciphertext.remaining() outputbuffer.remaining()");
+                        System.out.println( cipher.doFinal(plaintext, outputbuffer) + " doFinal");
+                        System.out.println(plaintext.position() + " " + plaintext.limit() + " " + plaintext.capacity() + " plaintext");
+                        System.out.println(outputbuffer.position() + " " + outputbuffer.limit() + " " + outputbuffer.capacity() + " output");
+                        // outputbuffer should = combinedoutput
+
+//                        if (transformation.contains("GCM")) {
+//                        System.out.println(Arrays.toString(_plaintext));
+                        System.out.println(Arrays.toString(outputbuffer.array()));
+                        System.out.println(Arrays.toString(combinedOutput.array()));
+                        assertEquals("Cipher doFinal did not encrypt correctly", combinedOutput, outputbuffer);
+//                        assertTrue(" Failed Encryption", combinedOutput.compareTo(outputbuffer) == 0);
+//                        }
+//                        assertEquals(true, outputbuffer.equals(combinedOutput));
+
+//                                        + ", algorithm " + transformation
+//                                        + " failed on encryption, data is " + Arrays.toString(line),
+//                                Arrays.equals(combinedOutput, cipher.doFinal(plaintext)));
+//
+//                        cipher.init(Cipher.DECRYPT_MODE, key, params);
+//                        if (aad.length > 0) {
+//                            cipher.updateAAD(aad);
+//                        }
+//                        assertEquals("Provider " + p.getName()
+//                                        + ", algorithm " + transformation
+//                                        + " reported the wrong output size",
+//                                plaintext.length, cipher.getOutputSize(combinedOutput.length));
+//                        assertTrue("Provider " + p.getName()
+//                                        + ", algorithm " + transformation
+//                                        + " failed on decryption, data is " + Arrays.toString(line),
+//                                Arrays.equals(plaintext, cipher.doFinal(combinedOutput)));
+                    } catch (InvalidKeyException e) {
+                        // Some providers may not support raw SecretKeySpec keys, that's allowed
+                    } catch (InvalidAlgorithmParameterException e) {
+                        // Some providers may not support all tag lengths or nonce lengths,
+                        // that's allowed
+                    }
+                }
+            }
+        }
+    }
+
+
     private static List<String[]> readCsvResource(String resourceName) throws IOException {
         InputStream stream = CipherBasicsTest.class.getResourceAsStream(resourceName);
         List<String[]> lines = new ArrayList<String[]>();
@@ -275,4 +388,5 @@ public final class CipherBasicsTest {
     private static byte[] toBytes(String hex) {
         return TestUtils.decodeHex(hex, /* allowSingleChar= */ true);
     }
+
 }

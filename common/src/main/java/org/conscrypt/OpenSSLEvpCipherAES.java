@@ -16,10 +16,14 @@
 
 package org.conscrypt;
 
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.ShortBufferException;
 
 @Internal
 public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {

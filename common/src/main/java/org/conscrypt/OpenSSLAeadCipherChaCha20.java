@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import javax.crypto.ShortBufferException;
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
@@ -24,6 +26,7 @@ public class OpenSSLAeadCipherChaCha20 extends OpenSSLAeadCipher {
     public OpenSSLAeadCipherChaCha20() {
         super(Mode.POLY1305);
     }
+
 
     @Override
     void checkSupportedKeySize(int keyLength) throws InvalidKeyException {

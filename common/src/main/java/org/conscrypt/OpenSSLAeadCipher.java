@@ -120,6 +120,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         buf = newbuf;
     }
 
+
+
     private void reset() {
         aad = null;
         final int lastBufSize = lastGlobalMessageSize;
@@ -220,6 +222,55 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         return false;
     }
 
+    /**
+     * Encypts of decrypts data in a single-part operations or finishes multiple part operation. doggo
+     * @param input Input data.
+     * @param output the storage buffer of the resulting encryption decryption.
+     * @return number of bytes the output buffer's position has moved by.
+     * @throws ShortBufferException if output.remaining() bytes are insufficient to hold the result.
+     * @throws IllegalBlockSizeException
+     * @throws BadPaddingException
+     */
+    @Override
+    protected int engineDoFinal(ByteBuffer input, ByteBuffer output) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+        if (input == null || output == null) {
+            throw new NullPointerException("Null ByteBuffer Error");
+        }
+        if ( getOutputSizeForFinal(input.remaining()) > output.remaining()) { // get output size for final
+//            System.out.println(bufCount + " bufCount");
+//            System.out.println(NativeCrypto.EVP_AEAD_max_overhead(evpAead) + " " + evpAead + " evpAead2");
+//            System.out.println(getOutputSizeForFinal(input.remaining()) + " old get outputsize " + input.remaining());
+//            System.out.println(getOutputSizeForFinalByteBuffer(input.remaining()) + " " + output.remaining() + " OutputSizeForFinalByteBuffer(input.remaining()) vs output.remaining()");
+            throw new ShortBufferException("Insufficient Bytes for Output Buffer");
+        }
+        boolean flag = bufCount == 0; //(buf == null || buf.length == 0);
+        if (! flag) {
+            System.out.println(bufCount+ " OLD Case bufCount non 0");
+            return super.engineDoFinal(input, output);// traditional case
+        }
+        // if non direct bytebuffers we error out
+        ByteBuffer tmp;
+        int bytesWritten;
+        if (!input.isDirect()) {
+            System.out.println("Converting Input to Direct Bytebuffer");
+            int incap = input.capacity();
+            tmp = ByteBuffer.allocateDirect(incap);
+            tmp.put(input);
+            input = tmp;
+        }
+
+        if (output.isDirect()) {
+            return doFinalInternal(input, output);
+        }
+        else {
+            System.out.println("Converting Output to Direct Bytebuffer");
+            tmp = ByteBuffer.allocateDirect(getOutputSizeForFinal(input.remaining()));
+            bytesWritten = doFinalInternal(input, tmp);
+        }
+        output.put(tmp);
+        return bytesWritten;
+    }
+
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
             int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
@@ -281,6 +332,31 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         }
     }
 
+//    @Override
+        //doggo
+    int doFinalInternal(ByteBuffer input, ByteBuffer output) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+        checkInitialization();
+        final int bytesWritten;
+        try {
+            if (isEncrypting()) {
+                System.out.println("Sealing: Calling Native Crypto");
+                bytesWritten = NativeCrypto.EVP_AEAD_CTX_seal_buf(evpAead, encodedKey, tagLengthInBytes, output, iv, input, aad);
+//                bytesWritten = NativeCrypto.EVP_AEAD_CTX_seal(evpAead long, encodedKey byte[],
+//                        tagLengthInBytes int, output ByteBuffer, outputOffset, iv byte[], buf byte[] of written bytes, 0 input offset int, bufCount int, aad byte[]);
+            } else {
+                System.out.println("Opening: Calling Native Crypto");
+                bytesWritten = NativeCrypto.EVP_AEAD_CTX_open_buf(evpAead, encodedKey, tagLengthInBytes, output, iv, input, aad);
+            }
+        } catch (BadPaddingException e) {
+            throwAEADBadTagExceptionIfAvailable(e.getMessage(), e.getCause());
+            throw e;
+        }
+        if (isEncrypting()) {
+            mustInitialize = true;
+        }
+        return bytesWritten;
+    }
+
     @Override
     int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
             throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
@@ -322,9 +398,14 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
 
     @Override
     int getOutputSizeForFinal(int inputLen) {
+        System.out.println(bufCount + " " + inputLen + " " + NativeCrypto.EVP_AEAD_max_overhead(evpAead) + " " + evpAead + " Old getOut info");
         return bufCount + inputLen
                 + (isEncrypting() ? NativeCrypto.EVP_AEAD_max_overhead(evpAead) : 0);
     }
+
+//    int getOutputSizeForFinalByteBuffer(int inputLen) {
+//        return inputLen + (isEncrypting() ? NativeCrypto.EVP_AEAD_max_overhead(evpAead) : 0);
+//    }
 
     // Intentionally missing Override to compile on old versions of Android
     @SuppressWarnings("MissingOverride")
@@ -358,5 +439,6 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     }
 
     abstract long getEVP_AEAD(int keyLength) throws InvalidKeyException;
+
 
 }
