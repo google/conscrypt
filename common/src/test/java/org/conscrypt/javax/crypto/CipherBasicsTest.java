@@ -247,11 +247,9 @@ public final class CipherBasicsTest {
     @Test
     public void testAeadByteBufferEncryption() throws Exception {
         TestUtils.assumeAEADAvailable();
-//        assertEquals("Forced Error", 1, 0);
         for (Provider p : Security.getProviders()) {
             for (Map.Entry<String, String> entry : AEAD_CIPHER_TO_TEST_DATA.entrySet()) {
                 String transformation = entry.getKey();
-                System.out.println(transformation + " Transformation ");
 
                 Cipher cipher;
                 try {
@@ -271,8 +269,7 @@ public final class CipherBasicsTest {
                     byte[] tag = toBytes(line[TAG_INDEX]);
                     byte[] aad = toBytes(line[AAD_INDEX]);
 
-                    ByteBuffer plaintext = ByteBuffer.wrap(_plaintext);
-//                    ByteBuffer ciphertext = ByteBuffer.wrap(_ciphertext);
+                    ByteBuffer plaintext = ByteBuffer.wrap(_plaintext);git
 
                     // Some ChaCha20 tests include truncated tags, which the Java API doesn't
                     // support.  Skip those tests.
@@ -301,42 +298,28 @@ public final class CipherBasicsTest {
                         System.arraycopy(_ciphertext, 0, _combinedOutput, 0, _ciphertext.length);
                         System.arraycopy(tag, 0, _combinedOutput, _ciphertext.length, tag.length);
 
-                        System.out.println(Arrays.toString(tag) + " " + tag.length + " tag length");
-
                         ByteBuffer combinedOutput = ByteBuffer.wrap(_combinedOutput);
-                        combinedOutput.position(tag.length);
+                        combinedOutput.position(combinedOutput.limit());
                         ByteBuffer outputbuffer = ByteBuffer.allocate(cipher.getOutputSize(plaintext.remaining()));
-//                        System.out.println(Arrays.toString(outputbuffer.array()));
-//                        System.out.println(cipher.getOutputSize(plaintext.remaining()));
-                        System.out.println(plaintext.position() + " " + plaintext.limit() + " " + plaintext.capacity() + " plaintext");
-                        System.out.println(outputbuffer.position() + " " + outputbuffer.limit() + " " + outputbuffer.capacity() + " output");
-//                        System.out.println(plaintext.remaining() + " " + ciphertext.remaining() + " " + outputbuffer.remaining() + " plaintext.remaining() ciphertext.remaining() outputbuffer.remaining()");
-                        System.out.println( cipher.doFinal(plaintext, outputbuffer) + " doFinal");
-                        System.out.println(plaintext.position() + " " + plaintext.limit() + " " + plaintext.capacity() + " plaintext");
-                        System.out.println(outputbuffer.position() + " " + outputbuffer.limit() + " " + outputbuffer.capacity() + " output");
-                        // outputbuffer should = combinedoutput
-
-//                        if (transformation.contains("GCM")) {
-//                        System.out.println(Arrays.toString(_plaintext));
-                        System.out.println(Arrays.toString(outputbuffer.array()));
-                        System.out.println(Arrays.toString(combinedOutput.array()));
+                        cipher.doFinal(plaintext, outputbuffer);
                         assertEquals("Cipher doFinal did not encrypt correctly", combinedOutput, outputbuffer);
-//                        assertTrue(" Failed Encryption", combinedOutput.compareTo(outputbuffer) == 0);
-//                        }
-//                        assertEquals(true, outputbuffer.equals(combinedOutput));
-
-//                                        + ", algorithm " + transformation
-//                                        + " failed on encryption, data is " + Arrays.toString(line),
-//                                Arrays.equals(combinedOutput, cipher.doFinal(plaintext)));
+                        assertEquals(" input was not shifted", plaintext.position(), plaintext.limit());
 //
-//                        cipher.init(Cipher.DECRYPT_MODE, key, params);
-//                        if (aad.length > 0) {
-//                            cipher.updateAAD(aad);
-//                        }
-//                        assertEquals("Provider " + p.getName()
-//                                        + ", algorithm " + transformation
-//                                        + " reported the wrong output size",
-//                                plaintext.length, cipher.getOutputSize(combinedOutput.length));
+                        cipher.init(Cipher.DECRYPT_MODE, key, params);
+                        if (aad.length > 0) {
+                            cipher.updateAAD(aad);
+                        }
+                        assertEquals("Provider " + p.getName()
+                                        + ", algorithm " + transformation
+                                        + " reported the wrong output size",
+                                _plaintext.length, cipher.getOutputSize(_combinedOutput.length));
+                        combinedOutput = ByteBuffer.wrap(_combinedOutput);
+                        outputbuffer = ByteBuffer.allocate(cipher.getOutputSize(combinedOutput.remaining()));
+                        combinedOutput.position(0);
+                        plaintext.position(plaintext.limit());
+                        cipher.doFinal(combinedOutput, outputbuffer);
+                        assertEquals("Cipher doFinal did not decrypt correctly", plaintext, outputbuffer);
+                        assertEquals(" input was not shifted", combinedOutput.position(), combinedOutput.limit());
 //                        assertTrue("Provider " + p.getName()
 //                                        + ", algorithm " + transformation
 //                                        + " failed on decryption, data is " + Arrays.toString(line),

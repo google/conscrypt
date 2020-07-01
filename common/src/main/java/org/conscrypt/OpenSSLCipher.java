@@ -152,16 +152,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
     abstract int updateInternal(byte[] input, int inputOffset, int inputLen,
             byte[] output, int outputOffset, int maximumLen) throws ShortBufferException;
 
-//    /**
-//     * My new override that must be filled out! doggo
-//     */
-//    abstract int updateInternal(ByteBuffer input, ByteBuffer output) throws ShortBufferException;
-
-//    /**
-//     * My new override that must be filled out! Used for non ALTS multiple update calls use of Buf doggo
-//     */
-//    abstract int updateInternal(ByteBuffer input) throws ShortBufferException;
-
     /**
      * API-specific implementation of the final block. The {@code maximumLen}
      * will be the maximum length of the possible output as returned by
@@ -171,18 +161,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
      */
     abstract int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
             throws IllegalBlockSizeException, BadPaddingException, ShortBufferException;
-
-//    /**
-//     * My new override that has to be filled out! Used with Non alts cases that use this.buf doggo
-//     */
-//    abstract int doFinalInternal(ByteBuffer output)
-//            throws IllegalBlockSizeException, BadPaddingException, ShortBufferException;
-
-//    /**
-//     * My new override that has to be filled out!  doggo
-//     */
-//    abstract int doFinalInternal(ByteBuffer input, ByteBuffer output)
-//            throws IllegalBlockSizeException, BadPaddingException, ShortBufferException;
 
     /**
      * Returns the standard name for the particular algorithm.
