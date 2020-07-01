@@ -269,7 +269,7 @@ public final class CipherBasicsTest {
                     byte[] tag = toBytes(line[TAG_INDEX]);
                     byte[] aad = toBytes(line[AAD_INDEX]);
 
-                    ByteBuffer plaintext = ByteBuffer.wrap(_plaintext);git
+                    ByteBuffer plaintext = ByteBuffer.wrap(_plaintext);
 
                     // Some ChaCha20 tests include truncated tags, which the Java API doesn't
                     // support.  Skip those tests.
