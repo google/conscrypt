@@ -385,7 +385,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
         }
     }
 
-
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
             int outputOffset) throws ShortBufferException, IllegalBlockSizeException,

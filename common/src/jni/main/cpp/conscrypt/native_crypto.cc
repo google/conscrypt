@@ -3599,8 +3599,6 @@ static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, 
     return static_cast<jint>(actualOutLength);
 }
 
-
-//doggo
 static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, jint tagLen,
                             jobject outBuffer, jbyteArray nonceArray,
                             jobject inBuffer, jbyteArray aadArray,
@@ -3610,32 +3608,19 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
     JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %p, %p)", evpAead, keyArray, tagLen,
               outBuffer, nonceArray, inBuffer, aadArray);
 
-    jclass bytebuffer_class = env->FindClass("java/nio/ByteBuffer");
-    jclass buffer_class = env->FindClass("java/nio/Buffer");
-
-     if (env->IsInstanceOf(inBuffer, bytebuffer_class) != JNI_TRUE || env->IsInstanceOf(outBuffer, bytebuffer_class) != JNI_TRUE  ) {
+     if (env->IsInstanceOf(inBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE || env->IsInstanceOf(outBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE  ) {
         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "ByteBuffer Class Error");
         return 0;
     }
 
-    jmethodID is_read_method_id = env->GetMethodID(bytebuffer_class, "isReadOnly", "()Z");
-    jboolean out_read = env->CallBooleanMethod(outBuffer,is_read_method_id);
-
+    jboolean out_read = env->CallBooleanMethod(outBuffer,conscrypt::jniutil::byteBuffer_isReadMethod);
     if(out_read == JNI_TRUE) {
         conscrypt::jniutil::throwException(env, "java/nio/ReadOnlyBufferException", "output Read Only Buffer Exception");
         return 0;
     }
 
-    jmethodID isDirect_method_id = env->GetMethodID(bytebuffer_class, "isDirect", "()Z");
-    jmethodID position_method_id = env->GetMethodID(buffer_class, "position", "()I");
-    jmethodID limit_method_id = env->GetMethodID(buffer_class, "limit", "()I");
-    jmethodID capacity_method_id = env->GetMethodID(buffer_class, "capacity", "()I");
-    jmethodID put_method_id = env->GetMethodID(bytebuffer_class, "put", "(Ljava/nio/ByteBuffer;)Ljava/nio/ByteBuffer;");
-
-    jboolean in_direct = env->CallBooleanMethod(inBuffer,isDirect_method_id);
-    jboolean out_direct = env->CallBooleanMethod(outBuffer,isDirect_method_id);
-
-
+    jboolean in_direct = env->CallBooleanMethod(inBuffer,conscrypt::jniutil::byteBuffer_isDirectMethod);
+    jboolean out_direct = env->CallBooleanMethod(outBuffer,conscrypt::jniutil::byteBuffer_isDirectMethod);
     uint8_t* inBuf_t;
     jlong in_capacity;
     jint in_limit;
@@ -3647,9 +3632,9 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
         in_capacity = env->GetDirectBufferCapacity(inBuffer);
         // capacity is the number of elements the buffer contains
         // limit is the index of the first element that should not be read or written
-        in_limit = env->CallIntMethod(inBuffer,limit_method_id);
+        in_limit = env->CallIntMethod(inBuffer,conscrypt::jniutil::buffer_limitMethod);
         // position is the index of the next element to be read or written
-        in_position = env->CallIntMethod(inBuffer,position_method_id);
+        in_position = env->CallIntMethod(inBuffer,conscrypt::jniutil::buffer_positionMethod);
      } else {
         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Non Direct ByteBuffer  Error");
         return 0;
@@ -3665,15 +3650,15 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
          out_capacity = env->GetDirectBufferCapacity(outBuffer);
          // capacity is the number of elements the buffer contains
          // limit is the index of the first element that should not be read or written
-         out_limit = env->CallIntMethod(outBuffer,limit_method_id);
+         out_limit = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_limitMethod);
          // position is the index of the next element to be read or written
-         out_position = env->CallIntMethod(outBuffer,position_method_id);
+         out_position = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_positionMethod);
       } else {
         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Non Direct ByteBuffer  Error");
         return 0;
       }
-    // THIS CHECK MAY NOT BE NECESSARY
-    if  (out_limit < out_position || in_limit < in_position) { // (out_limit < out_position < in_limit - in_position)
+
+    if  (out_limit < out_position || in_limit < in_position) {
         conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException", "Not Enough Space in Output");
         return 0;
     }
@@ -3753,7 +3738,7 @@ static jint NativeCrypto_EVP_AEAD_CTX_open(JNIEnv* env, jclass, jlong evpAeadRef
     return evp_aead_ctx_op(env, evpAeadRef, keyArray, tagLen, outArray, outOffset, nonceArray,
                            inArray, inOffset, inLength, aadArray, EVP_AEAD_CTX_open);
 }
-//doggo
+
 static jint NativeCrypto_EVP_AEAD_CTX_seal_buf(JNIEnv* env, jclass, jlong evpAeadRef,
                                            jbyteArray keyArray, jint tagLen, jobject outBuffer,
                                            jbyteArray nonceArray, jobject inBuffer, jbyteArray aadArray) {
@@ -10332,10 +10317,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_nonce_length, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_seal, "(J[BI[BI[B[BII[B)I"),
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_open, "(J[BI[BI[B[BII[B)I"),
-// doggo
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_seal_buf, "(J[BILjava/nio/ByteBuffer;[BLjava/nio/ByteBuffer;[B)I"),
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_open_buf, "(J[BILjava/nio/ByteBuffer;[BLjava/nio/ByteBuffer;[B)I"),
-
         CONSCRYPT_NATIVE_METHOD(HMAC_CTX_new, "()J"),
         CONSCRYPT_NATIVE_METHOD(HMAC_CTX_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(HMAC_Init_ex, "(" REF_HMAC_CTX "[BJ)V"),

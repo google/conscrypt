@@ -243,7 +243,6 @@ public final class CipherBasicsTest {
         }
     }
 
-//doggo
     @Test
     public void testAeadByteBufferEncryption() throws Exception {
         TestUtils.assumeAEADAvailable();
@@ -304,7 +303,7 @@ public final class CipherBasicsTest {
                         cipher.doFinal(plaintext, outputbuffer);
                         assertEquals("Cipher doFinal did not encrypt correctly", combinedOutput, outputbuffer);
                         assertEquals(" input was not shifted", plaintext.position(), plaintext.limit());
-//
+
                         cipher.init(Cipher.DECRYPT_MODE, key, params);
                         if (aad.length > 0) {
                             cipher.updateAAD(aad);
@@ -320,10 +319,6 @@ public final class CipherBasicsTest {
                         cipher.doFinal(combinedOutput, outputbuffer);
                         assertEquals("Cipher doFinal did not decrypt correctly", plaintext, outputbuffer);
                         assertEquals(" input was not shifted", combinedOutput.position(), combinedOutput.limit());
-//                        assertTrue("Provider " + p.getName()
-//                                        + ", algorithm " + transformation
-//                                        + " failed on decryption, data is " + Arrays.toString(line),
-//                                Arrays.equals(plaintext, cipher.doFinal(combinedOutput)));
                     } catch (InvalidKeyException e) {
                         // Some providers may not support raw SecretKeySpec keys, that's allowed
                     } catch (InvalidAlgorithmParameterException e) {

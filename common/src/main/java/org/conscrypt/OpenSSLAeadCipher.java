@@ -223,11 +223,10 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     }
 
     /**
-     * Encrypts of decrypts data in a single-part operations or finishes multiple part operation. doggo
-     * Input is returned fully read
-     * Output is returned position incremented by bytesWritten Limit stays the same
-     * @param input Input data.
-     * @param output the storage buffer of the resulting encryption decryption.
+     * Encrypts of decrypts data in a single-part operations or finishes multiple part operation.
+     * @param input Input data that is returned fully read
+     * @param output the storage buffer of the resulting encryption decryption. Output is returned position
+     *              incremented by bytesWritten Limit stays the same
      * @return number of bytes the output buffer's position has moved by.
      * @throws ShortBufferException if output.remaining() bytes are insufficient to hold the result.
      * @throws IllegalBlockSizeException
@@ -333,7 +332,6 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         }
     }
 
-        //doggo
     int doFinalInternal(ByteBuffer input, ByteBuffer output) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         checkInitialization();
         final int bytesWritten;
