@@ -120,8 +120,6 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         buf = newbuf;
     }
 
-
-
     private void reset() {
         aad = null;
         final int lastBufSize = lastGlobalMessageSize;
@@ -240,20 +238,17 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         if ( getOutputSizeForFinal(input.remaining()) > output.remaining()) { // uses the child class's size if available
             throw new ShortBufferException("Insufficient Bytes for Output Buffer");
         }
-        boolean flag = bufCount == 0; //(buf == null || buf.length == 0);
-        if (! flag) {
-            System.out.println(bufCount+ " OLD Case bufCount non 0");
+        if (bufCount != 0) {
             return super.engineDoFinal(input, output);// traditional case
         }
         ByteBuffer tmp;
         int bytesWritten;
         if (!input.isDirect()) {
-            int incap = input.capacity();
+            int incap = input.remaining(); // was capacity
             tmp = ByteBuffer.allocateDirect(incap);
             tmp.mark();
             tmp.put(input);
             tmp.reset();
-            input.position(input.limit()); // API reasons
             input = tmp;
         }
         if (output.isDirect()) {

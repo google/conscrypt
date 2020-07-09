@@ -205,5 +205,4 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
         NativeCrypto.EVP_CipherInit_ex(cipherCtx, 0, encodedKey, iv, isEncrypting());
         calledUpdate = false;
     }
-
 }

@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -157,5 +156,4 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
     int getOutputSizeForUpdate(int inputLen) {
         return inputLen;
     }
-
 }

@@ -3621,15 +3621,13 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
 
     jboolean in_direct = env->CallBooleanMethod(inBuffer,conscrypt::jniutil::byteBuffer_isDirectMethod);
     jboolean out_direct = env->CallBooleanMethod(outBuffer,conscrypt::jniutil::byteBuffer_isDirectMethod);
-    uint8_t* inBuf_t;
-    jlong in_capacity;
+    uint8_t* inBuf;
     jint in_limit;
     jint in_position;
     jobject tmp;
     if(in_direct == JNI_TRUE) {
     // we are working with a direct ByteBuffer
-        inBuf_t = (uint8_t*)(env->GetDirectBufferAddress(inBuffer));
-        in_capacity = env->GetDirectBufferCapacity(inBuffer);
+        inBuf = (uint8_t*)(env->GetDirectBufferAddress(inBuffer));
         // capacity is the number of elements the buffer contains
         // limit is the index of the first element that should not be read or written
         in_limit = env->CallIntMethod(inBuffer,conscrypt::jniutil::buffer_limitMethod);
@@ -3641,13 +3639,11 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
      }
 
      uint8_t* outBuf;
-     jlong out_capacity;
      jint out_limit;
      jint out_position;
      if(out_direct == JNI_TRUE) {
      // we are working with a direct ByteBuffer
          outBuf = (uint8_t*)(env->GetDirectBufferAddress(outBuffer));
-         out_capacity = env->GetDirectBufferCapacity(outBuffer);
          // capacity is the number of elements the buffer contains
          // limit is the index of the first element that should not be read or written
          out_limit = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_limitMethod);
@@ -3664,9 +3660,8 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
     }
 
     // Shifting over of ByteBuffer address to start at true position
-    inBuf_t += in_position;
+    inBuf += in_position;
     outBuf += out_position;
-    const uint8_t* inBuf = reinterpret_cast<const uint8_t*>(inBuf_t);
 
     ScopedByteArrayRO keyBytes(env, keyArray);
     if (keyBytes.get() == nullptr) {
@@ -3713,7 +3708,7 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
         return 0;
     }
 
-    JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %p, %p, %p) => success outlength=%zd",
+    JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %p, %p) => success outlength=%zd",
               evpAead, keyArray, tagLen, outBuffer, nonceArray, inBuffer,
               aadArray, actualOutLength);
     return static_cast<jint>(actualOutLength);

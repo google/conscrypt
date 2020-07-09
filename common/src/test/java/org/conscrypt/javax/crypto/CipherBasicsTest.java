@@ -366,5 +366,4 @@ public final class CipherBasicsTest {
     private static byte[] toBytes(String hex) {
         return TestUtils.decodeHex(hex, /* allowSingleChar= */ true);
     }
-
 }

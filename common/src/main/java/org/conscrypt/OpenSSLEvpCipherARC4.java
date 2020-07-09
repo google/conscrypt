@@ -16,13 +16,9 @@
 
 package org.conscrypt;
 
-import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.ShortBufferException;
 
 @Internal
 public class OpenSSLEvpCipherARC4 extends OpenSSLEvpCipher {
