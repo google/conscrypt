@@ -3619,45 +3619,33 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
         return 0;
     }
 
-    jboolean in_direct = env->CallBooleanMethod(inBuffer,conscrypt::jniutil::byteBuffer_isDirectMethod);
-    jboolean out_direct = env->CallBooleanMethod(outBuffer,conscrypt::jniutil::byteBuffer_isDirectMethod);
     uint8_t* inBuf;
     jint in_limit;
     jint in_position;
-    jobject tmp;
-    if(in_direct == JNI_TRUE) {
-    // we are working with a direct ByteBuffer
-        inBuf = (uint8_t*)(env->GetDirectBufferAddress(inBuffer));
-        // capacity is the number of elements the buffer contains
-        // limit is the index of the first element that should not be read or written
-        in_limit = env->CallIntMethod(inBuffer,conscrypt::jniutil::buffer_limitMethod);
-        // position is the index of the next element to be read or written
-        in_position = env->CallIntMethod(inBuffer,conscrypt::jniutil::buffer_positionMethod);
-     } else {
+    jint inCapacity = env->GetDirectBufferCapacity(inBuffer);
+    if (inCapacity == -1) {
         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Non Direct ByteBuffer  Error");
         return 0;
-     }
+    }
+    inBuf = (uint8_t*)(env->GetDirectBufferAddress(inBuffer));
+     // limit is the index of the first element that should not be read or written
+    in_limit = env->CallIntMethod(inBuffer,conscrypt::jniutil::buffer_limitMethod);
+    // position is the index of the next element to be read or written
+    in_position = env->CallIntMethod(inBuffer,conscrypt::jniutil::buffer_positionMethod);
 
      uint8_t* outBuf;
      jint out_limit;
      jint out_position;
-     if(out_direct == JNI_TRUE) {
-     // we are working with a direct ByteBuffer
-         outBuf = (uint8_t*)(env->GetDirectBufferAddress(outBuffer));
-         // capacity is the number of elements the buffer contains
-         // limit is the index of the first element that should not be read or written
-         out_limit = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_limitMethod);
-         // position is the index of the next element to be read or written
-         out_position = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_positionMethod);
-      } else {
-        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Non Direct ByteBuffer  Error");
-        return 0;
-      }
-
-    if  (out_limit < out_position || in_limit < in_position) {
-        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException", "Not Enough Space in Output");
-        return 0;
-    }
+     jint outCapacity = env->GetDirectBufferCapacity(outBuffer);
+     if (outCapacity == -1) {
+         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Non Direct ByteBuffer  Error");
+         return 0;
+     }
+     outBuf = (uint8_t*)(env->GetDirectBufferAddress(outBuffer));
+     // limit is the index of the first element that should not be read or written
+     out_limit = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_limitMethod);
+     // position is the index of the next element to be read or written
+     out_position = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_positionMethod);
 
     // Shifting over of ByteBuffer address to start at true position
     inBuf += in_position;
