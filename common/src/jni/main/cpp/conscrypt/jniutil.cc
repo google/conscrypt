@@ -48,8 +48,6 @@ jmethodID integer_valueOfMethod;
 jmethodID openSslInputStream_readLineMethod;
 jmethodID outputStream_writeMethod;
 jmethodID outputStream_flushMethod;
-jmethodID byteBuffer_isReadMethod;
-jmethodID byteBuffer_isDirectMethod;
 jmethodID buffer_positionMethod;
 jmethodID buffer_limitMethod;
 
@@ -84,8 +82,6 @@ void init(JavaVM* vm, JNIEnv* env) {
             getMethodRef(env, openSslInputStreamClass, "gets", "([B)I");
     outputStream_writeMethod = getMethodRef(env, outputStreamClass, "write", "([B)V");
     outputStream_flushMethod = getMethodRef(env, outputStreamClass, "flush", "()V");
-    byteBuffer_isReadMethod = getMethodRef(env, byteBufferClass, "isReadOnly", "()Z");
-    byteBuffer_isDirectMethod = getMethodRef(env, byteBufferClass, "isDirect", "()Z");
     buffer_positionMethod = getMethodRef(env, bufferClass, "position", "()I");
     buffer_limitMethod = getMethodRef(env, bufferClass, "limit", "()I");
 }

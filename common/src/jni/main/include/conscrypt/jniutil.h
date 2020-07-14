@@ -51,8 +51,6 @@ extern jmethodID integer_valueOfMethod;
 extern jmethodID openSslInputStream_readLineMethod;
 extern jmethodID outputStream_writeMethod;
 extern jmethodID outputStream_flushMethod;
-extern jmethodID byteBuffer_isReadMethod;
-extern jmethodID byteBuffer_isDirectMethod;
 extern jmethodID buffer_positionMethod;
 extern jmethodID buffer_limitMethod;
 

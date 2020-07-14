@@ -239,7 +239,16 @@ public final class CipherBasicsTest {
                     try {
                         arrayBasedAssessment(cipher, aad, tag, plaintext, ciphertext, key, params, transformation, p,
                                 line);
-                        bufferBasedAssessment(cipher, aad, tag, plaintext, ciphertext, key, params, transformation, p);
+                        bufferBasedAssessment(cipher, aad, tag, plaintext, ciphertext, key, params, transformation, p,
+                                false, false);
+                        bufferBasedAssessment(cipher, aad, tag, plaintext, ciphertext, key, params, transformation, p,
+                                true, true);
+                        bufferBasedAssessment(cipher, aad, tag, plaintext, ciphertext, key, params, transformation, p,
+                                true, false);
+                        bufferBasedAssessment(cipher, aad, tag, plaintext, ciphertext, key, params, transformation, p,
+                                false, true);
+                        sharedBufferBasedAssessment(cipher, aad, tag, plaintext, ciphertext, key, params,
+                                transformation, p);
                     } catch (InvalidKeyException e) {
                         // Some providers may not support raw SecretKeySpec keys, that's allowed
                     } catch (InvalidAlgorithmParameterException e) {
@@ -251,15 +260,73 @@ public final class CipherBasicsTest {
         }
     }
 
+    public void sharedBufferBasedAssessment(Cipher cipher, byte[] aad, byte[] tag, byte[] _plaintext,
+                                      byte[] _ciphertext, Key key, AlgorithmParameterSpec params,
+                                      String transformation, Provider p) throws Exception {
+        cipher.init(Cipher.ENCRYPT_MODE, key, params);
+        if (aad.length > 0) {
+            cipher.updateAAD(aad);
+        }
+        byte[] _combinedOutput = new byte[_ciphertext.length + tag.length];
+        byte[] _commonBacking = new byte[_plaintext.length + _combinedOutput.length];
+
+        assertEquals("Provider " + p.getName()
+                        + ", algorithm " + transformation
+                        + " reported the wrong output size",
+                _combinedOutput.length, cipher.getOutputSize(_plaintext.length));
+        System.arraycopy(_ciphertext, 0, _combinedOutput, 0, _ciphertext.length);
+        System.arraycopy(tag, 0, _combinedOutput, _ciphertext.length, tag.length);
+        System.arraycopy(_plaintext, 0, _commonBacking, 0, _plaintext.length);
+        System.arraycopy(_combinedOutput, 0, _commonBacking, _plaintext.length, _combinedOutput.length);
+        ByteBuffer combinedOutput = ByteBuffer.wrap(_commonBacking);
+        ByteBuffer plaintext = combinedOutput.slice();
+        plaintext.limit(_plaintext.length);
+        combinedOutput.position(_plaintext.length);
+        // both byte buffers have been created from common backed array and have correct respecting positions and limits
+
+        combinedOutput.position(combinedOutput.limit());
+        ByteBuffer outputbuffer = ByteBuffer.allocate(cipher.getOutputSize(plaintext.remaining()));
+
+        cipher.doFinal(plaintext, outputbuffer);
+        assertEquals("Cipher doFinal did not encrypt correctly", combinedOutput, outputbuffer);
+        assertEquals(" input was not shifted", plaintext.position(), plaintext.limit());
+
+        cipher.init(Cipher.DECRYPT_MODE, key, params);
+        if (aad.length > 0) {
+            cipher.updateAAD(aad);
+        }
+        assertEquals("Provider " + p.getName()
+                        + ", algorithm " + transformation
+                        + " reported the wrong output size",
+                _plaintext.length, cipher.getOutputSize(_combinedOutput.length));
+        combinedOutput.position(_plaintext.length);
+
+        outputbuffer = ByteBuffer.allocate(cipher.getOutputSize(combinedOutput.remaining()));
+
+        combinedOutput.position(_plaintext.length);
+        plaintext.position(plaintext.limit());
+        cipher.doFinal(combinedOutput, outputbuffer);
+        assertEquals("Cipher doFinal did not decrypt correctly", plaintext, outputbuffer);
+        assertEquals(" input was not shifted", combinedOutput.position(), combinedOutput.limit());
+    }
+
     public void bufferBasedAssessment(Cipher cipher, byte[] aad, byte[] tag, byte[] _plaintext,
                                            byte[] _ciphertext, Key key, AlgorithmParameterSpec params,
-                                           String transformation, Provider p) throws Exception {
+                                           String transformation, Provider p, boolean inBoolDirect, boolean outBoolDirect) throws Exception {
         cipher.init(Cipher.ENCRYPT_MODE, key, params);
         if (aad.length > 0) {
             cipher.updateAAD(aad);
         }
         byte[] _combinedOutput = new byte[_ciphertext.length + tag.length];
         ByteBuffer plaintext = ByteBuffer.wrap(_plaintext);
+        if (inBoolDirect) {
+            ByteBuffer plaintext_ = plaintext;
+            int incap = plaintext_.remaining();
+            plaintext = ByteBuffer.allocateDirect(incap);
+            plaintext.mark();
+            plaintext.put(plaintext_);
+            plaintext.reset();
+        }
 
         assertEquals("Provider " + p.getName()
                         + ", algorithm " + transformation
@@ -269,8 +336,21 @@ public final class CipherBasicsTest {
         System.arraycopy(tag, 0, _combinedOutput, _ciphertext.length, tag.length);
 
         ByteBuffer combinedOutput = ByteBuffer.wrap(_combinedOutput);
+        if (outBoolDirect) {
+            ByteBuffer combinedOutput_ = combinedOutput;
+            int outcap = combinedOutput_.remaining();
+            combinedOutput = ByteBuffer.allocateDirect(outcap);
+            combinedOutput.mark();
+            combinedOutput.put(combinedOutput_);
+        }
         combinedOutput.position(combinedOutput.limit());
-        ByteBuffer outputbuffer = ByteBuffer.allocate(cipher.getOutputSize(plaintext.remaining()));
+        ByteBuffer outputbuffer;
+        if (outBoolDirect) {
+            outputbuffer = ByteBuffer.allocateDirect(cipher.getOutputSize(plaintext.remaining()));
+        } else {
+            outputbuffer = ByteBuffer.allocate(cipher.getOutputSize(plaintext.remaining()));
+        }
+
         cipher.doFinal(plaintext, outputbuffer);
         assertEquals("Cipher doFinal did not encrypt correctly", combinedOutput, outputbuffer);
         assertEquals(" input was not shifted", plaintext.position(), plaintext.limit());
@@ -284,7 +364,19 @@ public final class CipherBasicsTest {
                         + " reported the wrong output size",
                 _plaintext.length, cipher.getOutputSize(_combinedOutput.length));
         combinedOutput = ByteBuffer.wrap(_combinedOutput);
-        outputbuffer = ByteBuffer.allocate(cipher.getOutputSize(combinedOutput.remaining()));
+        if (inBoolDirect) {
+            ByteBuffer combinedOutput_ = combinedOutput;
+            int incap = combinedOutput_.remaining();
+            combinedOutput = ByteBuffer.allocateDirect(incap);
+            combinedOutput.mark();
+            combinedOutput.put(combinedOutput_);
+            combinedOutput.reset();
+        }
+        if (outBoolDirect) {
+            outputbuffer = ByteBuffer.allocateDirect(cipher.getOutputSize(combinedOutput.remaining()));
+        } else {
+            outputbuffer = ByteBuffer.allocate(cipher.getOutputSize(combinedOutput.remaining()));
+        }
         combinedOutput.position(0);
         plaintext.position(plaintext.limit());
         cipher.doFinal(combinedOutput, outputbuffer);

@@ -3510,7 +3510,7 @@ typedef int (*evp_aead_ctx_op_func)(const EVP_AEAD_CTX* ctx, uint8_t* out, size_
                                     const uint8_t* in, size_t in_len, const uint8_t* ad,
                                     size_t ad_len);
 
-static jint evp_aead_ctx_op_ssl(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, jint tagLen,
+static jint evp_aead_ctx_op_common(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, jint tagLen,
                                uint8_t* outBuf, jbyteArray nonceArray,
                                const uint8_t* inBuf, jbyteArray aadArray,
                                evp_aead_ctx_op_func realFunc, jobject inBuffer, jobject outBuffer, jint outRange, jint inRange)  {
@@ -3607,7 +3607,7 @@ static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, 
     uint8_t* outTmp = reinterpret_cast<uint8_t*>(outBytes.get());
     const uint8_t* inTmp = reinterpret_cast<const uint8_t*>(inBytes.get());
 
-    return evp_aead_ctx_op_ssl(env, evpAeadRef, keyArray, tagLen, outTmp + outOffset, nonceArray, inTmp + inOffset,
+    return evp_aead_ctx_op_common(env, evpAeadRef, keyArray, tagLen, outTmp + outOffset, nonceArray, inTmp + inOffset,
                             aadArray, realFunc, inArray, outArray, outBytes.size() - outOffset, inLength);
 }
 
@@ -3622,12 +3622,6 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
 
      if (env->IsInstanceOf(inBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE || env->IsInstanceOf(outBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE  ) {
         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "ByteBuffer Class Error");
-        return 0;
-    }
-
-    jboolean out_read = env->CallBooleanMethod(outBuffer,conscrypt::jniutil::byteBuffer_isReadMethod);
-    if(out_read == JNI_TRUE) {
-        conscrypt::jniutil::throwException(env, "java/nio/ReadOnlyBufferException", "output Read Only Buffer Exception");
         return 0;
     }
 
@@ -3663,7 +3657,7 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
     inBuf += in_position;
     outBuf += out_position;
 
-    return evp_aead_ctx_op_ssl(env, evpAeadRef, keyArray, tagLen, outBuf, nonceArray, inBuf, aadArray, realFunc,
+    return evp_aead_ctx_op_common(env, evpAeadRef, keyArray, tagLen, outBuf, nonceArray, inBuf, aadArray, realFunc,
                             inBuffer, outBuffer, out_limit-out_position, in_limit-in_position);
 }
 
