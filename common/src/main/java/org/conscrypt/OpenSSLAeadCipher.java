@@ -231,35 +231,38 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
      * @throws BadPaddingException
      */
     @Override
-    protected int engineDoFinal(ByteBuffer input, ByteBuffer output) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+    protected int engineDoFinal(ByteBuffer input, ByteBuffer output) throws ShortBufferException,
+            IllegalBlockSizeException, BadPaddingException, IllegalArgumentException {
         if (input == null || output == null) {
             throw new NullPointerException("Null ByteBuffer Error");
         }
-        if ( getOutputSizeForFinal(input.remaining()) > output.remaining()) { // uses the child class's size if available
-            throw new ShortBufferException("Insufficient Bytes for Output Buffer");
+        if (getOutputSizeForFinal(input.remaining()) > output.remaining()) { // uses the child class's size if available
+            throw new ShortBufferWithoutStackTraceException("Insufficient Bytes for Output Buffer");
+        }
+        if (output.isReadOnly()) {
+            throw new IllegalArgumentException("Cannot write to Read Only ByteBuffer");
         }
         if (bufCount != 0) {
             return super.engineDoFinal(input, output);// traditional case
         }
-        ByteBuffer tmp;
         int bytesWritten;
         if (!input.isDirect()) {
-            int incap = input.remaining(); // was capacity
-            tmp = ByteBuffer.allocateDirect(incap);
-            tmp.mark();
-            tmp.put(input);
-            tmp.reset();
-            input = tmp;
+            int incap = input.remaining();
+            ByteBuffer inputClone = ByteBuffer.allocateDirect(incap);
+            inputClone.mark();
+            inputClone.put(input);
+            inputClone.reset();
+            input = inputClone;
         }
-        if (output.isDirect()) {
-            bytesWritten =  doFinalInternal(input, output);
-            output.position(output.position() + bytesWritten);
+        if (!output.isDirect()) {
+            ByteBuffer outputClone = ByteBuffer.allocateDirect(getOutputSizeForFinal(input.remaining()));
+            bytesWritten = doFinalInternal(input, outputClone);
+            output.put(outputClone);
             input.position(input.limit()); // API reasons
         }
         else {
-            tmp = ByteBuffer.allocateDirect(getOutputSizeForFinal(input.remaining()));
-            bytesWritten = doFinalInternal(input, tmp);
-            output.put(tmp);
+            bytesWritten =  doFinalInternal(input, output);
+            output.position(output.position() + bytesWritten);
             input.position(input.limit()); // API reasons
         }
 

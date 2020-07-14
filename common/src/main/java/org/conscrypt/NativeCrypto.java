@@ -334,15 +334,17 @@ public final class NativeCrypto {
             int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength, byte[] ad)
             throws ShortBufferException, BadPaddingException, IndexOutOfBoundsException;
 
-    static native int EVP_AEAD_CTX_seal_buf(long evpAead, byte[] key, int tagLengthInBytes, ByteBuffer out, byte[] nonce, ByteBuffer input, byte[] ad)
-            throws ShortBufferException, BadPaddingException, IndexOutOfBoundsException;
+    static native int EVP_AEAD_CTX_seal_buf(long evpAead, byte[] key, int tagLengthInBytes, ByteBuffer out,
+                                            byte[] nonce, ByteBuffer input, byte[] ad)
+            throws ShortBufferException, BadPaddingException, IndexOutOfBoundsException, IllegalArgumentException;
 
     static native int EVP_AEAD_CTX_open(long evpAead, byte[] key, int tagLengthInBytes, byte[] out,
             int outOffset, byte[] nonce, byte[] in, int inOffset, int inLength, byte[] ad)
             throws ShortBufferException, BadPaddingException, IndexOutOfBoundsException;
 
-    static native int EVP_AEAD_CTX_open_buf(long evpAead, byte[] key, int tagLengthInBytes, ByteBuffer out, byte[] nonce, ByteBuffer input, byte[] ad)
-            throws ShortBufferException, BadPaddingException, IndexOutOfBoundsException;
+    static native int EVP_AEAD_CTX_open_buf(long evpAead, byte[] key, int tagLengthInBytes, ByteBuffer out,
+                                            byte[] nonce, ByteBuffer input, byte[] ad)
+            throws ShortBufferException, BadPaddingException, IndexOutOfBoundsException, IllegalArgumentException;
 
     // --- HMAC functions ------------------------------------------------------
 
