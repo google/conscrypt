@@ -16,10 +16,10 @@
 
 package org.conscrypt;
 
-import javax.crypto.NoSuchPaddingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
+import javax.crypto.NoSuchPaddingException;
 
 @Internal
 public abstract class OpenSSLEvpCipherDESEDE extends OpenSSLEvpCipher {

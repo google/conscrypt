@@ -3620,7 +3620,8 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
     JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %p, %p)", evpAead, keyArray, tagLen,
               outBuffer, nonceArray, inBuffer, aadArray);
 
-     if (env->IsInstanceOf(inBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE || env->IsInstanceOf(outBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE  ) {
+    if (env->IsInstanceOf(inBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE ||
+                        env->IsInstanceOf(outBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE  ) {
         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "ByteBuffer Class Error");
         return 0;
     }
@@ -3639,26 +3640,26 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
     // position is the index of the next element to be read or written
     in_position = env->CallIntMethod(inBuffer,conscrypt::jniutil::buffer_positionMethod);
 
-     uint8_t* outBuf;
-     jint out_limit;
-     jint out_position;
-     jint outCapacity = env->GetDirectBufferCapacity(outBuffer);
-     if (outCapacity == -1) {
-         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Non Direct ByteBuffer  Error");
-         return 0;
-     }
-     outBuf = (uint8_t*)(env->GetDirectBufferAddress(outBuffer));
-     // limit is the index of the first element that should not be read or written
-     out_limit = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_limitMethod);
-     // position is the index of the next element to be read or written
-     out_position = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_positionMethod);
+    uint8_t* outBuf;
+    jint out_limit;
+    jint out_position;
+    jint outCapacity = env->GetDirectBufferCapacity(outBuffer);
+    if (outCapacity == -1) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Non Direct ByteBuffer  Error");
+        return 0;
+    }
+    outBuf = (uint8_t*)(env->GetDirectBufferAddress(outBuffer));
+    // limit is the index of the first element that should not be read or written
+    out_limit = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_limitMethod);
+    // position is the index of the next element to be read or written
+    out_position = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_positionMethod);
 
     // Shifting over of ByteBuffer address to start at true position
     inBuf += in_position;
     outBuf += out_position;
 
     return evp_aead_ctx_op_common(env, evpAeadRef, keyArray, tagLen, outBuf, nonceArray, inBuf, aadArray, realFunc,
-                            inBuffer, outBuffer, out_limit-out_position, in_limit-in_position);
+                               inBuffer, outBuffer, out_limit-out_position, in_limit-in_position);
 }
 
 static jint NativeCrypto_EVP_AEAD_CTX_seal(JNIEnv* env, jclass, jlong evpAeadRef,

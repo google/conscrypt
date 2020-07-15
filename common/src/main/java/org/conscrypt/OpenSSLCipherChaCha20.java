@@ -156,4 +156,5 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
     int getOutputSizeForUpdate(int inputLen) {
         return inputLen;
     }
+
 }

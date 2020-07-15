@@ -25,7 +25,6 @@ public class OpenSSLAeadCipherChaCha20 extends OpenSSLAeadCipher {
         super(Mode.POLY1305);
     }
 
-
     @Override
     void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
         if (keyLength != 32) {
