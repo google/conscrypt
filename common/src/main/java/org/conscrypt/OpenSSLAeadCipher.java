@@ -427,5 +427,4 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
 
     abstract long getEVP_AEAD(int keyLength) throws InvalidKeyException;
 
-
 }
