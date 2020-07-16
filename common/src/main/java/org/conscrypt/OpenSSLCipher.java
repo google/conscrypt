@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import java.nio.ByteBuffer;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
