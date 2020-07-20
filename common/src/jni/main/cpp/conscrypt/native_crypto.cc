@@ -3510,6 +3510,63 @@ typedef int (*evp_aead_ctx_op_func)(const EVP_AEAD_CTX* ctx, uint8_t* out, size_
                                     const uint8_t* in, size_t in_len, const uint8_t* ad,
                                     size_t ad_len);
 
+static jint evp_aead_ctx_op_common(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, jint tagLen,
+                               uint8_t* outBuf, jbyteArray nonceArray,
+                               const uint8_t* inBuf, jbyteArray aadArray,
+                               evp_aead_ctx_op_func realFunc, jobject inBuffer, jobject outBuffer, jint outRange, jint inRange)  {
+    const EVP_AEAD* evpAead = reinterpret_cast<const EVP_AEAD*>(evpAeadRef);
+
+    ScopedByteArrayRO keyBytes(env, keyArray);
+    if (keyBytes.get() == nullptr) {
+        return 0;
+    }
+
+    std::unique_ptr<ScopedByteArrayRO> aad;
+    const uint8_t* aad_chars = nullptr;
+    size_t aad_chars_size = 0;
+    if (aadArray != nullptr) {
+        aad.reset(new ScopedByteArrayRO(env, aadArray));
+        aad_chars = reinterpret_cast<const uint8_t*>(aad->get());
+        if (aad_chars == nullptr) {
+            return 0;
+        }
+        aad_chars_size = aad->size();
+    }
+
+    ScopedByteArrayRO nonceBytes(env, nonceArray);
+    if (nonceBytes.get() == nullptr) {
+        return 0;
+    }
+
+    bssl::ScopedEVP_AEAD_CTX aeadCtx;
+    const uint8_t* keyTmp = reinterpret_cast<const uint8_t*>(keyBytes.get());
+    if (!EVP_AEAD_CTX_init(aeadCtx.get(), evpAead, keyTmp, keyBytes.size(),
+                           static_cast<size_t>(tagLen), nullptr)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env,
+                                                             "failure initializing AEAD context");
+        JNI_TRACE(
+                "evp_aead_ctx_op(%p, %p, %d, %p, %p, %p, %p) => fail EVP_AEAD_CTX_init",
+                evpAead, keyArray, tagLen, outBuffer, nonceArray, inBuffer,
+                aadArray);
+        return 0;
+    }
+
+    const uint8_t* nonceTmp = reinterpret_cast<const uint8_t*>(nonceBytes.get());
+    size_t actualOutLength;
+
+    if (!realFunc(aeadCtx.get(), outBuf, &actualOutLength, outRange,
+                  nonceTmp, nonceBytes.size(), inBuf, static_cast<size_t>(inRange),
+                  aad_chars, aad_chars_size)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "evp_aead_ctx_op");
+        return 0;
+    }
+
+    JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %p, %p) => success outlength=%zd",
+              evpAead, keyArray, tagLen, outBuffer, nonceArray, inBuffer,
+              aadArray, actualOutLength);
+    return static_cast<jint>(actualOutLength);
+}
+
 static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, jint tagLen,
                             jbyteArray outArray, jint outOffset, jbyteArray nonceArray,
                             jbyteArray inArray, jint inOffset, jint inLength, jbyteArray aadArray,
@@ -3518,10 +3575,6 @@ static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, 
     JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %d, %p, %p, %d, %d, %p)", evpAead, keyArray, tagLen,
               outArray, outOffset, nonceArray, inArray, inOffset, inLength, aadArray);
 
-    ScopedByteArrayRO keyBytes(env, keyArray);
-    if (keyBytes.get() == nullptr) {
-        return 0;
-    }
 
     ScopedByteArrayRW outBytes(env, outArray);
     if (outBytes.get() == nullptr) {
@@ -3551,51 +3604,62 @@ static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, 
         return 0;
     }
 
-    std::unique_ptr<ScopedByteArrayRO> aad;
-    const uint8_t* aad_chars = nullptr;
-    size_t aad_chars_size = 0;
-    if (aadArray != nullptr) {
-        aad.reset(new ScopedByteArrayRO(env, aadArray));
-        aad_chars = reinterpret_cast<const uint8_t*>(aad->get());
-        if (aad_chars == nullptr) {
-            return 0;
-        }
-        aad_chars_size = aad->size();
-    }
-
-    ScopedByteArrayRO nonceBytes(env, nonceArray);
-    if (nonceBytes.get() == nullptr) {
-        return 0;
-    }
-
-    bssl::ScopedEVP_AEAD_CTX aeadCtx;
-    const uint8_t* keyTmp = reinterpret_cast<const uint8_t*>(keyBytes.get());
-    if (!EVP_AEAD_CTX_init(aeadCtx.get(), evpAead, keyTmp, keyBytes.size(),
-                           static_cast<size_t>(tagLen), nullptr)) {
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env,
-                                                             "failure initializing AEAD context");
-        JNI_TRACE(
-                "evp_aead_ctx_op(%p, %p, %d, %p, %d, %p, %p, %d, %d, %p) => fail EVP_AEAD_CTX_init",
-                evpAead, keyArray, tagLen, outArray, outOffset, nonceArray, inArray, inOffset,
-                inLength, aadArray);
-        return 0;
-    }
-
     uint8_t* outTmp = reinterpret_cast<uint8_t*>(outBytes.get());
     const uint8_t* inTmp = reinterpret_cast<const uint8_t*>(inBytes.get());
-    const uint8_t* nonceTmp = reinterpret_cast<const uint8_t*>(nonceBytes.get());
-    size_t actualOutLength;
-    if (!realFunc(aeadCtx.get(), outTmp + outOffset, &actualOutLength, outBytes.size() - outOffset,
-                  nonceTmp, nonceBytes.size(), inTmp + inOffset, static_cast<size_t>(inLength),
-                  aad_chars, aad_chars_size)) {
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "evp_aead_ctx_op");
+
+    return evp_aead_ctx_op_common(env, evpAeadRef, keyArray, tagLen, outTmp + outOffset, nonceArray, inTmp + inOffset,
+                            aadArray, realFunc, inArray, outArray, outBytes.size() - outOffset, inLength);
+}
+
+static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, jint tagLen,
+                            jobject outBuffer, jbyteArray nonceArray,
+                            jobject inBuffer, jbyteArray aadArray,
+                            evp_aead_ctx_op_func realFunc) {
+
+    const EVP_AEAD* evpAead = reinterpret_cast<const EVP_AEAD*>(evpAeadRef);
+    JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %p, %p)", evpAead, keyArray, tagLen,
+              outBuffer, nonceArray, inBuffer, aadArray);
+
+    if (env->IsInstanceOf(inBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE ||
+                        env->IsInstanceOf(outBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE  ) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "ByteBuffer Class Error");
         return 0;
     }
 
-    JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %d, %p, %p, %d, %d, %p) => success outlength=%zd",
-              evpAead, keyArray, tagLen, outArray, outOffset, nonceArray, inArray, inOffset,
-              inLength, aadArray, actualOutLength);
-    return static_cast<jint>(actualOutLength);
+    uint8_t* inBuf;
+    jint in_limit;
+    jint in_position;
+    jint inCapacity = env->GetDirectBufferCapacity(inBuffer);
+    if (inCapacity == -1) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Non Direct ByteBuffer  Error");
+        return 0;
+    }
+    inBuf = (uint8_t*)(env->GetDirectBufferAddress(inBuffer));
+     // limit is the index of the first element that should not be read or written
+    in_limit = env->CallIntMethod(inBuffer,conscrypt::jniutil::buffer_limitMethod);
+    // position is the index of the next element to be read or written
+    in_position = env->CallIntMethod(inBuffer,conscrypt::jniutil::buffer_positionMethod);
+
+    uint8_t* outBuf;
+    jint out_limit;
+    jint out_position;
+    jint outCapacity = env->GetDirectBufferCapacity(outBuffer);
+    if (outCapacity == -1) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Non Direct ByteBuffer  Error");
+        return 0;
+    }
+    outBuf = (uint8_t*)(env->GetDirectBufferAddress(outBuffer));
+    // limit is the index of the first element that should not be read or written
+    out_limit = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_limitMethod);
+    // position is the index of the next element to be read or written
+    out_position = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_positionMethod);
+
+    // Shifting over of ByteBuffer address to start at true position
+    inBuf += in_position;
+    outBuf += out_position;
+
+    return evp_aead_ctx_op_common(env, evpAeadRef, keyArray, tagLen, outBuf, nonceArray, inBuf, aadArray, realFunc,
+                               inBuffer, outBuffer, out_limit-out_position, in_limit-in_position);
 }
 
 static jint NativeCrypto_EVP_AEAD_CTX_seal(JNIEnv* env, jclass, jlong evpAeadRef,
@@ -3617,6 +3681,24 @@ static jint NativeCrypto_EVP_AEAD_CTX_open(JNIEnv* env, jclass, jlong evpAeadRef
     return evp_aead_ctx_op(env, evpAeadRef, keyArray, tagLen, outArray, outOffset, nonceArray,
                            inArray, inOffset, inLength, aadArray, EVP_AEAD_CTX_open);
 }
+
+static jint NativeCrypto_EVP_AEAD_CTX_seal_buf(JNIEnv* env, jclass, jlong evpAeadRef,
+                                           jbyteArray keyArray, jint tagLen, jobject outBuffer,
+                                           jbyteArray nonceArray, jobject inBuffer, jbyteArray aadArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    return evp_aead_ctx_op_buf(env, evpAeadRef, keyArray, tagLen, outBuffer, nonceArray,
+                           inBuffer, aadArray, EVP_AEAD_CTX_seal);
+}
+
+static jint NativeCrypto_EVP_AEAD_CTX_open_buf(JNIEnv* env, jclass, jlong evpAeadRef,
+                                           jbyteArray keyArray, jint tagLen, jobject outBuffer,
+                                           jbyteArray nonceArray, jobject inBuffer, jbyteArray aadArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    return evp_aead_ctx_op_buf(env, evpAeadRef, keyArray, tagLen, outBuffer, nonceArray,
+                           inBuffer, aadArray, EVP_AEAD_CTX_open);
+}
+
+
 
 static jlong NativeCrypto_HMAC_CTX_new(JNIEnv* env, jclass) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -10189,6 +10271,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_nonce_length, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_seal, "(J[BI[BI[B[BII[B)I"),
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_open, "(J[BI[BI[B[BII[B)I"),
+        CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_seal_buf, "(J[BILjava/nio/ByteBuffer;[BLjava/nio/ByteBuffer;[B)I"),
+        CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_open_buf, "(J[BILjava/nio/ByteBuffer;[BLjava/nio/ByteBuffer;[B)I"),
         CONSCRYPT_NATIVE_METHOD(HMAC_CTX_new, "()J"),
         CONSCRYPT_NATIVE_METHOD(HMAC_CTX_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(HMAC_Init_ex, "(" REF_HMAC_CTX "[BJ)V"),

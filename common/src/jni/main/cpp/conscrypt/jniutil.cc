@@ -37,6 +37,8 @@ jclass integerClass;
 jclass inputStreamClass;
 jclass outputStreamClass;
 jclass stringClass;
+jclass byteBufferClass;
+jclass bufferClass;
 
 jfieldID nativeRef_address;
 
@@ -46,6 +48,8 @@ jmethodID integer_valueOfMethod;
 jmethodID openSslInputStream_readLineMethod;
 jmethodID outputStream_writeMethod;
 jmethodID outputStream_flushMethod;
+jmethodID buffer_positionMethod;
+jmethodID buffer_limitMethod;
 
 void init(JavaVM* vm, JNIEnv* env) {
     gJavaVM = vm;
@@ -58,6 +62,8 @@ void init(JavaVM* vm, JNIEnv* env) {
     objectArrayClass = findClass(env, "[Ljava/lang/Object;");
     outputStreamClass = findClass(env, "java/io/OutputStream");
     stringClass = findClass(env, "java/lang/String");
+    byteBufferClass = findClass(env, "java/nio/ByteBuffer");
+    bufferClass = findClass(env, "java/nio/Buffer");
 
     cryptoUpcallsClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/CryptoUpcalls");
@@ -76,6 +82,8 @@ void init(JavaVM* vm, JNIEnv* env) {
             getMethodRef(env, openSslInputStreamClass, "gets", "([B)I");
     outputStream_writeMethod = getMethodRef(env, outputStreamClass, "write", "([B)V");
     outputStream_flushMethod = getMethodRef(env, outputStreamClass, "flush", "()V");
+    buffer_positionMethod = getMethodRef(env, bufferClass, "position", "()I");
+    buffer_limitMethod = getMethodRef(env, bufferClass, "limit", "()I");
 }
 
 void jniRegisterNativeMethods(JNIEnv* env, const char* className, const JNINativeMethod* gMethods,
