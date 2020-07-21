@@ -413,7 +413,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     }
 
     @SuppressWarnings("unchecked")
-    private byte[] getOcspDataFromSession(SSLSession session) {
+    private static byte[] getOcspDataFromSession(SSLSession session) {
         List<byte[]> ocspResponses = null;
         if (session instanceof ConscryptSession) {
             ConscryptSession opensslSession = (ConscryptSession) session;

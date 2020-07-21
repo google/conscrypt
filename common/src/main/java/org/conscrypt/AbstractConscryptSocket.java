@@ -37,8 +37,6 @@ import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.X509KeyManager;
-import javax.security.auth.x500.X500Principal;
 
 /**
  * Abstract base class for all Conscrypt {@link SSLSocket} classes.

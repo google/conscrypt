@@ -222,9 +222,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
 
     /**
      * Encrypts of decrypts data in a single-part operations or finishes multiple part operation.
-     * @param input Input data that is returned fully read
-     * @param output the storage buffer of the resulting encryption decryption. Output is returned position
-     *              incremented by bytesWritten Limit stays the same
+     * @param input input data that is returned fully read
+     * @param output the storage buffer of the resulting encryption decryption.
      * @return number of bytes the output buffer's position has moved by.
      * @throws ShortBufferException if output.remaining() bytes are insufficient to hold the result.
      * @throws IllegalBlockSizeException
@@ -232,11 +231,11 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
      */
     @Override
     protected int engineDoFinal(ByteBuffer input, ByteBuffer output) throws ShortBufferException,
-            IllegalBlockSizeException, BadPaddingException, IllegalArgumentException {
+            IllegalBlockSizeException, BadPaddingException {
         if (input == null || output == null) {
             throw new NullPointerException("Null ByteBuffer Error");
         }
-        if (getOutputSizeForFinal(input.remaining()) > output.remaining()) { // uses the child class's size if available
+        if (getOutputSizeForFinal(input.remaining()) > output.remaining()) {
             throw new ShortBufferWithoutStackTraceException("Insufficient Bytes for Output Buffer");
         }
         if (output.isReadOnly()) {
@@ -255,7 +254,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             input = inputClone;
         }
         if (!output.isDirect()) {
-            ByteBuffer outputClone = ByteBuffer.allocateDirect(getOutputSizeForFinal(input.remaining()));
+            ByteBuffer outputClone = ByteBuffer.allocateDirect(
+                    getOutputSizeForFinal(input.remaining()));
             bytesWritten = doFinalInternal(input, outputClone);
             output.put(outputClone);
             input.position(input.limit()); // API reasons
@@ -330,14 +330,17 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         }
     }
 
-    int doFinalInternal(ByteBuffer input, ByteBuffer output) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+    int doFinalInternal(ByteBuffer input, ByteBuffer output)
+            throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         checkInitialization();
         final int bytesWritten;
         try {
             if (isEncrypting()) {
-                bytesWritten = NativeCrypto.EVP_AEAD_CTX_seal_buf(evpAead, encodedKey, tagLengthInBytes, output, iv, input, aad);
+                bytesWritten = NativeCrypto.EVP_AEAD_CTX_seal_buf(
+                        evpAead, encodedKey, tagLengthInBytes, output, iv, input, aad);
             } else {
-                bytesWritten = NativeCrypto.EVP_AEAD_CTX_open_buf(evpAead, encodedKey, tagLengthInBytes, output, iv, input, aad);
+                bytesWritten = NativeCrypto.EVP_AEAD_CTX_open_buf(
+                        evpAead, encodedKey, tagLengthInBytes, output, iv, input, aad);
             }
         } catch (BadPaddingException e) {
             throwAEADBadTagExceptionIfAvailable(e.getMessage(), e.getCause());
