@@ -163,7 +163,7 @@ public class CTVerifier {
      * @param origin used to create the SignedCertificateTimestamp instances.
      */
     @SuppressWarnings("MixedMutabilityReturnType")
-    private List<SignedCertificateTimestamp> getSCTsFromSCTList(byte[] data,
+    private static List<SignedCertificateTimestamp> getSCTsFromSCTList(byte[] data,
             SignedCertificateTimestamp.Origin origin) {
         if (data == null) {
             return Collections.emptyList();
