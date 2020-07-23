@@ -3660,6 +3660,7 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
 
     size_t inSize = in_limit - in_position;
     uint8_t* outBufEnd = outBuf + out_limit - out_position;
+
     uint8_t* inBufEnd = inBuf + inSize;
     std::unique_ptr<uint8_t[]> inCopy;
     if (outBufEnd >= inBuf && inBufEnd >= outBuf) { // We have an overlap
