@@ -3658,6 +3658,16 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
     inBuf += in_position;
     outBuf += out_position;
 
+    uint8_t* outBufEnd = outBuf + out_limit;
+    uint8_t* inBufEnd = inBuf + in_limit;
+    if (outBufEnd >= inBuf && inBufEnd >= outBuf) { // We have an overlap doggo
+//        uint8_t* inCopy = (uint8_t*) malloc(in_limit - in_position);
+//        memcpy(inCopy, inBuf, in_limit - in_position);
+//        inBuf = inCopy;
+        std::vector<uint8_t> inVector(inBuf, inBuf + in_limit);
+        inBuf = inVector.data();
+    }
+
     return evp_aead_ctx_op_common(env, evpAeadRef, keyArray, tagLen, outBuf, nonceArray, inBuf, aadArray, realFunc,
                                inBuffer, outBuffer, out_limit-out_position, in_limit-in_position);
 }
