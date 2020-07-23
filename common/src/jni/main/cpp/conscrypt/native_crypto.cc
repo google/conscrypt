@@ -3664,8 +3664,9 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
 //        uint8_t* inCopy = (uint8_t*) malloc(in_limit - in_position);
 //        memcpy(inCopy, inBuf, in_limit - in_position);
 //        inBuf = inCopy;
-        std::vector<uint8_t> inVector(inBuf, inBuf + in_limit);
-        inBuf = inVector.data();
+        std::vector<uint8_t> inVector(inBuf, inBuf + in_limit - in_position);
+        return evp_aead_ctx_op_common(env, evpAeadRef, keyArray, tagLen, outBuf, nonceArray, inVector.data(), aadArray,
+                                    realFunc, inBuffer, outBuffer, out_limit-out_position, in_limit-in_position);
     }
 
     return evp_aead_ctx_op_common(env, evpAeadRef, keyArray, tagLen, outBuf, nonceArray, inBuf, aadArray, realFunc,
