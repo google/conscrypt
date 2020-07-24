@@ -3664,7 +3664,7 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
     std::unique_ptr<uint8_t[]> inCopy(new(std::nothrow) uint8_t[inSize]);
     if (outBufEnd >= inBuf && inBufEnd >= outBuf) { // We have an overlap
       if (inCopy.get() == nullptr) {
-            conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate new buffer for buffer overlap");
+            conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate new buffer for overlap");
             return 0;
         }
         memcpy(inCopy.get(), inBuf, inSize);
