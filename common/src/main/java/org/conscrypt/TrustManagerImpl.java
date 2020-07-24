@@ -1015,11 +1015,10 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         if (hostnameVerifier != null) {
             return hostnameVerifier;
         }
-        ConscryptHostnameVerifier defaultVerifier = getDefaultHostnameVerifier();
+        ConscryptHostnameVerifier defaultVerifier = getDefaultHostnameVerifier(); // this is still needed for current tests. Will I have to remove this and update teh tests to work with default or are teh predefined tests still valid?
         if (defaultVerifier != null) {
             return defaultVerifier;
         }
-//        return GlobalHostnameVerifierAdapter.INSTANCE;
         return Platform.getDefaultHostnameVerifier();
     }
 
