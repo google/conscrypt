@@ -3658,12 +3658,17 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
     inBuf += in_position;
     outBuf += out_position;
 
+    size_t inSize = in_limit - in_position;
     uint8_t* outBufEnd = outBuf + out_limit - out_position;
-    uint8_t* inBufEnd = inBuf + in_limit - in_position;
+    uint8_t* inBufEnd = inBuf + inSize;
+    std::unique_ptr<uint8_t[]> inCopy(new(std::nothrow) uint8_t[inSize]);
     if (outBufEnd >= inBuf && inBufEnd >= outBuf) { // We have an overlap
-        std::vector<uint8_t> inVector(inBuf, inBuf + in_limit - in_position);
-        return evp_aead_ctx_op_common(env, evpAeadRef, keyArray, tagLen, outBuf, nonceArray, inVector.data(), aadArray,
-                                    realFunc, inBuffer, outBuffer, out_limit-out_position, in_limit-in_position);
+      if (inCopy.get() == nullptr) {
+            conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate new buffer for buffer overlap");
+            return 0;
+        }
+        memcpy(inCopy.get(), inBuf, inSize);
+        inBuf = inCopy.get();
     }
 
     return evp_aead_ctx_op_common(env, evpAeadRef, keyArray, tagLen, outBuf, nonceArray, inBuf, aadArray, realFunc,
