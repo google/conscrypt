@@ -1020,7 +1020,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             return defaultVerifier;
         }
 //        return GlobalHostnameVerifierAdapter.INSTANCE;
-        return OkHostnameVerifier.strictInstance();
+        return Platform.getDefaultHostnameVerifier();
     }
 
     public void setCTEnabledOverride(boolean enabled) {

@@ -785,4 +785,8 @@ final class Platform {
             });
         }
     }
+
+    public static ConscryptHostnameVerifier getDefaultHostnameVerifier() {
+        return OkHostnameVerifier.strictInstance();
+    }
 }

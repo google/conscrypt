@@ -1019,4 +1019,8 @@ final class Platform {
         }
         return false;
     }
+
+    public static HostNameVerifier getDefaultHostNameVerifier() {
+        return HttpsURLConnection.getDefaultHostnameVerifier();
+    }
 }
