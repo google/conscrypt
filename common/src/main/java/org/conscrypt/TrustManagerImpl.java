@@ -998,7 +998,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      *
      * @see #setHostnameVerifier(ConscryptHostnameVerifier)
      */
-    ConscryptHostnameVerifier getHostnameVerifier() {
+    ConscryptHostnameVerifier getHostnameVerifier() { // doggo
         return hostnameVerifier;
     }
 
@@ -1011,7 +1011,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         }
     }
 
-    private ConscryptHostnameVerifier getHttpsVerifier() {
+    private ConscryptHostnameVerifier getHttpsVerifier() { // doggo
         if (hostnameVerifier != null) {
             return hostnameVerifier;
         }
@@ -1019,7 +1019,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         if (defaultVerifier != null) {
             return defaultVerifier;
         }
-        return GlobalHostnameVerifierAdapter.INSTANCE;
+//        return GlobalHostnameVerifierAdapter.INSTANCE;
+        return OkHostnameVerifier.strictInstance();
     }
 
     public void setCTEnabledOverride(boolean enabled) {
