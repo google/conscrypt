@@ -414,6 +414,95 @@ public final class CipherBasicsTest {
         return transformation;
     }
 
+    /**
+     * Encryption with ByteBuffers should be copy-safe even if the buffers have different starting
+     * offsets and/or do not make the backing array visible.
+     *
+     * <p>Note that bugs in this often require a sizeable input to reproduce; the default
+     * implementation of engineUpdate(ByteBuffer, ByteBuffer) copies through 4KB bounce buffers, so we
+     * need to use something larger to see any problems - 8KB is what we use here.
+     *
+     * @see https://bugs.openjdk.java.net/browse/JDK-8181386
+     */
+    @Test
+    public void testByteBufferShiftedAlias() throws Exception {
+        byte[] ptVector = new byte[8192];
+
+        for (int i = 0; i < 3; i++) {
+            // outputOffset = offset relative to start of input.
+            for (int outputOffset = -1; outputOffset <= 1; outputOffset++) {
+
+                SecretKeySpec key = new SecretKeySpec(new byte[16], "AES");
+                GCMParameterSpec parameters = new GCMParameterSpec(128, new byte[12]);
+                Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+                cipher.init(Cipher.ENCRYPT_MODE, key, parameters);
+
+                ByteBuffer output, input, inputRO;
+
+                // We'll try three scenarios: Ordinary array backed buffers, array backed buffers where one
+                // is read-only, and direct byte buffers.
+                String mode;
+                // offsets relative to start of buffer
+                int inputOffsetInBuffer = 1;
+                int outputOffsetInBuffer = inputOffsetInBuffer + outputOffset;
+                int sliceLength = cipher.getOutputSize(ptVector.length);
+                int bufferSize = sliceLength + Math.max(inputOffsetInBuffer, outputOffsetInBuffer);
+
+                mode = "direct buffers";
+                ByteBuffer buf = ByteBuffer.allocateDirect(bufferSize);
+                output = buf.duplicate();
+                output.position(outputOffsetInBuffer);
+                output.limit(sliceLength + outputOffsetInBuffer);
+                output = output.slice();
+
+                input = buf.duplicate();
+                input.position(inputOffsetInBuffer);
+                input.limit(sliceLength + inputOffsetInBuffer);
+                input = input.slice();
+
+                inputRO = input.duplicate();
+
+                // Now that we have our overlapping 'input' and 'output' buffers, we can write our plaintext
+                // into the input buffer.
+                input.put(ptVector);
+                input.flip();
+                // Make sure the RO input buffer has the same limit in case the plaintext is shorter than
+                // sliceLength (which it generally will be for anything other than ECB or CTR mode)
+                inputRO.limit(input.limit());
+
+                try {
+                    int ctSize = cipher.doFinal(inputRO, output);
+
+                    // Now flip the buffers around and undo everything
+                    byte[] tmp = new byte[ctSize];
+                    output.flip();
+                    output.get(tmp);
+
+                    output.clear();
+                    input.clear();
+                    inputRO.clear();
+
+                    input.put(tmp);
+                    input.flip();
+                    inputRO.limit(input.limit());
+
+                    cipher.init(Cipher.DECRYPT_MODE, key, parameters);
+                    cipher.doFinal(inputRO, output);
+
+                    output.flip();
+                    assertEquals(ByteBuffer.wrap(ptVector), output);
+                } catch (Throwable t) {
+                    throw new AssertionError(
+                            "Overlapping buffers test failed with buffer type: "
+                                    + mode
+                                    + " and output offset "
+                                    + outputOffset,
+                            t);
+                }
+            }
+        }
+    }
+
     private static byte[] toBytes(String hex) {
         return TestUtils.decodeHex(hex, /* allowSingleChar= */ true);
     }
