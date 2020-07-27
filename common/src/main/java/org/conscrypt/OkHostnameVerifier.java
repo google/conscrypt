@@ -119,6 +119,19 @@ public final class OkHostnameVerifier implements ConscryptHostnameVerifier {
         return false;
     }
 
+    // BEGIN Android-removed: Ignore common name in hostname verification. http://b/70278814
+    /*
+    if (!hasDns) {
+      X500Principal principal = certificate.getSubjectX500Principal();
+      // RFC 2818 advises using the most specific name for matching.
+      String cn = new DistinguishedNameParser(principal).findMostSpecific("cn");
+      if (cn != null) {
+        return verifyHostName(hostName, cn);
+      }
+    }
+    */
+    // END Android-removed: Ignore common name in hostname verification. http://b/70278814
+
     public static List<String> allSubjectAltNames(X509Certificate certificate) {
         List<String> altIpaNames = getSubjectAltNames(certificate, ALT_IPA_NAME);
         List<String> altDnsNames = getSubjectAltNames(certificate, ALT_DNS_NAME);

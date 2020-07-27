@@ -48,6 +48,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.net.ssl.HttpsURLConnection.HostnameVerifier;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
@@ -64,7 +65,7 @@ import org.conscrypt.ct.CTLogStoreImpl;
 import org.conscrypt.ct.CTPolicy;
 import org.conscrypt.ct.CTPolicyImpl;
 import sun.security.x509.AlgorithmId;
-
+// use https one here
 final class Platform {
     private static class NoPreloadHolder { public static final Platform MAPPER = new Platform(); }
 
@@ -529,5 +530,9 @@ final class Platform {
             }
         }
         return false;
+    }
+
+    public static ConscryptHostnameVerifier getDefaultHostnameVerifier() {
+        return Conscrypt.wrapHostnameVerifier(HttpsURLConnection.getDefaultHostnameVerifier());
     }
 }

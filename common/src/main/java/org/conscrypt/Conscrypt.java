@@ -22,18 +22,10 @@ import java.security.KeyManagementException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.util.Properties;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLContextSpi;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLServerSocketFactory;
-import javax.net.ssl.SSLSessionContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+//import javax.net.ssl.HttpsURLConnection.HostnameVerifier; THIS IS GIVING ISSUES FOR SOME REASON
+import javax.net.ssl.*;
+import javax.net.ssl.HostnameVerifier;
+
 import org.conscrypt.io.IoUtils;
 
 /**
@@ -781,5 +773,17 @@ public final class Conscrypt {
         return toConscrypt(trustManager).getHostnameVerifier();
     }
 
-
+    /**
+     * Wraps the HttpsURLConnection.HostnameVerifier into a ConscryptHostnameVerifier
+     */
+    public static ConscryptHostnameVerifier wrapHostnameVerifier(final HostnameVerifier verifier) {
+        // needed to add final due to : error: local variable verifier is accessed from within inner class; needs to be declared final
+//        Cannot find HttpsURLConnection.HostnameVerifier
+        return  new ConscryptHostnameVerifier() {
+            @Override
+            public boolean verify(String hostname, SSLSession session) {
+                return verifier.verify(hostname, session);
+            }
+        };
+    }
 }
