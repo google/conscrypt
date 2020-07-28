@@ -76,6 +76,7 @@ import org.junit.runners.Suite;
         CertPinManagerTest.class,
         ChainStrengthAnalyzerTest.class,
         TrustManagerImplTest.class,
+        HostnameVerifierTest.class,
         // org.conscrypt.ct tests
         CTVerifierTest.class,
         SerializationTest.class,

@@ -1002,14 +1002,14 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         return hostnameVerifier;
     }
 
-    private enum GlobalHostnameVerifierAdapter implements ConscryptHostnameVerifier {
-        INSTANCE;
-
-        @Override
-        public boolean verify(String hostname, SSLSession session) {
-            return HttpsURLConnection.getDefaultHostnameVerifier().verify(hostname, session);
-        }
-    }
+//    private enum GlobalHostnameVerifierAdapter implements ConscryptHostnameVerifier {
+//        INSTANCE;
+//
+//        @Override
+//        public boolean verify(String hostname, SSLSession session) {
+//            return HttpsURLConnection.getDefaultHostnameVerifier().verify(hostname, session);
+//        }
+//    }
 
     private ConscryptHostnameVerifier getHttpsVerifier() { // doggo
         if (hostnameVerifier != null) {

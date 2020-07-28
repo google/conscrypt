@@ -25,6 +25,7 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.security.auth.x500.X500Principal;
 import org.junit.Ignore;
@@ -45,6 +46,24 @@ import static org.junit.Assert.assertTrue;
  */
 @RunWith(Parameterized.class)
 public final class HostnameVerifierTest {
+    public final class FakeSSLSession extends org.conscrypt.javax.net.ssl.FakeSSLSession {
+
+        private final Certificate[] certificates;
+
+        public FakeSSLSession(Certificate... certificates) throws Exception {
+            super("FakeHost");
+            this.certificates = certificates;
+        }
+
+        @Override
+        public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
+            if (certificates.length == 0) {
+                throw new SSLPeerUnverifiedException("peer not authenticated");
+            } else {
+                return certificates;
+            }
+        }
+    }
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
     // BEGIN Android-changed: Run tests for both default and strict verifiers. http://b/144694112
@@ -60,13 +79,12 @@ public final class HostnameVerifierTest {
     }
 
     @Parameter
-    public HostnameVerifier verifier;
+    public OkHostnameVerifier verifier;
     // END Android-changed: Run tests for both default and strict verifiers. http://b/144694112
 
     @Test public void verify() throws Exception {
         FakeSSLSession session = new FakeSSLSession();
         assertFalse(verifier.verify("localhost", session));
-        assertEquals(1,0);
     }
 
     @Test public void verifyCn() throws Exception {

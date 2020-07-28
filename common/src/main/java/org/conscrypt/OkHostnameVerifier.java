@@ -37,7 +37,7 @@ import javax.net.ssl.SSLSession;
 public final class OkHostnameVerifier implements ConscryptHostnameVerifier {
     // Android-changed: Add a mode which disallows top-level domain wildcards. b/144694112
     // public static final OkHostnameVerifier INSTANCE = new OkHostnameVerifier();
-    public static final OkHostnameVerifier INSTANCE = new OkHostnameVerifier(true);
+    public static final OkHostnameVerifier INSTANCE = new OkHostnameVerifier(false);
 
     /**
      * Quick and dirty pattern to differentiate IP addresses from hostnames. This
@@ -180,13 +180,13 @@ public final class OkHostnameVerifier implements ConscryptHostnameVerifier {
     private boolean verifyHostName(String hostName, String pattern) {
         // Basic sanity checks
         // Check length == 0 instead of .isEmpty() to support Java 5.
-        if ((hostName == null) || (hostName.length() == 0) || (hostName.startsWith("."))
-                || (hostName.endsWith(".."))) {
+        if (hostName == null || hostName.length() == 0 || hostName.startsWith(".")
+                || hostName.endsWith("..")) {
             // Invalid domain name
             return false;
         }
-        if ((pattern == null) || (pattern.length() == 0) || (pattern.startsWith("."))
-                || (pattern.endsWith(".."))) {
+        if (pattern == null || pattern.length() == 0 || pattern.startsWith(".")
+                || pattern.endsWith("..")) {
             // Invalid pattern/domain name
             return false;
         }
@@ -229,7 +229,7 @@ public final class OkHostnameVerifier implements ConscryptHostnameVerifier {
         // 4. Android-added: if strictWildcardMode is true then wildcards matching top-level domains,
         //    e.g. *.com, are not permitted.
 
-        if ((!pattern.startsWith("*.")) || (pattern.indexOf('*', 1) != -1)) {
+        if (!pattern.startsWith("*.") || pattern.indexOf('*', 1) != -1) {
             // Asterisk (*) is only permitted in the left-most domain name label and must be the only
             // character in that label
             return false;
