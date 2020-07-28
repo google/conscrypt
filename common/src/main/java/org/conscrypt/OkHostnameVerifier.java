@@ -174,8 +174,8 @@ public final class OkHostnameVerifier implements ConscryptHostnameVerifier {
      * Returns {@code true} iff {@code hostName} matches the domain name {@code pattern}.
      *
      * @param hostName lower-case host name.
-     * @param pattern domain name pattern from certificate. May be a wildcard pattern such as
-     *        {@code *.android.com}.
+     * @param pattern  domain name pattern from certificate. May be a wildcard pattern such as
+     *                 {@code *.android.com}.
      */
     private boolean verifyHostName(String hostName, String pattern) {
         // Basic sanity checks

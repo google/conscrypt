@@ -518,7 +518,7 @@ public class TrustManagerImplTest {
         }
     }
 
-    private static class TestHostnameVerifier
-        extends org.conscrypt.javax.net.ssl.TestHostnameVerifier
-        implements ConscryptHostnameVerifier {}
+//    private static class TestHostnameVerifier
+//        extends org.conscrypt.javax.net.ssl.TestHostnameVerifier
+//        implements ConscryptHostnameVerifier {}
 }
