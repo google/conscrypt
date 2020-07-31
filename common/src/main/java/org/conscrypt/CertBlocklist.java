@@ -22,15 +22,15 @@ import java.security.PublicKey;
 /**
  * A set of certificates that are blacklisted from trust.
  */
-public interface CertBlacklist {
+public interface CertBlocklist {
 
     /**
      * Returns whether the given public key is in the blacklist.
      */
-    boolean isPublicKeyBlackListed(PublicKey publicKey);
+    boolean isPublicKeyBlockListed(PublicKey publicKey);
 
     /**
      * Returns whether the given serial number is in the blacklist.
      */
-    boolean isSerialNumberBlackListed(BigInteger serial);
+    boolean isSerialNumberBlockListed(BigInteger serial);
 }
