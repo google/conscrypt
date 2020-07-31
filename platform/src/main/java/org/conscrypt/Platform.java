@@ -503,8 +503,8 @@ final class Platform {
         return new TrustedCertificateStore();
     }
 
-    static CertBlacklist newDefaultBlacklist() {
-        return CertBlacklistImpl.getDefault();
+    static CertBlocklist newDefaultBlocklist() {
+        return CertBlocklistImpl.getDefault();
     }
 
     static CTLogStore newDefaultLogStore() {

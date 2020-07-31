@@ -984,7 +984,7 @@ final class Platform {
         return null;
     }
 
-    static CertBlacklist newDefaultBlacklist() {
+    static CertBlocklist newDefaultBlocklist() {
         return null;
     }
 
