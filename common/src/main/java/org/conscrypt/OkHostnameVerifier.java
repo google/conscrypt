@@ -70,12 +70,16 @@ public final class OkHostnameVerifier implements ConscryptHostnameVerifier {
     // END Android-changed: Add a mode which disallows top-level domain wildcards. b/144694112
 
     @Override
-    public boolean verify(String host, SSLSession session) {
-        try {
-            Certificate[] certificates = session.getPeerCertificates();
-            return verify(host, (X509Certificate) certificates[0]);
-        } catch (SSLException e) {
-            return false;
+    public boolean verify(X509Certificate[] certs, String host, SSLSession session) {
+        if (certs.length > 0) {
+            return verify(host, certs[0]);
+        } else {
+            try {
+                Certificate[] certificates = session.getPeerCertificates();
+                return verify(host, (X509Certificate) certificates[0]);
+            } catch (SSLException e) {
+                return false;
+            }
         }
     }
 

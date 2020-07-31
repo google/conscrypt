@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.PrivateKey;
 import java.security.Provider;
+import java.security.cert.X509Certificate;
 import java.util.Properties;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -791,7 +792,7 @@ public final class Conscrypt {
         // Cannot find HttpsURLConnection.HostnameVerifier
         return  new ConscryptHostnameVerifier() {
             @Override
-            public boolean verify(String hostname, SSLSession session) {
+            public boolean verify(X509Certificate[] certs, String hostname, SSLSession session) {
                 return verifier.verify(hostname, session);
             }
         };

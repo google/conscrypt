@@ -28,6 +28,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.security.auth.x500.X500Principal;
@@ -57,9 +58,8 @@ public final class HostnameVerifierTest {
         public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
             if (certificates.length == 0) {
                 throw new SSLPeerUnverifiedException("peer not authenticated");
-            } else {
-                return certificates;
             }
+            return certificates;
         }
     }
 
@@ -82,7 +82,8 @@ public final class HostnameVerifierTest {
 
     @Test public void verify() throws Exception {
         FakeSSLSession session = new FakeSSLSession();
-        assertFalse(verifier.verify("localhost", session));
+        X509Certificate[] certs = {};
+        assertFalse(verifier.verify(certs,"localhost", session));
     }
 
     @Test public void verifyCn() throws Exception {
@@ -115,9 +116,10 @@ public final class HostnameVerifierTest {
                 + "-----END CERTIFICATE-----\n");
         // Android-changed: Ignore common name in hostname verification. http://b/70278814
         // assertTrue(verifier.verify("foo.com", session));
-        assertFalse(verifier.verify("foo.com", session));
-        assertFalse(verifier.verify("a.foo.com", session));
-        assertFalse(verifier.verify("bar.com", session));
+        X509Certificate[] certs = {};
+        assertFalse(verifier.verify(certs, "foo.com", session));
+        assertFalse(verifier.verify(certs, "a.foo.com", session));
+        assertFalse(verifier.verify(certs, "bar.com", session));
     }
 
     @Test public void verifyNonAsciiCn() throws Exception {
@@ -150,8 +152,9 @@ public final class HostnameVerifierTest {
                 + "-----END CERTIFICATE-----\n");
         // Android-changed: Ignore common name in hostname verification. http://b/70278814
         // assertTrue(verifier.verify("\u82b1\u5b50.co.jp", session));
-        assertFalse(verifier.verify("\u82b1\u5b50.co.jp", session));
-        assertFalse(verifier.verify("a.\u82b1\u5b50.co.jp", session));
+        X509Certificate[] certs = {};
+        assertFalse(verifier.verify(certs, "\u82b1\u5b50.co.jp", session));
+        assertFalse(verifier.verify(certs, "a.\u82b1\u5b50.co.jp", session));
     }
 
     @Test public void verifySubjectAlt() throws Exception {
@@ -183,10 +186,11 @@ public final class HostnameVerifierTest {
                 + "2xq+8bc6HojdtbCyug/fvBZvZqQXSmU8m8IVcMmWMz0ZQO8ee3QkBHMZfCy7P/kr\n"
                 + "VbWx/uETImUu+NZg22ewEw==\n"
                 + "-----END CERTIFICATE-----\n");
-        assertFalse(verifier.verify("foo.com", session));
-        assertFalse(verifier.verify("a.foo.com", session));
-        assertTrue(verifier.verify("bar.com", session));
-        assertFalse(verifier.verify("a.bar.com", session));
+        X509Certificate[] certs = {};
+        assertFalse(verifier.verify(certs, "foo.com", session));
+        assertFalse(verifier.verify(certs, "a.foo.com", session));
+        assertTrue(verifier.verify(certs, "bar.com", session));
+        assertFalse(verifier.verify(certs, "a.bar.com", session));
     }
 
     /**
@@ -224,8 +228,9 @@ public final class HostnameVerifierTest {
                 + "sWIKHYrmhCIRshUNohGXv50m2o+1w9oWmQ6Dkq7lCjfXfUB4wIbggJjpyEtbNqBt\n"
                 + "j4MC2x5rfsLKKqToKmNE7pFEgqwe8//Aar1b+Qj+\n"
                 + "-----END CERTIFICATE-----\n");
-        assertTrue(verifier.verify("foo.com", session));
-        assertFalse(verifier.verify("a.foo.com", session));
+        X509Certificate[] certs = {};
+        assertTrue(verifier.verify(certs, "foo.com", session));
+        assertFalse(verifier.verify(certs, "a.foo.com", session));
         // these checks test alternative subjects. The test data contains an
         // alternative subject starting with a japanese kanji character. This is
         // not supported by Android because the underlying implementation from
@@ -264,10 +269,11 @@ public final class HostnameVerifierTest {
                 + "qAVqixM+J0qJmQStgAc53i2aTMvAQu3A3snvH/PHTBo+5UL72n9S1kZyNCsVf1Qo\n"
                 + "n8jKTiRriEM+fMFlcgQP284EBFzYHyCXFb9O/hMjK2+6mY9euMB1U1aFFzM/Bg==\n"
                 + "-----END CERTIFICATE-----\n");
-        assertTrue(verifier.verify("foo.com", session));
-        assertFalse(verifier.verify("a.foo.com", session));
-        assertTrue(verifier.verify("foo.com", session));
-        assertFalse(verifier.verify("a.foo.com", session));
+        X509Certificate[] certs = {};
+        assertTrue(verifier.verify(certs, "foo.com", session));
+        assertFalse(verifier.verify(certs, "a.foo.com", session));
+        assertTrue(verifier.verify(certs, "foo.com", session));
+        assertFalse(verifier.verify(certs, "a.foo.com", session));
     }
 
     @Test public void verifyMultipleCn() throws Exception {
@@ -299,14 +305,15 @@ public final class HostnameVerifierTest {
                 + "SpQFCfo02NO0uNRDPUdJx2huycdNb+AXHaO7eXevDLJ+QnqImIzxWiY6zLOdzjjI\n"
                 + "VBMkLHmnP7SjGSQ3XA4ByrQOxfOUTyLyE7NuemhHppuQPxE=\n"
                 + "-----END CERTIFICATE-----\n");
-        assertFalse(verifier.verify("foo.com", session));
-        assertFalse(verifier.verify("a.foo.com", session));
-        assertFalse(verifier.verify("bar.com", session));
-        assertFalse(verifier.verify("a.bar.com", session));
+        X509Certificate[] certs = {};
+        assertFalse(verifier.verify(certs, "foo.com", session));
+        assertFalse(verifier.verify(certs, "a.foo.com", session));
+        assertFalse(verifier.verify(certs, "bar.com", session));
+        assertFalse(verifier.verify(certs, "a.bar.com", session));
         // Android-changed: Ignore common name in hostname verification. http://b/70278814
         // assertTrue(verifier.verify("\u82b1\u5b50.co.jp", session));
-        assertFalse(verifier.verify("\u82b1\u5b50.co.jp", session));
-        assertFalse(verifier.verify("a.\u82b1\u5b50.co.jp", session));
+        assertFalse(verifier.verify(certs, "\u82b1\u5b50.co.jp", session));
+        assertFalse(verifier.verify(certs, "a.\u82b1\u5b50.co.jp", session));
     }
 
     @Test public void verifyWilcardCn() throws Exception {
@@ -337,14 +344,15 @@ public final class HostnameVerifierTest {
                 + "G9Z6tyMbmfRY+dLSh3a9JwoEcBUso6EWYBakLbq4nG/nvYdYvG9ehrnLVwZFL82e\n"
                 + "l3Q/RK95bnA6cuRClGusLad0e6bjkBzx/VQ3VarDEpAkTLUGVAa0CLXtnyc=\n"
                 + "-----END CERTIFICATE-----\n");
-        assertFalse(verifier.verify("foo.com", session));
+        X509Certificate[] certs = {};
+        assertFalse(verifier.verify(certs, "foo.com", session));
         // Android-changed: Ignore common name in hostname verification. http://b/70278814
         // assertTrue(verifier.verify("www.foo.com", session));
-        assertFalse(verifier.verify("www.foo.com", session));
+        assertFalse(verifier.verify(certs, "www.foo.com", session));
         // Android-changed: Ignore common name in hostname verification. http://b/70278814
         // assertTrue(verifier.verify("\u82b1\u5b50.foo.com", session));
-        assertFalse(verifier.verify("\u82b1\u5b50.foo.com", session));
-        assertFalse(verifier.verify("a.b.foo.com", session));
+        assertFalse(verifier.verify(certs, "\u82b1\u5b50.foo.com", session));
+        assertFalse(verifier.verify(certs, "a.b.foo.com", session));
     }
 
     @Test public void verifyWilcardCnOnTld() throws Exception {
@@ -376,12 +384,13 @@ public final class HostnameVerifierTest {
                 + "UGPLEUDzRHMPHLnSqT1n5UU5UDRytbjJPXzF+l/+WZIsanefWLsxnkgAuZe/oMMF\n"
                 + "EJMryEzOjg4Tfuc5qM0EXoPcQ/JlheaxZ40p2IyHqbsWV4MRYuFH4bkM\n"
                 + "-----END CERTIFICATE-----\n");
+        X509Certificate[] certs = {};
         // Android-changed: Ignore common name in hostname verification. http://b/70278814
         // assertTrue(verifier.verify("foo.co.jp", session));
-        assertFalse(verifier.verify("foo.co.jp", session));
+        assertFalse(verifier.verify(certs, "foo.co.jp", session));
         // Android-changed: Ignore common name in hostname verification. http://b/70278814
         // assertTrue(verifier.verify("\u82b1\u5b50.co.jp", session));
-        assertFalse(verifier.verify("\u82b1\u5b50.co.jp", session));
+        assertFalse(verifier.verify(certs, "\u82b1\u5b50.co.jp", session));
     }
 
     /**
@@ -419,11 +428,12 @@ public final class HostnameVerifierTest {
                 + "qFr0AIZKBlg6NZZFf/0dP9zcKhzSriW27bY0XfzA6GSiRDXrDjgXq6baRT6YwgIg\n"
                 + "pgJsDbJtZfHnV1nd3M6zOtQPm1TIQpNmMMMd/DPrGcUQerD3\n"
                 + "-----END CERTIFICATE-----\n");
+        X509Certificate[] certs = {};
         // try the foo.com variations
-        assertTrue(verifier.verify("foo.com", session));
-        assertTrue(verifier.verify("www.foo.com", session));
-        assertTrue(verifier.verify("\u82b1\u5b50.foo.com", session));
-        assertFalse(verifier.verify("a.b.foo.com", session));
+        assertTrue(verifier.verify(certs, "foo.com", session));
+        assertTrue(verifier.verify(certs, "www.foo.com", session));
+        assertTrue(verifier.verify(certs, "\u82b1\u5b50.foo.com", session));
+        assertFalse(verifier.verify(certs, "a.b.foo.com", session));
         // these checks test alternative subjects. The test data contains an
         // alternative subject starting with a japanese kanji character. This is
         // not supported by Android because the underlying implementation from
@@ -459,15 +469,18 @@ public final class HostnameVerifierTest {
                 + "DCzOCv9Ma6Lv5o5jcYWVxvBSTsnt22hsJpWD1K7iY9lbkLwl0ivn73pG2evsAn9G\n"
                 + "X8YKH52fnHsCrhSD\n"
                 + "-----END CERTIFICATE-----");
+
         assertEquals(new X500Principal("CN=localhost"), certificate.getSubjectX500Principal());
-
         FakeSSLSession session = new FakeSSLSession(certificate);
-        assertTrue(verifier.verify("localhost", session));
-        assertTrue(verifier.verify("localhost.localdomain", session));
-        assertFalse(verifier.verify("local.host", session));
 
-        assertTrue(verifier.verify("127.0.0.1", session));
-        assertFalse(verifier.verify("127.0.0.2", session));
+        X509Certificate[] certs = {};
+
+        assertTrue(verifier.verify(certs, "localhost", session));
+        assertTrue(verifier.verify(certs, "localhost.localdomain", session));
+        assertFalse(verifier.verify(certs, "local.host", session));
+
+        assertTrue(verifier.verify(certs, "127.0.0.1", session));
+        assertFalse(verifier.verify(certs, "127.0.0.2", session));
     }
 
     @Test public void wildcardsCannotMatchIpAddresses() throws Exception {
@@ -484,7 +497,8 @@ public final class HostnameVerifierTest {
                 + "BQUAA0EAk9i88xdjWoewqvE+iMC9tD2obMchgFDaHH0ogxxiRaIKeEly3g0uGxIt\n"
                 + "fl2WRY8hb4x+zRrwsFaLEpdEvqcjOQ==\n"
                 + "-----END CERTIFICATE-----");
-        assertFalse(verifier.verify("127.0.0.1", session));
+        X509Certificate[] certs = {};
+        assertFalse(verifier.verify(certs, "127.0.0.1", session));
     }
 
     /**
@@ -509,7 +523,8 @@ public final class HostnameVerifierTest {
                 + "-----END CERTIFICATE-----");
         // Android-changed: Ignore common name in hostname verification. http://b/70278814
         // assertTrue(verifier.verify("google.com", session));
-        assertFalse(verifier.verify("google.com", session));
+        X509Certificate[] certs = {};
+        assertFalse(verifier.verify(certs, "google.com", session));
     }
 
     @Test public void subjectAltName() throws Exception {
@@ -535,11 +550,12 @@ public final class HostnameVerifierTest {
                 + "DQYJKoZIhvcNAQEFBQADQQBXpZZPOY2Dy1lGG81JTr8L4or9jpKacD7n51eS8iqI\n"
                 + "oTznPNuXHU5bFN0AAGX2ij47f/EahqTpo5RdS95P4sVm\n"
                 + "-----END CERTIFICATE-----");
-        assertFalse(verifier.verify("foo.com", session));
-        assertTrue(verifier.verify("bar.com", session));
-        assertTrue(verifier.verify("baz.com", session));
-        assertFalse(verifier.verify("a.foo.com", session));
-        assertFalse(verifier.verify("quux.com", session));
+        X509Certificate[] certs = {};
+        assertFalse(verifier.verify(certs, "foo.com", session));
+        assertTrue(verifier.verify(certs, "bar.com", session));
+        assertTrue(verifier.verify(certs, "baz.com", session));
+        assertFalse(verifier.verify(certs, "a.foo.com", session));
+        assertFalse(verifier.verify(certs, "quux.com", session));
     }
 
     @Test public void subjectAltNameWithWildcard() throws Exception {
@@ -565,13 +581,14 @@ public final class HostnameVerifierTest {
                 + "bTANBgkqhkiG9w0BAQUFAANBAB8yrSl8zqy07i0SNYx2B/FnvQY734pxioaqFWfO\n"
                 + "Bqo1ZZl/9aPHEWIwBrxYNVB0SGu/kkbt/vxqOjzzrkXukmI=\n"
                 + "-----END CERTIFICATE-----");
-        assertFalse(verifier.verify("foo.com", session));
-        assertTrue(verifier.verify("bar.com", session));
-        assertTrue(verifier.verify("a.baz.com", session));
-        assertFalse(verifier.verify("baz.com", session));
-        assertFalse(verifier.verify("a.foo.com", session));
-        assertFalse(verifier.verify("a.bar.com", session));
-        assertFalse(verifier.verify("quux.com", session));
+        X509Certificate[] certs = {};
+        assertFalse(verifier.verify(certs, "foo.com", session));
+        assertTrue(verifier.verify(certs, "bar.com", session));
+        assertTrue(verifier.verify(certs, "a.baz.com", session));
+        assertFalse(verifier.verify(certs, "baz.com", session));
+        assertFalse(verifier.verify(certs, "a.foo.com", session));
+        assertFalse(verifier.verify(certs, "a.bar.com", session));
+        assertFalse(verifier.verify(certs, "quux.com", session));
     }
 
     // BEGIN Android-added: Verify behaviour with top level wildcard SAN. http://b/144694112
@@ -595,8 +612,9 @@ public final class HostnameVerifierTest {
                 + "DQEBCwUAA0EAK710g2hQpXSmpbOQH4dHG61fkVDtM/kR/4/R61vDDqVkgOuyHqXl\n"
                 + "GUZFKHMeOZ8peQLT8b+5ik6pIO7Vu2pF6w==\n"
                 + "-----END CERTIFICATE-----\n");
-        assertTrue(OkHostnameVerifier.INSTANCE.verify("google.com", session));
-        assertFalse(OkHostnameVerifier.strictInstance().verify("google.com", session));
+        X509Certificate[] certs = {};
+        assertTrue(OkHostnameVerifier.INSTANCE.verify(certs, "google.com", session));
+        assertFalse(OkHostnameVerifier.strictInstance().verify(certs, "google.com", session));
     }
     // END Android-added: Verify behaviour with top level wildcard SAN. http://b/144694112
 

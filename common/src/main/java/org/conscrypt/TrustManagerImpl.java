@@ -404,7 +404,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             String identificationAlgorithm = parameters.getEndpointIdentificationAlgorithm();
             if ("HTTPS".equalsIgnoreCase(identificationAlgorithm)) {
                 ConscryptHostnameVerifier verifier = getHttpsVerifier();
-                if (!verifier.verify(hostname, session)) {
+                if (!verifier.verify(certs, hostname, session)) {
                     throw new CertificateException("No subjectAltNames on the certificate match");
                 }
             }
@@ -998,28 +998,14 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      *
      * @see #setHostnameVerifier(ConscryptHostnameVerifier)
      */
-    ConscryptHostnameVerifier getHostnameVerifier() { // doggo
+    ConscryptHostnameVerifier getHostnameVerifier() {
         return hostnameVerifier;
     }
 
-//    private enum GlobalHostnameVerifierAdapter implements ConscryptHostnameVerifier {
-//        INSTANCE;
-//
-//        @Override
-//        public boolean verify(String hostname, SSLSession session) {
-//            return HttpsURLConnection.getDefaultHostnameVerifier().verify(hostname, session);
-//        }
-//    }
-
-    private ConscryptHostnameVerifier getHttpsVerifier() { // doggo
+    private ConscryptHostnameVerifier getHttpsVerifier() {
         if (hostnameVerifier != null) {
             return hostnameVerifier;
         }
-//        // remove
-//        ConscryptHostnameVerifier defaultVerifier = getDefaultHostnameVerifier(); // this is still needed for current tests. Will I have to remove this and update the tests to work with default or are teh predefined tests still valid?
-//        if (defaultVerifier != null) {
-//            return defaultVerifier;
-//        }
         return Platform.getDefaultHostnameVerifier();
     }
 

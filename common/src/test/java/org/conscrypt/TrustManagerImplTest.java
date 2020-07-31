@@ -243,7 +243,7 @@ public class TrustManagerImplTest {
             } catch (CertificateException expected) {
             }
             certs = tmi.getTrustedChainForServer(chain, "RSA",
-                    new FakeSSLSocket(new FakeSSLSession(goodHostname, chain), params));
+                        new FakeSSLSocket(new FakeSSLSession(goodHostname, chain), params));
             assertEquals(Arrays.asList(chain), certs);
         } catch (Exception e) {
         }
