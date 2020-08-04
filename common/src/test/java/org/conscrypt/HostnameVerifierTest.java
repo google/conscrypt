@@ -44,7 +44,7 @@ import org.junit.runners.Parameterized.Parameters;
  */
 @RunWith(Parameterized.class)
 public final class HostnameVerifierTest {
-    public final class FakeSSLSession extends org.conscrypt.javax.net.ssl.FakeSSLSession {
+    public static final class FakeSSLSession extends org.conscrypt.javax.net.ssl.FakeSSLSession {
 
         private final Certificate[] certificates;
 
