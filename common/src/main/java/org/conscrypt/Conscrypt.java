@@ -788,11 +788,9 @@ public final class Conscrypt {
      * Wraps the HttpsURLConnection.HostnameVerifier into a ConscryptHostnameVerifier
      */
     public static ConscryptHostnameVerifier wrapHostnameVerifier(final HostnameVerifier verifier) {
-        // needed to add final due to : error: local variable verifier is accessed from within inner class; needs to be declared final
-        // Cannot find HttpsURLConnection.HostnameVerifier
         return  new ConscryptHostnameVerifier() {
             @Override
-            public boolean verify(X509Certificate[] certs, String hostname, SSLSession session) {
+            public boolean verify(X509Certificate[] certificates, String hostname, SSLSession session) {
                 return verifier.verify(hostname, session);
             }
         };
