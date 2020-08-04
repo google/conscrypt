@@ -16,8 +16,8 @@
 
 package org.conscrypt;
 
-import javax.net.ssl.SSLSession;
 import java.security.cert.X509Certificate;
+import javax.net.ssl.SSLSession;
 
 /**
  * This interface is used to implement hostname verification in Conscrypt.  Unlike with
