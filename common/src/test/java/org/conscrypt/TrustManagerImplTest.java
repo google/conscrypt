@@ -158,7 +158,7 @@ public class TrustManagerImplTest {
             certs = tmi.getTrustedChainForServer(chain, "RSA",
                     new FakeSSLSocket(new FakeSSLSession(goodHostname, chain), params));
             assertEquals(Arrays.asList(chain), certs);
-        } finally { // Still need for protecting future tests
+        } finally { //  Still need for protecting future tests
             Conscrypt.setDefaultHostnameVerifier(null);
         }
     }
