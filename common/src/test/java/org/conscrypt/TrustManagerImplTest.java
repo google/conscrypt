@@ -36,6 +36,7 @@ import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509TrustManager;
 import org.conscrypt.java.security.TestKeyStore;
+import org.conscrypt.javax.net.ssl.TestHostnameVerifier;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -177,8 +178,7 @@ public class TrustManagerImplTest {
 
             // Now set an instance-specific verifier on the trust manager.  The bad hostname should
             // fail again.
-//            Conscrypt.setHostnameVerifier(tmi, new TestHostnameVerifier());
-            Conscrypt.setHostnameVerifier(tmi, Conscrypt.wrapHostnameVerifier(new org.conscrypt.javax.net.ssl.TestHostnameVerifier()));
+            Conscrypt.setHostnameVerifier(tmi, Conscrypt.wrapHostnameVerifier(new TestHostnameVerifier()));
 
             try {
                 tmi.getTrustedChainForServer(chain, "RSA",
