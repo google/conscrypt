@@ -109,6 +109,7 @@ public final class OkHostnameVerifier implements ConscryptHostnameVerifier {
     /**
      * Returns true if {@code certificate} matches {@code hostName}.
      */
+    @SuppressWarnings("UnusedVariable")
     private boolean verifyHostName(String hostName, X509Certificate certificate) {
         hostName = hostName.toLowerCase(Locale.US);
         boolean hasDns = false;
@@ -144,6 +145,7 @@ public final class OkHostnameVerifier implements ConscryptHostnameVerifier {
         return result;
     }
 
+    @SuppressWarnings("MixedMutabilityReturnType")
     private static List<String> getSubjectAltNames(X509Certificate certificate, int type) {
         List<String> result = new ArrayList<>();
         try {

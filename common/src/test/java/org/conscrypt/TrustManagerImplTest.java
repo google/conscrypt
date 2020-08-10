@@ -147,18 +147,64 @@ public class TrustManagerImplTest {
             // Turn on endpoint identification
             params.setEndpointIdentificationAlgorithm("HTTPS");
 
-            try { // this should fail
-                certs = tmi.getTrustedChainForServer(chain, "RSA",
+            try {
+                tmi.getTrustedChainForServer(chain, "RSA",
                         new FakeSSLSocket(new FakeSSLSession(badHostname, chain), params));
-                assertEquals(Arrays.asList(chain), certs);
                 fail();
-
             } catch (CertificateException expected) {
             }
+
             certs = tmi.getTrustedChainForServer(chain, "RSA",
                     new FakeSSLSocket(new FakeSSLSession(goodHostname, chain), params));
             assertEquals(Arrays.asList(chain), certs);
-        } finally { //  Still need for protecting future tests
+
+            // Override the global default hostname verifier with a Conscrypt-specific one that
+            // always passes.  Both scenarios should pass.
+            Conscrypt.setHostnameVerifier(tmi, new ConscryptHostnameVerifier() {
+                @Override
+                public boolean verify(X509Certificate[] certificates, String s, SSLSession sslSession) {
+                    return true;
+                }
+            });
+
+            certs = tmi.getTrustedChainForServer(chain, "RSA",
+                    new FakeSSLSocket(new FakeSSLSession(badHostname, chain), params));
+            assertEquals(Arrays.asList(chain), certs);
+
+            certs = tmi.getTrustedChainForServer(chain, "RSA",
+                    new FakeSSLSocket(new FakeSSLSession(goodHostname, chain), params));
+            assertEquals(Arrays.asList(chain), certs);
+
+            // Now set an instance-specific verifier on the trust manager.  The bad hostname should
+            // fail again.
+//            Conscrypt.setHostnameVerifier(tmi, new TestHostnameVerifier());
+            Conscrypt.setHostnameVerifier(tmi, Conscrypt.wrapHostnameVerifier(new org.conscrypt.javax.net.ssl.TestHostnameVerifier()));
+
+            try {
+                tmi.getTrustedChainForServer(chain, "RSA",
+                        new FakeSSLSocket(new FakeSSLSession(badHostname, chain), params));
+                fail();
+            } catch (CertificateException expected) {
+            }
+
+            certs = tmi.getTrustedChainForServer(chain, "RSA",
+                    new FakeSSLSocket(new FakeSSLSession(goodHostname, chain), params));
+            assertEquals(Arrays.asList(chain), certs);
+
+            // Remove the instance-specific verifier, and both should pass again.
+            Conscrypt.setHostnameVerifier(tmi, null);
+
+            try {
+                tmi.getTrustedChainForServer(chain, "RSA",
+                        new FakeSSLSocket(new FakeSSLSession(badHostname, chain), params));
+                fail();
+            } catch (CertificateException expected) {
+            }
+
+            certs = tmi.getTrustedChainForServer(chain, "RSA",
+                    new FakeSSLSocket(new FakeSSLSession(goodHostname, chain), params));
+            assertEquals(Arrays.asList(chain), certs);
+        } finally {
             Conscrypt.setDefaultHostnameVerifier(null);
         }
     }
