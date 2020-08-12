@@ -220,15 +220,6 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         return false;
     }
 
-    /**
-     * Encrypts of decrypts data in a single-part operations or finishes multiple part operation.
-     * @param input input data that is returned fully read
-     * @param output the storage buffer of the resulting encryption decryption.
-     * @return number of bytes the output buffer's position has moved by.
-     * @throws ShortBufferException if output.remaining() bytes are insufficient to hold the result.
-     * @throws IllegalBlockSizeException
-     * @throws BadPaddingException
-     */
     @Override
     protected int engineDoFinal(ByteBuffer input, ByteBuffer output) throws ShortBufferException,
             IllegalBlockSizeException, BadPaddingException {
