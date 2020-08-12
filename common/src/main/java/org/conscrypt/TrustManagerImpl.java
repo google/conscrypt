@@ -942,7 +942,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             return trustAnchor;
         }
         if (trustedCertificateStore == null) {
-            // not trusted and no TrustedCertificateStore to check
+            // not trusted and no TrustedCertificateStore to check.
             return null;
         }
         // probe KeyStore for a cert. AndroidCAStore stores its
