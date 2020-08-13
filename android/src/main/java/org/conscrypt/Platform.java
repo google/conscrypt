@@ -1019,4 +1019,8 @@ final class Platform {
         }
         return false;
     }
+
+    public static ConscryptHostnameVerifier getDefaultHostnameVerifier() {
+        return OkHostnameVerifier.strictInstance();
+    }
 }

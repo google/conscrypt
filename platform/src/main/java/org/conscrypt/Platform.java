@@ -530,4 +530,8 @@ final class Platform {
         }
         return false;
     }
+
+    public static ConscryptHostnameVerifier getDefaultHostnameVerifier() {
+        return Conscrypt.wrapHostnameVerifier(HttpsURLConnection.getDefaultHostnameVerifier());
+    }
 }

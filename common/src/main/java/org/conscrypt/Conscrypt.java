@@ -21,7 +21,9 @@ import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.PrivateKey;
 import java.security.Provider;
+import java.security.cert.X509Certificate;
 import java.util.Properties;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLContextSpi;
@@ -29,6 +31,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -782,5 +785,15 @@ public final class Conscrypt {
         return toConscrypt(trustManager).getHostnameVerifier();
     }
 
-
+    /**
+     * Wraps the HttpsURLConnection.HostnameVerifier into a ConscryptHostnameVerifier
+     */
+    public static ConscryptHostnameVerifier wrapHostnameVerifier(final HostnameVerifier verifier) {
+        return  new ConscryptHostnameVerifier() {
+            @Override
+            public boolean verify(X509Certificate[] certificates, String hostname, SSLSession session) {
+                return verifier.verify(hostname, session);
+            }
+        };
+    }
 }

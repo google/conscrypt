@@ -404,7 +404,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             String identificationAlgorithm = parameters.getEndpointIdentificationAlgorithm();
             if ("HTTPS".equalsIgnoreCase(identificationAlgorithm)) {
                 ConscryptHostnameVerifier verifier = getHttpsVerifier();
-                if (!verifier.verify(hostname, session)) {
+                if (!verifier.verify(certs, hostname, session)) {
                     throw new CertificateException("No subjectAltNames on the certificate match");
                 }
             }
@@ -940,7 +940,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             return trustAnchor;
         }
         if (trustedCertificateStore == null) {
-            // not trusted and no TrustedCertificateStore to check
+            // not trusted and no TrustedCertificateStore to check.
             return null;
         }
         // probe KeyStore for a cert. AndroidCAStore stores its
@@ -1000,24 +1000,11 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         return hostnameVerifier;
     }
 
-    private enum GlobalHostnameVerifierAdapter implements ConscryptHostnameVerifier {
-        INSTANCE;
-
-        @Override
-        public boolean verify(String hostname, SSLSession session) {
-            return HttpsURLConnection.getDefaultHostnameVerifier().verify(hostname, session);
-        }
-    }
-
     private ConscryptHostnameVerifier getHttpsVerifier() {
         if (hostnameVerifier != null) {
             return hostnameVerifier;
         }
-        ConscryptHostnameVerifier defaultVerifier = getDefaultHostnameVerifier();
-        if (defaultVerifier != null) {
-            return defaultVerifier;
-        }
-        return GlobalHostnameVerifierAdapter.INSTANCE;
+        return Platform.getDefaultHostnameVerifier();
     }
 
     public void setCTEnabledOverride(boolean enabled) {

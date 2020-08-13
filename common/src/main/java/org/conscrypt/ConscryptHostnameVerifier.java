@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.cert.X509Certificate;
 import javax.net.ssl.SSLSession;
 
 /**
@@ -29,6 +30,6 @@ public interface ConscryptHostnameVerifier {
    * Returns whether the given hostname is allowable given the peer's authentication information
    * from the given session.
    */
-  boolean verify(String hostname, SSLSession session);
+  boolean verify(X509Certificate[] certs, String hostname, SSLSession session);
 
 }
