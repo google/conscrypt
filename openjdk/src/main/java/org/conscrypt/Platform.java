@@ -99,6 +99,7 @@ final class Platform {
             getCurveNameMethod = ECParameterSpec.class.getDeclaredMethod("getCurveName");
             getCurveNameMethod.setAccessible(true);
         } catch (Exception ignored) {
+            // Method not available, leave it as null, which is checked before use
         }
         GET_CURVE_NAME_METHOD = getCurveNameMethod;
     }
@@ -580,10 +581,8 @@ final class Platform {
             return originalHostName;
         } catch (InvocationTargetException e) {
             throw new RuntimeException("Failed to get originalHostName", e);
-        } catch (ClassNotFoundException ignore) {
+        } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException ignore) {
             // passthrough and return addr.getHostAddress()
-        } catch (IllegalAccessException ignore) {
-        } catch (NoSuchMethodException ignore) {
         }
 
         return addr.getHostAddress();
@@ -657,9 +656,10 @@ final class Platform {
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
         try {
             ks.load(null, null);
-        } catch (CertificateException ignored) {
         } catch (NoSuchAlgorithmException ignored) {
-        } catch (IOException ignored) {
+            // TODO(prb): Should this be re-thrown? It happens if "the algorithm used to check
+            // the integrity of the KeyStore cannot be found".
+        } catch (IOException | CertificateException ignored) {
             // We're not loading anything, so ignore it
         }
         // Find the highest-priority non-Conscrypt provider that provides a PKIX

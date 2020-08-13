@@ -88,6 +88,7 @@ public final class Conscrypt {
                 patch = Integer.parseInt(props.getProperty("org.conscrypt.version.patch", "-1"));
             }
         } catch (IOException e) {
+            // TODO(prb): This should probably be fatal or have some fallback behaviour
         } finally {
             IoUtils.closeQuietly(stream);
         }
