@@ -427,10 +427,9 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 if (rawResponses instanceof List) {
                     ocspResponses = (List<byte[]>) rawResponses;
                 }
-            } catch (NoSuchMethodException ignored) {
-            } catch (SecurityException ignored) {
-            } catch (IllegalAccessException ignored) {
-            } catch (IllegalArgumentException ignored) {
+            } catch (NoSuchMethodException | SecurityException
+                    | IllegalAccessException | IllegalArgumentException ignored) {
+                // Method not available, fall through and return null
             } catch (InvocationTargetException e) {
                 throw new RuntimeException(e.getCause());
             }
@@ -457,10 +456,9 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             if (rawData instanceof byte[]) {
                 data = (byte[]) rawData;
             }
-        } catch (NoSuchMethodException ignored) {
-        } catch (SecurityException ignored) {
-        } catch (IllegalAccessException ignored) {
-        } catch (IllegalArgumentException ignored) {
+        } catch (NoSuchMethodException | SecurityException
+                | IllegalAccessException | IllegalArgumentException ignored) {
+            // Method not available, fall through and return null
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e.getCause());
         }

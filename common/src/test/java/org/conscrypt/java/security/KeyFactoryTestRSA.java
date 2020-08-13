@@ -19,7 +19,6 @@ import static org.junit.Assert.fail;
 
 import java.security.KeyFactory;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
@@ -30,8 +29,6 @@ import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Arrays;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;

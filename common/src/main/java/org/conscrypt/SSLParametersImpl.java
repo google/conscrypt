@@ -577,7 +577,9 @@ final class SSLParametersImpl implements Cloneable {
             } else if (km != null) {
                 try {
                     return DuckTypedPSKKeyManager.getInstance(km);
-                } catch (NoSuchMethodException ignored) {}
+                } catch (NoSuchMethodException ignored) {
+                    // This PSKKeyManager doesn't support the required methods, go to the next
+                }
             }
         }
         return null;

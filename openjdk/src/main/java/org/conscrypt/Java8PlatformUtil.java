@@ -42,15 +42,6 @@ final class Java8PlatformUtil {
         }
     }
 
-    static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
-        getSSLParameters(params, impl);
-        if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
-            params.setServerNames(Collections.singletonList(
-                    (SNIServerName) new SNIHostName(socket.getHostname())));
-        }
-    }
-
     static void setSSLParameters(
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         setSSLParameters(params, impl);
@@ -60,6 +51,16 @@ final class Java8PlatformUtil {
             engine.setHostname(sniHost);
         }
     }
+
+    static void getSSLParameters(
+            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
+        getSSLParameters(params, impl);
+        if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
+            params.setServerNames(Collections.singletonList(
+                    (SNIServerName) new SNIHostName(socket.getHostname())));
+        }
+    }
+
     static void getSSLParameters(
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         getSSLParameters(params, impl);

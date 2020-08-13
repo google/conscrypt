@@ -21,10 +21,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class KeyPairGeneratorTestRSA extends AbstractKeyPairGeneratorTest {
 
-    @SuppressWarnings("unchecked")
     public KeyPairGeneratorTestRSA() {
         super("RSA", new CipherAsymmetricCryptHelper("RSA"));
     }
-
 }
-
