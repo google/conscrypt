@@ -233,13 +233,13 @@ test {
     include suiteClass, "org/conscrypt/ConscryptOpenJdkSuite.class"
 }
 
-task testEngineSocket(type: Test) {
+task testFdSocket(type: Test) {
     include suiteClass, "org/conscrypt/ConscryptOpenJdkSuite.class"
     InvokerHelper.setProperties(testLogging, test.testLogging.properties)
     systemProperties = test.systemProperties
-    systemProperty "org.conscrypt.useEngineSocketByDefault", true
+    systemProperty "org.conscrypt.useEngineSocketByDefault", false
 }
-check.dependsOn testEngineSocket
+check.dependsOn testFdSocket
 
 // Tests that involve interoperation with the OpenJDK TLS provider (generally to
 // test renegotiation, since we don't support initiating renegotiation but do
