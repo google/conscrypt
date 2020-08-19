@@ -13,13 +13,19 @@ are ignored.
 
 ## Hostname Verification
 
-Conscrypt's hostname verification (enabled by
+Prior to version 2.5.0 Conscrypt's hostname verification (enabled by
 [`setEndpointIdentificationAlgorithm("HTTPS")`](https://docs.oracle.com/javase/9/docs/api/javax/net/ssl/SSLParameters.html#setEndpointIdentificationAlgorithm-java.lang.String-))
-defers entirely to the hostname verifier.  The default `HostnameVerifier` on
-OpenJDK always fails, so a `HostnameVerifier` or `ConscryptHostnameVerifier`
-must be set to use hostname verification on OpenJDK.  On Android, the default
+defers entirely to the underlying platform's `HttpsURLConnection` hostname verifier.
+
+The default `HostnameVerifier` on OpenJDK rejects all hostnames, and
+so a `HostnameVerifier` or `ConscryptHostnameVerifier`
+must be set in order to use hostname verification on OpenJDK.  On Android, the default
 `HostnameVerifier` performs [RFC 2818](https://tools.ietf.org/html/rfc2818)
 hostname validation, so it will work out of the box.
+
+As of version 2.5.0, Conscrypt ships with its own default `ConscryptHostnameVerifier`
+and this is used on both Android and OpenJDK. It performs RFC 2818 verification
+and is equivalent to the system `HostnameVerifier` on Android 10 and 11.
 
 ## AEAD Ciphers
 
