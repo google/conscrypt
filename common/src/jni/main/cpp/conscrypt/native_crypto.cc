@@ -4043,22 +4043,19 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
         return nullptr;
     }
 
-    X509_check_ca(x509);
-
-    STACK_OF(GENERAL_NAME) * gn_stack;
-    bssl::UniquePtr<STACK_OF(GENERAL_NAME)> stackHolder;
+    bssl::UniquePtr<STACK_OF(GENERAL_NAME)> gn_stack;
     if (type == GN_STACK_SUBJECT_ALT_NAME) {
-        gn_stack = x509->altname;
+        gn_stack.reset(static_cast<STACK_OF(GENERAL_NAME)*>(
+                X509_get_ext_d2i(x509, NID_subject_alt_name, nullptr, nullptr)));
     } else if (type == GN_STACK_ISSUER_ALT_NAME) {
-        stackHolder.reset(static_cast<STACK_OF(GENERAL_NAME)*>(
+        gn_stack.reset(static_cast<STACK_OF(GENERAL_NAME)*>(
                 X509_get_ext_d2i(x509, NID_issuer_alt_name, nullptr, nullptr)));
-        gn_stack = stackHolder.get();
     } else {
         JNI_TRACE("get_X509_GENERAL_NAME_stack(%p, %d) => unknown type", x509, type);
         return nullptr;
     }
 
-    int count = static_cast<int>(sk_GENERAL_NAME_num(gn_stack));
+    int count = static_cast<int>(sk_GENERAL_NAME_num(gn_stack.get()));
     if (count <= 0) {
         JNI_TRACE("get_X509_GENERAL_NAME_stack(%p, %d) => null (no entries)", x509, type);
         return nullptr;
@@ -4073,7 +4070,7 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
     ScopedLocalRef<jobjectArray> joa(
             env, env->NewObjectArray(count, conscrypt::jniutil::objectArrayClass, nullptr));
     for (int i = 0, j = 0; i < origCount; i++, j++) {
-        GENERAL_NAME* gen = sk_GENERAL_NAME_value(gn_stack, static_cast<size_t>(i));
+        GENERAL_NAME* gen = sk_GENERAL_NAME_value(gn_stack.get(), static_cast<size_t>(i));
         ScopedLocalRef<jobject> val(env, GENERAL_NAME_to_jobject(env, gen));
         if (env->ExceptionCheck()) {
             JNI_TRACE("get_X509_GENERAL_NAME_stack(%p, %d) => threw exception parsing gen name",
