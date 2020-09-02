@@ -5952,7 +5952,7 @@ static jbyteArray NativeCrypto_X509_REVOKED_get_ext_oid(JNIEnv* env, jclass, jlo
                                 X509_REVOKED_get_ext_const>(env, revoked, oidString);
 }
 
-template <typename T, typename C, C T::*member, int (*get_ext_by_critical_func)(const T*, int, int),
+template <typename T, int (*get_ext_by_critical_func)(const T*, int, int),
           X509_EXTENSION* (*get_ext_func)(const T*, int)>
 static jobjectArray get_X509Type_ext_oids(JNIEnv* env, jlong x509Ref, jint critical) {
     T* x509 = reinterpret_cast<T*>(static_cast<uintptr_t>(x509Ref));
@@ -5961,14 +5961,6 @@ static jobjectArray get_X509Type_ext_oids(JNIEnv* env, jlong x509Ref, jint criti
     if (x509 == nullptr) {
         conscrypt::jniutil::throwNullPointerException(env, "x509 == null");
         JNI_TRACE("get_X509Type_ext_oids(%p, %d) => x509 == null", x509, critical);
-        return nullptr;
-    }
-
-    // TODO(davidben): Remove this check. It should be impossible and will no longer work when
-    // the structs are opaque.
-    if (member != nullptr && x509->*member == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "x509->*member == null");
-        JNI_TRACE("get_X509Type_ext_oids(%p, %d) => x509->*member == null", x509, critical);
         return nullptr;
     }
 
@@ -6010,9 +6002,8 @@ static jobjectArray NativeCrypto_get_X509_ext_oids(JNIEnv* env, jclass, jlong x5
     CHECK_ERROR_QUEUE_ON_RETURN;
     // NOLINTNEXTLINE(runtime/int)
     JNI_TRACE("get_X509_ext_oids(0x%llx, %d)", (long long)x509Ref, critical);
-    return get_X509Type_ext_oids<X509, decltype(X509::cert_info), &X509::cert_info,
-                                 X509_get_ext_by_critical_const, X509_get_ext_const>(env, x509Ref,
-                                                                                     critical);
+    return get_X509Type_ext_oids<X509, X509_get_ext_by_critical_const, X509_get_ext_const>(
+            env, x509Ref, critical);
 }
 
 static jobjectArray NativeCrypto_get_X509_CRL_ext_oids(JNIEnv* env, jclass, jlong x509CrlRef,
@@ -6021,9 +6012,8 @@ static jobjectArray NativeCrypto_get_X509_CRL_ext_oids(JNIEnv* env, jclass, jlon
     CHECK_ERROR_QUEUE_ON_RETURN;
     // NOLINTNEXTLINE(runtime/int)
     JNI_TRACE("get_X509_CRL_ext_oids(0x%llx, %d)", (long long)x509CrlRef, critical);
-    return get_X509Type_ext_oids<X509_CRL, decltype(X509_CRL::crl), &X509_CRL::crl,
-                                 X509_CRL_get_ext_by_critical_const, X509_CRL_get_ext_const>(
-            env, x509CrlRef, critical);
+    return get_X509Type_ext_oids<X509_CRL, X509_CRL_get_ext_by_critical_const,
+                                 X509_CRL_get_ext_const>(env, x509CrlRef, critical);
 }
 
 static jobjectArray NativeCrypto_get_X509_REVOKED_ext_oids(JNIEnv* env, jclass,
@@ -6031,8 +6021,7 @@ static jobjectArray NativeCrypto_get_X509_REVOKED_ext_oids(JNIEnv* env, jclass,
     CHECK_ERROR_QUEUE_ON_RETURN;
     // NOLINTNEXTLINE(runtime/int)
     JNI_TRACE("get_X509_CRL_ext_oids(0x%llx, %d)", (long long)x509RevokedRef, critical);
-    return get_X509Type_ext_oids<X509_REVOKED, decltype(X509_REVOKED::extensions), nullptr,
-                                 X509_REVOKED_get_ext_by_critical_const,
+    return get_X509Type_ext_oids<X509_REVOKED, X509_REVOKED_get_ext_by_critical_const,
                                  X509_REVOKED_get_ext_const>(env, x509RevokedRef, critical);
 }
 
