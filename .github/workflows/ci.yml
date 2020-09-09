@@ -46,7 +46,6 @@ jobs:
         shell: bash
         run: |
           echo "::set-env name=ANDROID_HOME::${{ runner.temp }}/android-sdk"
-          echo "::set-env name=ANDROID_NDK::${{ runner.temp }}/android-sdk/ndk-bundle"
           echo "::set-env name=BORINGSSL_HOME::${{ runner.temp }}/boringssl"
           echo "::set-env name=SDKMANAGER::${{ runner.temp }}/android-sdk/tools/bin/sdkmanager"
           echo "::set-env name=M2_REPO::${{ runner.temp }}/m2"
@@ -160,7 +159,7 @@ jobs:
           "$SDKMANAGER" 'build-tools;28.0.3' | tr '\r' '\n' | uniq
           "$SDKMANAGER" 'platforms;android-26' | tr '\r' '\n' | uniq
           "$SDKMANAGER" 'extras;android;m2repository' | tr '\r' '\n' | uniq
-          "$SDKMANAGER" ndk-bundle | tr '\r' '\n' | uniq
+          "$SDKMANAGER" 'ndk;21.3.6528147' | tr '\r' '\n' | uniq
           "$SDKMANAGER" 'cmake;3.10.2.4988404' | tr '\r' '\n' | uniq
 
       - name: Build with Gradle
