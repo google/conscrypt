@@ -82,12 +82,12 @@ compileJava {
     dependsOn generateProperties
 }
 
-task platformJar(type: Jar) {
+tasks.register("platformJar", Jar) {
     from sourceSets.platform.output
 }
 
 if (isExecutableOnPath('cpplint')) {
-    task cpplint(type: Exec) {
+    def cpplint = tasks.register("cpplint", Exec) {
         executable = 'cpplint'
 
         // TODO(nmittler): Is there a better way of getting the JNI sources?
@@ -190,8 +190,7 @@ nativeClassifiers.each { nativeClassifier ->
 def addNativeJar(nativeClassifier) {
     // Create a JAR for this configuration and add it to the output archives.
     SourceSet sourceSet = sourceSet(nativeClassifier)
-    def jarTaskName = sourceSet.jarTaskName
-    task "$jarTaskName"(type: Jar) { Jar t ->
+    def jarTask = tasks.register(sourceSet.jarTaskName, Jar) { Jar t ->
         // Depend on the regular classes task
         dependsOn classes
         manifest = jar.manifest
@@ -206,13 +205,11 @@ def addNativeJar(nativeClassifier) {
         }
     }
 
-    def jarTask = tasks["$jarTaskName"]
-
     // Add the jar task to the standard build.
     jar.dependsOn jarTask
 
     // Add it to the publishing archives list.
-    publishing.publications.maven.artifact jarTask
+    publishing.publications.maven.artifact jarTask.get()
 }
 
 
@@ -233,7 +230,7 @@ test {
     include suiteClass, "org/conscrypt/ConscryptOpenJdkSuite.class"
 }
 
-task testFdSocket(type: Test) {
+def testFdSocket = tasks.register("testFdSocket", Test) {
     include suiteClass, "org/conscrypt/ConscryptOpenJdkSuite.class"
     InvokerHelper.setProperties(testLogging, test.testLogging.properties)
     systemProperties = test.systemProperties
@@ -247,7 +244,7 @@ check.dependsOn testFdSocket
 // if Conscrypt is installed as the default provider, so these need to live in
 // a different task than the other tests, most of which need Conscrypt to be
 // installed to function.
-task testInterop(type: Test) {
+def testInterop = tasks.register("testInterop", Test) {
     include "org/conscrypt/ConscryptEngineTest.class"
     include "org/conscrypt/RenegotiationTest.class"
 }
@@ -400,8 +397,8 @@ model {
             def source = binary.sharedLibraryFile
 
             // Copies the native library to a resource location that will be included in the jar.
-            def copyTaskName = "copyNativeLib${sourceSetName}"
-            task "$copyTaskName"(type: Copy, dependsOn: binary.tasks.link) {
+            def copyTask = project.tasks.register("copyNativeLib${sourceSetName}", Copy) {
+                dependsOn binary.tasks.link
                 from source
                 // Rename the artifact to include the generated classifier
                 rename '(.+)(\\.[^\\.]+)', "\$1-$classifier\$2"
@@ -413,12 +410,14 @@ model {
             if (osName == 'linux' && (!rootProject.hasProperty('nostrip') ||
                     !rootProject.nostrip.toBoolean())) {
                 def stripTask = binary.tasks.taskName("strip")
-                    task "$stripTask"(type: Exec) {
-                        dependsOn binary.tasks.link
-                        executable "strip"
-                        args binary.tasks.link.linkedFile.asFile.get()
-                    }
-                project.tasks["$copyTaskName"].dependsOn stripTask
+                project.tasks.register(stripTask as String, Exec) {
+                    dependsOn binary.tasks.link
+                    executable "strip"
+                    args binary.tasks.link.linkedFile.asFile.get()
+                }
+                copyTask.configure {
+                    dependsOn stripTask
+                }
             }
         }
     }
