@@ -84,7 +84,7 @@ if (buildUberJar) {
     }
 } else {
     // Not building an uber jar - disable all tasks.
-    tasks.collect {
+    tasks.configureEach {
         it.enabled = false
     }
 }
