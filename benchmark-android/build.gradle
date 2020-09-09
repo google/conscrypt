@@ -83,7 +83,7 @@ if (androidSdkInstalled) {
     // the .aar and .jar contents before the actual archives are built. To do this we create a
     // configure task where the "from" contents is set inside a doLast stanza to ensure it is run
     // after the execution phase of the "assemble" task.
-    task configureDepsJar {
+    def configureDepsJar = tasks.register("configureDepsJar") {
         dependsOn assemble, \
                   configurations.depsJarApi.artifacts, \
                   configurations.depsJarImplementation.artifacts
@@ -124,11 +124,12 @@ if (androidSdkInstalled) {
         }
     }
 
-    task depsJar(type: Jar, dependsOn: configureDepsJar) {
+    def depsJar = tasks.register("depsJar", Jar) {
+        dependsOn configureDepsJar
         archiveName = 'bundled-deps.jar'
     }
 
-    task getAndroidDeviceAbi {
+    def getAndroidDeviceAbi = tasks.register("getAndroidDeviceAbi") {
         doLast {
             new ByteArrayOutputStream().withStream { os ->
                 def result = exec {
@@ -142,7 +143,7 @@ if (androidSdkInstalled) {
         }
     }
 
-    task configureExtractNativeLib {
+    def configureExtractNativeLib = tasks.register("configureExtractNativeLib") {
         dependsOn getAndroidDeviceAbi, depsJar
         doLast {
             extractNativeLib.from {
@@ -156,11 +157,12 @@ if (androidSdkInstalled) {
         }
     }
 
-    task extractNativeLib(type: Copy, dependsOn: configureExtractNativeLib) {
+    def extractNativeLib = tasks.register("extractNativeLib", Copy) {
+        dependsOn configureExtractNativeLib
         into "$buildDir/extracted-native-libs"
     }
 
-    task configurePushNativeLibrary {
+    def configurePushNativeLibrary = tasks.register("configurePushNativeLibrary") {
         dependsOn extractNativeLib
         doLast {
             project.ext.nativeLibPath = "/system/lib${androidDevice64Bit ? '64' : ''}/libconscrypt_jni.so"
@@ -168,11 +170,13 @@ if (androidSdkInstalled) {
         }
     }
 
-    task pushNativeLibrary(type: Exec, dependsOn: configurePushNativeLibrary) {
+    def pushNativeLibrary = tasks.register("pushNativeLibrary", Exec) {
+        dependsOn configurePushNativeLibrary
         pushNativeLibrary.executable android.adbExecutable
     }
 
-    task runBenchmarks(dependsOn: [depsJar, pushNativeLibrary]) {
+    def runBenchmarks = tasks.register("runBenchmarks") {
+        dependsOn depsJar, pushNativeLibrary
         doLast {
             // Execute the benchmarks
             exec {
