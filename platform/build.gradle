@@ -117,7 +117,7 @@ if (androidSdkInstalled) {
     logger.warn('Android SDK has not been detected. The Android Platform module will not be built.')
 
     // Disable all tasks
-    tasks.collect {
+    tasks.configureEach {
         it.enabled = false
     }
 }

@@ -71,4 +71,4 @@ model {
 }
 
 // Disable the javadoc task.
-tasks.withType(Javadoc).all { enabled = false }
+tasks.withType(Javadoc).configureEach { enabled = false }
