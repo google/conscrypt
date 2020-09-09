@@ -109,7 +109,7 @@ if (androidSdkInstalled) {
     }
 
     // Disable running the tests.
-    tasks.withType(Test){
+    tasks.withType(Test).configureEach {
         enabled = false
     }
 

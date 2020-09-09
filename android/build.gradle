@@ -119,14 +119,15 @@ if (androidSdkInstalled) {
         compileOnly project(':conscrypt-constants')
     }
 
-    task configureJavadocs {
+    def configureJavaDocs = tasks.register("configureJavadocs") {
         dependsOn configurations.publicApiDocs
         doLast {
             javadocs.options.docletpath = configurations.publicApiDocs.files as List
         }
     }
 
-    task javadocs(type: Javadoc, dependsOn: [configureJavadocs]) {
+    def javadocs = tasks.register("javadocs", Javadoc) {
+        dependsOn configureJavadocs
         source = android.sourceSets.main.java.srcDirs
         classpath += project.files(android.getBootClasspath().join(File.pathSeparator)) + project(':conscrypt-android-stub').sourceSets.main.output
         // TODO(nmittler): Fix the javadoc errors.
@@ -142,12 +143,15 @@ if (androidSdkInstalled) {
         }
     }
 
-    task javadocsJar(type: Jar, dependsOn: javadocs) {
+    def javadocsJar = tasks.register("javadocsJar", Jar) {
+        dependsOn javadocs
         classifier = 'javadoc'
-        from javadocs.destinationDir
+        from {
+            javadocs.get().destinationDir
+        }
     }
 
-    task sourcesJar(type: Jar) {
+    def sourcesJar = tasks.register("sourcesJar", Jar) {
         classifier = 'sources'
         from android.sourceSets.main.java.srcDirs
     }
@@ -155,8 +159,8 @@ if (androidSdkInstalled) {
     apply from: "$rootDir/gradle/publishing.gradle"
     publishing.publications.maven {
         from components.android
-        artifact sourcesJar
-        artifact javadocsJar
+        artifact sourcesJar.get()
+        artifact javadocsJar.get()
     }
 } else {
     logger.warn('Android SDK has not been detected. The Android module will not be built.')
