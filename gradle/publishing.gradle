@@ -3,19 +3,6 @@ apply plugin: 'signing'
 
 def isSnapshot = project.version.contains('SNAPSHOT')
 
-signing {
-    required false
-    sign publishing.publications
-}
-
-tasks.register("signPublications").configure {
-    configurations.archives.allArtifacts.each {
-        if (it.type == 'jar' && it.classifier != 'sources' && it.classifier != 'javadoc') {
-            signJar(it.file.absolutePath)
-        }
-    }
-}
-
 publishing {
     publications {
         maven(MavenPublication) {
@@ -68,4 +55,18 @@ publishing {
             }
         }
     }
+}
+
+signing {
+    required false
+    sign publishing.publications.maven
+}
+
+signMavenPublication.doFirst {
+    publishing.publications.maven.artifacts.each {
+        if (it.file.absolutePath.endsWith('.jar') && it.classifier != 'sources' && it.classifier != 'javadoc') {
+            logger.info("Signing jar: ${it.file.absolutePath}")
+            signJar(it.file.absolutePath)
+        }
+   }
 }
