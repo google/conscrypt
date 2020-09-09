@@ -21,6 +21,7 @@ ext {
     androidVersionName = "$version"
     androidMinSdkVersion = 9
     androidTargetSdkVersion = 26
+    androidNdkVersion = "21.3.6528147"
 }
 
 if (androidSdkInstalled) {
@@ -32,6 +33,7 @@ if (androidSdkInstalled) {
 
     android {
         compileSdkVersion androidTargetSdkVersion
+        ndkVersion androidNdkVersion
 
         compileOptions {
             sourceCompatibility androidMinJavaVersion
