@@ -34,7 +34,8 @@ if (buildUberJar) {
     /**
      * Copy the native libraries to the resources directory.
      */
-    task copySharedLibs(type: Copy, dependsOn: configurations.uberJar) {
+    def copySharedLibs = tasks.register("copySharedLibs",  Copy) {
+        dependsOn configurations.uberJar
         from {
             configurations.uberJar.collect {
                 zipTree(it)
@@ -43,12 +44,15 @@ if (buildUberJar) {
         include '/META-INF/native/**'
         into file(resourcesDir)
     }
-    jar.dependsOn copySharedLibs
+    tasks.named("jar").configure {
+        dependsOn copySharedLibs
+    }
 
     /**
      * Copy the object files to the classes directory.
      */
-    task copyClasses(type: Copy, dependsOn: configurations.uberJar) {
+    def copyClasses = tasks.register("copyClasses", Copy) {
+        dependsOn configurations.uberJar
         from {
             configurations.uberJar.collect {
                 zipTree(it)
@@ -57,15 +61,20 @@ if (buildUberJar) {
         exclude '/META-INF/**'
         into file(classesDir)
     }
-    jar.dependsOn copyClasses
+    tasks.named("jar").configure {
+        dependsOn copyClasses
+    }
 
-    task copySources(type: Copy, dependsOn: ":conscrypt-openjdk:sourcesJar") {
+    def copySources = tasks.register("copySources", Copy) {
+        dependsOn ":conscrypt-openjdk:sourcesJar"
         from {
             project(":conscrypt-openjdk").sourceSets.main.java
         }
         into file(sourcesDir)
     }
-    sourcesJar.dependsOn copySources
+    tasks.named("sourcesJar").configure {
+        dependsOn copySources
+    }
 
     // Note that this assumes that the version of BoringSSL for each
     // artifact exactly matches the one on the current system.
