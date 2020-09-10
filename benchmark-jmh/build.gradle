@@ -69,7 +69,7 @@ sourceSets {
 }
 
 dependencies {
-    compile project(':conscrypt-openjdk'),
+    compile project(path: ":conscrypt-openjdk", configuration: "runtime"),
             project(':conscrypt-benchmark-base'),
             // Add the preferred native openjdk configuration for this platform.
             project(':conscrypt-openjdk').sourceSets["$preferredSourceSet"].output,
