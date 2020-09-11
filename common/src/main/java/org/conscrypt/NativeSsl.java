@@ -663,13 +663,29 @@ final class NativeSsl {
         }
 
         int writeDirectByteBuffer(long address, int length) throws IOException {
-            return NativeCrypto.ENGINE_SSL_write_BIO_direct(
-                    ssl, NativeSsl.this, bio, address, length, handshakeCallbacks);
+            lock.readLock().lock();
+            try {
+                if (isClosed()) {
+                    throw new SocketException("Socket is closed");
+                }
+                return NativeCrypto.ENGINE_SSL_write_BIO_direct(
+                        ssl, NativeSsl.this, bio, address, length, handshakeCallbacks);
+            } finally {
+                lock.readLock().unlock();
+            }
         }
 
         int readDirectByteBuffer(long destAddress, int destLength) throws IOException {
-            return NativeCrypto.ENGINE_SSL_read_BIO_direct(
-                    ssl, NativeSsl.this, bio, destAddress, destLength, handshakeCallbacks);
+            lock.readLock().lock();
+            try {
+                if (isClosed()) {
+                    throw new SocketException("Socket is closed");
+                }
+                return NativeCrypto.ENGINE_SSL_read_BIO_direct(
+                        ssl, NativeSsl.this, bio, destAddress, destLength, handshakeCallbacks);
+            } finally {
+                lock.readLock().unlock();
+            }
         }
 
         void close() {
