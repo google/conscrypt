@@ -138,13 +138,6 @@ jobs:
           ninja
           cd ..
 
-      - name: Upload BoringSSL build
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v1
-        with:
-          name: boringssl-${{ runner.os }}
-          path: ${{ runner.temp }}/boringssl
-
       - name: Setup Android environment
         shell: bash
         if: runner.os == 'Linux'
@@ -195,14 +188,24 @@ jobs:
       - name: Set runner-specific environment variables
         shell: bash
         run: |
-          echo "::set-env name=BORINGSSL_HOME::${{ runner.temp }}/boringssl"
           echo "::set-env name=M2_REPO::${{ runner.temp }}/m2"
+          echo "::set-env name=BORINGSSL_HOME::${{ runner.temp }}/boringssl"
 
-      - name: Download BoringSSL build
+      - name: Fetch BoringSSL source
         uses: actions/download-artifact@v1
         with:
-          name: boringssl-${{ runner.os }}
+          name: boringssl-source
           path: ${{ runner.temp }}/boringssl
+
+      - name: Make fake BoringSSL directories
+        shell: bash
+        run: |
+          # TODO: remove this when the check is only performed when building.
+          # BoringSSL is not needed during the UberJAR build, but the
+          # assertion to check happens regardless of whether the project
+          # needs it.
+          mkdir -p "${{ runner.temp }}/boringssl/build64"
+          mkdir -p "${{ runner.temp }}/boringssl/include"
 
       - name: Download Maven repository for Linux
         uses: actions/download-artifact@v1
@@ -226,6 +229,11 @@ jobs:
         shell: bash
         run: |
           ./gradlew :conscrypt-openjdk-uber:build -Dorg.conscrypt.openjdk.buildUberJar=true -Dmaven.repo.local="$M2_REPO"
+
+      - name: Publish UberJAR to Maven Local
+        shell: bash
+        run: |
+          ./gradlew :conscrypt-openjdk-uber:publishToMavenLocal -Dorg.conscrypt.openjdk.buildUberJar=true -Dmaven.repo.local="$M2_REPO"
 
       - name: Upload Maven respository
         uses: actions/upload-artifact@v1
