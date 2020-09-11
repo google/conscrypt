@@ -1683,6 +1683,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     protected void finalize() throws Throwable {
         try {
             transitionTo(STATE_CLOSED);
+            networkBio.close();
         } finally {
             super.finalize();
         }

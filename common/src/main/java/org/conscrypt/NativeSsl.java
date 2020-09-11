@@ -655,7 +655,7 @@ final class NativeSsl {
         }
 
         int getPendingWrittenBytes() {
-            if (bio != 0) {
+            if (bio != 0L) {
                 return NativeCrypto.SSL_pending_written_bytes_in_BIO(bio);
             } else {
                 return 0;
@@ -675,7 +675,9 @@ final class NativeSsl {
         void close() {
             long toFree = bio;
             bio = 0L;
-            NativeCrypto.BIO_free_all(toFree);
+            if (toFree != 0L) {
+                NativeCrypto.BIO_free_all(toFree);
+            }
         }
     }
 }
