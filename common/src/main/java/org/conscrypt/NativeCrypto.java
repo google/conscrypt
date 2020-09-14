@@ -1407,24 +1407,10 @@ public final class NativeCrypto {
             SSLHandshakeCallbacks shc) throws IOException;
 
     /**
-     * Writes data from the given array to the BIO.
-     */
-    static native int ENGINE_SSL_write_BIO_heap(long ssl, NativeSsl ssl_holder, long bioRef, byte[] sourceJava,
-            int sourceOffset, int sourceLength, SSLHandshakeCallbacks shc)
-            throws IOException, IndexOutOfBoundsException;
-
-    /**
      * Reads data from the given BIO into a direct {@link java.nio.ByteBuffer}.
      */
     static native int ENGINE_SSL_read_BIO_direct(long ssl, NativeSsl ssl_holder, long bioRef, long address, int len,
             SSLHandshakeCallbacks shc) throws IOException;
-
-    /**
-     * Reads data from the given BIO into an array.
-     */
-    static native int ENGINE_SSL_read_BIO_heap(long ssl, NativeSsl ssl_holder, long bioRef, byte[] destJava,
-            int destOffset, int destLength, SSLHandshakeCallbacks shc)
-            throws IOException, IndexOutOfBoundsException;
 
     /**
      * Forces the SSL object to process any data pending in the BIO.
