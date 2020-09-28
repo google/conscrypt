@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Clone BoringSSL repo
         run: |
-          git clone --depth 1 --filter=blob:none --no-checkout https://boringssl.googlesource.com/boringssl.git "${{ runner.temp }}/boringssl"
+          git clone --depth 1 --filter=blob:none --no-checkout https://github.com/google/boringssl.git "${{ runner.temp }}/boringssl"
           echo Using BoringSSL commit: $(cd "${{ runner.temp }}/boringssl"; git rev-parse HEAD)
 
       - name: Archive BoringSSL source
@@ -96,7 +96,7 @@ jobs:
         shell: bash
         run: |
           cd "$BORINGSSL_HOME"
-          git checkout master
+          git checkout --progress --force -B master
 
       - name: Build BoringSSL 64-bit Linux and MacOS
         if: runner.os != 'Windows'
@@ -177,6 +177,19 @@ jobs:
           name: m2repo-${{ runner.os }}
           path: ${{ runner.temp }}/m2
 
+      - name: Build test JAR with dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./gradlew :conscrypt-openjdk:testJar -PcheckErrorQueue
+
+      - name: Upload test JAR with dependencies
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: testjar
+          path: openjdk/build/libs/conscrypt-openjdk-*-tests.jar
+          if-no-files-found: error
+
   uberjar:
     needs: build
 
@@ -240,3 +253,57 @@ jobs:
         with:
           name: m2repo-uber
           path: ${{ runner.temp }}/m2
+
+  openjdk-test:
+    needs: uberjar
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+        java: [8, 9, 11]
+        include:
+          - java: 8
+            suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
+          - java: 9
+            suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
+          - java: 11
+            suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Set up Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+
+      - name: Download UberJAR
+        uses: actions/download-artifact@v2
+        with:
+          name: m2repo-uber
+          path: m2
+
+      - name: Download Test JAR with Dependencies
+        uses: actions/download-artifact@v2
+        with:
+          name: testjar
+          path: testjar
+
+      - name: Download JUnit runner
+        shell: bash
+        run: mvn org.apache.maven.plugins:maven-dependency-plugin:3.1.2:copy -Dartifact=org.junit.platform:junit-platform-console-standalone:1.6.2 -DoutputDirectory=. -Dmdep.stripVersion=true
+
+      - name: Run JUnit tests
+        shell: bash
+        run: |
+          DIR="$(find m2/org/conscrypt/conscrypt-openjdk-uber -maxdepth 1 -mindepth 1 -type d -print)"
+          VERSION="${DIR##*/}"
+          TESTJAR="$(find testjar -name '*-tests.jar')"
+          java -jar junit-platform-console-standalone.jar -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar:$TESTJAR" -n='${{ matrix.suite_class }}' --scan-classpath --reports-dir=results
+
+      - name: Archive test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-results-${{ matrix.platform }}-${{ matrix.java }}
+          path: results

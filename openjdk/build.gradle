@@ -1,4 +1,9 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '6.0.0'
+}
+
 import aQute.bnd.gradle.BundleTaskConvention
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.codehaus.groovy.runtime.InvokerHelper
 
 apply plugin: 'biz.aQute.bnd.builder'
@@ -86,6 +91,12 @@ tasks.register("platformJar", Jar) {
     from sourceSets.platform.output
 }
 
+tasks.register("testJar", ShadowJar) {
+    classifier = 'tests'
+    configurations = [project.configurations.testRuntime]
+    from sourceSets.test.output
+}
+
 if (isExecutableOnPath('cpplint')) {
     def cpplint = tasks.register("cpplint", Exec) {
         executable = 'cpplint'
@@ -168,8 +179,8 @@ dependencies {
     // This is listed as compile-only, but we absorb its contents.
     compileOnly project(':conscrypt-constants')
 
-    testImplementation project(':conscrypt-constants'),
-            project(':conscrypt-testing'),
+    testCompile project(':conscrypt-constants'),
+            project(path: ':conscrypt-testing', configuration: 'shadow'),
             libraries.junit,
             libraries.mockito
 

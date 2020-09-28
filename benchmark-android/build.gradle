@@ -69,7 +69,7 @@ if (androidSdkInstalled) {
                    libraries.bouncycastle_apis
 
         depsJarImplementation project(':conscrypt-benchmark-base'),
-                              project(':conscrypt-testing'),
+                              project(path: ":conscrypt-testing", configuration: "runtime"),
                               project(':conscrypt-libcore-stub')
 
         implementation 'com.google.caliper:caliper:1.0-beta-2'
