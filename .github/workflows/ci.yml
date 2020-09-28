@@ -307,10 +307,3 @@ jobs:
         with:
           name: test-results-${{ matrix.platform }}-${{ matrix.java }}
           path: results
-
-      - name: Publish test results
-        uses: scacap/action-surefire-report@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          check_name: OpenJDK Test Report (${{ matrix.platform }}, ${{ matrix.java }})
-          report_paths: 'results/**/TEST-*.xml'
