@@ -339,10 +339,18 @@ model {
                         // Static link to BoringSSL
                         linker.args "-O3",
                                 "-fvisibility=hidden",
-                                "-lstdc++",
                                 "-lpthread",
                                 libPath + "/ssl/libssl.a",
                                 libPath + "/crypto/libcrypto.a"
+                        if (targetPlatform.operatingSystem.isLinux()) {
+                            // Static link libstdc++ and libgcc because
+                            // they are not available in some restrictive Linux
+                            // environments.
+                            linker.args "-static-libstdc++",
+                                    "-static-libgcc"
+                        } else {
+                            linker.args "-lstdc++"
+                        }
                     } else if (toolChain in VisualCpp) {
                         cppCompiler.define "DLL_EXPORT"
                         cppCompiler.define "WIN32_LEAN_AND_MEAN"
