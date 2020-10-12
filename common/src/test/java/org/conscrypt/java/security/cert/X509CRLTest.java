@@ -91,6 +91,18 @@ public class X509CRLTest {
             + "nDN0LLg=\n"
             + "-----END X509 CRL-----\n";
 
+    private static final String UNKNOWN_SIGNATURE_OID =
+        "-----BEGIN X509 CRL-----\n"
+            + "MIIBVzCBvgIBATAQBgwqhkiG9xIEAYS3CQIFADBVMQswCQYDVQQGEwJHQjEkMCIG\n"
+            + "A1UEChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVXYWxl\n"
+            + "czEQMA4GA1UEBxMHRXJ3IFdlbhcNMTkwODA3MTAyNzEwWhcNMTkwOTA2MTAyNzEw\n"
+            + "WjAiMCACAQcXDTE5MDgwNzEwMjY1NFowDDAKBgNVHRUEAwoBAaAOMAwwCgYDVR0U\n"
+            + "BAMCAQIwEAYMKoZIhvcSBAGEtwkCBQADgYEAzF/DLiIvZDX4FpSjNCnwKRblnhJL\n"
+            + "Z1NNBAHxcRbfFY3psobvbGGOjxzCQW/03gkngG5VrSfdVOLMmQDrAxpKqeYqFDj0\n"
+            + "HAenWugbCCHWAw8WN9XSJ4nGxdRiacG/5vEIx00ICUGCeGcnqWsSnFtagDtvry2c\n"
+            + "4MMexbSPnDN0LLg=\n"
+            + "-----END X509 CRL-----\n";
+
     @Test
     public void testCrl() throws Exception {
         ServiceTester.test("CertificateFactory")
@@ -126,6 +138,21 @@ public class X509CRLTest {
                     assertNull(crl.getRevokedCertificate(ca));
 
                     assertEquals(Collections.singleton(entry), crl.getRevokedCertificates());
+                }
+            });
+    }
+
+    @Test
+    public void testUnknownSigAlgOID() throws Exception {
+        ServiceTester.test("CertificateFactory")
+            .withAlgorithm("X509")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider p, String algorithm) throws Exception {
+                    CertificateFactory cf = CertificateFactory.getInstance("X509", p);
+                    X509CRL crl = (X509CRL) cf.generateCRL(new ByteArrayInputStream(
+                            UNKNOWN_SIGNATURE_OID.getBytes(StandardCharsets.US_ASCII)));
+                    assertEquals("1.2.840.113554.4.1.72585.2", crl.getSigAlgOID());
                 }
             });
     }

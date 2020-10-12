@@ -124,6 +124,24 @@ public class X509CertificateTest {
             + "Qhy0YgIgYWr0qSCLqxUQv3oQHMUpSmfHtP0Pwvb3DbbH6lY7TkI=\n"
             + "-----END CERTIFICATE-----\n";
 
+    /**
+     * This cert is signed with OID 1.2.840.113554.4.1.72585.2 instead of a
+     * standard one.
+     */
+    private static final String UNKNOWN_SIGNATURE_OID =
+            "-----BEGIN CERTIFICATE-----\n"
+            + "MIIB2TCCAXugAwIBAgIJANlMBNpJfb/rMA4GDCqGSIb3EgQBhLcJAjBFMQswCQYD\n"
+            + "VQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50ZXJuZXQg\n"
+            + "V2lkZ2l0cyBQdHkgTHRkMB4XDTE0MDQyMzIzMjE1N1oXDTE0MDUyMzIzMjE1N1ow\n"
+            + "RTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGElu\n"
+            + "dGVybmV0IFdpZGdpdHMgUHR5IEx0ZDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IA\n"
+            + "BOYraeK/ZZ+Xvi8eDZSKTNWXa7epHg1G+92pqR6d3LpaAefWl6gKGPnDxKMeVuJ8\n"
+            + "g0jbFhoc9R1+8ZQtS89yIsGjUDBOMB0GA1UdDgQWBBSrhNKsq5Xwgk4WeAdVV1/k\n"
+            + "Jo2C0TAfBgNVHSMEGDAWgBSrhNKsq5Xwgk4WeAdVV1/kJo2C0TAMBgNVHRMEBTAD\n"
+            + "AQH/MA4GDCqGSIb3EgQBhLcJAgNIADBFAiEA8qA1XlE6NsOCeZvuJ1CFjnAGdJVX\n"
+            + "0il0APS+FYddxAcCIHweeRRqIYPwenRoeV8UmZpotPHLnhVe5h8yUmFedckU\n"
+            + "-----END CERTIFICATE-----\n";
+
     // See issue #539.
     @Test
     public void testMismatchedAlgorithm() throws Exception {
@@ -184,6 +202,22 @@ public class X509CertificateTest {
                         VALID_CERT.getBytes(Charset.forName("US-ASCII"))));
                     assertEquals("SHA256WITHRSA",
                         ((X509Certificate) c).getSigAlgName().toUpperCase());
+                }
+            });
+    }
+
+    @Test
+    public void testUnknownSigAlgOID() throws Exception {
+        ServiceTester.test("CertificateFactory")
+            .withAlgorithm("X509")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider p, String algorithm) throws Exception {
+                    CertificateFactory cf = CertificateFactory.getInstance("X509", p);
+                    Certificate c = cf.generateCertificate(new ByteArrayInputStream(
+                            UNKNOWN_SIGNATURE_OID.getBytes(Charset.forName("US-ASCII"))));
+                    assertEquals(
+                            "1.2.840.113554.4.1.72585.2", ((X509Certificate) c).getSigAlgOID());
                 }
             });
     }
