@@ -4512,8 +4512,11 @@ static jstring NativeCrypto_get_X509_CRL_sig_alg_oid(JNIEnv* env, jclass, jlong 
         return nullptr;
     }
 
-    int nid = X509_CRL_get_signature_nid(crl);
-    return ASN1_OBJECT_to_OID_string(env, OBJ_nid2obj(nid));
+    const X509_ALGOR *sig_alg;
+    X509_CRL_get0_signature(crl, nullptr, &sig_alg);
+    const ASN1_OBJECT *oid;
+    X509_ALGOR_get0(&oid, nullptr, nullptr, sig_alg);
+    return ASN1_OBJECT_to_OID_string(env, oid);
 }
 
 static jbyteArray NativeCrypto_get_X509_CRL_sig_alg_parameter(JNIEnv* env, jclass, jlong x509CrlRef,
@@ -5779,8 +5782,11 @@ static jstring NativeCrypto_get_X509_sig_alg_oid(JNIEnv* env, jclass, jlong x509
         return nullptr;
     }
 
-    int nid = X509_get_signature_nid(x509);
-    return ASN1_OBJECT_to_OID_string(env, OBJ_nid2obj(nid));
+    const X509_ALGOR *sig_alg;
+    X509_get0_signature(nullptr, &sig_alg, x509);
+    const ASN1_OBJECT *oid;
+    X509_ALGOR_get0(&oid, nullptr, nullptr, sig_alg);
+    return ASN1_OBJECT_to_OID_string(env, oid);
 }
 
 static jbyteArray NativeCrypto_get_X509_sig_alg_parameter(JNIEnv* env, jclass, jlong x509Ref,
