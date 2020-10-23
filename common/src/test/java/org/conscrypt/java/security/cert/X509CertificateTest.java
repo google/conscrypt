@@ -30,15 +30,20 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.TimeZone;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.util.Pair;
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
@@ -170,7 +175,7 @@ public class X509CertificateTest {
      * fields as necessary with https://github.com/google/der-ascii.
      */
     private static final String MANY_EXTENSIONS = "-----BEGIN CERTIFICATE-----\n"
-            + "MIIEVDCCAzygAwIBAgIJALW2IrlaBKUhMA0GCSqGSIb3DQEBCwUAMBYxFDASBgNV\n"
+            + "MIIETjCCAzagAwIBAgIJALW2IrlaBKUhMA0GCSqGSIb3DQEBCwUAMBYxFDASBgNV\n"
             + "BAMMC1Rlc3QgSXNzdWVyMB4XDTE2MDcwOTA0MzgwOVoXDTE2MDgwODA0MzgwOVow\n"
             + "FzEVMBMGA1UEAwwMVGVzdCBTdWJqZWN0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\n"
             + "MIIBCgKCAQEAugvahBkSAUF1fC49vb1bvlPrcl80kop1iLpiuYoz4Qptwy57+EWs\n"
@@ -178,22 +183,22 @@ public class X509CertificateTest {
             + "zepBrhtp5UQSjHD4D4hKtgdMgVxX+LRtwgW3mnu/vBu7rzpr/DS8io99p3lqZ1Ak\n"
             + "y+aNlcMj6MYy8U+YFEevb/V0lRY9oqwmW7BHnXikm/vi6sjIS350U8zb/mRzYeIs\n"
             + "2R65LUduTL50+UMgat9ocewI2dv8aO9Dph+8NdGtg8LFYyTTHcUxJoMr1PTOgnmE\n"
-            + "T19WJH4PrFwk7ZE1QJQQ1L4iKmPeQistuQIDAQABgQIEoIICA1CjggGaMIIBljAP\n"
+            + "T19WJH4PrFwk7ZE1QJQQ1L4iKmPeQistuQIDAQABgQIEoIICA1CjggGUMIIBkDAP\n"
             + "BgNVHRMECDAGAQH/AgEKMCEGA1UdJQQaMBgGCCsGAQUFBwMBBgwqhkiG9xIEAYS3\n"
-            + "CQIwgagGA1UdEQSBoDCBnaATBgwqhkiG9xIEAYS3CQKgAwIBAIETc3ViamVjdEBl\n"
-            + "eGFtcGxlLmNvbYITc3ViamVjdC5leGFtcGxlLmNvbaQZMBcxFTATBgNVBAMMDFRl\n"
-            + "c3QgU3ViamVjdIYbaHR0cHM6Ly9leGFtcGxlLmNvbS9zdWJqZWN0hwR/AAABhxAA\n"
-            + "AAAAAAAAAAAAAAAAAAABiAwqhkiG9xIEAYS3CQIwgaQGA1UdEgSBnDCBmaATBgwq\n"
-            + "hkiG9xIEAYS3CQKgAwIBAYESaXNzdWVyQGV4YW1wbGUuY29tghJpc3N1ZXIuZXhh\n"
-            + "bXBsZS5jb22kGDAWMRQwEgYDVQQDDAtUZXN0IElzc3VlcoYaaHR0cHM6Ly9leGFt\n"
-            + "cGxlLmNvbS9pc3N1ZXKHBH8AAAGHEAAAAAAAAAAAAAAAAAAAAAGIDCqGSIb3EgQB\n"
-            + "hLcJAjAOBgNVHQ8BAf8EBAMCBaAwDQYJKoZIhvcNAQELBQADggEBAD7Jg68SArYW\n"
-            + "lcoHfZAB90Pmyrt5H6D8LRi+W2Ri1fBNxREELnezWJ2scjl4UMcsKYp4Pi950gVN\n"
-            + "+62IgrImcCNvtb5I1Cfy/MNNur9ffas6X334D0hYVIQTePyFk3umI+2mJQrtZZyM\n"
-            + "PIKSY/sYGQHhGGX6wGK+GO/og0PQk/Vu6D+GU2XRnDV0YZg1lsAsHd21XryK6fDm\n"
-            + "NkEMwbIWrts4xc7scRrGHWy+iMf6/7p/Ak/SIicM4XSwmlQ8pPxAZPr+E2LoVd9p\n"
-            + "MpWUwpW2UbtO5wsGTrY5sO45tFNN/y+jtUheB1C2ijObG/tXELaiyCdM+S/waeuv\n"
-            + "0MXtI4xnn1A=\n"
+            + "CQIwgaUGA1UdEQSBnTCBmoETc3ViamVjdEBleGFtcGxlLmNvbYITc3ViamVjdC5l\n"
+            + "eGFtcGxlLmNvbaQZMBcxFTATBgNVBAMMDFRlc3QgU3ViamVjdIYbaHR0cHM6Ly9l\n"
+            + "eGFtcGxlLmNvbS9zdWJqZWN0hwR/AAABhxAAAAAAAAAAAAAAAAAAAAABhxAAESIz\n"
+            + "RFVmd4iZqrvM3e7/iAwqhkiG9xIEAYS3CQIwgaEGA1UdEgSBmTCBloESaXNzdWVy\n"
+            + "QGV4YW1wbGUuY29tghJpc3N1ZXIuZXhhbXBsZS5jb22kGDAWMRQwEgYDVQQDDAtU\n"
+            + "ZXN0IElzc3VlcoYaaHR0cHM6Ly9leGFtcGxlLmNvbS9pc3N1ZXKHBH8AAAGHEAAA\n"
+            + "AAAAAAAAAAAAAAAAAAGHEAARIjNEVWZ3iJmqu8zd7v+IDCqGSIb3EgQBhLcJAjAO\n"
+            + "BgNVHQ8BAf8EBAMCBaAwDQYJKoZIhvcNAQELBQADggEBAD7Jg68SArYWlcoHfZAB\n"
+            + "90Pmyrt5H6D8LRi+W2Ri1fBNxREELnezWJ2scjl4UMcsKYp4Pi950gVN+62IgrIm\n"
+            + "cCNvtb5I1Cfy/MNNur9ffas6X334D0hYVIQTePyFk3umI+2mJQrtZZyMPIKSY/sY\n"
+            + "GQHhGGX6wGK+GO/og0PQk/Vu6D+GU2XRnDV0YZg1lsAsHd21XryK6fDmNkEMwbIW\n"
+            + "rts4xc7scRrGHWy+iMf6/7p/Ak/SIicM4XSwmlQ8pPxAZPr+E2LoVd9pMpWUwpW2\n"
+            + "UbtO5wsGTrY5sO45tFNN/y+jtUheB1C2ijObG/tXELaiyCdM+S/waeuv0MXtI4xn\n"
+            + "n1A=\n"
             + "-----END CERTIFICATE-----\n";
 
     /**
@@ -316,6 +321,39 @@ public class X509CertificateTest {
         CertificateFactory cf = CertificateFactory.getInstance("X509", p);
         return (X509Certificate) cf.generateCertificate(
                 new ByteArrayInputStream(pem.getBytes(Charset.forName("US-ASCII"))));
+    }
+
+    private static List<Pair<Integer, String>> normalizeGeneralNames(Collection<List<?>> names) {
+        // Extract a more convenient type than Java's Collection<List<?>>.
+        List<Pair<Integer, String>> result = new ArrayList<Pair<Integer, String>>();
+        for (List<?> tuple : names) {
+            assertEquals(2, tuple.size());
+            int type = ((Integer) tuple.get(0)).intValue();
+            // TODO(davidben): Most name types are expected to have a String value, but some use
+            // byte[]. Update this logic when testing those name types. See
+            // X509Certificate.getSubjectAlternativeNames().
+            String value = (String) tuple.get(1);
+            result.add(Pair.of(type, value));
+        }
+        // Although there is a natural order (the order in the certificate), Java's API returns a
+        // Collection, so there is no guarantee of the provider using a particular order. Normalize
+        // the order before comparing.
+        result.sort(new Comparator<Pair<Integer, String>>() {
+            @Override
+            public int compare(Pair<Integer, String> a, Pair<Integer, String> b) {
+                int cmp = a.getFirst().compareTo(b.getFirst());
+                if (cmp != 0) {
+                    return cmp;
+                }
+                return a.getSecond().compareTo(b.getSecond());
+            }
+        });
+        return result;
+    }
+
+    private static void assertGeneralNamesEqual(
+            Collection<List<?>> expected, Collection<List<?>> actual) throws Exception {
+        assertEquals(normalizeGeneralNames(expected), normalizeGeneralNames(actual));
     }
 
     // See issue #539.
@@ -473,8 +511,29 @@ public class X509CertificateTest {
                 assertEquals(Arrays.asList("1.3.6.1.5.5.7.3.1", "1.2.840.113554.4.1.72585.2"),
                         c.getExtendedKeyUsage());
 
-                // TODO(davidben): Test getSubjectAlternativeNames() and
-                // getIssuerAlternativeNames(), after resolving behavior differences.
+                // TODO(davidben): Test the other name types.
+                assertGeneralNamesEqual(
+                        Arrays.<List<?>>asList(
+                                Arrays.asList(1, "issuer@example.com"),
+                                Arrays.asList(2, "issuer.example.com"),
+                                Arrays.asList(4, "CN=Test Issuer"),
+                                Arrays.asList(6, "https://example.com/issuer"),
+                                Arrays.asList(7, "127.0.0.1"),
+                                Arrays.asList(7, "0:0:0:0:0:0:0:1"),
+                                Arrays.asList(7, "11:2233:4455:6677:8899:aabb:ccdd:eeff"),
+                                Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
+                        c.getIssuerAlternativeNames());
+                assertGeneralNamesEqual(
+                        Arrays.<List<?>>asList(
+                                Arrays.asList(1, "subject@example.com"),
+                                Arrays.asList(2, "subject.example.com"),
+                                Arrays.asList(4, "CN=Test Subject"),
+                                Arrays.asList(6, "https://example.com/subject"),
+                                Arrays.asList(7, "127.0.0.1"),
+                                Arrays.asList(7, "0:0:0:0:0:0:0:1"),
+                                Arrays.asList(7, "11:2233:4455:6677:8899:aabb:ccdd:eeff"),
+                                Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
+                        c.getSubjectAlternativeNames());
 
                 // Although the BIT STRING in the certificate only has three bits, getKeyUsage()
                 // rounds up to at least 9 bits.
