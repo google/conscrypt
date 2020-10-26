@@ -76,6 +76,14 @@ jobs:
       - name: Setup macOS environment
         if: runner.os == 'macOS'
         run: |
+          // Workaround for https://github.com/actions/virtual-environments/issues/1811
+          // Remove broken openssl and python packages, not used by Conscrypt builds
+          // TODO(prb): remove when no longer required.
+          brew uninstall openssl@2.0.2t
+          brew uninstall python@2.7.17
+          brew untap local/openssl
+          brew untap local/python2
+          brew update
           brew install ninja
           echo "::set-env name=JAVA_HOME::$(/usr/libexec/java_home -v 1.8)"
 
