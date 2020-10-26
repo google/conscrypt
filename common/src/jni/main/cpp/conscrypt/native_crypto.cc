@@ -427,7 +427,7 @@ static jobjectArray CryptoBuffersToObjectArray(JNIEnv* env,
 /**
  * Converts ASN.1 BIT STRING to a jbooleanArray.
  */
-jbooleanArray ASN1BitStringToBooleanArray(JNIEnv* env, ASN1_BIT_STRING* bitStr) {
+jbooleanArray ASN1BitStringToBooleanArray(JNIEnv* env, const ASN1_BIT_STRING* bitStr) {
     int size = ASN1_STRING_length(bitStr) * 8;
     if (bitStr->flags & ASN1_STRING_FLAG_BITS_LEFT) {
         size -= bitStr->flags & 0x07;
@@ -4172,8 +4172,8 @@ static long NativeCrypto_X509_get_version(JNIEnv* env, jclass, jlong x509Ref,
 }
 
 template <typename T>
-static jbyteArray get_X509Type_serialNumber(JNIEnv* env, T* x509Type,
-                                            ASN1_INTEGER* (*get_serial_func)(T*)) {
+static jbyteArray get_X509Type_serialNumber(JNIEnv* env, const T* x509Type,
+                                            const ASN1_INTEGER* (*get_serial_func)(const T*)) {
     JNI_TRACE("get_X509Type_serialNumber(%p)", x509Type);
 
     if (x509Type == nullptr) {
@@ -4182,7 +4182,7 @@ static jbyteArray get_X509Type_serialNumber(JNIEnv* env, T* x509Type,
         return nullptr;
     }
 
-    ASN1_INTEGER* serialNumber = get_serial_func(x509Type);
+    const ASN1_INTEGER* serialNumber = get_serial_func(x509Type);
     bssl::UniquePtr<BIGNUM> serialBn(ASN1_INTEGER_to_BN(serialNumber, nullptr));
     if (serialBn.get() == nullptr) {
         JNI_TRACE("X509_get_serialNumber(%p) => threw exception", x509Type);
@@ -4199,19 +4199,12 @@ static jbyteArray get_X509Type_serialNumber(JNIEnv* env, T* x509Type,
     return serialArray.release();
 }
 
-/* OpenSSL includes set_serialNumber but not get. */
-#if !defined(X509_REVOKED_get_serialNumber)
-static ASN1_INTEGER* X509_REVOKED_get_serialNumber(X509_REVOKED* x) {
-    return x->serialNumber;
-}
-#endif
-
 static jbyteArray NativeCrypto_X509_get_serialNumber(JNIEnv* env, jclass, jlong x509Ref,
                                                      CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_get_serialNumber(%p)", x509);
-    return get_X509Type_serialNumber<X509>(env, x509, X509_get_serialNumber);
+    return get_X509Type_serialNumber<X509>(env, x509, X509_get0_serialNumber);
 }
 
 static jbyteArray NativeCrypto_X509_REVOKED_get_serialNumber(JNIEnv* env, jclass,
@@ -4219,7 +4212,7 @@ static jbyteArray NativeCrypto_X509_REVOKED_get_serialNumber(JNIEnv* env, jclass
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
     JNI_TRACE("X509_REVOKED_get_serialNumber(%p)", revoked);
-    return get_X509Type_serialNumber<X509_REVOKED>(env, revoked, X509_REVOKED_get_serialNumber);
+    return get_X509Type_serialNumber<X509_REVOKED>(env, revoked, X509_REVOKED_get0_serialNumber);
 }
 
 static void NativeCrypto_X509_verify(JNIEnv* env, jclass, jlong x509Ref,
@@ -4519,6 +4512,27 @@ static jstring NativeCrypto_get_X509_CRL_sig_alg_oid(JNIEnv* env, jclass, jlong 
     return ASN1_OBJECT_to_OID_string(env, oid);
 }
 
+static jbyteArray get_X509_ALGOR_parameter(JNIEnv* env, const X509_ALGOR *algor) {
+    int param_type;
+    const void* param_value;
+    X509_ALGOR_get0(nullptr, &param_type, &param_value, algor);
+
+    if (param_type == V_ASN1_UNDEF) {
+        JNI_TRACE("get_X509_ALGOR_parameter(%p) => no parameters", algor);
+        return nullptr;
+    }
+
+    // The OpenSSL 1.1.x API lacks a function to get the ASN1_TYPE out of X509_ALGOR directly, so
+    // recreate it from the returned components.
+    bssl::UniquePtr<ASN1_TYPE> param(ASN1_TYPE_new());
+    if (!param || !ASN1_TYPE_set1(param.get(), param_type, param_value)) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to serialize parameter");
+        return nullptr;
+    }
+
+    return ASN1ToByteArray<ASN1_TYPE>(env, param.get(), i2d_ASN1_TYPE);
+}
+
 static jbyteArray NativeCrypto_get_X509_CRL_sig_alg_parameter(JNIEnv* env, jclass, jlong x509CrlRef,
                                                               CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -4533,12 +4547,7 @@ static jbyteArray NativeCrypto_get_X509_CRL_sig_alg_parameter(JNIEnv* env, jclas
 
     const X509_ALGOR *sig_alg;
     X509_CRL_get0_signature(crl, nullptr, &sig_alg);
-    if (sig_alg->parameter == nullptr) {
-        JNI_TRACE("get_X509_CRL_sig_alg_parameter(%p) => null", crl);
-        return nullptr;
-    }
-
-    return ASN1ToByteArray<ASN1_TYPE>(env, sig_alg->parameter, i2d_ASN1_TYPE);
+    return get_X509_ALGOR_parameter(env, sig_alg);
 }
 
 static jbyteArray NativeCrypto_X509_CRL_get_issuer_name(JNIEnv* env, jclass, jlong x509CrlRef,
@@ -4611,55 +4620,13 @@ static jbyteArray X509Type_get_ext_oid(JNIEnv* env, const T* x509Type, jstring o
                                               i2d_ASN1_OCTET_STRING);
 }
 
-// TODO(davidben): Historically, these functions were not const-correct. Remove these wrappers once
-// https://boringssl-review.googlesource.com/c/boringssl/+/42584 has rolled out sufficiently.
-static X509_EXTENSION* X509_get_ext_const(const X509* x509, int loc) {
-    return X509_get_ext(const_cast<X509*>(x509), loc);
-}
-
-static int X509_get_ext_by_OBJ_const(const X509* x509, const ASN1_OBJECT* obj, int lastpos) {
-    return X509_get_ext_by_OBJ(const_cast<X509*>(x509), const_cast<ASN1_OBJECT*>(obj), lastpos);
-}
-
-static int X509_get_ext_by_critical_const(const X509* x509, int crit, int lastpos) {
-    return X509_get_ext_by_critical(const_cast<X509*>(x509), crit, lastpos);
-}
-
-static X509_EXTENSION* X509_CRL_get_ext_const(const X509_CRL* crl, int loc) {
-    return X509_CRL_get_ext(const_cast<X509_CRL*>(crl), loc);
-}
-
-static int X509_CRL_get_ext_by_OBJ_const(const X509_CRL* crl, const ASN1_OBJECT* obj, int lastpos) {
-    return X509_CRL_get_ext_by_OBJ(const_cast<X509_CRL*>(crl), const_cast<ASN1_OBJECT*>(obj),
-                                   lastpos);
-}
-
-static int X509_CRL_get_ext_by_critical_const(const X509_CRL* crl, int crit, int lastpos) {
-    return X509_CRL_get_ext_by_critical(const_cast<X509_CRL*>(crl), crit, lastpos);
-}
-
-static X509_EXTENSION* X509_REVOKED_get_ext_const(const X509_REVOKED* r, int loc) {
-    return X509_REVOKED_get_ext(const_cast<X509_REVOKED*>(r), loc);
-}
-
-static int X509_REVOKED_get_ext_by_OBJ_const(const X509_REVOKED* r, const ASN1_OBJECT* obj,
-                                             int lastpos) {
-    return X509_REVOKED_get_ext_by_OBJ(const_cast<X509_REVOKED*>(r), const_cast<ASN1_OBJECT*>(obj),
-                                       lastpos);
-}
-
-static int X509_REVOKED_get_ext_by_critical_const(const X509_REVOKED* r, int crit, int lastpos) {
-    return X509_REVOKED_get_ext_by_critical(const_cast<X509_REVOKED*>(r), crit, lastpos);
-}
-
 static jlong NativeCrypto_X509_CRL_get_ext(JNIEnv* env, jclass, jlong x509CrlRef,
                                            CONSCRYPT_UNUSED jobject holder, jstring oid) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_get_ext(%p, %p)", crl, oid);
     X509_EXTENSION* ext =
-            X509Type_get_ext<X509_CRL, X509_CRL_get_ext_by_OBJ_const, X509_CRL_get_ext_const>(
-                    env, crl, oid);
+            X509Type_get_ext<X509_CRL, X509_CRL_get_ext_by_OBJ, X509_CRL_get_ext>(env, crl, oid);
     JNI_TRACE("X509_CRL_get_ext(%p, %p) => %p", crl, oid, ext);
     return reinterpret_cast<uintptr_t>(ext);
 }
@@ -4669,8 +4636,9 @@ static jlong NativeCrypto_X509_REVOKED_get_ext(JNIEnv* env, jclass, jlong x509Re
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
     JNI_TRACE("X509_REVOKED_get_ext(%p, %p)", revoked, oid);
-    X509_EXTENSION* ext = X509Type_get_ext<X509_REVOKED, X509_REVOKED_get_ext_by_OBJ_const,
-                                           X509_REVOKED_get_ext_const>(env, revoked, oid);
+    X509_EXTENSION* ext =
+            X509Type_get_ext<X509_REVOKED, X509_REVOKED_get_ext_by_OBJ, X509_REVOKED_get_ext>(
+                    env, revoked, oid);
     JNI_TRACE("X509_REVOKED_get_ext(%p, %p) => %p", revoked, oid, ext);
     return reinterpret_cast<uintptr_t>(ext);
 }
@@ -4732,11 +4700,18 @@ static void NativeCrypto_X509_REVOKED_print(JNIEnv* env, jclass, jlong bioRef,
     }
 
     BIO_printf(bio, "Serial Number: ");
-    i2a_ASN1_INTEGER(bio, revoked->serialNumber);
+    i2a_ASN1_INTEGER(bio, X509_REVOKED_get0_serialNumber(revoked));
     BIO_printf(bio, "\nRevocation Date: ");
-    ASN1_TIME_print(bio, revoked->revocationDate);
+    ASN1_TIME_print(bio, X509_REVOKED_get0_revocationDate(revoked));
     BIO_printf(bio, "\n");
-    X509V3_extensions_print(bio, "CRL entry extensions", revoked->extensions, 0, 0);
+    // TODO(davidben): Remove the const_cast after
+    // https://boringssl-review.googlesource.com/c/boringssl/+/43565 has landed.
+    //
+    // TODO(davidben): Should the flags parameter be |X509V3_EXT_DUMP_UNKNOWN| so we don't error on
+    // unknown extensions. Alternatively, maybe we can use a simpler toString() implementation.
+    X509V3_extensions_print(bio, "CRL entry extensions",
+                            const_cast<X509_EXTENSIONS*>(X509_REVOKED_get0_extensions(revoked)), 0,
+                            0);
 }
 #ifndef _WIN32
 #pragma GCC diagnostic pop
@@ -5767,7 +5742,9 @@ static jstring NativeCrypto_get_X509_pubkey_oid(JNIEnv* env, jclass, jlong x509R
     }
 
     X509_PUBKEY* pubkey = X509_get_X509_PUBKEY(x509);
-    return ASN1_OBJECT_to_OID_string(env, pubkey->algor->algorithm);
+    ASN1_OBJECT* algorithm;
+    X509_PUBKEY_get0_param(&algorithm, nullptr, nullptr, nullptr, pubkey);
+    return ASN1_OBJECT_to_OID_string(env, algorithm);
 }
 
 static jstring NativeCrypto_get_X509_sig_alg_oid(JNIEnv* env, jclass, jlong x509Ref,
@@ -5803,12 +5780,7 @@ static jbyteArray NativeCrypto_get_X509_sig_alg_parameter(JNIEnv* env, jclass, j
 
     const X509_ALGOR *sig_alg;
     X509_get0_signature(nullptr, &sig_alg, x509);
-    if (sig_alg->parameter == nullptr) {
-        JNI_TRACE("get_X509_sig_alg_parameter(%p) => null", x509);
-        return nullptr;
-    }
-
-    return ASN1ToByteArray<ASN1_TYPE>(env, sig_alg->parameter, i2d_ASN1_TYPE);
+    return get_X509_ALGOR_parameter(env, sig_alg);
 }
 
 static jbooleanArray NativeCrypto_get_X509_issuerUID(JNIEnv* env, jclass, jlong x509Ref,
@@ -5823,12 +5795,14 @@ static jbooleanArray NativeCrypto_get_X509_issuerUID(JNIEnv* env, jclass, jlong 
         return nullptr;
     }
 
-    if (x509->cert_info->issuerUID == nullptr) {
+    const ASN1_BIT_STRING *issuer_uid;
+    X509_get0_uids(x509, &issuer_uid, /*out_subject_uid=*/nullptr);
+    if (issuer_uid == nullptr) {
         JNI_TRACE("get_X509_issuerUID(%p) => null", x509);
         return nullptr;
     }
 
-    return ASN1BitStringToBooleanArray(env, x509->cert_info->issuerUID);
+    return ASN1BitStringToBooleanArray(env, issuer_uid);
 }
 
 static jbooleanArray NativeCrypto_get_X509_subjectUID(JNIEnv* env, jclass, jlong x509Ref,
@@ -5843,12 +5817,14 @@ static jbooleanArray NativeCrypto_get_X509_subjectUID(JNIEnv* env, jclass, jlong
         return nullptr;
     }
 
-    if (x509->cert_info->subjectUID == nullptr) {
+    const ASN1_BIT_STRING *subject_uid;
+    X509_get0_uids(x509, /*out_issuer_uid=*/nullptr, &subject_uid);
+    if (subject_uid == nullptr) {
         JNI_TRACE("get_X509_subjectUID(%p) => null", x509);
         return nullptr;
     }
 
-    return ASN1BitStringToBooleanArray(env, x509->cert_info->subjectUID);
+    return ASN1BitStringToBooleanArray(env, subject_uid);
 }
 
 static jbooleanArray NativeCrypto_get_X509_ex_kusage(JNIEnv* env, jclass, jlong x509Ref,
@@ -5922,11 +5898,13 @@ static jint NativeCrypto_get_X509_ex_pathlen(JNIEnv* env, jclass, jlong x509Ref,
         return 0;
     }
 
-    /* Just need to do this to cache the ex_* values. */
-    X509_check_ca(x509);
-
-    JNI_TRACE("get_X509_ex_pathlen(%p) => %ld", x509, x509->ex_pathlen);
-    return x509->ex_pathlen;
+    // TODO(davidben): It is possible for |x509| to have an invalid basicConstraints extension, in
+    // which case |X509_get_pathlen| will report the extension is missing. The |EXFLAG_INVALID| can
+    // be checked for error, but Java's X509Certificate API does not allow for getBasicConstraints()
+    // to throw an exception, so we'd have to check this extension at parse time.
+    long pathlen = X509_get_pathlen(x509);
+    JNI_TRACE("get_X509_ex_pathlen(%p) => %ld", x509, pathlen);
+    return pathlen;
 }
 
 static jbyteArray NativeCrypto_X509_get_ext_oid(JNIEnv* env, jclass, jlong x509Ref,
@@ -5935,8 +5913,7 @@ static jbyteArray NativeCrypto_X509_get_ext_oid(JNIEnv* env, jclass, jlong x509R
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509* x509 = reinterpret_cast<X509*>(static_cast<uintptr_t>(x509Ref));
     JNI_TRACE("X509_get_ext_oid(%p, %p)", x509, oidString);
-    return X509Type_get_ext_oid<X509, X509_get_ext_by_OBJ_const, X509_get_ext_const>(env, x509,
-                                                                                     oidString);
+    return X509Type_get_ext_oid<X509, X509_get_ext_by_OBJ, X509_get_ext>(env, x509, oidString);
 }
 
 static jbyteArray NativeCrypto_X509_CRL_get_ext_oid(JNIEnv* env, jclass, jlong x509CrlRef,
@@ -5945,8 +5922,8 @@ static jbyteArray NativeCrypto_X509_CRL_get_ext_oid(JNIEnv* env, jclass, jlong x
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509_CRL* crl = reinterpret_cast<X509_CRL*>(static_cast<uintptr_t>(x509CrlRef));
     JNI_TRACE("X509_CRL_get_ext_oid(%p, %p)", crl, oidString);
-    return X509Type_get_ext_oid<X509_CRL, X509_CRL_get_ext_by_OBJ_const, X509_CRL_get_ext_const>(
-            env, crl, oidString);
+    return X509Type_get_ext_oid<X509_CRL, X509_CRL_get_ext_by_OBJ, X509_CRL_get_ext>(env, crl,
+                                                                                     oidString);
 }
 
 static jbyteArray NativeCrypto_X509_REVOKED_get_ext_oid(JNIEnv* env, jclass, jlong x509RevokedRef,
@@ -5954,8 +5931,8 @@ static jbyteArray NativeCrypto_X509_REVOKED_get_ext_oid(JNIEnv* env, jclass, jlo
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
     JNI_TRACE("X509_REVOKED_get_ext_oid(%p, %p)", revoked, oidString);
-    return X509Type_get_ext_oid<X509_REVOKED, X509_REVOKED_get_ext_by_OBJ_const,
-                                X509_REVOKED_get_ext_const>(env, revoked, oidString);
+    return X509Type_get_ext_oid<X509_REVOKED, X509_REVOKED_get_ext_by_OBJ, X509_REVOKED_get_ext>(
+            env, revoked, oidString);
 }
 
 template <typename T, int (*get_ext_by_critical_func)(const T*, int, int),
@@ -5990,7 +5967,8 @@ static jobjectArray get_X509Type_ext_oids(JNIEnv* env, jlong x509Ref, jint criti
     while ((lastPos = get_ext_by_critical_func(x509, critical, lastPos)) != -1) {
         X509_EXTENSION* ext = get_ext_func(x509, lastPos);
 
-        ScopedLocalRef<jstring> extOid(env, ASN1_OBJECT_to_OID_string(env, ext->object));
+        ScopedLocalRef<jstring> extOid(
+                env, ASN1_OBJECT_to_OID_string(env, X509_EXTENSION_get_object(ext)));
         if (extOid.get() == nullptr) {
             JNI_TRACE("get_X509Type_ext_oids(%p) => couldn't get OID", x509);
             return nullptr;
@@ -6008,8 +5986,8 @@ static jobjectArray NativeCrypto_get_X509_ext_oids(JNIEnv* env, jclass, jlong x5
     CHECK_ERROR_QUEUE_ON_RETURN;
     // NOLINTNEXTLINE(runtime/int)
     JNI_TRACE("get_X509_ext_oids(0x%llx, %d)", (long long)x509Ref, critical);
-    return get_X509Type_ext_oids<X509, X509_get_ext_by_critical_const, X509_get_ext_const>(
-            env, x509Ref, critical);
+    return get_X509Type_ext_oids<X509, X509_get_ext_by_critical, X509_get_ext>(env, x509Ref,
+                                                                               critical);
 }
 
 static jobjectArray NativeCrypto_get_X509_CRL_ext_oids(JNIEnv* env, jclass, jlong x509CrlRef,
@@ -6018,8 +5996,8 @@ static jobjectArray NativeCrypto_get_X509_CRL_ext_oids(JNIEnv* env, jclass, jlon
     CHECK_ERROR_QUEUE_ON_RETURN;
     // NOLINTNEXTLINE(runtime/int)
     JNI_TRACE("get_X509_CRL_ext_oids(0x%llx, %d)", (long long)x509CrlRef, critical);
-    return get_X509Type_ext_oids<X509_CRL, X509_CRL_get_ext_by_critical_const,
-                                 X509_CRL_get_ext_const>(env, x509CrlRef, critical);
+    return get_X509Type_ext_oids<X509_CRL, X509_CRL_get_ext_by_critical, X509_CRL_get_ext>(
+            env, x509CrlRef, critical);
 }
 
 static jobjectArray NativeCrypto_get_X509_REVOKED_ext_oids(JNIEnv* env, jclass,
@@ -6027,8 +6005,8 @@ static jobjectArray NativeCrypto_get_X509_REVOKED_ext_oids(JNIEnv* env, jclass,
     CHECK_ERROR_QUEUE_ON_RETURN;
     // NOLINTNEXTLINE(runtime/int)
     JNI_TRACE("get_X509_CRL_ext_oids(0x%llx, %d)", (long long)x509RevokedRef, critical);
-    return get_X509Type_ext_oids<X509_REVOKED, X509_REVOKED_get_ext_by_critical_const,
-                                 X509_REVOKED_get_ext_const>(env, x509RevokedRef, critical);
+    return get_X509Type_ext_oids<X509_REVOKED, X509_REVOKED_get_ext_by_critical,
+                                 X509_REVOKED_get_ext>(env, x509RevokedRef, critical);
 }
 
 /**
