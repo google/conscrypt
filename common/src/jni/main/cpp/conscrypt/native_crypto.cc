@@ -3994,8 +3994,9 @@ static jobject GENERAL_NAME_to_jobject(JNIEnv* env, GENERAL_NAME* gen) {
                 JNI_TRACE("GENERAL_NAME_to_jobject(%p) => IPv4 %s", gen, buffer);
                 return env->NewStringUTF(buffer);
             } else if (ASN1_STRING_length(gen->d.ip) == 16) {
-                // IPv6 addresses are returned as eight 16-bit components. Note this does not quite
-                // match inet_ntop, which will abbreviate "0:0:0:0:0:0:0:1" as "::1".
+                // IPv6 addresses are returned as eight 16-bit components. Note that Java requires
+                // the long form syntax (e.g. "0:0:0:0:0:0:0:1"), while inet_ntop will abbreviate
+                // strings of zeros (e.g. "::1").
                 char buffer[8 * 4 + 7 + 1];  // 8 4-digit fields, 7 separators, and a NUL.
                 snprintf(buffer, sizeof(buffer), "%x:%x:%x:%x:%x:%x:%x:%x",
                          (uint16_t(data[0]) << 8) | data[1], (uint16_t(data[2]) << 8) | data[3],

@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -338,7 +339,7 @@ public class X509CertificateTest {
         // Although there is a natural order (the order in the certificate), Java's API returns a
         // Collection, so there is no guarantee of the provider using a particular order. Normalize
         // the order before comparing.
-        result.sort(new Comparator<Pair<Integer, String>>() {
+        Collections.sort(result, new Comparator<Pair<Integer, String>>() {
             @Override
             public int compare(Pair<Integer, String> a, Pair<Integer, String> b) {
                 int cmp = a.getFirst().compareTo(b.getFirst());
