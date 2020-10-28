@@ -789,4 +789,13 @@ final class Platform {
     public static ConscryptHostnameVerifier getDefaultHostnameVerifier() {
         return  OkHostnameVerifier.strictInstance();
     }
+
+    @SuppressWarnings("unused")
+    static long getMillisSinceBoot() {
+        return 0;
+    }
+
+    @SuppressWarnings("unused")
+    static void countTlsHandshake(
+            boolean success, String protocol, String cipherSuite, long duration) {}
 }
