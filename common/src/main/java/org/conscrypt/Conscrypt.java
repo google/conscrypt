@@ -44,6 +44,11 @@ import org.conscrypt.io.IoUtils;
  */
 @SuppressWarnings("unused")
 public final class Conscrypt {
+    /**
+     * Controls whether no-copy optimizations for direct ByteBuffers are enabled.
+     */
+    static boolean enableBytebufferOptimizations = true;
+
     private Conscrypt() {}
 
     /**
@@ -795,5 +800,23 @@ public final class Conscrypt {
                 return verifier.verify(hostname, session);
             }
         };
+    }
+
+    /**
+     * Returns true if no-copy optimizations for direct {@code ByteBuffers} in {@code Ciphers}
+     * are currently enabled.
+     */
+    @ExperimentalApi
+    public static boolean getEnableBytebufferOptimizations() {
+        return enableBytebufferOptimizations;
+    }
+
+    /**
+     * Sets whether no-copy optimizations for direct {@code ByteBuffers} in {@code Ciphers}
+     * are enabled.
+     */
+    @ExperimentalApi
+    public synchronized static void setEnableBytebufferOptimizations(boolean value) {
+        enableBytebufferOptimizations =value;
     }
 }

@@ -117,4 +117,16 @@ public class ConscryptTest {
         } catch (IllegalArgumentException expected) {
         }
     }
+
+    @Test
+    public void byteBufferOptimizations() {
+        // Should be enabled by default
+        assertTrue(Conscrypt.enableBytebufferOptimizations);
+
+        Conscrypt.setEnableBytebufferOptimizations(false);
+        assertFalse(Conscrypt.enableBytebufferOptimizations);
+
+        Conscrypt.setEnableBytebufferOptimizations(true);
+        assertTrue(Conscrypt.enableBytebufferOptimizations);
+    }
 }

@@ -33,11 +33,6 @@ import javax.crypto.spec.IvParameterSpec;
 @Internal
 public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     /**
-     * Controls whether no-copy optimizations for direct ByteBuffers are enabled.
-     */
-    private static final boolean ENABLE_BYTEBUFFER_OPTIMIZATIONS = true;
-
-    /**
      * The default tag size when one is not specified. Default to
      * full-length tags (128-bits or 16 octets).
      */
@@ -228,7 +223,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     @Override
     protected int engineDoFinal(ByteBuffer input, ByteBuffer output) throws ShortBufferException,
             IllegalBlockSizeException, BadPaddingException {
-        if (!ENABLE_BYTEBUFFER_OPTIMIZATIONS) {
+        if (!Conscrypt.getEnableBytebufferOptimizations()) {
             return super.engineDoFinal(input, output);
         }
         if (input == null || output == null) {
