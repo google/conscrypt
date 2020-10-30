@@ -119,6 +119,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     private int writeTimeoutMilliseconds = 0;
     private int handshakeTimeoutMilliseconds = -1; // -1 = same as timeout; 0 = infinite
 
+    private long handshakeStartedMillis;
+
     // The constructors should not be called except from the Platform class, because we may
     // want to construct a subclass instead.
     ConscryptFileDescriptorSocket(SSLParametersImpl sslParameters) throws IOException {
@@ -184,6 +186,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         checkOpen();
         synchronized (ssl) {
             if (state == STATE_NEW) {
+                handshakeStartedMillis = Platform.getMillisSinceBoot();
                 transitionTo(STATE_HANDSHAKE_STARTED);
             } else {
                 // We've either started the handshake already or have been closed.
@@ -229,6 +232,9 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 // Update the session from the current state of the SSL object.
                 activeSession.onPeerCertificateAvailable(getHostnameOrIP(), getPort());
             } catch (CertificateException e) {
+                Platform.countTlsHandshake(false, activeSession.getProtocol(),
+                        activeSession.getCipherSuite(),
+                        Platform.getMillisSinceBoot() - handshakeStartedMillis);
                 SSLHandshakeException wrapper = new SSLHandshakeException(e.getMessage());
                 wrapper.initCause(e);
                 throw wrapper;
@@ -286,6 +292,10 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 }
             }
         } catch (SSLProtocolException e) {
+            Platform.countTlsHandshake(false, activeSession.getProtocol(),
+                    activeSession.getCipherSuite(),
+                    Platform.getMillisSinceBoot() - handshakeStartedMillis);
+
             throw(SSLHandshakeException) new SSLHandshakeException("Handshake failed").initCause(e);
         } finally {
             // on exceptional exit, treat the socket as closed
@@ -338,6 +348,10 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         }
 
         // The handshake has completed successfully ...
+
+        Platform.countTlsHandshake(true, activeSession.getProtocol(),
+                activeSession.getCipherSuite(),
+                Platform.getMillisSinceBoot() - handshakeStartedMillis);
 
         // First, update the state.
         synchronized (ssl) {
