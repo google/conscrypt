@@ -203,6 +203,13 @@ public final class CipherBasicsTest {
             for (Map.Entry<String, String> entry : AEAD_CIPHER_TO_TEST_DATA.entrySet()) {
                 String transformation = entry.getKey();
 
+                // On Android 10 and below, BC can return AES/GCM/NoPadding when asked for
+                // AES/GCM-SIV/NoPadding. Android will never actually ship AES/GCM-SIV/NoPadding
+                // in BC, so skip that combination.
+                if (p.getName().equals("BC") && transformation.equals("AES/GCM-SIV/NoPadding")) {
+                    continue;
+                }
+
                 Cipher cipher;
                 try {
                     cipher = Cipher.getInstance(transformation, p);
