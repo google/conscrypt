@@ -3986,31 +3986,26 @@ static jobject GENERAL_NAME_to_jobject(JNIEnv* env, GENERAL_NAME* gen) {
             /* Write in RFC 2253 format */
             return X509_NAME_to_jstring(env, gen->d.directoryName, XN_FLAG_RFC2253);
         case GEN_IPADD: {
-#ifdef _WIN32
-            void* ip = reinterpret_cast<void*>(gen->d.ip->data);
-#else
-            const void* ip = reinterpret_cast<const void*>(gen->d.ip->data);
-#endif
-            if (gen->d.ip->length == 4) {
-                // IPv4
-                std::unique_ptr<char[]> buffer(new char[INET_ADDRSTRLEN]);
-                if (inet_ntop(AF_INET, ip, buffer.get(), INET_ADDRSTRLEN) != nullptr) {
-                    JNI_TRACE("GENERAL_NAME_to_jobject(%p) => IPv4 %s", gen, buffer.get());
-                    return env->NewStringUTF(buffer.get());
-                } else {
-                    JNI_TRACE("GENERAL_NAME_to_jobject(%p) => IPv4 failed %s", gen,
-                              strerror(errno));
-                }
-            } else if (gen->d.ip->length == 16) {
-                // IPv6
-                std::unique_ptr<char[]> buffer(new char[INET6_ADDRSTRLEN]);
-                if (inet_ntop(AF_INET6, ip, buffer.get(), INET6_ADDRSTRLEN) != nullptr) {
-                    JNI_TRACE("GENERAL_NAME_to_jobject(%p) => IPv6 %s", gen, buffer.get());
-                    return env->NewStringUTF(buffer.get());
-                } else {
-                    JNI_TRACE("GENERAL_NAME_to_jobject(%p) => IPv6 failed %s", gen,
-                              strerror(errno));
-                }
+            const uint8_t* data = ASN1_STRING_get0_data(gen->d.ip);
+            if (ASN1_STRING_length(gen->d.ip) == 4) {
+                // IPv4 addresses are returned in dotted quad notiation.
+                char buffer[4 * 3 + 3 + 1];  // 4 3-digit fields, 3 separators, and a NUL
+                snprintf(buffer, sizeof(buffer), "%d.%d.%d.%d", data[0], data[1], data[2], data[3]);
+                JNI_TRACE("GENERAL_NAME_to_jobject(%p) => IPv4 %s", gen, buffer);
+                return env->NewStringUTF(buffer);
+            } else if (ASN1_STRING_length(gen->d.ip) == 16) {
+                // IPv6 addresses are returned as eight 16-bit components. Note that Java requires
+                // the long form syntax (e.g. "0:0:0:0:0:0:0:1"), while inet_ntop will abbreviate
+                // strings of zeros (e.g. "::1").
+                char buffer[8 * 4 + 7 + 1];  // 8 4-digit fields, 7 separators, and a NUL.
+                snprintf(buffer, sizeof(buffer), "%x:%x:%x:%x:%x:%x:%x:%x",
+                         (uint16_t(data[0]) << 8) | data[1], (uint16_t(data[2]) << 8) | data[3],
+                         (uint16_t(data[4]) << 8) | data[5], (uint16_t(data[6]) << 8) | data[7],
+                         (uint16_t(data[8]) << 8) | data[9], (uint16_t(data[10]) << 8) | data[11],
+                         (uint16_t(data[12]) << 8) | data[13],
+                         (uint16_t(data[14]) << 8) | data[15]);
+                JNI_TRACE("GENERAL_NAME_to_jobject(%p) => IPv6 %s", gen, buffer);
+                return env->NewStringUTF(buffer);
             }
 
             /* Invalid IP encodings are pruned out without throwing an exception. */
