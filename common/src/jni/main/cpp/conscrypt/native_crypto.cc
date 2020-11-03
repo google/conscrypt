@@ -4038,6 +4038,8 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
         return nullptr;
     }
 
+    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors and throw
+    // CertificateParsingException.
     bssl::UniquePtr<STACK_OF(GENERAL_NAME)> gn_stack;
     if (type == GN_STACK_SUBJECT_ALT_NAME) {
         gn_stack.reset(static_cast<STACK_OF(GENERAL_NAME)*>(
@@ -5834,6 +5836,9 @@ static jbooleanArray NativeCrypto_get_X509_ex_kusage(JNIEnv* env, jclass, jlong 
         return nullptr;
     }
 
+    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors. Note
+    // X509Certificate.getKeyUsage() cannot throw CertificateParsingException, so this needs to be
+    // checked earlier, e.g. in the constructor.
     bssl::UniquePtr<ASN1_BIT_STRING> bitStr(
             static_cast<ASN1_BIT_STRING*>(X509_get_ext_d2i(x509, NID_key_usage, nullptr, nullptr)));
     if (bitStr.get() == nullptr) {
@@ -5856,6 +5861,8 @@ static jobjectArray NativeCrypto_get_X509_ex_xkusage(JNIEnv* env, jclass, jlong 
         return nullptr;
     }
 
+    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors and throw
+    // CertificateParsingException.
     bssl::UniquePtr<STACK_OF(ASN1_OBJECT)> objArray(static_cast<STACK_OF(ASN1_OBJECT)*>(
             X509_get_ext_d2i(x509, NID_ext_key_usage, nullptr, nullptr)));
     if (objArray.get() == nullptr) {
@@ -5893,12 +5900,50 @@ static jint NativeCrypto_get_X509_ex_pathlen(JNIEnv* env, jclass, jlong x509Ref,
         return 0;
     }
 
-    // TODO(davidben): It is possible for |x509| to have an invalid basicConstraints extension, in
-    // which case |X509_get_pathlen| will report the extension is missing. The |EXFLAG_INVALID| can
-    // be checked for error, but Java's X509Certificate API does not allow for getBasicConstraints()
-    // to throw an exception, so we'd have to check this extension at parse time.
-    long pathlen = X509_get_pathlen(x509);
-    JNI_TRACE("get_X509_ex_pathlen(%p) => %ld", x509, pathlen);
+    // Use |X509_get_ext_d2i| instead of |X509_get_pathlen| because the latter treats
+    // |EXFLAG_INVALID| as the error case. |EXFLAG_INVALID| is set if any built-in extension is
+    // invalid. For now, we preserve Conscrypt's historical behavior in accepting certificates in
+    // the constructor even if |EXFLAG_INVALID| is set.
+    //
+    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors. Note
+    // X509Certificate.getBasicConstraints() cannot throw CertificateParsingException, so this
+    // needs to be checked earlier, e.g. in the constructor.
+    bssl::UniquePtr<BASIC_CONSTRAINTS> basic_constraints(static_cast<BASIC_CONSTRAINTS*>(
+            X509_get_ext_d2i(x509, NID_basic_constraints, nullptr, nullptr)));
+    if (basic_constraints == nullptr) {
+        JNI_TRACE("get_X509_ex_path(%p) => -1 (no extension or error)", x509);
+        return -1;
+    }
+
+    if (basic_constraints->pathlen == nullptr) {
+        JNI_TRACE("get_X509_ex_path(%p) => -1 (no pathLenConstraint)", x509);
+        return -1;
+    }
+
+    if (!basic_constraints->ca) {
+        // Path length constraints are only valid for CA certificates.
+        // TODO(https://github.com/google/conscrypt/issues/916): Treat this as an error condition.
+        JNI_TRACE("get_X509_ex_path(%p) => -1 (not a CA)", x509);
+        return -1;
+    }
+
+    if (basic_constraints->pathlen->type == V_ASN1_NEG_INTEGER) {
+        // Path length constraints may not be negative.
+        // TODO(https://github.com/google/conscrypt/issues/916): Treat this as an error condition.
+        JNI_TRACE("get_X509_ex_path(%p) => -1 (negative)", x509);
+        return -1;
+    }
+
+    long pathlen = ASN1_INTEGER_get(basic_constraints->pathlen);
+    if (pathlen == -1 || pathlen > INT_MAX) {
+        // TODO(https://github.com/google/conscrypt/issues/916): Treat this as an error condition.
+        // If the integer overflows, the certificate is effectively unconstrained. Reporting no
+        // constraint is plausible, but Chromium rejects all values above 255.
+        JNI_TRACE("get_X509_ex_path(%p) => -1 (overflow)", x509);
+        return -1;
+    }
+
+    JNI_TRACE("get_X509_ex_path(%p) => %ld", x509, pathlen);
     return pathlen;
 }
 
