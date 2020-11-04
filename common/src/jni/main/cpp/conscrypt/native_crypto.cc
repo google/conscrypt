@@ -4038,8 +4038,6 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
         return nullptr;
     }
 
-    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors and throw
-    // CertificateParsingException.
     bssl::UniquePtr<STACK_OF(GENERAL_NAME)> gn_stack;
     if (type == GN_STACK_SUBJECT_ALT_NAME) {
         gn_stack.reset(static_cast<STACK_OF(GENERAL_NAME)*>(
@@ -4049,6 +4047,13 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
                 X509_get_ext_d2i(x509, NID_issuer_alt_name, nullptr, nullptr)));
     } else {
         JNI_TRACE("get_X509_GENERAL_NAME_stack(%p, %d) => unknown type", x509, type);
+        return nullptr;
+    }
+    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors, remove
+    // |ERR_clear_error|, and throw CertificateParsingException.
+    if (gn_stack == nullptr) {
+        JNI_TRACE("get_X509_GENERAL_NAME_stack(%p, %d) => null (no extension or error)", x509, type);
+        ERR_clear_error();
         return nullptr;
     }
 
@@ -4259,7 +4264,16 @@ static jint NativeCrypto_get_X509_ex_flags(JNIEnv* env, jclass, jlong x509Ref,
         return 0;
     }
 
-    return X509_get_extension_flags(x509);
+    uint32_t flags = X509_get_extension_flags(x509);
+    // X509_get_extension_flags sometimes leaves values in the error queue. See
+    // https://crbug.com/boringssl/382.
+    //
+    // TODO(https://github.com/google/conscrypt/issues/916): This function is used to check
+    // EXFLAG_CA, but does not check EXFLAG_INVALID. Fold the two JNI calls in getBasicConstraints()
+    // together and handle errors. (See also NativeCrypto_get_X509_ex_pathlen.) From there, limit
+    // this JNI call to EXFLAG_CRITICAL.
+    ERR_clear_error();
+    return flags;
 }
 
 static jboolean NativeCrypto_X509_check_issued(JNIEnv* env, jclass, jlong x509Ref1,
@@ -5836,13 +5850,14 @@ static jbooleanArray NativeCrypto_get_X509_ex_kusage(JNIEnv* env, jclass, jlong 
         return nullptr;
     }
 
-    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors. Note
-    // X509Certificate.getKeyUsage() cannot throw CertificateParsingException, so this needs to be
-    // checked earlier, e.g. in the constructor.
+    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors and remove
+    // |ERR_clear_error|. Note X509Certificate.getKeyUsage() cannot throw
+    // CertificateParsingException, so this needs to be checked earlier, e.g. in the constructor.
     bssl::UniquePtr<ASN1_BIT_STRING> bitStr(
             static_cast<ASN1_BIT_STRING*>(X509_get_ext_d2i(x509, NID_key_usage, nullptr, nullptr)));
     if (bitStr.get() == nullptr) {
         JNI_TRACE("get_X509_ex_kusage(%p) => null", x509);
+        ERR_clear_error();
         return nullptr;
     }
 
@@ -5861,12 +5876,13 @@ static jobjectArray NativeCrypto_get_X509_ex_xkusage(JNIEnv* env, jclass, jlong 
         return nullptr;
     }
 
-    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors and throw
-    // CertificateParsingException.
+    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors, remove
+    // |ERR_clear_error|, and throw CertificateParsingException.
     bssl::UniquePtr<STACK_OF(ASN1_OBJECT)> objArray(static_cast<STACK_OF(ASN1_OBJECT)*>(
             X509_get_ext_d2i(x509, NID_ext_key_usage, nullptr, nullptr)));
     if (objArray.get() == nullptr) {
         JNI_TRACE("get_X509_ex_xkusage(%p) => null", x509);
+        ERR_clear_error();
         return nullptr;
     }
 
@@ -5905,13 +5921,14 @@ static jint NativeCrypto_get_X509_ex_pathlen(JNIEnv* env, jclass, jlong x509Ref,
     // invalid. For now, we preserve Conscrypt's historical behavior in accepting certificates in
     // the constructor even if |EXFLAG_INVALID| is set.
     //
-    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors. Note
-    // X509Certificate.getBasicConstraints() cannot throw CertificateParsingException, so this
-    // needs to be checked earlier, e.g. in the constructor.
+    // TODO(https://github.com/google/conscrypt/issues/916): Handle errors and remove
+    // |ERR_clear_error|. Note X509Certificate.getBasicConstraints() cannot throw
+    // CertificateParsingException, so this needs to be checked earlier, e.g. in the constructor.
     bssl::UniquePtr<BASIC_CONSTRAINTS> basic_constraints(static_cast<BASIC_CONSTRAINTS*>(
             X509_get_ext_d2i(x509, NID_basic_constraints, nullptr, nullptr)));
     if (basic_constraints == nullptr) {
         JNI_TRACE("get_X509_ex_path(%p) => -1 (no extension or error)", x509);
+        ERR_clear_error();
         return -1;
     }
 
