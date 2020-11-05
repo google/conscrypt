@@ -15,14 +15,19 @@
  */
 package org.conscrypt.java.security;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
+import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
@@ -34,9 +39,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class KeyFactoryTestRSA extends
-        AbstractKeyFactoryTest<RSAPublicKeySpec, RSAPrivateKeySpec> {
-
+public class KeyFactoryTestRSA extends AbstractKeyFactoryTest<RSAPublicKeySpec, RSAPrivateKeySpec> {
     public KeyFactoryTestRSA() {
         super("RSA", RSAPublicKeySpec.class, RSAPrivateKeySpec.class);
     }
@@ -65,13 +68,13 @@ public class KeyFactoryTestRSA extends
     }
 
     @Test
-    public void testInvalidKeySpec() throws Exception {
+    public void shouldThrowInvalidKeySpec_whenKeyIsInvalid() throws Exception {
         Provider p = Security.getProvider(StandardNames.JSSE_PROVIDER_NAME);
         final KeyFactory factory = KeyFactory.getInstance("RSA", p);
 
         try {
             factory.getKeySpec(new TestPrivateKey(DefaultKeys.getPrivateKey("RSA"), "Invalid"),
-                RSAPrivateKeySpec.class);
+                    RSAPrivateKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
@@ -79,7 +82,7 @@ public class KeyFactoryTestRSA extends
 
         try {
             factory.getKeySpec(new TestPrivateKey(DefaultKeys.getPrivateKey("RSA"), "Invalid"),
-                RSAPrivateCrtKeySpec.class);
+                    RSAPrivateCrtKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
@@ -87,10 +90,93 @@ public class KeyFactoryTestRSA extends
 
         try {
             factory.getKeySpec(new TestPublicKey(DefaultKeys.getPublicKey("RSA"), "Invalid"),
-                RSAPublicKeySpec.class);
+                    RSAPublicKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
+        }
+    }
+
+    @Test
+    public void shouldThrowInvalidKeySpec_whenKeySpecIsOdd() throws Exception {
+        Provider p = Security.getProvider(StandardNames.JSSE_PROVIDER_NAME);
+        final KeyFactory factory = KeyFactory.getInstance("RSA", p);
+
+        try {
+            assertThat(
+                    factory.getKeySpec(DefaultKeys.getPublicKey("RSA"), FakeRSAPublicKeySpec.class),
+                    instanceOf(FakeRSAPublicKeySpec.class));
+            fail();
+        } catch (InvalidKeySpecException e) {
+            // expected
+        }
+
+        try {
+            assertThat(factory.getKeySpec(generateRsaKey(), FakeRSAPrivateCrtKeySpec.class),
+                    instanceOf(FakeRSAPrivateCrtKeySpec.class));
+            fail();
+        } catch (InvalidKeySpecException e) {
+            // expected
+        }
+
+        try {
+            assertThat(factory.getKeySpec(
+                               DefaultKeys.getPrivateKey("RSA"), FakeRSAPrivateCrtKeySpec.class),
+                    instanceOf(FakeRSAPrivateCrtKeySpec.class));
+            fail();
+        } catch (InvalidKeySpecException e) {
+            // expected
+        }
+
+        try {
+            assertThat(factory.getKeySpec(DefaultKeys.getPrivateKey("RSA"), FakePKCS8.class),
+                    instanceOf(FakePKCS8.class));
+            fail();
+        } catch (InvalidKeySpecException e) {
+            // expected
+        }
+
+        try {
+            assertThat(factory.getKeySpec(DefaultKeys.getPublicKey("RSA"), FakeX509.class),
+                    instanceOf(FakeX509.class));
+            fail();
+        } catch (InvalidKeySpecException e) {
+            // expected
+        }
+    }
+
+    private static RSAPrivateCrtKey generateRsaKey() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(512);
+
+        KeyPair keyPair = kpg.generateKeyPair();
+        return (RSAPrivateCrtKey) keyPair.getPrivate();
+    }
+
+    private static class FakeRSAPublicKeySpec extends RSAPublicKeySpec {
+        public FakeRSAPublicKeySpec(BigInteger modulus, BigInteger publicExponent) {
+            super(modulus, publicExponent);
+        }
+    }
+
+    private static class FakePKCS8 extends PKCS8EncodedKeySpec {
+        public FakePKCS8(byte[] encodedKey) {
+            super(encodedKey);
+        }
+    }
+
+    private static class FakeRSAPrivateCrtKeySpec extends RSAPrivateCrtKeySpec {
+        public FakeRSAPrivateCrtKeySpec(BigInteger modulus, BigInteger publicExponent,
+                BigInteger privateExponent, BigInteger primeP, BigInteger primeQ,
+                BigInteger primeExponentP, BigInteger primeExponentQ, BigInteger crtCoefficient) {
+            super(modulus, publicExponent, privateExponent, primeP, primeQ, primeExponentP,
+                    primeExponentQ, crtCoefficient);
+        }
+    }
+
+    private static class FakeX509 extends X509EncodedKeySpec {
+        public FakeX509(byte[] encodedKey) {
+            super(encodedKey);
         }
     }
 }
