@@ -15,8 +15,6 @@
  */
 package org.conscrypt.java.security;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
@@ -103,42 +101,35 @@ public class KeyFactoryTestRSA extends AbstractKeyFactoryTest<RSAPublicKeySpec, 
         final KeyFactory factory = KeyFactory.getInstance("RSA", p);
 
         try {
-            assertThat(
-                    factory.getKeySpec(DefaultKeys.getPublicKey("RSA"), FakeRSAPublicKeySpec.class),
-                    instanceOf(FakeRSAPublicKeySpec.class));
+            factory.getKeySpec(DefaultKeys.getPublicKey("RSA"), FakeRSAPublicKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
         }
 
         try {
-            assertThat(factory.getKeySpec(generateRsaKey(), FakeRSAPrivateCrtKeySpec.class),
-                    instanceOf(FakeRSAPrivateCrtKeySpec.class));
+            factory.getKeySpec(generateRsaKey(), FakeRSAPrivateCrtKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
         }
 
         try {
-            assertThat(factory.getKeySpec(
-                               DefaultKeys.getPrivateKey("RSA"), FakeRSAPrivateCrtKeySpec.class),
-                    instanceOf(FakeRSAPrivateCrtKeySpec.class));
+            factory.getKeySpec(DefaultKeys.getPrivateKey("RSA"), FakeRSAPrivateCrtKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
         }
 
         try {
-            assertThat(factory.getKeySpec(DefaultKeys.getPrivateKey("RSA"), FakePKCS8.class),
-                    instanceOf(FakePKCS8.class));
+            factory.getKeySpec(DefaultKeys.getPrivateKey("RSA"), FakePKCS8.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
         }
 
         try {
-            assertThat(factory.getKeySpec(DefaultKeys.getPublicKey("RSA"), FakeX509.class),
-                    instanceOf(FakeX509.class));
+            factory.getKeySpec(DefaultKeys.getPublicKey("RSA"), FakeX509.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected

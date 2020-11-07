@@ -15,8 +15,6 @@
  */
 package org.conscrypt.java.security;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
@@ -75,54 +73,44 @@ public class KeyFactoryTestEC extends AbstractKeyFactoryTest<ECPublicKeySpec, EC
         final KeyFactory factory = KeyFactory.getInstance("EC", p);
 
         try {
-            assertThat(factory.getKeySpec(
-                               new TestECPublicKey((ECPublicKey) DefaultKeys.getPublicKey("EC")),
-                               FakeECPublicKeySpec.class),
-                    instanceOf(FakeECPublicKeySpec.class));
+            factory.getKeySpec(new TestECPublicKey((ECPublicKey) DefaultKeys.getPublicKey("EC")),
+                    FakeECPublicKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
         }
 
         try {
-            assertThat(
-                    factory.getKeySpec(DefaultKeys.getPublicKey("EC"), FakeECPublicKeySpec.class),
-                    instanceOf(FakeECPublicKeySpec.class));
+            factory.getKeySpec(DefaultKeys.getPublicKey("EC"), FakeECPublicKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
         }
 
         try {
-            assertThat(factory.getKeySpec(
-                               new TestECPrivateKey((ECPrivateKey) DefaultKeys.getPrivateKey("EC")),
-                               FakeECPrivateKeySpec.class),
-                    instanceOf(FakeECPrivateKeySpec.class));
+            factory.getKeySpec(new TestECPrivateKey((ECPrivateKey) DefaultKeys.getPrivateKey("EC")),
+                    FakeECPrivateKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
         }
 
         try {
-            assertThat(
-                    factory.getKeySpec(DefaultKeys.getPrivateKey("EC"), FakeECPrivateKeySpec.class),
-                    instanceOf(FakeECPrivateKeySpec.class));
+            factory.getKeySpec(DefaultKeys.getPrivateKey("EC"), FakeECPrivateKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
         }
 
         try {
-            assertThat(factory.getKeySpec(DefaultKeys.getPrivateKey("EC"), FakePKCS8.class),
-                    instanceOf(FakePKCS8.class));
+            factory.getKeySpec(DefaultKeys.getPrivateKey("EC"), FakePKCS8.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
         }
 
         try {
-            assertThat(factory.getKeySpec(DefaultKeys.getPublicKey("EC"), FakeX509.class),
-                    instanceOf(FakeX509.class));
+            factory.getKeySpec(DefaultKeys.getPublicKey("EC"), FakeX509.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
