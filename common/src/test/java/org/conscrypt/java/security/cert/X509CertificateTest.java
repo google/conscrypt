@@ -244,6 +244,21 @@ public class X509CertificateTest {
             + "-----END CERTIFICATE-----\n";
 
     /**
+     * This is a certificate with a pathlen constraint of 10, but there is an unrelated invalid
+     * subjectAltNames extension.
+     */
+    private static final String BASIC_CONSTRAINTS_PATHLEN_10_BAD_SAN =
+            "-----BEGIN CERTIFICATE-----\n"
+            + "MIIBRjCB7aADAgECAgkA2UwE2kl9v+swCgYIKoZIzj0EAwIwFjEUMBIGA1UEAwwL\n"
+            + "VGVzdCBJc3N1ZXIwHhcNMTQwNDIzMjMyMTU3WhcNMTQwNTIzMjMyMTU3WjAXMRUw\n"
+            + "EwYDVQQDDAxUZXN0IFN1YmplY3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATm\n"
+            + "K2niv2Wfl74vHg2UikzVl2u3qR4NRvvdqakendy6WgHn1peoChj5w8SjHlbifINI\n"
+            + "2xYaHPUdfvGULUvPciLBoyMwITAPBgNVHRMECDAGAQH/AgEKMA4GA1UdEQQHSU5W\n"
+            + "QUxJRDAKBggqhkjOPQQDAgNIADBFAiEA8qA1XlE6NsOCeZvuJ1CFjnAGdJVX0il0\n"
+            + "APS+FYddxAcCIHweeRRqIYPwenRoeV8UmZpotPHLnhVe5h8yUmFedckU\n"
+            + "-----END CERTIFICATE-----\n";
+
+    /**
      * This is a certificate whose keyUsage extension has more than nine bits. The getKeyUsage()
      * method internally rounds up to nine bits, so this tests what happens when it does not need to
      * round.
@@ -568,6 +583,21 @@ public class X509CertificateTest {
                 // basicConstraints extension and a leaf one.
                 c = certificateFromPEM(p, BASIC_CONSTRAINTS_LEAF);
                 assertEquals(-1, c.getBasicConstraints());
+
+                // If some unrelated extension has a syntax error, and that syntax error does not
+                // fail when constructing the certificate, it should not interfere with
+                // getBasicConstraints().
+                try {
+                    c = certificateFromPEM(p, BASIC_CONSTRAINTS_PATHLEN_10_BAD_SAN);
+                } catch (CertificateParsingException e) {
+                    // The certificate has a syntax error, so it would also be valid for the
+                    // provider to reject the certificate at construction. X.509 is an extensible
+                    // format, so different implementations may notice errors at different points.
+                    c = null;
+                }
+                if (c != null) {
+                    assertEquals(10, c.getBasicConstraints());
+                }
             }
         });
     }
