@@ -5541,22 +5541,41 @@ static jlong NativeCrypto_PEM_read_bio_PrivateKey(JNIEnv* env, jclass, jlong bio
     return PEM_to_jlong<EVP_PKEY, PEM_read_bio_PrivateKey>(env, bioRef);
 }
 
-template <typename T, typename T_stack>
-static jlongArray PKCS7_to_ItemArray(JNIEnv* env, T_stack* stack, T* (*dup_func)(T*)) {
-    if (stack == nullptr) {
+static jlongArray X509s_to_ItemArray(JNIEnv* env, STACK_OF(X509) *certs) {
+    if (certs == nullptr) {
         return nullptr;
     }
 
     ScopedLocalRef<jlongArray> ref_array(env, nullptr);
-    size_t size = sk_num(reinterpret_cast<_STACK*>(stack));
+    size_t size = sk_X509_num(certs);
     ref_array.reset(env->NewLongArray(size));
     ScopedLongArrayRW items(env, ref_array.get());
     for (size_t i = 0; i < size; i++) {
-        T* item = reinterpret_cast<T*>(sk_value(reinterpret_cast<_STACK*>(stack), i));
-        items[i] = reinterpret_cast<uintptr_t>(dup_func(item));
+        X509* cert = sk_X509_value(certs, i);
+        X509_up_ref(cert);
+        items[i] = reinterpret_cast<uintptr_t>(cert);
     }
 
-    JNI_TRACE("PKCS7_to_ItemArray(%p) => %p [size=%zd]", stack, ref_array.get(), size);
+    JNI_TRACE("X509s_to_ItemArray(%p) => %p [size=%zd]", certs, ref_array.get(), size);
+    return ref_array.release();
+}
+
+static jlongArray X509_CRLs_to_ItemArray(JNIEnv* env, STACK_OF(X509_CRL) *crls) {
+    if (crls == nullptr) {
+        return nullptr;
+    }
+
+    ScopedLocalRef<jlongArray> ref_array(env, nullptr);
+    size_t size = sk_X509_CRL_num(crls);
+    ref_array.reset(env->NewLongArray(size));
+    ScopedLongArrayRW items(env, ref_array.get());
+    for (size_t i = 0; i < size; i++) {
+        X509_CRL* crl = sk_X509_CRL_value(crls, i);
+        X509_CRL_up_ref(crl);
+        items[i] = reinterpret_cast<uintptr_t>(crl);
+    }
+
+    JNI_TRACE("X509_CRLs_to_ItemArray(%p) => %p [size=%zd]", crls, ref_array.get(), size);
     return ref_array.release();
 }
 
@@ -5606,14 +5625,14 @@ static jlongArray NativeCrypto_PEM_read_bio_PKCS7(JNIEnv* env, jclass, jlong bio
             conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "PKCS7_get_PEM_certificates");
             return nullptr;
         }
-        return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, outCerts.get(), X509_dup);
+        return X509s_to_ItemArray(env, outCerts.get());
     } else if (which == PKCS7_CRLS) {
         bssl::UniquePtr<STACK_OF(X509_CRL)> outCRLs(sk_X509_CRL_new_null());
         if (!PKCS7_get_PEM_CRLs(outCRLs.get(), bio)) {
             conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "PKCS7_get_PEM_CRLs");
             return nullptr;
         }
-        return PKCS7_to_ItemArray<X509_CRL, STACK_OF(X509_CRL)>(env, outCRLs.get(), X509_CRL_dup);
+        return X509_CRLs_to_ItemArray(env, outCRLs.get());
     } else {
         conscrypt::jniutil::throwRuntimeException(env, "unknown PKCS7 field");
         return nullptr;
@@ -5652,7 +5671,7 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
             return nullptr;
         }
         JNI_TRACE("d2i_PKCS7_bio(%p, %d) => success certs", bio, which);
-        return PKCS7_to_ItemArray<X509, STACK_OF(X509)>(env, outCerts.get(), X509_dup);
+        return X509s_to_ItemArray(env, outCerts.get());
     } else if (which == PKCS7_CRLS) {
         bssl::UniquePtr<STACK_OF(X509_CRL)> outCRLs(sk_X509_CRL_new_null());
         if (!PKCS7_get_CRLs(outCRLs.get(), &cbs)) {
@@ -5662,7 +5681,7 @@ static jlongArray NativeCrypto_d2i_PKCS7_bio(JNIEnv* env, jclass, jlong bioRef, 
             return nullptr;
         }
         JNI_TRACE("d2i_PKCS7_bio(%p, %d) => success CRLs", bio, which);
-        return PKCS7_to_ItemArray<X509_CRL, STACK_OF(X509_CRL)>(env, outCRLs.get(), X509_CRL_dup);
+        return X509_CRLs_to_ItemArray(env, outCRLs.get());
     } else {
         conscrypt::jniutil::throwRuntimeException(env, "unknown PKCS7 field");
         return nullptr;

@@ -49,6 +49,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
@@ -194,6 +195,48 @@ public class CertificateFactoryTest {
         + "zCRo1kNbzipYvzwY4OA8Ys+WAi0oR1A04Se6z5nRUP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqA"
         + "ibAxWEEHXw==";
 
+    // Generated with openssl crl2pkcs7 -nocrl -certfile cert.pem
+    private static final String VALID_CERTIFICATE_PKCS7_PEM = "-----BEGIN PKCS7-----\n"
+            + "MIIDUgYJKoZIhvcNAQcCoIIDQzCCAz8CAQExADALBgkqhkiG9w0BBwGgggMlMIID\n"
+            + "ITCCAoqgAwIBAgIQL9+89q6RUm0PmqPfQDQ+mjANBgkqhkiG9w0BAQUFADBMMQsw\n"
+            + "CQYDVQQGEwJaQTElMCMGA1UEChMcVGhhd3RlIENvbnN1bHRpbmcgKFB0eSkgTHRk\n"
+            + "LjEWMBQGA1UEAxMNVGhhd3RlIFNHQyBDQTAeFw0wOTEyMTgwMDAwMDBaFw0xMTEy\n"
+            + "MTgyMzU5NTlaMGgxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYw\n"
+            + "FAYDVQQHFA1Nb3VudGFpbiBWaWV3MRMwEQYDVQQKFApHb29nbGUgSW5jMRcwFQYD\n"
+            + "VQQDFA53d3cuZ29vZ2xlLmNvbTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEA\n"
+            + "6PmGD5D6htffvXImttdEAoN4c9kCKO+IRTn7EOh8rqk41XXGOOsKFQebg+jNgtXj\n"
+            + "9xVoRaELGYW84u+E593y17iYwqG7tcFR39SDAqc9BkJb4SLD3muFXxzW2k6L05vu\n"
+            + "uWciKh0R73mkszeK9P4Y/bz5RiNQl/Os/CRGK1w7t0UCAwEAAaOB5zCB5DAMBgNV\n"
+            + "HRMBAf8EAjAAMDYGA1UdHwQvMC0wK6ApoCeGJWh0dHA6Ly9jcmwudGhhd3RlLmNv\n"
+            + "bS9UaGF3dGVTR0NDQS5jcmwwKAYDVR0lBCEwHwYIKwYBBQUHAwEGCCsGAQUFBwMC\n"
+            + "BglghkgBhvhCBAEwcgYIKwYBBQUHAQEEZjBkMCIGCCsGAQUFBzABhhZodHRwOi8v\n"
+            + "b2NzcC50aGF3dGUuY29tMD4GCCsGAQUFBzAChjJodHRwOi8vd3d3LnRoYXd0ZS5j\n"
+            + "b20vcmVwb3NpdG9yeS9UaGF3dGVfU0dDX0NBLmNydDANBgkqhkiG9w0BAQUFAAOB\n"
+            + "gQCfQ89bxFApsb/isJr/aiEdLRLDLE5a+RLizrmCUi3nHX4adpaQedEkUjh5u2ON\n"
+            + "gJd8IyAPkU0Wueru9G2Jysa9zCRo1kNbzipYvzwY4OA8Ys+WAi0oR1A04Se6z5nR\n"
+            + "UP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqAibAxWEEHX6EAMQA=\n"
+            + "-----END PKCS7-----\n";
+
+    private static final String VALID_CERTIFICATE_PKCS7_DER_BASE64 =
+            "MIIDUgYJKoZIhvcNAQcCoIIDQzCCAz8CAQExADALBgkqhkiG9w0BBwGgggMlMIID"
+            + "ITCCAoqgAwIBAgIQL9+89q6RUm0PmqPfQDQ+mjANBgkqhkiG9w0BAQUFADBMMQsw"
+            + "CQYDVQQGEwJaQTElMCMGA1UEChMcVGhhd3RlIENvbnN1bHRpbmcgKFB0eSkgTHRk"
+            + "LjEWMBQGA1UEAxMNVGhhd3RlIFNHQyBDQTAeFw0wOTEyMTgwMDAwMDBaFw0xMTEy"
+            + "MTgyMzU5NTlaMGgxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYw"
+            + "FAYDVQQHFA1Nb3VudGFpbiBWaWV3MRMwEQYDVQQKFApHb29nbGUgSW5jMRcwFQYD"
+            + "VQQDFA53d3cuZ29vZ2xlLmNvbTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEA"
+            + "6PmGD5D6htffvXImttdEAoN4c9kCKO+IRTn7EOh8rqk41XXGOOsKFQebg+jNgtXj"
+            + "9xVoRaELGYW84u+E593y17iYwqG7tcFR39SDAqc9BkJb4SLD3muFXxzW2k6L05vu"
+            + "uWciKh0R73mkszeK9P4Y/bz5RiNQl/Os/CRGK1w7t0UCAwEAAaOB5zCB5DAMBgNV"
+            + "HRMBAf8EAjAAMDYGA1UdHwQvMC0wK6ApoCeGJWh0dHA6Ly9jcmwudGhhd3RlLmNv"
+            + "bS9UaGF3dGVTR0NDQS5jcmwwKAYDVR0lBCEwHwYIKwYBBQUHAwEGCCsGAQUFBwMC"
+            + "BglghkgBhvhCBAEwcgYIKwYBBQUHAQEEZjBkMCIGCCsGAQUFBzABhhZodHRwOi8v"
+            + "b2NzcC50aGF3dGUuY29tMD4GCCsGAQUFBzAChjJodHRwOi8vd3d3LnRoYXd0ZS5j"
+            + "b20vcmVwb3NpdG9yeS9UaGF3dGVfU0dDX0NBLmNydDANBgkqhkiG9w0BAQUFAAOB"
+            + "gQCfQ89bxFApsb/isJr/aiEdLRLDLE5a+RLizrmCUi3nHX4adpaQedEkUjh5u2ON"
+            + "gJd8IyAPkU0Wueru9G2Jysa9zCRo1kNbzipYvzwY4OA8Ys+WAi0oR1A04Se6z5nR"
+            + "UP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqAibAxWEEHX6EAMQA=";
+
     private static final String VALID_CRL_PEM =
         "-----BEGIN X509 CRL-----\n"
             + "MIIBUTCBuwIBATANBgkqhkiG9w0BAQsFADBVMQswCQYDVQQGEwJHQjEkMCIGA1UE\n"
@@ -227,6 +270,30 @@ public class CertificateFactoryTest {
             + "cRbfFY3psobvbGGOjxzCQW/03gkngG5VrSfdVOLMmQDrAxpKqeYqFDj0HAenWugb"
             + "CCHWAw8WN9XSJ4nGxdRiacG/5vEIx00ICUGCeGcnqWsSnFtagDtvry2c4MMexbSP"
             + "nDN0LLg=";
+
+    // Generated with openssl crl2pkcs7 -in crl.pem
+    private static final String VALID_CRL_PKCS7_PEM = "-----BEGIN PKCS7-----\n"
+            + "MIIBggYJKoZIhvcNAQcCoIIBczCCAW8CAQExADALBgkqhkiG9w0BBwGgAKGCAVUw\n"
+            + "ggFRMIG7AgEBMA0GCSqGSIb3DQEBCwUAMFUxCzAJBgNVBAYTAkdCMSQwIgYDVQQK\n"
+            + "ExtDZXJ0aWZpY2F0ZSBUcmFuc3BhcmVuY3kgQ0ExDjAMBgNVBAgTBVdhbGVzMRAw\n"
+            + "DgYDVQQHEwdFcncgV2VuFw0xOTA4MDcxMDI3MTBaFw0xOTA5MDYxMDI3MTBaMCIw\n"
+            + "IAIBBxcNMTkwODA3MTAyNjU0WjAMMAoGA1UdFQQDCgEBoA4wDDAKBgNVHRQEAwIB\n"
+            + "AjANBgkqhkiG9w0BAQsFAAOBgQDMX8MuIi9kNfgWlKM0KfApFuWeEktnU00EAfFx\n"
+            + "Ft8Vjemyhu9sYY6PHMJBb/TeCSeAblWtJ91U4syZAOsDGkqp5ioUOPQcB6da6BsI\n"
+            + "IdYDDxY31dInicbF1GJpwb/m8QjHTQgJQYJ4ZyepaxKcW1qAO2+vLZzgwx7FtI+c\n"
+            + "M3QsuDEA\n"
+            + "-----END PKCS7-----\n";
+
+    private static final String VALID_CRL_PKCS7_DER_BASE64 =
+            "MIIBggYJKoZIhvcNAQcCoIIBczCCAW8CAQExADALBgkqhkiG9w0BBwGgAKGCAVUw"
+            + "ggFRMIG7AgEBMA0GCSqGSIb3DQEBCwUAMFUxCzAJBgNVBAYTAkdCMSQwIgYDVQQK"
+            + "ExtDZXJ0aWZpY2F0ZSBUcmFuc3BhcmVuY3kgQ0ExDjAMBgNVBAgTBVdhbGVzMRAw"
+            + "DgYDVQQHEwdFcncgV2VuFw0xOTA4MDcxMDI3MTBaFw0xOTA5MDYxMDI3MTBaMCIw"
+            + "IAIBBxcNMTkwODA3MTAyNjU0WjAMMAoGA1UdFQQDCgEBoA4wDDAKBgNVHRQEAwIB"
+            + "AjANBgkqhkiG9w0BAQsFAAOBgQDMX8MuIi9kNfgWlKM0KfApFuWeEktnU00EAfFx"
+            + "Ft8Vjemyhu9sYY6PHMJBb/TeCSeAblWtJ91U4syZAOsDGkqp5ioUOPQcB6da6BsI"
+            + "IdYDDxY31dInicbF1GJpwb/m8QjHTQgJQYJ4ZyepaxKcW1qAO2+vLZzgwx7FtI+c"
+            + "M3QsuDEA";
 
     private static final String INVALID_CRL_PEM =
         "-----BEGIN X509 CRL-----\n"
@@ -287,22 +354,51 @@ public class CertificateFactoryTest {
     }
 
     private void test_generateCertificate(CertificateFactory cf) throws Exception {
+        Certificate cert;
         {
             byte[] valid = VALID_CERTIFICATE_PEM.getBytes(Charset.defaultCharset());
             Certificate c = cf.generateCertificate(new ByteArrayInputStream(valid));
             assertNotNull(c);
+            cert = c;
         }
 
         {
             byte[] valid = VALID_CERTIFICATE_PEM_CRLF.getBytes(Charset.defaultCharset());
             Certificate c = cf.generateCertificate(new ByteArrayInputStream(valid));
             assertNotNull(c);
+            assertEquals(c, cert);
         }
 
         {
             byte[] valid = TestUtils.decodeBase64(VALID_CERTIFICATE_DER_BASE64);
             Certificate c = cf.generateCertificate(new ByteArrayInputStream(valid));
             assertNotNull(c);
+            assertEquals(c, cert);
+        }
+
+        // The RI only supports PKCS#7 blobs with generateCertificates, not
+        // generateCertificate.
+        //
+        // TODO(davidben): Also, PEM support for generateCertificate is broken. Remove it?
+        if (!StandardNames.IS_RI) {
+            byte[] valid = TestUtils.decodeBase64(VALID_CERTIFICATE_PKCS7_DER_BASE64);
+            Certificate c = cf.generateCertificate(new ByteArrayInputStream(valid));
+            assertNotNull(c);
+            assertEquals(c, cert);
+        }
+
+        {
+            byte[] valid = VALID_CERTIFICATE_PKCS7_PEM.getBytes(Charset.defaultCharset());
+            Collection<? extends Certificate> cs = cf.generateCertificates(new ByteArrayInputStream(valid));
+            assertEquals(1, cs.size());
+            assertEquals(cs.iterator().next(), cert);
+        }
+
+        {
+            byte[] valid = TestUtils.decodeBase64(VALID_CERTIFICATE_PKCS7_DER_BASE64);
+            Collection<? extends Certificate> cs = cf.generateCertificates(new ByteArrayInputStream(valid));
+            assertEquals(1, cs.size());
+            assertEquals(cs.iterator().next(), cert);
         }
 
         try {
@@ -772,12 +868,34 @@ public class CertificateFactoryTest {
         assertNotNull(c);
 
         valid = VALID_CRL_PEM_CRLF.getBytes(Charset.defaultCharset());
-        c = cf.generateCRL(new ByteArrayInputStream(valid));
-        assertNotNull(c);
+        CRL c2 = cf.generateCRL(new ByteArrayInputStream(valid));
+        assertNotNull(c2);
+        assertEquals(c, c2);
 
         valid = TestUtils.decodeBase64(VALID_CRL_DER_BASE64);
-        c = cf.generateCRL(new ByteArrayInputStream(valid));
+        c2 = cf.generateCRL(new ByteArrayInputStream(valid));
         assertNotNull(c);
+        assertEquals(c, c2);
+
+        // The RI only supports PKCS#7 with generateCRLs, not generateCRL.
+        //
+        // TODO(davidben): Also, PEM support for generateCRL is broken. Remove it?
+        if (!StandardNames.IS_RI) {
+            valid = TestUtils.decodeBase64(VALID_CRL_PKCS7_DER_BASE64);
+            c2 = cf.generateCRL(new ByteArrayInputStream(valid));
+            assertNotNull(c);
+            assertEquals(c, c2);
+        }
+
+        valid = TestUtils.decodeBase64(VALID_CRL_PKCS7_DER_BASE64);
+        Collection<? extends CRL> crls = cf.generateCRLs(new ByteArrayInputStream(valid));
+        assertEquals(1, crls.size());
+        assertEquals(c, crls.iterator().next());
+
+        valid = VALID_CRL_PKCS7_PEM.getBytes(Charset.defaultCharset());
+        crls = cf.generateCRLs(new ByteArrayInputStream(valid));
+        assertEquals(1, crls.size());
+        assertEquals(c, crls.iterator().next());
 
         try {
             byte[] invalid = INVALID_CRL_PEM.getBytes(Charset.defaultCharset());
