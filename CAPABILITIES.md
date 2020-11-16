@@ -89,6 +89,7 @@ supported but not enabled.
 * `AES/CTR/NoPadding`
 * `AES/ECB/NoPadding`
 * `AES/ECB/PKCS5Padding`
+* `AES/GCM-SIV/NoPadding`
 
 AES with 128, 192, or 256-bit keys.
 
@@ -101,11 +102,13 @@ AES/GCM with 128 or 256-bit keys.
 * `AES_128/ECB/NoPadding`
 * `AES_128/ECB/PKCS5Padding`
 * `AES_128/GCM/NoPadding`
+* `AES_128/GCM-SIV/NoPadding`
 * `AES_256/CBC/NoPadding`
 * `AES_256/CBC/PKCS5Padding`
 * `AES_256/ECB/NoPadding`
 * `AES_256/ECB/PKCS5Padding`
 * `AES_256/GCM/NoPadding`
+* `AES_256/GCM-SIV/NoPadding`
 
 Key-restricted versions of the AES ciphers.
 
