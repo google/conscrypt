@@ -45,10 +45,10 @@ jobs:
       - name: Set runner-specific environment variables
         shell: bash
         run: |
-          echo "::set-env name=ANDROID_HOME::${{ runner.temp }}/android-sdk"
-          echo "::set-env name=BORINGSSL_HOME::${{ runner.temp }}/boringssl"
-          echo "::set-env name=SDKMANAGER::${{ runner.temp }}/android-sdk/tools/bin/sdkmanager"
-          echo "::set-env name=M2_REPO::${{ runner.temp }}/m2"
+          echo "ANDROID_HOME=${{ runner.temp }}/android-sdk" >> $GITHUB_ENV
+          echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
+          echo "SDKMANAGER=${{ runner.temp }}/android-sdk/tools/bin/sdkmanager" >> $GITHUB_ENV
+          echo "M2_REPO=${{ runner.temp }}/m2" >> $GITHUB_ENV
 
       - uses: actions/checkout@v2
 
@@ -60,8 +60,8 @@ jobs:
       - name: Setup Linux environment
         if: runner.os == 'Linux'
         run: |
-          echo "::set-env name=CC::clang"
-          echo "::set-env name=CXX::clang++"
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
 
           sudo dpkg --add-architecture i386
           sudo add-apt-repository ppa:openjdk-r/ppa
@@ -85,7 +85,7 @@ jobs:
           brew untap local/python2
           brew update
           brew install ninja
-          echo "::set-env name=JAVA_HOME::$(/usr/libexec/java_home -v 1.8)"
+          echo "JAVA_HOME=$(/usr/libexec/java_home -v 1.8)" >> $GITHUB_ENV
 
       - name: Setup Windows environment
         if: runner.os == 'Windows'
@@ -208,8 +208,8 @@ jobs:
       - name: Set runner-specific environment variables
         shell: bash
         run: |
-          echo "::set-env name=M2_REPO::${{ runner.temp }}/m2"
-          echo "::set-env name=BORINGSSL_HOME::${{ runner.temp }}/boringssl"
+          echo "M2_REPO=${{ runner.temp }}/m2" >> $GITHUB_ENV
+          echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
 
       - name: Fetch BoringSSL source
         uses: actions/download-artifact@v1
