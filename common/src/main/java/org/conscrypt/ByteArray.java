@@ -41,6 +41,9 @@ final class ByteArray {
             return false;
         }
         ByteArray lhs = (ByteArray) o;
+        if (hashCode != lhs.hashCode) {
+            return false;
+        }
         return Arrays.equals(bytes, lhs.bytes);
     }
 }
