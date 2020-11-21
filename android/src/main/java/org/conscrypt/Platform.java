@@ -61,6 +61,7 @@ import javax.net.ssl.X509TrustManager;
 import org.conscrypt.ct.CTLogStore;
 import org.conscrypt.ct.CTPolicy;
 import org.conscrypt.metrics.CipherSuite;
+import org.conscrypt.metrics.ConscryptStatsLog;
 import org.conscrypt.metrics.Protocol;
 
 /**
@@ -1037,11 +1038,20 @@ final class Platform {
 
     static void countTlsHandshake(
             boolean success, String protocol, String cipherSuite, long duration) {
-        Protocol proto = Protocol.forName(protocol);
-        CipherSuite suite = CipherSuite.forName(cipherSuite);
-        int dur = (int) duration;
+        // Statsd classes appeared in SDK 30 and aren't available in earlier versions
 
-        ConscryptStatsLog.write(ConscryptStatsLog.TLS_HANDSHAKE_REPORTED, success, proto.getId(),
-                suite.getId(), dur);
+        if (Build.VERSION.SDK_INT >= 30) {
+            Protocol proto = Protocol.forName(protocol);
+            CipherSuite suite = CipherSuite.forName(cipherSuite);
+            int dur = (int) duration;
+
+            writeStats(success, proto.getId(), suite.getId(), dur);
+        }
+    }
+
+    @TargetApi(30)
+    private static void writeStats(boolean success, int protocol, int cipherSuite, int duration) {
+        ConscryptStatsLog.write(
+                ConscryptStatsLog.TLS_HANDSHAKE_REPORTED, success, protocol, cipherSuite, duration);
     }
 }

@@ -66,6 +66,7 @@ import org.conscrypt.ct.CTLogStoreImpl;
 import org.conscrypt.ct.CTPolicy;
 import org.conscrypt.ct.CTPolicyImpl;
 import org.conscrypt.metrics.CipherSuite;
+import org.conscrypt.metrics.ConscryptStatsLog;
 import org.conscrypt.metrics.Protocol;
 import sun.security.x509.AlgorithmId;
 
