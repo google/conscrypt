@@ -61,9 +61,9 @@ public final class Conscrypt {
     /**
      * Return {@code true} if BoringSSL has been built in FIPS mode.
      */
-    public static boolean isBoringSSLFIPSBuild() {
+    public static boolean isBoringSslFIPSBuild() {
         try {
-            return NativeCrypto.usesBoringSSL_FIPS_mode();
+            return NativeCrypto.usesBoringSsl_FIPS_mode();
         } catch (Throwable e) {
             return false;
         }

@@ -9962,9 +9962,9 @@ static int NativeCrypto_ENGINE_SSL_write_direct(JNIEnv* env, jclass, jlong ssl_a
 }
 
 /**
- * public static native bool BoringSSL_FIPS_mode();
+ * public static native bool usesBoringSsl_FIPS_mode();
  */
-static jboolean NativeCrypto_usesBoringSSL_FIPS_mode() {
+static jboolean NativeCrypto_usesBoringSsl_FIPS_mode() {
     return FIPS_mode();
 }
 
@@ -10411,7 +10411,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_read_BIO_direct, "(J" REF_SSL "JJI" SSL_CALLBACKS ")I"),
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_force_read, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
-        CONSCRYPT_NATIVE_METHOD(usesBoringSSL_FIPS_mode, "()Z"),
+        CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),

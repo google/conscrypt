@@ -1428,7 +1428,7 @@ public final class NativeCrypto {
     /**
      * Return {@code true} if BoringSSL has been built in FIPS mode.
      */
-    static native boolean usesBoringSSL_FIPS_mode();
+    static native boolean usesBoringSsl_FIPS_mode();
 
     /**
      * Used for testing only.
