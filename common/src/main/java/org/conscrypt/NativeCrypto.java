@@ -1426,6 +1426,11 @@ public final class NativeCrypto {
             throws IOException;
 
     /**
+     * Return {@code true} if BoringSSL has been built in FIPS mode.
+     */
+    static native boolean usesBoringSsl_FIPS_mode();
+
+    /**
      * Used for testing only.
      */
     static native int BIO_read(long bioRef, byte[] buffer) throws IOException;
