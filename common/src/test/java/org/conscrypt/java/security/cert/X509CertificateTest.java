@@ -370,6 +370,16 @@ public class X509CertificateTest {
         assertEquals(normalizeGeneralNames(expected), normalizeGeneralNames(actual));
     }
 
+    // Error Prone flags Date.equals(), but Instant and LocalDateTime are not available in Java 7.
+    // We could compare Date.getTime(), but this trips another warning in Error Prone. We do not use
+    // Date subclasses, so stick with Date.equals for now.
+    //
+    // https://errorprone.info/bugpattern/UndefinedEquals
+    @SuppressWarnings("UndefinedEquals")
+    private static void assertDatesEqual(Date expected, Date actual) throws Exception {
+        assertEquals(expected, actual);
+    }
+
     // See issue #539.
     @Test
     public void testMismatchedAlgorithm() throws Exception {
@@ -451,8 +461,9 @@ public class X509CertificateTest {
                 // Check basic certificate properties.
                 assertEquals(1, c.getVersion());
                 assertEquals(new BigInteger("d94c04da497dbfeb", 16), c.getSerialNumber());
-                assertEquals(dateFromUTC(2014, Calendar.APRIL, 23, 23, 21, 57), c.getNotBefore());
-                assertEquals(dateFromUTC(2014, Calendar.MAY, 23, 23, 21, 57), c.getNotAfter());
+                assertDatesEqual(
+                        dateFromUTC(2014, Calendar.APRIL, 23, 23, 21, 57), c.getNotBefore());
+                assertDatesEqual(dateFromUTC(2014, Calendar.MAY, 23, 23, 21, 57), c.getNotAfter());
                 assertEquals(new X500Principal("CN=Test Issuer"), c.getIssuerX500Principal());
                 assertEquals(new X500Principal("CN=Test Subject"), c.getSubjectX500Principal());
                 assertEquals("1.2.840.10045.4.1", c.getSigAlgOID());
@@ -489,8 +500,8 @@ public class X509CertificateTest {
 
                 assertEquals(3, c.getVersion());
                 assertEquals(new BigInteger("b5b622b95a04a521", 16), c.getSerialNumber());
-                assertEquals(dateFromUTC(2016, Calendar.JULY, 9, 4, 38, 9), c.getNotBefore());
-                assertEquals(dateFromUTC(2016, Calendar.AUGUST, 8, 4, 38, 9), c.getNotAfter());
+                assertDatesEqual(dateFromUTC(2016, Calendar.JULY, 9, 4, 38, 9), c.getNotBefore());
+                assertDatesEqual(dateFromUTC(2016, Calendar.AUGUST, 8, 4, 38, 9), c.getNotAfter());
                 assertEquals(new X500Principal("CN=Test Issuer"), c.getIssuerX500Principal());
                 assertEquals(new X500Principal("CN=Test Subject"), c.getSubjectX500Principal());
                 assertEquals("1.2.840.113549.1.1.11", c.getSigAlgOID());
