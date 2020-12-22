@@ -76,7 +76,7 @@ jobs:
           # TODO(prb): remove when no longer required.
           brew uninstall --ignore-dependencies openssl
           brew uninstall --ignore-dependencies python
-          brew update
+          brew update || echo update failed
           brew install ninja
           echo "JAVA_HOME=$(/usr/libexec/java_home -v 1.8)" >> $GITHUB_ENV
 
