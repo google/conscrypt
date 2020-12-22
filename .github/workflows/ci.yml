@@ -79,8 +79,8 @@ jobs:
           # Workaround for https://github.com/actions/virtual-environments/issues/1811
           # Remove broken openssl and python packages, not used by Conscrypt builds
           # TODO(prb): remove when no longer required.
-          brew uninstall openssl
-          brew uninstall python
+          brew uninstall --ignore-dependencies openssl
+          brew uninstall --ignore-dependencies python
           brew untap local/openssl
           brew untap local/python2
           brew update
