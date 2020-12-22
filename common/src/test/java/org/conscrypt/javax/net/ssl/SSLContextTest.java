@@ -35,11 +35,7 @@ import java.security.PrivilegedAction;
 import java.security.Provider;
 import java.security.Security;
 import java.security.UnrecoverableKeyException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
@@ -664,14 +660,21 @@ public class SSLContextTest {
     }
 
     private static void assertContentsInOrder(List<String> expected, String... actual) {
+        List<String> actualList = Arrays.asList(actual);
         if (expected.size() != actual.length) {
             fail("Unexpected length. Expected len <" + expected.size() + ">, actual len <"
                     + actual.length + ">, expected <" + expected + ">, actual <"
-                    + Arrays.asList(actual) + ">");
+                    + actualList + ">");
         }
-        if (!expected.equals(Arrays.asList(actual))) {
-            fail("Unexpected element(s). Expected <" + expected + ">, actual <"
-                    + Arrays.asList(actual) + ">");
+
+        if (System.getProperty("os.name", "").toLowerCase().startsWith("windows")) {
+            // CpuFeatures.isAESHardwareAccelerated is not reliable on windows
+            Collections.sort(actualList);
+            Collections.sort(expected);
+        }
+
+        if (!expected.equals(actualList)) {
+            fail("Unexpected element(s). Expected <" + expected + ">, actual <" + actualList + ">");
         }
     }
 
