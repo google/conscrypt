@@ -77,8 +77,8 @@ jobs:
           brew uninstall --ignore-dependencies openssl
           brew uninstall --ignore-dependencies python
           brew update || echo update failed
-          brew install ninja
-          echo "JAVA_HOME=$(/usr/libexec/java_home -v 1.8)" >> $GITHUB_ENV
+          brew install ninja || echo update failed
+          echo "JAVA_HOME=/usr/lib/jvm/zulu-8-azure-amd64" >> $GITHUB_ENV
 
       - name: install Go
         uses: actions/setup-go@v1
