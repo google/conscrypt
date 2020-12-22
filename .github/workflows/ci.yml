@@ -178,7 +178,7 @@ jobs:
         shell: bash
         run: ./gradlew publishToMavenLocal -Dmaven.repo.local="$M2_REPO"
 
-      - name: Upload Maven respository
+      - name: Upload Maven repository
         uses: actions/upload-artifact@v1
         with:
           name: m2repo-${{ runner.os }}
