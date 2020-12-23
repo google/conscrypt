@@ -16,6 +16,7 @@
 
 package org.conscrypt.javax.net.ssl;
 
+import static org.conscrypt.TestUtils.isWindows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -672,7 +673,7 @@ public class SSLContextTest {
                     + actualList + ">");
         }
 
-        if (System.getProperty("os.name", "").toLowerCase().startsWith("windows")) {
+        if (isWindows()) {
             // CpuFeatures.isAESHardwareAccelerated is not reliable on windows
             Collections.sort(actualList);
             Collections.sort(expected);
