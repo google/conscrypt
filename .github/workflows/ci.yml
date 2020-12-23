@@ -42,6 +42,16 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
+      - name: Set up JDK 11 for toolchains
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+
+      - name: Set up JDK 8 for toolchains
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 8
+
       - name: Set runner-specific environment variables
         shell: bash
         run: |
@@ -51,11 +61,6 @@ jobs:
           echo "M2_REPO=${{ runner.temp }}/m2" >> $GITHUB_ENV
 
       - uses: actions/checkout@v2
-
-      - name: install Go
-        uses: actions/setup-go@v1
-        with:
-          go-version: '1.13.2'
 
       - name: Setup Linux environment
         if: runner.os == 'Linux'
@@ -79,13 +84,15 @@ jobs:
           # Workaround for https://github.com/actions/virtual-environments/issues/1811
           # Remove broken openssl and python packages, not used by Conscrypt builds
           # TODO(prb): remove when no longer required.
-          brew uninstall openssl@1.0.2t
-          brew uninstall python@2.7.17
-          brew untap local/openssl
-          brew untap local/python2
-          brew update
-          brew install ninja
-          echo "JAVA_HOME=$(/usr/libexec/java_home -v 1.8)" >> $GITHUB_ENV
+          brew uninstall --ignore-dependencies openssl
+          brew uninstall --ignore-dependencies python
+          brew update || echo update failed
+          brew install ninja || echo update failed
+
+      - name: install Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: '1.13.2'
 
       - name: Setup Windows environment
         if: runner.os == 'Windows'
