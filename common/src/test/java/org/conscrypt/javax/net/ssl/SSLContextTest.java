@@ -674,7 +674,7 @@ public class SSLContextTest {
         }
 
         if (isWindows()) {
-            // CpuFeatures.isAESHardwareAccelerated is not reliable on windows
+            // TODO(prbprbprb): CpuFeatures.isAESHardwareAccelerated is not reliable on windows
             Collections.sort(actualList);
             Collections.sort(expected);
         }
