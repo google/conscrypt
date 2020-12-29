@@ -44,6 +44,7 @@ import java.util.Base64;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -705,5 +706,22 @@ public final class TestUtils {
 
     public static void assumeJava8() {
         Assume.assumeTrue("Require Java 8: " + javaVersion(), isJavaVersion(8));
+    }
+
+    public static String osName() {
+        return System.getProperty("os.name").toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "");
+    }
+
+    public static boolean isLinux() {
+        return osName().startsWith("linux");
+    }
+
+    public static boolean isWindows() {
+        return osName().startsWith("windows");
+    }
+
+    public static boolean isOsx() {
+        String name = osName();
+        return name.startsWith("macosx") || name.startsWith("osx");
     }
 }
