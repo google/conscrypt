@@ -169,18 +169,15 @@ public class SSLEngineVersionCompatibilityTest {
                 sourceOutRes.getHandshakeStatus());
         SSLSession destSession = dest.getSession();
         ByteBuffer destIn = ByteBuffer.allocate(destSession.getApplicationBufferSize());
-        int numUnwrapCalls = 0;
         while (destIn.position() != sourceBytes.length) {
             SSLEngineResult destRes = dest.unwrap(sourceToDest, destIn);
             assertEquals(sourceCipherSuite, HandshakeStatus.NOT_HANDSHAKING,
                     destRes.getHandshakeStatus());
-            numUnwrapCalls++;
         }
         destIn.flip();
         byte[] actual = new byte[destIn.remaining()];
         destIn.get(actual);
         assertEquals(sourceCipherSuite, Arrays.toString(sourceBytes), Arrays.toString(actual));
-        assertEquals(sourceCipherSuite, 3, numUnwrapCalls);
     }
 
     @Test
@@ -807,6 +804,102 @@ public class SSLEngineVersionCompatibilityTest {
                 session.getRequestedServerNames());
         assertEquals(host, serverHost.get());
         assertTrue(serverAliasCalled.get());
+    }
+
+    // Splits a byte array into an array of ByteBuffers each no bigger than the specified size.
+    private ByteBuffer[] splitDataIntoBuffers(byte[] sourceData, int size) {
+        int nbuf = ((sourceData.length - 1) / size) + 1;
+        ByteBuffer[] buffers = new ByteBuffer[nbuf];
+        int buffer = 0;
+        for (int offset = 0; offset < sourceData.length; offset += size, buffer++) {
+            buffers[buffer] = ByteBuffer.allocate(size);
+            int remaining = sourceData.length - offset;
+            buffers[buffer].put(sourceData, offset, Math.min( remaining, size));
+            buffers[buffer].flip();
+        }
+        return buffers;
+    }
+
+    // Sends a block of application data of the specified size, split into ByteBuffers
+    // of the specified size and verifies it arrives intact.
+    private void sendAppData(
+            SSLEngine src, SSLEngine dst, int dataSize, int bufferSize, boolean useOffsets)
+            throws SSLException {
+        byte[] sourceData = new byte[dataSize];
+        for (int i = 0; i < dataSize; i++) {
+            // Fill with known data, but not aligned to powers of two
+            sourceData[i] = (byte) (i % 251);
+        }
+        ByteBuffer[] sourceBuffers = splitDataIntoBuffers(sourceData, bufferSize);
+        int offset = 0;
+        int length = sourceBuffers.length;
+
+        if (useOffsets) {
+            // Pad the array with some leading and trailing nulls and use an offset to skip them
+            offset = 2;
+            ByteBuffer[] tmp = new ByteBuffer[length + 4];
+            tmp[0] = null;
+            tmp[1] = null;
+            tmp[length + 1] = null;
+            tmp[length + 2] = null;
+            System.arraycopy(sourceBuffers, 0, tmp, 2, length);
+            sourceBuffers = tmp;
+        }
+
+        // Assert there is no pending application data or encrypted data and handshaking is
+        // complete.
+        ByteBuffer tlsBuffer = ByteBuffer.allocate(src.getSession().getPacketBufferSize());
+        SSLEngineResult result = src.wrap(EMPTY_BUFFER, tlsBuffer);
+        assertEquals(Status.OK, result.getStatus());
+        assertEquals(HandshakeStatus.NOT_HANDSHAKING, result.getHandshakeStatus());
+        assertEquals(0, result.bytesConsumed());
+        assertEquals(0, result.bytesProduced());
+
+        result = dst.unwrap(EMPTY_BUFFER, tlsBuffer);
+        assertEquals(Status.BUFFER_UNDERFLOW, result.getStatus());
+        assertEquals(0, result.bytesConsumed());
+        assertEquals(0, result.bytesProduced());
+
+        // Send the data
+        int consumed = 0, produced = 0;
+        ByteBuffer destBuffer = ByteBuffer.allocate(dataSize);
+        while (consumed < dataSize) {
+            tlsBuffer.clear();
+            result = src.wrap(sourceBuffers, offset, length, tlsBuffer);
+            assertEquals(Status.OK, result.getStatus());
+            consumed += result.bytesConsumed();
+
+            tlsBuffer.flip();
+            result = dst.unwrap(tlsBuffer, destBuffer);
+            assertEquals(Status.OK, result.getStatus());
+            produced += result.bytesProduced();
+        }
+        assertEquals(dataSize, consumed);
+        assertEquals(dataSize, produced);
+
+        // Compare
+        assertTrue(destBuffer.hasArray());
+        destBuffer.flip();
+        assertArrayEquals(sourceData, destBuffer.array());
+    }
+
+    @Test
+    public void appDataUnaffectedByBufferSizes() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create();
+        SSLSession session = pair.client.getSession();
+        int appBufSize = session.getApplicationBufferSize();
+
+        int[] dataSizes = new int[] { 512, 555, 1500, 8192, appBufSize, 5 * appBufSize};
+        int[] bufferSizes = new int[]
+	    { 53, 512, 8192, appBufSize, appBufSize - 53, appBufSize + 53, 5 * appBufSize};
+        for (int dataSize : dataSizes) {
+            for (int bufSize : bufferSizes) {
+                sendAppData(pair.client, pair.server, dataSize, bufSize, false);
+                sendAppData(pair.server, pair.client, dataSize, bufSize, false);
+                sendAppData(pair.client, pair.server, dataSize, bufSize, true);
+                sendAppData(pair.server, pair.client, dataSize, bufSize, true);
+            }
+        }
     }
 
     private TestKeyStore addServerCertListener(final Runnable callback) {

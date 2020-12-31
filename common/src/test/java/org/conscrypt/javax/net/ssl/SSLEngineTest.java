@@ -357,18 +357,15 @@ public class SSLEngineTest {
                 sourceOutRes.getHandshakeStatus());
         SSLSession destSession = dest.getSession();
         ByteBuffer destIn = ByteBuffer.allocate(destSession.getApplicationBufferSize());
-        int numUnwrapCalls = 0;
         while (destIn.position() != sourceBytes.length) {
             SSLEngineResult destRes = dest.unwrap(sourceToDest, destIn);
             assertEquals(sourceCipherSuite, HandshakeStatus.NOT_HANDSHAKING,
                     destRes.getHandshakeStatus());
-            numUnwrapCalls++;
         }
         destIn.flip();
         byte[] actual = new byte[destIn.remaining()];
         destIn.get(actual);
         assertEquals(sourceCipherSuite, Arrays.toString(sourceBytes), Arrays.toString(actual));
-        assertEquals(sourceCipherSuite, 3, numUnwrapCalls);
     }
 
     @Test
