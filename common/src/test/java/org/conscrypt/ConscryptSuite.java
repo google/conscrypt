@@ -39,16 +39,13 @@ import org.conscrypt.java.security.KeyPairGeneratorTest;
 import org.conscrypt.java.security.KeyPairGeneratorTestDH;
 import org.conscrypt.java.security.KeyPairGeneratorTestDSA;
 import org.conscrypt.java.security.KeyPairGeneratorTestRSA;
+import org.conscrypt.java.security.KeyPairGeneratorTestXDH;
 import org.conscrypt.java.security.MessageDigestTest;
 import org.conscrypt.java.security.SignatureTest;
 import org.conscrypt.java.security.cert.CertificateFactoryTest;
 import org.conscrypt.java.security.cert.X509CRLTest;
 import org.conscrypt.java.security.cert.X509CertificateTest;
-import org.conscrypt.javax.crypto.AeadCipherTest;
-import org.conscrypt.javax.crypto.CipherBasicsTest;
-import org.conscrypt.javax.crypto.CipherTest;
-import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
-import org.conscrypt.javax.crypto.KeyGeneratorTest;
+import org.conscrypt.javax.crypto.*;
 import org.conscrypt.javax.net.ssl.HttpsURLConnectionTest;
 import org.conscrypt.javax.net.ssl.KeyManagerFactoryTest;
 import org.conscrypt.javax.net.ssl.KeyStoreBuilderParametersTest;
@@ -103,6 +100,7 @@ import org.junit.runners.Suite;
         KeyPairGeneratorTestDH.class,
         KeyPairGeneratorTestDSA.class,
         KeyPairGeneratorTestRSA.class,
+        KeyPairGeneratorTestXDH.class,
         MessageDigestTest.class,
         SignatureTest.class,
         // javax.crypto tests
@@ -111,6 +109,7 @@ import org.junit.runners.Suite;
         CipherTest.class,
         ECDHKeyAgreementTest.class,
         KeyGeneratorTest.class,
+        XDHKeyAgreementTest.class,
         // javax.net.ssl tests
         HttpsURLConnectionTest.class,
         KeyManagerFactoryTest.class,
