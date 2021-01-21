@@ -99,6 +99,8 @@ if (androidSdkInstalled) {
             exclude module: 'appcompat-v7'
             exclude module: 'design'
         })
+        testCompileOnly project(':conscrypt-android-stub'),
+                        project(':conscrypt-libcore-stub')
         testImplementation project(path: ":conscrypt-testing", configuration: "runtime"),
                            libraries.junit
         compileOnly project(':conscrypt-android-stub'),

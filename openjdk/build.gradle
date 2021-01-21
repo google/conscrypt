@@ -180,7 +180,7 @@ dependencies {
     compileOnly project(':conscrypt-constants')
 
     testCompile project(':conscrypt-constants'),
-            project(path: ':conscrypt-testing', configuration: 'shadow'),
+            project(path: ':conscrypt-testing', configuration: 'runtime'),
             libraries.junit,
             libraries.mockito
 
