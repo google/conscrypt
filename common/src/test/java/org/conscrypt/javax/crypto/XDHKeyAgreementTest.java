@@ -1,5 +1,7 @@
 package org.conscrypt.javax.crypto;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.Provider;
@@ -12,7 +14,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import static org.junit.Assert.assertArrayEquals;
 
 /**
  * Tests for all registered X25519 and X448 {@link KeyAgreement} providers.
