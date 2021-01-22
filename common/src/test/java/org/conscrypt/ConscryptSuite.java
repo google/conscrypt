@@ -112,6 +112,7 @@ import org.junit.runners.Suite;
         AeadCipherTest.class,
         CipherBasicsTest.class,
         CipherTest.class,
+        MacTest.class,
         ECDHKeyAgreementTest.class,
         KeyGeneratorTest.class,
         XDHKeyAgreementTest.class,

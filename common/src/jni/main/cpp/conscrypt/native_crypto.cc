@@ -38,6 +38,7 @@
 #include <openssl/asn1.h>
 #include <openssl/chacha.h>
 #include <openssl/curve25519.h>
+#include <openssl/cmac.h>
 #include <openssl/crypto.h>
 #include <openssl/engine.h>
 #include <openssl/err.h>
@@ -3775,7 +3776,148 @@ static jint NativeCrypto_EVP_AEAD_CTX_open_buf(JNIEnv* env, jclass, jlong evpAea
                            inBuffer, aadArray, EVP_AEAD_CTX_open);
 }
 
+static jlong NativeCrypto_CMAC_CTX_new(JNIEnv* env, jclass) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("CMAC_CTX_new");
+    auto cmacCtx = CMAC_CTX_new();
+    if (cmacCtx == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate CMAC_CTX");
+        return 0;
+    }
 
+    return reinterpret_cast<jlong>(cmacCtx);
+}
+
+static void NativeCrypto_CMAC_CTX_free(JNIEnv* env, jclass, jlong cmacCtxRef) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    CMAC_CTX* cmacCtx = reinterpret_cast<CMAC_CTX*>(cmacCtxRef);
+    JNI_TRACE("CMAC_CTX_free(%p)", cmacCtx);
+    if (cmacCtx == nullptr) {
+        return;
+    }
+    CMAC_CTX_free(cmacCtx);
+}
+
+static void NativeCrypto_CMAC_Init(JNIEnv* env, jclass, jobject cmacCtxRef, jbyteArray keyArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    CMAC_CTX* cmacCtx = fromContextObject<CMAC_CTX>(env, cmacCtxRef);
+    JNI_TRACE("CMAC_Init(%p, %p)", cmacCtx, keyArray);
+    if (cmacCtx == nullptr) {
+        return;
+    }
+    ScopedByteArrayRO keyBytes(env, keyArray);
+    if (keyBytes.get() == nullptr) {
+        return;
+    }
+
+    const uint8_t* keyPtr = reinterpret_cast<const uint8_t*>(keyBytes.get());
+
+    const EVP_CIPHER *cipher;
+    switch(keyBytes.size()) {
+      case 16:
+          cipher = EVP_aes_128_cbc();
+          break;
+      case 24:
+          cipher = EVP_aes_192_cbc();
+          break;
+      case 32:
+          cipher = EVP_aes_256_cbc();
+          break;
+      default:
+          conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "CMAC_Init: Unsupported key length");
+          return;
+     }
+
+    if (!CMAC_Init(cmacCtx, keyPtr, keyBytes.size(), cipher, nullptr)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CMAC_Init");
+        JNI_TRACE("CMAC_Init(%p, %p) => fail CMAC_Init_ex", cmacCtx, keyArray);
+        return;
+    }
+}
+
+static void NativeCrypto_CMAC_UpdateDirect(JNIEnv* env, jclass, jobject cmacCtxRef, jlong inPtr,
+                                           int inLength) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    CMAC_CTX* cmacCtx = fromContextObject<CMAC_CTX>(env, cmacCtxRef);
+    const uint8_t* p = reinterpret_cast<const uint8_t*>(inPtr);
+    JNI_TRACE("CMAC_UpdateDirect(%p, %p, %d)", cmacCtx, p, inLength);
+
+    if (cmacCtx == nullptr) {
+        return;
+    }
+
+    if (p == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, nullptr);
+        return;
+    }
+
+    if (!CMAC_Update(cmacCtx, p, static_cast<size_t>(inLength))) {
+        JNI_TRACE("CMAC_UpdateDirect(%p, %p, %d) => threw exception", cmacCtx, p, inLength);
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CMAC_UpdateDirect");
+        return;
+    }
+}
+
+static void NativeCrypto_CMAC_Update(JNIEnv* env, jclass, jobject cmacCtxRef, jbyteArray inArray,
+                                     jint inOffset, int inLength) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    CMAC_CTX* cmacCtx = fromContextObject<CMAC_CTX>(env, cmacCtxRef);
+    JNI_TRACE("CMAC_Update(%p, %p, %d, %d)", cmacCtx, inArray, inOffset, inLength);
+
+    if (cmacCtx == nullptr) {
+        return;
+    }
+
+    ScopedByteArrayRO inBytes(env, inArray);
+    if (inBytes.get() == nullptr) {
+        return;
+    }
+
+    if (ARRAY_OFFSET_LENGTH_INVALID(inBytes, inOffset, inLength)) {
+        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
+                                           "inBytes");
+        return;
+    }
+
+    const uint8_t* inPtr = reinterpret_cast<const uint8_t*>(inBytes.get());
+
+    if (!CMAC_Update(cmacCtx, inPtr + inOffset, static_cast<size_t>(inLength))) {
+        JNI_TRACE("CMAC_Update(%p, %p, %d, %d) => threw exception", cmacCtx, inArray, inOffset,
+                  inLength);
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CMAC_Update");
+        return;
+    }
+}
+
+static jbyteArray NativeCrypto_CMAC_Final(JNIEnv* env, jclass, jobject cmacCtxRef) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    CMAC_CTX* cmacCtx = fromContextObject<CMAC_CTX>(env, cmacCtxRef);
+    JNI_TRACE("CMAC_Final(%p)", cmacCtx);
+
+    if (cmacCtx == nullptr) {
+        return nullptr;
+    }
+
+    uint8_t result[EVP_MAX_MD_SIZE];
+    size_t len;
+    if (!CMAC_Final(cmacCtx, result, &len)) {
+        JNI_TRACE("CMAC_Final(%p) => threw exception", cmacCtx);
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CMAC_Final");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> resultArray(env, env->NewByteArray(static_cast<jsize>(len)));
+    if (resultArray.get() == nullptr) {
+        return nullptr;
+    }
+    ScopedByteArrayRW resultBytes(env, resultArray.get());
+    if (resultBytes.get() == nullptr) {
+        return nullptr;
+    }
+    memcpy(resultBytes.get(), result, len);
+    return resultArray.release();
+}
 
 static jlong NativeCrypto_HMAC_CTX_new(JNIEnv* env, jclass) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -10195,6 +10337,7 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
 #define REF_EVP_PKEY "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY;"
 #define REF_EVP_PKEY_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY_CTX;"
 #define REF_HMAC_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$HMAC_CTX;"
+#define REF_CMAC_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$CMAC_CTX;"
 #define REF_BIO_IN_STREAM "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream;"
 #define REF_X509 "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509Certificate;"
 #define REF_X509_CRL "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509CRL;"
@@ -10202,6 +10345,12 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
 #define REF_SSL_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/AbstractSessionContext;"
 static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(clinit, "()V"),
+        CONSCRYPT_NATIVE_METHOD(CMAC_CTX_new, "()J"),
+        CONSCRYPT_NATIVE_METHOD(CMAC_CTX_free, "(J)V"),
+        CONSCRYPT_NATIVE_METHOD(CMAC_Init, "(" REF_CMAC_CTX "[B)V"),
+        CONSCRYPT_NATIVE_METHOD(CMAC_Update, "(" REF_CMAC_CTX "[BII)V"),
+        CONSCRYPT_NATIVE_METHOD(CMAC_UpdateDirect, "(" REF_CMAC_CTX "JI)V"),
+        CONSCRYPT_NATIVE_METHOD(CMAC_Final, "(" REF_CMAC_CTX ")[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_new_RSA, "([B[B[B[B[B[B[B[B)J"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_new_EC_KEY, "(" REF_EC_GROUP REF_EC_POINT "[B)J"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_type, "(" REF_EVP_PKEY ")I"),
