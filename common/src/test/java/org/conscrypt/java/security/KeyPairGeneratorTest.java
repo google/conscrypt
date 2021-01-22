@@ -304,6 +304,20 @@ public class KeyPairGeneratorTest {
                     // so ignore it.
                     continue;
                 }
+                if ("XDH".equals(k.getAlgorithm())
+                        && "SunEC".equalsIgnoreCase(p.getName())
+                        && "11".equals(System.getProperty("java.specification.version"))) {
+                    // SunEC in OpenJDK 11 has a bug where the format specified in RFC 8410
+                    // Section 7. It uses a single OCTET STRING to represent the key instead
+                    // of an OCTET STRING inside of an OCTET STRING as defined in the RFC:
+                    // ("For the keys defined in this document, the private key is always an
+                    //   opaque byte sequence.  The ASN.1 type CurvePrivateKey is defined in
+                    //   this document to hold the byte sequence.  Thus, when encoding a
+                    //   OneAsymmetricKey object, the private key is wrapped in a
+                    //   CurvePrivateKey object and wrapped by the OCTET STRING of the
+                    //   "privateKey" field.")
+                    continue;
+                }
 
                 if ("PKCS#8".equals(k.getFormat())) {
                     PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(encoded);
