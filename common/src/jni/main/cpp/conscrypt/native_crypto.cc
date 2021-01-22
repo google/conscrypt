@@ -37,6 +37,7 @@
 #include <openssl/aead.h>
 #include <openssl/asn1.h>
 #include <openssl/chacha.h>
+#include <openssl/curve25519.h>
 #include <openssl/crypto.h>
 #include <openssl/engine.h>
 #include <openssl/err.h>
@@ -2438,6 +2439,67 @@ static jint NativeCrypto_ECDSA_verify(JNIEnv* env, jclass, jbyteArray data, jbyt
 
     JNI_TRACE("ECDSA_verify(%p, %p, %p) => %d", data, sig, pkey, result);
     return static_cast<jint>(result);
+}
+
+static jboolean NativeCrypto_X25519(JNIEnv* env, jclass, jbyteArray outArray,
+                                          jbyteArray privkeyArray, jbyteArray pubkeyArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("X25519(%p, %p, %p)", outArray, privkeyArray, pubkeyArray);
+
+    ScopedByteArrayRW out(env, outArray);
+    if (out.get() == nullptr) {
+        JNI_TRACE("X25519(%p, %p, %p) can't get output buffer", outArray, privkeyArray, pubkeyArray);
+        return JNI_FALSE;
+    }
+
+    ScopedByteArrayRO privkey(env, privkeyArray);
+    if (privkey.get() == nullptr) {
+        JNI_TRACE("X25519(%p) => privkey == null", outArray);
+        return JNI_FALSE;
+    }
+
+    ScopedByteArrayRO pubkey(env, pubkeyArray);
+    if (pubkey.get() == nullptr) {
+        JNI_TRACE("X25519(%p) => pubkey == null", outArray);
+        return JNI_FALSE;
+    }
+
+    if (X25519(reinterpret_cast<uint8_t*>(out.get()),
+               reinterpret_cast<const uint8_t*>(privkey.get()),
+               reinterpret_cast<const uint8_t*>(pubkey.get())) != 1) {
+        JNI_TRACE("X25519(%p) => failure", outArray);
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "X25519",
+                                                      conscrypt::jniutil::throwInvalidKeyException);
+        return JNI_FALSE;
+    }
+
+    JNI_TRACE("X25519(%p) => success", outArray);
+    return JNI_TRUE;
+}
+
+static void NativeCrypto_X25519_keypair(JNIEnv* env, jclass, jbyteArray outPublicArray, jbyteArray outPrivateArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("X25519_keypair(%p, %p)", outPublicArray, outPrivateArray);
+
+    ScopedByteArrayRW outPublic(env, outPublicArray);
+    if (outPublic.get() == nullptr) {
+        JNI_TRACE("X25519_keypair(%p, %p) can't get output public key buffer", outPublicArray, outPrivateArray);
+        return;
+    }
+
+    ScopedByteArrayRW outPrivate(env, outPrivateArray);
+    if (outPrivate.get() == nullptr) {
+        JNI_TRACE("X25519_keypair(%p, %p) can't get output private key buffer", outPublicArray, outPrivateArray);
+        return;
+    }
+
+    if (outPublic.size() != X25519_PUBLIC_VALUE_LEN || outPrivate.size() != X25519_PRIVATE_KEY_LEN) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Output key array length != 32");
+        return;
+    }
+
+    X25519_keypair(reinterpret_cast<uint8_t*>(outPublic.get()), reinterpret_cast<uint8_t*>(outPrivate.get()));
+    JNI_TRACE("X25519_keypair(%p, %p) => success", outPublicArray, outPrivateArray);
 }
 
 static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
@@ -10190,6 +10252,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ECDSA_size, "(" REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(ECDSA_sign, "([B[B" REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(ECDSA_verify, "([B[B" REF_EVP_PKEY ")I"),
+        CONSCRYPT_NATIVE_METHOD(X25519, "([B[B[B)Z"),
+        CONSCRYPT_NATIVE_METHOD(X25519_keypair, "([B[B)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_create, "()J"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_cleanup, "(" REF_EVP_MD_CTX ")V"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_destroy, "(J)V"),

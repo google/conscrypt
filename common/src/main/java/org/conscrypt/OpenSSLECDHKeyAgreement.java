@@ -16,136 +16,41 @@
 
 package org.conscrypt;
 
-import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.SecureRandom;
-import java.security.spec.AlgorithmParameterSpec;
-import javax.crypto.KeyAgreementSpi;
-import javax.crypto.SecretKey;
-import javax.crypto.ShortBufferException;
-import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Elliptic Curve Diffie-Hellman key agreement backed by the OpenSSL engine.
  */
 @Internal
-public final class OpenSSLECDHKeyAgreement extends KeyAgreementSpi {
-
-    /** OpenSSL handle of the private key. Only available after the engine has been initialized. */
-    private OpenSSLKey mOpenSslPrivateKey;
-
-    /**
-     * Expected length (in bytes) of the agreed key ({@link #mResult}). Only available after the
-     * engine has been initialized.
-     */
-    private int mExpectedResultLength;
-
-    /** Agreed key. Only available after {@link #engineDoPhase(Key, boolean)} completes. */
-    private byte[] mResult;
-
-    public OpenSSLECDHKeyAgreement() {}
+public final class OpenSSLECDHKeyAgreement extends OpenSSLBaseDHKeyAgreement<OpenSSLKey> {
+    public OpenSSLECDHKeyAgreement() {
+    }
 
     @Override
-    public Key engineDoPhase(Key key, boolean lastPhase) throws InvalidKeyException {
-        if (mOpenSslPrivateKey == null) {
-            throw new IllegalStateException("Not initialized");
-        }
-        if (!lastPhase) {
-            throw new IllegalStateException("ECDH only has one phase");
-        }
+    protected OpenSSLKey convertPublicKey(PublicKey key) throws InvalidKeyException {
+        return OpenSSLKey.fromPublicKey(key);
+    }
 
-        if (key == null) {
-            throw new InvalidKeyException("key == null");
-        }
-        if (!(key instanceof PublicKey)) {
-            throw new InvalidKeyException("Not a public key: " + key.getClass());
-        }
-        OpenSSLKey openSslPublicKey = OpenSSLKey.fromPublicKey((PublicKey) key);
+    @Override
+    protected OpenSSLKey convertPrivateKey(PrivateKey key) throws InvalidKeyException {
+        return OpenSSLKey.fromPrivateKey(key);
+    }
 
-        byte[] buffer = new byte[mExpectedResultLength];
-        int actualResultLength = NativeCrypto.ECDH_compute_key(
+    @Override
+    protected int computeKey(byte[] buffer, OpenSSLKey theirPublicKey, OpenSSLKey ourPrivateKey) throws InvalidKeyException {
+        return NativeCrypto.ECDH_compute_key(
                 buffer,
                 0,
-                openSslPublicKey.getNativeRef(),
-                mOpenSslPrivateKey.getNativeRef());
-        byte[] result;
-        if (actualResultLength == -1) {
-            throw new RuntimeException("Engine returned " + actualResultLength);
-        } else if (actualResultLength == mExpectedResultLength) {
-            // The output is as long as expected -- use the whole buffer
-            result = buffer;
-        } else if (actualResultLength < mExpectedResultLength) {
-            // The output is shorter than expected -- use only what's produced by the engine
-            result = new byte[actualResultLength];
-            System.arraycopy(buffer, 0, mResult, 0, mResult.length);
-        } else {
-            // The output is longer than expected
-            throw new RuntimeException("Engine produced a longer than expected result. Expected: "
-                + mExpectedResultLength + ", actual: " + actualResultLength);
-        }
-        mResult = result;
-
-        return null; // No intermediate key
+                theirPublicKey.getNativeRef(),
+                ourPrivateKey.getNativeRef());
     }
 
     @Override
-    protected int engineGenerateSecret(byte[] sharedSecret, int offset)
-            throws ShortBufferException {
-        checkCompleted();
-        int available = sharedSecret.length - offset;
-        if (mResult.length > available) {
-            throw new ShortBufferWithoutStackTraceException(
-                    "Needed: " + mResult.length + ", available: " + available);
-        }
-
-        System.arraycopy(mResult, 0, sharedSecret, offset, mResult.length);
-        return mResult.length;
-    }
-
-    @Override
-    protected byte[] engineGenerateSecret() {
-        checkCompleted();
-        return mResult;
-    }
-
-    @Override
-    protected SecretKey engineGenerateSecret(String algorithm) {
-        checkCompleted();
-        return new SecretKeySpec(engineGenerateSecret(), algorithm);
-    }
-
-    @Override
-    protected void engineInit(Key key, SecureRandom random) throws InvalidKeyException {
-        if (key == null) {
-            throw new InvalidKeyException("key == null");
-        }
-        if (!(key instanceof PrivateKey)) {
-            throw new InvalidKeyException("Not a private key: " + key.getClass());
-        }
-
-        OpenSSLKey openSslKey = OpenSSLKey.fromPrivateKey((PrivateKey) key);
+    protected int getOutputSize(OpenSSLKey openSslKey) {
         int fieldSizeBits = NativeCrypto.EC_GROUP_get_degree(new NativeRef.EC_GROUP(
                 NativeCrypto.EC_KEY_get1_group(openSslKey.getNativeRef())));
-        mExpectedResultLength = (fieldSizeBits + 7) / 8;
-        mOpenSslPrivateKey = openSslKey;
-    }
-
-    @Override
-    protected void engineInit(Key key, AlgorithmParameterSpec params,
-            SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        // ECDH doesn't need an AlgorithmParameterSpec
-        if (params != null) {
-          throw new InvalidAlgorithmParameterException("No algorithm parameters supported");
-        }
-        engineInit(key, random);
-    }
-
-    private void checkCompleted() {
-        if (mResult == null) {
-            throw new IllegalStateException("Key agreement not completed");
-        }
+        return (fieldSizeBits + 7) / 8;
     }
 }
