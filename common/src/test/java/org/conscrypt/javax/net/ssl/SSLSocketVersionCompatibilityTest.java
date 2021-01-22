@@ -366,6 +366,7 @@ public class SSLSocketVersionCompatibilityTest {
         client.addHandshakeCompletedListener(new HandshakeCompletedListener() {
             @Override
             public void handshakeCompleted(HandshakeCompletedEvent event) {
+                SSLSocket socket = null;
                 try {
                     SSLSession session = event.getSession();
                     String cipherSuite = event.getCipherSuite();
@@ -375,7 +376,7 @@ public class SSLSocketVersionCompatibilityTest {
                         event.getPeerCertificateChain();
                     Principal peerPrincipal = event.getPeerPrincipal();
                     Principal localPrincipal = event.getLocalPrincipal();
-                    SSLSocket socket = event.getSocket();
+                    socket = event.getSocket();
                     assertNotNull(session);
                     byte[] id = session.getId();
                     assertNotNull(id);
@@ -412,16 +413,19 @@ public class SSLSocketVersionCompatibilityTest {
                     assertNotNull(socket);
                     assertSame(client, socket);
                     assertNull(socket.getHandshakeSession());
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
                     synchronized (handshakeCompletedListenerCalled) {
                         handshakeCompletedListenerCalled[0] = true;
                         handshakeCompletedListenerCalled.notify();
                     }
                     handshakeCompletedListenerCalled[0] = true;
-                    socket.removeHandshakeCompletedListener(this);
-                } catch (RuntimeException e) {
-                    throw e;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    if (socket != null) {
+                        socket.removeHandshakeCompletedListener(this);
+                    }
                 }
             }
         });
