@@ -24,4 +24,9 @@ public class KeyPairGeneratorTestXDH extends AbstractKeyPairGeneratorTest {
     public KeyPairGeneratorTestXDH() {
         super("XDH", new KeyAgreementHelper("XDH"));
     }
+
+    @Override
+    protected int getKeySize() {
+        return 256;
+    }
 }
