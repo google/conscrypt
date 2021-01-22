@@ -314,9 +314,10 @@ jobs:
           DIR="$(find m2/org/conscrypt/conscrypt-openjdk-uber -maxdepth 1 -mindepth 1 -type d -print)"
           VERSION="${DIR##*/}"
           TESTJAR="$(find testjar -name '*-tests.jar')"
-          java -jar junit-platform-console-standalone.jar -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar:$TESTJAR" -n='${{ matrix.suite_class }}' --scan-classpath --reports-dir=results
+          java -jar junit-platform-console-standalone.jar -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar:$TESTJAR" -n='${{ matrix.suite_class }}' --scan-classpath --reports-dir=results --fail-if-no-tests
 
       - name: Archive test results
+        if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
           name: test-results-${{ matrix.platform }}-${{ matrix.java }}
