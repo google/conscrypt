@@ -203,6 +203,12 @@ public final class NativeCrypto {
 
     static native int ECDSA_verify(byte[] data, byte[] sig, NativeRef.EVP_PKEY pkey);
 
+    // --- Curve25519 --------------
+
+    static native boolean X25519(byte[] out, byte[] privateKey, byte[] publicKey) throws InvalidKeyException;
+
+    static native void X25519_keypair(byte[] outPublicKey, byte[] outPrivateKey);
+
     // --- Message digest functions --------------
 
     // These return const references

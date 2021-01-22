@@ -189,6 +189,24 @@ public class DefaultKeys {
             "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKoHwjEdyQBvyYUd/Oi+m05qO103dQdKBwj2qjz+f"
                 + "mC8y+cGAGwxMWgnc1xJYw767qY59R36o2TQlQHNI9d0CDA==");
 
+    private static final byte[] X25519_private = new byte[] {
+            (byte) 0x30, (byte) 0x2e, (byte) 0x02, (byte) 0x01, (byte) 0x00, (byte) 0x30, (byte) 0x05, (byte) 0x06,
+            (byte) 0x03, (byte) 0x2b, (byte) 0x65, (byte) 0x6e, (byte) 0x04, (byte) 0x22, (byte) 0x04, (byte) 0x20,
+            (byte) 0xa5, (byte) 0x46, (byte) 0xe3, (byte) 0x6b, (byte) 0xf0, (byte) 0x52, (byte) 0x7c, (byte) 0x9d,
+            (byte) 0x3b, (byte) 0x16, (byte) 0x15, (byte) 0x4b, (byte) 0x82, (byte) 0x46, (byte) 0x5e, (byte) 0xdd,
+            (byte) 0x62, (byte) 0x14, (byte) 0x4c, (byte) 0x0a, (byte) 0xc1, (byte) 0xfc, (byte) 0x5a, (byte) 0x18,
+            (byte) 0x50, (byte) 0x6a, (byte) 0x22, (byte) 0x44, (byte) 0xba, (byte) 0x44, (byte) 0x9a, (byte) 0xc4,
+    };
+
+    private static final byte[] X25519_public = new byte[] {
+            (byte) 0x30, (byte) 0x2a, (byte) 0x30, (byte) 0x05, (byte) 0x06, (byte) 0x03, (byte) 0x2b, (byte) 0x65,
+            (byte) 0x6e, (byte) 0x03, (byte) 0x21, (byte) 0x00, (byte) 0xe6, (byte) 0xdb, (byte) 0x68, (byte) 0x67,
+            (byte) 0x58, (byte) 0x30, (byte) 0x30, (byte) 0xdb, (byte) 0x35, (byte) 0x94, (byte) 0xc1, (byte) 0xa4,
+            (byte) 0x24, (byte) 0xb1, (byte) 0x5f, (byte) 0x7c, (byte) 0x72, (byte) 0x66, (byte) 0x24, (byte) 0xec,
+            (byte) 0x26, (byte) 0xb3, (byte) 0x35, (byte) 0x3b, (byte) 0x10, (byte) 0xa9, (byte) 0x03, (byte) 0xa6,
+            (byte) 0xd0, (byte) 0xab, (byte) 0x1c, (byte) 0x4c,
+    };
+
     private static final HashMap<String, KeySpec> keys = new HashMap<String, KeySpec>();
     static {
         keys.put("DH_public", new X509EncodedKeySpec(DH_public));
@@ -199,6 +217,8 @@ public class DefaultKeys {
         keys.put("RSA_private", new PKCS8EncodedKeySpec(RSA_private));
         keys.put("EC_public", new X509EncodedKeySpec(EC_public));
         keys.put("EC_private", new PKCS8EncodedKeySpec(EC_private));
+        keys.put("XDH_public", new X509EncodedKeySpec(X25519_public));
+        keys.put("XDH_private", new PKCS8EncodedKeySpec(X25519_private));
     }
 
     public static PrivateKey getPrivateKey(String algorithmName) throws NoSuchAlgorithmException, InvalidKeySpecException
