@@ -54,7 +54,7 @@ public abstract class OpenSSLBaseDHKeyAgreement<T> extends KeyAgreementSpi {
             throw new IllegalStateException("Not initialized");
         }
         if (!lastPhase) {
-            throw new IllegalStateException("ECDH only has one phase");
+            throw new IllegalStateException("DH only has one phase");
         }
 
         if (key == null) {
@@ -69,7 +69,7 @@ public abstract class OpenSSLBaseDHKeyAgreement<T> extends KeyAgreementSpi {
         int actualResultLength = computeKey(buffer, openSslPublicKey, mPrivateKey);
         byte[] result;
         if (actualResultLength == -1) {
-            throw new RuntimeException("Engine returned " + actualResultLength);
+            throw new RuntimeException("Engine returned -1");
         } else if (actualResultLength == mExpectedResultLength) {
             // The output is as long as expected -- use the whole buffer
             result = buffer;
@@ -137,8 +137,8 @@ public abstract class OpenSSLBaseDHKeyAgreement<T> extends KeyAgreementSpi {
         mPrivateKey = privateKey;
     }
 
-    /** Returns the expecet result length for the given {@code openSslKey}. */
-    protected abstract int getOutputSize(T openSslKey);
+    /** Returns the expected result length for the given {@code key}. */
+    protected abstract int getOutputSize(T key);
 
     @Override
     protected void engineInit(Key key, AlgorithmParameterSpec params,

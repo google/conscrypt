@@ -1,6 +1,5 @@
 package org.conscrypt;
 
-import java.security.InvalidKeyException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;

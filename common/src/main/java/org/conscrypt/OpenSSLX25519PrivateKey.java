@@ -64,7 +64,7 @@ public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {
             throw new IllegalStateException("key is destroyed");
         }
 
-        byte[] encoded = Arrays.copyOf(PKCS8_PREAMBLE, PKCS8_PREAMBLE.length + X25519_KEY_SIZE_BYTES);
+        byte[] encoded = Arrays.copyOf(PKCS8_PREAMBLE, PKCS8_PREAMBLE.length + uCoordinate.length);
         System.arraycopy(uCoordinate, 0, encoded, PKCS8_PREAMBLE.length, uCoordinate.length);
         return encoded;
     }
