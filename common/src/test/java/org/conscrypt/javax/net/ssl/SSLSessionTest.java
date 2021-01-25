@@ -198,14 +198,22 @@ public class SSLSessionTest {
             fail();
         } catch (SSLPeerUnverifiedException expected) {
             // Ignored.
+        } catch (UnsupportedOperationException e) {
+            if (!StandardNames.IS_15_OR_UP) {
+                fail("Should only throw UnsupportedOperationException on OpenJDK 15 or up");
+            }
         }
         assertNotNull(s.client.getPeerCertificates());
-        TestKeyStore.assertChainLength(s.client.getPeerCertificateChain());
+        TestKeyStore.assertChainLength(s.client.getPeerCertificates());
         try {
             assertNull(s.server.getPeerCertificateChain());
             fail();
         } catch (SSLPeerUnverifiedException expected) {
             // Ignored.
+        } catch (UnsupportedOperationException e) {
+            if (!StandardNames.IS_15_OR_UP) {
+                fail("Should only throw UnsupportedOperationException on OpenJDK 15 or up");
+            }
         }
         s.close();
     }
