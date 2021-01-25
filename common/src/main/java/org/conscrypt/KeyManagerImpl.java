@@ -55,6 +55,7 @@ class KeyManagerImpl extends X509ExtendedKeyManager {
     /**
      * Creates Key manager
      */
+    @SuppressWarnings("JdkObsolete")  // KeyStore#aliases is the only way of enumerating all entries
     KeyManagerImpl(KeyStore keyStore, char[] pwd) {
         this.hash = new HashMap<String, PrivateKeyEntry>();
         final Enumeration<String> aliases;
