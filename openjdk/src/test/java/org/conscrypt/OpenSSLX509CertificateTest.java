@@ -47,7 +47,7 @@ public class OpenSSLX509CertificateTest extends TestCase {
             try {
                 Field modifiersField = null;
                 try {
-                    Field.class.getDeclaredField("modifiers");
+                    modifiersField = Field.class.getDeclaredField("modifiers");
                 } catch (NoSuchFieldException e) {
                     try {
                         Method getDeclaredFields0 = Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
