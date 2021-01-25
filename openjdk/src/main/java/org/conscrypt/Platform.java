@@ -194,9 +194,18 @@ final class Platform {
         }
 
         try {
-            Field f_impl = Socket.class.getDeclaredField("impl");
-            f_impl.setAccessible(true);
-            Object socketImpl = f_impl.get(s);
+            Method m_getImpl = Socket.class.getDeclaredMethod("getImpl");
+            m_getImpl.setAccessible(true);
+            Object socketImpl = m_getImpl.invoke(s);
+            try {
+                Class<?> c_delegatingSocketImpl = Class.forName("java.net.DelegatingSocketImpl");
+                if (c_delegatingSocketImpl.isAssignableFrom(socketImpl.getClass())) {
+                    Method m_delegate = c_delegatingSocketImpl.getDeclaredMethod("delegate");
+                    m_delegate.setAccessible(true);
+                    socketImpl = m_delegate.invoke(socketImpl);
+                }
+            } catch (Exception ignored) {
+            }
             Field f_fd = SocketImpl.class.getDeclaredField("fd");
             f_fd.setAccessible(true);
             return (FileDescriptor) f_fd.get(socketImpl);
