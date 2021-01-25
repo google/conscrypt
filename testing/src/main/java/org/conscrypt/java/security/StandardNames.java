@@ -65,7 +65,7 @@ public final class StandardNames {
     public static final String KEY_STORE_ALGORITHM = IS_RI ? "JKS" : "BKS";
 
     public static final boolean IS_15_OR_UP =
-            Integer.parseInt(System.getProperty("java.specification.version")) >= 15;
+            Integer.parseInt(System.getProperty("java.vm.specification.version")) >= 15;
 
     /**
      * RFC 5746's Signaling Cipher Suite Value to indicate a request for secure renegotiation
