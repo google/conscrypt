@@ -64,8 +64,26 @@ public final class StandardNames {
 
     public static final String KEY_STORE_ALGORITHM = IS_RI ? "JKS" : "BKS";
 
-    public static final boolean IS_15_OR_UP =
-            Integer.parseInt(System.getProperty("java.vm.specification.version")) >= 15;
+    public static final boolean IS_15_OR_UP = majorVersionFromJavaSpecificationVersion() >= 15;
+
+    private static int majorVersionFromJavaSpecificationVersion() {
+        return majorVersion(System.getProperty("java.specification.version", "1.6"));
+    }
+
+    private static int majorVersion(final String javaSpecVersion) {
+        final String[] components = javaSpecVersion.split("\\.", -1);
+        final int[] version = new int[components.length];
+        for (int i = 0; i < components.length; i++) {
+            version[i] = Integer.parseInt(components[i]);
+        }
+
+        if (version[0] == 1) {
+            assert version[1] >= 6;
+            return version[1];
+        } else {
+            return version[0];
+        }
+    }
 
     /**
      * RFC 5746's Signaling Cipher Suite Value to indicate a request for secure renegotiation
