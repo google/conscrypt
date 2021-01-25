@@ -230,6 +230,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         this.ctPolicy = ctPolicy;
     }
 
+    @SuppressWarnings("JdkObsolete")  // KeyStore#aliases is the only API available
     private static X509Certificate[] acceptedIssuers(KeyStore ks) {
         try {
             // Note that unlike the PKIXParameters code to create a Set of
