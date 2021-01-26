@@ -807,4 +807,8 @@ final class Platform {
     @SuppressWarnings("unused")
     static void countTlsHandshake(
             boolean success, String protocol, String cipherSuite, long duration) {}
+
+    public static boolean isJavaxCertificateSupported() {
+        return JAVA_VERSION < 15;
+    }
 }
