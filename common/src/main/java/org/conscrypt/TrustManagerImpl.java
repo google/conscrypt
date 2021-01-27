@@ -146,8 +146,6 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
     /**
      * Creates X509TrustManager based on a keystore
-     *
-     * @param keyStore
      */
     public TrustManagerImpl(KeyStore keyStore) {
         this(keyStore, null);

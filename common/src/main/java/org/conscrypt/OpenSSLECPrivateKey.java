@@ -41,9 +41,9 @@ final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder {
 
     private static final String ALGORITHM = "EC";
 
-    protected transient OpenSSLKey key;
+    private transient OpenSSLKey key;
 
-    protected transient OpenSSLECGroupContext group;
+    private transient OpenSSLECGroupContext group;
 
     OpenSSLECPrivateKey(OpenSSLECGroupContext group, OpenSSLKey key) {
         this.group = group;

@@ -49,7 +49,9 @@ final class OptionalMethod {
         try {
             return cachedMethod.invoke(target, args);
         } catch (IllegalAccessException ignored) {
+            // Ignored
         } catch (InvocationTargetException ignored) {
+            // Ignored
         }
         return null;
     }

@@ -157,6 +157,7 @@ public class NativeCryptoTest {
     /**
      * Lazily create shared test certificates.
      */
+    @SuppressWarnings("JdkObsolete") // Public API KeyStore.aliases() uses Enumeration
     private static synchronized void initCerts() {
         if (SERVER_PRIVATE_KEY != null) {
             return;
