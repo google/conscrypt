@@ -207,6 +207,10 @@ final class ActiveSession implements ConscryptSession {
     @Override
     public javax.security.cert.X509Certificate[] getPeerCertificateChain()
             throws SSLPeerUnverifiedException {
+        if (!Platform.isJavaxCertificateSupported()) {
+            throw new UnsupportedOperationException("Use getPeerCertificates() instead");
+        }
+
         checkPeerCertificatesPresent();
         // TODO(nathanmittler): Should we clone?
         javax.security.cert.X509Certificate[] result = peerCertificateChain;
