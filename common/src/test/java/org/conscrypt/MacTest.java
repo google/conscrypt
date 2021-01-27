@@ -21,20 +21,38 @@ import static org.conscrypt.TestUtils.encodeHex;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.fail;
 
 import javax.crypto.Mac;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.Provider;
+import java.security.spec.AlgorithmParameterSpec;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.util.ServiceTester;
+
 
 @RunWith(JUnit4.class)
 public class MacTest {
+    private final List<String[]> testVectors = readTestVectors();
+
     // Column indices in test vector CSV file
     private static final int ALGORITHM_INDEX = 0;
     private static final int KEY_INDEX = 1;
@@ -46,6 +64,8 @@ public class MacTest {
 
     private final Random random = new Random(System.currentTimeMillis());
 
+    private final Provider conscryptProvider = TestUtils.getConscryptProvider();
+
     @BeforeClass
     public static void setUp() {
         TestUtils.assumeAllowsUnsignedCrypto();
@@ -53,9 +73,7 @@ public class MacTest {
 
     @Test
     public void knownAnswerTest() throws Exception {
-        List<String[]> data = TestUtils.readCsvResource("crypto/macs.csv");
-
-        for (String[] entry : data) {
+        for (String[] entry : testVectors) {
             String algorithm = entry[ALGORITHM_INDEX];
             String key = entry[KEY_INDEX];
             String msg = entry[MESSAGE_INDEX];
@@ -112,6 +130,170 @@ public class MacTest {
         }
     }
 
+    @Test
+    public void invalidKeyThrows() {
+        ServiceTester.test("Mac")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(final Provider provider, final String algorithm) throws Exception {
+                    for (MacSupplier supplier : getMacSuppliers(provider, algorithm)) {
+                        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+                        generator.initialize(2048);
+                        KeyPair keyPair = generator.generateKeyPair();
+
+                        try {
+                            Mac mac = supplier.get();
+                            mac.init(keyPair.getPublic(), null);
+                            fail();
+                        } catch (InvalidKeyException e) {
+                            // Expected
+                        }
+                    }
+                }
+            });
+
+    }
+
+    @Test
+    public void uninitializedMacThrows() {
+        ServiceTester.test("Mac")
+                .run(new ServiceTester.Test() {
+                    @Override
+                    public void test(final Provider provider, final String algorithm) throws Exception {
+                        for (MacSupplier supplier : getMacSuppliers(provider, algorithm)) {
+                            byte[] message = "Message".getBytes(StandardCharsets.UTF_8);
+
+                            try {
+                                Mac mac = supplier.get();
+                                mac.update(message);
+                                fail();
+                            } catch (IllegalStateException e) {
+                                // Expected
+                            }
+                            try {
+                                Mac mac = supplier.get();
+                                mac.doFinal(message);
+                                fail();
+                            } catch (IllegalStateException e) {
+                                // Expected
+                            }
+                            try {
+                                Mac mac = supplier.get();
+                                mac.doFinal();
+                                fail();
+                            } catch (IllegalStateException e) {
+                                // Expected
+                            }
+                        }
+                    }
+                });
+
+    }
+
+    @Test
+    public void algorithmParameters() {
+        ServiceTester.test("Mac")
+                .run(new ServiceTester.Test() {
+                    @Override
+                    public void test(final Provider provider, final String algorithm) throws Exception {
+
+                        for (MacSupplier supplier : getMacSuppliers(provider, algorithm)) {
+                            Mac mac = supplier.get();
+                            SecretKeySpec key = findAnyKey(mac.getAlgorithm());
+                            if (key == null) {
+                                // TODO(prb) We should have at least one test vector for every
+                                // MAC in Conscrypt
+                                continue;
+                            }
+
+                            // Equivalent to mac.init(key) - allowed
+                            mac.init(key, null);
+
+                            try {
+                                mac = supplier.get();
+                                mac.init(key, new DummyParameterSpec());
+                                fail();
+                            } catch (InvalidAlgorithmParameterException exception) {
+                                // Expected
+                            }
+                        }
+                    }
+                });
+
+    }
+
+    // Uses of ServiceTester above need to get multiple instances of each Mac to test
+    // failure cases.  This method converts the provided args into a list of suppliers.
+    private List<MacSupplier> getMacSuppliers(final Provider provider, final String algorithm) {
+        List<MacSupplier> suppliers = new ArrayList<>();
+
+        suppliers.add(new MacSupplier() {
+            @Override
+            public Mac get() throws Exception{
+                Mac mac = Mac.getInstance(algorithm);
+                assertEquals(algorithm, mac.getAlgorithm());
+                return mac;
+            }
+        });
+        suppliers.add(new MacSupplier() {
+            @Override
+            public Mac get() throws Exception{
+                Mac mac = Mac.getInstance(algorithm, provider);
+                assertEquals(algorithm, mac.getAlgorithm());
+                assertEquals(provider, mac.getProvider());
+                return mac;
+            }
+        });
+        suppliers.add(new MacSupplier() {
+            @Override
+            public Mac get() throws Exception{
+                Mac mac = Mac.getInstance(algorithm, provider);
+                assertEquals(algorithm, mac.getAlgorithm());
+                assertEquals(provider, mac.getProvider());
+                return mac;
+            }
+        });
+        return suppliers;
+    }
+
+    private interface MacSupplier {
+        Mac get() throws Exception;
+    }
+
+    private static class DummyParameterSpec implements AlgorithmParameterSpec {
+
+    }
+
+    private SecretKeySpec findAnyKey(String algorithm) {
+        for (String[] entry : testVectors) {
+            if (entry[ALGORITHM_INDEX].equals(algorithm)) {
+                return new SecretKeySpec(decodeHex(entry[KEY_INDEX]), "RawBytes");
+            }
+        }
+        return null;
+    }
+
+    @Test
+    public void anyAlgorithmParametersThrows() throws Exception {
+        Set<String> seen = new HashSet<>();
+        for (String[] entry : testVectors) {
+            String algorithm = entry[ALGORITHM_INDEX];
+            if (!seen.contains(algorithm)) {
+                seen.add(algorithm);
+                byte[] keyBytes = decodeHex(entry[KEY_INDEX]);
+                SecretKeySpec key = new SecretKeySpec(keyBytes, "RawBytes");
+                Mac mac = Mac.getInstance(algorithm);
+                try {
+                    mac.init(key, new IvParameterSpec(keyBytes));
+                    //mac.init(key, null);
+                    fail(algorithm);
+                } catch (InvalidAlgorithmParameterException exception) {
+                    // Expected
+                }
+            }
+        }
+    }
+
     private String failMessage(String test, String base, byte[] mac) {
         return String.format("Test %s\n%s\nActual=  %s", test, base, encodeHex(mac));
     }
@@ -139,18 +321,14 @@ public class MacTest {
 
     private byte[] generateMacUsingUpdate(String algorithm, SecretKeySpec key, byte[] message)
             throws Exception {
-        Mac mac = Mac.getInstance(algorithm);
-        assertNotNull(mac);
-        mac.init(key);
+        Mac mac = getConscryptMac(algorithm, key);
         mac.update(message);
         return mac.doFinal();
     }
 
     private byte[] generateMacUsingFinal(String algorithm, SecretKeySpec key, byte[] message)
             throws Exception {
-        Mac mac = Mac.getInstance(algorithm);
-        assertNotNull(mac);
-        mac.init(key);
+        Mac mac = getConscryptMac(algorithm, key);
         return mac.doFinal(message);
     }
 
@@ -161,9 +339,7 @@ public class MacTest {
 
     private byte[] generateMac(String algorithm, SecretKeySpec key, ByteBuffer[] buffers)
             throws Exception {
-        Mac mac = Mac.getInstance(algorithm);
-        assertNotNull(mac);
-        mac.init(key);
+        Mac mac = getConscryptMac(algorithm, key);
         for (ByteBuffer buffer : buffers) {
             mac.update(buffer);
         }
@@ -172,8 +348,7 @@ public class MacTest {
 
     private byte[] generateReusingMac(String algorithm, byte[] keyBytes, byte[] message)
             throws Exception {
-        Mac mac = Mac.getInstance(algorithm);
-        assertNotNull(mac);
+        Mac mac = getConscryptMac(algorithm);
 
         // Mutate the original message and key and calculate a MAC from them
         byte[] otherKeyBytes = new byte[keyBytes.length];
@@ -191,4 +366,29 @@ public class MacTest {
         mac.update(message);
         return mac.doFinal();
     }
+
+    private Mac getConscryptMac(String algorithm) throws Exception {
+        return getConscryptMac(algorithm, null);
+    }
+
+    private Mac getConscryptMac(String algorithm, SecretKeySpec key) throws Exception {
+        Mac mac = Mac.getInstance(algorithm, conscryptProvider);
+        assertNotNull(mac);
+        if (key != null) {
+            // Provider is not actually chosen until init
+            mac.init(key);
+            assertSame(conscryptProvider, mac.getProvider());
+        }
+        return mac;
+    }
+
+    private List<String[]> readTestVectors() {
+        try {
+            return TestUtils.readCsvResource("crypto/macs.csv");
+
+        } catch (IOException e) {
+            throw new AssertionError("Unable to load MAC test vectors");
+        }
+    }
+
 }

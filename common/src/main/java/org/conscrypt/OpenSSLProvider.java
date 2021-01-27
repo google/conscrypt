@@ -459,7 +459,7 @@ public final class OpenSSLProvider extends Provider {
 
         /* === Mac === */
 
-        putMacImplClass("HmacMD5", "OpenSSLMac$Hmac$HmacMD5");
+        putMacImplClass("HmacMD5", "OpenSSLMac$HmacMD5");
         put("Alg.Alias.Mac.1.3.6.1.5.5.8.1.1", "HmacMD5");
         put("Alg.Alias.Mac.HMAC-MD5", "HmacMD5");
         put("Alg.Alias.Mac.HMAC/MD5", "HmacMD5");
@@ -468,21 +468,21 @@ public final class OpenSSLProvider extends Provider {
         // http://www.oid-info.com/get/1.2.840.113549.2
 
         // HMAC-SHA-1 PRF (7)
-        putMacImplClass("HmacSHA1", "OpenSSLMac$Hmac$HmacSHA1");
+        putMacImplClass("HmacSHA1", "OpenSSLMac$HmacSHA1");
         put("Alg.Alias.Mac.1.2.840.113549.2.7", "HmacSHA1");
         put("Alg.Alias.Mac.1.3.6.1.5.5.8.1.2", "HmacSHA1");
         put("Alg.Alias.Mac.HMAC-SHA1", "HmacSHA1");
         put("Alg.Alias.Mac.HMAC/SHA1", "HmacSHA1");
 
         // id-hmacWithSHA224 (8)
-        putMacImplClass("HmacSHA224", "OpenSSLMac$Hmac$HmacSHA224");
+        putMacImplClass("HmacSHA224", "OpenSSLMac$HmacSHA224");
         put("Alg.Alias.Mac.1.2.840.113549.2.8", "HmacSHA224");
         put("Alg.Alias.Mac.HMAC-SHA224", "HmacSHA224");
         put("Alg.Alias.Mac.HMAC/SHA224", "HmacSHA224");
         put("Alg.Alias.Mac.PBEWITHHMACSHA224", "HmacSHA224");
 
         // id-hmacWithSHA256 (9)
-        putMacImplClass("HmacSHA256", "OpenSSLMac$Hmac$HmacSHA256");
+        putMacImplClass("HmacSHA256", "OpenSSLMac$HmacSHA256");
         put("Alg.Alias.Mac.1.2.840.113549.2.9", "HmacSHA256");
         put("Alg.Alias.Mac.2.16.840.1.101.3.4.2.1", "HmacSHA256");
         put("Alg.Alias.Mac.HMAC-SHA256", "HmacSHA256");
@@ -490,14 +490,14 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Mac.PBEWITHHMACSHA256", "HmacSHA256");
 
         // id-hmacWithSHA384 (10)
-        putMacImplClass("HmacSHA384", "OpenSSLMac$Hmac$HmacSHA384");
+        putMacImplClass("HmacSHA384", "OpenSSLMac$HmacSHA384");
         put("Alg.Alias.Mac.1.2.840.113549.2.10", "HmacSHA384");
         put("Alg.Alias.Mac.HMAC-SHA384", "HmacSHA384");
         put("Alg.Alias.Mac.HMAC/SHA384", "HmacSHA384");
         put("Alg.Alias.Mac.PBEWITHHMACSHA384", "HmacSHA384");
 
         // id-hmacWithSHA384 (11)
-        putMacImplClass("HmacSHA512", "OpenSSLMac$Hmac$HmacSHA512");
+        putMacImplClass("HmacSHA512", "OpenSSLMac$HmacSHA512");
         put("Alg.Alias.Mac.1.2.840.113549.2.11", "HmacSHA512");
         put("Alg.Alias.Mac.HMAC-SHA512", "HmacSHA512");
         put("Alg.Alias.Mac.HMAC/SHA512", "HmacSHA512");
