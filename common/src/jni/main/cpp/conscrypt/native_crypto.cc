@@ -3793,6 +3793,7 @@ static void NativeCrypto_CMAC_CTX_free(JNIEnv* env, jclass, jlong cmacCtxRef) {
     CMAC_CTX* cmacCtx = reinterpret_cast<CMAC_CTX*>(cmacCtxRef);
     JNI_TRACE("CMAC_CTX_free(%p)", cmacCtx);
     if (cmacCtx == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "cmacCtx == null");
         return;
     }
     CMAC_CTX_free(cmacCtx);
@@ -3827,7 +3828,7 @@ static void NativeCrypto_CMAC_Init(JNIEnv* env, jclass, jobject cmacCtxRef, jbyt
           conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
                                            "CMAC_Init: Unsupported key length");
           return;
-     }
+    }
 
     if (!CMAC_Init(cmacCtx, keyPtr, keyBytes.size(), cipher, nullptr)) {
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CMAC_Init");
@@ -3860,7 +3861,7 @@ static void NativeCrypto_CMAC_UpdateDirect(JNIEnv* env, jclass, jobject cmacCtxR
 }
 
 static void NativeCrypto_CMAC_Update(JNIEnv* env, jclass, jobject cmacCtxRef, jbyteArray inArray,
-                                     jint inOffset, int inLength) {
+                                     jint inOffset, jint inLength) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     CMAC_CTX* cmacCtx = fromContextObject<CMAC_CTX>(env, cmacCtxRef);
     JNI_TRACE("CMAC_Update(%p, %p, %d, %d)", cmacCtx, inArray, inOffset, inLength);
@@ -3937,6 +3938,7 @@ static void NativeCrypto_HMAC_CTX_free(JNIEnv* env, jclass, jlong hmacCtxRef) {
     HMAC_CTX* hmacCtx = reinterpret_cast<HMAC_CTX*>(hmacCtxRef);
     JNI_TRACE("HMAC_CTX_free(%p)", hmacCtx);
     if (hmacCtx == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "hmacCtx == null");
         return;
     }
     HMAC_CTX_cleanup(hmacCtx);
@@ -3989,7 +3991,7 @@ static void NativeCrypto_HMAC_UpdateDirect(JNIEnv* env, jclass, jobject hmacCtxR
 }
 
 static void NativeCrypto_HMAC_Update(JNIEnv* env, jclass, jobject hmacCtxRef, jbyteArray inArray,
-                                     jint inOffset, int inLength) {
+                                     jint inOffset, jint inLength) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     HMAC_CTX* hmacCtx = fromContextObject<HMAC_CTX>(env, hmacCtxRef);
     JNI_TRACE("HMAC_Update(%p, %p, %d, %d)", hmacCtx, inArray, inOffset, inLength);
