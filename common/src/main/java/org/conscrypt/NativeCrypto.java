@@ -352,6 +352,20 @@ public final class NativeCrypto {
                                             byte[] nonce, ByteBuffer input, byte[] ad)
             throws ShortBufferException, BadPaddingException;
 
+    // --- CMAC functions ------------------------------------------------------
+
+    static native long CMAC_CTX_new();
+
+    static native void CMAC_CTX_free(long ctx);
+
+    static native void CMAC_Init(NativeRef.CMAC_CTX ctx, byte[] key);
+
+    static native void CMAC_Update(NativeRef.CMAC_CTX ctx, byte[] in, int inOffset, int inLength);
+
+    static native void CMAC_UpdateDirect(NativeRef.CMAC_CTX ctx, long inPtr, int inLength);
+
+    static native byte[] CMAC_Final(NativeRef.CMAC_CTX ctx);
+
     // --- HMAC functions ------------------------------------------------------
 
     static native long HMAC_CTX_new();

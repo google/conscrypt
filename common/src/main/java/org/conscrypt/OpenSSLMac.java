@@ -30,18 +30,10 @@ import javax.crypto.SecretKey;
  */
 @Internal
 public abstract class OpenSSLMac extends MacSpi {
-    private NativeRef.HMAC_CTX ctx;
-
-    /**
-     * Holds the EVP_MD for the hashing algorithm, e.g.
-     * EVP_get_digestbyname("sha1");
-     */
-    private final long evp_md;
-
     /**
      * The secret key used in this keyed MAC.
      */
-    private byte[] keyBytes;
+    protected byte[] keyBytes;
 
     /**
      * Holds the output size of the message digest.
@@ -53,10 +45,19 @@ public abstract class OpenSSLMac extends MacSpi {
      */
     private final byte[] singleByte = new byte[1];
 
-    private OpenSSLMac(long evp_md, int size) {
-        this.evp_md = evp_md;
+    private OpenSSLMac(int size) {
         this.size = size;
     }
+
+    /**
+     * Creates and initializes the relevant BoringSSL *MAC context.
+     */
+    protected abstract void resetContext();
+
+    /**
+     * Passes the contents of a direct ByteBuffer to the relevant BoringSSL *MAC function.
+     */
+    protected abstract void updateDirect(long ptr, int len);
 
     @Override
     protected int engineGetMacLength() {
@@ -82,15 +83,6 @@ public abstract class OpenSSLMac extends MacSpi {
         resetContext();
     }
 
-    private final void resetContext() {
-        NativeRef.HMAC_CTX ctxLocal = new NativeRef.HMAC_CTX(NativeCrypto.HMAC_CTX_new());
-        if (keyBytes != null) {
-            NativeCrypto.HMAC_Init_ex(ctxLocal, keyBytes, evp_md);
-        }
-
-        this.ctx = ctxLocal;
-    }
-
     @Override
     protected void engineUpdate(byte input) {
         singleByte[0] = input;
@@ -98,17 +90,10 @@ public abstract class OpenSSLMac extends MacSpi {
     }
 
     @Override
-    protected void engineUpdate(byte[] input, int offset, int len) {
-        final NativeRef.HMAC_CTX ctxLocal = ctx;
-        NativeCrypto.HMAC_Update(ctxLocal, input, offset, len);
-    }
-
-    @Override
     protected void engineUpdate(ByteBuffer input) {
         // Optimization: Avoid copying/allocation for direct buffers because their contents are
         // stored as a contiguous region in memory and thus can be efficiently accessed from native
         // code.
-
         if (!input.hasRemaining()) {
             return;
         }
@@ -120,7 +105,7 @@ public abstract class OpenSSLMac extends MacSpi {
 
         long baseAddress = NativeCrypto.getDirectBufferAddress(input);
         if (baseAddress == 0) {
-            // Direct buffer's contents can't be accessed from JNI  -- superclass's implementation
+            // Direct buffers' contents can't be accessed from JNI  -- superclass's implementation
             // is good enough to handle this.
             super.engineUpdate(input);
             return;
@@ -137,57 +122,135 @@ public abstract class OpenSSLMac extends MacSpi {
             throw new RuntimeException("Negative remaining amount");
         }
 
-        final NativeRef.HMAC_CTX ctxLocal = ctx;
-        NativeCrypto.HMAC_UpdateDirect(ctxLocal, ptr, len);
+        updateDirect(ptr, len);
         input.position(position + len);
     }
 
     @Override
     protected byte[] engineDoFinal() {
-        final NativeRef.HMAC_CTX ctxLocal = ctx;
-        final byte[] output = NativeCrypto.HMAC_Final(ctxLocal);
+        final byte[] output = doFinal();
         resetContext();
         return output;
     }
+
+    protected abstract byte[] doFinal();
 
     @Override
     protected void engineReset() {
         resetContext();
     }
 
-    public static final class HmacMD5 extends OpenSSLMac {
+    public static class Hmac extends OpenSSLMac {
+        private NativeRef.HMAC_CTX ctx;
+
+        /**
+         * Holds the EVP_MD for the hashing algorithm, e.g.
+         * EVP_get_digestbyname("sha1");
+         */
+        private final long evp_md;
+
+        public Hmac(long evp_md, int size) {
+            super(size);
+            this.evp_md = evp_md;
+        }
+
+        @Override
+        protected void resetContext() {
+            NativeRef.HMAC_CTX ctxLocal = new NativeRef.HMAC_CTX(NativeCrypto.HMAC_CTX_new());
+            if (keyBytes != null) {
+                NativeCrypto.HMAC_Init_ex(ctxLocal, keyBytes, evp_md);
+            }
+            this.ctx = ctxLocal;
+        }
+
+        @Override
+        protected void engineUpdate(byte[] input, int offset, int len) {
+            final NativeRef.HMAC_CTX ctxLocal = ctx;
+            NativeCrypto.HMAC_Update(ctxLocal, input, offset, len);
+        }
+
+        @Override
+        protected void updateDirect(long ptr, int len) {
+            final NativeRef.HMAC_CTX ctxLocal = ctx;
+            NativeCrypto.HMAC_UpdateDirect(ctxLocal, ptr, len);
+        }
+
+        @Override
+        protected byte[] doFinal() {
+            final NativeRef.HMAC_CTX ctxLocal = ctx;
+            return NativeCrypto.HMAC_Final(ctxLocal);
+        }
+
+    }
+
+    public static final class HmacMD5 extends Hmac {
         public HmacMD5() {
             super(EvpMdRef.MD5.EVP_MD, EvpMdRef.MD5.SIZE_BYTES);
         }
     }
 
-    public static final class HmacSHA1 extends OpenSSLMac {
+    public static final class HmacSHA1 extends Hmac {
         public HmacSHA1() {
             super(EvpMdRef.SHA1.EVP_MD, EvpMdRef.SHA1.SIZE_BYTES);
         }
     }
 
-    public static final class HmacSHA224 extends OpenSSLMac {
+    public static final class HmacSHA224 extends Hmac {
         public HmacSHA224() throws NoSuchAlgorithmException {
             super(EvpMdRef.SHA224.EVP_MD, EvpMdRef.SHA224.SIZE_BYTES);
         }
     }
 
-    public static final class HmacSHA256 extends OpenSSLMac {
+    public static final class HmacSHA256 extends Hmac {
         public HmacSHA256() throws NoSuchAlgorithmException {
             super(EvpMdRef.SHA256.EVP_MD, EvpMdRef.SHA256.SIZE_BYTES);
         }
     }
 
-    public static final class HmacSHA384 extends OpenSSLMac {
+    public static final class HmacSHA384 extends Hmac {
         public HmacSHA384() throws NoSuchAlgorithmException {
             super(EvpMdRef.SHA384.EVP_MD, EvpMdRef.SHA384.SIZE_BYTES);
         }
     }
 
-    public static final class HmacSHA512 extends OpenSSLMac {
+    public static final class HmacSHA512 extends Hmac {
         public HmacSHA512() {
             super(EvpMdRef.SHA512.EVP_MD, EvpMdRef.SHA512.SIZE_BYTES);
+        }
+    }
+
+    public static final class AesCmac extends OpenSSLMac {
+        private NativeRef.CMAC_CTX ctx;
+
+        public AesCmac() {
+            super(16);
+        }
+
+        @Override
+        protected void resetContext() {
+            NativeRef.CMAC_CTX ctxLocal = new NativeRef.CMAC_CTX(NativeCrypto.CMAC_CTX_new());
+            if (keyBytes != null) {
+                NativeCrypto.CMAC_Init(ctxLocal, keyBytes);
+            }
+            this.ctx = ctxLocal;
+        }
+
+        @Override
+        protected void updateDirect(long ptr, int len) {
+            final NativeRef.CMAC_CTX ctxLocal = ctx;
+            NativeCrypto.CMAC_UpdateDirect(ctxLocal, ptr, len);
+        }
+
+        @Override
+        protected byte[] doFinal() {
+            final NativeRef.CMAC_CTX ctxLocal = ctx;
+            return NativeCrypto.CMAC_Final(ctxLocal);
+        }
+
+        @Override
+        protected void engineUpdate(byte[] input, int offset, int len) {
+            final NativeRef.CMAC_CTX ctxLocal = ctx;
+            NativeCrypto.CMAC_Update(ctxLocal, input, offset, len);
         }
     }
 }
