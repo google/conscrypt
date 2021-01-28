@@ -157,6 +157,7 @@ final class OpenSSLX509CertPath extends CertPath {
                 try {
                     inStream.reset();
                 } catch (IOException ignored) {
+                    // Ignored
                 }
             }
             throw new CertificateException(e);
@@ -220,6 +221,7 @@ final class OpenSSLX509CertPath extends CertPath {
                 try {
                     inStream.reset();
                 } catch (IOException ignored) {
+                    // Ignored
                 }
             }
             throw new CertificateException(e);

@@ -375,7 +375,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
     }
 
     public abstract static class DirectRSA extends OpenSSLCipherRSA {
-        public DirectRSA(int padding) {
+        protected DirectRSA(int padding) {
             super(padding);
         }
 

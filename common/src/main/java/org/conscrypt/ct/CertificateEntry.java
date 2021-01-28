@@ -72,6 +72,8 @@ public class CertificateEntry {
     }
 
     /**
+     * Creates a CertificateEntry with type PRECERT_ENTRY
+     *
      * @throws IllegalArgumentException if issuerKeyHash isn't 32 bytes
      */
     public static CertificateEntry createForPrecertificate(byte[] tbsCertificate, byte[] issuerKeyHash) {

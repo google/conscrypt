@@ -205,6 +205,7 @@ final class Platform {
                     socketImpl = m_delegate.invoke(socketImpl);
                 }
             } catch (Exception ignored) {
+                // Ignored
             }
             Field f_fd = SocketImpl.class.getDeclaredField("fd");
             f_fd.setAccessible(true);

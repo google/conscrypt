@@ -46,7 +46,7 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
      */
     private int modeBlockSize;
 
-    public OpenSSLEvpCipher(Mode mode, Padding padding) {
+    protected OpenSSLEvpCipher(Mode mode, Padding padding) {
         super(mode, padding);
     }
 
