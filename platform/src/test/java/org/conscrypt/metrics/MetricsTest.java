@@ -19,17 +19,21 @@ package org.conscrypt.metrics;
 import static org.junit.Assert.assertEquals;
 
 import android.util.StatsEvent;
-import java.lang.reflect.Method;
-import junit.framework.TestCase;
-import org.conscrypt.InternalUtil;
-import org.conscrypt.metrics.ReflexiveStatsEvent;
-import org.conscrypt.metrics.ReflexiveStatsLog;
+import org.conscrypt.TestUtils;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-public class MetricsTest extends TestCase {
+
+@RunWith(JUnit4.class)
+public class MetricsTest {
     public static final int TLS_HANDSHAKE_REPORTED = 317;
 
     // Tests that ReflexiveEvent produces the same event as framework's.
+    @Test
     public void test_reflexiveEvent() throws Exception {
+        TestUtils.assumeStatsLogAvailable();
+
         StatsEvent frameworkStatsEvent = StatsEvent.newBuilder()
                                                  .setAtomId(TLS_HANDSHAKE_REPORTED)
                                                  .writeBoolean(false)
