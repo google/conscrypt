@@ -126,6 +126,10 @@ public final class TestUtils {
         assumeClassAvailable("javax.net.ssl.X509ExtendedTrustManager");
     }
 
+    public static void assumeStatsLogAvailable() {
+        assumeClassAvailable("android.util.StatsEvent");
+    }
+
     public static void assumeSetEndpointIdentificationAlgorithmAvailable() {
         boolean supported = false;
         try {
