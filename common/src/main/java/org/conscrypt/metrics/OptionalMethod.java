@@ -17,17 +17,28 @@ package org.conscrypt.metrics;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Objects;
+
 import org.conscrypt.Internal;
 
 /**
- * Helper class to handle reflection methods loading and invoking.
- * Does not throw any exceptions and instead behaves as a no-op
- * in case method (or class) couldn't be loaded.
+ * Helper class to handle reflexive loading and invocation of methods which may be absent.
  */
 @Internal
 final class OptionalMethod {
     private final Method cachedMethod;
 
+    /**
+     * Instantiates a new OptionalMethod
+     * Does not throw any exceptions if the class or method can't be loaded and instead
+     * behaves as a no-op.
+     *
+     * @param clazz the Class to search for methods on
+     * @param methodName the name of the {@code Method} on {@code clazz}
+     * @param methodParams list of {@code Classes} of the {@code Method's} parameters
+     *
+     * @throws NullPointerException if the method name or any paramater class is null
+     */
     public OptionalMethod(Class<?> clazz, String methodName, Class<?>... methodParams) {
         this.cachedMethod = initializeMethod(clazz, methodName, methodParams);
     }
@@ -35,6 +46,10 @@ final class OptionalMethod {
     private static Method initializeMethod(
             Class<?> clazz, String methodName, Class<?>... methodParams) {
         try {
+            Objects.requireNonNull(methodName);
+            for (Class<?> paramClass : methodParams) {
+                Objects.requireNonNull(paramClass);
+            }
             if (clazz != null) {
                 return clazz.getMethod(methodName, methodParams);
             }
