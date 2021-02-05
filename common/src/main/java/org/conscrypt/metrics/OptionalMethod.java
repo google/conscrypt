@@ -17,7 +17,6 @@ package org.conscrypt.metrics;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Objects;
 
 import org.conscrypt.Internal;
 
@@ -46,12 +45,11 @@ final class OptionalMethod {
     private static Method initializeMethod(
             Class<?> clazz, String methodName, Class<?>... methodParams) {
         try {
-            Objects.requireNonNull(methodName);
             for (Class<?> paramClass : methodParams) {
-                Objects.requireNonNull(paramClass);
+                checkNotNull(paramClass);
             }
             if (clazz != null) {
-                return clazz.getMethod(methodName, methodParams);
+                return clazz.getMethod(checkNotNull(methodName), methodParams);
             }
         } catch (NoSuchMethodException ignored) {
             // Ignored
@@ -72,5 +70,12 @@ final class OptionalMethod {
             // Ignored
         }
         return null;
+    }
+
+    private static <T> T checkNotNull(T reference) {
+        if (reference == null) {
+            throw new NullPointerException();
+        }
+        return reference;
     }
 }
