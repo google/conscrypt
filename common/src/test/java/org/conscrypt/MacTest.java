@@ -24,9 +24,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -41,7 +38,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-
+import javax.crypto.Mac;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -131,137 +130,116 @@ public class MacTest {
     }
 
     @Test
+    public void serviceCreation() {
+        ServiceTester.test("Mac")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(final Provider provider, final String algorithm) throws Exception {
+                    SecretKeySpec key = findAnyKey(algorithm);
+
+                    Mac mac = Mac.getInstance(algorithm);
+                    assertEquals(algorithm, mac.getAlgorithm());
+
+                    mac = Mac.getInstance(algorithm, provider);
+                    assertEquals(algorithm, mac.getAlgorithm());
+                    assertEquals(provider, mac.getProvider());
+                    if (key != null) {
+                        // TODO(prb) Ensure we have at least one test vector for every
+                        // MAC in Conscrypt and Android.
+                        mac.init(key);
+                        assertEquals(provider, mac.getProvider());
+                    }
+
+                    mac = Mac.getInstance(algorithm, provider);
+                    assertEquals(algorithm, mac.getAlgorithm());
+                    assertEquals(provider, mac.getProvider());
+                    if (key != null) {
+                        mac.init(key);
+                        assertEquals(provider, mac.getProvider());
+                    }
+                }
+            });
+    }
+
+    @Test
     public void invalidKeyThrows() {
         ServiceTester.test("Mac")
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(final Provider provider, final String algorithm) throws Exception {
-                    for (MacSupplier supplier : getMacSuppliers(provider, algorithm)) {
-                        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-                        generator.initialize(2048);
-                        KeyPair keyPair = generator.generateKeyPair();
+                    KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+                    generator.initialize(2048);
+                    KeyPair keyPair = generator.generateKeyPair();
 
-                        try {
-                            Mac mac = supplier.get();
-                            mac.init(keyPair.getPublic(), null);
-                            fail();
-                        } catch (InvalidKeyException e) {
-                            // Expected
-                        }
+                    try {
+                        Mac mac = Mac.getInstance(algorithm, provider);
+                        mac.init(keyPair.getPublic(), null);
+                        fail();
+                    } catch (InvalidKeyException e) {
+                        // Expected
+                    }
+                }
+            });
+    }
+
+    @Test
+    public void uninitializedMacThrows() {
+        ServiceTester.test("Mac")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(final Provider provider, final String algorithm) throws Exception {
+                    byte[] message = "Message".getBytes(StandardCharsets.UTF_8);
+
+                    try {
+                        Mac mac = Mac.getInstance(algorithm, provider);
+                        mac.update(message);
+                        fail();
+                    } catch (IllegalStateException e) {
+                        // Expected
+                    }
+                    try {
+                        Mac mac = Mac.getInstance(algorithm, provider);
+                        mac.doFinal(message);
+                        fail();
+                    } catch (IllegalStateException e) {
+                        // Expected
+                    }
+                    try {
+                        Mac mac = Mac.getInstance(algorithm, provider);
+                        mac.doFinal();
+                        fail();
+                    } catch (IllegalStateException e) {
+                        // Expected
                     }
                 }
             });
 
     }
 
-    @Test
-    public void uninitializedMacThrows() {
-        ServiceTester.test("Mac")
-                .run(new ServiceTester.Test() {
-                    @Override
-                    public void test(final Provider provider, final String algorithm) throws Exception {
-                        for (MacSupplier supplier : getMacSuppliers(provider, algorithm)) {
-                            byte[] message = "Message".getBytes(StandardCharsets.UTF_8);
-
-                            try {
-                                Mac mac = supplier.get();
-                                mac.update(message);
-                                fail();
-                            } catch (IllegalStateException e) {
-                                // Expected
-                            }
-                            try {
-                                Mac mac = supplier.get();
-                                mac.doFinal(message);
-                                fail();
-                            } catch (IllegalStateException e) {
-                                // Expected
-                            }
-                            try {
-                                Mac mac = supplier.get();
-                                mac.doFinal();
-                                fail();
-                            } catch (IllegalStateException e) {
-                                // Expected
-                            }
-                        }
-                    }
-                });
-
-    }
+    private static class DummyParameterSpec implements AlgorithmParameterSpec { }
 
     @Test
     public void algorithmParameters() {
         ServiceTester.test("Mac")
-                .run(new ServiceTester.Test() {
-                    @Override
-                    public void test(final Provider provider, final String algorithm) throws Exception {
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(final Provider provider, final String algorithm) throws Exception {
+                    SecretKeySpec key = findAnyKey(algorithm);
+                    if (key != null) {
+                        Mac mac = Mac.getInstance(algorithm, provider);
+                        // Equivalent to mac.init(key) - allowed
+                        mac.init(key, null);
 
-                        for (MacSupplier supplier : getMacSuppliers(provider, algorithm)) {
-                            Mac mac = supplier.get();
-                            SecretKeySpec key = findAnyKey(mac.getAlgorithm());
-                            if (key == null) {
-                                // TODO(prb) We should have at least one test vector for every
-                                // MAC in Conscrypt
-                                continue;
-                            }
-
-                            // Equivalent to mac.init(key) - allowed
-                            mac.init(key, null);
-
-                            try {
-                                mac = supplier.get();
-                                mac.init(key, new DummyParameterSpec());
-                                fail();
-                            } catch (InvalidAlgorithmParameterException exception) {
-                                // Expected
-                            }
+                        try {
+                            mac = Mac.getInstance(algorithm, provider);
+                            mac.init(key, new DummyParameterSpec());
+                            fail();
+                        } catch (InvalidAlgorithmParameterException exception) {
+                            // Expected
                         }
                     }
-                });
-
-    }
-
-    // Uses of ServiceTester above need to get multiple instances of each Mac to test
-    // failure cases.  This method converts the provided args into a list of suppliers.
-    private List<MacSupplier> getMacSuppliers(final Provider provider, final String algorithm) {
-        List<MacSupplier> suppliers = new ArrayList<>();
-
-        suppliers.add(new MacSupplier() {
-            @Override
-            public Mac get() throws Exception{
-                Mac mac = Mac.getInstance(algorithm);
-                assertEquals(algorithm, mac.getAlgorithm());
-                return mac;
-            }
-        });
-        suppliers.add(new MacSupplier() {
-            @Override
-            public Mac get() throws Exception{
-                Mac mac = Mac.getInstance(algorithm, provider);
-                assertEquals(algorithm, mac.getAlgorithm());
-                assertEquals(provider, mac.getProvider());
-                return mac;
-            }
-        });
-        suppliers.add(new MacSupplier() {
-            @Override
-            public Mac get() throws Exception{
-                Mac mac = Mac.getInstance(algorithm, provider);
-                assertEquals(algorithm, mac.getAlgorithm());
-                assertEquals(provider, mac.getProvider());
-                return mac;
-            }
-        });
-        return suppliers;
-    }
-
-    private interface MacSupplier {
-        Mac get() throws Exception;
-    }
-
-    private static class DummyParameterSpec implements AlgorithmParameterSpec {
-
+                }
+            });
     }
 
     private SecretKeySpec findAnyKey(String algorithm) {
@@ -285,7 +263,6 @@ public class MacTest {
                 Mac mac = Mac.getInstance(algorithm);
                 try {
                     mac.init(key, new IvParameterSpec(keyBytes));
-                    //mac.init(key, null);
                     fail(algorithm);
                 } catch (InvalidAlgorithmParameterException exception) {
                     // Expected
@@ -387,8 +364,7 @@ public class MacTest {
             return TestUtils.readCsvResource("crypto/macs.csv");
 
         } catch (IOException e) {
-            throw new AssertionError("Unable to load MAC test vectors");
+            throw new AssertionError("Unable to load MAC test vectors", e);
         }
     }
-
 }
