@@ -72,8 +72,6 @@ final class BufferUtils {
     /**
      * Looks for a buffer in the buffer array which EITHER is larger than {@code minSize} AND
      * has no preceding non-empty buffers OR is the only non-empty buffer in the array.
-     * because it contains enough data to fill a complete TLS record or because it is the only
-     * remaining buffer which contains data.
      */
     static ByteBuffer getBufferLargerThan(ByteBuffer[] buffers, int minSize) {
         int length = buffers.length;
