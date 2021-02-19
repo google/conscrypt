@@ -131,6 +131,9 @@ public class MacTest {
     @Test
     public void serviceCreation() {
         ServiceTester.test("Mac")
+            // Android KeyStore can only be initialised with its own private keys - tested elsewhere.
+            .skipProvider("AndroidKeyStore")
+            .skipProvider("AndroidKeyStoreBCWorkaround")
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(final Provider provider, final String algorithm) throws Exception {
@@ -149,7 +152,7 @@ public class MacTest {
                         assertEquals(provider, mac.getProvider());
                     }
 
-                    mac = Mac.getInstance(algorithm, provider);
+                    mac = Mac.getInstance(algorithm, provider.getName());
                     assertEquals(algorithm, mac.getAlgorithm());
                     assertEquals(provider, mac.getProvider());
                     if (key != null) {
@@ -163,6 +166,10 @@ public class MacTest {
     @Test
     public void invalidKeyThrows() {
         ServiceTester.test("Mac")
+            // BC actually accepts RSA public keys for these algorithms. No other Android
+            // Provider provides them.
+            .skipAlgorithm("PBEWITHHMACSHA")
+            .skipAlgorithm("PBEWITHHMACSHA1")
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(final Provider provider, final String algorithm) throws Exception {
@@ -220,6 +227,9 @@ public class MacTest {
     @Test
     public void algorithmParameters() {
         ServiceTester.test("Mac")
+            // Android KeyStore can only be initialised with its own private keys - tested elsewhere.
+            .skipProvider("AndroidKeyStore")
+            .skipProvider("AndroidKeyStoreBCWorkaround")
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(final Provider provider, final String algorithm) throws Exception {
