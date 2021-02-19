@@ -1459,7 +1459,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                     // especially if compacting multiple non-direct buffers into a single
                     // direct one.
                     // TODO(): use bufferAllocator if set.
-                    //  https://github.com/google/conscrypt/issues/974
+                    // https://github.com/google/conscrypt/issues/974
                     outputBuffer = BufferUtils.copyNoConsume(
                             srcs, getOrCreateLazyDirectBuffer(), SSL3_RT_MAX_PLAIN_LENGTH);
                     isCopy = true;
