@@ -76,6 +76,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECKey;
 import java.security.spec.ECParameterSpec;
+import java.util.Arrays;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -99,7 +100,6 @@ import org.conscrypt.SSLParametersImpl.AliasChooser;
 final class ConscryptEngine extends AbstractConscryptEngine implements NativeCrypto.SSLHandshakeCallbacks,
                                                          SSLParametersImpl.AliasChooser,
                                                          SSLParametersImpl.PSKCallbacks {
-    private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
 
     private static final SSLEngineResult NEED_UNWRAP_OK =
             new SSLEngineResult(OK, NEED_UNWRAP, 0, 0);
@@ -1392,6 +1392,11 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             throw new ReadOnlyBufferException();
         }
 
+        if ((srcsOffset != 0) || (srcsLength != srcs.length)) {
+            srcs = Arrays.copyOfRange(srcs, srcsOffset, srcsOffset + srcsLength);
+        }
+        checkArgument(BufferUtils.noNulls(srcs), "null source buffer(s)");
+
         synchronized (ssl) {
             switch (state) {
                 case STATE_MODE_SET:
@@ -1431,53 +1436,43 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 // NEED_WRAP - just fall through to perform the wrap.
             }
 
-            int srcsLen = 0;
-            final int endOffset = srcsOffset + srcsLength;
-            for (int i = srcsOffset; i < endOffset; ++i) {
-                final ByteBuffer src = srcs[i];
-                if (src == null) {
-                    throw new IllegalArgumentException("srcs[" + i + "] is null");
-                }
-                if (srcsLen == SSL3_RT_MAX_PLAIN_LENGTH) {
-                    continue;
-                }
-
-                srcsLen += src.remaining();
-                if (srcsLen > SSL3_RT_MAX_PLAIN_LENGTH || srcsLen < 0) {
-                    // If srcLen > MAX_PLAINTEXT_LENGTH or secLen < 0 just set it to
-                    // MAX_PLAINTEXT_LENGTH.
-                    // This also help us to guard against overflow.
-                    // We not break out here as we still need to check for null entries in srcs[].
-                    srcsLen = SSL3_RT_MAX_PLAIN_LENGTH;
-                }
-            }
-
-            if (dst.remaining() < calculateOutNetBufSize(srcsLen)) {
+            int dataLength = (int) min(BufferUtils.remaining(srcs), SSL3_RT_MAX_PLAIN_LENGTH);
+            if (dst.remaining() < calculateOutNetBufSize(dataLength)) {
                 return new SSLEngineResult(
                     Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0, 0);
             }
 
             int bytesProduced = 0;
             int bytesConsumed = 0;
-            boolean copiedBuffers = false;
-            // Try and find a single buffer to send
-            ByteBuffer outputBuffer = findCandidateBuffer(srcs, srcsOffset, endOffset);
-            if (outputBuffer == null) {
-                // If not possible, copy as much input data as possible into a single output
-                // buffer. NB this does *not* mark the data as consumed from the source buffers.
-                outputBuffer = fillOutputBuffer(srcs, srcsOffset, endOffset);
-                copiedBuffers = true;
-            }
-            if (outputBuffer.hasRemaining()) {
+            if (dataLength > 0) {
+                // Try and find a single buffer to send, e.g. the first non-empty buffer has
+                // more than enough data remaining to fill a TLS record. Otherwise copy as much
+                // data as possible from the source buffers to fill a record. Note the we can't
+                // mark the data as consumed until we see how much the TLS layer actually consumes.
+                boolean isCopy = false;
+                ByteBuffer outputBuffer
+                        = BufferUtils.getBufferLargerThan(srcs, SSL3_RT_MAX_PLAIN_LENGTH);
+                if (outputBuffer == null) {
+                    // The buffer by getOrCreateLazyDirectBuffer() is also used by
+                    // writePlainTextDataHeap(), but by filling it here the write path will go via
+                    // writePlainTextDataDirect() and the cost will be approximately the same,
+                    // especially if compacting multiple non-direct buffers into a single
+                    // direct one.
+                    // TODO(): use bufferAllocator if set.
+                    //  https://github.com/google/conscrypt/issues/974
+                    outputBuffer = BufferUtils.copyNoConsume(
+                            srcs, getOrCreateLazyDirectBuffer(), SSL3_RT_MAX_PLAIN_LENGTH);
+                    isCopy = true;
+                }
                 final SSLEngineResult pendingNetResult;
                 // Write plaintext application data to the SSL engine
-                int result = writePlaintextData(outputBuffer, outputBuffer.remaining());
+                int result = writePlaintextData(outputBuffer,
+                        min(SSL3_RT_MAX_PLAIN_LENGTH, outputBuffer.remaining()));
                 if (result > 0) {
                     bytesConsumed = result;
-                    if (copiedBuffers) {
-                        // If the data was copied from multiple input buffers into
-                        // outputBuffer than mark it as consumed.
-                        consumeInput(bytesConsumed, srcs, srcsOffset, endOffset);
+                    if (isCopy) {
+                        // Data was a copy, so mark it as consumed in the original buffers.
+                        BufferUtils.consume(srcs, bytesConsumed);
                     }
 
                     pendingNetResult = readPendingBytesFromBIO(
@@ -1539,14 +1534,13 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                         default:
                             // Everything else is considered as error
                             closeAll();
-                            throw newSslExceptionWithMessage("SSL_write");
+                            throw newSslExceptionWithMessage("SSL_write: error " + sslError);
                     }
                 }
             }
 
-            // We need to check if pendingWrittenBytesInBIO was checked yet, as we may not checked
-            // if the srcs was
-            // empty, or only contained empty buffers.
+            // We need to check if pendingWrittenBytesInBIO was checked yet, as we may not have
+            // checked if the srcs was empty, or only contained empty buffers.
             if (bytesConsumed == 0) {
                 SSLEngineResult pendingNetResult =
                         readPendingBytesFromBIO(dst, 0, bytesProduced, handshakeStatus);
@@ -1557,94 +1551,6 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             return newResult(bytesConsumed, bytesProduced, handshakeStatus);
         }
     }
-
-    /**
-     * Looks for a buffer in the source array which can be sent directly to BoringSSL either
-     * because it contains enough data to fill a complete TLS record or because it is the only
-     * remaining buffer which contains data.
-     */
-    private ByteBuffer findCandidateBuffer(ByteBuffer[] sourceBuffers, int first, int last) {
-        for (int i = first; i < last; i++) {
-            ByteBuffer sourceBuffer = sourceBuffers[i];
-            checkArgument(sourceBuffer != null, "sourceBuffers[%d] is null", i);
-            int remaining = sourceBuffer.remaining();
-            if (remaining > 0) {
-                if (remaining >= SSL3_RT_MAX_PLAIN_LENGTH || (i == (last - 1))) {
-                    return sourceBuffer;
-                } else {
-                    return null;
-                }
-            }
-        }
-        // No remaining data in source buffers
-        return EMPTY_BUFFER;
-    }
-
-    /**
-     * Returns a {@link ByteBuffer} with up to a max TLS record's worth of plaintext for passing
-     * to BoringSSL. Copies the data from source buffers into the lazily created direct
-     * buffer and then *resets the position of the source buffers*.  If the data is actually
-     * consumed by BoringSSL then this will need to be reflected in the source buffers by
-     * calling {@code consumeInput()}.
-     *
-     * The buffer used is also used by writePlainTextDataHeap(), but by filling it here
-     * the write path will go via writePlainTextDataDirect() so the cost will be approximately
-     * the same, especially if we're compacting non-direct buffers into a single direct one.
-     * TODO(prb): Use BufferAllocator?
-     */
-    private ByteBuffer fillOutputBuffer(ByteBuffer[] sourceBuffers, int first, int last) {
-        ByteBuffer outputBuffer = getOrCreateLazyDirectBuffer();
-        for (int i = first; i < last; i++) {
-            ByteBuffer sourceBuffer = sourceBuffers[i];
-            checkArgument(sourceBuffer != null, "sourceBuffers[%d] is null", i);
-            int space = SSL3_RT_MAX_PLAIN_LENGTH - outputBuffer.position();
-            if (space == 0) {
-                break;
-            }
-            int remaining = sourceBuffer.remaining();
-            if (remaining > 0) {
-                // If this buffer can fit completely then copy it all, otherwise temporarily
-                // adjust its limit to fill so as to the output buffer completely
-                int oldPosition = sourceBuffer.position();
-                if (sourceBuffer.remaining() <= space) {
-                    outputBuffer.put(sourceBuffer);
-                } else {
-                    int oldLimit = sourceBuffer.limit();
-                    sourceBuffer.limit(sourceBuffer.position() + space);
-                    outputBuffer.put(sourceBuffer);
-                    sourceBuffer.limit(oldLimit);
-                }
-                // Restore the buffer's position, the data won't get marked as consumed until
-                // outputBuffer has been successfully consumed.
-                sourceBuffer.position(oldPosition);
-            }
-        }
-        outputBuffer.flip();
-        return outputBuffer;
-    }
-
-    /**
-     * Marks {@code totalAmount} bytes of data as consumed from the source buffers, e.g. if it
-     * was copied and consumed via {@code fillOutputBuffer}.
-     */
-    private void consumeInput(int totalAmount, ByteBuffer[] sourceBuffers, int first, int last) {
-        for (int i = first; i < last; i++) {
-            ByteBuffer sourceBuffer = sourceBuffers[i];
-            int amount = min(sourceBuffer.remaining(), totalAmount);
-            if (amount > 0) {
-                sourceBuffer.position(sourceBuffer.position() + amount);
-                totalAmount -= amount;
-                if (totalAmount == 0) {
-                    break;
-                }
-            }
-        }
-        if (totalAmount != 0) {
-            throw new IllegalStateException();
-        }
-    }
-
-
 
     @Override
     public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key) {

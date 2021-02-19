@@ -821,29 +821,12 @@ public class SSLEngineVersionCompatibilityTest {
         return buffers;
     }
 
-    // Creates a new array of ByteBuffers with the original data shifted by offset within
-    // the arrays and new ByteBuffers of invalid data added before and after.
-    ByteBuffer[] addInvalidBuffers(ByteBuffer[] sourceArray, int offset, int bufferSize) {
-        byte[] invalidData = new byte[bufferSize];
-        byte[] invalidText = "INVALID DATA".getBytes();
-        System.arraycopy(invalidText, 0, invalidData, 0, invalidText.length);
-
-        int length = sourceArray.length;
-        ByteBuffer[] paddedArray = new ByteBuffer[length + 2 * offset];
-        System.arraycopy(sourceArray, 0, paddedArray, offset, length);
-        for (int i = 0; i < offset; i++) {
-            paddedArray[i] = ByteBuffer.wrap(invalidData);
-            paddedArray[offset + length + i] = ByteBuffer.wrap(invalidData);
-        }
-        return paddedArray;
-    }
-
     // Sends dataSize bytes of application data, split into an array of ByteBuffers
     // of size bufferSize and verifies it arrives intact. If offset is non-zero then
     // additional invalid buffers will be added to the start and end of the buffer array
     // in order to test the offset and length arguments of wrap().
     private void sendAppDataInMultipleBuffers(
-            SSLEngine src, SSLEngine dst, int dataSize, int bufferSize, int offset)
+            SSLEngine src, SSLEngine dst, int dataSize, int bufferSize)
             throws SSLException {
 
         // Generate random data and split into multiple.
@@ -852,12 +835,6 @@ public class SSLEngineVersionCompatibilityTest {
         random.nextBytes(sourceData);
         ByteBuffer[] sourceBuffers = splitDataIntoBuffers(sourceData, bufferSize);
         int length = sourceBuffers.length;
-
-        if (offset > 0) {
-            // Add invalid data before and after the correct data to ensure that
-            // the offset and length arguements to wrap() are working as expected.
-            sourceBuffers = addInvalidBuffers(sourceBuffers, offset, bufferSize);
-        }
 
         // Ensure there is no pending outbound data or encrypted data and handshaking is complete.
         ByteBuffer tlsBuffer = ByteBuffer.allocateDirect(src.getSession().getPacketBufferSize());
@@ -879,11 +856,11 @@ public class SSLEngineVersionCompatibilityTest {
         int consumed = 0, produced = 0;
         ByteBuffer destBuffer = ByteBuffer.allocate(dataSize);
         while (consumed < dataSize) {
-            String message = String.format("sendData: dataSize=%d, bufSize=%d, offset=%d",
-                    dataSize, bufferSize, offset);
+            String message = String.format("sendData: dataSize=%d, bufSize=%d",
+                    dataSize, bufferSize);
 
             tlsBuffer.clear();
-            result = src.wrap(sourceBuffers, offset, length, tlsBuffer);
+            result = src.wrap(sourceBuffers, 0, length, tlsBuffer);
             assertEquals(message, Status.OK, result.getStatus());
             consumed += result.bytesConsumed();
 
@@ -920,10 +897,10 @@ public class SSLEngineVersionCompatibilityTest {
 	    { 53, 512, 8192, appBufSize, appBufSize - 53, appBufSize + 53, 5 * appBufSize};
         for (int dataSize : dataSizes) {
             for (int bufSize : bufferSizes) {
-                sendAppDataInMultipleBuffers(pair.client, pair.server, dataSize, bufSize, 0);
-                sendAppDataInMultipleBuffers(pair.server, pair.client, dataSize, bufSize, 0);
-                sendAppDataInMultipleBuffers(pair.client, pair.server, dataSize, bufSize, 3);
-                sendAppDataInMultipleBuffers(pair.server, pair.client, dataSize, bufSize, 3);
+                sendAppDataInMultipleBuffers(pair.client, pair.server, dataSize, bufSize);
+                sendAppDataInMultipleBuffers(pair.server, pair.client, dataSize, bufSize);
+                sendAppDataInMultipleBuffers(pair.client, pair.server, dataSize, bufSize);
+                sendAppDataInMultipleBuffers(pair.server, pair.client, dataSize, bufSize);
             }
         }
     }
