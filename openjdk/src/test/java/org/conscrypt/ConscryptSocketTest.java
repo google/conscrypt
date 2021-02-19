@@ -19,24 +19,29 @@ package org.conscrypt;
 import static org.conscrypt.TestUtils.openTestFile;
 import static org.conscrypt.TestUtils.readTestFile;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -79,12 +84,6 @@ public class ConscryptSocketTest {
                     OpenSSLContextImpl context, ServerSocket server, SSLSocketFactory factory) {
                 return null;
             }
-
-            @Override
-            Socket newServerSocket(OpenSSLContextImpl context, ServerSocket server,
-                    SSLSocketFactory factory) throws IOException {
-                return server.accept();
-            }
         },
         PLAIN {
             @Override
@@ -92,11 +91,14 @@ public class ConscryptSocketTest {
                     SSLSocketFactory factory) throws IOException {
                 return new Socket(server.getInetAddress(), server.getLocalPort());
             }
-
+        },
+        CHANNEL {
             @Override
-            Socket newServerSocket(OpenSSLContextImpl context, ServerSocket server,
+            Socket newClientSocket(OpenSSLContextImpl context, ServerSocket server,
                     SSLSocketFactory factory) throws IOException {
-                return server.accept();
+                SocketChannel channel = SocketChannel.open();
+                channel.connect(server.getLocalSocketAddress());
+                return channel.socket();
             }
         },
         SSL {
@@ -121,8 +123,11 @@ public class ConscryptSocketTest {
 
         abstract Socket newClientSocket(OpenSSLContextImpl context, ServerSocket server,
                 SSLSocketFactory factory) throws IOException;
-        abstract Socket newServerSocket(OpenSSLContextImpl context, ServerSocket server,
-                SSLSocketFactory factory) throws IOException;
+
+        Socket newServerSocket(OpenSSLContextImpl context, ServerSocket server,
+                SSLSocketFactory factory) throws IOException {
+            return server.accept();
+        }
     }
 
     /**
@@ -191,15 +196,43 @@ public class ConscryptSocketTest {
         }
     }
 
-    @Parameters(name = "{0} wrapping {1}")
+    public enum ServerSocketType {
+        PLAIN {
+            @Override
+            public ServerSocket newServerSocket() throws IOException {
+                return new ServerSocket(0, 50, TestUtils.getLoopbackAddress());
+            }
+        },
+        CHANNEL {
+            @Override
+            public ServerSocket newServerSocket() throws IOException {
+                ServerSocketChannel channel = ServerSocketChannel.open();
+                InetAddress localAddress = TestUtils.getLoopbackAddress();
+                channel.socket().bind(new InetSocketAddress(localAddress.getHostName(), 0), 50);
+                return channel.socket();
+            }
+        };
+        public abstract ServerSocket newServerSocket() throws IOException;
+    }
+
+    @Parameters(name = "{0} wrapping {1} connecting to {2}")
     public static Object[][] data() {
         return new Object[][] {
-            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.NONE},
-            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.PLAIN},
+            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.NONE, ServerSocketType.PLAIN},
+            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.NONE, ServerSocketType.CHANNEL},
+            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.PLAIN, ServerSocketType.PLAIN},
+            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.PLAIN, ServerSocketType.CHANNEL},
+            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.CHANNEL, ServerSocketType.PLAIN},
+            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.CHANNEL, ServerSocketType.CHANNEL},
             // Not supported: {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.SSL},
-            {SocketType.ENGINE, UnderlyingSocketType.NONE},
-            {SocketType.ENGINE, UnderlyingSocketType.PLAIN},
-            {SocketType.ENGINE, UnderlyingSocketType.SSL}};
+            {SocketType.ENGINE, UnderlyingSocketType.NONE, ServerSocketType.PLAIN},
+            {SocketType.ENGINE, UnderlyingSocketType.NONE, ServerSocketType.CHANNEL},
+            {SocketType.ENGINE, UnderlyingSocketType.PLAIN, ServerSocketType.PLAIN},
+            {SocketType.ENGINE, UnderlyingSocketType.PLAIN, ServerSocketType.CHANNEL},
+            {SocketType.ENGINE, UnderlyingSocketType.CHANNEL, ServerSocketType.PLAIN},
+            {SocketType.ENGINE, UnderlyingSocketType.CHANNEL, ServerSocketType.CHANNEL},
+            {SocketType.ENGINE, UnderlyingSocketType.SSL, ServerSocketType.PLAIN},
+            {SocketType.ENGINE, UnderlyingSocketType.SSL, ServerSocketType.CHANNEL}};
     }
 
     @Parameter
@@ -208,6 +241,9 @@ public class ConscryptSocketTest {
     @Parameter(1)
     public UnderlyingSocketType underlyingSocketType;
 
+    @Parameter(2)
+    public ServerSocketType serverSocketType;
+
     private X509Certificate ca;
     private X509Certificate cert;
     private X509Certificate certEmbedded;
@@ -215,6 +251,7 @@ public class ConscryptSocketTest {
 
     private Field contextSSLParameters;
     private ExecutorService executor;
+    private final Random random = new Random(System.currentTimeMillis());
 
     @Before
     public void setUp() throws Exception {
@@ -388,7 +425,7 @@ public class ConscryptSocketTest {
         }
 
         void doHandshake() throws Exception {
-            ServerSocket listener = newServerSocket();
+            ServerSocket listener = serverSocketType.newServerSocket();
             Future<AbstractConscryptSocket> clientFuture = handshake(listener, clientHooks);
             Future<AbstractConscryptSocket> serverFuture = handshake(listener, serverHooks);
 
@@ -562,7 +599,7 @@ public class ConscryptSocketTest {
     @Test
     @SuppressWarnings("deprecation")
     public void setAlpnProtocolWithNullShouldSucceed() throws Exception {
-        ServerSocket listening = newServerSocket();
+        ServerSocket listening = serverSocketType.newServerSocket();
         OpenSSLSocketImpl clientSocket = null;
         try {
             Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
@@ -583,7 +620,7 @@ public class ConscryptSocketTest {
     // http://b/27250522
     @Test
     public void test_setSoTimeout_doesNotCreateSocketImpl() throws Exception {
-        ServerSocket listening = newServerSocket();
+        ServerSocket listening = serverSocketType.newServerSocket();
         try {
             Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
             Socket socket = socketType.newClientSocket(
@@ -646,7 +683,44 @@ public class ConscryptSocketTest {
         assertEquals(alpnProtocol, Conscrypt.getApplicationProtocol(connection.client));
     }
 
-    private static ServerSocket newServerSocket() throws IOException {
-        return new ServerSocket(0, 50, TestUtils.getLoopbackAddress());
+    @Test
+    public void dataFlows() throws Exception {
+        final TestConnection connection =
+                new TestConnection(new X509Certificate[] {cert, ca}, certKey);
+        connection.doHandshakeSuccess();
+
+        // Basic data flow assurance.  Send random buffers in each direction, each less than 16K
+        // so should fit in a single TLS packet.  50% chance of sending in each direction on
+        // each iteration to randomize the flow.
+        for (int i = 0; i < 50; i++) {
+            if (random.nextBoolean()) {
+                sendData(connection.client, connection.server, randomBuffer());
+            }
+            if (random.nextBoolean()) {
+                sendData(connection.server, connection.client, randomBuffer());
+            }
+        }
+    }
+
+    private void sendData(SSLSocket source, final SSLSocket destination, byte[] data)
+            throws Exception {
+        final byte[] received = new byte[data.length];
+
+        Future<Integer> readFuture = executor.submit(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                return destination.getInputStream().read(received);
+            }
+        });
+
+        source.getOutputStream().write(data);
+        assertEquals(data.length, (int) readFuture.get());
+        assertArrayEquals(data, received);
+    }
+
+    private byte[] randomBuffer() {
+        byte[] buffer = new byte[random.nextInt(16 * 1024)];
+        random.nextBytes(buffer);
+        return buffer;
     }
 }
