@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.SocketException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -211,7 +212,7 @@ final class NativeSsl {
             byte[][] asn1DerEncodedPrincipals)
             throws SSLException, CertificateEncodingException {
         Set<String> keyTypesSet = SSLUtils.getSupportedClientKeyTypes(keyTypeBytes, signatureAlgs);
-        String[] keyTypes = keyTypesSet.toArray(new String[keyTypesSet.size()]);
+        String[] keyTypes = keyTypesSet.toArray(new String[0]);
 
         X500Principal[] issuers;
         if (asn1DerEncodedPrincipals == null) {
@@ -636,6 +637,7 @@ final class NativeSsl {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     protected final void finalize() throws Throwable {
         try {
             close();

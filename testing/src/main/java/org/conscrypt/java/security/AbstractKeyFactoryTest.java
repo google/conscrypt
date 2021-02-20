@@ -34,7 +34,7 @@ public abstract class AbstractKeyFactoryTest<PublicKeySpec extends KeySpec, Priv
     private final Class<PublicKeySpec> publicKeySpecClass;
     private final Class<PrivateKeySpec> privateKeySpecClass;
 
-    public AbstractKeyFactoryTest(String algorithmName,
+    protected AbstractKeyFactoryTest(String algorithmName,
             Class<PublicKeySpec> publicKeySpecClass,
             Class<PrivateKeySpec> privateKeySpecClass) {
         this.algorithmName = algorithmName;
