@@ -1395,7 +1395,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         if ((srcsOffset != 0) || (srcsLength != srcs.length)) {
             srcs = Arrays.copyOfRange(srcs, srcsOffset, srcsOffset + srcsLength);
         }
-        checkArgument(BufferUtils.noNulls(srcs), "null source buffer(s)");
+        BufferUtils.checkNotNull(srcs);
 
         synchronized (ssl) {
             switch (state) {

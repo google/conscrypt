@@ -25,16 +25,14 @@ final class BufferUtils {
     private BufferUtils() {}
 
     /**
-     * Returns {@code true} if none of the buffers in the buffer array are null,
-     * otherwise {@code false}.
+     * Throws {@link IllegalArgumentException} if any of the buffers in the array are null.
      */
-    static boolean noNulls(ByteBuffer[] buffers) {
+    static void checkNotNull(ByteBuffer[] buffers) {
         for (ByteBuffer buffer : buffers) {
             if (buffer == null) {
-                return false;
+                throw new IllegalArgumentException("Null buffer in array");
             }
         }
-        return true;
     }
 
     /**

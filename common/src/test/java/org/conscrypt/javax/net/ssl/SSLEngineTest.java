@@ -934,18 +934,21 @@ public class SSLEngineTest {
         // Client/server mode not set => IllegalStateException
         try {
             newUnconnectedEngine().wrap(buffer, buffer);
+            fail();
         } catch (IllegalStateException e) {
             // Expected
         }
 
         try {
             newUnconnectedEngine().wrap(buffers, buffer);
+            fail();
         } catch (IllegalStateException e) {
             // Expected
         }
 
         try {
             newUnconnectedEngine().wrap(buffers, 0, 1, buffer);
+            fail();
         } catch (IllegalStateException e) {
             // Expected
         }

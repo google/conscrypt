@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.nio.ByteBuffer;
 import org.conscrypt.TestUtils.BufferType;
@@ -66,14 +67,19 @@ public class BufferUtilsTest {
     public BufferType bufferType;
 
     @Test
-    public void noNulls() {
+    public void checkNotNull() {
         for (int[] sizes : TEST_SIZES) {
-            assertTrue(BufferUtils.noNulls(bufferType.newRandomBuffers(sizes)));
+            BufferUtils.checkNotNull(bufferType.newRandomBuffers(sizes));
         }
 
         ByteBuffer[] buffers = bufferType.newRandomBuffers(10, 10, 10, 10, 10);
         buffers[2] = null;
-        assertFalse(BufferUtils.noNulls(buffers));
+        try {
+            BufferUtils.checkNotNull(buffers);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
     }
 
     @Test
@@ -99,10 +105,13 @@ public class BufferUtilsTest {
             BufferUtils.consume(buffers,totalSize / 2);
             assertEquals(0, BufferUtils.remaining(buffers));
 
-            try {
-                BufferUtils.consume(buffers, totalSize / 2);
-            } catch (IllegalArgumentException e) {
-                // Expected
+            if (totalSize > 0) {
+                try {
+                    BufferUtils.consume(buffers, totalSize / 2);
+                    fail("Managed to consume past end of buffer array");
+                } catch (IllegalArgumentException e) {
+                    // Expected
+                }
             }
         }
     }
@@ -114,7 +123,6 @@ public class BufferUtilsTest {
                 ByteBuffer[] buffers = bufferType.newRandomBuffers(sizes);
                 int totalSize = arraySum(sizes);
 
-		// 
                 ByteBuffer destination = destinationType.newBuffer(totalSize);
                 BufferUtils.copyNoConsume(buffers, destination, totalSize);
                 assertEquals(totalSize, BufferUtils.remaining(buffers));
