@@ -95,6 +95,7 @@ import org.junit.runners.Suite;
         AlgorithmParametersTestEC.class,
         AlgorithmParametersTestGCM.class,
         AlgorithmParametersTestOAEP.class,
+        BufferUtilsTest.class,
         KeyFactoryTestDH.class,
         KeyFactoryTestDSA.class,
         KeyFactoryTestEC.class,
