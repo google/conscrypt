@@ -377,9 +377,7 @@ public class CertificateFactoryTest {
         }
 
         // The RI only supports PKCS#7 blobs with generateCertificates, not
-        // generateCertificate.
-        //
-        // TODO(davidben): Also, PEM support for generateCertificate is broken. Remove it?
+        // generateCertificate. See https://github.com/google/conscrypt/issues/987
         if (!StandardNames.IS_RI) {
             byte[] valid = TestUtils.decodeBase64(VALID_CERTIFICATE_PKCS7_DER_BASE64);
             Certificate c = cf.generateCertificate(new ByteArrayInputStream(valid));
@@ -878,8 +876,7 @@ public class CertificateFactoryTest {
         assertEquals(c, c2);
 
         // The RI only supports PKCS#7 with generateCRLs, not generateCRL.
-        //
-        // TODO(davidben): Also, PEM support for generateCRL is broken. Remove it?
+        // See https://github.com/google/conscrypt/issues/987
         if (!StandardNames.IS_RI) {
             valid = TestUtils.decodeBase64(VALID_CRL_PKCS7_DER_BASE64);
             c2 = cf.generateCRL(new ByteArrayInputStream(valid));

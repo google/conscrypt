@@ -88,18 +88,13 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
                 pbis.unread(buffer, 0, len);
 
                 if (buffer[0] == '-') {
-                    if (len == PKCS7_MARKER.length && Arrays.equals(PKCS7_MARKER, buffer)) {
-                        List<? extends T> items = fromPkcs7PemInputStream(pbis);
-                        if (items.size() == 0) {
-                            return null;
-                        }
-                        items.get(0);
-                    } else {
-                        return fromX509PemInputStream(pbis);
-                    }
+                    return fromX509PemInputStream(pbis);
                 }
 
-                /* PKCS#7 bags have a byte 0x06 at position 4 in the stream. */
+                // PKCS#7 bags have a byte 0x06 at position 4 in the stream.
+                //
+                // TODO(https://github.com/google/conscrypt/issues/987): Consider
+                // deprecating this.
                 if (buffer[4] == 0x06) {
                     List<? extends T> certs = fromPkcs7DerInputStream(pbis);
                     if (certs.size() == 0) {
