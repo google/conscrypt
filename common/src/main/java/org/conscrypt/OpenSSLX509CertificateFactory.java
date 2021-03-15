@@ -67,10 +67,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
         }
 
         // Bytes are signed in Java.
-        int lengthByte = header[1];
-        if (lengthByte < 0) {
-            lengthByte += 256;
-        }
+        int lengthByte = header[1] & 0xff;
 
         // Skip the length prefix to find the tag of the first child of SEQUENCE. This function is
         // intentionally lax and does not attempt to parse the length itself. It is only necessary
