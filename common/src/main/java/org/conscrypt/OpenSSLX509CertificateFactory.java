@@ -60,6 +60,40 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
         }
     }
 
+    private static boolean isMaybePkcs7(byte[] header) {
+        // The outer tag must be SEQUENCE.
+        if (header.length < 2 || header[0] != 0x30) {
+            return false;
+        }
+
+        // Bytes are signed in Java.
+        int lengthByte = header[1] & 0xff;
+
+        // Skip the length prefix to find the tag of the first child of SEQUENCE. This function is
+        // intentionally lax and does not attempt to parse the length itself. It is only necessary
+        // to return true on PKCS#7 inputs and false on X.509 inputs. Other structures can go either
+        // way.
+        int idx = 2;
+        if (lengthByte <= 0x80) {
+            // Short-form or indefinite length.
+        } else if (lengthByte == 0x81) {
+            idx += 1;
+        } else if (lengthByte == 0x82) {
+            idx += 2;
+        } else if (lengthByte == 0x83) {
+            idx += 3;
+        } else if (lengthByte == 0x84) {
+            idx += 4;
+        } else {
+            // BoringSSL stops at 4-byte lengths. A 5-byte length would require a 4GiB input.
+            return false;
+        }
+
+        // The first element of a PKCS#7 structure is OBJECT IDENTIFIER, which has tag 6. The first
+        // element of an X.509 structure is never OBJECT IDENTIFIER.
+        return idx < header.length && header[idx] == 0x06;
+    }
+
     /**
      * The code for X509 Certificates and CRL is pretty much the same. We use
      * this abstract class to share the code between them. This makes it ugly,
@@ -91,11 +125,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
                     return fromX509PemInputStream(pbis);
                 }
 
-                // PKCS#7 bags have a byte 0x06 at position 4 in the stream.
-                //
-                // TODO(https://github.com/google/conscrypt/issues/987): Consider
-                // deprecating this.
-                if (buffer[4] == 0x06) {
+                if (isMaybePkcs7(buffer)) {
                     List<? extends T> certs = fromPkcs7DerInputStream(pbis);
                     if (certs.size() == 0) {
                         return null;
@@ -152,8 +182,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
                     return fromPkcs7PemInputStream(pbis);
                 }
 
-                /* PKCS#7 bags have a byte 0x06 at position 4 in the stream. */
-                if (buffer[4] == 0x06) {
+                if (isMaybePkcs7(buffer)) {
                     return fromPkcs7DerInputStream(pbis);
                 }
             } catch (Exception e) {

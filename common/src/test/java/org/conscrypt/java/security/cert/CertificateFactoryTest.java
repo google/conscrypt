@@ -333,6 +333,15 @@ public class CertificateFactoryTest {
             + "AAAAAAAA\n"
             + "-----END X509 CRL-----\n";
 
+    // PKCS#7 file containing a small certificate. This input is small enough to use a two-byte
+    // length prefix.
+    private static final String SMALL_PKCS7_DER_BASE64 =
+            "MIHrBgkqhkiG9w0BBwKggd0wgdoCAQExADALBgkqhkiG9w0BBwGggcEwgb4wcgIB"
+            + "ADAFBgMrZXAwDDEKMAgGA1UEAxMBQTAeFw0xNDA0MjMyMzIxNTdaFw0xNDA1MjMy"
+            + "MzIxNTdaMAwxCjAIBgNVBAMTAUEwKjAFBgMrZXADIQDXWpgBgrEKt9VL/tPJZAc6"
+            + "DuFy89qmIyWvAhpo9wdRGjAFBgMrZXADQQBuCzqji8VP9xU8mHEMjXGChX7YP5J6"
+            + "64UyVKHKH9Z1u4wEbB8dJ3ScaWSLr+VHVKUhsrvcdCelnXRrrSD7xWALoQAxAA==";
+
     @Test
     public void test_generateCertificate() throws Exception {
         ServiceTester.test("CertificateFactory")
@@ -397,6 +406,13 @@ public class CertificateFactoryTest {
             Collection<? extends Certificate> cs = cf.generateCertificates(new ByteArrayInputStream(valid));
             assertEquals(1, cs.size());
             assertEquals(cs.iterator().next(), cert);
+        }
+
+        {
+            byte[] valid = TestUtils.decodeBase64(SMALL_PKCS7_DER_BASE64);
+            Collection<? extends Certificate> cs = cf.generateCertificates(new ByteArrayInputStream(valid));
+            assertEquals(1, cs.size());
+            assertNotNull(cs.iterator().next());
         }
 
         try {
