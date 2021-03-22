@@ -122,15 +122,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
                 pbis.unread(buffer, 0, len);
 
                 if (buffer[0] == '-') {
-                    if (len == PKCS7_MARKER.length && Arrays.equals(PKCS7_MARKER, buffer)) {
-                        List<? extends T> items = fromPkcs7PemInputStream(pbis);
-                        if (items.size() == 0) {
-                            return null;
-                        }
-                        items.get(0);
-                    } else {
-                        return fromX509PemInputStream(pbis);
-                    }
+                    return fromX509PemInputStream(pbis);
                 }
 
                 if (isMaybePkcs7(buffer)) {
