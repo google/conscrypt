@@ -87,8 +87,7 @@ public class CertificateEntry {
                 throw new CertificateException("Certificate does not contain embedded signed timestamps");
             }
 
-            OpenSSLX509Certificate preCert = leaf.withDeletedExtension(CTConstants.X509_SCT_LIST_OID);
-            byte[] tbs = preCert.getTBSCertificate();
+            byte[] tbs = leaf.getTBSCertificateWithoutExtension(CTConstants.X509_SCT_LIST_OID);
 
             byte[] issuerKey = issuer.getPublicKey().getEncoded();
             MessageDigest md = MessageDigest.getInstance("SHA-256");
