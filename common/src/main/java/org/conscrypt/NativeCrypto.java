@@ -442,8 +442,6 @@ public final class NativeCrypto {
 
     static native void X509_free(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_dup(long x509ctx, OpenSSLX509Certificate holder);
-
     static native int X509_cmp(long x509ctx1, OpenSSLX509Certificate holder, long x509ctx2, OpenSSLX509Certificate holder2);
 
     static native void X509_print_ex(long bioCtx, long x509ctx, OpenSSLX509Certificate holder, long nmflag, long certflag);
@@ -489,7 +487,9 @@ public final class NativeCrypto {
     static native void X509_verify(long x509ctx, OpenSSLX509Certificate holder, NativeRef.EVP_PKEY pkeyCtx)
             throws BadPaddingException;
 
-    static native byte[] get_X509_cert_info_enc(long x509ctx, OpenSSLX509Certificate holder);
+    static native byte[] get_X509_tbs_cert(long x509ctx, OpenSSLX509Certificate holder);
+
+    static native byte[] get_X509_tbs_cert_without_ext(long x509ctx, OpenSSLX509Certificate holder, String oid);
 
     static native byte[] get_X509_signature(long x509ctx, OpenSSLX509Certificate holder);
 
@@ -546,8 +546,6 @@ public final class NativeCrypto {
     static native String[] get_X509_CRL_ext_oids(long x509Crlctx, OpenSSLX509CRL holder, int critical);
 
     static native byte[] X509_CRL_get_ext_oid(long x509CrlCtx, OpenSSLX509CRL holder, String oid);
-
-    static native void X509_delete_ext(long x509, OpenSSLX509Certificate holder, String oid);
 
     static native long X509_CRL_get_version(long x509CrlCtx, OpenSSLX509CRL holder);
 
