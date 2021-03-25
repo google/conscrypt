@@ -16,6 +16,10 @@
 
 package org.conscrypt.javax.net.ssl;
 
+import static org.conscrypt.TestUtils.osName;
+import static org.conscrypt.TestUtils.isOsx;
+import static org.conscrypt.TestUtils.isLinux;
+import static org.conscrypt.TestUtils.isWindows;
 import static org.conscrypt.TestUtils.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -110,7 +114,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import tests.net.DelegatingSSLSocketFactory;
 import tests.util.ForEachRunner;
-import tests.util.ForEachRunner.Callback;
 import tests.util.Pair;
 
 /**
@@ -362,6 +365,7 @@ public class SSLSocketVersionCompatibilityTest {
         client.addHandshakeCompletedListener(new HandshakeCompletedListener() {
             @Override
             public void handshakeCompleted(HandshakeCompletedEvent event) {
+                SSLSocket socket = null;
                 try {
                     SSLSession session = event.getSession();
                     String cipherSuite = event.getCipherSuite();
@@ -371,7 +375,7 @@ public class SSLSocketVersionCompatibilityTest {
                         event.getPeerCertificateChain();
                     Principal peerPrincipal = event.getPeerPrincipal();
                     Principal localPrincipal = event.getLocalPrincipal();
-                    SSLSocket socket = event.getSocket();
+                    socket = event.getSocket();
                     assertNotNull(session);
                     byte[] id = session.getId();
                     assertNotNull(id);
@@ -408,16 +412,19 @@ public class SSLSocketVersionCompatibilityTest {
                     assertNotNull(socket);
                     assertSame(client, socket);
                     assertNull(socket.getHandshakeSession());
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
                     synchronized (handshakeCompletedListenerCalled) {
                         handshakeCompletedListenerCalled[0] = true;
                         handshakeCompletedListenerCalled.notify();
                     }
                     handshakeCompletedListenerCalled[0] = true;
-                    socket.removeHandshakeCompletedListener(this);
-                } catch (RuntimeException e) {
-                    throw e;
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    if (socket != null) {
+                        socket.removeHandshakeCompletedListener(this);
+                    }
                 }
             }
         });
@@ -1552,7 +1559,7 @@ public class SSLSocketVersionCompatibilityTest {
 
     @Test
     public void test_SSLSocket_ClientHello_SNI() throws Exception {
-        ForEachRunner.runNamed(new Callback<SSLSocketFactory>() {
+        ForEachRunner.runNamed(new ForEachRunner.Callback<SSLSocketFactory>() {
             @Override
             public void run(SSLSocketFactory sslSocketFactory) throws Exception {
                 ClientHello clientHello = TlsTester
@@ -1571,7 +1578,7 @@ public class SSLSocketVersionCompatibilityTest {
     public void test_SSLSocket_ClientHello_ALPN() throws Exception {
         final String[] protocolList = new String[] { "h2", "http/1.1" };
         
-        ForEachRunner.runNamed(new Callback<SSLSocketFactory>() {
+        ForEachRunner.runNamed(new ForEachRunner.Callback<SSLSocketFactory>() {
             @Override
             public void run(SSLSocketFactory sslSocketFactory) throws Exception {
                 ClientHello clientHello = TlsTester.captureTlsHandshakeClientHello(executor,
@@ -2078,23 +2085,6 @@ public class SSLSocketVersionCompatibilityTest {
             clazz = clazz.getSuperclass();
         }
         return "ConscryptEngineSocket".equals(clazz.getSimpleName());
-    }
-
-    private static String osName() {
-        return System.getProperty("os.name").toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "");
-    }
-
-    private static boolean isLinux() {
-        return osName().startsWith("linux");
-    }
-
-    private static boolean isWindows() {
-        return osName().startsWith("windows");
-    }
-
-    private static boolean isOsx() {
-        String name = osName();
-        return name.startsWith("macosx") || name.startsWith("osx");
     }
 
     private <T> Future<T> runAsync(Callable<T> callable) {

@@ -77,7 +77,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import tests.net.DelegatingSSLSocketFactory;
 import tests.util.ForEachRunner;
-import tests.util.ForEachRunner.Callback;
 import tests.util.Pair;
 
 @RunWith(JUnit4.class)
@@ -875,7 +874,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_ClientHello_cipherSuites() throws Exception {
-        ForEachRunner.runNamed(new Callback<SSLSocketFactory>() {
+        ForEachRunner.runNamed(new ForEachRunner.Callback<SSLSocketFactory>() {
             @Override
             public void run(SSLSocketFactory sslSocketFactory) throws Exception {
                 ClientHello clientHello = TlsTester
@@ -906,7 +905,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_ClientHello_supportedCurves() throws Exception {
-        ForEachRunner.runNamed(new Callback<SSLSocketFactory>() {
+        ForEachRunner.runNamed(new ForEachRunner.Callback<SSLSocketFactory>() {
             @Override
             public void run(SSLSocketFactory sslSocketFactory) throws Exception {
                 ClientHello clientHello = TlsTester
@@ -932,7 +931,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_ClientHello_clientProtocolVersion() throws Exception {
-        ForEachRunner.runNamed(new Callback<SSLSocketFactory>() {
+        ForEachRunner.runNamed(new ForEachRunner.Callback<SSLSocketFactory>() {
             @Override
             public void run(SSLSocketFactory sslSocketFactory) throws Exception {
                 ClientHello clientHello = TlsTester
@@ -944,7 +943,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_ClientHello_compressionMethods() throws Exception {
-        ForEachRunner.runNamed(new Callback<SSLSocketFactory>() {
+        ForEachRunner.runNamed(new ForEachRunner.Callback<SSLSocketFactory>() {
             @Override
             public void run(SSLSocketFactory sslSocketFactory) throws Exception {
                 ClientHello clientHello = TlsTester

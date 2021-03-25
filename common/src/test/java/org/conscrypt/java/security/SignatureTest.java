@@ -100,6 +100,10 @@ public class SignatureTest {
             // https://bugs.openjdk.java.net/browse/JDK-8044554), but skip verifying it all
             // the same.
             .skipProvider("SunPKCS11-NSS")
+            // We don't have code to generate key pairs for these yet.
+            .skipAlgorithm("Ed448")
+            .skipAlgorithm("Ed25519")
+            .skipAlgorithm("EdDSA")
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(Provider provider, String algorithm) throws Exception {

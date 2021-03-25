@@ -16,6 +16,7 @@
 
 package org.conscrypt.javax.net.ssl;
 
+import static org.conscrypt.TestUtils.isWindows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -37,6 +38,7 @@ import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -664,14 +666,21 @@ public class SSLContextTest {
     }
 
     private static void assertContentsInOrder(List<String> expected, String... actual) {
+        List<String> actualList = Arrays.asList(actual);
         if (expected.size() != actual.length) {
             fail("Unexpected length. Expected len <" + expected.size() + ">, actual len <"
                     + actual.length + ">, expected <" + expected + ">, actual <"
-                    + Arrays.asList(actual) + ">");
+                    + actualList + ">");
         }
-        if (!expected.equals(Arrays.asList(actual))) {
-            fail("Unexpected element(s). Expected <" + expected + ">, actual <"
-                    + Arrays.asList(actual) + ">");
+
+        if (isWindows()) {
+            // TODO(prbprbprb): CpuFeatures.isAESHardwareAccelerated is not reliable on windows
+            Collections.sort(actualList);
+            Collections.sort(expected);
+        }
+
+        if (!expected.equals(actualList)) {
+            fail("Unexpected element(s). Expected <" + expected + ">, actual <" + actualList + ">");
         }
     }
 
@@ -711,7 +720,7 @@ public class SSLContextTest {
         }
 
         if (version[0] == 1) {
-            assert version[1] >= 6;
+            assertTrue(version[1] >= 6);
             return version[1];
         } else {
             return version[0];

@@ -37,6 +37,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -169,18 +170,15 @@ public class SSLEngineVersionCompatibilityTest {
                 sourceOutRes.getHandshakeStatus());
         SSLSession destSession = dest.getSession();
         ByteBuffer destIn = ByteBuffer.allocate(destSession.getApplicationBufferSize());
-        int numUnwrapCalls = 0;
         while (destIn.position() != sourceBytes.length) {
             SSLEngineResult destRes = dest.unwrap(sourceToDest, destIn);
             assertEquals(sourceCipherSuite, HandshakeStatus.NOT_HANDSHAKING,
                     destRes.getHandshakeStatus());
-            numUnwrapCalls++;
         }
         destIn.flip();
         byte[] actual = new byte[destIn.remaining()];
         destIn.get(actual);
         assertEquals(sourceCipherSuite, Arrays.toString(sourceBytes), Arrays.toString(actual));
-        assertEquals(sourceCipherSuite, 3, numUnwrapCalls);
     }
 
     @Test
@@ -807,6 +805,104 @@ public class SSLEngineVersionCompatibilityTest {
                 session.getRequestedServerNames());
         assertEquals(host, serverHost.get());
         assertTrue(serverAliasCalled.get());
+    }
+
+    // Splits a ByteArray into an array of ByteBuffers each no bigger than the specified size.
+    private ByteBuffer[] splitDataIntoBuffers(byte[] sourceData, int size) {
+        int nbuf = ((sourceData.length - 1) / size) + 1;
+        ByteBuffer[] buffers = new ByteBuffer[nbuf];
+        int buffer = 0;
+        for (int offset = 0; offset < sourceData.length; offset += size, buffer++) {
+            buffers[buffer] = ByteBuffer.allocate(size);
+            int remaining = sourceData.length - offset;
+            buffers[buffer].put(sourceData, offset, Math.min( remaining, size));
+            buffers[buffer].flip();
+        }
+        return buffers;
+    }
+
+    // Sends dataSize bytes of application data, split into an array of ByteBuffers
+    // of size bufferSize and verifies it arrives intact. If offset is non-zero then
+    // additional invalid buffers will be added to the start and end of the buffer array
+    // in order to test the offset and length arguments of wrap().
+    private void sendAppDataInMultipleBuffers(
+            SSLEngine src, SSLEngine dst, int dataSize, int bufferSize)
+            throws SSLException {
+
+        // Generate random data and split into multiple.
+        byte[] sourceData = new byte[dataSize];
+        Random random = new Random(System.currentTimeMillis());
+        random.nextBytes(sourceData);
+        ByteBuffer[] sourceBuffers = splitDataIntoBuffers(sourceData, bufferSize);
+        int length = sourceBuffers.length;
+
+        // Ensure there is no pending outbound data or encrypted data and handshaking is complete.
+        ByteBuffer tlsBuffer = ByteBuffer.allocateDirect(src.getSession().getPacketBufferSize());
+        SSLEngineResult result = src.wrap(EMPTY_BUFFER, tlsBuffer);
+        assertEquals(Status.OK, result.getStatus());
+        assertEquals(HandshakeStatus.NOT_HANDSHAKING, result.getHandshakeStatus());
+        assertEquals(0, result.bytesConsumed());
+        assertEquals(0, result.bytesProduced());
+
+        // Ensure there is no pending inbound data
+        result = dst.unwrap(EMPTY_BUFFER, tlsBuffer);
+        assertEquals(Status.BUFFER_UNDERFLOW, result.getStatus());
+        assertEquals(0, result.bytesConsumed());
+        assertEquals(0, result.bytesProduced());
+
+        // Send the data.  wrap() should consume as many source buffers as needed but
+        // never generate more than one full packet buffer of TLS data, and so unwrap()
+        // should only be needed once per loop iteration.
+        int consumed = 0, produced = 0;
+        ByteBuffer destBuffer = ByteBuffer.allocate(dataSize);
+        while (consumed < dataSize) {
+            String message = String.format("sendData: dataSize=%d, bufSize=%d",
+                    dataSize, bufferSize);
+
+            tlsBuffer.clear();
+            result = src.wrap(sourceBuffers, 0, length, tlsBuffer);
+            assertEquals(message, Status.OK, result.getStatus());
+            consumed += result.bytesConsumed();
+
+            tlsBuffer.flip();
+            result = dst.unwrap(tlsBuffer, destBuffer);
+            assertEquals(message, Status.OK, result.getStatus());
+            produced += result.bytesProduced();
+        }
+        assertEquals(dataSize, consumed);
+        assertEquals(dataSize, produced);
+
+        // Compare source and destination data.
+        destBuffer.flip();
+        // destBuffer is non-direct so will always have a backing array
+        assertArrayEquals(sourceData, destBuffer.array());
+    }
+
+    /**
+     * Tests the multiple {@link ByteBuffer} cases of {@code wrap())} by sending blocks of
+     * application data split into arrays of ByteBuffers of different sizes.
+     *
+     * The main intention is to check that regardless of how the data is structured in
+     * buffers, each call to wrap() always generates a single TLS record that is smaller
+     * than the maximum allowed size, see https://github.com/google/conscrypt/issues/929
+     */
+    @Test
+    public void multipleBuffersOfDifferentSizes() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create();
+        SSLSession session = pair.client.getSession();
+        int appBufSize = session.getApplicationBufferSize();
+
+        int[] dataSizes = new int[] { 12, 512, 555, 1500, 8192, appBufSize, 5 * appBufSize};
+        int[] bufferSizes = new int[]
+	    { 53, 512, 8192, appBufSize, appBufSize - 53, appBufSize + 53, 5 * appBufSize};
+        for (int dataSize : dataSizes) {
+            for (int bufSize : bufferSizes) {
+                sendAppDataInMultipleBuffers(pair.client, pair.server, dataSize, bufSize);
+                sendAppDataInMultipleBuffers(pair.server, pair.client, dataSize, bufSize);
+                sendAppDataInMultipleBuffers(pair.client, pair.server, dataSize, bufSize);
+                sendAppDataInMultipleBuffers(pair.server, pair.client, dataSize, bufSize);
+            }
+        }
     }
 
     private TestKeyStore addServerCertListener(final Runnable callback) {

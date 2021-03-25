@@ -81,7 +81,7 @@ import javax.net.ssl.SSLEngine;
  * The following example illustrates how to create an {@code SSLContext} which enables the use of
  * TLS-PSK in {@code SSLSocket}, {@code SSLServerSocket} and {@code SSLEngine} instances obtained
  * from it.
- * <pre> {@code
+ * <pre>
  * PSKKeyManager myPskKeyManager = ...;
  *
  * SSLContext sslContext = SSLContext.getInstance("TLS");
@@ -92,7 +92,7 @@ import javax.net.ssl.SSLEngine;
  *         );
  *
  * SSLSocket sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(...);
- * }</pre>
+ * </pre>
  *
  * @deprecated This abstraction is deprecated because it does not work with TLS 1.3.
  */

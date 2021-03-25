@@ -248,12 +248,14 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     }
 
     @Override
+    @SuppressWarnings("JdkObsolete")  // Needed for API compatibility
     public void checkValidity() throws CertificateExpiredException,
             CertificateNotYetValidException {
         checkValidity(new Date());
     }
 
     @Override
+    @SuppressWarnings("JdkObsolete")  // Needed for API compatibility
     public void checkValidity(Date date) throws CertificateExpiredException,
             CertificateNotYetValidException {
         if (getNotBefore().compareTo(date) > 0) {
@@ -299,7 +301,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
 
     @Override
     public byte[] getTBSCertificate() throws CertificateEncodingException {
-        return NativeCrypto.get_X509_cert_info_enc(mContext, this);
+        return NativeCrypto.get_X509_tbs_cert(mContext, this);
     }
 
     @Override
@@ -567,16 +569,10 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     }
 
     /**
-     * Delete an extension.
-     *
-     * A modified copy of the certificate is returned. The original object
-     * is unchanged.
-     * If the extension is not present, an unmodified copy is returned.
+     * Returns a re-encoded TBSCertificate with the extension identified by oid removed.
      */
-    public OpenSSLX509Certificate withDeletedExtension(String oid) {
-        OpenSSLX509Certificate copy = new OpenSSLX509Certificate(NativeCrypto.X509_dup(mContext, this), notBefore, notAfter);
-        NativeCrypto.X509_delete_ext(copy.getContext(), copy, oid);
-        return copy;
+    public byte[] getTBSCertificateWithoutExtension(String oid) {
+        return NativeCrypto.get_X509_tbs_cert_without_ext(mContext, this, oid);
     }
 
     @Override

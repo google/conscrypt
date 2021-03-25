@@ -30,15 +30,21 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.TimeZone;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import tests.util.Pair;
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
@@ -170,7 +176,7 @@ public class X509CertificateTest {
      * fields as necessary with https://github.com/google/der-ascii.
      */
     private static final String MANY_EXTENSIONS = "-----BEGIN CERTIFICATE-----\n"
-            + "MIIEVDCCAzygAwIBAgIJALW2IrlaBKUhMA0GCSqGSIb3DQEBCwUAMBYxFDASBgNV\n"
+            + "MIIEADCCAuigAwIBAgIJALW2IrlaBKUhMA0GCSqGSIb3DQEBCwUAMBYxFDASBgNV\n"
             + "BAMMC1Rlc3QgSXNzdWVyMB4XDTE2MDcwOTA0MzgwOVoXDTE2MDgwODA0MzgwOVow\n"
             + "FzEVMBMGA1UEAwwMVGVzdCBTdWJqZWN0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\n"
             + "MIIBCgKCAQEAugvahBkSAUF1fC49vb1bvlPrcl80kop1iLpiuYoz4Qptwy57+EWs\n"
@@ -178,22 +184,20 @@ public class X509CertificateTest {
             + "zepBrhtp5UQSjHD4D4hKtgdMgVxX+LRtwgW3mnu/vBu7rzpr/DS8io99p3lqZ1Ak\n"
             + "y+aNlcMj6MYy8U+YFEevb/V0lRY9oqwmW7BHnXikm/vi6sjIS350U8zb/mRzYeIs\n"
             + "2R65LUduTL50+UMgat9ocewI2dv8aO9Dph+8NdGtg8LFYyTTHcUxJoMr1PTOgnmE\n"
-            + "T19WJH4PrFwk7ZE1QJQQ1L4iKmPeQistuQIDAQABgQIEoIICA1CjggGaMIIBljAP\n"
+            + "T19WJH4PrFwk7ZE1QJQQ1L4iKmPeQistuQIDAQABgQIEoIICA1CjggFGMIIBQjAP\n"
             + "BgNVHRMECDAGAQH/AgEKMCEGA1UdJQQaMBgGCCsGAQUFBwMBBgwqhkiG9xIEAYS3\n"
-            + "CQIwgagGA1UdEQSBoDCBnaATBgwqhkiG9xIEAYS3CQKgAwIBAIETc3ViamVjdEBl\n"
-            + "eGFtcGxlLmNvbYITc3ViamVjdC5leGFtcGxlLmNvbaQZMBcxFTATBgNVBAMMDFRl\n"
-            + "c3QgU3ViamVjdIYbaHR0cHM6Ly9leGFtcGxlLmNvbS9zdWJqZWN0hwR/AAABhxAA\n"
-            + "AAAAAAAAAAAAAAAAAAABiAwqhkiG9xIEAYS3CQIwgaQGA1UdEgSBnDCBmaATBgwq\n"
-            + "hkiG9xIEAYS3CQKgAwIBAYESaXNzdWVyQGV4YW1wbGUuY29tghJpc3N1ZXIuZXhh\n"
-            + "bXBsZS5jb22kGDAWMRQwEgYDVQQDDAtUZXN0IElzc3VlcoYaaHR0cHM6Ly9leGFt\n"
-            + "cGxlLmNvbS9pc3N1ZXKHBH8AAAGHEAAAAAAAAAAAAAAAAAAAAAGIDCqGSIb3EgQB\n"
-            + "hLcJAjAOBgNVHQ8BAf8EBAMCBaAwDQYJKoZIhvcNAQELBQADggEBAD7Jg68SArYW\n"
-            + "lcoHfZAB90Pmyrt5H6D8LRi+W2Ri1fBNxREELnezWJ2scjl4UMcsKYp4Pi950gVN\n"
-            + "+62IgrImcCNvtb5I1Cfy/MNNur9ffas6X334D0hYVIQTePyFk3umI+2mJQrtZZyM\n"
-            + "PIKSY/sYGQHhGGX6wGK+GO/og0PQk/Vu6D+GU2XRnDV0YZg1lsAsHd21XryK6fDm\n"
-            + "NkEMwbIWrts4xc7scRrGHWy+iMf6/7p/Ak/SIicM4XSwmlQ8pPxAZPr+E2LoVd9p\n"
-            + "MpWUwpW2UbtO5wsGTrY5sO45tFNN/y+jtUheB1C2ijObG/tXELaiyCdM+S/waeuv\n"
-            + "0MXtI4xnn1A=\n"
+            + "CQIwfwYDVR0RBHgwdoETc3ViamVjdEBleGFtcGxlLmNvbYITc3ViamVjdC5leGFt\n"
+            + "cGxlLmNvbaQZMBcxFTATBgNVBAMMDFRlc3QgU3ViamVjdIYbaHR0cHM6Ly9leGFt\n"
+            + "cGxlLmNvbS9zdWJqZWN0hwR/AAABiAwqhkiG9xIEAYS3CQIwewYDVR0SBHQwcoES\n"
+            + "aXNzdWVyQGV4YW1wbGUuY29tghJpc3N1ZXIuZXhhbXBsZS5jb22kGDAWMRQwEgYD\n"
+            + "VQQDDAtUZXN0IElzc3VlcoYaaHR0cHM6Ly9leGFtcGxlLmNvbS9pc3N1ZXKHBH8A\n"
+            + "AAGIDCqGSIb3EgQBhLcJAjAOBgNVHQ8BAf8EBAMCBaAwDQYJKoZIhvcNAQELBQAD\n"
+            + "ggEBAD7Jg68SArYWlcoHfZAB90Pmyrt5H6D8LRi+W2Ri1fBNxREELnezWJ2scjl4\n"
+            + "UMcsKYp4Pi950gVN+62IgrImcCNvtb5I1Cfy/MNNur9ffas6X334D0hYVIQTePyF\n"
+            + "k3umI+2mJQrtZZyMPIKSY/sYGQHhGGX6wGK+GO/og0PQk/Vu6D+GU2XRnDV0YZg1\n"
+            + "lsAsHd21XryK6fDmNkEMwbIWrts4xc7scRrGHWy+iMf6/7p/Ak/SIicM4XSwmlQ8\n"
+            + "pPxAZPr+E2LoVd9pMpWUwpW2UbtO5wsGTrY5sO45tFNN/y+jtUheB1C2ijObG/tX\n"
+            + "ELaiyCdM+S/waeuv0MXtI4xnn1A=\n"
             + "-----END CERTIFICATE-----\n";
 
     /**
@@ -235,6 +239,21 @@ public class X509CertificateTest {
             + "2xYaHPUdfvGULUvPciLBow0wCzAJBgNVHRMEAjAAMAoGCCqGSM49BAMCA0gAMEUC\n"
             + "IQDyoDVeUTo2w4J5m+4nUIWOcAZ0lVfSKXQA9L4Vh13EBwIgfB55FGohg/B6dGh5\n"
             + "XxSZmmi08cueFV7mHzJSYV51yRQ=\n"
+            + "-----END CERTIFICATE-----\n";
+
+    /**
+     * This is a certificate with a pathlen constraint of 10, but there is an unrelated invalid
+     * subjectAltNames extension.
+     */
+    private static final String BASIC_CONSTRAINTS_PATHLEN_10_BAD_SAN =
+            "-----BEGIN CERTIFICATE-----\n"
+            + "MIIBRjCB7aADAgECAgkA2UwE2kl9v+swCgYIKoZIzj0EAwIwFjEUMBIGA1UEAwwL\n"
+            + "VGVzdCBJc3N1ZXIwHhcNMTQwNDIzMjMyMTU3WhcNMTQwNTIzMjMyMTU3WjAXMRUw\n"
+            + "EwYDVQQDDAxUZXN0IFN1YmplY3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATm\n"
+            + "K2niv2Wfl74vHg2UikzVl2u3qR4NRvvdqakendy6WgHn1peoChj5w8SjHlbifINI\n"
+            + "2xYaHPUdfvGULUvPciLBoyMwITAPBgNVHRMECDAGAQH/AgEKMA4GA1UdEQQHSU5W\n"
+            + "QUxJRDAKBggqhkjOPQQDAgNIADBFAiEA8qA1XlE6NsOCeZvuJ1CFjnAGdJVX0il0\n"
+            + "APS+FYddxAcCIHweeRRqIYPwenRoeV8UmZpotPHLnhVe5h8yUmFedckU\n"
             + "-----END CERTIFICATE-----\n";
 
     /**
@@ -318,6 +337,49 @@ public class X509CertificateTest {
                 new ByteArrayInputStream(pem.getBytes(Charset.forName("US-ASCII"))));
     }
 
+    private static List<Pair<Integer, String>> normalizeGeneralNames(Collection<List<?>> names) {
+        // Extract a more convenient type than Java's Collection<List<?>>.
+        List<Pair<Integer, String>> result = new ArrayList<Pair<Integer, String>>();
+        for (List<?> tuple : names) {
+            assertEquals(2, tuple.size());
+            int type = ((Integer) tuple.get(0)).intValue();
+            // TODO(davidben): Most name types are expected to have a String value, but some use
+            // byte[]. Update this logic when testing those name types. See
+            // X509Certificate.getSubjectAlternativeNames().
+            String value = (String) tuple.get(1);
+            result.add(Pair.of(type, value));
+        }
+        // Although there is a natural order (the order in the certificate), Java's API returns a
+        // Collection, so there is no guarantee of the provider using a particular order. Normalize
+        // the order before comparing.
+        Collections.sort(result, new Comparator<Pair<Integer, String>>() {
+            @Override
+            public int compare(Pair<Integer, String> a, Pair<Integer, String> b) {
+                int cmp = a.getFirst().compareTo(b.getFirst());
+                if (cmp != 0) {
+                    return cmp;
+                }
+                return a.getSecond().compareTo(b.getSecond());
+            }
+        });
+        return result;
+    }
+
+    private static void assertGeneralNamesEqual(
+            Collection<List<?>> expected, Collection<List<?>> actual) throws Exception {
+        assertEquals(normalizeGeneralNames(expected), normalizeGeneralNames(actual));
+    }
+
+    // Error Prone flags Date.equals(), but Instant and LocalDateTime are not available in Java 7.
+    // We could compare Date.getTime(), but this trips another warning in Error Prone. We do not use
+    // Date subclasses, so stick with Date.equals for now.
+    //
+    // https://errorprone.info/bugpattern/UndefinedEquals
+    @SuppressWarnings("UndefinedEquals")
+    private static void assertDatesEqual(Date expected, Date actual) throws Exception {
+        assertEquals(expected, actual);
+    }
+
     // See issue #539.
     @Test
     public void testMismatchedAlgorithm() throws Exception {
@@ -399,8 +461,9 @@ public class X509CertificateTest {
                 // Check basic certificate properties.
                 assertEquals(1, c.getVersion());
                 assertEquals(new BigInteger("d94c04da497dbfeb", 16), c.getSerialNumber());
-                assertEquals(dateFromUTC(2014, Calendar.APRIL, 23, 23, 21, 57), c.getNotBefore());
-                assertEquals(dateFromUTC(2014, Calendar.MAY, 23, 23, 21, 57), c.getNotAfter());
+                assertDatesEqual(
+                        dateFromUTC(2014, Calendar.APRIL, 23, 23, 21, 57), c.getNotBefore());
+                assertDatesEqual(dateFromUTC(2014, Calendar.MAY, 23, 23, 21, 57), c.getNotAfter());
                 assertEquals(new X500Principal("CN=Test Issuer"), c.getIssuerX500Principal());
                 assertEquals(new X500Principal("CN=Test Subject"), c.getSubjectX500Principal());
                 assertEquals("1.2.840.10045.4.1", c.getSigAlgOID());
@@ -437,8 +500,8 @@ public class X509CertificateTest {
 
                 assertEquals(3, c.getVersion());
                 assertEquals(new BigInteger("b5b622b95a04a521", 16), c.getSerialNumber());
-                assertEquals(dateFromUTC(2016, Calendar.JULY, 9, 4, 38, 9), c.getNotBefore());
-                assertEquals(dateFromUTC(2016, Calendar.AUGUST, 8, 4, 38, 9), c.getNotAfter());
+                assertDatesEqual(dateFromUTC(2016, Calendar.JULY, 9, 4, 38, 9), c.getNotBefore());
+                assertDatesEqual(dateFromUTC(2016, Calendar.AUGUST, 8, 4, 38, 9), c.getNotAfter());
                 assertEquals(new X500Principal("CN=Test Issuer"), c.getIssuerX500Principal());
                 assertEquals(new X500Principal("CN=Test Subject"), c.getSubjectX500Principal());
                 assertEquals("1.2.840.113549.1.1.11", c.getSigAlgOID());
@@ -473,8 +536,27 @@ public class X509CertificateTest {
                 assertEquals(Arrays.asList("1.3.6.1.5.5.7.3.1", "1.2.840.113554.4.1.72585.2"),
                         c.getExtendedKeyUsage());
 
-                // TODO(davidben): Test getSubjectAlternativeNames() and
-                // getIssuerAlternativeNames(), after resolving behavior differences.
+                // TODO(davidben): Test the other name types.
+                assertGeneralNamesEqual(
+                        Arrays.<List<?>>asList(Arrays.asList(1, "issuer@example.com"),
+                                Arrays.asList(2, "issuer.example.com"),
+                                Arrays.asList(4, "CN=Test Issuer"),
+                                Arrays.asList(6, "https://example.com/issuer"),
+                                // TODO(https://github.com/google/conscrypt/issues/938): Fix IPv6
+                                // handling and include it in this test.
+                                Arrays.asList(7, "127.0.0.1"),
+                                Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
+                        c.getIssuerAlternativeNames());
+                assertGeneralNamesEqual(
+                        Arrays.<List<?>>asList(Arrays.asList(1, "subject@example.com"),
+                                Arrays.asList(2, "subject.example.com"),
+                                Arrays.asList(4, "CN=Test Subject"),
+                                Arrays.asList(6, "https://example.com/subject"),
+                                // TODO(https://github.com/google/conscrypt/issues/938): Fix IPv6
+                                // handling and include it in this test.
+                                Arrays.asList(7, "127.0.0.1"),
+                                Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
+                        c.getSubjectAlternativeNames());
 
                 // Although the BIT STRING in the certificate only has three bits, getKeyUsage()
                 // rounds up to at least 9 bits.
@@ -508,6 +590,21 @@ public class X509CertificateTest {
                 // basicConstraints extension and a leaf one.
                 c = certificateFromPEM(p, BASIC_CONSTRAINTS_LEAF);
                 assertEquals(-1, c.getBasicConstraints());
+
+                // If some unrelated extension has a syntax error, and that syntax error does not
+                // fail when constructing the certificate, it should not interfere with
+                // getBasicConstraints().
+                try {
+                    c = certificateFromPEM(p, BASIC_CONSTRAINTS_PATHLEN_10_BAD_SAN);
+                } catch (CertificateParsingException e) {
+                    // The certificate has a syntax error, so it would also be valid for the
+                    // provider to reject the certificate at construction. X.509 is an extensible
+                    // format, so different implementations may notice errors at different points.
+                    c = null;
+                }
+                if (c != null) {
+                    assertEquals(10, c.getBasicConstraints());
+                }
             }
         });
     }

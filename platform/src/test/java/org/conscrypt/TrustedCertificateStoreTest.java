@@ -877,6 +877,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertEquals(x, store.findIssuer(x));
     }
 
+    @SuppressWarnings("JdkObsolete") // Date is used in public API TrustedCertificateKeyStoreSpi
     private void assertTrusted(X509Certificate x, String alias) {
         assertEquals(x, store.getCertificate(alias));
         assertEquals(file(alias).lastModified(), store.getCreationDate(alias).getTime());

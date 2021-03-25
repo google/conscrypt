@@ -20,9 +20,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -30,6 +32,7 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
@@ -44,6 +47,8 @@ import java.util.Base64;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Random;
 import java.util.Set;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -63,7 +68,7 @@ import org.junit.Assume;
  * Utility methods to support testing.
  */
 public final class TestUtils {
-    public static final Charset UTF_8 = Charset.forName("UTF-8");
+    public static final Charset UTF_8 = StandardCharsets.UTF_8;
     private static final String PROTOCOL_TLS_V1_2 = "TLSv1.2";
     private static final String PROTOCOL_TLS_V1_1 = "TLSv1.1";
     private static final String PROTOCOL_TLS_V1 = "TLSv1";
@@ -76,6 +81,41 @@ public final class TestUtils {
     private static final String[] PROTOCOLS = getProtocolsInternal();
 
     static final String TEST_CIPHER = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
+
+    public enum BufferType {
+        HEAP {
+            @Override
+            ByteBuffer newBuffer(int size) {
+                return ByteBuffer.allocate(size);
+            }
+        },
+        DIRECT {
+            @Override
+            ByteBuffer newBuffer(int size) {
+                return ByteBuffer.allocateDirect(size);
+            }
+        };
+        private static final Random random = new Random(System.currentTimeMillis());
+        abstract ByteBuffer newBuffer(int size);
+
+        public ByteBuffer[] newRandomBuffers(int... sizes) {
+            int numBuffers = sizes.length;
+            ByteBuffer[] result = new ByteBuffer[numBuffers];
+            for (int i = 0; i < numBuffers; i++) {
+                result[i] = newRandomBuffer(sizes[i]);
+            }
+            return result;
+        }
+
+        public ByteBuffer newRandomBuffer(int size) {
+            byte[] data = new byte[size];
+            random.nextBytes(data);
+            ByteBuffer buffer = newBuffer(size);
+            buffer.put(data);
+            buffer.flip();
+            return buffer;
+        }
+    }
 
     private TestUtils() {}
 
@@ -120,6 +160,10 @@ public final class TestUtils {
 
     public static void assumeExtendedTrustManagerAvailable() {
         assumeClassAvailable("javax.net.ssl.X509ExtendedTrustManager");
+    }
+
+    public static void assumeStatsLogAvailable() {
+        assumeClassAvailable("android.util.StatsEvent");
     }
 
     public static void assumeSetEndpointIdentificationAlgorithmAvailable() {
@@ -223,13 +267,29 @@ public final class TestUtils {
 
     public static PublicKey readPublicKeyPemFile(String name)
             throws InvalidKeySpecException, NoSuchAlgorithmException, IOException {
-        String keyData = new String(readTestFile(name), "US-ASCII");
+        String keyData = new String(readTestFile(name), StandardCharsets.US_ASCII);
         keyData = keyData.replace("-----BEGIN PUBLIC KEY-----", "");
         keyData = keyData.replace("-----END PUBLIC KEY-----", "");
         keyData = keyData.replace("\r", "");
         keyData = keyData.replace("\n", "");
         return KeyFactory.getInstance("EC").generatePublic(
                 new X509EncodedKeySpec(decodeBase64(keyData)));
+    }
+
+    public static List<String[]> readCsvResource(String resourceName) throws IOException {
+        InputStream stream = openTestFile(resourceName);
+        List<String[]> lines = new ArrayList<>();
+        try (BufferedReader reader
+                     = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                lines.add(line.split(",", -1));
+            }
+        }
+        return lines;
     }
 
     /**
@@ -256,21 +316,13 @@ public final class TestUtils {
     }
 
     private static String[] getProtocolsInternal() {
-        List<String> protocols = new ArrayList<String>();
+        List<String> protocols = new ArrayList<>();
         for (String protocol : DESIRED_PROTOCOLS) {
             if (hasProtocol(getJdkProvider(), protocol)) {
                 protocols.add(protocol);
             }
         }
-        return protocols.toArray(new String[protocols.size()]);
-    }
-
-    public static SSLSocketFactory getJdkSocketFactory() {
-        return getSocketFactory(JDK_PROVIDER);
-    }
-
-    public static SSLServerSocketFactory getJdkServerSocketFactory() {
-        return getServerSocketFactory(JDK_PROVIDER);
+        return protocols.toArray(new String[0]);
     }
 
     static SSLSocketFactory setUseEngineSocket(
@@ -309,24 +361,6 @@ public final class TestUtils {
         }
     }
 
-    public static SSLSocketFactory getConscryptSocketFactory(boolean useEngineSocket) {
-        return setUseEngineSocket(getSocketFactory(getConscryptProvider()), useEngineSocket);
-    }
-
-    public static SSLServerSocketFactory getConscryptServerSocketFactory(boolean useEngineSocket) {
-        return setUseEngineSocket(getServerSocketFactory(getConscryptProvider()), useEngineSocket);
-    }
-
-    private static SSLSocketFactory getSocketFactory(Provider provider) {
-        SSLContext clientContext = initClientSslContext(newContext(provider));
-        return clientContext.getSocketFactory();
-    }
-
-    private static SSLServerSocketFactory getServerSocketFactory(Provider provider) {
-        SSLContext serverContext = initServerSslContext(newContext(provider));
-        return serverContext.getServerSocketFactory();
-    }
-
     static SSLContext newContext(Provider provider) {
         try {
             return SSLContext.getInstance("TLS", provider);
@@ -340,12 +374,11 @@ public final class TestUtils {
                 TestUtils.initSslContext(newContext(getJdkProvider()), TestKeyStore.getClient());
         SSLContext conscryptContext = TestUtils.initSslContext(
                 newContext(getConscryptProvider()), TestKeyStore.getClient());
-        Set<String> supported = new LinkedHashSet<String>();
-        supported.addAll(supportedCiphers(jdkContext));
+        Set<String> supported = new LinkedHashSet<>(supportedCiphers(jdkContext));
         supported.retainAll(supportedCiphers(conscryptContext));
         filterCiphers(supported);
 
-        return supported.toArray(new String[supported.size()]);
+        return supported.toArray(new String[0]);
     }
 
     private static List<String> supportedCiphers(SSLContext ctx) {
@@ -432,7 +465,7 @@ public final class TestUtils {
     }
 
     /**
-     * Performs the intial TLS handshake between the two {@link SSLEngine} instances.
+     * Performs the initial TLS handshake between the two {@link SSLEngine} instances.
      */
     public static void doEngineHandshake(SSLEngine clientEngine, SSLEngine serverEngine,
         ByteBuffer clientAppBuffer, ByteBuffer clientPacketBuffer, ByteBuffer serverAppBuffer,
@@ -603,7 +636,6 @@ public final class TestUtils {
         return result;
     }
 
-
     private static int toDigit(char[] str, int offset) throws IllegalArgumentException {
         // NOTE: that this isn't really a code point in the traditional sense, since we're
         // just rejecting surrogate pairs outright.
@@ -619,6 +651,18 @@ public final class TestUtils {
 
         throw new IllegalArgumentException("Illegal char: " + str[offset] +
                 " at offset " + offset);
+    }
+
+    private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
+
+    public static String encodeHex(byte[] data) {
+        char[] hex = new char[data.length * 2];
+        for (int i = 0; i < data.length; i++) {
+            int value = data[i] & 0xff;
+            hex[2 * i] = HEX_CHARS[value >>> 4];
+            hex[2 * i + 1] = HEX_CHARS[value & 0x0f];
+        }
+        return new String(hex);
     }
 
     private static final String BASE64_ALPHABET =
@@ -705,5 +749,22 @@ public final class TestUtils {
 
     public static void assumeJava8() {
         Assume.assumeTrue("Require Java 8: " + javaVersion(), isJavaVersion(8));
+    }
+
+    public static String osName() {
+        return System.getProperty("os.name").toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "");
+    }
+
+    public static boolean isLinux() {
+        return osName().startsWith("linux");
+    }
+
+    public static boolean isWindows() {
+        return osName().startsWith("windows");
+    }
+
+    public static boolean isOsx() {
+        String name = osName();
+        return name.startsWith("macosx") || name.startsWith("osx");
     }
 }

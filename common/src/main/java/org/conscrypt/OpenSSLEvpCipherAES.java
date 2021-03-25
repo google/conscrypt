@@ -78,13 +78,13 @@ public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
                 super(Mode.CBC, padding);
             }
 
-            public static class NoPadding extends CBC {
+            public static class NoPadding extends AES.CBC {
                 public NoPadding() {
                     super(Padding.NOPADDING);
                 }
             }
 
-            public static class PKCS5Padding extends CBC {
+            public static class PKCS5Padding extends AES.CBC {
                 public PKCS5Padding() {
                     super(Padding.PKCS5PADDING);
                 }
@@ -102,13 +102,13 @@ public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
                 super(Mode.ECB, padding);
             }
 
-            public static class NoPadding extends ECB {
+            public static class NoPadding extends AES.ECB {
                 public NoPadding() {
                     super(Padding.NOPADDING);
                 }
             }
 
-            public static class PKCS5Padding extends ECB {
+            public static class PKCS5Padding extends AES.ECB {
                 public PKCS5Padding() {
                     super(Padding.PKCS5PADDING);
                 }
@@ -139,13 +139,13 @@ public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
                 super(Mode.CBC, padding);
             }
 
-            public static class NoPadding extends CBC {
+            public static class NoPadding extends AES_128.CBC {
                 public NoPadding() {
                     super(Padding.NOPADDING);
                 }
             }
 
-            public static class PKCS5Padding extends CBC {
+            public static class PKCS5Padding extends AES_128.CBC {
                 public PKCS5Padding() {
                     super(Padding.PKCS5PADDING);
                 }
@@ -163,13 +163,13 @@ public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
                 super(Mode.ECB, padding);
             }
 
-            public static class NoPadding extends ECB {
+            public static class NoPadding extends AES_128.ECB {
                 public NoPadding() {
                     super(Padding.NOPADDING);
                 }
             }
 
-            public static class PKCS5Padding extends ECB {
+            public static class PKCS5Padding extends AES_128.ECB {
                 public PKCS5Padding() {
                     super(Padding.PKCS5PADDING);
                 }
@@ -194,13 +194,13 @@ public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
                 super(Mode.CBC, padding);
             }
 
-            public static class NoPadding extends CBC {
+            public static class NoPadding extends AES_256.CBC {
                 public NoPadding() {
                     super(Padding.NOPADDING);
                 }
             }
 
-            public static class PKCS5Padding extends CBC {
+            public static class PKCS5Padding extends AES_256.CBC {
                 public PKCS5Padding() {
                     super(Padding.PKCS5PADDING);
                 }
@@ -218,13 +218,13 @@ public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
                 super(Mode.ECB, padding);
             }
 
-            public static class NoPadding extends ECB {
+            public static class NoPadding extends AES_256.ECB {
                 public NoPadding() {
                     super(Padding.NOPADDING);
                 }
             }
 
-            public static class PKCS5Padding extends ECB {
+            public static class PKCS5Padding extends AES_256.ECB {
                 public PKCS5Padding() {
                     super(Padding.PKCS5PADDING);
                 }

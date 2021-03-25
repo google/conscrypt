@@ -76,6 +76,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECKey;
 import java.security.spec.ECParameterSpec;
+import java.util.Arrays;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -89,7 +90,6 @@ import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.ExternalSession.Provider;
 import org.conscrypt.NativeRef.SSL_SESSION;
 import org.conscrypt.NativeSsl.BioWrapper;
 import org.conscrypt.SSLParametersImpl.AliasChooser;
@@ -100,6 +100,7 @@ import org.conscrypt.SSLParametersImpl.AliasChooser;
 final class ConscryptEngine extends AbstractConscryptEngine implements NativeCrypto.SSLHandshakeCallbacks,
                                                          SSLParametersImpl.AliasChooser,
                                                          SSLParametersImpl.PSKCallbacks {
+
     private static final SSLEngineResult NEED_UNWRAP_OK =
             new SSLEngineResult(OK, NEED_UNWRAP, 0, 0);
     private static final SSLEngineResult NEED_UNWRAP_CLOSED =
@@ -156,7 +157,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
      * The session object exposed externally from this class.
      */
     private final SSLSession externalSession =
-        Platform.wrapSSLSession(new ExternalSession(new Provider() {
+        Platform.wrapSSLSession(new ExternalSession(new ExternalSession.Provider() {
             @Override
             public ConscryptSession provideSession() {
                 return ConscryptEngine.this.provideSession();
@@ -586,7 +587,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     SSLSession handshakeSession() {
         synchronized (ssl) {
             if (state == STATE_HANDSHAKE_STARTED) {
-                return Platform.wrapSSLSession(new ExternalSession(new Provider() {
+                return Platform.wrapSSLSession(new ExternalSession(new ExternalSession.Provider() {
                     @Override
                     public ConscryptSession provideSession() {
                         return ConscryptEngine.this.provideHandshakeSession();
@@ -1391,6 +1392,11 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             throw new ReadOnlyBufferException();
         }
 
+        if ((srcsOffset != 0) || (srcsLength != srcs.length)) {
+            srcs = Arrays.copyOfRange(srcs, srcsOffset, srcsOffset + srcsLength);
+        }
+        BufferUtils.checkNotNull(srcs);
+
         synchronized (ssl) {
             switch (state) {
                 case STATE_MODE_SET:
@@ -1430,118 +1436,111 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 // NEED_WRAP - just fall through to perform the wrap.
             }
 
-            int srcsLen = 0;
-            final int endOffset = srcsOffset + srcsLength;
-            for (int i = srcsOffset; i < endOffset; ++i) {
-                final ByteBuffer src = srcs[i];
-                if (src == null) {
-                    throw new IllegalArgumentException("srcs[" + i + "] is null");
-                }
-                if (srcsLen == SSL3_RT_MAX_PLAIN_LENGTH) {
-                    continue;
-                }
-
-                srcsLen += src.remaining();
-                if (srcsLen > SSL3_RT_MAX_PLAIN_LENGTH || srcsLen < 0) {
-                    // If srcLen > MAX_PLAINTEXT_LENGTH or secLen < 0 just set it to
-                    // MAX_PLAINTEXT_LENGTH.
-                    // This also help us to guard against overflow.
-                    // We not break out here as we still need to check for null entries in srcs[].
-                    srcsLen = SSL3_RT_MAX_PLAIN_LENGTH;
-                }
-            }
-
-            if (dst.remaining() < calculateOutNetBufSize(srcsLen)) {
+            int dataLength = (int) min(BufferUtils.remaining(srcs), SSL3_RT_MAX_PLAIN_LENGTH);
+            if (dst.remaining() < calculateOutNetBufSize(dataLength)) {
                 return new SSLEngineResult(
                     Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0, 0);
             }
 
             int bytesProduced = 0;
             int bytesConsumed = 0;
-        loop:
-            for (int i = srcsOffset; i < endOffset; ++i) {
-                final ByteBuffer src = srcs[i];
-                checkArgument(src != null, "srcs[%d] is null", i);
-                while (src.hasRemaining()) {
-                    final SSLEngineResult pendingNetResult;
-                    // Write plaintext application data to the SSL engine
-                    int result = writePlaintextData(
-                        src, min(src.remaining(), SSL3_RT_MAX_PLAIN_LENGTH - bytesConsumed));
-                    if (result > 0) {
-                        bytesConsumed += result;
+            if (dataLength > 0) {
+                // Try and find a single buffer to send, e.g. the first non-empty buffer has
+                // more than enough data remaining to fill a TLS record. Otherwise copy as much
+                // data as possible from the source buffers to fill a record. Note the we can't
+                // mark the data as consumed until we see how much the TLS layer actually consumes.
+                boolean isCopy = false;
+                ByteBuffer outputBuffer
+                        = BufferUtils.getBufferLargerThan(srcs, SSL3_RT_MAX_PLAIN_LENGTH);
+                if (outputBuffer == null) {
+                    // The buffer by getOrCreateLazyDirectBuffer() is also used by
+                    // writePlainTextDataHeap(), but by filling it here the write path will go via
+                    // writePlainTextDataDirect() and the cost will be approximately the same,
+                    // especially if compacting multiple non-direct buffers into a single
+                    // direct one.
+                    // TODO(): use bufferAllocator if set.
+                    // https://github.com/google/conscrypt/issues/974
+                    outputBuffer = BufferUtils.copyNoConsume(
+                            srcs, getOrCreateLazyDirectBuffer(), SSL3_RT_MAX_PLAIN_LENGTH);
+                    isCopy = true;
+                }
+                final SSLEngineResult pendingNetResult;
+                // Write plaintext application data to the SSL engine
+                int result = writePlaintextData(outputBuffer,
+                        min(SSL3_RT_MAX_PLAIN_LENGTH, outputBuffer.remaining()));
+                if (result > 0) {
+                    bytesConsumed = result;
+                    if (isCopy) {
+                        // Data was a copy, so mark it as consumed in the original buffers.
+                        BufferUtils.consume(srcs, bytesConsumed);
+                    }
 
-                        pendingNetResult = readPendingBytesFromBIO(
+                    pendingNetResult = readPendingBytesFromBIO(
                             dst, bytesConsumed, bytesProduced, handshakeStatus);
-                        if (pendingNetResult != null) {
-                            if (pendingNetResult.getStatus() != OK) {
-                                return pendingNetResult;
-                            }
-                            bytesProduced = pendingNetResult.bytesProduced();
+                    if (pendingNetResult != null) {
+                        if (pendingNetResult.getStatus() != OK) {
+                            return pendingNetResult;
                         }
-                        if (bytesConsumed == SSL3_RT_MAX_PLAIN_LENGTH) {
-                            // If we consumed the maximum amount of bytes for the plaintext length
-                            // break out of the loop and start to fill the dst buffer.
-                            break loop;
-                        }
-                    } else {
-                        int sslError = ssl.getError(result);
-                        switch (sslError) {
-                            case SSL_ERROR_ZERO_RETURN:
-                                // This means the connection was shutdown correctly, close inbound
-                                // and outbound
-                                closeAll();
-                                pendingNetResult = readPendingBytesFromBIO(
-                                        dst, bytesConsumed, bytesProduced, handshakeStatus);
-                                return pendingNetResult != null ? pendingNetResult
-                                                                : CLOSED_NOT_HANDSHAKING;
-                            case SSL_ERROR_WANT_READ:
-                                // If there is no pending data to read from BIO we should go back to
-                                // event loop and try
-                                // to read more data [1]. It is also possible that event loop will
-                                // detect the socket
-                                // has been closed. [1]
-                                // https://www.openssl.org/docs/manmaster/man3/SSL_write.html
-                                pendingNetResult = readPendingBytesFromBIO(
-                                        dst, bytesConsumed, bytesProduced, handshakeStatus);
-                                return pendingNetResult != null
-                                        ? pendingNetResult
-                                        : new SSLEngineResult(getEngineStatus(), NEED_UNWRAP,
-                                                  bytesConsumed, bytesProduced);
-                            case SSL_ERROR_WANT_WRITE:
-                                // SSL_ERROR_WANT_WRITE typically means that the underlying
-                                // transport is not writable
-                                // and we should set the "want write" flag on the selector and try
-                                // again when the
-                                // underlying transport is writable [1]. However we are not directly
-                                // writing to the
-                                // underlying transport and instead writing to a BIO buffer. The
-                                // OpenSsl documentation
-                                // says we should do the following [1]:
-                                //
-                                // "When using a buffering BIO, like a BIO pair, data must be
-                                // written into or retrieved
-                                // out of the BIO before being able to continue."
-                                //
-                                // So we attempt to drain the BIO buffer below, but if there is no
-                                // data this condition
-                                // is undefined and we assume their is a fatal error with the
-                                // openssl engine and close.
-                                // [1] https://www.openssl.org/docs/manmaster/man3/SSL_write.html
-                                pendingNetResult = readPendingBytesFromBIO(
-                                        dst, bytesConsumed, bytesProduced, handshakeStatus);
-                                return pendingNetResult != null ? pendingNetResult
-                                                                : NEED_WRAP_CLOSED;
-                            default:
-                                // Everything else is considered as error
-                                closeAll();
-                                throw newSslExceptionWithMessage("SSL_write");
-                        }
+                        bytesProduced = pendingNetResult.bytesProduced();
+                    }
+                } else {
+                    int sslError = ssl.getError(result);
+                    switch (sslError) {
+                        case SSL_ERROR_ZERO_RETURN:
+                            // This means the connection was shutdown correctly, close inbound
+                            // and outbound
+                            closeAll();
+                            pendingNetResult = readPendingBytesFromBIO(
+                                    dst, bytesConsumed, bytesProduced, handshakeStatus);
+                            return pendingNetResult != null ? pendingNetResult
+                                    : CLOSED_NOT_HANDSHAKING;
+                        case SSL_ERROR_WANT_READ:
+                            // If there is no pending data to read from BIO we should go back to
+                            // event loop and try
+                            // to read more data [1]. It is also possible that event loop will
+                            // detect the socket
+                            // has been closed. [1]
+                            // https://www.openssl.org/docs/manmaster/man3/SSL_write.html
+                            pendingNetResult = readPendingBytesFromBIO(
+                                    dst, bytesConsumed, bytesProduced, handshakeStatus);
+                            return pendingNetResult != null
+                                    ? pendingNetResult
+                                    : new SSLEngineResult(getEngineStatus(), NEED_UNWRAP,
+                                    bytesConsumed, bytesProduced);
+                        case SSL_ERROR_WANT_WRITE:
+                            // SSL_ERROR_WANT_WRITE typically means that the underlying
+                            // transport is not writable
+                            // and we should set the "want write" flag on the selector and try
+                            // again when the
+                            // underlying transport is writable [1]. However we are not directly
+                            // writing to the
+                            // underlying transport and instead writing to a BIO buffer. The
+                            // OpenSsl documentation
+                            // says we should do the following [1]:
+                            //
+                            // "When using a buffering BIO, like a BIO pair, data must be
+                            // written into or retrieved
+                            // out of the BIO before being able to continue."
+                            //
+                            // So we attempt to drain the BIO buffer below, but if there is no
+                            // data this condition
+                            // is undefined and we assume their is a fatal error with the
+                            // openssl engine and close.
+                            // [1] https://www.openssl.org/docs/manmaster/man3/SSL_write.html
+                            pendingNetResult = readPendingBytesFromBIO(
+                                    dst, bytesConsumed, bytesProduced, handshakeStatus);
+                            return pendingNetResult != null ? pendingNetResult
+                                    : NEED_WRAP_CLOSED;
+                        default:
+                            // Everything else is considered as error
+                            closeAll();
+                            throw newSslExceptionWithMessage("SSL_write: error " + sslError);
                     }
                 }
             }
-            // We need to check if pendingWrittenBytesInBIO was checked yet, as we may not checked
-            // if the srcs was
-            // empty, or only contained empty buffers.
+
+            // We need to check if pendingWrittenBytesInBIO was checked yet, as we may not have
+            // checked if the srcs was empty, or only contained empty buffers.
             if (bytesConsumed == 0) {
                 SSLEngineResult pendingNetResult =
                         readPendingBytesFromBIO(dst, 0, bytesProduced, handshakeStatus);
@@ -1549,9 +1548,6 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                     return pendingNetResult;
                 }
             }
-
-            // return new SSLEngineResult(OK, getHandshakeStatusInternal(), bytesConsumed,
-            // bytesProduced);
             return newResult(bytesConsumed, bytesProduced, handshakeStatus);
         }
     }
@@ -1673,8 +1669,10 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
 
     private void closeAndFreeResources() {
         transitionTo(STATE_CLOSED);
-        if (!ssl.isClosed()) {
+        if (ssl != null) {
             ssl.close();
+        }
+        if (networkBio != null) {
             networkBio.close();
         }
     }
@@ -1682,7 +1680,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     @Override
     protected void finalize() throws Throwable {
         try {
-            transitionTo(STATE_CLOSED);
+            closeAndFreeResources();
         } finally {
             super.finalize();
         }

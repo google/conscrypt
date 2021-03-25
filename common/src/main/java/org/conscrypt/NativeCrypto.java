@@ -203,6 +203,12 @@ public final class NativeCrypto {
 
     static native int ECDSA_verify(byte[] data, byte[] sig, NativeRef.EVP_PKEY pkey);
 
+    // --- Curve25519 --------------
+
+    static native boolean X25519(byte[] out, byte[] privateKey, byte[] publicKey) throws InvalidKeyException;
+
+    static native void X25519_keypair(byte[] outPublicKey, byte[] outPrivateKey);
+
     // --- Message digest functions --------------
 
     // These return const references
@@ -346,6 +352,20 @@ public final class NativeCrypto {
                                             byte[] nonce, ByteBuffer input, byte[] ad)
             throws ShortBufferException, BadPaddingException;
 
+    // --- CMAC functions ------------------------------------------------------
+
+    static native long CMAC_CTX_new();
+
+    static native void CMAC_CTX_free(long ctx);
+
+    static native void CMAC_Init(NativeRef.CMAC_CTX ctx, byte[] key);
+
+    static native void CMAC_Update(NativeRef.CMAC_CTX ctx, byte[] in, int inOffset, int inLength);
+
+    static native void CMAC_UpdateDirect(NativeRef.CMAC_CTX ctx, long inPtr, int inLength);
+
+    static native byte[] CMAC_Final(NativeRef.CMAC_CTX ctx);
+
     // --- HMAC functions ------------------------------------------------------
 
     static native long HMAC_CTX_new();
@@ -422,8 +442,6 @@ public final class NativeCrypto {
 
     static native void X509_free(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_dup(long x509ctx, OpenSSLX509Certificate holder);
-
     static native int X509_cmp(long x509ctx1, OpenSSLX509Certificate holder, long x509ctx2, OpenSSLX509Certificate holder2);
 
     static native void X509_print_ex(long bioCtx, long x509ctx, OpenSSLX509Certificate holder, long nmflag, long certflag);
@@ -469,7 +487,9 @@ public final class NativeCrypto {
     static native void X509_verify(long x509ctx, OpenSSLX509Certificate holder, NativeRef.EVP_PKEY pkeyCtx)
             throws BadPaddingException;
 
-    static native byte[] get_X509_cert_info_enc(long x509ctx, OpenSSLX509Certificate holder);
+    static native byte[] get_X509_tbs_cert(long x509ctx, OpenSSLX509Certificate holder);
+
+    static native byte[] get_X509_tbs_cert_without_ext(long x509ctx, OpenSSLX509Certificate holder, String oid);
 
     static native byte[] get_X509_signature(long x509ctx, OpenSSLX509Certificate holder);
 
@@ -526,8 +546,6 @@ public final class NativeCrypto {
     static native String[] get_X509_CRL_ext_oids(long x509Crlctx, OpenSSLX509CRL holder, int critical);
 
     static native byte[] X509_CRL_get_ext_oid(long x509CrlCtx, OpenSSLX509CRL holder, String oid);
-
-    static native void X509_delete_ext(long x509, OpenSSLX509Certificate holder, String oid);
 
     static native long X509_CRL_get_version(long x509CrlCtx, OpenSSLX509CRL holder);
 
@@ -1424,6 +1442,11 @@ public final class NativeCrypto {
      */
     static native void ENGINE_SSL_shutdown(long ssl, NativeSsl ssl_holder, SSLHandshakeCallbacks shc)
             throws IOException;
+
+    /**
+     * Return {@code true} if BoringSSL has been built in FIPS mode.
+     */
+    static native boolean usesBoringSsl_FIPS_mode();
 
     /**
      * Used for testing only.

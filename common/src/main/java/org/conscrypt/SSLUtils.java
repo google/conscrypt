@@ -332,11 +332,11 @@ final class SSLUtils {
             return chain;
         } catch (CertificateEncodingException e) {
             SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
-            exception.initCause(exception);
+            exception.initCause(e);
             throw exception;
         } catch (CertificateException e) {
             SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
-            exception.initCause(exception);
+            exception.initCause(e);
             throw exception;
         }
     }

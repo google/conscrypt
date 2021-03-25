@@ -42,26 +42,31 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
+      - name: Set up JDK 11 for toolchains
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 11
+
+      - name: Set up JDK 8 for toolchains
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 8
+
       - name: Set runner-specific environment variables
         shell: bash
         run: |
-          echo "::set-env name=ANDROID_HOME::${{ runner.temp }}/android-sdk"
-          echo "::set-env name=BORINGSSL_HOME::${{ runner.temp }}/boringssl"
-          echo "::set-env name=SDKMANAGER::${{ runner.temp }}/android-sdk/tools/bin/sdkmanager"
-          echo "::set-env name=M2_REPO::${{ runner.temp }}/m2"
+          echo "ANDROID_HOME=${{ runner.temp }}/android-sdk" >> $GITHUB_ENV
+          echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
+          echo "SDKMANAGER=${{ runner.temp }}/android-sdk/tools/bin/sdkmanager" >> $GITHUB_ENV
+          echo "M2_REPO=${{ runner.temp }}/m2" >> $GITHUB_ENV
 
       - uses: actions/checkout@v2
-
-      - name: install Go
-        uses: actions/setup-go@v1
-        with:
-          go-version: '1.13.2'
 
       - name: Setup Linux environment
         if: runner.os == 'Linux'
         run: |
-          echo "::set-env name=CC::clang"
-          echo "::set-env name=CXX::clang++"
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
 
           sudo dpkg --add-architecture i386
           sudo add-apt-repository ppa:openjdk-r/ppa
@@ -79,13 +84,15 @@ jobs:
           # Workaround for https://github.com/actions/virtual-environments/issues/1811
           # Remove broken openssl and python packages, not used by Conscrypt builds
           # TODO(prb): remove when no longer required.
-          brew uninstall openssl@1.0.2t
-          brew uninstall python@2.7.17
-          brew untap local/openssl
-          brew untap local/python2
-          brew update
-          brew install ninja
-          echo "::set-env name=JAVA_HOME::$(/usr/libexec/java_home -v 1.8)"
+          brew uninstall --ignore-dependencies openssl
+          brew uninstall --ignore-dependencies python
+          brew update || echo update failed
+          brew install ninja || echo update failed
+
+      - name: install Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: '1.13.2'
 
       - name: Setup Windows environment
         if: runner.os == 'Windows'
@@ -208,8 +215,8 @@ jobs:
       - name: Set runner-specific environment variables
         shell: bash
         run: |
-          echo "::set-env name=M2_REPO::${{ runner.temp }}/m2"
-          echo "::set-env name=BORINGSSL_HOME::${{ runner.temp }}/boringssl"
+          echo "M2_REPO=${{ runner.temp }}/m2" >> $GITHUB_ENV
+          echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
 
       - name: Fetch BoringSSL source
         uses: actions/download-artifact@v1
@@ -307,9 +314,10 @@ jobs:
           DIR="$(find m2/org/conscrypt/conscrypt-openjdk-uber -maxdepth 1 -mindepth 1 -type d -print)"
           VERSION="${DIR##*/}"
           TESTJAR="$(find testjar -name '*-tests.jar')"
-          java -jar junit-platform-console-standalone.jar -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar:$TESTJAR" -n='${{ matrix.suite_class }}' --scan-classpath --reports-dir=results
+          java -jar junit-platform-console-standalone.jar -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar:$TESTJAR" -n='${{ matrix.suite_class }}' --scan-classpath --reports-dir=results --fail-if-no-tests
 
       - name: Archive test results
+        if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
           name: test-results-${{ matrix.platform }}-${{ matrix.java }}

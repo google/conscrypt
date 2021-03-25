@@ -17,6 +17,7 @@
 package org.conscrypt.javax.net.ssl;
 
 import static org.conscrypt.TestUtils.UTF_8;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -27,6 +28,7 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.ReadOnlyBufferException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -48,6 +50,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509ExtendedTrustManager;
 import org.conscrypt.TestUtils;
+import org.conscrypt.TestUtils.BufferType;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Test;
@@ -357,18 +360,15 @@ public class SSLEngineTest {
                 sourceOutRes.getHandshakeStatus());
         SSLSession destSession = dest.getSession();
         ByteBuffer destIn = ByteBuffer.allocate(destSession.getApplicationBufferSize());
-        int numUnwrapCalls = 0;
         while (destIn.position() != sourceBytes.length) {
             SSLEngineResult destRes = dest.unwrap(sourceToDest, destIn);
             assertEquals(sourceCipherSuite, HandshakeStatus.NOT_HANDSHAKING,
                     destRes.getHandshakeStatus());
-            numUnwrapCalls++;
         }
         destIn.flip();
         byte[] actual = new byte[destIn.remaining()];
         destIn.get(actual);
         assertEquals(sourceCipherSuite, Arrays.toString(sourceBytes), Arrays.toString(actual));
-        assertEquals(sourceCipherSuite, 3, numUnwrapCalls);
     }
 
     @Test
@@ -923,6 +923,187 @@ public class SSLEngineTest {
             assertFalse(e.getWantClientAuth());
         }
         c.close();
+    }
+
+    @Test
+    public void wrapPreconditions() throws Exception {
+        ByteBuffer buffer = ByteBuffer.allocate(10);
+        ByteBuffer[] buffers = new ByteBuffer[] { buffer, buffer, buffer };
+        ByteBuffer[] badBuffers = new ByteBuffer[] { buffer, buffer, null, buffer };
+
+        // Client/server mode not set => IllegalStateException
+        try {
+            newUnconnectedEngine().wrap(buffer, buffer);
+            fail();
+        } catch (IllegalStateException e) {
+            // Expected
+        }
+
+        try {
+            newUnconnectedEngine().wrap(buffers, buffer);
+            fail();
+        } catch (IllegalStateException e) {
+            // Expected
+        }
+
+        try {
+            newUnconnectedEngine().wrap(buffers, 0, 1, buffer);
+            fail();
+        } catch (IllegalStateException e) {
+            // Expected
+        }
+
+        // Read-only destination => ReadOnlyBufferException
+        try {
+            newConnectedEngine().wrap(buffer, buffer.asReadOnlyBuffer());
+            fail();
+        } catch (ReadOnlyBufferException e) {
+            // Expected
+        }
+
+        try {
+            newConnectedEngine().wrap(buffers, buffer.asReadOnlyBuffer());
+            fail();
+        } catch (ReadOnlyBufferException e) {
+            // Expected
+        }
+
+        try {
+            newConnectedEngine().wrap(buffers, 0, 1, buffer.asReadOnlyBuffer());
+            fail();
+        } catch (ReadOnlyBufferException e) {
+            // Expected
+        }
+
+        // Null destination => IllegalArgumentException
+        try {
+            newConnectedEngine().wrap(buffer, null);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
+
+        try {
+            newConnectedEngine().wrap(buffers,  null);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
+
+        try {
+            newConnectedEngine().wrap(buffers, 0, 1, null);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
+
+        // Null source => IllegalArgumentException
+        try {
+            newConnectedEngine().wrap((ByteBuffer) null, buffer);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
+
+        try {
+            newConnectedEngine().wrap((ByteBuffer[]) null, buffer);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
+
+        try {
+            newConnectedEngine().wrap(null, 0, 1, buffer);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
+
+        // Null entries in buffer array => IllegalArgumentException
+        try {
+            newConnectedEngine().wrap(badBuffers, buffer);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
+
+        try {
+            newConnectedEngine().wrap(badBuffers, 0, badBuffers.length, buffer);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
+
+        // Bad offset or length => IndexOutOfBoundsException
+        try {
+            newConnectedEngine().wrap(buffers, 0, 7, buffer);
+            fail();
+        } catch (IndexOutOfBoundsException e) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void bufferArrayOffsets() throws Exception{
+        TestSSLEnginePair pair = TestSSLEnginePair.create();
+        ByteBuffer tlsBuffer = ByteBuffer.allocate(600);
+        int bufferSize = 100;
+
+        for (BufferType bufferType : BufferType.values()) {
+            ByteBuffer[] sourceBuffers = bufferType.newRandomBuffers(
+                    bufferSize, bufferSize, bufferSize, bufferSize, bufferSize);
+            for (int offset = 0; offset < sourceBuffers.length; offset++) {
+                for (int length = 1; length < sourceBuffers.length - offset; length++) {
+                    // Reset source buffers
+                    for (ByteBuffer buffer : sourceBuffers) {
+                        if (buffer.remaining() == 0) {
+                            buffer.flip();
+                        }
+                        assertEquals(bufferSize, buffer.remaining());
+                    }
+                    // Make an array copy of what we expect to send
+                    byte[] sourceBytes = copyDataFromBuffers(sourceBuffers, offset, length);
+                    byte[] destinationBytes = new byte[sourceBytes.length];
+                    ByteBuffer destination = ByteBuffer.wrap(destinationBytes);
+                    // Send and compare
+                    tlsBuffer.clear();
+                    pair.client.wrap(sourceBuffers, offset, length, tlsBuffer);
+                    tlsBuffer.flip();
+                    pair.server.unwrap(tlsBuffer, destination);
+                    assertArrayEquals(sourceBytes, destinationBytes);
+                }
+            }
+        }
+    }
+
+    private byte[] copyDataFromBuffers(ByteBuffer[] buffers, int offset, int length) {
+        // NB avoids using Arrays.copyOfRange() to prevent any common bugs with
+        // ConscryptEngine.wrap().
+        int size = 0;
+        for (int i = offset; i < offset + length; i++) {
+            size += buffers[i].remaining();
+        }
+        byte[] data = new byte[size];
+        int dataOffset = 0;
+        for (int i = offset; i < offset + length; i++) {
+            ByteBuffer buffer = buffers[i];
+            int remaining = buffer.remaining();
+            buffer.get(data, dataOffset, remaining);
+            buffer.flip();
+            dataOffset += remaining;
+        }
+        return data;
+    }
+
+    private SSLEngine newUnconnectedEngine() {
+        TestSSLContext context = TestSSLContext.create();
+        return context.clientContext.createSSLEngine();
+    }
+
+    private SSLEngine newConnectedEngine() throws Exception {
+        TestSSLEnginePair pair = TestSSLEnginePair.create();
+        assertConnected(pair);
+        return pair.client;
     }
 
     private void assertConnected(TestSSLEnginePair e) {

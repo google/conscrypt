@@ -39,6 +39,7 @@ import org.conscrypt.java.security.KeyPairGeneratorTest;
 import org.conscrypt.java.security.KeyPairGeneratorTestDH;
 import org.conscrypt.java.security.KeyPairGeneratorTestDSA;
 import org.conscrypt.java.security.KeyPairGeneratorTestRSA;
+import org.conscrypt.java.security.KeyPairGeneratorTestXDH;
 import org.conscrypt.java.security.MessageDigestTest;
 import org.conscrypt.java.security.SignatureTest;
 import org.conscrypt.java.security.cert.CertificateFactoryTest;
@@ -49,6 +50,7 @@ import org.conscrypt.javax.crypto.CipherBasicsTest;
 import org.conscrypt.javax.crypto.CipherTest;
 import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
 import org.conscrypt.javax.crypto.KeyGeneratorTest;
+import org.conscrypt.javax.crypto.XDHKeyAgreementTest;
 import org.conscrypt.javax.net.ssl.HttpsURLConnectionTest;
 import org.conscrypt.javax.net.ssl.KeyManagerFactoryTest;
 import org.conscrypt.javax.net.ssl.KeyStoreBuilderParametersTest;
@@ -66,6 +68,9 @@ import org.conscrypt.javax.net.ssl.SSLSocketTest;
 import org.conscrypt.javax.net.ssl.SSLSocketVersionCompatibilityTest;
 import org.conscrypt.javax.net.ssl.TrustManagerFactoryTest;
 import org.conscrypt.javax.net.ssl.X509KeyManagerTest;
+import org.conscrypt.metrics.CipherSuiteTest;
+import org.conscrypt.metrics.OptionalMethodTest;
+import org.conscrypt.metrics.ProtocolTest;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -95,6 +100,8 @@ import org.junit.runners.Suite;
         AlgorithmParametersTestEC.class,
         AlgorithmParametersTestGCM.class,
         AlgorithmParametersTestOAEP.class,
+        BufferUtilsTest.class,
+        CipherSuiteTest.class,
         KeyFactoryTestDH.class,
         KeyFactoryTestDSA.class,
         KeyFactoryTestEC.class,
@@ -103,18 +110,23 @@ import org.junit.runners.Suite;
         KeyPairGeneratorTestDH.class,
         KeyPairGeneratorTestDSA.class,
         KeyPairGeneratorTestRSA.class,
+        KeyPairGeneratorTestXDH.class,
         MessageDigestTest.class,
         SignatureTest.class,
         // javax.crypto tests
         AeadCipherTest.class,
         CipherBasicsTest.class,
         CipherTest.class,
+        MacTest.class,
         ECDHKeyAgreementTest.class,
         KeyGeneratorTest.class,
+        XDHKeyAgreementTest.class,
         // javax.net.ssl tests
         HttpsURLConnectionTest.class,
         KeyManagerFactoryTest.class,
         KeyStoreBuilderParametersTest.class,
+        OptionalMethodTest.class,
+        ProtocolTest.class,
         SNIHostNameTest.class,
         SSLContextTest.class,
         SSLEngineTest.class,

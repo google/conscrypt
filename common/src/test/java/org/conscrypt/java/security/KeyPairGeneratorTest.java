@@ -152,6 +152,7 @@ public class KeyPairGeneratorTest {
         putKeySize("EC", 256);
         putKeySize("EC", 384);
         putKeySize("EC", 521);
+        putKeySize("XDH", 256);
     }
 
     /** Elliptic Curve Crypto named curves that should be supported. */
@@ -301,6 +302,20 @@ public class KeyPairGeneratorTest {
                     // SunPKCS11 omits the privateValueLength field from the DHParameter
                     // structure in its encoded keys, unlike every other provider seen,
                     // so ignore it.
+                    continue;
+                }
+                if ("XDH".equals(k.getAlgorithm())
+                        && "SunEC".equalsIgnoreCase(p.getName())
+                        && "11".equals(System.getProperty("java.specification.version"))) {
+                    // SunEC in OpenJDK 11 has a bug where the format specified in RFC 8410
+                    // Section 7. It uses a single OCTET STRING to represent the key instead
+                    // of an OCTET STRING inside of an OCTET STRING as defined in the RFC:
+                    // ("For the keys defined in this document, the private key is always an
+                    //   opaque byte sequence.  The ASN.1 type CurvePrivateKey is defined in
+                    //   this document to hold the byte sequence.  Thus, when encoding a
+                    //   OneAsymmetricKey object, the private key is wrapped in a
+                    //   CurvePrivateKey object and wrapped by the OCTET STRING of the
+                    //   "privateKey" field.")
                     continue;
                 }
 

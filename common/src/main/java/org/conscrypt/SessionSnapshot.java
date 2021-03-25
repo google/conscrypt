@@ -143,6 +143,10 @@ final class SessionSnapshot implements ConscryptSession {
     @Override
     public javax.security.cert.X509Certificate[] getPeerCertificateChain()
         throws SSLPeerUnverifiedException {
+        if (!Platform.isJavaxCertificateSupported()) {
+            throw new UnsupportedOperationException("Use getPeerCertificates() instead");
+        }
+
         throw new SSLPeerUnverifiedException("No peer certificates");
     }
 
