@@ -23,7 +23,6 @@ matrix:
         - ANDROID_TOOLS_URL="https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip"
         - ANDROID_HOME="$HOME/android-sdk-linux"
         - JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
-        - JAVA7_HOME=/usr/lib/jvm/java-7-openjdk-amd64
         - JAVA11_HOME=/usr/lib/jvm/java-11-openjdk-amd64
         - CC=clang-5.0
         - CXX=clang++-5.0
@@ -62,7 +61,6 @@ matrix:
             - libc6-dev:i386
             - linux-libc-dev
             - ninja-build
-            - openjdk-7-jre # for running tests with Java 7
             - openjdk-8-jdk # for building
             - openjdk-11-jre # for running tests with Java 11
 
@@ -109,15 +107,7 @@ script:
 
   - ./gradlew build -PcheckErrorQueue
 
-  # Also test with Java 7 and 11 on linux
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
-      then
-        ${JAVA7_HOME}/bin/java -version;
-      fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
-    then
-      ./gradlew check -DjavaExecutable64=${JAVA7_HOME}/bin/java -PcheckErrorQueue;
-    fi
+  # Also test with Java 11 on linux
   - if [[ "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_PULL_REQUEST" != "false" ]];
     then
       ./gradlew check -DjavaExecutable64=${JAVA11_HOME}/bin/java -PcheckErrorQueue;
