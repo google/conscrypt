@@ -271,8 +271,14 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
             // Restore the original timeout now that the handshake is complete
             if (handshakeTimeoutMilliseconds >= 0) {
-                setSoTimeout(savedReadTimeoutMilliseconds);
-                setSoWriteTimeout(savedWriteTimeoutMilliseconds);
+                try {
+                    setSoTimeout(savedReadTimeoutMilliseconds);
+                    setSoWriteTimeout(savedWriteTimeoutMilliseconds);
+                } catch (SocketException e) {
+                    SSLHandshakeException wrapper =  new SSLHandshakeException(e.getMessage());
+                    wrapper.initCause(e);
+                    throw wrapper;
+                }
             }
 
             synchronized (ssl) {
