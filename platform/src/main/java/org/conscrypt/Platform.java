@@ -557,4 +557,8 @@ final class Platform {
         ConscryptStatsLog.write(ConscryptStatsLog.TLS_HANDSHAKE_REPORTED, success, proto.getId(),
                 suite.getId(), dur);
     }
+
+    public static boolean isJavaxCertificateSupported() {
+        return true;
+    }
 }

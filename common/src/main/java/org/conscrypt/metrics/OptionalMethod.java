@@ -22,21 +22,23 @@ import org.conscrypt.Internal;
 
 /**
  * Helper class to handle reflexive loading and invocation of methods which may be absent.
+ *
+ * @hide This class is not part of the Android public SDK API
  */
 @Internal
-final class OptionalMethod {
+public final class OptionalMethod {
     private final Method cachedMethod;
 
     /**
-     * Instantiates a new OptionalMethod
-     * Does not throw any exceptions if the class or method can't be loaded and instead
-     * behaves as a no-op.
+     * Instantiates a new OptionalMethod.
+     * <p>Does not throw any exceptions if the class or method can't be loaded, or if any parameter
+     * classes are {@code null} and instead behaves as a no-op, always returning {@code null}.
      *
      * @param clazz the Class to search for methods on
      * @param methodName the name of the {@code Method} on {@code clazz}
      * @param methodParams list of {@code Classes} of the {@code Method's} parameters
      *
-     * @throws NullPointerException if the method name or any paramater class is null
+     * @throws NullPointerException if the method name is {@code null}
      */
     public OptionalMethod(Class<?> clazz, String methodName, Class<?>... methodParams) {
         this.cachedMethod = initializeMethod(clazz, methodName, methodParams);
@@ -46,7 +48,9 @@ final class OptionalMethod {
             Class<?> clazz, String methodName, Class<?>... methodParams) {
         try {
             for (Class<?> paramClass : methodParams) {
-                checkNotNull(paramClass);
+                if (paramClass == null) {
+                    return null;
+                }
             }
             if (clazz != null) {
                 return clazz.getMethod(checkNotNull(methodName), methodParams);

@@ -46,9 +46,9 @@ RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
 
 # Build and install CMake from source.
 WORKDIR /usr/src
-RUN git clone git://cmake.org/cmake.git CMake && \
+RUN git clone https://gitlab.kitware.com/cmake/cmake.git CMake && \
   cd CMake && \
-  git checkout v3.4.1 && \
+  git checkout tags/v3.5.2 && \
   mkdir /usr/src/CMake-build && \
   cd /usr/src/CMake-build && \
   /usr/src/CMake/bootstrap \
