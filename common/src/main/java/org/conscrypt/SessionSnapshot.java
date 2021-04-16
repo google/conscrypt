@@ -64,7 +64,7 @@ final class SessionSnapshot implements ConscryptSession {
 
     @Override
     public List<byte[]> getStatusResponses() {
-        List<byte[]> ret = new ArrayList<byte[]>(statusResponses.size());
+        List<byte[]> ret = new ArrayList<>(statusResponses.size());
         for (byte[] resp : statusResponses) {
             ret.add(resp.clone());
         }
@@ -141,6 +141,7 @@ final class SessionSnapshot implements ConscryptSession {
     }
 
     @Override
+    @SuppressWarnings("deprecation") // Public API
     public javax.security.cert.X509Certificate[] getPeerCertificateChain()
         throws SSLPeerUnverifiedException {
         if (!Platform.isJavaxCertificateSupported()) {
