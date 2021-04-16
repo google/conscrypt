@@ -390,7 +390,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
 
     private void verifyInternal(PublicKey key, String sigProvider) throws
             NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException,
-            SignatureException {
+            SignatureException, CertificateEncodingException {
         final Signature sig;
         if (sigProvider == null) {
             sig = Signature.getInstance(getSigAlgName());
