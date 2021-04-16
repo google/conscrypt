@@ -18,6 +18,7 @@ package org.conscrypt.java.security.cert;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -746,7 +747,7 @@ public class CertificateFactoryTest {
             assertEquals(providerName, Arrays.toString(pathFromList.getEncoded(encoding)),
                     Arrays.toString(encoded));
         }
-        assertFalse(providerName, Arrays.toString(encoded).equals(Arrays.toString(encodedCopy)));
+        assertNotEquals(providerName, Arrays.toString(encoded), Arrays.toString(encodedCopy));
 
         encodedCopy[0] ^= (byte) 0xFF;
         assertEquals(providerName, Arrays.toString(encoded), Arrays.toString(encodedCopy));
@@ -784,7 +785,7 @@ public class CertificateFactoryTest {
         Object output = ois.readObject();
         assertTrue(providerName, output instanceof CertPath);
 
-        assertEquals(providerName, actualPath, (CertPath) output);
+        assertEquals(providerName, actualPath, output);
     }
 
     public static class KeyHolder {

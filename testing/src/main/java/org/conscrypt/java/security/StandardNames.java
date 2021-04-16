@@ -78,7 +78,7 @@ public final class StandardNames {
         }
 
         if (version[0] == 1) {
-            assert version[1] >= 6;
+            assertTrue(version[1] >= 6);
             return version[1];
         } else {
             return version[0];

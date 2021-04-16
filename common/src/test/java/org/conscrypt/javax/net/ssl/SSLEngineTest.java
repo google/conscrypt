@@ -789,7 +789,8 @@ public class SSLEngineTest {
             final boolean serverClientMode, final boolean[] finished) throws Exception {
         TestSSLContext c;
         if (!clientClientMode && serverClientMode) {
-            c = TestSSLContext.create(TestKeyStore.getServer(), TestKeyStore.getClient());
+            c = TestSSLContext.create(/* client= */ TestKeyStore.getServer(),
+                    /* server= */ TestKeyStore.getClient());
         } else {
             c = TestSSLContext.create();
         }
