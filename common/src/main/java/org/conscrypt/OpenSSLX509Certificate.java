@@ -133,13 +133,13 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             return new ArrayList<>();
         }
 
-        final List<OpenSSLX509Certificate> certs = new ArrayList<OpenSSLX509Certificate>(
+        final List<OpenSSLX509Certificate> certs = new ArrayList<>(
                 certRefs.length);
-        for (int i = 0; i < certRefs.length; i++) {
-            if (certRefs[i] == 0) {
+        for (long certRef : certRefs) {
+            if (certRef == 0) {
                 continue;
             }
-            certs.add(new OpenSSLX509Certificate(certRefs[i]));
+            certs.add(new OpenSSLX509Certificate(certRef));
         }
         return certs;
     }
@@ -177,13 +177,13 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             bis.release();
         }
 
-        final List<OpenSSLX509Certificate> certs = new ArrayList<OpenSSLX509Certificate>(
+        final List<OpenSSLX509Certificate> certs = new ArrayList<>(
                 certRefs.length);
-        for (int i = 0; i < certRefs.length; i++) {
-            if (certRefs[i] == 0) {
+        for (long certRef : certRefs) {
+            if (certRef == 0) {
                 continue;
             }
-            certs.add(new OpenSSLX509Certificate(certRefs[i]));
+            certs.add(new OpenSSLX509Certificate(certRef));
         }
         return certs;
     }
@@ -215,7 +215,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             return null;
         }
 
-        return new HashSet<String>(Arrays.asList(critOids));
+        return new HashSet<>(Arrays.asList(critOids));
     }
 
     @Override
@@ -239,7 +239,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             return null;
         }
 
-        return new HashSet<String>(Arrays.asList(nonCritOids));
+        return new HashSet<>(Arrays.asList(nonCritOids));
     }
 
     @Override
@@ -378,9 +378,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
         return NativeCrypto.i2d_X509(mContext, this);
     }
 
-    private void verifyOpenSSL(OpenSSLKey pkey) throws CertificateException,
-                                                       NoSuchAlgorithmException,
-                                                       InvalidKeyException, SignatureException {
+    private void verifyOpenSSL(OpenSSLKey pkey) throws CertificateException, SignatureException {
         try {
             NativeCrypto.X509_verify(mContext, this, pkey.getNativeRef());
         } catch (RuntimeException e) {
@@ -390,7 +388,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
         }
     }
 
-    private void verifyInternal(PublicKey key, String sigProvider) throws CertificateException,
+    private void verifyInternal(PublicKey key, String sigProvider) throws
             NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException,
             SignatureException {
         final Signature sig;
@@ -416,7 +414,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             return;
         }
 
-        verifyInternal(key, (String) null);
+        verifyInternal(key, null);
     }
 
     @Override
@@ -504,7 +502,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     }
 
     @Override
-    public List<String> getExtendedKeyUsage() throws CertificateParsingException {
+    public List<String> getExtendedKeyUsage() {
         String[] extUsage = NativeCrypto.get_X509_ex_xkusage(mContext, this);
         if (extUsage == null) {
             return null;
@@ -518,9 +516,9 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             return null;
         }
 
-        Collection<List<?>> coll = new ArrayList<List<?>>(altNameArray.length);
-        for (int i = 0; i < altNameArray.length; i++) {
-            coll.add(Collections.unmodifiableList(Arrays.asList(altNameArray[i])));
+        Collection<List<?>> coll = new ArrayList<>(altNameArray.length);
+        for (Object[] objects : altNameArray) {
+            coll.add(Collections.unmodifiableList(Arrays.asList(objects)));
         }
 
         return Collections.unmodifiableCollection(coll);
@@ -576,6 +574,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     protected void finalize() throws Throwable {
         try {
             if (mContext != 0) {

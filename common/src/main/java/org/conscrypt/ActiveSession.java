@@ -33,7 +33,7 @@ import javax.net.ssl.SSLSessionContext;
  */
 final class ActiveSession implements ConscryptSession {
     private final NativeSsl ssl;
-    private AbstractSessionContext sessionContext;
+    private final AbstractSessionContext sessionContext;
     private byte[] id;
     private long creationTime;
     private String protocol;
@@ -41,6 +41,7 @@ final class ActiveSession implements ConscryptSession {
     private String peerHost;
     private int peerPort = -1;
     private long lastAccessedTime = 0;
+    @SuppressWarnings("deprecation")
     private volatile javax.security.cert.X509Certificate[] peerCertificateChain;
     private X509Certificate[] localCertificates;
     private X509Certificate[] peerCertificates;
@@ -108,7 +109,7 @@ final class ActiveSession implements ConscryptSession {
     @Override
     public List<byte[]> getStatusResponses() {
         if (peerCertificateOcspData == null) {
-            return Collections.<byte[]>emptyList();
+            return Collections.emptyList();
         }
 
         return Collections.singletonList(peerCertificateOcspData.clone());
@@ -205,6 +206,7 @@ final class ActiveSession implements ConscryptSession {
      *         be verified.
      */
     @Override
+    @SuppressWarnings("deprecation") // Public API
     public javax.security.cert.X509Certificate[] getPeerCertificateChain()
             throws SSLPeerUnverifiedException {
         if (!Platform.isJavaxCertificateSupported()) {

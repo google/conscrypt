@@ -59,9 +59,13 @@ public class CpuFeatures {
                 EVP_has_aes_hardware.setAccessible(true);
                 return ((Integer) EVP_has_aes_hardware.invoke(null)) == 1;
             } catch (NoSuchMethodException ignored) {
+                // Ignored
             } catch (SecurityException ignored) {
+                // Ignored
             } catch (IllegalAccessException ignored) {
+                // Ignored
             } catch (IllegalArgumentException ignored) {
+                // Ignored
             } catch (InvocationTargetException e) {
                 throw new IllegalArgumentException(e);
             }
