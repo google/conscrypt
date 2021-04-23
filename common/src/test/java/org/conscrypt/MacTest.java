@@ -130,7 +130,7 @@ public class MacTest {
 
     @Test
     public void serviceCreation() {
-        ServiceTester.test("Mac")
+        newMacServiceTester()
             // Android KeyStore can only be initialised with its own private keys - tested elsewhere.
             .skipProvider("AndroidKeyStore")
             .skipProvider("AndroidKeyStoreBCWorkaround")
@@ -165,11 +165,10 @@ public class MacTest {
 
     @Test
     public void invalidKeyThrows() {
-        ServiceTester.test("Mac")
-            // BC actually accepts RSA public keys for these algorithms. No other Android
-            // Provider provides them.
-            .skipAlgorithm("PBEWITHHMACSHA")
-            .skipAlgorithm("PBEWITHHMACSHA1")
+        newMacServiceTester()
+            // BC actually accepts RSA public keys for these algorithms for some reason.
+            .skipCombination("BC", "PBEWITHHMACSHA")
+            .skipCombination("BC", "PBEWITHHMACSHA1")
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(final Provider provider, final String algorithm) throws Exception {
@@ -190,7 +189,7 @@ public class MacTest {
 
     @Test
     public void uninitializedMacThrows() {
-        ServiceTester.test("Mac")
+        newMacServiceTester()
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(final Provider provider, final String algorithm) throws Exception {
@@ -220,6 +219,22 @@ public class MacTest {
                 }
             });
 
+    }
+
+    private ServiceTester newMacServiceTester() {
+        return ServiceTester.test("Mac")
+            // On Android 10 and 11 BC advertises these Macs but they are deprecated so throw
+            // on initialization.
+            .skipCombination("BC", "HMACMD5")
+            .skipCombination("BC", "HMACSHA1")
+            .skipCombination("BC", "HMACSHA224")
+            .skipCombination("BC", "HMACSHA256")
+            .skipCombination("BC", "HMACSHA384")
+            .skipCombination("BC", "HMACSHA512")
+            .skipCombination("BC", "PBEWITHHMACSHA224")
+            .skipCombination("BC", "PBEWITHHMACSHA256")
+            .skipCombination("BC", "PBEWITHHMACSHA384")
+            .skipCombination("BC", "PBEWITHHMACSHA512");
     }
 
     private static class DummyParameterSpec implements AlgorithmParameterSpec { }
