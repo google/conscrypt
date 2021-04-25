@@ -559,16 +559,10 @@ static jbyteArray ecSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, co
         memcpy(messageBytes.get(), message, message_len);
     }
 
-    jmethodID rawSignMethod = env->GetStaticMethodID(conscrypt::jniutil::cryptoUpcallsClass,
-                                                     "ecSignDigestWithPrivateKey",
-                                                     "(Ljava/security/PrivateKey;[B)[B");
-    if (rawSignMethod == nullptr) {
-        CONSCRYPT_LOG_ERROR("Could not find ecSignDigestWithPrivateKey");
-        return nullptr;
-    }
-
     return reinterpret_cast<jbyteArray>(env->CallStaticObjectMethod(
-            conscrypt::jniutil::cryptoUpcallsClass, rawSignMethod, privateKey, messageArray.get()));
+            conscrypt::jniutil::cryptoUpcallsClass,
+            conscrypt::jniutil::cryptoUpcallsClass_rawSignMethod,
+            privateKey, messageArray.get()));
 }
 
 static jbyteArray rsaSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, jint padding,
@@ -594,17 +588,11 @@ static jbyteArray rsaSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, j
         memcpy(messageBytes.get(), message, message_len);
     }
 
-    jmethodID rsaSignMethod = env->GetStaticMethodID(conscrypt::jniutil::cryptoUpcallsClass,
-                                                     "rsaSignDigestWithPrivateKey",
-                                                     "(Ljava/security/PrivateKey;I[B)[B");
-    if (rsaSignMethod == nullptr) {
-        CONSCRYPT_LOG_ERROR("Could not find rsaSignDigestWithPrivateKey");
-        return nullptr;
-    }
-
     return reinterpret_cast<jbyteArray>(
-            env->CallStaticObjectMethod(conscrypt::jniutil::cryptoUpcallsClass, rsaSignMethod,
-                                        privateKey, padding, messageArray.get()));
+            env->CallStaticObjectMethod(
+                conscrypt::jniutil::cryptoUpcallsClass,
+                conscrypt::jniutil::cryptoUpcallsClass_rsaSignMethod,
+                privateKey, padding, messageArray.get()));
 }
 
 // rsaDecryptWithPrivateKey uses privateKey to decrypt |ciphertext_len| bytes
@@ -634,17 +622,11 @@ static jbyteArray rsaDecryptWithPrivateKey(JNIEnv* env, jobject privateKey, jint
         memcpy(ciphertextBytes.get(), ciphertext, ciphertext_len);
     }
 
-    jmethodID rsaDecryptMethod =
-            env->GetStaticMethodID(conscrypt::jniutil::cryptoUpcallsClass,
-                                   "rsaDecryptWithPrivateKey", "(Ljava/security/PrivateKey;I[B)[B");
-    if (rsaDecryptMethod == nullptr) {
-        CONSCRYPT_LOG_ERROR("Could not find rsaDecryptWithPrivateKey");
-        return nullptr;
-    }
-
     return reinterpret_cast<jbyteArray>(
-            env->CallStaticObjectMethod(conscrypt::jniutil::cryptoUpcallsClass, rsaDecryptMethod,
-                                        privateKey, padding, ciphertextArray.get()));
+            env->CallStaticObjectMethod(
+                conscrypt::jniutil::cryptoUpcallsClass,
+                conscrypt::jniutil::cryptoUpcallsClass_rsaDecryptMethod,
+                privateKey, padding, ciphertextArray.get()));
 }
 
 // *********************************************

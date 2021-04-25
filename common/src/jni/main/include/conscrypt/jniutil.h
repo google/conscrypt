@@ -44,6 +44,7 @@ extern jclass byteBufferClass;
 extern jclass bufferClass;
 
 extern jfieldID nativeRef_address;
+extern jfieldID fileDescriptor_fd;
 
 extern jmethodID calendar_setMethod;
 extern jmethodID inputStream_readMethod;
@@ -53,6 +54,9 @@ extern jmethodID outputStream_writeMethod;
 extern jmethodID outputStream_flushMethod;
 extern jmethodID buffer_positionMethod;
 extern jmethodID buffer_limitMethod;
+extern jmethodID cryptoUpcallsClass_rawSignMethod;
+extern jmethodID cryptoUpcallsClass_rsaSignMethod;
+extern jmethodID cryptoUpcallsClass_rsaDecryptMethod;
 
 /**
  * Initializes the JNI constants from the environment.
