@@ -41,10 +41,8 @@ extern jclass inputStreamClass;
 extern jclass outputStreamClass;
 extern jclass stringClass;
 extern jclass byteBufferClass;
-extern jclass bufferClass;
 
 extern jfieldID nativeRef_address;
-extern jfieldID fileDescriptor_fd;
 
 extern jmethodID calendar_setMethod;
 extern jmethodID inputStream_readMethod;
@@ -57,6 +55,15 @@ extern jmethodID buffer_limitMethod;
 extern jmethodID cryptoUpcallsClass_rawSignMethod;
 extern jmethodID cryptoUpcallsClass_rsaSignMethod;
 extern jmethodID cryptoUpcallsClass_rsaDecryptMethod;
+extern jmethodID sslHandshakeCallbacks_verifyCertificateChain;
+extern jmethodID sslHandshakeCallbacks_onSSLStateChange;
+extern jmethodID sslHandshakeCallbacks_clientCertificateRequested;
+extern jmethodID sslHandshakeCallbacks_serverCertificateRequested;
+extern jmethodID sslHandshakeCallbacks_clientPSKKeyRequested;
+extern jmethodID sslHandshakeCallbacks_serverPSKKeyRequested;
+extern jmethodID sslHandshakeCallbacks_onNewSessionEstablished;
+extern jmethodID sslHandshakeCallbacks_selectApplicationProtocol;
+extern jmethodID sslHandshakeCallbacks_serverSessionRequested;
 
 /**
  * Initializes the JNI constants from the environment.
