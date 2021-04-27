@@ -176,9 +176,11 @@ int throwRuntimeException(JNIEnv* env, const char* msg) {
     return conscrypt::jniutil::throwException(env, "java/lang/RuntimeException", msg);
 }
 
+#ifdef CONSCRYPT_CHECK_ERROR_QUEUE
 int throwAssertionError(JNIEnv* env, const char* msg) {
     return conscrypt::jniutil::throwException(env, "java/lang/AssertionError", msg);
 }
+#endif
 
 int throwNullPointerException(JNIEnv* env, const char* msg) {
     return conscrypt::jniutil::throwException(env, "java/lang/NullPointerException", msg);

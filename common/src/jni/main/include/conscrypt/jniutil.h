@@ -163,10 +163,12 @@ extern int throwException(JNIEnv* env, const char* className, const char* msg);
  */
 extern int throwRuntimeException(JNIEnv* env, const char* msg);
 
+#ifdef CONSCRYPT_CHECK_ERROR_QUEUE
 /**
  * Throw a java.lang.AssertionError, with an optional message.
  */
 extern int throwAssertionError(JNIEnv* env, const char* msg);
+#endif
 
 /*
  * Throw a java.lang.NullPointerException, with an optional message.
