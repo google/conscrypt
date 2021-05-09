@@ -38,9 +38,12 @@ jclass inputStreamClass;
 jclass outputStreamClass;
 jclass stringClass;
 jclass byteBufferClass;
-jclass bufferClass;
+static jclass bufferClass;
+static jclass fileDescriptorClass;
+static jclass sslHandshakeCallbacksClass;
 
 jfieldID nativeRef_address;
+static jfieldID fileDescriptor_fd;
 
 jmethodID calendar_setMethod;
 jmethodID inputStream_readMethod;
@@ -50,6 +53,18 @@ jmethodID outputStream_writeMethod;
 jmethodID outputStream_flushMethod;
 jmethodID buffer_positionMethod;
 jmethodID buffer_limitMethod;
+jmethodID cryptoUpcallsClass_rawSignMethod;
+jmethodID cryptoUpcallsClass_rsaSignMethod;
+jmethodID cryptoUpcallsClass_rsaDecryptMethod;
+jmethodID sslHandshakeCallbacks_verifyCertificateChain;
+jmethodID sslHandshakeCallbacks_onSSLStateChange;
+jmethodID sslHandshakeCallbacks_clientCertificateRequested;
+jmethodID sslHandshakeCallbacks_serverCertificateRequested;
+jmethodID sslHandshakeCallbacks_clientPSKKeyRequested;
+jmethodID sslHandshakeCallbacks_serverPSKKeyRequested;
+jmethodID sslHandshakeCallbacks_onNewSessionEstablished;
+jmethodID sslHandshakeCallbacks_selectApplicationProtocol;
+jmethodID sslHandshakeCallbacks_serverSessionRequested;
 
 void init(JavaVM* vm, JNIEnv* env) {
     gJavaVM = vm;
@@ -64,6 +79,7 @@ void init(JavaVM* vm, JNIEnv* env) {
     stringClass = findClass(env, "java/lang/String");
     byteBufferClass = findClass(env, "java/nio/ByteBuffer");
     bufferClass = findClass(env, "java/nio/Buffer");
+    fileDescriptorClass = findClass(env, "java/io/FileDescriptor");
 
     cryptoUpcallsClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/CryptoUpcalls");
@@ -71,8 +87,15 @@ void init(JavaVM* vm, JNIEnv* env) {
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef");
     openSslInputStreamClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream");
+    sslHandshakeCallbacksClass = getGlobalRefToClass(
+            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks");
 
     nativeRef_address = getFieldRef(env, nativeRefClass, "address", "J");
+#if defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)
+    fileDescriptor_fd = getFieldRef(env, fileDescriptorClass, "descriptor", "I");
+#else /* !ANDROID || CONSCRYPT_OPENJDK */
+    fileDescriptor_fd = getFieldRef(env, fileDescriptorClass, "fd", "I");
+#endif
 
     calendar_setMethod = getMethodRef(env, calendarClass, "set", "(IIIIII)V");
     inputStream_readMethod = getMethodRef(env, inputStreamClass, "read", "([B)I");
@@ -84,6 +107,42 @@ void init(JavaVM* vm, JNIEnv* env) {
     outputStream_flushMethod = getMethodRef(env, outputStreamClass, "flush", "()V");
     buffer_positionMethod = getMethodRef(env, bufferClass, "position", "()I");
     buffer_limitMethod = getMethodRef(env, bufferClass, "limit", "()I");
+    sslHandshakeCallbacks_verifyCertificateChain =
+	    getMethodRef(env, sslHandshakeCallbacksClass, "verifyCertificateChain", "([[BLjava/lang/String;)V");
+    sslHandshakeCallbacks_onSSLStateChange =
+	    getMethodRef(env, sslHandshakeCallbacksClass, "onSSLStateChange", "(II)V");
+    sslHandshakeCallbacks_clientCertificateRequested =
+	    getMethodRef(env, sslHandshakeCallbacksClass, "clientCertificateRequested", "([B[I[[B)V");
+    sslHandshakeCallbacks_serverCertificateRequested =
+	    getMethodRef(env, sslHandshakeCallbacksClass, "serverCertificateRequested", "()V");
+    sslHandshakeCallbacks_clientPSKKeyRequested =
+	    getMethodRef(env, sslHandshakeCallbacksClass, "clientPSKKeyRequested", "(Ljava/lang/String;[B[B)I");
+    sslHandshakeCallbacks_serverPSKKeyRequested =
+	    getMethodRef(env, sslHandshakeCallbacksClass, "serverPSKKeyRequested", "(Ljava/lang/String;Ljava/lang/String;[B)I");
+    sslHandshakeCallbacks_onNewSessionEstablished =
+	    getMethodRef(env, sslHandshakeCallbacksClass, "onNewSessionEstablished", "(J)V");
+    sslHandshakeCallbacks_serverSessionRequested =
+	    getMethodRef(env, sslHandshakeCallbacksClass, "serverSessionRequested", "([B)J");
+    sslHandshakeCallbacks_selectApplicationProtocol =
+	    getMethodRef(env, sslHandshakeCallbacksClass, "selectApplicationProtocol", "([B)I");
+    cryptoUpcallsClass_rawSignMethod = env->GetStaticMethodID(cryptoUpcallsClass,
+                                                     "ecSignDigestWithPrivateKey",
+                                                     "(Ljava/security/PrivateKey;[B)[B");
+    if (cryptoUpcallsClass_rawSignMethod == nullptr) {
+        env->FatalError("Could not find ecSignDigestWithPrivateKey");
+    }
+    cryptoUpcallsClass_rsaSignMethod = env->GetStaticMethodID(cryptoUpcallsClass,
+                                                     "rsaSignDigestWithPrivateKey",
+                                                     "(Ljava/security/PrivateKey;I[B)[B");
+    if (cryptoUpcallsClass_rsaSignMethod == nullptr) {
+        env->FatalError("Could not find rsaSignDigestWithPrivateKey");
+    }
+    cryptoUpcallsClass_rsaDecryptMethod = env->GetStaticMethodID(cryptoUpcallsClass,
+						     "rsaDecryptWithPrivateKey",
+						     "(Ljava/security/PrivateKey;I[B)[B");
+    if (cryptoUpcallsClass_rsaDecryptMethod == nullptr) {
+        env->FatalError("Could not find rsaDecryptWithPrivateKey");
+    }
 }
 
 void jniRegisterNativeMethods(JNIEnv* env, const char* className, const JNINativeMethod* gMethods,
@@ -106,14 +165,8 @@ void jniRegisterNativeMethods(JNIEnv* env, const char* className, const JNINativ
 }
 
 int jniGetFDFromFileDescriptor(JNIEnv* env, jobject fileDescriptor) {
-    ScopedLocalRef<jclass> localClass(env, env->FindClass("java/io/FileDescriptor"));
-#if defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)
-    static jfieldID fid = env->GetFieldID(localClass.get(), "descriptor", "I");
-#else /* !ANDROID || CONSCRYPT_OPENJDK */
-    static jfieldID fid = env->GetFieldID(localClass.get(), "fd", "I");
-#endif
     if (fileDescriptor != nullptr) {
-        return env->GetIntField(fileDescriptor, fid);
+        return env->GetIntField(fileDescriptor, fileDescriptor_fd);
     } else {
         return -1;
     }
@@ -153,9 +206,11 @@ int throwRuntimeException(JNIEnv* env, const char* msg) {
     return conscrypt::jniutil::throwException(env, "java/lang/RuntimeException", msg);
 }
 
+#ifdef CONSCRYPT_CHECK_ERROR_QUEUE
 int throwAssertionError(JNIEnv* env, const char* msg) {
     return conscrypt::jniutil::throwException(env, "java/lang/AssertionError", msg);
 }
+#endif
 
 int throwNullPointerException(JNIEnv* env, const char* msg) {
     return conscrypt::jniutil::throwException(env, "java/lang/NullPointerException", msg);

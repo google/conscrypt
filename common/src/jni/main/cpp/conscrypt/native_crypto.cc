@@ -559,16 +559,10 @@ static jbyteArray ecSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, co
         memcpy(messageBytes.get(), message, message_len);
     }
 
-    jmethodID rawSignMethod = env->GetStaticMethodID(conscrypt::jniutil::cryptoUpcallsClass,
-                                                     "ecSignDigestWithPrivateKey",
-                                                     "(Ljava/security/PrivateKey;[B)[B");
-    if (rawSignMethod == nullptr) {
-        CONSCRYPT_LOG_ERROR("Could not find ecSignDigestWithPrivateKey");
-        return nullptr;
-    }
-
     return reinterpret_cast<jbyteArray>(env->CallStaticObjectMethod(
-            conscrypt::jniutil::cryptoUpcallsClass, rawSignMethod, privateKey, messageArray.get()));
+            conscrypt::jniutil::cryptoUpcallsClass,
+            conscrypt::jniutil::cryptoUpcallsClass_rawSignMethod,
+            privateKey, messageArray.get()));
 }
 
 static jbyteArray rsaSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, jint padding,
@@ -594,17 +588,11 @@ static jbyteArray rsaSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, j
         memcpy(messageBytes.get(), message, message_len);
     }
 
-    jmethodID rsaSignMethod = env->GetStaticMethodID(conscrypt::jniutil::cryptoUpcallsClass,
-                                                     "rsaSignDigestWithPrivateKey",
-                                                     "(Ljava/security/PrivateKey;I[B)[B");
-    if (rsaSignMethod == nullptr) {
-        CONSCRYPT_LOG_ERROR("Could not find rsaSignDigestWithPrivateKey");
-        return nullptr;
-    }
-
     return reinterpret_cast<jbyteArray>(
-            env->CallStaticObjectMethod(conscrypt::jniutil::cryptoUpcallsClass, rsaSignMethod,
-                                        privateKey, padding, messageArray.get()));
+            env->CallStaticObjectMethod(
+                conscrypt::jniutil::cryptoUpcallsClass,
+                conscrypt::jniutil::cryptoUpcallsClass_rsaSignMethod,
+                privateKey, padding, messageArray.get()));
 }
 
 // rsaDecryptWithPrivateKey uses privateKey to decrypt |ciphertext_len| bytes
@@ -634,17 +622,11 @@ static jbyteArray rsaDecryptWithPrivateKey(JNIEnv* env, jobject privateKey, jint
         memcpy(ciphertextBytes.get(), ciphertext, ciphertext_len);
     }
 
-    jmethodID rsaDecryptMethod =
-            env->GetStaticMethodID(conscrypt::jniutil::cryptoUpcallsClass,
-                                   "rsaDecryptWithPrivateKey", "(Ljava/security/PrivateKey;I[B)[B");
-    if (rsaDecryptMethod == nullptr) {
-        CONSCRYPT_LOG_ERROR("Could not find rsaDecryptWithPrivateKey");
-        return nullptr;
-    }
-
     return reinterpret_cast<jbyteArray>(
-            env->CallStaticObjectMethod(conscrypt::jniutil::cryptoUpcallsClass, rsaDecryptMethod,
-                                        privateKey, padding, ciphertextArray.get()));
+            env->CallStaticObjectMethod(
+                conscrypt::jniutil::cryptoUpcallsClass,
+                conscrypt::jniutil::cryptoUpcallsClass_rsaDecryptMethod,
+                privateKey, padding, ciphertextArray.get()));
 }
 
 // *********************************************
@@ -6553,9 +6535,7 @@ static ssl_verify_result_t cert_verify_callback(SSL* ssl, CONSCRYPT_UNUSED uint8
     }
 
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
-    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID =
-            env->GetMethodID(cls, "verifyCertificateChain", "([[BLjava/lang/String;)V");
+    jmethodID methodID = conscrypt::jniutil::sslHandshakeCallbacks_verifyCertificateChain;
 
     const SSL_CIPHER* cipher = SSL_get_pending_cipher(ssl);
     const char* authMethod = SSL_CIPHER_get_kx_name(cipher);
@@ -6599,11 +6579,9 @@ static void info_callback(const SSL* ssl, int type, int value) {
 
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
 
-    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID = env->GetMethodID(cls, "onSSLStateChange", "(II)V");
-
     JNI_TRACE("ssl=%p info_callback calling onSSLStateChange", ssl);
-    env->CallVoidMethod(sslHandshakeCallbacks, methodID, type, value);
+    env->CallVoidMethod(sslHandshakeCallbacks,
+        conscrypt::jniutil::sslHandshakeCallbacks_onSSLStateChange, type, value);
 
     if (env->ExceptionCheck()) {
         JNI_TRACE("ssl=%p info_callback exception", ssl);
@@ -6641,8 +6619,7 @@ static int cert_cb(SSL* ssl, CONSCRYPT_UNUSED void* arg) {
     }
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
 
-    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID = env->GetMethodID(cls, "clientCertificateRequested", "([B[I[[B)V");
+    jmethodID methodID = conscrypt::jniutil::sslHandshakeCallbacks_clientCertificateRequested;
 
     // Call Java callback which can reconfigure the client certificate.
     const uint8_t* ctype = nullptr;
@@ -6716,8 +6693,7 @@ static enum ssl_select_cert_result_t select_certificate_cb(const SSL_CLIENT_HELL
     }
 
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
-    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID = env->GetMethodID(cls, "serverCertificateRequested", "()V");
+    jmethodID methodID = conscrypt::jniutil::sslHandshakeCallbacks_serverCertificateRequested;
 
     JNI_TRACE("ssl=%p select_certificate_cb calling serverCertificateRequested", ssl);
     env->CallVoidMethod(sslHandshakeCallbacks, methodID);
@@ -6751,9 +6727,7 @@ static unsigned int psk_client_callback(SSL* ssl, const char* hint, char* identi
     }
 
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
-    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID =
-            env->GetMethodID(cls, "clientPSKKeyRequested", "(Ljava/lang/String;[B[B)I");
+    jmethodID methodID = conscrypt::jniutil::sslHandshakeCallbacks_clientPSKKeyRequested;
     JNI_TRACE("ssl=%p psk_client_callback calling clientPSKKeyRequested", ssl);
     ScopedLocalRef<jstring> identityHintJava(env,
                                              (hint != nullptr) ? env->NewStringUTF(hint) : nullptr);
@@ -6819,9 +6793,7 @@ static unsigned int psk_server_callback(SSL* ssl, const char* identity, unsigned
     }
 
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
-    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID = env->GetMethodID(cls, "serverPSKKeyRequested",
-                                          "(Ljava/lang/String;Ljava/lang/String;[B)I");
+    jmethodID methodID = conscrypt::jniutil::sslHandshakeCallbacks_serverPSKKeyRequested;
     JNI_TRACE("ssl=%p psk_server_callback calling serverPSKKeyRequested", ssl);
     const char* identityHint = SSL_get_psk_identity_hint(ssl);
     ScopedLocalRef<jstring> identityHintJava(
@@ -6873,8 +6845,7 @@ static int new_session_callback(SSL* ssl, SSL_SESSION* session) {
     }
 
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
-    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID = env->GetMethodID(cls, "onNewSessionEstablished", "(J)V");
+    jmethodID methodID = conscrypt::jniutil::sslHandshakeCallbacks_onNewSessionEstablished;
     JNI_TRACE("ssl=%p new_session_callback calling onNewSessionEstablished", ssl);
     env->CallVoidMethod(sslHandshakeCallbacks, methodID, reinterpret_cast<jlong>(session));
     if (env->ExceptionCheck()) {
@@ -6918,8 +6889,7 @@ static SSL_SESSION* server_session_requested_callback(SSL* ssl, const uint8_t* i
                             reinterpret_cast<const jbyte*>(id));
 
     jobject sslHandshakeCallbacks = appData->sslHandshakeCallbacks;
-    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID = env->GetMethodID(cls, "serverSessionRequested", "([B)J");
+    jmethodID methodID = conscrypt::jniutil::sslHandshakeCallbacks_serverSessionRequested;
     JNI_TRACE("ssl=%p server_session_requested_callback calling serverSessionRequested", ssl);
     jlong ssl_session_address = env->CallLongMethod(sslHandshakeCallbacks, methodID, id_array);
     if (env->ExceptionCheck()) {
@@ -8041,8 +8011,7 @@ static int selectApplicationProtocol(SSL* ssl, JNIEnv* env, jobject sslHandshake
                             reinterpret_cast<const jbyte*>(in));
 
     // Invoke the selection method.
-    jclass cls = env->GetObjectClass(sslHandshakeCallbacks);
-    jmethodID methodID = env->GetMethodID(cls, "selectApplicationProtocol", "([B)I");
+    jmethodID methodID = conscrypt::jniutil::sslHandshakeCallbacks_selectApplicationProtocol;
     jint offset = env->CallIntMethod(sslHandshakeCallbacks, methodID, protocols.get());
 
     if (offset < 0) {
