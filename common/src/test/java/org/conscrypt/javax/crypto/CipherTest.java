@@ -136,6 +136,33 @@ public final class CipherTest {
              || algorithm.equals("AES/OFB/PKCS7PADDING"))) {
             return false;
         }
+
+        if (provider.equals("BC")) {
+            return isSupportedByBC(algorithm);
+        }
+
+        return true;
+    }
+
+    /**
+     * Checks for algorithms removed from BC in Android 12 and so not usable for these
+     * tests.
+     *
+     * TODO(prb): make this version aware, as this test runs against BC on older Android
+     * versions via MTS and should continue to test these algorithms there.
+     *
+     */
+    private static boolean isSupportedByBC(String algorithm) {
+        String[] removedBcPrefices = new String[]{
+            "AES/ECB",
+            "AES/CBC",
+            "AES/GCM"
+        };
+        for (String prefix : removedBcPrefices) {
+            if (algorithm.startsWith(prefix)) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -1068,7 +1095,9 @@ public final class CipherTest {
                             for (String padding : paddings) {
                                 final String algorithmName = algorithm + "/" + mode + "/" + padding;
                                 try {
-                                    test_Cipher_Algorithm(provider, algorithmName);
+                                    if (isSupported(algorithmName, provider.getName())) {
+                                        test_Cipher_Algorithm(provider, algorithmName);
+                                    }
                                 } catch (Throwable e) {
                                     out.append("Error encountered checking " + algorithmName
                                                + " with provider " + provider.getName() + "\n");
@@ -3463,6 +3492,9 @@ public final class CipherTest {
             if (provider.equals("SunJCE") && transformation.endsWith("/PKCS7PADDING")) {
                 return false;
             }
+            if (provider.equals("BC")) {
+                return isSupportedByBC(transformation);
+            }
             return true;
         }
     }
@@ -4090,6 +4122,9 @@ public final class CipherTest {
         final ByteArrayOutputStream errBuffer = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(errBuffer);
         for (CipherTestParam p : CIPHER_TEST_PARAMS) {
+            if (!p.compatibleWith(provider)) {
+                continue;
+            }
             try {
                 checkCipher_ShortBlock_Failure(p, provider);
             } catch (Exception e) {
@@ -4289,32 +4324,6 @@ public final class CipherTest {
         }
     }
 
-    // Test that when reading GCM parameters encoded using ASN1, a value for the tag size
-    // not present indicates a value of 12.
-    // https://b/29876633
-    @Test
-    public void test_DefaultGCMTagSizeAlgorithmParameterSpec() throws Exception {
-        Assume.assumeNotNull(Security.getProvider("BC"));
-        final String AES = "AES";
-        final String AES_GCM = "AES/GCM/NoPadding";
-        byte[] input = new byte[16];
-        byte[] key = new byte[16];
-        Cipher cipher = Cipher.getInstance(AES_GCM, "BC");
-        AlgorithmParameters param = AlgorithmParameters.getInstance("GCM");
-        param.init(new byte[] {
-            (byte) 48,    // DER encoding : tag_Sequence
-            (byte) 14,    // DER encoding : total length
-            (byte) 4,     // DER encoding : tag_OctetString
-            (byte) 12,    // DER encoding : counter length
-            (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0,
-            (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0 });
-        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, AES), param);
-        byte[] ciphertext = cipher.update(input);
-        assertEquals(16, ciphertext.length);
-        byte[] tag = cipher.doFinal();
-        assertEquals(12, tag.length);
-    }
-
     @Test
     public void testAES_ECB_PKCS5Padding_ShortBuffer_Failure() throws Exception {
         for (String provider : AES_PROVIDERS) {
@@ -4377,7 +4386,11 @@ public final class CipherTest {
     }
 
     private void testAES_ECB_NoPadding_IncrementalUpdate_Success(String provider) throws Exception {
-        Cipher c = Cipher.getInstance("AES/ECB/NoPadding", provider);
+        String algorithm = "AES/ECB/NoPadding";
+        if (!isSupported(algorithm, provider)) {
+            return;
+        }
+        Cipher c = Cipher.getInstance(algorithm, provider);
         assertEquals(provider, c.getProvider().getName());
         c.init(Cipher.ENCRYPT_MODE, AES_128_KEY);
 
@@ -4411,7 +4424,11 @@ public final class CipherTest {
     }
 
     private void testAES_ECB_NoPadding_IvParameters_Failure(String provider) throws Exception {
-        Cipher c = Cipher.getInstance("AES/ECB/NoPadding", provider);
+        String algorithm = "AES/ECB/NoPadding";
+        if (!isSupported(algorithm, provider)) {
+            return;
+        }
+        Cipher c = Cipher.getInstance(algorithm, provider);
 
         AlgorithmParameterSpec spec = new IvParameterSpec(AES_IV_ZEROES);
         try {
