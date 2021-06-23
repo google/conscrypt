@@ -313,7 +313,7 @@ final class OpenSSLKey {
     PrivateKey getPrivateKey() throws NoSuchAlgorithmException {
         switch (NativeCrypto.EVP_PKEY_type(ctx)) {
             case NativeConstants.EVP_PKEY_RSA:
-                return new OpenSSLRSAPrivateKey(this);
+                return OpenSSLRSAPrivateKey.getInstance(this);
             case NativeConstants.EVP_PKEY_EC:
                 return new OpenSSLECPrivateKey(this);
             default:
