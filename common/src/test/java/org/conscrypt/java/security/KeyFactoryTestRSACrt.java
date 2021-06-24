@@ -15,9 +15,22 @@
  */
 package org.conscrypt.java.security;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import tests.util.ServiceTester;
@@ -41,5 +54,36 @@ public class KeyFactoryTestRSACrt extends
     // BouncyCastle's KeyFactory.engineGetKeySpec() doesn't handle custom PublicKey
     // implmenetations.
     return tester.skipProvider("BC");
+  }
+
+  @Test
+  public void testExtraBufferSpace_Private() throws Exception {
+    PrivateKey privateKey = DefaultKeys.getPrivateKey("RSA");
+    assertTrue(privateKey instanceof RSAPrivateCrtKey);
+
+    byte[] encoded = privateKey.getEncoded();
+    byte[] longBuffer = new byte[encoded.length + 147];
+    System.arraycopy(encoded, 0, longBuffer, 0, encoded.length);
+    PrivateKey copy =
+            KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(longBuffer));
+    assertEquals(privateKey, copy);
+  }
+
+  @Test
+  public void javaSerialization() throws Exception{
+    PrivateKey privateKey = DefaultKeys.getPrivateKey("RSA");
+    assertTrue(privateKey instanceof RSAPrivateCrtKey);
+
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    ObjectOutputStream out = new ObjectOutputStream(bos);
+    out.writeObject(privateKey);
+
+    ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+    ObjectInputStream in = new ObjectInputStream(bis);
+    PrivateKey copy = (PrivateKey) in.readObject();
+    assertTrue(copy instanceof RSAPrivateCrtKey);
+
+    assertEquals(privateKey.getFormat(), copy.getFormat());
+    assertArrayEquals(privateKey.getEncoded(), copy.getEncoded());
   }
 }
