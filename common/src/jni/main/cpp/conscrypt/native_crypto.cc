@@ -2186,7 +2186,9 @@ static jbyteArray NativeCrypto_EC_KEY_marshal_curve_name(JNIEnv* env, jclass, jo
     const EC_GROUP* group = fromContextObject<EC_GROUP>(env, groupRef);
     JNI_TRACE("EC_KEY_marshal_curve_name(%p)", group);
     if (group == nullptr) {
+        env->ExceptionClear();
         conscrypt::jniutil::throwIOException(env, "Invalid group pointer");
+        JNI_TRACE("group=%p EC_KEY_marshal_curve_name => Invalid group pointer", group);
         return nullptr;
     }
 
@@ -2213,8 +2215,9 @@ static jlong NativeCrypto_EC_KEY_parse_curve_name(JNIEnv* env, jclass, jbyteArra
 
     ScopedByteArrayRO bytes(env, curveNameBytes);
     if (bytes.get() == nullptr) {
-        conscrypt::jniutil::throwIOException(env, "Error reading ASN.1 encoding");
-        JNI_TRACE("bytes=%p EC_KEY_parse_curve_name => threw exception", curveNameBytes);
+        env->ExceptionClear();
+        conscrypt::jniutil::throwIOException(env, "Null EC curve name");
+        JNI_TRACE("bytes=%p EC_KEY_parse_curve_name => curveNameBytes == null ", curveNameBytes);
         return 0;
     }
 
