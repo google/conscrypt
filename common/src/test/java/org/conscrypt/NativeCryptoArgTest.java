@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,7 +42,7 @@ import org.junit.runners.JUnit4;
 public class NativeCryptoArgTest {
     // Null value passed in for a long which represents a native address
     private static final long NULL = 0L;
-    /**
+    /*
      * Non-null value passed in for a long which represents a native address. Shouldn't
      * ever get de-referenced but we make it a multiple of 4 to avoid any alignment errors.
      * Used in the case where there are multiple checks we want to test in a native method,
@@ -259,11 +260,6 @@ public class NativeCryptoArgTest {
         return result;
     }
 
-    private void expectLong(long expected, String methodName, Object... args) throws Throwable {
-        Object actual = invokeAndExpect(null, methodName, args);
-        assertEquals(expected, actual);
-    }
-
     private void expectVoid(String methodName, Object... args) throws Throwable {
         invokeAndExpect(null, methodName, args);
     }
@@ -272,19 +268,18 @@ public class NativeCryptoArgTest {
         invokeAndExpect(NullPointerException.class, methodName, args);
     }
 
-    private Object invokeAndExpect(Class<? extends Throwable> expectedThrowable, String methodName,
+    private void invokeAndExpect(Class<? extends Throwable> expectedThrowable, String methodName,
                                    Object... args) throws Throwable {
         Method method = methodMap.get(methodName);
         assertNotNull(method);
         assertEquals(methodName, method.getName());
-        return invokeAndExpect(expectedThrowable, method, args);
+        invokeAndExpect(expectedThrowable, method, args);
     }
 
-    private Object invokeAndExpect(Class<? extends Throwable> expectedThrowable, Method method,
+    private void invokeAndExpect(Class<? extends Throwable> expectedThrowable, Method method,
                                    Object... args) throws Throwable {
-        Object result = null;
         try {
-            result = method.invoke(null, args);
+            method.invoke(null, args);
             if (expectedThrowable != null) {
                 fail("No exception thrown by method " + method.getName());
             }
@@ -299,7 +294,6 @@ public class NativeCryptoArgTest {
             }
         }
         testedMethods.add(method.getName());
-        return result;
     }
 
     @SuppressWarnings("unchecked")
@@ -311,16 +305,13 @@ public class NativeCryptoArgTest {
     }
 
     private Class<?> conscryptClass(String className) {
-        if (classCache.containsKey(className)) {
-            return classCache.get(className);
-        }
-        try {
-            Class<?> klass = Class.forName(CONSCRYPT_PACKAGE + className);
-            classCache.put(className, klass);
-            return klass;
-        } catch (ClassNotFoundException e) {
-            return null;
-        }
+        return classCache.computeIfAbsent(className, s -> {
+            try {
+                return Class.forName(CONSCRYPT_PACKAGE + className);
+            } catch (ClassNotFoundException e) {
+                return null;
+            }
+        });
     }
 
     private Map<String, Method> buildMethodMap() {

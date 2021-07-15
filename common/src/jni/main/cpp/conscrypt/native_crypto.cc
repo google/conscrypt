@@ -3194,7 +3194,8 @@ static jlong NativeCrypto_EVP_get_cipherbyname(JNIEnv* env, jclass, jstring algo
     JNI_TRACE("EVP_get_cipherbyname(%p)", algorithm);
 
     if (algorithm == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, nullptr);
+        conscrypt::jniutil::throwNullPointerException(env, "algorithm == null");
+        JNI_TRACE("EVP_get_cipherbyname(%p) => algorithm == null", algorithm);
         return -1;
     }
 
@@ -4555,12 +4556,12 @@ static jint NativeCrypto_X509_check_issued(JNIEnv* env, jclass, jlong x509Ref1,
     JNI_TRACE("X509_check_issued(%p, %p)", x509_1, x509_2);
 
     if (x509_1 == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "x509 == null");
+        conscrypt::jniutil::throwNullPointerException(env, "x509Ref1 == null");
         JNI_TRACE("X509_check_issued(%p, %p) => x509_1 == null", x509_1, x509_2);
         return 0;
     }
     if (x509_2 == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "x509 == null");
+        conscrypt::jniutil::throwNullPointerException(env, "x509Ref2 == null");
         JNI_TRACE("X509_check_issued(%p, %p) => x509_2 == null", x509_1, x509_2);
         return 0;
     }

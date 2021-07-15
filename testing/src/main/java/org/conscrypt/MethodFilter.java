@@ -23,9 +23,9 @@ public class MethodFilter {
     }
 
     public List<Method> filter(Iterable<Method> input) {
-                List<Method> result = new ArrayList<>();
+        List<Method> result = new ArrayList<>();
         for (Method method : input) {
-            if (method.getParameterTypes().length > 0 && predicates.test(method)) {
+            if (predicates.test(method)) {
                 result.add(method);
             }
         }
@@ -80,7 +80,7 @@ public class MethodFilter {
 
         /* Method must take one or more arguments, i.e. not void. */
         public Builder notVoid() {
-            filter.addPredicate(new MethodIsNotVoid());
+            filter.addPredicate(new MethodArgLengthPredicate(0).negate());
             return this;
         }
 
@@ -92,11 +92,12 @@ public class MethodFilter {
 
         /** Method's simple name is NOT in the list of {@code names} provided. */
         public Builder except(String... names) {
-            filter.addPredicate(not(new MethodNamePredicate(names)));
+            filter.addPredicate(new MethodNamePredicate(names).negate());
             return this;
         }
 
-        /** Expect at least {@code size} matching methods, otherwise fail. */
+        /** Expect at least {@code size} matching methods when filtering, otherwise filter()
+         * will throw {@code AssertionError} */
         public Builder expectSize(int size) {
             filter.expectedSize = size;
             return this;
@@ -135,18 +136,6 @@ public class MethodFilter {
         }
     }
 
-    // Returns a new Predicate which returns the inverse of the original
-    private static Predicate<Method> not(final Predicate<Method> original) {
-        return new Predicate<Method>() {
-            final Predicate<Method> predicate = original;
-
-            @Override
-            public boolean test(Method method) {
-                return !predicate.test(method);
-            }
-        };
-    }
-
     // Implements Builder.hasArg()
     private static class MethodArgPredicate implements Predicate<Method> {
         private final int position;
@@ -181,16 +170,7 @@ public class MethodFilter {
 
         @Override
         public boolean test(Method method) {
-            return method.getParameterTypes().length == length;
-        }
-    }
-
-    // Implements Builder.notVoid()
-    private static class MethodIsNotVoid implements Predicate<Method> {
-
-        @Override
-        public boolean test(Method method) {
-            return method.getParameterTypes().length > 0;
+            return method.getParameterCount() == length;
         }
     }
 
