@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -93,14 +92,14 @@ public class NativeCryptoArgTest {
         // All of the non-void HMAC and CMAC methods throw NPE when passed a null pointer
         MethodFilter filter = MethodFilter.newBuilder("HMAC methods")
                 .hasPrefix("HMAC_")
-                .notVoid()
+                .takesArguments()
                 .expectSize(5)
                 .build();
         testMethods(filter, NullPointerException.class);
 
         filter = MethodFilter.newBuilder("CMAC methods")
                 .hasPrefix("CMAC_")
-                .notVoid()
+                .takesArguments()
                 .expectSize(5)
                 .build();
         testMethods(filter, NullPointerException.class);
@@ -167,7 +166,7 @@ public class NativeCryptoArgTest {
         // first argument.
         MethodFilter filter = MethodFilter.newBuilder("EVP methods")
                 .hasPrefix("EVP_")
-                .notVoid()
+                .takesArguments()
                 .except(illegalArgMethods)
                 .except(nonThrowingMethods)
                 .expectSize(45)

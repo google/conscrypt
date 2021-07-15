@@ -79,7 +79,7 @@ public class MethodFilter {
         }
 
         /* Method must take one or more arguments, i.e. not void. */
-        public Builder notVoid() {
+        public Builder takesArguments() {
             filter.addPredicate(new MethodArgLengthPredicate(0).negate());
             return this;
         }
