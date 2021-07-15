@@ -81,8 +81,9 @@ import org.junit.runners.Suite;
         // org.conscrypt tests
         CertPinManagerTest.class,
         ChainStrengthAnalyzerTest.class,
-        TrustManagerImplTest.class,
         HostnameVerifierTest.class,
+        NativeCryptoArgTest.class,
+        TrustManagerImplTest.class,
         // org.conscrypt.ct tests
         CTVerifierTest.class,
         SerializationTest.class,
