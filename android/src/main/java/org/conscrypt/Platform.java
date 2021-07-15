@@ -151,24 +151,10 @@ final class Platform {
             }
 
             Method m_fromMillis = c_structTimeval.getDeclaredMethod("fromMillis", long.class);
-            if (m_fromMillis == null) {
-                Log.w(TAG, "fromMillis == null; not setting socket write timeout");
-                return;
-            }
-
             Object timeval = m_fromMillis.invoke(null, timeoutMillis);
 
             Class<?> c_Libcore = Class.forName("libcore.io.Libcore");
-            if (c_Libcore == null) {
-                Log.w(TAG, "Libcore == null; not setting socket write timeout");
-                return;
-            }
-
             Field f_os = c_Libcore.getField("os");
-            if (f_os == null) {
-                Log.w(TAG, "os == null; not setting socket write timeout");
-                return;
-            }
 
             Object instance_os = f_os.get(null);
             if (instance_os == null) {
@@ -184,35 +170,16 @@ final class Platform {
             }
 
             Field f_SOL_SOCKET = c_osConstants.getField("SOL_SOCKET");
-            if (f_SOL_SOCKET == null) {
-                Log.w(TAG, "SOL_SOCKET == null; not setting socket write timeout");
-                return;
-            }
-
             Field f_SO_SNDTIMEO = c_osConstants.getField("SO_SNDTIMEO");
-            if (f_SO_SNDTIMEO == null) {
-                Log.w(TAG, "SO_SNDTIMEO == null; not setting socket write timeout");
-                return;
-            }
-
             Method m_setsockoptTimeval = instance_os.getClass().getMethod("setsockoptTimeval",
                     FileDescriptor.class, int.class, int.class, c_structTimeval);
-            if (m_setsockoptTimeval == null) {
-                Log.w(TAG, "setsockoptTimeval == null; not setting socket write timeout");
-                return;
-            }
 
             m_setsockoptTimeval.invoke(instance_os, fd, f_SOL_SOCKET.get(null),
                     f_SO_SNDTIMEO.get(null), timeval);
+        } catch (SocketException e) {
+            throw e;
         } catch (Exception e) {
-            // We don't want to spam the logcat since this isn't a fatal error, but we want to know
-            // why this might be happening.
-            logStackTraceSnippet("Could not set socket write timeout: " + e, e);
-            Throwable cause = e.getCause();
-            while (cause != null) {
-                logStackTraceSnippet("Caused by: " + cause, cause);
-                cause = cause.getCause();
-            }
+            // All reflection errors silently ignored.
         }
     }
 
