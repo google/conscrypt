@@ -9422,11 +9422,12 @@ static jlong NativeCrypto_d2i_SSL_SESSION(JNIEnv* env, jclass, jbyteArray javaBy
 
 static jstring NativeCrypto_SSL_CIPHER_get_kx_name(JNIEnv* env, jclass, jlong cipher_address) {
     CHECK_ERROR_QUEUE_ON_RETURN;
-    const SSL_CIPHER* cipher = to_SSL_CIPHER(env, cipher_address, true);
-    const char* kx_name = nullptr;
+    const SSL_CIPHER* cipher = to_SSL_CIPHER(env, cipher_address, /*throwIfNull=*/true);
+    if (cipher == nullptr) {
+        return nullptr;
+    }
 
-    kx_name = SSL_CIPHER_get_kx_name(cipher);
-
+    const char* kx_name = SSL_CIPHER_get_kx_name(cipher);
     return env->NewStringUTF(kx_name);
 }
 
