@@ -105,6 +105,9 @@ final class SSLParametersImpl implements Cloneable {
     boolean useSessionTickets;
     private Boolean useSni;
 
+    private boolean useEchGrease;
+    byte[] echConfigList;
+
     /**
      * Whether the TLS Channel ID extension is enabled. This field is
      * server-side only.
@@ -191,6 +194,9 @@ final class SSLParametersImpl implements Cloneable {
         this.useSessionTickets = sslParams.useSessionTickets;
         this.useSni = sslParams.useSni;
         this.channelIdEnabled = sslParams.channelIdEnabled;
+        this.useEchGrease = sslParams.useEchGrease;
+        this.echConfigList =
+            (sslParams.echConfigList == null) ? null : sslParams.echConfigList.clone();
     }
 
     static SSLParametersImpl getDefault() throws KeyManagementException {
@@ -399,6 +405,30 @@ final class SSLParametersImpl implements Cloneable {
      */
     boolean getUseSni() {
         return useSni != null ? useSni : isSniEnabledByDefault();
+    }
+
+    /**
+     * Whether connections using this SSL connection should use the TLS
+     * extension ECH GREASE.
+     */
+    void setUseEchGrease(boolean flag) {
+        useEchGrease = flag;
+    }
+
+    /**
+     * Returns whether connections using this SSL connection should use the TLS
+     * extension ECH GREASE.
+     */
+    boolean getUseEchGrease() {
+        return useEchGrease;
+    }
+
+    void setEchConfigList(byte[] echConfigList) {
+        this.echConfigList = echConfigList;
+    }
+
+    byte[] getEchConfigList() {
+        return this.echConfigList;
     }
 
     /**

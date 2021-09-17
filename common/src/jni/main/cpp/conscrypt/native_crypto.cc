@@ -44,6 +44,7 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <openssl/hpke.h>
 #include <openssl/pkcs7.h>
 #include <openssl/pkcs8.h>
 #include <openssl/rand.h>
@@ -121,6 +122,15 @@ static SSL_CIPHER* to_SSL_CIPHER(JNIEnv* env, jlong ssl_cipher_address, bool thr
         conscrypt::jniutil::throwNullPointerException(env, "ssl_cipher == null");
     }
     return ssl_cipher;
+}
+
+static SSL_ECH_KEYS* to_SSL_ECH_KEYS(JNIEnv* env, jlong ssl_ech_keys_address, bool throwIfNull) {
+    SSL_ECH_KEYS* ssl_ech_keys = reinterpret_cast<SSL_ECH_KEYS*>(static_cast<uintptr_t>(ssl_ech_keys_address));
+    if ((ssl_ech_keys == nullptr) && throwIfNull) {
+        JNI_TRACE("ssl_ech_keys == null");
+        conscrypt::jniutil::throwNullPointerException(env, "ssl_ech_keys == null");
+    }
+    return ssl_ech_keys;
 }
 
 template <typename T>
@@ -10429,6 +10439,96 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
     return reinterpret_cast<uintptr_t>(SSL_get1_session(ssl));
 }
 
+static void NativeCrypto_SSL_set_enable_ech_grease(JNIEnv* env, jclass, jlong ssl_address,
+                                                   CONSCRYPT_UNUSED jobject ssl_holder,
+                                                   jboolean enable) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_enable_ech_grease(%d)", ssl, enable);
+    if (ssl == nullptr) {
+        return;
+    }
+    SSL_set_enable_ech_grease(ssl, enable ? 1 : 0);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_enable_ech_grease(%d) => success", ssl, enable);
+}
+
+static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong ssl_address,
+                                                      CONSCRYPT_UNUSED jobject ssl_holder,
+                                                      jbyteArray configJavaBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p)", ssl, configJavaBytes);
+    if (ssl == nullptr) {
+        return JNI_FALSE;
+    }
+    ScopedByteArrayRO configBytes(env, configJavaBytes);
+    if (configBytes.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_SSL_set1_ech_config_list => threw exception:"
+                  " could not read config bytes");
+        return JNI_FALSE;
+    }
+    const uint8_t* bs = reinterpret_cast<const uint8_t*>(configBytes.get());
+    int ret = SSL_set1_ech_config_list(ssl, reinterpret_cast<const uint8_t*>(configBytes.get()),
+                                       configBytes.size());
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p) => %d", ssl, configJavaBytes, ret);
+    return !!ret;
+}
+
+/**
+ * public static native long SSL_ech_accepted(long ssl);
+ */
+static jboolean NativeCrypto_SSL_ech_accepted(JNIEnv* env, jclass, jlong ssl_address,
+                                              CONSCRYPT_UNUSED jobject ssl_holder) {
+    JNI_TRACE("NativeCrypto_SSL_ech_accepted");
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted", ssl);
+    if (ssl == nullptr) {
+        return 0;
+    }
+    jboolean accepted = SSL_ech_accepted(ssl);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => %d", ssl, accepted);
+    return accepted;
+}
+
+static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlong ssl_ctx_address,
+                                                       CONSCRYPT_UNUSED jobject holder,
+                                                       jbyteArray keyJavaBytes,
+                                                       jbyteArray configJavaBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
+    JNI_TRACE("NativeCrypto_SSL_CTX_ech_enable_server(keyJavaBytes=%p, configJavaBytes=%p)",
+              keyJavaBytes, configJavaBytes);
+    ScopedByteArrayRO keyBytes(env, keyJavaBytes);
+    if (keyBytes.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
+                  "could not read key bytes");
+        return JNI_FALSE;
+    }
+    ScopedByteArrayRO configBytes(env, configJavaBytes);
+    if (configBytes.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
+                  "could not read config bytes");
+        return JNI_FALSE;
+    }
+    const uint8_t* ech_key = reinterpret_cast<const uint8_t*>(keyBytes.get());
+    size_t ech_key_size = keyBytes.size();
+    const uint8_t* ech_config = reinterpret_cast<const uint8_t*>(configBytes.get());
+    size_t ech_config_size = configBytes.size();
+    bssl::UniquePtr<SSL_ECH_KEYS> keys(SSL_ECH_KEYS_new());
+    bssl::ScopedEVP_HPKE_KEY key;
+    if (!keys ||
+        !EVP_HPKE_KEY_init(key.get(), EVP_hpke_x25519_hkdf_sha256(), ech_key, ech_key_size) ||
+        !SSL_ECH_KEYS_add(keys.get(), /*is_retry_config=*/1,
+                          ech_config, ech_config_size, key.get()) ||
+        !SSL_CTX_set1_ech_keys(ssl_ctx, keys.get())) {
+        JNI_TRACE("NativeCrypto_SSL_CTX_ech_enable_server: "
+                  "Error setting server's ECHConfig and private key\n");
+        return JNI_FALSE;
+    }
+    return JNI_TRUE;
+}
+
 // TESTING METHODS END
 
 #define CONSCRYPT_NATIVE_METHOD(functionName, signature)             \
@@ -10749,6 +10849,10 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_force_read, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
+        CONSCRYPT_NATIVE_METHOD(SSL_set_enable_ech_grease, "(J" REF_SSL "Z)V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_set1_ech_config_list, "(J" REF_SSL "[B)Z"),
+        CONSCRYPT_NATIVE_METHOD(SSL_ech_accepted, "(J" REF_SSL ")Z"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CTX_ech_enable_server, "(J" REF_SSL_CTX "[B[B)Z"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),

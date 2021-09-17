@@ -117,6 +117,31 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     }
 
     @Override
+    public void setUseEchGrease(boolean enabled) {
+        delegate.setUseEchGrease(enabled);
+    }
+
+    @Override
+    public boolean getUseEchGrease() {
+        return delegate.getUseEchGrease();
+    }
+
+    @Override
+    public void setEchConfigList(byte[] echConfigList) {
+        delegate.setEchConfigList(echConfigList);
+    }
+
+    @Override
+    public byte[] getEchConfigList() {
+        return delegate.getEchConfigList();
+    }
+
+    @Override
+    public boolean echAccepted() {
+        return delegate.echAccepted();
+    }
+
+    @Override
     public void beginHandshake() throws SSLException {
         delegate.beginHandshake();
     }

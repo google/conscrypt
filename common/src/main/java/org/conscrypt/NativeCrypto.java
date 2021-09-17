@@ -1448,6 +1448,17 @@ public final class NativeCrypto {
      */
     static native boolean usesBoringSsl_FIPS_mode();
 
+    /* Encrypted Client Hello */
+
+    static native void SSL_set_enable_ech_grease(long ssl, NativeSsl ssl_holder, boolean enable);
+
+    static native boolean SSL_set1_ech_config_list(long ssl, NativeSsl ssl_holder, byte[] echConfig);
+
+    static native boolean SSL_ech_accepted(long ssl, NativeSsl ssl_holder);
+
+    static native boolean SSL_CTX_ech_enable_server(long sslCtx, AbstractSessionContext holder,
+                                                    byte[] key, byte[] config);
+
     /**
      * Used for testing only.
      */
