@@ -52,6 +52,7 @@
 #include <openssl/x509v3.h>
 
 #include <limits>
+#include <type_traits>
 #include <vector>
 
 using conscrypt::AppData;
@@ -283,10 +284,19 @@ static jbyteArray bignumToArray(JNIEnv* env, const BIGNUM* source, const char* s
 /**
  * Converts various OpenSSL ASN.1 types to a jbyteArray with DER-encoded data
  * inside. The "i2d_func" function pointer is a function of the "i2d_<TYPE>"
- * from the OpenSSL ASN.1 API.
+ * from the OpenSSL ASN.1 API. Note i2d_func may take a const parameter, so we
+ * use a separate type parameter.
+ *
+ * TODO(https://crbug.com/boringssl/407): When all BoringSSL i2d functions are
+ * const, switch back to a single template parameter.
  */
-template <typename T>
-jbyteArray ASN1ToByteArray(JNIEnv* env, T* obj, int (*i2d_func)(T*, unsigned char**)) {
+template <typename T, typename U>
+jbyteArray ASN1ToByteArray(JNIEnv* env, T* obj, int (*i2d_func)(U*, unsigned char**)) {
+    // T and U should be the same type, but may differ in const.
+    static_assert(std::is_same<typename std::remove_const<T>::type,
+                               typename std::remove_const<U>::type>::value,
+                  "obj and i2d_func have incompatible types");
+
     if (obj == nullptr) {
         conscrypt::jniutil::throwNullPointerException(env, "ASN1 input == null");
         JNI_TRACE("ASN1ToByteArray(%p) => null input", obj);
