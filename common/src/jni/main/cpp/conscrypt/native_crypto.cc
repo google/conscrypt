@@ -4193,7 +4193,7 @@ static jobject GENERAL_NAME_to_jobject(JNIEnv* env, GENERAL_NAME* gen) {
                 // Converting ASCII to UTF-16 is the identity function.
                 jchars.push_back(data[i]);
             }
-            JNI_TRACE("GENERAL_NAME_to_jobject(%p) => Email/DNS/URI \"%.*s\"", gen, len, data);
+            JNI_TRACE("GENERAL_NAME_to_jobject(%p)=> Email/DNS/URI \"%.*s\"", gen, (int) len, data);
             return env->NewString(jchars.data(), jchars.size());
         }
         case GEN_DIRNAME:
