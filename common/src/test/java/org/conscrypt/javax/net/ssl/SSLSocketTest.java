@@ -426,9 +426,9 @@ public class SSLSocketTest {
         SSLContext clientContext = c.clientContext;
         SSLSocket client = (SSLSocket)
                 clientContext.getSocketFactory().createSocket(c.host, c.port);
-        client.setEnabledProtocols(new String[] {"TLSv1.2", "TLSv1"});
+        client.setEnabledProtocols(new String[] {"TLSv1.3", "TLSv1.1"});
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        server.setEnabledProtocols(new String[] {"TLSv1.2", "TLSv1.1", "TLSv1"});
+        server.setEnabledProtocols(new String[] {"TLSv1.3", "TLSv1.2", "TLSv1.1"});
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<Void> future = executor.submit(new Callable<Void>() {
             @Override public Void call() throws Exception {
@@ -439,7 +439,7 @@ public class SSLSocketTest {
         executor.shutdown();
         client.startHandshake();
 
-        assertEquals("TLSv1", client.getSession().getProtocol());
+        assertEquals("TLSv1.1", client.getSession().getProtocol());
 
         future.get();
         client.close();
@@ -457,9 +457,9 @@ public class SSLSocketTest {
         SSLContext clientContext = c.clientContext;
         SSLSocket client = (SSLSocket)
                 clientContext.getSocketFactory().createSocket(c.host, c.port);
-        client.setEnabledProtocols(new String[] {"TLSv1.2", "TLSv1"});
+        client.setEnabledProtocols(new String[] {"TLSv1.3", "TLSv1.1"});
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        server.setEnabledProtocols(new String[] {"TLSv1.1", "TLSv1"});
+        server.setEnabledProtocols(new String[] {"TLSv1.2", "TLSv1.1"});
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<Void> future = executor.submit(new Callable<Void>() {
             @Override public Void call() throws Exception {
@@ -470,7 +470,7 @@ public class SSLSocketTest {
         executor.shutdown();
         client.startHandshake();
 
-        assertEquals("TLSv1", client.getSession().getProtocol());
+        assertEquals("TLSv1.1", client.getSession().getProtocol());
 
         future.get();
         client.close();
@@ -1060,7 +1060,7 @@ public class SSLSocketTest {
         Future<Void> s = runAsync(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                server.setEnabledProtocols(new String[] {"TLSv1.1", "TLSv1"});
+                server.setEnabledProtocols(new String[] {"TLSv1.2", "TLSv1.1"});
                 server.setEnabledCipherSuites(serverCipherSuites);
                 try {
                     server.startHandshake();
@@ -1076,7 +1076,7 @@ public class SSLSocketTest {
         Future<Void> c = runAsync(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                client.setEnabledProtocols(new String[]{"TLSv1"});
+                client.setEnabledProtocols(new String[]{"TLSv1.1"});
                 client.setEnabledCipherSuites(clientCipherSuites);
                 try {
                     client.startHandshake();
@@ -1098,8 +1098,11 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_tlsFallback_byVersion() throws Exception {
-        for (final String protocol : new String[] { "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3" }) {
-            SSLSocketFactory factory = new DelegatingSSLSocketFactory((SSLSocketFactory) SSLSocketFactory.getDefault()) {
+        String[] supportedProtocols =
+                SSLContext.getDefault().getDefaultSSLParameters().getProtocols();
+        for (final String protocol : supportedProtocols) {
+            SSLSocketFactory factory = new DelegatingSSLSocketFactory(
+                    (SSLSocketFactory) SSLSocketFactory.getDefault()) {
                 @Override protected SSLSocket configureSocket(SSLSocket socket) {
                     socket.setEnabledProtocols(new String[] {protocol});
                     String[] enabled = socket.getEnabledCipherSuites();
