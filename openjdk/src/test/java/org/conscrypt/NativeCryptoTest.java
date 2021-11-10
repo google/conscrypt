@@ -567,6 +567,18 @@ public class NativeCryptoTest {
         assertTrue(serverCallback.serverCertificateRequestedInvoked);
     }
 
+    /** Convenient debug print for ECH Config Lists */
+    private void printEchConfigList(String msg, byte[] buf) {
+        int blen = buf.length;
+        System.out.print(msg + " (" + blen + "):\n    ");
+        for (int i = 0; i < blen; i++) {
+            if ((i != 0) && (i % 16 == 0))
+                System.out.print("\n    ");
+            System.out.print(String.format("%02x:", Byte.toUnsignedInt(buf[i])));
+        }
+        System.out.print("\n");
+    }
+
     @Test
     public void test_SSL_do_handshake_ech_client_server() throws Exception {
         System.out.println("test_SSL_do_handshake_ech_client_server");
