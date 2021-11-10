@@ -9386,7 +9386,7 @@ static void NativeCrypto_SSL_SESSION_up_ref(JNIEnv* env, jclass, jlong ssl_sessi
     SSL_SESSION* ssl_session = to_SSL_SESSION(env, ssl_session_address, true);
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_SESSION_up_ref", ssl_session);
     if (ssl_session == nullptr) {
-        return;
+        return; // TODO throw NPE
     }
     SSL_SESSION_up_ref(ssl_session);
 }
@@ -10518,6 +10518,115 @@ static jbyteArray NativeCrypto_SSL_get0_ech_retry_configs(JNIEnv* env, jclass, j
     return result;
 }
 
+static jbyteArray NativeCrypto_SSL_marshal_ech_config(JNIEnv* env, jclass, short configId,
+                                                      jbyteArray keyJavaBytes, jstring publicName) {
+    /*
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    if (configId < 0) {
+        // TODO throw IllegalArgumentException
+        return nullptr;
+    }
+    JNI_TRACE("NativeCrypto_SSL_marshal_ech_config(keyJavaBytes=%p)", keyJavaBytes);
+    ScopedByteArrayRO keyBytes(env, keyJavaBytes);
+    if (keyBytes.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_SSL_marshal_ech_config => threw exception:"
+                  " could not read key bytes");
+        return nullptr;
+    }
+    const uint8_t* key = reinterpret_cast<const uint8_t*>(keyBytes.get());
+    size_t keySize = keyBytes.size();
+    bssl::UniquePtr<SSL_ECH_KEYS> keys(SSL_ECH_KEYS_new());
+    SSL_ECH_KEYS_add(keys.get(), /*is_retry_config=*1, ech_config, ech_config_len, key.get());
+    bssl::ScopedEVP_HPKE_KEY hpke_key;
+    JNI_TRACE("NativeCrypto_SSL_marshal_ech_config(keyJavaBytes=%p) =>", keyJavaBytes);
+    */
+    return nullptr; // TODO return something real
+}
+
+/*
+ * public static native int SSL_ECH_KEYS_new();
+ */
+static jlong NativeCrypto_SSL_ECH_KEYS_new(JNIEnv* env, jclass) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    bssl::UniquePtr<SSL_ECH_KEYS> sslEchKeys(SSL_ECH_KEYS_new());
+    if (sslEchKeys.get() == nullptr) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SSL_ECH_KEYS_new");
+        return 0;
+    }
+
+    JNI_TRACE("NativeCrypto_SSL_ECH_KEYS_new => %p", sslEchKeys.get());
+    return (jlong)sslEchKeys.release();
+}
+
+/**
+ * public static native void SSL_ECH_KEYS_up_ref(long sslEchKeys)
+ */
+static void NativeCrypto_SSL_ECH_KEYS_up_ref(JNIEnv* env, jclass, jlong ssl_ech_keys_address) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL_ECH_KEYS* ssl_ech_keys = to_SSL_ECH_KEYS(env, ssl_ech_keys_address, true);
+    JNI_TRACE("ssl_ech_keys=%p NativeCrypto_SSL_ECH_KEYS_up_ref", ssl_ech_keys);
+    if (ssl_ech_keys == nullptr) {
+        return;
+    }
+    SSL_ECH_KEYS_up_ref(ssl_ech_keys);
+}
+
+/**
+ * public static native void SSL_ECH_KEYS_free(long sslEchKeys)
+ */
+static void NativeCrypto_SSL_ECH_KEYS_free(JNIEnv* env, jclass, jlong ssl_ech_keys_address) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL_ECH_KEYS* ssl_ech_keys = to_SSL_ECH_KEYS(env, ssl_ech_keys_address, true);
+    JNI_TRACE("ssl_ech_keys=%p NativeCrypto_SSL_ECH_KEYS_free", ssl_ech_keys);
+    if (ssl_ech_keys == nullptr) {
+        return;
+    }
+    SSL_ECH_KEYS_free(ssl_ech_keys);
+}
+
+/**
+ * public static native void SSL_ECH_KEYS_marshal_retry_configs(long sslEchKeys)
+ */
+// TODO receive retry configs as byte[] and convert to SSH_ECH_KEYS
+static jbyteArray NativeCrypto_SSL_ECH_KEYS_marshal_retry_configs(JNIEnv* env, jclass,
+                                                                  jbyteArray keysJavaBytes) {
+    /*
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("keys=%p NativeCrypto_SSL_ECH_KEYS_marshal_retry_configs", keysJavaBytes);
+    if (keysJavaBytes == nullptr) {
+        return nullptr;
+    }
+    bssl::UniquePtr<SSL_ECH_KEYS> keys(SSL_ECH_KEYS_new());
+    if (!keys ||
+        !EVP_HPKE_KEY_init(hpke_key.get(), EVP_hpke_x25519_hkdf_sha256(), key, keySize)
+        ) {
+        JNI_TRACE("keys=%p NativeCrypto_SSL_ECH_KEYS_marshal_retry_configs => null", keysJavaBytes);
+        return nullptr;
+    }
+    if (!keys ||
+        !EVP_HPKE_KEY_init(hpke_key.get(), EVP_hpke_x25519_hkdf_sha256(), key, keySize) ||
+        !SSL_ECH_KEYS_add(keys.get(), /*is_retry_config=*1, config, configSize, hpke_key.get()) ||
+        JNI_TRACE("NativeCrypto_SSL_ECH_KEYS_marshal_retry_configs: Error setting private key\n");
+        return nullptr;
+    }
+
+    uint8_t *ech_config_list;
+    size_t ech_config_list_len;
+    if (!SSL_ECH_KEYS_marshal_retry_configs(keys, &ech_config_list, &ech_config_list_len)) {
+        JNI_TRACE("keys=%p NativeCrypto_SSL_ECH_KEYS_marshal_retry_configs => null", keys);
+        return nullptr;
+    }
+    bssl::UniquePtr<uint8_t> free_ech_config_list(ech_config_list); // is this OPENSSL_free(ech_config_list)?
+    jbyteArray result = env->NewByteArray(static_cast<jsize>(ech_config_list_len));
+    if (result != nullptr) {
+        env->SetByteArrayRegion(result, 0, static_cast<jsize>(ech_config_list_len),
+                                (const jbyte*)ech_config_list);
+    }
+    return result;
+*/
+    return nullptr;
+}
+
 /**
  * public static native long SSL_ech_accepted(long ssl);
  */
@@ -10897,6 +11006,14 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_set1_ech_config_list, "(J" REF_SSL "[B)Z"),
         CONSCRYPT_NATIVE_METHOD(SSL_get0_ech_name_override, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_get0_ech_retry_configs, "(J" REF_SSL ")[B"),
+        CONSCRYPT_NATIVE_METHOD(SSL_marshal_ech_config,  "(S[BLjava/lang/String;)[B"),
+        CONSCRYPT_NATIVE_METHOD(SSL_ECH_KEYS_new, "()J"),
+        CONSCRYPT_NATIVE_METHOD(SSL_ECH_KEYS_up_ref, "(J)V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_ECH_KEYS_free, "(J)V"),
+    // CONSCRYPT_NATIVE_METHOD(SSL_ECH_KEYS_add(SSL_ECH_KEYS *keys, int is_retry_config, const uint8_t *ech_config,
+    // CONSCRYPT_NATIVE_METHOD(SSL_ECH_KEYS_has_duplicate_config_id(const SSL_ECH_KEYS *keys),
+        CONSCRYPT_NATIVE_METHOD(SSL_ECH_KEYS_marshal_retry_configs, "([B)[B"),
+        //CONSCRYPT_NATIVE_METHOD(SSL_CTX_set1_ech_keys, "(J" REF_SSL_CTX "[B)Z"),
         CONSCRYPT_NATIVE_METHOD(SSL_ech_accepted, "(J" REF_SSL ")Z"),
         CONSCRYPT_NATIVE_METHOD(SSL_CTX_ech_enable_server, "(J" REF_SSL_CTX "[B[B)Z"),
 

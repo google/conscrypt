@@ -780,6 +780,93 @@ public class NativeCryptoTest {
     }
 
     @Test
+    public void test_SSL_ECH_KEYS_new() throws Exception {
+        long k = NativeCrypto.SSL_ECH_KEYS_new();
+        NativeCrypto.SSL_ECH_KEYS_up_ref(k);
+        assertTrue(k != NULL);
+        long k2 = NativeCrypto.SSL_ECH_KEYS_new();
+        NativeCrypto.SSL_ECH_KEYS_up_ref(k2);
+        assertTrue(k != k2);
+        NativeCrypto.SSL_ECH_KEYS_free(k);
+        NativeCrypto.SSL_ECH_KEYS_free(k2);
+    }
+
+    /*
+    @Test(expected = NullPointerException.class)
+    public void SSL_ECH_KEYS_has_duplicate_config_id_withNullShouldThrow() throws Exception {
+        // TODO what should throw NPEs?
+        NativeCrypto.SSL_ECH_KEYS_has_duplicate_config_id(null);
+    }
+     */
+
+    @Test
+    public void test_SSL_marshal_ech_config() throws Exception {
+        int[] kPrivateKey = {
+                0xbc, 0xb5, 0x51, 0x29, 0x31, 0x10, 0x30, 0xc9, 0xed, 0x26, 0xde,
+                0xd4, 0xb3, 0xdf, 0x3a, 0xce, 0x06, 0x8a, 0xee, 0x17, 0xab, 0xce,
+                0xd7, 0xdb, 0xf3, 0x11, 0xe5, 0xa8, 0xf3, 0xb1, 0x8e, 0x24
+        };
+        int[] kECHConfig = {
+                // version
+                0xfe, 0x0d,
+                // length
+                0x00, 0x41,
+                // contents.config_id
+                0x01,
+                // contents.kem_id
+                0x00, 0x20,
+                // contents.public_key
+                0x00, 0x20, 0xa6, 0x9a, 0x41, 0x48, 0x5d, 0x32, 0x96, 0xa4, 0xe0, 0xc3,
+                0x6a, 0xee, 0xf6, 0x63, 0x0f, 0x59, 0x32, 0x6f, 0xdc, 0xff, 0x81, 0x29,
+                0x59, 0xa5, 0x85, 0xd3, 0x9b, 0x3b, 0xde, 0x98, 0x55, 0x5c,
+                // contents.cipher_suites
+                0x00, 0x08, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x03,
+                // contents.maximum_name_length
+                0x10,
+                // contents.public_name
+                0x0e, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x2e, 0x65, 0x78, 0x61, 0x6d,
+                0x70, 0x6c, 0x65,
+                // contents.extensions
+                0x00, 0x00
+        };
+        //byte[] echConfig = NativeCrypto.SSL_marshal_ech_config(1, kPrivateKey, "public.example");
+        //assertEqual(kECHConfig, echConfig);
+	/*
+	ASSERT_TRUE(SSL_marshal_ech_config(&ech_config, &ech_config_len,
+					   /*config_id=*1, key.get(),
+					   "public.example", 16));
+	EXPECT_EQ(Bytes(kECHConfig), Bytes(ech_config, ech_config_len));
+
+	// Generate a second ECHConfig.
+	ASSERT_TRUE(EVP_HPKE_KEY_generate(key2.get(), EVP_hpke_x25519_hkdf_sha256()));
+	ASSERT_TRUE(SSL_marshal_ech_config(&ech_config2, &ech_config2_len,
+					   /*config_id=*2, key2.get(),
+					   "public.example", 16));
+
+	// Install both ECHConfigs in an |SSL_ECH_KEYS|.
+	ASSERT_TRUE(keys);
+	ASSERT_TRUE(SSL_ECH_KEYS_add(keys.get(), /*is_retry_config=*1, ech_config,
+				     ech_config_len, key.get()));
+	ASSERT_TRUE(SSL_ECH_KEYS_add(keys.get(), /*is_retry_config=*1, ech_config2,
+				     ech_config2_len, key2.get()));
+
+	*/
+
+        // The ECHConfigList should be correctly serialized.
+        //NativeCrypto.SSL_ECH_KEYS_marshal_retry_configs(kPrivateKey);
+        //ASSERT_TRUE(SSL_ECH_KEYS_marshal_retry_configs(keys.get(), &ech_config_list, &ech_config_list_len));
+
+	/*
+	// ECHConfigList is just the concatenation with a length prefix.
+	size_t len = ech_config_len + ech_config2_len;
+	std::vector<uint8_t> expected = {uint8_t(len >> 8), uint8_t(len)};
+	expected.insert(expected.end(), ech_config, ech_config + ech_config_len);
+	expected.insert(expected.end(), ech_config2, ech_config2 + ech_config2_len);
+	EXPECT_EQ(Bytes(expected), Bytes(ech_config_list, ech_config_list_len));
+	*/
+    }
+
+    @Test
     public void test_SSL_ech_accepted() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
