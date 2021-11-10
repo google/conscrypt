@@ -761,5 +761,9 @@ abstract class AbstractConscryptSocket extends SSLSocket {
 
     public abstract byte[] getEchConfigList();
 
+    public abstract String getEchNameOverride();
+
+    public abstract byte[] getEchRetryConfigList();
+
     public abstract boolean echAccepted();
 }

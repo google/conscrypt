@@ -100,6 +100,10 @@ abstract class AbstractConscryptEngine extends SSLEngine {
 
     public abstract byte[] getEchConfigList();
 
+    public abstract String getEchNameOverride();
+
+    public abstract byte[] getEchRetryConfigList();
+
     public abstract boolean echAccepted();
 
     /* @Override */

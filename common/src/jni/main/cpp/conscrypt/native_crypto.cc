@@ -10474,6 +10474,50 @@ static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong
     return !!ret;
 }
 
+static jstring NativeCrypto_SSL_get0_ech_name_override(JNIEnv* env, jclass, jlong ssl_address,
+                                                       CONSCRYPT_UNUSED jobject ssl_holder) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_name_override()", ssl);
+    if (ssl == nullptr) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_name_override() => nullptr", ssl);
+        return nullptr;
+    }
+    const char* ech_name_override;
+    size_t ech_name_override_len;
+    SSL_get0_ech_name_override(ssl, &ech_name_override, &ech_name_override_len);
+    if (ech_name_override_len > 0) {
+        jstring name = env->NewStringUTF(ech_name_override);
+        return name;
+    }
+    return nullptr;
+}
+
+static jbyteArray NativeCrypto_SSL_get0_ech_retry_configs(JNIEnv* env, jclass, jlong ssl_address,
+                                                          CONSCRYPT_UNUSED jobject ssl_holder) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_retry_configs()", ssl);
+    if (ssl == nullptr) {
+        return nullptr;
+    }
+
+    const uint8_t *retry_configs;
+    size_t retry_configs_len;
+    SSL_get0_ech_retry_configs(ssl, &retry_configs, &retry_configs_len);
+
+    jbyteArray result = env->NewByteArray(static_cast<jsize>(retry_configs_len));
+    if (result == nullptr) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_retry_configs() => creating byte array failed",
+                  ssl);
+        return nullptr;
+    }
+    env->SetByteArrayRegion(result, 0, static_cast<jsize>(retry_configs_len),
+                            (const jbyte*) retry_configs);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_retry_configs(%p) => %p", ssl, ssl, result);
+    return result;
+}
+
 /**
  * public static native long SSL_ech_accepted(long ssl);
  */
@@ -10851,6 +10895,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
         CONSCRYPT_NATIVE_METHOD(SSL_set_enable_ech_grease, "(J" REF_SSL "Z)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_set1_ech_config_list, "(J" REF_SSL "[B)Z"),
+        CONSCRYPT_NATIVE_METHOD(SSL_get0_ech_name_override, "(J" REF_SSL ")Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(SSL_get0_ech_retry_configs, "(J" REF_SSL ")[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_ech_accepted, "(J" REF_SSL ")Z"),
         CONSCRYPT_NATIVE_METHOD(SSL_CTX_ech_enable_server, "(J" REF_SSL_CTX "[B[B)Z"),
 

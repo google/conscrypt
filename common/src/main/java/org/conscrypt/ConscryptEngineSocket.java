@@ -421,6 +421,16 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     }
 
     @Override
+    public String getEchNameOverride() {
+        return engine.getEchNameOverride();
+    }
+
+    @Override
+    public byte[] getEchRetryConfigList() {
+        return engine.getEchRetryConfigList();
+    }
+
+    @Override
     public boolean echAccepted() {
         return engine.echAccepted();
     }

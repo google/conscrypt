@@ -137,6 +137,16 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     }
 
     @Override
+    public String getEchNameOverride() {
+        return delegate.getEchNameOverride();
+    }
+
+    @Override
+    public byte[] getEchRetryConfigList() {
+        return delegate.getEchRetryConfigList();
+    }
+
+    @Override
     public boolean echAccepted() {
         return delegate.echAccepted();
     }

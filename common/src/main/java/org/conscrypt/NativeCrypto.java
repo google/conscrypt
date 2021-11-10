@@ -1454,6 +1454,10 @@ public final class NativeCrypto {
 
     static native boolean SSL_set1_ech_config_list(long ssl, NativeSsl ssl_holder, byte[] echConfig);
 
+    static native String SSL_get0_ech_name_override(long ssl, NativeSsl ssl_holder);
+
+    static native byte[] SSL_get0_ech_retry_configs(long ssl, NativeSsl ssl_holder);
+
     static native boolean SSL_ech_accepted(long ssl, NativeSsl ssl_holder);
 
     static native boolean SSL_CTX_ech_enable_server(long sslCtx, AbstractSessionContext holder,

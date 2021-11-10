@@ -510,6 +510,14 @@ public final class Conscrypt {
         return toConscrypt(socket).getEchConfigList();
     }
 
+    public static String getEchNameOverride(SSLSocket socket) {
+        return toConscrypt(socket).getEchNameOverride();
+    }
+
+    public static byte[] getEchRetryConfigList(SSLSocket socket) {
+        return toConscrypt(socket).getEchRetryConfigList();
+    }
+
     public static boolean echAccepted(SSLSocket socket) {
         return toConscrypt(socket).echAccepted();
     }
@@ -776,6 +784,14 @@ public final class Conscrypt {
 
     public static byte[] getEchConfigList(SSLEngine engine) {
         return toConscrypt(engine).getEchConfigList();
+    }
+
+    public static String getEchNameOverride(SSLEngine engine) {
+        return toConscrypt(engine).getEchNameOverride();
+    }
+
+    public static byte[] getEchRetryConfigList(SSLEngine engine) {
+        return toConscrypt(engine).getEchRetryConfigList();
     }
 
     public static boolean echAccepted(SSLEngine engine) {

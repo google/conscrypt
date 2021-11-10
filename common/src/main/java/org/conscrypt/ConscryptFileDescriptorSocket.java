@@ -932,6 +932,16 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
+    public String getEchNameOverride() {
+        return ssl.getEchNameOverride();
+    }
+
+    @Override
+    public byte[] getEchRetryConfigList() {
+        return ssl.getEchRetryConfigList();
+    }
+
+    @Override
     public boolean echAccepted() {
         return ssl.echAccepted();
     }
