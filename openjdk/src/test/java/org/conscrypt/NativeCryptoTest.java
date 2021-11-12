@@ -751,6 +751,27 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_CTX_free(c, null);
     }
 
+    @Test
+    public void test_SSL_set1_ech_config_list() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c, null);
+
+        final byte[] configList = readTestFile("boringssl-ech-config-list.bin");
+        assertTrue(NativeCrypto.SSL_set1_ech_config_list(s, null, configList));
+        byte[] badConfigList = {
+                0x00, 0x05, (byte) 0xfe, 0x0d, (byte) 0xff, (byte) 0xff, (byte) 0xff
+        };
+        boolean set = false;
+        try {
+            set = NativeCrypto.SSL_set1_ech_config_list(s, null, badConfigList);
+            NativeCrypto.SSL_free(s, null);
+            NativeCrypto.SSL_CTX_free(c, null);
+        } catch(AssertionError e) {
+            // ignored when running with checkErrorQueue
+        }
+        assertFalse(set);
+    }
+
     @Test(expected = NullPointerException.class)
     public void test_SSL_set1_ech_config_list_withNull() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
@@ -788,6 +809,89 @@ public class NativeCryptoTest {
     @Test(expected = NullPointerException.class)
     public void test_SSL_CTX_ech_enable_server_NULL_SSL_CTX() throws Exception {
         NativeCrypto.SSL_CTX_ech_enable_server(NULL, null, null, null);
+    }
+
+    @Test
+    public void test_SSL_CTX_ech_enable_server_ssl_withNullsShouldThrow() {
+        long c = NativeCrypto.SSL_CTX_new();
+        try {
+            NativeCrypto.SSL_CTX_ech_enable_server(c, null, null, null);
+        } catch (NullPointerException | AssertionError e){
+            // AssertionError when running with checkErrorQueue
+            return;
+        }
+        fail();
+    }
+
+    @Test
+    public void test_SSL_CTX_ech_enable_server_ssl_withNullConfigShouldThrow() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        // TODO running this with checkErrorQueue after test_SSL_CTX_ech_enable_server_ssl_with_bad_config fails here
+        final byte[] serverConfig = readTestFile("boringssl-server-ech-config.bin");
+        try {
+            NativeCrypto.SSL_CTX_ech_enable_server(c, null, null, serverConfig);
+        } catch (NullPointerException | AssertionError e) {
+            // AssertionError when running with checkErrorQueue
+            return;
+        }
+        fail();
+    }
+
+    @Test
+    public void test_SSL_CTX_ech_enable_server_ssl_withNullKeyShouldThrow() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        final byte[] key = readTestFile("boringssl-ech-private-key.bin");
+        try {
+            NativeCrypto.SSL_CTX_ech_enable_server(c, null, key, null);
+        } catch (NullPointerException | AssertionError e) {
+            // AssertionError when running with checkErrorQueue
+            return;
+        }
+        fail();
+    }
+    @Test
+    public void test_SSL_CTX_ech_enable_server_ssl_with_bad_key() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        final byte[] badKey = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
+        final byte[] serverConfig = readTestFile("boringssl-server-ech-config.bin");
+        boolean enabled = false;
+        try {
+            enabled = NativeCrypto.SSL_CTX_ech_enable_server(c, null, badKey, serverConfig);
+            NativeCrypto.SSL_CTX_free(c, null);
+        } catch (AssertionError e) {
+            // ignored when running with checkErrorQueue
+        }
+        assertFalse(enabled);
+    }
+
+    @Test
+    public void test_SSL_CTX_ech_enable_server_ssl_with_bad_config() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        final byte[] key = readTestFile("boringssl-ech-private-key.bin");
+        byte[] badConfig = {(byte) 0xfe, (byte) 0x0d, (byte) 0xff, (byte) 0xff, (byte) 0xff};
+        boolean enabled = false;
+        try {
+            enabled = NativeCrypto.SSL_CTX_ech_enable_server(c, null, key, badConfig);
+            NativeCrypto.SSL_CTX_free(c, null);
+        } catch(AssertionError e) {
+            // ignored when running with checkErrorQueue
+        }
+        assertFalse(enabled);
+    }
+
+    @Test
+    public void test_SSL_CTX_ech_enable_server_ssl_with_bad_key_config() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        final byte[] badKey = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
+        byte[] badConfig = {(byte) 0xfe, (byte) 0x0d, (byte) 0xff, (byte) 0xff, (byte) 0xff};
+        boolean enabled = false;
+        try {
+            enabled = NativeCrypto.SSL_CTX_ech_enable_server(c, null, badKey, badConfig);
+            NativeCrypto.SSL_CTX_free(c, null);
+        } catch(AssertionError e) {
+            // ignored when running with checkErrorQueue
+        }
+        assertFalse(enabled);
     }
 
     @Test(expected = NullPointerException.class)
