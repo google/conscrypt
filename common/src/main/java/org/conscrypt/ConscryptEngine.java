@@ -396,6 +396,41 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     @Override
+    public void setUseEchGrease(boolean enabled) {
+        sslParameters.setUseEchGrease(enabled);
+    }
+
+    @Override
+    public boolean getUseEchGrease() {
+        return sslParameters.getUseEchGrease();
+    }
+
+    @Override
+    public void setEchConfigList(byte[] echConfigList) {
+        sslParameters.setEchConfigList(echConfigList);
+    }
+
+    @Override
+    public byte[] getEchConfigList() {
+        return sslParameters.getEchConfigList();
+    }
+
+    @Override
+    public String getEchNameOverride() {
+        return ssl.getEchNameOverride();
+    }
+
+    @Override
+    public byte[] getEchRetryConfigList() {
+        return ssl.getEchRetryConfigList();
+    }
+
+    @Override
+    public boolean echAccepted() {
+        return ssl.echAccepted();
+    }
+
+    @Override
     public void beginHandshake() throws SSLException {
         synchronized (ssl) {
             beginHandshakeInternal();

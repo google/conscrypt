@@ -494,6 +494,35 @@ public final class Conscrypt {
     }
 
     /**
+     *
+     * @param socket the socket
+     * @param enabled whether ECH GREASE is enabled or not
+     */
+    public static void setUseEchGrease(SSLSocket socket, boolean enabled) {
+        toConscrypt(socket).setUseEchGrease(enabled);
+    }
+
+    public static void setEchConfigList(SSLSocket socket, byte[] echConfigList) {
+        toConscrypt(socket).setEchConfigList(echConfigList);
+    }
+
+    public static byte[] getEchConfigList(SSLSocket socket) {
+        return toConscrypt(socket).getEchConfigList();
+    }
+
+    public static String getEchNameOverride(SSLSocket socket) {
+        return toConscrypt(socket).getEchNameOverride();
+    }
+
+    public static byte[] getEchRetryConfigList(SSLSocket socket) {
+        return toConscrypt(socket).getEchRetryConfigList();
+    }
+
+    public static boolean echAccepted(SSLSocket socket) {
+        return toConscrypt(socket).echAccepted();
+    }
+
+    /**
      * Indicates whether the given {@link SSLEngine} was created by this distribution of Conscrypt.
      */
     public static boolean isConscrypt(SSLEngine engine) {
@@ -735,6 +764,38 @@ public final class Conscrypt {
     public static byte[] exportKeyingMaterial(SSLEngine engine, String label, byte[] context,
             int length) throws SSLException {
         return toConscrypt(engine).exportKeyingMaterial(label, context, length);
+    }
+
+    /**
+     * This method enables or disables Encrypted Client Hello (ECH) GREASE.
+     *
+     * @param engine the engine
+     * @param enabled Whether to enable TLSv1.3 ECH GREASE
+     *
+     * @see <a href="https://www.ietf.org/archive/id/draft-ietf-tls-esni-13.html#section-6.2">TLS Encrypted Client Hello 6.2. GREASE ECH</a>
+     */
+    public static void setUseEchGrease(SSLEngine engine, boolean enabled) {
+        toConscrypt(engine).setUseEchGrease(enabled);
+    }
+
+    public static void setEchConfigList(SSLEngine engine, byte[] echConfigList) {
+        toConscrypt(engine).setEchConfigList(echConfigList);
+    }
+
+    public static byte[] getEchConfigList(SSLEngine engine) {
+        return toConscrypt(engine).getEchConfigList();
+    }
+
+    public static String getEchNameOverride(SSLEngine engine) {
+        return toConscrypt(engine).getEchNameOverride();
+    }
+
+    public static byte[] getEchRetryConfigList(SSLEngine engine) {
+        return toConscrypt(engine).getEchRetryConfigList();
+    }
+
+    public static boolean echAccepted(SSLEngine engine) {
+        return toConscrypt(engine).echAccepted();
     }
 
     /**
