@@ -358,6 +358,10 @@ final class SSLUtils {
         if (e instanceof SSLHandshakeException) {
             return (SSLHandshakeException) e;
         }
+        if (e.getMessage().contains(":ECH_REJECTED ")) {
+            // TODO this should probably be implemented in boringssl
+            return (SSLHandshakeException) new EchRejectedException(e.getMessage()).initCause(e);
+        }
 
         return (SSLHandshakeException) new SSLHandshakeException(e.getMessage()).initCause(e);
     }
