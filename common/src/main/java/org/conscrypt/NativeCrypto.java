@@ -1444,6 +1444,11 @@ public final class NativeCrypto {
             throws IOException;
 
     /**
+     * Generates a key from a password and salt using Scrypt.
+     */
+    static native byte[] Scrypt_generate_key(byte[] password, byte[] salt, long n, long r, long p, int key_len);
+
+    /**
      * Return {@code true} if BoringSSL has been built in FIPS mode.
      */
     static native boolean usesBoringSsl_FIPS_mode();
