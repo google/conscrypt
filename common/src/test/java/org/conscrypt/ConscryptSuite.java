@@ -51,6 +51,7 @@ import org.conscrypt.javax.crypto.CipherBasicsTest;
 import org.conscrypt.javax.crypto.CipherTest;
 import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
 import org.conscrypt.javax.crypto.KeyGeneratorTest;
+import org.conscrypt.javax.crypto.ScryptTest;
 import org.conscrypt.javax.crypto.XDHKeyAgreementTest;
 import org.conscrypt.javax.net.ssl.HttpsURLConnectionTest;
 import org.conscrypt.javax.net.ssl.KeyManagerFactoryTest;
@@ -130,6 +131,7 @@ import org.junit.runners.Suite;
         KeyStoreBuilderParametersTest.class,
         OptionalMethodTest.class,
         ProtocolTest.class,
+        ScryptTest.class,
         SNIHostNameTest.class,
         SSLContextTest.class,
         SSLEngineTest.class,
