@@ -24,4 +24,6 @@
 -dontwarn com.android.org.conscrypt.AbstractConscryptSocket
 -dontwarn com.android.org.conscrypt.ConscryptFileDescriptorSocket
 -dontwarn com.android.org.conscrypt.OpenSSLSocketImpl
+-dontwarn com.android.org.conscrypt.SSLParametersImpl
 -dontwarn org.apache.harmony.xnet.provider.jsse.OpenSSLSocketImpl
+-dontwarn org.apache.harmony.xnet.provider.jsse.SSLParametersImpl
