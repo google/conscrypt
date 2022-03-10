@@ -35,10 +35,24 @@ import org.conscrypt.TestUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 public final class ScryptTest {
+    @Parameters(name = "{0}")
+    public static String[] params() {
+        return new String[] {
+                "SCRYPT",
+                "1.3.6.1.4.1.11591.4.11",
+                "OID.1.3.6.1.4.1.11591.4.11"
+        };
+    }
+
+    @Parameter
+    public String alias;
+
     // One of the test vectors from RFC 7914
     private static final char[] TEST_PASSWORD = "password".toCharArray();
     private static final byte[] TEST_SALT = "NaCl".getBytes(StandardCharsets.UTF_8);
@@ -49,11 +63,6 @@ public final class ScryptTest {
     private static final byte[] TEST_KEY = decodeHex(
             "fdbabe1c9d3472007856e7190d01e9fe7c6ad7cbc8237830e77376634b373162"
                     + "2eaf30d92e22a3886ff109279d9830dac727afb94a83ee6d8360cbdfa2cc0640");
-    private static final String[] ALIASES = new String[] {
-            "SCRYPT",
-            "1.3.6.1.4.1.11591.4.11",
-            "OID.1.3.6.1.4.1.11591.4.11"
-    };
 
 
     private final List<String[]> testVectors = readTestVectors();
@@ -73,28 +82,24 @@ public final class ScryptTest {
 
     @Test
     public void smokeTest() throws Exception {
-        for (String alias : ALIASES) {
+        SecretKeyFactory factory = SecretKeyFactory.getInstance(alias);
+        assertEquals(alias, factory.getAlgorithm());
 
-            SecretKeyFactory factory = SecretKeyFactory.getInstance(alias);
-            assertNotNull(alias, factory);
-            assertEquals(alias, alias, factory.getAlgorithm());
+        ScryptKeySpec spec = new ScryptKeySpec(TEST_PASSWORD, TEST_SALT,
+                TEST_COST, TEST_BLOCKSIZE, TEST_PARALLELIZATION, TEST_KEY_SIZE);
+        SecretKey key = factory.generateSecret(spec);
+        assertArrayEquals(TEST_KEY, key.getEncoded());
 
-            ScryptKeySpec spec = new ScryptKeySpec(TEST_PASSWORD, TEST_SALT,
-                            TEST_COST, TEST_BLOCKSIZE, TEST_PARALLELIZATION, TEST_KEY_SIZE);
-            SecretKey key = factory.generateSecret(spec);
-            assertArrayEquals(alias, TEST_KEY, key.getEncoded());
+        // Convert for use with AES
+        SecretKeySpec aesKey = makeAesKeySpec(key);
 
-            // Convert for use with AES
-            SecretKeySpec aesKey = makeAesKeySpec(key);
-
-            // Make sure we can actually use the result
-            checkKeyIsUsableWithAes(aesKey);
-        }
+        // Make sure we can actually use the result
+        checkKeyIsUsableWithAes(aesKey);
     }
 
     @Test
     public void duckTypingTest() throws Exception {
-        SecretKeyFactory factory = SecretKeyFactory.getInstance("SCRYPT");
+        SecretKeyFactory factory = SecretKeyFactory.getInstance(alias);
 
         KeySpec spec = new MyPrivateKeySpec(TEST_PASSWORD, TEST_SALT,
                 TEST_COST, TEST_BLOCKSIZE, TEST_PARALLELIZATION, TEST_KEY_SIZE);
@@ -136,7 +141,7 @@ public final class ScryptTest {
             byte[] expectedBytes = decodeHex(entry[KEY_INDEX]);
 
             ScryptKeySpec spec = new ScryptKeySpec(password, salt, n, r, p, expectedBytes.length * 8);
-            SecretKeyFactory factory = SecretKeyFactory.getInstance("SCRYPT");
+            SecretKeyFactory factory = SecretKeyFactory.getInstance(alias);
             SecretKey key = factory.generateSecret(spec);
             assertNotNull(key);
             assertArrayEquals(expectedBytes, key.getEncoded());

@@ -10295,7 +10295,7 @@ static jboolean NativeCrypto_usesBoringSsl_FIPS_mode() {
 static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArray password, jbyteArray salt,
                                                    jint n, jint r, jint p, jint key_len) {
     CHECK_ERROR_QUEUE_ON_RETURN;
-    JNI_TRACE("Scrypt_generate_key(%p, %p, %ld, %ld, %ld, %d)", password, salt, n, r, p, key_len);
+    JNI_TRACE("Scrypt_generate_key(%p, %p, %d, %d, %d, %d)", password, salt, n, r, p, key_len);
 
     if (password == nullptr) {
         conscrypt::jniutil::throwNullPointerException(env, "password == null");
