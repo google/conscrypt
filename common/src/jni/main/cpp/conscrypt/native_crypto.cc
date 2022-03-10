@@ -10293,7 +10293,7 @@ static jboolean NativeCrypto_usesBoringSsl_FIPS_mode() {
  */
 
 static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArray password, jbyteArray salt,
-                                                   jlong n, jlong r, jlong p, jint key_len) {
+                                                   jint n, jint r, jint p, jint key_len) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("Scrypt_generate_key(%p, %p, %ld, %ld, %ld, %d)", password, salt, n, r, p, key_len);
 
@@ -10793,7 +10793,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_force_read, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
-        CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BJJJI)[B"),
+        CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BIIII)[B"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),
