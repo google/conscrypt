@@ -10288,6 +10288,50 @@ static jboolean NativeCrypto_usesBoringSsl_FIPS_mode() {
     return FIPS_mode();
 }
 
+/**
+ * Scrypt support
+ */
+
+static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArray password, jbyteArray salt,
+                                                   jlong n, jlong r, jlong p, jint key_len) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("Scrypt_generate_key(%p, %p, %ld, %ld, %ld, %d)", password, salt, n, r, p, key_len);
+
+    if (password == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "password == null");
+        JNI_TRACE("Scrypt_generate_key() => password == null");
+        return nullptr;
+    }
+    if (salt == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "salt == null");
+        JNI_TRACE("Scrypt_generate_key() => salt == null");
+        return nullptr;
+    }
+
+    jbyteArray key_bytes = env->NewByteArray(static_cast<jsize>(key_len));
+    ScopedByteArrayRW out_key(env, key_bytes);
+    if (out_key.get() == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "out_key == null");
+        JNI_TRACE("Scrypt_generate_key() => out_key == null");
+        return nullptr;
+    }
+
+    size_t memory_limit = 1u << 29;
+    ScopedByteArrayRO password_bytes(env, password);
+    ScopedByteArrayRO salt_bytes(env, salt);
+
+    int result = EVP_PBE_scrypt(reinterpret_cast<const char*>(password_bytes.get()), password_bytes.size(),
+                                reinterpret_cast<const uint8_t*>(salt_bytes.get()), salt_bytes.size(),
+                                n, r, p, memory_limit,
+                                reinterpret_cast<uint8_t*>(out_key.get()), key_len);
+
+    if (result <= 0) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "Scrypt_generate_key");
+        return nullptr;
+    }
+    return key_bytes;
+}
+
 // TESTING METHODS BEGIN
 
 static int NativeCrypto_BIO_read(JNIEnv* env, jclass, jlong bioRef, jbyteArray outputJavaBytes) {
@@ -10749,6 +10793,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_force_read, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
+        CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BJJJI)[B"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),
