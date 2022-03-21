@@ -22,6 +22,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -649,7 +650,7 @@ public class SSLContextTest {
         testContext.close();
     }
 
-    @Test(expected = NoSuchAlgorithmException.class)
+    @Test
     public void test_SSLContext_SSLv3Unsupported() throws Exception {
         // Find the default provider for TLS and verify that it does NOT support SSLv3.
         Provider defaultTlsProvider = null;
@@ -662,7 +663,10 @@ public class SSLContextTest {
             }
         }
         assertNotNull(defaultTlsProvider);
-        SSLContext.getInstance("SSLv3", defaultTlsProvider);
+        Provider finalDefaultTlsProvider = defaultTlsProvider;
+        assertThrows(
+            NoSuchAlgorithmException.class,
+            () -> SSLContext.getInstance("SSLv3", finalDefaultTlsProvider));
     }
 
     private static void assertContentsInOrder(List<String> expected, String... actual) {
