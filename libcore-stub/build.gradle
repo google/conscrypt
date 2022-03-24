@@ -12,7 +12,7 @@ dependencies {
     compileOnly project(':conscrypt-constants'),
                 configurations.publicApiDocs
 
-    compile libraries.junit
+    testImplementation libraries.junit
 }
 
 // Disable the javadoc task.

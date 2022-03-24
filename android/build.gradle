@@ -1,7 +1,7 @@
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath libraries.android_tools
@@ -21,7 +21,7 @@ ext {
     androidVersionName = "$version"
     androidMinSdkVersion = 19
     androidTargetSdkVersion = 26
-    androidNdkVersion = "21.3.6528147"
+    androidNdkVersion = "23.1.7779620"
 }
 
 if (androidSdkInstalled) {

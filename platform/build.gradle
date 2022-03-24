@@ -1,15 +1,11 @@
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath libraries.android_tools
     }
-}
-
-plugins {
-    id 'com.github.dcendents.android-maven' version '2.1'
 }
 
 description = 'Conscrypt: Android Platform'

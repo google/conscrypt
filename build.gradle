@@ -1,12 +1,12 @@
 import org.gradle.util.VersionNumber
 
 buildscript {
-    ext.android_tools = 'com.android.tools.build:gradle:4.1.0'
+    ext.android_tools = 'com.android.tools.build:gradle:4.2.0'
     ext.errorproneVersion = '2.4.0'
     ext.errorproneJavacVersion = '9+181-r4173-1'
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         // This must be applied in the root project otherwise each subproject will
@@ -37,10 +37,59 @@ subprojects {
         apply plugin: 'cpp'
 
         model {
+            // Gradle 6 is inconsistent about Mac platforms so explicitly define
+            // the ones we use.
+            platforms {
+                "osx_x86-64" {
+                    operatingSystem "osx"
+                    architecture "x86_64"
+                }
+                "osx_aarch64" {
+                    operatingSystem "osx"
+                    architecture "aarch64"
+                }
+                // Only needed for constants build on Gradle 6.9.x as it mis-recognises Mac ARM
+                // as osx_arm-v8 (for the other build we explicitly set the target platform(s), but
+                // for the genrule in the constants build we just want the platform default).
+                "osx_arm-v8" {
+                    operatingSystem "osx"
+                    architecture "aarch64"
+                }
+            }
+
             toolChains {
                 visualCpp(VisualCpp)
                 // Prefer Clang over Gcc (order here matters!)
-                clang(Clang)
+                clang(Clang) {
+                    // Gradle has no default toolchain for osx_aarch64 (or osx_arm-v8 on 6.9.x)
+                    // and its default 64 bit toolchain is architecture unaware so will build
+                    // ARM binaries on ARM when it thinks it is building Intel...
+                    // https://github.com/gradle/gradle-native/issues/1096
+                    target("osx_aarch64") {
+                        cppCompiler.withArguments { args ->
+                            args << "-arch" << "arm64"
+                        }
+                        linker.withArguments { args ->
+                            args << "-arch" << "arm64"
+                        }
+                    }
+                    target("osx_arm-v8") {
+                        cppCompiler.withArguments { args ->
+                            args << "-arch" << "arm64"
+                        }
+                        linker.withArguments { args ->
+                            args << "-arch" << "arm64"
+                        }
+                    }
+                    target("osx_x86-64") {
+                        cppCompiler.withArguments { args ->
+                            args << "-arch" << "x86_64"
+                        }
+                        linker.withArguments { args ->
+                            args << "-arch" << "x86_64"
+                        }
+                    }
+                }
                 gcc(Gcc)
             }
         }
@@ -54,7 +103,7 @@ subprojects {
     version = "2.6-SNAPSHOT"
 
     ext {
-        os = org.gradle.internal.os.OperatingSystem.current();
+        os = org.gradle.internal.os.OperatingSystem.current()
         if (os.isLinux()) {
             osName = "linux"
         } else if (os.isMacOsX()) {
@@ -72,8 +121,6 @@ subprojects {
         }
 
         boringsslIncludeDir = normalizePath("$boringsslHome/include")
-        boringssl32BuildDir = normalizePath("$boringsslHome/build32")
-        boringssl64BuildDir = normalizePath("$boringsslHome/build64")
 
         if (project.hasProperty("jdkHome")) {
             jdkHome = project.property("jdkHome")
@@ -84,13 +131,9 @@ subprojects {
         // Needs to be binary compatible with androidMinSdkVersion
         androidMinJavaVersion = JavaVersion.VERSION_1_8
 
-        build32Bit = file("$boringssl32BuildDir").exists()
-        build64Bit = file("$boringssl64BuildDir").exists()
-
         // Ensure the environment is configured properly.
         assert file("$boringsslHome").exists()
         assert file("$boringsslIncludeDir").exists()
-        assert build32Bit || build64Bit
         assert file("$jdkHome").exists()
         assert file("$jdkIncludeDir").exists()
 
@@ -141,7 +184,6 @@ subprojects {
     repositories {
         mavenCentral()
         mavenLocal()
-        jcenter()
     }
 
     jacoco {
@@ -186,7 +228,7 @@ subprojects {
         tasks.named("jar").configure {
             manifest {
                 attributes('Implementation-Title': name,
-                        'Implementation-Version': version,
+                        'Implementation-Version': archiveVersion,
                         'Built-By': System.getProperty('user.name'),
                         'Built-JDK': System.getProperty('java.version'),
                         'Source-Compatibility': sourceCompatibility,
@@ -233,9 +275,9 @@ subprojects {
             maxHeapSize = '1500m'
 
             // Override the default executable if manually specified
-            if (build64Bit && javaExecutable64 != null) {
+            if (javaExecutable64 != null) {
                 executable javaExecutable64
-            } else if (build32Bit && javaExecutable32 != null) {
+            } else if (javaExecutable32 != null) {
                 executable javaExecutable32
             }
         }

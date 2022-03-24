@@ -1,5 +1,5 @@
 plugins {
-    id 'me.champeau.gradle.jmh' version '0.4.8'
+    id 'me.champeau.gradle.jmh' version '0.5.3'
 }
 
 apply plugin: 'idea'
@@ -87,9 +87,9 @@ dependencies {
 
 // Running benchmarks in IntelliJ seems broken without this.
 // See https://github.com/melix/jmh-gradle-plugin/issues/39
-idea.module {
-    scopes.PROVIDED.plus += [ configurations.compile, configurations.jmh ]
-}
+//idea.module {
+//    scopes.PROVIDED.plus += [ configurations.implementation, configurations.jmh ]
+//}
 
 // Param strings are in the form "param:VAL1,VAL2;param2:VAL3,VAL4"
 def parseParams(s) {

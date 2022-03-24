@@ -1,5 +1,5 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '6.0.0'
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
 import aQute.bnd.gradle.BundleTaskConvention
@@ -10,36 +10,107 @@ apply plugin: 'biz.aQute.bnd.builder'
 
 description = 'Conscrypt: OpenJdk'
 
+enum NativeBuildInfo {
+    WINDOWS_X86("windows", "x86"){
+        boolean is64bit() {
+            false
+        }
+    },
+    WINDOWS_X86_64("windows", "x86_64"),
+    LINUX_X86_64("linux", "x86_64"),
+    MAC_X86_64("osx", "x86_64") {
+        String libDir() {
+            "build.x86"
+        }
+    },
+    MAC_AARCH64("osx", "aarch64") {
+        String libDir() {
+            "build.arm"
+        }
+    };
+
+    static String buildDir = "FIXME"
+
+    public final String os;
+    public final String arch;
+    private static final archAliases = [
+            "arm64": "aarch64",
+            "amd64": "x86_64",
+            "i686": "x86_64",
+            "i386": "x86"
+    ]
+
+    NativeBuildInfo(String os, String arch) {
+        this.os = os;
+        this.arch = arch;
+    }
+
+    String classifier() {
+        "${os}-${arch}"
+    }
+
+    String nativeResourcesDir() {
+        "$buildDir/${classifier()}/native-resources"
+    }
+
+    // Target platform as detected by Gradle
+    String targetPlatform() {
+        def archPart = arch.replaceAll("_", "-")
+        "${os}_${archPart}"
+    }
+
+    String libDir() {
+        if (is64bit()) {
+            "build64"
+        } else {
+            "build32"
+        }
+    }
+
+    boolean is64bit() {
+        true
+    }
+
+    static NativeBuildInfo find(String os, String arch) {
+        if (archAliases.containsKey(arch)) {
+            arch = archAliases[arch]
+        }
+        values().find {
+            it.os == os && it.arch == arch
+        }
+    }
+
+    static findAll(String os) {
+        values().findAll {
+            it.os == os
+        }
+    }
+}
+// XXX There has to be a better way of accessing Gradle properties from Groovy than this
+NativeBuildInfo.buildDir = "$buildDir"
+
+static buildInfo(nativeBuild) {
+    def targetOS = nativeBuild.operatingSystem.name
+    def targetArch = nativeBuild.architecture.name.replaceAll("-", "_") // XXX
+    def result = NativeBuildInfo.find(targetOS, targetArch)
+    assert result != null : "Unknown target platform"
+    result
+}
+
 ext {
     jniSourceDir = "$rootDir/common/src/jni"
     assert file("$jniSourceDir").exists()
 
-    // Build the list of classifiers that will be used in the build.
-    arch32Name = 'x86'
-    arch64Name = 'x86_64'
-    nativeClassifiers = []
-    nativeClassifier64Bit = null
-    nativeClassifier32Bit = null
-    preferredClassifier = null
-    preferredSourceSet = null
-    preferredNativeFileDir = null
-    if (build64Bit) {
-        // Add the 64-Bit classifier first, as the preferred classifier.
-        nativeClassifier64Bit = classifierFor(osName, arch64Name)
-        nativeClassifiers += nativeClassifier64Bit
-        preferredClassifier = nativeClassifier64Bit
-        preferredSourceSet = sourceSetName(preferredClassifier)
-        preferredNativeFileDir = nativeResourcesDir(preferredClassifier)
-    }
-    if (build32Bit) {
-        nativeClassifier32Bit = classifierFor(osName, arch32Name)
-        nativeClassifiers += nativeClassifier32Bit
-        if (preferredClassifier == null) {
-            preferredClassifier = nativeClassifier32Bit
-            preferredSourceSet = sourceSetName(preferredClassifier)
-            preferredNativeFileDir = nativeResourcesDir(preferredClassifier)
-        }
-    }
+    // Decide which targets we should build and test
+    nativeBuilds = NativeBuildInfo.findAll(osName)
+    buildToTest = NativeBuildInfo.find(osName, System.getProperty("os.arch"))
+
+    assert !nativeBuilds.isEmpty() : "No native builds selected"
+    assert buildToTest != null : "No test build selected"
+
+    // Compatibility with other sub-projects
+    preferredSourceSet = buildToTest.classifier()
+    preferredNativeFileDir = buildToTest.nativeResourcesDir()
 }
 
 sourceSets {
@@ -68,17 +139,19 @@ sourceSets {
         resources {
             srcDirs += "${rootDir}/common/src/test/resources"
             // This shouldn't be needed but seems to help IntelliJ locate the native artifact.
-            srcDirs += preferredNativeFileDir
+            // srcDirs += preferredNativeFileDir
+            srcDirs += buildToTest.nativeResourcesDir()
         }
     }
 
-    // Add the source sets for each of the native build
-    nativeClassifiers.each { nativeClassifier ->
-        def sourceSetName = sourceSetName(nativeClassifier)
+    // Add the source sets for each of the native builds
+    nativeBuilds.each { nativeBuild ->
+        String sourceSetName = nativeBuild.classifier()
+        String nativeDir = nativeBuild.nativeResourcesDir()
 
         // Main sources for the native build
         "$sourceSetName" {
-            output.dir(nativeResourcesDir(nativeClassifier), builtBy: "copyNativeLib${sourceSetName}")
+            output.dir(nativeDir, builtBy: "copyNativeLib${sourceSetName}")
         }
     }
 }
@@ -93,7 +166,7 @@ tasks.register("platformJar", Jar) {
 
 tasks.register("testJar", ShadowJar) {
     classifier = 'tests'
-    configurations = [project.configurations.testRuntime]
+    configurations = [project.configurations.testRuntimeOnly]
     from sourceSets.test.output
 }
 
@@ -179,33 +252,33 @@ dependencies {
     // This is listed as compile-only, but we absorb its contents.
     compileOnly project(':conscrypt-constants')
 
-    testCompile project(':conscrypt-constants'),
+    testImplementation project(':conscrypt-constants'),
             project(path: ':conscrypt-testing', configuration: 'shadow'),
             libraries.junit,
-            libraries.mockito
-
-    testRuntimeClasspath sourceSets["$preferredSourceSet"].output
+            libraries.mockito,
+            sourceSets[buildToTest.classifier()].output
 
     platformCompileOnly sourceSets.main.output
+    implementation 'org.codehaus.groovy:groovy-all:3.0.10'
 }
 
-nativeClassifiers.each { nativeClassifier ->
+nativeBuilds.each { nativeBuild ->
     // Create the JAR task and add it's output to the published archives for this project
-    addNativeJar(nativeClassifier)
+    addNativeJar(nativeBuild)
 
     // Build the classes as part of the standard build.
-    classes.dependsOn sourceSet(nativeClassifier).classesTaskName
+    classes.dependsOn sourceSets[nativeBuild.classifier()].classesTaskName
 }
 
 // Adds a JAR task for the native library.
-def addNativeJar(nativeClassifier) {
+def addNativeJar(NativeBuildInfo nativeBuild) {
     // Create a JAR for this configuration and add it to the output archives.
-    SourceSet sourceSet = sourceSet(nativeClassifier)
+    SourceSet sourceSet = sourceSets[nativeBuild.classifier()]
     def jarTask = tasks.register(sourceSet.jarTaskName, Jar) { Jar t ->
         // Depend on the regular classes task
         dependsOn classes
         manifest = jar.manifest
-        classifier = nativeClassifier
+        classifier = nativeBuild.classifier()
 
         from sourceSet.output + sourceSets.main.output
 
@@ -224,18 +297,8 @@ def addNativeJar(nativeClassifier) {
 }
 
 
-// Check which version
-def javaError = new ByteArrayOutputStream()
-exec {
-    executable test.executable
-    System.out.println("Running tests with java executable: " + test.executable + ".")
-    args = ['-version']
-    ignoreExitValue true
-    errorOutput = javaError
-}
-
-def suiteClass = (javaError.toString() =~ /"1[.]7[.].*"/) ?
-        "org/conscrypt/ConscryptJava7Suite.class" : "org/conscrypt/ConscryptSuite.class";
+// TODO(prb) Still provide a mechanism for testing on Java 7?
+def suiteClass = "org/conscrypt/ConscryptSuite.class";
 
 test {
     include suiteClass, "org/conscrypt/ConscryptOpenJdkSuite.class"
@@ -273,15 +336,6 @@ javadoc {
 }
 
 model {
-    platforms {
-        x86 {
-            architecture arch32Name
-        }
-        x86_64 {
-            architecture arch64Name
-        }
-    }
-
     buildTypes {
         release
     }
@@ -289,8 +343,9 @@ model {
     components {
         // Builds the JNI library.
         conscrypt_openjdk_jni(NativeLibrarySpec) {
-            if (build32Bit) { targetPlatform arch32Name }
-            if (build64Bit) { targetPlatform arch64Name }
+            nativeBuilds.each { nativeBuild ->
+                targetPlatform nativeBuild.targetPlatform()
+            }
 
             sources {
                 cpp {
@@ -305,19 +360,8 @@ model {
                 // Build the JNI lib as a shared library.
                 withType (SharedLibraryBinarySpec) {
                     cppCompiler.define "CONSCRYPT_OPENJDK"
-
-                    // Set up 32-bit vs 64-bit build
-                    def building64Bit = false
-                    def libPath
-                    if (targetPlatform.getArchitecture().getName() == "x86") {
-                        libPath = "$boringssl32BuildDir"
-                    } else if (targetPlatform.getArchitecture().getName() == "x86-64") {
-                        libPath = "$boringssl64BuildDir"
-                        building64Bit = true
-                    } else {
-                        throw new GradleException("Unknown architecture: " +
-                                targetPlatform.getArchitecture().name)
-                    }
+                    def buildInfo = buildInfo(targetPlatform)
+                    String libPath = "$boringsslHome/${buildInfo.libDir()}"
 
                     if (toolChain in Clang || toolChain in Gcc) {
                         cppCompiler.args "-Wall",
@@ -355,7 +399,7 @@ model {
                         cppCompiler.define "DLL_EXPORT"
                         cppCompiler.define "WIN32_LEAN_AND_MEAN"
                         cppCompiler.define "NOMINMAX"
-                        if (building64Bit) {
+                        if (buildInfo.is64bit()) {
                             cppCompiler.define "WIN64"
                         }
                         cppCompiler.define "_WINDOWS"
@@ -409,20 +453,18 @@ model {
 
     tasks { t ->
         $.binaries.withType(SharedLibraryBinarySpec).each { binary ->
-            // Build the native artifact classifier from the OS and architecture.
-            def archName = binary.targetPlatform.architecture.name.replaceAll('-', '_')
-            def classifier = classifierFor(osName, archName)
-            def sourceSetName = sourceSetName("$classifier")
+            def buildInfo = buildInfo(binary.targetPlatform)
+            def classifier = buildInfo.classifier()
             def source = binary.sharedLibraryFile
 
             // Copies the native library to a resource location that will be included in the jar.
-            def copyTask = project.tasks.register("copyNativeLib${sourceSetName}", Copy) {
+            def copyTask = project.tasks.register("copyNativeLib${classifier}", Copy) {
                 dependsOn binary.tasks.link
                 from source
                 // Rename the artifact to include the generated classifier
                 rename '(.+)(\\.[^\\.]+)', "\$1-$classifier\$2"
                 // Everything under will be included in the native jar.
-                into nativeResourcesDir(classifier) + '/META-INF/native'
+                into buildInfo.nativeResourcesDir() + '/META-INF/native'
             }
 
             // Now define a task to strip the release binary (linux only)
@@ -456,22 +498,5 @@ boolean isExecutableOnPath(executable) {
         }
     }
     return false;
-}
-
-String nativeResourcesDir(nativeClassifier) {
-    def sourceSetName = sourceSetName(nativeClassifier)
-    "${buildDir}/${sourceSetName}/native-resources"
-}
-
-SourceSet sourceSet(classifier) {
-    sourceSets[sourceSetName(classifier)]
-}
-
-static String classifierFor(osName, archName) {
-    "${osName}-${archName}"
-}
-
-static String sourceSetName(classifier) {
-    classifier.replaceAll("-", "_")
 }
 

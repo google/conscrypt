@@ -1,10 +1,6 @@
 description = 'Conscrypt: Base library for benchmarks'
 
-// Needs to be binary-compatible with Android minSdkVersion.
-sourceCompatibility = androidMinJavaVersion
-targetCompatibility = androidMinJavaVersion
-
 dependencies {
-    compile project(path: ":conscrypt-testing", configuration: "runtime"),
+    compile project(path: ":conscrypt-testing", configuration: "runtimeElements"),
             libraries.junit
 }

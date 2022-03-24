@@ -1,5 +1,5 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '6.0.0'
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
 description = 'Conscrypt: Testing'
@@ -20,6 +20,7 @@ dependencies {
                 project(':conscrypt-libcore-stub'),
                 project(':conscrypt-android-stub')
 
-    compile libraries.bouncycastle_apis,
-            libraries.bouncycastle_provider
+    implementation libraries.bouncycastle_apis,
+            libraries.bouncycastle_provider,
+            libraries.junit
 }
