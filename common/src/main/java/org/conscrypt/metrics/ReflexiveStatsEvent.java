@@ -38,7 +38,7 @@ public class ReflexiveStatsEvent {
         }
     }
 
-    private Object statsEvent;
+    private final Object statsEvent;
 
     private ReflexiveStatsEvent(Object statsEvent) {
         this.statsEvent = statsEvent;
@@ -89,7 +89,7 @@ public class ReflexiveStatsEvent {
             }
         }
 
-        private Object builder;
+        private final Object builder;
 
         private Builder() {
             this.builder = newBuilder.invokeStatic();
