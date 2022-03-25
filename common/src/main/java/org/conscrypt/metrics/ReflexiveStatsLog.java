@@ -51,6 +51,9 @@ public class ReflexiveStatsLog {
     private ReflexiveStatsLog() {}
 
     public static void write(ReflexiveStatsEvent event) {
-        write.invoke(null, event.getStatsEvent());
+        Object statsEvent = event.getStatsEvent();
+        if (statsEvent != null) {
+            write.invokeStatic(statsEvent);
+        }
     }
 }

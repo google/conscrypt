@@ -92,7 +92,7 @@ public class ReflexiveStatsEvent {
         private Object builder;
 
         private Builder() {
-            this.builder = newBuilder.invoke(null);
+            this.builder = newBuilder.invokeStatic();
         }
 
         public Builder setAtomId(final int atomId) {
