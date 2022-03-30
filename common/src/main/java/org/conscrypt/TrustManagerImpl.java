@@ -1003,6 +1003,9 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         if (hostnameVerifier != null) {
             return hostnameVerifier;
         }
+        if (defaultHostnameVerifier != null) {
+            return defaultHostnameVerifier;
+        }
         return Platform.getDefaultHostnameVerifier();
     }
 
