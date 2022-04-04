@@ -6,7 +6,6 @@ add_library(conscrypt_jni
             ../common/src/jni/main/cpp/conscrypt/jniutil.cc
             ../common/src/jni/main/cpp/conscrypt/native_crypto.cc
             ../common/src/jni/main/cpp/conscrypt/netutil.cc
-            ../common/src/jni/main/cpp/conscrypt/trace.cc
             )
 include_directories(../common/src/jni/main/include/
                     ../common/src/jni/unbundled/include/
