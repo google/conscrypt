@@ -40,7 +40,7 @@ model {
                 if (toolChain in VisualCpp) {
                     cppCompiler.define "WIN32_LEAN_AND_MEAN"
                 } else if (toolChain in Clang || toolChain in Gcc) {
-                    cppCompiler.args "-std=c++11"
+                    cppCompiler.args "-std=c++17"
                 }
             }
         }
