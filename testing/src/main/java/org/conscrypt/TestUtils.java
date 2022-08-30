@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -349,6 +350,29 @@ public final class TestUtils {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    static boolean getUseEngineSocketByDefault() {
+        try {
+            boolean sfDefault = getBooleanField(
+                "OpenSSLSocketFactoryImpl", "useEngineSocketByDefault");
+            boolean ssfDefault = getBooleanField(
+                "OpenSSLServerSocketFactoryImpl", "useEngineSocketByDefault");
+            if (sfDefault != ssfDefault) {
+                throw new IllegalStateException("Socket factory and server socket factory must\n" +
+                    "use the same default implementation during testing");
+            }
+            return sfDefault;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static boolean getBooleanField(String className, String fieldName) throws Exception {
+        Class<?> clazz = conscryptClass(className);
+        Field field = clazz.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field.getBoolean(null);
     }
 
     public static void setUseSessionTickets(SSLSocket socket, boolean useTickets) {
@@ -749,6 +773,10 @@ public final class TestUtils {
 
     public static void assumeJava8() {
         Assume.assumeTrue("Require Java 8: " + javaVersion(), isJavaVersion(8));
+    }
+
+    public static void assumeEngineSocket() {
+        Assume.assumeTrue(getUseEngineSocketByDefault());
     }
 
     public static String osName() {
