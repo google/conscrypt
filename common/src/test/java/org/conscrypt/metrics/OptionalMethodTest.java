@@ -62,4 +62,13 @@ public class OptionalMethodTest {
 
         assertNull(subwrong.invoke("input", 2, 5));
     }
+
+    @Test
+    public void nullReceiver() {
+        OptionalMethod substring =
+            new OptionalMethod(String.class, "substring", int.class, int.class);
+        assertNotNull(substring);
+
+        assertEquals(null, substring.invoke(null, 2, 5));
+    }
 }
