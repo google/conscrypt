@@ -93,6 +93,9 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private static final TrustAnchorComparator TRUST_ANCHOR_COMPARATOR =
             new TrustAnchorComparator();
 
+    private static final Set<Option> REVOCATION_CHECK_OPTIONS =
+            revocationOptions();
+
     private static ConscryptHostnameVerifier defaultHostnameVerifier;
 
     /**
@@ -767,9 +770,10 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             /*
              * If we add a new revocation checker, we should set the option for
              * end-entity verification only. Otherwise the CertPathValidator will
-             * throw an exception when it can't verify the entire chain.
+             * throw an exception when it can't verify the entire chain. We
+             * also set the option to prevent falling back from OCSP to CRL download.
              */
-            revChecker.setOptions(Collections.singleton(Option.ONLY_END_ENTITY));
+            revChecker.setOptions(REVOCATION_CHECK_OPTIONS);
         }
 
         revChecker.setOcspResponses(Collections.singletonMap(cert, ocspData));
@@ -803,6 +807,13 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             X509Certificate rhsCert = rhs.getTrustedCert();
             return CERT_COMPARATOR.compare(lhsCert, rhsCert);
         }
+    }
+
+    private static Set<Option> revocationOptions() {
+        Set<Option> options = new HashSet<>();
+        options.add(Option.ONLY_END_ENTITY); // Only check end entity
+        options.add(Option.NO_FALLBACK);     // Don't fall back from OCSP to CRL download
+        return Collections.unmodifiableSet(options);
     }
 
     /**
@@ -1002,6 +1013,9 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private ConscryptHostnameVerifier getHttpsVerifier() {
         if (hostnameVerifier != null) {
             return hostnameVerifier;
+        }
+        if (defaultHostnameVerifier != null) {
+            return defaultHostnameVerifier;
         }
         return Platform.getDefaultHostnameVerifier();
     }

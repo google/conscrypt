@@ -52,6 +52,7 @@ extern jmethodID outputStream_writeMethod;
 extern jmethodID outputStream_flushMethod;
 extern jmethodID buffer_positionMethod;
 extern jmethodID buffer_limitMethod;
+extern jmethodID buffer_isDirectMethod;
 extern jmethodID cryptoUpcallsClass_rawSignMethod;
 extern jmethodID cryptoUpcallsClass_rsaSignMethod;
 extern jmethodID cryptoUpcallsClass_rsaDecryptMethod;
@@ -144,6 +145,11 @@ void jniRegisterNativeMethods(JNIEnv* env, const char* className, const JNINativ
  * Returns the int fd from a java.io.FileDescriptor.
  */
 extern int jniGetFDFromFileDescriptor(JNIEnv* env, jobject fileDescriptor);
+
+/**
+ * Returns true if buffer is a non-null direct ByteBuffer instance.
+ */
+extern bool isDirectByteBufferInstance(JNIEnv* env, jobject buffer);
 
 /**
  * Returns true if the VM's JNI GetByteArrayElements method is likely to create a copy when
