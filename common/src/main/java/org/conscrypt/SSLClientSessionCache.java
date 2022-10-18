@@ -29,7 +29,6 @@ import javax.net.ssl.SSLSession;
  * session data is dependent upon the caller's implementation and is opaque to
  * the {@code SSLClientSessionCache} implementation.
  */
-@Internal
 public interface SSLClientSessionCache {
     /**
      * Gets data from a pre-existing session for a given server host and port.
