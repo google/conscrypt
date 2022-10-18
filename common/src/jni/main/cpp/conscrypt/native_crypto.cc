@@ -3685,20 +3685,22 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
     JNI_TRACE("evp_aead_ctx_op(%p, %p, %d, %p, %p, %p, %p)", evpAead, keyArray, tagLen,
               outBuffer, nonceArray, inBuffer, aadArray);
 
-    if (env->IsInstanceOf(inBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE ||
-                        env->IsInstanceOf(outBuffer, conscrypt::jniutil::byteBufferClass) != JNI_TRUE  ) {
-        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "ByteBuffer Class Error");
+    if (!conscrypt::jniutil::isDirectByteBufferInstance(env, inBuffer)) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "inBuffer is not a direct ByteBuffer");
+        return 0;
+    }
+
+    if (!conscrypt::jniutil::isDirectByteBufferInstance(env, outBuffer)) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "outBuffer is not a direct ByteBuffer");
         return 0;
     }
 
     uint8_t* inBuf;
     jint in_limit;
     jint in_position;
-    jint inCapacity = env->GetDirectBufferCapacity(inBuffer);
-    if (inCapacity == -1) {
-        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Non Direct ByteBuffer  Error");
-        return 0;
-    }
+
     inBuf = (uint8_t*)(env->GetDirectBufferAddress(inBuffer));
      // limit is the index of the first element that should not be read or written
     in_limit = env->CallIntMethod(inBuffer,conscrypt::jniutil::buffer_limitMethod);
@@ -3708,11 +3710,6 @@ static jint evp_aead_ctx_op_buf(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArr
     uint8_t* outBuf;
     jint out_limit;
     jint out_position;
-    jint outCapacity = env->GetDirectBufferCapacity(outBuffer);
-    if (outCapacity == -1) {
-        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", "Non Direct ByteBuffer  Error");
-        return 0;
-    }
     outBuf = (uint8_t*)(env->GetDirectBufferAddress(outBuffer));
     // limit is the index of the first element that should not be read or written
     out_limit = env->CallIntMethod(outBuffer,conscrypt::jniutil::buffer_limitMethod);
@@ -9737,6 +9734,11 @@ static jbyteArray NativeCrypto_get_ocsp_single_extension(
 }
 
 static jlong NativeCrypto_getDirectBufferAddress(JNIEnv* env, jclass, jobject buffer) {
+    // The javadoc for NativeCrypto.getDirectBufferAddress(Buffer buf) defines the behaviour here,
+    // no throwing if the buffer is null or not a direct ByteBuffer.
+    if (!conscrypt::jniutil::isDirectByteBufferInstance(env, buffer)) {
+        return 0;
+    }
     return reinterpret_cast<jlong>(env->GetDirectBufferAddress(buffer));
 }
 
