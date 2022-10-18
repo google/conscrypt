@@ -53,6 +53,7 @@ jmethodID outputStream_writeMethod;
 jmethodID outputStream_flushMethod;
 jmethodID buffer_positionMethod;
 jmethodID buffer_limitMethod;
+jmethodID buffer_isDirectMethod;
 jmethodID cryptoUpcallsClass_rawSignMethod;
 jmethodID cryptoUpcallsClass_rsaSignMethod;
 jmethodID cryptoUpcallsClass_rsaDecryptMethod;
@@ -107,6 +108,7 @@ void init(JavaVM* vm, JNIEnv* env) {
     outputStream_flushMethod = getMethodRef(env, outputStreamClass, "flush", "()V");
     buffer_positionMethod = getMethodRef(env, bufferClass, "position", "()I");
     buffer_limitMethod = getMethodRef(env, bufferClass, "limit", "()I");
+    buffer_isDirectMethod = getMethodRef(env, bufferClass, "isDirect", "()Z");
     sslHandshakeCallbacks_verifyCertificateChain =
 	    getMethodRef(env, sslHandshakeCallbacksClass, "verifyCertificateChain", "([[BLjava/lang/String;)V");
     sslHandshakeCallbacks_onSSLStateChange =
@@ -170,6 +172,18 @@ int jniGetFDFromFileDescriptor(JNIEnv* env, jobject fileDescriptor) {
     } else {
         return -1;
     }
+}
+
+extern bool isDirectByteBufferInstance(JNIEnv* env, jobject buffer) {
+    // Some versions of ART do not check the buffer validity when handling GetDirectBufferAddress()
+    // and GetDirectBufferCapacity().
+    if (buffer == nullptr) {
+        return false;
+    }
+    if (!env->IsInstanceOf(buffer, conscrypt::jniutil::byteBufferClass)) {
+        return false;
+    }
+    return env->CallBooleanMethod(buffer, conscrypt::jniutil::buffer_isDirectMethod) == JNI_TRUE;
 }
 
 bool isGetByteArrayElementsLikelyToReturnACopy(size_t size) {
