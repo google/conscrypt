@@ -61,9 +61,24 @@ public final class OptionalMethod {
         return null;
     }
 
-    public Object invoke(Object target, Object... args) {
+    public Object invokeStatic(Object... args) {
         // no-op if failed to load method in constructor
         if (cachedMethod == null) {
+            return null;
+        }
+        try {
+            return cachedMethod.invoke(null, args);
+        } catch (IllegalAccessException ignored) {
+            // Ignored
+        } catch (InvocationTargetException ignored) {
+            // Ignored
+        }
+        return null;
+    }
+
+    public Object invoke(Object target, Object... args) {
+        // no-op if failed to load method in constructor or target is null
+        if (cachedMethod == null || target == null) {
             return null;
         }
         try {
