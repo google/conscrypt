@@ -110,7 +110,7 @@ subprojects {
                 // Test dependencies.
                 bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.63',
                 bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.63',
-                junit  : 'junit:junit:4.12',
+                junit  : 'junit:junit:4.13.2',
                 mockito: 'org.mockito:mockito-core:2.28.2',
                 truth  : 'com.google.truth:truth:1.0',
 

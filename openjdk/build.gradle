@@ -323,7 +323,7 @@ model {
                         cppCompiler.args "-Wall",
                                 "-fPIC",
                                 "-O3",
-                                "-std=c++11",
+                                "-std=c++17",
                                 "-I$jniSourceDir/main/include",
                                 "-I$jniSourceDir/unbundled/include",
                                 "-I$boringsslIncludeDir",

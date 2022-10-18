@@ -7058,7 +7058,8 @@ static void debug_print_packet_data(const SSL* ssl, char direction, const char* 
 
     // Packet preamble for text2pcap
     CONSCRYPT_LOG(LOG_INFO, LOG_TAG "-jni", "ssl=%p SSL_DATA: %c %ld.%06ld", ssl, direction,
-                  tv.tv_sec, static_cast<long>(tv.tv_usec));  // NOLINT(runtime/int)
+                  static_cast<long>(tv.tv_sec),
+                  static_cast<long>(tv.tv_usec));  // NOLINT(runtime/int)
 
     char out[kDataWidth * 3 + 1];
     for (size_t i = 0; i < len; i += kDataWidth) {
@@ -10293,9 +10294,9 @@ static jboolean NativeCrypto_usesBoringSsl_FIPS_mode() {
  */
 
 static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArray password, jbyteArray salt,
-                                                   jlong n, jlong r, jlong p, jint key_len) {
+                                                   jint n, jint r, jint p, jint key_len) {
     CHECK_ERROR_QUEUE_ON_RETURN;
-    JNI_TRACE("Scrypt_generate_key(%p, %p, %ld, %ld, %ld, %d)", password, salt, n, r, p, key_len);
+    JNI_TRACE("Scrypt_generate_key(%p, %p, %d, %d, %d, %d)", password, salt, n, r, p, key_len);
 
     if (password == nullptr) {
         conscrypt::jniutil::throwNullPointerException(env, "password == null");
@@ -10793,7 +10794,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_force_read, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
-        CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BJJJI)[B"),
+        CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BIIII)[B"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),
