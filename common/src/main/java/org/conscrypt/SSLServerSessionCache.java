@@ -30,7 +30,7 @@ import javax.net.ssl.SSLSession;
  * session data is dependent upon the caller's implementation and is opaque to
  * the {@code SSLServerSessionCache} implementation.
  */
-interface SSLServerSessionCache {
+public interface SSLServerSessionCache {
     /**
      * Gets the session data for given session ID.
      *
