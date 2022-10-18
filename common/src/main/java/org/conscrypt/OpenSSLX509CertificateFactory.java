@@ -151,15 +151,6 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
             if (inStream == null) {
                 throw new ParsingException("inStream == null");
             }
-            try {
-                if (inStream.available() == 0) {
-                    // To avoid returning a immutable list in only one path, we create an
-                    // empty list here instead of using Collections.emptyList()
-                    return new ArrayList<T>();
-                }
-            } catch (IOException e) {
-                throw new ParsingException("Problem reading input stream", e);
-            }
 
             final boolean markable = inStream.markSupported();
             if (markable) {
