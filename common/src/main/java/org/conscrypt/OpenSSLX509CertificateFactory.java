@@ -164,8 +164,9 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
 
                 final int len = pbis.read(buffer);
                 if (len < 0) {
-                    /* No need to reset here. The stream was empty or EOF. */
-                    throw new ParsingException("inStream is empty");
+                    // No need to reset here. The stream was empty or EOF so we return an empty
+                    // list, making it mutable for consistency with the other code paths.
+                    return new ArrayList<>();
                 }
                 pbis.unread(buffer, 0, len);
 
