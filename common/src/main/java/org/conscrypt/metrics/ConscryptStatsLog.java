@@ -36,9 +36,9 @@ public final class ConscryptStatsLog {
     public static final int TLS_HANDSHAKE_REPORTED = 317;
 
     public static void write(
-            int code, boolean success, int protocol, int cipherSuite, int duration) {
-        ReflexiveStatsEvent event =
-                ReflexiveStatsEvent.buildEvent(code, success, protocol, cipherSuite, duration);
+            int atomId, boolean success, int protocol, int cipherSuite, int duration, Source source) {
+        ReflexiveStatsEvent event = ReflexiveStatsEvent.buildEvent(
+                atomId, success, protocol, cipherSuite, duration, source.ordinal());
 
         ReflexiveStatsLog.write(event);
     }
