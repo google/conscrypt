@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import static android.system.OsConstants.SOL_SOCKET;
 import static android.system.OsConstants.SO_SNDTIMEO;
+import static org.conscrypt.metrics.Source.SOURCE_MAINLINE;
 
 import android.system.ErrnoException;
 import android.system.Os;
@@ -553,13 +554,13 @@ final class Platform {
     }
 
     static void countTlsHandshake(
-            boolean success, String protocol, String cipherSuite, long duration) {
+            boolean success, String protocol, String cipherSuite, long durationLong) {
         Protocol proto = Protocol.forName(protocol);
         CipherSuite suite = CipherSuite.forName(cipherSuite);
-        int dur = (int) duration;
+        int duration = (int) durationLong;
 
         ConscryptStatsLog.write(ConscryptStatsLog.TLS_HANDSHAKE_REPORTED, success, proto.getId(),
-                suite.getId(), dur);
+                suite.getId(), duration, SOURCE_MAINLINE);
     }
 
     public static boolean isJavaxCertificateSupported() {

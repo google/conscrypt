@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.metrics.Source.SOURCE_GMS;
+
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.os.Build;
@@ -1055,22 +1057,23 @@ final class Platform {
     }
 
     static void countTlsHandshake(
-            boolean success, String protocol, String cipherSuite, long duration) {
+            boolean success, String protocol, String cipherSuite, long durationLong) {
         // Statsd classes appeared in SDK 30 and aren't available in earlier versions
 
         if (Build.VERSION.SDK_INT >= 30) {
             Protocol proto = Protocol.forName(protocol);
             CipherSuite suite = CipherSuite.forName(cipherSuite);
-            int dur = (int) duration;
+            int duration = (int) durationLong;
 
-            writeStats(success, proto.getId(), suite.getId(), dur);
+            writeStats(success, proto.getId(), suite.getId(), duration);
         }
     }
 
     @TargetApi(30)
-    private static void writeStats(boolean success, int protocol, int cipherSuite, int duration) {
-        ConscryptStatsLog.write(
-                ConscryptStatsLog.TLS_HANDSHAKE_REPORTED, success, protocol, cipherSuite, duration);
+    private static void writeStats(
+            boolean success, int protocol, int cipherSuite, int duration) {
+        ConscryptStatsLog.write(ConscryptStatsLog.TLS_HANDSHAKE_REPORTED, success, protocol,
+                cipherSuite, duration, SOURCE_GMS);
     }
 
     public static boolean isJavaxCertificateSupported() {

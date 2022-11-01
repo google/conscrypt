@@ -40,11 +40,12 @@ public class MetricsTest {
                                                  .writeInt(1) // protocol
                                                  .writeInt(2) // cipher suite
                                                  .writeInt(100) // duration
+                                                 .writeInt(3) // source
                                                  .usePooledBuffer()
                                                  .build();
 
         ReflexiveStatsEvent reflexiveStatsEvent =
-                ReflexiveStatsEvent.buildEvent(TLS_HANDSHAKE_REPORTED, false, 1, 2, 100);
+                ReflexiveStatsEvent.buildEvent(TLS_HANDSHAKE_REPORTED, false, 1, 2, 100, 3);
         StatsEvent constructedEvent = (StatsEvent) reflexiveStatsEvent.getStatsEvent();
 
         // TODO(nikitai): Figure out how to use hidden (@hide) getters from StatsEvent

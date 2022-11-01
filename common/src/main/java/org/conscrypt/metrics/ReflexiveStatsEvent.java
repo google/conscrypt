@@ -53,13 +53,14 @@ public class ReflexiveStatsEvent {
     }
 
     public static ReflexiveStatsEvent buildEvent(
-            int atomId, boolean success, int protocol, int cipherSuite, int duration) {
+            int atomId, boolean success, int protocol, int cipherSuite, int duration, int source) {
         ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder();
         builder.setAtomId(atomId);
         builder.writeBoolean(success);
         builder.writeInt(protocol);
         builder.writeInt(cipherSuite);
         builder.writeInt(duration);
+        builder.writeInt(source);
         builder.usePooledBuffer();
         return builder.build();
     }
