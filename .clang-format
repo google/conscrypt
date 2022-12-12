@@ -6,6 +6,7 @@ AllowShortFunctionsOnASingleLine: Empty
 ColumnLimit: 100
 IndentWidth: 4
 ContinuationIndentWidth: 8
+TypenameMacros: ['STACK_OF']
 ---
 Language: Java
 BasedOnStyle: Google
