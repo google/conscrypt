@@ -37,9 +37,9 @@
 #include <openssl/aead.h>
 #include <openssl/asn1.h>
 #include <openssl/chacha.h>
-#include <openssl/curve25519.h>
 #include <openssl/cmac.h>
 #include <openssl/crypto.h>
+#include <openssl/curve25519.h>
 #include <openssl/engine.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -409,7 +409,7 @@ bssl::UniquePtr<CRYPTO_BUFFER> ByteArrayToCryptoBuffer(JNIEnv* env, const jbyteA
 }
 
 static jobjectArray CryptoBuffersToObjectArray(JNIEnv* env,
-                                               const STACK_OF(CRYPTO_BUFFER) * buffers) {
+                                               const STACK_OF(CRYPTO_BUFFER)* buffers) {
     size_t numBuffers = sk_CRYPTO_BUFFER_num(buffers);
     if (numBuffers > INT_MAX) {
         JNI_TRACE("too many buffers");
@@ -4830,14 +4830,14 @@ static jstring NativeCrypto_get_X509_CRL_sig_alg_oid(JNIEnv* env, jclass, jlong 
         return nullptr;
     }
 
-    const X509_ALGOR *sig_alg;
+    const X509_ALGOR* sig_alg;
     X509_CRL_get0_signature(crl, nullptr, &sig_alg);
-    const ASN1_OBJECT *oid;
+    const ASN1_OBJECT* oid;
     X509_ALGOR_get0(&oid, nullptr, nullptr, sig_alg);
     return ASN1_OBJECT_to_OID_string(env, oid);
 }
 
-static jbyteArray get_X509_ALGOR_parameter(JNIEnv* env, const X509_ALGOR *algor) {
+static jbyteArray get_X509_ALGOR_parameter(JNIEnv* env, const X509_ALGOR* algor) {
     int param_type;
     const void* param_value;
     X509_ALGOR_get0(nullptr, &param_type, &param_value, algor);
@@ -4870,7 +4870,7 @@ static jbyteArray NativeCrypto_get_X509_CRL_sig_alg_parameter(JNIEnv* env, jclas
         return nullptr;
     }
 
-    const X509_ALGOR *sig_alg;
+    const X509_ALGOR* sig_alg;
     X509_CRL_get0_signature(crl, nullptr, &sig_alg);
     return get_X509_ALGOR_parameter(env, sig_alg);
 }
@@ -5675,7 +5675,7 @@ static jlong NativeCrypto_PEM_read_bio_PrivateKey(JNIEnv* env, jclass, jlong bio
     return PEM_to_jlong<EVP_PKEY, PEM_read_bio_PrivateKey>(env, bioRef);
 }
 
-static jlongArray X509s_to_ItemArray(JNIEnv* env, STACK_OF(X509) *certs) {
+static jlongArray X509s_to_ItemArray(JNIEnv* env, STACK_OF(X509)* certs) {
     if (certs == nullptr) {
         return nullptr;
     }
@@ -5694,7 +5694,7 @@ static jlongArray X509s_to_ItemArray(JNIEnv* env, STACK_OF(X509) *certs) {
     return ref_array.release();
 }
 
-static jlongArray X509_CRLs_to_ItemArray(JNIEnv* env, STACK_OF(X509_CRL) *crls) {
+static jlongArray X509_CRLs_to_ItemArray(JNIEnv* env, STACK_OF(X509_CRL)* crls) {
     if (crls == nullptr) {
         return nullptr;
     }
@@ -6089,9 +6089,9 @@ static jstring NativeCrypto_get_X509_sig_alg_oid(JNIEnv* env, jclass, jlong x509
         return nullptr;
     }
 
-    const X509_ALGOR *sig_alg;
+    const X509_ALGOR* sig_alg;
     X509_get0_signature(nullptr, &sig_alg, x509);
-    const ASN1_OBJECT *oid;
+    const ASN1_OBJECT* oid;
     X509_ALGOR_get0(&oid, nullptr, nullptr, sig_alg);
     return ASN1_OBJECT_to_OID_string(env, oid);
 }
@@ -6108,7 +6108,7 @@ static jbyteArray NativeCrypto_get_X509_sig_alg_parameter(JNIEnv* env, jclass, j
         return nullptr;
     }
 
-    const X509_ALGOR *sig_alg;
+    const X509_ALGOR* sig_alg;
     X509_get0_signature(nullptr, &sig_alg, x509);
     return get_X509_ALGOR_parameter(env, sig_alg);
 }
@@ -6125,7 +6125,7 @@ static jbooleanArray NativeCrypto_get_X509_issuerUID(JNIEnv* env, jclass, jlong 
         return nullptr;
     }
 
-    const ASN1_BIT_STRING *issuer_uid;
+    const ASN1_BIT_STRING* issuer_uid;
     X509_get0_uids(x509, &issuer_uid, /*out_subject_uid=*/nullptr);
     if (issuer_uid == nullptr) {
         JNI_TRACE("get_X509_issuerUID(%p) => null", x509);
@@ -6147,7 +6147,7 @@ static jbooleanArray NativeCrypto_get_X509_subjectUID(JNIEnv* env, jclass, jlong
         return nullptr;
     }
 
-    const ASN1_BIT_STRING *subject_uid;
+    const ASN1_BIT_STRING* subject_uid;
     X509_get0_uids(x509, /*out_issuer_uid=*/nullptr, &subject_uid);
     if (subject_uid == nullptr) {
         JNI_TRACE("get_X509_subjectUID(%p) => null", x509);
