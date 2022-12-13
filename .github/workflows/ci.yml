@@ -87,7 +87,7 @@ jobs:
       - name: install Go
         uses: actions/setup-go@v1
         with:
-          go-version: '1.13.2'
+          go-version: '1.19.3'
 
       - name: Setup Windows environment
         if: runner.os == 'Windows'
