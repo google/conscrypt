@@ -93,6 +93,7 @@ class HostProperties {
         SPARC_64,
         ARM_32,
         AARCH_64,
+        LOONGARCH_64,
         PPC_32,
         PPC_64,
         PPCLE_64,
@@ -269,6 +270,9 @@ class HostProperties {
         }
         if ("aarch64".equals(value)) {
             return Architecture.AARCH_64;
+        }
+        if ("loongarch64".equals(value)) {
+            return Architecture.LOONGARCH_64;
         }
         if (value.matches("^(ppc|ppc32)$")) {
             return Architecture.PPC_32;
