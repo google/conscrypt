@@ -118,12 +118,12 @@ public abstract class OpenSSLMac extends MacSpi {
         // MAC the contents between Buffer's position and limit (remaining() number of bytes)
         int position = input.position();
         if (position < 0) {
-            throw new RuntimeException("Negative position");
+            throw new IllegalStateException("Negative position");
         }
         long ptr = baseAddress + position;
         int len = input.remaining();
         if (len < 0) {
-            throw new RuntimeException("Negative remaining amount");
+            throw new IllegalStateException("Negative remaining amount");
         }
 
         updateDirect(ptr, len);
@@ -151,18 +151,18 @@ public abstract class OpenSSLMac extends MacSpi {
          * Holds the EVP_MD for the hashing algorithm, e.g.
          * EVP_get_digestbyname("sha1");
          */
-        private final long evp_md;
+        private final long evpMd;
 
-        public Hmac(long evp_md, int size) {
+        public Hmac(long evpMd, int size) {
             super(size);
-            this.evp_md = evp_md;
+            this.evpMd = evpMd;
         }
 
         @Override
         protected void resetContext() {
             NativeRef.HMAC_CTX ctxLocal = new NativeRef.HMAC_CTX(NativeCrypto.HMAC_CTX_new());
             if (keyBytes != null) {
-                NativeCrypto.HMAC_Init_ex(ctxLocal, keyBytes, evp_md);
+                NativeCrypto.HMAC_Init_ex(ctxLocal, keyBytes, evpMd);
             }
             this.ctx = ctxLocal;
         }
@@ -200,19 +200,19 @@ public abstract class OpenSSLMac extends MacSpi {
     }
 
     public static final class HmacSHA224 extends Hmac {
-        public HmacSHA224() throws NoSuchAlgorithmException {
+        public HmacSHA224() {
             super(EvpMdRef.SHA224.EVP_MD, EvpMdRef.SHA224.SIZE_BYTES);
         }
     }
 
     public static final class HmacSHA256 extends Hmac {
-        public HmacSHA256() throws NoSuchAlgorithmException {
+        public HmacSHA256() {
             super(EvpMdRef.SHA256.EVP_MD, EvpMdRef.SHA256.SIZE_BYTES);
         }
     }
 
     public static final class HmacSHA384 extends Hmac {
-        public HmacSHA384() throws NoSuchAlgorithmException {
+        public HmacSHA384() {
             super(EvpMdRef.SHA384.EVP_MD, EvpMdRef.SHA384.SIZE_BYTES);
         }
     }

@@ -6,6 +6,8 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 
 public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
+    private static final long serialVersionUID = 453861992373478445L;
+
     private static final byte[] X509_PREAMBLE = new byte[] {
             0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x03, 0x21, 0x00,
     };
@@ -14,7 +16,7 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
             0x30, 0x2C, 0x30, 0x07, 0x06, 0x03, 0x2B, 0x65, 0x6E, 0x05, 0x00, 0x03, 0x21, 0x00,
     };
 
-    private byte[] uCoordinate;
+    private final byte[] uCoordinate;
 
     public OpenSSLX25519PublicKey(X509EncodedKeySpec keySpec) throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();

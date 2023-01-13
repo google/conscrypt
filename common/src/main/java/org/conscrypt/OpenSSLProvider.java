@@ -49,6 +49,7 @@ public final class OpenSSLProvider extends Provider {
         this(Platform.getDefaultProviderName());
     }
 
+    @SuppressWarnings("deprecation")
     public OpenSSLProvider(String providerName) {
         this(providerName, Platform.provideTrustManagerByDefault(), "TLSv1.3");
     }

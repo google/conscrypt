@@ -33,6 +33,7 @@
 package org.conscrypt;
 
 import static java.lang.Math.min;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.conscrypt.NativeConstants.SSL3_RT_ALERT;
 import static org.conscrypt.NativeConstants.SSL3_RT_APPLICATION_DATA;
 import static org.conscrypt.NativeConstants.SSL3_RT_CHANGE_CIPHER_SPEC;
@@ -42,7 +43,6 @@ import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
 import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -53,7 +53,6 @@ import java.util.Set;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.security.cert.CertificateException;
 
 /**
  * Utility methods for SSL packet processing. Copied from the Netty project.
@@ -64,8 +63,6 @@ final class SSLUtils {
     static final boolean USE_ENGINE_SOCKET_BY_DEFAULT = Boolean.parseBoolean(
             System.getProperty("org.conscrypt.useEngineSocketByDefault", "true"));
     private static final int MAX_PROTOCOL_LENGTH = 255;
-
-    private static final Charset US_ASCII = Charset.forName("US-ASCII");
 
     // TODO(nathanmittler): Should these be in NativeConstants?
     enum SessionType {
@@ -157,12 +154,12 @@ final class SSLUtils {
      * <a href="https://www.ietf.org/rfc/rfc5246.txt">rfc5264</a>,
      * <a href="https://www.ietf.org/rfc/rfc5289.txt">rfc5289</a>, and the BoringSSL
      * implementation itself.
-     *
+     * <p>
      * Please note that we use a padding of 16 here as BoringSSL uses PKCS#5 which uses 16 bytes
      * while the spec itself allow up to 255 bytes. 16 bytes is the max for PKCS#5 (which handles it
      * the same way as PKCS#7) as we use a block size of 16. See <a
      * href="https://tools.ietf.org/html/rfc5652#section-6.3">rfc5652#section-6.3</a>.
-     *
+     * <p>
      * 16 (IV) + 48 (MAC) + 1 (Padding_length field) + 15 (Padding)
      * + 1 (ContentType in TLSCiphertext) + 2 (ProtocolVersion) + 2 (Length)
      * + 1 (ContentType in TLSInnerPlaintext)
@@ -331,11 +328,7 @@ final class SSLUtils {
                 chain[i] = javax.security.cert.X509Certificate.getInstance(encoded);
             }
             return chain;
-        } catch (CertificateEncodingException e) {
-            SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
-            exception.initCause(e);
-            throw exception;
-        } catch (CertificateException e) {
+        } catch (CertificateEncodingException | javax.security.cert.CertificateException e) {
             SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
             exception.initCause(e);
             throw exception;
@@ -483,7 +476,7 @@ final class SSLUtils {
     }
 
     /**
-     * Return how much bytes can be read out of the encrypted data. Be aware that this method will
+     * Return how many bytes can be read out of the encrypted data. Be aware that this method will
      * not increase the readerIndex of the given {@link ByteBuffer}.
      *
      * @param buffers The {@link ByteBuffer}s to read from. Be aware that they must have at least

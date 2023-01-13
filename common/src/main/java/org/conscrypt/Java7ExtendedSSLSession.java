@@ -21,7 +21,6 @@ import java.util.List;
 import javax.net.ssl.ExtendedSSLSession;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSessionContext;
-import javax.security.cert.X509Certificate;
 
 /**
  * This is an adapter that wraps the active session with {@link ExtendedSSLSession}, if running
@@ -135,7 +134,7 @@ class Java7ExtendedSSLSession extends ExtendedSSLSession implements ConscryptSes
 
     @Override
     @SuppressWarnings("deprecation") // Public API
-    public final X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
+    public final javax.security.cert.X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
         return delegate.getPeerCertificateChain();
     }
 
