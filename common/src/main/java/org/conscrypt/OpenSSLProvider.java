@@ -92,6 +92,9 @@ public final class OpenSSLProvider extends Provider {
             put("Alg.Alias.TrustManagerFactory.X509", "PKIX");
         }
 
+        put("KeyManagerFactory.PKIX", KeyManagerFactoryImpl.class.getName());
+        put("Alg.Alias.KeyManagerFactory.X509", "PKIX");
+
         /* === AlgorithmParameters === */
         put("AlgorithmParameters.AES", PREFIX + "IvParameters$AES");
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.2", "AES");
