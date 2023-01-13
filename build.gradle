@@ -82,7 +82,7 @@ subprojects {
         }
         jdkIncludeDir = normalizePath("$jdkHome/include")
         // Needs to be binary compatible with androidMinSdkVersion
-        androidMinJavaVersion = JavaVersion.VERSION_1_7
+        androidMinJavaVersion = JavaVersion.VERSION_1_8
 
         build32Bit = file("$boringssl32BuildDir").exists()
         build64Bit = file("$boringssl64BuildDir").exists()
