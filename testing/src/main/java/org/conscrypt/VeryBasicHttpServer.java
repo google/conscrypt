@@ -226,7 +226,7 @@ public class VeryBasicHttpServer {
 
         @Override
         public String toString() {
-            return java.lang.String.format("cmd=%s proto=%s path=%s headers=%s",
+            return String.format("cmd=%s proto=%s path=%s headers=%s",
                     command, protocol, path, headers.toString());
         }
 
