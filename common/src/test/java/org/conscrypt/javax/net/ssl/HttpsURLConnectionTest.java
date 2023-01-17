@@ -16,17 +16,32 @@
 
 package org.conscrypt.javax.net.ssl;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
+import org.conscrypt.TestUtils;
+import org.conscrypt.VeryBasicHttpServer;
+import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -38,6 +53,19 @@ public class HttpsURLConnectionTest {
      * should be avoided.
      */
     private static final String UNRESOLVABLE_HTTPS_URL = "https:///";
+    private static final String UNREACHABLE_IP = "10.255.255.1";
+
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final VeryBasicHttpServer server = new VeryBasicHttpServer();
+
+    public HttpsURLConnectionTest() throws IOException {
+    }
+
+    @After
+    public void after() {
+        executor.shutdownNow();
+    }
 
     @Test
     public void testDefaultHostnameVerifierNotNull() {
@@ -79,7 +107,94 @@ public class HttpsURLConnectionTest {
 
     @Test
     public void testDefaultSSLSocketFactoryNotNull() {
-        assertNotNull(HttpsURLConnection.getDefaultSSLSocketFactory());
+        SSLSocketFactory factory = HttpsURLConnection.getDefaultSSLSocketFactory();
+        assertNotNull(factory);
+        assertTrue(factory.getClass().getCanonicalName().contains("conscrypt"));
+    }
+
+    @Test
+    public void failedUrlConnect() throws Exception {
+        VeryBasicHttpServer.Op op = server
+                .opBuilder()
+                .build();
+
+        Future<Void> future = executor.submit(server.run(op));
+
+        HttpsURLConnection connection = server.tlsConnection("/file");
+        int response = connection.getResponseCode();
+        assertEquals(404, response);
+
+        future.get(2000, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void successfulUrlConnect() throws Exception {
+        VeryBasicHttpServer.Op op = server
+                .opBuilder()
+                .content("/file", "Hello\nWorld\n")
+                .build();
+        Future<Void> future = executor.submit(server.run(op));
+
+        HttpsURLConnection connection = server.tlsConnection("/file");
+        int response = connection.getResponseCode();
+        assertEquals(200, response);
+
+        future.get(2000, TimeUnit.MILLISECONDS);
+    }
+
+
+    @Test
+    public void urlReadTimeout() throws Exception {
+        TestUtils.assumeEngineSocket();
+        VeryBasicHttpServer.Op op = server
+                .opBuilder()
+                .postAcceptDelay(5000)
+                .closeBeforeRead()
+                .build();
+        Future<Void> future = executor.submit(server.run(op));
+
+        HttpsURLConnection connection = server.tlsConnection("/file");
+        connection.setConnectTimeout(0);
+        connection.setReadTimeout(1000);
+
+        try {
+            connection.getInputStream();
+            fail("Connection succeeded unexpectedly");
+        } catch (SocketException e) {
+            if (e.getMessage().contains("reset")) {
+                fail("HttpsURLConnection's Read timeout failed, got: " + e.getMessage());
+            } else {
+                fail("Unexpected SocketException");
+            }
+        } catch (SocketTimeoutException expected) {
+            // Expected
+        }
+
+        future.get(6000, TimeUnit.MILLISECONDS);
+    }
+
+    @Test
+    public void urlConnectTimeout() throws Exception {
+        int timeoutMillis = 1000;
+        URL url = new URL("https", UNREACHABLE_IP, 443, "/file");
+        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        connection.setConnectTimeout(timeoutMillis);
+        connection.setReadTimeout(0);
+
+        Future<Void> future = executor.submit(() -> {
+            try {
+                connection.getResponseCode();
+                fail("Unexpected connection to unroutable address");
+            } catch (SocketTimeoutException e) {
+                // Expected
+            }
+            return null;
+        });
+        try {
+            future.get(2 * timeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            fail("HttpsURLConnection connection timeout failed.");
+        }
     }
 
     @Test
@@ -161,4 +276,6 @@ public class HttpsURLConnectionTest {
             throw new UnsupportedOperationException();
         }
     }
+
+
 }

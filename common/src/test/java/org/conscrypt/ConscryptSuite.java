@@ -145,6 +145,7 @@ import org.junit.runners.Suite;
         SSLSocketTest.class,
         SSLSocketVersionCompatibilityTest.class,
         TrustManagerFactoryTest.class,
+        VeryBasicHttpServerTest.class,
         X509KeyManagerTest.class,
 })
 public class ConscryptSuite {
