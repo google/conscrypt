@@ -107,11 +107,26 @@ jobs:
           cd "$BORINGSSL_HOME"
           git checkout --progress --force -B master
 
-      - name: Build BoringSSL 64-bit Linux and MacOS
-        if: runner.os != 'Windows'
+      - name: Build BoringSSL x86 and ARM MacOS
+        if: runner.os == 'macOS'
         env:
           # For compatibility, but 10.15 target requires 16-byte stack alignment.
           MACOSX_DEPLOYMENT_TARGET: 10.11
+        run: |
+          mkdir -p "$BORINGSSL_HOME/build.x86"
+          pushd "$BORINGSSL_HOME/build.x86"
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -GNinja ..
+          ninja
+          popd
+
+          mkdir -p "$BORINGSSL_HOME/build.arm"
+          pushd "$BORINGSSL_HOME/build.arm"
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -GNinja ..
+          ninja
+          popd
+
+      - name: Build BoringSSL 32-bit and 64-bit Linux
+        if: runner.os == 'Linux'
         run: |
           mkdir -p "$BORINGSSL_HOME/build64"
           pushd "$BORINGSSL_HOME/build64"
@@ -119,9 +134,6 @@ jobs:
           ninja
           popd
 
-      - name: Build BoringSSL 32-bit Linux
-        if: runner.os == 'Linux'
-        run: |
           mkdir -p "$BORINGSSL_HOME/build32"
           pushd "$BORINGSSL_HOME/build32"
           cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS="-m32 -msse2" -DCMAKE_CXX_FLAGS="-m32 -msse2" -DCMAKE_C_FLAGS="-m32 -msse2" -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=x86 -GNinja ..
