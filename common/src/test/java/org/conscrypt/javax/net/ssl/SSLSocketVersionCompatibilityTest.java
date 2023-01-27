@@ -1031,6 +1031,10 @@ public class SSLSocketVersionCompatibilityTest {
 
     @Test
     public void test_SSLSocket_ShutdownInput() throws Exception {
+        // Fdsocket throws SslException rather than returning EOF after input shutdown
+        // on Windows, but we won't be fixing it as that implementation is already deprecated.
+        assumeFalse("Skipping shutdownInput() test on Windows", isWindows());
+
         final TestSSLContext c = new TestSSLContext.Builder()
                 .clientProtocol(clientVersion)
                 .serverProtocol(serverVersion)
