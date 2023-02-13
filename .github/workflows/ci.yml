@@ -173,8 +173,8 @@ jobs:
           "$SDKMANAGER" 'build-tools;28.0.3' | tr '\r' '\n' | uniq
           "$SDKMANAGER" 'platforms;android-26' | tr '\r' '\n' | uniq
           "$SDKMANAGER" 'extras;android;m2repository' | tr '\r' '\n' | uniq
-          "$SDKMANAGER" 'ndk;21.3.6528147' | tr '\r' '\n' | uniq
-          "$SDKMANAGER" 'cmake;3.10.2.4988404' | tr '\r' '\n' | uniq
+          "$SDKMANAGER" 'ndk;23.1.7779620' | tr '\r' '\n' | uniq
+          "$SDKMANAGER" 'cmake;3.22.1' | tr '\r' '\n' | uniq
 
       - name: Build with Gradle
         shell: bash
