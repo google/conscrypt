@@ -21,6 +21,7 @@ plugins {
     // build script.
     id 'org.ajoberstar.grgit' version '3.1.1'
     id 'net.ltgt.errorprone' version '1.3.0'
+    id "com.google.osdetector" version "1.7.3"
 }
 
 subprojects {
@@ -103,17 +104,6 @@ subprojects {
     version = "2.6-SNAPSHOT"
 
     ext {
-        os = org.gradle.internal.os.OperatingSystem.current()
-        if (os.isLinux()) {
-            osName = "linux"
-        } else if (os.isMacOsX()) {
-            osName = "osx"
-        } else if (os.isWindows()) {
-            osName = "windows"
-        } else {
-            throw new GradleException("Unsupported os: " + os.name)
-        }
-
         if (project.hasProperty("boringsslHome")) {
             boringsslHome = project.property("boringsslHome")
         } else {

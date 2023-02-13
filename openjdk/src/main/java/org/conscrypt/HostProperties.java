@@ -92,11 +92,7 @@ class HostProperties {
         SPARC_32,
         SPARC_64,
         ARM_32,
-        AARCH_64 {
-            @Override public String getFileComponent() {
-                return "aarch64";
-            }
-        },
+        AARCH_64,
         PPC_32,
         PPC_64,
         PPCLE_64,
