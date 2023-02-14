@@ -1,12 +1,13 @@
+import org.ajoberstar.grgit.Grgit
 import org.gradle.util.VersionNumber
 
 buildscript {
-    ext.android_tools = 'com.android.tools.build:gradle:4.1.0'
+    ext.android_tools = 'com.android.tools.build:gradle:7.4.0'
     ext.errorproneVersion = '2.4.0'
     ext.errorproneJavacVersion = '9+181-r4173-1'
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         // This must be applied in the root project otherwise each subproject will
@@ -62,7 +63,7 @@ subprojects {
         } else if (os.isWindows()) {
             osName = "windows"
         } else {
-            throw new GradleException("Unsupported os: " + os.name)
+            throw new RuntimeException("Unsupported os: " + os.name)
         }
 
         if (project.hasProperty("boringsslHome")) {
@@ -95,7 +96,7 @@ subprojects {
         assert file("$jdkIncludeDir").exists()
 
         // Get the commit hash for BoringSSL.
-        boringSslGit = org.ajoberstar.grgit.Grgit.open(dir: boringsslHome)
+        boringSslGit = Grgit.open(dir: boringsslHome)
         boringSslVersion = boringSslGit.head().id
 
         // Allow the java executable to be specified via env/property for each architecture.
@@ -132,7 +133,7 @@ subprojects {
                 def process = command.execute()
                 process.waitFor()
                 if (process.exitValue()) {
-                    throw new GradleException('Jar signing failed for ' + jarPath + ': ' + process.text)
+                    throw new RuntimeException('Jar signing failed for ' + jarPath + ': ' + process.text)
                 }
             }
         }
@@ -141,7 +142,6 @@ subprojects {
     repositories {
         mavenCentral()
         mavenLocal()
-        jcenter()
     }
 
     jacoco {
@@ -186,7 +186,7 @@ subprojects {
         tasks.named("jar").configure {
             manifest {
                 attributes('Implementation-Title': name,
-                        'Implementation-Version': version,
+                        'Implementation-Version': archiveVersion,
                         'Built-By': System.getProperty('user.name'),
                         'Built-JDK': System.getProperty('java.version'),
                         'Source-Compatibility': sourceCompatibility,

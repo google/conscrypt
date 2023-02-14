@@ -1,5 +1,5 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '6.0.0'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
 import aQute.bnd.gradle.BundleTaskConvention
@@ -87,13 +87,17 @@ compileJava {
     dependsOn generateProperties
 }
 
+processResources {
+    dependsOn generateProperties
+}
+
 tasks.register("platformJar", Jar) {
     from sourceSets.platform.output
 }
 
 tasks.register("testJar", ShadowJar) {
     classifier = 'tests'
-    configurations = [project.configurations.testRuntime]
+    configurations = [project.configurations.runtimeClasspath]
     from sourceSets.test.output
 }
 
@@ -179,12 +183,12 @@ dependencies {
     // This is listed as compile-only, but we absorb its contents.
     compileOnly project(':conscrypt-constants')
 
-    testCompile project(':conscrypt-constants'),
+    testImplementation project(':conscrypt-constants'),
             project(path: ':conscrypt-testing', configuration: 'shadow'),
             libraries.junit,
             libraries.mockito
 
-    testRuntimeClasspath sourceSets["$preferredSourceSet"].output
+    testRuntimeOnly sourceSets["$preferredSourceSet"].output
 
     platformCompileOnly sourceSets.main.output
 }
@@ -224,18 +228,20 @@ def addNativeJar(nativeClassifier) {
 }
 
 
+// TODO(prb) Still provide a mechanism for testing on Java 7?
 // Check which version
-def javaError = new ByteArrayOutputStream()
-exec {
-    executable test.executable
-    System.out.println("Running tests with java executable: " + test.executable + ".")
-    args = ['-version']
-    ignoreExitValue true
-    errorOutput = javaError
-}
-
-def suiteClass = (javaError.toString() =~ /"1[.]7[.].*"/) ?
-        "org/conscrypt/ConscryptJava7Suite.class" : "org/conscrypt/ConscryptSuite.class";
+//def javaError = new ByteArrayOutputStream()
+//exec {
+//    executable test.executable
+//    System.out.println("Running tests with java executable: " + test.executable + ".")
+//    args = ['-version']
+//    ignoreExitValue true
+//    errorOutput = javaError
+//}
+//
+//def suiteClass = (javaError.toString() =~ /"1[.]7[.].*"/) ?
+//        "org/conscrypt/ConscryptJava7Suite.class" : "org/conscrypt/ConscryptSuite.class";
+def suiteClass = "org/conscrypt/ConscryptSuite.class";
 
 test {
     include suiteClass, "org/conscrypt/ConscryptOpenJdkSuite.class"
@@ -423,6 +429,12 @@ model {
                 rename '(.+)(\\.[^\\.]+)', "\$1-$classifier\$2"
                 // Everything under will be included in the native jar.
                 into nativeResourcesDir(classifier) + '/META-INF/native'
+            }
+            processResources {
+                dependsOn copyTask
+            }
+            processTestResources {
+                dependsOn copyTask
             }
 
             // Now define a task to strip the release binary (linux only)

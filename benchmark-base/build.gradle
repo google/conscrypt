@@ -5,6 +5,6 @@ sourceCompatibility = androidMinJavaVersion
 targetCompatibility = androidMinJavaVersion
 
 dependencies {
-    compile project(path: ":conscrypt-testing", configuration: "runtime"),
+    implementation project(path: ":conscrypt-testing", configuration: "shadow"),
             libraries.junit
 }

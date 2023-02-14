@@ -1,7 +1,7 @@
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath libraries.android_tools
@@ -21,7 +21,8 @@ ext {
     androidVersionName = "$version"
     androidMinSdkVersion = 19
     androidTargetSdkVersion = 26
-    androidNdkVersion = "21.3.6528147"
+    androidNdkVersion = '25.2.9519653'
+    androidCmakeVersion = '3.22.1'
 }
 
 if (androidSdkInstalled) {
@@ -32,6 +33,8 @@ if (androidSdkInstalled) {
     evaluationDependsOn(':conscrypt-constants')
 
     android {
+        namespace "org.conscrypt"
+
         compileSdkVersion androidTargetSdkVersion
         ndkVersion androidNdkVersion
 
@@ -62,6 +65,7 @@ if (androidSdkInstalled) {
                             '-D_XOPEN_SOURCE=700',
                             '-Wno-unused-parameter'
                     targets 'conscrypt_jni'
+                    version androidCmakeVersion
                 }
             }
             ndk {
@@ -90,6 +94,7 @@ if (androidSdkInstalled) {
         externalNativeBuild {
             cmake {
                 path 'CMakeLists.txt'
+                version androidCmakeVersion
             }
         }
         lintOptions {
