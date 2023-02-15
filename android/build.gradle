@@ -142,11 +142,8 @@ if (androidSdkInstalled) {
         options {
             encoding = 'UTF-8'
             links "https://docs.oracle.com/javase/7/docs/api/"
-            doclet = "org.conscrypt.doclet.FilterDoclet"
-            // Disable JavaDoc doclint on Java 8. It's annoying.
-            if (JavaVersion.current().isJava8Compatible()) {
-                addStringOption('Xdoclint:none', '-quiet')
-            }
+            // TODO(prb): Update doclet to Java 11.
+            // doclet = "org.conscrypt.doclet.FilterDoclet"
         }
     }
 

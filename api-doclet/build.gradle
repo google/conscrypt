@@ -6,3 +6,8 @@ if (toolsJar != null) {
         implementation files(toolsJar)
     }
 }
+
+tasks.withType(Javadoc) {
+    // TODO(prb): Update doclet to Java 11.
+    enabled = false
+}
