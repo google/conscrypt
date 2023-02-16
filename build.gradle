@@ -165,8 +165,13 @@ subprojects {
     }
 
     if (!androidProject) {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        java {
+            toolchain {
+                // Compile with a real JDK 8 so we don't end up with accidental dependencies
+                // on Java 11 bootclasspath, e.g. ByteBuffer.flip().
+                languageVersion = JavaLanguageVersion.of(8)
+            }
+        }
 
         [tasks.named("compileJava"), tasks.named("compileTestJava")].forEach { t ->
             t.configure {

@@ -1,9 +1,5 @@
 description = 'Conscrypt: Base library for benchmarks'
 
-// Needs to be binary-compatible with Android minSdkVersion.
-sourceCompatibility = androidMinJavaVersion
-targetCompatibility = androidMinJavaVersion
-
 dependencies {
     implementation project(path: ":conscrypt-testing", configuration: "shadow"),
             libraries.junit
