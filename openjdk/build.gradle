@@ -97,7 +97,7 @@ tasks.register("platformJar", Jar) {
 
 tasks.register("testJar", ShadowJar) {
     classifier = 'tests'
-    configurations = [project.configurations.runtimeClasspath]
+    configurations = [project.configurations.testRuntimeClasspath]
     from sourceSets.test.output
 }
 
