@@ -24,6 +24,7 @@ if (androidSdkInstalled) {
     apply plugin: 'com.android.library'
 
     android {
+        namespace "org.conscrypt"
         compileSdkVersion androidTargetSdkVersion
 
         compileOptions {
