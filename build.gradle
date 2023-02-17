@@ -1,12 +1,13 @@
+import org.ajoberstar.grgit.Grgit
 import org.gradle.util.VersionNumber
 
 buildscript {
-    ext.android_tools = 'com.android.tools.build:gradle:4.1.0'
+    ext.android_tools = 'com.android.tools.build:gradle:7.4.0'
     ext.errorproneVersion = '2.4.0'
     ext.errorproneJavacVersion = '9+181-r4173-1'
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         // This must be applied in the root project otherwise each subproject will
@@ -62,7 +63,7 @@ subprojects {
         } else if (os.isWindows()) {
             osName = "windows"
         } else {
-            throw new GradleException("Unsupported os: " + os.name)
+            throw new RuntimeException("Unsupported os: " + os.name)
         }
 
         if (project.hasProperty("boringsslHome")) {
@@ -75,12 +76,6 @@ subprojects {
         boringssl32BuildDir = normalizePath("$boringsslHome/build32")
         boringssl64BuildDir = normalizePath("$boringsslHome/build64")
 
-        if (project.hasProperty("jdkHome")) {
-            jdkHome = project.property("jdkHome")
-        } else {
-            jdkHome = "$System.env.JAVA_HOME"
-        }
-        jdkIncludeDir = normalizePath("$jdkHome/include")
         // Needs to be binary compatible with androidMinSdkVersion
         androidMinJavaVersion = JavaVersion.VERSION_1_8
 
@@ -91,11 +86,9 @@ subprojects {
         assert file("$boringsslHome").exists()
         assert file("$boringsslIncludeDir").exists()
         assert build32Bit || build64Bit
-        assert file("$jdkHome").exists()
-        assert file("$jdkIncludeDir").exists()
 
         // Get the commit hash for BoringSSL.
-        boringSslGit = org.ajoberstar.grgit.Grgit.open(dir: boringsslHome)
+        boringSslGit = Grgit.open(dir: boringsslHome)
         boringSslVersion = boringSslGit.head().id
 
         // Allow the java executable to be specified via env/property for each architecture.
@@ -132,7 +125,7 @@ subprojects {
                 def process = command.execute()
                 process.waitFor()
                 if (process.exitValue()) {
-                    throw new GradleException('Jar signing failed for ' + jarPath + ': ' + process.text)
+                    throw new RuntimeException('Jar signing failed for ' + jarPath + ': ' + process.text)
                 }
             }
         }
@@ -141,7 +134,6 @@ subprojects {
     repositories {
         mavenCentral()
         mavenLocal()
-        jcenter()
     }
 
     jacoco {
@@ -165,8 +157,13 @@ subprojects {
     }
 
     if (!androidProject) {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        java {
+            toolchain {
+                // Compile with a real JDK 8 so we don't end up with accidental dependencies
+                // on Java 11 bootclasspath, e.g. ByteBuffer.flip().
+                languageVersion = JavaLanguageVersion.of(8)
+            }
+        }
 
         [tasks.named("compileJava"), tasks.named("compileTestJava")].forEach { t ->
             t.configure {
@@ -186,7 +183,7 @@ subprojects {
         tasks.named("jar").configure {
             manifest {
                 attributes('Implementation-Title': name,
-                        'Implementation-Version': version,
+                        'Implementation-Version': archiveVersion,
                         'Built-By': System.getProperty('user.name'),
                         'Built-JDK': System.getProperty('java.version'),
                         'Source-Compatibility': sourceCompatibility,
@@ -199,12 +196,10 @@ subprojects {
             links 'https://docs.oracle.com/javase/8/docs/api/'
         }
 
-        // Disable JavaDoc doclint on Java 8. It's annoying.
-        if (JavaVersion.current().isJava8Compatible()) {
-            allprojects {
-                tasks.withType(Javadoc) {
-                    options.addStringOption('Xdoclint:none', '-quiet')
-                }
+        // All non-Android projects build with Java 8, so disable doclint as it's noisy.
+        allprojects {
+            tasks.withType(Javadoc) {
+                options.addStringOption('Xdoclint:none', '-quiet')
             }
         }
 

@@ -43,6 +43,7 @@ if (buildUberJar) {
         }
         include '/META-INF/native/**'
         into file(resourcesDir)
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
     tasks.named("jar").configure {
         dependsOn copySharedLibs
@@ -60,6 +61,7 @@ if (buildUberJar) {
         }
         exclude '/META-INF/**'
         into file(classesDir)
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
     tasks.named("jar").configure {
         dependsOn copyClasses
@@ -71,6 +73,7 @@ if (buildUberJar) {
             project(":conscrypt-openjdk").sourceSets.main.java
         }
         into file(sourcesDir)
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
     tasks.named("sourcesJar").configure {
         dependsOn copySources

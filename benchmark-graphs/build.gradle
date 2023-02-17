@@ -1,12 +1,8 @@
 apply plugin: 'application'
 
 dependencies {
-    compile 'com.bazaarvoice.jolt:jolt-core:0.1.1'
-    compile 'com.bazaarvoice.jolt:json-utils:0.1.1'
+    implementation 'com.bazaarvoice.jolt:jolt-core:0.1.1'
+    implementation 'com.bazaarvoice.jolt:json-utils:0.1.1'
 }
-
-// We're not distributing this, so it's safe to use newer language features.
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
 
 mainClassName = 'org.conscrypt.graphgen.Main'

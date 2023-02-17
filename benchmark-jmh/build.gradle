@@ -1,5 +1,5 @@
 plugins {
-    id 'me.champeau.gradle.jmh' version '0.4.8'
+    id 'me.champeau.gradle.jmh' version '0.5.3'
 }
 
 apply plugin: 'idea'
@@ -21,10 +21,6 @@ ext {
     jmhJvm = System.getProperty('jmh.jvm')
     jmhJvmArgs = System.getProperty('jmh.jvmArgs', '-server -Xms2g -Xmx2g')
 }
-
-// We're not distributing this, so it's safe to use newer language features.
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
 
 jmh {
     jmhVersion = "$jmhVersion"
@@ -69,7 +65,7 @@ sourceSets {
 }
 
 dependencies {
-    compile project(path: ":conscrypt-openjdk", configuration: "runtime"),
+    implementation project(path: ":conscrypt-openjdk", configuration: "runtimeElements"),
             project(':conscrypt-benchmark-base'),
             // Add the preferred native openjdk configuration for this platform.
             project(':conscrypt-openjdk').sourceSets["$preferredSourceSet"].output,
@@ -87,12 +83,13 @@ dependencies {
 
 // Running benchmarks in IntelliJ seems broken without this.
 // See https://github.com/melix/jmh-gradle-plugin/issues/39
-idea.module {
-    scopes.PROVIDED.plus += [ configurations.compile, configurations.jmh ]
-}
+// TODO(prb): Investigate and fix for Gradle 7+
+//idea.module {
+//    scopes.PROVIDED.plus += [ configurations.compile, configurations.jmh ]
+//}
 
 // Param strings are in the form "param:VAL1,VAL2;param2:VAL3,VAL4"
-def parseParams(s) {
+static def parseParams(s) {
     // It's really easy to type jmh.parameters=foo=bar instead of jmh.parameters=foo:bar,
     // so check for that.
     if (s.contains("=")) {
