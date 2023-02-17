@@ -76,6 +76,8 @@ subprojects {
         boringssl32BuildDir = normalizePath("$boringsslHome/build32")
         boringssl64BuildDir = normalizePath("$boringsslHome/build64")
 
+        // TODO(prb): This is mostly just used for JNI header location, and we should
+        // do that from the compile toolchain not the Gradle Java.
         if (project.hasProperty("jdkHome")) {
             jdkHome = project.property("jdkHome")
         } else {
@@ -204,23 +206,12 @@ subprojects {
             links 'https://docs.oracle.com/javase/8/docs/api/'
         }
 
-        // Disable JavaDoc doclint on Java 8. It's annoying.
-        if (JavaVersion.current().isJava8()) {
-            allprojects {
-                tasks.withType(Javadoc) {
-                    options.addStringOption('Xdoclint:none', '-quiet')
-                }
+        // All non-Android projects build with Java 8, so disable doclint as it's noisy.
+        allprojects {
+            tasks.withType(Javadoc) {
+                options.addStringOption('Xdoclint:none', '-quiet')
             }
         }
-        if (JavaVersion.current().isJava11Compatible()) {
-            allprojects {
-                tasks.withType(Javadoc) {
-                    options.addStringOption('-add-exports', 'java.base/sun.security.x509=ALL-UNNAMED')
-                    failOnError false // TODO(prb)
-                }
-            }
-        }
-
 
         tasks.register("javadocJar", Jar) {
             classifier = 'javadoc'

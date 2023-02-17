@@ -322,7 +322,7 @@ model {
                         libPath = "$boringssl64BuildDir"
                         building64Bit = true
                     } else {
-                        throw new GradleException("Unknown architecture: " +
+                        throw new RuntimeException("Unknown architecture: " +
                                 targetPlatform.getArchitecture().name)
                     }
 

@@ -22,10 +22,6 @@ ext {
     jmhJvmArgs = System.getProperty('jmh.jvmArgs', '-server -Xms2g -Xmx2g')
 }
 
-// We're not distributing this, so it's safe to use newer language features.
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
-
 jmh {
     jmhVersion = "$jmhVersion"
     if (jmhInclude != null) {

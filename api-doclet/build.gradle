@@ -1,7 +1,15 @@
 description = 'Conscrypt: API Doclet'
 
-def toolsJar = org.gradle.internal.jvm.Jvm.current().toolsJar
-if (toolsJar != null) {
+
+java {
+    toolchain {
+        // Force Java 8 for the doclet.
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+    // Java 8 doclets depend on the JDK's tools.jar
+    def compilerMetadata = javaToolchains.compilerFor(toolchain).get().metadata
+    def jdkHome = compilerMetadata.getInstallationPath()
+    def toolsJar = jdkHome.file("lib/tools.jar")
     dependencies {
         implementation files(toolsJar)
     }

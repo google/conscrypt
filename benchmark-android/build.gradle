@@ -26,11 +26,6 @@ if (androidSdkInstalled) {
         namespace "org.conscrypt"
         compileSdkVersion androidTargetSdkVersion
 
-        compileOptions {
-            sourceCompatibility androidMinJavaVersion
-            targetCompatibility androidMinJavaVersion
-        }
-
         defaultConfig {
             minSdkVersion androidMinSdkVersion
             targetSdkVersion androidTargetSdkVersion
