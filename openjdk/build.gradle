@@ -279,6 +279,15 @@ javadoc {
     // options.docletpath = configurations.publicApiDocs.files as List
 }
 
+def jniIncludeDir() {
+    def result = ""
+    java {
+        def jdkHome = javaToolchains.compilerFor(toolchain).get().metadata.getInstallationPath()
+        result = jdkHome.file("include").toString()
+    }
+    result
+}
+
 model {
     platforms {
         x86 {
@@ -316,6 +325,7 @@ model {
                     // Set up 32-bit vs 64-bit build
                     def building64Bit = false
                     def libPath
+                    def jdkIncludeDir = jniIncludeDir()
                     if (targetPlatform.getArchitecture().getName() == "x86") {
                         libPath = "$boringssl32BuildDir"
                     } else if (targetPlatform.getArchitecture().getName() == "x86-64") {

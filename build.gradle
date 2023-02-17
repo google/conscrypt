@@ -76,14 +76,6 @@ subprojects {
         boringssl32BuildDir = normalizePath("$boringsslHome/build32")
         boringssl64BuildDir = normalizePath("$boringsslHome/build64")
 
-        // TODO(prb): This is mostly just used for JNI header location, and we should
-        // do that from the compile toolchain not the Gradle Java.
-        if (project.hasProperty("jdkHome")) {
-            jdkHome = project.property("jdkHome")
-        } else {
-            jdkHome = "$System.env.JAVA_HOME"
-        }
-        jdkIncludeDir = normalizePath("$jdkHome/include")
         // Needs to be binary compatible with androidMinSdkVersion
         androidMinJavaVersion = JavaVersion.VERSION_1_8
 
@@ -94,8 +86,6 @@ subprojects {
         assert file("$boringsslHome").exists()
         assert file("$boringsslIncludeDir").exists()
         assert build32Bit || build64Bit
-        assert file("$jdkHome").exists()
-        assert file("$jdkIncludeDir").exists()
 
         // Get the commit hash for BoringSSL.
         boringSslGit = Grgit.open(dir: boringsslHome)
