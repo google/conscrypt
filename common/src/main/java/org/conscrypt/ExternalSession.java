@@ -25,7 +25,6 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionBindingEvent;
 import javax.net.ssl.SSLSessionBindingListener;
 import javax.net.ssl.SSLSessionContext;
-import javax.security.cert.X509Certificate;
 
 /**
  * An externalized view of the underlying {@link SSLSession} used within a
@@ -113,7 +112,7 @@ final class ExternalSession implements ConscryptSession {
 
   @Override
   @SuppressWarnings("deprecation") // Public API
-  public X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
+  public javax.security.cert.X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
     return provider.provideSession().getPeerCertificateChain();
   }
 

@@ -70,10 +70,13 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
      * Constuctor for the DefaultSSLContextImpl.  The unused boolean parameter is solely to
      * indicate that this constructor is desired.
      */
+    @SuppressWarnings("StaticAssignmentInConstructor")
     OpenSSLContextImpl(String[] protocols, boolean unused)
             throws GeneralSecurityException, IOException {
         synchronized (DefaultSSLContextImpl.class) {
             this.protocols = null;
+            // This is the only place defaultSslContextImpl is read or written so all
+            // access is actually synchronized.
             if (defaultSslContextImpl == null) {
                 clientSessionContext = new ClientSessionContext();
                 serverSessionContext = new ServerSessionContext();

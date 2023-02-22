@@ -21,8 +21,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
@@ -46,7 +44,7 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
 
     @Override
     void engineInitInternal(byte[] encodedKey, AlgorithmParameterSpec params, SecureRandom random)
-            throws InvalidKeyException, InvalidAlgorithmParameterException {
+            throws InvalidAlgorithmParameterException {
         if (params instanceof IvParameterSpec) {
             IvParameterSpec ivParams = (IvParameterSpec) params;
             if (ivParams.getIV().length != NONCE_SIZE_BYTES) {
@@ -89,7 +87,6 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
                 // We still didn't finish this block, so we're done.
                 return len;
             }
-            assert currentBlockConsumedBytes == BLOCK_SIZE_BYTES;
             currentBlockConsumedBytes = 0;
             inputOffset += len;
             outputOffset += len;
@@ -104,8 +101,7 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
     }
 
     @Override
-    int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
-            throws IllegalBlockSizeException, BadPaddingException, ShortBufferException {
+    int doFinalInternal(byte[] output, int outputOffset, int maximumLen) {
         reset();
         return 0;
     }
