@@ -3,7 +3,7 @@ description = 'Conscrypt: OpenJdk UberJAR'
 ext {
     buildUberJar = Boolean.parseBoolean(System.getProperty('org.conscrypt.openjdk.buildUberJar', 'false'))
     uberJarClassifiers = (System.getProperty('org.conscrypt.openjdk.uberJarClassifiers',
-            'osx-x86_64,linux-x86_64,windows-x86,windows-x86_64')).split(',')
+            'osx-x86_64,osx-aarch_64,linux-x86_64,windows-x86_64')).split(',')
     classesDir = "${buildDir}/classes"
     resourcesDir = "${buildDir}/resources"
     sourcesDir = "${buildDir}/sources"

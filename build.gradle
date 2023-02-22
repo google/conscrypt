@@ -22,6 +22,7 @@ plugins {
     // build script.
     id 'org.ajoberstar.grgit' version '3.1.1'
     id 'net.ltgt.errorprone' version '1.3.0'
+    id "com.google.osdetector" version "1.7.3"
 }
 
 subprojects {
@@ -41,7 +42,26 @@ subprojects {
             toolChains {
                 visualCpp(VisualCpp)
                 // Prefer Clang over Gcc (order here matters!)
-                clang(Clang)
+                clang(Clang) {
+                    // Gradle 7.x still seems to get confused about toolchains on Mac
+                    // so explicitly add -arch args.
+                    target("osx_aarch64") {
+                        cppCompiler.withArguments { args ->
+                            args << "-arch" << "arm64"
+                        }
+                        linker.withArguments { args ->
+                            args << "-arch" << "arm64"
+                        }
+                    }
+                    target("osx_x86-64") {
+                        cppCompiler.withArguments { args ->
+                            args << "-arch" << "x86_64"
+                        }
+                        linker.withArguments { args ->
+                            args << "-arch" << "x86_64"
+                        }
+                    }
+                }
                 gcc(Gcc)
             }
         }
@@ -55,45 +75,22 @@ subprojects {
     version = "2.6-SNAPSHOT"
 
     ext {
-        os = org.gradle.internal.os.OperatingSystem.current();
-        if (os.isLinux()) {
-            osName = "linux"
-        } else if (os.isMacOsX()) {
-            osName = "osx"
-        } else if (os.isWindows()) {
-            osName = "windows"
-        } else {
-            throw new RuntimeException("Unsupported os: " + os.name)
-        }
+        // Needs to be binary compatible with androidMinSdkVersion
+        androidMinJavaVersion = JavaVersion.VERSION_1_8
 
         if (project.hasProperty("boringsslHome")) {
             boringsslHome = project.property("boringsslHome")
         } else {
             boringsslHome = "$System.env.BORINGSSL_HOME"
         }
-
         boringsslIncludeDir = normalizePath("$boringsslHome/include")
-        boringssl32BuildDir = normalizePath("$boringsslHome/build32")
-        boringssl64BuildDir = normalizePath("$boringsslHome/build64")
-
-        // Needs to be binary compatible with androidMinSdkVersion
-        androidMinJavaVersion = JavaVersion.VERSION_1_8
-
-        build32Bit = file("$boringssl32BuildDir").exists()
-        build64Bit = file("$boringssl64BuildDir").exists()
 
         // Ensure the environment is configured properly.
-        assert file("$boringsslHome").exists()
         assert file("$boringsslIncludeDir").exists()
-        assert build32Bit || build64Bit
 
         // Get the commit hash for BoringSSL.
         boringSslGit = Grgit.open(dir: boringsslHome)
         boringSslVersion = boringSslGit.head().id
-
-        // Allow the java executable to be specified via env/property for each architecture.
-        javaExecutable32 = System.getProperty('javaExecutable32', System.env.CONSCRYPT_JAVA_EXECUTABLE_32)
-        javaExecutable64 = System.getProperty('javaExecutable64', System.env.CONSCRYPT_JAVA_EXECUTABLE_64)
 
         jmhVersion = '1.21'
         libraries = [
@@ -226,13 +223,6 @@ subprojects {
             // Enable logging for all conscrypt classes while running tests.
             systemProperty 'java.util.logging.config.file', "${rootDir}/test_logging.properties"
             maxHeapSize = '1500m'
-
-            // Override the default executable if manually specified
-            if (build64Bit && javaExecutable64 != null) {
-                executable javaExecutable64
-            } else if (build32Bit && javaExecutable32 != null) {
-                executable javaExecutable32
-            }
         }
     }
 }
