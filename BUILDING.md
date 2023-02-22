@@ -22,7 +22,11 @@ Conscrypt requires that you have __Java__, __BoringSSL__ and the __Android SDK__
 described below.
 
 #### Java
-The build requires that you have the `JAVA_HOME` environment variable pointing to a valid JDK.
+The build uses a version of Gradle which requires a __Java 11__ JRE to run, however to ensure 
+backward compatibility Conscrypt itself is compiled with a __Java 8__ JDK using Gradle's
+recent Java toolchain support.  At the least, you will need to install __Java 11__ to run 
+Gradle, but if you do not also have __Java 8__ then depending on the OS, Gradle will
+try and install it automatically.
 
 #### Android SDK
 [Download and install](https://developer.android.com/studio/install.html) the latest Android SDK
@@ -46,8 +50,8 @@ cd boringssl
 export BORINGSSL_HOME=$PWD
 ```
 
-##### Building on Linux/OS-X
-To build in the 64-bit version on a 64-bit machine:
+##### Building on Linux
+To build the 64-bit version on a 64-bit machine:
 ```bash
 mkdir build64
 cd build64
@@ -58,17 +62,34 @@ cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
 ninja
 ```
 
-To make a 32-bit build on a 64-bit machine:
-```base
-mkdir build32
-cd build32
-cmake -DCMAKE_TOOLCHAIN_FILE=../util/32-bit-toolchain.cmake \
-      -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
+##### Building on macOS.
+When building Conscrypt on macOS it will build libraries for both x86 and ARM, and so BoringSSL
+must also be build for each of these.
+
+To build the x86_64 version:
+```bash
+mkdir build.x86
+cd build.86
+cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
       -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_ASM_FLAGS="-Wa,--noexecstack -m32 -msse2" \
+      -DCMAKE_ASM_FLAGS=-Wa,--noexecstack \
+      -DCMAKE_OSX_ARCHITECTURES=x86_64 \
       -GNinja ..
 ninja
 ```
+
+To build the arm64 version:
+```bash
+mkdir build.arm
+cd build.arm
+cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_ASM_FLAGS=-Wa,--noexecstack \
+      -DCMAKE_OSX_ARCHITECTURES=arm64 \
+      -GNinja ..
+ninja
+```
+
 
 ##### Building on Windows
 This assumes that you have Microsoft Visual Studio 2017 installed along
@@ -87,19 +108,6 @@ To build in 64-bit mode, set up with this command line:
 call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
 mkdir build64
 cd build64
-```
-
-To build in 32-bit mode, set up with this command line:
-
-```bat
-call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86
-mkdir build32
-cd build32
-```
-
-In either the 64-bit or 32-bit case, run this afterward:
-
-```bat
 cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DCMAKE_C_FLAGS_RELEASE=/MT ^
@@ -108,16 +116,7 @@ cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE ^
 ninja
 ```
 
-Running tests on Java 7
--------------------------
-Conscrypt is built with Java 8+, but targets the Java 7 runtime. To run the tests
-under Java 7 (or any Java runtime), you can specify the `javaExecutable64` property from the command line.
- This will run all tests under `openjdk` and `openjdk-integ-tests` with the specified
- runtime.
-
-```bash
-./gradlew check -DjavaExecutable64=${JAVA7_HOME}/bin/java
-```
+32-bit mode is no longer supported.
 
 Coverage
 --------

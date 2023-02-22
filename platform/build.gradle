@@ -1,15 +1,11 @@
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath libraries.android_tools
     }
-}
-
-plugins {
-    id 'com.github.dcendents.android-maven' version '2.1'
 }
 
 description = 'Conscrypt: Android Platform'
@@ -28,6 +24,7 @@ if (androidSdkInstalled) {
     apply plugin: 'com.android.library'
 
     android {
+        namespace "org.conscrypt"
         compileSdkVersion androidTargetSdkVersion
 
         compileOptions {
@@ -101,7 +98,7 @@ if (androidSdkInstalled) {
         })
         testCompileOnly project(':conscrypt-android-stub'),
                         project(':conscrypt-libcore-stub')
-        testImplementation project(path: ":conscrypt-testing", configuration: "runtime"),
+        testImplementation project(path: ":conscrypt-testing", configuration: "shadow"),
                            libraries.junit
         compileOnly project(':conscrypt-android-stub'),
                     project(':conscrypt-libcore-stub')

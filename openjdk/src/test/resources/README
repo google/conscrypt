@@ -24,3 +24,52 @@ This repository contains data used in various tests :
 
 - ocsp-response-sct-extension.der: The extension from ocsp-response.der which contains the SCT
 
+
+For blocklist testing:
+- test_blocklist_ca_key.pem: Private key for blocklisted CA
+
+- test_blocklist_ca.pem: Certificate for blocklisted CA
+Generate with:
+    openssl req -x509 -new -subj "/CN=blacklist test CA" -days 3650 -key test_blocklist_ca_key.pem -out test_blocklist_ca.pem -nodes
+
+- test_nonblocklist_ca_key.pem: Private key for non-blocklisted CA
+
+- test_nonblocklist_ca.pem: Certificate for non-blocklisted CA
+Generate with:
+    openssl req -x509 -new -subj "/CN=Test CA" -days 3650 -key test_nonblocklist_ca_key.pem -out test_nonblocklist_ca.pem -nodes
+
+- test_leaf.csr: CSR for leaf certificate
+Generate with:
+    openssl req -new -subj "/CN=leaf" -out test_leaf.csr -nodes
+
+- test_intermediate.csr: CSR for intermediate certificate
+Generate with:
+    openssl req -new -subj "/CN=intermediate" -out test_intermediate.csr -keyout test_intermediate_key.pem -nodes
+
+- test_leaf_blockedroot.pem: Leaf cert signed by blocked root CA
+Generate with:
+    openssl  req -days 3650  -in test_leaf.csr -out test_leaf_blockedroot.pem -CA test_blocklist_ca.pem -CAkey test_blocklist_ca_key.pem -nodes
+
+- test_leaf_intermediate.pem: Leaf cert signed by intermediate CA
+Generate with:
+    openssl  req -days 3650  -in test_leaf.csr -out test_leaf_intermediate.pem -CA test_intermediate_blockedroot.pem -CAkey test_intermediate_key.pem -nodes
+
+- test_intermediate_blockedroot.pem: Intermediate cert signed by blocked root CA
+Generate with:
+    openssl  req -days 3650  -in test_intermediate.csr -out test_intermediate_blockedroot.pem -CA test_blocklist_ca.pem -CAkey test_blocklist_ca_key.pem -nodes
+
+- test_intermediate_nonblockedroot.pem: Intermediate cert signed by non-blocked root CA
+Generate with:
+    openssl  req -days 3650  -in test_intermediate.csr -out test_intermediate_nonblockedroot.pem -CA test_nonblocklist_ca.pem -CAkey test_nonblocklist_ca_key.pem -nodes
+
+- blocklist_test_valid_ca.pem: non-blocklisted CA cert
+Generate with:
+    cp test_nonblocklist_ca.pem blocklist_test_valid_ca.pem
+
+- blocklist_test_chain.pem: Test chain with a valid leaf signed by a blocklisted CA
+Generate with:
+    cat test_leaf_blockedroot.pem test_blocklist_ca.pem > blocklist_test_chain.pem
+
+blocklist_test_valid_chain.pem: Valid cert chain - leaf signed by intermediate cross-signed by both CAs
+Generate with:
+    cat test_leaf_intermediate.pem test_intermediate_blockedroot.pem test_intermediate_nonblockedroot.pem test_blocklist_ca.pem test_nonblocklist_ca.pem > blocklist_test_valid_chain.pem

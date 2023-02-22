@@ -33,11 +33,11 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
         include:
           - platform: ubuntu-latest
-            tools_url: https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip
+            tools_url: https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           - platform: macos-latest
-            tools_url: https://dl.google.com/android/repository/sdk-tools-darwin-4333796.zip
+            tools_url: https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
           - platform: windows-latest
-            tools_url: https://dl.google.com/android/repository/sdk-tools-windows-4333796.zip
+            tools_url: https://dl.google.com/android/repository/commandlinetools-win-9477386_latest.zip
 
     runs-on: ${{ matrix.platform }}
 
@@ -47,17 +47,13 @@ jobs:
         with:
           java-version: 11
 
-      - name: Set up JDK 8 for toolchains
-        uses: actions/setup-java@v1.4.3
-        with:
-          java-version: 8
-
       - name: Set runner-specific environment variables
         shell: bash
         run: |
           echo "ANDROID_HOME=${{ runner.temp }}/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=${{ runner.temp }}/android-sdk" >> $GITHUB_ENV
           echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
-          echo "SDKMANAGER=${{ runner.temp }}/android-sdk/tools/bin/sdkmanager" >> $GITHUB_ENV
+          echo "SDKMANAGER=${{ runner.temp }}/android-sdk/cmdline-tools/bin/sdkmanager" >> $GITHUB_ENV
           echo "M2_REPO=${{ runner.temp }}/m2" >> $GITHUB_ENV
 
       - uses: actions/checkout@v2
@@ -75,7 +71,6 @@ jobs:
             gcc-multilib \
             g++-multilib \
             ninja-build \
-            openjdk-8-jdk-headless \
             openjdk-11-jre-headless
 
       - name: Setup macOS environment
@@ -107,11 +102,26 @@ jobs:
           cd "$BORINGSSL_HOME"
           git checkout --progress --force -B master
 
-      - name: Build BoringSSL 64-bit Linux and MacOS
-        if: runner.os != 'Windows'
+      - name: Build BoringSSL x86 and ARM MacOS
+        if: runner.os == 'macOS'
         env:
           # For compatibility, but 10.15 target requires 16-byte stack alignment.
           MACOSX_DEPLOYMENT_TARGET: 10.11
+        run: |
+          mkdir -p "$BORINGSSL_HOME/build.x86"
+          pushd "$BORINGSSL_HOME/build.x86"
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -GNinja ..
+          ninja
+          popd
+
+          mkdir -p "$BORINGSSL_HOME/build.arm"
+          pushd "$BORINGSSL_HOME/build.arm"
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -GNinja ..
+          ninja
+          popd
+
+      - name: Build BoringSSL 64-bit Linux
+        if: runner.os == 'Linux'
         run: |
           mkdir -p "$BORINGSSL_HOME/build64"
           pushd "$BORINGSSL_HOME/build64"
@@ -119,33 +129,17 @@ jobs:
           ninja
           popd
 
-      - name: Build BoringSSL 32-bit Linux
-        if: runner.os == 'Linux'
-        run: |
-          mkdir -p "$BORINGSSL_HOME/build32"
-          pushd "$BORINGSSL_HOME/build32"
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_ASM_FLAGS="-m32 -msse2" -DCMAKE_CXX_FLAGS="-m32 -msse2" -DCMAKE_C_FLAGS="-m32 -msse2" -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=x86 -GNinja ..
-          ninja
-          popd
-
-      - name: Build BoringSSL 64 and 32-bit Windows
+      - name: Build BoringSSL 64-bit Windows
         if: runner.os == 'Windows'
         run: |
           cd $Env:BORINGSSL_HOME
 
-          & $Env:GITHUB_WORKSPACE\.github\workflows\vsenv.ps1 -arch x86 -hostArch x64
-          mkdir build32
-          cd build32
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
-          ninja
-          cd ..
-
           & $Env:GITHUB_WORKSPACE\.github\workflows\vsenv.ps1 -arch x64 -hostArch x64
           mkdir build64
-          cd build64
+          pushd build64
           cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
           ninja
-          cd ..
+          popd
 
       - name: Setup Android environment
         shell: bash
@@ -155,14 +149,14 @@ jobs:
           curl -L "${{ matrix.tools_url }}" -o android-tools.zip
           mkdir -p "$ANDROID_HOME"
           unzip -q android-tools.zip -d "$ANDROID_HOME"
-          yes | "$SDKMANAGER" --licenses || true
-          "$SDKMANAGER" tools | tr '\r' '\n' | uniq
-          "$SDKMANAGER" platform-tools | tr '\r' '\n' | uniq
-          "$SDKMANAGER" 'build-tools;28.0.3' | tr '\r' '\n' | uniq
-          "$SDKMANAGER" 'platforms;android-26' | tr '\r' '\n' | uniq
-          "$SDKMANAGER" 'extras;android;m2repository' | tr '\r' '\n' | uniq
-          "$SDKMANAGER" 'ndk;21.3.6528147' | tr '\r' '\n' | uniq
-          "$SDKMANAGER" 'cmake;3.10.2.4988404' | tr '\r' '\n' | uniq
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" tools
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" platform-tools
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'build-tools;30.0.3'
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'platforms;android-26'
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'extras;android;m2repository'
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'ndk;25.2.9519653'
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'cmake;3.22.1'
 
       - name: Build with Gradle
         shell: bash

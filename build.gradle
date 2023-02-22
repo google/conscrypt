@@ -1,12 +1,13 @@
+import org.ajoberstar.grgit.Grgit
 import org.gradle.util.VersionNumber
 
 buildscript {
-    ext.android_tools = 'com.android.tools.build:gradle:4.1.0'
+    ext.android_tools = 'com.android.tools.build:gradle:7.4.0'
     ext.errorproneVersion = '2.4.0'
     ext.errorproneJavacVersion = '9+181-r4173-1'
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         // This must be applied in the root project otherwise each subproject will
@@ -21,6 +22,7 @@ plugins {
     // build script.
     id 'org.ajoberstar.grgit' version '3.1.1'
     id 'net.ltgt.errorprone' version '1.3.0'
+    id "com.google.osdetector" version "1.7.3"
 }
 
 subprojects {
@@ -40,7 +42,26 @@ subprojects {
             toolChains {
                 visualCpp(VisualCpp)
                 // Prefer Clang over Gcc (order here matters!)
-                clang(Clang)
+                clang(Clang) {
+                    // Gradle 7.x still seems to get confused about toolchains on Mac
+                    // so explicitly add -arch args.
+                    target("osx_aarch64") {
+                        cppCompiler.withArguments { args ->
+                            args << "-arch" << "arm64"
+                        }
+                        linker.withArguments { args ->
+                            args << "-arch" << "arm64"
+                        }
+                    }
+                    target("osx_x86-64") {
+                        cppCompiler.withArguments { args ->
+                            args << "-arch" << "x86_64"
+                        }
+                        linker.withArguments { args ->
+                            args << "-arch" << "x86_64"
+                        }
+                    }
+                }
                 gcc(Gcc)
             }
         }
@@ -54,53 +75,22 @@ subprojects {
     version = "2.6-SNAPSHOT"
 
     ext {
-        os = org.gradle.internal.os.OperatingSystem.current();
-        if (os.isLinux()) {
-            osName = "linux"
-        } else if (os.isMacOsX()) {
-            osName = "osx"
-        } else if (os.isWindows()) {
-            osName = "windows"
-        } else {
-            throw new GradleException("Unsupported os: " + os.name)
-        }
+        // Needs to be binary compatible with androidMinSdkVersion
+        androidMinJavaVersion = JavaVersion.VERSION_1_8
 
         if (project.hasProperty("boringsslHome")) {
             boringsslHome = project.property("boringsslHome")
         } else {
             boringsslHome = "$System.env.BORINGSSL_HOME"
         }
-
         boringsslIncludeDir = normalizePath("$boringsslHome/include")
-        boringssl32BuildDir = normalizePath("$boringsslHome/build32")
-        boringssl64BuildDir = normalizePath("$boringsslHome/build64")
-
-        if (project.hasProperty("jdkHome")) {
-            jdkHome = project.property("jdkHome")
-        } else {
-            jdkHome = "$System.env.JAVA_HOME"
-        }
-        jdkIncludeDir = normalizePath("$jdkHome/include")
-        // Needs to be binary compatible with androidMinSdkVersion
-        androidMinJavaVersion = JavaVersion.VERSION_1_8
-
-        build32Bit = file("$boringssl32BuildDir").exists()
-        build64Bit = file("$boringssl64BuildDir").exists()
 
         // Ensure the environment is configured properly.
-        assert file("$boringsslHome").exists()
         assert file("$boringsslIncludeDir").exists()
-        assert build32Bit || build64Bit
-        assert file("$jdkHome").exists()
-        assert file("$jdkIncludeDir").exists()
 
         // Get the commit hash for BoringSSL.
-        boringSslGit = org.ajoberstar.grgit.Grgit.open(dir: boringsslHome)
+        boringSslGit = Grgit.open(dir: boringsslHome)
         boringSslVersion = boringSslGit.head().id
-
-        // Allow the java executable to be specified via env/property for each architecture.
-        javaExecutable32 = System.getProperty('javaExecutable32', System.env.CONSCRYPT_JAVA_EXECUTABLE_32)
-        javaExecutable64 = System.getProperty('javaExecutable64', System.env.CONSCRYPT_JAVA_EXECUTABLE_64)
 
         jmhVersion = '1.21'
         libraries = [
@@ -132,7 +122,7 @@ subprojects {
                 def process = command.execute()
                 process.waitFor()
                 if (process.exitValue()) {
-                    throw new GradleException('Jar signing failed for ' + jarPath + ': ' + process.text)
+                    throw new RuntimeException('Jar signing failed for ' + jarPath + ': ' + process.text)
                 }
             }
         }
@@ -141,7 +131,6 @@ subprojects {
     repositories {
         mavenCentral()
         mavenLocal()
-        jcenter()
     }
 
     jacoco {
@@ -165,8 +154,13 @@ subprojects {
     }
 
     if (!androidProject) {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        java {
+            toolchain {
+                // Compile with a real JDK 8 so we don't end up with accidental dependencies
+                // on Java 11 bootclasspath, e.g. ByteBuffer.flip().
+                languageVersion = JavaLanguageVersion.of(8)
+            }
+        }
 
         [tasks.named("compileJava"), tasks.named("compileTestJava")].forEach { t ->
             t.configure {
@@ -186,7 +180,7 @@ subprojects {
         tasks.named("jar").configure {
             manifest {
                 attributes('Implementation-Title': name,
-                        'Implementation-Version': version,
+                        'Implementation-Version': archiveVersion,
                         'Built-By': System.getProperty('user.name'),
                         'Built-JDK': System.getProperty('java.version'),
                         'Source-Compatibility': sourceCompatibility,
@@ -199,12 +193,10 @@ subprojects {
             links 'https://docs.oracle.com/javase/8/docs/api/'
         }
 
-        // Disable JavaDoc doclint on Java 8. It's annoying.
-        if (JavaVersion.current().isJava8Compatible()) {
-            allprojects {
-                tasks.withType(Javadoc) {
-                    options.addStringOption('Xdoclint:none', '-quiet')
-                }
+        // All non-Android projects build with Java 8, so disable doclint as it's noisy.
+        allprojects {
+            tasks.withType(Javadoc) {
+                options.addStringOption('Xdoclint:none', '-quiet')
             }
         }
 
@@ -231,13 +223,6 @@ subprojects {
             // Enable logging for all conscrypt classes while running tests.
             systemProperty 'java.util.logging.config.file', "${rootDir}/test_logging.properties"
             maxHeapSize = '1500m'
-
-            // Override the default executable if manually specified
-            if (build64Bit && javaExecutable64 != null) {
-                executable javaExecutable64
-            } else if (build32Bit && javaExecutable32 != null) {
-                executable javaExecutable32
-            }
         }
     }
 }

@@ -1,7 +1,7 @@
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath libraries.android_tools
@@ -23,12 +23,8 @@ if (androidSdkInstalled) {
     apply plugin: 'com.android.library'
 
     android {
+        namespace "org.conscrypt"
         compileSdkVersion androidTargetSdkVersion
-
-        compileOptions {
-            sourceCompatibility androidMinJavaVersion
-            targetCompatibility androidMinJavaVersion
-        }
 
         defaultConfig {
             minSdkVersion androidMinSdkVersion
@@ -69,7 +65,7 @@ if (androidSdkInstalled) {
                    libraries.bouncycastle_apis
 
         depsJarImplementation project(':conscrypt-benchmark-base'),
-                              project(path: ":conscrypt-testing", configuration: "runtime"),
+                              project(path: ":conscrypt-testing", configuration: "shadow"),
                               project(':conscrypt-libcore-stub')
 
         implementation 'com.google.caliper:caliper:1.0-beta-2'

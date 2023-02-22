@@ -4,9 +4,6 @@ ext {
     genDir = "${project.buildDir}/generated-sources"
 }
 
-// Needs to be binary-compatible with Android minSdkVersion.
-sourceCompatibility = androidMinJavaVersion
-targetCompatibility = androidMinJavaVersion
 
 sourceSets.main {
     java {
@@ -17,8 +14,8 @@ sourceSets.main {
 }
 
 dependencies {
-    compile files("${genDir}") {
-        builtBy 'runGen'
+    implementation files("${genDir}") {
+        builtBy ':conscrypt-constants:runGen'
     }
 }
 

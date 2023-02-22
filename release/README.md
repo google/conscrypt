@@ -173,7 +173,7 @@ on Linux.
 1. Go to the OSSRH UI and note the ID of the new staging repository.  It should be in the 
    form of `orgconscrypt-NNNN`.
 
-### Build the Mac and Windows OpenJDK Releases
+### Build the Windows OpenJDK Release
 
 See [BUILDING](../BUILDING.md) for instructions for setting up the build environment.
 
@@ -182,8 +182,23 @@ See [BUILDING](../BUILDING.md) for instructions for setting up the build environ
    $ git checkout <revision>
    $ cd build64
    $ ninja
-   # For Windows only
-   $ cd ..\build32
+   ```
+1. Build the code and upload it to the staging repository noted previously.
+   ```bash
+   $ gradlew conscrypt-openjdk:build
+   $ gradlew conscrypt-openjdk:publish -Dorg.gradle.parallel=false -PrepositoryId=<repository-id>
+   ```
+
+### Build the Mac and Windows OpenJDK Releases
+
+See [BUILDING](../BUILDING.md) for instructions for setting up the build environment.
+
+1. Ensure BoringSSL is synced to the same revision as for the Linux build.
+   ```bash
+   $ git checkout <revision>
+   $ cd build.x86
+   $ ninja
+   $ cd ../build.arm
    $ ninja
    ```
 1. Build the code and upload it to the staging repository noted previously.
@@ -191,7 +206,6 @@ See [BUILDING](../BUILDING.md) for instructions for setting up the build environ
    $ ./gradlew conscrypt-openjdk:build
    $ ./gradlew conscrypt-openjdk:publish -Dorg.gradle.parallel=false -PrepositoryId=<repository-id>
    ```
-   (Omit the `./` for the Windows build.)
 
 ### Close and Release the Staging Repository
 
