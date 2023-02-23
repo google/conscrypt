@@ -481,7 +481,6 @@ public class X509CertificateTest {
     }
 
     // MD5 signed certificates no longer supported by BoringSSL but still are by OpenJDK 8.
-    // @Test
     @Test
     public void unsupportedDigestType() {
         ServiceTester.test("CertificateFactory")
