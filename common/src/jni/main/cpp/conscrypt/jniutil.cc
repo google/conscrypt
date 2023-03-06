@@ -297,6 +297,7 @@ int throwForAsn1Error(JNIEnv* env, int reason, const char* message,
         case ASN1_R_WRONG_PUBLIC_KEY_TYPE:
             return throwInvalidKeyException(env, message);
             break;
+        case ASN1_R_DIGEST_AND_KEY_TYPE_NOT_SUPPORTED:
         case ASN1_R_UNKNOWN_SIGNATURE_ALGORITHM:
         case ASN1_R_UNKNOWN_MESSAGE_DIGEST_ALGORITHM:
             return throwNoSuchAlgorithmException(env, message);
