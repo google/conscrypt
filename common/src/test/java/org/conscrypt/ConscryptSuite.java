@@ -50,6 +50,7 @@ import org.conscrypt.javax.crypto.AeadCipherTest;
 import org.conscrypt.javax.crypto.CipherBasicsTest;
 import org.conscrypt.javax.crypto.CipherTest;
 import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
+import org.conscrypt.javax.crypto.HpkeCipherTest;
 import org.conscrypt.javax.crypto.KeyGeneratorTest;
 import org.conscrypt.javax.crypto.ScryptTest;
 import org.conscrypt.javax.crypto.XDHKeyAgreementTest;
@@ -83,7 +84,10 @@ import org.junit.runners.Suite;
         CertPinManagerTest.class,
         ChainStrengthAnalyzerTest.class,
         HostnameVerifierTest.class,
+        HpkeAlgorithmIdentifierTest.class,
+        HpkeParameterSpecTest.class,
         NativeCryptoArgTest.class,
+        OpenSSLCipherHpkeTest.class,
         TrustManagerImplTest.class,
         // org.conscrypt.ct tests
         CTVerifierTest.class,
@@ -120,6 +124,7 @@ import org.junit.runners.Suite;
         // javax.crypto tests
         AeadCipherTest.class,
         CipherBasicsTest.class,
+        HpkeCipherTest.class,
         CipherTest.class,
         MacTest.class,
         ECDHKeyAgreementTest.class,

@@ -17,9 +17,11 @@
 package org.conscrypt.javax.crypto;
 
 import static org.conscrypt.TestUtils.decodeHex;
+import static org.conscrypt.TestUtils.encodeHex;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
@@ -29,6 +31,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
 import java.security.spec.AlgorithmParameterSpec;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +40,11 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.conscrypt.HpkeAlgorithmIdentifier;
+import org.conscrypt.HpkeAlgorithmIdentifier.AEAD;
+import org.conscrypt.HpkeAlgorithmIdentifier.KDF;
+import org.conscrypt.HpkeAlgorithmIdentifier.KEM;
+import org.conscrypt.HpkeParameterSpec;
 import org.conscrypt.TestUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -73,12 +81,37 @@ public final class CipherBasicsTest {
         AEAD_CIPHER_TO_TEST_DATA.put("ChaCha20/Poly1305/NoPadding", "crypto/chacha20-poly1305.csv");
     }
 
+    private static final Map<String, String> HPKE_ENC_CIPHER_TO_TEST_DATA = new HashMap<>();
+    static {
+        HPKE_ENC_CIPHER_TO_TEST_DATA.put("HPKE", "crypto/hpke/hpke-encryption.csv");
+    }
+
+    private static final Map<String, String> HPKE_EXP_CIPHER_TO_TEST_DATA = new HashMap<>();
+    static {
+        HPKE_EXP_CIPHER_TO_TEST_DATA.put("HPKE", "crypto/hpke/hpke-export.csv");
+    }
+
     private static final int KEY_INDEX = 0;
     private static final int IV_INDEX = 1;
     private static final int PLAINTEXT_INDEX = 2;
     private static final int CIPHERTEXT_INDEX = 3;
     private static final int TAG_INDEX = 4;
     private static final int AAD_INDEX = 5;
+
+    private static final int HPKE_KEM_ID = 0;
+    private static final int HPKE_KDF_ID = 1;
+    private static final int HPKE_AEAD_ID = 2;
+    private static final int HPKE_INFO = 3;
+    private static final int HPKE_SECRET_KEY_RECIPIENT = 4;
+    private static final int HPKE_SECRET_KEY_EPHEMERAL = 5;
+    private static final int HPKE_PUBLIC_KEY_RECIPIENT = 6;
+    private static final int HPKE_PUBLIC_KEY_EPHEMERAL = 7;
+    private static final int HPKE_AAD = 8;
+    private static final int HPKE_CIPHERTEXT = 9;
+    private static final int HPKE_PLAINTEXT = 10;
+    private static final int HPKE_EXPORTER_CONTEXT = 8;
+    private static final int HPKE_L = 9;
+    private static final int HPKE_EXPORTED_VALUE = 10;
 
     @BeforeClass
     public static void setUp() {
@@ -483,6 +516,301 @@ public final class CipherBasicsTest {
                             t);
                 }
             }
+        }
+    }
+
+    @Test
+    public void testHpkeBasicEncryption() throws Exception {
+        final Provider conscryptProvider = TestUtils.getConscryptProvider();
+        for (Map.Entry<String, String> entry : HPKE_ENC_CIPHER_TO_TEST_DATA.entrySet()) {
+            final String transformation = entry.getKey();
+            final Cipher cipher = Cipher.getInstance(transformation, conscryptProvider);
+            final List<HpkeData> records = getHpkeEncryptionRecords(entry.getValue(), transformation);
+            for (HpkeData record : records) {
+                testHpkeEncryption(cipher, transformation, record);
+            }
+        }
+    }
+
+    @Test
+    public void testHpkeBasicExport() throws Exception {
+        final Provider conscryptProvider = TestUtils.getConscryptProvider();
+        for (Map.Entry<String, String> entry : HPKE_EXP_CIPHER_TO_TEST_DATA.entrySet()) {
+            final String transformation = entry.getKey();
+            final Cipher cipher = Cipher.getInstance(transformation, conscryptProvider);
+            final List<HpkeData> records = getHpkeSecretExportRecords(entry.getValue(), transformation);
+            for (HpkeData record : records) {
+                testHpkeExport(cipher, transformation, record);
+            }
+        }
+    }
+
+    private void testHpkeEncryption(Cipher cipher, String transformation, HpkeData record)
+            throws Exception {
+        final byte[] enc = record.pkEm.getEncoded();
+
+        // Encryption
+        final HpkeParameterSpec encryptSpec = createHpkeEncryptionSpec(record, /* encrypting= */ true);
+        cipher.init(Cipher.ENCRYPT_MODE, record.pkRm, encryptSpec);
+        for (HpkeEncryptionData encryption : record.encryptions) {
+            cipher.updateAAD(encryption.aad);
+
+            assertEquals("Algorithm " + transformation + " reported the wrong output size",
+                enc.length + encryption.ct.length, cipher.getOutputSize(encryption.pt.length));
+
+            final byte[] encAndCt = cipher.update(encryption.pt);
+            final byte[] ct = encryptSpec.getAlgorithmIdentifier().getKem().extract(encAndCt).getCt();
+            assertArrayEquals("Algorithm " + transformation + " failed encryption on data : " + encryption,
+                encryption.ct, ct);
+        }
+        cipher.doFinal();
+
+        // Decryption
+        final HpkeParameterSpec decryptSpec = createHpkeEncryptionSpec(record, /* encrypting= */ false);
+        cipher.init(Cipher.DECRYPT_MODE, record.skRm, decryptSpec);
+        for (HpkeEncryptionData encryption : record.encryptions) {
+            cipher.updateAAD(encryption.aad);
+
+            assertEquals("Algorithm " + transformation + " reported the wrong output size",
+                encryption.pt.length, cipher.getOutputSize(encryption.ct.length));
+
+            assertArrayEquals("Algorithm " + transformation + " failed decryption on data : " + encryption,
+                encryption.pt,  cipher.update(encryption.ct));
+        }
+        cipher.doFinal();
+    }
+
+    private void testHpkeExport(Cipher cipher, String transformation, HpkeData record)
+            throws Exception {
+        final byte[] enc = record.pkEm.getEncoded();
+
+        // Send secret export
+        for (HpkeExporterData exporterData : record.exports) {
+            final HpkeParameterSpec sendSecretExportSpec =
+                createHpkeSecretExportsParams(record,  exporterData.l, /* sendingExport= */ true);
+            cipher.init(Cipher.ENCRYPT_MODE, record.pkRm, sendSecretExportSpec);
+
+            assertEquals("Algorithm " + transformation + " reported the wrong output size",
+                enc.length + exporterData.l, cipher.getOutputSize(exporterData.exporterContext.length));
+
+            final byte[] encAndExp = cipher.doFinal(exporterData.exporterContext);
+            final byte[] exported = sendSecretExportSpec.getAlgorithmIdentifier().getKem().extract(encAndExp).getCt();
+            assertArrayEquals("Algorithm " + transformation + " failed encryption on data : " + exporterData,
+                exporterData.exportedValue, exported);
+        }
+
+        // Receive secret export
+        for (HpkeExporterData exporterData : record.exports) {
+            final HpkeParameterSpec receiveSecretExportSpec =
+                createHpkeSecretExportsParams(record,  exporterData.l, /* sendingExport= */ false);
+            cipher.init(Cipher.DECRYPT_MODE, record.skRm, receiveSecretExportSpec);
+
+            assertEquals("Algorithm " + transformation + " reported the wrong output size",
+                exporterData.l + enc.length, cipher.getOutputSize(exporterData.exporterContext.length));
+
+            final byte[] encAndExp = cipher.doFinal(exporterData.exporterContext);
+            final byte[] exportedValue = receiveSecretExportSpec.getAlgorithmIdentifier().getKem().extract(encAndExp).getCt();
+            assertArrayEquals("Algorithm " + transformation + " failed encryption on data : " + exporterData,
+                exporterData.exportedValue, exportedValue);
+        }
+    }
+
+    private HpkeParameterSpec createHpkeEncryptionSpec(HpkeData record, boolean encrypting) {
+        final byte[] enc = record.pkEm.getEncoded();
+        final byte[] iv = record.skEm.getEncoded();
+
+        final HpkeAlgorithmIdentifier id = new HpkeAlgorithmIdentifier(record.kem, record.kdf, record.aead);
+        return encrypting ?
+            new HpkeParameterSpec.Builder(id).modeBaseEncryption().info(record.info).iv(iv).build() :
+            new HpkeParameterSpec.Builder(id).modeBaseDecryption(enc).info(record.info).iv(iv).build();
+    }
+
+    private HpkeParameterSpec createHpkeSecretExportsParams(HpkeData record, int l, boolean sendingExport) {
+        final byte[] enc = record.pkEm.getEncoded();
+        final byte[] iv = record.skEm.getEncoded();
+
+        final HpkeAlgorithmIdentifier id = new HpkeAlgorithmIdentifier(record.kem, record.kdf, record.aead);
+        return sendingExport ?
+            new HpkeParameterSpec.Builder(id).modeBaseSendExport(l).info(record.info).iv(iv).build() :
+            new HpkeParameterSpec.Builder(id).modeBaseReceiveExport(enc, l).info(record.info).iv(iv).build();
+    }
+
+    private List<HpkeData> getHpkeEncryptionRecords(String resourceName, String transformation)
+            throws IOException {
+        final List<HpkeData> records = new ArrayList<>();
+        final List<String[]> data = TestUtils.readCsvResource(resourceName);
+        for (String[] line : data) {
+            if (!line[0].isEmpty()) {
+                final HpkeData record = new HpkeData();
+                record.kem = convertKem(line[HPKE_KEM_ID]);
+                record.kdf = convertKdf(line[HPKE_KDF_ID]);
+                record.aead = convertAead(line[HPKE_AEAD_ID]);
+                record.info = decodeHex(line[HPKE_INFO]);
+                record.skRm = new SecretKeySpec(
+                    decodeHex(line[HPKE_SECRET_KEY_RECIPIENT]), getBaseAlgorithm(transformation));
+                record.skEm = new SecretKeySpec(
+                    decodeHex(line[HPKE_SECRET_KEY_EPHEMERAL]), getBaseAlgorithm(transformation));
+                record.pkRm = new SecretKeySpec(
+                    decodeHex(line[HPKE_PUBLIC_KEY_RECIPIENT]), getBaseAlgorithm(transformation));
+                record.pkEm = new SecretKeySpec(
+                    decodeHex(line[HPKE_PUBLIC_KEY_EPHEMERAL]), getBaseAlgorithm(transformation));
+                final HpkeEncryptionData encryptionData = new HpkeEncryptionData();
+                encryptionData.aad = decodeHex(line[HPKE_AAD]);
+                encryptionData.ct = decodeHex(line[HPKE_CIPHERTEXT]);
+                encryptionData.pt = decodeHex(line[HPKE_PLAINTEXT]);
+                record.encryptions = new ArrayList<>();
+                record.encryptions.add(encryptionData);
+                records.add(record);
+            } else {
+                final HpkeEncryptionData encryptionData = new HpkeEncryptionData();
+                encryptionData.aad = decodeHex(line[HPKE_AAD]);
+                encryptionData.ct = decodeHex(line[HPKE_CIPHERTEXT]);
+                encryptionData.pt = decodeHex(line[HPKE_PLAINTEXT]);
+                final int lastRecord = records.size() - 1;
+                records.get(lastRecord).encryptions.add(encryptionData);
+            }
+        }
+        return records;
+    }
+
+    private List<HpkeData> getHpkeSecretExportRecords(String resourceName, String transformation)
+            throws IOException {
+        final List<HpkeData> records = new ArrayList<>();
+        final List<String[]> data = TestUtils.readCsvResource(resourceName);
+        for (String[] line : data) {
+            if (!line[0].isEmpty()) {
+                final HpkeData record = new HpkeData();
+                record.kem = convertKem(line[HPKE_KEM_ID]);
+                record.kdf = convertKdf(line[HPKE_KDF_ID]);
+                record.aead = convertAead(line[HPKE_AEAD_ID]);
+                record.info = decodeHex(line[HPKE_INFO]);
+                record.skRm = new SecretKeySpec(
+                    decodeHex(line[HPKE_SECRET_KEY_RECIPIENT]), getBaseAlgorithm(transformation));
+                record.skEm = new SecretKeySpec(
+                    decodeHex(line[HPKE_SECRET_KEY_EPHEMERAL]), getBaseAlgorithm(transformation));
+                record.pkRm = new SecretKeySpec(
+                    decodeHex(line[HPKE_PUBLIC_KEY_RECIPIENT]), getBaseAlgorithm(transformation));
+                record.pkEm = new SecretKeySpec(
+                    decodeHex(line[HPKE_PUBLIC_KEY_EPHEMERAL]), getBaseAlgorithm(transformation));
+                final HpkeExporterData exporterData = new HpkeExporterData();
+                exporterData.exporterContext = decodeHex(line[HPKE_EXPORTER_CONTEXT]);
+                exporterData.l = Integer.parseInt(line[HPKE_L]);
+                exporterData.exportedValue = decodeHex(line[HPKE_EXPORTED_VALUE]);
+                record.exports = new ArrayList<>();
+                record.exports.add(exporterData);
+                records.add(record);
+            } else {
+                final HpkeExporterData exporterData = new HpkeExporterData();
+                exporterData.exporterContext = decodeHex(line[HPKE_EXPORTER_CONTEXT]);
+                exporterData.l = Integer.parseInt(line[HPKE_L]);
+                exporterData.exportedValue = decodeHex(line[HPKE_EXPORTED_VALUE]);
+                final int lastRecord = records.size() - 1;
+                records.get(lastRecord).exports.add(exporterData);
+            }
+        }
+        return records;
+    }
+
+    private AEAD convertAead(String aeadId) {
+        switch (aeadId) {
+            case "1":
+                return AEAD.AES_128_GCM;
+            case "2":
+                return AEAD.AES_256_GCM;
+            case "3":
+                return AEAD.CHACHA20POLY1305;
+            case "65535":
+                return AEAD.EXPORT_ONLY_AEAD;
+            default:
+                throw new IllegalArgumentException("Invalid AEAD " + aeadId);
+        }
+    }
+
+    private KEM convertKem(String kemId) {
+        switch (kemId) {
+            case "16":
+                return KEM.DHKEM_P_256_HKDF_SHA256;
+            case "17":
+                return KEM.DHKEM_P_384_HKDF_SHA384;
+            case "18":
+                return KEM.DHKEM_P_521_HKDF_SHA512;
+            case "32":
+                return KEM.DHKEM_X25519_HKDF_SHA256;
+            case "33":
+                return KEM.DHKEM_X448_HKDF_SHA512;
+            default:
+                throw new IllegalArgumentException("Invalid KEM " + kemId);
+        }
+    }
+
+    private KDF convertKdf(String kdfId) {
+        switch (kdfId) {
+            case "1":
+                return KDF.HKDF_SHA256;
+            case "2":
+                return KDF.HKDF_SHA384;
+            case "3":
+                return KDF.HKDF_SHA512;
+            default:
+                throw new IllegalArgumentException("Invalid KDF " + kdfId);
+        }
+    }
+
+    private static class HpkeData {
+        KEM kem;
+        KDF kdf;
+        AEAD aead;
+        byte[] info;
+        Key skRm;
+        Key skEm;
+        Key pkRm;
+        Key pkEm;
+        List<HpkeEncryptionData> encryptions;
+        List<HpkeExporterData> exports;
+
+        @Override
+        public String toString() {
+            return "HpkeData{" +
+                "kem=" + kem +
+                ", kdf=" + kdf +
+                ", aead=" + aead +
+                ", info=" + encodeHex(info) +
+                ", skRm=" + encodeHex(skRm.getEncoded()) +
+                ", skEm=" + encodeHex(skEm.getEncoded()) +
+                ", pkRm=" + encodeHex(pkRm.getEncoded()) +
+                ", pkEm=" + encodeHex(pkEm.getEncoded()) +
+                ", encryptions=" + encryptions +
+                '}';
+        }
+    }
+
+    private static class HpkeEncryptionData {
+        byte[] aad;
+        byte[] ct;
+        byte[] pt;
+
+        @Override
+        public String toString() {
+            return "HpkeEncryptionData{" +
+                "aad=" + encodeHex(aad) +
+                ", ct=" + encodeHex(ct) +
+                ", pt=" + encodeHex(pt) +
+                '}';
+        }
+    }
+
+    private static class HpkeExporterData {
+        byte[] exporterContext;
+        int l;
+        byte[] exportedValue;
+
+        @Override
+        public String toString() {
+            return "HpkeExporterData{" +
+                "exporter_context=" + encodeHex(exporterContext) +
+                ", L=" + l +
+                ", exported_value=" + encodeHex(exportedValue) +
+                '}';
         }
     }
 }

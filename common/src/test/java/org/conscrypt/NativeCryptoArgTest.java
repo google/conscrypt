@@ -57,7 +57,7 @@ public class NativeCryptoArgTest {
     @AfterClass
     public static void after() {
         // TODO(prb): Temporary hacky check - remove
-        assertTrue(testedMethods.size() >= 190);
+        assertTrue(testedMethods.size() >= 205);
     }
 
     @Test

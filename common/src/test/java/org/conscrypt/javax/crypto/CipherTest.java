@@ -16,6 +16,7 @@
 
 package org.conscrypt.javax.crypto;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -33,7 +34,9 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactory;
+import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
@@ -71,6 +74,14 @@ import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.conscrypt.Conscrypt;
+import org.conscrypt.HpkeAlgorithmIdentifier;
+import org.conscrypt.HpkeAlgorithmIdentifier.AEAD;
+import org.conscrypt.HpkeAlgorithmIdentifier.KDF;
+import org.conscrypt.HpkeAlgorithmIdentifier.KEM;
+import org.conscrypt.HpkeParameterSpec;
+import org.conscrypt.OpenSSLX25519Key;
+import org.conscrypt.OpenSSLX25519PrivateKey;
+import org.conscrypt.OpenSSLX25519PublicKey;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
@@ -177,6 +188,9 @@ public final class CipherTest {
         }
         // AESWRAP should be used instead, fails with BC and SunJCE otherwise.
         if (algorithm.startsWith("AES") || algorithm.startsWith("DESEDE")) {
+            return false;
+        }
+        if (isHPKE(algorithm)) {
             return false;
         }
         return true;
@@ -296,6 +310,10 @@ public final class CipherTest {
                 || algorithm.equals("CHACHA20/POLY1305/NOPADDING");
     }
 
+    private static boolean isHPKE(String algorithm) {
+        return algorithm.equals("HPKE");
+    }
+
     private static boolean isStreamMode(String algorithm) {
         return algorithm.contains("/CTR/") || algorithm.contains("/OFB")
                 || algorithm.contains("/CFB");
@@ -303,10 +321,22 @@ public final class CipherTest {
 
     private static boolean isRandomizedEncryption(String algorithm) {
         return algorithm.endsWith("/PKCS1PADDING") || algorithm.endsWith("/OAEPPADDING")
-                || algorithm.contains("/OAEPWITH");
+                || algorithm.contains("/OAEPWITH") || isHPKE(algorithm);
     }
 
     private static Map<String, Key> ENCRYPT_KEYS = new HashMap<String, Key>();
+
+    private static void generateAndSetCurve25519KeyPair(String algorithm) throws NoSuchAlgorithmException {
+        final KeyPairGenerator generator = KeyPairGenerator.getInstance("XDH");
+        generator.initialize(OpenSSLX25519Key.X25519_KEY_SIZE_BYTES);
+        KeyPair pair = generator.generateKeyPair();
+        OpenSSLX25519PublicKey pk = (OpenSSLX25519PublicKey) pair.getPublic();
+        OpenSSLX25519PrivateKey sk = (OpenSSLX25519PrivateKey) pair.getPrivate();
+        Key skey = new SecretKeySpec(sk.getU(), algorithm);
+        Key pkey = new SecretKeySpec(pk.getU(), algorithm);
+        DECRYPT_KEYS.put(algorithm, skey);
+        ENCRYPT_KEYS.put(algorithm, pkey);
+    }
 
     /**
      * Returns the key meant for enciphering for {@code algorithm}.
@@ -325,6 +355,9 @@ public final class CipherTest {
             } else if (isPBE(algorithm)) {
                 SecretKeyFactory skf = SecretKeyFactory.getInstance(algorithm);
                 key = skf.generateSecret(new PBEKeySpec("secret".toCharArray()));
+            } else if (isHPKE(algorithm)) {
+                generateAndSetCurve25519KeyPair(algorithm);
+                return ENCRYPT_KEYS.get(algorithm);
             } else {
                 KeyGenerator kg = KeyGenerator.getInstance(getBaseAlgorithm(algorithm));
                 if (algorithm.startsWith("AES_256/")) {
@@ -359,6 +392,9 @@ public final class CipherTest {
                         RSA_2048_primeQ, RSA_2048_primeExponentP, RSA_2048_primeExponentQ,
                         RSA_2048_crtCoefficient);
                 key = kf.generatePrivate(keySpec);
+            } else if (isHPKE(algorithm)) {
+                generateAndSetCurve25519KeyPair(algorithm);
+                return DECRYPT_KEYS.get(algorithm);
             } else {
                 assertFalse(algorithm, isAsymmetric(algorithm));
                 key = getEncryptKey(algorithm);
@@ -439,6 +475,7 @@ public final class CipherTest {
         setExpectedBlockSize("PBEWITHSHAAND2-KEYTRIPLEDES-CBC", 8);
         setExpectedBlockSize("PBEWITHSHAAND3-KEYTRIPLEDES-CBC", 8);
 
+        setExpectedBlockSize("HPKE", 16);
 
         if (StandardNames.IS_RI) {
             setExpectedBlockSize("DESEDEWRAP", 8);
@@ -570,7 +607,6 @@ public final class CipherTest {
         setExpectedOutputSize("AES_128/ECB/NOPADDING", 0);
         setExpectedOutputSize("AES_256/CBC/NOPADDING", 0);
         setExpectedOutputSize("AES_256/ECB/NOPADDING", 0);
-
         setExpectedOutputSize("AES", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES/CBC/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES/CBC/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
@@ -598,6 +634,7 @@ public final class CipherTest {
         setExpectedOutputSize("AES_256/ECB/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_256/GCM/NOPADDING", Cipher.ENCRYPT_MODE, GCM_TAG_SIZE_BITS / 8);
         setExpectedOutputSize("AES_256/GCM-SIV/NOPADDING", Cipher.ENCRYPT_MODE, GCM_SIV_TAG_SIZE_BITS / 8);
+        setExpectedOutputSize("HPKE", Cipher.ENCRYPT_MODE, 48);
         setExpectedOutputSize("PBEWITHMD5AND128BITAES-CBC-OPENSSL", 16);
         setExpectedOutputSize("PBEWITHMD5AND192BITAES-CBC-OPENSSL", 16);
         setExpectedOutputSize("PBEWITHMD5AND256BITAES-CBC-OPENSSL", 16);
@@ -644,6 +681,7 @@ public final class CipherTest {
         setExpectedOutputSize("AES_256/ECB/PKCS7PADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES_256/GCM/NOPADDING", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("AES_256/GCM-SIV/NOPADDING", Cipher.DECRYPT_MODE, 0);
+        setExpectedOutputSize("HPKE", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("PBEWITHMD5AND128BITAES-CBC-OPENSSL", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("PBEWITHMD5AND192BITAES-CBC-OPENSSL", Cipher.DECRYPT_MODE, 0);
         setExpectedOutputSize("PBEWITHMD5AND256BITAES-CBC-OPENSSL", Cipher.DECRYPT_MODE, 0);
@@ -976,7 +1014,8 @@ public final class CipherTest {
     }
 
     private static AlgorithmParameterSpec getDecryptAlgorithmParameterSpec(AlgorithmParameterSpec encryptSpec,
-                                                                           Cipher encryptCipher) {
+                                                                           Cipher encryptCipher,
+                                                                           byte[] ciphertext) {
         String algorithm = encryptCipher.getAlgorithm().toUpperCase(Locale.US);
         if (isPBE(algorithm)) {
             return encryptSpec;
@@ -998,7 +1037,19 @@ public final class CipherTest {
             }
             return new IvParameterSpec(iv);
         }
+        if (isHPKE(algorithm)) {
+            return new HpkeParameterSpec.Builder(
+                new HpkeAlgorithmIdentifier(
+                    KEM.DHKEM_X25519_HKDF_SHA256, KDF.HKDF_SHA256, AEAD.AES_128_GCM))
+                .modeBaseDecryption(KEM.DHKEM_X25519_HKDF_SHA256.extract(ciphertext).getEnc())
+                .build();
+        }
         return null;
+    }
+
+    private static AlgorithmParameterSpec getDecryptAlgorithmParameterSpec(AlgorithmParameterSpec encryptSpec,
+                                                                           Cipher encryptCipher) {
+        return getDecryptAlgorithmParameterSpec(encryptSpec, encryptCipher, /* ciphertext= */ null);
     }
 
     /*
@@ -1233,12 +1284,16 @@ public final class CipherTest {
             }
         }
 
+        byte[] ct = null;
+        if (isHPKE(algorithm)) {
+            ct = c.doFinal(new byte[0]);
+        }
+
         AlgorithmParameters encParams = c.getParameters();
         assertCorrectAlgorithmParameters(providerName, cipherID, encryptSpec, encParams);
 
-        AlgorithmParameterSpec decryptSpec = getDecryptAlgorithmParameterSpec(encryptSpec, c);
+        AlgorithmParameterSpec decryptSpec = getDecryptAlgorithmParameterSpec(encryptSpec, c, ct);
         int decryptMode = getDecryptMode(algorithm);
-
         Key decryptKey = getDecryptKey(algorithm);
 
         test_Cipher_init_Decrypt_NullParameters(c, decryptMode, decryptKey, decryptSpec != null);
@@ -1318,19 +1373,19 @@ public final class CipherTest {
                 byte[] cipherText2 = c.doFinal(getActualPlainText(algorithm));
                 assertEquals(cipherID, Arrays.toString(cipherText), Arrays.toString(cipherText2));
             }
-            decryptSpec = getDecryptAlgorithmParameterSpec(encryptSpec, c);
+            decryptSpec = getDecryptAlgorithmParameterSpec(encryptSpec, c, cipherText);
             c.init(Cipher.DECRYPT_MODE, decryptKey, decryptSpec);
             if (isAEAD(algorithm)) {
                 c.updateAAD(new byte[24]);
             }
-            byte[] decryptedPlainText = c.doFinal(cipherText);
+            byte[] decryptedPlainText = c.doFinal(extractCiphertext(cipherText, algorithm));
             assertEquals(cipherID,
                          Arrays.toString(getExpectedPlainText(algorithm, providerName)),
                          Arrays.toString(decryptedPlainText));
             if (isAEAD(algorithm)) {
                 c.updateAAD(new byte[24]);
             }
-            byte[] decryptedPlainText2 = c.doFinal(cipherText);
+            byte[] decryptedPlainText2 = c.doFinal(extractCiphertext(cipherText, algorithm));
             assertEquals(cipherID,
                          Arrays.toString(decryptedPlainText),
                          Arrays.toString(decryptedPlainText2));
@@ -1339,12 +1394,20 @@ public final class CipherTest {
             encryptSpec = getEncryptAlgorithmParameterSpec(algorithm);
             test_Cipher_ShortBufferException(c, algorithm, Cipher.ENCRYPT_MODE, encryptSpec,
                     encryptKey, getActualPlainText(algorithm));
-            decryptSpec = getDecryptAlgorithmParameterSpec(encryptSpec, c);
+            decryptSpec = getDecryptAlgorithmParameterSpec(encryptSpec, c, cipherText);
             test_Cipher_ShortBufferException(c, algorithm, Cipher.DECRYPT_MODE, decryptSpec,
-                    decryptKey, cipherText);
+                    decryptKey, extractCiphertext(cipherText, algorithm));
 
             test_Cipher_aborted_doFinal(c, algorithm, providerName, encryptKey, decryptKey);
         }
+    }
+
+    private byte[] extractCiphertext(byte[] encrypted, String algorithm) {
+        if (isHPKE(algorithm)) {
+            return KEM.DHKEM_X25519_HKDF_SHA256.extract(encrypted).getCt();
+        }
+
+        return encrypted;
     }
 
     private void assertCorrectAlgorithmParameters(String providerName, String cipherID,
@@ -1380,6 +1443,9 @@ public final class CipherTest {
         } else if (spec instanceof OAEPParameterSpec) {
             assertOAEPParametersEqual((OAEPParameterSpec) spec,
                     params.getParameterSpec(OAEPParameterSpec.class));
+        } else if (spec instanceof HpkeParameterSpec) {
+            assertHpkeParametersEqual((HpkeParameterSpec) spec,
+                params.getParameterSpec(HpkeParameterSpec.class));
         } else {
             fail("Unhandled algorithm specification class: " + spec.getClass().getName());
         }
@@ -1411,6 +1477,23 @@ public final class CipherTest {
         } else {
             fail("Unknown PSource type");
         }
+    }
+
+    private static void assertHpkeParametersEqual(HpkeParameterSpec expectedHpkeSpec,
+            HpkeParameterSpec actualHpkeSpec) {
+        assertEquals(expectedHpkeSpec.getAlgorithmIdentifier().getKem(),
+            actualHpkeSpec.getAlgorithmIdentifier().getKem());
+        assertEquals(expectedHpkeSpec.getAlgorithmIdentifier().getKdf(),
+            actualHpkeSpec.getAlgorithmIdentifier().getKdf());
+        assertEquals(expectedHpkeSpec.getAlgorithmIdentifier().getAead(),
+            actualHpkeSpec.getAlgorithmIdentifier().getAead());
+        assertArrayEquals(expectedHpkeSpec.getAuthKey(), actualHpkeSpec.getAuthKey());
+        assertArrayEquals(expectedHpkeSpec.getEnc(), actualHpkeSpec.getEnc());
+        assertArrayEquals(expectedHpkeSpec.getInfo(), actualHpkeSpec.getInfo());
+        assertArrayEquals(expectedHpkeSpec.getIv(), actualHpkeSpec.getIv());
+        assertArrayEquals(expectedHpkeSpec.getPsk(), actualHpkeSpec.getPsk());
+        assertArrayEquals(expectedHpkeSpec.getPskId(), actualHpkeSpec.getPskId());
+        assertEquals(expectedHpkeSpec.getL(), actualHpkeSpec.getL());
     }
 
     /**
@@ -1544,11 +1627,11 @@ public final class CipherTest {
             // Ignored
         }
         byte[] cipherText = c.doFinal(text);
-        c.init(Cipher.DECRYPT_MODE, decryptKey, getDecryptAlgorithmParameterSpec(encryptSpec, c));
+        c.init(Cipher.DECRYPT_MODE, decryptKey, getDecryptAlgorithmParameterSpec(encryptSpec, c, cipherText));
         if (isAEAD(algorithm)) {
             c.updateAAD(new byte[24]);
         }
-        byte[] plainText = c.doFinal(cipherText);
+        byte[] plainText = c.doFinal(extractCiphertext(cipherText, algorithm));
         byte[] expectedPlainText = getExpectedPlainText(algorithm, provider);
         assertTrue("Expected " + Arrays.toString(expectedPlainText)
                 + " but was " + Arrays.toString(plainText),

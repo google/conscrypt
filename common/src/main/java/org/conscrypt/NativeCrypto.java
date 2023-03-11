@@ -42,6 +42,8 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.NativeRef.EVP_HPKE_CTX;
+import org.conscrypt.NativeRef.EVP_HPKE_KEY;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
@@ -379,6 +381,46 @@ public final class NativeCrypto {
     static native void HMAC_UpdateDirect(NativeRef.HMAC_CTX ctx, long inPtr, int inLength);
 
     static native byte[] HMAC_Final(NativeRef.HMAC_CTX ctx);
+
+    // --- HPKE KEM, KDF, and AEAD parameter functions -------------------------
+    static native long EVP_HPKE_AEAD_aes_128_gcm();
+
+    static native long EVP_HPKE_AEAD_aes_256_gcm();
+
+    static native long EVP_HPKE_AEAD_chacha20_poly1305();
+
+    static native long EVP_HPKE_KEM_dhkem_x25519_hkdf_sha256();
+
+    static native long EVP_HPKE_KDF_hkdf_sha256();
+
+    // --- HPKE functions ------------------------------------------------------
+    static native byte[] EVP_HPKE_CTX_export(EVP_HPKE_CTX ctx, byte[] exporterCtx,  int length);
+
+    static native void EVP_HPKE_CTX_free(long ctx);
+
+    static native int EVP_HPKE_CTX_max_overhead(EVP_HPKE_CTX ctx);
+
+    static native long EVP_HPKE_CTX_new();
+
+    static native byte[] EVP_HPKE_CTX_open(EVP_HPKE_CTX ctx, byte[] ciphertext, byte[] aad);
+
+    static native byte[] EVP_HPKE_CTX_seal(EVP_HPKE_CTX ctx, byte[] plaintext, byte[] aad);
+
+    static native void EVP_HPKE_CTX_setup_recipient(EVP_HPKE_CTX ctx, EVP_HPKE_KEY key, long evpKdf,
+            long evpAead, byte[] enc, byte[] info);
+
+    static native byte[] EVP_HPKE_CTX_setup_sender_with_seed(EVP_HPKE_CTX ctx, long evpKem,
+            long evpKdf, long evpAead, byte[] publicKey, byte[] info, byte[] seed);
+
+    static native void EVP_HPKE_KEY_free(long key);
+
+    static native void EVP_HPKE_KEY_init(EVP_HPKE_KEY key, long evpKem, byte[] privateKey);
+
+    static native long EVP_HPKE_KEY_new();
+
+    static native byte[] EVP_HPKE_KEY_public_key(EVP_HPKE_KEY key);
+
+    static native byte[] EVP_HPKE_KEY_private_key(EVP_HPKE_KEY key);
 
     // --- RAND ----------------------------------------------------------------
 
