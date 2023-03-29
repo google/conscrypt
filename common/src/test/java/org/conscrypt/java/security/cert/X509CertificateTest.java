@@ -480,12 +480,14 @@ public class X509CertificateTest {
             });
     }
 
-    // MD5 signed certificates no longer supported by BoringSSL but still are by OpenJDK 8.
+    // MD5 signed certificates no longer supported by BoringSSL but still supported by OpenJDK 8
+    // and by BC where present (up until Android 12)
     @Test
     public void unsupportedDigestType() {
         ServiceTester.test("CertificateFactory")
             .withAlgorithm("X509")
             .skipProvider("SUN")
+            .skipProvider("BC")
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(Provider p, String algorithm) throws Exception {
