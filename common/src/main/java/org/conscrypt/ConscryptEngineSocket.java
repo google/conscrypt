@@ -227,6 +227,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                     case NEED_UNWRAP:
                         if (in.processDataFromSocket(EmptyArray.BYTE, 0, 0) < 0) {
                             // Can't complete the handshake due to EOF.
+                            close();
                             throw SSLUtils.toSSLHandshakeException(
                                     new EOFException("connection closed"));
                         }
@@ -239,6 +240,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                     }
                     case NEED_TASK: {
                         // Should never get here, since our engine never provides tasks.
+                        close();
                         throw new IllegalStateException("Engine tasks are unsupported");
                     }
                     case NOT_HANDSHAKING:
