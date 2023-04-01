@@ -312,10 +312,10 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
 
                 case STATE_CLOSED:
                     if (handshakeStartedMillis > 0) {
-                        // Handshake must have failed.
+                        // Handshake was in progress and so must have failed.
                         Platform.countTlsHandshake(false,
-                            engine.getSession().getProtocol(),
-                            engine.getSession().getCipherSuite(),
+                            "TLS_PROTO_FAILED",
+                            "TLS_CIPHER_FAILED",
                             Platform.getMillisSinceBoot() - handshakeStartedMillis);
                         handshakeStartedMillis = 0;
                     }

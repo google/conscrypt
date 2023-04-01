@@ -11,6 +11,9 @@ public class ProtocolTest {
     @Test
     public void consistency() {
         for (Protocol protocol : Protocol.values()) {
+            if (protocol == Protocol.TLS_PROTO_FAILED) {
+                continue;
+            }
             String name = protocol.name().replace('_', '.');
             assertSame(protocol, Protocol.forName(name));
         }
