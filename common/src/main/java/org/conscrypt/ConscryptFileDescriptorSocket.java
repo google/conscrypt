@@ -118,7 +118,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     private int writeTimeoutMilliseconds = 0;
     private int handshakeTimeoutMilliseconds = -1; // -1 = same as timeout; 0 = infinite
 
-    private long handshakeStartedMillis;
+    private long handshakeStartedMillis = 0;
 
     // The constructors should not be called except from the Platform class, because we may
     // want to construct a subclass instead.
@@ -185,7 +185,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         checkOpen();
         synchronized (ssl) {
             if (state == STATE_NEW) {
-                handshakeStartedMillis = Platform.getMillisSinceBoot();
                 transitionTo(STATE_HANDSHAKE_STARTED);
             } else {
                 // We've either started the handshake already or have been closed.
@@ -231,9 +230,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 // Update the session from the current state of the SSL object.
                 activeSession.onPeerCertificateAvailable(getHostnameOrIP(), getPort());
             } catch (CertificateException e) {
-                Platform.countTlsHandshake(false, activeSession.getProtocol(),
-                        activeSession.getCipherSuite(),
-                        Platform.getMillisSinceBoot() - handshakeStartedMillis);
                 SSLHandshakeException wrapper = new SSLHandshakeException(e.getMessage());
                 wrapper.initCause(e);
                 throw wrapper;
@@ -291,10 +287,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 }
             }
         } catch (SSLProtocolException e) {
-            Platform.countTlsHandshake(false, activeSession.getProtocol(),
-                    activeSession.getCipherSuite(),
-                    Platform.getMillisSinceBoot() - handshakeStartedMillis);
-
             throw(SSLHandshakeException) new SSLHandshakeException("Handshake failed").initCause(e);
         } finally {
             // on exceptional exit, treat the socket as closed
@@ -345,12 +337,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             // We only care about successful completion.
             return;
         }
-
-        // The handshake has completed successfully ...
-
-        Platform.countTlsHandshake(true, activeSession.getProtocol(),
-                activeSession.getCipherSuite(),
-                Platform.getMillisSinceBoot() - handshakeStartedMillis);
 
         // First, update the state.
         synchronized (ssl) {
@@ -1203,9 +1189,36 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         return sslParameters.getSessionContext();
     }
 
+    // All calls synchronized on this.ssl.
     private void transitionTo(int newState) {
+        if (state == newState) {
+            return;
+        }
+
         switch (newState) {
+            case STATE_HANDSHAKE_STARTED:
+                handshakeStartedMillis = Platform.getMillisSinceBoot();
+                break;
+
+            case STATE_READY:
+                if (handshakeStartedMillis != 0) {
+                    Platform.countTlsHandshake(true,
+                        activeSession.getProtocol(),
+                        activeSession.getCipherSuite(),
+                        Platform.getMillisSinceBoot() - handshakeStartedMillis);
+                    handshakeStartedMillis = 0;
+                }
+                break;
+
             case STATE_CLOSED: {
+                if (handshakeStartedMillis != 0) {
+                    // Handshake was in progress so must have failed.
+                    Platform.countTlsHandshake(false,
+                        "TLS_PROTO_FAILED",
+                        "TLS_CIPHER_FAILED",
+                        Platform.getMillisSinceBoot() - handshakeStartedMillis);
+                    handshakeStartedMillis = 0;
+                }
                 if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED) {
                     closedSession = new SessionSnapshot(activeSession);
                 }
