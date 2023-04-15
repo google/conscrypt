@@ -69,7 +69,7 @@ must also be build for each of these.
 To build the x86_64 version:
 ```bash
 mkdir build.x86
-cd build.86
+cd build.x86
 cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_ASM_FLAGS=-Wa,--noexecstack \
