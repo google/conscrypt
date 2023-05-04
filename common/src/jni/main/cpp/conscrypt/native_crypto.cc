@@ -459,32 +459,20 @@ jbooleanArray ASN1BitStringToBooleanArray(JNIEnv* env, const ASN1_BIT_STRING* bi
     return bitsRef.release();
 }
 
-static int bio_stream_create(BIO* b) {
-    b->init = 1;
-    b->num = 0;
-    b->ptr = nullptr;
-    b->flags = 0;
-    return 1;
-}
-
 static int bio_stream_destroy(BIO* b) {
     if (b == nullptr) {
         return 0;
     }
 
-    if (b->ptr != nullptr) {
-        delete static_cast<BioStream*>(b->ptr);
-        b->ptr = nullptr;
-    }
-
-    b->init = 0;
-    b->flags = 0;
+    delete static_cast<BioStream*>(BIO_get_data(b));
+    BIO_set_data(b, nullptr);
+    BIO_set_init(b, 0);
     return 1;
 }
 
 static int bio_stream_read(BIO* b, char* buf, int len) {
     BIO_clear_retry_flags(b);
-    BioInputStream* stream = static_cast<BioInputStream*>(b->ptr);
+    BioInputStream* stream = static_cast<BioInputStream*>(BIO_get_data(b));
     int ret = stream->read(buf, len);
     if (ret == 0) {
         if (stream->isFinite()) {
@@ -500,27 +488,23 @@ static int bio_stream_read(BIO* b, char* buf, int len) {
 
 static int bio_stream_write(BIO* b, const char* buf, int len) {
     BIO_clear_retry_flags(b);
-    BioOutputStream* stream = static_cast<BioOutputStream*>(b->ptr);
+    BioOutputStream* stream = static_cast<BioOutputStream*>(BIO_get_data(b));
     return stream->write(buf, len);
 }
 
-static int bio_stream_puts(BIO* b, const char* buf) {
-    BioOutputStream* stream = static_cast<BioOutputStream*>(b->ptr);
-    return stream->write(buf, static_cast<int>(strlen(buf)));
-}
-
 static int bio_stream_gets(BIO* b, char* buf, int len) {
-    BioInputStream* stream = static_cast<BioInputStream*>(b->ptr);
+    BioInputStream* stream = static_cast<BioInputStream*>(BIO_get_data(b));
     return stream->gets(buf, len);
 }
 
 static void bio_stream_assign(BIO* b, BioStream* stream) {
-    b->ptr = static_cast<void*>(stream);
+    BIO_set_data(b, stream);
+    BIO_set_init(b, 1);
 }
 
 // NOLINTNEXTLINE(runtime/int)
 static long bio_stream_ctrl(BIO* b, int cmd, long, void*) {
-    BioStream* stream = static_cast<BioStream*>(b->ptr);
+    BioStream* stream = static_cast<BioStream*>(BIO_get_data(b));
 
     switch (cmd) {
         case BIO_CTRL_EOF:
@@ -532,18 +516,21 @@ static long bio_stream_ctrl(BIO* b, int cmd, long, void*) {
     }
 }
 
-static BIO_METHOD stream_bio_method = {
-        (100 | 0x0400), /* source/sink BIO */
-        "InputStream/OutputStream BIO",
-        bio_stream_write,   /* bio_write */
-        bio_stream_read,    /* bio_read */
-        bio_stream_puts,    /* bio_puts */
-        bio_stream_gets,    /* bio_gets */
-        bio_stream_ctrl,    /* bio_ctrl */
-        bio_stream_create,  /* bio_create */
-        bio_stream_destroy, /* bio_free */
-        nullptr,            /* no bio_callback_ctrl */
-};
+static const BIO_METHOD *stream_bio_method() {
+    static const BIO_METHOD* stream_method = []() -> const BIO_METHOD* {
+        BIO_METHOD* method = BIO_meth_new(0, nullptr);
+        if (!method || !BIO_meth_set_write(method, bio_stream_write) ||
+            !BIO_meth_set_read(method, bio_stream_read) ||
+            !BIO_meth_set_gets(method, bio_stream_gets) ||
+            !BIO_meth_set_ctrl(method, bio_stream_ctrl) ||
+            !BIO_meth_set_destroy(method, bio_stream_destroy)) {
+            BIO_meth_free(method);
+            return nullptr;
+        }
+        return method;
+    }();
+    return stream_method;
+}
 
 static jbyteArray ecSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, const char* message,
                                              size_t message_len) {
@@ -4097,7 +4084,11 @@ static jlong NativeCrypto_create_BIO_InputStream(JNIEnv* env, jclass, jobject st
         return 0;
     }
 
-    bssl::UniquePtr<BIO> bio(BIO_new(&stream_bio_method));
+    const BIO_METHOD *method = stream_bio_method();
+    if (!method) {
+        return 0;
+    }
+    bssl::UniquePtr<BIO> bio(BIO_new(method));
     if (bio.get() == nullptr) {
         return 0;
     }
@@ -4117,7 +4108,11 @@ static jlong NativeCrypto_create_BIO_OutputStream(JNIEnv* env, jclass, jobject s
         return 0;
     }
 
-    bssl::UniquePtr<BIO> bio(BIO_new(&stream_bio_method));
+    const BIO_METHOD *method = stream_bio_method();
+    if (!method) {
+        return 0;
+    }
+    bssl::UniquePtr<BIO> bio(BIO_new(method));
     if (bio.get() == nullptr) {
         return 0;
     }
