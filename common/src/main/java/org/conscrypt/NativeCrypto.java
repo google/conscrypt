@@ -808,8 +808,11 @@ public final class NativeCrypto {
     static {
         if (loadError == null) {
             // If loadError is not null, it means the native code was not loaded, so
-            // get_cipher_names will throw UnsatisfiedLinkError.
-            String[] allCipherSuites = get_cipher_names("ALL:!DHE");
+            // get_cipher_names will throw UnsatisfiedLinkError. Populate the list of supported
+            // ciphers with BoringSSL's default, and also explicitly include 3DES.
+            // https://boringssl-review.googlesource.com/c/boringssl/+/59425 will remove 3DES
+            // from BoringSSL's default, but Conscrypt isn't quite ready to remove it yet.
+            String[] allCipherSuites = get_cipher_names("ALL:3DES");
 
             // get_cipher_names returns an array where even indices are the standard name and odd
             // indices are the OpenSSL name.
