@@ -36,6 +36,7 @@
 
 #include <openssl/aead.h>
 #include <openssl/asn1.h>
+#include <openssl/bn.h>
 #include <openssl/chacha.h>
 #include <openssl/cmac.h>
 #include <openssl/crypto.h>
@@ -200,6 +201,14 @@ static bool arrayToBignum(JNIEnv* env, jbyteArray source, BIGNUM** dest) {
     *dest = ret;
     JNI_TRACE("arrayToBignum(%p, %p) => *dest = %p", source, dest, ret);
     return true;
+}
+
+static bssl::UniquePtr<BIGNUM> arrayToBignum(JNIEnv* env, jbyteArray source) {
+    BIGNUM *bn = nullptr;
+    if (!arrayToBignum(env, source, &bn)) {
+        return nullptr;
+    }
+    return bssl::UniquePtr<BIGNUM>(bn);
 }
 
 /**
@@ -459,32 +468,20 @@ jbooleanArray ASN1BitStringToBooleanArray(JNIEnv* env, const ASN1_BIT_STRING* bi
     return bitsRef.release();
 }
 
-static int bio_stream_create(BIO* b) {
-    b->init = 1;
-    b->num = 0;
-    b->ptr = nullptr;
-    b->flags = 0;
-    return 1;
-}
-
 static int bio_stream_destroy(BIO* b) {
     if (b == nullptr) {
         return 0;
     }
 
-    if (b->ptr != nullptr) {
-        delete static_cast<BioStream*>(b->ptr);
-        b->ptr = nullptr;
-    }
-
-    b->init = 0;
-    b->flags = 0;
+    delete static_cast<BioStream*>(BIO_get_data(b));
+    BIO_set_data(b, nullptr);
+    BIO_set_init(b, 0);
     return 1;
 }
 
 static int bio_stream_read(BIO* b, char* buf, int len) {
     BIO_clear_retry_flags(b);
-    BioInputStream* stream = static_cast<BioInputStream*>(b->ptr);
+    BioInputStream* stream = static_cast<BioInputStream*>(BIO_get_data(b));
     int ret = stream->read(buf, len);
     if (ret == 0) {
         if (stream->isFinite()) {
@@ -500,27 +497,23 @@ static int bio_stream_read(BIO* b, char* buf, int len) {
 
 static int bio_stream_write(BIO* b, const char* buf, int len) {
     BIO_clear_retry_flags(b);
-    BioOutputStream* stream = static_cast<BioOutputStream*>(b->ptr);
+    BioOutputStream* stream = static_cast<BioOutputStream*>(BIO_get_data(b));
     return stream->write(buf, len);
 }
 
-static int bio_stream_puts(BIO* b, const char* buf) {
-    BioOutputStream* stream = static_cast<BioOutputStream*>(b->ptr);
-    return stream->write(buf, static_cast<int>(strlen(buf)));
-}
-
 static int bio_stream_gets(BIO* b, char* buf, int len) {
-    BioInputStream* stream = static_cast<BioInputStream*>(b->ptr);
+    BioInputStream* stream = static_cast<BioInputStream*>(BIO_get_data(b));
     return stream->gets(buf, len);
 }
 
 static void bio_stream_assign(BIO* b, BioStream* stream) {
-    b->ptr = static_cast<void*>(stream);
+    BIO_set_data(b, stream);
+    BIO_set_init(b, 1);
 }
 
 // NOLINTNEXTLINE(runtime/int)
 static long bio_stream_ctrl(BIO* b, int cmd, long, void*) {
-    BioStream* stream = static_cast<BioStream*>(b->ptr);
+    BioStream* stream = static_cast<BioStream*>(BIO_get_data(b));
 
     switch (cmd) {
         case BIO_CTRL_EOF:
@@ -532,18 +525,21 @@ static long bio_stream_ctrl(BIO* b, int cmd, long, void*) {
     }
 }
 
-static BIO_METHOD stream_bio_method = {
-        (100 | 0x0400), /* source/sink BIO */
-        "InputStream/OutputStream BIO",
-        bio_stream_write,   /* bio_write */
-        bio_stream_read,    /* bio_read */
-        bio_stream_puts,    /* bio_puts */
-        bio_stream_gets,    /* bio_gets */
-        bio_stream_ctrl,    /* bio_ctrl */
-        bio_stream_create,  /* bio_create */
-        bio_stream_destroy, /* bio_free */
-        nullptr,            /* no bio_callback_ctrl */
-};
+static const BIO_METHOD *stream_bio_method() {
+    static const BIO_METHOD* stream_method = []() -> const BIO_METHOD* {
+        BIO_METHOD* method = BIO_meth_new(0, nullptr);
+        if (!method || !BIO_meth_set_write(method, bio_stream_write) ||
+            !BIO_meth_set_read(method, bio_stream_read) ||
+            !BIO_meth_set_gets(method, bio_stream_gets) ||
+            !BIO_meth_set_ctrl(method, bio_stream_ctrl) ||
+            !BIO_meth_set_destroy(method, bio_stream_destroy)) {
+            BIO_meth_free(method);
+            return nullptr;
+        }
+        return method;
+    }();
+    return stream_method;
+}
 
 static jbyteArray ecSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, const char* message,
                                              size_t message_len) {
@@ -891,16 +887,87 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass, jbyteArray n, jb
     JNI_TRACE("EVP_PKEY_new_RSA(n=%p, e=%p, d=%p, p=%p, q=%p, dmp1=%p, dmq1=%p, iqmp=%p)", n, e, d,
               p, q, dmp1, dmq1, iqmp);
 
-    bssl::UniquePtr<RSA> rsa(RSA_new());
-    if (rsa.get() == nullptr) {
-        conscrypt::jniutil::throwRuntimeException(env, "RSA_new failed");
-        return 0;
-    }
-
     if (e == nullptr && d == nullptr) {
         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
                                            "e == null && d == null");
         JNI_TRACE("NativeCrypto_EVP_PKEY_new_RSA => e == null && d == null");
+        return 0;
+    }
+
+#if BORINGSSL_API_VERSION >= 20
+    bssl::UniquePtr<BIGNUM> nBN, eBN, dBN, pBN, qBN, dmp1BN, dmq1BN, iqmpBN;
+    nBN = arrayToBignum(env, n);
+    if (!nBN) {
+        return 0;
+    }
+    if (e != nullptr) {
+        eBN = arrayToBignum(env, e);
+        if (!eBN) {
+            return 0;
+        }
+    }
+    if (d != nullptr) {
+        dBN = arrayToBignum(env, d);
+        if (!dBN) {
+            return 0;
+        }
+    }
+    if (p != nullptr) {
+        pBN = arrayToBignum(env, p);
+        if (!pBN) {
+            return 0;
+        }
+    }
+    if (q != nullptr) {
+        qBN = arrayToBignum(env, q);
+        if (!qBN) {
+            return 0;
+        }
+    }
+    if (dmp1 != nullptr) {
+        dmp1BN = arrayToBignum(env, dmp1);
+        if (!dmp1BN) {
+            return 0;
+        }
+    }
+    if (dmq1 != nullptr) {
+        dmq1BN = arrayToBignum(env, dmq1);
+        if (!dmq1BN) {
+            return 0;
+        }
+    }
+    if (iqmp != nullptr) {
+        iqmpBN = arrayToBignum(env, iqmp);
+        if (!iqmpBN) {
+            return 0;
+        }
+    }
+
+    // Determine what kind of key this is.
+    //
+    // TODO(davidben): The caller already knows what kind of key they expect. Ideally we would have
+    // separate APIs for the caller. However, we currently tolerate, say, an RSAPrivateCrtKeySpec
+    // where most fields are null and silently make a public key out of it. This is probably a
+    // mistake, but would need to be a breaking change.
+    bssl::UniquePtr<RSA> rsa;
+    if (!dBN) {
+        rsa.reset(RSA_new_public_key(nBN.get(), eBN.get()));
+    } else if (!eBN) {
+        rsa.reset(RSA_new_private_key_no_e(nBN.get(), dBN.get()));
+    } else if (!pBN || !qBN || !dmp1BN || !dmq1BN || !iqmpBN) {
+        rsa.reset(RSA_new_private_key_no_crt(nBN.get(), eBN.get(), dBN.get()));
+    } else {
+        rsa.reset(RSA_new_private_key(nBN.get(), eBN.get(), dBN.get(), pBN.get(), qBN.get(),
+                                      dmp1BN.get(), dmq1BN.get(), iqmpBN.get()));
+    }
+    if (rsa == nullptr) {
+        conscrypt::jniutil::throwRuntimeException(env, "Creating RSA key failed");
+        return 0;
+    }
+#else
+    bssl::UniquePtr<RSA> rsa(RSA_new());
+    if (rsa.get() == nullptr) {
+        conscrypt::jniutil::throwRuntimeException(env, "RSA_new failed");
         return 0;
     }
 
@@ -960,6 +1027,7 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass, jbyteArray n, jb
         JNI_TRACE("EVP_PKEY_new_RSA(...) disabling RSA blinding => %p", rsa.get());
         rsa->flags |= RSA_FLAG_NO_BLINDING;
     }
+#endif
 
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
@@ -991,11 +1059,10 @@ static jlong NativeCrypto_EVP_PKEY_new_EC_KEY(JNIEnv* env, jclass, jobject group
 
     bssl::UniquePtr<BIGNUM> key(nullptr);
     if (keyJavaBytes != nullptr) {
-        BIGNUM* keyRef = nullptr;
-        if (!arrayToBignum(env, keyJavaBytes, &keyRef)) {
+        key = arrayToBignum(env, keyJavaBytes);
+        if (!key) {
             return 0;
         }
-        key.reset(keyRef);
     }
 
     bssl::UniquePtr<EC_KEY> eckey(EC_KEY_new());
@@ -1279,8 +1346,23 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
 
     ensure_engine_globals();
 
+#if OPENSSL_VERSION_NUMBER >= 20
+    // The PSS padding code needs access to the actual n, so set it even though we
+    // don't set any other parts of the key
+    bssl::UniquePtr<BIGNUM> n = arrayToBignum(env, modulusBytes);
+    if (n == nullptr) {
+        return 0;
+    }
+
+    // TODO(crbug.com/boringssl/602): RSA_METHOD is not the ideal abstraction to use here.
+    bssl::UniquePtr<RSA> rsa(RSA_new_method_no_e(g_engine, n.get()));
+    if (rsa == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate RSA key");
+        return 0;
+    }
+#else
     bssl::UniquePtr<RSA> rsa(RSA_new_method(g_engine));
-    if (rsa.get() == nullptr) {
+    if (rsa == nullptr) {
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate RSA key");
         return 0;
     }
@@ -1290,6 +1372,7 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
     if (!arrayToBignum(env, modulusBytes, &rsa->n)) {
         return 0;
     }
+#endif
 
     auto ex_data = new KeyExData;
     ex_data->private_key = env->NewGlobalRef(javaKey);
@@ -1375,11 +1458,10 @@ static jlong NativeCrypto_RSA_generate_key_ex(JNIEnv* env, jclass, jint modulusB
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("RSA_generate_key_ex(%d, %p)", modulusBits, publicExponent);
 
-    BIGNUM* eRef = nullptr;
-    if (!arrayToBignum(env, publicExponent, &eRef)) {
+    bssl::UniquePtr<BIGNUM> e = arrayToBignum(env, publicExponent);
+    if (e == nullptr) {
         return 0;
     }
-    bssl::UniquePtr<BIGNUM> e(eRef);
 
     bssl::UniquePtr<RSA> rsa(RSA_new());
     if (rsa.get() == nullptr) {
@@ -1694,9 +1776,6 @@ static jlong NativeCrypto_EC_GROUP_new_arbitrary(JNIEnv* env, jclass, jbyteArray
                                                  jbyteArray xBytes, jbyteArray yBytes,
                                                  jbyteArray orderBytes, jint cofactorInt) {
     CHECK_ERROR_QUEUE_ON_RETURN;
-    BIGNUM *p = nullptr, *a = nullptr, *b = nullptr, *x = nullptr, *y = nullptr;
-    BIGNUM *order = nullptr, *cofactor = nullptr;
-
     JNI_TRACE("EC_GROUP_new_arbitrary");
 
     if (cofactorInt < 1) {
@@ -1705,34 +1784,37 @@ static jlong NativeCrypto_EC_GROUP_new_arbitrary(JNIEnv* env, jclass, jbyteArray
         return 0;
     }
 
-    cofactor = BN_new();
-    if (cofactor == nullptr) {
+    bssl::UniquePtr<BIGNUM> p = arrayToBignum(env, pBytes);
+    if (p == nullptr) {
         return 0;
     }
-
-    int ok = 1;
-
-    if (!arrayToBignum(env, pBytes, &p) || !arrayToBignum(env, aBytes, &a) ||
-        !arrayToBignum(env, bBytes, &b) || !arrayToBignum(env, xBytes, &x) ||
-        !arrayToBignum(env, yBytes, &y) || !arrayToBignum(env, orderBytes, &order) ||
-        !BN_set_word(cofactor, static_cast<uint32_t>(cofactorInt))) {
-        ok = 0;
+    bssl::UniquePtr<BIGNUM> a = arrayToBignum(env, aBytes);
+    if (a == nullptr) {
+        return 0;
     }
-
-    bssl::UniquePtr<BIGNUM> pStorage(p);
-    bssl::UniquePtr<BIGNUM> aStorage(a);
-    bssl::UniquePtr<BIGNUM> bStorage(b);
-    bssl::UniquePtr<BIGNUM> xStorage(x);
-    bssl::UniquePtr<BIGNUM> yStorage(y);
-    bssl::UniquePtr<BIGNUM> orderStorage(order);
-    bssl::UniquePtr<BIGNUM> cofactorStorage(cofactor);
-
-    if (!ok) {
+    bssl::UniquePtr<BIGNUM> b = arrayToBignum(env, bBytes);
+    if (b == nullptr) {
+        return 0;
+    }
+    bssl::UniquePtr<BIGNUM> x = arrayToBignum(env, xBytes);
+    if (x == nullptr) {
+        return 0;
+    }
+    bssl::UniquePtr<BIGNUM> y = arrayToBignum(env, yBytes);
+    if (y == nullptr) {
+        return 0;
+    }
+    bssl::UniquePtr<BIGNUM> order = arrayToBignum(env, orderBytes);
+    if (order == nullptr) {
+        return 0;
+    }
+    bssl::UniquePtr<BIGNUM> cofactor(BN_new());
+    if (cofactor == nullptr || BN_set_word(cofactor.get(), static_cast<uint32_t>(cofactorInt))) {
         return 0;
     }
 
     bssl::UniquePtr<BN_CTX> ctx(BN_CTX_new());
-    bssl::UniquePtr<EC_GROUP> group(EC_GROUP_new_curve_GFp(p, a, b, ctx.get()));
+    bssl::UniquePtr<EC_GROUP> group(EC_GROUP_new_curve_GFp(p.get(), a.get(), b.get(), ctx.get()));
     if (group.get() == nullptr) {
         JNI_TRACE("EC_GROUP_new_curve_GFp => null");
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EC_GROUP_new_curve_GFp");
@@ -1746,14 +1828,14 @@ static jlong NativeCrypto_EC_GROUP_new_arbitrary(JNIEnv* env, jclass, jbyteArray
         return 0;
     }
 
-    if (!EC_POINT_set_affine_coordinates_GFp(group.get(), generator.get(), x, y, ctx.get())) {
+    if (!EC_POINT_set_affine_coordinates_GFp(group.get(), generator.get(), x.get(), y.get(), ctx.get())) {
         JNI_TRACE("EC_POINT_set_affine_coordinates_GFp => error");
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env,
                                                              "EC_POINT_set_affine_coordinates_GFp");
         return 0;
     }
 
-    if (!EC_GROUP_set_generator(group.get(), generator.get(), order, cofactor)) {
+    if (!EC_GROUP_set_generator(group.get(), generator.get(), order.get(), cofactor.get())) {
         JNI_TRACE("EC_GROUP_set_generator => error");
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EC_GROUP_set_generator");
         return 0;
@@ -1999,17 +2081,15 @@ static void NativeCrypto_EC_POINT_set_affine_coordinates(JNIEnv* env, jclass, jo
     JNI_TRACE("EC_POINT_set_affine_coordinates(%p, %p, %p, %p) <- ptr", group, point, xjavaBytes,
               yjavaBytes);
 
-    BIGNUM* xRef = nullptr;
-    if (!arrayToBignum(env, xjavaBytes, &xRef)) {
+    bssl::UniquePtr<BIGNUM> x = arrayToBignum(env, xjavaBytes);
+    if (x == nullptr) {
         return;
     }
-    bssl::UniquePtr<BIGNUM> x(xRef);
 
-    BIGNUM* yRef = nullptr;
-    if (!arrayToBignum(env, yjavaBytes, &yRef)) {
+    bssl::UniquePtr<BIGNUM> y = arrayToBignum(env, yjavaBytes);
+    if (y == nullptr) {
         return;
     }
-    bssl::UniquePtr<BIGNUM> y(yRef);
 
     int ret = EC_POINT_set_affine_coordinates_GFp(group, point, x.get(), y.get(), nullptr);
     if (ret != 1) {
@@ -4097,7 +4177,11 @@ static jlong NativeCrypto_create_BIO_InputStream(JNIEnv* env, jclass, jobject st
         return 0;
     }
 
-    bssl::UniquePtr<BIO> bio(BIO_new(&stream_bio_method));
+    const BIO_METHOD *method = stream_bio_method();
+    if (!method) {
+        return 0;
+    }
+    bssl::UniquePtr<BIO> bio(BIO_new(method));
     if (bio.get() == nullptr) {
         return 0;
     }
@@ -4117,7 +4201,11 @@ static jlong NativeCrypto_create_BIO_OutputStream(JNIEnv* env, jclass, jobject s
         return 0;
     }
 
-    bssl::UniquePtr<BIO> bio(BIO_new(&stream_bio_method));
+    const BIO_METHOD *method = stream_bio_method();
+    if (!method) {
+        return 0;
+    }
+    bssl::UniquePtr<BIO> bio(BIO_new(method));
     if (bio.get() == nullptr) {
         return 0;
     }
@@ -4699,14 +4787,8 @@ static jlong NativeCrypto_X509_CRL_get0_by_serial(JNIEnv* env, jclass, jlong x50
         return 0;
     }
 
-    bssl::UniquePtr<BIGNUM> serialBn(BN_new());
-    if (serialBn.get() == nullptr) {
-        JNI_TRACE("X509_CRL_get0_by_serial(%p, %p) => BN allocation failed", x509crl, serialArray);
-        return 0;
-    }
-
-    BIGNUM* serialBare = serialBn.get();
-    if (!arrayToBignum(env, serialArray, &serialBare)) {
+    bssl::UniquePtr<BIGNUM> serialBn = arrayToBignum(env, serialArray);
+    if (serialBn == nullptr) {
         if (!env->ExceptionCheck()) {
             conscrypt::jniutil::throwNullPointerException(env, "serial == null");
         }
