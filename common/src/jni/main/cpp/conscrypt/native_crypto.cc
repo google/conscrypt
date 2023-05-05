@@ -1346,7 +1346,7 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
 
     ensure_engine_globals();
 
-#if OPENSSL_VERSION_NUMBER >= 20
+#if BORINGSSL_API_VERSION >= 20
     // The PSS padding code needs access to the actual n, so set it even though we
     // don't set any other parts of the key
     bssl::UniquePtr<BIGNUM> n = arrayToBignum(env, modulusBytes);
