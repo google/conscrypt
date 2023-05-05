@@ -1809,7 +1809,7 @@ static jlong NativeCrypto_EC_GROUP_new_arbitrary(JNIEnv* env, jclass, jbyteArray
         return 0;
     }
     bssl::UniquePtr<BIGNUM> cofactor(BN_new());
-    if (cofactor == nullptr || BN_set_word(cofactor.get(), static_cast<uint32_t>(cofactorInt))) {
+    if (cofactor == nullptr || !BN_set_word(cofactor.get(), static_cast<uint32_t>(cofactorInt))) {
         return 0;
     }
 
