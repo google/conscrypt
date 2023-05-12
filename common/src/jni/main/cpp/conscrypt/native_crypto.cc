@@ -212,42 +212,6 @@ static bssl::UniquePtr<BIGNUM> arrayToBignum(JNIEnv* env, jbyteArray source) {
 }
 
 /**
- * arrayToBignumSize sets |*out_size| to the size of the big-endian number
- * contained in |source|. It returns true on success and sets an exception and
- * returns false otherwise.
- */
-static bool arrayToBignumSize(JNIEnv* env, jbyteArray source, size_t* out_size) {
-    JNI_TRACE("arrayToBignumSize(%p, %p)", source, out_size);
-
-    ScopedByteArrayRO sourceBytes(env, source);
-    if (sourceBytes.get() == nullptr) {
-        JNI_TRACE("arrayToBignum(%p, %p) => null", source, out_size);
-        return false;
-    }
-    const uint8_t* tmp = reinterpret_cast<const uint8_t*>(sourceBytes.get());
-    size_t tmpSize = sourceBytes.size();
-
-    if (tmpSize == 0) {
-        *out_size = 0;
-        return true;
-    }
-
-    if ((tmp[0] & 0x80) != 0) {
-        // Negative numbers are invalid.
-        conscrypt::jniutil::throwRuntimeException(env, "Negative number");
-        return false;
-    }
-
-    while (tmpSize > 0 && tmp[0] == 0) {
-        tmp++;
-        tmpSize--;
-    }
-
-    *out_size = tmpSize;
-    return true;
-}
-
-/**
  * Converts an OpenSSL BIGNUM to a Java byte[] array in two's complement.
  */
 static jbyteArray bignumToArray(JNIEnv* env, const BIGNUM* source, const char* sourceName) {
@@ -659,10 +623,6 @@ void ensure_engine_globals() {
 struct KeyExData {
     // private_key contains a reference to a Java, private-key object.
     jobject private_key;
-    // cached_size contains the "size" of the key. This is the size of the
-    // modulus (in bytes) for RSA, or the group order size for ECDSA. This
-    // avoids calling into Java to calculate the size.
-    size_t cached_size;
 };
 
 // ExDataDup is called when one of the RSA or EC_KEY objects is duplicated. We
@@ -695,11 +655,6 @@ void ExDataFree(void* /* parent */,
 
 KeyExData* RsaGetExData(const RSA* rsa) {
     return reinterpret_cast<KeyExData*>(RSA_get_ex_data(rsa, g_rsa_exdata_index));
-}
-
-size_t RsaMethodSize(const RSA* rsa) {
-    const KeyExData* ex_data = RsaGetExData(rsa);
-    return ex_data->cached_size;
 }
 
 int RsaMethodSignRaw(RSA* rsa, size_t* out_len, uint8_t* out, size_t max_out, const uint8_t* in,
@@ -849,7 +804,6 @@ void init_engine_globals() {
                                                    nullptr /* new_func */, ExDataDup, ExDataFree);
 
     g_rsa_method.common.is_static = 1;
-    g_rsa_method.size = RsaMethodSize;
     g_rsa_method.sign_raw = RsaMethodSignRaw;
     g_rsa_method.decrypt = RsaMethodDecrypt;
     g_rsa_method.flags = RSA_FLAG_OPAQUE;
@@ -1338,12 +1292,6 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("getRSAPrivateKeyWrapper(%p, %p)", javaKey, modulusBytes);
 
-    size_t cached_size;
-    if (!arrayToBignumSize(env, modulusBytes, &cached_size)) {
-        JNI_TRACE("getRSAPrivateKeyWrapper failed");
-        return 0;
-    }
-
     ensure_engine_globals();
 
 #if BORINGSSL_API_VERSION >= 20
@@ -1376,7 +1324,6 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
 
     auto ex_data = new KeyExData;
     ex_data->private_key = env->NewGlobalRef(javaKey);
-    ex_data->cached_size = cached_size;
     RSA_set_ex_data(rsa.get(), g_rsa_exdata_index, ex_data);
 
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
