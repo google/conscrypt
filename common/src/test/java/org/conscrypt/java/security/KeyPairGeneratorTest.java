@@ -140,8 +140,8 @@ public class KeyPairGeneratorTest {
         putKeySize("DSA", 512);
         putKeySize("DSA", 512+64);
         putKeySize("DSA", 1024);
-        putKeySize("RSA", 512);
-        putKeySize("RSASSA-PSS", 512);
+        putKeySize("RSA", 2048);
+        putKeySize("RSASSA-PSS", 2048);
         putKeySize("DH", 512);
         putKeySize("DH", 512+64);
         putKeySize("DH", 1024);
