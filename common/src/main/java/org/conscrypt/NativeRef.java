@@ -103,6 +103,28 @@ abstract class NativeRef {
         }
     }
 
+    static final class EVP_HPKE_CTX extends NativeRef {
+        EVP_HPKE_CTX(long nativePointer) {
+            super(nativePointer);
+        }
+
+        @Override
+        void doFree(long context) {
+            NativeCrypto.EVP_HPKE_CTX_free(context);
+        }
+    }
+
+    static final class EVP_HPKE_KEY extends NativeRef {
+        EVP_HPKE_KEY(long nativePointer) {
+            super(nativePointer);
+        }
+
+        @Override
+        void doFree(long context) {
+            NativeCrypto.EVP_HPKE_KEY_free(context);
+        }
+    }
+
     static final class EVP_MD_CTX extends NativeRef {
         EVP_MD_CTX(long nativePointer) {
             super(nativePointer);
