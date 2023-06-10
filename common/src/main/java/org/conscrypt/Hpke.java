@@ -70,7 +70,7 @@ public class Hpke {
    *  {@link HpkeContextHelper}.
    */
   @Internal
-  static Hpke createForTestingOnly(HpkeSuite hpkeSuite, HpkeContextHelper contextHelper) {
+  public static Hpke createForTestingOnly(HpkeSuite hpkeSuite, HpkeContextHelper contextHelper) {
     final Hpke hpke = new Hpke(hpkeSuite);
     hpke.mContextHelper = contextHelper;
     return hpke;
