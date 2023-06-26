@@ -16,7 +16,7 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.TestUtils.getProtocols;
+import static org.conscrypt.TestUtils.getCommonProtocolSuites;
 import static org.conscrypt.TestUtils.newTextMessage;
 import static org.junit.Assert.assertEquals;
 
@@ -62,7 +62,7 @@ public final class ServerSocketBenchmark {
         final ChannelType channelType = config.channelType();
 
         server = config.serverFactory().newServer(
-            channelType, config.messageSize(), getProtocols(), ciphers(config));
+            channelType, config.messageSize(), getCommonProtocolSuites(), ciphers(config));
         server.setMessageProcessor(new MessageProcessor() {
             @Override
             public void processMessage(byte[] inMessage, int numBytes, OutputStream os) {
@@ -86,7 +86,7 @@ public final class ServerSocketBenchmark {
 
         // Always use the same client for consistency across the benchmarks.
         client = config.clientFactory().newClient(
-                ChannelType.CHANNEL, server.port(), getProtocols(), ciphers(config));
+                ChannelType.CHANNEL, server.port(), getCommonProtocolSuites(), ciphers(config));
         client.start();
 
         // Wait for the initial connection to complete.
