@@ -393,8 +393,7 @@ public final class TestUtils {
         Predicate<String> predicate = p -> conscryptProtocols.contains(p)
             // TODO(prb): Certificate auth fails when connecting Conscrypt and JDK's TLS 1.3.
             && !p.equals(PROTOCOL_TLS_V1_3);
-        List<String> supported = filter(getSupportedProtocols(jdkContext), predicate);
-        return supported.toArray(new String[0]);
+        return getSupportedProtocols(jdkContext, predicate);
     }
 
     public static String[] getCommonCipherSuites() {
@@ -402,23 +401,28 @@ public final class TestUtils {
         SSLContext conscryptContext = newClientSslContext(getConscryptProvider());
         Set<String> conscryptCiphers =  new HashSet<>(getSupportedCiphers(conscryptContext));
         Predicate<String> predicate = c -> isTlsCipherSuite(c) && conscryptCiphers.contains(c);
-        List<String> common = filter(getSupportedCiphers(jdkContext), predicate);
-        return common.toArray(new String[0]);
+        return getSupportedCiphers(jdkContext, predicate);
     }
 
     public static List<String> getSupportedCiphers(SSLContext ctx) {
         return Arrays.asList(ctx.getDefaultSSLParameters().getCipherSuites());
     }
 
+    public static String[] getSupportedCiphers(SSLContext ctx, Predicate<String> predicate) {
+        return Arrays.stream(ctx.getDefaultSSLParameters().getCipherSuites())
+            .filter(predicate)
+            .toArray(String[]::new);
+    }
+
+
     public static List<String> getSupportedProtocols(SSLContext ctx) {
         return Arrays.asList(ctx.getDefaultSSLParameters().getProtocols());
     }
 
-    private static <T> List<T> filter(List<T> input, Predicate<T> predicate) {
-        return input
-            .stream()
+    public static String[] getSupportedProtocols(SSLContext ctx, Predicate<String> predicate) {
+        return Arrays.stream(ctx.getDefaultSSLParameters().getProtocols())
             .filter(predicate)
-            .collect(Collectors.toList());
+            .toArray(String[]::new);
     }
 
     private static boolean isTlsCipherSuite(String cipher) {
