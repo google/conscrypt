@@ -50,6 +50,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -387,21 +388,21 @@ public final class TestUtils {
     public static String[] getCommonProtocolSuites() {
         SSLContext jdkContext = newClientSslContext(getJdkProvider());
         SSLContext conscryptContext = newClientSslContext(getConscryptProvider());
-        List<String> supported = getSupportedProtocols(jdkContext);
-        // TODO(prb): Certificate authentication fails when connecting Conscrypt and JDK's TLS 1.3.
-        supported = filter(supported, p -> !p.equals(PROTOCOL_TLS_V1_3));
         // No point building a Set here due to small list sizes.
-        supported = intersect(supported, getSupportedProtocols(conscryptContext));
+        List<String> conscryptProtocols = getSupportedProtocols(conscryptContext);
+        Predicate<String> predicate = p -> conscryptProtocols.contains(p)
+            // TODO(prb): Certificate auth fails when connecting Conscrypt and JDK's TLS 1.3.
+            && !p.equals(PROTOCOL_TLS_V1_3);
+        List<String> supported = filter(getSupportedProtocols(jdkContext), predicate);
         return supported.toArray(new String[0]);
     }
 
     public static String[] getCommonCipherSuites() {
         SSLContext jdkContext = newClientSslContext(getJdkProvider());
         SSLContext conscryptContext = newClientSslContext(getConscryptProvider());
-        List<String> jdkCiphers = getSupportedCiphers(jdkContext);
-        jdkCiphers = filter(jdkCiphers, TestUtils::isTlsCipherSuite);
-        List<String> common =
-            intersect(jdkCiphers, new HashSet<>(getSupportedCiphers(conscryptContext)));
+        Set<String> conscryptCiphers =  new HashSet<>(getSupportedCiphers(conscryptContext));
+        Predicate<String> predicate = c -> isTlsCipherSuite(c) && conscryptCiphers.contains(c);
+        List<String> common = filter(getSupportedCiphers(jdkContext), predicate);
         return common.toArray(new String[0]);
     }
 
@@ -418,11 +419,6 @@ public final class TestUtils {
             .stream()
             .filter(predicate)
             .collect(Collectors.toList());
-    }
-
-    // Intersects an initial List and a Collection, preserving the order of the List.
-    private static <T> List<T> intersect(List<T> initial, Collection<T> other) {
-        return filter(initial, other::contains);
     }
 
     private static boolean isTlsCipherSuite(String cipher) {

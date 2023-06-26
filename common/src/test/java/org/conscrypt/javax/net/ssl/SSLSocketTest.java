@@ -72,7 +72,6 @@ import org.conscrypt.tlswire.handshake.EllipticCurvesHelloExtension;
 import org.conscrypt.tlswire.handshake.HelloExtension;
 import org.conscrypt.tlswire.util.TlsProtocolVersion;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;

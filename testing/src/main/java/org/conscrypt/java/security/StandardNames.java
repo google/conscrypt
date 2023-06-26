@@ -415,9 +415,7 @@ public final class StandardNames {
     private static void assertSupportedProtocols(Set<String> valid, String[] protocols) {
         Set<String> remainingProtocols = assertValidProtocols(valid, protocols);
 
-        Set<String> expected = new HashSet<>(valid);
         // TODO(prb) Temporarily ignore TLSv1.x: See comment for assertSSLContextEnabledProtocols()
-        expected.removeAll(SSL_CONTEXT_PROTOCOLS_DEPRECATED);
         remainingProtocols.removeAll(SSL_CONTEXT_PROTOCOLS_DEPRECATED);
 
         assertEquals("Missing protocols", Collections.EMPTY_SET, remainingProtocols);
