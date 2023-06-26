@@ -77,7 +77,7 @@ final class MockSessionBuilder {
         when(session.getId()).thenReturn(id);
         when(session.isValid()).thenReturn(valid);
         when(session.isSingleUse()).thenReturn(singleUse);
-        when(session.getProtocol()).thenReturn(TestUtils.getProtocols()[0]);
+        when(session.getProtocol()).thenReturn(TestUtils.highestCommonProtocol());
         when(session.getPeerHost()).thenReturn(host);
         when(session.getPeerPort()).thenReturn(port);
         when(session.getCipherSuite()).thenReturn(cipherSuite);

@@ -17,7 +17,6 @@
 package org.conscrypt;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -25,10 +24,9 @@ import static org.junit.Assert.fail;
 
 import java.security.Provider;
 import java.security.Security;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import javax.net.ssl.SSLContext;
+
+import org.conscrypt.java.security.StandardNames;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -52,69 +50,61 @@ public class ConscryptTest {
     }
 
     @Test
-    public void testProviderBuilder() throws Exception {
-        Provider p = Conscrypt.newProviderBuilder()
-            .setName("test name")
-            .provideTrustManager(true)
-            .defaultTlsProtocol("TLSv1.2").build();
+    public void buildTls12WithTrustManager() throws Exception {
+        buildProvider("TLSv1.2", true);
+    }
+    @Test
+    public void buildTls12WithoutTrustManager() throws Exception {
+        buildProvider("TLSv1.2", false);
+    }
 
-        assertEquals("test name", p.getName());
-        assertTrue(p.containsKey("TrustManagerFactory.PKIX"));
+    @Test
+    public void buildTls13WithTrustManager() throws Exception {
+        buildProvider("TLSv1.3", true);
+    }
 
-        try {
-            Security.insertProviderAt(p, 1);
+    @Test
+    public void buildTls13WithoutTrustManager() throws Exception {
+        buildProvider("TLSv1.3", false);
+    }
 
-            SSLContext context = SSLContext.getInstance("TLS");
-            context.init(null, null, null);
-            assertEquals(p, context.getProvider());
-            Set<String> expected = new HashSet<>(Arrays.asList("TLSv1.2", "TLSv1.1", "TLSv1"));
-            Set<String> found =
-                new HashSet<>(Arrays.asList(context.createSSLEngine().getEnabledProtocols()));
-            assertEquals(expected, found);
-
-            context = SSLContext.getInstance("Default");
-            assertEquals(p, context.getProvider());
-            expected = new HashSet<>(Arrays.asList("TLSv1.2", "TLSv1.1", "TLSv1"));
-            found = new HashSet<>(Arrays.asList(context.createSSLEngine().getEnabledProtocols()));
-            assertEquals(expected, found);
-        } finally {
-            Security.removeProvider("test name");
-        }
-
-        p = Conscrypt.newProviderBuilder()
-            .setName("test name 2")
-            .provideTrustManager(false)
-            .defaultTlsProtocol("TLSv1.3").build();
-
-        assertEquals("test name 2", p.getName());
-        assertFalse(p.containsKey("TrustManagerFactory.PKIX"));
-        
-        try {
-            Security.insertProviderAt(p, 1);
-
-            SSLContext context = SSLContext.getInstance("TLS");
-            context.init(null, null, null);
-            assertEquals(p, context.getProvider());
-            Set<String> expected =
-                new HashSet<>(Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"));
-            Set<String> found =
-                new HashSet<>(Arrays.asList(context.createSSLEngine().getEnabledProtocols()));
-            assertEquals(expected, found);
-
-            context = SSLContext.getInstance("Default");
-            assertEquals(p, context.getProvider());
-            expected = new HashSet<>(Arrays.asList("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"));
-            found = new HashSet<>(Arrays.asList(context.createSSLEngine().getEnabledProtocols()));
-            assertEquals(expected, found);
-        } finally {
-            Security.removeProvider("test name 2");
-        }
-
+    @Test
+    public void buildInvalid() {
         try {
             Conscrypt.newProviderBuilder()
                 .defaultTlsProtocol("invalid").build();
             fail();
-        } catch (IllegalArgumentException expected) {
+        } catch (IllegalArgumentException e) {
+            // Expected.
+        }
+    }
+
+    private void buildProvider(String defaultProtocol, boolean withTrustManager) throws Exception {
+        Provider provider = Conscrypt.newProviderBuilder()
+            .setName("test name")
+            .provideTrustManager(withTrustManager)
+            .defaultTlsProtocol(defaultProtocol)
+            .build();
+
+        assertEquals("test name", provider.getName());
+        assertEquals(withTrustManager, provider.containsKey("TrustManagerFactory.PKIX"));
+
+        try {
+            Security.insertProviderAt(provider, 1);
+
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, null, null);
+            assertEquals(provider, context.getProvider());
+            StandardNames.assertSSLContextEnabledProtocols(
+                defaultProtocol, context.createSSLEngine().getEnabledProtocols());
+
+
+            context = SSLContext.getInstance("Default");
+            assertEquals(provider, context.getProvider());
+            StandardNames.assertSSLContextEnabledProtocols(
+                defaultProtocol, context.createSSLEngine().getEnabledProtocols());
+        } finally {
+            Security.removeProvider("test name");
         }
     }
 }
