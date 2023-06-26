@@ -104,6 +104,7 @@ public class SignatureTest {
             .skipAlgorithm("Ed448")
             .skipAlgorithm("Ed25519")
             .skipAlgorithm("EdDSA")
+            .skipAlgorithm("HSS/LMS")
             .run(new ServiceTester.Test() {
                 @Override
                 public void test(Provider provider, String algorithm) throws Exception {
