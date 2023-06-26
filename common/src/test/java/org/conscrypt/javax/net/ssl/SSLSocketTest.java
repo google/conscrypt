@@ -72,6 +72,7 @@ import org.conscrypt.tlswire.handshake.EllipticCurvesHelloExtension;
 import org.conscrypt.tlswire.handshake.HelloExtension;
 import org.conscrypt.tlswire.util.TlsProtocolVersion;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -384,6 +385,8 @@ public class SSLSocketTest {
     public void test_SSLSocket_noncontiguousProtocols_useLower() throws Exception {
         TestSSLContext c = TestSSLContext.create();
         SSLContext clientContext = c.clientContext;
+        // Can't test fallback without at least 3 protocol versions enabled.
+        TestUtils.assumeTlsV11Enabled(clientContext);
         SSLSocket client = (SSLSocket)
                 clientContext.getSocketFactory().createSocket(c.host, c.port);
         client.setEnabledProtocols(new String[] {"TLSv1.3", "TLSv1.1"});
@@ -413,6 +416,8 @@ public class SSLSocketTest {
     public void test_SSLSocket_noncontiguousProtocols_canNegotiate() throws Exception {
         TestSSLContext c = TestSSLContext.create();
         SSLContext clientContext = c.clientContext;
+        // Can't test fallback without at least 3 protocol versions enabled.
+        TestUtils.assumeTlsV11Enabled(clientContext);
         SSLSocket client = (SSLSocket)
                 clientContext.getSocketFactory().createSocket(c.host, c.port);
         client.setEnabledProtocols(new String[] {"TLSv1.3", "TLSv1.1"});
@@ -926,6 +931,8 @@ public class SSLSocketTest {
     @Test
     public void test_SSLSocket_sendsNoTlsFallbackScsv_Fallback_Success() throws Exception {
         TestSSLContext context = TestSSLContext.create();
+        // TLS_FALLBACK_SCSV is only applicable to TLS <= 1.2
+        TestUtils.assumeTlsV11Enabled(context.clientContext);
         final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
                 context.host, context.port);
         final SSLSocket server = (SSLSocket) context.serverSocket.accept();
@@ -959,6 +966,8 @@ public class SSLSocketTest {
     public void test_SSLSocket_sendsTlsFallbackScsv_InappropriateFallback_Failure()
             throws Exception {
         TestSSLContext context = TestSSLContext.create();
+        // TLS_FALLBACK_SCSV is only applicable to TLS <= 1.2
+        TestUtils.assumeTlsV11Enabled(context.clientContext);
         final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
                 context.host, context.port);
         final SSLSocket server = (SSLSocket) context.serverSocket.accept();
