@@ -45,14 +45,12 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -413,7 +411,6 @@ public final class TestUtils {
             .filter(predicate)
             .toArray(String[]::new);
     }
-
 
     public static List<String> getSupportedProtocols(SSLContext ctx) {
         return Arrays.asList(ctx.getDefaultSSLParameters().getProtocols());
