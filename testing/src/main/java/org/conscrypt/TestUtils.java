@@ -45,12 +45,13 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Predicate;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -70,16 +71,16 @@ import org.junit.Assume;
  */
 public final class TestUtils {
     public static final Charset UTF_8 = StandardCharsets.UTF_8;
+    private static final String PROTOCOL_TLS_V1_3 = "TLSv1.3";
     private static final String PROTOCOL_TLS_V1_2 = "TLSv1.2";
     private static final String PROTOCOL_TLS_V1_1 = "TLSv1.1";
-    private static final String PROTOCOL_TLS_V1 = "TLSv1";
-    private static final String[] DESIRED_PROTOCOLS =
-        new String[] {PROTOCOL_TLS_V1_2, PROTOCOL_TLS_V1_1, PROTOCOL_TLS_V1};
+    // For interop testing we need a JDK Provider that can do TLS 1.2 as 1.x may be disabled
+    // in Conscrypt and 1.3 does not (yet) handle interoperability with the JDK Provider.
+    private static final String[] DESIRED_JDK_PROTOCOLS = new String[] { PROTOCOL_TLS_V1_2 };
     private static final Provider JDK_PROVIDER = getNonConscryptTlsProvider();
     private static final byte[] CHARS =
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".getBytes(UTF_8);
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocateDirect(0);
-    private static final String[] PROTOCOLS = getProtocolsInternal();
 
     static final String TEST_CIPHER = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
 
@@ -121,10 +122,10 @@ public final class TestUtils {
     private TestUtils() {}
 
     private static Provider getNonConscryptTlsProvider() {
-        for (String protocol : DESIRED_PROTOCOLS) {
+        for (String protocol : DESIRED_JDK_PROTOCOLS) {
             for (Provider p : Security.getProviders()) {
                 if (!p.getClass().getPackage().getName().contains("conscrypt")
-                        && hasProtocol(p, protocol)) {
+                        && hasSslContext(p, protocol)) {
                     return p;
                 }
             }
@@ -132,7 +133,7 @@ public final class TestUtils {
         return new BouncyCastleProvider();
     }
 
-    private static boolean hasProtocol(Provider p, String protocol) {
+    private static boolean hasSslContext(Provider p, String protocol) {
         return p.get("SSLContext." + protocol) != null;
     }
 
@@ -309,23 +310,6 @@ public final class TestUtils {
         throw ex;
     }
 
-    /**
-     * Returns an array containing only {@link #PROTOCOL_TLS_V1_2}.
-     */
-    public static String[] getProtocols() {
-        return PROTOCOLS;
-    }
-
-    private static String[] getProtocolsInternal() {
-        List<String> protocols = new ArrayList<>();
-        for (String protocol : DESIRED_PROTOCOLS) {
-            if (hasProtocol(getJdkProvider(), protocol)) {
-                protocols.add(protocol);
-            }
-        }
-        return protocols.toArray(new String[0]);
-    }
-
     static SSLSocketFactory setUseEngineSocket(
             SSLSocketFactory conscryptFactory, boolean useEngineSocket) {
         try {
@@ -393,32 +377,59 @@ public final class TestUtils {
         }
     }
 
-    static String[] getCommonCipherSuites() {
-        SSLContext jdkContext =
-                TestUtils.initSslContext(newContext(getJdkProvider()), TestKeyStore.getClient());
-        SSLContext conscryptContext = TestUtils.initSslContext(
-                newContext(getConscryptProvider()), TestKeyStore.getClient());
-        Set<String> supported = new LinkedHashSet<>(supportedCiphers(jdkContext));
-        supported.retainAll(supportedCiphers(conscryptContext));
-        filterCiphers(supported);
-
-        return supported.toArray(new String[0]);
+    public static String highestCommonProtocol() {
+        String[] common = getCommonProtocolSuites();
+        Arrays.sort(common);
+        return common[common.length - 1];
     }
 
-    private static List<String> supportedCiphers(SSLContext ctx) {
+    public static String[] getCommonProtocolSuites() {
+        SSLContext jdkContext = newClientSslContext(getJdkProvider());
+        SSLContext conscryptContext = newClientSslContext(getConscryptProvider());
+        // No point building a Set here due to small list sizes.
+        List<String> conscryptProtocols = getSupportedProtocols(conscryptContext);
+        Predicate<String> predicate = p -> conscryptProtocols.contains(p)
+            // TODO(prb): Certificate auth fails when connecting Conscrypt and JDK's TLS 1.3.
+            && !p.equals(PROTOCOL_TLS_V1_3);
+        return getSupportedProtocols(jdkContext, predicate);
+    }
+
+    public static String[] getCommonCipherSuites() {
+        SSLContext jdkContext = newClientSslContext(getJdkProvider());
+        SSLContext conscryptContext = newClientSslContext(getConscryptProvider());
+        Set<String> conscryptCiphers =  new HashSet<>(getSupportedCiphers(conscryptContext));
+        Predicate<String> predicate = c -> isTlsCipherSuite(c) && conscryptCiphers.contains(c);
+        return getSupportedCiphers(jdkContext, predicate);
+    }
+
+    public static List<String> getSupportedCiphers(SSLContext ctx) {
         return Arrays.asList(ctx.getDefaultSSLParameters().getCipherSuites());
     }
 
-    private static void filterCiphers(Iterable<String> ciphers) {
-        // Filter all non-TLS ciphers.
-        Iterator<String> iter = ciphers.iterator();
-        while (iter.hasNext()) {
-            String cipher = iter.next();
-            if (cipher.startsWith("SSL_") || cipher.startsWith("TLS_EMPTY")
-                    || cipher.contains("_RC4_")) {
-                iter.remove();
-            }
-        }
+    public static String[] getSupportedCiphers(SSLContext ctx, Predicate<String> predicate) {
+        return Arrays.stream(ctx.getDefaultSSLParameters().getCipherSuites())
+            .filter(predicate)
+            .toArray(String[]::new);
+    }
+
+    public static List<String> getSupportedProtocols(SSLContext ctx) {
+        return Arrays.asList(ctx.getDefaultSSLParameters().getProtocols());
+    }
+
+    public static String[] getSupportedProtocols(SSLContext ctx, Predicate<String> predicate) {
+        return Arrays.stream(ctx.getDefaultSSLParameters().getProtocols())
+            .filter(predicate)
+            .toArray(String[]::new);
+    }
+
+    private static boolean isTlsCipherSuite(String cipher) {
+        return !cipher.startsWith("SSL_")
+            && !cipher.startsWith("TLS_EMPTY")
+            && !cipher.contains("_RC4_");
+    }
+
+    public static void assumeTlsV11Enabled(SSLContext context) {
+        Assume.assumeTrue(getSupportedProtocols(context).contains(PROTOCOL_TLS_V1_1));
     }
 
     /**

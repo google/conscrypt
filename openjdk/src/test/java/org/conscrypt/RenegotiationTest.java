@@ -144,7 +144,7 @@ public class RenegotiationTest {
                 Conscrypt.setUseEngineSocket(socketFactory, useEngineSocket);
                 socket = (SSLSocket) socketFactory.createSocket(
                         TestUtils.getLoopbackAddress(), port);
-                socket.setEnabledProtocols(TestUtils.getProtocols());
+                socket.setEnabledProtocols(TestUtils.getCommonProtocolSuites());
                 socket.setEnabledCipherSuites(TestUtils.getCommonCipherSuites());
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -234,7 +234,7 @@ public class RenegotiationTest {
             serverChannel = ServerSocketChannel.open();
             serverChannel.socket().bind(new InetSocketAddress(TestUtils.getLoopbackAddress(), 0));
             engine = newJdkServerContext().createSSLEngine();
-            engine.setEnabledProtocols(TestUtils.getProtocols());
+            engine.setEnabledProtocols(TestUtils.getCommonProtocolSuites());
             engine.setEnabledCipherSuites(TestUtils.getCommonCipherSuites());
             engine.setUseClientMode(false);
 
