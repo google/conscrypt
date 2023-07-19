@@ -17,7 +17,7 @@
 package org.conscrypt;
 
 /**
- * Separating {@link Hpke} logic for testing purposes. Testing could override these functions
+ * Separating {@link HpkeContext} logic for testing purposes. Testing could override these functions
  * to call different implementations meant for testing as well.
  */
 @Internal

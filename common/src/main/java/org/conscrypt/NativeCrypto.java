@@ -401,8 +401,6 @@ public final class NativeCrypto {
     static native Object[] EVP_HPKE_CTX_setup_sender_with_seed_for_testing(
         int kem, int kdf, int aead, byte[] publicKey, byte[] info, byte[] seed);
 
-    static native void EVP_HPKE_KEY_free(long key);
-
     // --- RAND ----------------------------------------------------------------
 
     static native void RAND_bytes(byte[] output);

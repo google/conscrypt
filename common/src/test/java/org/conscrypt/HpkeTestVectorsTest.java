@@ -16,7 +16,13 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.HpkeSuite.AEAD_AES_128_GCM;
+import static org.conscrypt.HpkeSuite.AEAD_AES_256_GCM;
+import static org.conscrypt.HpkeSuite.AEAD_CHACHA20POLY1305;
+import static org.conscrypt.HpkeSuite.KDF_HKDF_SHA256;
+import static org.conscrypt.HpkeSuite.KEM_DHKEM_X25519_HKDF_SHA256;
 import static org.conscrypt.TestUtils.decodeHex;
+import static org.conscrypt.TestUtils.encodeHex;
 import static org.junit.Assert.assertArrayEquals;
 
 import java.io.IOException;
@@ -51,9 +57,15 @@ public class HpkeTestVectorsTest {
 
   private static Map<String, HpkeSuite> buildSupportedHpkeSuite() {
     Map<String, HpkeSuite> suiteMap = new HashMap<>();
-    suiteMap.put("32:1:1", HpkeSuite.DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_AES_128_GCM);
-    suiteMap.put("32:1:2", HpkeSuite.DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_AES_256_GCM);
-    suiteMap.put("32:1:3", HpkeSuite.DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_CHACHA20POLY1305);
+    suiteMap.put(
+        "32:1:1",
+        new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
+    suiteMap.put(
+        "32:1:2",
+        new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
+    suiteMap.put(
+        "32:1:3",
+        new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
     return suiteMap;
   }
 
@@ -76,22 +88,21 @@ public class HpkeTestVectorsTest {
   private void testHpkeEncryption(HpkeData record) {
     final byte[] enc = record.pkEm;
     final HpkeContextHelper contextHelper = new HpkeTestingContextHelper(record.skEm);
-    final Hpke hpke = Hpke.createForTestingOnly(record.hpkeSuite, contextHelper);
+    final HpkeContext hpkeContext = HpkeContext.createForTestingOnly(record.hpkeSuite, contextHelper);
 
     // Encryption
-    hpke.setupBaseSender(record.pkRm, record.info);
+    final byte[] encResult = hpkeContext.setupBaseSender(record.pkRm, record.info);
+    assertArrayEquals("Failed encryption 'enc' " + encodeHex(enc), enc, encResult);
     for (HpkeEncryptionData encryption : record.encryptions) {
-      final HpkeResult result = hpke.seal(encryption.pt, encryption.aad);
-      assertArrayEquals(
-          "Failed encryption 'enc' on data : " + encryption, enc, result.getEnc());
+      final byte[] ciphertext = hpkeContext.seal(encryption.pt, encryption.aad);
       assertArrayEquals("Failed encryption 'ciphertext' on data : " + encryption,
-          encryption.ct, result.getOutput());
+          encryption.ct, ciphertext);
     }
 
     // Decryption
-    hpke.setupBaseRecipient(enc, record.skRm, record.info);
+    hpkeContext.setupBaseRecipient(enc, record.skRm, record.info);
     for (HpkeEncryptionData encryption : record.encryptions) {
-      final byte[] plaintext = hpke.open(encryption.ct, encryption.aad);
+      final byte[] plaintext = hpkeContext.open(encryption.ct, encryption.aad);
       assertArrayEquals(
           "Failed decryption on data : " + encryption, encryption.pt, plaintext);
     }
@@ -100,22 +111,23 @@ public class HpkeTestVectorsTest {
   private void testHpkeExport(HpkeData record) {
     final byte[] enc = record.pkEm;
     final HpkeContextHelper contextHelper = new HpkeTestingContextHelper(record.skEm);
-    final Hpke hpke = Hpke.createForTestingOnly(record.hpkeSuite, contextHelper);
+    final HpkeContext hpkeContext = HpkeContext.createForTestingOnly(record.hpkeSuite, contextHelper);
 
     // Sender secret export
-    hpke.setupBaseSender(record.pkRm, record.info);
+    final byte[] encResult = hpkeContext.setupBaseSender(record.pkRm, record.info);
+    assertArrayEquals("Failed encryption 'enc' " + encodeHex(enc), enc, encResult);
     for (HpkeExporterData exporterData : record.exports) {
-      final HpkeResult result = hpke.export(exporterData.l, exporterData.exporterContext);
+      final byte[] export = hpkeContext.export(exporterData.l, exporterData.exporterContext);
       assertArrayEquals("Failed sender export on data : " + exporterData,
-          exporterData.exportedValue, result.getOutput());
+          exporterData.exportedValue, export);
     }
 
     // Recipient secret export
-    hpke.setupBaseRecipient(enc, record.skRm, record.info);
+    hpkeContext.setupBaseRecipient(enc, record.skRm, record.info);
     for (HpkeExporterData exporterData : record.exports) {
-      final HpkeResult result = hpke.export(exporterData.l, exporterData.exporterContext);
+      final byte[] export = hpkeContext.export(exporterData.l, exporterData.exporterContext);
       assertArrayEquals("Failed recipient export on data : " + exporterData,
-          exporterData.exportedValue, result.getOutput());
+          exporterData.exportedValue, export);
     }
   }
 

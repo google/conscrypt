@@ -20,7 +20,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 
 /**
- * Holds the KEM, KDF, and AEAD that are used and supported by {@link Hpke} defined on
+ * Holds the KEM, KDF, and AEAD that are used and supported by {@link HpkeContext} defined on
  * RFC 9180.
  *
  * <ul>
@@ -33,77 +33,40 @@ import java.security.PublicKey;
  * </ul>
  */
 public final class HpkeSuite {
-  /**
-   * {@link HpkeSuite} with the following algorithm scheme:
-   * <li>
-   *      <ul>KEM:  0x0020: DHKEM(X25519, HKDF-SHA256)</ul>
-   *      <ul>KDF:  0x0001: HKDF-SHA256</ul>
-   *      <ul>AEAD: 0x0001: AES-128-GCM</ul>
-   * </li>
-   *
-   * @see <a
-   * href="https://www.rfc-editor.org/rfc/rfc9180
-   * .html#name-key-encapsulation-mechanism">KEMs</a>
-   * @see <a
-   * href="https://www.rfc-editor.org/rfc/rfc9180
-   * .html#name-key-derivation-functions-kd">KDFs</a>
-   * @see <a
-   * href="https://www.rfc-editor.org/rfc/rfc9180
-   * .html#name-authenticated-encryption-wi">AEAD</a>
-   */
-  public static final HpkeSuite DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_AES_128_GCM =
-      new HpkeSuite(KEM.DHKEM_X25519_HKDF_SHA256, KDF.HKDF_SHA256, AEAD.AES_128_GCM);
 
   /**
-   * {@link HpkeSuite} with the following algorithm scheme:
-   * <li>
-   *      <ul>KEM:  0x0020: DHKEM(X25519, HKDF-SHA256)</ul>
-   *      <ul>KDF:  0x0001: HKDF-SHA256</ul>
-   *      <ul>AEAD: 0x0002: AES-256-GCM</ul>
-   * </li>
-   *
-   * @see <a
-   * href="https://www.rfc-editor.org/rfc/rfc9180
-   * .html#name-key-encapsulation-mechanism">KEMs</a>
-   * @see <a
-   * href="https://www.rfc-editor.org/rfc/rfc9180
-   * .html#name-key-derivation-functions-kd">KDFs</a>
-   * @see <a
-   * href="https://www.rfc-editor.org/rfc/rfc9180
-   * .html#name-authenticated-encryption-wi">AEAD</a>
+   * KEM: 0x0020 DHKEM(X25519, HKDF-SHA256)
    */
-  public static final HpkeSuite DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_AES_256_GCM =
-      new HpkeSuite(KEM.DHKEM_X25519_HKDF_SHA256, KDF.HKDF_SHA256, AEAD.AES_256_GCM);
+  public static final int KEM_DHKEM_X25519_HKDF_SHA256 = 0x0020;
 
   /**
-   * {@link HpkeSuite} with the following algorithm scheme:
-   * <li>
-   *      <ul>KEM  : 0x0020: DHKEM(X25519, HKDF-SHA256)</ul>
-   *      <ul>KDF  : 0x0001: HKDF-SHA256</ul>
-   *      <ul>AEAD : 0x0003: ChaCha20Poly1305</ul>
-   * </li>
-   *
-   * @see <a
-   * href="https://www.rfc-editor.org/rfc/rfc9180
-   * .html#name-key-encapsulation-mechanism">KEMs</a>
-   * @see <a
-   * href="https://www.rfc-editor.org/rfc/rfc9180
-   * .html#name-key-derivation-functions-kd">KDFs</a>
-   * @see <a
-   * href="https://www.rfc-editor.org/rfc/rfc9180
-   * .html#name-authenticated-encryption-wi">AEAD</a>
+   * KDF: 0x0001 HKDF-SHA256
    */
-  public static final HpkeSuite DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_CHACHA20POLY1305 =
-      new HpkeSuite(KEM.DHKEM_X25519_HKDF_SHA256, KDF.HKDF_SHA256, AEAD.CHACHA20POLY1305);
+  public static final int KDF_HKDF_SHA256 = 0x0001;
+
+  /**
+   * AEAD: 0x0001 AES-128-GCM
+   */
+  public static final int AEAD_AES_128_GCM = 0x0001;
+
+  /**
+   * AEAD: 0x0002 AES-256-GCM
+   */
+  public static final int AEAD_AES_256_GCM = 0x0002;
+
+  /**
+   * AEAD: 0x0003 ChaCha20Poly1305
+   */
+  public static final int AEAD_CHACHA20POLY1305 = 0x0003;
 
   private final KEM mKem;
   private final KDF mKdf;
   private final AEAD mAead;
 
-  private HpkeSuite(KEM Kem, KDF Kdf, AEAD Aead) {
-    mKem = Kem;
-    mKdf = Kdf;
-    mAead = Aead;
+  public HpkeSuite(int kem, int kdf, int aead) {
+    mKem = convertKem(kem);
+    mKdf = convertKdf(kdf);
+    mAead = convertAead(aead);
   }
 
   /**
@@ -131,6 +94,51 @@ public final class HpkeSuite {
    */
   AEAD getAead() {
     return mAead;
+  }
+
+  /**
+   * Converts the kem value into its {@link KEM} representation.
+   *
+   * @param kem value
+   * @return {@link KEM} representation.
+   */
+  private KEM convertKem(int kem) {
+    if (KEM_DHKEM_X25519_HKDF_SHA256 == kem) {
+      return KEM.DHKEM_X25519_HKDF_SHA256;
+    }
+    throw new IllegalArgumentException("KEM " + kem + " not supported.");
+  }
+
+  /**
+   * Converts the kdf value into its {@link KDF} representation.
+   *
+   * @param kdf value
+   * @return {@link KDF} representation.
+   */
+  private KDF convertKdf(int kdf) {
+    if (KDF_HKDF_SHA256 == kdf) {
+      return KDF.HKDF_SHA256;
+    }
+    throw new IllegalArgumentException("KDF " + kdf + " not supported.");
+  }
+
+  /**
+   * Converts the aead value into its {@link AEAD} representation.
+   *
+   * @param aead value
+   * @return {@link AEAD} representation.
+   */
+  private AEAD convertAead(int aead) {
+    switch (aead) {
+      case AEAD_AES_128_GCM:
+        return AEAD.AES_128_GCM;
+      case AEAD_AES_256_GCM:
+        return AEAD.AES_256_GCM;
+      case AEAD_CHACHA20POLY1305:
+        return AEAD.CHACHA20POLY1305;
+      default:
+        throw new IllegalArgumentException("AEAD " + aead + " not supported.");
+    }
   }
 
   enum KEM {
@@ -196,7 +204,7 @@ public final class HpkeSuite {
      *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-key-encapsulation-mechanism">expected
      *         enc size</a>
      */
-    void validateEnc(byte[] enc) {
+    void validateEncLength(byte[] enc) {
       Preconditions.checkNotNull(enc, "enc");
       final int expectedLength = this.getEncLength();
       if (enc.length != expectedLength) {
@@ -206,7 +214,8 @@ public final class HpkeSuite {
     }
 
     /**
-     * Validates the public key size in bytes to match the {@link KEM} public key spec.
+     * Validates the public key size in bytes to match the {@link KEM} public key spec and returns
+     * the raw bytes.
      *
      * @param publicKey alias pk
      * @return key in its raw format
@@ -214,7 +223,7 @@ public final class HpkeSuite {
      *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-algorithm-identifiers">expected
      *         pk size</a>
      */
-    byte[] validateAndGetPublicKey(PublicKey publicKey) {
+    byte[] validatePublicKeyLengthAndGetRawKey(PublicKey publicKey) {
       Preconditions.checkNotNull(publicKey, "publicKey");
       if (!(publicKey instanceof OpenSSLX25519PublicKey)) {
         throw new IllegalArgumentException(
@@ -231,7 +240,8 @@ public final class HpkeSuite {
     }
 
     /**
-     * Validates the private key size in bytes to match the {@link KEM} private key spec.
+     * Validates the private key size in bytes to match the {@link KEM} private key spec and returns
+     * the raw bytes.
      *
      * @param privateKey alias sk
      * @return key in its raw format
@@ -239,7 +249,7 @@ public final class HpkeSuite {
      *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-algorithm-identifiers">expected
      *         sk size</a>
      */
-    byte[] validateAndGetPrivateKey(PrivateKey privateKey) {
+    byte[] validatePrivateKeyLengthAndGetRawKey(PrivateKey privateKey) {
       Preconditions.checkNotNull(privateKey, "privateKey");
       if (!(privateKey instanceof OpenSSLX25519PrivateKey)) {
         throw new IllegalArgumentException(
