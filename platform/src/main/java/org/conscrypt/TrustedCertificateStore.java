@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.io.IoUtils;
+import org.conscrypt.metrics.OptionalMethod;
 
 /**
  * A source for trusted root certificate authority (CA) certificates
@@ -100,15 +101,35 @@ public class TrustedCertificateStore implements ConscryptCertStore {
             String ANDROID_ROOT = System.getenv("ANDROID_ROOT");
             String ANDROID_DATA = System.getenv("ANDROID_DATA");
             File updatableDir = new File("/apex/com.android.conscrypt/cacerts");
-            if ((System.getProperty("system.certs.enabled") != null)
-                    && (System.getProperty("system.certs.enabled")).equals("true")) {
-                defaultCaCertsSystemDir = new File(ANDROID_ROOT + "/etc/security/cacerts");
-            } else if (updatableDir.exists() && !(updatableDir.list().length == 0)) {
+            if (shouldUseApex(updatableDir)) {
                 defaultCaCertsSystemDir = updatableDir;
             } else {
                 defaultCaCertsSystemDir = new File(ANDROID_ROOT + "/etc/security/cacerts");
             }
             setDefaultUserDirectory(new File(ANDROID_DATA + "/misc/keychain"));
+        }
+
+        static boolean shouldUseApex(File updatableDir) {
+            Object sdkVersion = getSdkVersion();
+            if ((sdkVersion == null) || ((int) sdkVersion < 34))
+                return false;
+            if ((System.getProperty("system.certs.enabled") != null)
+                    && (System.getProperty("system.certs.enabled")).equals("true"))
+                return false;
+            if (updatableDir.exists() && !(updatableDir.list().length == 0))
+                return true;
+            return false;
+        }
+
+        static Object getSdkVersion() {
+            try {
+                OptionalMethod getSdkVersion =
+                        new OptionalMethod(Class.forName("dalvik.system.VMRuntime"),
+                                            "getSdkVersion");
+                return getSdkVersion.invokeStatic();
+            } catch (ClassNotFoundException e) {
+                return null;
+            }
         }
     }
 
