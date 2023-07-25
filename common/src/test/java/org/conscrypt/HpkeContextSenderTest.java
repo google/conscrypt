@@ -38,6 +38,20 @@ import org.junit.runners.JUnit4;
 public class HpkeContextSenderTest {
 
   @Test
+  public void testSetupBase_missingSuiteParameter_throwNullException() {
+    assertThrows(NullPointerException.class,
+        () -> HpkeContextSender.setupBase(
+            /* hpkeSuite= */null, createPublicKey(DEFAULT_PK), DEFAULT_INFO));
+  }
+
+  @Test
+  public void testSetupBase_missingPkParameter_throwNullException() {
+    assertThrows(NullPointerException.class,
+        () -> HpkeContextSender.setupBase(
+            createDefaultHpkeSuite(), /* publicKey= */ null, DEFAULT_INFO));
+  }
+
+  @Test
   public void testSetupBase_pkLengthNotMatchingKemSpec_throwArgumentException() throws Exception {
     final PublicKey publicKey = createPublicKey(new byte[1]);
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,

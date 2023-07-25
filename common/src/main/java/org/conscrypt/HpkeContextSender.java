@@ -54,11 +54,13 @@ public class HpkeContextSender {
   @Internal
   static HpkeContextSender setupBaseForTesting(HpkeContextSenderHelper contextHelper,
       HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
+    Preconditions.checkNotNull(contextHelper, "hpkeContextSenderHelper");
     return setupBase(contextHelper, hpkeSuite, publicKey, info);
   }
 
   private static HpkeContextSender setupBase(HpkeContextSenderHelper contextHelper,
       HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
+    Preconditions.checkNotNull(hpkeSuite, "hpkeSuite");
     final byte[] pk = hpkeSuite.getKem().validatePublicKeyLengthAndGetRawKey(publicKey);
     try {
       final Object[] result = contextHelper.setupBase(hpkeSuite.getKem().getId(),

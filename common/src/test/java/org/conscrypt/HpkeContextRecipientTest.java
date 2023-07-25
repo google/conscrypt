@@ -43,6 +43,27 @@ import org.junit.runners.JUnit4;
 public class HpkeContextRecipientTest {
 
   @Test
+  public void testSetupBase_missingSuiteParameter_throwNullException() {
+    assertThrows(NullPointerException.class,
+        () -> HpkeContextRecipient.setupBase(
+            /* hpkeSuite= */null, DEFAULT_ENC, createPrivateKey(DEFAULT_SK), DEFAULT_INFO));
+  }
+
+  @Test
+  public void testSetupBase_missingEncParameter_throwNullException() {
+    assertThrows(NullPointerException.class,
+        () -> HpkeContextRecipient.setupBase(
+            createDefaultHpkeSuite(), /* enc= */ null, createPrivateKey(DEFAULT_SK), DEFAULT_INFO));
+  }
+
+  @Test
+  public void testSetupBase_missingSkParameter_throwNullException() {
+    assertThrows(NullPointerException.class,
+        () -> HpkeContextRecipient.setupBase(
+            createDefaultHpkeSuite(), DEFAULT_ENC, /* privateKey= */ null, DEFAULT_INFO));
+  }
+
+  @Test
   public void testSetupBase_encLengthNotMatchingKemSpec_throwArgumentException()
       throws Exception {
     final PrivateKey privateKey = createPrivateKey(DEFAULT_SK);

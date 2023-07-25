@@ -47,6 +47,7 @@ public class HpkeContextRecipient {
    */
   public static HpkeContextRecipient setupBase(
       HpkeSuite hpkeSuite, byte[] enc, PrivateKey privateKey, byte[] info) {
+    Preconditions.checkNotNull(hpkeSuite, "hpkeSuite");
     hpkeSuite.getKem().validateEncLength(enc);
     final byte[] sk = hpkeSuite.getKem().validatePrivateKeyLengthAndGetRawKey(privateKey);
     try {
