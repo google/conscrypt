@@ -20,8 +20,8 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 
 /**
- * Holds the KEM, KDF, and AEAD that are used and supported by {@link HpkeContext} defined on
- * RFC 9180.
+ * Holds the KEM, KDF, and AEAD that are used and supported by {@link HpkeContextRecipient} and
+ * {@link HpkeContextSender} defined on RFC 9180.
  *
  * <ul>
  *   <li><a
@@ -143,7 +143,7 @@ public final class HpkeSuite {
 
   enum KEM {
     DHKEM_X25519_HKDF_SHA256(
-        /* id= */ 32, /* encLength= */ 32, /* pkLength= */ 32, /* skLength= */ 32);
+        /* id= */ 0x0020, /* encLength= */ 32, /* pkLength= */ 32, /* skLength= */ 32);
 
     private final int id;
     private final int encLength;
@@ -158,7 +158,7 @@ public final class HpkeSuite {
     }
 
     /**
-     * KEM id in its decimal representation
+     * KEM id
      *
      * @return kem id
      * @see <a
@@ -267,7 +267,7 @@ public final class HpkeSuite {
   }
 
   enum KDF {
-    HKDF_SHA256(/* id= */ 1, /* hLength= */ 32);
+    HKDF_SHA256(/* id= */ 0x0001, /* hLength= */ 32);
 
     private final int id;
     private final int hLength;
@@ -278,7 +278,7 @@ public final class HpkeSuite {
     }
 
     /**
-     * KDF id in its decimal representation
+     * KDF id
      *
      * @return kdf id
      * @see <a
@@ -315,9 +315,9 @@ public final class HpkeSuite {
   }
 
   enum AEAD {
-    AES_128_GCM(/* id= */ 1),
-    AES_256_GCM(/* id= */ 2),
-    CHACHA20POLY1305(/* id= */ 3);
+    AES_128_GCM(/* id= */ 0x0001),
+    AES_256_GCM(/* id= */ 0x0002),
+    CHACHA20POLY1305(/* id= */ 0x0003);
 
     private final int id;
 

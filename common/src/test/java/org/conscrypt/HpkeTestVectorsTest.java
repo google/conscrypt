@@ -21,11 +21,13 @@ import static org.conscrypt.HpkeSuite.AEAD_AES_256_GCM;
 import static org.conscrypt.HpkeSuite.AEAD_CHACHA20POLY1305;
 import static org.conscrypt.HpkeSuite.KDF_HKDF_SHA256;
 import static org.conscrypt.HpkeSuite.KEM_DHKEM_X25519_HKDF_SHA256;
+import static org.conscrypt.TestUtils.conscryptClass;
 import static org.conscrypt.TestUtils.decodeHex;
 import static org.conscrypt.TestUtils.encodeHex;
 import static org.junit.Assert.assertArrayEquals;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
@@ -87,22 +89,24 @@ public class HpkeTestVectorsTest {
 
   private void testHpkeEncryption(HpkeData record) {
     final byte[] enc = record.pkEm;
-    final HpkeContextHelper contextHelper = new HpkeTestingContextHelper(record.skEm);
-    final HpkeContext hpkeContext = HpkeContext.createForTestingOnly(record.hpkeSuite, contextHelper);
+    final HpkeContextSenderHelper contextHelper = new HpkeTestingContextSenderHelper(record.skEm);
 
     // Encryption
-    final byte[] encResult = hpkeContext.setupBaseSender(record.pkRm, record.info);
+    final HpkeContextSender contextSender = setupBaseForTesting(
+        contextHelper, record.hpkeSuite, record.pkRm, record.info);
+    final byte[] encResult = contextSender.getEnc();
     assertArrayEquals("Failed encryption 'enc' " + encodeHex(enc), enc, encResult);
     for (HpkeEncryptionData encryption : record.encryptions) {
-      final byte[] ciphertext = hpkeContext.seal(encryption.pt, encryption.aad);
+      final byte[] ciphertext = contextSender.seal(encryption.pt, encryption.aad);
       assertArrayEquals("Failed encryption 'ciphertext' on data : " + encryption,
           encryption.ct, ciphertext);
     }
 
     // Decryption
-    hpkeContext.setupBaseRecipient(enc, record.skRm, record.info);
+    final HpkeContextRecipient contextRecipient = HpkeContextRecipient.setupBase(
+        record.hpkeSuite, enc, record.skRm, record.info);
     for (HpkeEncryptionData encryption : record.encryptions) {
-      final byte[] plaintext = hpkeContext.open(encryption.ct, encryption.aad);
+      final byte[] plaintext = contextRecipient.open(encryption.ct, encryption.aad);
       assertArrayEquals(
           "Failed decryption on data : " + encryption, encryption.pt, plaintext);
     }
@@ -110,22 +114,24 @@ public class HpkeTestVectorsTest {
 
   private void testHpkeExport(HpkeData record) {
     final byte[] enc = record.pkEm;
-    final HpkeContextHelper contextHelper = new HpkeTestingContextHelper(record.skEm);
-    final HpkeContext hpkeContext = HpkeContext.createForTestingOnly(record.hpkeSuite, contextHelper);
+    final HpkeContextSenderHelper contextHelper = new HpkeTestingContextSenderHelper(record.skEm);
 
     // Sender secret export
-    final byte[] encResult = hpkeContext.setupBaseSender(record.pkRm, record.info);
+    final HpkeContextSender contextSender = setupBaseForTesting(
+        contextHelper, record.hpkeSuite, record.pkRm, record.info);
+    final byte[] encResult = contextSender.getEnc();
     assertArrayEquals("Failed encryption 'enc' " + encodeHex(enc), enc, encResult);
     for (HpkeExporterData exporterData : record.exports) {
-      final byte[] export = hpkeContext.export(exporterData.l, exporterData.exporterContext);
+      final byte[] export = contextSender.export(exporterData.l, exporterData.exporterContext);
       assertArrayEquals("Failed sender export on data : " + exporterData,
           exporterData.exportedValue, export);
     }
 
     // Recipient secret export
-    hpkeContext.setupBaseRecipient(enc, record.skRm, record.info);
+    final HpkeContextRecipient contextRecipient = HpkeContextRecipient.setupBase(
+        record.hpkeSuite, enc, record.skRm, record.info);
     for (HpkeExporterData exporterData : record.exports) {
-      final byte[] export = hpkeContext.export(exporterData.l, exporterData.exporterContext);
+      final byte[] export = contextRecipient.export(exporterData.l, exporterData.exporterContext);
       assertArrayEquals("Failed recipient export on data : " + exporterData,
           exporterData.exportedValue, export);
     }
@@ -208,6 +214,24 @@ public class HpkeTestVectorsTest {
     }
 
     throw new IllegalArgumentException("Invalid KEM, KDF, AEAD : " + suite);
+  }
+
+  public static HpkeContextSender setupBaseForTesting(
+      HpkeContextSenderHelper helper, HpkeSuite suite, PublicKey publicKey, byte[] info) {
+    try {
+      final Class<?> contextClass = conscryptClass("HpkeContextSender");
+      final Method method = contextClass.getDeclaredMethod(
+          /* name = */ "setupBaseForTesting",
+          /* parameterType = */ HpkeContextSenderHelper.class,
+          /* parameterType = */ HpkeSuite.class,
+          /* parameterType = */ PublicKey.class,
+          /* parameterType = */ byte[].class);
+      method.setAccessible(true);
+      return (HpkeContextSender) method.invoke(contextClass, helper, suite, publicKey, info);
+    } catch (Exception e) {
+      throw new RuntimeException(
+          "Error while calling setupBaseForTesting", e);
+    }
   }
 
   private static class HpkeData {

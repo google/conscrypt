@@ -17,11 +17,11 @@
 package org.conscrypt;
 
 /**
- * Separating {@link HpkeContext} logic for testing purposes. Testing could override these functions
- * to call different implementations meant for testing as well.
+ * Separating {@link HpkeContextSender} logic for testing purposes. Testing could override these
+ * functions to call different implementations meant for testing as well.
  */
 @Internal
-public class HpkeContextHelper {
+public class HpkeContextSenderHelper {
   /**
    * Setup sender with base mode. Delegates the setup work to BoringSSL.
    *
@@ -33,7 +33,7 @@ public class HpkeContextHelper {
    * @return object array with 2 elements, the HPKE context [0] and the encapsulated key [1]
    */
   @Internal
-  public Object[] setupSenderBase(int kem, int kdf, int aead, byte[] publicKey, byte[] info) {
+  public Object[] setupBase(int kem, int kdf, int aead, byte[] publicKey, byte[] info) {
     Preconditions.checkNotNull(publicKey, "publicKey");
     return NativeCrypto.EVP_HPKE_CTX_setup_sender(kem, kdf, aead, publicKey, info);
   }

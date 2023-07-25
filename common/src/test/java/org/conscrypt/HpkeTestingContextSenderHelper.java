@@ -20,15 +20,15 @@ import static org.conscrypt.TestUtils.conscryptClass;
 
 import java.lang.reflect.Method;
 
-public class HpkeTestingContextHelper extends HpkeContextHelper {
+public class HpkeTestingContextSenderHelper extends HpkeContextSenderHelper {
   private final byte[] skE;
 
-  public HpkeTestingContextHelper(byte[] skE) {
+  public HpkeTestingContextSenderHelper(byte[] skE) {
     this.skE = skE;
   }
 
   @Override
-  public Object[] setupSenderBase(int kem, int kdf, int aead, byte[] encodedKey, byte[] info) {
+  public Object[] setupBase(int kem, int kdf, int aead, byte[] encodedKey, byte[] info) {
     try {
       final Class<?> nativeCryptoClass = conscryptClass("NativeCrypto");
       final Method method = nativeCryptoClass.getDeclaredMethod(
