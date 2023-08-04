@@ -200,7 +200,8 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
-    // Should only be called with |lock| held.
+    // isValid() should only be called from code where this.lock is already locked, otherwise the
+    // result may be incorrect by the time it is used.
     private boolean isValid() {
         return (sslCtxNativePointer != 0);
     }
