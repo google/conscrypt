@@ -129,33 +129,21 @@ ext {
 }
 
 sourceSets {
-
     main {
         java {
-            srcDirs += "${rootDir}/common/src/main/java"
-            srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
+            srcDirs = [ "src/main/java" ]
         }
         resources {
             srcDirs += "build/generated/resources"
         }
     }
 
-    platform {
-        java {
-            srcDirs = [ "src/main/java" ]
-            includes = [ "org/conscrypt/Platform.java" ]
-        }
-    }
-
     test {
         java {
-            srcDirs += "${rootDir}/common/src/test/java"
+            srcDirs = [ "src/test/java" ]
         }
         resources {
-            srcDirs += "${rootDir}/common/src/test/resources"
-            // This shouldn't be needed but seems to help IntelliJ locate the native artifact.
-            // srcDirs += preferredNativeFileDir
-            srcDirs += buildToTest.nativeResourcesDir()
+            srcDirs = [ "src/test/resources" ]
         }
     }
 
@@ -177,10 +165,6 @@ compileJava {
 
 processResources {
     dependsOn generateProperties
-}
-
-tasks.register("platformJar", Jar) {
-    from sourceSets.platform.output
 }
 
 tasks.register("testJar", ShadowJar) {
@@ -244,11 +228,6 @@ if (isExecutableOnPath('cpplint')) {
 
 configurations {
     publicApiDocs
-    platform
-}
-
-artifacts {
-    platform platformJar
 }
 
 apply from: "$rootDir/gradle/publishing.gradle"
@@ -268,17 +247,18 @@ dependencies {
     // This is used for the @Internal annotation processing in JavaDoc
     publicApiDocs project(':conscrypt-api-doclet')
 
+    api project(':conscrypt-common')
+
     // This is listed as compile-only, but we absorb its contents.
     compileOnly project(':conscrypt-constants')
+    testCompileOnly project(':conscrypt-constants')
 
-    testImplementation project(':conscrypt-constants'),
+    testImplementation project(':conscrypt-common').sourceSets.test.output,
             project(path: ':conscrypt-testing', configuration: 'shadow'),
             libraries.junit,
             libraries.mockito
 
     testRuntimeOnly sourceSets["$preferredSourceSet"].output
-
-    platformCompileOnly sourceSets.main.output
 }
 
 nativeBuilds.each { nativeBuild ->

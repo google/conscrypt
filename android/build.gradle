@@ -28,10 +28,6 @@ ext {
 if (androidSdkInstalled) {
     apply plugin: 'com.android.library'
 
-    // Since we're not taking a direct dependency on the constants module, we need to add an
-    // explicit task dependency to make sure the code is generated.
-    evaluationDependsOn(':conscrypt-constants')
-
     android {
         namespace "org.conscrypt"
 
@@ -81,12 +77,7 @@ if (androidSdkInstalled) {
         }
         sourceSets.main {
             java {
-                srcDirs = [
-                        "${rootDir}/common/src/main/java",
-                        "src/main/java"
-                ]
-                // Requires evaluationDependsOn(':conscrypt-constants') above.
-                srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
+                srcDirs = [ "src/main/java" ]
             }
             resources {
                 srcDirs += "build/generated/resources"
@@ -112,7 +103,10 @@ if (androidSdkInstalled) {
     }
 
     dependencies {
+        api project(path: ':conscrypt-common', configuration: 'runtimeElements')
+
         publicApiDocs project(':conscrypt-api-doclet')
+
         androidTestImplementation('androidx.test.espresso:espresso-core:3.1.1', {
             exclude module: 'support-annotations'
             exclude module: 'support-v4'
@@ -121,10 +115,9 @@ if (androidSdkInstalled) {
             exclude module: 'appcompat-v7'
             exclude module: 'design'
         })
-        compileOnly project(':conscrypt-android-stub')
 
-        // Adds the constants module as a dependency so that we can include its generated source
-        compileOnly project(':conscrypt-constants')
+        compileOnly project(':conscrypt-android-stub'),
+                project(':conscrypt-constants')
     }
 
     def configureJavaDocs = tasks.register("configureJavadocs") {

@@ -1,0 +1,41 @@
+sourceSets {
+    main {
+        java {
+            srcDirs = [
+                    "src/main/java",
+            ]
+        }
+    }
+    test {
+        java {
+            srcDirs = [
+                    "src/test/java",
+            ]
+        }
+        resources {
+            srcDirs [
+                    "src/test/resources",
+            ]
+        }
+    }
+}
+
+dependencies {
+    compileOnly project(':conscrypt-constants'),
+            project(':conscrypt-platform-stub')
+
+    testImplementation project(path: ':conscrypt-testing', configuration: 'shadow'),
+            libraries.junit,
+            libraries.mockito
+}
+
+// Always tested from one of the other subprojects.
+tasks.withType(Test).configureEach {
+    enabled = false
+}
+
+// Whhyyyyyyyyyyyyyyyyyyyyyyyy!
+// For some reason Gradle seems to be copying all the resources twice, so errors without this.
+tasks.named("processTestResources") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
