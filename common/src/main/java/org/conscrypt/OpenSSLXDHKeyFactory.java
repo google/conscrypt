@@ -81,8 +81,9 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException("keySpec == null");
         }
 
-        if (!"XDH".equals(key.getAlgorithm())) {
-            throw new InvalidKeySpecException("Key must be an XDH key");
+        // Support XDH or X25519 algorithm names per JEP 324
+        if (!"XDH".equals(key.getAlgorithm()) || !"X25519".equals(key.getAlgorithm()) ) {
+            throw new InvalidKeySpecException("Key must be an XDH or X25519 key");
         }
 
         Class<?> publicKeySpec = getJavaPublicKeySpec();

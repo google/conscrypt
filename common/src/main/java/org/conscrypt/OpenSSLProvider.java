@@ -196,6 +196,7 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.KeyPairGenerator.1.2.840.10045.2.1", "EC");
         put("Alg.Alias.KeyPairGenerator.1.3.133.16.840.63.0.2", "EC");
 
+        put("KeyPairGenerator.X25519", PREFIX + "OpenSSLXDHKeyPairGenerator");
         put("KeyPairGenerator.XDH", PREFIX + "OpenSSLXDHKeyPairGenerator");
         put("Alg.Alias.KeyPairGenerator.1.3.101.110", "XDH");
 
@@ -209,6 +210,7 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.KeyFactory.1.2.840.10045.2.1", "EC");
         put("Alg.Alias.KeyFactory.1.3.133.16.840.63.0.2", "EC");
 
+        put("KeyFactory.X25519", PREFIX + "OpenSSLXDHKeyFactory");
         put("KeyFactory.XDH", PREFIX + "OpenSSLXDHKeyFactory");
         put("Alg.Alias.KeyFactory.1.3.101.110", "XDH");
 
@@ -621,6 +623,12 @@ public final class OpenSSLProvider extends Provider {
         String supportedKeyFormats = "PKCS#8";
         putImplClassWithKeyConstraints(
                 "KeyAgreement.XDH",
+                PREFIX + className,
+                supportedKeyClasses,
+                supportedKeyFormats);
+
+        putImplClassWithKeyConstraints(
+                "KeyAgreement.X25519",
                 PREFIX + className,
                 supportedKeyClasses,
                 supportedKeyFormats);
