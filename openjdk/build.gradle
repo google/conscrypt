@@ -168,9 +168,13 @@ processResources {
 }
 
 tasks.register("testJar", ShadowJar) {
-    classifier = 'tests'
+    archiveClassifier = 'tests'
     configurations = [project.configurations.testRuntimeClasspath]
     from sourceSets.test.output
+}
+
+tasks.named("sourcesJar") {
+    dependsOn generateProperties
 }
 
 if (isExecutableOnPath('cpplint')) {

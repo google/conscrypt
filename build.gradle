@@ -200,12 +200,12 @@ subprojects {
         }
 
         tasks.register("javadocJar", Jar) {
-            classifier = 'javadoc'
+            archiveClassifier = 'javadoc'
             from javadoc
         }
 
         tasks.register("sourcesJar", Jar) {
-            classifier = 'sources'
+            archiveClassifier = 'sources'
             from sourceSets.main.allSource
         }
 

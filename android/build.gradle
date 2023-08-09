@@ -143,14 +143,14 @@ if (androidSdkInstalled) {
 
     def javadocsJar = tasks.register("javadocsJar", Jar) {
         dependsOn javadocs
-        classifier = 'javadoc'
+        archiveClassifier = 'javadoc'
         from {
             javadocs.get().destinationDir
         }
     }
 
     def sourcesJar = tasks.register("sourcesJar", Jar) {
-        classifier = 'sources'
+        archiveClassifier = 'sources'
         from android.sourceSets.main.java.srcDirs
     }
 
