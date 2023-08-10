@@ -61,7 +61,7 @@ public class HpkeContextSender {
   private static HpkeContextSender setupBase(HpkeContextSenderHelper contextHelper,
       HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
     Preconditions.checkNotNull(hpkeSuite, "hpkeSuite");
-    final byte[] pk = hpkeSuite.getKem().validatePublicKeyLengthAndGetRawKey(publicKey);
+    final byte[] pk = hpkeSuite.getKem().validatePublicKeyTypeAndGetRawKey(publicKey);
     try {
       final Object[] result = contextHelper.setupBase(hpkeSuite.getKem().getId(),
           hpkeSuite.getKdf().getId(), hpkeSuite.getAead().getId(), pk, info);

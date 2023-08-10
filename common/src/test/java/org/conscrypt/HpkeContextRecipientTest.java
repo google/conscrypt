@@ -74,16 +74,6 @@ public class HpkeContextRecipientTest {
   }
 
   @Test
-  public void testSetupBase_skLengthNotMatchingKemSpec_throwArgumentException()
-      throws Exception {
-    final PrivateKey privateKey = createPrivateKey(new byte[1]);
-    final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> HpkeContextRecipient.setupBase(
-            createDefaultHpkeSuite(), DEFAULT_ENC, privateKey, DEFAULT_INFO));
-    assertEquals("Expected private key length of 32, but was 1", e.getMessage());
-  }
-
-  @Test
   public void testSetupBase_keyAlgorithmNotSupported_throwArgumentException()
       throws Exception {
     final PrivateKey privateKey = DefaultKeys.getPrivateKey("DH");

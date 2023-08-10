@@ -142,19 +142,14 @@ public final class HpkeSuite {
   }
 
   enum KEM {
-    DHKEM_X25519_HKDF_SHA256(
-        /* id= */ 0x0020, /* encLength= */ 32, /* pkLength= */ 32, /* skLength= */ 32);
+    DHKEM_X25519_HKDF_SHA256(/* id= */ 0x0020, /* encLength= */ 32);
 
     private final int id;
     private final int encLength;
-    private final int pkLength;
-    private final int skLength;
 
-    KEM(int id, int encLength, int pkLength, int skLength) {
+    KEM(int id, int encLength) {
       this.id = id;
       this.encLength = encLength;
-      this.pkLength = pkLength;
-      this.skLength = skLength;
     }
 
     /**
@@ -179,24 +174,6 @@ public final class HpkeSuite {
     }
 
     /**
-     * The length in bytes of an encoded public key for this KEM.
-     *
-     * @return public key size in bytes
-     */
-    int getPkLength() {
-      return pkLength;
-    }
-
-    /**
-     * The length in bytes of an encoded private key for this KEM.
-     *
-     * @return private key size in bytes
-     */
-    int getSkLength() {
-      return skLength;
-    }
-
-    /**
      * Validates the enc size in bytes matches the {@link KEM} spec.
      *
      * @param enc encapsulated key produced by the kem
@@ -214,8 +191,7 @@ public final class HpkeSuite {
     }
 
     /**
-     * Validates the public key size in bytes to match the {@link KEM} public key spec and returns
-     * the raw bytes.
+     * Validates the public key type and returns the raw bytes.
      *
      * @param publicKey alias pk
      * @return key in its raw format
@@ -223,25 +199,18 @@ public final class HpkeSuite {
      *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-algorithm-identifiers">expected
      *         pk size</a>
      */
-    byte[] validatePublicKeyLengthAndGetRawKey(PublicKey publicKey) {
+    byte[] validatePublicKeyTypeAndGetRawKey(PublicKey publicKey) {
       Preconditions.checkNotNull(publicKey, "publicKey");
       if (!(publicKey instanceof OpenSSLX25519PublicKey)) {
         throw new IllegalArgumentException(
             "Public key algorithm " + publicKey.getAlgorithm() + " is not supported");
       }
 
-      final byte[] key = ((OpenSSLX25519PublicKey) publicKey).getU();
-      final int expectedLength = this.getPkLength();
-      if (key.length != expectedLength) {
-        throw new IllegalArgumentException("Expected public key length of " + expectedLength
-            + ", but was " + key.length);
-      }
-      return key;
+      return ((OpenSSLX25519PublicKey) publicKey).getU();
     }
 
     /**
-     * Validates the private key size in bytes to match the {@link KEM} private key spec and returns
-     * the raw bytes.
+     * Validates the private key type and returns the raw bytes.
      *
      * @param privateKey alias sk
      * @return key in its raw format
@@ -249,20 +218,14 @@ public final class HpkeSuite {
      *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-algorithm-identifiers">expected
      *         sk size</a>
      */
-    byte[] validatePrivateKeyLengthAndGetRawKey(PrivateKey privateKey) {
+    byte[] validatePrivateKeyTypeAndGetRawKey(PrivateKey privateKey) {
       Preconditions.checkNotNull(privateKey, "privateKey");
       if (!(privateKey instanceof OpenSSLX25519PrivateKey)) {
         throw new IllegalArgumentException(
             "Private key algorithm " + privateKey.getAlgorithm() + " is not supported");
       }
 
-      final byte[] key = ((OpenSSLX25519PrivateKey) privateKey).getU();
-      final int expectedLength = this.getSkLength();
-      if (key.length != expectedLength) {
-        throw new IllegalArgumentException("Expected private key length of "
-            + expectedLength + ", but was " + key.length);
-      }
-      return key;
+      return ((OpenSSLX25519PrivateKey) privateKey).getU();
     }
   }
 

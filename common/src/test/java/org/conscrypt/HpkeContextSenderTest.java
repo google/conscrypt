@@ -52,14 +52,6 @@ public class HpkeContextSenderTest {
   }
 
   @Test
-  public void testSetupBase_pkLengthNotMatchingKemSpec_throwArgumentException() throws Exception {
-    final PublicKey publicKey = createPublicKey(new byte[1]);
-    final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> HpkeContextSender.setupBase(createDefaultHpkeSuite(), publicKey, DEFAULT_INFO));
-    assertEquals("Expected public key length of 32, but was 1", e.getMessage());
-  }
-
-  @Test
   public void testSetupBase_keyAlgorithmNotSupported_throwArgumentException() throws Exception {
     final PublicKey publicKey = DefaultKeys.getPublicKey("DH");
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,

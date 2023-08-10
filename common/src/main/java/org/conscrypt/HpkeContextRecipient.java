@@ -49,7 +49,7 @@ public class HpkeContextRecipient {
       HpkeSuite hpkeSuite, byte[] enc, PrivateKey privateKey, byte[] info) {
     Preconditions.checkNotNull(hpkeSuite, "hpkeSuite");
     hpkeSuite.getKem().validateEncLength(enc);
-    final byte[] sk = hpkeSuite.getKem().validatePrivateKeyLengthAndGetRawKey(privateKey);
+    final byte[] sk = hpkeSuite.getKem().validatePrivateKeyTypeAndGetRawKey(privateKey);
     try {
       final HpkeContextRecipient ctxRecipient = new HpkeContextRecipient(hpkeSuite);
       ctxRecipient.ctx = (EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_recipient(
