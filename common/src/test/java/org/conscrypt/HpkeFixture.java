@@ -11,7 +11,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
-import javax.crypto.spec.SecretKeySpec;
 
 public class HpkeFixture {
   static final byte[] DEFAULT_AAD = decodeHex("436f756e742d30");
@@ -63,14 +62,14 @@ public class HpkeFixture {
   static PublicKey createPublicKey(byte[] publicKey)
       throws NoSuchAlgorithmException, InvalidKeySpecException {
     final KeyFactory factory = KeyFactory.getInstance("XDH");
-    final KeySpec spec = new SecretKeySpec(publicKey, "RAW");
+    final KeySpec spec = new XdhKeySpec(publicKey);
     return factory.generatePublic(spec);
   }
 
   static PrivateKey createPrivateKey(byte[] privateKey)
       throws NoSuchAlgorithmException, InvalidKeySpecException {
     final KeyFactory factory = KeyFactory.getInstance("XDH");
-    final KeySpec spec = new SecretKeySpec(privateKey, "RAW");
+    final KeySpec spec = new XdhKeySpec(privateKey);
     return factory.generatePrivate(spec);
   }
 }

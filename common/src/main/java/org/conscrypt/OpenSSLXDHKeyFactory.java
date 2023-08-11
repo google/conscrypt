@@ -29,7 +29,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import javax.crypto.spec.SecretKeySpec;
 
 /**
  * An implementation of a {@link KeyFactorySpi} for EC keys based on BoringSSL.
@@ -48,9 +47,8 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof X509EncodedKeySpec) {
             return new OpenSSLX25519PublicKey((X509EncodedKeySpec) keySpec);
         }
-        if (keySpec instanceof SecretKeySpec
-            && "RAW".equalsIgnoreCase(((SecretKeySpec) keySpec).getAlgorithm())) {
-            return new OpenSSLX25519PublicKey(((SecretKeySpec) keySpec).getEncoded());
+        if (keySpec instanceof XdhKeySpec) {
+            return new OpenSSLX25519PublicKey(((XdhKeySpec) keySpec).getKey());
         }
         throw new InvalidKeySpecException("Must use ECPublicKeySpec or X509EncodedKeySpec; was "
                 + keySpec.getClass().getName());
@@ -65,9 +63,8 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof PKCS8EncodedKeySpec) {
             return new OpenSSLX25519PrivateKey((PKCS8EncodedKeySpec) keySpec);
         }
-        if (keySpec instanceof SecretKeySpec
-            && "RAW".equalsIgnoreCase(((SecretKeySpec) keySpec).getAlgorithm())) {
-            return new OpenSSLX25519PrivateKey(((SecretKeySpec) keySpec).getEncoded());
+        if (keySpec instanceof XdhKeySpec) {
+            return new OpenSSLX25519PrivateKey(((XdhKeySpec) keySpec).getKey());
         }
         throw new InvalidKeySpecException("Must use ECPrivateKeySpec or PKCS8EncodedKeySpec; was "
                 + keySpec.getClass().getName());
