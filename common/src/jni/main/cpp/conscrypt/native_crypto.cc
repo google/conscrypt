@@ -51,6 +51,7 @@
 #include <openssl/x509v3.h>
 
 #include <limits>
+#include <optional>
 #include <type_traits>
 #include <vector>
 
@@ -3810,16 +3811,16 @@ static jbyteArray NativeCrypto_EVP_HPKE_CTX_export(JNIEnv* env, jclass, jobject 
         return {};
     }
 
-    std::unique_ptr<ScopedByteArrayRO> exporterCtxScopedByteArrayRO;
+    std::optional<ScopedByteArrayRO> optionalExporterCtx;
     const uint8_t* exporterCtx = nullptr;
     size_t exporterCtxLen = 0;
     if (exporterCtxArray != nullptr) {
-        exporterCtxScopedByteArrayRO.reset(new ScopedByteArrayRO(env, exporterCtxArray));
-        exporterCtx = reinterpret_cast<const uint8_t*>(exporterCtxScopedByteArrayRO->get());
+        optionalExporterCtx.emplace(env, exporterCtxArray);
+        exporterCtx = reinterpret_cast<const uint8_t*>(optionalExporterCtx.value().get());
         if (exporterCtx == nullptr) {
             return {};
         }
-        exporterCtxLen = exporterCtxScopedByteArrayRO->size();
+        exporterCtxLen = optionalExporterCtx.value().size();
     }
 
     std::vector<uint8_t> exported(exportedLen);
@@ -3876,16 +3877,16 @@ static jbyteArray NativeCrypto_EVP_HPKE_CTX_open(JNIEnv* env, jclass, jobject re
         return {};
     }
 
-    std::unique_ptr<ScopedByteArrayRO> aadScopedByteArrayRO;
+    std::optional<ScopedByteArrayRO> optionalAad;
     const uint8_t* aad = nullptr;
     size_t aadLen = 0;
     if (aadArray != nullptr) {
-        aadScopedByteArrayRO.reset(new ScopedByteArrayRO(env, aadArray));
-        aad = reinterpret_cast<const uint8_t*>(aadScopedByteArrayRO->get());
+        optionalAad.emplace(env, aadArray);
+        aad = reinterpret_cast<const uint8_t*>(optionalAad.value().get());
         if (aad == nullptr) {
             return {};
         }
-        aadLen = aadScopedByteArrayRO->size();
+        aadLen = optionalAad.value().size();
     }
 
     size_t plaintextLen;
@@ -3931,16 +3932,16 @@ static jbyteArray NativeCrypto_EVP_HPKE_CTX_seal(JNIEnv* env, jclass, jobject se
         return {};
     }
 
-    std::unique_ptr<ScopedByteArrayRO> aadScopedByteArrayRO;
+    std::optional<ScopedByteArrayRO> optionalAad;
     const uint8_t* aad = nullptr;
     size_t aadLen = 0;
     if (aadArray != nullptr) {
-        aadScopedByteArrayRO.reset(new ScopedByteArrayRO(env, aadArray));
-        aad = reinterpret_cast<const uint8_t*>(aadScopedByteArrayRO->get());
+        optionalAad.emplace(env, aadArray);
+        aad = reinterpret_cast<const uint8_t*>(optionalAad.value().get());
         if (aad == nullptr) {
             return {};
         }
-        aadLen = aadScopedByteArrayRO->size();
+        aadLen = optionalAad.value().size();
     }
 
     ScopedByteArrayRO plaintext(env, plaintextArray);
@@ -4048,16 +4049,16 @@ static jobject NativeCrypto_EVP_HPKE_CTX_setup_recipient(JNIEnv* env, jclass, ji
         return nullptr;
     }
 
-    std::unique_ptr<ScopedByteArrayRO> infoScopedByteArrayRO;
+    std::optional<ScopedByteArrayRO> optionalInfo;
     const uint8_t* info = nullptr;
     size_t infoLen = 0;
     if (infoArray != nullptr) {
-        infoScopedByteArrayRO.reset(new ScopedByteArrayRO(env, infoArray));
-        info = reinterpret_cast<const uint8_t*>(infoScopedByteArrayRO->get());
+        optionalInfo.emplace(env, infoArray);
+        info = reinterpret_cast<const uint8_t*>(optionalInfo.value().get());
         if (info == nullptr) {
             return {};
         }
-        infoLen = infoScopedByteArrayRO->size();
+        infoLen = optionalInfo.value().size();
     }
 
     bssl::UniquePtr<EVP_HPKE_CTX> ctx(EVP_HPKE_CTX_new());
@@ -4106,16 +4107,16 @@ static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_sender(JNIEnv* env, jclass, 
         return {};
     }
 
-    std::unique_ptr<ScopedByteArrayRO> infoScopedByteArrayRO;
+    std::optional<ScopedByteArrayRO> optionalInfo;
     const uint8_t* info = nullptr;
     size_t infoLen = 0;
     if (infoArray != nullptr) {
-        infoScopedByteArrayRO.reset(new ScopedByteArrayRO(env, infoArray));
-        info = reinterpret_cast<const uint8_t*>(infoScopedByteArrayRO->get());
+        optionalInfo.emplace(env, infoArray);
+        info = reinterpret_cast<const uint8_t*>(optionalInfo.value().get());
         if (info == nullptr) {
             return {};
         }
-        infoLen = infoScopedByteArrayRO->size();
+        infoLen = optionalInfo.value().size();
     }
 
     ScopedByteArrayRO peer_public_key(env, publicKeyArray);
@@ -4188,16 +4189,16 @@ static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_sender_with_seed_for_testing
         return {};
     }
 
-    std::unique_ptr<ScopedByteArrayRO> infoScopedByteArrayRO;
+    std::optional<ScopedByteArrayRO> optionalInfo;
     const uint8_t* info = nullptr;
     size_t infoLen = 0;
     if (infoArray != nullptr) {
-        infoScopedByteArrayRO.reset(new ScopedByteArrayRO(env, infoArray));
-        info = reinterpret_cast<const uint8_t*>(infoScopedByteArrayRO->get());
+        optionalInfo.emplace(env, infoArray);
+        info = reinterpret_cast<const uint8_t*>(optionalInfo.value().get());
         if (info == nullptr) {
             return {};
         }
-        infoLen = infoScopedByteArrayRO->size();
+        infoLen = optionalInfo.value().size();
     }
 
     ScopedByteArrayRO peer_public_key(env, publicKeyArray);
