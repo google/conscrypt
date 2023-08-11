@@ -22,19 +22,19 @@ package org.conscrypt;
  */
 @Internal
 public class HpkeContextSenderHelper {
-  /**
-   * Setup sender with base mode. Delegates the setup work to BoringSSL.
-   *
-   * @param kem kem decimal value representation, {@link HpkeSuite.KEM#getId()}
-   * @param kdf kdf decimal value representation, {@link HpkeSuite.KDF#getId()}
-   * @param aead aead decimal value representation, {@link HpkeSuite.AEAD#getId()}
-   * @param publicKey encoded public key value
-   * @param info optional application-supplied information
-   * @return object array with 2 elements, the HPKE context [0] and the encapsulated key [1]
-   */
-  @Internal
-  public Object[] setupBase(int kem, int kdf, int aead, byte[] publicKey, byte[] info) {
-    Preconditions.checkNotNull(publicKey, "publicKey");
-    return NativeCrypto.EVP_HPKE_CTX_setup_sender(kem, kdf, aead, publicKey, info);
-  }
+    /**
+     * Setup sender with base mode. Delegates the setup work to BoringSSL.
+     *
+     * @param kem kem decimal value representation, {@link HpkeSuite.KEM#getId()}
+     * @param kdf kdf decimal value representation, {@link HpkeSuite.KDF#getId()}
+     * @param aead aead decimal value representation, {@link HpkeSuite.AEAD#getId()}
+     * @param publicKey encoded public key value
+     * @param info optional application-supplied information
+     * @return object array with 2 elements, the HPKE context [0] and the encapsulated key [1]
+     */
+    @Internal
+    public Object[] setupBase(int kem, int kdf, int aead, byte[] publicKey, byte[] info) {
+        Preconditions.checkNotNull(publicKey, "publicKey");
+        return NativeCrypto.EVP_HPKE_CTX_setup_sender(kem, kdf, aead, publicKey, info);
+    }
 }

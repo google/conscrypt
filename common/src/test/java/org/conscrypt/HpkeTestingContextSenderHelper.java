@@ -21,30 +21,30 @@ import static org.conscrypt.TestUtils.conscryptClass;
 import java.lang.reflect.Method;
 
 public class HpkeTestingContextSenderHelper extends HpkeContextSenderHelper {
-  private final byte[] skE;
+    private final byte[] skE;
 
-  public HpkeTestingContextSenderHelper(byte[] skE) {
-    this.skE = skE;
-  }
-
-  @Override
-  public Object[] setupBase(int kem, int kdf, int aead, byte[] encodedKey, byte[] info) {
-    try {
-      final Class<?> nativeCryptoClass = conscryptClass("NativeCrypto");
-      final Method method = nativeCryptoClass.getDeclaredMethod(
-          /* name = */ "EVP_HPKE_CTX_setup_sender_with_seed_for_testing",
-          /* parameterType = */ int.class,
-          /* parameterType = */ int.class,
-          /* parameterType = */ int.class,
-          /* parameterType = */ byte[].class,
-          /* parameterType = */ byte[].class,
-          /* parameterType = */ byte[].class);
-      method.setAccessible(true);
-      return (Object[]) method.invoke(
-          nativeCryptoClass, kem, kdf, aead, encodedKey, info, skE);
-    } catch (Exception e) {
-      throw new RuntimeException(
-          "Error while calling EVP_HPKE_CTX_setup_sender_with_seed_for_testing", e);
+    public HpkeTestingContextSenderHelper(byte[] skE) {
+        this.skE = skE;
     }
-  }
+
+    @Override
+    public Object[] setupBase(int kem, int kdf, int aead, byte[] encodedKey, byte[] info) {
+        try {
+            final Class<?> nativeCryptoClass = conscryptClass("NativeCrypto");
+            final Method method = nativeCryptoClass.getDeclaredMethod(
+                    /* name = */ "EVP_HPKE_CTX_setup_sender_with_seed_for_testing",
+                    /* parameterType = */ int.class,
+                    /* parameterType = */ int.class,
+                    /* parameterType = */ int.class,
+                    /* parameterType = */ byte[].class,
+                    /* parameterType = */ byte[].class,
+                    /* parameterType = */ byte[].class);
+            method.setAccessible(true);
+            return (Object[]) method.invoke(
+                    nativeCryptoClass, kem, kdf, aead, encodedKey, info, skE);
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Error while calling EVP_HPKE_CTX_setup_sender_with_seed_for_testing", e);
+        }
+    }
 }
