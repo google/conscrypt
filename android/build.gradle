@@ -57,7 +57,8 @@ if (androidSdkInstalled) {
                 cmake {
                     arguments '-DANDROID=True',
                             '-DANDROID_STL=c++_static',
-                            "-DBORINGSSL_HOME=$boringsslHome"
+                            "-DBORINGSSL_HOME=$boringsslHome",
+                            "-DCMAKE_CXX_STANDARD=17"
                     cFlags '-fvisibility=hidden',
                             '-DBORINGSSL_SHARED_LIBRARY',
                             '-DBORINGSSL_IMPLEMENTATION',
