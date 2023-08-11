@@ -1681,7 +1681,11 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     @SuppressWarnings("deprecation")
     protected void finalize() throws Throwable {
         try {
-            closeAndFreeResources();
+            if (ssl != null) {
+                synchronized (ssl) {
+                    closeAndFreeResources();
+                }
+            }
         } finally {
             super.finalize();
         }
