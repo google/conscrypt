@@ -1681,7 +1681,9 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     @SuppressWarnings("deprecation")
     protected void finalize() throws Throwable {
         try {
+            // If ssl is null, object must not be fully constructed so nothing for us to do here.
             if (ssl != null) {
+                // Otherwise closeAndFreeResources() and callees expect to synchronize on ssl.
                 synchronized (ssl) {
                     closeAndFreeResources();
                 }
