@@ -82,6 +82,7 @@ if (androidSdkInstalled) {
             resources {
                 srcDirs += "build/generated/resources"
             }
+            project(':conscrypt-common').sourceSets.main
         }
         externalNativeBuild {
             cmake {
@@ -103,7 +104,7 @@ if (androidSdkInstalled) {
     }
 
     dependencies {
-        api project(path: ':conscrypt-common', configuration: 'runtimeElements')
+        api project(':conscrypt-common')
 
         publicApiDocs project(':conscrypt-api-doclet')
 
@@ -129,13 +130,19 @@ if (androidSdkInstalled) {
 
     def javadocs = tasks.register("javadocs", Javadoc) {
         dependsOn configureJavadocs
-        source = android.sourceSets.main.java.srcDirs
-        classpath += project.files(android.getBootClasspath().join(File.pathSeparator)) + project(':conscrypt-android-stub').sourceSets.main.output
+        dependsOn generateProperties
+        source = project(':conscrypt-common').sourceSets.main.java
+
+        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+        classpath += project(':conscrypt-android-stub').sourceSets.main.output
+        classpath += project(':conscrypt-constants').sourceSets.main.output
+        classpath += project(':conscrypt-platform-stub').sourceSets.main.output
+
         // TODO(nmittler): Fix the javadoc errors.
         failOnError false
         options {
             encoding = 'UTF-8'
-            links "https://docs.oracle.com/javase/7/docs/api/"
+            links "https://docs.oracle.com/javase/8/docs/api/"
             // TODO(prb): Update doclet to Java 11.
             // doclet = "org.conscrypt.doclet.FilterDoclet"
         }
