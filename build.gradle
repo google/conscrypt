@@ -207,6 +207,8 @@ subprojects {
         tasks.register("sourcesJar", Jar) {
             archiveClassifier = 'sources'
             from sourceSets.main.allSource
+            from project(":conscrypt-common").sourceSets.main.java.srcDirs
+
         }
 
         // At a test failure, log the stack trace to the console so that we don't

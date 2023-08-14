@@ -34,6 +34,11 @@ tasks.withType(Test).configureEach {
     enabled = false
 }
 
+// Only export source as part of other sub-projects' source jars.
+tasks.named("sourcesJar") {
+    enabled = false
+}
+
 // Whhyyyyyyyyyyyyyyyyyyyyyyyy!
 // For some reason Gradle seems to be copying all the resources twice, so errors without this.
 tasks.named("processTestResources") {

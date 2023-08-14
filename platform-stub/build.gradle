@@ -7,3 +7,8 @@ sourceSets {
         }
     }
 }
+
+// Nope.
+tasks.named("sourcesJar") {
+    enabled = false
+}

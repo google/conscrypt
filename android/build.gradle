@@ -159,6 +159,7 @@ if (androidSdkInstalled) {
     def sourcesJar = tasks.register("sourcesJar", Jar) {
         archiveClassifier = 'sources'
         from android.sourceSets.main.java.srcDirs
+        from project(":conscrypt-common").sourceSets.main.java.srcDirs
     }
 
     apply from: "$rootDir/gradle/publishing.gradle"
