@@ -3816,11 +3816,11 @@ static jbyteArray NativeCrypto_EVP_HPKE_CTX_export(JNIEnv* env, jclass, jobject 
     size_t exporterCtxLen = 0;
     if (exporterCtxArray != nullptr) {
         optionalExporterCtx.emplace(env, exporterCtxArray);
-        exporterCtx = reinterpret_cast<const uint8_t*>(optionalExporterCtx.value().get());
+        exporterCtx = reinterpret_cast<const uint8_t*>(optionalExporterCtx->get());
         if (exporterCtx == nullptr) {
             return {};
         }
-        exporterCtxLen = optionalExporterCtx.value().size();
+        exporterCtxLen = optionalExporterCtx->size();
     }
 
     std::vector<uint8_t> exported(exportedLen);
@@ -3882,11 +3882,11 @@ static jbyteArray NativeCrypto_EVP_HPKE_CTX_open(JNIEnv* env, jclass, jobject re
     size_t aadLen = 0;
     if (aadArray != nullptr) {
         optionalAad.emplace(env, aadArray);
-        aad = reinterpret_cast<const uint8_t*>(optionalAad.value().get());
+        aad = reinterpret_cast<const uint8_t*>(optionalAad->get());
         if (aad == nullptr) {
             return {};
         }
-        aadLen = optionalAad.value().size();
+        aadLen = optionalAad->size();
     }
 
     size_t plaintextLen;
@@ -3937,11 +3937,11 @@ static jbyteArray NativeCrypto_EVP_HPKE_CTX_seal(JNIEnv* env, jclass, jobject se
     size_t aadLen = 0;
     if (aadArray != nullptr) {
         optionalAad.emplace(env, aadArray);
-        aad = reinterpret_cast<const uint8_t*>(optionalAad.value().get());
+        aad = reinterpret_cast<const uint8_t*>(optionalAad->get());
         if (aad == nullptr) {
             return {};
         }
-        aadLen = optionalAad.value().size();
+        aadLen = optionalAad->size();
     }
 
     ScopedByteArrayRO plaintext(env, plaintextArray);
@@ -4054,11 +4054,11 @@ static jobject NativeCrypto_EVP_HPKE_CTX_setup_recipient(JNIEnv* env, jclass, ji
     size_t infoLen = 0;
     if (infoArray != nullptr) {
         optionalInfo.emplace(env, infoArray);
-        info = reinterpret_cast<const uint8_t*>(optionalInfo.value().get());
+        info = reinterpret_cast<const uint8_t*>(optionalInfo->get());
         if (info == nullptr) {
             return {};
         }
-        infoLen = optionalInfo.value().size();
+        infoLen = optionalInfo->size();
     }
 
     bssl::UniquePtr<EVP_HPKE_CTX> ctx(EVP_HPKE_CTX_new());
@@ -4112,11 +4112,11 @@ static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_sender(JNIEnv* env, jclass, 
     size_t infoLen = 0;
     if (infoArray != nullptr) {
         optionalInfo.emplace(env, infoArray);
-        info = reinterpret_cast<const uint8_t*>(optionalInfo.value().get());
+        info = reinterpret_cast<const uint8_t*>(optionalInfo->get());
         if (info == nullptr) {
             return {};
         }
-        infoLen = optionalInfo.value().size();
+        infoLen = optionalInfo->size();
     }
 
     ScopedByteArrayRO peer_public_key(env, publicKeyArray);
@@ -4194,11 +4194,11 @@ static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_sender_with_seed_for_testing
     size_t infoLen = 0;
     if (infoArray != nullptr) {
         optionalInfo.emplace(env, infoArray);
-        info = reinterpret_cast<const uint8_t*>(optionalInfo.value().get());
+        info = reinterpret_cast<const uint8_t*>(optionalInfo->get());
         if (info == nullptr) {
             return {};
         }
-        infoLen = optionalInfo.value().size();
+        infoLen = optionalInfo->size();
     }
 
     ScopedByteArrayRO peer_public_key(env, publicKeyArray);
