@@ -64,16 +64,9 @@ public class HpkeContextRecipient {
     /**
      * Hybrid Public Key Encryption (HPKE) decryption.
      * <p>
-     * Note: This API is stateful.
-     * <p><p>
-     * Multiple message decryption:<p>
-     * If decrypting multiple messages that were encrypted in a sequence using the same context,
-     * they must be decrypted in the same order as well. The method setup[Mode]Recipient must be
-     * called just once before multiple calls to this API are made.
-     * <p><p>
-     * Single message decryption:<p>
-     * If decrypting a single message, the method setup[Mode]Recipient must be called before each
-     * message. Calling setup[Mode]Recipient creates a new HPKE context.
+     * Note: This API keeps track of its state. It maintains an internal HPKE context. As a result,
+     * to decrypt multiple messages that were encrypted using the same context, one must call this
+     * method for each message in the same order as they were encrypted.
      *
      * @param ciphertext contains the encrypted plaintext
      * @param aad        optional associated data

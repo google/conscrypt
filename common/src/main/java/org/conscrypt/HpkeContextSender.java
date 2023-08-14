@@ -87,16 +87,9 @@ public class HpkeContextSender {
     /**
      * Hybrid Public Key Encryption (HPKE) encryption.
      * <p>
-     * Note: This API is stateful.
-     * <p><p>
-     * Multiple message encryption:<p>
-     * If encrypting multiple messages that are expected to be decrypted in the same sequence using
-     * the same context, the method setup[Mode]Sender must be called just once before multiple calls
-     * to this API are made.
-     * <p><p>
-     * Single message encryption:<p>
-     * If encrypting a single message, the method setup[Mode]Sender must be called before each
-     * message. Calling setup[Mode]Sender created a new HPKE context.
+     * Note: This API keeps track of its state. It maintains an internal HPKE context. As a result,
+     * to encrypt multiple messages that are expected to be decrypted using the same context, one
+     * must call this method for each of the messages.
      *
      * @param plaintext message that will be encrypted
      * @param aad       optional associated data
