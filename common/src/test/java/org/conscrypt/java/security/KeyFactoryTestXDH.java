@@ -31,16 +31,12 @@ public class KeyFactoryTestXDH extends
     AbstractKeyFactoryTest<X509EncodedKeySpec, PKCS8EncodedKeySpec> {
 
   public KeyFactoryTestXDH() {
-    this("XDH");
-  }
-
-  public KeyFactoryTestXDH(final String algorithmName) {
-    super(algorithmName, X509EncodedKeySpec.class, PKCS8EncodedKeySpec.class);
+    super("XDH", X509EncodedKeySpec.class, PKCS8EncodedKeySpec.class);
   }
 
   @Override
   protected void check(KeyPair keyPair) throws Exception {
-    new KeyAgreementHelper(algorithmName).test(keyPair);
+    new KeyAgreementHelper("XDH").test(keyPair);
   }
 
   @Override
@@ -53,12 +49,12 @@ public class KeyFactoryTestXDH extends
   protected List<KeyPair> getKeys() throws NoSuchAlgorithmException, InvalidKeySpecException {
     return Arrays.asList(
         new KeyPair(
-            DefaultKeys.getPublicKey(algorithmName),
-            DefaultKeys.getPrivateKey(algorithmName)
+            DefaultKeys.getPublicKey("XDH"),
+            DefaultKeys.getPrivateKey("XDH")
         ),
         new KeyPair(
-            new TestPublicKey(DefaultKeys.getPublicKey(algorithmName)),
-            new TestPrivateKey(DefaultKeys.getPrivateKey(algorithmName))
+            new TestPublicKey(DefaultKeys.getPublicKey("XDH")),
+            new TestPrivateKey(DefaultKeys.getPrivateKey("XDH"))
         )
     );
   }

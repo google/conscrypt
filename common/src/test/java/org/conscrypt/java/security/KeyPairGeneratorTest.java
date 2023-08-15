@@ -89,7 +89,7 @@ public class KeyPairGeneratorTest {
                     }
                     // KeyPairGenerator.getInstance(String)
                     KeyPairGenerator kpg1 = KeyPairGenerator.getInstance(algorithm);
-                    assertAlgorithmMatched(algorithm, kpg1);
+                    assertEquals(algorithm, kpg1.getAlgorithm());
                     if (params != null) {
                         kpg1.initialize(params);
                     }
@@ -97,7 +97,7 @@ public class KeyPairGeneratorTest {
 
                     // KeyPairGenerator.getInstance(String, Provider)
                     KeyPairGenerator kpg2 = KeyPairGenerator.getInstance(algorithm, provider);
-                    assertAlgorithmMatched(algorithm, kpg2);
+                    assertEquals(algorithm, kpg2.getAlgorithm());
                     assertEquals(provider, kpg2.getProvider());
                     if (params != null) {
                         kpg2.initialize(params);
@@ -107,7 +107,7 @@ public class KeyPairGeneratorTest {
                     // KeyPairGenerator.getInstance(String, String)
                     KeyPairGenerator kpg3 = KeyPairGenerator.getInstance(algorithm,
                         provider.getName());
-                    assertAlgorithmMatched(algorithm, kpg3);
+                    assertEquals(algorithm, kpg3.getAlgorithm());
                     assertEquals(provider, kpg3.getProvider());
                     if (params != null) {
                         kpg3.initialize(params);
@@ -359,17 +359,6 @@ public class KeyPairGeneratorTest {
         assertEquals(expected.getGenerator(), actual.getGenerator());
         assertEquals(expected.getOrder(), actual.getOrder());
         assertEquals(expected.getCofactor(), actual.getCofactor());
-    }
-
-    private static void assertAlgorithmMatched(final String algorithm, final KeyPairGenerator keyPairGenerator) {
-        final String expectedAlgorithm;
-        // X25519 KeyPairGenerator is an alias for XDH requiring this alternative expected algorithm
-        if ("X25519".equals(algorithm)) {
-            expectedAlgorithm = "XDH";
-        } else {
-            expectedAlgorithm = algorithm;
-        }
-        assertEquals(expectedAlgorithm, keyPairGenerator.getAlgorithm());
     }
 
     /**
