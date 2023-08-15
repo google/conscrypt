@@ -28,12 +28,9 @@
 #include <conscrypt/netutil.h>
 #include <conscrypt/scoped_ssl_bio.h>
 #include <conscrypt/ssl_error.h>
-
+#include <limits.h>
 #include <nativehelper/scoped_primitive_array.h>
 #include <nativehelper/scoped_utf_chars.h>
-
-#include <limits.h>
-
 #include <openssl/aead.h>
 #include <openssl/asn1.h>
 #include <openssl/bn.h>
@@ -45,6 +42,7 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <openssl/hpke.h>
 #include <openssl/pkcs7.h>
 #include <openssl/pkcs8.h>
 #include <openssl/rand.h>
@@ -53,6 +51,7 @@
 #include <openssl/x509v3.h>
 
 #include <limits>
+#include <optional>
 #include <type_traits>
 #include <vector>
 
@@ -3799,6 +3798,459 @@ static jint NativeCrypto_EVP_AEAD_CTX_open_buf(JNIEnv* env, jclass, jlong evpAea
     CHECK_ERROR_QUEUE_ON_RETURN;
     return evp_aead_ctx_op_buf(env, evpAeadRef, keyArray, tagLen, outBuffer, nonceArray,
                            inBuffer, aadArray, EVP_AEAD_CTX_open);
+}
+
+static jbyteArray NativeCrypto_EVP_HPKE_CTX_export(JNIEnv* env, jclass, jobject hpkeCtxRef,
+                                                   jbyteArray exporterCtxArray, jint exportedLen) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    EVP_HPKE_CTX* hpkeCtx = fromContextObject<EVP_HPKE_CTX>(env, hpkeCtxRef);
+    JNI_TRACE("EVP_HPKE_CTX_export(%p, %p, %d)", hpkeCtx, exporterCtxArray, exportedLen);
+
+    if (hpkeCtx == nullptr) {
+        // NullPointerException thrown while calling fromContextObject
+        return {};
+    }
+
+    std::optional<ScopedByteArrayRO> optionalExporterCtx;
+    const uint8_t* exporterCtx = nullptr;
+    size_t exporterCtxLen = 0;
+    if (exporterCtxArray != nullptr) {
+        optionalExporterCtx.emplace(env, exporterCtxArray);
+        exporterCtx = reinterpret_cast<const uint8_t*>(optionalExporterCtx->get());
+        if (exporterCtx == nullptr) {
+            return {};
+        }
+        exporterCtxLen = optionalExporterCtx->size();
+    }
+
+    std::vector<uint8_t> exported(exportedLen);
+    if (!EVP_HPKE_CTX_export(/* ctx= */ hpkeCtx,
+                             /* out= */ exported.data(),
+                             /* secret_len= */ exportedLen,
+                             /* context= */ exporterCtx,
+                             /* context_len= */ exporterCtxLen)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_HPKE_CTX_export");
+        return {};
+    }
+
+    ScopedLocalRef<jbyteArray> exportedArray(env, env->NewByteArray(static_cast<jsize>(exportedLen)));
+    if (exportedArray.get() == nullptr) {
+        return {};
+    }
+    ScopedByteArrayRW exportedBytes(env, exportedArray.get());
+    if (exportedBytes.get() == nullptr) {
+        return {};
+    }
+    memcpy(exportedBytes.get(), reinterpret_cast<const jbyte*>(exported.data()), exportedLen);
+    return exportedArray.release();
+}
+
+static void NativeCrypto_EVP_HPKE_CTX_free(JNIEnv* env, jclass, jlong hpkeCtxRef) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    EVP_HPKE_CTX* ctx = reinterpret_cast<EVP_HPKE_CTX*>(hpkeCtxRef);
+    JNI_TRACE("EVP_HPKE_CTX_free(%p)", ctx);
+    if (ctx == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "ctx == null");
+        return;
+    }
+    EVP_HPKE_CTX_free(ctx);
+}
+
+static jbyteArray NativeCrypto_EVP_HPKE_CTX_open(JNIEnv* env, jclass, jobject recipientHpkeCtxRef,
+                                                 jbyteArray ciphertextArray, jbyteArray aadArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    EVP_HPKE_CTX* ctx = fromContextObject<EVP_HPKE_CTX>(env, recipientHpkeCtxRef);
+    JNI_TRACE("EVP_HPKE_CTX_open(%p, %p, %p)", ctx, ciphertextArray, aadArray);
+
+    if (ctx == nullptr) {
+        // NullPointerException thrown while calling fromContextObject
+        return {};
+    }
+
+    if (ciphertextArray == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "ciphertextArray == null");
+        return {};
+    }
+
+    ScopedByteArrayRO ciphertext(env, ciphertextArray);
+    if (ciphertext.get() == nullptr) {
+        return {};
+    }
+
+    std::optional<ScopedByteArrayRO> optionalAad;
+    const uint8_t* aad = nullptr;
+    size_t aadLen = 0;
+    if (aadArray != nullptr) {
+        optionalAad.emplace(env, aadArray);
+        aad = reinterpret_cast<const uint8_t*>(optionalAad->get());
+        if (aad == nullptr) {
+            return {};
+        }
+        aadLen = optionalAad->size();
+    }
+
+    size_t plaintextLen;
+    std::vector<uint8_t> plaintext(ciphertext.size());
+    if (!EVP_HPKE_CTX_open(/* ctx= */ ctx,
+                           /* out= */ plaintext.data(),
+                           /* out_len= */ &plaintextLen,
+                           /* max_out_len= */ plaintext.size(),
+                           /* in= */ reinterpret_cast<const uint8_t*>(ciphertext.get()),
+                           /* in_len= */ ciphertext.size(),
+                           /* aad= */ aad,
+                           /* aad_len= */ aadLen)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_HPKE_CTX_open");
+        return {};
+    }
+
+    plaintext.resize(plaintextLen);
+    ScopedLocalRef<jbyteArray> plaintextArray(env, env->NewByteArray(static_cast<jsize>(plaintextLen)));
+    if (plaintextArray.get() == nullptr) {
+        return {};
+    }
+    ScopedByteArrayRW plaintextBytes(env, plaintextArray.get());
+    if (plaintextBytes.get() == nullptr) {
+        return {};
+    }
+    memcpy(plaintextBytes.get(), reinterpret_cast<const jbyte*>(plaintext.data()), plaintextLen);
+    return plaintextArray.release();
+}
+
+static jbyteArray NativeCrypto_EVP_HPKE_CTX_seal(JNIEnv* env, jclass, jobject senderHpkeCtxRef,
+                                                 jbyteArray plaintextArray, jbyteArray aadArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    EVP_HPKE_CTX* ctx = fromContextObject<EVP_HPKE_CTX>(env, senderHpkeCtxRef);
+    JNI_TRACE("EVP_HPKE_CTX_seal(%p, %p, %p)", ctx, plaintextArray, aadArray);
+
+    if (ctx == nullptr) {
+        // NullPointerException thrown while calling fromContextObject
+        return {};
+    }
+
+    if (plaintextArray == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "plaintextArray == null");
+        return {};
+    }
+
+    std::optional<ScopedByteArrayRO> optionalAad;
+    const uint8_t* aad = nullptr;
+    size_t aadLen = 0;
+    if (aadArray != nullptr) {
+        optionalAad.emplace(env, aadArray);
+        aad = reinterpret_cast<const uint8_t*>(optionalAad->get());
+        if (aad == nullptr) {
+            return {};
+        }
+        aadLen = optionalAad->size();
+    }
+
+    ScopedByteArrayRO plaintext(env, plaintextArray);
+    std::vector<uint8_t> encrypted(env->GetArrayLength(plaintextArray) +
+                                   EVP_HPKE_CTX_max_overhead(ctx));
+    size_t encryptedLen;
+    if (!EVP_HPKE_CTX_seal(/* ctx= */ ctx,
+                           /* out= */ encrypted.data(),
+                           /* out_len= */ &encryptedLen,
+                           /* max_out_len= */ encrypted.size(),
+                           /* in= */ reinterpret_cast<const uint8_t*>(plaintext.get()),
+                           /* in_len= */ plaintext.size(),
+                           /* aad= */ aad,
+                           /* aad_len= */ aadLen)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_HPKE_CTX_seal");
+        return {};
+    }
+
+    ScopedLocalRef<jbyteArray> ciphertextArray(env, env->NewByteArray(static_cast<jsize>(encryptedLen)));
+    if (ciphertextArray.get() == nullptr) {
+        return {};
+    }
+    ScopedByteArrayRW ciphertextBytes(env, ciphertextArray.get());
+    if (ciphertextBytes.get() == nullptr) {
+        return {};
+    }
+    memcpy(ciphertextBytes.get(), reinterpret_cast<const jbyte*>(encrypted.data()), encryptedLen);
+    return ciphertextArray.release();
+}
+
+const EVP_HPKE_AEAD* getHpkeAead(JNIEnv* env, jint aeadValue) {
+    switch (aeadValue) {
+        case EVP_HPKE_AES_128_GCM:
+            return EVP_hpke_aes_128_gcm();
+        case EVP_HPKE_AES_256_GCM:
+            return EVP_hpke_aes_256_gcm();
+        case EVP_HPKE_CHACHA20_POLY1305:
+            return EVP_hpke_chacha20_poly1305();
+        default:
+            conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                               "AEAD is not supported");
+            return nullptr;
+    }
+}
+
+const EVP_HPKE_KDF* getHpkeKdf(JNIEnv* env, jint kdfValue) {
+    if (kdfValue == EVP_HPKE_HKDF_SHA256) {
+        return EVP_hpke_hkdf_sha256();
+    } else {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "KDF is not supported");
+        return nullptr;
+    }
+}
+
+const EVP_HPKE_KEM* getHpkeKem(JNIEnv* env, jint kemValue) {
+    if (kemValue == EVP_HPKE_DHKEM_X25519_HKDF_SHA256) {
+        return EVP_hpke_x25519_hkdf_sha256();
+    } else {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "KEM is not supported");
+        return nullptr;
+    }
+}
+
+static jobject NativeCrypto_EVP_HPKE_CTX_setup_recipient(JNIEnv* env, jclass, jint kemValue,
+                                                         jint kdfValue, jint aeadValue,
+                                                         jbyteArray privateKeyArray,
+                                                         jbyteArray encArray,
+                                                         jbyteArray infoArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("EVP_HPKE_CTX_setup_recipient(%d, %d, %d, %p, %p, %p)", kemValue, kdfValue, aeadValue,
+              privateKeyArray, encArray, infoArray);
+
+    const EVP_HPKE_KEM* kem = getHpkeKem(env, kemValue);
+    if (kem == nullptr) {
+        return nullptr;
+    }
+    const EVP_HPKE_KDF* kdf = getHpkeKdf(env, kdfValue);
+    if (kdf == nullptr) {
+        return nullptr;
+    }
+    const EVP_HPKE_AEAD* aead = getHpkeAead(env, aeadValue);
+    if (aead == nullptr) {
+        return nullptr;
+    }
+    if (privateKeyArray == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "privateKeyArray == null");
+        return nullptr;
+    }
+    if (encArray == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "encArray == null");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO privateKey(env, privateKeyArray);
+
+    bssl::ScopedEVP_HPKE_KEY key;
+
+    if (!EVP_HPKE_KEY_init(/* key= */ key.get(),
+                           /* kem= */ kem,
+                           /* priv_key= */ reinterpret_cast<const uint8_t*>(privateKey.get()),
+                           /* priv_key_len= */ privateKey.size())) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_HPKE_CTX_setup_recipient");
+        return nullptr;
+    }
+
+    std::optional<ScopedByteArrayRO> optionalInfo;
+    const uint8_t* info = nullptr;
+    size_t infoLen = 0;
+    if (infoArray != nullptr) {
+        optionalInfo.emplace(env, infoArray);
+        info = reinterpret_cast<const uint8_t*>(optionalInfo->get());
+        if (info == nullptr) {
+            return {};
+        }
+        infoLen = optionalInfo->size();
+    }
+
+    bssl::UniquePtr<EVP_HPKE_CTX> ctx(EVP_HPKE_CTX_new());
+    ScopedByteArrayRO enc(env, encArray);
+    if (!EVP_HPKE_CTX_setup_recipient(/* ctx= */ ctx.get(),
+                                      /* key= */ key.get(),
+                                      /* kdf= */ kdf,
+                                      /* aead= */ aead,
+                                      /* enc= */ reinterpret_cast<const uint8_t*>(enc.get()),
+                                      /* enc_len= */ enc.size(),
+                                      /* info= */ info,
+                                      /* info_len= */ infoLen)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_HPKE_CTX_setup_recipient");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jobject> ctxObject(
+                    env, env->NewObject(conscrypt::jniutil::nativeRefHpkeCtxClass,
+                                        conscrypt::jniutil::nativeRefHpkeCtxClass_constructor,
+                                        reinterpret_cast<jlong>(ctx.release())));
+    return ctxObject.release();
+}
+
+static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_sender(JNIEnv* env, jclass, jint kemValue,
+                                                           jint kdfValue, jint aeadValue,
+                                                           jbyteArray publicKeyArray,
+                                                           jbyteArray infoArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("EVP_HPKE_CTX_setup_sender(%d, %d, %d, %p, %p)", kemValue, kdfValue, aeadValue,
+              publicKeyArray, infoArray);
+
+    const EVP_HPKE_KEM* kem = getHpkeKem(env, kemValue);
+    if (kem == nullptr) {
+        return nullptr;
+    }
+    const EVP_HPKE_KDF* kdf = getHpkeKdf(env, kdfValue);
+    if (kdf == nullptr) {
+        return nullptr;
+    }
+    const EVP_HPKE_AEAD* aead = getHpkeAead(env, aeadValue);
+    if (aead == nullptr) {
+        return nullptr;
+    }
+    if (publicKeyArray == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "publicKeyArray == null");
+        return {};
+    }
+
+    std::optional<ScopedByteArrayRO> optionalInfo;
+    const uint8_t* info = nullptr;
+    size_t infoLen = 0;
+    if (infoArray != nullptr) {
+        optionalInfo.emplace(env, infoArray);
+        info = reinterpret_cast<const uint8_t*>(optionalInfo->get());
+        if (info == nullptr) {
+            return {};
+        }
+        infoLen = optionalInfo->size();
+    }
+
+    ScopedByteArrayRO peer_public_key(env, publicKeyArray);
+
+    size_t encapsulatedSharedSecretLen;
+    uint8_t encapsulatedSharedSecret[EVP_HPKE_MAX_ENC_LENGTH];
+
+    bssl::UniquePtr<EVP_HPKE_CTX> ctx(EVP_HPKE_CTX_new());
+
+    if (!EVP_HPKE_CTX_setup_sender(/* ctx= */ ctx.get(),
+                                   /* out_enc= */ encapsulatedSharedSecret,
+                                   /* out_enc_len= */ &encapsulatedSharedSecretLen,
+                                   /* max_enc= */ EVP_HPKE_MAX_ENC_LENGTH,
+                                   /* kem= */ kem,
+                                   /* kdf= */ kdf,
+                                   /* aead= */ aead,
+                                   /* peer_public_key= */ reinterpret_cast<const uint8_t*>(peer_public_key.get()),
+                                   /* peer_public_key_len= */ peer_public_key.size(),
+                                   /* info= */ info,
+                                   /* info_len= */ infoLen)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_HPKE_CTX_setup_sender");
+        return {};
+    }
+
+    ScopedLocalRef<jbyteArray> encArray(env, env->NewByteArray(static_cast<jsize>(encapsulatedSharedSecretLen)));
+    if (encArray.get() == nullptr) {
+        return {};
+    }
+    ScopedByteArrayRW encBytes(env, encArray.get());
+    if (encBytes.get() == nullptr) {
+        return {};
+    }
+    memcpy(encBytes.get(), reinterpret_cast<const jbyte*>(encapsulatedSharedSecret), encapsulatedSharedSecretLen);
+
+    ScopedLocalRef<jobjectArray> result(
+            env, env->NewObjectArray(2, conscrypt::jniutil::objectClass, nullptr));
+
+    ScopedLocalRef<jobject> ctxObject(
+                env, env->NewObject(conscrypt::jniutil::nativeRefHpkeCtxClass,
+                                    conscrypt::jniutil::nativeRefHpkeCtxClass_constructor,
+                                    reinterpret_cast<jlong>(ctx.release())));
+
+    env->SetObjectArrayElement(result.get(), 0, ctxObject.release());
+    env->SetObjectArrayElement(result.get(), 1, encArray.release());
+
+    return result.release();
+}
+
+static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_sender_with_seed_for_testing(
+        JNIEnv* env, jclass, jint kemValue, jint kdfValue, jint aeadValue,
+        jbyteArray publicKeyArray, jbyteArray infoArray, jbyteArray seedArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("EVP_HPKE_CTX_setup_sender_with_seed_for_testing(%d, %d, %d, %p, %p, %p)", kemValue,
+              kdfValue, aeadValue, publicKeyArray, infoArray, seedArray);
+
+    const EVP_HPKE_KEM* kem = getHpkeKem(env, kemValue);
+    if (kem == nullptr) {
+        return nullptr;
+    }
+    const EVP_HPKE_KDF* kdf = getHpkeKdf(env, kdfValue);
+    if (kdf == nullptr) {
+        return nullptr;
+    }
+    const EVP_HPKE_AEAD* aead = getHpkeAead(env, aeadValue);
+    if (aead == nullptr) {
+        return nullptr;
+    }
+    if (publicKeyArray == nullptr || seedArray == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "publicKeyArray or seedArray == null");
+        return {};
+    }
+
+    std::optional<ScopedByteArrayRO> optionalInfo;
+    const uint8_t* info = nullptr;
+    size_t infoLen = 0;
+    if (infoArray != nullptr) {
+        optionalInfo.emplace(env, infoArray);
+        info = reinterpret_cast<const uint8_t*>(optionalInfo->get());
+        if (info == nullptr) {
+            return {};
+        }
+        infoLen = optionalInfo->size();
+    }
+
+    ScopedByteArrayRO peer_public_key(env, publicKeyArray);
+
+    ScopedByteArrayRO seed(env, seedArray);
+
+    size_t encapsulatedSharedSecretLen;
+    uint8_t encapsulatedSharedSecret[EVP_HPKE_MAX_ENC_LENGTH];
+
+    bssl::UniquePtr<EVP_HPKE_CTX> ctx(EVP_HPKE_CTX_new());
+
+    if (!EVP_HPKE_CTX_setup_sender_with_seed_for_testing(
+            /* ctx= */ ctx.get(),
+            /* out_enc= */ encapsulatedSharedSecret,
+            /* out_enc_len= */ &encapsulatedSharedSecretLen,
+            /* max_enc= */ EVP_HPKE_MAX_ENC_LENGTH,
+            /* kem= */ kem,
+            /* kdf= */ kdf,
+            /* aead= */ aead,
+            /* peer_public_key= */ reinterpret_cast<const uint8_t*>(peer_public_key.get()),
+            /* peer_public_key_len= */ peer_public_key.size(),
+            /* info= */ info,
+            /* info_len= */ infoLen,
+            /* seed= */ reinterpret_cast<const uint8_t*>(seed.get()),
+            /* seed_len= */ seed.size())) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(
+                env, "EVP_HPKE_CTX_setup_sender_with_seed_for_testing");
+        return {};
+    }
+
+    ScopedLocalRef<jbyteArray> encArray(env, env->NewByteArray(static_cast<jsize>(encapsulatedSharedSecretLen)));
+    if (encArray.get() == nullptr) {
+        return {};
+    }
+    ScopedByteArrayRW encBytes(env, encArray.get());
+    if (encBytes.get() == nullptr) {
+        return {};
+    }
+    memcpy(encBytes.get(), reinterpret_cast<const jbyte*>(encapsulatedSharedSecret), encapsulatedSharedSecretLen);
+
+    ScopedLocalRef<jobjectArray> result(
+            env, env->NewObjectArray(2, conscrypt::jniutil::objectClass, nullptr));
+
+    ScopedLocalRef<jobject> ctxObject(
+                    env, env->NewObject(conscrypt::jniutil::nativeRefHpkeCtxClass,
+                                        conscrypt::jniutil::nativeRefHpkeCtxClass_constructor,
+                                        reinterpret_cast<jlong>(ctx.release())));
+
+    env->SetObjectArrayElement(result.get(), 0, ctxObject.release());
+    env->SetObjectArrayElement(result.get(), 1, encArray.release());
+
+    return result.release();
 }
 
 static jlong NativeCrypto_CMAC_CTX_new(JNIEnv* env, jclass) {
@@ -10521,6 +10973,8 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
 #define REF_EC_POINT "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EC_POINT;"
 #define REF_EVP_CIPHER_CTX \
     "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_CIPHER_CTX;"
+#define REF_EVP_HPKE_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_HPKE_CTX;"
+#define REF_EVP_HPKE_KEY "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_HPKE_KEY;"
 #define REF_EVP_MD_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_MD_CTX;"
 #define REF_EVP_PKEY "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY;"
 #define REF_EVP_PKEY_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_PKEY_CTX;"
@@ -10640,8 +11094,18 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_nonce_length, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_seal, "(J[BI[BI[B[BII[B)I"),
         CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_open, "(J[BI[BI[B[BII[B)I"),
-        CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_seal_buf, "(J[BILjava/nio/ByteBuffer;[BLjava/nio/ByteBuffer;[B)I"),
-        CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_open_buf, "(J[BILjava/nio/ByteBuffer;[BLjava/nio/ByteBuffer;[B)I"),
+        CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_seal_buf,
+                                "(J[BILjava/nio/ByteBuffer;[BLjava/nio/ByteBuffer;[B)I"),
+        CONSCRYPT_NATIVE_METHOD(EVP_AEAD_CTX_open_buf,
+                                "(J[BILjava/nio/ByteBuffer;[BLjava/nio/ByteBuffer;[B)I"),
+        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_export, "(" REF_EVP_HPKE_CTX "[BI)[B"),
+        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_free, "(J)V"),
+        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_open, "(" REF_EVP_HPKE_CTX "[B[B)[B"),
+        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_seal, "(" REF_EVP_HPKE_CTX "[B[B)[B"),
+        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_setup_recipient, "(III[B[B[B)Ljava/lang/Object;"),
+        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_setup_sender, "(III[B[B)[Ljava/lang/Object;"),
+        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_setup_sender_with_seed_for_testing,
+                                "(III[B[B[B)[Ljava/lang/Object;"),
         CONSCRYPT_NATIVE_METHOD(HMAC_CTX_new, "()J"),
         CONSCRYPT_NATIVE_METHOD(HMAC_CTX_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(HMAC_Init_ex, "(" REF_HMAC_CTX "[BJ)V"),
@@ -10697,7 +11161,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(X509_get_serialNumber, "(J" REF_X509 ")[B"),
         CONSCRYPT_NATIVE_METHOD(X509_verify, "(J" REF_X509 REF_EVP_PKEY ")V"),
         CONSCRYPT_NATIVE_METHOD(get_X509_tbs_cert, "(J" REF_X509 ")[B"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_tbs_cert_without_ext, "(J" REF_X509 "Ljava/lang/String;)[B"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_tbs_cert_without_ext,
+                                "(J" REF_X509 "Ljava/lang/String;)[B"),
         CONSCRYPT_NATIVE_METHOD(get_X509_signature, "(J" REF_X509 ")[B"),
         CONSCRYPT_NATIVE_METHOD(get_X509_CRL_signature, "(J" REF_X509_CRL ")[B"),
         CONSCRYPT_NATIVE_METHOD(get_X509_ex_flags, "(J" REF_X509 ")I"),

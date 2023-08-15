@@ -83,6 +83,11 @@ import org.junit.runners.Suite;
         CertPinManagerTest.class,
         ChainStrengthAnalyzerTest.class,
         HostnameVerifierTest.class,
+        HpkeContextRecipientTest.class,
+        HpkeContextSenderTest.class,
+        HpkeContextTest.class,
+        HpkeSuiteTest.class,
+        HpkeTestVectorsTest.class,
         NativeCryptoArgTest.class,
         TrustManagerImplTest.class,
         // org.conscrypt.ct tests

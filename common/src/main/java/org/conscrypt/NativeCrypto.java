@@ -380,6 +380,27 @@ public final class NativeCrypto {
 
     static native byte[] HMAC_Final(NativeRef.HMAC_CTX ctx);
 
+    // --- HPKE functions ------------------------------------------------------
+    static native byte[] EVP_HPKE_CTX_export(
+            NativeRef.EVP_HPKE_CTX ctx, byte[] exporterCtx, int length);
+
+    static native void EVP_HPKE_CTX_free(long ctx);
+
+    static native byte[] EVP_HPKE_CTX_open(
+            NativeRef.EVP_HPKE_CTX ctx, byte[] ciphertext, byte[] aad);
+
+    static native byte[] EVP_HPKE_CTX_seal(
+            NativeRef.EVP_HPKE_CTX ctx, byte[] plaintext, byte[] aad);
+
+    static native Object EVP_HPKE_CTX_setup_recipient(
+            int kem, int kdf, int aead, byte[] privateKey, byte[] enc, byte[] info);
+
+    static native Object[] EVP_HPKE_CTX_setup_sender(
+            int kem, int kdf, int aead, byte[] publicKey, byte[] info);
+
+    static native Object[] EVP_HPKE_CTX_setup_sender_with_seed_for_testing(
+            int kem, int kdf, int aead, byte[] publicKey, byte[] info, byte[] seed);
+
     // --- RAND ----------------------------------------------------------------
 
     static native void RAND_bytes(byte[] output);

@@ -28,6 +28,7 @@ JavaVM *gJavaVM;
 jclass cryptoUpcallsClass;
 jclass openSslInputStreamClass;
 jclass nativeRefClass;
+jclass nativeRefHpkeCtxClass;
 
 jclass byteArrayClass;
 jclass calendarClass;
@@ -57,6 +58,7 @@ jmethodID buffer_isDirectMethod;
 jmethodID cryptoUpcallsClass_rawSignMethod;
 jmethodID cryptoUpcallsClass_rsaSignMethod;
 jmethodID cryptoUpcallsClass_rsaDecryptMethod;
+jmethodID nativeRefHpkeCtxClass_constructor;
 jmethodID sslHandshakeCallbacks_verifyCertificateChain;
 jmethodID sslHandshakeCallbacks_onSSLStateChange;
 jmethodID sslHandshakeCallbacks_clientCertificateRequested;
@@ -86,6 +88,8 @@ void init(JavaVM* vm, JNIEnv* env) {
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/CryptoUpcalls");
     nativeRefClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef");
+    nativeRefHpkeCtxClass = getGlobalRefToClass(
+            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_HPKE_CTX");
     openSslInputStreamClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream");
     sslHandshakeCallbacksClass = getGlobalRefToClass(
@@ -145,6 +149,7 @@ void init(JavaVM* vm, JNIEnv* env) {
     if (cryptoUpcallsClass_rsaDecryptMethod == nullptr) {
         env->FatalError("Could not find rsaDecryptWithPrivateKey");
     }
+    nativeRefHpkeCtxClass_constructor = env->GetMethodID(nativeRefHpkeCtxClass, "<init>", "(J)V");
 }
 
 void jniRegisterNativeMethods(JNIEnv* env, const char* className, const JNINativeMethod* gMethods,
