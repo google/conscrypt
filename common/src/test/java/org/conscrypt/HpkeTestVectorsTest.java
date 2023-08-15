@@ -35,7 +35,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class HpkeTestVectorsTest {
     private static final String TEST_DATA_ENCRYPTION = "hpke/hpke-encryption.csv";
     private static final String TEST_DATA_EXPORT = "hpke/hpke-export.csv";
