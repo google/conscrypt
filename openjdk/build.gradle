@@ -458,6 +458,7 @@ model {
                                 "/GS",
                                 "/Gy",
                                 "/fp:precise",
+                                "/std:c++17",
                                 "-wd4514", // Unreferenced inline function removed
                                 "-wd4548", // Expression before comma has no effect
                                 "-wd4625", // Copy constructor was implicitly defined as deleted
