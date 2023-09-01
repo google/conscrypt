@@ -123,18 +123,22 @@ public final class TestUtils {
 
     private static Provider getNonConscryptTlsProvider() {
         for (String protocol : DESIRED_JDK_PROTOCOLS) {
-            for (Provider p : Security.getProviders()) {
-                if (!p.getClass().getPackage().getName().contains("conscrypt")
-                        && hasSslContext(p, protocol)) {
-                    return p;
-                }
+            Provider p = getNonConscryptProviderFor("SSLContext", protocol);
+            if (p != null) {
+                return p;
             }
         }
         return new BouncyCastleProvider();
     }
 
-    private static boolean hasSslContext(Provider p, String protocol) {
-        return p.get("SSLContext." + protocol) != null;
+    static Provider getNonConscryptProviderFor(String type, String algorithm) {
+        for (Provider p : Security.getProviders()) {
+            if (!p.getClass().getPackage().getName().contains("conscrypt")
+                && (p.getService(type, algorithm) != null)) {
+                return p;
+            }
+        }
+        return null;
     }
 
     static Provider getJdkProvider() {
@@ -292,6 +296,38 @@ public final class TestUtils {
             }
         }
         return lines;
+    }
+
+    public static List<TestVector> readTestVectors(String resourceName) throws IOException {
+        InputStream stream = openTestFile(resourceName);
+        List<TestVector> result = new ArrayList<>();
+        TestVector current = null;
+        try (BufferedReader reader
+                 = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            String line;
+            int lineNumber = 0;
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                int index = line.indexOf('=');
+                if (index < 0) {
+                    throw new IllegalStateException("No = found: line " + lineNumber);
+                }
+                String label = line.substring(0, index).trim().toLowerCase();
+                String value = line.substring(index + 1).trim();
+                if ("name".equals(label)) {
+                    current = new TestVector();
+                    result.add(current);
+                } else if (current == null) {
+                    throw new IllegalStateException("Vectors must start with a name: line "
+                        + lineNumber);
+                }
+                current.put(label, value);
+            }
+        }
+        return result;
     }
 
     /**
