@@ -146,7 +146,7 @@ public final class Hkdf {
             salt = new byte[getMacLength()];
         }
         Preconditions.checkArgument(ikm.length > 0, "Empty keying material");
-        Mac mac = getMac(salt, "salt");
+        Mac mac = getMac(salt);
         return mac.doFinal(ikm);
     }
 
@@ -166,7 +166,7 @@ public final class Hkdf {
         Objects.requireNonNull(info);
         Preconditions.checkArgument(length >= 0, "Negative length");
         Preconditions.checkArgument(length < 255 * getMacLength(), "Length too long");
-        Mac mac = getMac(prk, "PRK");
+        Mac mac = getMac(prk);
 
         byte[] t = new byte[0];
         byte[] output = new byte[0];
@@ -195,14 +195,14 @@ public final class Hkdf {
         return result;
     }
 
-    private Mac getMac(byte[] key, String keyName) throws InvalidKeyException {
+    private Mac getMac(byte[] key) throws InvalidKeyException {
         try {
             Mac mac = Mac.getInstance(hmacName, provider);
             mac.init(new SecretKeySpec(key, "RAW"));
             return mac; // https://www.youtube.com/watch?v=uB1D9wWxd2w
         } catch (NoSuchAlgorithmException e) {
             // In theory, can't happen
-            throw new IllegalStateException("No longer able to locate " + keyName);
+            throw new IllegalStateException("No longer able to locate " + hmacName);
         }
     }
 }
