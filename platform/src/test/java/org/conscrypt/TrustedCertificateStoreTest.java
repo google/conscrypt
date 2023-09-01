@@ -24,6 +24,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.KeyStore.TrustedCertificateEntry;
@@ -46,16 +48,23 @@ import java.util.concurrent.TimeoutException;
 import javax.security.auth.x500.X500Principal;
 import junit.framework.TestCase;
 import org.conscrypt.java.security.TestKeyStore;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @SuppressWarnings("unused")
+@RunWith(Parameterized.class)
 public class TrustedCertificateStoreTest extends TestCase {
     private static final Random tempFileRandom = new Random();
 
-    private final File dirTest = new File(System.getProperty("java.io.tmpdir", "."),
-            "cert-store-test" + tempFileRandom.nextInt());
-    private final File dirSystem = new File(dirTest, "system");
-    private final File dirAdded = new File(dirTest, "added");
-    private final File dirDeleted = new File(dirTest, "removed");
+    private static File dirTest;
+    private static File dirSystem;
+    private static File dirAdded;
+    private static File dirDeleted;
 
     private static X509Certificate CA1;
     private static X509Certificate CA2;
@@ -390,9 +399,22 @@ public class TrustedCertificateStoreTest extends TestCase {
         }
     }
 
+    @Parameters(name = "{0}")
+    public static Object[] data() {
+        return new Object[] {"true", "false"};
+    }
+
+    @Parameter public String mApexCertsEnabled;
+
     private TrustedCertificateStore store;
 
-    @Override protected void setUp() {
+    @Before
+    @Override
+    public void setUp() throws Exception {
+        dirTest = Files.createTempDirectory("cert-store-test").toFile();
+        dirSystem = new File(dirTest, "system");
+        dirAdded = new File(dirTest, "added");
+        dirDeleted = new File(dirTest, "removed");
         setupStore();
     }
 
@@ -403,10 +425,13 @@ public class TrustedCertificateStoreTest extends TestCase {
     }
 
     private void createStore() {
+        System.setProperty("system.certs.enabled", mApexCertsEnabled);
         store = new TrustedCertificateStore(dirSystem, dirAdded, dirDeleted);
     }
 
-    @Override protected void tearDown() {
+    @After
+    @Override
+    public void tearDown() {
         cleanStore();
     }
 
@@ -428,10 +453,12 @@ public class TrustedCertificateStoreTest extends TestCase {
         setupStore();
     }
 
+    @Test
     public void testEmptyDirectories() throws Exception {
         assertEmpty();
     }
 
+    @Test
     public void testOneSystemOneDeleted() throws Exception {
         install(getCa1(), getAliasSystemCa1());
         store.deleteCertificateEntry(getAliasSystemCa1());
@@ -439,6 +466,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertDeleted(getCa1(), getAliasSystemCa1());
     }
 
+    @Test
     public void testTwoSystemTwoDeleted() throws Exception {
         install(getCa1(), getAliasSystemCa1());
         store.deleteCertificateEntry(getAliasSystemCa1());
@@ -449,6 +477,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertDeleted(getCa2(), getAliasSystemCa2());
     }
 
+    @Test
     public void testPartialFileIsIgnored() throws Exception {
         File file = file(getAliasSystemCa1());
         file.getParentFile().mkdirs();
@@ -521,26 +550,31 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertTrue(userFiles == null || userFiles.length == 0);
     }
 
+    @Test
     public void testTwoSystem() throws Exception {
         testTwo(getCa1(), getAliasSystemCa1(),
                 getCa2(), getAliasSystemCa2());
     }
 
+    @Test
     public void testTwoUser() throws Exception {
         testTwo(getCa1(), getAliasUserCa1(),
                 getCa2(), getAliasUserCa2());
     }
 
+    @Test
     public void testOneSystemOneUser() throws Exception {
         testTwo(getCa1(), getAliasSystemCa1(),
                 getCa2(), getAliasUserCa2());
     }
 
+    @Test
     public void testTwoSystemSameSubject() throws Exception {
         testTwo(getCa1(), getAliasSystemCa1(),
                 getCa3WithCa1Subject(), getAliasSystemCa3Collision());
     }
 
+    @Test
     public void testTwoUserSameSubject() throws Exception {
         testTwo(getCa1(), getAliasUserCa1(),
                 getCa3WithCa1Subject(), getAliasUserCa3Collision());
@@ -558,6 +592,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertEmpty();
     }
 
+    @Test
     public void testOneSystemOneUserSameSubject() throws Exception {
         testTwo(getCa1(), getAliasSystemCa1(),
                 getCa3WithCa1Subject(), getAliasUserCa3());
@@ -574,7 +609,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertAliases(alias1, alias2);
     }
 
-
+    @Test
     public void testOneSystemOneUserOneDeleted() throws Exception {
         install(getCa1(), getAliasSystemCa1());
         store.installCertificate(getCa2());
@@ -584,6 +619,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertAliases(getAliasUserCa2());
     }
 
+    @Test
     public void testOneSystemOneUserOneDeletedSameSubject() throws Exception {
         install(getCa1(), getAliasSystemCa1());
         store.installCertificate(getCa3WithCa1Subject());
@@ -593,6 +629,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertAliases(getAliasUserCa3());
     }
 
+    @Test
     public void testUserMaskingSystem() throws Exception {
         install(getCa1(), getAliasSystemCa1());
         install(getCa1(), getAliasUserCa1());
@@ -601,6 +638,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertAliases(getAliasSystemCa1(), getAliasUserCa1());
     }
 
+    @Test
     public void testChain() throws Exception {
         testChain(getAliasSystemChain1(), getAliasSystemChain2());
         testChain(getAliasSystemChain1(), getAliasUserChain2());
@@ -628,12 +666,14 @@ public class TrustedCertificateStoreTest extends TestCase {
         resetStore();
     }
 
+    @Test
     public void testMissingSystemDirectory() throws Exception {
         cleanStore();
         createStore();
         assertEmpty();
     }
 
+    @Test
     public void testWithExistingUserDirectories() throws Exception {
         dirAdded.mkdirs();
         dirDeleted.mkdirs();
@@ -642,6 +682,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertAliases(getAliasSystemCa1());
     }
 
+    @Test
     public void testIsTrustAnchorWithReissuedgetCa() throws Exception {
         PublicKey publicKey = getPrivate().getCertificate().getPublicKey();
         PrivateKey privateKey = getPrivate().getPrivateKey();
@@ -666,6 +707,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         resetStore();
     }
 
+    @Test
     public void testInstallEmpty() throws Exception {
         store.installCertificate(getCa1());
         assertRootCa(getCa1(), getAliasUserCa1());
@@ -677,6 +719,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertAliases(getAliasUserCa1());
     }
 
+    @Test
     public void testInstallEmptySystemExists() throws Exception {
         install(getCa1(), getAliasSystemCa1());
         assertRootCa(getCa1(), getAliasSystemCa1());
@@ -686,9 +729,9 @@ public class TrustedCertificateStoreTest extends TestCase {
         store.installCertificate(getCa1());
         assertRootCa(getCa1(), getAliasSystemCa1());
         assertAliases(getAliasSystemCa1());
-
     }
 
+    @Test
     public void testInstallEmptyDeletedSystemExists() throws Exception {
         install(getCa1(), getAliasSystemCa1());
         store.deleteCertificateEntry(getAliasSystemCa1());
@@ -701,12 +744,14 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertAliases(getAliasSystemCa1());
     }
 
+    @Test
     public void testDeleteEmpty() throws Exception {
         store.deleteCertificateEntry(getAliasSystemCa1());
         assertEmpty();
         assertDeleted(getCa1(), getAliasSystemCa1());
     }
 
+    @Test
     public void testDeleteUser() throws Exception {
         store.installCertificate(getCa1());
         assertRootCa(getCa1(), getAliasUserCa1());
@@ -718,6 +763,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertNoTombstone(getAliasUserCa1());
     }
 
+    @Test
     public void testDeleteSystem() throws Exception {
         install(getCa1(), getAliasSystemCa1());
         assertRootCa(getCa1(), getAliasSystemCa1());
@@ -733,6 +779,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertDeleted(getCa1(), getAliasSystemCa1());
     }
 
+    @Test
     public void testGetLoopedCert() throws Exception {
         install(getCertLoopEe(), getAliasCertLoopEe());
         install(getCertLoopCa1(), getAliasCertLoopCa1());
@@ -760,6 +807,7 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertEquals(getCertLoopCa2(), certs.get(2));
     }
 
+    @Test
     public void testIsUserAddedCertificate() throws Exception {
         assertFalse(store.isUserAddedCertificate(getCa1()));
         assertFalse(store.isUserAddedCertificate(getCa2()));
@@ -780,13 +828,25 @@ public class TrustedCertificateStoreTest extends TestCase {
         assertFalse(store.isUserAddedCertificate(getCa2()));
     }
 
+    @Test
     public void testSystemCaCertsUseCorrectFileNames() throws Exception {
-        TrustedCertificateStore store = new TrustedCertificateStore();
+        File dir = new File(System.getenv("ANDROID_ROOT") + "/etc/security/cacerts");
+        useCorrectFileNamesTest(dir);
+    }
+
+    @Test
+    public void testSystemCaCertsUseCorrectFileNamesUpdatable() throws Exception {
+        File dir = new File("/apex/com.android.conscrypt/cacerts");
+        useCorrectFileNamesTest(dir);
+    }
+
+    private void useCorrectFileNamesTest(File dir) throws Exception {
+        TrustedCertificateStore store = new TrustedCertificateStore(dir.getAbsoluteFile());
 
         // Assert that all the certificates in the system cacerts directory are stored in files with
         // expected names.
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-        File dir = new File(System.getenv("ANDROID_ROOT") + "/etc/security/cacerts");
+        assertTrue(dir.exists());
         int systemCertFileCount = 0;
         for (File actualFile : listFilesNoNull(dir)) {
             if (!actualFile.isFile()) {
@@ -797,19 +857,20 @@ public class TrustedCertificateStoreTest extends TestCase {
                     new ByteArrayInputStream(readFully(actualFile)));
 
             File expectedFile = store.getCertificateFile(dir, cert);
-            assertEquals("System certificate stored in the wrong file",
+            assertEquals("Updatable certificate stored in the wrong file",
                     expectedFile.getAbsolutePath(), actualFile.getAbsolutePath());
 
             // The two statements below indirectly assert that the certificate can be looked up
             // from a file (hopefully the same one as the expectedFile above). As opposed to
-            // getCertifiacteFile above, these are the actual methods used when verifying chain of
+            // getCertificateFile above, these are the actual methods used when verifying chain of
             // trust. Thus, we assert that they work as expected for all system certificates.
-            assertNotNull("Issuer certificate not found for system certificate " + actualFile,
+            assertNotNull("Issuer certificate not found for updatable certificate " + actualFile,
                     store.findIssuer(cert));
-            assertNotNull("Trust anchor not found for system certificate " + actualFile,
+            assertNotNull("Trust anchor not found for updatable certificate " + actualFile,
                     store.getTrustAnchor(cert));
         }
 
+        assertTrue(systemCertFileCount > 0);
         // Assert that all files corresponding to all system certs/aliases known to the store are
         // present.
         int systemCertAliasCount = 0;
@@ -833,6 +894,7 @@ public class TrustedCertificateStoreTest extends TestCase {
                 systemCertFileCount, systemCertAliasCount);
     }
 
+    @Test
     public void testMultipleIssuers() throws Exception {
         Set<X509Certificate> result;
         install(getMultipleIssuersCa1(), getAliasMultipleIssuersCa1());
