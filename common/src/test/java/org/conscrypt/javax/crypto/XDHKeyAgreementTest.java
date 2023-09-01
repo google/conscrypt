@@ -86,6 +86,10 @@ public class XDHKeyAgreementTest {
     public void test_XDHKeyAgreement() throws Exception {
         final String keyAgreementAlgorithm = String.format("KeyAgreement.%s", getAlgorithm());
         for (Provider p : Security.getProviders(keyAgreementAlgorithm)) {
+            // Skip testing Android Keystore as it's covered by CTS tests.
+            if ("AndroidKeyStore".equals(p.getName())) {
+                continue;
+            }
             setupKeys(p);
 
             KeyAgreement ka = KeyAgreement.getInstance(getAlgorithm(), p);
