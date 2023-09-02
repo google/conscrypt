@@ -29,6 +29,16 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
+ * Hkdf - perform HKDF ket extraction operations as per RFC 5869.
+ * <p>
+ * Instances should be instantiated using the standard JCA name for the required HMAC and
+ * optionally the name of an installed security Provider from which to retrieve Mac instances.
+ * <p>
+ * If no Provider is specified then this class will try and locate an installed Conscrypt
+ * Provider and if that fails it will instantiate (but not install) one.
+ * <p>
+ * Each invocation of expand or extract uses a new Mac instance and so instances
+ * of Hkdf are thread-safe.
  */
 public final class Hkdf {
     // HMAC algorithm to use.
