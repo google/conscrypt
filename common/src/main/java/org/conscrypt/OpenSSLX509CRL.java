@@ -49,7 +49,7 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
  * An implementation of {@link X509CRL} based on BoringSSL.
  */
 final class OpenSSLX509CRL extends X509CRL {
-    private final long mContext;
+    private volatile long mContext;
     private final Date thisUpdate;
     private final Date nextUpdate;
 
@@ -415,7 +415,9 @@ final class OpenSSLX509CRL extends X509CRL {
     protected void finalize() throws Throwable {
         try {
             if (mContext != 0) {
-                NativeCrypto.X509_CRL_free(mContext, this);
+                long toFree = mContext;
+                mContext = 0;
+                NativeCrypto.X509_CRL_free(toFree, this);
             }
         } finally {
             super.finalize();
