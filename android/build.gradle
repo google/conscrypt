@@ -62,7 +62,6 @@ if (androidSdkInstalled) {
                             '-D_XOPEN_SOURCE=700',
                             '-Wno-unused-parameter'
                     targets 'conscrypt_jni'
-                    version androidCmakeVersion
                 }
             }
             ndk {
