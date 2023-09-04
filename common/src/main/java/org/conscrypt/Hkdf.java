@@ -177,32 +177,43 @@ public final class Hkdf {
         Preconditions.checkArgument(length >= 0, "Negative length");
         Preconditions.checkArgument(length < 255 * getMacLength(), "Length too long");
         Mac mac = getMac(prk);
+        int macLength = getMacLength();
+
+        // buffer[] is used for the data to be hashed each round
+        int bufferLength = info.length + 1;                // Initially t.length = 0
+        int maxBufferLength = macLength + info.length + 1; // Later, t.length = macLength
+        byte[] buffer = new byte[bufferLength];
 
         byte[] t = new byte[0];
-        byte[] output = new byte[0];
+        byte[] output = new byte[length];
+        int outputOffset = 0;
         byte[] counter = new byte[] { 0x00 };
-        while (output.length < length) {
+        while (outputOffset < length) {
             counter[0]++;
-            byte[] data = concat(t, info, counter);
-            t = mac.doFinal(data);
-            output = concat(output,
-                Arrays.copyOfRange(t, 0, Math.min(getMacLength(), length - output.length)));
+            t = mac.doFinal(concat(buffer, t, info, counter));
+            int size = Math.min(macLength, length - outputOffset);
+            System.arraycopy(t, 0, output, outputOffset, size);
+            outputOffset += size;
+
+            // Re-allocate data buffer if needed (will only happen once, on iteration 2)
+            if (bufferLength != maxBufferLength) {
+                bufferLength = maxBufferLength;
+                buffer = new byte[bufferLength];
+            }
         }
         return output;
     }
 
-    private byte[] concat(byte[]... arrays) {
-        int length = 0;
-        for (byte[] array : arrays) {
-            length += array.length;
-        }
-        byte[] result = new byte[length];
+    private byte[] concat(byte[] target, byte[]... sources) {
         int offset = 0;
-        for (byte[] array : arrays) {
-            System.arraycopy(array, 0, result, offset, array.length);
-            offset += array.length;
+        for (byte[] source : sources) {
+            System.arraycopy(source, 0, target, offset, source.length);
+            offset += source.length;
         }
-        return result;
+        if (offset != target.length) {
+            throw new IllegalStateException("concat() error");
+        }
+        return target;
     }
 
     private Mac getMac(byte[] key) throws InvalidKeyException {
