@@ -103,7 +103,7 @@ if (androidSdkInstalled) {
     }
 
     dependencies {
-        api project(':conscrypt-common')
+        implementation project(':conscrypt-common')
 
         publicApiDocs project(':conscrypt-api-doclet')
 
