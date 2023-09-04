@@ -414,8 +414,8 @@ final class OpenSSLX509CRL extends X509CRL {
     @SuppressWarnings("deprecation")
     protected void finalize() throws Throwable {
         try {
-            if (mContext != 0) {
-                long toFree = mContext;
+            long toFree = mContext;
+            if (toFree != 0) {
                 mContext = 0;
                 NativeCrypto.X509_CRL_free(toFree, this);
             }

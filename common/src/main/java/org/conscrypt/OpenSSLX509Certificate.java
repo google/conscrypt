@@ -577,8 +577,8 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     @SuppressWarnings("deprecation")
     protected void finalize() throws Throwable {
         try {
-            if (mContext != 0) {
-                long toFree = mContext;
+            long toFree = mContext;
+            if (toFree != 0) {
                 mContext = 0;
                 NativeCrypto.X509_free(toFree, this);
             }
