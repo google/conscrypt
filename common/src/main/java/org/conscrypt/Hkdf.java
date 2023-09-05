@@ -152,10 +152,10 @@ public final class Hkdf {
     public byte[] extract(byte[] salt, byte[] ikm) throws InvalidKeyException {
         Objects.requireNonNull(salt);
         Objects.requireNonNull(ikm);
+        Preconditions.checkArgument(ikm.length > 0, "Empty keying material");
         if (salt.length == 0) {
             salt = new byte[getMacLength()];
         }
-        Preconditions.checkArgument(ikm.length > 0, "Empty keying material");
         Mac mac = getMac(salt);
         return mac.doFinal(ikm);
     }
@@ -211,7 +211,9 @@ public final class Hkdf {
             offset += source.length;
         }
         if (offset != target.length) {
-            throw new IllegalStateException("concat() error");
+            throw new IllegalStateException(
+                String.format("concat() error: target length = %d, source length = %d",
+                    target.length, offset));
         }
         return target;
     }
