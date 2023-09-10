@@ -131,7 +131,6 @@ public class HkdfTest {
         // Length too large
         assertThrows(IllegalArgumentException.class,
             () -> hkdf.expand(new byte[macLen], new byte[0], 255 * macLen + 1));
-
     }
 
     @Test

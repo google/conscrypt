@@ -29,7 +29,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Hkdf - perform HKDF ket extraction operations as per RFC 5869.
+ * Hkdf - perform HKDF key extraction operations as per RFC 5869.
  * <p>
  * Instances should be instantiated using the standard JCA name for the required HMAC and
  * optionally the name of an installed security Provider from which to retrieve Mac instances.
@@ -55,7 +55,7 @@ public final class Hkdf {
      * <p>
      * The Hkdf instace will try and obtain Mac instances from an installed Conscrypt Provider with
      * the same name as this Conscrypt instance would use. Failing that it will look for
-     * different flavous of Conscrypt that have been installed as Providers, and failing that
+     * different flavours of Conscrypt that have been installed as Providers, and failing that
      * it will instantiate a private instance of this Conscrypt.
      *
      * @param hmacName the name of the HMAC algorithm to use
@@ -156,8 +156,7 @@ public final class Hkdf {
         if (salt.length == 0) {
             salt = new byte[getMacLength()];
         }
-        Mac mac = getMac(salt);
-        return mac.doFinal(ikm);
+        return getMac(salt).doFinal(ikm);
     }
 
     /**
@@ -179,43 +178,20 @@ public final class Hkdf {
         Mac mac = getMac(prk);
         int macLength = getMacLength();
 
-        // buffer[] is used for the data to be hashed each round
-        int bufferLength = info.length + 1;                // Initially t.length = 0
-        int maxBufferLength = macLength + info.length + 1; // Later, t.length = macLength
-        byte[] buffer = new byte[bufferLength];
-
         byte[] t = new byte[0];
         byte[] output = new byte[length];
         int outputOffset = 0;
         byte[] counter = new byte[] { 0x00 };
         while (outputOffset < length) {
             counter[0]++;
-            t = mac.doFinal(concat(buffer, t, info, counter));
+            mac.update(t);
+            mac.update(info);
+            t = mac.doFinal(counter);
             int size = Math.min(macLength, length - outputOffset);
             System.arraycopy(t, 0, output, outputOffset, size);
             outputOffset += size;
-
-            // Re-allocate data buffer if needed (will only happen once, on iteration 2)
-            if (bufferLength != maxBufferLength) {
-                bufferLength = maxBufferLength;
-                buffer = new byte[bufferLength];
-            }
         }
         return output;
-    }
-
-    private byte[] concat(byte[] target, byte[]... sources) {
-        int offset = 0;
-        for (byte[] source : sources) {
-            System.arraycopy(source, 0, target, offset, source.length);
-            offset += source.length;
-        }
-        if (offset != target.length) {
-            throw new IllegalStateException(
-                String.format("concat() error: target length = %d, source length = %d",
-                    target.length, offset));
-        }
-        return target;
     }
 
     private Mac getMac(byte[] key) throws InvalidKeyException {
@@ -224,7 +200,7 @@ public final class Hkdf {
             mac.init(new SecretKeySpec(key, "RAW"));
             return mac; // https://www.youtube.com/watch?v=uB1D9wWxd2w
         } catch (NoSuchAlgorithmException e) {
-            // In theory, can't happen
+            // In theory, can't happen.
             throw new IllegalStateException("No longer able to locate " + hmacName);
         }
     }
