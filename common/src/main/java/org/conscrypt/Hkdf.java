@@ -18,24 +18,15 @@ package org.conscrypt;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.Provider;
-import java.security.Security;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Hkdf - perform HKDF key extraction operations as per RFC 5869.
+ * Hkdf - perform HKDF key derivation operations per RFC 5869.
  * <p>
- * Instances should be instantiated using the standard JCA name for the required HMAC and
- * optionally the name of an installed security Provider from which to retrieve Mac instances.
- * <p>
- * If no Provider is specified then this class will try and locate an installed Conscrypt
- * Provider and if that fails it will instantiate (but not install) one.
+ * Instances should be instantiated using the standard JCA name for the required HMAC.
  * <p>
  * Each invocation of expand or extract uses a new Mac instance and so instances
  * of Hkdf are thread-safe.
@@ -43,96 +34,21 @@ import javax.crypto.spec.SecretKeySpec;
 public final class Hkdf {
     // HMAC algorithm to use.
     private final String hmacName;
-    // Provider to use for getting Mac instances
-    private final Provider provider;
-
-    // Output length for the Mac in use.
     private final int macLength;
 
     /**
      * Creates an Hkdf instance which will use hmacName as the name for the underlying
-     * HMAC algorithm.
+     * HMAC algorithm, which will be located using normal JCA precedence rules.
      * <p>
-     * The Hkdf instace will try and obtain Mac instances from an installed Conscrypt Provider with
-     * the same name as this Conscrypt instance would use. Failing that it will look for
-     * different flavours of Conscrypt that have been installed as Providers, and failing that
-     * it will instantiate a private instance of this Conscrypt.
-     *
      * @param hmacName the name of the HMAC algorithm to use
-     *
      * @throws NoSuchAlgorithmException if hmacName is not a valid HMAC name
      */
-    public Hkdf(String hmacName) throws NoSuchProviderException, NoSuchAlgorithmException {
-        this(hmacName, (String) null);
-    }
-
-    /**
-     * Creates an Hkdf instance which will use hmacName as the name for the underlying
-     * HMAC algorithm to obtain from the specified Provider.
-     * <p>
-     * The Hkdf instance will try and obtain Mac instances from an installed Provider with
-     * the name providerName.
-     *
-     * @param hmacName the name of the HMAC algorithm to use
-     * @param providerName the name of the Provider to use
-     * @throws NoSuchProviderException if an invalid Provider name was supplied
-     * @throws NoSuchAlgorithmException if hmacName is not a valid HMAC name
-     */
-    public Hkdf(String hmacName, String providerName)
-        throws NoSuchProviderException, NoSuchAlgorithmException {
-        this(hmacName, findProvider(providerName));
-    }
-
-    /**
-     * Creates an Hkdf instance which will use hmacName as the name for the underlying
-     * HMAC algorithm to obtain from the specified Provider.
-     * <p>
-     * The Hkdf instance will try and obtain Mac instances from the specified Provider which
-     * does not need to be installed as a JVM-wide Provider.
-     *
-     * @param hmacName the name of the HMAC algorithm to use
-     * @param provider the Provider to use
-     * @throws NoSuchAlgorithmException if hmacName is not a valid HMAC name
-     */
-    public Hkdf(String hmacName, Provider provider) throws NoSuchAlgorithmException {
+    public Hkdf(String hmacName) throws  NoSuchAlgorithmException {
         Objects.requireNonNull(hmacName);
-        Objects.requireNonNull(provider);
         this.hmacName = hmacName;
-        this.provider = provider;
 
         // Stash the MAC length with the bonus that we'll fail fast here if no such algorithm.
-        macLength = Mac.getInstance(hmacName, provider).getMacLength();
-    }
-
-    private static Provider findProvider(String requestedName) throws NoSuchProviderException {
-        if (requestedName != null) {
-            Provider provider = Security.getProvider(requestedName);
-            if (provider != null) {
-                return provider;
-            }
-            throw new NoSuchProviderException();
-        }
-        // If no Provider name was supplied, look for possible Conscrypt Providers
-        // in order of preference.
-        List<String> candidates = Arrays.asList(
-            Platform.getDefaultProviderName(), // Our own platform's Provider name
-            "Conscrypt",                       // Android unbundled or OpenJDK
-            "GmsCore_OpenSSL",                 // Google Play Services
-            "AndroidOpenSSL");                 // Android platform
-        for (String candidate : candidates) {
-            Provider provider = Security.getProvider(candidate);
-            if (provider != null) {
-                return provider;
-            }
-        }
-        // No user requested Provider and no Conscrypt Provider installed so instantiate one
-        // for our private use but don't install it.
-        return Conscrypt.newProvider();
-    }
-
-    // Visible for testing.
-    Provider getProvider() {
-        return provider;
+        macLength = Mac.getInstance(hmacName).getMacLength();
     }
 
     // Visible for testing.
@@ -147,9 +63,11 @@ public final class Hkdf {
      * @param ikm initial keying material
      * @return a pseudorandom key suitable for use in expand operations
      * @throws InvalidKeyException if the salt is not suitable for use as an HMAC key
+     * @throws NoSuchAlgorithmException if the Mac algorithm is no longer available
      */
 
-    public byte[] extract(byte[] salt, byte[] ikm) throws InvalidKeyException {
+    public byte[] extract(byte[] salt, byte[] ikm)
+        throws InvalidKeyException, NoSuchAlgorithmException {
         Objects.requireNonNull(salt);
         Objects.requireNonNull(ikm);
         Preconditions.checkArgument(ikm.length > 0, "Empty keying material");
@@ -169,8 +87,10 @@ public final class Hkdf {
      * @return output of keying material of length bytes
      * @throws InvalidKeyException if prk is not suitable for use as an HMAC key
      * @throws IllegalArgumentException if length is out of the allowed range
+     * @throws NoSuchAlgorithmException if the Mac algorithm is no longer available
      */
-    public byte[] expand(byte[] prk, byte[] info, int length) throws InvalidKeyException {
+    public byte[] expand(byte[] prk, byte[] info, int length)
+        throws InvalidKeyException, NoSuchAlgorithmException {
         Objects.requireNonNull(prk);
         Objects.requireNonNull(info);
         Preconditions.checkArgument(length >= 0, "Negative length");
@@ -194,14 +114,11 @@ public final class Hkdf {
         return output;
     }
 
-    private Mac getMac(byte[] key) throws InvalidKeyException {
-        try {
-            Mac mac = Mac.getInstance(hmacName, provider);
-            mac.init(new SecretKeySpec(key, "RAW"));
-            return mac; // https://www.youtube.com/watch?v=uB1D9wWxd2w
-        } catch (NoSuchAlgorithmException e) {
-            // In theory, can't happen.
-            throw new IllegalStateException("No longer able to locate " + hmacName);
-        }
+    private Mac getMac(byte[] key) throws InvalidKeyException, NoSuchAlgorithmException {
+        // Can potentially throw NoSuchAlgorithmException if the there has been a change
+        // in installed Providers.
+        Mac mac = Mac.getInstance(hmacName);
+        mac.init(new SecretKeySpec(key, "RAW"));
+        return mac; // https://www.youtube.com/watch?v=uB1D9wWxd2w
     }
 }
