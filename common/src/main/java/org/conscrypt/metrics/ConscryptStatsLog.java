@@ -37,10 +37,10 @@ public final class ConscryptStatsLog {
 
     private ConscryptStatsLog() {}
 
-    public static void write(
-            int atomId, boolean success, int protocol, int cipherSuite, int duration, Source source) {
+    public static void write(int atomId, boolean success, int protocol, int cipherSuite,
+            int duration, Source source, int[] uids) {
         ReflexiveStatsEvent event = ReflexiveStatsEvent.buildEvent(
-                atomId, success, protocol, cipherSuite, duration, source.ordinal());
+                atomId, success, protocol, cipherSuite, duration, source.ordinal(), uids);
 
         ReflexiveStatsLog.write(event);
     }
