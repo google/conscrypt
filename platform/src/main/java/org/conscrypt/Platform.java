@@ -265,14 +265,6 @@ final class Platform {
     }
 
     /**
-     * Wraps an old AndroidOpenSSL key instance. This is not needed on platform
-     * builds since we didn't backport, so return null.
-     */
-    static OpenSSLKey wrapRsaKey(PrivateKey key) {
-        return null;
-    }
-
-    /**
      * Logs to the system EventLog system.
      */
     static void logEvent(String message) {
