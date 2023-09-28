@@ -457,28 +457,6 @@ final class Platform {
         }
     }
 
-    /**
-     * Logs to the system EventLog system.
-     */
-    @SuppressWarnings("LiteralClassName")
-    public static void logEvent(String message) {
-        try {
-            Class<?> processClass = Class.forName("android.os.Process");
-            Object processInstance = processClass.getDeclaredConstructor().newInstance();
-            Method myUidMethod = processClass.getMethod("myUid", (Class[]) null);
-            int uid = (Integer) myUidMethod.invoke(processInstance);
-
-            Class<?> eventLogClass = Class.forName("android.util.EventLog");
-            Object eventLogInstance = eventLogClass.getDeclaredConstructor().newInstance();
-            Method writeEventMethod =
-                    eventLogClass.getMethod("writeEvent", Integer.TYPE, Object[].class);
-            writeEventMethod.invoke(eventLogInstance, 0x534e4554 /* SNET */,
-                    new Object[] {"conscrypt", uid, message});
-        } catch (Exception e) {
-            // Fail silently
-        }
-    }
-
     static SSLEngine wrapEngine(ConscryptEngine engine) {
         // For now, don't wrap on Android.
         return engine;

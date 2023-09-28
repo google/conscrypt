@@ -246,16 +246,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                         return;
                     }
                 }
-
-                // Write CCS errors to EventLog
-                String message = e.getMessage();
-                // Must match error string of SSL_R_UNEXPECTED_CCS
-                if (message.contains("unexpected CCS")) {
-                    String logMessage =
-                            String.format("ssl_unexpected_ccs: host=%s", getHostnameOrIP());
-                    Platform.logEvent(logMessage);
-                }
-
                 throw e;
             }
 
