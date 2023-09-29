@@ -344,12 +344,6 @@ final class Platform {
     }
 
     /**
-     * Logs to the system EventLog system.
-     */
-    @SuppressWarnings("unused")
-    static void logEvent(@SuppressWarnings("unused") String message) {}
-
-    /**
      * For unbundled versions, SNI is always enabled by default.
      */
     @SuppressWarnings("unused")

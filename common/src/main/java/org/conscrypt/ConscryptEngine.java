@@ -441,13 +441,6 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             handshake();
             releaseResources = false;
         } catch (IOException e) {
-            // Write CCS errors to EventLog
-            String message = e.getMessage();
-            // Must match error reason string of SSL_R_UNEXPECTED_CCS (in ssl/ssl_err.c)
-            if (message.contains("unexpected CCS")) {
-                String logMessage = String.format("ssl_unexpected_ccs: host=%s", getPeerHost());
-                Platform.logEvent(logMessage);
-            }
             closeAll();
             throw SSLUtils.toSSLHandshakeException(e);
         } finally {
