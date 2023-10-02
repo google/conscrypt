@@ -36,6 +36,9 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECKey;
 import java.security.spec.ECParameterSpec;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
@@ -64,13 +67,19 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                    SSLParametersImpl.AliasChooser {
     private static final boolean DBG_STATE = false;
 
-    // @GuardedBy("ssl");
+    // @GuardedBy("sslLock")
     private int state = STATE_NEW;
 
     /**
      * Wrapper around the underlying SSL object.
      */
     private final NativeSsl ssl;
+
+    /**
+     * Lock used for {@link #ssl} access.
+     */
+    private final Lock sslLock = new ReentrantLock();
+    private final Condition sslLockCondition = sslLock.newCondition();
 
     /**
      * Protected by synchronizing on ssl. Starts as null, set by
@@ -183,7 +192,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     @Override
     public final void startHandshake() throws IOException {
         checkOpen();
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state == STATE_NEW) {
                 transitionTo(STATE_HANDSHAKE_STARTED);
             } else {
@@ -191,6 +201,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 // Do nothing in both cases.
                 return;
             }
+        } finally {
+            sslLock.unlock();
         }
 
         boolean releaseResources = true;
@@ -218,10 +230,13 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 setSoWriteTimeout(handshakeTimeoutMilliseconds);
             }
 
-            synchronized (ssl) {
+            sslLock.lock();
+            try {
                 if (state == STATE_CLOSED) {
                     return;
                 }
+            } finally {
+                sslLock.unlock();
             }
 
             try {
@@ -241,18 +256,24 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 // (or WANT_WRITE). Catching that exception here doesn't seem much worse than
                 // changing the native code to return a "special" native pointer value when that
                 // happens.
-                synchronized (ssl) {
+                sslLock.lock();
+                try {
                     if (state == STATE_CLOSED) {
                         return;
                     }
+                } finally {
+                    sslLock.unlock();
                 }
                 throw e;
             }
 
-            synchronized (ssl) {
+            sslLock.lock();
+            try {
                 if (state == STATE_CLOSED) {
                     return;
                 }
+            } finally {
+                sslLock.unlock();
             }
 
             // Restore the original timeout now that the handshake is complete
@@ -261,7 +282,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 setSoWriteTimeout(savedWriteTimeoutMilliseconds);
             }
 
-            synchronized (ssl) {
+            sslLock.lock();
+            try {
                 releaseResources = (state == STATE_CLOSED);
 
                 if (state == STATE_HANDSHAKE_STARTED) {
@@ -273,22 +295,27 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 if (!releaseResources) {
                     // Unblock threads that are waiting for our state to transition
                     // into STATE_READY or STATE_READY_HANDSHAKE_CUT_THROUGH.
-                    ssl.notifyAll();
+                    sslLockCondition.signalAll();
                 }
+            } finally {
+                sslLock.unlock();
             }
         } catch (SSLProtocolException e) {
             throw(SSLHandshakeException) new SSLHandshakeException("Handshake failed").initCause(e);
         } finally {
             // on exceptional exit, treat the socket as closed
             if (releaseResources) {
-                synchronized (ssl) {
+                sslLock.lock();
+                try {
                     // Mark the socket as closed since we might have reached this as
                     // a result on an exception thrown by the handshake process.
                     //
                     // The state will already be set to closed if we reach this as a result of
                     // an early return or an interruption due to a concurrent call to close().
                     transitionTo(STATE_CLOSED);
-                    ssl.notifyAll();
+                    sslLockCondition.signalAll();
+                } finally {
+                    sslLock.unlock();
                 }
 
                 try {
@@ -329,7 +356,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         }
 
         // First, update the state.
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state == STATE_CLOSED) {
                 // Someone called "close" but the handshake hasn't been interrupted yet.
                 return;
@@ -338,14 +366,19 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             // Now that we've fixed up our state, we can tell waiting threads that
             // we're ready.
             transitionTo(STATE_READY);
+        } finally {
+            sslLock.unlock();
         }
 
         // Let listeners know we are finally done
         notifyHandshakeCompletedListeners();
 
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             // Notify all threads waiting for the handshake to complete.
-            ssl.notifyAll();
+            sslLockCondition.signalAll();
+        } finally {
+            sslLock.unlock();
         }
     }
 
@@ -379,8 +412,11 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     public final void serverCertificateRequested() throws IOException {
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             ssl.configureServerCertificate();
+        } finally {
+            sslLock.unlock();
         }
     }
 
@@ -418,7 +454,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         checkOpen();
 
         InputStream returnVal;
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state == STATE_CLOSED) {
                 throw new SocketException("Socket is closed.");
             }
@@ -428,6 +465,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             }
 
             returnVal = is;
+        } finally {
+            sslLock.unlock();
         }
 
         // Block waiting for a handshake without a lock held. It's possible that the socket
@@ -442,7 +481,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         checkOpen();
 
         OutputStream returnVal;
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state == STATE_CLOSED) {
                 throw new SocketException("Socket is closed.");
             }
@@ -452,6 +492,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             }
 
             returnVal = os;
+        } finally {
+            sslLock.unlock();
         }
 
         // Block waiting for a handshake without a lock held. It's possible that the socket
@@ -472,12 +514,13 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     private void waitForHandshake() throws IOException {
         startHandshake();
 
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             while (state != STATE_READY &&
                     state != STATE_READY_HANDSHAKE_CUT_THROUGH &&
                     state != STATE_CLOSED) {
                 try {
-                    ssl.wait();
+                    sslLockCondition.await();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new IOException("Interrupted waiting for handshake", e);
@@ -487,6 +530,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             if (state == STATE_CLOSED) {
                 throw new SocketException("Socket is closed");
             }
+        } finally {
+            sslLock.unlock();
         }
     }
 
@@ -501,7 +546,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
          * make sure we serialize callers of SSL_read. Thread is already
          * expected to have completed handshaking.
          */
-        private final Object readLock = new Object();
+        private final Lock readLock = new ReentrantLock();
 
         SSLInputStream() {
         }
@@ -532,8 +577,10 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 return 0;
             }
 
-            synchronized (readLock) {
-                synchronized (ssl) {
+            readLock.lock();
+            try {
+                sslLock.lock();
+                try {
                     if (state == STATE_CLOSED) {
                         throw new SocketException("socket is closed");
                     }
@@ -541,18 +588,25 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                     if (DBG_STATE) {
                         assertReadableOrWriteableState();
                     }
+                } finally {
+                    sslLock.unlock();
                 }
 
                 int ret =  ssl.read(
                         Platform.getFileDescriptor(socket), buf, offset, byteCount, getSoTimeout());
                 if (ret == -1) {
-                    synchronized (ssl) {
+                    sslLock.lock();
+                    try {
                         if (state == STATE_CLOSED) {
                             throw new SocketException("socket is closed");
                         }
+                    } finally {
+                        sslLock.unlock();
                     }
                 }
                 return ret;
+            } finally {
+                readLock.unlock();
             }
         }
 
@@ -563,14 +617,22 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
         void awaitPendingOps() {
             if (DBG_STATE) {
-                synchronized (ssl) {
+                sslLock.lock();
+                try {
                     if (state != STATE_CLOSED) {
                         throw new AssertionError("State is: " + state);
                     }
+                } finally {
+                    sslLock.unlock();
                 }
             }
 
-            synchronized (readLock) {}
+            readLock.lock();
+            try {
+                // Satisfy https://errorprone.info/bugpattern/LockNotBeforeTry
+            } finally {
+                readLock.unlock();
+            }
         }
     }
 
@@ -585,7 +647,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
          * to make sure we serialize callers of SSL_write. Thread is
          * already expected to have completed handshaking.
          */
-        private final Object writeLock = new Object();
+        private final Lock writeLock = new ReentrantLock();
 
         SSLOutputStream() {
         }
@@ -614,8 +676,10 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 return;
             }
 
-            synchronized (writeLock) {
-                synchronized (ssl) {
+            writeLock.lock();
+            try {
+                sslLock.lock();
+                try {
                     if (state == STATE_CLOSED) {
                         throw new SocketException("socket is closed");
                     }
@@ -623,29 +687,44 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                     if (DBG_STATE) {
                         assertReadableOrWriteableState();
                     }
+                } finally {
+                    sslLock.unlock();
                 }
 
                 ssl.write(Platform.getFileDescriptor(socket), buf, offset, byteCount,
                         writeTimeoutMilliseconds);
 
-                synchronized (ssl) {
+                sslLock.lock();
+                try {
                     if (state == STATE_CLOSED) {
                         throw new SocketException("socket is closed");
                     }
+                } finally {
+                    sslLock.unlock();
                 }
+            } finally {
+                writeLock.unlock();
             }
         }
 
         void awaitPendingOps() {
             if (DBG_STATE) {
-                synchronized (ssl) {
+                sslLock.lock();
+                try {
                     if (state != STATE_CLOSED) {
                         throw new AssertionError("State is: " + state);
                     }
+                } finally {
+                    sslLock.unlock();
                 }
             }
 
-            synchronized (writeLock) {}
+            writeLock.lock();
+            try {
+                // Satisfy https://errorprone.info/bugpattern/LockNotBeforeTry
+            } finally {
+                writeLock.unlock();
+            }
         }
     }
 
@@ -656,7 +735,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     private ConscryptSession provideSession() {
         boolean handshakeCompleted = false;
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state == STATE_CLOSED) {
                 return closedSession != null ? closedSession : SSLNullSession.getNullSession();
             }
@@ -670,6 +750,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             } catch (IOException e) {
                 // Fall through.
             }
+        } finally {
+            sslLock.unlock();
         }
 
         if (!handshakeCompleted) {
@@ -691,9 +773,12 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     // If handshake is in progress, provide active session otherwise a null session.
     private ConscryptSession provideHandshakeSession() {
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY ? activeSession
                 : SSLNullSession.getNullSession();
+        } finally {
+            sslLock.unlock();
         }
     }
 
@@ -704,7 +789,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     public final SSLSession getHandshakeSession() {
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state >= STATE_HANDSHAKE_STARTED && state < STATE_READY) {
                 return Platform.wrapSSLSession(new ExternalSession(new ExternalSession.Provider() {
                     @Override
@@ -714,6 +800,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 }));
             }
             return null;
+        } finally {
+            sslLock.unlock();
         }
     }
 
@@ -793,12 +881,15 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             throw new IllegalStateException("Client mode");
         }
 
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state != STATE_NEW) {
                 throw new IllegalStateException(
                         "Could not enable/disable Channel ID after the initial handshake has"
                                 + " begun.");
             }
+        } finally {
+            sslLock.unlock();
         }
         sslParameters.channelIdEnabled = enabled;
     }
@@ -819,11 +910,14 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             throw new IllegalStateException("Client mode");
         }
 
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state != STATE_READY) {
                 throw new IllegalStateException(
                         "Channel ID is only available after handshake completes");
             }
+        } finally {
+            sslLock.unlock();
         }
         return ssl.getTlsChannelId();
     }
@@ -846,12 +940,15 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             throw new IllegalStateException("Server mode");
         }
 
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state != STATE_NEW) {
                 throw new IllegalStateException(
                         "Could not change Channel ID private key after the initial handshake has"
                                 + " begun.");
             }
+        } finally {
+            sslLock.unlock();
         }
 
         if (privateKey == null) {
@@ -884,10 +981,13 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     byte[] exportKeyingMaterial(String label, byte[] context, int length) throws SSLException {
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state < STATE_HANDSHAKE_COMPLETED || state == STATE_CLOSED) {
                 return null;
             }
+        } finally {
+            sslLock.unlock();
         }
         return ssl.exportKeyingMaterial(label, context, length);
     }
@@ -899,11 +999,14 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     public final void setUseClientMode(boolean mode) {
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state != STATE_NEW) {
                 throw new IllegalArgumentException(
                         "Could not change the mode after the initial handshake has begun.");
             }
+        } finally {
+            sslLock.unlock();
         }
         sslParameters.setUseClientMode(mode);
     }
@@ -969,7 +1072,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             return;
         }
 
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             if (state == STATE_CLOSED) {
                 // close() has already been called, so do nothing and return.
                 return;
@@ -985,7 +1089,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 free();
                 closeUnderlyingSocket();
 
-                ssl.notifyAll();
+                sslLockCondition.signalAll();
                 return;
             }
 
@@ -996,15 +1100,17 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 // after SSL_do_handshake returns, so we don't have anything to do here.
                 ssl.interrupt();
 
-                ssl.notifyAll();
+                sslLockCondition.signalAll();
                 return;
             }
 
-            ssl.notifyAll();
+            sslLockCondition.signalAll();
             // We've already returned from startHandshake, so we potentially have
             // input and output streams to clean up.
             sslInputStream = is;
             sslOutputStream = os;
+        } finally {
+            sslLock.unlock();
         }
 
         // Don't bother interrupting unless we have something to interrupt.
@@ -1077,8 +1183,11 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 Platform.closeGuardWarnIfOpen(guard);
             }
             if (ssl != null) {
-                synchronized (ssl) {
+                sslLock.lock();
+                try {
                     transitionTo(STATE_CLOSED);
+                } finally {
+                    sslLock.unlock();
                 }
             }
         } finally {
@@ -1123,9 +1232,12 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     public final String getHandshakeApplicationProtocol() {
-        synchronized (ssl) {
+        sslLock.lock();
+        try {
             return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY
                 ? getApplicationProtocol() : null;
+        } finally {
+            sslLock.unlock();
         }
     }
 
