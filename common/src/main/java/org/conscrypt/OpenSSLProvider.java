@@ -515,9 +515,16 @@ public final class OpenSSLProvider extends Provider {
         putMacImplClass("AESCMAC", "OpenSSLMac$AesCmac");
 
         /* === Certificate === */
-
         put("CertificateFactory.X509", PREFIX + "OpenSSLX509CertificateFactory");
         put("Alg.Alias.CertificateFactory.X.509", "X509");
+
+        /* === HPKE - Conscrypt internal only === */
+        put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_128_GCM",
+            PREFIX + "HpkeImpl$X25519_AES_128");
+        put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_256_GCM",
+            PREFIX + "HpkeImpl$X25519_AES_256");
+        put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/CHACHA20POLY1305",
+            PREFIX + "HpkeImpl$X25519_CHACHA20");
     }
 
     private void putMacImplClass(String algorithm, String className) {

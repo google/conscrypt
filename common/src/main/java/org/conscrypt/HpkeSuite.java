@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
@@ -66,6 +67,18 @@ public final class HpkeSuite {
         mKem = convertKem(kem);
         mKdf = convertKdf(kdf);
         mAead = convertAead(aead);
+    }
+
+    public HpkeSuite(KEM kem, KDF kdf, AEAD aead) {
+        mKem = kem;
+        mKdf = kdf;
+        mAead = aead;
+    }
+
+
+    public String name() {
+        return String.format("%s/%s/%s",
+            mKem.name(), mKdf.name(), mAead.name());
     }
 
     /**
@@ -198,10 +211,10 @@ public final class HpkeSuite {
          *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-algorithm-identifiers">expected
          *         pk size</a>
          */
-        byte[] validatePublicKeyTypeAndGetRawKey(PublicKey publicKey) {
+        byte[] validatePublicKeyTypeAndGetRawKey(PublicKey publicKey) throws InvalidKeyException {
             Preconditions.checkNotNull(publicKey, "publicKey");
             if (!(publicKey instanceof OpenSSLX25519PublicKey)) {
-                throw new IllegalArgumentException(
+                throw new InvalidKeyException(
                         "Public key algorithm " + publicKey.getAlgorithm() + " is not supported");
             }
 
@@ -217,10 +230,10 @@ public final class HpkeSuite {
          *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-algorithm-identifiers">expected
          *         sk size</a>
          */
-        byte[] validatePrivateKeyTypeAndGetRawKey(PrivateKey privateKey) {
+        byte[] validatePrivateKeyTypeAndGetRawKey(PrivateKey privateKey) throws InvalidKeyException {
             Preconditions.checkNotNull(privateKey, "privateKey");
             if (!(privateKey instanceof OpenSSLX25519PrivateKey)) {
-                throw new IllegalArgumentException(
+                throw new InvalidKeyException(
                         "Private key algorithm " + privateKey.getAlgorithm() + " is not supported");
             }
 

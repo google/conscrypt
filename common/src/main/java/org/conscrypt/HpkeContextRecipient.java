@@ -16,20 +16,21 @@
 
 package org.conscrypt;
 
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
-import org.conscrypt.NativeRef.EVP_HPKE_CTX;
+import java.security.Provider;
 
 /**
  * Hybrid Public Key Encryption (HPKE) Recipient APIs.
  *
  * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#hpke-export">HPKE RFC 9180</a>
  */
-public class HpkeContextRecipient {
-    private final HpkeSuite hpkeSuite;
-    private EVP_HPKE_CTX ctx;
+public class HpkeContextRecipient extends HpkeContext {
 
-    private HpkeContextRecipient(HpkeSuite hpkeSuite) {
-        this.hpkeSuite = hpkeSuite;
+    private HpkeContextRecipient(HpkeSpi spi) {
+        super(spi);
     }
 
     /**
@@ -44,22 +45,22 @@ public class HpkeContextRecipient {
      *                                  (an issue could occur most likely if the keys configured are
      *                                  not valid)
      */
-    public static HpkeContextRecipient setupBase(
-            HpkeSuite hpkeSuite, byte[] enc, PrivateKey privateKey, byte[] info) {
-        Preconditions.checkNotNull(hpkeSuite, "hpkeSuite");
-        hpkeSuite.getKem().validateEncLength(enc);
-        final byte[] sk = hpkeSuite.getKem().validatePrivateKeyTypeAndGetRawKey(privateKey);
-        try {
-            final HpkeContextRecipient ctxRecipient = new HpkeContextRecipient(hpkeSuite);
-            ctxRecipient.ctx = (EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_recipient(
-                    hpkeSuite.getKem().getId(), hpkeSuite.getKdf().getId(),
-                    hpkeSuite.getAead().getId(), sk, enc, info);
-            return ctxRecipient;
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Error while setting up base recipient with the keys provided", e);
-        }
-    }
+//    public static HpkeContextRecipient setupBase(
+//            HpkeSuite hpkeSuite, byte[] enc, PrivateKey privateKey, byte[] info) {
+//        Preconditions.checkNotNull(hpkeSuite, "hpkeSuite");
+//        hpkeSuite.getKem().validateEncLength(enc);
+//        final byte[] sk = hpkeSuite.getKem().validatePrivateKeyTypeAndGetRawKey(privateKey);
+//        try {
+//            final HpkeContextRecipient ctxRecipient = new HpkeContextRecipient(hpkeSuite, null);
+//            ctxRecipient.ctx = (EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_recipient(
+//                    hpkeSuite.getKem().getId(), hpkeSuite.getKdf().getId(),
+//                    hpkeSuite.getAead().getId(), sk, enc, info);
+//            return ctxRecipient;
+//        } catch (Exception e) {
+//            throw new IllegalStateException(
+//                    "Error while setting up base recipient with the keys provided", e);
+//        }
+//    }
 
     /**
      * Hybrid Public Key Encryption (HPKE) decryption.
@@ -76,25 +77,35 @@ public class HpkeContextRecipient {
      *                               most likely if the keys configured are not valid)
      */
     public byte[] open(byte[] ciphertext, byte[] aad) {
-        Preconditions.checkNotNull(ciphertext, "ciphertext");
-        try {
-            return NativeCrypto.EVP_HPKE_CTX_open(ctx, ciphertext, aad);
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Error while decrypting with the keys provided during setup recipient", e);
-        }
+        return spi.engineOpen(ciphertext, aad);
     }
 
-    /**
-     * Hybrid Public Key Encryption (HPKE) secret export.
-     *
-     * @param length          expected output length
-     * @param exporterContext optional exporter context
-     * @return exported value
-     * @throws IllegalArgumentException if the length is not valid based on the KDF spec
-     */
-    public byte[] export(int length, byte[] exporterContext) {
-        hpkeSuite.getKdf().validateExportLength(length);
-        return NativeCrypto.EVP_HPKE_CTX_export(ctx, exporterContext, length);
+    public static HpkeContextRecipient getInstance(String algorithm) throws NoSuchAlgorithmException {
+        return new HpkeContextRecipient(getSpi(algorithm));
     }
+
+    public static HpkeContextRecipient getInstance(String algorithm, String providerName)
+        throws NoSuchAlgorithmException, NoSuchProviderException {
+        return new HpkeContextRecipient(getSpi(algorithm, providerName));
+    }
+
+    public static HpkeContextRecipient getInstance(String algorithm, Provider provider)
+        throws NoSuchAlgorithmException, NoSuchProviderException {
+        return new HpkeContextRecipient(getSpi(algorithm, provider));
+    }
+
+    public void init(int mode, byte[] enc, PrivateKey key, byte[] info)
+        throws InvalidKeyException {
+        spi.engineInitRecipient(mode, enc, key, info, null);
+    }
+
+    @Internal
+    public void initForTesting(int mode, byte[] enc, PrivateKey key, byte[] info, byte[] sKe)
+        throws InvalidKeyException {
+        if (sKe == null) {
+            throw new IllegalArgumentException("null seed");
+        }
+        spi.engineInitRecipient(mode, enc, key, info, sKe);
+    }
+
 }

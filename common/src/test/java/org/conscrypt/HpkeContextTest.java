@@ -24,9 +24,9 @@ import static org.conscrypt.HpkeFixture.DEFAULT_INFO;
 import static org.conscrypt.HpkeFixture.DEFAULT_PK;
 import static org.conscrypt.HpkeFixture.DEFAULT_PT;
 import static org.conscrypt.HpkeFixture.DEFAULT_SK;
+import static org.conscrypt.HpkeFixture.DEFAULT_SUITE_NAME;
 import static org.conscrypt.HpkeFixture.createDefaultHpkeContextRecipient;
 import static org.conscrypt.HpkeFixture.createDefaultHpkeContextSender;
-import static org.conscrypt.HpkeFixture.createDefaultHpkeSuite;
 import static org.conscrypt.HpkeFixture.createPrivateKey;
 import static org.conscrypt.HpkeFixture.createPublicKey;
 import static org.conscrypt.TestUtils.encodeHex;
@@ -142,13 +142,14 @@ public class HpkeContextTest {
         final PublicKey publicKey = createPublicKey(DEFAULT_SK);
         final PrivateKey privateKey = createPrivateKey(DEFAULT_PK);
 
-        final HpkeContextSender ctxSender =
-                HpkeContextSender.setupBase(createDefaultHpkeSuite(), publicKey, DEFAULT_INFO);
+        final HpkeContextSender ctxSender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
+        ctxSender.init(HpkeContextSender.MODE_BASE, publicKey, DEFAULT_INFO);
+
         final byte[] enc = ctxSender.getEnc();
         final byte[] ciphertext = ctxSender.seal(DEFAULT_PT, DEFAULT_AAD);
 
-        final HpkeContextRecipient ctxRecipient = HpkeContextRecipient.setupBase(
-                createDefaultHpkeSuite(), enc, privateKey, DEFAULT_INFO);
+        final HpkeContextRecipient ctxRecipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
+        ctxRecipient.init(HpkeContextRecipient.MODE_BASE, enc, privateKey, DEFAULT_INFO);
         assertThrows(IllegalStateException.class, () -> ctxRecipient.open(ciphertext, DEFAULT_AAD));
     }
 

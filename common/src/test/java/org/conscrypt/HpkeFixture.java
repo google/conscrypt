@@ -5,6 +5,7 @@ import static org.conscrypt.HpkeSuite.KDF_HKDF_SHA256;
 import static org.conscrypt.HpkeSuite.KEM_DHKEM_X25519_HKDF_SHA256;
 import static org.conscrypt.TestUtils.decodeHex;
 
+import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -31,26 +32,32 @@ public class HpkeFixture {
     static final int DEFAULT_EXPORTER_LENGTH = 32;
     static final byte[] DEFAULT_EXPORTER_CONTEXT = decodeHex("00");
 
+    static final HpkeSuite DEFAULT_SUITE = createDefaultHpkeSuite();
+
+    static final String DEFAULT_SUITE_NAME = DEFAULT_SUITE.name();
+
     static HpkeContextRecipient createDefaultHpkeContextRecipient(byte[] enc)
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
+        throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
         return createDefaultHpkeContextRecipient(enc, DEFAULT_INFO);
     }
 
     static HpkeContextRecipient createDefaultHpkeContextRecipient(byte[] enc, byte[] info)
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
-        final HpkeSuite suite = createDefaultHpkeSuite();
-        return HpkeContextRecipient.setupBase(suite, enc, createPrivateKey(DEFAULT_SK), info);
+        throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
+        HpkeContextRecipient contextRecipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
+        contextRecipient.init(HpkeContextRecipient.MODE_BASE, enc, createPrivateKey(DEFAULT_SK), info);
+        return contextRecipient;
     }
 
     static HpkeContextSender createDefaultHpkeContextSender()
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
+        throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
         return createDefaultHpkeContextSender(DEFAULT_INFO);
     }
 
     static HpkeContextSender createDefaultHpkeContextSender(byte[] info)
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
-        final HpkeSuite suite = createDefaultHpkeSuite();
-        return HpkeContextSender.setupBase(suite, createPublicKey(DEFAULT_PK), info);
+        throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
+        HpkeContextSender hpke = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
+        hpke.init(HpkeContextSender.MODE_BASE, createPublicKey(DEFAULT_PK), info);
+        return hpke;
     }
 
     static HpkeSuite createDefaultHpkeSuite() {

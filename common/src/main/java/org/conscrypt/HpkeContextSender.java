@@ -16,21 +16,20 @@
 
 package org.conscrypt;
 
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Provider;
 import java.security.PublicKey;
-import org.conscrypt.NativeRef.EVP_HPKE_CTX;
 
 /**
  * Hybrid Public Key Encryption (HPKE) Sender APIs.
  *
  * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#hpke-export">HPKE RFC 9180</a>
  */
-public class HpkeContextSender {
-    private final HpkeSuite hpkeSuite;
-    private EVP_HPKE_CTX ctx;
-    private byte[] enc;
-
-    private HpkeContextSender(HpkeSuite hpkeSuite) {
-        this.hpkeSuite = hpkeSuite;
+public class HpkeContextSender extends HpkeContext{
+    private HpkeContextSender(HpkeSpi spi) {
+        super(spi);
     }
 
     /**
@@ -46,34 +45,34 @@ public class HpkeContextSender {
      *                                  (an issue could occur most likely if the keys configured are
      *                                  not valid)
      */
-    public static HpkeContextSender setupBase(
-            HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
-        return setupBase(new HpkeContextSenderHelper(), hpkeSuite, publicKey, info);
-    }
+//    public static HpkeContextSender setupBase(
+//            HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
+//        return setupBase(new HpkeContextSenderHelper(), hpkeSuite, publicKey, info);
+//    }
 
-    @Internal
-    static HpkeContextSender setupBaseForTesting(HpkeContextSenderHelper contextHelper,
-            HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
-        Preconditions.checkNotNull(contextHelper, "hpkeContextSenderHelper");
-        return setupBase(contextHelper, hpkeSuite, publicKey, info);
-    }
+//    @Internal
+//    static HpkeContextSender setupBaseForTesting(HpkeContextSenderHelper contextHelper,
+//            HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
+//        Preconditions.checkNotNull(contextHelper, "hpkeContextSenderHelper");
+//        return setupBase(contextHelper, hpkeSuite, publicKey, info);
+//    }
 
-    private static HpkeContextSender setupBase(HpkeContextSenderHelper contextHelper,
-            HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
-        Preconditions.checkNotNull(hpkeSuite, "hpkeSuite");
-        final byte[] pk = hpkeSuite.getKem().validatePublicKeyTypeAndGetRawKey(publicKey);
-        try {
-            final Object[] result = contextHelper.setupBase(hpkeSuite.getKem().getId(),
-                    hpkeSuite.getKdf().getId(), hpkeSuite.getAead().getId(), pk, info);
-            final HpkeContextSender ctxSender = new HpkeContextSender(hpkeSuite);
-            ctxSender.ctx = (EVP_HPKE_CTX) result[0];
-            ctxSender.enc = (byte[]) result[1];
-            return ctxSender;
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Error while setting up base sender with the keys provided", e);
-        }
-    }
+//    private static HpkeContextSender setupBase(HpkeContextSenderHelper contextHelper,
+//            HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
+//        Preconditions.checkNotNull(hpkeSuite, "hpkeSuite");
+//        final byte[] pk = hpkeSuite.getKem().validatePublicKeyTypeAndGetRawKey(publicKey);
+//        try {
+//            final Object[] result = contextHelper.setupBase(hpkeSuite.getKem().getId(),
+//                    hpkeSuite.getKdf().getId(), hpkeSuite.getAead().getId(), pk, info);
+//            final HpkeContextSender ctxSender = new HpkeContextSender(hpkeSuite, null);
+//            ctxSender.ctx = (EVP_HPKE_CTX) result[0];
+//            ctxSender.enc = (byte[]) result[1];
+//            return ctxSender;
+//        } catch (Exception e) {
+//            throw new IllegalStateException(
+//                    "Error while setting up base sender with the keys provided", e);
+//        }
+//    }
 
     /**
      * Returns the enc (encapsulated key) that was created during the initialization/setup phase.
@@ -81,7 +80,7 @@ public class HpkeContextSender {
      * @return enc (encapsulated key)
      */
     public byte[] getEnc() {
-        return enc;
+        return spi.getEnc();
     }
 
     /**
@@ -96,20 +95,34 @@ public class HpkeContextSender {
      * @return ciphertext
      */
     public byte[] seal(byte[] plaintext, byte[] aad) {
-        Preconditions.checkNotNull(plaintext, "plaintext");
-        return NativeCrypto.EVP_HPKE_CTX_seal(ctx, plaintext, aad);
+        return spi.engineSeal(plaintext, aad);
     }
 
-    /**
-     * Hybrid Public Key Encryption (HPKE) secret export.
-     *
-     * @param length          expected output length
-     * @param exporterContext optional exporter context
-     * @return exported value
-     * @throws IllegalArgumentException if the length is not valid based on the KDF spec
-     */
-    public byte[] export(int length, byte[] exporterContext) {
-        hpkeSuite.getKdf().validateExportLength(length);
-        return NativeCrypto.EVP_HPKE_CTX_export(ctx, exporterContext, length);
+    public static HpkeContextSender getInstance(String algorithm) throws NoSuchAlgorithmException {
+        return new HpkeContextSender(getSpi(algorithm));
+    }
+
+    public static HpkeContextSender getInstance(String algorithm, String providerName)
+        throws NoSuchAlgorithmException, NoSuchProviderException {
+        return new HpkeContextSender(getSpi(algorithm, providerName));
+    }
+
+    public static HpkeContextSender getInstance(String algorithm, Provider provider)
+        throws NoSuchAlgorithmException, NoSuchProviderException {
+        return new HpkeContextSender(getSpi(algorithm, provider));
+    }
+
+    public void init(int mode, PublicKey key, byte[] info)
+    throws InvalidKeyException {
+        spi.engineInitSender(mode, key, info, null);
+    }
+
+    @Internal
+    public void initForTesting(int mode, PublicKey key, byte[] info, byte[] sKe)
+        throws InvalidKeyException {
+        if (sKe == null) {
+            throw new IllegalArgumentException("null seed");
+        }
+        spi.engineInitSender(mode, key, info, sKe);
     }
 }
