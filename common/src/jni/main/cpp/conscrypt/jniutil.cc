@@ -257,7 +257,7 @@ int throwInvalidKeyException(JNIEnv* env, const char* message) {
 int throwIllegalArgumentException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwIllegalArgumentException %s", message);
     return conscrypt::jniutil::throwException(
-            env, "javax/crypto/ArgumentException", message);
+            env, "java/lang/IllegalArgumentException", message);
 }
 
 int throwIllegalBlockSizeException(JNIEnv* env, const char* message) {
