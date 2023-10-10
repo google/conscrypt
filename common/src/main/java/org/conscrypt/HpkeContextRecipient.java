@@ -27,7 +27,7 @@ import java.security.Provider;
  *
  * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#hpke-export">HPKE RFC 9180</a>
  */
-public class HpkeContextRecipient extends HpkeContext {
+class HpkeContextRecipient extends HpkeContext {
 
     private HpkeContextRecipient(HpkeSpi spi) {
         super(spi);
@@ -96,16 +96,6 @@ public class HpkeContextRecipient extends HpkeContext {
 
     public void init(int mode, byte[] enc, PrivateKey key, byte[] info)
         throws InvalidKeyException {
-        spi.engineInitRecipient(mode, enc, key, info, null);
+        spi.engineInitRecipient(mode, enc, key, info);
     }
-
-    @Internal
-    public void initForTesting(int mode, byte[] enc, PrivateKey key, byte[] info, byte[] sKe)
-        throws InvalidKeyException {
-        if (sKe == null) {
-            throw new IllegalArgumentException("null seed");
-        }
-        spi.engineInitRecipient(mode, enc, key, info, sKe);
-    }
-
 }

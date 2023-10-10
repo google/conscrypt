@@ -42,6 +42,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import javax.crypto.BadPaddingException;
+
 @RunWith(JUnit4.class)
 public class HpkeContextTest {
     @Test
@@ -150,7 +152,7 @@ public class HpkeContextTest {
 
         final HpkeContextRecipient ctxRecipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         ctxRecipient.init(HpkeContextRecipient.MODE_BASE, enc, privateKey, DEFAULT_INFO);
-        assertThrows(IllegalStateException.class, () -> ctxRecipient.open(ciphertext, DEFAULT_AAD));
+        assertThrows(BadPaddingException.class, () -> ctxRecipient.open(ciphertext, DEFAULT_AAD));
     }
 
     @Test

@@ -254,6 +254,12 @@ int throwInvalidKeyException(JNIEnv* env, const char* message) {
     return conscrypt::jniutil::throwException(env, "java/security/InvalidKeyException", message);
 }
 
+int throwIllegalArgumentException(JNIEnv* env, const char* message) {
+    JNI_TRACE("throwIllegalArgumentException %s", message);
+    return conscrypt::jniutil::throwException(
+            env, "javax/crypto/ArgumentException", message);
+}
+
 int throwIllegalBlockSizeException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwIllegalBlockSizeException %s", message);
     return conscrypt::jniutil::throwException(
@@ -344,10 +350,15 @@ int throwForEvpError(JNIEnv* env, int reason, const char* message,
                      int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
         case EVP_R_MISSING_PARAMETERS:
+        case EVP_R_INVALID_PEER_KEY:
+        case EVP_R_DECODE_ERROR:
             return throwInvalidKeyException(env, message);
             break;
         case EVP_R_UNSUPPORTED_ALGORITHM:
             return throwNoSuchAlgorithmException(env, message);
+            break;
+        case EVP_R_INVALID_BUFFER_SIZE:
+            return throwIllegalArgumentException(env, message);
             break;
         default:
             return defaultThrow(env, message);

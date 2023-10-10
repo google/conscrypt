@@ -27,7 +27,7 @@ import java.security.PublicKey;
  *
  * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#hpke-export">HPKE RFC 9180</a>
  */
-public class HpkeContextSender extends HpkeContext{
+class HpkeContextSender extends HpkeContext{
     private HpkeContextSender(HpkeSpi spi) {
         super(spi);
     }

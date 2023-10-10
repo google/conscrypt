@@ -5,11 +5,11 @@ import java.security.NoSuchProviderException;
 import java.security.Provider;
 import java.security.Security;
 
-public class HpkeContext {
+class HpkeContext {
   public static final int MODE_BASE = 0x00;
   protected final HpkeSpi spi;
 
-  public HpkeContext(HpkeSpi spi) {
+  protected HpkeContext(HpkeSpi spi) {
     this.spi = spi;
   }
 
@@ -47,7 +47,7 @@ public class HpkeContext {
     throw new NoSuchAlgorithmException("No Provider found for: " + algorithm);
   }
 
-  public static HpkeSpi getSpi(String algorithm, String providerName) throws
+  protected static HpkeSpi getSpi(String algorithm, String providerName) throws
       NoSuchAlgorithmException, IllegalArgumentException, NoSuchProviderException {
     if (providerName == null || providerName.isEmpty()) {
       // Same behaviour as Cipher.getInstance
@@ -60,7 +60,7 @@ public class HpkeContext {
     return getSpi(algorithm, provider);
   }
 
-  public static HpkeSpi getSpi(String algorithm, Provider provider) throws
+  protected static HpkeSpi getSpi(String algorithm, Provider provider) throws
       NoSuchAlgorithmException, IllegalArgumentException {
     if (provider == null) {
       throw new IllegalArgumentException("null Provider");

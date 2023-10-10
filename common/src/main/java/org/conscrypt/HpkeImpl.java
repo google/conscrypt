@@ -49,7 +49,8 @@ public class HpkeImpl implements HpkeSpi {
   }
 
   @Override
-  public void engineInitRecipient(int mode, byte[] enc, PrivateKey key, byte[] info, byte[] seed) throws InvalidKeyException {
+  public void engineInitRecipient(int mode, byte[] enc, PrivateKey key, byte[] info) throws InvalidKeyException {
+    checkNotInitialised();
     if (key == null) {
       throw new InvalidKeyException("null key");
     }
@@ -58,17 +59,15 @@ public class HpkeImpl implements HpkeSpi {
     }
     final byte[] sk = hpkeSuite.getKem().validatePrivateKeyTypeAndGetRawKey(key);
 
-    checkNotInitialised();
     ctx = (NativeRef.EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_recipient(
         hpkeSuite.getKem().getId(), hpkeSuite.getKdf().getId(),
         hpkeSuite.getAead().getId(), sk, enc, info);
   }
 
-
   @Override
   public byte[] engineSeal(byte[] plaintext, byte[] aad) {
     Preconditions.checkNotNull(plaintext, "null plaintext");
-    checkSender();
+    checkIsSender();
     return NativeCrypto.EVP_HPKE_CTX_seal(ctx, plaintext, aad);
   }
 
@@ -82,12 +81,8 @@ public class HpkeImpl implements HpkeSpi {
   @Override
   public byte[] engineOpen(byte[] ciphertext, byte[] aad) {
     Preconditions.checkNotNull(ciphertext, "null ciphertext");
-    checkRecipient();
-    try {
-      return NativeCrypto.EVP_HPKE_CTX_open(ctx, ciphertext, aad);
-    } catch (Exception e) {
-      throw new IllegalStateException("Decryption failed");
-    }
+    checkIsRecipient();
+    return NativeCrypto.EVP_HPKE_CTX_open(ctx, ciphertext, aad);
   }
 
   private void checkInitialised() {
@@ -102,20 +97,19 @@ public class HpkeImpl implements HpkeSpi {
     }
   }
 
-  private void checkSender() {
+  private void checkIsSender() {
     checkInitialised();
     if (enc == null) {
       throw new IllegalStateException("Internal error");
     }
   }
 
-  private void checkRecipient() {
+  private void checkIsRecipient() {
     checkInitialised();
     if (enc != null) {
       throw new IllegalStateException("Internal error");
     }
   }
-
 
   @Override
   public byte[] getEnc() {
@@ -128,12 +122,11 @@ public class HpkeImpl implements HpkeSpi {
   }
 
   public static class X25519_AES_128 extends HpkeImpl {
-
     public X25519_AES_128(Object arg) {
       super(arg, new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
     }
-
   }
+
   public static class X25519_AES_256 extends HpkeImpl {
     public X25519_AES_256(Object arg) {
       super(arg, new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_256_GCM));

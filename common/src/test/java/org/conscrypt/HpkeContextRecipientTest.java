@@ -45,6 +45,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import javax.crypto.BadPaddingException;
+
 @RunWith(JUnit4.class)
 public class HpkeContextRecipientTest {
     @Test
@@ -74,16 +76,16 @@ public class HpkeContextRecipientTest {
 
         assertThrows(NullPointerException.class,
             () -> recipient.init(HpkeContext.MODE_BASE, /* enc= */ null, privateKey, DEFAULT_INFO));
+
         assertThrows(InvalidKeyException.class,
             () -> recipient.init(HpkeContext.MODE_BASE, DEFAULT_ENC, /* privateKey= */ null, DEFAULT_INFO));
 
         // Incorrect enc size
-        // XXX JNI layer is throwing wrong exception here
-//        assertThrows(IllegalArgumentException.class,
-//            () -> recipient.init(HpkeContext.MODE_BASE, new byte[1], privateKey, DEFAULT_INFO));
+        assertThrows(InvalidKeyException.class,
+            () -> recipient.init(HpkeContext.MODE_BASE, new byte[1], privateKey, DEFAULT_INFO));
 
         assertThrows(InvalidKeyException.class,
-            () -> recipient.init(HpkeContext.MODE_BASE, new byte[1], invalidKey, DEFAULT_INFO));
+            () -> recipient.init(HpkeContext.MODE_BASE, DEFAULT_ENC, invalidKey, DEFAULT_INFO));
 
         // Should succeed
         recipient.init(HpkeContext.MODE_BASE, DEFAULT_ENC, privateKey, DEFAULT_INFO);
@@ -124,7 +126,7 @@ public class HpkeContextRecipientTest {
                 decodeHex("497b4502664cfea5d5af0b39934dac72242a74f8480451e1aee7d6a53320333d"));
         final HpkeContextRecipient ctxRecipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         ctxRecipient.init(HpkeContextRecipient.MODE_BASE, DEFAULT_ENC, privateKey, DEFAULT_INFO);
-        assertThrows(IllegalStateException.class,
+        assertThrows(BadPaddingException.class,
             () -> ctxRecipient.open(DEFAULT_CT, DEFAULT_AAD));
     }
 
@@ -136,7 +138,7 @@ public class HpkeContextRecipientTest {
         final HpkeContextRecipient ctxRecipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         ctxRecipient.init(HpkeContextRecipient.MODE_BASE, enc, privateKey, DEFAULT_INFO);
 
-        assertThrows(IllegalStateException.class, () -> ctxRecipient.open(DEFAULT_CT, DEFAULT_AAD));
+        assertThrows(BadPaddingException.class, () -> ctxRecipient.open(DEFAULT_CT, DEFAULT_AAD));
     }
 
     @Test
@@ -145,7 +147,7 @@ public class HpkeContextRecipientTest {
         final HpkeContextRecipient ctxRecipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         ctxRecipient.init(HpkeContextRecipient.MODE_BASE, DEFAULT_ENC, privateKey, DEFAULT_INFO);
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(BadPaddingException.class,
                 () -> ctxRecipient.open(/* ct= */ new byte[32], DEFAULT_AAD));
     }
 
