@@ -138,7 +138,7 @@ public class HpkeTestVectorsTest {
         }
     }
 
-    private List<HpkeData> getHpkeEncryptionRecords() throws IOException {
+    static List<HpkeData> getHpkeEncryptionRecords() throws IOException {
         final List<HpkeData> records = new ArrayList<>();
         final List<String[]> data = TestUtils.readCsvResource(TEST_DATA_ENCRYPTION);
 
@@ -207,7 +207,7 @@ public class HpkeTestVectorsTest {
         return records;
     }
 
-    private HpkeSuite convertSuite(String kemId, String kdfId, String aeadId) {
+    private static HpkeSuite convertSuite(String kemId, String kdfId, String aeadId) {
         final String suite = String.join(":", kemId, kdfId, aeadId);
 
         if (SUPPORTED_HPKE_SUITES.containsKey(suite)) {
@@ -225,7 +225,7 @@ public class HpkeTestVectorsTest {
         return sender;
     }
 
-    private static class HpkeData {
+    static class HpkeData {
         HpkeSuite hpkeSuite;
 
         byte[] info;
@@ -247,7 +247,7 @@ public class HpkeTestVectorsTest {
         }
     }
 
-    private static class HpkeEncryptionData {
+    static class HpkeEncryptionData {
         byte[] aad;
         byte[] ct;
         byte[] pt;
