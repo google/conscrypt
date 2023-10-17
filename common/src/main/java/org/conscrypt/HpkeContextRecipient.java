@@ -27,7 +27,7 @@ import java.security.Provider;
  *
  * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#hpke-export">HPKE RFC 9180</a>
  */
-class HpkeContextRecipient extends HpkeContext {
+public class HpkeContextRecipient extends HpkeContext {
 
     private HpkeContextRecipient(HpkeSpi spi) {
         super(spi);
@@ -81,17 +81,17 @@ class HpkeContextRecipient extends HpkeContext {
     }
 
     public static HpkeContextRecipient getInstance(String algorithm) throws NoSuchAlgorithmException {
-        return new HpkeContextRecipient(getSpi(algorithm));
+        return new HpkeContextRecipient(findSpi(algorithm));
     }
 
     public static HpkeContextRecipient getInstance(String algorithm, String providerName)
         throws NoSuchAlgorithmException, NoSuchProviderException {
-        return new HpkeContextRecipient(getSpi(algorithm, providerName));
+        return new HpkeContextRecipient(findSpi(algorithm, providerName));
     }
 
     public static HpkeContextRecipient getInstance(String algorithm, Provider provider)
         throws NoSuchAlgorithmException, NoSuchProviderException {
-        return new HpkeContextRecipient(getSpi(algorithm, provider));
+        return new HpkeContextRecipient(findSpi(algorithm, provider));
     }
 
     public void init(int mode, byte[] enc, PrivateKey key, byte[] info)

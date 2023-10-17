@@ -5,7 +5,7 @@ import java.security.NoSuchProviderException;
 import java.security.Provider;
 import java.security.Security;
 
-class HpkeContext {
+public class HpkeContext {
   public static final int MODE_BASE = 0x00;
   protected final HpkeSpi spi;
 
@@ -28,13 +28,16 @@ class HpkeContext {
   public Provider getProvider() {
     return spi.getProvider();
   }
+  public HpkeSpi getSpi() {
+    return spi;
+  }
 
-  protected static HpkeSpi getSpi(String algorithm) throws NoSuchAlgorithmException {
+  protected static HpkeSpi findSpi(String algorithm) throws NoSuchAlgorithmException {
     if (algorithm == null) {
       // Same behaviour as Cipher.getInstance
       throw new NoSuchAlgorithmException("null algorithm");
     }
-    return getSpi(algorithm, findFirstProvider(algorithm));
+    return findSpi(algorithm, findFirstProvider(algorithm));
   }
 
   private static Provider findFirstProvider(String algorithm) throws NoSuchAlgorithmException {
@@ -47,7 +50,7 @@ class HpkeContext {
     throw new NoSuchAlgorithmException("No Provider found for: " + algorithm);
   }
 
-  protected static HpkeSpi getSpi(String algorithm, String providerName) throws
+  protected static HpkeSpi findSpi(String algorithm, String providerName) throws
       NoSuchAlgorithmException, IllegalArgumentException, NoSuchProviderException {
     if (providerName == null || providerName.isEmpty()) {
       // Same behaviour as Cipher.getInstance
@@ -57,10 +60,10 @@ class HpkeContext {
     if (provider == null) {
       throw new NoSuchProviderException("Unknown Provider: " + providerName);
     }
-    return getSpi(algorithm, provider);
+    return findSpi(algorithm, provider);
   }
 
-  protected static HpkeSpi getSpi(String algorithm, Provider provider) throws
+  protected static HpkeSpi findSpi(String algorithm, Provider provider) throws
       NoSuchAlgorithmException, IllegalArgumentException {
     if (provider == null) {
       throw new IllegalArgumentException("null Provider");

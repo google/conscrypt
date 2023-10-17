@@ -178,8 +178,8 @@ public class DuckTypedHpkeSpiTest {
 
         // Its SPI should be duck typed, because the foreign Provider returns instances
         // which use HpkeForeignSpi which *doesn't* implement HpkeSpi.
-        assertTrue(context.spi instanceof DuckTypedHpkeSpi);
-        DuckTypedHpkeSpi duckTyped = (DuckTypedHpkeSpi) context.spi;
+        assertTrue(context.getSpi() instanceof DuckTypedHpkeSpi);
+        DuckTypedHpkeSpi duckTyped = (DuckTypedHpkeSpi) context.getSpi();
 
         // Verify the SPI is indeed foreign.
         assertTrue(duckTyped.getDelegate() instanceof HpkeForeignSpi);

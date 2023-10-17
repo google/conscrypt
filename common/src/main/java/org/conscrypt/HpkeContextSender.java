@@ -27,7 +27,7 @@ import java.security.PublicKey;
  *
  * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#hpke-export">HPKE RFC 9180</a>
  */
-class HpkeContextSender extends HpkeContext{
+public class HpkeContextSender extends HpkeContext{
     private HpkeContextSender(HpkeSpi spi) {
         super(spi);
     }
@@ -99,17 +99,17 @@ class HpkeContextSender extends HpkeContext{
     }
 
     public static HpkeContextSender getInstance(String algorithm) throws NoSuchAlgorithmException {
-        return new HpkeContextSender(getSpi(algorithm));
+        return new HpkeContextSender(findSpi(algorithm));
     }
 
     public static HpkeContextSender getInstance(String algorithm, String providerName)
         throws NoSuchAlgorithmException, NoSuchProviderException {
-        return new HpkeContextSender(getSpi(algorithm, providerName));
+        return new HpkeContextSender(findSpi(algorithm, providerName));
     }
 
     public static HpkeContextSender getInstance(String algorithm, Provider provider)
         throws NoSuchAlgorithmException, NoSuchProviderException {
-        return new HpkeContextSender(getSpi(algorithm, provider));
+        return new HpkeContextSender(findSpi(algorithm, provider));
     }
 
     public void init(int mode, PublicKey key, byte[] info)
