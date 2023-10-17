@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
  * Copyright (C) 2023 The Android Open Source Project
  *
@@ -14,15 +15,22 @@
  * limitations under the License
  */
 
+=======
+>>>>>>> 043d6334 (Add duck typing for SPIs.)
 package org.conscrypt;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.security.PrivateKey;
+<<<<<<< HEAD
+=======
+import java.security.Provider;
+>>>>>>> 043d6334 (Add duck typing for SPIs.)
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
 
+<<<<<<< HEAD
 /**
  * Duck typed implementation of {@link HpkeSpi}.
  * <p>
@@ -30,6 +38,8 @@ import java.util.Map;
  * by reflection.
  */
 @Internal
+=======
+>>>>>>> 043d6334 (Add duck typing for SPIs.)
 public class DuckTypedHpkeSpi implements HpkeSpi {
   private final Object delegate;
   private final Map<String, Method> methods = new HashMap<>();
@@ -37,15 +47,26 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
   private DuckTypedHpkeSpi(Object delegate) throws NoSuchMethodException {
     this.delegate = delegate;
 
+<<<<<<< HEAD
     Class<?> sourceClass = delegate.getClass();
+=======
+>>>>>>> 043d6334 (Add duck typing for SPIs.)
     for (Method targetMethod : HpkeSpi.class.getMethods()) {
       if (targetMethod.isSynthetic()) {
         continue;
       }
+<<<<<<< HEAD
 
       Method sourceMethod =
           sourceClass.getMethod(targetMethod.getName(), targetMethod.getParameterTypes());
       // Check that the return types match too.
+=======
+      Class<?> sourceClass = delegate.getClass();
+
+      Method sourceMethod =
+          sourceClass.getMethod(targetMethod.getName(), targetMethod.getParameterTypes());
+      // Check that the return type of obj's method matches the target method.
+>>>>>>> 043d6334 (Add duck typing for SPIs.)
       Class<?> sourceReturnType = sourceMethod.getReturnType();
       Class<?> targetReturnType = targetMethod.getReturnType();
       if (!targetReturnType.isAssignableFrom(sourceReturnType)) {
@@ -77,11 +98,16 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
   }
 
   // Visible for testing
+<<<<<<< HEAD
   public Object getDelegate() {
+=======
+  Object getDelegate() {
+>>>>>>> 043d6334 (Add duck typing for SPIs.)
     return delegate;
   }
 
   @Override
+<<<<<<< HEAD
   public void engineInitSender(
           PublicKey recipientKey, byte[] info, PrivateKey senderKey, byte[] psk, byte[] psk_id) {
     invoke("engineInitSender", recipientKey, info, senderKey, psk, psk_id);
@@ -98,6 +124,15 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
   public void engineInitRecipient(byte[] encapsulated, PrivateKey key, byte[] info,
           PublicKey senderKey, byte[] psk, byte[] psk_id) {
     invoke("engineInitRecipient", encapsulated, key, info, senderKey, psk, psk_id);
+=======
+  public void engineInitSender(int mode, PublicKey key, byte[] info, byte[] sKe) {
+    invoke("engineInitSender", mode, key, info, sKe);
+  }
+
+  @Override
+  public void engineInitRecipient(int mode, byte[] enc, PrivateKey key, byte[] info) {
+    invoke("engineInitRecipient", mode, enc, key, info);
+>>>>>>> 043d6334 (Add duck typing for SPIs.)
   }
 
   @Override
@@ -116,7 +151,17 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
   }
 
   @Override
+<<<<<<< HEAD
   public byte[] getEncapsulated() {
     return (byte[]) invoke("getEncapsulated");
+=======
+  public byte[] getEnc() {
+    return (byte[]) invoke("getEnc");
+  }
+
+  @Override
+  public Provider getProvider() {
+    return (Provider) invoke("getProvider");
+>>>>>>> 043d6334 (Add duck typing for SPIs.)
   }
 }
