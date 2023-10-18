@@ -55,7 +55,7 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
   }
 
   // Visible for testing
-  Object getDelegate() {
+  public Object getDelegate() {
     return delegate;
   }
 
