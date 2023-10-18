@@ -58,6 +58,8 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 public final class OpenSSLX509Certificate extends X509Certificate {
     private static final long serialVersionUID = 1992239142393372128L;
 
+    private static final TimeZone UTC_TIME_ZONE = TimeZone.getTimeZone("UTC");
+
     private transient volatile long mContext;
     private transient Integer mHashCode;
 
@@ -80,7 +82,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     }
 
     private static Date toDate(long asn1time) throws ParsingException {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        Calendar calendar = Calendar.getInstance(UTC_TIME_ZONE);
         calendar.set(Calendar.MILLISECOND, 0);
         NativeCrypto.ASN1_TIME_to_Calendar(asn1time, calendar);
         return calendar.getTime();

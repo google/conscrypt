@@ -49,6 +49,9 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
  * An implementation of {@link X509CRL} based on BoringSSL.
  */
 final class OpenSSLX509CRL extends X509CRL {
+
+    private static final TimeZone UTC_TIME_ZONE = TimeZone.getTimeZone("UTC");
+
     private volatile long mContext;
     private final Date thisUpdate;
     private final Date nextUpdate;
@@ -63,7 +66,7 @@ final class OpenSSLX509CRL extends X509CRL {
 
     // Package-visible because it's also used by OpenSSLX509CRLEntry
     static Date toDate(long asn1time) throws ParsingException {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        Calendar calendar = Calendar.getInstance(UTC_TIME_ZONE);
         calendar.set(Calendar.MILLISECOND, 0);
         NativeCrypto.ASN1_TIME_to_Calendar(asn1time, calendar);
         return calendar.getTime();
