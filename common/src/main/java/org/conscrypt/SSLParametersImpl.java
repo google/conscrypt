@@ -145,7 +145,7 @@ final class SSLParametersImpl implements Cloneable {
 
         // initialize the list of cipher suites and protocols enabled by default
         enabledProtocols = NativeCrypto.checkEnabledProtocols(
-                protocols == null ? NativeCrypto.DEFAULT_PROTOCOLS : protocols).clone();
+                protocols == null ? NativeCrypto.getDefaultProtocols() : protocols).clone();
         boolean x509CipherSuitesNeeded = (x509KeyManager != null) || (x509TrustManager != null);
         boolean pskCipherSuitesNeeded = pskKeyManager != null;
         enabledCipherSuites = getDefaultCipherSuites(

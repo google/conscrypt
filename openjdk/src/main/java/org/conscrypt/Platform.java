@@ -812,4 +812,8 @@ final class Platform {
     public static boolean isJavaxCertificateSupported() {
         return JAVA_VERSION < 15;
     }
+
+    public static boolean isTlsV1Deprecated() {
+        return false;
+    }
 }
