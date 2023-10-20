@@ -30,6 +30,15 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.Provider;
+import java.security.PublicKey;
+import java.security.Security;
+import java.util.List;
+import javax.crypto.BadPaddingException;
+
 import org.conscrypt.HpkeTestVectorsTest.HpkeData;
 import org.conscrypt.HpkeTestVectorsTest.HpkeEncryptionData;
 import org.junit.After;
@@ -38,19 +47,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.Provider;
-import java.security.PublicKey;
-import java.security.Security;
-import java.util.List;
-
-
 /**
  * Tests for DuckTypedHpkeSpiTest. Essentially the same as the tests for HpkeContext but
  * with a "foreign" HPKE Provider inserted ahead of Conscrypt. That is, one which returns
- * SPI instances with all the correct methods but which don't inherit dirctly from "our"
+ * SPI instances with all the correct methods but which don't inherit directly from "our"
  * HpkeSpi.
  */
 @RunWith(JUnit4.class)
@@ -73,12 +73,12 @@ public class DuckTypedHpkeSpiTest {
     public void sealOpen() throws Exception {
         final HpkeContextSender ctxSender1 = createDefaultHpkeContextSender();
         assertForeign(ctxSender1);
-        final byte[] enc1 = ctxSender1.getEnc();
+        final byte[] enc1 = ctxSender1.getEncapsulated();
         final byte[] ciphertext1 = ctxSender1.seal(DEFAULT_PT, /* aad= */ null);
 
         final HpkeContextSender ctxSender2 = createDefaultHpkeContextSender();
         assertForeign(ctxSender2);
-        final byte[] enc2 = ctxSender2.getEnc();
+        final byte[] enc2 = ctxSender2.getEncapsulated();
         final byte[] ciphertext2 = ctxSender2.seal(DEFAULT_PT, /* aad= */ null);
 
         assertNotNull(enc1);
@@ -109,7 +109,7 @@ public class DuckTypedHpkeSpiTest {
     public void export() throws Exception {
         final HpkeContextSender ctxSender = createDefaultHpkeContextSender();
         assertForeign(ctxSender);
-        final byte[] enc = ctxSender.getEnc();
+        final byte[] enc = ctxSender.getEncapsulated();
         final byte[] export1 = ctxSender.export(DEFAULT_EXPORTER_LENGTH, DEFAULT_EXPORTER_CONTEXT);
 
         final HpkeContextRecipient ctxRecipient = createDefaultHpkeContextRecipient(DEFAULT_ENC);
@@ -143,7 +143,7 @@ public class DuckTypedHpkeSpiTest {
         final HpkeContextSender contextSender =
             setupBaseForTesting(record.hpkeSuite, record.pkRm, record.info, record.skEm);
         assertForeign(contextSender);
-        final byte[] encResult = contextSender.getEnc();
+        final byte[] encResult = contextSender.getEncapsulated();
         assertArrayEquals("Failed encryption 'enc' " + encodeHex(enc), enc, encResult);
         for (HpkeEncryptionData encryption : record.encryptions) {
             final byte[] ciphertext = contextSender.seal(encryption.pt, encryption.aad);
@@ -242,12 +242,12 @@ public class DuckTypedHpkeSpiTest {
             return realSpi.engineExport(length, exporterContext);
         }
 
-        public byte[] engineOpen(byte[] ciphertext, byte[] aad) {
+        public byte[] engineOpen(byte[] ciphertext, byte[] aad) throws BadPaddingException {
             return realSpi.engineOpen(ciphertext, aad);
         }
 
-        public byte[] getEnc() {
-            return realSpi.getEnc();
+        public byte[] getEncapsulated() {
+            return realSpi.getEncapsulated();
         }
 
         public static class X25519_AES_128 extends HpkeForeignSpi {

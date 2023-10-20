@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2023 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License
+ */
+
 package org.conscrypt;
 
 import java.security.NoSuchAlgorithmException;
@@ -5,7 +21,23 @@ import java.security.NoSuchProviderException;
 import java.security.Provider;
 import java.security.Security;
 
-public class HpkeContext {
+/**
+ * Hybrid Public Key Encryption (HPKE) sender APIs.
+ *
+ * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#hpke-export">HPKE RFC 9180</a>
+ * <p>
+ * Base class for HPKE sender and recipient contexts.
+ * <p>
+ * This is the client API for HPKE usage, all operations are delegated to an implementation
+ * class implementing {@link HpkeSpi} which is located using the JCA {@link Provider}
+ * mechanism.
+ * <p>
+ * The implementation maintains the context for an HPKE exchange, including the key schedule
+ * to use for seal and open operations.
+ *
+ * Secret key material based on the context may also be generated and exported as per RFC 9180.
+ */
+public abstract class HpkeContext {
   public static final int MODE_BASE = 0x00;
   protected final HpkeSpi spi;
 
@@ -14,17 +46,24 @@ public class HpkeContext {
   }
 
   /**
-   * Hybrid Public Key Encryption (HPKE) secret export.
+   * Exports secret key material from this HpkeContext as described in RFC 9180.
    *
-   * @param length          expected output length
-   * @param exporterContext optional exporter context
+   * @param length  expected output length
+   * @param context optional context string, may be null or empty
    * @return exported value
-   * @throws IllegalArgumentException if the length is not valid based on the KDF spec
+   * @throws IllegalArgumentException if the length is not valid for the KDF in use
+   * @throws IllegalStateException if this HpkeContext has not been initialised
+   *
    */
-  public byte[] export(int length, byte[] exporterContext) {
-    return spi.engineExport(length, exporterContext);
+  public byte[] export(int length, byte[] context) {
+    return spi.engineExport(length, context);
   }
 
+  /**
+   * Returns the {@link HpkeSpi} being used by this HpkeContext.
+   *
+   * @return the SPI
+   */
   public HpkeSpi getSpi() {
     return spi;
   }

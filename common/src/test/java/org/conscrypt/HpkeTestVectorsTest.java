@@ -92,7 +92,7 @@ public class HpkeTestVectorsTest {
         // Encryption
         final HpkeContextSender contextSender =
                 setupBaseForTesting(record.hpkeSuite, record.pkRm, record.info, record.skEm);
-        final byte[] encResult = contextSender.getEnc();
+        final byte[] encResult = contextSender.getEncapsulated();
         assertArrayEquals("Failed encryption 'enc' " + encodeHex(enc), enc, encResult);
         for (HpkeEncryptionData encryption : record.encryptions) {
             final byte[] ciphertext = contextSender.seal(encryption.pt, encryption.aad);
@@ -117,7 +117,7 @@ public class HpkeTestVectorsTest {
         // Sender secret export
         final HpkeContextSender contextSender =
                 setupBaseForTesting(record.hpkeSuite, record.pkRm, record.info, record.skEm);
-        final byte[] encResult = contextSender.getEnc();
+        final byte[] encResult = contextSender.getEncapsulated();
         assertArrayEquals("Failed encryption 'enc' " + encodeHex(enc), enc, encResult);
         for (HpkeExporterData exporterData : record.exports) {
             final byte[] export =

@@ -21,81 +21,86 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.Provider;
+import javax.crypto.BadPaddingException;
 
 /**
- * Hybrid Public Key Encryption (HPKE) Recipient APIs.
+ * Hybrid Public Key Encryption (HPKE) recipient APIs.
  *
  * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#hpke-export">HPKE RFC 9180</a>
+ *
+ * Recipient subclass of HpkeContext.  See base class for details.
  */
 public class HpkeContextRecipient extends HpkeContext {
-
     private HpkeContextRecipient(HpkeSpi spi) {
         super(spi);
     }
 
     /**
-     * Initializes the internal HPKE context for the recipient using BASE (0x00) mode.
+     * Opens a message, using the internal key schedule maintained by this HpkeContextRecipient.
      *
-     * @param enc        encapsulated key matching the KEM encapsulated key size
-     * @param privateKey private key (secret key) matching the KEM private key size
-     * @param info       optional application-supplied information
-     * @throws IllegalArgumentException if providing an encapsulated key (enc) or private key that
-     *                                  does not match the size expectation
-     * @throws IllegalStateException    if an issue is encountered while setting up the recipient
-     *                                  (an issue could occur most likely if the keys configured are
-     *                                  not valid)
+     * @param ciphertext the ciphertext
+     * @param aad optional associated data, may be null or empty
+     * @return the plaintext
+     * @throws IllegalStateException if this HpkeContextRecipient has not been initialised
+     * @throws javax.crypto.BadPaddingException on decryption failures (XXX rework this but it's
+     *         what Cipher does!)
      */
-//    public static HpkeContextRecipient setupBase(
-//            HpkeSuite hpkeSuite, byte[] enc, PrivateKey privateKey, byte[] info) {
-//        Preconditions.checkNotNull(hpkeSuite, "hpkeSuite");
-//        hpkeSuite.getKem().validateEncLength(enc);
-//        final byte[] sk = hpkeSuite.getKem().validatePrivateKeyTypeAndGetRawKey(privateKey);
-//        try {
-//            final HpkeContextRecipient ctxRecipient = new HpkeContextRecipient(hpkeSuite, null);
-//            ctxRecipient.ctx = (EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_recipient(
-//                    hpkeSuite.getKem().getId(), hpkeSuite.getKdf().getId(),
-//                    hpkeSuite.getAead().getId(), sk, enc, info);
-//            return ctxRecipient;
-//        } catch (Exception e) {
-//            throw new IllegalStateException(
-//                    "Error while setting up base recipient with the keys provided", e);
-//        }
-//    }
-
-    /**
-     * Hybrid Public Key Encryption (HPKE) decryption.
-     * <p>
-     * Note: This API keeps track of its state. It maintains an internal HPKE context. As a result,
-     * to decrypt multiple messages that were encrypted using the same context, one must call this
-     * method for each message in the same order as they were encrypted.
-     *
-     * @param ciphertext contains the encrypted plaintext
-     * @param aad        optional associated data
-     * @return plaintext
-     * @throws IllegalStateException if an issue is encountered while decrypting (an issue could
-     *         occur
-     *                               most likely if the keys configured are not valid)
-     */
-    public byte[] open(byte[] ciphertext, byte[] aad) {
+    public byte[] open(byte[] ciphertext, byte[] aad) throws BadPaddingException {
         return spi.engineOpen(ciphertext, aad);
     }
 
-    public static HpkeContextRecipient getInstance(String algorithm) throws NoSuchAlgorithmException {
-        return new HpkeContextRecipient(findSpi(algorithm));
+    /**
+     * Returns an uninitialised HpkeContextRecipient.
+     *
+     * @param suite the HPKE suite to use.  @see {@link HpkeSuite} for details.
+     * @return an uninitialised HpkeContextRecipient for the requested suite
+     * @throws NoSuchAlgorithmException if no implementation could be found
+     */
+    public static HpkeContextRecipient getInstance(String suite) throws NoSuchAlgorithmException {
+        return new HpkeContextRecipient(findSpi(suite));
     }
 
-    public static HpkeContextRecipient getInstance(String algorithm, String providerName)
+    /**
+     * Returns an uninitialised HpkeContextRecipient from a specific {@link Provider}
+     *
+     * @param suite the HPKE suite to use.  @see {@link HpkeSuite} for details.
+     * @param providerName the name of the Provider to use
+     * @return an uninitialised HpkeContextRecipient for the requested suite
+     * @throws NoSuchAlgorithmException if no implementation could be found
+     * @throws NoSuchProviderException if providerName is null or no such Provider exists
+     */
+    public static HpkeContextRecipient getInstance(String suite, String providerName)
         throws NoSuchAlgorithmException, NoSuchProviderException {
-        return new HpkeContextRecipient(findSpi(algorithm, providerName));
+        return new HpkeContextRecipient(findSpi(suite, providerName));
     }
 
-    public static HpkeContextRecipient getInstance(String algorithm, Provider provider)
+    /**
+     * Returns an uninitialised HpkeContextRecipient from a specific {@link Provider}
+     *
+     * @param suite the HPKE suite to use.  @see {@link HpkeSuite} for details.
+     * @param provider the Provider to use
+     * @return an uninitialised HpkeContextRecipient for the requested suite
+     * @throws NoSuchAlgorithmException if no implementation could be found
+     * @throws NoSuchProviderException if providerName is null or no such Provider exists
+     */
+    public static HpkeContextRecipient getInstance(String suite, Provider provider)
         throws NoSuchAlgorithmException, NoSuchProviderException {
-        return new HpkeContextRecipient(findSpi(algorithm, provider));
+        return new HpkeContextRecipient(findSpi(suite, provider));
     }
 
-    public void init(int mode, byte[] enc, PrivateKey key, byte[] info)
+    /**
+     * Initialises this HpkeContextRecipient.
+     *
+     * @param mode HPKE mode to use, currently only HpkeContext.MODE_BASE is supported.
+     * @param enc encapsulated ephemeral key from a HpkeContextSender
+     * @param privateKey private key of the recipient
+     * @param info application-supplied information, may be null or empty
+     * @throws InvalidKeyException if privateKey is null or an unsupported key format
+     * @throws UnsupportedOperationException if mode is not a supported HPKE mode
+     * @throws IllegalStateException if this HpkeContextRecipient has already been initialised
+     */
+    public void init(int mode, byte[] enc, PrivateKey privateKey, byte[] info)
         throws InvalidKeyException {
-        spi.engineInitRecipient(mode, enc, key, info);
+        spi.engineInitRecipient(mode, enc, privateKey, info);
     }
 }

@@ -1,5 +1,22 @@
+/*
+ * Copyright (C) 2023 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License
+ */
+
 package org.conscrypt;
 
+import static org.conscrypt.HpkeContext.MODE_BASE;
 import static org.conscrypt.HpkeSuite.AEAD_AES_256_GCM;
 import static org.conscrypt.HpkeSuite.KDF_HKDF_SHA256;
 import static org.conscrypt.HpkeSuite.KEM_DHKEM_X25519_HKDF_SHA256;
@@ -43,8 +60,9 @@ public class HpkeFixture {
 
     static HpkeContextRecipient createDefaultHpkeContextRecipient(byte[] enc, byte[] info)
         throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
-        HpkeContextRecipient contextRecipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
-        contextRecipient.init(HpkeContextRecipient.MODE_BASE, enc, createPrivateKey(DEFAULT_SK), info);
+        HpkeContextRecipient contextRecipient =
+                HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
+        contextRecipient.init(MODE_BASE, enc, createPrivateKey(DEFAULT_SK), info);
         return contextRecipient;
     }
 
@@ -56,7 +74,7 @@ public class HpkeFixture {
     static HpkeContextSender createDefaultHpkeContextSender(byte[] info)
         throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
         HpkeContextSender hpke = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
-        hpke.init(HpkeContextSender.MODE_BASE, createPublicKey(DEFAULT_PK), info);
+        hpke.init(MODE_BASE, createPublicKey(DEFAULT_PK), info);
         return hpke;
     }
 

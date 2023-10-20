@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2023 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License
+ */
+
 package org.conscrypt;
 
 import java.lang.reflect.InvocationTargetException;
@@ -7,6 +23,13 @@ import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Duck typed implementation of {@link HpkeSpi}.
+ * <p>
+ * Will wrap any Object which implements all of the methods in HpkeSpi and delegate to them
+ * by reflection.
+ */
+@Internal
 public class DuckTypedHpkeSpi implements HpkeSpi {
   private final Object delegate;
   private final Map<String, Method> methods = new HashMap<>();
@@ -84,7 +107,7 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
   }
 
   @Override
-  public byte[] getEnc() {
-    return (byte[]) invoke("getEnc");
+  public byte[] getEncapsulated() {
+    return (byte[]) invoke("getEncapsulated");
   }
 }

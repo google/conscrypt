@@ -27,7 +27,6 @@ import static org.conscrypt.HpkeFixture.createPublicKey;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -112,7 +111,7 @@ public class HpkeContextSenderTest {
     @Test
     public void testExport_withNullValue() throws Exception {
         final HpkeContextSender ctxSender = createDefaultHpkeContextSender();
-        final byte[] enc = ctxSender.getEnc();
+        final byte[] enc = ctxSender.getEncapsulated();
         final byte[] export =
                 ctxSender.export(DEFAULT_EXPORTER_LENGTH, /* exporterContext= */ null);
         assertNotNull(enc);
@@ -123,7 +122,7 @@ public class HpkeContextSenderTest {
     @Test
     public void testExport_verifyOutputLength() throws Exception {
         final HpkeContextSender ctxSender = createDefaultHpkeContextSender();
-        final byte[] enc = ctxSender.getEnc();
+        final byte[] enc = ctxSender.getEncapsulated();
         for (int i = 0; i < 8_000; i += 500) {
             final byte[] export = ctxSender.export(i, DEFAULT_EXPORTER_CONTEXT);
             assertNotNull(enc);
@@ -135,7 +134,7 @@ public class HpkeContextSenderTest {
     @Test
     public void testExport_lowerEdgeLength() throws Exception {
         final HpkeContextSender ctxSender = createDefaultHpkeContextSender();
-        final byte[] enc = ctxSender.getEnc();
+        final byte[] enc = ctxSender.getEncapsulated();
         final byte[] export = ctxSender.export(/* length= */ 0, DEFAULT_EXPORTER_CONTEXT);
         assertNotNull(enc);
         assertNotNull(export);

@@ -49,11 +49,11 @@ public class HpkeContextTest {
     @Test
     public void testSealOpen_randomnessResult() throws Exception {
         final HpkeContextSender ctxSender1 = createDefaultHpkeContextSender();
-        final byte[] enc1 = ctxSender1.getEnc();
+        final byte[] enc1 = ctxSender1.getEncapsulated();
         final byte[] ciphertext1 = ctxSender1.seal(DEFAULT_PT, /* aad= */ null);
 
         final HpkeContextSender ctxSender2 = createDefaultHpkeContextSender();
-        final byte[] enc2 = ctxSender2.getEnc();
+        final byte[] enc2 = ctxSender2.getEncapsulated();
         final byte[] ciphertext2 = ctxSender2.seal(DEFAULT_PT, /* aad= */ null);
 
         assertNotNull(enc1);
@@ -79,11 +79,11 @@ public class HpkeContextTest {
     @Test
     public void testSealOpen_aadNullSameAsEmtpy() throws Exception {
         final HpkeContextSender ctxSender1 = createDefaultHpkeContextSender();
-        final byte[] enc1 = ctxSender1.getEnc();
+        final byte[] enc1 = ctxSender1.getEncapsulated();
         final byte[] ciphertext1 = ctxSender1.seal(DEFAULT_PT, /* aad= */ null);
 
         final HpkeContextSender ctxSender2 = createDefaultHpkeContextSender();
-        final byte[] enc2 = ctxSender2.getEnc();
+        final byte[] enc2 = ctxSender2.getEncapsulated();
         final byte[] ciphertext2 = ctxSender2.seal(DEFAULT_PT, /* aad= */ new byte[0]);
 
         assertNotNull(enc1);
@@ -109,12 +109,12 @@ public class HpkeContextTest {
     @Test
     public void testSealOpen_infoNullSameAsEmtpy() throws Exception {
         final HpkeContextSender ctxSender1 = createDefaultHpkeContextSender(/* info= */ null);
-        final byte[] enc1 = ctxSender1.getEnc();
+        final byte[] enc1 = ctxSender1.getEncapsulated();
         final byte[] ciphertext1 = ctxSender1.seal(DEFAULT_PT, DEFAULT_AAD);
 
         final HpkeContextSender ctxSender2 =
                 createDefaultHpkeContextSender(/* info= */ new byte[0]);
-        final byte[] enc2 = ctxSender2.getEnc();
+        final byte[] enc2 = ctxSender2.getEncapsulated();
         final byte[] ciphertext2 = ctxSender2.seal(DEFAULT_PT, DEFAULT_AAD);
 
         assertNotNull(enc1);
@@ -147,10 +147,11 @@ public class HpkeContextTest {
         final HpkeContextSender ctxSender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
         ctxSender.init(HpkeContextSender.MODE_BASE, publicKey, DEFAULT_INFO);
 
-        final byte[] enc = ctxSender.getEnc();
+        final byte[] enc = ctxSender.getEncapsulated();
         final byte[] ciphertext = ctxSender.seal(DEFAULT_PT, DEFAULT_AAD);
 
-        final HpkeContextRecipient ctxRecipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
+        final HpkeContextRecipient ctxRecipient =
+                HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         ctxRecipient.init(HpkeContextRecipient.MODE_BASE, enc, privateKey, DEFAULT_INFO);
         assertThrows(BadPaddingException.class, () -> ctxRecipient.open(ciphertext, DEFAULT_AAD));
     }
@@ -158,7 +159,7 @@ public class HpkeContextTest {
     @Test
     public void testExportWithSetupSenderAndReceiver_randomnessResult() throws Exception {
         final HpkeContextSender ctxSender = createDefaultHpkeContextSender();
-        final byte[] enc = ctxSender.getEnc();
+        final byte[] enc = ctxSender.getEncapsulated();
         final byte[] export1 = ctxSender.export(DEFAULT_EXPORTER_LENGTH, DEFAULT_EXPORTER_CONTEXT);
 
         final HpkeContextRecipient ctxRecipient = createDefaultHpkeContextRecipient(DEFAULT_ENC);
