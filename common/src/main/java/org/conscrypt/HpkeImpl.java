@@ -64,7 +64,7 @@ public class HpkeImpl implements HpkeSpi {
   }
 
   @Override
-  public void engineInitRecipient(int mode, byte[] enc, PrivateKey key, byte[] info)
+  public void engineInitRecipient(int mode, byte[] encapsulated, PrivateKey key, byte[] info)
           throws InvalidKeyException {
     checkNotInitialised();
     if (key == null) {
@@ -73,11 +73,12 @@ public class HpkeImpl implements HpkeSpi {
     if (mode != HpkeContextSender.MODE_BASE) {
       throw new UnsupportedOperationException("Unsupported mode " + mode);
     }
+    hpkeSuite.getKem().validateEncapsulatedLength(encapsulated);
     final byte[] sk = hpkeSuite.getKem().validatePrivateKeyTypeAndGetRawKey(key);
 
     ctx = (NativeRef.EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_recipient(
         hpkeSuite.getKem().getId(), hpkeSuite.getKdf().getId(),
-        hpkeSuite.getAead().getId(), sk, enc, info);
+        hpkeSuite.getAead().getId(), sk, encapsulated, info);
   }
 
   @Override

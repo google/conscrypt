@@ -30,14 +30,14 @@ public interface HpkeSpi {
    * Initialises an HPKE recipient SPI.
    *
    * @param mode HPKE mode to use
-   * @param enc encapsulated ephemeral key from a sender
+   * @param encapsulated encapsulated ephemeral key from a sender
    * @param privateKey private key of the recipient
    * @param info application-supplied information, may be null or empty
    * @throws InvalidKeyException if privateKey is null or an unsupported key format
    * @throws UnsupportedOperationException if mode is not a supported HPKE mode
    * @throws IllegalStateException if this SPI has already been initialised
    */
-  void engineInitRecipient(int mode, byte[] enc, PrivateKey privateKey, byte[] info)
+  void engineInitRecipient(int mode, byte[] encapsulated, PrivateKey privateKey, byte[] info)
           throws InvalidKeyException;
 
   /**

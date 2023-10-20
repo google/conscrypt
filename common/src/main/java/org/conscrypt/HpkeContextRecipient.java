@@ -92,15 +92,15 @@ public class HpkeContextRecipient extends HpkeContext {
      * Initialises this HpkeContextRecipient.
      *
      * @param mode HPKE mode to use, currently only HpkeContext.MODE_BASE is supported.
-     * @param enc encapsulated ephemeral key from a HpkeContextSender
+     * @param encapsulated encapsulated ephemeral key from an HpkeContextSender
      * @param privateKey private key of the recipient
      * @param info application-supplied information, may be null or empty
      * @throws InvalidKeyException if privateKey is null or an unsupported key format
      * @throws UnsupportedOperationException if mode is not a supported HPKE mode
      * @throws IllegalStateException if this HpkeContextRecipient has already been initialised
      */
-    public void init(int mode, byte[] enc, PrivateKey privateKey, byte[] info)
+    public void init(int mode, byte[] encapsulated, PrivateKey privateKey, byte[] info)
         throws InvalidKeyException {
-        spi.engineInitRecipient(mode, enc, privateKey, info);
+        spi.engineInitRecipient(mode, encapsulated, privateKey, info);
     }
 }

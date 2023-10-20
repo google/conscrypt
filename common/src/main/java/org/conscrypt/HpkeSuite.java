@@ -186,19 +186,19 @@ public final class HpkeSuite {
         }
 
         /**
-         * Validates the enc size in bytes matches the {@link KEM} spec.
+         * Validates the encapsulated size in bytes matches the {@link KEM} spec.
          *
-         * @param enc encapsulated key produced by the kem
-         * @see <a
-         *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-key-encapsulation-mechanism">expected
-         *         enc size</a>
+         * @param encapsulated encapsulated key produced by the kem
+         * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-key-encapsulation-mechanism">
+         *     expected enc size</a>
          */
-        void validateEncLength(byte[] enc) {
-            Preconditions.checkNotNull(enc, "enc");
+        void validateEncapsulatedLength(byte[] encapsulated) {
+            Preconditions.checkNotNull(encapsulated, "encapsulated");
             final int expectedLength = this.getEncLength();
-            if (enc.length != expectedLength) {
+            if (encapsulated.length != expectedLength) {
                 throw new IllegalArgumentException(
-                        "Expected enc length of " + expectedLength + ", but was " + enc.length);
+                        "Expected encapsulated length of " + expectedLength + ", but was "
+                                + encapsulated.length);
             }
         }
 

@@ -87,8 +87,8 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
   }
 
   @Override
-  public void engineInitRecipient(int mode, byte[] enc, PrivateKey key, byte[] info) {
-    invoke("engineInitRecipient", mode, enc, key, info);
+  public void engineInitRecipient(int mode, byte[] encapsulated, PrivateKey key, byte[] info) {
+    invoke("engineInitRecipient", mode, encapsulated, key, info);
   }
 
   @Override
