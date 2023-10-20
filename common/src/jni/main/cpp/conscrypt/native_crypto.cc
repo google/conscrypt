@@ -4861,6 +4861,26 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
     return joa.release();
 }
 
+/*
+ * Checks an ASN1_TIME for validity, converts to epoch time in milliseconds.
+ */
+static jlong ASN1_TIME_check_and_convert_to_posix(JNIEnv* env, const ASN1_TIME* time) {
+    if (!ASN1_TIME_check(time)) {
+        JNI_TRACE("ASN1_time_check_and_convert(%p) => Invalid date format", time);
+        conscrypt::jniutil::throwParsingException(env, "Invalid date format");
+        return 0;
+    }
+
+    int64_t retval;
+    if (!ASN1_TIME_to_posix(time, &retval)) {
+        JNI_TRACE("ASN1_time_check_and_convert(%p) => Invalid date value", time);
+        conscrypt::jniutil::throwParsingException(env, "Invalid date value");
+        return 0;
+    }
+
+    return static_cast<jlong>(retval * 1000);
+}
+
 static jlong NativeCrypto_X509_get_notBefore(JNIEnv* env, jclass, jlong x509Ref,
                                              CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -4875,7 +4895,7 @@ static jlong NativeCrypto_X509_get_notBefore(JNIEnv* env, jclass, jlong x509Ref,
 
     ASN1_TIME* notBefore = X509_get_notBefore(x509);
     JNI_TRACE("X509_get_notBefore(%p) => %p", x509, notBefore);
-    return reinterpret_cast<uintptr_t>(notBefore);
+    return ASN1_TIME_check_and_convert_to_posix(env, notBefore);
 }
 
 static jlong NativeCrypto_X509_get_notAfter(JNIEnv* env, jclass, jlong x509Ref,
@@ -4892,7 +4912,7 @@ static jlong NativeCrypto_X509_get_notAfter(JNIEnv* env, jclass, jlong x509Ref,
 
     ASN1_TIME* notAfter = X509_get_notAfter(x509);
     JNI_TRACE("X509_get_notAfter(%p) => %p", x509, notAfter);
-    return reinterpret_cast<uintptr_t>(notAfter);
+    return ASN1_TIME_check_and_convert_to_posix(env, notAfter);
 }
 
 // NOLINTNEXTLINE(runtime/int)
@@ -5528,7 +5548,7 @@ static jlong NativeCrypto_get_X509_REVOKED_revocationDate(JNIEnv* env, jclass,
 
     JNI_TRACE("get_X509_REVOKED_revocationDate(%p) => %p", revoked,
               X509_REVOKED_get0_revocationDate(revoked));
-    return reinterpret_cast<uintptr_t>(X509_REVOKED_get0_revocationDate(revoked));
+    return ASN1_TIME_check_and_convert_to_posix(env, X509_REVOKED_get0_revocationDate(revoked));
 }
 
 #ifdef __GNUC__
@@ -5622,7 +5642,7 @@ static jlong NativeCrypto_X509_CRL_get_lastUpdate(JNIEnv* env, jclass, jlong x50
 
     ASN1_TIME* lastUpdate = X509_CRL_get_lastUpdate(crl);
     JNI_TRACE("X509_CRL_get_lastUpdate(%p) => %p", crl, lastUpdate);
-    return reinterpret_cast<uintptr_t>(lastUpdate);
+    return ASN1_TIME_check_and_convert_to_posix(env, lastUpdate);
 }
 
 static jlong NativeCrypto_X509_CRL_get_nextUpdate(JNIEnv* env, jclass, jlong x509CrlRef,
@@ -5639,7 +5659,7 @@ static jlong NativeCrypto_X509_CRL_get_nextUpdate(JNIEnv* env, jclass, jlong x50
 
     ASN1_TIME* nextUpdate = X509_CRL_get_nextUpdate(crl);
     JNI_TRACE("X509_CRL_get_nextUpdate(%p) => %p", crl, nextUpdate);
-    return reinterpret_cast<uintptr_t>(nextUpdate);
+    return ASN1_TIME_check_and_convert_to_posix(env, nextUpdate);
 }
 
 static jbyteArray NativeCrypto_i2d_X509_REVOKED(JNIEnv* env, jclass, jlong x509RevokedRef) {
@@ -5674,50 +5694,6 @@ static inline bool decimal_to_integer(const char* data, size_t len, int* out) {
     }
     *out = ret;
     return true;
-}
-
-static void NativeCrypto_ASN1_TIME_to_Calendar(JNIEnv* env, jclass, jlong asn1TimeRef,
-                                               jobject calendar) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-    ASN1_TIME* asn1Time = reinterpret_cast<ASN1_TIME*>(static_cast<uintptr_t>(asn1TimeRef));
-    JNI_TRACE("ASN1_TIME_to_Calendar(%p, %p)", asn1Time, calendar);
-
-    if (asn1Time == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "asn1Time == null");
-        return;
-    }
-
-    if (!ASN1_TIME_check(asn1Time)) {
-        conscrypt::jniutil::throwParsingException(env, "Invalid date format");
-        return;
-    }
-
-    bssl::UniquePtr<ASN1_GENERALIZEDTIME> gen(ASN1_TIME_to_generalizedtime(asn1Time, nullptr));
-    if (gen.get() == nullptr) {
-        conscrypt::jniutil::throwParsingException(env,
-                                                  "ASN1_TIME_to_generalizedtime returned null");
-        return;
-    }
-
-    if (ASN1_STRING_length(gen.get()) < 14 || ASN1_STRING_get0_data(gen.get()) == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "gen->length < 14 || gen->data == null");
-        return;
-    }
-
-    int year, mon, mday, hour, min, sec;
-    const char* data = reinterpret_cast<const char*>(ASN1_STRING_get0_data(gen.get()));
-    if (!decimal_to_integer(data, 4, &year) ||
-        !decimal_to_integer(data + 4, 2, &mon) ||
-        !decimal_to_integer(data + 6, 2, &mday) ||
-        !decimal_to_integer(data + 8, 2, &hour) ||
-        !decimal_to_integer(data + 10, 2, &min) ||
-        !decimal_to_integer(data + 12, 2, &sec)) {
-        conscrypt::jniutil::throwParsingException(env, "Invalid date format");
-        return;
-    }
-
-    env->CallVoidMethod(calendar, conscrypt::jniutil::calendar_setMethod, year, mon - 1, mday, hour,
-                        min, sec);
 }
 
 // A CbsHandle is a structure used to manage resources allocated by asn1_read-*
@@ -11218,7 +11194,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(X509_REVOKED_dup, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(i2d_X509_REVOKED, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(X509_supported_extension, "(J)I"),
-        CONSCRYPT_NATIVE_METHOD(ASN1_TIME_to_Calendar, "(JLjava/util/Calendar;)V"),
         CONSCRYPT_NATIVE_METHOD(asn1_read_init, "([B)J"),
         CONSCRYPT_NATIVE_METHOD(asn1_read_sequence, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(asn1_read_next_tag_is, "(JI)Z"),

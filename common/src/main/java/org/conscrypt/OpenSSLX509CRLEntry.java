@@ -31,13 +31,13 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
  */
 final class OpenSSLX509CRLEntry extends X509CRLEntry {
     private final long mContext;
-    private final Date revocationDate;
+    private final long revocationDate;
 
     OpenSSLX509CRLEntry(long ctx) throws ParsingException {
         mContext = ctx;
         // The legacy X509 OpenSSL APIs don't validate ASN1_TIME structures until access, so
         // parse them here because this is the only time we're allowed to throw ParsingException
-        revocationDate = OpenSSLX509CRL.toDate(NativeCrypto.get_X509_REVOKED_revocationDate(mContext));
+        revocationDate = NativeCrypto.get_X509_REVOKED_revocationDate(mContext);
     }
 
     @Override
@@ -112,7 +112,7 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
 
     @Override
     public Date getRevocationDate() {
-        return (Date) revocationDate.clone();
+        return new Date(revocationDate);
     }
 
     @Override
