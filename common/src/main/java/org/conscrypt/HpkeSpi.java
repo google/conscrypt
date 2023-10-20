@@ -2,7 +2,6 @@ package org.conscrypt;
 
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
-import java.security.Provider;
 import java.security.PublicKey;
 
 public interface HpkeSpi {
@@ -16,6 +15,4 @@ public interface HpkeSpi {
   byte[] engineOpen(byte[] ciphertext, byte[] aad);
 
   byte[] getEnc();
-
-  Provider getProvider();
 }

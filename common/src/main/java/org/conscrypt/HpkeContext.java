@@ -25,9 +25,6 @@ public class HpkeContext {
     return spi.engineExport(length, exporterContext);
   }
 
-  public Provider getProvider() {
-    return spi.getProvider();
-  }
   public HpkeSpi getSpi() {
     return spi;
   }
@@ -72,11 +69,9 @@ public class HpkeContext {
     if (service == null) {
       throw new NoSuchAlgorithmException("Unknown algorithm");
     }
-    Object instance = service.newInstance(provider);
-    if (instance instanceof HpkeSpi) {
-      return (HpkeSpi) instance;
-    }
-    HpkeSpi spi = DuckTypedHpkeSpi.newInstance(instance);
+    Object instance = service.newInstance(null);
+    HpkeSpi spi = (instance instanceof HpkeSpi) ? (HpkeSpi) instance
+            : DuckTypedHpkeSpi.newInstance(instance);
     if (spi != null) {
       return spi;
     }

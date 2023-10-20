@@ -173,10 +173,7 @@ public class DuckTypedHpkeSpiTest {
 
     // Asserts that an HpkeContext is duck-typed and configured as we expect it.
     private static void assertForeign(HpkeContext context) {
-        // Instance should be coming from the foreign Provider.
-        assertEquals(ForeignHpkeProvider.NAME, context.getProvider().getName());
-
-        // Its SPI should be duck typed, because the foreign Provider returns instances
+        // Context's SPI should be duck typed, because the foreign Provider returns instances
         // which use HpkeForeignSpi which *doesn't* implement HpkeSpi.
         assertTrue(context.getSpi() instanceof DuckTypedHpkeSpi);
         DuckTypedHpkeSpi duckTyped = (DuckTypedHpkeSpi) context.getSpi();
@@ -186,8 +183,7 @@ public class DuckTypedHpkeSpiTest {
 
         // And that it is delegating to a real HpkeImpl, so we can test it.
         HpkeForeignSpi foreign = (HpkeForeignSpi) duckTyped.getDelegate();
-        assertTrue(foreign.delegate instanceof HpkeImpl);
-        assertEquals(conscryptProvider.getName(), foreign.delegate.getProvider().getName());
+        assertTrue(foreign.realSpi instanceof HpkeImpl);
     }
 
     // Provides HpkeContext instances that use a "foreign" SPI, that is one that isn't
@@ -195,9 +191,9 @@ public class DuckTypedHpkeSpiTest {
     // duck typing.
     //
     // Some complexity here: We want to test end-to-end, so the foreign SPI delegates to a
-    // real Conscrypt SPI for its implentation so there are two levels of delegation. That is:
+    // real Conscrypt SPI for its implementation so there are two levels of delegation. That is:
     // * ForeignHpkeProvider provides instances of HpkeForeignSpi. This *doesn't* inherit from
-    // HpkeSpi and so is representative of the case here the SPI comes from a different
+    // HpkeSpi and so is representative of the case where the SPI comes from a different
     // Conscrypt variant or indeed some other provider.  HpkeContext created a
     // DuckTypedHpkeSpi to wrap this SPI and that is what we're testing above.
     // * HpkeForeignSpi finds its equivalent SPI from the real Conscrypt Provider and
@@ -217,65 +213,58 @@ public class DuckTypedHpkeSpiTest {
         }
     }
     public static class HpkeForeignSpi {
-        private final Provider provider;
-        private final HpkeSpi delegate;
+        private final HpkeSpi realSpi;
 
-        public HpkeForeignSpi(Object arg, String hpkeSuite) throws NoSuchAlgorithmException {
-            assertTrue(arg instanceof Provider);
-            provider = (Provider) arg;
+        public HpkeForeignSpi(String hpkeSuite) throws NoSuchAlgorithmException {
 
             Provider.Service service =
                 conscryptProvider.getService("ConscryptHpke", hpkeSuite);
             assertNotNull(service);
-            delegate = (HpkeSpi) service.newInstance(conscryptProvider);
-            assertNotNull(delegate);
+            realSpi = (HpkeSpi) service.newInstance(null);
+            assertNotNull(realSpi);
         }
 
         public void engineInitSender(int mode, PublicKey key, byte[] info, byte[] sKe)
             throws InvalidKeyException {
-            delegate.engineInitSender(mode, key, info, sKe);
+            realSpi.engineInitSender(mode, key, info, sKe);
         }
 
         public void engineInitRecipient(int mode, byte[] enc, PrivateKey key, byte[] info)
             throws InvalidKeyException {
-            delegate.engineInitRecipient(mode, enc, key, info);
+            realSpi.engineInitRecipient(mode, enc, key, info);
         }
 
         public byte[] engineSeal(byte[] plaintext, byte[] aad) {
-            return delegate.engineSeal(plaintext, aad);
+            return realSpi.engineSeal(plaintext, aad);
         }
 
         public byte[] engineExport(int length, byte[] exporterContext) {
-            return delegate.engineExport(length, exporterContext);
+            return realSpi.engineExport(length, exporterContext);
         }
 
         public byte[] engineOpen(byte[] ciphertext, byte[] aad) {
-            return delegate.engineOpen(ciphertext, aad);
+            return realSpi.engineOpen(ciphertext, aad);
         }
 
         public byte[] getEnc() {
-            return delegate.getEnc();
-        }
-
-        public Provider getProvider() {
-            return provider;
+            return realSpi.getEnc();
         }
 
         public static class X25519_AES_128 extends HpkeForeignSpi {
-            public X25519_AES_128(Object arg) throws NoSuchAlgorithmException {
-                super(arg, "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_128_GCM");
+            public X25519_AES_128() throws NoSuchAlgorithmException {
+                super("DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_128_GCM");
             }
         }
 
         public static class X25519_AES_256 extends HpkeForeignSpi {
-            public X25519_AES_256(Object arg) throws NoSuchAlgorithmException {
-                super(arg, "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_256_GCM");
+            public X25519_AES_256() throws NoSuchAlgorithmException {
+                super("DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_256_GCM");
             }
         }
 
         public static class X25519_CHACHA20 extends HpkeForeignSpi {
-            public X25519_CHACHA20(Object arg) throws NoSuchAlgorithmException {
-                super(arg, "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/CHACHA20POLY1305");
+            public X25519_CHACHA20() throws NoSuchAlgorithmException {
+                super("DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/CHACHA20POLY1305");
             }
         }
     }

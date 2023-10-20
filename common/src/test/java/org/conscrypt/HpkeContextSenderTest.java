@@ -56,8 +56,6 @@ public class HpkeContextSenderTest {
             () -> HpkeContextSender.getInstance(DEFAULT_SUITE_NAME, "NonsenseProviderName"));
         HpkeContextSender sender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
         assertNotNull(sender);
-        Provider provider = sender.getProvider();
-        assertTrue(provider instanceof OpenSSLProvider);
     }
 
     @Test

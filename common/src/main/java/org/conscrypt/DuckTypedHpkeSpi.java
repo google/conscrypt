@@ -3,7 +3,6 @@ package org.conscrypt;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.security.PrivateKey;
-import java.security.Provider;
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
@@ -87,10 +86,5 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
   @Override
   public byte[] getEnc() {
     return (byte[]) invoke("getEnc");
-  }
-
-  @Override
-  public Provider getProvider() {
-    return (Provider) invoke("getProvider");
   }
 }

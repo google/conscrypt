@@ -63,8 +63,6 @@ public class HpkeContextRecipientTest {
             () -> HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME, "NonsenseProviderName"));
         HpkeContextRecipient recipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         assertNotNull(recipient);
-        Provider provider = recipient.getProvider();
-        assertTrue(provider instanceof OpenSSLProvider);
     }
 
     @Test

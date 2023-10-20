@@ -8,23 +8,16 @@ import static org.conscrypt.HpkeSuite.KEM_DHKEM_X25519_HKDF_SHA256;
 
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
-import java.security.Provider;
 import java.security.PublicKey;
 
 public class HpkeImpl implements HpkeSpi {
-  private final Provider provider;
   private final HpkeSuite hpkeSuite;
 
   private NativeRef.EVP_HPKE_CTX ctx;
   private byte[] enc = null;
 
 
-  public HpkeImpl(Object arg, HpkeSuite hpkeSuite) {
-    if (arg instanceof Provider) {
-      provider = (Provider) arg;
-    } else {
-      provider = null;
-    }
+  public HpkeImpl(HpkeSuite hpkeSuite) {
     this.hpkeSuite = hpkeSuite;
   }
 
@@ -116,26 +109,21 @@ public class HpkeImpl implements HpkeSpi {
     return enc;
   }
 
-  @Override
-  public Provider getProvider() {
-    return provider;
-  }
-
   public static class X25519_AES_128 extends HpkeImpl {
-    public X25519_AES_128(Object arg) {
-      super(arg, new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
+    public X25519_AES_128() {
+      super(new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
     }
   }
 
   public static class X25519_AES_256 extends HpkeImpl {
-    public X25519_AES_256(Object arg) {
-      super(arg, new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
+    public X25519_AES_256() {
+      super(new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
     }
   }
 
   public static class X25519_CHACHA20 extends HpkeImpl {
-    public X25519_CHACHA20(Object arg) {
-      super(arg, new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
+    public X25519_CHACHA20() {
+      super(new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
     }
   }
 }
