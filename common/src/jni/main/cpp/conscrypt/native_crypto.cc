@@ -4862,22 +4862,16 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
 }
 
 /*
- * Checks an ASN1_TIME for validity, converts to epoch time in milliseconds.
+ * Converts an ASN1_TIME to epoch time in milliseconds.
  */
-static jlong ASN1_TIME_check_and_convert_to_posix(JNIEnv* env, const ASN1_TIME* time) {
-    if (!ASN1_TIME_check(time)) {
-        JNI_TRACE("ASN1_time_check_and_convert(%p) => Invalid date format", time);
-        conscrypt::jniutil::throwParsingException(env, "Invalid date format");
-        return 0;
-    }
-
+static jlong ASN1_TIME_convert_to_posix(JNIEnv* env, const ASN1_TIME* time) {
     int64_t retval;
     if (!ASN1_TIME_to_posix(time, &retval)) {
         JNI_TRACE("ASN1_time_check_and_convert(%p) => Invalid date value", time);
         conscrypt::jniutil::throwParsingException(env, "Invalid date value");
         return 0;
     }
-
+    // ASN1_TIME_to_posix can only return years from 0000 to 9999, so this won't overflow.
     return static_cast<jlong>(retval * 1000);
 }
 
@@ -4895,7 +4889,7 @@ static jlong NativeCrypto_X509_get_notBefore(JNIEnv* env, jclass, jlong x509Ref,
 
     ASN1_TIME* notBefore = X509_get_notBefore(x509);
     JNI_TRACE("X509_get_notBefore(%p) => %p", x509, notBefore);
-    return ASN1_TIME_check_and_convert_to_posix(env, notBefore);
+    return ASN1_TIME_convert_to_posix(env, notBefore);
 }
 
 static jlong NativeCrypto_X509_get_notAfter(JNIEnv* env, jclass, jlong x509Ref,
@@ -4912,7 +4906,7 @@ static jlong NativeCrypto_X509_get_notAfter(JNIEnv* env, jclass, jlong x509Ref,
 
     ASN1_TIME* notAfter = X509_get_notAfter(x509);
     JNI_TRACE("X509_get_notAfter(%p) => %p", x509, notAfter);
-    return ASN1_TIME_check_and_convert_to_posix(env, notAfter);
+    return ASN1_TIME_convert_to_posix(env, notAfter);
 }
 
 // NOLINTNEXTLINE(runtime/int)
@@ -5548,7 +5542,7 @@ static jlong NativeCrypto_get_X509_REVOKED_revocationDate(JNIEnv* env, jclass,
 
     JNI_TRACE("get_X509_REVOKED_revocationDate(%p) => %p", revoked,
               X509_REVOKED_get0_revocationDate(revoked));
-    return ASN1_TIME_check_and_convert_to_posix(env, X509_REVOKED_get0_revocationDate(revoked));
+    return ASN1_TIME_convert_to_posix(env, X509_REVOKED_get0_revocationDate(revoked));
 }
 
 #ifdef __GNUC__
@@ -5642,7 +5636,7 @@ static jlong NativeCrypto_X509_CRL_get_lastUpdate(JNIEnv* env, jclass, jlong x50
 
     ASN1_TIME* lastUpdate = X509_CRL_get_lastUpdate(crl);
     JNI_TRACE("X509_CRL_get_lastUpdate(%p) => %p", crl, lastUpdate);
-    return ASN1_TIME_check_and_convert_to_posix(env, lastUpdate);
+    return ASN1_TIME_convert_to_posix(env, lastUpdate);
 }
 
 static jlong NativeCrypto_X509_CRL_get_nextUpdate(JNIEnv* env, jclass, jlong x509CrlRef,
@@ -5659,7 +5653,7 @@ static jlong NativeCrypto_X509_CRL_get_nextUpdate(JNIEnv* env, jclass, jlong x50
 
     ASN1_TIME* nextUpdate = X509_CRL_get_nextUpdate(crl);
     JNI_TRACE("X509_CRL_get_nextUpdate(%p) => %p", crl, nextUpdate);
-    return ASN1_TIME_check_and_convert_to_posix(env, nextUpdate);
+    return ASN1_TIME_convert_to_posix(env, nextUpdate);
 }
 
 static jbyteArray NativeCrypto_i2d_X509_REVOKED(JNIEnv* env, jclass, jlong x509RevokedRef) {
@@ -5681,19 +5675,6 @@ static jint NativeCrypto_X509_supported_extension(JNIEnv* env, jclass, jlong x50
     }
 
     return X509_supported_extension(ext);
-}
-
-static inline bool decimal_to_integer(const char* data, size_t len, int* out) {
-    int ret = 0;
-    for (size_t i = 0; i < len; i++) {
-        ret *= 10;
-        if (data[i] < '0' || data[i] > '9') {
-            return false;
-        }
-        ret += data[i] - '0';
-    }
-    *out = ret;
-    return true;
 }
 
 // A CbsHandle is a structure used to manage resources allocated by asn1_read-*
