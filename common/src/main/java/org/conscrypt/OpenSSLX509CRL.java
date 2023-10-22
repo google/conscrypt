@@ -50,23 +50,15 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
  */
 final class OpenSSLX509CRL extends X509CRL {
     private volatile long mContext;
-    private final Date thisUpdate;
-    private final Date nextUpdate;
+    private final long thisUpdate;
+    private final long nextUpdate;
 
     private OpenSSLX509CRL(long ctx) throws ParsingException {
         mContext = ctx;
         // The legacy X509 OpenSSL APIs don't validate ASN1_TIME structures until access, so
         // parse them here because this is the only time we're allowed to throw ParsingException
-        thisUpdate = toDate(NativeCrypto.X509_CRL_get_lastUpdate(mContext, this));
-        nextUpdate = toDate(NativeCrypto.X509_CRL_get_nextUpdate(mContext, this));
-    }
-
-    // Package-visible because it's also used by OpenSSLX509CRLEntry
-    static Date toDate(long asn1time) throws ParsingException {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        calendar.set(Calendar.MILLISECOND, 0);
-        NativeCrypto.ASN1_TIME_to_Calendar(asn1time, calendar);
-        return calendar.getTime();
+        thisUpdate = NativeCrypto.X509_CRL_get_lastUpdate(mContext, this);
+        nextUpdate = NativeCrypto.X509_CRL_get_nextUpdate(mContext, this);
     }
 
     static OpenSSLX509CRL fromX509DerInputStream(InputStream is) throws ParsingException {
@@ -278,12 +270,12 @@ final class OpenSSLX509CRL extends X509CRL {
 
     @Override
     public Date getThisUpdate() {
-        return (Date) thisUpdate.clone();
+        return new Date(thisUpdate);
     }
 
     @Override
     public Date getNextUpdate() {
-        return (Date) nextUpdate.clone();
+        return new Date(nextUpdate);
     }
 
     @Override

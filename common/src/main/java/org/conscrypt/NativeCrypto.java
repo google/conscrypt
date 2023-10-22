@@ -611,10 +611,6 @@ public final class NativeCrypto {
 
     static native int X509_supported_extension(long x509ExtensionRef);
 
-    // --- ASN1_TIME -----------------------------------------------------------
-
-    static native void ASN1_TIME_to_Calendar(long asn1TimeCtx, Calendar cal) throws ParsingException;
-
     // --- ASN1 Encoding -------------------------------------------------------
 
     /**
