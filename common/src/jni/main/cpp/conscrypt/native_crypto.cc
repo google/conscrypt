@@ -4867,7 +4867,7 @@ static jobjectArray NativeCrypto_get_X509_GENERAL_NAME_stack(JNIEnv* env, jclass
 static jlong ASN1_TIME_convert_to_posix(JNIEnv* env, const ASN1_TIME* time) {
     int64_t retval;
     if (!ASN1_TIME_to_posix(time, &retval)) {
-        JNI_TRACE("ASN1_time_check_and_convert(%p) => Invalid date value", time);
+        JNI_TRACE("ASN1_TIME_convert_to_posix(%p) => Invalid date value", time);
         conscrypt::jniutil::throwParsingException(env, "Invalid date value");
         return 0;
     }
