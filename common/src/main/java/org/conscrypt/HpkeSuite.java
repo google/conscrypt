@@ -192,11 +192,11 @@ public final class HpkeSuite {
          * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-key-encapsulation-mechanism">
          *     expected enc size</a>
          */
-        void validateEncapsulatedLength(byte[] encapsulated) {
+        void validateEncapsulatedLength(byte[] encapsulated) throws InvalidKeyException {
             Preconditions.checkNotNull(encapsulated, "encapsulated");
             final int expectedLength = this.getEncLength();
             if (encapsulated.length != expectedLength) {
-                throw new IllegalArgumentException(
+                throw new InvalidKeyException(
                         "Expected encapsulated length of " + expectedLength + ", but was "
                                 + encapsulated.length);
             }
