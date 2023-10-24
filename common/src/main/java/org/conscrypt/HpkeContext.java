@@ -113,10 +113,6 @@ public abstract class HpkeContext {
     if (spi != null) {
       return spi;
     }
-    HpkeSpi spi = DuckTypedHpkeSpi.newInstance(instance);
-    if (spi != null) {
-      return spi;
-    }
     throw new IllegalStateException(
         String.format("Provider %s is providing incorrect instances", provider.getName()));
   }
