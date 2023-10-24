@@ -30,6 +30,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -37,7 +38,6 @@ import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
 import java.util.List;
-import javax.crypto.BadPaddingException;
 
 import org.conscrypt.HpkeTestVectorsTest.HpkeData;
 import org.conscrypt.HpkeTestVectorsTest.HpkeEncryptionData;
@@ -155,7 +155,7 @@ public class DuckTypedHpkeSpiTest {
         final HpkeContextRecipient contextRecipient =
             HpkeContextRecipient.getInstance(record.hpkeSuite.name());
         assertForeign(contextRecipient);
-        contextRecipient.init(HpkeContextRecipient.MODE_BASE, enc, record.skRm, record.info);
+        contextRecipient.init(enc, record.skRm, record.info);
         for (HpkeEncryptionData encryption : record.encryptions) {
             final byte[] plaintext = contextRecipient.open(encryption.ct, encryption.aad);
             assertArrayEquals(
@@ -167,7 +167,7 @@ public class DuckTypedHpkeSpiTest {
         HpkeSuite suite, PublicKey publicKey, byte[] info, byte[] sKem) throws Exception {
         String algorithm = suite.name();
         HpkeContextSender sender = HpkeContextSender.getInstance(algorithm);
-        sender.initForTesting(HpkeContextSender.MODE_BASE, publicKey, info, sKem);
+        sender.initForTesting(publicKey, info, sKem);
         return sender;
     }
 
@@ -224,14 +224,20 @@ public class DuckTypedHpkeSpiTest {
             assertNotNull(realSpi);
         }
 
-        public void engineInitSender(int mode, PublicKey key, byte[] info, byte[] sKe)
-            throws InvalidKeyException {
-            realSpi.engineInitSender(mode, key, info, sKe);
+        public void engineInitSender(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
+                byte[] psk, byte[] psk_id) throws InvalidKeyException {
+            realSpi.engineInitSender(recipientKey, info, senderKey, psk, psk_id);
         }
 
-        public void engineInitRecipient(int mode, byte[] enc, PrivateKey key, byte[] info)
-            throws InvalidKeyException {
-            realSpi.engineInitRecipient(mode, enc, key, info);
+        public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info,
+                PrivateKey senderKey, byte[] psk, byte[] psk_id, byte[] sKe)
+                throws InvalidKeyException {
+            realSpi.engineInitSenderForTesting(recipientKey, info, senderKey, psk, psk_id, sKe);
+        }
+
+        public void engineInitRecipient(byte[] enc, PrivateKey recipientKey, byte[] info,
+                PublicKey senderKey, byte[] psk, byte[] psk_id) throws InvalidKeyException {
+            realSpi.engineInitRecipient(enc, recipientKey, info, senderKey, psk, psk_id);
         }
 
         public byte[] engineSeal(byte[] plaintext, byte[] aad) {
@@ -242,7 +248,7 @@ public class DuckTypedHpkeSpiTest {
             return realSpi.engineExport(length, exporterContext);
         }
 
-        public byte[] engineOpen(byte[] ciphertext, byte[] aad) throws BadPaddingException {
+        public byte[] engineOpen(byte[] ciphertext, byte[] aad) throws GeneralSecurityException {
             return realSpi.engineOpen(ciphertext, aad);
         }
 

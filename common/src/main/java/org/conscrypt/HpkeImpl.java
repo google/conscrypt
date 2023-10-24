@@ -21,9 +21,14 @@ import static org.conscrypt.HpkeSuite.AEAD_CHACHA20POLY1305;
 import static org.conscrypt.HpkeSuite.KDF_HKDF_SHA256;
 import static org.conscrypt.HpkeSuite.KEM_DHKEM_X25519_HKDF_SHA256;
 
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
+import java.security.Key;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Objects;
+
+import javax.crypto.BadPaddingException;
 
 /**
  * Implementation of {@link HpkeSpi}.  Should not be used directly, but rather by one
@@ -35,50 +40,62 @@ public class HpkeImpl implements HpkeSpi {
   private NativeRef.EVP_HPKE_CTX ctx;
   private byte[] encapsulated = null;
 
-
   public HpkeImpl(HpkeSuite hpkeSuite) {
     this.hpkeSuite = hpkeSuite;
   }
 
   @Override
-  public void engineInitSender(int mode, PublicKey publicKey, byte[] info, byte[] sKe)
-          throws InvalidKeyException {
+  public void engineInitSender(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
+          byte[] psk, byte[] psk_id) throws InvalidKeyException {
     checkNotInitialised();
-    if (publicKey == null) {
-      throw new InvalidKeyException("null key");
-    }
-    if (mode != HpkeContextSender.MODE_BASE) {
-      throw new UnsupportedOperationException("Unsupported mode " + mode);
-    }
-    final byte[] pk = hpkeSuite.getKem().validatePublicKeyTypeAndGetRawKey(publicKey);
+    checkArgumentsForBaseModeOnly(recipientKey, senderKey, psk, psk_id);
+    final byte[] pk = hpkeSuite.getKem().validatePublicKeyTypeAndGetRawKey(recipientKey);
 
-    final Object[] result = (sKe == null)
-            ? NativeCrypto.EVP_HPKE_CTX_setup_sender(
-                    hpkeSuite.getKem().getId(), hpkeSuite.getKdf().getId(),
-                    hpkeSuite.getAead().getId(), pk, info)
-            : NativeCrypto.EVP_HPKE_CTX_setup_sender_with_seed_for_testing(
-                    hpkeSuite.getKem().getId(), hpkeSuite.getKdf().getId(),
-                    hpkeSuite.getAead().getId(), pk, info, sKe);
+    final Object[] result = NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender(
+            hpkeSuite, pk, info);
     ctx = (NativeRef.EVP_HPKE_CTX) result[0];
     encapsulated = (byte[]) result[1];
   }
 
   @Override
-  public void engineInitRecipient(int mode, byte[] encapsulated, PrivateKey key, byte[] info)
-          throws InvalidKeyException {
+  public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info,
+          PrivateKey senderKey, byte[] psk, byte[] psk_id, byte[] sKe) throws InvalidKeyException {
     checkNotInitialised();
-    if (key == null) {
+    Objects.requireNonNull(sKe);
+    checkArgumentsForBaseModeOnly(recipientKey, senderKey, psk, psk_id);
+
+    final byte[] pk = hpkeSuite.getKem().validatePublicKeyTypeAndGetRawKey(recipientKey);
+    final Object[] result = NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
+            hpkeSuite, pk, info, sKe);
+    ctx = (NativeRef.EVP_HPKE_CTX) result[0];
+    encapsulated = (byte[]) result[1];
+  }
+
+  @Override
+  public void engineInitRecipient(byte[] encapsulated, PrivateKey recipientKey,
+          byte[] info, PublicKey senderKey, byte[] psk, byte[] psk_id) throws InvalidKeyException {
+    checkNotInitialised();
+    checkArgumentsForBaseModeOnly(recipientKey, senderKey, psk, psk_id);
+    hpkeSuite.getKem().validateEncapsulatedLength(encapsulated);
+    final byte[] sk = hpkeSuite.getKem().validatePrivateKeyTypeAndGetRawKey(recipientKey);
+
+    ctx = (NativeRef.EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_base_mode_recipient(
+            hpkeSuite, sk, encapsulated, info);
+  }
+
+  private void checkArgumentsForBaseModeOnly(
+          Key recipientKey, Key senderKey, byte[] psk, byte[] psk_id) throws InvalidKeyException {
+    if (recipientKey == null) {
       throw new InvalidKeyException("null key");
     }
-    if (mode != HpkeContextSender.MODE_BASE) {
-      throw new UnsupportedOperationException("Unsupported mode " + mode);
+    if (senderKey != null) {
+      throw new UnsupportedOperationException("Asymmetric authentication not supported");
     }
-    hpkeSuite.getKem().validateEncapsulatedLength(encapsulated);
-    final byte[] sk = hpkeSuite.getKem().validatePrivateKeyTypeAndGetRawKey(key);
-
-    ctx = (NativeRef.EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_recipient(
-        hpkeSuite.getKem().getId(), hpkeSuite.getKdf().getId(),
-        hpkeSuite.getAead().getId(), sk, encapsulated, info);
+    Objects.requireNonNull(psk);
+    Objects.requireNonNull(psk_id);
+    if (psk.length > 0 || psk_id.length > 0) {
+      throw new UnsupportedOperationException("PSK authentication not supported");
+    }
   }
 
   @Override
@@ -96,10 +113,14 @@ public class HpkeImpl implements HpkeSpi {
   }
 
   @Override
-  public byte[] engineOpen(byte[] ciphertext, byte[] aad) {
+  public byte[] engineOpen(byte[] ciphertext, byte[] aad) throws GeneralSecurityException {
     checkIsRecipient();
     Preconditions.checkNotNull(ciphertext, "null ciphertext");
-    return NativeCrypto.EVP_HPKE_CTX_open(ctx, ciphertext, aad);
+    try {
+      return NativeCrypto.EVP_HPKE_CTX_open(ctx, ciphertext, aad);
+    } catch (BadPaddingException e) {
+      throw new HpkeDecryptException(e.getMessage());
+    }
   }
 
   private void checkInitialised() {

@@ -16,13 +16,13 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.HpkeContext.MODE_BASE;
 import static org.conscrypt.HpkeFixture.DEFAULT_AAD;
 import static org.conscrypt.HpkeFixture.DEFAULT_CT;
 import static org.conscrypt.HpkeFixture.DEFAULT_ENC;
 import static org.conscrypt.HpkeFixture.DEFAULT_EXPORTER_CONTEXT;
 import static org.conscrypt.HpkeFixture.DEFAULT_EXPORTER_LENGTH;
 import static org.conscrypt.HpkeFixture.DEFAULT_INFO;
+import static org.conscrypt.HpkeFixture.DEFAULT_PK;
 import static org.conscrypt.HpkeFixture.DEFAULT_PT;
 import static org.conscrypt.HpkeFixture.DEFAULT_SK;
 import static org.conscrypt.HpkeFixture.DEFAULT_SUITE_NAME;
@@ -34,6 +34,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -66,35 +67,48 @@ public class HpkeContextRecipientTest {
     }
 
     @Test
-    public void testInit() throws Exception {
+    public void testInitBaseMode() throws Exception {
         HpkeContextRecipient recipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
-        PrivateKey privateKey = createPrivateKey(DEFAULT_SK);
         final PrivateKey invalidKey = DefaultKeys.getPrivateKey("DH");
 
 
         assertThrows(NullPointerException.class,
-            () -> recipient.init(MODE_BASE, /* enc= */ null, privateKey, DEFAULT_INFO));
+            () -> recipient.init(/* enc= */ null, DEFAULT_SK, DEFAULT_INFO));
 
         assertThrows(InvalidKeyException.class,
-            () -> recipient.init(MODE_BASE, DEFAULT_ENC, /* privateKey= */ null, DEFAULT_INFO));
+            () -> recipient.init(DEFAULT_ENC, /* privateKey= */ null, DEFAULT_INFO));
 
         // Incorrect enc size
         assertThrows(InvalidKeyException.class,
-            () -> recipient.init(MODE_BASE, new byte[1], privateKey, DEFAULT_INFO));
+            () -> recipient.init(new byte[1], DEFAULT_SK, DEFAULT_INFO));
 
         assertThrows(InvalidKeyException.class,
-            () -> recipient.init(MODE_BASE, DEFAULT_ENC, invalidKey, DEFAULT_INFO));
+            () -> recipient.init(DEFAULT_ENC, invalidKey, DEFAULT_INFO));
 
         // Should succeed
-        recipient.init(MODE_BASE, DEFAULT_ENC, privateKey, DEFAULT_INFO);
+        recipient.init(DEFAULT_ENC, DEFAULT_SK, DEFAULT_INFO);
 
         // Can't initialise twice
         assertThrows(IllegalStateException.class,
-            () -> recipient.init(MODE_BASE, DEFAULT_ENC, privateKey, DEFAULT_INFO));
+            () -> recipient.init(DEFAULT_ENC, DEFAULT_SK, DEFAULT_INFO));
 
         HpkeContextRecipient recipient2 = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         // null is explicitly allowed
-        recipient2.init(MODE_BASE, DEFAULT_ENC, privateKey, /* info= */ null);
+        recipient2.init(DEFAULT_ENC, DEFAULT_SK, /* info= */ null);
+    }
+
+    @Test
+    public void testInitUnsupportedModes() throws Exception {
+        HpkeContextRecipient recipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
+        byte[] psk = "Shhh! Secret!".getBytes(StandardCharsets.UTF_8);
+        byte[] psk_id = "id".getBytes(StandardCharsets.UTF_8);
+
+        assertThrows(UnsupportedOperationException.class, () ->
+                recipient.init(DEFAULT_ENC, DEFAULT_SK, DEFAULT_INFO, DEFAULT_PK));
+        assertThrows(UnsupportedOperationException.class, () ->
+                recipient.init(DEFAULT_ENC, DEFAULT_SK, DEFAULT_INFO, psk, psk_id));
+        assertThrows(UnsupportedOperationException.class, () ->
+                recipient.init(DEFAULT_ENC, DEFAULT_SK, DEFAULT_INFO, DEFAULT_PK, psk, psk_id));
     }
 
     @Test
@@ -102,7 +116,7 @@ public class HpkeContextRecipientTest {
         final HpkeSuite suite = new HpkeSuite(HpkeSuite.KEM_DHKEM_X25519_HKDF_SHA256,
                 HpkeSuite.KDF_HKDF_SHA256, HpkeSuite.AEAD_AES_128_GCM);
         final HpkeContextRecipient ctxRecipient = HpkeContextRecipient.getInstance(suite.name());
-        ctxRecipient.init(MODE_BASE, DEFAULT_ENC, createPrivateKey(DEFAULT_SK), DEFAULT_INFO);
+        ctxRecipient.init(DEFAULT_ENC, DEFAULT_SK, DEFAULT_INFO);
         byte[] plaintext = ctxRecipient.open(DEFAULT_CT, DEFAULT_AAD);
         assertNotNull(plaintext);
         assertArrayEquals(DEFAULT_PT, plaintext);
@@ -110,10 +124,9 @@ public class HpkeContextRecipientTest {
 
     @Test
     public void testOpen_missingRequiredParameters_throwNullException() throws Exception {
-        final PrivateKey privateKey = createPrivateKey(DEFAULT_SK);
         final HpkeContextRecipient ctxRecipient =
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
-        ctxRecipient.init(MODE_BASE, DEFAULT_ENC, privateKey, DEFAULT_INFO);
+        ctxRecipient.init(DEFAULT_ENC, DEFAULT_SK, DEFAULT_INFO);
 
         assertThrows(NullPointerException.class,
                 () -> ctxRecipient.open(/* ciphertext= */ null, DEFAULT_AAD));
@@ -125,29 +138,27 @@ public class HpkeContextRecipientTest {
                 decodeHex("497b4502664cfea5d5af0b39934dac72242a74f8480451e1aee7d6a53320333d"));
         final HpkeContextRecipient ctxRecipient =
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
-        ctxRecipient.init(MODE_BASE, DEFAULT_ENC, privateKey, DEFAULT_INFO);
+        ctxRecipient.init(DEFAULT_ENC, privateKey, DEFAULT_INFO);
         assertThrows(BadPaddingException.class,
             () -> ctxRecipient.open(DEFAULT_CT, DEFAULT_AAD));
     }
 
     @Test
     public void testOpen_validSkButWrongEnc_throwStateException() throws Exception {
-        final PrivateKey privateKey = createPrivateKey(DEFAULT_SK);
         final byte[] enc =
                 decodeHex("6c93e09869df3402d7bf231bf540fadd35cd56be14f97178f0954db94b7fc256");
         final HpkeContextRecipient ctxRecipient =
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
-        ctxRecipient.init(MODE_BASE, enc, privateKey, DEFAULT_INFO);
+        ctxRecipient.init(enc, DEFAULT_SK, DEFAULT_INFO);
 
         assertThrows(BadPaddingException.class, () -> ctxRecipient.open(DEFAULT_CT, DEFAULT_AAD));
     }
 
     @Test
     public void testOpen_invalidCiphertext_throwStateException() throws Exception {
-        final PrivateKey privateKey = createPrivateKey(DEFAULT_SK);
         final HpkeContextRecipient ctxRecipient =
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
-        ctxRecipient.init(MODE_BASE, DEFAULT_ENC, privateKey, DEFAULT_INFO);
+        ctxRecipient.init(DEFAULT_ENC, DEFAULT_SK, DEFAULT_INFO);
 
         assertThrows(BadPaddingException.class,
                 () -> ctxRecipient.open(/* ct= */ new byte[32], DEFAULT_AAD));

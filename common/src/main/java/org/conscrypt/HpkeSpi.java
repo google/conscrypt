@@ -1,43 +1,83 @@
 package org.conscrypt;
 
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import javax.crypto.BadPaddingException;
 
 /**
  * SPI for HPKE clients to communicate with implementations.  The client API can use any
  * implementation which implements this interface, by duck-typing if necessary.
  */
 public interface HpkeSpi {
+  byte[] DEFAULT_PSK = new byte[0];
+  byte[] DEFAULT_PSK_ID = DEFAULT_PSK;
 
   /**
    * Initialises an HPKE sender SPI.
    *
-   * @param mode HPKE mode to use
-   * @param publicKey public key of the recipient
+   * @param recipientKey public key of the recipient
    * @param info application-supplied information, may be null or empty
-   * @param sKe optional random seed, should be null for all uses except for validation against
-   *            known test vectors
-   * @throws InvalidKeyException if publicKey is null or an unsupported key format
+   * @param senderKey private key of the sender, for symmetric auth modes only, else null
+   * @param psk pre-shared key, for PSK auth modes only, else null
+   * @param psk_id pre-shared key ID, for PSK auth modes only, else null
+   * @throws InvalidKeyException if recipientKey is null or an unsupported key format
    * @throws UnsupportedOperationException if mode is not a supported HPKE mode
    * @throws IllegalStateException if this SPI has already been initialised
    */
-  void engineInitSender(int mode, PublicKey publicKey, byte[] info, byte[] sKe)
+  void engineInitSender(
+          PublicKey recipientKey,
+          byte[] info,
+          PrivateKey senderKey,
+          byte[] psk,
+          byte[] psk_id)
+          throws InvalidKeyException;
+
+  /**
+   * Initialises an HPKE sender SPI.
+   *
+   * @param recipientKey public key of the recipient
+   * @param info application-supplied information, may be null or empty
+   * @param senderKey private key of the sender, for symmetric auth modes only, else null
+   * @param psk pre-shared key, for PSK auth modes only, else null
+   * @param psk_id pre-shared key ID, for PSK auth modes only, else null
+   * @param sKe optional random seed, should be null for all uses except for validation against
+   *            known test vectors
+   * @throws InvalidKeyException if recipientKey is null or an unsupported key format or senderKey
+   *            is an unsupported key format
+   * @throws UnsupportedOperationException if mode is not a supported HPKE mode
+   * @throws IllegalStateException if this SPI has already been initialised
+   */
+  void engineInitSenderForTesting(
+          PublicKey recipientKey,
+          byte[] info,
+          PrivateKey senderKey,
+          byte[] psk,
+          byte[] psk_id,
+          byte[] sKe)
           throws InvalidKeyException;
 
   /**
    * Initialises an HPKE recipient SPI.
    *
-   * @param mode HPKE mode to use
    * @param encapsulated encapsulated ephemeral key from a sender
-   * @param privateKey private key of the recipient
+   * @param recipientKey private key of the recipient
    * @param info application-supplied information, may be null or empty
-   * @throws InvalidKeyException if privateKey is null or an unsupported key format
+   * @param senderKey public key of sender, for asymmetric auth modes only, else null
+   * @param psk pre-shared key, for PSK auth modes only, else null
+   * @param psk_id pre-shared key ID, for PSK auth modes only, else null
+   * @throws InvalidKeyException if recipientKey is null or an unsupported key format or senderKey
+   *         is an unsupported key format
    * @throws UnsupportedOperationException if mode is not a supported HPKE mode
    * @throws IllegalStateException if this SPI has already been initialised
    */
-  void engineInitRecipient(int mode, byte[] encapsulated, PrivateKey privateKey, byte[] info)
+  void engineInitRecipient(
+          byte[] encapsulated,
+          PrivateKey recipientKey,
+          byte[] info,
+          PublicKey senderKey,
+          byte[] psk,
+          byte[] psk_id)
           throws InvalidKeyException;
 
   /**
@@ -60,10 +100,9 @@ public interface HpkeSpi {
    * @return the plaintext
    * @throws IllegalStateException if this SPI has not been initialised or if it was initialised
    *         as a sender
-   * @throws javax.crypto.BadPaddingException on decryption failures (XXX rework this but it's what
-   *        Cipher does!)
+   * @throws GeneralSecurityException on decryption failures
    */
-  byte[] engineOpen(byte[] ciphertext, byte[] aad) throws BadPaddingException;
+  byte[] engineOpen(byte[] ciphertext, byte[] aad) throws GeneralSecurityException;
 
   /**
    * Exports secret key material from this SPI as described in RFC 9180.

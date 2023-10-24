@@ -21,9 +21,9 @@ import static org.conscrypt.HpkeFixture.DEFAULT_ENC;
 import static org.conscrypt.HpkeFixture.DEFAULT_EXPORTER_CONTEXT;
 import static org.conscrypt.HpkeFixture.DEFAULT_EXPORTER_LENGTH;
 import static org.conscrypt.HpkeFixture.DEFAULT_INFO;
-import static org.conscrypt.HpkeFixture.DEFAULT_PK;
+import static org.conscrypt.HpkeFixture.DEFAULT_PK_BYTES;
 import static org.conscrypt.HpkeFixture.DEFAULT_PT;
-import static org.conscrypt.HpkeFixture.DEFAULT_SK;
+import static org.conscrypt.HpkeFixture.DEFAULT_SK_BYTES;
 import static org.conscrypt.HpkeFixture.DEFAULT_SUITE_NAME;
 import static org.conscrypt.HpkeFixture.createDefaultHpkeContextRecipient;
 import static org.conscrypt.HpkeFixture.createDefaultHpkeContextSender;
@@ -77,7 +77,7 @@ public class HpkeContextTest {
     }
 
     @Test
-    public void testSealOpen_aadNullSameAsEmtpy() throws Exception {
+    public void testSealOpen_aadNullSameAsEmpty() throws Exception {
         final HpkeContextSender ctxSender1 = createDefaultHpkeContextSender();
         final byte[] enc1 = ctxSender1.getEncapsulated();
         final byte[] ciphertext1 = ctxSender1.seal(DEFAULT_PT, /* aad= */ null);
@@ -107,7 +107,7 @@ public class HpkeContextTest {
     }
 
     @Test
-    public void testSealOpen_infoNullSameAsEmtpy() throws Exception {
+    public void testSealOpen_infoNullSameAsEmpty() throws Exception {
         final HpkeContextSender ctxSender1 = createDefaultHpkeContextSender(/* info= */ null);
         final byte[] enc1 = ctxSender1.getEncapsulated();
         final byte[] ciphertext1 = ctxSender1.seal(DEFAULT_PT, DEFAULT_AAD);
@@ -140,19 +140,19 @@ public class HpkeContextTest {
     }
 
     @Test
-    public void testSealOpen_withKeysFlipped_throwStateException() throws Exception {
-        final PublicKey publicKey = createPublicKey(DEFAULT_SK);
-        final PrivateKey privateKey = createPrivateKey(DEFAULT_PK);
+    public void testSealOpen_withKeysFlipped_throwException() throws Exception {
+        final PublicKey publicKey = createPublicKey(DEFAULT_SK_BYTES);
+        final PrivateKey privateKey = createPrivateKey(DEFAULT_PK_BYTES);
 
         final HpkeContextSender ctxSender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
-        ctxSender.init(HpkeContextSender.MODE_BASE, publicKey, DEFAULT_INFO);
+        ctxSender.init(publicKey, DEFAULT_INFO);
 
         final byte[] enc = ctxSender.getEncapsulated();
         final byte[] ciphertext = ctxSender.seal(DEFAULT_PT, DEFAULT_AAD);
 
         final HpkeContextRecipient ctxRecipient =
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
-        ctxRecipient.init(HpkeContextRecipient.MODE_BASE, enc, privateKey, DEFAULT_INFO);
+        ctxRecipient.init(enc, privateKey, DEFAULT_INFO);
         assertThrows(BadPaddingException.class, () -> ctxRecipient.open(ciphertext, DEFAULT_AAD));
     }
 

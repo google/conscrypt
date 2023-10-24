@@ -38,7 +38,6 @@ import java.security.Security;
  * Secret key material based on the context may also be generated and exported as per RFC 9180.
  */
 public abstract class HpkeContext {
-  public static final int MODE_BASE = 0x00;
   protected final HpkeSpi spi;
 
   protected HpkeContext(HpkeSpi spi) {

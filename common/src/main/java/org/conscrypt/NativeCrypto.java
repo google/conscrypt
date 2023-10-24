@@ -391,19 +391,39 @@ public final class NativeCrypto {
     static native void EVP_HPKE_CTX_free(long ctx);
 
     static native byte[] EVP_HPKE_CTX_open(
-            NativeRef.EVP_HPKE_CTX ctx, byte[] ciphertext, byte[] aad);
+            NativeRef.EVP_HPKE_CTX ctx, byte[] ciphertext, byte[] aad) throws BadPaddingException;
 
     static native byte[] EVP_HPKE_CTX_seal(
             NativeRef.EVP_HPKE_CTX ctx, byte[] plaintext, byte[] aad);
 
-    static native Object EVP_HPKE_CTX_setup_recipient(
+    static native Object EVP_HPKE_CTX_setup_base_mode_recipient(
             int kem, int kdf, int aead, byte[] privateKey, byte[] enc, byte[] info);
 
-    static native Object[] EVP_HPKE_CTX_setup_sender(
+    static Object EVP_HPKE_CTX_setup_base_mode_recipient(
+            HpkeSuite suite, byte[] privateKey, byte[] enc, byte[] info) {
+        return EVP_HPKE_CTX_setup_base_mode_recipient(
+                suite.getKem().getId(), suite.getKdf().getId(), suite.getAead().getId(),
+                privateKey, enc, info);
+    }
+
+    static native Object[] EVP_HPKE_CTX_setup_base_mode_sender(
             int kem, int kdf, int aead, byte[] publicKey, byte[] info);
 
-    static native Object[] EVP_HPKE_CTX_setup_sender_with_seed_for_testing(
+    static Object[] EVP_HPKE_CTX_setup_base_mode_sender(
+            HpkeSuite suite, byte[] publicKey, byte[] info) {
+        return EVP_HPKE_CTX_setup_base_mode_sender(
+                suite.getKem().getId(), suite.getKdf().getId(), suite.getAead().getId(),
+                publicKey, info);
+    }
+    static native Object[] EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
             int kem, int kdf, int aead, byte[] publicKey, byte[] info, byte[] seed);
+
+    static Object[] EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
+            HpkeSuite suite, byte[] publicKey, byte[] info, byte[] seed) {
+        return EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
+                suite.getKem().getId(), suite.getKdf().getId(), suite.getAead().getId(),
+                publicKey, info, seed);
+    }
 
     // --- RAND ----------------------------------------------------------------
 

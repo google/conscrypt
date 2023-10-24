@@ -82,13 +82,22 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
   }
 
   @Override
-  public void engineInitSender(int mode, PublicKey key, byte[] info, byte[] sKe) {
-    invoke("engineInitSender", mode, key, info, sKe);
+  public void engineInitSender(
+          PublicKey recipientKey, byte[] info, PrivateKey senderKey, byte[] psk, byte[] psk_id) {
+    invoke("engineInitSender", recipientKey, info, senderKey, psk, psk_id);
   }
 
   @Override
-  public void engineInitRecipient(int mode, byte[] encapsulated, PrivateKey key, byte[] info) {
-    invoke("engineInitRecipient", mode, encapsulated, key, info);
+  public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
+          byte[] psk, byte[] psk_id, byte[] sKe) {
+    invoke("engineInitSenderForTesting",
+            recipientKey, info, senderKey, psk, psk_id, sKe);
+  }
+
+  @Override
+  public void engineInitRecipient(byte[] encapsulated, PrivateKey key, byte[] info,
+          PublicKey senderKey, byte[] psk, byte[] psk_id) {
+    invoke("engineInitRecipient", encapsulated, key, info, senderKey, psk, psk_id);
   }
 
   @Override

@@ -103,7 +103,7 @@ public class HpkeTestVectorsTest {
         // Decryption
         final HpkeContextRecipient contextRecipient =
             HpkeContextRecipient.getInstance(record.hpkeSuite.name());
-        contextRecipient.init(HpkeContextRecipient.MODE_BASE, enc, record.skRm, record.info);
+        contextRecipient.init(enc, record.skRm, record.info);
         for (HpkeEncryptionData encryption : record.encryptions) {
             final byte[] plaintext = contextRecipient.open(encryption.ct, encryption.aad);
             assertArrayEquals(
@@ -129,7 +129,7 @@ public class HpkeTestVectorsTest {
         // Recipient secret export
         final HpkeContextRecipient contextRecipient
             = HpkeContextRecipient.getInstance(record.hpkeSuite.name());
-        contextRecipient.init(HpkeContextRecipient.MODE_BASE, enc, record.skRm, record.info);
+        contextRecipient.init(enc, record.skRm, record.info);
         for (HpkeExporterData exporterData : record.exports) {
             final byte[] export =
                     contextRecipient.export(exporterData.l, exporterData.exporterContext);
@@ -221,7 +221,7 @@ public class HpkeTestVectorsTest {
         HpkeSuite suite, PublicKey publicKey, byte[] info, byte[] sKem) throws Exception {
         String algorithm = suite.name();
         HpkeContextSender sender = HpkeContextSender.getInstance(algorithm);
-        sender.initForTesting(HpkeContextSender.MODE_BASE, publicKey, info, sKem);
+        sender.initForTesting(publicKey, info, sKem);
         return sender;
     }
 

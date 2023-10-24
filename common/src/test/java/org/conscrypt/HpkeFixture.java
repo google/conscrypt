@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.HpkeContext.MODE_BASE;
 import static org.conscrypt.HpkeSuite.AEAD_AES_256_GCM;
 import static org.conscrypt.HpkeSuite.KDF_HKDF_SHA256;
 import static org.conscrypt.HpkeSuite.KEM_DHKEM_X25519_HKDF_SHA256;
@@ -36,10 +35,12 @@ public class HpkeFixture {
             decodeHex("37fda3567bdbd628e88668c3c8d7e97d1d1253b6d4ea6d44c150f741f1bf4431");
     static final byte[] DEFAULT_INFO = decodeHex("4f6465206f6e2061204772656369616e2055726e");
 
-    static final byte[] DEFAULT_PK =
+    static final byte[] DEFAULT_PK_BYTES =
             decodeHex("3948cfe0ad1ddb695d780e59077195da6c56506b027329794ab02bca80815c4d");
-    static final byte[] DEFAULT_SK =
+    static final PublicKey DEFAULT_PK = createPublicKey(DEFAULT_PK_BYTES);
+    static final byte[] DEFAULT_SK_BYTES =
             decodeHex("4612c550263fc8ad58375df3f557aac531d26850903e55a9f23f21d8534e8ac8");
+    static final PrivateKey DEFAULT_SK = createPrivateKey(DEFAULT_SK_BYTES);
 
     static final byte[] DEFAULT_PT =
             decodeHex("4265617574792069732074727574682c20747275746820626561757479");
@@ -59,22 +60,22 @@ public class HpkeFixture {
     }
 
     static HpkeContextRecipient createDefaultHpkeContextRecipient(byte[] enc, byte[] info)
-        throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
+        throws NoSuchAlgorithmException, InvalidKeyException {
         HpkeContextRecipient contextRecipient =
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
-        contextRecipient.init(MODE_BASE, enc, createPrivateKey(DEFAULT_SK), info);
+        contextRecipient.init(enc, DEFAULT_SK, info);
         return contextRecipient;
     }
 
     static HpkeContextSender createDefaultHpkeContextSender()
-        throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
+        throws NoSuchAlgorithmException, InvalidKeyException {
         return createDefaultHpkeContextSender(DEFAULT_INFO);
     }
 
     static HpkeContextSender createDefaultHpkeContextSender(byte[] info)
-        throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
+        throws NoSuchAlgorithmException, InvalidKeyException {
         HpkeContextSender hpke = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
-        hpke.init(MODE_BASE, createPublicKey(DEFAULT_PK), info);
+        hpke.init(DEFAULT_PK, info);
         return hpke;
     }
 
@@ -82,17 +83,23 @@ public class HpkeFixture {
         return new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_256_GCM);
     }
 
-    static PublicKey createPublicKey(byte[] publicKey)
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
-        final KeyFactory factory = KeyFactory.getInstance("XDH");
-        final KeySpec spec = new XdhKeySpec(publicKey);
-        return factory.generatePublic(spec);
+    static PublicKey createPublicKey(byte[] publicKey) {
+        try {
+            final KeyFactory factory = KeyFactory.getInstance("XDH");
+            final KeySpec spec = new XdhKeySpec(publicKey);
+            return factory.generatePublic(spec);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
     }
 
-    static PrivateKey createPrivateKey(byte[] privateKey)
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
-        final KeyFactory factory = KeyFactory.getInstance("XDH");
-        final KeySpec spec = new XdhKeySpec(privateKey);
-        return factory.generatePrivate(spec);
+    static PrivateKey createPrivateKey(byte[] privateKey) {
+        try {
+            final KeyFactory factory = KeyFactory.getInstance("XDH");
+            final KeySpec spec = new XdhKeySpec(privateKey);
+            return factory.generatePrivate(spec);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
     }
 }
