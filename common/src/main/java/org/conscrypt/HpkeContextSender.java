@@ -30,7 +30,7 @@ import java.security.PublicKey;
  *
  * Sender subclass of HpkeContext.  See base class for details.
  */
-public class HpkeContextSender extends HpkeContext{
+public class HpkeContextSender extends HpkeContext {
     private HpkeContextSender(HpkeSpi spi) {
         super(spi);
     }

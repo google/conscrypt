@@ -37,15 +37,15 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
   private DuckTypedHpkeSpi(Object delegate) throws NoSuchMethodException {
     this.delegate = delegate;
 
+    Class<?> sourceClass = delegate.getClass();
     for (Method targetMethod : HpkeSpi.class.getMethods()) {
       if (targetMethod.isSynthetic()) {
         continue;
       }
-      Class<?> sourceClass = delegate.getClass();
 
       Method sourceMethod =
           sourceClass.getMethod(targetMethod.getName(), targetMethod.getParameterTypes());
-      // Check that the return type of obj's method matches the target method.
+      // Check that the return types match too.
       Class<?> sourceReturnType = sourceMethod.getReturnType();
       Class<?> targetReturnType = targetMethod.getReturnType();
       if (!targetReturnType.isAssignableFrom(sourceReturnType)) {
