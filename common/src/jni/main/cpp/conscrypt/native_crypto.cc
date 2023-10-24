@@ -4007,11 +4007,12 @@ const EVP_HPKE_KEM* getHpkeKem(JNIEnv* env, jint kemValue) {
     }
 }
 
-static jobject NativeCrypto_EVP_HPKE_CTX_setup_recipient(JNIEnv* env, jclass, jint kemValue,
-                                                         jint kdfValue, jint aeadValue,
-                                                         jbyteArray privateKeyArray,
-                                                         jbyteArray encArray,
-                                                         jbyteArray infoArray) {
+static jobject NativeCrypto_EVP_HPKE_CTX_setup_base_mode_recipient(JNIEnv* env, jclass,
+                                                                   jint kemValue,jint kdfValue,
+                                                                   jint aeadValue,
+                                                                   jbyteArray privateKeyArray,
+                                                                   jbyteArray encArray,
+                                                                   jbyteArray infoArray) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_HPKE_CTX_setup_recipient(%d, %d, %d, %p, %p, %p)", kemValue, kdfValue, aeadValue,
               privateKeyArray, encArray, infoArray);
@@ -4082,10 +4083,11 @@ static jobject NativeCrypto_EVP_HPKE_CTX_setup_recipient(JNIEnv* env, jclass, ji
     return ctxObject.release();
 }
 
-static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_sender(JNIEnv* env, jclass, jint kemValue,
-                                                           jint kdfValue, jint aeadValue,
-                                                           jbyteArray publicKeyArray,
-                                                           jbyteArray infoArray) {
+static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_base_mode_sender(JNIEnv* env, jclass,
+                                                                     jint kemValue,jint kdfValue,
+                                                                     jint aeadValue,
+                                                                     jbyteArray publicKeyArray,
+                                                                     jbyteArray infoArray) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_HPKE_CTX_setup_sender(%d, %d, %d, %p, %p)", kemValue, kdfValue, aeadValue,
               publicKeyArray, infoArray);
@@ -4165,7 +4167,7 @@ static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_sender(JNIEnv* env, jclass, 
     return result.release();
 }
 
-static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_sender_with_seed_for_testing(
+static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
         JNIEnv* env, jclass, jint kemValue, jint kdfValue, jint aeadValue,
         jbyteArray publicKeyArray, jbyteArray infoArray, jbyteArray seedArray) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -11092,9 +11094,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_open, "(" REF_EVP_HPKE_CTX "[B[B)[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_seal, "(" REF_EVP_HPKE_CTX "[B[B)[B"),
-        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_setup_recipient, "(III[B[B[B)Ljava/lang/Object;"),
-        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_setup_sender, "(III[B[B)[Ljava/lang/Object;"),
-        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_setup_sender_with_seed_for_testing,
+        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_setup_base_mode_recipient, "(III[B[B[B)Ljava/lang/Object;"),
+        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_setup_base_mode_sender, "(III[B[B)[Ljava/lang/Object;"),
+        CONSCRYPT_NATIVE_METHOD(EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing,
                                 "(III[B[B[B)[Ljava/lang/Object;"),
         CONSCRYPT_NATIVE_METHOD(HMAC_CTX_new, "()J"),
         CONSCRYPT_NATIVE_METHOD(HMAC_CTX_free, "(J)V"),

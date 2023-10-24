@@ -16,100 +16,183 @@
 
 package org.conscrypt;
 
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.Provider;
 import java.security.PublicKey;
-import org.conscrypt.NativeRef.EVP_HPKE_CTX;
 
 /**
- * Hybrid Public Key Encryption (HPKE) Sender APIs.
+ * Hybrid Public Key Encryption (HPKE) sender APIs.
  *
  * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#hpke-export">HPKE RFC 9180</a>
+ *
+ * Sender subclass of HpkeContext.  See base class for details.
  */
-public class HpkeContextSender {
-    private final HpkeSuite hpkeSuite;
-    private EVP_HPKE_CTX ctx;
-    private byte[] enc;
-
-    private HpkeContextSender(HpkeSuite hpkeSuite) {
-        this.hpkeSuite = hpkeSuite;
+public class HpkeContextSender extends HpkeContext {
+    private HpkeContextSender(HpkeSpi spi) {
+        super(spi);
     }
 
     /**
-     * Initializes the internal HPKE context for the sender using BASE (0x00) mode. Once initialized
-     * the encapsulated key is created which can be accessed through the {@link #getEnc()} method.
+     * Returns the encapsulated key created for this HpkeContextSender.
      *
-     * @param publicKey public key matching the KEM public key size
-     * @param info      optional application-supplied information
-     * @return encapsulated key
-     * @throws IllegalArgumentException if providing a public key that does not match the size
-     *                                  expectation
-     * @throws IllegalStateException    if an issue is encountered while setting up the sender
-     *                                  (an issue could occur most likely if the keys configured are
-     *                                  not valid)
+     * @return the encapsulated key
+     * @throws IllegalStateException if this HpkeContextSender has not been initialised.
      */
-    public static HpkeContextSender setupBase(
-            HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
-        return setupBase(new HpkeContextSenderHelper(), hpkeSuite, publicKey, info);
-    }
-
-    @Internal
-    static HpkeContextSender setupBaseForTesting(HpkeContextSenderHelper contextHelper,
-            HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
-        Preconditions.checkNotNull(contextHelper, "hpkeContextSenderHelper");
-        return setupBase(contextHelper, hpkeSuite, publicKey, info);
-    }
-
-    private static HpkeContextSender setupBase(HpkeContextSenderHelper contextHelper,
-            HpkeSuite hpkeSuite, PublicKey publicKey, byte[] info) {
-        Preconditions.checkNotNull(hpkeSuite, "hpkeSuite");
-        final byte[] pk = hpkeSuite.getKem().validatePublicKeyTypeAndGetRawKey(publicKey);
-        try {
-            final Object[] result = contextHelper.setupBase(hpkeSuite.getKem().getId(),
-                    hpkeSuite.getKdf().getId(), hpkeSuite.getAead().getId(), pk, info);
-            final HpkeContextSender ctxSender = new HpkeContextSender(hpkeSuite);
-            ctxSender.ctx = (EVP_HPKE_CTX) result[0];
-            ctxSender.enc = (byte[]) result[1];
-            return ctxSender;
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Error while setting up base sender with the keys provided", e);
-        }
+    public byte[] getEncapsulated() {
+        return spi.getEncapsulated();
     }
 
     /**
-     * Returns the enc (encapsulated key) that was created during the initialization/setup phase.
+     * Seals a message, using the internal key schedule maintained by this HpkeContextSender.
      *
-     * @return enc (encapsulated key)
-     */
-    public byte[] getEnc() {
-        return enc;
-    }
-
-    /**
-     * Hybrid Public Key Encryption (HPKE) encryption.
-     * <p>
-     * Note: This API keeps track of its state. It maintains an internal HPKE context. As a result,
-     * to encrypt multiple messages that are expected to be decrypted using the same context, one
-     * must call this method for each of the messages.
-     *
-     * @param plaintext message that will be encrypted
-     * @param aad       optional associated data
-     * @return ciphertext
+     * @param plaintext the plaintext
+     * @param aad optional associated data, may be null or empty
+     * @return the ciphertext
+     * @throws NullPointerException if the plaintext is null
+     * @throws IllegalStateException if this HpkeContextSender has not been initialised
      */
     public byte[] seal(byte[] plaintext, byte[] aad) {
-        Preconditions.checkNotNull(plaintext, "plaintext");
-        return NativeCrypto.EVP_HPKE_CTX_seal(ctx, plaintext, aad);
+        return spi.engineSeal(plaintext, aad);
     }
 
     /**
-     * Hybrid Public Key Encryption (HPKE) secret export.
+     * Returns an uninitialised HpkeContextSender.
      *
-     * @param length          expected output length
-     * @param exporterContext optional exporter context
-     * @return exported value
-     * @throws IllegalArgumentException if the length is not valid based on the KDF spec
+     * @param suite the HPKE suite to use.  @see {@link HpkeSuite} for details.
+     * @return an uninitialised HpkeContextSender for the requested suite
+     * @throws NoSuchAlgorithmException if no implementation could be found
      */
-    public byte[] export(int length, byte[] exporterContext) {
-        hpkeSuite.getKdf().validateExportLength(length);
-        return NativeCrypto.EVP_HPKE_CTX_export(ctx, exporterContext, length);
+    public static HpkeContextSender getInstance(String suite) throws NoSuchAlgorithmException {
+        return new HpkeContextSender(findSpi(suite));
+    }
+
+    /**
+     * Returns an uninitialised HpkeContextSender from a specific {@link Provider}
+     *
+     * @param suite the HPKE suite to use.  @see {@link HpkeSuite} for details.
+     * @param providerName the name of the Provider to use
+     * @return an uninitialised HpkeContextSender for the requested suite
+     * @throws NoSuchAlgorithmException if no implementation could be found
+     * @throws NoSuchProviderException if providerName is null or no such Provider exists
+     */
+    public static HpkeContextSender getInstance(String suite, String providerName)
+        throws NoSuchAlgorithmException, NoSuchProviderException {
+        return new HpkeContextSender(findSpi(suite, providerName));
+    }
+
+    /**
+     * Returns an uninitialised HpkeContextSender from a specific {@link Provider}
+     *
+     * @param suite the HPKE suite to use.  @see {@link HpkeSuite} for details.
+     * @param provider the Provider to use
+     * @return an uninitialised HpkeContextSender for the requested suite
+     * @throws NoSuchAlgorithmException if no implementation could be found
+     * @throws NoSuchProviderException if provider is null
+     */
+    public static HpkeContextSender getInstance(String suite, Provider provider)
+        throws NoSuchAlgorithmException, NoSuchProviderException {
+        return new HpkeContextSender(findSpi(suite, provider));
+    }
+
+    /**
+     * Initialises this HpkeContextSender in BASE mode, i.e. with no sender authentication.
+     *
+     * @param recipientKey public key of the recipient
+     * @param info additional application-supplied information, may be null or empty
+     * @throws InvalidKeyException if recipientKey is null or an unsupported key format
+     * @throws UnsupportedOperationException if mode is not a supported HPKE mode
+     * @throws IllegalStateException if this HpkeContextSender has already been initialised
+     */
+    public void init(PublicKey recipientKey, byte[] info) throws InvalidKeyException {
+        spi.engineInitSender(
+                recipientKey, info, null, HpkeSpi.DEFAULT_PSK, HpkeSpi.DEFAULT_PSK_ID);
+    }
+
+    /**
+     * Initialises this HpkeContextSender in AUTH mode, i.e. messages are authenticated using
+     * the sender's public key.
+     *
+     * @param recipientKey public key of the recipient
+     * @param info additional application-supplied information, may be null or empty
+     * @param senderKey private key of the sender
+     * @throws InvalidKeyException if either recipientKey or senderKey are null
+     *         or an unsupported key format
+     * @throws UnsupportedOperationException if mode is not a supported HPKE mode
+     * @throws IllegalStateException if this HpkeContextSender has already been initialised
+     */
+    public void init(PublicKey recipientKey, byte[] info, PrivateKey senderKey)
+            throws InvalidKeyException {
+        if (senderKey == null) {
+            throw new InvalidKeyException("Sender private key is null");
+        }
+        // Remaining argument checks are performed by the SPI
+        spi.engineInitSender(
+                recipientKey, info, senderKey, HpkeSpi.DEFAULT_PSK, HpkeSpi.DEFAULT_PSK_ID);
+    }
+
+    /**
+     * Initialises this HpkeContextSender in PSK mode, i.e. messages are authenticated using
+     * a pre-shared secret key.
+     *
+     * @param recipientKey public key of the recipient
+     * @param info additional application-supplied information, may be null or empty
+     * @param psk the a pre-shared secret key
+     * @param psk_id the id of the pre-shared secret key
+     * @throws NullPointerException if psk or psk_id are null
+     * @throws InvalidKeyException if recipientKey is null or an unsupported key format
+     * @throws UnsupportedOperationException if mode is not a supported HPKE mode
+     * @throws IllegalStateException if this HpkeContextSender has already been initialised
+     */
+    public void init(PublicKey recipientKey, byte[] info, byte[] psk, byte[] psk_id)
+            throws InvalidKeyException {
+        spi.engineInitSender(recipientKey, info, null, psk, psk_id);
+    }
+
+    /**
+     * Initialises this HpkeContextSender in PSK_AUTH mode, i.e. messages are authenticated using
+     * both the sender's public key and a pre-shared secret key.
+     *
+     * @param recipientKey public key of the recipient
+     * @param info additional application-supplied information, may be null or empty
+     * @param senderKey private key of the sender
+     * @param psk the a pre-shared secret key
+     * @param psk_id the id of the pre-shared secret key
+     * @throws NullPointerException if psk or psk_id are null
+     * @throws InvalidKeyException if either recipientKey or senderKey are null
+     *         or an unsupported key format
+     * @throws UnsupportedOperationException if mode is not a supported HPKE mode
+     * @throws IllegalStateException if this HpkeContextSender has already been initialised
+     */
+    public void init(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
+            byte[] psk, byte[] psk_id) throws InvalidKeyException {
+        if (senderKey == null) {
+            throw new InvalidKeyException("Sender private key is null");
+        }
+        // Remaining argument checks are performed by the SPI
+        spi.engineInitSender(recipientKey, info, senderKey, psk, psk_id);
+    }
+
+    /**
+     * Initialises this HpkeContextSender for testing in BASE mode ONLY.
+     *
+     * @param recipientKey public key of the recipient
+     * @param info additional application-supplied information, may be null or empty
+     * @param sKe random seed to use during testing
+     * @throws InvalidKeyException if recipientKey is null or an unsupported key format
+     * @throws UnsupportedOperationException if mode is not a supported HPKE mode
+     * @throws IllegalStateException if this HpkeContextSender has already been initialised
+     * @throws IllegalArgumentException if sKe is null
+     */
+    @Internal
+    public void initForTesting(PublicKey recipientKey, byte[] info, byte[] sKe)
+        throws InvalidKeyException {
+        if (sKe == null) {
+            throw new IllegalArgumentException("null seed");
+        }
+        spi.engineInitSenderForTesting(
+                recipientKey, info, null, HpkeSpi.DEFAULT_PSK, HpkeSpi.DEFAULT_PSK, sKe);
     }
 }
