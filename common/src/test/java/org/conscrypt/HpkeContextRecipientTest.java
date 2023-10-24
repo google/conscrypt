@@ -35,6 +35,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -139,7 +140,7 @@ public class HpkeContextRecipientTest {
         final HpkeContextRecipient ctxRecipient =
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         ctxRecipient.init(DEFAULT_ENC, privateKey, DEFAULT_INFO);
-        assertThrows(BadPaddingException.class,
+        assertThrows(GeneralSecurityException.class,
             () -> ctxRecipient.open(DEFAULT_CT, DEFAULT_AAD));
     }
 
@@ -151,7 +152,7 @@ public class HpkeContextRecipientTest {
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         ctxRecipient.init(enc, DEFAULT_SK, DEFAULT_INFO);
 
-        assertThrows(BadPaddingException.class, () -> ctxRecipient.open(DEFAULT_CT, DEFAULT_AAD));
+        assertThrows(GeneralSecurityException.class, () -> ctxRecipient.open(DEFAULT_CT, DEFAULT_AAD));
     }
 
     @Test
@@ -160,7 +161,7 @@ public class HpkeContextRecipientTest {
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         ctxRecipient.init(DEFAULT_ENC, DEFAULT_SK, DEFAULT_INFO);
 
-        assertThrows(BadPaddingException.class,
+        assertThrows(GeneralSecurityException.class,
                 () -> ctxRecipient.open(/* ct= */ new byte[32], DEFAULT_AAD));
     }
 

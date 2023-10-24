@@ -36,6 +36,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
+import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import org.junit.Test;
@@ -153,7 +154,7 @@ public class HpkeContextTest {
         final HpkeContextRecipient ctxRecipient =
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         ctxRecipient.init(enc, privateKey, DEFAULT_INFO);
-        assertThrows(BadPaddingException.class, () -> ctxRecipient.open(ciphertext, DEFAULT_AAD));
+        assertThrows(GeneralSecurityException.class, () -> ctxRecipient.open(ciphertext, DEFAULT_AAD));
     }
 
     @Test

@@ -48,7 +48,7 @@ public class HpkeImpl implements HpkeSpi {
   public void engineInitSender(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
           byte[] psk, byte[] psk_id) throws InvalidKeyException {
     checkNotInitialised();
-    checkArgumentsForBaseModeOnly(recipientKey, senderKey, psk, psk_id);
+    checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
     final byte[] pk = hpkeSuite.getKem().validatePublicKeyTypeAndGetRawKey(recipientKey);
 
     final Object[] result = NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender(
@@ -62,9 +62,9 @@ public class HpkeImpl implements HpkeSpi {
           PrivateKey senderKey, byte[] psk, byte[] psk_id, byte[] sKe) throws InvalidKeyException {
     checkNotInitialised();
     Objects.requireNonNull(sKe);
-    checkArgumentsForBaseModeOnly(recipientKey, senderKey, psk, psk_id);
-
+    checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
     final byte[] pk = hpkeSuite.getKem().validatePublicKeyTypeAndGetRawKey(recipientKey);
+
     final Object[] result = NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
             hpkeSuite, pk, info, sKe);
     ctx = (NativeRef.EVP_HPKE_CTX) result[0];
@@ -75,7 +75,7 @@ public class HpkeImpl implements HpkeSpi {
   public void engineInitRecipient(byte[] encapsulated, PrivateKey recipientKey,
           byte[] info, PublicKey senderKey, byte[] psk, byte[] psk_id) throws InvalidKeyException {
     checkNotInitialised();
-    checkArgumentsForBaseModeOnly(recipientKey, senderKey, psk, psk_id);
+    checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
     hpkeSuite.getKem().validateEncapsulatedLength(encapsulated);
     final byte[] sk = hpkeSuite.getKem().validatePrivateKeyTypeAndGetRawKey(recipientKey);
 
@@ -83,14 +83,11 @@ public class HpkeImpl implements HpkeSpi {
             hpkeSuite, sk, encapsulated, info);
   }
 
-  private void checkArgumentsForBaseModeOnly(
-          Key recipientKey, Key senderKey, byte[] psk, byte[] psk_id) throws InvalidKeyException {
-    if (recipientKey == null) {
-      throw new InvalidKeyException("null key");
-    }
+  private void checkArgumentsForBaseModeOnly(Key senderKey, byte[] psk, byte[] psk_id) {
     if (senderKey != null) {
       throw new UnsupportedOperationException("Asymmetric authentication not supported");
     }
+    // PSK args can only be null if the application passed them in.
     Objects.requireNonNull(psk);
     Objects.requireNonNull(psk_id);
     if (psk.length > 0 || psk_id.length > 0) {
