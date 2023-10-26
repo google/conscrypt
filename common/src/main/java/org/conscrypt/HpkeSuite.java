@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
@@ -66,6 +67,18 @@ public final class HpkeSuite {
         mKem = convertKem(kem);
         mKdf = convertKdf(kdf);
         mAead = convertAead(aead);
+    }
+
+    public HpkeSuite(KEM kem, KDF kdf, AEAD aead) {
+        mKem = kem;
+        mKdf = kdf;
+        mAead = aead;
+    }
+
+
+    public String name() {
+        return String.format("%s/%s/%s",
+            mKem.name(), mKdf.name(), mAead.name());
     }
 
     /**
@@ -173,19 +186,19 @@ public final class HpkeSuite {
         }
 
         /**
-         * Validates the enc size in bytes matches the {@link KEM} spec.
+         * Validates the encapsulated size in bytes matches the {@link KEM} spec.
          *
-         * @param enc encapsulated key produced by the kem
-         * @see <a
-         *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-key-encapsulation-mechanism">expected
-         *         enc size</a>
+         * @param encapsulated encapsulated key produced by the kem
+         * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-key-encapsulation-mechanism">
+         *     expected enc size</a>
          */
-        void validateEncLength(byte[] enc) {
-            Preconditions.checkNotNull(enc, "enc");
+        void validateEncapsulatedLength(byte[] encapsulated) throws InvalidKeyException {
+            Preconditions.checkNotNull(encapsulated, "encapsulated");
             final int expectedLength = this.getEncLength();
-            if (enc.length != expectedLength) {
-                throw new IllegalArgumentException(
-                        "Expected enc length of " + expectedLength + ", but was " + enc.length);
+            if (encapsulated.length != expectedLength) {
+                throw new InvalidKeyException(
+                        "Expected encapsulated length of " + expectedLength + ", but was "
+                                + encapsulated.length);
             }
         }
 
@@ -198,14 +211,16 @@ public final class HpkeSuite {
          *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-algorithm-identifiers">expected
          *         pk size</a>
          */
-        byte[] validatePublicKeyTypeAndGetRawKey(PublicKey publicKey) {
-            Preconditions.checkNotNull(publicKey, "publicKey");
-            if (!(publicKey instanceof OpenSSLX25519PublicKey)) {
-                throw new IllegalArgumentException(
-                        "Public key algorithm " + publicKey.getAlgorithm() + " is not supported");
+        byte[] validatePublicKeyTypeAndGetRawKey(PublicKey publicKey) throws InvalidKeyException {
+            String error;
+            if (publicKey == null) {
+                error = "null public key";
+            } else if (!(publicKey instanceof OpenSSLX25519PublicKey)) {
+                error = "Public key algorithm " + publicKey.getAlgorithm() + " is not supported";
+            } else {
+                return ((OpenSSLX25519PublicKey) publicKey).getU();
             }
-
-            return ((OpenSSLX25519PublicKey) publicKey).getU();
+            throw new InvalidKeyException(error);
         }
 
         /**
@@ -217,14 +232,17 @@ public final class HpkeSuite {
          *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-algorithm-identifiers">expected
          *         sk size</a>
          */
-        byte[] validatePrivateKeyTypeAndGetRawKey(PrivateKey privateKey) {
-            Preconditions.checkNotNull(privateKey, "privateKey");
-            if (!(privateKey instanceof OpenSSLX25519PrivateKey)) {
-                throw new IllegalArgumentException(
-                        "Private key algorithm " + privateKey.getAlgorithm() + " is not supported");
+        byte[] validatePrivateKeyTypeAndGetRawKey(PrivateKey privateKey)
+                throws InvalidKeyException {
+            String error;
+            if (privateKey == null) {
+                error = "null private key";
+            } else if (!(privateKey instanceof OpenSSLX25519PrivateKey)) {
+                error = "Private key algorithm " + privateKey.getAlgorithm() + " is not supported";
+            } else {
+                return ((OpenSSLX25519PrivateKey) privateKey).getU();
             }
-
-            return ((OpenSSLX25519PrivateKey) privateKey).getU();
+            throw new InvalidKeyException(error);
         }
     }
 

@@ -315,28 +315,12 @@ def addNativeJar(NativeBuildInfo nativeBuild) {
     publishing.publications.maven.artifact jarTask.get()
 }
 
-
-// TODO(prb) Still provide a mechanism for testing on Java 7?
-// Check which version
-//def javaError = new ByteArrayOutputStream()
-//exec {
-//    executable test.executable
-//    System.out.println("Running tests with java executable: " + test.executable + ".")
-//    args = ['-version']
-//    ignoreExitValue true
-//    errorOutput = javaError
-//}
-//
-//def suiteClass = (javaError.toString() =~ /"1[.]7[.].*"/) ?
-//        "org/conscrypt/ConscryptJava7Suite.class" : "org/conscrypt/ConscryptSuite.class";
-def suiteClass = "org/conscrypt/ConscryptSuite.class";
-
 test {
-    include suiteClass, "org/conscrypt/ConscryptOpenJdkSuite.class"
+    include "org/conscrypt/ConscryptOpenJdkSuite.class"
 }
 
 def testFdSocket = tasks.register("testFdSocket", Test) {
-    include suiteClass, "org/conscrypt/ConscryptOpenJdkSuite.class"
+    include "org/conscrypt/ConscryptOpenJdkSuite.class"
     InvokerHelper.setProperties(testLogging, test.testLogging.properties)
     systemProperties = test.systemProperties
     systemProperty "org.conscrypt.useEngineSocketByDefault", false
@@ -407,6 +391,7 @@ model {
 
                     if (toolChain in Clang || toolChain in Gcc) {
                         cppCompiler.args "-Wall",
+                                "-Werror",
                                 "-fPIC",
                                 "-O3",
                                 "-std=c++17",

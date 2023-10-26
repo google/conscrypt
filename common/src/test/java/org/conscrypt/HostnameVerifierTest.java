@@ -598,7 +598,7 @@ public final class HostnameVerifierTest {
         //
         // Certificate generated using:-
         //     openssl req -x509 -nodes -days 36500 -subj "/CN=Google Inc" \
-        //         -addext "subjectAltName=DNS:*.com" -newkey rsa:512
+        //         -addext "subjectAltName=DNS:*.com" -
         SSLSession session = session(""
                 + "-----BEGIN CERTIFICATE-----\n"
                 + "MIIBlTCCAT+gAwIBAgIUe1RB6C61ZW/SEQpKiywSEJOEOUMwDQYJKoZIhvcNAQEL\n"
