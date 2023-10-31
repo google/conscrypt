@@ -151,6 +151,8 @@ public class MacTest {
                     mac = Mac.getInstance(algorithm, provider);
                     assertEquals(algorithm, mac.getAlgorithm());
                     assertEquals(provider, mac.getProvider());
+                    // It's not an error to reset an uninitialised Mac.
+                    mac.reset();
                     if (key != null) {
                         // TODO(prb) Ensure we have at least one test vector for every
                         // MAC in Conscrypt and Android.
