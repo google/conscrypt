@@ -36,10 +36,13 @@ import javax.net.ssl.SSLParameters;
 import org.conscrypt.testing.FailingSniMatcher;
 import org.conscrypt.testing.RestrictedAlgorithmConstraints;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * Test for Platform
  */
+@RunWith(JUnit4.class)
 public class PlatformTest {
     private static final Method SSL_PARAMETERS_GET_APPLICATION_PROTOCOLS_METHOD;
     private static final Method SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD;
