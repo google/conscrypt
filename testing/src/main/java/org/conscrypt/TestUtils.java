@@ -413,7 +413,8 @@ public final class TestUtils {
     }
 
     public static String[] getSupportedProtocols() {
-        return NativeCrypto.SUPPORTED_PROTOCOLS;
+        return getSupportedProtocols(newClientSslContext(getConscryptProvider()))
+                .toArray(new String[0]);
     }
 
     public static List<String> getSupportedProtocols(SSLContext ctx) {

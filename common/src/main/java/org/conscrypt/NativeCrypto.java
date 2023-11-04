@@ -33,7 +33,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -521,9 +520,11 @@ public final class NativeCrypto {
 
     static native int get_X509_ex_pathlen(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_get_notBefore(long x509ctx, OpenSSLX509Certificate holder);
+    static native long X509_get_notBefore(long x509ctx, OpenSSLX509Certificate holder)
+            throws ParsingException;
 
-    static native long X509_get_notAfter(long x509ctx, OpenSSLX509Certificate holder);
+    static native long X509_get_notAfter(long x509ctx, OpenSSLX509Certificate holder)
+            throws ParsingException;
 
     static native long X509_get_version(long x509ctx, OpenSSLX509Certificate holder);
 
@@ -604,9 +605,11 @@ public final class NativeCrypto {
 
     static native byte[] get_X509_CRL_crl_enc(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native long X509_CRL_get_lastUpdate(long x509CrlCtx, OpenSSLX509CRL holder);
+    static native long X509_CRL_get_lastUpdate(long x509CrlCtx, OpenSSLX509CRL holder)
+            throws ParsingException;
 
-    static native long X509_CRL_get_nextUpdate(long x509CrlCtx, OpenSSLX509CRL holder);
+    static native long X509_CRL_get_nextUpdate(long x509CrlCtx, OpenSSLX509CRL holder)
+            throws ParsingException;
 
     // --- X509_REVOKED --------------------------------------------------------
 
