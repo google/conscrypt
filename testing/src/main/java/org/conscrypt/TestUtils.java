@@ -412,6 +412,10 @@ public final class TestUtils {
             .toArray(String[]::new);
     }
 
+    public static String[] getSupportedProtocols() {
+        return NativeCrypto.SUPPORTED_PROTOCOLS;
+    }
+
     public static List<String> getSupportedProtocols(SSLContext ctx) {
         return Arrays.asList(ctx.getDefaultSSLParameters().getProtocols());
     }
