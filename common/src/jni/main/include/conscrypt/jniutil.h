@@ -31,6 +31,7 @@ extern JavaVM* gJavaVM;
 extern jclass cryptoUpcallsClass;
 extern jclass openSslInputStreamClass;
 extern jclass nativeRefClass;
+extern jclass nativeRefHpkeCtxClass;
 
 extern jclass byteArrayClass;
 extern jclass calendarClass;
@@ -56,6 +57,7 @@ extern jmethodID buffer_isDirectMethod;
 extern jmethodID cryptoUpcallsClass_rawSignMethod;
 extern jmethodID cryptoUpcallsClass_rsaSignMethod;
 extern jmethodID cryptoUpcallsClass_rsaDecryptMethod;
+extern jmethodID nativeRefHpkeCtxClass_constructor;
 extern jmethodID sslHandshakeCallbacks_verifyCertificateChain;
 extern jmethodID sslHandshakeCallbacks_onSSLStateChange;
 extern jmethodID sslHandshakeCallbacks_clientCertificateRequested;

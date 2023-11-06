@@ -33,7 +33,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -367,6 +366,8 @@ public final class NativeCrypto {
 
     static native byte[] CMAC_Final(NativeRef.CMAC_CTX ctx);
 
+    static native void CMAC_Reset(NativeRef.CMAC_CTX ctx);
+
     // --- HMAC functions ------------------------------------------------------
 
     static native long HMAC_CTX_new();
@@ -380,6 +381,49 @@ public final class NativeCrypto {
     static native void HMAC_UpdateDirect(NativeRef.HMAC_CTX ctx, long inPtr, int inLength);
 
     static native byte[] HMAC_Final(NativeRef.HMAC_CTX ctx);
+
+    static native void HMAC_Reset(NativeRef.HMAC_CTX ctx);
+
+    // --- HPKE functions ------------------------------------------------------
+    static native byte[] EVP_HPKE_CTX_export(
+            NativeRef.EVP_HPKE_CTX ctx, byte[] exporterCtx, int length);
+
+    static native void EVP_HPKE_CTX_free(long ctx);
+
+    static native byte[] EVP_HPKE_CTX_open(
+            NativeRef.EVP_HPKE_CTX ctx, byte[] ciphertext, byte[] aad) throws BadPaddingException;
+
+    static native byte[] EVP_HPKE_CTX_seal(
+            NativeRef.EVP_HPKE_CTX ctx, byte[] plaintext, byte[] aad);
+
+    static native Object EVP_HPKE_CTX_setup_base_mode_recipient(
+            int kem, int kdf, int aead, byte[] privateKey, byte[] enc, byte[] info);
+
+    static Object EVP_HPKE_CTX_setup_base_mode_recipient(
+            HpkeSuite suite, byte[] privateKey, byte[] enc, byte[] info) {
+        return EVP_HPKE_CTX_setup_base_mode_recipient(
+                suite.getKem().getId(), suite.getKdf().getId(), suite.getAead().getId(),
+                privateKey, enc, info);
+    }
+
+    static native Object[] EVP_HPKE_CTX_setup_base_mode_sender(
+            int kem, int kdf, int aead, byte[] publicKey, byte[] info);
+
+    static Object[] EVP_HPKE_CTX_setup_base_mode_sender(
+            HpkeSuite suite, byte[] publicKey, byte[] info) {
+        return EVP_HPKE_CTX_setup_base_mode_sender(
+                suite.getKem().getId(), suite.getKdf().getId(), suite.getAead().getId(),
+                publicKey, info);
+    }
+    static native Object[] EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
+            int kem, int kdf, int aead, byte[] publicKey, byte[] info, byte[] seed);
+
+    static Object[] EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
+            HpkeSuite suite, byte[] publicKey, byte[] info, byte[] seed) {
+        return EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
+                suite.getKem().getId(), suite.getKdf().getId(), suite.getAead().getId(),
+                publicKey, info, seed);
+    }
 
     // --- RAND ----------------------------------------------------------------
 
@@ -477,9 +521,11 @@ public final class NativeCrypto {
 
     static native int get_X509_ex_pathlen(long x509ctx, OpenSSLX509Certificate holder);
 
-    static native long X509_get_notBefore(long x509ctx, OpenSSLX509Certificate holder);
+    static native long X509_get_notBefore(long x509ctx, OpenSSLX509Certificate holder)
+            throws ParsingException;
 
-    static native long X509_get_notAfter(long x509ctx, OpenSSLX509Certificate holder);
+    static native long X509_get_notAfter(long x509ctx, OpenSSLX509Certificate holder)
+            throws ParsingException;
 
     static native long X509_get_version(long x509ctx, OpenSSLX509Certificate holder);
 
@@ -560,9 +606,11 @@ public final class NativeCrypto {
 
     static native byte[] get_X509_CRL_crl_enc(long x509CrlCtx, OpenSSLX509CRL holder);
 
-    static native long X509_CRL_get_lastUpdate(long x509CrlCtx, OpenSSLX509CRL holder);
+    static native long X509_CRL_get_lastUpdate(long x509CrlCtx, OpenSSLX509CRL holder)
+            throws ParsingException;
 
-    static native long X509_CRL_get_nextUpdate(long x509CrlCtx, OpenSSLX509CRL holder);
+    static native long X509_CRL_get_nextUpdate(long x509CrlCtx, OpenSSLX509CRL holder)
+            throws ParsingException;
 
     // --- X509_REVOKED --------------------------------------------------------
 
@@ -586,10 +634,6 @@ public final class NativeCrypto {
     // --- X509_EXTENSION ------------------------------------------------------
 
     static native int X509_supported_extension(long x509ExtensionRef);
-
-    // --- ASN1_TIME -----------------------------------------------------------
-
-    static native void ASN1_TIME_to_Calendar(long asn1TimeCtx, Calendar cal) throws ParsingException;
 
     // --- ASN1 Encoding -------------------------------------------------------
 
@@ -809,8 +853,11 @@ public final class NativeCrypto {
     static {
         if (loadError == null) {
             // If loadError is not null, it means the native code was not loaded, so
-            // get_cipher_names will throw UnsatisfiedLinkError.
-            String[] allCipherSuites = get_cipher_names("ALL:!DHE");
+            // get_cipher_names will throw UnsatisfiedLinkError. Populate the list of supported
+            // ciphers with BoringSSL's default, and also explicitly include 3DES.
+            // https://boringssl-review.googlesource.com/c/boringssl/+/59425 will remove 3DES
+            // from BoringSSL's default, but Conscrypt isn't quite ready to remove it yet.
+            String[] allCipherSuites = get_cipher_names("ALL:3DES");
 
             // get_cipher_names returns an array where even indices are the standard name and odd
             // indices are the OpenSSL name.

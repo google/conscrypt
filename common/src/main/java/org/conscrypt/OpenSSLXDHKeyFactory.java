@@ -47,6 +47,9 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof X509EncodedKeySpec) {
             return new OpenSSLX25519PublicKey((X509EncodedKeySpec) keySpec);
         }
+        if (keySpec instanceof XdhKeySpec) {
+            return new OpenSSLX25519PublicKey(((XdhKeySpec) keySpec).getKey());
+        }
         throw new InvalidKeySpecException("Must use ECPublicKeySpec or X509EncodedKeySpec; was "
                 + keySpec.getClass().getName());
     }
@@ -59,6 +62,9 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
 
         if (keySpec instanceof PKCS8EncodedKeySpec) {
             return new OpenSSLX25519PrivateKey((PKCS8EncodedKeySpec) keySpec);
+        }
+        if (keySpec instanceof XdhKeySpec) {
+            return new OpenSSLX25519PrivateKey(((XdhKeySpec) keySpec).getKey());
         }
         throw new InvalidKeySpecException("Must use ECPrivateKeySpec or PKCS8EncodedKeySpec; was "
                 + keySpec.getClass().getName());
@@ -75,8 +81,9 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException("keySpec == null");
         }
 
-        if (!"XDH".equals(key.getAlgorithm())) {
-            throw new InvalidKeySpecException("Key must be an XDH key");
+        // Support XDH or X25519 algorithm names per JEP 324
+        if (!"XDH".equals(key.getAlgorithm()) && !"X25519".equals(key.getAlgorithm()) ) {
+            throw new InvalidKeySpecException("Key must be an XDH or X25519 key");
         }
 
         Class<?> publicKeySpec = getJavaPublicKeySpec();

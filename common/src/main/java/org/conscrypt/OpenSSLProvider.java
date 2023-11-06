@@ -198,6 +198,7 @@ public final class OpenSSLProvider extends Provider {
 
         put("KeyPairGenerator.XDH", PREFIX + "OpenSSLXDHKeyPairGenerator");
         put("Alg.Alias.KeyPairGenerator.1.3.101.110", "XDH");
+        put("Alg.Alias.KeyPairGenerator.X25519", "XDH");
 
         /* == KeyFactory == */
         put("KeyFactory.RSA", PREFIX + "OpenSSLRSAKeyFactory");
@@ -211,6 +212,7 @@ public final class OpenSSLProvider extends Provider {
 
         put("KeyFactory.XDH", PREFIX + "OpenSSLXDHKeyFactory");
         put("Alg.Alias.KeyFactory.1.3.101.110", "XDH");
+        put("Alg.Alias.KeyFactory.X25519", "XDH");
 
         /* == SecretKeyFactory == */
         put("SecretKeyFactory.DESEDE", PREFIX + "DESEDESecretKeyFactory");
@@ -513,9 +515,16 @@ public final class OpenSSLProvider extends Provider {
         putMacImplClass("AESCMAC", "OpenSSLMac$AesCmac");
 
         /* === Certificate === */
-
         put("CertificateFactory.X509", PREFIX + "OpenSSLX509CertificateFactory");
         put("Alg.Alias.CertificateFactory.X.509", "X509");
+
+        /* === HPKE - Conscrypt internal only === */
+        put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_128_GCM",
+            PREFIX + "HpkeImpl$X25519_AES_128");
+        put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_256_GCM",
+            PREFIX + "HpkeImpl$X25519_AES_256");
+        put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/CHACHA20POLY1305",
+            PREFIX + "HpkeImpl$X25519_CHACHA20");
     }
 
     private void putMacImplClass(String algorithm, String className) {
@@ -624,6 +633,8 @@ public final class OpenSSLProvider extends Provider {
                 PREFIX + className,
                 supportedKeyClasses,
                 supportedKeyFormats);
+
+        put("Alg.Alias.KeyAgreement.X25519", "XDH");
     }
 
     private void putImplClassWithKeyConstraints(String typeAndAlgName,

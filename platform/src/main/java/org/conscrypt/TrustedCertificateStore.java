@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.io.IoUtils;
+import org.conscrypt.metrics.OptionalMethod;
 
 /**
  * A source for trusted root certificate authority (CA) certificates
@@ -81,8 +82,7 @@ import org.conscrypt.io.IoUtils;
  */
 @Internal
 public class TrustedCertificateStore implements ConscryptCertStore {
-
-    private static final String PREFIX_SYSTEM = "system:";
+    private static String PREFIX_SYSTEM = "system:";
     private static final String PREFIX_USER = "user:";
 
     public static final boolean isSystem(String alias) {
@@ -100,8 +100,36 @@ public class TrustedCertificateStore implements ConscryptCertStore {
         static {
             String ANDROID_ROOT = System.getenv("ANDROID_ROOT");
             String ANDROID_DATA = System.getenv("ANDROID_DATA");
-            defaultCaCertsSystemDir = new File(ANDROID_ROOT + "/etc/security/cacerts");
+            File updatableDir = new File("/apex/com.android.conscrypt/cacerts");
+            if (shouldUseApex(updatableDir)) {
+                defaultCaCertsSystemDir = updatableDir;
+            } else {
+                defaultCaCertsSystemDir = new File(ANDROID_ROOT + "/etc/security/cacerts");
+            }
             setDefaultUserDirectory(new File(ANDROID_DATA + "/misc/keychain"));
+        }
+
+        static boolean shouldUseApex(File updatableDir) {
+            Object sdkVersion = getSdkVersion();
+            if ((sdkVersion == null) || ((int) sdkVersion < 34))
+                return false;
+            if ((System.getProperty("system.certs.enabled") != null)
+                    && (System.getProperty("system.certs.enabled")).equals("true"))
+                return false;
+            if (updatableDir.exists() && !(updatableDir.list().length == 0))
+                return true;
+            return false;
+        }
+
+        static Object getSdkVersion() {
+            try {
+                OptionalMethod getSdkVersion =
+                        new OptionalMethod(Class.forName("dalvik.system.VMRuntime"),
+                                            "getSdkVersion");
+                return getSdkVersion.invokeStatic();
+            } catch (ClassNotFoundException e) {
+                return null;
+            }
         }
     }
 
@@ -126,6 +154,10 @@ public class TrustedCertificateStore implements ConscryptCertStore {
     public TrustedCertificateStore() {
         this(PreloadHolder.defaultCaCertsSystemDir, PreloadHolder.defaultCaCertsAddedDir,
                 PreloadHolder.defaultCaCertsDeletedDir);
+    }
+
+    public TrustedCertificateStore(File baseDir) {
+        this(baseDir, PreloadHolder.defaultCaCertsAddedDir, PreloadHolder.defaultCaCertsDeletedDir);
     }
 
     public TrustedCertificateStore(File systemDir, File addedDir, File deletedDir) {
@@ -229,7 +261,7 @@ public class TrustedCertificateStore implements ConscryptCertStore {
         }
         long time = file.lastModified();
         if (time == 0) {
-            return null;
+            time = 1672531200L; // Jan 1st, 2023
         }
         return new Date(time);
     }

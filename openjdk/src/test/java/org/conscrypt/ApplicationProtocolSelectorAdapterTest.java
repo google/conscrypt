@@ -24,10 +24,13 @@ import java.nio.charset.Charset;
 import javax.net.ssl.SSLEngine;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+@RunWith(JUnit4.class)
 public class ApplicationProtocolSelectorAdapterTest {
     private static Charset US_ASCII = Charset.forName("US-ASCII");
     private static final String[] PROTOCOLS = new String[] {"a", "b", "c"};

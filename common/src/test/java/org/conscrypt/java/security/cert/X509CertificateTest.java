@@ -19,13 +19,17 @@ package org.conscrypt.java.security.cert;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
+import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
@@ -155,6 +159,30 @@ public class X509CertificateTest {
             + "AQH/MA4GDCqGSIb3EgQBhLcJAgNIADBFAiEA8qA1XlE6NsOCeZvuJ1CFjnAGdJVX\n"
             + "0il0APS+FYddxAcCIHweeRRqIYPwenRoeV8UmZpotPHLnhVe5h8yUmFedckU\n"
             + "-----END CERTIFICATE-----\n";
+
+    /**
+     * This cert is signed using MD5, which is no longer supported by BoringSSL.
+     */
+    private static final String MD5_SIGNATURE =
+        "-----BEGIN CERTIFICATE-----\n"
+            + "MIIDJzCCApCgAwIBAgIBATANBgkqhkiG9w0BAQQFADCBzjELMAkGA1UEBhMCWkEx\n"
+            + "FTATBgNVBAgTDFdlc3Rlcm4gQ2FwZTESMBAGA1UEBxMJQ2FwZSBUb3duMR0wGwYD\n"
+            + "VQQKExRUaGF3dGUgQ29uc3VsdGluZyBjYzEoMCYGA1UECxMfQ2VydGlmaWNhdGlv\n"
+            + "biBTZXJ2aWNlcyBEaXZpc2lvbjEhMB8GA1UEAxMYVGhhd3RlIFByZW1pdW0gU2Vy\n"
+            + "dmVyIENBMSgwJgYJKoZIhvcNAQkBFhlwcmVtaXVtLXNlcnZlckB0aGF3dGUuY29t\n"
+            + "MB4XDTk2MDgwMTAwMDAwMFoXDTIwMTIzMTIzNTk1OVowgc4xCzAJBgNVBAYTAlpB\n"
+            + "MRUwEwYDVQQIEwxXZXN0ZXJuIENhcGUxEjAQBgNVBAcTCUNhcGUgVG93bjEdMBsG\n"
+            + "A1UEChMUVGhhd3RlIENvbnN1bHRpbmcgY2MxKDAmBgNVBAsTH0NlcnRpZmljYXRp\n"
+            + "b24gU2VydmljZXMgRGl2aXNpb24xITAfBgNVBAMTGFRoYXd0ZSBQcmVtaXVtIFNl\n"
+            + "cnZlciBDQTEoMCYGCSqGSIb3DQEJARYZcHJlbWl1bS1zZXJ2ZXJAdGhhd3RlLmNv\n"
+            + "bTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEA0jY2aovXwlue2oFBYo847kkE\n"
+            + "VdbQ7xwblRZH7xhINTpS9CtqBo87L+pW46+GjZ4X9560ZXUCTe/LCaIhUdib0GfQ\n"
+            + "ug2SBhRz1JPLlyoAnFxODLz6FVL88kRu2hFKbgifLy3j+ao6hnO2RlNYyIkFvYMR\n"
+            + "uHM/qgeN9EJN50CdHDcCAwEAAaMTMBEwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG\n"
+            + "9w0BAQQFAAOBgQAmSCwWwlj66BZ0DKqqX1Q/8tfJeGBeXm43YyJ3Nn6yF8Q0ufUI\n"
+            + "hfzJATj/Tb7yFkJD57taRvvBxhEf8UqwKEbJw8RCfbz6q1lu1bdRiBHjpIUZa4JM\n"
+            + "pAwSremkrj/xw0llmozFyD4lt5SZu5IycQfwhl7tUCemDaYj+bvLpgcUQg==\n"
+            + "-----END CERTIFICATE-----";
 
     /**
      * This is an X.509v1 certificatea, so most fields are missing. It exists to test accessors
@@ -433,6 +461,7 @@ public class X509CertificateTest {
                 public void test(Provider p, String algorithm) throws Exception {
                     X509Certificate c = certificateFromPEM(p, VALID_CERT);
                     assertEquals("SHA256WITHRSA", c.getSigAlgName().toUpperCase());
+                    c.verify(c.getPublicKey());
                 }
             });
     }
@@ -446,6 +475,41 @@ public class X509CertificateTest {
                 public void test(Provider p, String algorithm) throws Exception {
                     X509Certificate c = certificateFromPEM(p, UNKNOWN_SIGNATURE_OID);
                     assertEquals("1.2.840.113554.4.1.72585.2", c.getSigAlgOID());
+                    assertThrows(NoSuchAlgorithmException.class, () -> c.verify(c.getPublicKey()));
+                }
+            });
+    }
+
+    // MD5 signed certificates no longer supported by BoringSSL but still supported by OpenJDK 8
+    // and by BC where present (up until Android 12)
+    @Test
+    public void unsupportedDigestType() {
+        ServiceTester.test("CertificateFactory")
+            .withAlgorithm("X509")
+            .skipProvider("SUN")
+            .skipProvider("BC")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider p, String algorithm) throws Exception {
+                    X509Certificate c = certificateFromPEM(p, MD5_SIGNATURE);
+                    assertThrows(NoSuchAlgorithmException.class, () -> c.verify(c.getPublicKey()));
+                }
+            });
+    }
+
+    @Test
+    public void invalidSignature() {
+        // Mutate the signature of VALID_CERT slightly
+        int index = VALID_CERT.lastIndexOf('9');
+        assertTrue(index > 0);
+        String invalidCert = VALID_CERT.substring(0, index) + "8" + VALID_CERT.substring(index + 1);
+        ServiceTester.test("CertificateFactory")
+            .withAlgorithm("X509")
+            .run(new ServiceTester.Test() {
+                @Override
+                public void test(Provider p, String algorithm) throws Exception {
+                    X509Certificate c = certificateFromPEM(p, invalidCert);
+                    assertThrows(SignatureException.class, () -> c.verify(c.getPublicKey()));
                 }
             });
     }

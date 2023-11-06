@@ -28,6 +28,7 @@ JavaVM *gJavaVM;
 jclass cryptoUpcallsClass;
 jclass openSslInputStreamClass;
 jclass nativeRefClass;
+jclass nativeRefHpkeCtxClass;
 
 jclass byteArrayClass;
 jclass calendarClass;
@@ -57,6 +58,7 @@ jmethodID buffer_isDirectMethod;
 jmethodID cryptoUpcallsClass_rawSignMethod;
 jmethodID cryptoUpcallsClass_rsaSignMethod;
 jmethodID cryptoUpcallsClass_rsaDecryptMethod;
+jmethodID nativeRefHpkeCtxClass_constructor;
 jmethodID sslHandshakeCallbacks_verifyCertificateChain;
 jmethodID sslHandshakeCallbacks_onSSLStateChange;
 jmethodID sslHandshakeCallbacks_clientCertificateRequested;
@@ -86,6 +88,8 @@ void init(JavaVM* vm, JNIEnv* env) {
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/CryptoUpcalls");
     nativeRefClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef");
+    nativeRefHpkeCtxClass = getGlobalRefToClass(
+            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_HPKE_CTX");
     openSslInputStreamClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream");
     sslHandshakeCallbacksClass = getGlobalRefToClass(
@@ -145,6 +149,7 @@ void init(JavaVM* vm, JNIEnv* env) {
     if (cryptoUpcallsClass_rsaDecryptMethod == nullptr) {
         env->FatalError("Could not find rsaDecryptWithPrivateKey");
     }
+    nativeRefHpkeCtxClass_constructor = env->GetMethodID(nativeRefHpkeCtxClass, "<init>", "(J)V");
 }
 
 void jniRegisterNativeMethods(JNIEnv* env, const char* className, const JNINativeMethod* gMethods,
@@ -249,6 +254,12 @@ int throwInvalidKeyException(JNIEnv* env, const char* message) {
     return conscrypt::jniutil::throwException(env, "java/security/InvalidKeyException", message);
 }
 
+int throwIllegalArgumentException(JNIEnv* env, const char* message) {
+    JNI_TRACE("throwIllegalArgumentException %s", message);
+    return conscrypt::jniutil::throwException(
+            env, "java/lang/IllegalArgumentException", message);
+}
+
 int throwIllegalBlockSizeException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwIllegalBlockSizeException %s", message);
     return conscrypt::jniutil::throwException(
@@ -297,6 +308,7 @@ int throwForAsn1Error(JNIEnv* env, int reason, const char* message,
         case ASN1_R_WRONG_PUBLIC_KEY_TYPE:
             return throwInvalidKeyException(env, message);
             break;
+        case ASN1_R_DIGEST_AND_KEY_TYPE_NOT_SUPPORTED:
         case ASN1_R_UNKNOWN_SIGNATURE_ALGORITHM:
         case ASN1_R_UNKNOWN_MESSAGE_DIGEST_ALGORITHM:
             return throwNoSuchAlgorithmException(env, message);
@@ -338,10 +350,15 @@ int throwForEvpError(JNIEnv* env, int reason, const char* message,
                      int (*defaultThrow)(JNIEnv*, const char*)) {
     switch (reason) {
         case EVP_R_MISSING_PARAMETERS:
+        case EVP_R_INVALID_PEER_KEY:
+        case EVP_R_DECODE_ERROR:
             return throwInvalidKeyException(env, message);
             break;
         case EVP_R_UNSUPPORTED_ALGORITHM:
             return throwNoSuchAlgorithmException(env, message);
+            break;
+        case EVP_R_INVALID_BUFFER_SIZE:
+            return throwIllegalArgumentException(env, message);
             break;
         default:
             return defaultThrow(env, message);

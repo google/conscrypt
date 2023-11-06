@@ -55,7 +55,6 @@ import java.security.AlgorithmParameters;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.PrivilegedAction;
 import java.security.Provider;
 import java.security.Security;
@@ -342,20 +341,6 @@ final class Platform {
             tm.checkServerTrusted(chain, authType);
         }
     }
-
-    /**
-     * Wraps an old AndroidOpenSSL key instance. This is not needed on RI.
-     */
-    @SuppressWarnings("unused")
-    static OpenSSLKey wrapRsaKey(@SuppressWarnings("unused") PrivateKey javaKey) {
-        return null;
-    }
-
-    /**
-     * Logs to the system EventLog system.
-     */
-    @SuppressWarnings("unused")
-    static void logEvent(@SuppressWarnings("unused") String message) {}
 
     /**
      * For unbundled versions, SNI is always enabled by default.

@@ -59,7 +59,7 @@ public class XDHKeyAgreementTest {
     private PublicKey rfc7748X25519PublicKey;
 
     private void setupKeys(Provider p) throws Exception {
-        KeyFactory kf = KeyFactory.getInstance("XDH", p);
+        KeyFactory kf = KeyFactory.getInstance(getAlgorithm(), p);
 
         byte[] privateKey;
         if ("SunEC".equalsIgnoreCase(p.getName())
@@ -84,13 +84,22 @@ public class XDHKeyAgreementTest {
 
     @Test
     public void test_XDHKeyAgreement() throws Exception {
-        for (Provider p : Security.getProviders("KeyAgreement.XDH")) {
+        final String keyAgreementAlgorithm = String.format("KeyAgreement.%s", getAlgorithm());
+        for (Provider p : Security.getProviders(keyAgreementAlgorithm)) {
+            // Skip testing Android Keystore as it's covered by CTS tests.
+            if ("AndroidKeyStore".equals(p.getName())) {
+                continue;
+            }
             setupKeys(p);
 
-            KeyAgreement ka = KeyAgreement.getInstance("XDH", p);
+            KeyAgreement ka = KeyAgreement.getInstance(getAlgorithm(), p);
 
             test_x25519_keyAgreement_rfc7748_kat_success(ka);
         }
+    }
+
+    protected String getAlgorithm() {
+        return "XDH";
     }
 
     private void test_x25519_keyAgreement_rfc7748_kat_success(KeyAgreement ka) throws Exception {

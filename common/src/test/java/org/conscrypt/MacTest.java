@@ -126,6 +126,11 @@ public class MacTest {
             macBytes = generateReusingMac(algorithm, keyBytes, msgBytes);
             assertArrayEquals(failMessage("Re-use Mac", baseFailMsg, macBytes),
                     expectedBytes, macBytes);
+
+            // Calculated using a pre-loved Mac with the same key
+            macBytes = generateReusingMacSameKey(algorithm, secretKey, msgBytes);
+            assertArrayEquals(failMessage("Re-use Mac same key", baseFailMsg, macBytes),
+                    expectedBytes, macBytes);
         }
     }
 
@@ -146,6 +151,8 @@ public class MacTest {
                     mac = Mac.getInstance(algorithm, provider);
                     assertEquals(algorithm, mac.getAlgorithm());
                     assertEquals(provider, mac.getProvider());
+                    // It's not an error to reset an uninitialised Mac.
+                    mac.reset();
                     if (key != null) {
                         // TODO(prb) Ensure we have at least one test vector for every
                         // MAC in Conscrypt and Android.
@@ -377,6 +384,19 @@ public class MacTest {
         mac.init(key);
         mac.update(message);
         return mac.doFinal();
+    }
+
+    private byte[] generateReusingMacSameKey(String algorithm, SecretKeySpec key, byte[] message)
+            throws Exception {
+        Mac mac = getConscryptMac(algorithm, key);
+
+        // Calculate a MAC over some other message.
+        byte[] otherMessage = new byte[message.length];
+        mac.doFinal(otherMessage);
+
+        // The MAC should now have been reset to compute a new MAC with the same
+        // key.
+        return mac.doFinal(message);
     }
 
     private Mac getConscryptMac(String algorithm) throws Exception {

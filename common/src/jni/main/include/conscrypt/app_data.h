@@ -238,7 +238,7 @@ class AppData {
 
     void clearApplicationProtocols() {
         if (applicationProtocolsData != nullptr) {
-            delete applicationProtocolsData;
+            delete[] applicationProtocolsData;
             applicationProtocolsData = nullptr;
             applicationProtocolsLength = static_cast<size_t>(-1);
         }

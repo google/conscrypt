@@ -60,7 +60,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     private SSLOutputStream out;
     private SSLInputStream in;
 
-    private long handshakeStartedMillis;
+    private long handshakeStartedMillis = 0;
 
     private BufferAllocator bufferAllocator = ConscryptEngine.getDefaultBufferAllocator();
 
@@ -123,7 +123,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
             @Override
             public void onHandshakeFinished() {
                 // Just call the outer class method.
-                socket.onHandshakeFinished();
+                socket.onEngineHandshakeFinished();
             }
         });
 
@@ -194,8 +194,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                 synchronized (stateLock) {
                     // Initialize the handshake if we haven't already.
                     if (state == STATE_NEW) {
-                        state = STATE_HANDSHAKE_STARTED;
-                        handshakeStartedMillis = Platform.getMillisSinceBoot();
+                        transitionTo(STATE_HANDSHAKE_STARTED);
                         engine.beginHandshake();
                         createInputStream();
                         createOutputStream();
@@ -208,7 +207,6 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                         return;
                     }
                 }
-
                 doHandshake();
             }
         } catch (IOException e) {
@@ -229,6 +227,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                     case NEED_UNWRAP:
                         if (in.processDataFromSocket(EmptyArray.BYTE, 0, 0) < 0) {
                             // Can't complete the handshake due to EOF.
+                            close();
                             throw SSLUtils.toSSLHandshakeException(
                                     new EOFException("connection closed"));
                         }
@@ -241,15 +240,13 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                     }
                     case NEED_TASK: {
                         // Should never get here, since our engine never provides tasks.
+                        close();
                         throw new IllegalStateException("Engine tasks are unsupported");
                     }
                     case NOT_HANDSHAKING:
                     case FINISHED: {
                         // Handshake is complete.
                         finished = true;
-                        Platform.countTlsHandshake(true, engine.getSession().getProtocol(),
-                                engine.getSession().getCipherSuite(),
-                                Platform.getMillisSinceBoot() - handshakeStartedMillis);
                         break;
                     }
                     default: {
@@ -258,11 +255,15 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                     }
                 }
             }
+            if (isState(STATE_HANDSHAKE_COMPLETED)) {
+                // STATE_READY_HANDSHAKE_CUT_THROUGH will wake up any waiting threads which can
+                // race with the listeners, but that's OK.
+                transitionTo(STATE_READY_HANDSHAKE_CUT_THROUGH);
+                notifyHandshakeCompletedListeners();
+                transitionTo(STATE_READY);
+            }
         } catch (SSLException e) {
             drainOutgoingQueue();
-            Platform.countTlsHandshake(false, engine.getSession().getProtocol(),
-                    engine.getSession().getCipherSuite(),
-                    Platform.getMillisSinceBoot() - handshakeStartedMillis);
             close();
             throw e;
         } catch (IOException e) {
@@ -272,6 +273,64 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
             close();
             // Convert anything else to a handshake exception.
             throw SSLUtils.toSSLHandshakeException(e);
+        }
+    }
+
+    private boolean isState(int desiredState) {
+        synchronized (stateLock) {
+            return state == desiredState;
+        }
+    }
+
+    private int transitionTo(int newState) {
+        synchronized (stateLock) {
+            if (state == newState) {
+                return state;
+            }
+
+            int previousState = state;
+            boolean notify = false;
+            switch (newState) {
+                case STATE_HANDSHAKE_STARTED:
+                    handshakeStartedMillis = Platform.getMillisSinceBoot();
+                    break;
+
+                case STATE_READY_HANDSHAKE_CUT_THROUGH:
+                    if (handshakeStartedMillis > 0) {
+                        Platform.countTlsHandshake(true,
+                            engine.getSession().getProtocol(),
+                            engine.getSession().getCipherSuite(),
+                            Platform.getMillisSinceBoot() - handshakeStartedMillis);
+                        handshakeStartedMillis = 0;
+                    }
+                    notify = true;
+                    break;
+
+                case STATE_READY:
+                    notify = true;
+                    break;
+
+                case STATE_CLOSED:
+                    if (handshakeStartedMillis > 0) {
+                        // Handshake was in progress and so must have failed.
+                        Platform.countTlsHandshake(false,
+                            "TLS_PROTO_FAILED",
+                            "TLS_CIPHER_FAILED",
+                            Platform.getMillisSinceBoot() - handshakeStartedMillis);
+                        handshakeStartedMillis = 0;
+                    }
+                    notify = true;
+                    break;
+
+                default:
+                    break;
+            }
+
+            state = newState;
+            if (notify) {
+                stateLock.notifyAll();
+            }
+            return previousState;
         }
     }
 
@@ -445,24 +504,14 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         // TODO: Close SSL sockets using a background thread so they close gracefully.
 
         if (stateLock == null) {
-            // close() has been called before we've initialized the socket, so just
-            // return.
+            // Constructor failed, e.g. superclass constructor called close()
             return;
         }
 
-        int previousState;
-        synchronized (stateLock) {
-            previousState = state;
-            if (state == STATE_CLOSED) {
-                // close() has already been called, so do nothing and return.
-                return;
-            }
-
-            state = STATE_CLOSED;
-
-            stateLock.notifyAll();
+        int previousState = transitionTo(STATE_CLOSED);
+        if (previousState == STATE_CLOSED) {
+            return;
         }
-
         try {
             // Close the engine.
             engine.closeInbound();
@@ -473,7 +522,6 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
             // bytes queued for transmission so drain the queue those and call closeOutbound a
             // second time.
             if (previousState >= STATE_HANDSHAKE_STARTED) {
-                // checkNotNull(out, "Output stream is null");
                 drainOutgoingQueue();
                 engine.closeOutbound();
             }
@@ -531,25 +579,12 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         this.bufferAllocator = bufferAllocator;
     }
 
-    private void onHandshakeFinished() {
-        boolean notify = false;
-        synchronized (stateLock) {
-            if (state != STATE_CLOSED) {
-                if (state == STATE_HANDSHAKE_STARTED) {
-                    state = STATE_READY_HANDSHAKE_CUT_THROUGH;
-                } else if (state == STATE_HANDSHAKE_COMPLETED) {
-                    state = STATE_READY;
-                }
-
-                // Unblock threads that are waiting for our state to transition
-                // into STATE_READY or STATE_READY_HANDSHAKE_CUT_THROUGH.
-                stateLock.notifyAll();
-                notify = true;
-            }
-        }
-
-        if (notify) {
-            notifyHandshakeCompletedListeners();
+    private void onEngineHandshakeFinished() {
+        // Don't do anything here except change state.  This method will be called from
+        // e.g. wrap() which is non re-entrant so we can't call anything that might do
+        // IO until after it exits, e.g. in doHandshake().
+        if (isState(STATE_HANDSHAKE_STARTED)) {
+            transitionTo(STATE_HANDSHAKE_COMPLETED);
         }
     }
 
@@ -560,7 +595,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         startHandshake();
 
         synchronized (stateLock) {
-            while (state != STATE_READY && state != STATE_READY_HANDSHAKE_CUT_THROUGH
+            while (state != STATE_READY
+                    // Waiting threads are allowed to compete with handshake listeners for access.
+                    && state != STATE_READY_HANDSHAKE_CUT_THROUGH
                     && state != STATE_CLOSED) {
                 try {
                     stateLock.wait();
@@ -905,7 +942,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
 
         private boolean isHandshakeFinished() {
             synchronized (stateLock) {
-                return state >= STATE_READY_HANDSHAKE_CUT_THROUGH;
+                return state > STATE_HANDSHAKE_STARTED;
             }
         }
 

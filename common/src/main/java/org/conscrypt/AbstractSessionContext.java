@@ -22,6 +22,10 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
 
@@ -39,7 +43,10 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     private volatile int maximumSize;
     private volatile int timeout = DEFAULT_SESSION_TIMEOUT_SECONDS;
 
-    final long sslCtxNativePointer = NativeCrypto.SSL_CTX_new();
+    private volatile long sslCtxNativePointer = NativeCrypto.SSL_CTX_new();
+
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
 
     private final Map<ByteArray, NativeSslSession> sessions =
             new LinkedHashMap<ByteArray, NativeSslSession>() {
@@ -151,11 +158,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
             // setSessionTimeout(0) is defined to remove the timeout, but passing 0
             // to SSL_CTX_set_timeout in BoringSSL sets it to the default timeout instead.
             // Pass INT_MAX seconds (68 years), since that's equivalent for practical purposes.
-            if (seconds > 0) {
-                NativeCrypto.SSL_CTX_set_timeout(sslCtxNativePointer, this, seconds);
-            } else {
-                NativeCrypto.SSL_CTX_set_timeout(sslCtxNativePointer, this, Integer.MAX_VALUE);
-            }
+            setTimeout(seconds > 0 ? seconds : Integer.MAX_VALUE);
 
             Iterator<NativeSslSession> i = sessions.values().iterator();
             while (i.hasNext()) {
@@ -168,6 +171,17 @@ abstract class AbstractSessionContext implements SSLSessionContext {
                     i.remove();
                 }
             }
+        }
+    }
+
+    private void setTimeout(int seconds) {
+        lock.writeLock().lock();
+        try {
+            if (isValid()) {
+                NativeCrypto.SSL_CTX_set_timeout(sslCtxNativePointer, this, seconds);
+            }
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 
@@ -186,11 +200,57 @@ abstract class AbstractSessionContext implements SSLSessionContext {
         }
     }
 
+    // isValid() should only be called from code where this.lock is already locked, otherwise the
+    // result may be incorrect by the time it is used.
+    private boolean isValid() {
+        return (sslCtxNativePointer != 0);
+    }
+
+    /**
+     * Returns a native pointer to a new SSL object in this SSL_CTX.
+     */
+    long newSsl() throws SSLException {
+        lock.readLock().lock();
+        try {
+            if (isValid()) {
+                return NativeCrypto.SSL_new(sslCtxNativePointer, this);
+            } else {
+                throw new SSLException("Invalid session context");
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    protected void setSesssionIdContext(byte[] bytes) {
+        lock.writeLock().lock();
+        try {
+            if (isValid()) {
+                NativeCrypto.SSL_CTX_set_session_id_context(sslCtxNativePointer, this, bytes);
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private void freeNative() {
+        lock.writeLock().lock();
+        try {
+            if (isValid()) {
+                long toFree = sslCtxNativePointer;
+                sslCtxNativePointer = 0;
+                NativeCrypto.SSL_CTX_free(toFree, this);
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
     @Override
     @SuppressWarnings("deprecation")
     protected void finalize() throws Throwable {
         try {
-            NativeCrypto.SSL_CTX_free(sslCtxNativePointer, this);
+            freeNative();
         } finally {
             super.finalize();
         }

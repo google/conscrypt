@@ -1055,15 +1055,20 @@ public final class CipherTest {
                 if (firstSlash == -1) {
                     seenBaseCipherNames.add(algorithm);
                 } else {
-                    final String baseCipherName = algorithm.substring(0, firstSlash);
-                    if (!seenBaseCipherNames.contains(baseCipherName)
+                    final int secondSlash = algorithm.indexOf('/', firstSlash + 1);
+                    if (secondSlash > 0) {
+                        // Only look for a base Cipher if there are two slashes, to avoid SunJCE
+                        // quirks like PBEWithHmacSHA512/224AndAES_128
+                        final String baseCipherName = algorithm.substring(0, firstSlash);
+                        if (!seenBaseCipherNames.contains(baseCipherName)
                             && !(baseCipherName.equals("AES_128")
-                                || baseCipherName.equals("AES_192")
-                                || baseCipherName.equals("AES_256"))) {
-                        seenCiphersWithModeAndPadding.add(baseCipherName);
-                    }
-                    if (!Conscrypt.isConscrypt(provider)) {
-                        continue;
+                            || baseCipherName.equals("AES_192")
+                            || baseCipherName.equals("AES_256"))) {
+                            seenCiphersWithModeAndPadding.add(baseCipherName);
+                        }
+                        if (!Conscrypt.isConscrypt(provider)) {
+                            continue;
+                        }
                     }
                 }
 
