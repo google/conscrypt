@@ -412,6 +412,11 @@ public final class TestUtils {
             .toArray(String[]::new);
     }
 
+    public static String[] getSupportedProtocols() {
+        return getSupportedProtocols(newClientSslContext(getConscryptProvider()))
+                .toArray(new String[0]);
+    }
+
     public static List<String> getSupportedProtocols(SSLContext ctx) {
         return Arrays.asList(ctx.getDefaultSSLParameters().getProtocols());
     }
