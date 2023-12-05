@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.conscrypt.TestUtils;
+
 /**
  * This class defines expected string names for protocols, key types,
  * client and server auth types, cipher suites.
@@ -164,8 +166,13 @@ public final class StandardNames {
     public static final Set<String> SSL_CONTEXT_PROTOCOLS_WITH_DEFAULT_CONFIG = new HashSet<String>(
             Arrays.asList(SSL_CONTEXT_PROTOCOLS_DEFAULT, "TLS", "TLSv1.3"));
     // Deprecated TLS protocols... May or may not be present or enabled.
-    public static final Set<String> SSL_CONTEXT_PROTOCOLS_DEPRECATED = new HashSet<>(
-        Arrays.asList("TLSv1", "TLSv1.1"));
+    public static final Set<String> SSL_CONTEXT_PROTOCOLS_DEPRECATED = new HashSet<>();
+    static {
+        if (TestUtils.isTlsV1Deprecated()) {
+            SSL_CONTEXT_PROTOCOLS_DEPRECATED.add("TLSv1");
+            SSL_CONTEXT_PROTOCOLS_DEPRECATED.add("TLSv1.1");
+        }
+    }
 
     public static final Set<String> KEY_TYPES = new HashSet<String>(
             Arrays.asList("RSA", "DSA", "DH_RSA", "DH_DSA", "EC", "EC_EC", "EC_RSA"));
@@ -463,10 +470,8 @@ public final class StandardNames {
             Arrays.asList(SSL_CONTEXT_PROTOCOLS_ENABLED.get(version)));
         Set<String> actual = new HashSet<>(Arrays.asList(protocols));
 
-        // TODO(prb): Temporary measure - just ignore deprecated protocols.  Allows
-        // testing on source trees where these have been disabled in unknown ways.
-        // Future work will provide a supported API for disabling protocols, but for
-        // now we need to work with what's in the field.
+        // Ignore deprecated protocols, which are set earlier based
+        // on Platform.isTlsV1Deprecated().
         expected.removeAll(SSL_CONTEXT_PROTOCOLS_DEPRECATED);
         actual.removeAll(SSL_CONTEXT_PROTOCOLS_DEPRECATED);
 

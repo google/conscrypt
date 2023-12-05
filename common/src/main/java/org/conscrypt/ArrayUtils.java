@@ -32,4 +32,20 @@ final class ArrayUtils {
                     + offset + "; regionLength=" + count);
         }
     }
+
+    static String[] concatValues(String[] a1, String... values) {
+        return concat (a1, values);
+    }
+
+    static String[] concat(String[] a1, String[] a2) {
+        String[] result = new String[a1.length + a2.length];
+        int offset = 0;
+        for (int i = 0; i < a1.length; i++, offset++) {
+            result[offset] = a1[i];
+        }
+        for (int i = 0; i < a2.length; i++, offset++) {
+            result[offset] = a2[i];
+        }
+        return result;
+    }
 }
