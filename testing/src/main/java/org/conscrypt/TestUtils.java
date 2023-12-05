@@ -811,4 +811,15 @@ public final class TestUtils {
         String name = osName();
         return name.startsWith("macosx") || name.startsWith("osx");
     }
+
+    // Find base method via reflection due to visibility issues when building with Gradle.
+    public static boolean isTlsV1Deprecated() {
+        try {
+            return (Boolean) conscryptClass("Platform")
+                    .getDeclaredMethod("isTlsV1Deprecated")
+                    .invoke(null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
