@@ -53,6 +53,8 @@ import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
 import org.conscrypt.javax.crypto.KeyGeneratorTest;
 import org.conscrypt.javax.crypto.ScryptTest;
 import org.conscrypt.javax.crypto.XDHKeyAgreementTest;
+import org.conscrypt.javax.crypto.XdhKeyFactoryTest;
+import org.conscrypt.javax.crypto.XdhKeyTest;
 import org.conscrypt.javax.net.ssl.HttpsURLConnectionTest;
 import org.conscrypt.javax.net.ssl.KeyManagerFactoryTest;
 import org.conscrypt.javax.net.ssl.KeyStoreBuilderParametersTest;
@@ -82,6 +84,7 @@ import org.junit.runners.Suite;
         // org.conscrypt tests
         AddressUtilsTest.class,
         ApplicationProtocolSelectorAdapterTest.class,
+        ArrayUtilsTest.class,
         CertPinManagerTest.class,
         ChainStrengthAnalyzerTest.class,
         ClientSessionContextTest.class,
@@ -147,6 +150,8 @@ import org.junit.runners.Suite;
         ECDHKeyAgreementTest.class,
         KeyGeneratorTest.class,
         XDHKeyAgreementTest.class,
+        XdhKeyFactoryTest.class,
+        XdhKeyTest.class,
         // javax.net.ssl tests
         HttpsURLConnectionTest.class,
         KeyManagerFactoryTest.class,

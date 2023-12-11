@@ -346,6 +346,16 @@ public final class TestUtils {
         throw ex;
     }
 
+    // Return a Class by name or null
+    public static Class<?> findClass(String name) {
+        ClassNotFoundException ex = null;
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException ignored) {
+            return null;
+        }
+    }
+
     static SSLSocketFactory setUseEngineSocket(
             SSLSocketFactory conscryptFactory, boolean useEngineSocket) {
         try {
@@ -846,6 +856,10 @@ public final class TestUtils {
     public static boolean isOsx() {
         String name = osName();
         return name.startsWith("macosx") || name.startsWith("osx");
+    }
+
+    public static void assumeXecClassesAvailable() {
+        Assume.assumeTrue(findClass("java.security.spec.XECPrivateKeySpec") != null);
     }
 
     // Find base method via reflection due to visibility issues when building with Gradle.
