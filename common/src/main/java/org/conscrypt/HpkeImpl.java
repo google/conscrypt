@@ -87,7 +87,7 @@ public class HpkeImpl implements HpkeSpi {
     checkNotInitialised();
     checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
     Preconditions.checkNotNull(encapsulated, "null encapsulated data");
-    if (encapsulated.length != hpkeSuite.getKem().getEncLength()) {
+    if (encapsulated.length != hpkeSuite.getKem().getEncapsulatedLength()) {
       throw new InvalidKeyException("Invalid encapsulated length: " + encapsulated.length);
     }
 

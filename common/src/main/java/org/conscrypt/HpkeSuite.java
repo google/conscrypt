@@ -137,14 +137,21 @@ public final class HpkeSuite {
      *         rfc9180 </a>
      */
     public enum KEM {
-        DHKEM_X25519_HKDF_SHA256(/* id= */ 0x0020, /* encLength= */ 32);
+        DHKEM_X25519_HKDF_SHA256(
+                /* id= */ 0x20, /* nSecret= */ 32, /* nEnc= */ 32, /* nPk= */ 32, /* nSk= */ 32);
 
         private final int id;
-        private final int encLength;
+        private final int nSecret;
+        private final int nEnc;
+        private final int nPk;
+        private final int nSk;
 
-        KEM(int id, int encLength) {
+        KEM(int id, int nSecret, int nEnc, int nPk, int nSk) {
             this.id = id;
-            this.encLength = encLength;
+            this.nSecret = nSecret;
+            this.nEnc = nEnc;
+            this.nPk = nPk;
+            this.nSk = nSk;
         }
 
         /**
@@ -160,12 +167,35 @@ public final class HpkeSuite {
         }
 
         /**
-         * The length in bytes of an encapsulated key produced by this KEM.
-         *
-         * @return encapsulated key size in bytes
+         * Returns the  length in bytes of an encapsulated key produced by this KEM.
          */
-        public int getEncLength() {
-            return encLength;
+        @Deprecated // Use getEncapsulatedLength
+        public int getnEnc() {
+            return getEncapsulatedLength();
+        }
+        public int getEncapsulatedLength() {
+            return nEnc;
+        }
+
+        /**
+         * Returns the length in bytes of a KEM shared secret produced by this KEM.
+         */
+        public int getSecretLength() {
+            return nSecret;
+        }
+
+        /**
+         * Returns the length in bytes of an encoded public key for this KEM.
+         */
+        public int getPublicKeyLength() {
+            return nPk;
+        }
+
+        /**
+         * Returns The length in bytes of an encoded private key for this KEM.
+         */
+        public int getPrivateKeyLength() {
+            return nPk;
         }
 
         /**
