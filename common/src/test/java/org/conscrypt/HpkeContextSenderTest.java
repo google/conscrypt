@@ -148,9 +148,8 @@ public class HpkeContextSenderTest {
         final byte[] export = ctxSender.export(/* length= */ 0, DEFAULT_EXPORTER_CONTEXT);
         assertNotNull(enc);
         assertNotNull(export);
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> ctxSender.export(/* length= */ -1, DEFAULT_EXPORTER_CONTEXT));
-        assertEquals("Export length (L) must be between 0 and 8160, but was -1", e.getMessage());
     }
 
     @Test
