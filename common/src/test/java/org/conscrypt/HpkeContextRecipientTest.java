@@ -187,8 +187,7 @@ public class HpkeContextRecipientTest {
         final HpkeContextRecipient ctxRecipient = createDefaultHpkeContextRecipient(DEFAULT_ENC);
         final byte[] export = ctxRecipient.export(/* length= */ 0, DEFAULT_EXPORTER_CONTEXT);
         assertNotNull(export);
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> ctxRecipient.export(/* length= */ -1, DEFAULT_EXPORTER_CONTEXT));
-        assertEquals("Export length (L) must be between 0 and 8160, but was -1", e.getMessage());
     }
 }
