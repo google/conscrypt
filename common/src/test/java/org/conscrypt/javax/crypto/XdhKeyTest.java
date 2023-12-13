@@ -21,7 +21,9 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -87,13 +89,20 @@ public class XdhKeyTest {
         assertNotSame(publicKey, copy);
         assertKeysWork(copy, privateKey);
 
-        // Flip a bit in the X.509 preamble
+        assertThrows(InvalidKeySpecException.class,
+                () -> new OpenSSLX25519PublicKey(new X509EncodedKeySpec(privateKeyBytes)));
         assertThrows(InvalidKeySpecException.class,
                 () -> new OpenSSLX25519PublicKey(new X509EncodedKeySpec(flipBit(x509bytes))));
         assertThrows(InvalidKeySpecException.class,
                 () -> new OpenSSLX25519PublicKey(new X509EncodedKeySpec(loseOneByte(x509bytes))));
-        assertThrows(InvalidKeySpecException.class,
-                () -> new OpenSSLX25519PublicKey(new X509EncodedKeySpec(gainOneByte(x509bytes))));
+
+        // Should ignore extra data for better JCA compatibility.
+        copy = new OpenSSLX25519PublicKey(new X509EncodedKeySpec(gainOneByte(x509bytes)));
+        assertEquals(publicKey, copy);
+        assertNotSame(publicKey, copy);
+        assertKeysWork(copy, privateKey);
+
+
     }
 
     @Test
@@ -124,7 +133,7 @@ public class XdhKeyTest {
     }
 
     @Test
-    public void privateKey_X509() throws Exception {
+    public void privateKey_PKCS8() throws Exception {
         assertEquals("PKCS#8", privateKey.getFormat());
         byte[] pkcs8Bytes = privateKey.getEncoded();
 
@@ -135,11 +144,22 @@ public class XdhKeyTest {
         assertKeysWork(publicKey, copy);
 
         assertThrows(InvalidKeySpecException.class, () ->
+                new OpenSSLX25519PrivateKey(new X509EncodedKeySpec(pkcs8Bytes)));
+        assertThrows(InvalidKeySpecException.class, () ->
                 new OpenSSLX25519PrivateKey(new PKCS8EncodedKeySpec(flipBit(pkcs8Bytes))));
         assertThrows(InvalidKeySpecException.class, () ->
                 new OpenSSLX25519PrivateKey(new PKCS8EncodedKeySpec(loseOneByte(pkcs8Bytes))));
-        assertThrows(InvalidKeySpecException.class, () ->
-                new OpenSSLX25519PrivateKey(new PKCS8EncodedKeySpec(gainOneByte(pkcs8Bytes))));
+
+        // EVP_parse_private_key ignores extra data for JCA compatibility.
+        copy = new OpenSSLX25519PrivateKey(new PKCS8EncodedKeySpec(gainOneByte(pkcs8Bytes)));
+        assertEquals(privateKey, copy);
+        assertNotSame(privateKey, copy);
+        assertKeysWork(publicKey, copy);
+
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        assertThrows(InvalidKeySpecException.class, () -> new OpenSSLX25519PrivateKey(
+                new PKCS8EncodedKeySpec(keyPair.getPrivate().getEncoded())));
     }
 
     @Test

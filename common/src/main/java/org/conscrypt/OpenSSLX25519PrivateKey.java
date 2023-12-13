@@ -16,9 +16,13 @@
 
 package org.conscrypt;
 
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+
+import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
+import java.text.ParseException;
 import java.util.Arrays;
 
 public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {
@@ -34,13 +38,15 @@ public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {
 
     private byte[] uCoordinate;
 
-    public OpenSSLX25519PrivateKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
+    public OpenSSLX25519PrivateKey(EncodedKeySpec keySpec)
+            throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();
         if ("PKCS#8".equals(keySpec.getFormat())) {
-            if (!ArrayUtils.startsWith(encoded, PKCS8_PREAMBLE)) {
-                throw new InvalidKeySpecException("Invalid PKCS#8 data");
+            try {
+                uCoordinate = NativeCrypto.EVP_raw_X25519_private_key(encoded);
+            } catch (InvalidKeyException | ParsingException e) {
+                throw new InvalidKeySpecException(e);
             }
-            uCoordinate = Arrays.copyOfRange(encoded, PKCS8_PREAMBLE.length, encoded.length);
         } else if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
             uCoordinate = encoded;
         } else {

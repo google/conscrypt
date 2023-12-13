@@ -348,7 +348,6 @@ public final class TestUtils {
 
     // Return a Class by name or null
     public static Class<?> findClass(String name) {
-        ClassNotFoundException ex = null;
         try {
             return Class.forName(name);
         } catch (ClassNotFoundException ignored) {

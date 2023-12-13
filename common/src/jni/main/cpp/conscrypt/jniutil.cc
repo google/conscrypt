@@ -352,12 +352,14 @@ int throwForEvpError(JNIEnv* env, int reason, const char* message,
         case EVP_R_MISSING_PARAMETERS:
         case EVP_R_INVALID_PEER_KEY:
         case EVP_R_DECODE_ERROR:
+        case EVP_R_NOT_A_PRIVATE_KEY:
             return throwInvalidKeyException(env, message);
             break;
         case EVP_R_UNSUPPORTED_ALGORITHM:
             return throwNoSuchAlgorithmException(env, message);
             break;
         case EVP_R_INVALID_BUFFER_SIZE:
+        case EVP_R_BUFFER_TOO_SMALL:
             return throwIllegalArgumentException(env, message);
             break;
         default:

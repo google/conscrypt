@@ -40,14 +40,18 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
             if (!ArrayUtils.startsWith(encoded, X509_PREAMBLE)) {
                 throw new InvalidKeySpecException("Invalid format");
             }
-            uCoordinate = Arrays.copyOfRange(encoded, X509_PREAMBLE.length, encoded.length);
+            int totalLength = X509_PREAMBLE.length + X25519_KEY_SIZE_BYTES;
+            if (encoded.length < totalLength) {
+                throw new InvalidKeySpecException("Invalid key size");
+            }
+            uCoordinate = Arrays.copyOfRange(encoded, X509_PREAMBLE.length, totalLength);
         } else if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
+            if (encoded.length != X25519_KEY_SIZE_BYTES) {
+                throw new InvalidKeySpecException("Invalid key size");
+            }
             uCoordinate = encoded;
         } else {
             throw new InvalidKeySpecException("Encoding must be in X.509 or raw format");
-        }
-        if (uCoordinate.length != X25519_KEY_SIZE_BYTES) {
-            throw new InvalidKeySpecException("Invalid key size");
         }
     }
 
