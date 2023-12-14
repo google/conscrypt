@@ -1260,7 +1260,7 @@ static jbyteArray NativeCrypto_EVP_raw_X25519_private_key(
     }
 
     if (EVP_PKEY_get_raw_private_key(
-            pkey.get(), reinterpret_cast<uint8_t *>(bytes.get()),&key_length) == 0) {
+            pkey.get(), reinterpret_cast<uint8_t *>(bytes.get()), &key_length) == 0) {
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_raw_private_key");
         return nullptr;
     }

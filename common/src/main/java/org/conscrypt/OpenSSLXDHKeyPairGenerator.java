@@ -47,7 +47,7 @@ public final class OpenSSLXDHKeyPairGenerator extends KeyPairGenerator {
 
     @Override
     public void initialize(int keysize, SecureRandom random) {
-        if (keysize != OpenSSLX25519Key.X25519_KEY_SIZE_BYTES) {
+        if (keysize != OpenSSLX25519Key.X25519_KEY_SIZE_BYTES * 8) {
             throw new IllegalArgumentException("Only X25519 supported");
         }
     }
