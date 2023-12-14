@@ -52,7 +52,8 @@ public class XdhKeyFactoryTest {
             decodeBase64("MCowBQYDK2VuAyEAeNH3ZKS7SCZT495bvIvoyYB9PNIFefUSTfi6eNhFYXA=");
     private final byte[] privateKeyPkcs8Bytes =
             decodeBase64("MC4CAQAwBQYDK2VuBCIEIADBSHEZer+X0ZdqReHuMDx61nQwWwNHOnx9HHRNJBJK");
-    private final KeyFactory factory = KeyFactory.getInstance("XDH");
+    private final KeyFactory factory =
+            KeyFactory.getInstance("XDH", TestUtils.getConscryptProvider());
     private final PublicKey publicKey =
             factory.generatePublic(new X509EncodedKeySpec(publicKeyX509Bytes));
     private final PrivateKey privateKey =
@@ -143,8 +144,6 @@ public class XdhKeyFactoryTest {
     public void keySpec_Fail() throws Exception {
         assertThrows(InvalidKeySpecException.class,
                 () -> factory.getKeySpec(publicKey, PKCS8EncodedKeySpec.class));
-        PrivateKey privateKey = factory.generatePrivate(
-                new PKCS8EncodedKeySpec(privateKeyPkcs8Bytes));
         assertThrows(InvalidKeySpecException.class,
                 () -> factory.getKeySpec(privateKey, X509EncodedKeySpec.class));
 
@@ -187,7 +186,7 @@ public class XdhKeyFactoryTest {
         @SuppressWarnings("unchecked")
         Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
                 TestUtils.findClass("java.security.spec.XECPrivateKeySpec");
-        PrivateKey key = factory.generatePrivate(new X509EncodedKeySpec(privateKeyPkcs8Bytes));
+        PrivateKey key = factory.generatePrivate(new PKCS8EncodedKeySpec(privateKeyPkcs8Bytes));
         KeySpec spec = factory.getKeySpec(key, javaClass);
         assertNotNull(spec);
     }
