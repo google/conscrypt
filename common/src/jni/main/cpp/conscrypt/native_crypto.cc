@@ -1228,6 +1228,47 @@ static jlong NativeCrypto_EVP_parse_private_key(JNIEnv* env, jclass, jbyteArray 
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
+
+static jbyteArray NativeCrypto_EVP_raw_X25519_private_key(
+        JNIEnv* env, jclass cls, jbyteArray keyJavaBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("NativeCrypto_EVP_raw_X25519_private_key(%p)", keyJavaBytes);
+
+    jlong key_ptr = NativeCrypto_EVP_parse_private_key(env, cls, keyJavaBytes);
+    if (key_ptr == 0) {
+        return nullptr;
+    }
+    bssl::UniquePtr<EVP_PKEY> pkey(reinterpret_cast<EVP_PKEY*>(key_ptr));
+    if (EVP_PKEY_id(pkey.get()) != EVP_PKEY_X25519) {
+        conscrypt::jniutil::throwInvalidKeyException(env, "Invalid key type");
+        return nullptr;
+    }
+
+    size_t key_length = X25519_PRIVATE_KEY_LEN;
+    ScopedLocalRef<jbyteArray> byteArray(env, env->NewByteArray(static_cast<jsize>(key_length)));
+    if (byteArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Allocating byte[]");
+        JNI_TRACE("NativeCrypto_EVP_raw_X25519_private_key: byte array creation failed");
+        return nullptr;
+    }
+
+    ScopedByteArrayRW bytes(env, byteArray.get());
+    if (bytes.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Allocating scoped byte array");
+        JNI_TRACE("NativeCrypto_EVP_raw_X25519_private_key: scoped byte array failed");
+        return nullptr;
+    }
+
+    if (EVP_PKEY_get_raw_private_key(
+            pkey.get(), reinterpret_cast<uint8_t *>(bytes.get()), &key_length) == 0) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_raw_private_key");
+        return nullptr;
+    }
+    jbyteArray result = byteArray.release();
+    JNI_TRACE("bytes=%p NativeCrypto_EVP_raw_X25519_private_key => %p", keyJavaBytes, result);
+    return result;
+}
+
 /*
  * static native byte[] EVP_marshal_public_key(long)
  */
@@ -10994,6 +11035,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_cmp, "(" REF_EVP_PKEY REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(EVP_marshal_private_key, "(" REF_EVP_PKEY ")[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_parse_private_key, "([B)J"),
+        CONSCRYPT_NATIVE_METHOD(EVP_raw_X25519_private_key, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_marshal_public_key, "(" REF_EVP_PKEY ")[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_parse_public_key, "([B)J"),
         CONSCRYPT_NATIVE_METHOD(PEM_read_bio_PUBKEY, "(J)J"),

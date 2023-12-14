@@ -16,10 +16,12 @@
 
 package org.conscrypt;
 
+import java.util.Arrays;
+
 /**
  * Compatibility utility for Arrays.
  */
-final class ArrayUtils {
+public final class ArrayUtils {
     private ArrayUtils() {}
 
     /**
@@ -33,19 +35,32 @@ final class ArrayUtils {
         }
     }
 
-    static String[] concatValues(String[] a1, String... values) {
+    @SafeVarargs
+    static <T> T[] concatValues(T[] a1, T... values) {
         return concat (a1, values);
     }
 
-    static String[] concat(String[] a1, String[] a2) {
-        String[] result = new String[a1.length + a2.length];
-        int offset = 0;
-        for (int i = 0; i < a1.length; i++, offset++) {
-            result[offset] = a1[i];
-        }
-        for (int i = 0; i < a2.length; i++, offset++) {
-            result[offset] = a2[i];
-        }
+    static <T> T[] concat(T[] a1, T[] a2) {
+        T[] result = Arrays.copyOf(a1, a1.length + a2.length);
+        System.arraycopy(a2, 0, result, a1.length, a2.length);
         return result;
+    }
+
+    public static byte[] concat(byte[] a1, byte[] a2) {
+        byte[] result = Arrays.copyOf(a1, a1.length + a2.length);
+        System.arraycopy(a2, 0, result, a1.length, a2.length);
+        return result;
+    }
+
+    static boolean startsWith(byte[] array, byte[] startsWith) {
+        if (array.length < startsWith.length) {
+            return false;
+        }
+        for (int i = 0; i < startsWith.length; i++) {
+            if (array[i] != startsWith[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }
