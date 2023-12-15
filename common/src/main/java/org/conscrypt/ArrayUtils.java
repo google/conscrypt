@@ -36,11 +36,11 @@ public final class ArrayUtils {
     }
 
     @SafeVarargs
-    static <T> T[] concatValues(T[] a1, T... values) {
+    public static <T> T[] concatValues(T[] a1, T... values) {
         return concat (a1, values);
     }
 
-    static <T> T[] concat(T[] a1, T[] a2) {
+    public static <T> T[] concat(T[] a1, T[] a2) {
         T[] result = Arrays.copyOf(a1, a1.length + a2.length);
         System.arraycopy(a2, 0, result, a1.length, a2.length);
         return result;
@@ -52,7 +52,7 @@ public final class ArrayUtils {
         return result;
     }
 
-    static boolean startsWith(byte[] array, byte[] startsWith) {
+    public static boolean startsWith(byte[] array, byte[] startsWith) {
         if (array.length < startsWith.length) {
             return false;
         }
@@ -62,5 +62,15 @@ public final class ArrayUtils {
             }
         }
         return true;
+    }
+
+    public static byte[] reverse(byte[] array) {
+        byte[] result = new byte[array.length];
+        int front = 0;
+        int back = array.length - 1;
+        while (back >= 0) {
+            result[front++] = array[back--];
+        }
+        return result;
     }
 }

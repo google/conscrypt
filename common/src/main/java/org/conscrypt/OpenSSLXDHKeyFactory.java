@@ -17,6 +17,7 @@
 package org.conscrypt;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
@@ -36,9 +37,10 @@ import java.security.spec.X509EncodedKeySpec;
  */
 @Internal
 public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
-    private final Class<?> javaXECPublicKeySpec = getJavaXECPublicKeySpec();
-    private final Class<?> javaXECPrivateKeySpec = getJavaXECPrivateKeySpec();
-
+    private static final Class<?> javaXecPublicKeySpec = getJavaXECPublicKeySpec();
+    private static final Class<?> javaXecPrivateKeySpec = getJavaXECPrivateKeySpec();
+    private static final AlgorithmParameterSpec javaX25519AlgorithmSpec
+            = getJavaX25519ParameterSpec();
 
     public OpenSSLXDHKeyFactory() {}
 
@@ -94,9 +96,9 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
 
         if (key instanceof OpenSSLX25519PublicKey) {
             OpenSSLX25519PublicKey conscryptKey = (OpenSSLX25519PublicKey) key;
-            if (javaXECPublicKeySpec != null && javaXECPublicKeySpec.isAssignableFrom(keySpec)) {
+            if (javaXecPublicKeySpec != null && javaXecPublicKeySpec.isAssignableFrom(keySpec)) {
                 @SuppressWarnings("unchecked")
-                T result = (T) constructJavaXecPublicKeySpec(javaXECPublicKeySpec, conscryptKey);
+                T result = (T) constructJavaXecPublicKeySpec(conscryptKey);
                 return result;
             } else if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 @SuppressWarnings("unchecked")
@@ -111,9 +113,9 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
             }
         } else if (key instanceof OpenSSLX25519PrivateKey) {
             OpenSSLX25519PrivateKey conscryptKey = (OpenSSLX25519PrivateKey) key;
-            if (javaXECPrivateKeySpec != null && javaXECPrivateKeySpec.isAssignableFrom(keySpec)) {
+            if (javaXecPrivateKeySpec != null && javaXecPrivateKeySpec.isAssignableFrom(keySpec)) {
                 @SuppressWarnings("unchecked")
-                T result = (T) constructJavaPrivateKeySpec(javaXECPrivateKeySpec, conscryptKey);
+                T result = (T) constructJavaPrivateKeySpec(conscryptKey);
                 return result;
             } else if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 @SuppressWarnings("unchecked")
@@ -133,7 +135,6 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
 
     private <T extends KeySpec> T makeRawKeySpec(byte[] bytes, Class<T> keySpecClass)
             throws InvalidKeySpecException {
-        Exception cause;
         try {
             Constructor<T> constructor = keySpecClass.getConstructor(byte[].class);
             T instance = constructor.newInstance((Object) bytes);
@@ -142,17 +143,11 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeySpecException("EncodedKeySpec class must be raw format");
             }
             return instance;
-        } catch (NoSuchMethodException e) {
-            cause = e;
-        } catch (InvocationTargetException e) {
-            cause = e;
-        } catch (InstantiationException e) {
-            cause = e;
-        } catch (IllegalAccessException e) {
-            cause = e;
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
+                 IllegalAccessException e) {
+            throw new InvalidKeySpecException(
+                    "Can't process KeySpec class " + keySpecClass.getName(), e);
         }
-        throw new InvalidKeySpecException("Can't process KeySpec class " + keySpecClass.getName(),
-                cause);
     }
 
     @Override
@@ -196,66 +191,59 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
         }
     }
 
-    private static Class<?> getJavaXECPublicKeySpec() {
-        try {
-            return Class.forName("java.security.spec.XECPublicKeySpec");
-        } catch (ClassNotFoundException ignored) {
-            return null;
-        }
+  private static Class<?> getJavaXECPublicKeySpec() {
+    try {
+      return Class.forName("java.security.spec.XECPublicKeySpec");
+    } catch (ClassNotFoundException ignored) {
+      return null;
     }
+  }
 
-    private KeySpec constructJavaPrivateKeySpec(
-            Class<?> privateKeySpec, OpenSSLX25519PrivateKey privateKey)
+  private static AlgorithmParameterSpec getJavaX25519ParameterSpec() {
+    try {
+      Class<?> cls = Class.forName("java.security.spec.NamedParameterSpec");
+      Field field = cls.getDeclaredField("X25519");
+      Object result = field.get(null);
+      return (AlgorithmParameterSpec) result;
+    } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException ignored) {
+      return null;
+    }
+  }
+
+  private KeySpec constructJavaPrivateKeySpec(OpenSSLX25519PrivateKey privateKey)
             throws InvalidKeySpecException {
-        if (privateKeySpec == null) {
-            throw new InvalidKeySpecException("Could not find java.security.spec.XECPrivateKeySpec");
-        }
-
-        Exception cause;
-        try {
-            Constructor<?> c =
-                    privateKeySpec.getConstructor(AlgorithmParameterSpec.class, byte[].class);
+      if (OpenSSLXDHKeyFactory.javaXecPrivateKeySpec == null) {
+          throw new InvalidKeySpecException("Could not find java.security.spec.XECPrivateKeySpec");
+      }
+      try {
+            Constructor<?> c = OpenSSLXDHKeyFactory.javaXecPrivateKeySpec.getConstructor(
+                    AlgorithmParameterSpec.class, byte[].class);
             @SuppressWarnings("unchecked")
-            KeySpec result = (KeySpec) c.newInstance(
-                    new OpenSSLXECParameterSpec(OpenSSLXECParameterSpec.X25519), privateKey.getU());
+            KeySpec result = (KeySpec) c.newInstance(javaX25519AlgorithmSpec, privateKey.getU());
             return result;
-        } catch (NoSuchMethodException e) {
-            cause = e;
-        } catch (InstantiationException e) {
-            cause = e;
-        } catch (IllegalAccessException e) {
-            cause = e;
-        } catch (InvocationTargetException e) {
-            cause = e;
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
+                 InvocationTargetException e) {
+          throw new InvalidKeySpecException(
+                    "Could not find java.security.spec.XECPrivateKeySpec", e);
         }
-        throw new InvalidKeySpecException(
-                "Could not find java.security.spec.XECPrivateKeySpec", cause);
     }
 
-    private KeySpec constructJavaXecPublicKeySpec(
-            Class<?> publicKeySpec, OpenSSLX25519PublicKey publicKey)
+    private KeySpec constructJavaXecPublicKeySpec(OpenSSLX25519PublicKey publicKey)
             throws InvalidKeySpecException {
-        if (publicKeySpec == null) {
+        if (OpenSSLXDHKeyFactory.javaXecPublicKeySpec == null) {
             throw new InvalidKeySpecException("Could not find java.security.spec.XECPublicKeySpec");
         }
-        Exception cause;
         try {
-            Constructor<?> c =
-                    publicKeySpec.getConstructor(AlgorithmParameterSpec.class, BigInteger.class);
+            Constructor<?> c = OpenSSLXDHKeyFactory.javaXecPublicKeySpec.getConstructor(
+                    AlgorithmParameterSpec.class, BigInteger.class);
             @SuppressWarnings("unchecked")
-            KeySpec result = (KeySpec) c.newInstance(new OpenSSLXECParameterSpec(
-                    OpenSSLXECParameterSpec.X25519), new BigInteger(1, publicKey.getU()));
+            KeySpec result = (KeySpec) c.newInstance(javaX25519AlgorithmSpec,
+                    new BigInteger(1, ArrayUtils.reverse(publicKey.getU())));
             return result;
-        } catch (NoSuchMethodException e) {
-            cause = e;
-        } catch (InstantiationException e) {
-            cause = e;
-        } catch (IllegalAccessException e) {
-            cause = e;
-        } catch (InvocationTargetException e) {
-            cause = e;
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
+                 InvocationTargetException e) {
+            throw new InvalidKeySpecException(
+                    "Could not find java.security.spec.XECPublicKeySpec", e);
         }
-        throw new InvalidKeySpecException(
-                "Could not find java.security.spec.XECPrivateKeySpec", cause);
     }
 }

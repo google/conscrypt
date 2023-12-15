@@ -22,7 +22,6 @@ import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
-import java.text.ParseException;
 import java.util.Arrays;
 
 public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {

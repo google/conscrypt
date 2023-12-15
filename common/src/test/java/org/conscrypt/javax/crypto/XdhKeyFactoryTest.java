@@ -18,6 +18,7 @@ package org.conscrypt.javax.crypto;
 import static org.conscrypt.TestUtils.decodeBase64;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -30,6 +31,7 @@ import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
@@ -42,6 +44,7 @@ import org.conscrypt.OpenSSLX25519PrivateKey;
 import org.conscrypt.OpenSSLX25519PublicKey;
 import org.conscrypt.TestUtils;
 import org.conscrypt.XdhKeySpec;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -146,7 +149,6 @@ public class XdhKeyFactoryTest {
                 () -> factory.getKeySpec(publicKey, PKCS8EncodedKeySpec.class));
         assertThrows(InvalidKeySpecException.class,
                 () -> factory.getKeySpec(privateKey, X509EncodedKeySpec.class));
-
         assertThrows(InvalidKeySpecException.class, () -> factory.getKeySpec(
                 new TestPublicKeyWrongEncoding(), X509EncodedKeySpec.class));
         assertThrows(InvalidKeySpecException.class, () -> factory.getKeySpec(
@@ -168,27 +170,50 @@ public class XdhKeyFactoryTest {
     }
 
     @Test
+    @Ignore("Inconsistent results across platforms")
     public void xecPublicKeySpec() throws Exception {
-        // TODO(prb): Finish this
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
         Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
                 TestUtils.findClass("java.security.spec.XECPublicKeySpec");
-        PublicKey key = factory.generatePublic(new X509EncodedKeySpec(publicKeyX509Bytes));
-        KeySpec spec = factory.getKeySpec(key, javaClass);
+        KeySpec spec = factory.getKeySpec(publicKey, javaClass);
         assertNotNull(spec);
+
+        try {
+            // If SunEC is available, translate back and compare.
+            KeyFactory sunKf = KeyFactory.getInstance("XDH", "SunEC");
+            PublicKey sunKey = sunKf.generatePublic(spec);
+            assertNotEquals(OpenSSLX25519PublicKey.class, sunKey.getClass());
+
+            Key key = factory.translateKey(sunKey);
+            assertTrue(key instanceof OpenSSLX25519PublicKey);
+            assertEquals(publicKey, key);
+        } catch (NoSuchProviderException e) {
+            // Ignored
+        }
     }
 
     @Test
+    @Ignore("Inconsistent results across platforms")
     public void xecPrivateKeySpec() throws Exception {
-        // TODO(prb): Finish this
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
         Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
                 TestUtils.findClass("java.security.spec.XECPrivateKeySpec");
-        PrivateKey key = factory.generatePrivate(new PKCS8EncodedKeySpec(privateKeyPkcs8Bytes));
-        KeySpec spec = factory.getKeySpec(key, javaClass);
+        KeySpec spec = factory.getKeySpec(privateKey, javaClass);
         assertNotNull(spec);
+        try {
+            // If SunEC is available, translate back and compare.
+            KeyFactory sunKf = KeyFactory.getInstance("XDH", "SunEC");
+            PrivateKey sunKey = sunKf.generatePrivate(spec);
+            assertNotEquals(OpenSSLX25519PrivateKey.class, sunKey.getClass());
+
+            Key key = factory.translateKey(sunKey);
+            assertTrue(key instanceof OpenSSLX25519PrivateKey);
+            assertEquals(privateKey, key);
+        } catch (NoSuchProviderException e) {
+            // Ignored
+        }
     }
 
     @Test

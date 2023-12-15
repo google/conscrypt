@@ -195,7 +195,7 @@ public final class HpkeSuite {
          * Returns The length in bytes of an encoded private key for this KEM.
          */
         public int getPrivateKeyLength() {
-            return nPk;
+            return nSk;
         }
 
         /**
@@ -261,7 +261,7 @@ public final class HpkeSuite {
          * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-secret-export">secret
          *         export</a>
          */
-        long maxExportLength() {
+        public long maxExportLength() {
             return this.getMacLength() * 255L;
         }
 
