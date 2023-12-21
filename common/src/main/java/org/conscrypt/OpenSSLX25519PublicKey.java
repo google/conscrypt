@@ -78,7 +78,7 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
             throw new IllegalStateException("key is destroyed");
         }
 
-        return (ArrayUtils.concat(X509_PREAMBLE, uCoordinate));
+        return ArrayUtils.concat(X509_PREAMBLE, uCoordinate);
     }
 
     @Override
