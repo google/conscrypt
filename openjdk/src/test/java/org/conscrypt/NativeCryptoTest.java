@@ -111,6 +111,8 @@ public class NativeCryptoTest {
     private static byte[] CHANNEL_ID;
     private static Method m_Platform_getFileDescriptor;
 
+    private static RSAPrivateCrtKey TEST_RSA_KEY;
+
     @BeforeClass
     public static void getPlatformMethods() throws Exception {
         Class<?> c_Platform = TestUtils.conscryptClass("Platform");
@@ -242,10 +244,18 @@ public class NativeCryptoTest {
 
     private static RSAPrivateCrtKey generateRsaKey() throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-        kpg.initialize(512);
+        kpg.initialize(2048);
 
         KeyPair keyPair = kpg.generateKeyPair();
         return (RSAPrivateCrtKey) keyPair.getPrivate();
+    }
+
+    private static synchronized RSAPrivateCrtKey getTestRsaKey() throws Exception {
+        // RSA keys are slow to generate, so prefer to reuse the key when possible.
+        if (TEST_RSA_KEY == null) {
+            TEST_RSA_KEY = generateRsaKey();
+        }
+        return TEST_RSA_KEY;
     }
 
     private static NativeRef.EVP_PKEY getRsaPkey(RSAPrivateCrtKey privKey) throws Exception {
@@ -287,7 +297,7 @@ public class NativeCryptoTest {
 
     @Test(expected = NullPointerException.class)
     public void EVP_PKEY_cmp_withNullShouldThrow() throws Exception {
-        RSAPrivateCrtKey privKey1 = generateRsaKey();
+        RSAPrivateCrtKey privKey1 = getTestRsaKey();
         NativeRef.EVP_PKEY pkey1 = getRsaPkey(privKey1);
         assertNotSame(NULL, pkey1);
         NativeCrypto.EVP_PKEY_cmp(pkey1, null);
@@ -295,7 +305,7 @@ public class NativeCryptoTest {
 
     @Test
     public void test_EVP_PKEY_cmp() throws Exception {
-        RSAPrivateCrtKey privKey1 = generateRsaKey();
+        RSAPrivateCrtKey privKey1 = getTestRsaKey();
 
         NativeRef.EVP_PKEY pkey1 = getRsaPkey(privKey1);
         assertNotSame(NULL, pkey1);
@@ -303,6 +313,7 @@ public class NativeCryptoTest {
         NativeRef.EVP_PKEY pkey1_copy = getRsaPkey(privKey1);
         assertNotSame(NULL, pkey1_copy);
 
+        // Generate a different key.
         NativeRef.EVP_PKEY pkey2 = getRsaPkey(generateRsaKey());
         assertNotSame(NULL, pkey2);
 
@@ -2747,11 +2758,7 @@ public class NativeCryptoTest {
 
     @Test
     public void test_EVP_DigestSignInit() throws Exception {
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-        kpg.initialize(512);
-
-        KeyPair kp = kpg.generateKeyPair();
-        RSAPrivateCrtKey privKey = (RSAPrivateCrtKey) kp.getPrivate();
+        RSAPrivateCrtKey privKey = getTestRsaKey();
 
         NativeRef.EVP_PKEY pkey;
         pkey = new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_new_RSA(
@@ -3067,7 +3074,7 @@ public class NativeCryptoTest {
     }
 
     private static long getRawPkeyCtxForEncrypt() throws Exception {
-        return NativeCrypto.EVP_PKEY_encrypt_init(getRsaPkey(generateRsaKey()));
+        return NativeCrypto.EVP_PKEY_encrypt_init(getRsaPkey(getTestRsaKey()));
     }
 
     private static NativeRef.EVP_PKEY_CTX getPkeyCtxForEncrypt() throws Exception {
