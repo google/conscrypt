@@ -8,10 +8,6 @@ buildscript {
     }
 }
 
-plugins {
-    id 'digital.wup.android-maven-publish' version '3.6.2'
-}
-
 description = 'Conscrypt: Android'
 
 ext {
@@ -161,11 +157,13 @@ if (androidSdkInstalled) {
         from project(":conscrypt-common").sourceSets.main.java.srcDirs
     }
 
-    apply from: "$rootDir/gradle/publishing.gradle"
-    publishing.publications.maven {
-        from components.android
-        artifact sourcesJar.get()
-        artifact javadocsJar.get()
+    afterEvaluate {
+        apply from: "$rootDir/gradle/publishing.gradle"
+        publishing.publications.maven {
+            from components.release
+            artifact sourcesJar.get()
+            artifact javadocsJar.get()
+        }
     }
 } else {
     logger.warn('Android SDK has not been detected. The Android module will not be built.')

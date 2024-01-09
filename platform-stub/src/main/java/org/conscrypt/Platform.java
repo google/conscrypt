@@ -367,4 +367,8 @@ final class Platform {
     public static boolean isJavaxCertificateSupported() {
 	throw new RuntimeException("Stub!");
     }
+
+    public static boolean isTlsV1Deprecated() {
+        throw new RuntimeException("Stub!");
+    }
 }
