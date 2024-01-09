@@ -99,7 +99,7 @@ if (androidSdkInstalled) {
     }
 
     dependencies {
-        implementation project(':conscrypt-common')
+        compileOnly project(':conscrypt-common')
 
         publicApiDocs project(':conscrypt-api-doclet')
 
@@ -157,7 +157,28 @@ if (androidSdkInstalled) {
         from project(":conscrypt-common").sourceSets.main.java.srcDirs
     }
 
+    // This is ugly but works:  For both release and debug builds copy the classes from the
+    // common compilation before the final AAR is built.
+    def copyDebugCommon = tasks.register('copyDebugCommon', Copy) {
+        from project(':conscrypt-common').sourceSets.main.output
+        into buildDir.absolutePath + '/intermediates/javac/debug/classes'
+        dependsOn ':conscrypt-common:compileJava'
+    }
+
+    def copyReleaseCommon = tasks.register('copyReleaseCommon', Copy) {
+        from project(':conscrypt-common').sourceSets.main.output
+        into buildDir.absolutePath + '/intermediates/javac/release/classes'
+        dependsOn ':conscrypt-common:compileJava'
+    }
+
     afterEvaluate {
+        tasks.named('javaPreCompileDebug') {
+            dependsOn copyDebugCommon
+        }
+        tasks.named('javaPreCompileRelease') {
+            dependsOn copyReleaseCommon
+        }
+
         apply from: "$rootDir/gradle/publishing.gradle"
         publishing.publications.maven {
             from components.release
