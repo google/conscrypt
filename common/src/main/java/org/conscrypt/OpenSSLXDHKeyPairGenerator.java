@@ -23,8 +23,8 @@ import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 
 /**
- * An implementation of {@link KeyPairGenerator} for XDH keys which uses BoringSSL to perform all the
- * operations. This only supports X25519 keys.
+ * An implementation of {@link KeyPairGenerator} for XDH keys which uses BoringSSL to perform all
+ * the operations. This only supports X25519 keys.
  */
 @Internal
 public final class OpenSSLXDHKeyPairGenerator extends KeyPairGenerator {
@@ -41,11 +41,15 @@ public final class OpenSSLXDHKeyPairGenerator extends KeyPairGenerator {
 
         NativeCrypto.X25519_keypair(publicKeyBytes, privateKeyBytes);
 
-        return new KeyPair(new OpenSSLX25519PublicKey(publicKeyBytes), new OpenSSLX25519PrivateKey(privateKeyBytes));
+        return new KeyPair(new OpenSSLX25519PublicKey(publicKeyBytes),
+                new OpenSSLX25519PrivateKey(privateKeyBytes));
     }
 
     @Override
     public void initialize(int keysize, SecureRandom random) {
+        if (keysize != 255) {
+            throw new IllegalArgumentException("Only X25519 supported");
+        }
     }
 
     @Override

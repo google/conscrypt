@@ -49,10 +49,15 @@ public class HpkeImpl implements HpkeSpi {
           byte[] psk, byte[] psk_id) throws InvalidKeyException {
     checkNotInitialised();
     checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
-    final byte[] pk = hpkeSuite.getKem().validatePublicKeyTypeAndGetRawKey(recipientKey);
+    if (recipientKey == null) {
+      throw new InvalidKeyException("null recipient key");
+    } else if (!(recipientKey instanceof OpenSSLX25519PublicKey)) {
+      throw new InvalidKeyException("Unsupported recipient key class: " + recipientKey.getClass());
+    }
+    final byte[] recipientKeyBytes = ((OpenSSLX25519PublicKey) recipientKey).getU();
 
     final Object[] result = NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender(
-            hpkeSuite, pk, info);
+            hpkeSuite, recipientKeyBytes, info);
     ctx = (NativeRef.EVP_HPKE_CTX) result[0];
     encapsulated = (byte[]) result[1];
   }
@@ -63,10 +68,15 @@ public class HpkeImpl implements HpkeSpi {
     checkNotInitialised();
     Objects.requireNonNull(sKe);
     checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
-    final byte[] pk = hpkeSuite.getKem().validatePublicKeyTypeAndGetRawKey(recipientKey);
+    if (recipientKey == null) {
+      throw new InvalidKeyException("null recipient key");
+    } else if (!(recipientKey instanceof OpenSSLX25519PublicKey)) {
+      throw new InvalidKeyException("Unsupported recipient key class: " + recipientKey.getClass());
+    }
+    final byte[] recipientKeyBytes = ((OpenSSLX25519PublicKey) recipientKey).getU();
 
     final Object[] result = NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
-            hpkeSuite, pk, info, sKe);
+            hpkeSuite, recipientKeyBytes, info, sKe);
     ctx = (NativeRef.EVP_HPKE_CTX) result[0];
     encapsulated = (byte[]) result[1];
   }
@@ -76,11 +86,20 @@ public class HpkeImpl implements HpkeSpi {
           byte[] info, PublicKey senderKey, byte[] psk, byte[] psk_id) throws InvalidKeyException {
     checkNotInitialised();
     checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
-    hpkeSuite.getKem().validateEncapsulatedLength(encapsulated);
-    final byte[] sk = hpkeSuite.getKem().validatePrivateKeyTypeAndGetRawKey(recipientKey);
+    Preconditions.checkNotNull(encapsulated, "null encapsulated data");
+    if (encapsulated.length != hpkeSuite.getKem().getEncapsulatedLength()) {
+      throw new InvalidKeyException("Invalid encapsulated length: " + encapsulated.length);
+    }
+
+    if (recipientKey == null) {
+      throw new InvalidKeyException("null recipient key");
+    } else if (!(recipientKey instanceof OpenSSLX25519PrivateKey)) {
+      throw new InvalidKeyException("Unsupported recipient key class: " + recipientKey.getClass());
+    }
+    final byte[] recipientKeyBytes = ((OpenSSLX25519PrivateKey) recipientKey).getU();
 
     ctx = (NativeRef.EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_base_mode_recipient(
-            hpkeSuite, sk, encapsulated, info);
+            hpkeSuite, recipientKeyBytes, encapsulated, info);
   }
 
   private void checkArgumentsForBaseModeOnly(Key senderKey, byte[] psk, byte[] psk_id) {
@@ -105,7 +124,11 @@ public class HpkeImpl implements HpkeSpi {
   @Override
   public byte[] engineExport(int length, byte[] exporterContext) {
     checkInitialised();
-    hpkeSuite.getKdf().validateExportLength(length);
+    long maxLength = hpkeSuite.getKdf().maxExportLength();
+    if (length < 0 || length > maxLength) {
+      throw new IllegalArgumentException("Export length must be between 0 and "
+              + maxLength + ", but was " + length);
+    }
     return NativeCrypto.EVP_HPKE_CTX_export(ctx, exporterContext, length);
   }
 

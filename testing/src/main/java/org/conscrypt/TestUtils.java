@@ -123,18 +123,22 @@ public final class TestUtils {
 
     private static Provider getNonConscryptTlsProvider() {
         for (String protocol : DESIRED_JDK_PROTOCOLS) {
-            for (Provider p : Security.getProviders()) {
-                if (!p.getClass().getPackage().getName().contains("conscrypt")
-                        && hasSslContext(p, protocol)) {
-                    return p;
-                }
+            Provider p = getNonConscryptProviderFor("SSLContext", protocol);
+            if (p != null) {
+                return p;
             }
         }
         return new BouncyCastleProvider();
     }
 
-    private static boolean hasSslContext(Provider p, String protocol) {
-        return p.get("SSLContext." + protocol) != null;
+    static Provider getNonConscryptProviderFor(String type, String algorithm) {
+        for (Provider p : Security.getProviders()) {
+            if (!p.getClass().getPackage().getName().contains("conscrypt")
+                && (p.getService(type, algorithm) != null)) {
+                return p;
+            }
+        }
+        return null;
     }
 
     static Provider getJdkProvider() {
@@ -294,6 +298,38 @@ public final class TestUtils {
         return lines;
     }
 
+    public static List<TestVector> readTestVectors(String resourceName) throws IOException {
+        InputStream stream = openTestFile(resourceName);
+        List<TestVector> result = new ArrayList<>();
+        TestVector current = null;
+        try (BufferedReader reader
+                 = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            String line;
+            int lineNumber = 0;
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                int index = line.indexOf('=');
+                if (index < 0) {
+                    throw new IllegalStateException("No = found: line " + lineNumber);
+                }
+                String label = line.substring(0, index).trim().toLowerCase();
+                String value = line.substring(index + 1).trim();
+                if ("name".equals(label)) {
+                    current = new TestVector();
+                    result.add(current);
+                } else if (current == null) {
+                    throw new IllegalStateException("Vectors must start with a name: line "
+                        + lineNumber);
+                }
+                current.put(label, value);
+            }
+        }
+        return result;
+    }
+
     /**
      * Looks up the conscrypt class for the given simple name (i.e. no package prefix).
      */
@@ -308,6 +344,15 @@ public final class TestUtils {
             }
         }
         throw ex;
+    }
+
+    // Return a Class by name or null
+    public static Class<?> findClass(String name) {
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException ignored) {
+            return null;
+        }
     }
 
     static SSLSocketFactory setUseEngineSocket(
@@ -410,6 +455,11 @@ public final class TestUtils {
         return Arrays.stream(ctx.getDefaultSSLParameters().getCipherSuites())
             .filter(predicate)
             .toArray(String[]::new);
+    }
+
+    public static String[] getSupportedProtocols() {
+        return getSupportedProtocols(newClientSslContext(getConscryptProvider()))
+                .toArray(new String[0]);
     }
 
     public static List<String> getSupportedProtocols(SSLContext ctx) {
@@ -805,5 +855,20 @@ public final class TestUtils {
     public static boolean isOsx() {
         String name = osName();
         return name.startsWith("macosx") || name.startsWith("osx");
+    }
+
+    public static void assumeXecClassesAvailable() {
+        Assume.assumeTrue(findClass("java.security.spec.XECPrivateKeySpec") != null);
+    }
+
+    // Find base method via reflection due to visibility issues when building with Gradle.
+    public static boolean isTlsV1Deprecated() {
+        try {
+            return (Boolean) conscryptClass("Platform")
+                    .getDeclaredMethod("isTlsV1Deprecated")
+                    .invoke(null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

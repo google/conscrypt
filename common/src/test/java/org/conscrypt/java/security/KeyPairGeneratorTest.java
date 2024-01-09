@@ -152,7 +152,7 @@ public class KeyPairGeneratorTest {
         putKeySize("EC", 256);
         putKeySize("EC", 384);
         putKeySize("EC", 521);
-        putKeySize("XDH", 256);
+        putKeySize("XDH", 255);
     }
 
     /** Elliptic Curve Crypto named curves that should be supported. */

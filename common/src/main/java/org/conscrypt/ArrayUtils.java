@@ -16,10 +16,12 @@
 
 package org.conscrypt;
 
+import java.util.Arrays;
+
 /**
  * Compatibility utility for Arrays.
  */
-final class ArrayUtils {
+public final class ArrayUtils {
     private ArrayUtils() {}
 
     /**
@@ -31,5 +33,44 @@ final class ArrayUtils {
             throw new ArrayIndexOutOfBoundsException("length=" + arrayLength + "; regionStart="
                     + offset + "; regionLength=" + count);
         }
+    }
+
+    @SafeVarargs
+    public static <T> T[] concatValues(T[] a1, T... values) {
+        return concat (a1, values);
+    }
+
+    public static <T> T[] concat(T[] a1, T[] a2) {
+        T[] result = Arrays.copyOf(a1, a1.length + a2.length);
+        System.arraycopy(a2, 0, result, a1.length, a2.length);
+        return result;
+    }
+
+    public static byte[] concat(byte[] a1, byte[] a2) {
+        byte[] result = Arrays.copyOf(a1, a1.length + a2.length);
+        System.arraycopy(a2, 0, result, a1.length, a2.length);
+        return result;
+    }
+
+    public static boolean startsWith(byte[] array, byte[] startsWith) {
+        if (array.length < startsWith.length) {
+            return false;
+        }
+        for (int i = 0; i < startsWith.length; i++) {
+            if (array[i] != startsWith[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static byte[] reverse(byte[] array) {
+        byte[] result = new byte[array.length];
+        int front = 0;
+        int back = array.length - 1;
+        while (back >= 0) {
+            result[front++] = array[back--];
+        }
+        return result;
     }
 }

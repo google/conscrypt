@@ -1,52 +1,64 @@
+/*
+ * Copyright 2022 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.conscrypt;
 
 import java.security.PublicKey;
+import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 
 public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
     private static final long serialVersionUID = 453861992373478445L;
 
     private static final byte[] X509_PREAMBLE = new byte[] {
-            0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x03, 0x21, 0x00,
-    };
-
-    private static final byte[] X509_PREAMBLE_WITH_NULL = new byte[] {
-            0x30, 0x2C, 0x30, 0x07, 0x06, 0x03, 0x2B, 0x65, 0x6E, 0x05, 0x00, 0x03, 0x21, 0x00,
+            0x30, 0x2a,                       // Sequence: 42 bytes
+                0x30, 0x05,                   // Sequence: 5 bytes
+                0x06, 0x03, 0x2b, 0x65, 0x6e, // OID: 1.3.101.110 (X25519)
+            0x03, 0x21, 0x00,                 // Bit string: 256 bits
+            // Key bytes follow directly
     };
 
     private final byte[] uCoordinate;
 
-    public OpenSSLX25519PublicKey(X509EncodedKeySpec keySpec) throws InvalidKeySpecException {
+    public OpenSSLX25519PublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();
-        if (encoded == null || !"X.509".equals(keySpec.getFormat())) {
-            throw new InvalidKeySpecException("Encoding must be in X.509 format");
+        if ("X.509".equals(keySpec.getFormat())) {
+            if (!ArrayUtils.startsWith(encoded, X509_PREAMBLE)) {
+                throw new InvalidKeySpecException("Invalid format");
+            }
+            int totalLength = X509_PREAMBLE.length + X25519_KEY_SIZE_BYTES;
+            if (encoded.length < totalLength) {
+                throw new InvalidKeySpecException("Invalid key size");
+            }
+            uCoordinate = Arrays.copyOfRange(encoded, X509_PREAMBLE.length, totalLength);
+        } else if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
+            if (encoded.length != X25519_KEY_SIZE_BYTES) {
+                throw new InvalidKeySpecException("Invalid key size");
+            }
+            uCoordinate = encoded;
+        } else {
+            throw new InvalidKeySpecException("Encoding must be in X.509 or raw format");
         }
-
-        int preambleLength = matchesPreamble(X509_PREAMBLE, encoded) | matchesPreamble(X509_PREAMBLE_WITH_NULL, encoded);
-        if (preambleLength == 0) {
-            throw new InvalidKeySpecException("Key size is not correct size");
-        }
-
-        uCoordinate = Arrays.copyOfRange(encoded, preambleLength, encoded.length);
-    }
-
-    private static int matchesPreamble(byte[] preamble, byte[] encoded) {
-        if (encoded.length != (preamble.length + X25519_KEY_SIZE_BYTES)) {
-            return 0;
-        }
-        int cmp = 0;
-        for (int i = 0; i < preamble.length; i++) {
-            cmp |= encoded[i] ^ preamble[i];
-        }
-        if (cmp != 0) {
-            return 0;
-        }
-        return preamble.length;
     }
 
     public OpenSSLX25519PublicKey(byte[] coordinateBytes) {
+        if (coordinateBytes.length != X25519_KEY_SIZE_BYTES) {
+            throw new IllegalArgumentException("Invalid key size");
+        }
         uCoordinate = coordinateBytes.clone();
     }
 
@@ -66,9 +78,7 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
             throw new IllegalStateException("key is destroyed");
         }
 
-        byte[] encoded = Arrays.copyOf(X509_PREAMBLE, X509_PREAMBLE.length + X25519_KEY_SIZE_BYTES);
-        System.arraycopy(uCoordinate, 0, encoded, X509_PREAMBLE.length, uCoordinate.length);
-        return encoded;
+        return ArrayUtils.concat(X509_PREAMBLE, uCoordinate);
     }
 
     @Override
@@ -76,7 +86,6 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
         if (uCoordinate == null) {
             throw new IllegalStateException("key is destroyed");
         }
-
         return uCoordinate.clone();
     }
 
@@ -97,7 +106,6 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
         if (uCoordinate == null) {
             throw new IllegalStateException("key is destroyed");
         }
-
         return Arrays.hashCode(uCoordinate);
     }
 }
