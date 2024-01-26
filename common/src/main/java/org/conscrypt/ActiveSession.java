@@ -289,7 +289,7 @@ final class ActiveSession implements ConscryptSession {
             synchronized (ssl) {
                 applicationProtocol = SSLUtils.toProtocolString(ssl.getApplicationProtocol());
             }
-            this.applicationProtocol = applicationProtocol;
+            this.applicationProtocol = applicationProtocol == null ? "" : applicationProtocol;
         }
         return applicationProtocol;
     }
