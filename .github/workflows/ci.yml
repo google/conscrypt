@@ -106,7 +106,7 @@ jobs:
         if: runner.os == 'macOS'
         env:
           # For compatibility, but 10.15 target requires 16-byte stack alignment.
-          MACOSX_DEPLOYMENT_TARGET: 10.11
+          MACOSX_DEPLOYMENT_TARGET: 10.13
         run: |
           mkdir -p "$BORINGSSL_HOME/build.x86"
           pushd "$BORINGSSL_HOME/build.x86"
