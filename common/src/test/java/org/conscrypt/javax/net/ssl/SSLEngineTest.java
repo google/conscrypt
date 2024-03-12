@@ -222,6 +222,10 @@ public class SSLEngineTest {
                     continue;
                 }
 
+                // TODO(prb): Issue #1195 - Native crash in BoringSSL with PSK suites.
+                if (cipherSuite.contains("_PSK_")) {
+                    continue;
+                }
                 final String[] cipherSuiteArray = (secureRenegotiation
                                 ? new String[] {cipherSuite,
                                           StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION}

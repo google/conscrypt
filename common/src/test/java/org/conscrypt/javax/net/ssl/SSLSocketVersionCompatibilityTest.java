@@ -2059,6 +2059,10 @@ public class SSLSocketVersionCompatibilityTest {
             if (StandardNames.CIPHER_SUITES_TLS13.contains(cipherSuite)) {
                 continue;
             }
+            // TODO(prb): Issue #1195 - Native crash in BoringSSL with PSK suites.
+            if (cipherSuite.contains("_PSK_")) {
+                continue;
+            }
             TestSSLSocketPair pair = TestSSLSocketPair.create(c);
             try {
                 String[] cipherSuites =

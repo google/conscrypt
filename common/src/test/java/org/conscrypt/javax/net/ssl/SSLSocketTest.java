@@ -179,6 +179,10 @@ public class SSLSocketTest {
                 if (StandardNames.CIPHER_SUITES_TLS13.contains(cipherSuite)) {
                     continue;
                 }
+                // TODO(prb): Issue #1195 - Native crash in BoringSSL with PSK suites.
+                if (cipherSuite.contains("_PSK_")) {
+                    continue;
+                }
                 String[] clientCipherSuiteArray =
                         new String[] {cipherSuite, StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION};
                 TestSSLSocketPair socketPair = TestSSLSocketPair.create(c).connect(
