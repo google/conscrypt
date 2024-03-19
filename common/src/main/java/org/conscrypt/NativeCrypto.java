@@ -33,6 +33,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateParsingException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -636,6 +637,10 @@ public final class NativeCrypto {
     // --- X509_EXTENSION ------------------------------------------------------
 
     static native int X509_supported_extension(long x509ExtensionRef);
+
+    // --- ASN1_TIME -----------------------------------------------------------
+
+    static native void ASN1_TIME_to_Calendar(long asn1TimeCtx, Calendar cal) throws ParsingException;
 
     // --- ASN1 Encoding -------------------------------------------------------
 

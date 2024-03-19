@@ -39,12 +39,15 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TimeZone;
+
 import javax.crypto.BadPaddingException;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
@@ -59,15 +62,29 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     private transient volatile long mContext;
     private transient Integer mHashCode;
 
-    private final long notBefore;
-    private final long notAfter;
+    private final Date notBefore;
+    private final Date notAfter;
 
     OpenSSLX509Certificate(long ctx) throws ParsingException {
         mContext = ctx;
         // The legacy X509 OpenSSL APIs don't validate ASN1_TIME structures until access, so
         // parse them here because this is the only time we're allowed to throw ParsingException
-        notBefore = NativeCrypto.X509_get_notBefore(mContext, this);
-        notAfter = NativeCrypto.X509_get_notAfter(mContext, this);
+        notBefore = toDate(NativeCrypto.X509_get_notBefore(mContext, this));
+        notAfter = toDate(NativeCrypto.X509_get_notAfter(mContext, this));
+    }
+
+    // A non-throwing constructor used when we have already parsed the dates
+    private OpenSSLX509Certificate(long ctx, Date notBefore, Date notAfter) {
+        mContext = ctx;
+        this.notBefore = notBefore;
+        this.notAfter = notAfter;
+    }
+
+    private static Date toDate(long asn1time) throws ParsingException {
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        calendar.set(Calendar.MILLISECOND, 0);
+        NativeCrypto.ASN1_TIME_to_Calendar(asn1time, calendar);
+        return calendar.getTime();
     }
 
     public static OpenSSLX509Certificate fromX509DerInputStream(InputStream is)
@@ -244,12 +261,12 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             CertificateNotYetValidException {
         if (getNotBefore().compareTo(date) > 0) {
             throw new CertificateNotYetValidException("Certificate not valid until "
-                    + getNotBefore() + " (compared to " + date + ")");
+                    + getNotBefore().toString() + " (compared to " + date.toString() + ")");
         }
 
         if (getNotAfter().compareTo(date) < 0) {
             throw new CertificateExpiredException("Certificate expired at "
-                    + getNotAfter() + " (compared to " + date + ")");
+                    + getNotAfter().toString() + " (compared to " + date.toString() + ")");
         }
     }
 
@@ -275,12 +292,12 @@ public final class OpenSSLX509Certificate extends X509Certificate {
 
     @Override
     public Date getNotBefore() {
-        return new Date(notBefore);
+        return (Date) notBefore.clone();
     }
 
     @Override
     public Date getNotAfter() {
-        return new Date(notAfter);
+        return (Date) notAfter.clone();
     }
 
     @Override
