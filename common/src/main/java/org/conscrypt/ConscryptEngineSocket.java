@@ -36,6 +36,9 @@ import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -54,8 +57,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     private static final ByteBuffer EMPTY_BUFFER = ByteBuffer.allocate(0);
 
     private final ConscryptEngine engine;
-    private final Object stateLock = new Object();
-    private final Object handshakeLock = new Object();
+    private final Lock stateLock = new ReentrantLock();
+    private final Condition stateLockCondition = stateLock.newCondition();
+    private final Lock handshakeLock = new ReentrantLock();
 
     private SSLOutputStream out;
     private SSLInputStream in;
@@ -188,10 +192,12 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         checkOpen();
 
         try {
-            synchronized (handshakeLock) {
+            handshakeLock.lock();
+            try {
                 // Only lock stateLock when we begin the handshake. This is done so that we don't
                 // hold the stateLock when we invoke the handshake completion listeners.
-                synchronized (stateLock) {
+                stateLock.lock();
+                try {
                     // Initialize the handshake if we haven't already.
                     if (state == STATE_NEW) {
                         transitionTo(STATE_HANDSHAKE_STARTED);
@@ -206,8 +212,12 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                         // ignore addition handshake calls.
                         return;
                     }
+                } finally {
+                    stateLock.unlock();
                 }
                 doHandshake();
+            } finally {
+                handshakeLock.unlock();
             }
         } catch (IOException e) {
             close();
@@ -277,13 +287,17 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     }
 
     private boolean isState(int desiredState) {
-        synchronized (stateLock) {
+        stateLock.lock();
+        try {
             return state == desiredState;
+        } finally {
+            stateLock.unlock();
         }
     }
 
     private int transitionTo(int newState) {
-        synchronized (stateLock) {
+        stateLock.lock();
+        try {
             if (state == newState) {
                 return state;
             }
@@ -328,9 +342,11 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
 
             state = newState;
             if (notify) {
-                stateLock.notifyAll();
+                stateLockCondition.signalAll();
             }
             return previousState;
+        } finally {
+            stateLock.unlock();
         }
     }
 
@@ -341,10 +357,13 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     }
 
     private SSLInputStream createInputStream() {
-        synchronized (stateLock) {
+        stateLock.lock();
+        try {
             if (in == null) {
                 in = new SSLInputStream();
             }
+        } finally {
+            stateLock.unlock();
         }
         return in;
     }
@@ -356,10 +375,13 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     }
 
     private SSLOutputStream createOutputStream() {
-        synchronized (stateLock) {
+        stateLock.lock();
+        try {
             if (out == null) {
                 out = new SSLOutputStream();
             }
+        } finally {
+            stateLock.unlock();
         }
         return out;
     }
@@ -594,13 +616,14 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     private void waitForHandshake() throws IOException {
         startHandshake();
 
-        synchronized (stateLock) {
+        stateLock.lock();
+        try {
             while (state != STATE_READY
                     // Waiting threads are allowed to compete with handshake listeners for access.
                     && state != STATE_READY_HANDSHAKE_CUT_THROUGH
                     && state != STATE_CLOSED) {
                 try {
-                    stateLock.wait();
+                    stateLockCondition.await();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new IOException("Interrupted waiting for handshake", e);
@@ -610,6 +633,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
             if (state == STATE_CLOSED) {
                 throw new SocketException("Socket is closed");
             }
+        } finally {
+            stateLock.unlock();
         }
     }
 
@@ -648,7 +673,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
      * Wrap bytes written to the underlying socket.
      */
     private final class SSLOutputStream extends OutputStream {
-        private final Object writeLock = new Object();
+        private final ReentrantLock writeLock = new ReentrantLock();
         private final ByteBuffer target;
         private final int targetArrayOffset;
         private OutputStream socketOutputStream;
@@ -666,24 +691,33 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         @Override
         public void write(int b) throws IOException {
             waitForHandshake();
-            synchronized (writeLock) {
+            writeLock.lock();
+            try {
                 write(new byte[] {(byte) b});
+            } finally {
+                writeLock.unlock();
             }
         }
 
         @Override
         public void write(byte[] b) throws IOException {
             waitForHandshake();
-            synchronized (writeLock) {
+            writeLock.lock();
+            try {
                 writeInternal(ByteBuffer.wrap(b));
+            } finally {
+                writeLock.unlock();
             }
         }
 
         @Override
         public void write(byte[] b, int off, int len) throws IOException {
             waitForHandshake();
-            synchronized (writeLock) {
+            writeLock.lock();
+            try {
                 writeInternal(ByteBuffer.wrap(b, off, len));
+            } finally {
+                writeLock.unlock();
             }
         }
 
@@ -727,8 +761,11 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         @Override
         public void flush() throws IOException {
             waitForHandshake();
-            synchronized (writeLock) {
+            writeLock.lock();
+            try {
                 flushInternal();
+            } finally {
+                writeLock.unlock();
             }
         }
 
@@ -754,7 +791,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
      * Unwrap bytes read from the underlying socket.
      */
     private final class SSLInputStream extends InputStream {
-        private final Object readLock = new Object();
+        private final ReentrantLock readLock = new ReentrantLock();
         private final byte[] singleByte = new byte[1];
         private final ByteBuffer fromEngine;
         private final ByteBuffer fromSocket;
@@ -783,17 +820,21 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         }
 
         void release() {
-            synchronized (readLock) {
+            readLock.lock();
+            try {
                 if (allocatedBuffer != null) {
                     allocatedBuffer.release();
                 }
+            } finally {
+                readLock.unlock();
             }
         }
 
         @Override
         public int read() throws IOException {
             waitForHandshake();
-            synchronized (readLock) {
+            readLock.lock();
+            try {
                 // Handle returning of -1 if EOF is reached.
                 int count = read(singleByte, 0, 1);
                 if (count == -1) {
@@ -804,31 +845,42 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                     throw new SSLException("read incorrect number of bytes " + count);
                 }
                 return singleByte[0] & 0xff;
+            } finally {
+                readLock.unlock();
             }
         }
 
         @Override
         public int read(byte[] b) throws IOException {
             waitForHandshake();
-            synchronized (readLock) {
+            readLock.lock();
+            try {
                 return read(b, 0, b.length);
+            } finally {
+                readLock.unlock();
             }
         }
 
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
             waitForHandshake();
-            synchronized (readLock) {
+            readLock.lock();
+            try {
                 return readUntilDataAvailable(b, off, len);
+            } finally {
+                readLock.unlock();
             }
         }
 
         @Override
         public int available() throws IOException {
             waitForHandshake();
-            synchronized (readLock) {
+            readLock.lock();
+            try {
                 init();
                 return fromEngine.remaining();
+            } finally {
+                readLock.unlock();
             }
         }
 
@@ -941,8 +993,11 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         }
 
         private boolean isHandshakeFinished() {
-            synchronized (stateLock) {
+            stateLock.lock();
+            try {
                 return state > STATE_HANDSHAKE_STARTED;
+            } finally {
+                stateLock.unlock();
             }
         }
 
@@ -950,8 +1005,11 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
          * Processes a renegotiation received from the remote peer.
          */
         private void renegotiate() throws IOException {
-            synchronized (handshakeLock) {
+            handshakeLock.lock();
+            try {
                 doHandshake();
+            } finally {
+                handshakeLock.unlock();
             }
         }
 
