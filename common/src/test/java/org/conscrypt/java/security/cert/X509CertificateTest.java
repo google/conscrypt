@@ -18,6 +18,7 @@ package org.conscrypt.java.security.cert;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -350,6 +351,26 @@ public class X509CertificateTest {
             + "mmi08cueFV7mHzJSYV51yRQ=\n"
             + "-----END CERTIFICATE-----\n";
 
+    private static final String UTCTIME_WITH_OFFSET = "-----BEGIN CERTIFICATE-----\n" +
+            "MIIDPzCCAicCAgERMA0GCSqGSIb3DQEBCwUAMFsxCzAJBgNVBAYTAlVTMRMwEQYD\n" +
+            "VQQIDApDYWxpZm9ybmlhMRYwFAYDVQQHDA1Nb3VudGFpbiBWaWV3MR8wHQYDVQQK\n" +
+            "DBZHb29nbGUgQXV0b21vdGl2ZSBMaW5rMCYXETE0MDcwNDAwMDAwMC0wNzAwFxE0\n" +
+            "ODA4MDExMDIxMjMtMDcwMDBnMQswCQYDVQQGEwJVUzETMBEGA1UECAwKQ2FsaWZv\n" +
+            "cm5pYTEWMBQGA1UEBwwNTW91bnRhaW4gVmlldzEeMBwGA1UECgwVQW5kcm9pZC1B\n" +
+            "dXRvLUludGVybmFsMQswCQYDVQQLDAIwMTCCASIwDQYJKoZIhvcNAQEBBQADggEP\n" +
+            "ADCCAQoCggEBAOWghAac2eJLbi/ijgZGRB6/MuaBVfOImkQddBJUhXbnskTJB/JI\n" +
+            "12Ea22E5GeVN8CkWULAZT28yDWqsKMyq9BzpjpsHc9TKxMYqrIn0HP7mIJcBu5z7\n" +
+            "K8DoXqc86encncJlkGeuQkUA68yyp7RG7eQ6XoBHEjNmyvX13Y8NY5sPUHfLfmp6\n" +
+            "A2n+Jdmecq3L0GS84ctdNtnp2zSopTy0L1Gp6+lrnuOPAYZeV+Ei2jAvhycvuSoB\n" +
+            "yV6rT9wvREvC2TDncurMwR6ws44+ZStqkhnvDLhV04ray5aPplQwwB9GELFCYSRk\n" +
+            "56sm57uYSJj/LlmOMcvyBmUHVJ7MLxgtlykCAwEAATANBgkqhkiG9w0BAQsFAAOC\n" +
+            "AQEA1Bs8v6HuAIiBdhGDGHzZJDwO6lW0LheBqsGLG9KsVvIVrTMPP9lpdTPjStGn\n" +
+            "en1RIce4R4l3YTBwxOadLMkf8rymAE5JNjPsWlBue7eI4TFFw/cvnKxcTQ61bC4i\n" +
+            "2uosyDI5VfrXm38zYcZoK4TFtMhNyx6aYSEClWB9MjHa+n6eR3dLBCg1kMGqGdZ/\n" +
+            "AoK0UEkyI3UFU8sW86iaS4dvPSaQ+z0tmfUzbrc5ZSk4hYCeUYvuyd2ShxjKmxvD\n" +
+            "0K8A7gKLY0jP8Zp+6rYBcpxc7cylWMbdlhFTHAGiKI+XeQ/9u+RPeocZsn5jGlDt\n" +
+            "K3ftMoWFce+baNq/WcMzRj04AA==\n" +
+            "-----END CERTIFICATE-----\n";
     private static Date dateFromUTC(int year, int month, int day, int hour, int minute, int second)
             throws Exception {
         Calendar c = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -712,6 +733,26 @@ public class X509CertificateTest {
 
                 c = certificateFromPEM(p, SIGALG_SEQUENCE_PARAMETER);
                 assertArrayEquals(TestUtils.decodeHex("3000"), c.getSigAlgParams());
+            }
+        });
+    }
+
+    // Ensure we don't reject certificates with UTCTIME fields with offsets for now: b/311260068
+    @Test
+    public void utcTimeWithOffset() throws Exception {
+        ServiceTester tester = ServiceTester.test("CertificateFactory").withAlgorithm("X509");
+        tester.skipProvider("SUN") // Sun and BC interpret the offset, Conscrypt just drops it...
+                .skipProvider("BC")
+                .run(new ServiceTester.Test() {
+            @Override
+            public void test(Provider p, String algorithm) throws Exception {
+                X509Certificate c = certificateFromPEM(p, UTCTIME_WITH_OFFSET);
+                assertDatesEqual(
+                        dateFromUTC(2014, Calendar.JULY, 4, 0, 0, 0),
+                        c.getNotBefore());
+                assertDatesEqual(
+                        dateFromUTC(2048, Calendar.AUGUST, 1, 10, 21, 23),
+                        c.getNotAfter());
             }
         });
     }
