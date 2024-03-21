@@ -33,7 +33,7 @@ public enum Protocol {
     TLS_PROTO_FAILED(0xFFFF),
     ;
 
-    final byte id;
+    final int id;
 
     public int getId() {
         return this.id;
@@ -59,6 +59,6 @@ public enum Protocol {
     }
 
     private Protocol(int id) {
-        this.id = (byte) id;
+        this.id = id;
     }
 }

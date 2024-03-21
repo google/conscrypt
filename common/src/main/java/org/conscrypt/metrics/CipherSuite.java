@@ -63,7 +63,7 @@ public enum CipherSuite {
     TLS_CIPHER_FAILED(0xFFFF),
     ;
 
-    final short id;
+    final int id;
 
     public int getId() {
         return this.id;
@@ -82,6 +82,6 @@ public enum CipherSuite {
     }
 
     private CipherSuite(int id) {
-        this.id = (short) id;
+        this.id = id;
     }
 }
