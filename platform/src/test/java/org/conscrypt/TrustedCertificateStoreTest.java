@@ -69,6 +69,7 @@ public class TrustedCertificateStoreTest {
     private static final Random tempFileRandom = new Random();
 
     private static File dirTest;
+    private static File dirManaged;
     private static File dirSystem;
     private static File dirAdded;
     private static File dirDeleted;
@@ -418,6 +419,7 @@ public class TrustedCertificateStoreTest {
     @Before
     public void setUp() throws Exception {
         dirTest = Files.createTempDirectory("cert-store-test").toFile();
+        dirManaged = new File(dirTest, "managed");
         dirSystem = new File(dirTest, "system");
         dirAdded = new File(dirTest, "added");
         dirDeleted = new File(dirTest, "removed");
@@ -425,6 +427,7 @@ public class TrustedCertificateStoreTest {
     }
 
     private void setupStore() {
+        dirManaged.mkdirs();
         dirSystem.mkdirs();
         cleanStore();
         createStore();
@@ -432,7 +435,7 @@ public class TrustedCertificateStoreTest {
 
     private void createStore() {
         System.setProperty("system.certs.enabled", mApexCertsEnabled);
-        store = new TrustedCertificateStore(dirSystem, dirAdded, dirDeleted);
+        store = new TrustedCertificateStore(dirManaged, dirSystem, dirAdded, dirDeleted);
     }
 
     @After
@@ -441,7 +444,7 @@ public class TrustedCertificateStoreTest {
     }
 
     private void cleanStore() {
-        for (File dir : new File[] { dirSystem, dirAdded, dirDeleted, dirTest }) {
+        for (File dir : new File[] { dirManaged, dirSystem, dirAdded, dirDeleted, dirTest }) {
             File[] files = dir.listFiles();
             if (files == null) {
                 continue;
@@ -543,7 +546,7 @@ public class TrustedCertificateStoreTest {
         assertNull(store.findIssuer(getCa1()));
 
         try {
-            store.installCertificate(null);
+            store.installCertificate(false, null);
             fail();
         } catch (NullPointerException expected) {
         }
@@ -617,7 +620,7 @@ public class TrustedCertificateStoreTest {
     @Test
     public void testOneSystemOneUserOneDeleted() throws Exception {
         install(getCa1(), getAliasSystemCa1());
-        store.installCertificate(getCa2());
+        store.installCertificate(false, getCa2());
         store.deleteCertificateEntry(getAliasSystemCa1());
         assertDeleted(getCa1(), getAliasSystemCa1());
         assertRootCa(getCa2(), getAliasUserCa2());
@@ -627,7 +630,7 @@ public class TrustedCertificateStoreTest {
     @Test
     public void testOneSystemOneUserOneDeletedSameSubject() throws Exception {
         install(getCa1(), getAliasSystemCa1());
-        store.installCertificate(getCa3WithCa1Subject());
+        store.installCertificate(false, getCa3WithCa1Subject());
         store.deleteCertificateEntry(getAliasSystemCa1());
         assertDeleted(getCa1(), getAliasSystemCa1());
         assertRootCa(getCa3WithCa1Subject(), getAliasUserCa3());
@@ -705,7 +708,7 @@ public class TrustedCertificateStoreTest {
         resetStore();
 
         String userAlias = alias(true, ca1, 0);
-        store.installCertificate(ca1);
+        store.installCertificate(false, ca1);
         assertRootCa(ca1, userAlias);
         assertNotNull(store.getTrustAnchor(ca2));
         assertEquals(ca1, store.findIssuer(ca2));
@@ -714,12 +717,12 @@ public class TrustedCertificateStoreTest {
 
     @Test
     public void testInstallEmpty() throws Exception {
-        store.installCertificate(getCa1());
+        store.installCertificate(false, getCa1());
         assertRootCa(getCa1(), getAliasUserCa1());
         assertAliases(getAliasUserCa1());
 
         // reinstalling should not change anything
-        store.installCertificate(getCa1());
+        store.installCertificate(false, getCa1());
         assertRootCa(getCa1(), getAliasUserCa1());
         assertAliases(getAliasUserCa1());
     }
@@ -731,7 +734,7 @@ public class TrustedCertificateStoreTest {
         assertAliases(getAliasSystemCa1());
 
         // reinstalling should not affect system CA
-        store.installCertificate(getCa1());
+        store.installCertificate(false, getCa1());
         assertRootCa(getCa1(), getAliasSystemCa1());
         assertAliases(getAliasSystemCa1());
     }
@@ -744,7 +747,7 @@ public class TrustedCertificateStoreTest {
         assertDeleted(getCa1(), getAliasSystemCa1());
 
         // installing should restore deleted system CA
-        store.installCertificate(getCa1());
+        store.installCertificate(false, getCa1());
         assertRootCa(getCa1(), getAliasSystemCa1());
         assertAliases(getAliasSystemCa1());
     }
@@ -758,7 +761,7 @@ public class TrustedCertificateStoreTest {
 
     @Test
     public void testDeleteUser() throws Exception {
-        store.installCertificate(getCa1());
+        store.installCertificate(false, getCa1());
         assertRootCa(getCa1(), getAliasUserCa1());
         assertAliases(getAliasUserCa1());
 
@@ -1035,6 +1038,8 @@ public class TrustedCertificateStoreTest {
         File dir;
         if (TrustedCertificateStore.isSystem(alias)) {
             dir = dirSystem;
+        } else if (TrustedCertificateStore.isManaged(alias)) {
+            dir = dirManaged;
         } else if (TrustedCertificateStore.isUser(alias)) {
             dir = dirAdded;
         } else {
