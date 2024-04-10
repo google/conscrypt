@@ -535,7 +535,7 @@ public final class NativeCrypto {
     static native byte[] X509_get_serialNumber(long x509ctx, OpenSSLX509Certificate holder);
 
     static native void X509_verify(long x509ctx, OpenSSLX509Certificate holder, NativeRef.EVP_PKEY pkeyCtx)
-            throws BadPaddingException;
+            throws BadPaddingException, IllegalBlockSizeException;
 
     static native byte[] get_X509_tbs_cert(long x509ctx, OpenSSLX509Certificate holder);
 
