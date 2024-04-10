@@ -49,6 +49,7 @@ import java.util.Set;
 import java.util.TimeZone;
 
 import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
@@ -384,8 +385,8 @@ public final class OpenSSLX509Certificate extends X509Certificate {
             NativeCrypto.X509_verify(mContext, this, pkey.getNativeRef());
         } catch (RuntimeException e) {
             throw new CertificateException(e);
-        } catch (BadPaddingException e) {
-            throw new SignatureException();
+        } catch (BadPaddingException | IllegalBlockSizeException e) {
+            throw new SignatureException(e);
         }
     }
 
