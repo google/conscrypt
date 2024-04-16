@@ -119,6 +119,16 @@ public class SSLContextTest {
     }
 
     @Test
+    public void test_SSLContext_allProtocols() throws Exception {
+        SSLConfigurationAsserts.assertSSLContextDefaultConfiguration(SSLContext.getDefault());
+
+        for (String protocol : StandardNames.SSL_CONTEXT_PROTOCOLS_ALL) {
+            SSLContext sslContext = SSLContext.getInstance(protocol);
+            sslContext.init(null, null, null);
+        }
+    }
+
+    @Test
     public void test_SSLContext_pskOnlyConfiguration_defaultProviderOnly() throws Exception {
         // Test the scenario where only a PSKKeyManager is provided and no TrustManagers are
         // provided.
