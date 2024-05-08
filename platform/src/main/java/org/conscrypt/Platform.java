@@ -61,7 +61,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
-import libcore.net.NetworkSecurityPolicy;
 import org.conscrypt.ct.CTLogStore;
 import org.conscrypt.ct.CTLogStoreImpl;
 import org.conscrypt.ct.CTPolicy;
@@ -462,8 +461,7 @@ final class Platform {
     }
 
     static boolean isCTVerificationRequired(String hostname) {
-        return NetworkSecurityPolicy.getInstance().isCertificateTransparencyVerificationRequired(
-                hostname);
+        return false;
     }
 
     static boolean supportsConscryptCertStore() {
