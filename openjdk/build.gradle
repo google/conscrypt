@@ -22,6 +22,7 @@ description = 'Conscrypt: OpenJdk'
 enum NativeBuildInfo {
     WINDOWS_X86_64("windows", "x86_64"),
     LINUX_X86_64("linux", "x86_64"),
+    LINUX_AARCH64("linux", "aarch_64"),
     MAC_X86_64("osx", "x86_64") {
         String libDir() {
             "build.x86"
@@ -116,8 +117,14 @@ ext {
     jniSourceDir = "$rootDir/common/src/jni"
     assert file("$jniSourceDir").exists()
 
-    // Decide which targets we should build and test
-    nativeBuilds = NativeBuildInfo.findAll("${osdetector.os}")
+    // Decide which targets we should build and test:
+    // - if osx, build both x86 and aarch64
+    // - if linux, build current architecture because it doesn't support cross-compilation
+    if ("${osdetector.os}" == "osx") {
+        nativeBuilds = NativeBuildInfo.findAll("${osdetector.os}")
+    } else {
+        nativeBuilds = [NativeBuildInfo.find("${osdetector.os}", "${osdetector.arch}")]
+    }
     buildToTest = NativeBuildInfo.find("${osdetector.os}", "${osdetector.arch}")
 
     assert !nativeBuilds.isEmpty() : "No native builds selected."
