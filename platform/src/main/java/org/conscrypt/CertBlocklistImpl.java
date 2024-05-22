@@ -41,14 +41,16 @@ public final class CertBlocklistImpl implements CertBlocklist {
     private static final Logger logger = Logger.getLogger(CertBlocklistImpl.class.getName());
 
     private final Set<BigInteger> serialBlocklist;
-    private final Set<ByteString> pubkeyBlocklist;
+    private final Set<ByteString> sha1PubkeyBlocklist;
+    private final Set<ByteString> sha256PubkeyBlocklist;
 
     /**
      * public for testing only.
      */
     public CertBlocklistImpl(Set<BigInteger> serialBlocklist, Set<ByteString> pubkeyBlocklist) {
         this.serialBlocklist = serialBlocklist;
-        this.pubkeyBlocklist = pubkeyBlocklist;
+        this.sha1PubkeyBlocklist = pubkeyBlocklist;
+        this.sha256PubkeyBlocklist = Collections.emptySet();
     }
 
     public static CertBlocklist getDefault() {
@@ -204,19 +206,32 @@ public final class CertBlocklistImpl implements CertBlocklist {
         return bl;
     }
 
+    private static boolean isPublicKeyBlockListed(
+            byte[] encodedPublicKey, Set<ByteString> blocklist, String hashType) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance(hashType);
+        } catch (GeneralSecurityException e) {
+            logger.log(Level.SEVERE, "Unable to get " + hashType + " MessageDigest", e);
+            return false;
+        }
+        ByteString out = new ByteString(toHex(md.digest(encodedPublicKey)));
+        if (blocklist.contains(out)) {
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean isPublicKeyBlockListed(PublicKey publicKey) {
         byte[] encoded = publicKey.getEncoded();
-        MessageDigest md;
-        try {
-            md = MessageDigest.getInstance("SHA1");
-        } catch (GeneralSecurityException e) {
-            logger.log(Level.SEVERE, "Unable to get SHA1 MessageDigest", e);
-            return false;
+        if (!sha1PubkeyBlocklist.isEmpty()) {
+            if (isPublicKeyBlockListed(encoded, sha1PubkeyBlocklist, "SHA1")) {
+                return true;
+            }
         }
-        byte[] out = toHex(md.digest(encoded));
-        for (ByteString blocklisted : pubkeyBlocklist) {
-            if (Arrays.equals(blocklisted.bytes, out)) {
+        if (!sha256PubkeyBlocklist.isEmpty()) {
+            if (isPublicKeyBlockListed(encoded, sha256PubkeyBlocklist, "SHA-256")) {
                 return true;
             }
         }
