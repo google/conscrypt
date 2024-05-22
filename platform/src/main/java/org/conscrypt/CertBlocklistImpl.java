@@ -129,32 +129,12 @@ public final class CertBlocklistImpl implements CertBlocklist {
     }
 
     private static Set<BigInteger> readSerialBlockList(String path) {
-
-        /* Start out with a base set of known bad values.
-         *
-         * WARNING: Do not add short serials to this list!
-         *
-         * Since this currently doesn't compare the serial + issuer, you
-         * should only add serials that have enough entropy here. Short
-         * serials may inadvertently match a certificate that was issued
-         * not in compliance with the Baseline Requirements.
+        /*
+         * Deprecated. Serials may inadvertently match a certificate that was
+         * issued not in compliance with the Baseline Requirements. Prefer
+         * using the certificate public key.
          */
-        Set<BigInteger> bl = new HashSet<BigInteger>(Arrays.asList(
-            // From http://src.chromium.org/viewvc/chrome/trunk/src/net/base/x509_certificate.cc?revision=78748&view=markup
-            // Not a real certificate. For testing only.
-            new BigInteger("077a59bcd53459601ca6907267a6dd1c", 16),
-            new BigInteger("047ecbe9fca55f7bd09eae36e10cae1e", 16),
-            new BigInteger("d8f35f4eb7872b2dab0692e315382fb0", 16),
-            new BigInteger("b0b7133ed096f9b56fae91c874bd3ac0", 16),
-            new BigInteger("9239d5348f40d1695a745470e1f23f43", 16),
-            new BigInteger("e9028b9578e415dc1a710a2b88154447", 16),
-            new BigInteger("d7558fdaf5f1105bb213282b707729a3", 16),
-            new BigInteger("f5c86af36162f13a64f54f6dc9587c06", 16),
-            new BigInteger("392a434f0e07df1f8aa305de34e0c229", 16),
-            new BigInteger("3e75ced46b693021218830ae86a82a71", 16)
-        ));
-
-        // attempt to augment it with values taken from gservices
+        Set<BigInteger> bl = new HashSet<BigInteger>();
         String serialBlocklist = readBlocklist(path);
         if (!serialBlocklist.equals("")) {
             for (String value : serialBlocklist.split(",", -1)) {
