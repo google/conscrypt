@@ -24,8 +24,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.math.BigInteger;
-import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,10 +47,15 @@ public final class CertBlocklistImpl implements CertBlocklist {
     /**
      * public for testing only.
      */
-    public CertBlocklistImpl(Set<BigInteger> serialBlocklist, Set<ByteString> pubkeyBlocklist) {
+    public CertBlocklistImpl(Set<BigInteger> serialBlocklist, Set<ByteString> sha1PubkeyBlocklist) {
+        this(serialBlocklist, sha1PubkeyBlocklist, Collections.emptySet());
+    }
+
+    public CertBlocklistImpl(Set<BigInteger> serialBlocklist, Set<ByteString> sha1PubkeyBlocklist,
+            Set<ByteString> sha256PubkeyBlocklist) {
         this.serialBlocklist = serialBlocklist;
-        this.sha1PubkeyBlocklist = pubkeyBlocklist;
-        this.sha256PubkeyBlocklist = Collections.emptySet();
+        this.sha1PubkeyBlocklist = sha1PubkeyBlocklist;
+        this.sha256PubkeyBlocklist = sha256PubkeyBlocklist;
     }
 
     public static CertBlocklist getDefault() {
@@ -58,10 +63,14 @@ public final class CertBlocklistImpl implements CertBlocklist {
         String blocklistRoot = androidData + "/misc/keychain/";
         String defaultPubkeyBlocklistPath = blocklistRoot + "pubkey_blacklist.txt";
         String defaultSerialBlocklistPath = blocklistRoot + "serial_blacklist.txt";
+        String defaultPubkeySha256BlocklistPath = blocklistRoot + "pubkey_sha256_blocklist.txt";
 
-        Set<ByteString> pubkeyBlocklist = readPublicKeyBlockList(defaultPubkeyBlocklistPath);
+        Set<ByteString> sha1PubkeyBlocklist =
+                readPublicKeyBlockList(defaultPubkeyBlocklistPath, "SHA-1");
+        Set<ByteString> sha256PubkeyBlocklist =
+                readPublicKeyBlockList(defaultPubkeySha256BlocklistPath, "SHA-256");
         Set<BigInteger> serialBlocklist = readSerialBlockList(defaultSerialBlocklistPath);
-        return new CertBlocklistImpl(serialBlocklist, pubkeyBlocklist);
+        return new CertBlocklistImpl(serialBlocklist, sha1PubkeyBlocklist, sha256PubkeyBlocklist);
     }
 
     private static boolean isHex(String value) {
@@ -74,8 +83,8 @@ public final class CertBlocklistImpl implements CertBlocklist {
         }
     }
 
-    private static boolean isPubkeyHash(String value) {
-        if (value.length() != 40) {
+    private static boolean isPubkeyHash(String value, int expectedHashLength) {
+        if (value.length() != expectedHashLength) {
             logger.log(Level.WARNING, "Invalid pubkey hash length: " + value.length());
             return false;
         }
@@ -152,15 +161,13 @@ public final class CertBlocklistImpl implements CertBlocklist {
         return Collections.unmodifiableSet(bl);
     }
 
-    private static Set<ByteString> readPublicKeyBlockList(String path) {
-
-        // start out with a base set of known bad values
-        Set<ByteString> bl = new HashSet<ByteString>(toByteStrings(
+    static final byte[][] SHA1_BUILTINS = {
             // Blocklist test cert for CTS. The cert and key can be found in
             // src/test/resources/blocklist_test_ca.pem and
             // src/test/resources/blocklist_test_ca_key.pem.
             "bae78e6bed65a2bf60ddedde7fd91e825865e93d".getBytes(UTF_8),
-            // From http://src.chromium.org/viewvc/chrome/branches/782/src/net/base/x509_certificate.cc?r1=98750&r2=98749&pathrev=98750
+            // From
+            // http://src.chromium.org/viewvc/chrome/branches/782/src/net/base/x509_certificate.cc?r1=98750&r2=98749&pathrev=98750
             // C=NL, O=DigiNotar, CN=DigiNotar Root CA/emailAddress=info@diginotar.nl
             "410f36363258f30b347d12ce4863e433437806a8".getBytes(UTF_8),
             // Subject: CN=DigiNotar Cyber CA
@@ -187,15 +194,48 @@ public final class CertBlocklistImpl implements CertBlocklist {
             "783333c9687df63377efceddd82efa9101913e8e".getBytes(UTF_8),
             // Subject: Subject: C=FR, O=DG Tr\xC3\xA9sor, CN=AC DG Tr\xC3\xA9sor SSL
             // Issuer: C=FR, O=DGTPE, CN=AC DGTPE Signature Authentification
-            "3ecf4bbbe46096d514bb539bb913d77aa4ef31bf".getBytes(UTF_8)
-        ));
+            "3ecf4bbbe46096d514bb539bb913d77aa4ef31bf".getBytes(UTF_8),
+    };
+
+    static final byte[][] SHA256_BUILTINS = {
+            // Blocklist test cert for CTS. The cert and key can be found in
+            // src/test/resources/blocklist_test_ca2.pem and
+            // src/test/resources/blocklist_test_ca2_key.pem.
+            "809964b15e9bd312993d9984045551f503f2cf8e68f39188921ba30fe623f9fd".getBytes(UTF_8),
+    };
+
+    private static Set<ByteString> readPublicKeyBlockList(String path, String hashType) {
+        Set<ByteString> bl;
+
+        switch (hashType) {
+            case "SHA-1":
+                bl = new HashSet<ByteString>(toByteStrings(SHA1_BUILTINS));
+                break;
+            case "SHA-256":
+                bl = new HashSet<ByteString>(toByteStrings(SHA256_BUILTINS));
+                break;
+            default:
+                throw new RuntimeException(
+                        "Unknown hashType: " + hashType + ". Expected SHA-1 or SHA-256");
+        }
+
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance(hashType);
+        } catch (NoSuchAlgorithmException e) {
+            logger.log(Level.SEVERE, "Unable to get " + hashType + " MessageDigest", e);
+            return bl;
+        }
+        // The hashes are encoded with hexadecimal values. There should be
+        // twice as many characters as the digest length in bytes.
+        int hashLength = md.getDigestLength() * 2;
 
         // attempt to augment it with values taken from gservices
         String pubkeyBlocklist = readBlocklist(path);
         if (!pubkeyBlocklist.equals("")) {
             for (String value : pubkeyBlocklist.split(",", -1)) {
                 value = value.trim();
-                if (isPubkeyHash(value)) {
+                if (isPubkeyHash(value, hashLength)) {
                     bl.add(new ByteString(value.getBytes(UTF_8)));
                 } else {
                     logger.log(Level.WARNING, "Tried to blocklist invalid pubkey " + value);
@@ -211,7 +251,7 @@ public final class CertBlocklistImpl implements CertBlocklist {
         MessageDigest md;
         try {
             md = MessageDigest.getInstance(hashType);
-        } catch (GeneralSecurityException e) {
+        } catch (NoSuchAlgorithmException e) {
             logger.log(Level.SEVERE, "Unable to get " + hashType + " MessageDigest", e);
             return false;
         }
@@ -226,7 +266,7 @@ public final class CertBlocklistImpl implements CertBlocklist {
     public boolean isPublicKeyBlockListed(PublicKey publicKey) {
         byte[] encoded = publicKey.getEncoded();
         if (!sha1PubkeyBlocklist.isEmpty()) {
-            if (isPublicKeyBlockListed(encoded, sha1PubkeyBlocklist, "SHA1")) {
+            if (isPublicKeyBlockListed(encoded, sha1PubkeyBlocklist, "SHA-1")) {
                 return true;
             }
         }
