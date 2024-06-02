@@ -1,0 +1,14 @@
+sourceSets {
+    main {
+        java {
+            srcDirs = [
+                    "src/main/java",
+            ]
+        }
+    }
+}
+
+// Nope.
+tasks.named("sourcesJar") {
+    enabled = false
+}
