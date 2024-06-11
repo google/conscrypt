@@ -1690,7 +1690,7 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_ClientHello_ALPN() throws Exception {
         final String[] protocolList = new String[] { "h2", "http/1.1" };
-        
+
         ForEachRunner.runNamed(new ForEachRunner.Callback<SSLSocketFactory>() {
             @Override
             public void run(SSLSocketFactory sslSocketFactory) throws Exception {
@@ -1935,6 +1935,38 @@ public class SSLSocketVersionCompatibilityTest {
                 (SSLSocket) context.clientContext.getSocketFactory().createSocket();
         // For app compatibility, SSLv3 is stripped out when setting only.
         client.setEnabledProtocols(new String[] {"SSLv3"});
+        assertEquals(0, client.getEnabledProtocols().length);
+        try {
+            client.setEnabledProtocols(new String[] {"SSL"});
+            fail("SSLSocket should not support SSL protocol");
+        } catch (IllegalArgumentException expected) {
+            // Ignored.
+        }
+    }
+
+    @Test
+    public void test_SSLSocket_TLSv1Supported() throws Exception {
+        assumeTrue(isTlsV1Supported());
+        TestSSLContext context = new TestSSLContext.Builder()
+                .clientProtocol(clientVersion)
+                .serverProtocol(serverVersion)
+                .build();
+        final SSLSocket client =
+                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
+        client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1"});
+        assertEquals(2, client.getEnabledProtocols().length);
+    }
+
+    @Test
+    public void test_SSLSocket_TLSv1Unsupported() throws Exception {
+        assumeFalse(isTlsV1Supported());
+        TestSSLContext context = new TestSSLContext.Builder()
+                .clientProtocol(clientVersion)
+                .serverProtocol(serverVersion)
+                .build();
+        final SSLSocket client =
+                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
+        client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1"});
         assertEquals(0, client.getEnabledProtocols().length);
         try {
             client.setEnabledProtocols(new String[] {"SSL"});
