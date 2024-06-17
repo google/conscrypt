@@ -80,16 +80,6 @@ public class CTLogStoreImplTest extends TestCase {
         }
     }
 
-    /* CTLogStoreImpl loads the list of logs lazily when they are first needed
-     * to avoid any overhead when CT is disabled.
-     * This test simply forces the logs to be loaded to make sure it doesn't
-     * fail, as all of the other tests use a different log store.
-     */
-    public void test_getDefaultFallbackLogs() {
-        CTLogInfo[] knownLogs = CTLogStoreImpl.getDefaultFallbackLogs();
-        assertEquals(KnownLogs.LOG_COUNT, knownLogs.length);
-    }
-
     public void test_loadLog() throws Exception {
         CTLogInfo log = CTLogStoreImpl.loadLog(
                 new ByteArrayInputStream(LOGS_SERIALIZED[0].getBytes(StandardCharsets.US_ASCII)));
@@ -120,50 +110,29 @@ public class CTLogStoreImplTest extends TestCase {
         File systemDir = createTempDirectory();
         systemDir.deleteOnExit();
 
-        CTLogInfo[] fallback = new CTLogInfo[] { LOGS[2], LOGS[3] };
+        CTLogInfo[] extraLogs = new CTLogInfo[] {LOGS[2], LOGS[3]};
 
-        CTLogStore store = new CTLogStoreImpl(userDir, systemDir, fallback);
+        CTLogStore store = new CTLogStoreImpl(userDir, systemDir, extraLogs);
 
         /* Add logs 0 and 1 to the user and system directories respectively
-         * Log 2 & 3 are part of the fallbacks
-         * But mask log 3 with an empty file in the user directory.
+         * Log 2 & 3 are part of the extras.
          * Log 4 is not in the store
          */
         File log0File = new File(userDir, LOG_FILENAMES[0]);
         File log1File = new File(systemDir, LOG_FILENAMES[1]);
-        File log3File = new File(userDir, LOG_FILENAMES[3]);
         File log4File = new File(userDir, LOG_FILENAMES[4]);
 
         writeFile(log0File, LOGS_SERIALIZED[0]);
         writeFile(log1File, LOGS_SERIALIZED[1]);
-        writeFile(log3File, "");
 
         // Logs 01 are present, log 2 is in the fallback and unused, log 3 is present but masked,
         // log 4 is missing
         assertEquals(LOGS[0], store.getKnownLog(LOGS[0].getID()));
         assertEquals(LOGS[1], store.getKnownLog(LOGS[1].getID()));
         // Fallback logs are not used if the userDir is present.
-        assertEquals(null, store.getKnownLog(LOGS[2].getID()));
-        assertEquals(null, store.getKnownLog(LOGS[3].getID()));
-        assertEquals(null, store.getKnownLog(LOGS[4].getID()));
-
-        /* Test whether CTLogStoreImpl caches properly
-         * Modify the files on the disk, the result of the store should not change
-         * Delete log 0, mask log 1, add log 4
-         */
-        log0File.delete();
-        writeFile(log1File, "");
-        writeFile(log4File, LOGS_SERIALIZED[4]);
-
-        assertEquals(LOGS[0], store.getKnownLog(LOGS[0].getID()));
-        assertEquals(LOGS[1], store.getKnownLog(LOGS[1].getID()));
-        assertEquals(null, store.getKnownLog(LOGS[4].getID()));
-
-        // Test that fallback logs are used when the userDir doesn't exist.
-        File doesntExist = new File("/doesnt/exist/");
-        store = new CTLogStoreImpl(doesntExist, doesntExist, fallback);
         assertEquals(LOGS[2], store.getKnownLog(LOGS[2].getID()));
         assertEquals(LOGS[3], store.getKnownLog(LOGS[3].getID()));
+        assertEquals(null, store.getKnownLog(LOGS[4].getID()));
     }
 
     /**
