@@ -107,29 +107,22 @@ public class CTLogStoreImplTest extends TestCase {
         File userDir = createTempDirectory();
         userDir.deleteOnExit();
 
-        File systemDir = createTempDirectory();
-        systemDir.deleteOnExit();
-
         CTLogInfo[] extraLogs = new CTLogInfo[] {LOGS[2], LOGS[3]};
 
-        CTLogStore store = new CTLogStoreImpl(userDir, systemDir, extraLogs);
+        CTLogStore store = new CTLogStoreImpl(userDir, extraLogs);
 
         /* Add logs 0 and 1 to the user and system directories respectively
          * Log 2 & 3 are part of the extras.
          * Log 4 is not in the store
          */
         File log0File = new File(userDir, LOG_FILENAMES[0]);
-        File log1File = new File(systemDir, LOG_FILENAMES[1]);
         File log4File = new File(userDir, LOG_FILENAMES[4]);
 
         writeFile(log0File, LOGS_SERIALIZED[0]);
-        writeFile(log1File, LOGS_SERIALIZED[1]);
 
         // Logs 01 are present, log 2 is in the fallback and unused, log 3 is present but masked,
         // log 4 is missing
         assertEquals(LOGS[0], store.getKnownLog(LOGS[0].getID()));
-        assertEquals(LOGS[1], store.getKnownLog(LOGS[1].getID()));
-        // Fallback logs are not used if the userDir is present.
         assertEquals(LOGS[2], store.getKnownLog(LOGS[2].getID()));
         assertEquals(LOGS[3], store.getKnownLog(LOGS[3].getID()));
         assertEquals(null, store.getKnownLog(LOGS[4].getID()));
