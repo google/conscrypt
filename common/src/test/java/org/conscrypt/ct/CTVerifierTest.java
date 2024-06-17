@@ -45,7 +45,7 @@ public class CTVerifierTest {
 
         PublicKey key = TestUtils.readPublicKeyPemFile("ct-server-key-public.pem");
 
-        final CTLogInfo log = new CTLogInfo(key, "Test Log", "foo");
+        final CTLogInfo log = new CTLogInfo(key, CTLogInfo.STATE_USABLE, "Test Log", "foo");
         CTLogStore store = new CTLogStore() {
             @Override
             public CTLogInfo getKnownLog(byte[] logId) {

@@ -190,7 +190,7 @@ public class CTLogStoreImpl implements CTLogStore {
             throw new InvalidLogFileException(e);
         }
 
-        return new CTLogInfo(pubkey, description, url);
+        return new CTLogInfo(pubkey, CTLogInfo.STATE_USABLE, description, url);
     }
 
     private final static char[] HEX_DIGITS = new char[] {

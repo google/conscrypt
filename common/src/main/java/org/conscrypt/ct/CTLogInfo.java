@@ -32,12 +32,30 @@ import org.conscrypt.Internal;
  */
 @Internal
 public class CTLogInfo {
+    public static final int STATE_PENDING = 0;
+    public static final int STATE_QUALIFIED = 1;
+    public static final int STATE_USABLE = 2;
+    public static final int STATE_READONLY = 3;
+    public static final int STATE_RETIRED = 4;
+    public static final int STATE_REJECTED = 5;
+
     private final byte[] logId;
     private final PublicKey publicKey;
+    private final int state;
     private final String description;
     private final String url;
 
-    public CTLogInfo(PublicKey publicKey, String description, String url) {
+    public CTLogInfo(PublicKey publicKey, int state, String description, String url) {
+        if (publicKey == null) {
+            throw new IllegalArgumentException("null publicKey");
+        }
+        if (description == null) {
+            throw new IllegalArgumentException("null description");
+        }
+        if (state < 0 || state > STATE_REJECTED) {
+            throw new IllegalArgumentException("invalid state value");
+        }
+
         try {
             this.logId = MessageDigest.getInstance("SHA-256")
                 .digest(publicKey.getEncoded());
@@ -47,6 +65,7 @@ public class CTLogInfo {
         }
 
         this.publicKey = publicKey;
+        this.state = state;
         this.description = description;
         this.url = url;
     }
@@ -70,6 +89,10 @@ public class CTLogInfo {
         return url;
     }
 
+    public int getState() {
+        return state;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -80,18 +103,17 @@ public class CTLogInfo {
         }
 
         CTLogInfo that = (CTLogInfo)other;
-        return
-            this.publicKey.equals(that.publicKey) &&
-            this.description.equals(that.description) &&
-            this.url.equals(that.url);
+        return this.state == that.state && this.description.equals(that.description)
+                && this.url.equals(that.url) && Arrays.equals(this.logId, that.logId);
     }
 
     @Override
     public int hashCode() {
         int hash = 1;
-        hash = hash * 31 + publicKey.hashCode();
+        hash = hash * 31 + Arrays.hashCode(logId);
         hash = hash * 31 + description.hashCode();
         hash = hash * 31 + url.hashCode();
+        hash = hash * 31 + state;
 
         return hash;
     }
