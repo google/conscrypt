@@ -16,14 +16,14 @@
 
 package org.conscrypt.ct;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -34,12 +34,10 @@ import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 import org.conscrypt.Internal;
-import org.conscrypt.InternalUtil;
+import org.conscrypt.OpenSSLKey;
 
 @Internal
 public class CTLogStoreImpl implements CTLogStore {
-    private static final Charset US_ASCII = StandardCharsets.US_ASCII;
-
     /**
      * Thrown when parsing of a log file fails.
      */
@@ -193,12 +191,12 @@ public class CTLogStoreImpl implements CTLogStore {
             throw new InvalidLogFileException("Missing one of 'description', 'url' or 'key'");
         }
 
+        byte[] pem = ("-----BEGIN PUBLIC KEY-----\n" + key + "\n-----END PUBLIC KEY-----")
+                             .getBytes(US_ASCII);
         PublicKey pubkey;
         try {
-            pubkey = InternalUtil.readPublicKeyPem(new ByteArrayInputStream(
-                    ("-----BEGIN PUBLIC KEY-----\n" +
-                        key + "\n" +
-                        "-----END PUBLIC KEY-----").getBytes(US_ASCII)));
+            pubkey = OpenSSLKey.fromPublicKeyPemInputStream(new ByteArrayInputStream(pem))
+                             .getPublicKey();
         } catch (InvalidKeyException e) {
             throw new InvalidLogFileException(e);
         } catch (NoSuchAlgorithmException e) {

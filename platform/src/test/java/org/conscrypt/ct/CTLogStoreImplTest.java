@@ -16,6 +16,7 @@
 
 package org.conscrypt.ct;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedWriter;
@@ -26,10 +27,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
 import junit.framework.TestCase;
-import org.conscrypt.InternalUtil;
+import org.conscrypt.OpenSSLKey;
 
 public class CTLogStoreImplTest extends TestCase {
     private static final String[] LOG_KEYS = new String[] {
@@ -65,10 +65,11 @@ public class CTLogStoreImplTest extends TestCase {
             LOGS = new CTLogInfo[logCount];
             LOGS_SERIALIZED = new String[logCount];
             for (int i = 0; i < logCount; i++) {
-                PublicKey key = InternalUtil.readPublicKeyPem(new ByteArrayInputStream(
-                    ("-----BEGIN PUBLIC KEY-----\n" +
-                     LOG_KEYS[i] + "\n" +
-                     "-----END PUBLIC KEY-----\n").getBytes(StandardCharsets.US_ASCII)));
+                byte[] pem = ("-----BEGIN PUBLIC KEY-----\n" + LOG_KEYS[i]
+                        + "\n-----END PUBLIC KEY-----\n")
+                                     .getBytes(US_ASCII);
+                ByteArrayInputStream is = new ByteArrayInputStream(pem);
+                PublicKey key = OpenSSLKey.fromPublicKeyPemInputStream(is).getPublicKey();
                 String description = String.format("Test Log %d", i);
                 String url = String.format("log%d.example.com", i);
                 LOGS[i] = new CTLogInfo(key, description, url);
@@ -82,7 +83,7 @@ public class CTLogStoreImplTest extends TestCase {
 
     public void test_loadLog() throws Exception {
         CTLogInfo log = CTLogStoreImpl.loadLog(
-                new ByteArrayInputStream(LOGS_SERIALIZED[0].getBytes(StandardCharsets.US_ASCII)));
+                new ByteArrayInputStream(LOGS_SERIALIZED[0].getBytes(US_ASCII)));
         assertEquals(LOGS[0], log);
 
         File testFile = writeFile(LOGS_SERIALIZED[0]);
@@ -92,8 +93,7 @@ public class CTLogStoreImplTest extends TestCase {
         // Empty log file, used to mask fallback logs
         assertEquals(null, CTLogStoreImpl.loadLog(new ByteArrayInputStream(new byte[0])));
         try {
-            CTLogStoreImpl.loadLog(new ByteArrayInputStream(
-                    "randomgarbage".getBytes(StandardCharsets.US_ASCII)));
+            CTLogStoreImpl.loadLog(new ByteArrayInputStream("randomgarbage".getBytes(US_ASCII)));
             fail("InvalidLogFileException not thrown");
         } catch (CTLogStoreImpl.InvalidLogFileException e) {}
 
