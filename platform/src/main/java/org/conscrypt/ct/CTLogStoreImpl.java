@@ -21,7 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -35,6 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.conscrypt.ByteArray;
 import org.conscrypt.Internal;
 import org.conscrypt.OpenSSLKey;
 import org.json.JSONArray;
@@ -62,7 +62,7 @@ public class CTLogStoreImpl implements CTLogStore {
     private final Path logList;
     private State state;
     private String version;
-    private Map<ByteBuffer, CTLogInfo> logs;
+    private Map<ByteArray, CTLogInfo> logs;
 
     public CTLogStoreImpl() {
         this(defaultLogList);
@@ -81,7 +81,7 @@ public class CTLogStoreImpl implements CTLogStore {
         if (!ensureLogListIsLoaded()) {
             return null;
         }
-        ByteBuffer buf = ByteBuffer.wrap(logId);
+        ByteArray buf = new ByteArray(logId);
         CTLogInfo log = logs.get(buf);
         if (log != null) {
             return log;
@@ -118,7 +118,7 @@ public class CTLogStoreImpl implements CTLogStore {
             logger.log(Level.WARNING, "Unable to parse log list", e);
             return State.MALFORMED;
         }
-        HashMap<ByteBuffer, CTLogInfo> logsMap = new HashMap<>();
+        HashMap<ByteArray, CTLogInfo> logsMap = new HashMap<>();
         try {
             version = json.getString("version");
             JSONArray operators = json.getJSONArray("operators");
@@ -135,7 +135,7 @@ public class CTLogStoreImpl implements CTLogStore {
                     int logState = parseState(stateObject.keys().next());
                     String url = log.getString("url");
                     CTLogInfo logInfo = new CTLogInfo(key, logState, description, url);
-                    logsMap.put(ByteBuffer.wrap(logId), logInfo);
+                    logsMap.put(new ByteArray(logId), logInfo);
                 }
             }
         } catch (JSONException | IllegalArgumentException e) {

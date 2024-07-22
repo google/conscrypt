@@ -43,9 +43,9 @@ public final class CertBlocklistImpl implements CertBlocklist {
     private static final Logger logger = Logger.getLogger(CertBlocklistImpl.class.getName());
 
     private final Set<BigInteger> serialBlocklist;
-    private final Set<ByteString> sha1PubkeyBlocklist;
-    private final Set<ByteString> sha256PubkeyBlocklist;
-    private Map<ByteString, Boolean> cache;
+    private final Set<ByteArray> sha1PubkeyBlocklist;
+    private final Set<ByteArray> sha256PubkeyBlocklist;
+    private Map<ByteArray, Boolean> cache;
 
     /**
      * Number of entries in the cache. The cache contains public keys which are
@@ -57,15 +57,15 @@ public final class CertBlocklistImpl implements CertBlocklist {
     /**
      * public for testing only.
      */
-    public CertBlocklistImpl(Set<BigInteger> serialBlocklist, Set<ByteString> sha1PubkeyBlocklist) {
+    public CertBlocklistImpl(Set<BigInteger> serialBlocklist, Set<ByteArray> sha1PubkeyBlocklist) {
         this(serialBlocklist, sha1PubkeyBlocklist, Collections.emptySet());
     }
 
-    public CertBlocklistImpl(Set<BigInteger> serialBlocklist, Set<ByteString> sha1PubkeyBlocklist,
-            Set<ByteString> sha256PubkeyBlocklist) {
-        this.cache = Collections.synchronizedMap(new LinkedHashMap<ByteString, Boolean>() {
+    public CertBlocklistImpl(Set<BigInteger> serialBlocklist, Set<ByteArray> sha1PubkeyBlocklist,
+            Set<ByteArray> sha256PubkeyBlocklist) {
+        this.cache = Collections.synchronizedMap(new LinkedHashMap<ByteArray, Boolean>() {
             @Override
-            protected boolean removeEldestEntry(Map.Entry<ByteString, Boolean> eldest) {
+            protected boolean removeEldestEntry(Map.Entry<ByteArray, Boolean> eldest) {
                 return size() > CACHE_SIZE;
             }
         });
@@ -81,9 +81,9 @@ public final class CertBlocklistImpl implements CertBlocklist {
         String defaultSerialBlocklistPath = blocklistRoot + "serial_blacklist.txt";
         String defaultPubkeySha256BlocklistPath = blocklistRoot + "pubkey_sha256_blocklist.txt";
 
-        Set<ByteString> sha1PubkeyBlocklist =
+        Set<ByteArray> sha1PubkeyBlocklist =
                 readPublicKeyBlockList(defaultPubkeyBlocklistPath, "SHA-1");
-        Set<ByteString> sha256PubkeyBlocklist =
+        Set<ByteArray> sha256PubkeyBlocklist =
                 readPublicKeyBlockList(defaultPubkeySha256BlocklistPath, "SHA-256");
         Set<BigInteger> serialBlocklist = readSerialBlockList(defaultSerialBlocklistPath);
         return new CertBlocklistImpl(serialBlocklist, sha1PubkeyBlocklist, sha256PubkeyBlocklist);
@@ -220,15 +220,15 @@ public final class CertBlocklistImpl implements CertBlocklist {
             "809964b15e9bd312993d9984045551f503f2cf8e68f39188921ba30fe623f9fd".getBytes(UTF_8),
     };
 
-    private static Set<ByteString> readPublicKeyBlockList(String path, String hashType) {
-        Set<ByteString> bl;
+    private static Set<ByteArray> readPublicKeyBlockList(String path, String hashType) {
+        Set<ByteArray> bl;
 
         switch (hashType) {
             case "SHA-1":
-                bl = new HashSet<ByteString>(toByteStrings(SHA1_BUILTINS));
+                bl = new HashSet<ByteArray>(toByteArrays(SHA1_BUILTINS));
                 break;
             case "SHA-256":
-                bl = new HashSet<ByteString>(toByteStrings(SHA256_BUILTINS));
+                bl = new HashSet<ByteArray>(toByteArrays(SHA256_BUILTINS));
                 break;
             default:
                 throw new RuntimeException(
@@ -252,7 +252,7 @@ public final class CertBlocklistImpl implements CertBlocklist {
             for (String value : pubkeyBlocklist.split(",", -1)) {
                 value = value.trim();
                 if (isPubkeyHash(value, hashLength)) {
-                    bl.add(new ByteString(value.getBytes(UTF_8)));
+                    bl.add(new ByteArray(value.getBytes(UTF_8)));
                 } else {
                     logger.log(Level.WARNING, "Tried to blocklist invalid pubkey " + value);
                 }
@@ -263,7 +263,7 @@ public final class CertBlocklistImpl implements CertBlocklist {
     }
 
     private static boolean isPublicKeyBlockListed(
-            ByteString encodedPublicKey, Set<ByteString> blocklist, String hashType) {
+            byte[] encodedPublicKey, Set<ByteArray> blocklist, String hashType) {
         MessageDigest md;
         try {
             md = MessageDigest.getInstance(hashType);
@@ -271,7 +271,7 @@ public final class CertBlocklistImpl implements CertBlocklist {
             logger.log(Level.SEVERE, "Unable to get " + hashType + " MessageDigest", e);
             return false;
         }
-        ByteString out = new ByteString(toHex(md.digest(encodedPublicKey.bytes)));
+        ByteArray out = new ByteArray(toHex(md.digest(encodedPublicKey)));
         if (blocklist.contains(out)) {
             return true;
         }
@@ -280,24 +280,28 @@ public final class CertBlocklistImpl implements CertBlocklist {
 
     @Override
     public boolean isPublicKeyBlockListed(PublicKey publicKey) {
-        ByteString encodedPublicKey = new ByteString(publicKey.getEncoded());
-        Boolean cachedResult = cache.get(encodedPublicKey);
+        byte[] encodedPublicKey = publicKey.getEncoded();
+        // cacheKey is a view on encodedPublicKey. Because it is used as a key
+        // for a Map, its underlying array (encodedPublicKey) should not be
+        // modified.
+        ByteArray cacheKey = new ByteArray(encodedPublicKey);
+        Boolean cachedResult = cache.get(cacheKey);
         if (cachedResult != null) {
             return cachedResult.booleanValue();
         }
         if (!sha1PubkeyBlocklist.isEmpty()) {
             if (isPublicKeyBlockListed(encodedPublicKey, sha1PubkeyBlocklist, "SHA-1")) {
-                cache.put(encodedPublicKey, true);
+                cache.put(cacheKey, true);
                 return true;
             }
         }
         if (!sha256PubkeyBlocklist.isEmpty()) {
             if (isPublicKeyBlockListed(encodedPublicKey, sha256PubkeyBlocklist, "SHA-256")) {
-                cache.put(encodedPublicKey, true);
+                cache.put(cacheKey, true);
                 return true;
             }
         }
-        cache.put(encodedPublicKey, false);
+        cache.put(cacheKey, false);
         return false;
     }
 
@@ -321,37 +325,11 @@ public final class CertBlocklistImpl implements CertBlocklist {
         return serialBlocklist.contains(serial);
     }
 
-    private static List<ByteString> toByteStrings(byte[]... allBytes) {
-        List<ByteString> byteStrings = new ArrayList<>(allBytes.length + 1);
+    private static List<ByteArray> toByteArrays(byte[]... allBytes) {
+        List<ByteArray> byteArrays = new ArrayList<>(allBytes.length + 1);
         for (byte[] bytes : allBytes) {
-            byteStrings.add(new ByteString(bytes));
+            byteArrays.add(new ByteArray(bytes));
         }
-        return byteStrings;
-    }
-
-    private static class ByteString {
-        final byte[] bytes;
-
-        public ByteString(byte[] bytes) {
-            this.bytes = bytes;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            }
-            if (!(o instanceof ByteString)) {
-                return false;
-            }
-
-            ByteString other = (ByteString) o;
-            return Arrays.equals(bytes, other.bytes);
-        }
-
-        @Override
-        public int hashCode() {
-            return Arrays.hashCode(bytes);
-        }
+        return byteArrays;
     }
 }
