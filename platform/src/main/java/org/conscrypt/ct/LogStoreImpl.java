@@ -28,6 +28,7 @@ import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -128,13 +129,27 @@ public class LogStoreImpl implements LogStore {
                 JSONArray logs = operator.getJSONArray("logs");
                 for (int j = 0; j < logs.length(); j++) {
                     JSONObject log = logs.getJSONObject(j);
-                    String description = log.getString("description");
+
+                    LogInfo.Builder builder =
+                            new LogInfo.Builder()
+                                    .setDescription(log.getString("description"))
+                                    .setPublicKey(parsePubKey(log.getString("key")))
+                                    .setUrl(log.getString("url"))
+                                    .setOperator(operatorName);
+
+                    JSONObject stateObject = log.optJSONObject("state");
+                    if (stateObject != null) {
+                        builder.setState(parseState(stateObject.keys().next()));
+                    }
+
+                    LogInfo logInfo = builder.build();
                     byte[] logId = Base64.getDecoder().decode(log.getString("log_id"));
-                    PublicKey key = parsePubKey(log.getString("key"));
-                    JSONObject stateObject = log.getJSONObject("state");
-                    int logState = parseState(stateObject.keys().next());
-                    String url = log.getString("url");
-                    LogInfo logInfo = new LogInfo(key, logState, description, url);
+
+                    // The logId computed using the public key should match the log_id field.
+                    if (!Arrays.equals(logInfo.getID(), logId)) {
+                        throw new IllegalArgumentException("logId does not match publicKey");
+                    }
+
                     logsMap.put(new ByteArray(logId), logInfo);
                 }
             }

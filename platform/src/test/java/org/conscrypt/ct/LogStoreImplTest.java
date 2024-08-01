@@ -115,10 +115,15 @@ public class LogStoreImplTest extends TestCase {
                 + "\n-----END PUBLIC KEY-----\n")
                              .getBytes(US_ASCII);
         ByteArrayInputStream is = new ByteArrayInputStream(pem);
-        PublicKey key = OpenSSLKey.fromPublicKeyPemInputStream(is).getPublicKey();
-        String description = "Operator 1 'Test2024' log";
-        String url = "https://operator1.example.com/logs/test2024/";
-        LogInfo log1 = new LogInfo(key, LogInfo.STATE_USABLE, description, url);
+
+        LogInfo log1 =
+                new LogInfo.Builder()
+                        .setPublicKey(OpenSSLKey.fromPublicKeyPemInputStream(is).getPublicKey())
+                        .setDescription("Operator 1 'Test2024' log")
+                        .setUrl("https://operator1.example.com/logs/test2024/")
+                        .setState(LogInfo.STATE_USABLE)
+                        .setOperator("Operator 1")
+                        .build();
         byte[] log1Id = Base64.getDecoder().decode("7s3QZNXbGs7FXLedtM0TojKHRny87N7DUUhZRnEftZs=");
         assertEquals("An existing logId should be returned", log1, store.getKnownLog(log1Id));
     }
