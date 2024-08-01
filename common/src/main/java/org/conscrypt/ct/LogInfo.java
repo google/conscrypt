@@ -31,7 +31,7 @@ import org.conscrypt.Internal;
  * It allows verification of SCTs against the log's public key.
  */
 @Internal
-public class CTLogInfo {
+public class LogInfo {
     public static final int STATE_PENDING = 0;
     public static final int STATE_QUALIFIED = 1;
     public static final int STATE_USABLE = 2;
@@ -45,7 +45,7 @@ public class CTLogInfo {
     private final String description;
     private final String url;
 
-    public CTLogInfo(PublicKey publicKey, int state, String description, String url) {
+    public LogInfo(PublicKey publicKey, int state, String description, String url) {
         if (publicKey == null) {
             throw new IllegalArgumentException("null publicKey");
         }
@@ -57,8 +57,7 @@ public class CTLogInfo {
         }
 
         try {
-            this.logId = MessageDigest.getInstance("SHA-256")
-                .digest(publicKey.getEncoded());
+            this.logId = MessageDigest.getInstance("SHA-256").digest(publicKey.getEncoded());
         } catch (NoSuchAlgorithmException e) {
             // SHA-256 is guaranteed to be available
             throw new RuntimeException(e);
@@ -98,11 +97,11 @@ public class CTLogInfo {
         if (this == other) {
             return true;
         }
-        if (!(other instanceof CTLogInfo)) {
+        if (!(other instanceof LogInfo)) {
             return false;
         }
 
-        CTLogInfo that = (CTLogInfo)other;
+        LogInfo that = (LogInfo) other;
         return this.state == that.state && this.description.equals(that.description)
                 && this.url.equals(that.url) && Arrays.equals(this.logId, that.logId);
     }
@@ -124,8 +123,8 @@ public class CTLogInfo {
      *
      * @return the result of the verification
      */
-    public VerifiedSCT.Status verifySingleSCT(SignedCertificateTimestamp sct,
-                                              CertificateEntry entry) {
+    public VerifiedSCT.Status verifySingleSCT(
+            SignedCertificateTimestamp sct, CertificateEntry entry) {
         if (!Arrays.equals(sct.getLogID(), getID())) {
             return VerifiedSCT.Status.UNKNOWN_LOG;
         }
@@ -164,4 +163,3 @@ public class CTLogInfo {
         }
     }
 }
-

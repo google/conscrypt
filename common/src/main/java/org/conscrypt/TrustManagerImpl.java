@@ -69,10 +69,10 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509ExtendedTrustManager;
-import org.conscrypt.ct.CTLogStore;
-import org.conscrypt.ct.CTPolicy;
-import org.conscrypt.ct.CTVerificationResult;
-import org.conscrypt.ct.CTVerifier;
+import org.conscrypt.ct.LogStore;
+import org.conscrypt.ct.Policy;
+import org.conscrypt.ct.VerificationResult;
+import org.conscrypt.ct.Verifier;
 
 /**
  *
@@ -139,8 +139,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private final Exception err;
     private final CertificateFactory factory;
     private final CertBlocklist blocklist;
-    private CTVerifier ctVerifier;
-    private CTPolicy ctPolicy;
+    private Verifier ctVerifier;
+    private Policy ctPolicy;
 
     private ConscryptHostnameVerifier hostnameVerifier;
 
@@ -163,18 +163,16 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         this(keyStore, manager, certStore, null);
     }
 
-    public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
-            ConscryptCertStore certStore,
-                            CertBlocklist blocklist) {
+    public TrustManagerImpl(KeyStore keyStore, CertPinManager manager, ConscryptCertStore certStore,
+            CertBlocklist blocklist) {
         this(keyStore, manager, certStore, blocklist, null, null, null);
     }
 
     /**
      * For testing only.
      */
-    public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
-                            ConscryptCertStore certStore, CertBlocklist blocklist, CTLogStore ctLogStore,
-                            CTVerifier ctVerifier, CTPolicy ctPolicy) {
+    public TrustManagerImpl(KeyStore keyStore, CertPinManager manager, ConscryptCertStore certStore,
+            CertBlocklist blocklist, LogStore ctLogStore, Verifier ctVerifier, Policy ctPolicy) {
         CertPathValidator validatorLocal = null;
         CertificateFactory factoryLocal = null;
         KeyStore rootKeyStoreLocal = null;
@@ -227,7 +225,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         this.acceptedIssuers = acceptedIssuersLocal;
         this.err = errLocal;
         this.blocklist = blocklist;
-        this.ctVerifier = new CTVerifier(ctLogStore);
+        this.ctVerifier = new Verifier(ctLogStore);
         this.ctPolicy = ctPolicy;
     }
 
@@ -728,7 +726,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
     private void checkCT(String host, List<X509Certificate> chain, byte[] ocspData, byte[] tlsData)
             throws CertificateException {
-        CTVerificationResult result =
+        VerificationResult result =
                 ctVerifier.verifySignedCertificateTimestamps(chain, tlsData, ocspData);
 
         if (!ctPolicy.doesResultConformToPolicy(result, host,
@@ -1025,12 +1023,12 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     }
 
     // Replace the CTVerifier. For testing only.
-    public void setCTVerifier(CTVerifier verifier) {
+    public void setCTVerifier(Verifier verifier) {
         this.ctVerifier = verifier;
     }
 
     // Replace the CTPolicy. For testing only.
-    public void setCTPolicy(CTPolicy policy) {
+    public void setCTPolicy(Policy policy) {
         this.ctPolicy = policy;
     }
 }

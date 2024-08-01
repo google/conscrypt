@@ -63,10 +63,10 @@ import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 import libcore.net.NetworkSecurityPolicy;
-import org.conscrypt.ct.CTLogStore;
-import org.conscrypt.ct.CTLogStoreImpl;
-import org.conscrypt.ct.CTPolicy;
-import org.conscrypt.ct.CTPolicyImpl;
+import org.conscrypt.ct.LogStore;
+import org.conscrypt.ct.LogStoreImpl;
+import org.conscrypt.ct.Policy;
+import org.conscrypt.ct.PolicyImpl;
 import org.conscrypt.metrics.CipherSuite;
 import org.conscrypt.metrics.ConscryptStatsLog;
 import org.conscrypt.metrics.OptionalMethod;
@@ -493,12 +493,12 @@ final class Platform {
         return CertBlocklistImpl.getDefault();
     }
 
-    static CTLogStore newDefaultLogStore() {
-        return new CTLogStoreImpl();
+    static LogStore newDefaultLogStore() {
+        return new LogStoreImpl();
     }
 
-    static CTPolicy newDefaultPolicy(CTLogStore logStore) {
-        return new CTPolicyImpl(logStore, 2);
+    static Policy newDefaultPolicy(LogStore logStore) {
+        return new PolicyImpl(logStore, 2);
     }
 
     static boolean serverNamePermitted(SSLParametersImpl parameters, String serverName) {

@@ -16,10 +16,11 @@
 
 package org.conscrypt.ct;
 
+import java.security.cert.X509Certificate;
 import org.conscrypt.Internal;
 
 @Internal
-public interface CTLogStore {
-    CTLogInfo getKnownLog(byte[] logId);
+public interface Policy {
+    boolean doesResultConformToPolicy(
+            VerificationResult result, String hostname, X509Certificate[] chain);
 }
-

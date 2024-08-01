@@ -30,25 +30,25 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class CTVerifierTest {
+public class VerifierTest {
     private OpenSSLX509Certificate ca;
     private OpenSSLX509Certificate cert;
     private OpenSSLX509Certificate certEmbedded;
-    private CTVerifier ctVerifier;
+    private Verifier ctVerifier;
 
     @Before
     public void setUp() throws Exception {
         ca = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("ca-cert.pem"));
         cert = OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("cert.pem"));
-        certEmbedded = OpenSSLX509Certificate.fromX509PemInputStream(
-                openTestFile("cert-ct-embedded.pem"));
+        certEmbedded =
+                OpenSSLX509Certificate.fromX509PemInputStream(openTestFile("cert-ct-embedded.pem"));
 
         PublicKey key = TestUtils.readPublicKeyPemFile("ct-server-key-public.pem");
 
-        final CTLogInfo log = new CTLogInfo(key, CTLogInfo.STATE_USABLE, "Test Log", "foo");
-        CTLogStore store = new CTLogStore() {
+        final LogInfo log = new LogInfo(key, LogInfo.STATE_USABLE, "Test Log", "foo");
+        LogStore store = new LogStore() {
             @Override
-            public CTLogInfo getKnownLog(byte[] logId) {
+            public LogInfo getKnownLog(byte[] logId) {
                 if (Arrays.equals(logId, log.getID())) {
                     return log;
                 } else {
@@ -57,120 +57,115 @@ public class CTVerifierTest {
             }
         };
 
-        ctVerifier = new CTVerifier(store);
+        ctVerifier = new Verifier(store);
     }
 
     @Test
     public void test_verifySignedCertificateTimestamps_withOCSPResponse() throws Exception {
-        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
+        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] {cert, ca};
 
         byte[] ocspResponse = readTestFile("ocsp-response.der");
-        CTVerificationResult result =
-            ctVerifier.verifySignedCertificateTimestamps(chain, null, ocspResponse);
+        VerificationResult result =
+                ctVerifier.verifySignedCertificateTimestamps(chain, null, ocspResponse);
         assertEquals(1, result.getValidSCTs().size());
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
     @Test
     public void test_verifySignedCertificateTimestamps_withTLSExtension() throws Exception {
-        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
+        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] {cert, ca};
 
         byte[] tlsExtension = readTestFile("ct-signed-timestamp-list");
-        CTVerificationResult result =
-            ctVerifier.verifySignedCertificateTimestamps(chain, tlsExtension, null);
+        VerificationResult result =
+                ctVerifier.verifySignedCertificateTimestamps(chain, tlsExtension, null);
         assertEquals(1, result.getValidSCTs().size());
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
     @Test
     public void test_verifySignedCertificateTimestamps_withEmbeddedExtension() throws Exception {
-        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { certEmbedded, ca };
+        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] {certEmbedded, ca};
 
-        CTVerificationResult result =
-            ctVerifier.verifySignedCertificateTimestamps(chain, null, null);
+        VerificationResult result = ctVerifier.verifySignedCertificateTimestamps(chain, null, null);
         assertEquals(1, result.getValidSCTs().size());
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
     @Test
     public void test_verifySignedCertificateTimestamps_withoutTimestamp() throws Exception {
-        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
+        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] {cert, ca};
 
-        CTVerificationResult result =
-            ctVerifier.verifySignedCertificateTimestamps(chain, null, null);
+        VerificationResult result = ctVerifier.verifySignedCertificateTimestamps(chain, null, null);
         assertEquals(0, result.getValidSCTs().size());
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
     @Test
     public void test_verifySignedCertificateTimestamps_withInvalidSignature() throws Exception {
-        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
+        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] {cert, ca};
 
         byte[] tlsExtension = readTestFile("ct-signed-timestamp-list-invalid");
 
-        CTVerificationResult result =
-            ctVerifier.verifySignedCertificateTimestamps(chain, tlsExtension, null);
+        VerificationResult result =
+                ctVerifier.verifySignedCertificateTimestamps(chain, tlsExtension, null);
         assertEquals(0, result.getValidSCTs().size());
         assertEquals(1, result.getInvalidSCTs().size());
-        assertEquals(VerifiedSCT.Status.INVALID_SIGNATURE,
-                     result.getInvalidSCTs().get(0).status);
+        assertEquals(VerifiedSCT.Status.INVALID_SIGNATURE, result.getInvalidSCTs().get(0).status);
     }
 
     @Test
     public void test_verifySignedCertificateTimestamps_withUnknownLog() throws Exception {
-        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
+        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] {cert, ca};
 
         byte[] tlsExtension = readTestFile("ct-signed-timestamp-list-unknown");
 
-        CTVerificationResult result =
-            ctVerifier.verifySignedCertificateTimestamps(chain, tlsExtension, null);
+        VerificationResult result =
+                ctVerifier.verifySignedCertificateTimestamps(chain, tlsExtension, null);
         assertEquals(0, result.getValidSCTs().size());
         assertEquals(1, result.getInvalidSCTs().size());
-        assertEquals(VerifiedSCT.Status.UNKNOWN_LOG,
-                     result.getInvalidSCTs().get(0).status);
+        assertEquals(VerifiedSCT.Status.UNKNOWN_LOG, result.getInvalidSCTs().get(0).status);
     }
 
     @Test
     public void test_verifySignedCertificateTimestamps_withInvalidEncoding() throws Exception {
-        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
+        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] {cert, ca};
 
         // Just some garbage data which will fail to deserialize
-        byte[] tlsExtension = new byte[] { 1, 2, 3, 4 };
+        byte[] tlsExtension = new byte[] {1, 2, 3, 4};
 
-        CTVerificationResult result =
-            ctVerifier.verifySignedCertificateTimestamps(chain, tlsExtension, null);
+        VerificationResult result =
+                ctVerifier.verifySignedCertificateTimestamps(chain, tlsExtension, null);
         assertEquals(0, result.getValidSCTs().size());
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
     @Test
     public void test_verifySignedCertificateTimestamps_withInvalidOCSPResponse() throws Exception {
-        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
+        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] {cert, ca};
 
         // Just some garbage data which will fail to deserialize
-        byte[] ocspResponse = new byte[] { 1, 2, 3, 4 };
+        byte[] ocspResponse = new byte[] {1, 2, 3, 4};
 
-        CTVerificationResult result =
-            ctVerifier.verifySignedCertificateTimestamps(chain, null, ocspResponse);
+        VerificationResult result =
+                ctVerifier.verifySignedCertificateTimestamps(chain, null, ocspResponse);
         assertEquals(0, result.getValidSCTs().size());
         assertEquals(0, result.getInvalidSCTs().size());
     }
 
     @Test
     public void test_verifySignedCertificateTimestamps_withMultipleTimestamps() throws Exception {
-        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] { cert, ca };
+        OpenSSLX509Certificate[] chain = new OpenSSLX509Certificate[] {cert, ca};
 
         byte[] tlsExtension = readTestFile("ct-signed-timestamp-list-invalid");
         byte[] ocspResponse = readTestFile("ocsp-response.der");
 
-        CTVerificationResult result =
-            ctVerifier.verifySignedCertificateTimestamps(chain, tlsExtension, ocspResponse);
+        VerificationResult result =
+                ctVerifier.verifySignedCertificateTimestamps(chain, tlsExtension, ocspResponse);
         assertEquals(1, result.getValidSCTs().size());
         assertEquals(1, result.getInvalidSCTs().size());
         assertEquals(SignedCertificateTimestamp.Origin.OCSP_RESPONSE,
-                     result.getValidSCTs().get(0).sct.getOrigin());
+                result.getValidSCTs().get(0).sct.getOrigin());
         assertEquals(SignedCertificateTimestamp.Origin.TLS_EXTENSION,
-                     result.getInvalidSCTs().get(0).sct.getOrigin());
+                result.getInvalidSCTs().get(0).sct.getOrigin());
     }
 }
-

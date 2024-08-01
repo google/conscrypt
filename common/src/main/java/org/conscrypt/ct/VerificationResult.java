@@ -22,7 +22,7 @@ import java.util.List;
 import org.conscrypt.Internal;
 
 @Internal
-public class CTVerificationResult {
+public class VerificationResult {
     private final ArrayList<VerifiedSCT> validSCTs = new ArrayList<VerifiedSCT>();
     private final ArrayList<VerifiedSCT> invalidSCTs = new ArrayList<VerifiedSCT>();
 
@@ -42,4 +42,3 @@ public class CTVerificationResult {
         return Collections.unmodifiableList(invalidSCTs);
     }
 }
-
