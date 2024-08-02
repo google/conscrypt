@@ -32,12 +32,9 @@ public class PolicyImpl implements Policy {
     @Override
     public boolean doesResultConformToPolicy(
             VerificationResult result, String hostname, X509Certificate[] chain) {
-        Set<LogInfo> logSet = new HashSet<>();
+        Set<String> logSet = new HashSet<>();
         for (VerifiedSCT verifiedSCT : result.getValidSCTs()) {
-            LogInfo log = logStore.getKnownLog(verifiedSCT.sct.getLogID());
-            if (log != null) {
-                logSet.add(log);
-            }
+            logSet.add(verifiedSCT.getLogInfo().getOperator());
         }
 
         return logSet.size() >= 2;

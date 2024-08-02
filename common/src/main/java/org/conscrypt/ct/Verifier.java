@@ -98,10 +98,7 @@ public class Verifier {
             return;
         }
 
-        for (SignedCertificateTimestamp sct : scts) {
-            VerifiedSCT.Status status = verifySingleSCT(sct, precertEntry);
-            result.add(new VerifiedSCT(sct, status));
-        }
+        verifySCTs(scts, precertEntry, result);
     }
 
     /**
@@ -124,23 +121,28 @@ public class Verifier {
             return;
         }
 
-        for (SignedCertificateTimestamp sct : scts) {
-            VerifiedSCT.Status status = verifySingleSCT(sct, x509Entry);
-            result.add(new VerifiedSCT(sct, status));
-        }
+        verifySCTs(scts, x509Entry, result);
     }
 
     /**
-     * Verify a single SCT for the given Certificate Entry
+     * Verify a list of SCTs.
      */
-    private VerifiedSCT.Status verifySingleSCT(
-            SignedCertificateTimestamp sct, CertificateEntry certEntry) {
-        LogInfo log = store.getKnownLog(sct.getLogID());
-        if (log == null) {
-            return VerifiedSCT.Status.UNKNOWN_LOG;
+    private void verifySCTs(List<SignedCertificateTimestamp> scts, CertificateEntry certEntry,
+            VerificationResult result) {
+        for (SignedCertificateTimestamp sct : scts) {
+            VerifiedSCT.Builder builder = new VerifiedSCT.Builder(sct);
+            LogInfo log = store.getKnownLog(sct.getLogID());
+            if (log == null) {
+                builder.setStatus(VerifiedSCT.Status.UNKNOWN_LOG);
+            } else {
+                VerifiedSCT.Status status = log.verifySingleSCT(sct, certEntry);
+                builder.setStatus(status);
+                if (status == VerifiedSCT.Status.VALID) {
+                    builder.setLogInfo(log);
+                }
+            }
+            result.add(builder.build());
         }
-
-        return log.verifySingleSCT(sct, certEntry);
     }
 
     /**
@@ -149,7 +151,8 @@ public class Verifier {
     private void markSCTsAsInvalid(
             List<SignedCertificateTimestamp> scts, VerificationResult result) {
         for (SignedCertificateTimestamp sct : scts) {
-            result.add(new VerifiedSCT(sct, VerifiedSCT.Status.INVALID_SCT));
+            VerifiedSCT.Builder builder = new VerifiedSCT.Builder(sct);
+            result.add(builder.setStatus(VerifiedSCT.Status.INVALID_SCT).build());
         }
     }
 

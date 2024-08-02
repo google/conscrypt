@@ -27,7 +27,7 @@ public class VerificationResult {
     private final ArrayList<VerifiedSCT> invalidSCTs = new ArrayList<VerifiedSCT>();
 
     public void add(VerifiedSCT result) {
-        if (result.status == VerifiedSCT.Status.VALID) {
+        if (result.isValid()) {
             validSCTs.add(result);
         } else {
             invalidSCTs.add(result);
