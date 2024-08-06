@@ -21,6 +21,5 @@ import org.conscrypt.Internal;
 
 @Internal
 public interface Policy {
-    boolean doesResultConformToPolicy(
-            VerificationResult result, String hostname, X509Certificate[] chain);
+    boolean doesResultConformToPolicy(VerificationResult result, X509Certificate leaf);
 }

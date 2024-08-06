@@ -497,8 +497,8 @@ final class Platform {
         return new LogStoreImpl();
     }
 
-    static Policy newDefaultPolicy(LogStore logStore) {
-        return new PolicyImpl(logStore);
+    static Policy newDefaultPolicy() {
+        return new PolicyImpl();
     }
 
     static boolean serverNamePermitted(SSLParametersImpl parameters, String serverName) {

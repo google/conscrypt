@@ -23,20 +23,12 @@ import org.conscrypt.Internal;
 
 @Internal
 public class PolicyImpl implements Policy {
-    private final LogStore logStore;
-
-    public PolicyImpl(LogStore logStore) {
-        this.logStore = logStore;
-    }
-
     @Override
-    public boolean doesResultConformToPolicy(
-            VerificationResult result, String hostname, X509Certificate[] chain) {
+    public boolean doesResultConformToPolicy(VerificationResult result, X509Certificate leaf) {
         Set<String> logSet = new HashSet<>();
         for (VerifiedSCT verifiedSCT : result.getValidSCTs()) {
             logSet.add(verifiedSCT.getLogInfo().getOperator());
         }
-
         return logSet.size() >= 2;
     }
 }
