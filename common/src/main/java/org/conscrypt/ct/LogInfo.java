@@ -160,14 +160,7 @@ public class LogInfo {
 
     @Override
     public int hashCode() {
-        int hash = 1;
-        hash = hash * 31 + Arrays.hashCode(logId);
-        hash = hash * 31 + description.hashCode();
-        hash = hash * 31 + url.hashCode();
-        hash = hash * 31 + state;
-        hash = hash * 31 + operator.hashCode();
-
-        return hash;
+        return Objects.hash(Arrays.hashCode(logId), description, url, state, operator);
     }
 
     /**
