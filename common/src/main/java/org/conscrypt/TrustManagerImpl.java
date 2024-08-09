@@ -34,6 +34,12 @@
 
 package org.conscrypt;
 
+import org.conscrypt.ct.LogStore;
+import org.conscrypt.ct.Policy;
+import org.conscrypt.ct.PolicyCompliance;
+import org.conscrypt.ct.VerificationResult;
+import org.conscrypt.ct.Verifier;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.Socket;
@@ -63,16 +69,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
+
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509ExtendedTrustManager;
-import org.conscrypt.ct.LogStore;
-import org.conscrypt.ct.Policy;
-import org.conscrypt.ct.VerificationResult;
-import org.conscrypt.ct.Verifier;
 
 /**
  *
@@ -730,9 +733,11 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 ctVerifier.verifySignedCertificateTimestamps(chain, tlsData, ocspData);
 
         X509Certificate leaf = chain.get(0);
-        if (!ctPolicy.doesResultConformToPolicy(result, leaf)) {
+        PolicyCompliance compliance = ctPolicy.doesResultConformToPolicy(result, leaf);
+        if (compliance != PolicyCompliance.COMPLY) {
             throw new CertificateException(
-                    "Certificate chain does not conform to required transparency policy.");
+                    "Certificate chain does not conform to required transparency policy: "
+                    + compliance.name());
         }
     }
 

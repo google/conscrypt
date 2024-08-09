@@ -25,7 +25,8 @@ import org.conscrypt.Internal;
 @Internal
 public class PolicyImpl implements Policy {
     @Override
-    public boolean doesResultConformToPolicy(VerificationResult result, X509Certificate leaf) {
+    public PolicyCompliance doesResultConformToPolicy(
+            VerificationResult result, X509Certificate leaf) {
         Set<VerifiedSCT> embeddedValidSCTs = new HashSet<>();
         Set<VerifiedSCT> ocspOrTLSValidSCTs = new HashSet<>();
         for (VerifiedSCT vsct : result.getValidSCTs()) {
@@ -35,13 +36,14 @@ public class PolicyImpl implements Policy {
                 ocspOrTLSValidSCTs.add(vsct);
             }
         }
-        if (embeddedValidSCTs.size() > 0 && conformEmbeddedSCTs(embeddedValidSCTs, leaf)) {
-            return true;
+        if (embeddedValidSCTs.size() > 0) {
+            return conformEmbeddedSCTs(embeddedValidSCTs, leaf);
         }
-        return false;
+        return PolicyCompliance.NOT_ENOUGH_SCTS;
     }
 
-    private boolean conformEmbeddedSCTs(Set<VerifiedSCT> embeddedValidSCTs, X509Certificate leaf) {
+    private PolicyCompliance conformEmbeddedSCTs(
+            Set<VerifiedSCT> embeddedValidSCTs, X509Certificate leaf) {
         /* 1. At least one Embedded SCT from a CT Log that was Qualified,
          *    Usable, or ReadOnly at the time of check;
          */
@@ -56,7 +58,7 @@ public class PolicyImpl implements Policy {
             }
         }
         if (!found) {
-            return false;
+            return PolicyCompliance.NOT_ENOUGH_SCTS;
         }
 
         /* 2. There are Embedded SCTs from at least N distinct CT Logs that
@@ -87,7 +89,7 @@ public class PolicyImpl implements Policy {
             }
         }
         if (validLogs.size() < numberSCTsRequired) {
-            return false;
+            return PolicyCompliance.NOT_ENOUGH_SCTS;
         }
 
         /* 3. Among the SCTs satisfying requirements 1 and 2, at least two SCTs
@@ -99,9 +101,9 @@ public class PolicyImpl implements Policy {
             operators.add(logInfo.getOperator());
         }
         if (operators.size() < 2) {
-            return false;
+            return PolicyCompliance.NOT_ENOUGH_DIVERSE_SCTS;
         }
 
-        return true;
+        return PolicyCompliance.COMPLY;
     }
 }
