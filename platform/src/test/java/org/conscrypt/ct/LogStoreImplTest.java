@@ -121,7 +121,7 @@ public class LogStoreImplTest extends TestCase {
                         .setPublicKey(OpenSSLKey.fromPublicKeyPemInputStream(is).getPublicKey())
                         .setDescription("Operator 1 'Test2024' log")
                         .setUrl("https://operator1.example.com/logs/test2024/")
-                        .setState(LogInfo.STATE_USABLE)
+                        .setState(LogInfo.STATE_USABLE, 1667328840000L)
                         .setOperator("Operator 1")
                         .build();
         byte[] log1Id = Base64.getDecoder().decode("7s3QZNXbGs7FXLedtM0TojKHRny87N7DUUhZRnEftZs=");

@@ -30,12 +30,26 @@ import java.security.cert.X509Certificate;
 
 @RunWith(JUnit4.class)
 public class PolicyImplTest {
+    private static final String OPERATOR1 = "operator 1";
+    private static final String OPERATOR2 = "operator 2";
     private static LogInfo usableOp1Log1;
     private static LogInfo usableOp1Log2;
-    private static LogInfo retiredOp1Log;
+    private static LogInfo retiredOp1LogOld;
+    private static LogInfo retiredOp1LogNew;
     private static LogInfo usableOp2Log;
     private static LogInfo retiredOp2Log;
     private static SignedCertificateTimestamp embeddedSCT;
+
+    /* Some test dates. By default:
+     *  - The verification is occurring in January 2024;
+     *  - The SCTs were generated in January 2023; and
+     *  - The logs got into their state in January 2022.
+     * Other dates are used to exercise edge cases.
+     */
+    private static final long JAN2024 = 1704103200000L;
+    private static final long JUN2023 = 1672999200000L;
+    private static final long JAN2023 = 1672567200000L;
+    private static final long JAN2022 = 1641031200000L;
 
     private static class FakePublicKey implements PublicKey {
         static final long serialVersionUID = 1;
@@ -70,54 +84,60 @@ public class PolicyImplTest {
         usableOp1Log1 = new LogInfo.Builder()
                                 .setPublicKey(new FakePublicKey(new byte[] {0x01}))
                                 .setUrl("")
-                                .setOperator("operator 1")
-                                .setState(LogInfo.STATE_USABLE)
+                                .setOperator(OPERATOR1)
+                                .setState(LogInfo.STATE_USABLE, JAN2022)
                                 .build();
         usableOp1Log2 = new LogInfo.Builder()
                                 .setPublicKey(new FakePublicKey(new byte[] {0x02}))
                                 .setUrl("")
-                                .setOperator("operator 1")
-                                .setState(LogInfo.STATE_USABLE)
+                                .setOperator(OPERATOR1)
+                                .setState(LogInfo.STATE_USABLE, JAN2022)
                                 .build();
-        retiredOp1Log = new LogInfo.Builder()
-                                .setPublicKey(new FakePublicKey(new byte[] {0x03}))
-                                .setUrl("")
-                                .setOperator("operator 1")
-                                .setState(LogInfo.STATE_RETIRED)
-                                .build();
+        retiredOp1LogOld = new LogInfo.Builder()
+                                   .setPublicKey(new FakePublicKey(new byte[] {0x03}))
+                                   .setUrl("")
+                                   .setOperator(OPERATOR1)
+                                   .setState(LogInfo.STATE_RETIRED, JAN2022)
+                                   .build();
+        retiredOp1LogNew = new LogInfo.Builder()
+                                   .setPublicKey(new FakePublicKey(new byte[] {0x06}))
+                                   .setUrl("")
+                                   .setOperator(OPERATOR1)
+                                   .setState(LogInfo.STATE_RETIRED, JUN2023)
+                                   .build();
         usableOp2Log = new LogInfo.Builder()
                                .setPublicKey(new FakePublicKey(new byte[] {0x04}))
                                .setUrl("")
-                               .setOperator("operator 2")
-                               .setState(LogInfo.STATE_USABLE)
+                               .setOperator(OPERATOR2)
+                               .setState(LogInfo.STATE_USABLE, JAN2022)
                                .build();
         retiredOp2Log = new LogInfo.Builder()
                                 .setPublicKey(new FakePublicKey(new byte[] {0x05}))
                                 .setUrl("")
-                                .setOperator("operator 2")
-                                .setState(LogInfo.STATE_RETIRED)
+                                .setOperator(OPERATOR2)
+                                .setState(LogInfo.STATE_RETIRED, JAN2022)
                                 .build();
-        /* Only the origin of the SCT is used during the evaluation for policy
-         * compliance. The signature is validated at the previous step (see
-         * the Verifier class).
+        /* The origin of the SCT and its timestamp are used during the
+         * evaluation for policy compliance. The signature is validated at the
+         * previous step (see the Verifier class).
          */
-        embeddedSCT = new SignedCertificateTimestamp(SignedCertificateTimestamp.Version.V1, null, 0,
-                null, null, SignedCertificateTimestamp.Origin.EMBEDDED);
+        embeddedSCT = new SignedCertificateTimestamp(SignedCertificateTimestamp.Version.V1, null,
+                JAN2023, null, null, SignedCertificateTimestamp.Origin.EMBEDDED);
     }
 
     @Test
     public void emptyVerificationResult() throws Exception {
-        Policy p = new PolicyImpl();
+        PolicyImpl p = new PolicyImpl();
         VerificationResult result = new VerificationResult();
 
         X509Certificate leaf = new FakeX509Certificate();
         assertEquals("An empty VerificationResult", PolicyCompliance.NOT_ENOUGH_SCTS,
-                p.doesResultConformToPolicy(result, leaf));
+                p.doesResultConformToPolicyAt(result, leaf, JAN2024));
     }
 
     @Test
     public void validVerificationResult() throws Exception {
-        Policy p = new PolicyImpl();
+        PolicyImpl p = new PolicyImpl();
 
         VerifiedSCT vsct1 = new VerifiedSCT.Builder(embeddedSCT)
                                     .setStatus(VerifiedSCT.Status.VALID)
@@ -135,16 +155,16 @@ public class PolicyImplTest {
 
         X509Certificate leaf = new FakeX509Certificate();
         assertEquals("Two valid SCTs from different operators", PolicyCompliance.COMPLY,
-                p.doesResultConformToPolicy(result, leaf));
+                p.doesResultConformToPolicyAt(result, leaf, JAN2024));
     }
 
     @Test
     public void validWithRetiredVerificationResult() throws Exception {
-        Policy p = new PolicyImpl();
+        PolicyImpl p = new PolicyImpl();
 
         VerifiedSCT vsct1 = new VerifiedSCT.Builder(embeddedSCT)
                                     .setStatus(VerifiedSCT.Status.VALID)
-                                    .setLogInfo(retiredOp1Log)
+                                    .setLogInfo(retiredOp1LogNew)
                                     .build();
 
         VerifiedSCT vsct2 = new VerifiedSCT.Builder(embeddedSCT)
@@ -158,12 +178,36 @@ public class PolicyImplTest {
 
         X509Certificate leaf = new FakeX509Certificate();
         assertEquals("One valid, one retired SCTs from different operators",
-                PolicyCompliance.COMPLY, p.doesResultConformToPolicy(result, leaf));
+                PolicyCompliance.COMPLY, p.doesResultConformToPolicyAt(result, leaf, JAN2024));
+    }
+
+    @Test
+    public void invalidWithRetiredVerificationResult() throws Exception {
+        PolicyImpl p = new PolicyImpl();
+
+        VerifiedSCT vsct1 = new VerifiedSCT.Builder(embeddedSCT)
+                                    .setStatus(VerifiedSCT.Status.VALID)
+                                    .setLogInfo(retiredOp1LogOld)
+                                    .build();
+
+        VerifiedSCT vsct2 = new VerifiedSCT.Builder(embeddedSCT)
+                                    .setStatus(VerifiedSCT.Status.VALID)
+                                    .setLogInfo(usableOp2Log)
+                                    .build();
+
+        VerificationResult result = new VerificationResult();
+        result.add(vsct1);
+        result.add(vsct2);
+
+        X509Certificate leaf = new FakeX509Certificate();
+        assertEquals("One valid, one retired (before SCT timestamp) SCTs from different operators",
+                PolicyCompliance.NOT_ENOUGH_SCTS,
+                p.doesResultConformToPolicyAt(result, leaf, JAN2024));
     }
 
     @Test
     public void invalidOneSctVerificationResult() throws Exception {
-        Policy p = new PolicyImpl();
+        PolicyImpl p = new PolicyImpl();
 
         VerifiedSCT vsct1 = new VerifiedSCT.Builder(embeddedSCT)
                                     .setStatus(VerifiedSCT.Status.VALID)
@@ -175,16 +219,16 @@ public class PolicyImplTest {
 
         X509Certificate leaf = new FakeX509Certificate();
         assertEquals("One valid SCT", PolicyCompliance.NOT_ENOUGH_SCTS,
-                p.doesResultConformToPolicy(result, leaf));
+                p.doesResultConformToPolicyAt(result, leaf, JAN2024));
     }
 
     @Test
     public void invalidTwoSctsVerificationResult() throws Exception {
-        Policy p = new PolicyImpl();
+        PolicyImpl p = new PolicyImpl();
 
         VerifiedSCT vsct1 = new VerifiedSCT.Builder(embeddedSCT)
                                     .setStatus(VerifiedSCT.Status.VALID)
-                                    .setLogInfo(retiredOp1Log)
+                                    .setLogInfo(retiredOp1LogNew)
                                     .build();
 
         VerifiedSCT vsct2 = new VerifiedSCT.Builder(embeddedSCT)
@@ -198,12 +242,12 @@ public class PolicyImplTest {
 
         X509Certificate leaf = new FakeX509Certificate();
         assertEquals("Two retired SCTs from different operators", PolicyCompliance.NOT_ENOUGH_SCTS,
-                p.doesResultConformToPolicy(result, leaf));
+                p.doesResultConformToPolicyAt(result, leaf, JAN2024));
     }
 
     @Test
     public void invalidTwoSctsSameOperatorVerificationResult() throws Exception {
-        Policy p = new PolicyImpl();
+        PolicyImpl p = new PolicyImpl();
 
         VerifiedSCT vsct1 = new VerifiedSCT.Builder(embeddedSCT)
                                     .setStatus(VerifiedSCT.Status.VALID)
@@ -221,6 +265,6 @@ public class PolicyImplTest {
 
         X509Certificate leaf = new FakeX509Certificate();
         assertEquals("Two SCTs from the same operator", PolicyCompliance.NOT_ENOUGH_DIVERSE_SCTS,
-                p.doesResultConformToPolicy(result, leaf));
+                p.doesResultConformToPolicyAt(result, leaf, JAN2024));
     }
 }
