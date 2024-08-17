@@ -32,6 +32,7 @@ if (androidSdkInstalled) {
 
     android {
         compileSdkVersion androidTargetSdkVersion
+        ndkVersion "21.3.6528147"
 
         compileOptions {
             sourceCompatibility androidMinJavaVersion
@@ -52,7 +53,8 @@ if (androidSdkInstalled) {
                 cmake {
                     arguments '-DANDROID=True',
                             '-DANDROID_STL=c++_static',
-                            "-DBORINGSSL_HOME=$boringsslHome"
+                            "-DBORINGSSL_HOME=$boringsslHome",
+                            '-DCMAKE_SHARED_LINKER_FLAGS=-z max-page-size=16384'
                     cFlags '-fvisibility=hidden',
                             '-DBORINGSSL_SHARED_LIBRARY',
                             '-DBORINGSSL_IMPLEMENTATION',
