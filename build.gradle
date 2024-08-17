@@ -19,7 +19,7 @@ buildscript {
 plugins {
     // Add dependency for build script so we can access Git from our
     // build script.
-    id 'org.ajoberstar.grgit' version '3.1.1'
+    id 'org.ajoberstar.grgit' version '4.1.1'
     id 'net.ltgt.errorprone' version '1.1.1'
 }
 
@@ -51,7 +51,7 @@ subprojects {
 
     group = "org.conscrypt"
     description = 'Conscrypt is an alternate Java Security Provider that uses BoringSSL'
-    version = "2.5.2"
+    version = "2.5.3"
 
     ext {
         os = org.gradle.internal.os.OperatingSystem.current();
