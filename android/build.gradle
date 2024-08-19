@@ -60,12 +60,12 @@ if (androidSdkInstalled) {
                             "-DBORINGSSL_HOME=$boringsslHome",
                             "-DCMAKE_CXX_STANDARD=17"
                     cFlags '-fvisibility=hidden',
-                            '-Wl,-z,max-page-size=16384',
                             '-DBORINGSSL_SHARED_LIBRARY',
                             '-DBORINGSSL_IMPLEMENTATION',
                             '-DOPENSSL_SMALL',
                             '-D_XOPEN_SOURCE=700',
-                            '-Wno-unused-parameter'
+                            '-Wno-unused-parameter',
+                            '-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384'
                     targets 'conscrypt_jni'
                     version androidCmakeVersion
                 }
