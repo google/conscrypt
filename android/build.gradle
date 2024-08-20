@@ -8,10 +8,6 @@ buildscript {
     }
 }
 
-plugins {
-    id 'digital.wup.android-maven-publish' version '3.6.2'
-}
-
 description = 'Conscrypt: Android'
 
 ext {
@@ -27,10 +23,6 @@ ext {
 
 if (androidSdkInstalled) {
     apply plugin: 'com.android.library'
-
-    // Since we're not taking a direct dependency on the constants module, we need to add an
-    // explicit task dependency to make sure the code is generated.
-    evaluationDependsOn(':conscrypt-constants')
 
     android {
         namespace "org.conscrypt"
@@ -66,7 +58,6 @@ if (androidSdkInstalled) {
                             '-D_XOPEN_SOURCE=700',
                             '-Wno-unused-parameter'
                     targets 'conscrypt_jni'
-                    version androidCmakeVersion
                 }
             }
             ndk {
@@ -81,16 +72,12 @@ if (androidSdkInstalled) {
         }
         sourceSets.main {
             java {
-                srcDirs = [
-                        "${rootDir}/common/src/main/java",
-                        "src/main/java"
-                ]
-                // Requires evaluationDependsOn(':conscrypt-constants') above.
-                srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
+                srcDirs = [ "src/main/java" ]
             }
             resources {
                 srcDirs += "build/generated/resources"
             }
+            project(':conscrypt-common').sourceSets.main
         }
         externalNativeBuild {
             cmake {
@@ -112,7 +99,10 @@ if (androidSdkInstalled) {
     }
 
     dependencies {
+        compileOnly project(':conscrypt-common')
+
         publicApiDocs project(':conscrypt-api-doclet')
+
         androidTestImplementation('androidx.test.espresso:espresso-core:3.1.1', {
             exclude module: 'support-annotations'
             exclude module: 'support-v4'
@@ -121,10 +111,9 @@ if (androidSdkInstalled) {
             exclude module: 'appcompat-v7'
             exclude module: 'design'
         })
-        compileOnly project(':conscrypt-android-stub')
 
-        // Adds the constants module as a dependency so that we can include its generated source
-        compileOnly project(':conscrypt-constants')
+        compileOnly project(':conscrypt-android-stub'),
+                project(':conscrypt-constants')
     }
 
     def configureJavaDocs = tasks.register("configureJavadocs") {
@@ -136,13 +125,19 @@ if (androidSdkInstalled) {
 
     def javadocs = tasks.register("javadocs", Javadoc) {
         dependsOn configureJavadocs
-        source = android.sourceSets.main.java.srcDirs
-        classpath += project.files(android.getBootClasspath().join(File.pathSeparator)) + project(':conscrypt-android-stub').sourceSets.main.output
+        dependsOn generateProperties
+        source = project(':conscrypt-common').sourceSets.main.java
+
+        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+        classpath += project(':conscrypt-android-stub').sourceSets.main.output
+        classpath += project(':conscrypt-constants').sourceSets.main.output
+        classpath += project(':conscrypt-platform-stub').sourceSets.main.output
+
         // TODO(nmittler): Fix the javadoc errors.
         failOnError false
         options {
             encoding = 'UTF-8'
-            links "https://docs.oracle.com/javase/7/docs/api/"
+            links "https://docs.oracle.com/javase/8/docs/api/"
             // TODO(prb): Update doclet to Java 11.
             // doclet = "org.conscrypt.doclet.FilterDoclet"
         }
@@ -150,22 +145,46 @@ if (androidSdkInstalled) {
 
     def javadocsJar = tasks.register("javadocsJar", Jar) {
         dependsOn javadocs
-        classifier = 'javadoc'
+        archiveClassifier = 'javadoc'
         from {
             javadocs.get().destinationDir
         }
     }
 
     def sourcesJar = tasks.register("sourcesJar", Jar) {
-        classifier = 'sources'
+        archiveClassifier = 'sources'
         from android.sourceSets.main.java.srcDirs
+        from project(":conscrypt-common").sourceSets.main.java.srcDirs
     }
 
-    apply from: "$rootDir/gradle/publishing.gradle"
-    publishing.publications.maven {
-        from components.android
-        artifact sourcesJar.get()
-        artifact javadocsJar.get()
+    // This is ugly but works:  For both release and debug builds copy the classes from the
+    // common compilation before the final AAR is built.
+    def copyDebugCommon = tasks.register('copyDebugCommon', Copy) {
+        from project(':conscrypt-common').sourceSets.main.output
+        into buildDir.absolutePath + '/intermediates/javac/debug/classes'
+        dependsOn ':conscrypt-common:compileJava'
+    }
+
+    def copyReleaseCommon = tasks.register('copyReleaseCommon', Copy) {
+        from project(':conscrypt-common').sourceSets.main.output
+        into buildDir.absolutePath + '/intermediates/javac/release/classes'
+        dependsOn ':conscrypt-common:compileJava'
+    }
+
+    afterEvaluate {
+        tasks.named('javaPreCompileDebug') {
+            dependsOn copyDebugCommon
+        }
+        tasks.named('javaPreCompileRelease') {
+            dependsOn copyReleaseCommon
+        }
+
+        apply from: "$rootDir/gradle/publishing.gradle"
+        publishing.publications.maven {
+            from components.release
+            artifact sourcesJar.get()
+            artifact javadocsJar.get()
+        }
     }
 } else {
     logger.warn('Android SDK has not been detected. The Android module will not be built.')

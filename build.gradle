@@ -66,7 +66,6 @@ subprojects {
             }
         }
     }
-    apply plugin: "idea"
     apply plugin: "jacoco"
     apply plugin: "net.ltgt.errorprone"
 
@@ -201,13 +200,15 @@ subprojects {
         }
 
         tasks.register("javadocJar", Jar) {
-            classifier = 'javadoc'
+            archiveClassifier = 'javadoc'
             from javadoc
         }
 
         tasks.register("sourcesJar", Jar) {
-            classifier = 'sources'
+            archiveClassifier = 'sources'
             from sourceSets.main.allSource
+            from project(":conscrypt-common").sourceSets.main.java.srcDirs
+
         }
 
         // At a test failure, log the stack trace to the console so that we don't
