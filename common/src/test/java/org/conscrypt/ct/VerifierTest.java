@@ -54,6 +54,19 @@ public class VerifierTest {
                                     .build();
         LogStore store = new LogStore() {
             @Override
+            public void setPolicy(Policy policy) {}
+
+            @Override
+            public State getState() {
+                return LogStore.State.COMPLIANT;
+            }
+
+            @Override
+            public long getTimestamp() {
+                return 0;
+            }
+
+            @Override
             public LogInfo getKnownLog(byte[] logId) {
                 if (Arrays.equals(logId, log.getID())) {
                     return log;

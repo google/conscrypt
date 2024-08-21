@@ -20,5 +20,20 @@ import org.conscrypt.Internal;
 
 @Internal
 public interface LogStore {
+    public enum State {
+        UNINITIALIZED,
+        NOT_FOUND,
+        MALFORMED,
+        LOADED,
+        COMPLIANT,
+        NON_COMPLIANT,
+    }
+
+    void setPolicy(Policy policy);
+
+    State getState();
+
+    long getTimestamp();
+
     LogInfo getKnownLog(byte[] logId);
 }

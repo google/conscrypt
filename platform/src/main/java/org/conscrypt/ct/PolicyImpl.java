@@ -30,6 +30,26 @@ import java.util.concurrent.TimeUnit;
 @Internal
 public class PolicyImpl implements Policy {
     @Override
+    public boolean isLogStoreCompliant(LogStore store) {
+        long now = System.currentTimeMillis();
+        return isLogStoreCompliantAt(store, now);
+    }
+
+    public boolean isLogStoreCompliantAt(LogStore store, long atTime) {
+        long storeTimestamp = store.getTimestamp();
+        long seventyDaysInMs = 70L * 24 * 60 * 60 * 1000;
+        if (storeTimestamp + seventyDaysInMs < atTime) {
+            // Expired log list.
+            return false;
+        } else if (storeTimestamp > atTime) {
+            // Log list from the future. It is likely that the device has an
+            // incorrect time.
+            return false;
+        }
+        return true;
+    }
+
+    @Override
     public PolicyCompliance doesResultConformToPolicy(
             VerificationResult result, X509Certificate leaf) {
         long now = System.currentTimeMillis();

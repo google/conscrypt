@@ -17,6 +17,8 @@
 package org.conscrypt.ct;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.conscrypt.java.security.cert.FakeX509Certificate;
 import org.junit.Assume;
@@ -42,11 +44,14 @@ public class PolicyImplTest {
 
     /* Some test dates. By default:
      *  - The verification is occurring in January 2024;
+     *  - The log list was created in December 2023;
      *  - The SCTs were generated in January 2023; and
      *  - The logs got into their state in January 2022.
      * Other dates are used to exercise edge cases.
      */
+    private static final long JAN2025 = 1735725600000L;
     private static final long JAN2024 = 1704103200000L;
+    private static final long DEC2023 = 1701424800000L;
     private static final long JUN2023 = 1672999200000L;
     private static final long JAN2023 = 1672567200000L;
     private static final long JAN2022 = 1641031200000L;
@@ -266,5 +271,47 @@ public class PolicyImplTest {
         X509Certificate leaf = new FakeX509Certificate();
         assertEquals("Two SCTs from the same operator", PolicyCompliance.NOT_ENOUGH_DIVERSE_SCTS,
                 p.doesResultConformToPolicyAt(result, leaf, JAN2024));
+    }
+
+    @Test
+    @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
+    public void validRecentLogStore() throws Exception {
+        PolicyImpl p = new PolicyImpl();
+
+        LogStore store = new LogStoreImpl() {
+            @Override
+            public long getTimestamp() {
+                return DEC2023;
+            }
+        };
+        assertTrue("A recent log list is compliant", p.isLogStoreCompliantAt(store, JAN2024));
+    }
+
+    @Test
+    @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
+    public void invalidFutureLogStore() throws Exception {
+        PolicyImpl p = new PolicyImpl();
+
+        LogStore store = new LogStoreImpl() {
+            @Override
+            public long getTimestamp() {
+                return JAN2025;
+            }
+        };
+        assertFalse("A future log list is non-compliant", p.isLogStoreCompliantAt(store, JAN2024));
+    }
+
+    @Test
+    @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
+    public void invalidOldLogStore() throws Exception {
+        PolicyImpl p = new PolicyImpl();
+
+        LogStore store = new LogStoreImpl() {
+            @Override
+            public long getTimestamp() {
+                return JAN2023;
+            }
+        };
+        assertFalse("A expired log list is non-compliant", p.isLogStoreCompliantAt(store, JAN2024));
     }
 }

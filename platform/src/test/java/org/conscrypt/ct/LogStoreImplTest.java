@@ -106,6 +106,12 @@ public class LogStoreImplTest extends TestCase {
 
         File logList = writeFile(content);
         LogStore store = new LogStoreImpl(logList.toPath());
+        store.setPolicy(new PolicyImpl() {
+            @Override
+            public boolean isLogStoreCompliant(LogStore store) {
+                return true;
+            }
+        });
 
         assertNull("A null logId should return null", store.getKnownLog(null));
 

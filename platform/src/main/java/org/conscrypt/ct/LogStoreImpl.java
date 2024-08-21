@@ -58,16 +58,11 @@ public class LogStoreImpl implements LogStore {
         defaultLogList = Paths.get(ANDROID_DATA, V3_PATH);
     }
 
-    private enum State {
-        UNINITIALIZED,
-        LOADED,
-        NOT_FOUND,
-        MALFORMED,
-    }
-
     private final Path logList;
     private State state;
+    private Policy policy;
     private String version;
+    private long timestamp;
     private Map<ByteArray, LogInfo> logs;
 
     public LogStoreImpl() {
@@ -77,6 +72,22 @@ public class LogStoreImpl implements LogStore {
     public LogStoreImpl(Path logList) {
         this.state = State.UNINITIALIZED;
         this.logList = logList;
+    }
+
+    @Override
+    public State getState() {
+        ensureLogListIsLoaded();
+        return state;
+    }
+
+    @Override
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    @Override
+    public void setPolicy(Policy policy) {
+        this.policy = policy;
     }
 
     @Override
@@ -103,7 +114,10 @@ public class LogStoreImpl implements LogStore {
             if (state == State.UNINITIALIZED) {
                 state = loadLogList();
             }
-            return state == State.LOADED;
+            if (state == State.LOADED && policy != null) {
+                state = policy.isLogStoreCompliant(this) ? State.COMPLIANT : State.NON_COMPLIANT;
+            }
+            return state == State.COMPLIANT;
         }
     }
 
@@ -127,6 +141,7 @@ public class LogStoreImpl implements LogStore {
         HashMap<ByteArray, LogInfo> logsMap = new HashMap<>();
         try {
             version = json.getString("version");
+            timestamp = parseTimestamp(json.getString("log_list_timestamp"));
             JSONArray operators = json.getJSONArray("operators");
             for (int i = 0; i < operators.length(); i++) {
                 JSONObject operator = operators.getJSONObject(i);
@@ -147,7 +162,7 @@ public class LogStoreImpl implements LogStore {
                         String state = stateObject.keys().next();
                         String stateTimestamp =
                                 stateObject.getJSONObject(state).getString("timestamp");
-                        builder.setState(parseState(state), parseStateTimestamp(stateTimestamp));
+                        builder.setState(parseState(state), parseTimestamp(stateTimestamp));
                     }
 
                     LogInfo logInfo = builder.build();
@@ -192,7 +207,7 @@ public class LogStoreImpl implements LogStore {
     private static DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX");
 
     @SuppressWarnings("JavaUtilDate")
-    private static long parseStateTimestamp(String timestamp) {
+    private static long parseTimestamp(String timestamp) {
         try {
             Date date = dateFormatter.parse(timestamp);
             return date.getTime();
