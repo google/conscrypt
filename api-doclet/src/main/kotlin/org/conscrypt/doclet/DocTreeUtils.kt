@@ -33,7 +33,6 @@ import org.conscrypt.doclet.FilterDoclet.Companion.docTrees
 import javax.lang.model.element.Element
 import javax.lang.model.type.TypeMirror
 
-
 fun renderDocTreeList(treeList: List<DocTree>):String =
     treeList.joinToString("\n", transform = ::renderDocTree)
 
@@ -44,7 +43,7 @@ fun renderDocTree(docTree: DocTree): String = when (docTree) {
         val label = if (docTree.label.isEmpty()) {
             reference
         } else {
-            renderDocTree(docTree.label[0])
+            renderDocTreeList(docTree.label)
         }
         createLink(reference, label)
     }
@@ -72,7 +71,13 @@ fun renderBlockTagList(tagList: List<DocTree>): String =
 
 fun renderBlockTag(tag: DocTree) = when (tag) {
     is ParamTree, is ReturnTree, is ThrowsTree -> error("Unexpected block tag: $tag")
-    is SeeTree -> "<p><strong>See:</strong> ${renderDocTreeList(tag.reference)}</p>"
+    is SeeTree -> html {
+        br()
+        p {
+            strong("See: ")
+            text(renderDocTreeList(tag.reference))
+        }
+    }
     else -> tag.toString()
 }
 
