@@ -23,9 +23,9 @@ import org.conscrypt.Internal;
 /**
  * Helper class to handle reflexive loading and invocation of methods which may be absent.
  *
- * @hide This class is not part of the Android public SDK API
+ * hide This class is not part of the Android public SDK API
  */
-@Internal
+// @Internal
 public final class OptionalMethod {
     private final Method cachedMethod;
 
