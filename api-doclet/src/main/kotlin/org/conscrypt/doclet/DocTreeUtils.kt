@@ -52,7 +52,7 @@ fun renderDocTree(docTree: DocTree): String = when (docTree) {
     else -> error("[${docTree.javaClass} / ${docTree.kind} --- ${docTree}]")
 }
 
-fun createLink(reference: String, label: String): String {
+fun createLink(reference: String, label: String) = html {
     val parts = reference.split('#')
     val className = parts[0]
     val anchor = if (parts.size > 1) "#${parts[1]}" else ""
@@ -61,9 +61,8 @@ fun createLink(reference: String, label: String): String {
         "${classInfo.simpleName}.html$anchor"
     else
         "$baseUrl${className.replace('.', '/')}.html$anchor"
-    return html {
-        a(href, label)
-    }
+
+    a(href, label)
 }
 
 fun renderBlockTagList(tagList: List<DocTree>): String =
