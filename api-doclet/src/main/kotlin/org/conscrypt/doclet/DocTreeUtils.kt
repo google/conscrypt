@@ -104,18 +104,7 @@ fun Element.throwTags() = filterTags<ThrowsTree>()
     .map { it.exceptionName.toString() to renderDocTreeList(it.description) }
     .toList()
 
-fun Element.docTree(): DocCommentTree? {
-    return docTrees.getDocCommentTree(this)
-}
-
-fun Element.commentTree() = html {
-    text {
-        docTree()?.let { renderDocTreeList(it.fullBody) } ?: ""
-    }
-}
-
-fun Element.tagTree() = html {
-    text {
-        docTree()?.let { renderBlockTagList(it.blockTags) } ?: ""
-    }
-}
+fun Element.docTree(): DocCommentTree? = docTrees.getDocCommentTree(this)
+fun Element.commentTree() = docTree()?.let { renderDocTreeList(it.fullBody) } ?: ""
+fun Element.tagTree() = docTree()?.let { renderBlockTagList(it.blockTags) } ?: ""
+fun Element.commentsAndTagTrees() = commentTree() + tagTree()

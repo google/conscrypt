@@ -31,7 +31,9 @@ data class ClassInfo(val element: TypeElement) : Comparable<ClassInfo> {
 
     private fun description() = html {
         div("class-description") {
-            compose { element.commentTree() + element.tagTree() }
+            compose {
+                element.commentsAndTagTrees()
+            }
         }
     }
 
@@ -43,7 +45,7 @@ data class ClassInfo(val element: TypeElement) : Comparable<ClassInfo> {
                 div("member") {
                     h4(field.simpleName.toString())
                     compose {
-                        field.commentTree() + field.tagTree()
+                        field.commentsAndTagTrees()
                     }
                 }
             }
@@ -58,7 +60,7 @@ data class ClassInfo(val element: TypeElement) : Comparable<ClassInfo> {
                 div("member") {
                     h4(cls.simpleName.toString())
                     compose {
-                        cls.commentTree() + cls.tagTree()
+                        cls.commentsAndTagTrees()
                     }
                 }
             }
