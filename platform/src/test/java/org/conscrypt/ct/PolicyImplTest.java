@@ -274,7 +274,6 @@ public class PolicyImplTest {
     }
 
     @Test
-    @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
     public void validRecentLogStore() throws Exception {
         PolicyImpl p = new PolicyImpl();
 
@@ -288,7 +287,6 @@ public class PolicyImplTest {
     }
 
     @Test
-    @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
     public void invalidFutureLogStore() throws Exception {
         PolicyImpl p = new PolicyImpl();
 
@@ -302,7 +300,6 @@ public class PolicyImplTest {
     }
 
     @Test
-    @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
     public void invalidOldLogStore() throws Exception {
         PolicyImpl p = new PolicyImpl();
 
