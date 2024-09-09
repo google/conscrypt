@@ -34,6 +34,7 @@ import javax.crypto.BadPaddingException;
  * Implementation of {@link HpkeSpi}.  Should not be used directly, but rather by one
  * of the subclasses of {@link HpkeContext}.
  */
+@Internal
 public class HpkeImpl implements HpkeSpi {
   private final HpkeSuite hpkeSuite;
 
