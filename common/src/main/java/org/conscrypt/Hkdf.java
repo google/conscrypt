@@ -29,7 +29,7 @@ import javax.crypto.spec.SecretKeySpec;
  * Instances should be instantiated using the standard JCA name for the required HMAC.
  * <p>
  * Each invocation of expand or extract uses a new Mac instance and so instances
- * of Hkdf are thread-safe.
+ * of Hkdf are thread-safe.</p>
  */
 public final class Hkdf {
     // HMAC algorithm to use.

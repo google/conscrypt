@@ -23,8 +23,6 @@ import java.security.Security;
 
 /**
  * Hybrid Public Key Encryption (HPKE) sender APIs.
- *
- * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#hpke-export">HPKE RFC 9180</a>
  * <p>
  * Base class for HPKE sender and recipient contexts.
  * <p>
@@ -36,6 +34,7 @@ import java.security.Security;
  * to use for seal and open operations.
  *
  * Secret key material based on the context may also be generated and exported as per RFC 9180.
+ * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#hpke-export">RFC 9180 (HPKE)</a>
  */
 public abstract class HpkeContext {
   protected final HpkeSpi spi;
