@@ -2496,9 +2496,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_SESSION_get_time() throws Exception {
-        // TODO(prb) seems to fail regularly on Windows with time < System.currentTimeMillis()
-        assumeFalse("Skipping SSLSession_getCreationTime() test on Windows", isWindows());
-
         final ServerSocket listener = newServerSocket();
         {
             Hooks cHooks = new Hooks() {
@@ -2506,8 +2503,9 @@ public class NativeCryptoTest {
                 public void afterHandshake(long session, long s, long c, Socket sock,
                         FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                     long time = NativeCrypto.SSL_SESSION_get_time(session);
-                    assertTrue(time != 0);
-                    assertTrue(time < System.currentTimeMillis());
+                    long now = System.currentTimeMillis();
+                    assertTrue(time + " != 0", time != 0);
+                    assertTrue(time + " <= " + now, time <= now);
                     super.afterHandshake(session, s, c, sock, fd, callback);
                 }
             };

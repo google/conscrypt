@@ -83,7 +83,7 @@ public class SSLSessionTest {
 
     @Test
     public void test_SSLSession_getCreationTime() {
-        // TODO(prb) seems to fail regularly on Windows with sTime <= t1
+        // TODO(prb) seems to fail regularly on Windows with sTime > t1
         assumeFalse("Skipping SSLSession_getCreationTime() test on Windows", isWindows());
 
         // We use OpenSSL, which only returns times accurate to the nearest second.
