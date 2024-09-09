@@ -3,8 +3,7 @@ import org.gradle.util.VersionNumber
 
 buildscript {
     ext.android_tools = 'com.android.tools.build:gradle:7.4.0'
-    ext.errorproneVersion = '2.4.0'
-    ext.errorproneJavacVersion = '9+181-r4173-1'
+    ext.errorproneVersion = '2.31.0'
     repositories {
         google()
         mavenCentral()
@@ -20,7 +19,7 @@ plugins {
     // Add dependency for build script so we can access Git from our
     // build script.
     id 'org.ajoberstar.grgit' version '5.2.2'
-    id 'net.ltgt.errorprone' version '1.3.0'
+    id 'net.ltgt.errorprone' version '4.0.0'
     id "com.google.osdetector" version "1.7.3"
     id "biz.aQute.bnd.builder" version "6.4.0" apply false
 }
@@ -139,7 +138,6 @@ subprojects {
 
     dependencies {
         errorprone("com.google.errorprone:error_prone_core:$errorproneVersion")
-        errorproneJavac("com.google.errorprone:javac:$errorproneJavacVersion")
     }
 
     tasks.register("generateProperties", WriteProperties) {
@@ -156,9 +154,7 @@ subprojects {
     if (!androidProject) {
         java {
             toolchain {
-                // Compile with a real JDK 8 so we don't end up with accidental dependencies
-                // on Java 11 bootclasspath, e.g. ByteBuffer.flip().
-                languageVersion = JavaLanguageVersion.of(8)
+                languageVersion = JavaLanguageVersion.of(11)
             }
         }
 
@@ -166,6 +162,8 @@ subprojects {
             t.configure {
                 options.compilerArgs += ["-Xlint:all", "-Xlint:-options", '-Xmaxwarns', '9999999']
                 options.encoding = "UTF-8"
+                options.release = 8
+
                 if (rootProject.hasProperty('failOnWarnings') && rootProject.failOnWarnings.toBoolean()) {
                     options.compilerArgs += ["-Werror"]
                 }
@@ -190,14 +188,7 @@ subprojects {
 
         javadoc.options {
             encoding = 'UTF-8'
-            links 'https://docs.oracle.com/javase/8/docs/api/'
-        }
-
-        // All non-Android projects build with Java 8, so disable doclint as it's noisy.
-        allprojects {
-            tasks.withType(Javadoc) {
-                options.addStringOption('Xdoclint:none', '-quiet')
-            }
+            links 'https://docs.oracle.com/en/java/javase/21/docs/api/java.base/'
         }
 
         tasks.register("javadocJar", Jar) {
