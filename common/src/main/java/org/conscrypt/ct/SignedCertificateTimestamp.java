@@ -87,19 +87,16 @@ public class SignedCertificateTimestamp {
      */
     public static SignedCertificateTimestamp decode(InputStream input, Origin origin)
             throws SerializationException {
-        int version = Serialization.readNumber(input, CTConstants.VERSION_LENGTH);
+        int version = Serialization.readNumber(input, Constants.VERSION_LENGTH);
         if (version != Version.V1.ordinal()) {
             throw new SerializationException("Unsupported SCT version " + version);
         }
 
-        return new SignedCertificateTimestamp(
-            Version.V1,
-            Serialization.readFixedBytes(input, CTConstants.LOGID_LENGTH),
-            Serialization.readLong(input, CTConstants.TIMESTAMP_LENGTH),
-            Serialization.readVariableBytes(input, CTConstants.EXTENSIONS_LENGTH_BYTES),
-            DigitallySigned.decode(input),
-            origin
-        );
+        return new SignedCertificateTimestamp(Version.V1,
+                Serialization.readFixedBytes(input, Constants.LOGID_LENGTH),
+                Serialization.readLong(input, Constants.TIMESTAMP_LENGTH),
+                Serialization.readVariableBytes(input, Constants.EXTENSIONS_LENGTH_BYTES),
+                DigitallySigned.decode(input), origin);
     }
 
     /**
@@ -115,12 +112,12 @@ public class SignedCertificateTimestamp {
      */
     public void encodeTBS(OutputStream output, CertificateEntry certEntry)
             throws SerializationException {
-        Serialization.writeNumber(output, version.ordinal(), CTConstants.VERSION_LENGTH);
+        Serialization.writeNumber(output, version.ordinal(), Constants.VERSION_LENGTH);
         Serialization.writeNumber(output, SignatureType.CERTIFICATE_TIMESTAMP.ordinal(),
-                                          CTConstants.SIGNATURE_TYPE_LENGTH);
-        Serialization.writeNumber(output, timestamp, CTConstants.TIMESTAMP_LENGTH);
+                Constants.SIGNATURE_TYPE_LENGTH);
+        Serialization.writeNumber(output, timestamp, Constants.TIMESTAMP_LENGTH);
         certEntry.encode(output);
-        Serialization.writeVariableBytes(output, extensions, CTConstants.EXTENSIONS_LENGTH_BYTES);
+        Serialization.writeVariableBytes(output, extensions, Constants.EXTENSIONS_LENGTH_BYTES);
     }
 
     /**
