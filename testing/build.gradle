@@ -24,3 +24,8 @@ dependencies {
             libraries.bouncycastle_provider,
             libraries.junit
 }
+
+// No public methods here.
+tasks.withType(Javadoc).configureEach {
+    enabled = false
+}

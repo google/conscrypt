@@ -1,21 +1,18 @@
-description = 'Conscrypt: API Doclet'
-
-
-java {
-    toolchain {
-        // Force Java 8 for the doclet.
-        languageVersion = JavaLanguageVersion.of(8)
-    }
-    // Java 8 doclets depend on the JDK's tools.jar
-    def compilerMetadata = javaToolchains.compilerFor(toolchain).get().metadata
-    def jdkHome = compilerMetadata.getInstallationPath()
-    def toolsJar = jdkHome.file("lib/tools.jar")
-    dependencies {
-        implementation files(toolsJar)
-    }
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '2.0.0'
 }
 
-tasks.withType(Javadoc) {
-    // TODO(prb): Update doclet to Java 11.
+description = 'Conscrypt: API Doclet'
+
+kotlin {
+    jvmToolchain(11)
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+}
+
+tasks.withType(Javadoc).configureEach {
+    // No need to javadoc the Doclet....
     enabled = false
 }
