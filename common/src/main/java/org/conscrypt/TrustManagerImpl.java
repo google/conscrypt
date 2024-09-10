@@ -232,9 +232,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         this.ctLogStore = ctLogStore;
         this.ctVerifier = new Verifier(ctLogStore);
         this.ctPolicy = ctPolicy;
-        if (ctLogStore != null) {
-            ctLogStore.setPolicy(ctPolicy);
-        }
+        ctLogStore.setPolicy(ctPolicy);
     }
 
     @SuppressWarnings("JdkObsolete")  // KeyStore#aliases is the only API available
