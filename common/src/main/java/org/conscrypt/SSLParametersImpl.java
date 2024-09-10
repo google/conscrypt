@@ -144,20 +144,8 @@ final class SSLParametersImpl implements Cloneable {
         }
 
         // initialize the list of cipher suites and protocols enabled by default
-        if (protocols == null) {
-          enabledProtocols = NativeCrypto.getDefaultProtocols().clone();
-        } else {
-            String[] filteredProtocols =
-                    filterFromProtocols(protocols, Arrays.asList(!Platform.isTlsV1Filtered()
-                        ? new String[0]
-                        : new String[] {
-                            NativeCrypto.OBSOLETE_PROTOCOL_SSLV3,
-                            NativeCrypto.DEPRECATED_PROTOCOL_TLSV1,
-                            NativeCrypto.DEPRECATED_PROTOCOL_TLSV1_1,
-                        }));
-            isEnabledProtocolsFiltered = protocols.length != filteredProtocols.length;
-            enabledProtocols = NativeCrypto.checkEnabledProtocols(filteredProtocols).clone();
-        }
+        enabledProtocols = NativeCrypto.checkEnabledProtocols(
+                protocols == null ? NativeCrypto.getDefaultProtocols() : protocols).clone();
         boolean x509CipherSuitesNeeded = (x509KeyManager != null) || (x509TrustManager != null);
         boolean pskCipherSuitesNeeded = pskKeyManager != null;
         enabledCipherSuites = getDefaultCipherSuites(
@@ -294,13 +282,7 @@ final class SSLParametersImpl implements Cloneable {
             throw new IllegalArgumentException("protocols == null");
         }
         String[] filteredProtocols =
-                filterFromProtocols(protocols, Arrays.asList(!Platform.isTlsV1Filtered()
-                    ? new String[0]
-                    : new String[] {
-                        NativeCrypto.OBSOLETE_PROTOCOL_SSLV3,
-                        NativeCrypto.DEPRECATED_PROTOCOL_TLSV1,
-                        NativeCrypto.DEPRECATED_PROTOCOL_TLSV1_1,
-                    }));
+                filterFromProtocols(protocols, NativeCrypto.OBSOLETE_PROTOCOL_SSLV3);
         isEnabledProtocolsFiltered = protocols.length != filteredProtocols.length;
         enabledProtocols = NativeCrypto.checkEnabledProtocols(filteredProtocols).clone();
     }

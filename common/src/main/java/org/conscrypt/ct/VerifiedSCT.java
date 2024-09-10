@@ -16,7 +16,6 @@
 
 package org.conscrypt.ct;
 
-import java.util.Objects;
 import org.conscrypt.Internal;
 
 /**
@@ -31,61 +30,12 @@ public final class VerifiedSCT {
         INVALID_SCT
     }
 
-    private final SignedCertificateTimestamp sct;
-    private final Status status;
-    private final LogInfo logInfo;
+    public final SignedCertificateTimestamp sct;
+    public final Status status;
 
-    private VerifiedSCT(Builder builder) {
-        Objects.requireNonNull(builder.sct);
-        Objects.requireNonNull(builder.status);
-        if (builder.status == Status.VALID) {
-            Objects.requireNonNull(builder.logInfo);
-        }
-
-        this.sct = builder.sct;
-        this.status = builder.status;
-        this.logInfo = builder.logInfo;
-    }
-
-    public SignedCertificateTimestamp getSct() {
-        return sct;
-    }
-
-    public Status getStatus() {
-        return status;
-    }
-
-    public boolean isValid() {
-        return status == Status.VALID;
-    }
-
-    public LogInfo getLogInfo() {
-        return logInfo;
-    }
-
-    public static class Builder {
-        private SignedCertificateTimestamp sct;
-        private Status status;
-        private LogInfo logInfo;
-
-        public Builder(SignedCertificateTimestamp sct) {
-            this.sct = sct;
-        }
-
-        public Builder setStatus(Status status) {
-            this.status = status;
-            return this;
-        }
-
-        public Builder setLogInfo(LogInfo logInfo) {
-            Objects.requireNonNull(logInfo);
-            this.logInfo = logInfo;
-            return this;
-        }
-
-        public VerifiedSCT build() {
-            return new VerifiedSCT(this);
-        }
+    public VerifiedSCT(SignedCertificateTimestamp sct, Status status) {
+        this.sct = sct;
+        this.status = status;
     }
 }
 

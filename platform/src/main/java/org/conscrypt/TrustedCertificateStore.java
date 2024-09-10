@@ -35,7 +35,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.ArrayUtils;
 import org.conscrypt.io.IoUtils;
 import org.conscrypt.metrics.OptionalMethod;
 
@@ -117,7 +116,7 @@ public class TrustedCertificateStore implements ConscryptCertStore {
             if ((System.getProperty("system.certs.enabled") != null)
                     && (System.getProperty("system.certs.enabled")).equals("true"))
                 return false;
-            if (updatableDir.exists() && !(ArrayUtils.isEmpty(updatableDir.list())))
+            if (updatableDir.exists() && !(updatableDir.list().length == 0))
                 return true;
             return false;
         }
