@@ -29,7 +29,6 @@ import junit.framework.TestCase;
 public class CertBlocklistTest extends TestCase {
 
     private static final String BLOCKLIST_CA = "test_blocklist_ca.pem";
-    private static final String BLOCKLIST_CA2 = "test_blocklist_ca2.pem";
     private static final String BLOCKLISTED_CHAIN = "blocklist_test_chain.pem";
     private static final String BLOCKLIST_FALLBACK_VALID_CA = "blocklist_test_valid_ca.pem";
     private static final String BLOCKLISTED_VALID_CHAIN = "blocklist_test_valid_chain.pem";
@@ -39,15 +38,6 @@ public class CertBlocklistTest extends TestCase {
      */
     public void testBlocklistedPublicKey() throws Exception {
         X509Certificate blocklistedCa = loadCertificate(BLOCKLIST_CA);
-        CertBlocklist blocklist = CertBlocklistImpl.getDefault();
-        assertTrue(blocklist.isPublicKeyBlockListed(blocklistedCa.getPublicKey()));
-    }
-
-    /**
-     * Ensure that the test blocklisted CA 2 is actually blocklisted by default.
-     */
-    public void testBlocklistedPublicKeySHA256() throws Exception {
-        X509Certificate blocklistedCa = loadCertificate(BLOCKLIST_CA2);
         CertBlocklist blocklist = CertBlocklistImpl.getDefault();
         assertTrue(blocklist.isPublicKeyBlockListed(blocklistedCa.getPublicKey()));
     }

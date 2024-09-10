@@ -74,11 +74,4 @@ public final class ArrayUtils {
         }
         return result;
     }
-
-    /**
-     * Checks if given array is null or has zero elements.
-     */
-    public static <T> boolean isEmpty(T[] array) {
-        return array == null || array.length == 0;
-    }
 }

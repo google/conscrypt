@@ -78,9 +78,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
-import org.conscrypt.ct.LogStore;
-import org.conscrypt.ct.Policy;
-import sun.security.x509.AlgorithmId;
+import org.conscrypt.ct.CTLogStore;
+import org.conscrypt.ct.CTPolicy;
 
 /**
  * Platform-specific methods for OpenJDK.
@@ -719,11 +718,11 @@ final class Platform {
         return null;
     }
 
-    static LogStore newDefaultLogStore() {
+    static CTLogStore newDefaultLogStore() {
         return null;
     }
 
-    static Policy newDefaultPolicy() {
+    static CTPolicy newDefaultPolicy(CTLogStore logStore) {
         return null;
     }
 
@@ -813,13 +812,5 @@ final class Platform {
 
     public static boolean isTlsV1Deprecated() {
         return true;
-    }
-
-    public static boolean isTlsV1Filtered() {
-        return false;
-    }
-
-    public static boolean isTlsV1Supported() {
-        return false;
     }
 }

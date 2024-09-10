@@ -25,7 +25,6 @@ import android.system.Os;
 import android.system.StructTimeval;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
-import dalvik.system.VMRuntime;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.System;
@@ -62,14 +61,12 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
-import libcore.net.NetworkSecurityPolicy;
-import org.conscrypt.ct.LogStore;
-import org.conscrypt.ct.LogStoreImpl;
-import org.conscrypt.ct.Policy;
-import org.conscrypt.ct.PolicyImpl;
+import org.conscrypt.ct.CTLogStore;
+import org.conscrypt.ct.CTLogStoreImpl;
+import org.conscrypt.ct.CTPolicy;
+import org.conscrypt.ct.CTPolicyImpl;
 import org.conscrypt.metrics.CipherSuite;
 import org.conscrypt.metrics.ConscryptStatsLog;
-import org.conscrypt.metrics.OptionalMethod;
 import org.conscrypt.metrics.Protocol;
 import sun.security.x509.AlgorithmId;
 
@@ -464,10 +461,6 @@ final class Platform {
     }
 
     static boolean isCTVerificationRequired(String hostname) {
-        if (Flags.certificateTransparencyPlatform()) {
-            return NetworkSecurityPolicy.getInstance()
-                    .isCertificateTransparencyVerificationRequired(hostname);
-        }
         return false;
     }
 
@@ -493,12 +486,12 @@ final class Platform {
         return CertBlocklistImpl.getDefault();
     }
 
-    static LogStore newDefaultLogStore() {
-        return new LogStoreImpl();
+    static CTLogStore newDefaultLogStore() {
+        return new CTLogStoreImpl();
     }
 
-    static Policy newDefaultPolicy() {
-        return new PolicyImpl();
+    static CTPolicy newDefaultPolicy(CTLogStore logStore) {
+        return new CTPolicyImpl(logStore, 2);
     }
 
     static boolean serverNamePermitted(SSLParametersImpl parameters, String serverName) {
@@ -544,34 +537,6 @@ final class Platform {
     }
 
     public static boolean isTlsV1Deprecated() {
-        return true;
-    }
-
-    public static boolean isTlsV1Filtered() {
-        Object targetSdkVersion = getTargetSdkVersion();
-        if ((targetSdkVersion != null) && ((int) targetSdkVersion > 34))
-            return false;
-        return true;
-    }
-
-    public static boolean isTlsV1Supported() {
         return false;
-    }
-
-    static Object getTargetSdkVersion() {
-        try {
-            Class<?> vmRuntime = Class.forName("dalvik.system.VMRuntime");
-            if (vmRuntime == null) {
-                return null;
-            }
-            OptionalMethod getSdkVersion =
-                    new OptionalMethod(vmRuntime,
-                                        "getTargetSdkVersion");
-            return getSdkVersion.invokeStatic();
-        } catch (ClassNotFoundException e) {
-            return null;
-        } catch (NullPointerException e) {
-            return null;
-        }
     }
 }
