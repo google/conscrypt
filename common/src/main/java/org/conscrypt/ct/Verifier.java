@@ -27,18 +27,18 @@ import org.conscrypt.NativeCrypto;
 import org.conscrypt.OpenSSLX509Certificate;
 
 @Internal
-public class CTVerifier {
-    private final CTLogStore store;
+public class Verifier {
+    private final LogStore store;
 
-    public CTVerifier(CTLogStore store) {
+    public Verifier(LogStore store) {
         this.store = store;
     }
 
-    public CTVerificationResult verifySignedCertificateTimestamps(List<X509Certificate> chain,
+    public VerificationResult verifySignedCertificateTimestamps(List<X509Certificate> chain,
             byte[] tlsData, byte[] ocspData) throws CertificateEncodingException {
         OpenSSLX509Certificate[] certs = new OpenSSLX509Certificate[chain.size()];
         int i = 0;
-        for(X509Certificate cert : chain) {
+        for (X509Certificate cert : chain) {
             certs[i++] = OpenSSLX509Certificate.fromCertificate(cert);
         }
         return verifySignedCertificateTimestamps(certs, tlsData, ocspData);
@@ -50,7 +50,7 @@ public class CTVerifier {
      * response, and verified against the list of known logs.
      * @throws IllegalArgumentException if the chain is empty
      */
-    public CTVerificationResult verifySignedCertificateTimestamps(OpenSSLX509Certificate[] chain,
+    public VerificationResult verifySignedCertificateTimestamps(OpenSSLX509Certificate[] chain,
             byte[] tlsData, byte[] ocspData) throws CertificateEncodingException {
         if (chain.length == 0) {
             throw new IllegalArgumentException("Chain of certificates mustn't be empty.");
@@ -58,7 +58,7 @@ public class CTVerifier {
 
         OpenSSLX509Certificate leaf = chain[0];
 
-        CTVerificationResult result = new CTVerificationResult();
+        VerificationResult result = new VerificationResult();
         List<SignedCertificateTimestamp> tlsScts = getSCTsFromTLSExtension(tlsData);
         verifyExternalSCTs(tlsScts, leaf, result);
 
@@ -75,8 +75,7 @@ public class CTVerifier {
      * The result of the verification for each sct is added to {@code result}.
      */
     private void verifyEmbeddedSCTs(List<SignedCertificateTimestamp> scts,
-                                    OpenSSLX509Certificate[] chain,
-                                    CTVerificationResult result) {
+            OpenSSLX509Certificate[] chain, VerificationResult result) {
         // Avoid creating the cert entry if we don't need it
         if (scts.isEmpty()) {
             return;
@@ -99,10 +98,7 @@ public class CTVerifier {
             return;
         }
 
-        for (SignedCertificateTimestamp sct: scts) {
-            VerifiedSCT.Status status = verifySingleSCT(sct, precertEntry);
-            result.add(new VerifiedSCT(sct, status));
-        }
+        verifySCTs(scts, precertEntry, result);
     }
 
     /**
@@ -111,8 +107,7 @@ public class CTVerifier {
      * The result of the verification for each sct is added to {@code result}.
      */
     private void verifyExternalSCTs(List<SignedCertificateTimestamp> scts,
-                                    OpenSSLX509Certificate leaf,
-                                    CTVerificationResult result) {
+            OpenSSLX509Certificate leaf, VerificationResult result) {
         // Avoid creating the cert entry if we don't need it
         if (scts.isEmpty()) {
             return;
@@ -126,32 +121,38 @@ public class CTVerifier {
             return;
         }
 
-        for (SignedCertificateTimestamp sct: scts) {
-            VerifiedSCT.Status status = verifySingleSCT(sct, x509Entry);
-            result.add(new VerifiedSCT(sct, status));
-        }
+        verifySCTs(scts, x509Entry, result);
     }
 
     /**
-     * Verify a single SCT for the given Certificate Entry
+     * Verify a list of SCTs.
      */
-    private VerifiedSCT.Status verifySingleSCT(SignedCertificateTimestamp sct,
-                                                         CertificateEntry certEntry) {
-        CTLogInfo log = store.getKnownLog(sct.getLogID());
-        if (log == null) {
-            return VerifiedSCT.Status.UNKNOWN_LOG;
+    private void verifySCTs(List<SignedCertificateTimestamp> scts, CertificateEntry certEntry,
+            VerificationResult result) {
+        for (SignedCertificateTimestamp sct : scts) {
+            VerifiedSCT.Builder builder = new VerifiedSCT.Builder(sct);
+            LogInfo log = store.getKnownLog(sct.getLogID());
+            if (log == null) {
+                builder.setStatus(VerifiedSCT.Status.UNKNOWN_LOG);
+            } else {
+                VerifiedSCT.Status status = log.verifySingleSCT(sct, certEntry);
+                builder.setStatus(status);
+                if (status == VerifiedSCT.Status.VALID) {
+                    builder.setLogInfo(log);
+                }
+            }
+            result.add(builder.build());
         }
-
-        return log.verifySingleSCT(sct, certEntry);
     }
 
     /**
      * Add every SCT in {@code scts} to {@code result} with INVALID_SCT as status
      */
-    private void markSCTsAsInvalid(List<SignedCertificateTimestamp> scts,
-                                   CTVerificationResult result) {
-        for (SignedCertificateTimestamp sct: scts) {
-            result.add(new VerifiedSCT(sct, VerifiedSCT.Status.INVALID_SCT));
+    private void markSCTsAsInvalid(
+            List<SignedCertificateTimestamp> scts, VerificationResult result) {
+        for (SignedCertificateTimestamp sct : scts) {
+            VerifiedSCT.Builder builder = new VerifiedSCT.Builder(sct);
+            result.add(builder.setStatus(VerifiedSCT.Status.INVALID_SCT).build());
         }
     }
 
@@ -163,24 +164,25 @@ public class CTVerifier {
      * @param origin used to create the SignedCertificateTimestamp instances.
      */
     @SuppressWarnings("MixedMutabilityReturnType")
-    private static List<SignedCertificateTimestamp> getSCTsFromSCTList(byte[] data,
-            SignedCertificateTimestamp.Origin origin) {
+    private static List<SignedCertificateTimestamp> getSCTsFromSCTList(
+            byte[] data, SignedCertificateTimestamp.Origin origin) {
         if (data == null) {
             return Collections.emptyList();
         }
 
         byte[][] sctList;
         try {
-            sctList = Serialization.readList(data, CTConstants.SCT_LIST_LENGTH_BYTES,
-                                             CTConstants.SERIALIZED_SCT_LENGTH_BYTES);
+            sctList = Serialization.readList(
+                    data, Constants.SCT_LIST_LENGTH_BYTES, Constants.SERIALIZED_SCT_LENGTH_BYTES);
         } catch (SerializationException e) {
             return Collections.emptyList();
         }
 
         List<SignedCertificateTimestamp> scts = new ArrayList<SignedCertificateTimestamp>();
-        for (byte[] encodedSCT: sctList) {
-            try  {
-                SignedCertificateTimestamp sct = SignedCertificateTimestamp.decode(encodedSCT, origin);
+        for (byte[] encodedSCT : sctList) {
+            try {
+                SignedCertificateTimestamp sct =
+                        SignedCertificateTimestamp.decode(encodedSCT, origin);
                 scts.add(sct);
             } catch (SerializationException e) {
                 // Ignore errors
@@ -210,23 +212,21 @@ public class CTVerifier {
      *              issuer in order to identify the relevant SingleResponse from the OCSP response,
      *              or an empty list is returned
      */
-    private List<SignedCertificateTimestamp> getSCTsFromOCSPResponse(byte[] data,
-            OpenSSLX509Certificate[] chain) {
+    private List<SignedCertificateTimestamp> getSCTsFromOCSPResponse(
+            byte[] data, OpenSSLX509Certificate[] chain) {
         if (data == null || chain.length < 2) {
             return Collections.emptyList();
         }
 
-        byte[] extData = NativeCrypto.get_ocsp_single_extension(data, CTConstants.OCSP_SCT_LIST_OID,
-                chain[0].getContext(), chain[0],
-                chain[1].getContext(), chain[1]);
+        byte[] extData = NativeCrypto.get_ocsp_single_extension(data, Constants.OCSP_SCT_LIST_OID,
+                chain[0].getContext(), chain[0], chain[1].getContext(), chain[1]);
         if (extData == null) {
             return Collections.emptyList();
         }
 
         try {
             return getSCTsFromSCTList(
-                    Serialization.readDEROctetString(
-                      Serialization.readDEROctetString(extData)),
+                    Serialization.readDEROctetString(Serialization.readDEROctetString(extData)),
                     SignedCertificateTimestamp.Origin.OCSP_RESPONSE);
         } catch (SerializationException e) {
             return Collections.emptyList();
@@ -240,19 +240,17 @@ public class CTVerifier {
      * to be parsed, an empty list is returned. Individual SCTs which fail to be parsed are ignored.
      */
     private List<SignedCertificateTimestamp> getSCTsFromX509Extension(OpenSSLX509Certificate leaf) {
-        byte[] extData = leaf.getExtensionValue(CTConstants.X509_SCT_LIST_OID);
+        byte[] extData = leaf.getExtensionValue(Constants.X509_SCT_LIST_OID);
         if (extData == null) {
             return Collections.emptyList();
         }
 
         try {
             return getSCTsFromSCTList(
-                    Serialization.readDEROctetString(
-                      Serialization.readDEROctetString(extData)),
+                    Serialization.readDEROctetString(Serialization.readDEROctetString(extData)),
                     SignedCertificateTimestamp.Origin.EMBEDDED);
         } catch (SerializationException e) {
             return Collections.emptyList();
         }
     }
 }
-
