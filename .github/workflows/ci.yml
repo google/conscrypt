@@ -19,7 +19,7 @@ jobs:
           echo Using BoringSSL commit: $(cd "${{ runner.temp }}/boringssl"; git rev-parse HEAD)
 
       - name: Archive BoringSSL source
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
@@ -175,7 +175,7 @@ jobs:
         run: ./gradlew publishToMavenLocal -Dmaven.repo.local="$M2_REPO"
 
       - name: Upload Maven respository
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: m2repo-${{ runner.os }}
           path: ${{ runner.temp }}/m2
@@ -187,7 +187,7 @@ jobs:
 
       - name: Upload test JAR with dependencies
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: testjar
           path: openjdk/build/libs/conscrypt-openjdk-*-tests.jar
@@ -252,7 +252,7 @@ jobs:
           ./gradlew :conscrypt-openjdk-uber:publishToMavenLocal -Dorg.conscrypt.openjdk.buildUberJar=true -Dmaven.repo.local="$M2_REPO"
 
       - name: Upload Maven respository
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: m2repo-uber
           path: ${{ runner.temp }}/m2
@@ -307,7 +307,7 @@ jobs:
 
       - name: Archive test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.platform }}-${{ matrix.java }}
           path: results
