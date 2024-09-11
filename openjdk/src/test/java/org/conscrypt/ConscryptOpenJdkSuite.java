@@ -18,8 +18,8 @@ package org.conscrypt;
 
 import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
 
-import org.conscrypt.ct.CTVerifierTest;
 import org.conscrypt.ct.SerializationTest;
+import org.conscrypt.ct.VerifierTest;
 import org.conscrypt.java.security.AlgorithmParameterGeneratorTestDH;
 import org.conscrypt.java.security.AlgorithmParameterGeneratorTestDSA;
 import org.conscrypt.java.security.AlgorithmParametersPSSTest;
@@ -111,7 +111,7 @@ import org.junit.runners.Suite;
         TestSessionBuilderTest.class,
         TrustManagerImplTest.class,
         // org.conscrypt.ct tests
-        CTVerifierTest.class,
+        VerifierTest.class,
         SerializationTest.class,
         // java.security tests
         CertificateFactoryTest.class,

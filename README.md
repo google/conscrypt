@@ -28,8 +28,8 @@ similar performance.
 
 Download
 -------------
-Conscrypt supports **Java 7** or later on OpenJDK and **Gingerbread (API Level
-9)** or later on Android.  The build artifacts are available on Maven Central.
+Conscrypt supports **Java 8** or later on OpenJDK and **KitKat (API Level
+19)** or later on Android.  The build artifacts are available on Maven Central.
 
 ### Download JARs
 You can download

@@ -19,7 +19,7 @@ package org.conscrypt.ct;
 import org.conscrypt.Internal;
 
 @Internal
-public class CTConstants {
+public class Constants {
     public static final String X509_SCT_LIST_OID = "1.3.6.1.4.1.11129.2.4.2";
     public static final String OCSP_SCT_LIST_OID = "1.3.6.1.4.1.11129.2.4.5";
 
@@ -41,4 +41,3 @@ public class CTConstants {
 
     public static final int ISSUER_KEY_HASH_LENGTH = 32;
 }
-

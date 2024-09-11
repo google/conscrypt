@@ -172,6 +172,10 @@ public final class StandardNames {
             SSL_CONTEXT_PROTOCOLS_DEPRECATED.add("TLSv1");
             SSL_CONTEXT_PROTOCOLS_DEPRECATED.add("TLSv1.1");
         }
+        if (!TestUtils.isTlsV1Supported()) {
+            assertTrue("Can't have this without that", TestUtils.isTlsV1Deprecated());
+            SSL_CONTEXT_PROTOCOLS.removeAll(SSL_CONTEXT_PROTOCOLS_DEPRECATED);
+        }
     }
 
     public static final Set<String> KEY_TYPES = new HashSet<String>(
