@@ -91,7 +91,7 @@ jobs:
           choco install ninja -y
 
       - name: Fetch BoringSSL source
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4.1.8
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
@@ -208,7 +208,7 @@ jobs:
           echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
 
       - name: Fetch BoringSSL source
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4.1.8
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
@@ -224,19 +224,19 @@ jobs:
           mkdir -p "${{ runner.temp }}/boringssl/include"
 
       - name: Download Maven repository for Linux
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4.1.8
         with:
           name: m2repo-Linux
           path: ${{ runner.temp }}/m2
 
       - name: Download Maven repository for MacOS
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4.1.8
         with:
           name: m2repo-macOS
           path: ${{ runner.temp }}/m2
 
       - name: Download Maven repository for Windows
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4.1.8
         with:
           name: m2repo-Windows
           path: ${{ runner.temp }}/m2
@@ -282,13 +282,13 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Download UberJAR
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4.1.8
         with:
           name: m2repo-uber
           path: m2
 
       - name: Download Test JAR with Dependencies
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4.1.8
         with:
           name: testjar
           path: testjar
