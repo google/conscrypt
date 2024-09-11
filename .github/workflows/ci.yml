@@ -19,10 +19,13 @@ jobs:
           echo Using BoringSSL commit: $(cd "${{ runner.temp }}/boringssl"; git rev-parse HEAD)
 
       - name: Archive BoringSSL source
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
+          retention-days: 1
+          include-hidden-files: true
+          if-no-files-found: error
 
   build:
     needs: boringssl_clone
@@ -91,7 +94,7 @@ jobs:
           choco install ninja -y
 
       - name: Fetch BoringSSL source
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
@@ -175,7 +178,7 @@ jobs:
         run: ./gradlew publishToMavenLocal -Dmaven.repo.local="$M2_REPO"
 
       - name: Upload Maven respository
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: m2repo-${{ runner.os }}
           path: ${{ runner.temp }}/m2
@@ -187,7 +190,7 @@ jobs:
 
       - name: Upload test JAR with dependencies
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: testjar
           path: openjdk/build/libs/conscrypt-openjdk-*-tests.jar
@@ -208,7 +211,7 @@ jobs:
           echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
 
       - name: Fetch BoringSSL source
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
@@ -224,19 +227,19 @@ jobs:
           mkdir -p "${{ runner.temp }}/boringssl/include"
 
       - name: Download Maven repository for Linux
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: m2repo-Linux
           path: ${{ runner.temp }}/m2
 
       - name: Download Maven repository for MacOS
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: m2repo-macOS
           path: ${{ runner.temp }}/m2
 
       - name: Download Maven repository for Windows
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: m2repo-Windows
           path: ${{ runner.temp }}/m2
@@ -252,7 +255,7 @@ jobs:
           ./gradlew :conscrypt-openjdk-uber:publishToMavenLocal -Dorg.conscrypt.openjdk.buildUberJar=true -Dmaven.repo.local="$M2_REPO"
 
       - name: Upload Maven respository
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: m2repo-uber
           path: ${{ runner.temp }}/m2
@@ -282,13 +285,13 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Download UberJAR
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: m2repo-uber
           path: m2
 
       - name: Download Test JAR with Dependencies
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: testjar
           path: testjar
@@ -307,7 +310,7 @@ jobs:
 
       - name: Archive test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.platform }}-${{ matrix.java }}
           path: results
