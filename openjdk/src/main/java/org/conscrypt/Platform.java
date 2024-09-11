@@ -80,7 +80,6 @@ import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 import org.conscrypt.ct.CTLogStore;
 import org.conscrypt.ct.CTPolicy;
-import sun.security.x509.AlgorithmId;
 
 /**
  * Platform-specific methods for OpenJDK.
@@ -539,13 +538,26 @@ final class Platform {
     @SuppressWarnings("unused")
     static String oidToAlgorithmName(String oid) {
         try {
-            return AlgorithmId.get(oid).getName();
-        } catch (Exception e) {
-            return oid;
-        } catch (IllegalAccessError e) {
-            // This can happen under JPMS because AlgorithmId isn't exported by java.base
-            return oid;
+            Class<?> algorithmIdClass = Class.forName("sun.security.x509.AlgorithmId");
+            Method getMethod = algorithmIdClass.getDeclaredMethod("get", String.class);
+            getMethod.setAccessible(true);
+            Method getNameMethod = algorithmIdClass.getDeclaredMethod("getName");
+            getNameMethod.setAccessible(true);
+
+            Object algIdObj = getMethod.invoke(null, oid);
+            return (String) getNameMethod.invoke(algIdObj);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw(RuntimeException) cause;
+            } else if (cause instanceof Error) {
+                throw(Error) cause;
+            }
+            throw new RuntimeException(e);
+        } catch (Exception ignored) {
+            //Ignored
         }
+        return oid;
     }
 
     /*

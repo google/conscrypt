@@ -1,0 +1,147 @@
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.2;
+    color: #333;
+    /* max-width: 800px; */
+    margin: 0 auto;
+    padding: 10px;
+}
+.method {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 20px;
+}
+.body h3 {
+    font-size: 24px;
+    underline: true
+}
+.method-name {
+    color: #2c3e50;
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+.method-signature .class-signature {
+    background-color: #f7f9fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 3px;
+    padding: 12px;
+    font-family: monospace;
+    font-size: 14px;
+    overflow-x: auto;
+}
+.description {
+    margin: 15px 0;
+    padding: 10px;
+    background-color: #f8f8f8;
+}
+.params {
+    margin-top: 20px;
+}
+.params h5 {
+    color: #2c3e50;
+    font-size: 16px;
+}
+.params-table {
+    border-collapse: collapse;
+}
+.params-table th, .params-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+.params-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+.params-table tr:nth-child(even) {
+    background-color: #f8f8f8;
+}
+.constructor {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 20px;
+}
+.constructor-name {
+    color: #2c3e50;
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+.constructor-signature {
+    background-color: #f7f9fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 3px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 14px;
+    overflow-x: auto;
+}
+/* Index page styles */
+.index-container {
+    margin: 0 auto;
+    padding: 20px;
+}
+.index-title {
+    color: #2c3e50;
+    font-size: 32px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+}
+.package-section {
+    margin-bottom: 30px;
+}
+.package-name {
+    color: #2c3e50;
+    font-size: 12px;
+    margin-bottom: 10px;
+    padding: 10px;
+}
+.class-list {
+    list-style-type: none;
+    padding-left: 20px;
+}
+.class-list li {
+    margin-bottom: 5px;
+}
+.class-list a {
+    color: #3498db;
+    text-decoration: none;
+}
+.class-list a:hover {
+    text-decoration: underline;
+}
+.header {
+    font-size: 28px;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.class-description {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.class-description p {
+    margin-bottom: 10px;
+}
+
+.class-description code {
+    background-color: #e9ecef;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.package-name {
+    font-family: monospace;
+    font-size: 14px;
+    color: #6c757d;
+    background-color: #f1f3f5;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    display: inline-block;
+}

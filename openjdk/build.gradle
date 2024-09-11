@@ -129,7 +129,6 @@ ext {
 }
 
 sourceSets {
-
     main {
         java {
             srcDirs += "${rootDir}/common/src/main/java"
@@ -346,9 +345,17 @@ jacocoTestReport {
 
 javadoc {
     dependsOn(configurations.publicApiDocs)
-    // TODO(prb): Update doclet to Java 11.
-    // options.doclet = "org.conscrypt.doclet.FilterDoclet"
-    // options.docletpath = configurations.publicApiDocs.files as List
+    options.showFromPublic()
+    options.doclet = "org.conscrypt.doclet.FilterDoclet"
+    options.docletpath = configurations.publicApiDocs.files as List
+    failOnError false
+
+    doLast {
+        copy {
+            from "$rootDir/api-doclet/src/main/resources/styles.css"
+            into "$buildDir/docs/javadoc"
+        }
+    }
 }
 
 def jniIncludeDir() {
