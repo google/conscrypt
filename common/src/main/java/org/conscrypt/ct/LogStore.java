@@ -16,11 +16,24 @@
 
 package org.conscrypt.ct;
 
-import java.security.cert.X509Certificate;
 import org.conscrypt.Internal;
 
 @Internal
-public interface CTPolicy {
-    boolean doesResultConformToPolicy(CTVerificationResult result, String hostname,
-            X509Certificate[] chain);
+public interface LogStore {
+    public enum State {
+        UNINITIALIZED,
+        NOT_FOUND,
+        MALFORMED,
+        LOADED,
+        COMPLIANT,
+        NON_COMPLIANT,
+    }
+
+    void setPolicy(Policy policy);
+
+    State getState();
+
+    long getTimestamp();
+
+    LogInfo getKnownLog(byte[] logId);
 }

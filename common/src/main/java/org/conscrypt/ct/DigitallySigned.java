@@ -107,10 +107,9 @@ public class DigitallySigned {
         throws SerializationException {
         try {
             return new DigitallySigned(
-                Serialization.readNumber(input, CTConstants.HASH_ALGORITHM_LENGTH),
-                Serialization.readNumber(input, CTConstants.SIGNATURE_ALGORITHM_LENGTH),
-                Serialization.readVariableBytes(input, CTConstants.SIGNATURE_LENGTH_BYTES)
-            );
+                    Serialization.readNumber(input, Constants.HASH_ALGORITHM_LENGTH),
+                    Serialization.readNumber(input, Constants.SIGNATURE_ALGORITHM_LENGTH),
+                    Serialization.readVariableBytes(input, Constants.SIGNATURE_LENGTH_BYTES));
         } catch (IllegalArgumentException e) {
             throw new SerializationException(e);
         }
