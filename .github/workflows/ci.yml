@@ -24,6 +24,8 @@ jobs:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
           retention-days: 1
+          include-hidden-files: true
+          if-no-files-found: error
 
   build:
     needs: boringssl_clone
