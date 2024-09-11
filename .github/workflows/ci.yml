@@ -23,7 +23,7 @@ jobs:
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
-		  retention-days: 1
+          retention-days: 1
 
   build:
     needs: boringssl_clone
