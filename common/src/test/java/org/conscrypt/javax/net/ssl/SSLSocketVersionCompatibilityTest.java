@@ -16,8 +16,6 @@
 
 package org.conscrypt.javax.net.ssl;
 
-import libcore.junit.util.SwitchTargetSdkVersionRule;
-import libcore.junit.util.SwitchTargetSdkVersionRule.TargetSdkVersion;
 
 import static org.conscrypt.TestUtils.osName;
 import static org.conscrypt.TestUtils.isOsx;
@@ -131,8 +129,8 @@ import tests.util.Pair;
 @RunWith(Parameterized.class)
 public class SSLSocketVersionCompatibilityTest {
 
-    @Rule
-    public TestRule switchTargetSdkVersionRule = SwitchTargetSdkVersionRule.getInstance();
+//    @Rule
+//    public TestRule switchTargetSdkVersionRule = SwitchTargetSdkVersionRule.getInstance();
 
     @Parameterized.Parameters(name = "{index}: {0} client, {1} server")
     public static Iterable<Object[]> data() {
@@ -1949,7 +1947,7 @@ public class SSLSocketVersionCompatibilityTest {
         assertEquals(2, client.getEnabledProtocols().length);
     }
 
-    @TargetSdkVersion(35)
+//  @TargetSdkVersion(35)
     @Test
     public void test_SSLSocket_SSLv3Unsupported_35() throws Exception {
         assumeFalse(isTlsV1Filtered());
@@ -1963,8 +1961,9 @@ public class SSLSocketVersionCompatibilityTest {
         assertThrows(IllegalArgumentException.class, () -> client.setEnabledProtocols(new String[] {"SSL"}));
     }
 
-    @TargetSdkVersion(34)
+//  @TargetSdkVersion(34)
     @Test
+    @Ignore("For platform CTS only")
     public void test_SSLSocket_SSLv3Unsupported_34() throws Exception {
         TestSSLContext context = new TestSSLContext.Builder()
                 .clientProtocol(clientVersion)
@@ -1983,8 +1982,9 @@ public class SSLSocketVersionCompatibilityTest {
         }
     }
 
-    @TargetSdkVersion(34)
+//  @TargetSdkVersion(34)
     @Test
+    @Ignore("For platform CTS only")
     public void test_TLSv1Filtered_34() throws Exception {
         TestSSLContext context = new TestSSLContext.Builder()
                 .clientProtocol(clientVersion)
@@ -1997,10 +1997,10 @@ public class SSLSocketVersionCompatibilityTest {
         assertEquals("TLSv1.2", client.getEnabledProtocols()[0]);
     }
 
-    @TargetSdkVersion(35)
+//  @TargetSdkVersion(35)
     @Test
     public void test_TLSv1Filtered_35() throws Exception {
-        assumeFalse(isTlsV1Filtered());
+        assumeTrue(isTlsV1Filtered());
         TestSSLContext context = new TestSSLContext.Builder()
                 .clientProtocol(clientVersion)
                 .serverProtocol(serverVersion)

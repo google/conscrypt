@@ -80,7 +80,6 @@ import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 import org.conscrypt.ct.LogStore;
 import org.conscrypt.ct.Policy;
-import sun.security.x509.AlgorithmId;
 
 /**
  * Platform-specific methods for OpenJDK.
@@ -820,6 +819,6 @@ final class Platform {
     }
 
     public static boolean isTlsV1Supported() {
-        return false;
+        return true;
     }
 }

@@ -27,6 +27,7 @@ import java.security.UnrecoverableKeyException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import javax.crypto.SecretKey;
 import javax.net.ssl.KeyManager;
@@ -448,14 +449,15 @@ final class SSLParametersImpl implements Cloneable {
      * This filters {@code obsoleteProtocol} from the list of {@code protocols}
      * down to help with app compatibility.
      */
-    private static String[] filterFromProtocols(String[] protocols, String obsoleteProtocol) {
-        if (protocols.length == 1 && obsoleteProtocol.equals(protocols[0])) {
+    private static String[] filterFromProtocols(String[] protocols,
+        List<String> obsoleteProtocols) {
+        if (protocols.length == 1 && obsoleteProtocols.contains(protocols[0])) {
             return EMPTY_STRING_ARRAY;
         }
 
         ArrayList<String> newProtocols = new ArrayList<String>();
         for (String protocol : protocols) {
-            if (!obsoleteProtocol.equals(protocol)) {
+            if (!obsoleteProtocols.contains(protocol)) {
                 newProtocols.add(protocol);
             }
         }
