@@ -140,7 +140,7 @@ jobs:
           & $Env:GITHUB_WORKSPACE\.github\workflows\vsenv.ps1 -arch x64 -hostArch x64
           mkdir build64
           pushd build64
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -GNinja ..
           ninja
           popd
 
