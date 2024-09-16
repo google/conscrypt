@@ -110,8 +110,7 @@ mkdir build64
 cd build64
 cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE ^
       -DCMAKE_BUILD_TYPE=Release ^
-      -DCMAKE_C_FLAGS_RELEASE=/MT ^
-      -DCMAKE_CXX_FLAGS_RELEASE=/MT ^
+      -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
       -GNinja ..
 ninja
 ```
