@@ -23,6 +23,7 @@ import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.conscrypt.metrics.OptionalMethod;
 
 
 @RunWith(JUnit4.class)
@@ -34,7 +35,24 @@ public class MetricsTest {
     public void test_reflexiveEvent() throws Exception {
         TestUtils.assumeStatsLogAvailable();
 
-        StatsEvent frameworkStatsEvent = StatsEvent.newBuilder()
+        Object sdkVersion = getSdkVersion();
+        StatsEvent frameworkStatsEvent;
+        ReflexiveStatsEvent reflexiveStatsEvent;
+        if ((sdkVersion != null) && ((int) sdkVersion > 32)) {
+            frameworkStatsEvent = StatsEvent.newBuilder()
+                                                 .setAtomId(TLS_HANDSHAKE_REPORTED)
+                                                 .writeBoolean(false)
+                                                 .writeInt(1) // protocol
+                                                 .writeInt(2) // cipher suite
+                                                 .writeInt(100) // duration
+                                                 .writeInt(3) // source
+                                                 .writeIntArray(new int[] {0}) // uids
+                                                 .usePooledBuffer()
+                                                 .build();
+            reflexiveStatsEvent = ReflexiveStatsEvent.buildEvent(
+                TLS_HANDSHAKE_REPORTED, false, 1, 2, 100, 3, new int[] {0});
+        } else {
+            frameworkStatsEvent = StatsEvent.newBuilder()
                                                  .setAtomId(TLS_HANDSHAKE_REPORTED)
                                                  .writeBoolean(false)
                                                  .writeInt(1) // protocol
@@ -43,9 +61,10 @@ public class MetricsTest {
                                                  .writeInt(3) // source
                                                  .usePooledBuffer()
                                                  .build();
+            reflexiveStatsEvent = ReflexiveStatsEvent.buildEvent(
+                TLS_HANDSHAKE_REPORTED, false, 1, 2, 100, 3);
+        }
 
-        ReflexiveStatsEvent reflexiveStatsEvent =
-                ReflexiveStatsEvent.buildEvent(TLS_HANDSHAKE_REPORTED, false, 1, 2, 100, 3);
         StatsEvent constructedEvent = (StatsEvent) reflexiveStatsEvent.getStatsEvent();
 
         // TODO(nikitai): Figure out how to use hidden (@hide) getters from StatsEvent
@@ -78,4 +97,16 @@ public class MetricsTest {
             }
         }
     }
+
+    static Object getSdkVersion() {
+        try {
+            OptionalMethod getSdkVersion =
+                    new OptionalMethod(Class.forName("dalvik.system.VMRuntime"),
+                                        "getSdkVersion");
+            return getSdkVersion.invokeStatic();
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+
 }

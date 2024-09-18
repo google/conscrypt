@@ -536,7 +536,8 @@ final class Platform {
         int duration = (int) durationLong;
 
         ConscryptStatsLog.write(ConscryptStatsLog.TLS_HANDSHAKE_REPORTED, success, proto.getId(),
-                suite.getId(), duration, SOURCE_MAINLINE);
+                suite.getId(), duration, SOURCE_MAINLINE,
+                new int[] {Os.getuid()});
     }
 
     public static boolean isJavaxCertificateSupported() {

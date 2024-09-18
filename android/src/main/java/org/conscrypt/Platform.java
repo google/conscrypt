@@ -20,8 +20,10 @@ import static org.conscrypt.metrics.Source.SOURCE_GMS;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.os.Binder;
 import android.os.Build;
 import android.os.SystemClock;
+import android.system.Os;
 import android.util.Log;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
@@ -945,7 +947,7 @@ final class Platform {
     private static void writeStats(
             boolean success, int protocol, int cipherSuite, int duration) {
         ConscryptStatsLog.write(ConscryptStatsLog.TLS_HANDSHAKE_REPORTED, success, protocol,
-                cipherSuite, duration, SOURCE_GMS);
+                cipherSuite, duration, SOURCE_GMS, new int[] {Os.getuid(), Binder.getCallingUid()});
     }
 
     public static boolean isJavaxCertificateSupported() {
