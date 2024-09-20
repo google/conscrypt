@@ -27,93 +27,101 @@ import javax.lang.model.element.VariableElement
 import javax.lang.model.type.TypeMirror
 
 fun Element.isType() = isClass() || isInterface() || isEnum()
+
 fun Element.isClass() = this is TypeElement && kind == ElementKind.CLASS
+
 fun Element.isEnum() = this is TypeElement && kind == ElementKind.ENUM
+
 fun Element.isInterface() = this is TypeElement && kind == ElementKind.INTERFACE
+
 fun Element.isExecutable() = this is ExecutableElement
+
 fun Element.isField() = this is VariableElement
 
 fun Element.isVisibleType() = isType() && isVisible()
+
 fun Element.isVisibleMethod() = isExecutable() && isVisible() && kind == ElementKind.METHOD
-fun Element.isVisibleConstructor() = isExecutable() && isVisible() && kind == ElementKind.CONSTRUCTOR
+
+fun Element.isVisibleConstructor() =
+  isExecutable() && isVisible() && kind == ElementKind.CONSTRUCTOR
+
 fun Element.isVisibleField() = isField() && isVisible()
+
 fun Element.isPublic() = modifiers.contains(Modifier.PUBLIC)
+
 fun Element.isPrivate() = !isPublic() // Ignore protected for now :)
+
 fun Element.isHidden() = isPrivate() || hasHideMarker() || parentIsHidden()
+
 fun Element.isVisible() = !isHidden()
+
 fun Element.hasHideMarker() = hasAnnotation("org.conscrypt.Internal") || hasHideTag()
-fun Element.children(filterFunction: (Element) -> Boolean) = enclosedElements
-    .filter(filterFunction)
-    .toList()
 
-fun Element.parentIsHidden(): Boolean
-        = if (enclosingElement.isType()) enclosingElement.isHidden() else false
+fun Element.children(filterFunction: (Element) -> Boolean) =
+  enclosedElements.filter(filterFunction).toList()
 
-fun Element.hasAnnotation(annotationName: String): Boolean = annotationMirrors
-    .map { it.annotationType.toString() }
-    .any { it == annotationName }
+fun Element.parentIsHidden(): Boolean =
+  if (enclosingElement.isType()) enclosingElement.isHidden() else false
 
+fun Element.hasAnnotation(annotationName: String): Boolean =
+  annotationMirrors.map { it.annotationType.toString() }.any { it == annotationName }
 
 fun Element.hasHideTag(): Boolean {
-    return docTree()?.blockTags?.any {
-        tag -> tag is UnknownBlockTagTree && tag.tagName == "hide"
-    } ?: false
+  return docTree()?.blockTags?.any { tag -> tag is UnknownBlockTagTree && tag.tagName == "hide" }
+    ?: false
 }
 
 fun ExecutableElement.isConstructor() = kind == ElementKind.CONSTRUCTOR
+
 fun ExecutableElement.name() = if (isConstructor()) parentName() else simpleName.toString()
+
 fun ExecutableElement.parentName() = enclosingElement.simpleName.toString()
 
 fun ExecutableElement.methodSignature(): String {
-    val modifiers = modifiers.joinToString(" ")
-    val returnType = if (isConstructor()) "" else "${formatType(returnType)} "
+  val modifiers = modifiers.joinToString(" ")
+  val returnType = if (isConstructor()) "" else "${formatType(returnType)} "
 
-    val typeParams = typeParameters.takeIf { it.isNotEmpty() }
-        ?.joinToString(separator = ", ", prefix = "<", postfix = ">") {
-            it.asType().toString() } ?: ""
+  val typeParams =
+    typeParameters
+      .takeIf { it.isNotEmpty() }
+      ?.joinToString(separator = ", ", prefix = "<", postfix = ">") { it.asType().toString() } ?: ""
 
-    val parameters = parameters.joinToString(", ") { param ->
-        "${formatType(param.asType())} ${param.simpleName}"
-    }
+  val parameters =
+    parameters.joinToString(", ") { param -> "${formatType(param.asType())} ${param.simpleName}" }
 
-    val exceptions = thrownTypes
-        .joinToString(", ")
-        .prefixIfNotEmpty(" throws ")
-    return "$modifiers $typeParams$returnType${simpleName}($parameters)$exceptions"
+  val exceptions = thrownTypes.joinToString(", ").prefixIfNotEmpty(" throws ")
+  return "$modifiers $typeParams$returnType${simpleName}($parameters)$exceptions"
 }
 
 fun formatType(typeMirror: TypeMirror): String {
-    return if (typeMirror.kind.isPrimitive) {
-        typeMirror.toString()
-    } else {
-        typeMirror.toString()
-            .split('.')
-            .last()
-    }
+  return if (typeMirror.kind.isPrimitive) {
+    typeMirror.toString()
+  } else {
+    typeMirror.toString().split('.').last()
+  }
 }
 
 fun TypeElement.signature(): String {
-    val modifiers = modifiers.joinToString(" ")
-    val kind = this.kind.toString().lowercase(Locale.getDefault())
+  val modifiers = modifiers.joinToString(" ")
+  val kind = this.kind.toString().lowercase(Locale.getDefault())
 
-    val superName = superDisplayName(superclass)
+  val superName = superDisplayName(superclass)
 
-    val interfaces = interfaces
-        .joinToString(", ")
-        .prefixIfNotEmpty(" implements ")
+  val interfaces = interfaces.joinToString(", ").prefixIfNotEmpty(" implements ")
 
-    return "$modifiers $kind $simpleName$superName$interfaces"
+  return "$modifiers $kind $simpleName$superName$interfaces"
 }
 
 fun superDisplayName(mirror: TypeMirror): String {
-    return when (mirror.toString()) {
-        "none", "java.lang.Object" -> ""
-        else -> " extends $mirror "
-    }
+  return when (mirror.toString()) {
+    "none",
+    "java.lang.Object" -> ""
+    else -> " extends $mirror "
+  }
 }
 
-private fun String.prefixIfNotEmpty(prefix: String): String
-        = if (isNotEmpty()) prefix + this else this
+private fun String.prefixIfNotEmpty(prefix: String): String =
+  if (isNotEmpty()) prefix + this else this
 
-private fun String.suffixIfNotEmpty(prefix: String): String
-        = if (isNotEmpty()) this + prefix else this
+private fun String.suffixIfNotEmpty(prefix: String): String =
+  if (isNotEmpty()) this + prefix else this

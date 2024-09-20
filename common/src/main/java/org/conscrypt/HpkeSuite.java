@@ -238,7 +238,7 @@ public final class HpkeSuite {
          *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-key-derivation-functions-kd">KDF
          *         ids</a>
          */
-        int getId() {
+        public int getId() {
             return id;
         }
 
@@ -247,7 +247,7 @@ public final class HpkeSuite {
          *
          * @return extract output size in bytes
          */
-        int getMacLength() {
+        public int getMacLength() {
             return hLength;
         }
         @Deprecated // Use getMacLength
