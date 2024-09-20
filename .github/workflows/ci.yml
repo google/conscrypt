@@ -36,11 +36,11 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
         include:
           - platform: ubuntu-latest
-            tools_url: https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+            tools_url: https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           - platform: macos-latest
-            tools_url: https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
+            tools_url: https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip
           - platform: windows-latest
-            tools_url: https://dl.google.com/android/repository/commandlinetools-win-9477386_latest.zip
+            tools_url: https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip
 
     runs-on: ${{ matrix.platform }}
 
@@ -267,13 +267,15 @@ jobs:
       fail-fast: false
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
-        java: [8, 9, 11]
+        java: [8, 9, 11, 21]
         include:
           - java: 8
             suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
           - java: 9
             suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
           - java: 11
+            suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
+          - java: 21
             suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
 
     runs-on: ${{ matrix.platform }}
