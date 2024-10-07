@@ -103,11 +103,11 @@ class FilterDoclet : Doclet {
     private fun generateClassFile(classInfo: ClassInfo) {
         val classFilePath = outputPath.resolve(classInfo.fileName)
         Files.createDirectories(classFilePath.parent)
-        val simpleName = classInfo.simpleName
+        val name = classInfo.innerName()
 
         html {
             body(
-                title = "$simpleName - conscrypt-openjdk API",
+                title = "$name - Conscrypt API",
                 stylesheet = relativePath(classFilePath, cssPath),
             ) {
                 compose {
