@@ -23,6 +23,7 @@ import java.net.Socket;
  * A {@link javax.net.ssl.SSLSocketFactory} which creates unbundled conscrypt SSLSockets and wraps
  * them into KitKat (and newer) platform SSLSockets.
  */
+@Internal
 public class KitKatPlatformOpenSSLSocketAdapterFactory extends BaseOpenSSLSocketAdapterFactory {
 
     public KitKatPlatformOpenSSLSocketAdapterFactory(OpenSSLSocketFactoryImpl delegate) {

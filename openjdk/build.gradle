@@ -183,7 +183,7 @@ tasks.register("platformJar", Jar) {
 }
 
 tasks.register("testJar", ShadowJar) {
-    classifier = 'tests'
+    archiveClassifier = 'tests'
     configurations = [project.configurations.testRuntimeClasspath]
     from sourceSets.test.output
 }
@@ -344,10 +344,14 @@ jacocoTestReport {
 }
 
 javadoc {
-    dependsOn(configurations.publicApiDocs)
-    options.showFromPublic()
-    options.doclet = "org.conscrypt.doclet.FilterDoclet"
-    options.docletpath = configurations.publicApiDocs.files as List
+    dependsOn configurations.publicApiDocs
+    options {
+        showFromPublic()
+        encoding = 'UTF-8'
+        doclet = 'org.conscrypt.doclet.FilterDoclet'
+        links = ['https://docs.oracle.com/en/java/javase/21/docs/api/java.base/']
+        docletpath = configurations.publicApiDocs.files as List
+    }
     failOnError false
 
     doLast {
