@@ -2,7 +2,6 @@ body {
     font-family: Arial, sans-serif;
     line-height: 1.2;
     color: #333;
-    /* max-width: 800px; */
     margin: 0 auto;
     padding: 10px;
 }
@@ -75,7 +74,6 @@ body {
     font-size: 14px;
     overflow-x: auto;
 }
-/* Index page styles */
 .index-container {
     margin: 0 auto;
     padding: 20px;
@@ -115,7 +113,6 @@ body {
     color: #2c3e50;
     margin-bottom: 20px;
 }
-
 .class-description {
     margin: 20px 0;
     padding: 15px;
@@ -123,18 +120,15 @@ body {
     font-size: 16px;
     line-height: 1.6;
 }
-
 .class-description p {
     margin-bottom: 10px;
 }
-
 .class-description code {
     background-color: #e9ecef;
     padding: 2px 4px;
     border-radius: 4px;
     font-family: monospace;
 }
-
 .package-name {
     font-family: monospace;
     font-size: 14px;
