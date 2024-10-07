@@ -25,33 +25,42 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.Locale
 import javax.lang.model.SourceVersion
+import javax.lang.model.element.Element
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
 
+/**
+ * A Doclet which can filter out internal APIs in various ways and then render the results
+ * as HTML.
+ *
+ * See also: The Element.isFiltered extension function below to see what is filtered.
+ */
 class FilterDoclet : Doclet {
     companion object {
         lateinit var docTrees: DocTrees
         lateinit var elementUtils: Elements
         lateinit var typeUtils: Types
         lateinit var outputPath: Path
+        lateinit var cssPath: Path
         var baseUrl: String = "https://docs.oracle.com/javase/8/docs/api/"
-        val CSS_FILENAME = "styles.css"
+        const val CSS_FILENAME = "styles.css"
         var outputDir = "."
-        var docTitle = "DTITLE"
-        var windowTitle = "WTITLE"
+        var docTitle = "DOC TITLE"
+        var windowTitle = "WINDOW TITLE"
         var noTimestamp: Boolean = false
         val classIndex = ClassIndex()
     }
 
     override fun init(locale: Locale?, reporter: Reporter?) = Unit // TODO
     override fun getName() = "FilterDoclet"
-    override fun getSupportedSourceVersion() = SourceVersion.latest()
+    override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.latest()
 
     override fun run(environment: DocletEnvironment): Boolean {
         docTrees = environment.docTrees
         elementUtils = environment.elementUtils
         typeUtils = environment.typeUtils
         outputPath = Paths.get(outputDir)
+        cssPath = outputPath.resolve(CSS_FILENAME)
         Files.createDirectories(outputPath)
 
         classIndex.addVisible(environment.includedElements)
@@ -75,7 +84,7 @@ class FilterDoclet : Doclet {
         html {
             body(
                 title = docTitle,
-                stylesheet = relativePath(indexPath, CSS_FILENAME),
+                stylesheet = relativePath(indexPath, cssPath),
             ) {
                 div("index-container") {
                     h1(docTitle, "index-title")
@@ -99,7 +108,7 @@ class FilterDoclet : Doclet {
         html {
             body(
                 title = "$simpleName - conscrypt-openjdk API",
-                stylesheet = relativePath(classFilePath, CSS_FILENAME),
+                stylesheet = relativePath(classFilePath, cssPath),
             ) {
                 compose {
                     classInfo.generateHtml()
@@ -112,17 +121,7 @@ class FilterDoclet : Doclet {
         }
     }
 
-    private fun relativePath(from: Path, to: String): String {
-        val fromDir = from.parent
-        val toPath = Paths.get(outputDir).resolve(to)
-
-        if (fromDir == null) {
-            return to
-        }
-
-        val relativePath = fromDir.relativize(toPath)
-        return relativePath.toString().replace('\\', '/')
-    }
+    private fun relativePath(from: Path, to: Path) = from.parent.relativize(to).toString()
 
     override fun getSupportedOptions(): Set<Doclet.Option> {
         return setOf<Doclet.Option>(
@@ -152,3 +151,7 @@ class FilterDoclet : Doclet {
             ) { noTimestamp = true })
     }
 }
+
+// Called to determine whether to filter each public API element.
+fun Element.isFiltered() =
+        hasJavadocTag("hide") || hasAnnotation("org.conscrypt.Internal")
