@@ -41,6 +41,7 @@ import javax.net.ssl.SSLSession;
  * It delegates all public methods in Socket, SSLSocket, and OpenSSLSocket from
  * KK.
  */
+@Internal
 public class KitKatPlatformOpenSSLSocketImplAdapter
         extends com.android.org.conscrypt.OpenSSLSocketImpl {
 

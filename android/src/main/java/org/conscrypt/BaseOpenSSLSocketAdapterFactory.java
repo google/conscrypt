@@ -22,6 +22,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import javax.net.ssl.SSLSocketFactory;
 
+@Internal
 public abstract class BaseOpenSSLSocketAdapterFactory extends SSLSocketFactory {
 
     private final OpenSSLSocketFactoryImpl delegate;
