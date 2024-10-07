@@ -16,6 +16,13 @@
 package org.conscrypt.metrics;
 
 import org.conscrypt.Internal;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.lang.Thread.UncaughtExceptionHandler;
 
 /**
  * Reimplement with reflection calls the logging class,
@@ -35,13 +42,36 @@ import org.conscrypt.Internal;
 public final class ConscryptStatsLog {
     public static final int TLS_HANDSHAKE_REPORTED = 317;
 
+    private static final ExecutorService e =
+        Executors.newSingleThreadExecutor(
+                        new ThreadFactory() {
+                            @Override
+                            public Thread newThread(Runnable r) {
+                                Thread thread = new Thread(r);
+                                thread.setUncaughtExceptionHandler(
+                                    new UncaughtExceptionHandler() {
+                                        @Override
+                                        public void uncaughtException(Thread t, Throwable e) {
+                                           // Ignore
+                                        }
+                                    });
+                                return thread;
+                            }
+                        });
+
     private ConscryptStatsLog() {}
 
     public static void write(int atomId, boolean success, int protocol, int cipherSuite,
             int duration, Source source, int[] uids) {
-        ReflexiveStatsEvent event = ReflexiveStatsEvent.buildEvent(
-                atomId, success, protocol, cipherSuite, duration, source.ordinal(), uids);
+        e.execute(new Runnable() {
+            @Override
+            public void run() {
+                ReflexiveStatsEvent event = ReflexiveStatsEvent.buildEvent(
+                        atomId, success, protocol, cipherSuite, duration,
+                        source.ordinal(), uids);
 
-        ReflexiveStatsLog.write(event);
+                ReflexiveStatsLog.write(event);
+            }
+        });
     }
 }
