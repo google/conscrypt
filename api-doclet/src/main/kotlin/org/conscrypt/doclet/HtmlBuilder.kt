@@ -43,13 +43,21 @@ class HtmlBuilder {
     }
 
     private fun tagBlock(
-        tag: String, cssClass: String? = null, colspan: Int? = null, id: String? = null, block: Block)
+        tag: String,
+        cssClass: String? = null,
+        colspan: Int? = null,
+        id: String? = null,
+        block: Block,
+        inline: Boolean? = false)
     {
-        content.append("\n<$tag")
+        content.append("<$tag")
         cssClass?.let { content.append(""" class="$it"""") }
         colspan?.let { content.append(""" colspan="$it"""") }
         id?.let { content.append(""" id="$it"""") }
         content.append(">")
+        if(inline == false) {
+            content.append("\n")
+        }
         content.append(block.render())
         content.append("</$tag>\n")
     }
@@ -65,28 +73,35 @@ class HtmlBuilder {
     fun tr(cssClass: String? = null, id: String? = null, block: Block) =
         tagBlock("tr", cssClass = cssClass, colspan = null, id, block)
     fun th(cssClass: String? = null, colspan: Int? = null, id: String? = null, block: Block) =
-        tagBlock("th", cssClass, colspan, id, block)
+        tagBlock("th", cssClass, colspan, id, block, true)
     fun td(cssClass: String? = null, colspan: Int? = null, id: String? = null, block: Block) =
-        tagBlock("td", cssClass, colspan, id, block)
+        tagBlock("td", cssClass, colspan, id, block, true)
 
-    private fun tagValue(tag: String, value: String, cssClass: String? = null) {
+    private fun tagValue(tag: String, value: String, cssClass: String? = null, id: String? = null) {
         val classText = cssClass?.let { """ class="$it"""" } ?: ""
-        content.append("<$tag$classText>$value</$tag>\n")
+        val idText = id?.let { """ id="$it"""" } ?: ""
+        content.append("<$tag$classText$idText>$value</$tag>")
     }
 
-    fun h1(heading: String, cssClass: String? = null) = tagValue("h1", heading, cssClass)
+    private fun tagValueNl(tag: String, value: String, cssClass: String? = null) {
+        tagValue(tag, value, cssClass)
+        content.append("\n")
+    }
+
+    fun h1(heading: String, cssClass: String? = null) = tagValueNl("h1", heading, cssClass)
     fun h1(cssClass: String? = null, block: Block) = h1(block.render(), cssClass)
-    fun h2(heading: String, cssClass: String? = null) = tagValue("h2", heading, cssClass)
+    fun h2(heading: String, cssClass: String? = null) = tagValueNl("h2", heading, cssClass)
     fun h2(cssClass: String? = null, block: Block) = h2(block.render(), cssClass)
-    fun h3(heading: String, cssClass: String? = null) = tagValue("h3", heading, cssClass)
+    fun h3(heading: String, cssClass: String? = null) = tagValueNl("h3", heading, cssClass)
     fun h3(cssClass: String? = null, block: Block) = h2(block.render(), cssClass)
-    fun h4(heading: String, cssClass: String? = null) = tagValue("h4", heading, cssClass)
+    fun h4(heading: String, cssClass: String? = null) = tagValueNl("h4", heading, cssClass)
     fun h4(cssClass: String? = null, block: Block) = h2(block.render(), cssClass)
-    fun h5(heading: String, cssClass: String? = null) = tagValue("h5", heading, cssClass)
+    fun h5(heading: String, cssClass: String? = null) = tagValueNl("h5", heading, cssClass)
     fun h5(cssClass: String? = null, block: Block) = h2(block.render(), cssClass)
 
-    fun p(text: String, cssClass: String? = null) = tagValue("p", text, cssClass)
+    fun p(text: String, cssClass: String? = null) = tagValueNl("p", text, cssClass)
     fun p(cssClass: String? = null, block: Block) = p(block.render(), cssClass)
+
     fun b(text: String, cssClass: String? = null) = tagValue("b", text, cssClass)
     fun b(cssClass: String? = null, block: Block) = b(block.render(), cssClass)
     fun pre(text: String, cssClass: String? = null) = tagValue("pre", text, cssClass)
@@ -103,7 +118,7 @@ class HtmlBuilder {
     fun a(href: String, block: Block) = a(href, block.render())
     fun a(href: String) = a(href, href)
 
-    fun li(text: String, cssClass: String? = null) = tagValue("li", text, cssClass)
+    fun li(text: String, cssClass: String? = null) = tagValueNl("li", text, cssClass)
     fun li(cssClass: String? = null, block: Block) = li(block.render(), cssClass)
 
     fun <T> items(collection: Iterable<T>, cssClass: String? = null,
@@ -145,7 +160,7 @@ fun html(block: Block) = block.render()
 fun exampleSubfunction() = html {
     h1("Headings from exampleSubfunction")
     listOf("one", "two", "three").forEach {
-        h1(it)
+        h2(it)
     }
 }
 
@@ -224,56 +239,56 @@ fun example() = html {
                 text("Item $it")
             }
         }
-    }
-    val data1 = listOf(1, 2)
-    val data2 = "3" to "4"
-    val data3 = listOf(
-        "tag1" to "Some value",
-        "tag2" to "Next Value",
-        "tag3" to "Another value"
-    )
+        val data1 = listOf(1, 2)
+        val data2 = "3" to "4"
+        val data3 = listOf(
+            "key1" to "Some value",
+            "key2" to "Next Value",
+            "key3" to "Another value"
+        )
 
-    table("table-class") {
-        tr {
-            th {
-                text("First column")
-            }
-            th {
-                text("Second column")
+        table(cssClass = "table-class", id = "tableId") {
+            tr {
+                th {
+                    text("First column")
+                }
+                th {
+                    text("Second column")
 
+                }
             }
-        }
-        tr("tr-class") {
-            td("td-class") {
-                text("Data 1")
-            }
-            td(colspan = 2, id = "foo") {
+            tr("tr-class") {
+                td("td-class") {
+                    text("Data 1")
+                }
+                td(colspan = 2, id = "foo") {
                     text("Data 2")
+                }
             }
-        }
-        tr {
-            td() {
-                text("Data 3")
+            tr {
+                td() {
+                    text("Data 3")
+                }
             }
-        }
-        row(data1, "c1") {
-            a(href="www.google.com") { text("$it") }
-        }
-        row(data2) { p:Pair<String, String> ->
-            td {
-                text(p.first)
+            row(data1, "c1") {
+                a(href = "www.google.com") { text("$it") }
             }
-            td {
-                text(p.second)
-            }
+            row(data2) { p: Pair<String, String> ->
+                td {
+                    text(p.first)
+                }
+                td {
+                    text(p.second)
+                }
 
-        }
-        rowGroup(data3, title = "Row Group", colspan=2) { p: Pair<String, String> ->
-            td {
-                text(p.first)
             }
-            td {
-                text(p.second)
+            rowGroup(data3, title = "Row Group", colspan = 2) { p: Pair<String, String> ->
+                td {
+                    text(p.first)
+                }
+                td {
+                    text(p.second)
+                }
             }
         }
     }

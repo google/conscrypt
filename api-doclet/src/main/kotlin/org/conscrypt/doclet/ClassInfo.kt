@@ -16,6 +16,8 @@
 
 package org.conscrypt.doclet
 
+import org.conscrypt.doclet.FilterDoclet.Companion.classIndex
+import java.nio.file.Paths
 import javax.lang.model.element.Element
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
@@ -25,7 +27,14 @@ data class ClassInfo(val element: TypeElement) : Comparable<ClassInfo> {
     val simpleName = element.simpleName.toString()
     val qualifiedName = element.qualifiedName.toString()
     val packageName = FilterDoclet.elementUtils.getPackageOf(element).qualifiedName.toString()
-    val fileName = qualifiedName.replace('.', '/') + ".html"
+    val fileName = element.baseFileName() + ".html"
+    val isInnerClass = element.enclosingElement.isType()
+
+    fun innerClasses() = element.enclosedElements
+        .filterIsInstance<TypeElement>()
+        .filter(TypeElement::isType)
+        .map(classIndex::get)
+        .sorted()
 
     override fun compareTo(other: ClassInfo) = qualifiedName.compareTo(other.qualifiedName)
 
@@ -57,8 +66,13 @@ data class ClassInfo(val element: TypeElement) : Comparable<ClassInfo> {
         nested.takeIf { it.isNotEmpty() }?.let {
             h2("Nested Classes")
             nested.forEach { cls ->
+                val typeElement = cls as TypeElement
+                val info = classIndex.get(typeElement)
+                val parent = classIndex.getParent(typeElement)
                 div("member") {
-                    h4(cls.simpleName.toString())
+                    h4 {
+                        a(relativePath(parent.fileName, info.fileName), info.simpleName)
+                    }
                     compose {
                         cls.commentsAndTagTrees()
                     }
@@ -132,5 +146,9 @@ data class ClassInfo(val element: TypeElement) : Comparable<ClassInfo> {
                     nestedClasses()
         }
     }
+
+    private fun relativePath(from: String, to: String) =
+        Paths.get(from).parent.relativize(Paths.get(to)).toString()
+
 }
 

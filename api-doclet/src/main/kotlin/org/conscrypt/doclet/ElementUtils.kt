@@ -39,9 +39,8 @@ fun Element.isVisibleConstructor() = isExecutable() && isVisible() && kind == El
 fun Element.isVisibleField() = isField() && isVisible()
 fun Element.isPublic() = modifiers.contains(Modifier.PUBLIC)
 fun Element.isPrivate() = !isPublic() // Ignore protected for now :)
-fun Element.isHidden() = isPrivate() || hasHideMarker() || parentIsHidden()
 fun Element.isVisible() = !isHidden()
-fun Element.hasHideMarker() = hasAnnotation("org.conscrypt.Internal") || hasHideTag()
+fun Element.isHidden() = isPrivate() || isFiltered() || parentIsHidden()
 fun Element.children(filterFunction: (Element) -> Boolean) = enclosedElements
     .filter(filterFunction)
     .toList()
@@ -53,10 +52,9 @@ fun Element.hasAnnotation(annotationName: String): Boolean = annotationMirrors
     .map { it.annotationType.toString() }
     .any { it == annotationName }
 
-
-fun Element.hasHideTag(): Boolean {
+fun Element.hasJavadocTag(tagName: String): Boolean {
     return docTree()?.blockTags?.any {
-        tag -> tag is UnknownBlockTagTree && tag.tagName == "hide"
+        tag -> tag is UnknownBlockTagTree && tag.tagName == tagName
     } ?: false
 }
 
@@ -79,7 +77,7 @@ fun ExecutableElement.methodSignature(): String {
     val exceptions = thrownTypes
         .joinToString(", ")
         .prefixIfNotEmpty(" throws ")
-    return "$modifiers $typeParams$returnType${simpleName}($parameters)$exceptions"
+    return "$modifiers $typeParams$returnType${name()}($parameters)$exceptions"
 }
 
 fun formatType(typeMirror: TypeMirror): String {
@@ -104,6 +102,12 @@ fun TypeElement.signature(): String {
 
     return "$modifiers $kind $simpleName$superName$interfaces"
 }
+
+fun TypeElement.baseFileName(): String =
+    if (enclosingElement.isType())
+        (enclosingElement as TypeElement).baseFileName() + "." + simpleName
+    else
+        qualifiedName.toString().replace('.', '/')
 
 fun superDisplayName(mirror: TypeMirror): String {
     return when (mirror.toString()) {
