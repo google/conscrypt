@@ -268,6 +268,16 @@ jobs:
       matrix:
         platform: [ubuntu-latest, macos-13, macos-latest, windows-latest]
         java: [8, 9, 11, 21]
+        include:
+          - platform: ubuntu-latest
+            separator: ':'
+          - platform: macos-latest
+            separator: ':'
+          - platform: macos-13
+            separator: ':'
+          - platform: windows-latest
+            separator: ';'
+
 
     runs-on: ${{ matrix.platform }}
 
@@ -299,7 +309,7 @@ jobs:
           DIR="$(find m2/org/conscrypt/conscrypt-openjdk-uber -maxdepth 1 -mindepth 1 -type d -print)"
           VERSION="${DIR##*/}"
           TESTJAR="$(find testjar -name '*-tests.jar')"
-          java -jar junit-platform-console-standalone.jar execute -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar:$TESTJAR" -n='org.conscrypt.ConscryptOpenJdkSuite' --scan-classpath --reports-dir=results --fail-if-no-tests
+          java -jar junit-platform-console-standalone.jar execute -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar${{ matrix.separator }}$TESTJAR" -n='org.conscrypt.ConscryptOpenJdkSuite' --scan-classpath --reports-dir=results --fail-if-no-tests
 
       - name: Archive test results
         if: ${{ always() }}
