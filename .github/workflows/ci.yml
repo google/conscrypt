@@ -268,7 +268,8 @@ jobs:
       fail-fast: false
       matrix:
         platform: [ubuntu-latest, macos-13, macos-latest, windows-latest]
-        java: [8, 9, 11, 21]
+        java: [8, 11, 17, 21]
+        dist: ['temurin', 'zulu']
         include:
           - platform: ubuntu-latest
             separator: ':'
@@ -286,7 +287,7 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: ${{ matrix.dist }}
           java-version: ${{ matrix.java }}
 
       - name: Download UberJAR
