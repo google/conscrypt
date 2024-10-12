@@ -7,8 +7,6 @@ on:
     # Run every day at midnight UTC
     - cron: '0 0 * * *'
 
-timeout-minutes: 30
-
 jobs:
   boringssl_clone:
     # This step ensures that all builders have the same version of BoringSSL
