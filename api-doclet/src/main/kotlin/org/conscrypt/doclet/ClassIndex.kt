@@ -18,7 +18,6 @@ package org.conscrypt.doclet
 
 import javax.lang.model.element.Element
 import javax.lang.model.element.TypeElement
-import kotlin.streams.toList
 
 class ClassIndex {
     private val index = mutableMapOf<String, ClassInfo>()
@@ -31,27 +30,27 @@ class ClassIndex {
         put(ClassInfo(element as TypeElement))
     }
 
-    fun get(qualifiedName: String) = index[qualifiedName]
+    fun get(qualifiedName: String) = index[qualifiedName]!!
+    fun get(typeElement: TypeElement) = get(typeElement.qualifiedName.toString())
+    fun getParent(typeElement: TypeElement) = get(typeElement.enclosingElement as TypeElement)
     fun contains(qualifiedName: String) = index.containsKey(qualifiedName)
     fun find(name: String) = if (contains(name)) get(name) else findSimple(name)
     private fun findSimple(name: String) = classes().firstOrNull { it.simpleName == name } // XXX dups
 
     fun classes(): Collection<ClassInfo> = index.values
 
-    fun addVisible(elements: Set<Element>) {
-        elements
-            .filterIsInstance<TypeElement>()
-            .filter(Element::isVisibleType)
-            .forEach(::put)
-    }
+    fun addVisible(elements: Set<Element>) = elements
+        .filterIsInstance<TypeElement>()
+        .filter(Element::isVisibleType)
+        .forEach(::put)
 
-    private fun packages(): List<String> = index.values.stream()
+    private fun packages(): List<String> = index.values
         .map { it.packageName }
         .distinct()
         .sorted()
         .toList()
 
-    private fun classesForPackage(packageName: String) = index.values.stream()
+    private fun classesForPackage(packageName: String) = index.values
         .filter { it.packageName == packageName }
         .sorted()
         .toList()
@@ -62,15 +61,30 @@ class ClassIndex {
                 h2("Package $packageName", "package-name")
                 ul("class-list") {
                     classesForPackage(packageName)
-                        .forEach { c ->
-                            li {
-                                a(c.fileName, c.simpleName)
+                        .filter { !it.isInnerClass }
+                        .forEach {
+                            compose {
+                                classAndInners(it)
                             }
                         }
+                }
+            }
+        }
+    }
 
+    private fun classAndInners(classInfo: ClassInfo): String = html {
+        li {
+            a(classInfo.fileName, classInfo.simpleName)
+        }
+        val inners = classInfo.innerClasses()
+        inners.takeIf { it.isNotEmpty() }.let {
+            ul("class-list") {
+                inners.forEach {
+                    compose {
+                        classAndInners(it)
+                    }
                 }
             }
         }
     }
 }
-
