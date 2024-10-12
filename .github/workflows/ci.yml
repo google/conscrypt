@@ -266,17 +266,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: [ubuntu-latest, macos-13, macos-latest, windows-latest]
         java: [8, 9, 11, 21]
-        include:
-          - java: 8
-            suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
-          - java: 9
-            suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
-          - java: 11
-            suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
-          - java: 21
-            suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
 
     runs-on: ${{ matrix.platform }}
 
@@ -300,7 +291,7 @@ jobs:
 
       - name: Download JUnit runner
         shell: bash
-        run: mvn org.apache.maven.plugins:maven-dependency-plugin:3.1.2:copy -Dartifact=org.junit.platform:junit-platform-console-standalone:1.6.2 -DoutputDirectory=. -Dmdep.stripVersion=true
+        run: mvn org.apache.maven.plugins:maven-dependency-plugin:3.8.0:copy -Dartifact=org.junit.platform:junit-platform-console-standalone:1.11.2 -DoutputDirectory=. -Dmdep.stripVersion=true
 
       - name: Run JUnit tests
         shell: bash
@@ -308,7 +299,7 @@ jobs:
           DIR="$(find m2/org/conscrypt/conscrypt-openjdk-uber -maxdepth 1 -mindepth 1 -type d -print)"
           VERSION="${DIR##*/}"
           TESTJAR="$(find testjar -name '*-tests.jar')"
-          java -jar junit-platform-console-standalone.jar -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar:$TESTJAR" -n='${{ matrix.suite_class }}' --scan-classpath --reports-dir=results --fail-if-no-tests
+          java -jar junit-platform-console-standalone.jar execute -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar:$TESTJAR" -n='org.conscrypt.ConscryptOpenJdkSuite' --scan-classpath --reports-dir=results --fail-if-no-tests
 
       - name: Archive test results
         if: ${{ always() }}
