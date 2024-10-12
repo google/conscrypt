@@ -118,7 +118,7 @@ public class NativeCryptoTest {
     @BeforeClass
     @SuppressWarnings("JdkObsolete") // Public API KeyStore.aliases() uses Enumeration
     public static void initStatics() throws Exception {
-        if (!TestUtils.isJavaVersion(21)) {
+        if (!TestUtils.isJavaVersion(17)) {
             Class<?> c_Platform = TestUtils.conscryptClass("Platform");
             m_Platform_getFileDescriptor =
                     c_Platform.getDeclaredMethod("getFileDescriptor", Socket.class);
@@ -942,8 +942,8 @@ public class NativeCryptoTest {
     public static Future<TestSSLHandshakeCallbacks> handshake(final ServerSocket listener,
             final int timeout, final boolean client, final Hooks hooks, final byte[] alpnProtocols,
             final ApplicationProtocolSelectorAdapter alpnSelector) {
-        // TODO(prb) rewrite for engine socket. FD socket calls infeasible to test on Java 21+
-        assumeFalse(TestUtils.isJavaVersion(21));
+        // TODO(prb) rewrite for engine socket. FD socket calls infeasible to test on Java 17+
+        assumeFalse(TestUtils.isJavaVersion(17));
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<TestSSLHandshakeCallbacks> future =
                 executor.submit(new Callable<TestSSLHandshakeCallbacks>() {

@@ -46,8 +46,8 @@ import org.junit.runners.JUnit4;
 public class OpenSSLX509CertificateTest {
   @Test
     public void testSerialization_NoContextDeserialization() throws Exception {
-      // TODO(prb): Re-work avoiding reflection for Java 21
-      assumeFalse(TestUtils.isJavaVersion(21));
+      // TODO(prb): Re-work avoiding reflection for Java 17+
+      assumeFalse(TestUtils.isJavaVersion(17));
         // Set correct serialVersionUID
         {
             ObjectStreamClass clDesc = ObjectStreamClass.lookup(OpenSSLX509Certificate.class);

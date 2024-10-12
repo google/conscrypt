@@ -414,7 +414,7 @@ public class SSLSocketVersionCompatibilityTest {
                     assertNotNull(socket);
                     assertSame(client, socket);
                     assertNull(socket.getHandshakeSession());
-                    if (!TestUtils.isJavaVersion(21)) {
+                    if (!TestUtils.isJavaVersion(17)) {
                         javax.security.cert.X509Certificate[] peerCertificateChain =
                                 event.getPeerCertificateChain();
                         assertNotNull(peerCertificateChain);

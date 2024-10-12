@@ -240,8 +240,8 @@ public class ConscryptSocketTest {
             {SocketType.ENGINE, UnderlyingSocketType.SSL, ServerSocketType.PLAIN},
             {SocketType.ENGINE, UnderlyingSocketType.SSL, ServerSocketType.CHANNEL}};
 
-        if (TestUtils.isJavaVersion(21)) {
-            // FD Socket not feasible on Java 21+
+        if (TestUtils.isJavaVersion(17)) {
+            // FD Socket not feasible on Java 17+
             return engine_cases;
         }
         return ArrayUtils.concat(fd_cases, engine_cases);
@@ -632,8 +632,8 @@ public class ConscryptSocketTest {
     // http://b/27250522
     @Test
     public void test_setSoTimeout_doesNotCreateSocketImpl() throws Exception {
-        // TODO(prb): Figure out how to test this on Java 21+
-        assumeFalse(TestUtils.isJavaVersion(21));
+        // TODO(prb): Figure out how to test this on Java 17+
+        assumeFalse(TestUtils.isJavaVersion(17));
         ServerSocket listening = serverSocketType.newServerSocket();
         try {
             Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
