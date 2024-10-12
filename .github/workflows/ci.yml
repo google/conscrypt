@@ -132,11 +132,14 @@ jobs:
           ninja
           popd
 
-      - name: Build BoringSSL 64-bit Windows
+      - name: Set up MSVC paths on Windows
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
         with:
             arch: x64
+
+      - name: Build BoringSSL 64-bit Windows
+        if: runner.os == 'Windows'
         run: |
           cd $Env:BORINGSSL_HOME
           mkdir build64
