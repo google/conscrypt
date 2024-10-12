@@ -279,6 +279,10 @@ jobs:
             separator: ':'
           - platform: windows-latest
             separator: ';'
+        exclude: # Not available on Github runners
+          - platform: macos-latest
+            java: 8
+            dist: 'temurin'
 
 
     runs-on: ${{ matrix.platform }}
