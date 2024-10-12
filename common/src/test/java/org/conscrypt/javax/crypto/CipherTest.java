@@ -36,6 +36,7 @@ import java.security.KeyFactory;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.Provider;
+import java.security.ProviderException;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Security;
@@ -3907,6 +3908,14 @@ public final class CipherTest {
                     if (!isAEAD(p.transformation)) {
                         throw maybe;
                     }
+                } catch (ProviderException maybe) {
+                    boolean isShortBufferException
+                            = maybe.getCause() instanceof ShortBufferException;
+                    if (!isAEAD(p.transformation)
+                            || !isBuggyProvider(provider)
+                            || !isShortBufferException) {
+                        throw maybe;
+                    }
                 }
                 try {
                     c.update(new byte[0]);
@@ -3918,6 +3927,14 @@ public final class CipherTest {
                     }
                 } catch (AEADBadTagException maybe) {
                     if (!isAEAD(p.transformation)) {
+                        throw maybe;
+                    }
+                } catch (ProviderException maybe) {
+                    boolean isShortBufferException
+                            = maybe.getCause() instanceof ShortBufferException;
+                    if (!isAEAD(p.transformation)
+                            || !isBuggyProvider(provider)
+                            || !isShortBufferException) {
                         throw maybe;
                     }
                 }
@@ -4012,6 +4029,13 @@ public final class CipherTest {
                             + Arrays.toString(sk.getEncoded()) + " decryptedKey.getEncoded()="
                             + Arrays.toString(decryptedKey.getEncoded()), sk, decryptedKey);
         }
+    }
+
+    // SunJSSE has known issues between 17 and 21
+    private boolean isBuggyProvider(String providerName) {
+        return providerName.equals("SunJCE")
+                && TestUtils.isJavaVersion(17)
+                && !TestUtils.isJavaVersion(21);
     }
 
     /**
@@ -4514,6 +4538,9 @@ public final class CipherTest {
     public void testAES_keyConstrained() throws Exception {
         Provider[] providers = Security.getProviders();
         for (Provider p : providers) {
+            if (isBuggyProvider(p.getName())) {
+                continue;
+            }
             for (Provider.Service s : p.getServices()) {
                 if (s.getType().equals("Cipher")) {
                     if (s.getAlgorithm().startsWith("AES_128/")) {
