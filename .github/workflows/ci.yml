@@ -319,5 +319,5 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.platform }}-${{ matrix.java }}
+          name: test-results-${{ matrix.platform }}-${{ matrix.java }}-${{ matrix.dist }}
           path: results
