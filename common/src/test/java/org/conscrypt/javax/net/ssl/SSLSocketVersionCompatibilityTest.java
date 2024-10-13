@@ -113,9 +113,7 @@ import org.conscrypt.tlswire.record.TlsRecord;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import tests.net.DelegatingSSLSocketFactory;
@@ -414,7 +412,7 @@ public class SSLSocketVersionCompatibilityTest {
                     assertNotNull(socket);
                     assertSame(client, socket);
                     assertNull(socket.getHandshakeSession());
-                    if (!TestUtils.isJavaVersion(17)) {
+                    if (TestUtils.isJavaxCertificateSupported()) {
                         javax.security.cert.X509Certificate[] peerCertificateChain =
                                 event.getPeerCertificateChain();
                         assertNotNull(peerCertificateChain);
