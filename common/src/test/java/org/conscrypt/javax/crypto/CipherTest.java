@@ -4031,7 +4031,7 @@ public final class CipherTest {
         }
     }
 
-    // SunJSSE has known issues between 17 and 21
+    // SunJCE has known issues between 17 and 21
     private boolean isBuggyProvider(String providerName) {
         return providerName.equals("SunJCE")
                 && TestUtils.isJavaVersion(17)
