@@ -220,14 +220,17 @@ public class ConscryptSocketTest {
 
     @Parameters(name = "{0} wrapping {1} connecting to {2}")
     public static Object[][] data() {
-        return new Object[][] {
-            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.NONE, ServerSocketType.PLAIN},
-            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.NONE, ServerSocketType.CHANNEL},
-            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.PLAIN, ServerSocketType.PLAIN},
-            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.PLAIN, ServerSocketType.CHANNEL},
-            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.CHANNEL, ServerSocketType.PLAIN},
-            {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.CHANNEL, ServerSocketType.CHANNEL},
-            // Not supported: {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.SSL},
+        Object[][] fd_cases = new Object[][] {
+                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.NONE, ServerSocketType.PLAIN},
+                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.NONE, ServerSocketType.CHANNEL},
+                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.PLAIN, ServerSocketType.PLAIN},
+                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.PLAIN, ServerSocketType.CHANNEL},
+                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.CHANNEL, ServerSocketType.PLAIN},
+                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.CHANNEL, ServerSocketType.CHANNEL}
+                // Not supported: {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.SSL},
+        };
+
+        Object[][] engine_cases = new Object[][] {
             {SocketType.ENGINE, UnderlyingSocketType.NONE, ServerSocketType.PLAIN},
             {SocketType.ENGINE, UnderlyingSocketType.NONE, ServerSocketType.CHANNEL},
             {SocketType.ENGINE, UnderlyingSocketType.PLAIN, ServerSocketType.PLAIN},
@@ -236,6 +239,12 @@ public class ConscryptSocketTest {
             {SocketType.ENGINE, UnderlyingSocketType.CHANNEL, ServerSocketType.CHANNEL},
             {SocketType.ENGINE, UnderlyingSocketType.SSL, ServerSocketType.PLAIN},
             {SocketType.ENGINE, UnderlyingSocketType.SSL, ServerSocketType.CHANNEL}};
+
+        if (TestUtils.isJavaVersion(17)) {
+            // FD Socket not feasible on Java 17+
+            return engine_cases;
+        }
+        return ArrayUtils.concat(fd_cases, engine_cases);
     }
 
     @Parameter
@@ -623,6 +632,8 @@ public class ConscryptSocketTest {
     // http://b/27250522
     @Test
     public void test_setSoTimeout_doesNotCreateSocketImpl() throws Exception {
+        // TODO(prb): Figure out how to test this on Java 17+
+        assumeFalse(TestUtils.isJavaVersion(17));
         ServerSocket listening = serverSocketType.newServerSocket();
         try {
             Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
