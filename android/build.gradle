@@ -65,7 +65,7 @@ if (androidSdkInstalled) {
                             '-DOPENSSL_SMALL',
                             '-D_XOPEN_SOURCE=700',
                             '-Wno-unused-parameter',
-                            '-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384'
+                            '-DCMAKE_SHARED_LINKER_FLAGS=-z max-page-size=16384'
                     targets 'conscrypt_jni'
                     version androidCmakeVersion
                 }
