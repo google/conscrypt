@@ -588,8 +588,22 @@ final class Platform {
             return originalHostName;
         } catch (InvocationTargetException e) {
             throw new RuntimeException("Failed to get originalHostName", e);
-        } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException ignore) {
+        } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException ignored) {
             // passthrough and return addr.getHostAddress()
+        } catch (Exception maybeIgnored) {
+            if (!maybeIgnored.getClass().getSimpleName().equals("InaccessibleObjectException")) {
+                throw new RuntimeException("Failed to get originalHostName", maybeIgnored);
+            }
+            // Java versions which prevent reflection to get the original hostname.
+            // Ugly workaround is parse it from toString(), which uses holder.hostname rather
+            // than holder.originalHostName.  But in Java versions up to 21 at least and in the way
+            // used by Conscrypt, hostname always equals originalHostname.
+            String representation = addr.toString();
+            int slash = representation.indexOf('/');
+            if (slash != -1) {
+                return representation.substring(0, slash);
+            }
+            // Give up and return the IP
         }
 
         return addr.getHostAddress();

@@ -113,9 +113,7 @@ import org.conscrypt.tlswire.record.TlsRecord;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import tests.net.DelegatingSSLSocketFactory;
@@ -380,8 +378,6 @@ public class SSLSocketVersionCompatibilityTest {
                     String cipherSuite = event.getCipherSuite();
                     Certificate[] localCertificates = event.getLocalCertificates();
                     Certificate[] peerCertificates = event.getPeerCertificates();
-                    javax.security.cert.X509Certificate[] peerCertificateChain =
-                        event.getPeerCertificateChain();
                     Principal peerPrincipal = event.getPeerPrincipal();
                     Principal localPrincipal = event.getLocalPrincipal();
                     socket = event.getSocket();
@@ -410,17 +406,21 @@ public class SSLSocketVersionCompatibilityTest {
                         .assertServerCertificateChain(c.clientTrustManager, peerCertificates);
                     TestSSLContext
                         .assertCertificateInKeyStore(peerCertificates[0], c.serverKeyStore);
-                    assertNotNull(peerCertificateChain);
-                    TestKeyStore.assertChainLength(peerCertificateChain);
-                    assertNotNull(peerCertificateChain[0]);
-                    TestSSLContext.assertCertificateInKeyStore(
-                        peerCertificateChain[0].getSubjectDN(), c.serverKeyStore);
                     assertNotNull(peerPrincipal);
                     TestSSLContext.assertCertificateInKeyStore(peerPrincipal, c.serverKeyStore);
                     assertNull(localPrincipal);
                     assertNotNull(socket);
                     assertSame(client, socket);
                     assertNull(socket.getHandshakeSession());
+                    if (TestUtils.isJavaxCertificateSupported()) {
+                        javax.security.cert.X509Certificate[] peerCertificateChain =
+                                event.getPeerCertificateChain();
+                        assertNotNull(peerCertificateChain);
+                        TestKeyStore.assertChainLength(peerCertificateChain);
+                        assertNotNull(peerCertificateChain[0]);
+                        TestSSLContext.assertCertificateInKeyStore(
+                                peerCertificateChain[0].getSubjectDN(), c.serverKeyStore);
+                    }
                 } catch (RuntimeException e) {
                     throw e;
                 } catch (Exception e) {
