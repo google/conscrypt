@@ -862,40 +862,31 @@ public final class TestUtils {
         Assume.assumeTrue(findClass("java.security.spec.XECPrivateKeySpec") != null);
     }
 
-    // Find base method via reflection due to visibility issues when building with Gradle.
     public static boolean isTlsV1Deprecated() {
-        try {
-            return (Boolean) conscryptClass("Platform")
-                    .getDeclaredMethod("isTlsV1Deprecated")
-                    .invoke(null);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return callPlatformMethod("isTlsV1Deprecated", false);
     }
 
-    // Find base method via reflection due to possible version skew on Android
-    // and visibility issues when building with Gradle.
     public static boolean isTlsV1Filtered() {
-        try {
-            return (Boolean) conscryptClass("Platform")
-                    .getDeclaredMethod("isTlsV1Filtered")
-                    .invoke(null);
-        } catch (NoSuchMethodException e) {
-            return true;
-        } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
-            throw new IllegalStateException("Reflection failure", e);
-        }
+        return callPlatformMethod("isTlsV1Filtered", true);
     }
 
-    // Find base method via reflection due to possible version skew on Android
-    // and visibility issues when building with Gradle.
     public static boolean isTlsV1Supported() {
+        return callPlatformMethod("isTlsV1Supported", true);
+    }
+
+    public static boolean isJavaxCertificateSupported() {
+        return callPlatformMethod("isJavaxCertificateSupported", true);
+    }
+
+    // Calls a boolean platform method by reflection.  If the method is not present, e.g.
+    // due to version skew etc then return the default value.
+    public static boolean callPlatformMethod(String methodName, boolean defaultValue) {
         try {
             return (Boolean) conscryptClass("Platform")
-                    .getDeclaredMethod("isTlsV1Supported")
+                    .getDeclaredMethod(methodName)
                     .invoke(null);
         } catch (NoSuchMethodException e) {
-            return false;
+            return defaultValue;
         } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException("Reflection failure", e);
         }
