@@ -133,12 +133,16 @@ jobs:
           ninja
           popd
 
+      - name: Set up MSVC paths on Windows
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+            arch: x64
+
       - name: Build BoringSSL 64-bit Windows
         if: runner.os == 'Windows'
         run: |
           cd $Env:BORINGSSL_HOME
-
-          & $Env:GITHUB_WORKSPACE\.github\workflows\vsenv.ps1 -arch x64 -hostArch x64
           mkdir build64
           pushd build64
           cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -GNinja ..
