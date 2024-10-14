@@ -16,6 +16,7 @@
 
 package org.conscrypt.doclet
 
+import org.conscrypt.doclet.FilterDoclet.Companion.baseUrl
 import com.sun.source.doctree.DocCommentTree
 import com.sun.source.doctree.DocTree
 import com.sun.source.doctree.EndElementTree
@@ -27,91 +28,83 @@ import com.sun.source.doctree.SeeTree
 import com.sun.source.doctree.StartElementTree
 import com.sun.source.doctree.TextTree
 import com.sun.source.doctree.ThrowsTree
-import javax.lang.model.element.Element
-import javax.lang.model.type.TypeMirror
-import org.conscrypt.doclet.FilterDoclet.Companion.baseUrl
 import org.conscrypt.doclet.FilterDoclet.Companion.classIndex
 import org.conscrypt.doclet.FilterDoclet.Companion.docTrees
+import javax.lang.model.element.Element
+import javax.lang.model.type.TypeMirror
 
-fun renderDocTreeList(treeList: List<DocTree>): String =
-  treeList.joinToString("\n", transform = ::renderDocTree)
+fun renderDocTreeList(treeList: List<DocTree>):String =
+    treeList.joinToString("\n", transform = ::renderDocTree)
 
-fun renderDocTree(docTree: DocTree): String =
-  when (docTree) {
+fun renderDocTree(docTree: DocTree): String = when (docTree) {
     is TextTree -> docTree.body
     is LinkTree -> {
-      val reference = docTree.reference.toString()
-      val label =
-        if (docTree.label.isEmpty()) {
-          reference
+        val reference = docTree.reference.toString()
+        val label = if (docTree.label.isEmpty()) {
+            reference
         } else {
-          renderDocTreeList(docTree.label)
+            renderDocTreeList(docTree.label)
         }
-      createLink(reference, label)
+        createLink(reference, label)
     }
-    is StartElementTree,
-    is EndElementTree -> docTree.toString()
+    is StartElementTree, is EndElementTree -> docTree.toString()
     is LiteralTree -> "<code>${docTree.body}</code>"
     else -> error("[${docTree.javaClass} / ${docTree.kind} --- ${docTree}]")
-  }
+}
 
 fun createLink(reference: String, label: String) = html {
-  val parts = reference.split('#')
-  val className = parts[0]
-  val anchor = if (parts.size > 1) "#${parts[1]}" else ""
-  val classInfo = classIndex.find(className)
-  val href =
-    if (classInfo != null) "${classInfo.simpleName}.html$anchor"
-    else "$baseUrl${className.replace('.', '/')}.html$anchor"
+    val parts = reference.split('#')
+    val className = parts[0]
+    val anchor = if (parts.size > 1) "#${parts[1]}" else ""
+    val classInfo = classIndex.find(className)
+    val href = if (classInfo != null)
+        "${classInfo.simpleName}.html$anchor"
+    else
+        "$baseUrl${className.replace('.', '/')}.html$anchor"
 
-  a(href, label)
+    a(href, label)
 }
 
 fun renderBlockTagList(tagList: List<DocTree>): String =
-  tagList.joinToString("\n", transform = ::renderBlockTag)
+    tagList.joinToString("\n", transform = ::renderBlockTag)
 
-fun renderBlockTag(tag: DocTree) =
-  when (tag) {
-    is ParamTree,
-    is ReturnTree,
-    is ThrowsTree -> error("Unexpected block tag: $tag")
-    is SeeTree ->
-      html {
+fun renderBlockTag(tag: DocTree) = when (tag) {
+    is ParamTree, is ReturnTree, is ThrowsTree -> error("Unexpected block tag: $tag")
+    is SeeTree -> html {
         br()
         p {
-          strong("See: ")
-          text(renderDocTreeList(tag.reference))
+            strong("See: ")
+            text(renderDocTreeList(tag.reference))
         }
-      }
+    }
     else -> tag.toString()
-  }
-
-inline fun <reified T> Element.filterTags() =
-  docTree()?.blockTags?.filterIsInstance<T>() ?: emptyList()
-
-fun Element.paramTags() =
-  filterTags<ParamTree>().map { it.name.toString() to renderDocTreeList(it.description) }.toList()
-
-fun Element.returnTag(returnType: TypeMirror): List<Pair<String, String>> {
-  val list = mutableListOf<Pair<String, String>>()
-  val descriptions =
-    filterTags<ReturnTree>().map { renderDocTreeList(it.description) }.singleOrNull()
-
-  if (descriptions != null) {
-    list.add(returnType.toString() to descriptions)
-  }
-  return list
 }
 
-fun Element.throwTags() =
-  filterTags<ThrowsTree>()
+inline fun <reified T> Element.filterTags() =
+    docTree()?.blockTags?.filterIsInstance<T>() ?: emptyList()
+
+fun Element.paramTags() = filterTags<ParamTree>()
+    .map { it.name.toString() to renderDocTreeList(it.description) }
+    .toList()
+
+
+fun Element.returnTag(returnType: TypeMirror): List<Pair<String, String>> {
+    val list = mutableListOf<Pair<String, String>>()
+    val descriptions  = filterTags<ReturnTree>()
+        .map {  renderDocTreeList(it.description) }
+        .singleOrNull()
+
+    if (descriptions != null) {
+        list.add(returnType.toString() to descriptions)
+    }
+    return list
+}
+
+fun Element.throwTags() = filterTags<ThrowsTree>()
     .map { it.exceptionName.toString() to renderDocTreeList(it.description) }
     .toList()
 
 fun Element.docTree(): DocCommentTree? = docTrees.getDocCommentTree(this)
-
 fun Element.commentTree() = docTree()?.let { renderDocTreeList(it.fullBody) } ?: ""
-
 fun Element.tagTree() = docTree()?.let { renderBlockTagList(it.blockTags) } ?: ""
-
 fun Element.commentsAndTagTrees() = commentTree() + tagTree()

@@ -16,43 +16,38 @@
 
 package org.conscrypt.doclet
 
-import java.util.function.Consumer
 import jdk.javadoc.doclet.Doclet.Option
+import java.util.function.Consumer
 
 abstract class BaseOption(private val name: String) : Option {
-  override fun getKind() = Option.Kind.STANDARD
-
-  override fun getNames(): List<String> = listOf(name)
+    override  fun getKind() = Option.Kind.STANDARD
+    override fun getNames(): List<String> = listOf(name)
 }
 
-class StringOption(
-  name: String,
-  private val parameters: String,
-  private val description: String,
-  private val action: Consumer<String>,
+class StringOption(name: String,
+                   private val parameters: String,
+                   private val description: String,
+                   private val action: Consumer<String>
 ) : BaseOption(name) {
-  override fun getArgumentCount() = 1
+    override fun getArgumentCount() = 1
+    override fun getDescription(): String = description
+    override fun getParameters(): String = parameters
 
-  override fun getDescription(): String = description
-
-  override fun getParameters(): String = parameters
-
-  override fun process(option: String, arguments: MutableList<String>): Boolean {
-    action.accept(arguments[0])
-    return true
-  }
+    override fun process(option: String, arguments: MutableList<String>): Boolean {
+        action.accept(arguments[0])
+        return true
+    }
 }
 
-class BooleanOption(name: String, private val description: String, private val action: Runnable) :
-  BaseOption(name) {
-  override fun getArgumentCount() = 0
+class BooleanOption(name: String,
+                    private val description: String,
+                    private val action: Runnable): BaseOption(name) {
+    override fun getArgumentCount() = 0
+    override fun getDescription(): String = description
+    override fun getParameters(): String = ""
 
-  override fun getDescription(): String = description
-
-  override fun getParameters(): String = ""
-
-  override fun process(option: String, arguments: MutableList<String>): Boolean {
-    action.run()
-    return true
-  }
+    override fun process(option: String, arguments: MutableList<String>): Boolean {
+        action.run()
+        return true
+    }
 }
