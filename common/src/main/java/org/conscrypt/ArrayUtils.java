@@ -21,6 +21,7 @@ import java.util.Arrays;
 /**
  * Compatibility utility for Arrays.
  */
+@Internal
 public final class ArrayUtils {
     private ArrayUtils() {}
 
@@ -72,5 +73,12 @@ public final class ArrayUtils {
             result[front++] = array[back--];
         }
         return result;
+    }
+
+    /**
+     * Checks if given array is null or has zero elements.
+     */
+    public static <T> boolean isEmpty(T[] array) {
+        return array == null || array.length == 0;
     }
 }

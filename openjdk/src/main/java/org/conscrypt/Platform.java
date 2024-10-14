@@ -78,9 +78,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
-import org.conscrypt.ct.CTLogStore;
-import org.conscrypt.ct.CTPolicy;
-import sun.security.x509.AlgorithmId;
+import org.conscrypt.ct.LogStore;
+import org.conscrypt.ct.Policy;
 
 /**
  * Platform-specific methods for OpenJDK.
@@ -539,13 +538,26 @@ final class Platform {
     @SuppressWarnings("unused")
     static String oidToAlgorithmName(String oid) {
         try {
-            return AlgorithmId.get(oid).getName();
-        } catch (Exception e) {
-            return oid;
-        } catch (IllegalAccessError e) {
-            // This can happen under JPMS because AlgorithmId isn't exported by java.base
-            return oid;
+            Class<?> algorithmIdClass = Class.forName("sun.security.x509.AlgorithmId");
+            Method getMethod = algorithmIdClass.getDeclaredMethod("get", String.class);
+            getMethod.setAccessible(true);
+            Method getNameMethod = algorithmIdClass.getDeclaredMethod("getName");
+            getNameMethod.setAccessible(true);
+
+            Object algIdObj = getMethod.invoke(null, oid);
+            return (String) getNameMethod.invoke(algIdObj);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw(RuntimeException) cause;
+            } else if (cause instanceof Error) {
+                throw(Error) cause;
+            }
+            throw new RuntimeException(e);
+        } catch (Exception ignored) {
+            //Ignored
         }
+        return oid;
     }
 
     /*
@@ -576,8 +588,22 @@ final class Platform {
             return originalHostName;
         } catch (InvocationTargetException e) {
             throw new RuntimeException("Failed to get originalHostName", e);
-        } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException ignore) {
+        } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException ignored) {
             // passthrough and return addr.getHostAddress()
+        } catch (Exception maybeIgnored) {
+            if (!maybeIgnored.getClass().getSimpleName().equals("InaccessibleObjectException")) {
+                throw new RuntimeException("Failed to get originalHostName", maybeIgnored);
+            }
+            // Java versions which prevent reflection to get the original hostname.
+            // Ugly workaround is parse it from toString(), which uses holder.hostname rather
+            // than holder.originalHostName.  But in Java versions up to 21 at least and in the way
+            // used by Conscrypt, hostname always equals originalHostname.
+            String representation = addr.toString();
+            int slash = representation.indexOf('/');
+            if (slash != -1) {
+                return representation.substring(0, slash);
+            }
+            // Give up and return the IP
         }
 
         return addr.getHostAddress();
@@ -706,11 +732,11 @@ final class Platform {
         return null;
     }
 
-    static CTLogStore newDefaultLogStore() {
+    static LogStore newDefaultLogStore() {
         return null;
     }
 
-    static CTPolicy newDefaultPolicy(CTLogStore logStore) {
+    static Policy newDefaultPolicy() {
         return null;
     }
 
@@ -799,6 +825,14 @@ final class Platform {
     }
 
     public static boolean isTlsV1Deprecated() {
+        return true;
+    }
+
+    public static boolean isTlsV1Filtered() {
+        return false;
+    }
+
+    public static boolean isTlsV1Supported() {
         return true;
     }
 }

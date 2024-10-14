@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,6 +36,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,6 +46,8 @@ import org.junit.runners.JUnit4;
 public class OpenSSLX509CertificateTest {
   @Test
     public void testSerialization_NoContextDeserialization() throws Exception {
+      // TODO(prb): Re-work avoiding reflection for Java 17+
+      assumeFalse(TestUtils.isJavaVersion(17));
         // Set correct serialVersionUID
         {
             ObjectStreamClass clDesc = ObjectStreamClass.lookup(OpenSSLX509Certificate.class);

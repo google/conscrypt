@@ -340,7 +340,7 @@ abstract class NativeSslSession {
                 return baos.toByteArray();
             } catch (IOException e) {
                 // TODO(nathanmittler): Better error handling?
-                logger.log(Level.WARNING, "Failed to convert saved SSL Session: ", e);
+                logger.log(Level.FINE, "Failed to convert saved SSL Session: ", e);
                 return null;
             } catch (CertificateEncodingException e) {
                 log(e);
@@ -464,7 +464,7 @@ abstract class NativeSslSession {
 
     private static void log(Throwable t) {
         // TODO(nathanmittler): Better error handling?
-        logger.log(Level.INFO, "Error inflating SSL session: {0}",
+        logger.log(Level.FINE, "Error inflating SSL session: {0}",
                 (t.getMessage() != null ? t.getMessage() : t.getClass().getName()));
     }
 

@@ -19,10 +19,13 @@ jobs:
           echo Using BoringSSL commit: $(cd "${{ runner.temp }}/boringssl"; git rev-parse HEAD)
 
       - name: Archive BoringSSL source
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
+          retention-days: 1
+          include-hidden-files: true
+          if-no-files-found: error
 
   build:
     needs: boringssl_clone
@@ -43,8 +46,9 @@ jobs:
 
     steps:
       - name: Set up JDK 11 for toolchains
-        uses: actions/setup-java@v1.4.3
+        uses: actions/setup-java@v4
         with:
+          distribution: 'zulu'
           java-version: 11
 
       - name: Set runner-specific environment variables
@@ -56,7 +60,7 @@ jobs:
           echo "SDKMANAGER=${{ runner.temp }}/android-sdk/cmdline-tools/bin/sdkmanager" >> $GITHUB_ENV
           echo "M2_REPO=${{ runner.temp }}/m2" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Setup Linux environment
         if: runner.os == 'Linux'
@@ -80,9 +84,9 @@ jobs:
           brew install ninja || echo update failed
 
       - name: install Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.19.3'
+          go-version: '1.20'
 
       - name: Setup Windows environment
         if: runner.os == 'Windows'
@@ -91,7 +95,7 @@ jobs:
           choco install ninja -y
 
       - name: Fetch BoringSSL source
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
@@ -129,15 +133,19 @@ jobs:
           ninja
           popd
 
+      - name: Set up MSVC paths on Windows
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+            arch: x64
+
       - name: Build BoringSSL 64-bit Windows
         if: runner.os == 'Windows'
         run: |
           cd $Env:BORINGSSL_HOME
-
-          & $Env:GITHUB_WORKSPACE\.github\workflows\vsenv.ps1 -arch x64 -hostArch x64
           mkdir build64
           pushd build64
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE=/MT -DCMAKE_CXX_FLAGS_RELEASE=/MT -GNinja ..
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -GNinja ..
           ninja
           popd
 
@@ -175,7 +183,7 @@ jobs:
         run: ./gradlew publishToMavenLocal -Dmaven.repo.local="$M2_REPO"
 
       - name: Upload Maven respository
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: m2repo-${{ runner.os }}
           path: ${{ runner.temp }}/m2
@@ -187,7 +195,7 @@ jobs:
 
       - name: Upload test JAR with dependencies
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: testjar
           path: openjdk/build/libs/conscrypt-openjdk-*-tests.jar
@@ -199,7 +207,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Set runner-specific environment variables
         shell: bash
@@ -208,7 +216,7 @@ jobs:
           echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
 
       - name: Fetch BoringSSL source
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
@@ -224,19 +232,19 @@ jobs:
           mkdir -p "${{ runner.temp }}/boringssl/include"
 
       - name: Download Maven repository for Linux
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: m2repo-Linux
           path: ${{ runner.temp }}/m2
 
       - name: Download Maven repository for MacOS
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: m2repo-macOS
           path: ${{ runner.temp }}/m2
 
       - name: Download Maven repository for Windows
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: m2repo-Windows
           path: ${{ runner.temp }}/m2
@@ -252,7 +260,7 @@ jobs:
           ./gradlew :conscrypt-openjdk-uber:publishToMavenLocal -Dorg.conscrypt.openjdk.buildUberJar=true -Dmaven.repo.local="$M2_REPO"
 
       - name: Upload Maven respository
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: m2repo-uber
           path: ${{ runner.temp }}/m2
@@ -263,51 +271,61 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
-        java: [8, 9, 11]
+        platform: [ubuntu-latest, macos-13, macos-latest, windows-latest]
+        java: [8, 11, 17, 21]
+        dist: ['temurin', 'zulu']
         include:
-          - java: 8
-            suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
-          - java: 9
-            suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
-          - java: 11
-            suite_class: "org.conscrypt.Conscrypt(OpenJdk)?Suite"
+          - platform: ubuntu-latest
+            separator: ':'
+          - platform: macos-latest
+            separator: ':'
+          - platform: macos-13
+            separator: ':'
+          - platform: windows-latest
+            separator: ';'
+        exclude: # Not available on Github runners
+          - platform: macos-latest
+            java: 8
+            dist: 'temurin'
+
 
     runs-on: ${{ matrix.platform }}
 
     steps:
       - name: Set up Java
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v4
         with:
+          distribution: ${{ matrix.dist }}
           java-version: ${{ matrix.java }}
 
       - name: Download UberJAR
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: m2repo-uber
           path: m2
 
       - name: Download Test JAR with Dependencies
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: testjar
           path: testjar
 
       - name: Download JUnit runner
         shell: bash
-        run: mvn org.apache.maven.plugins:maven-dependency-plugin:3.1.2:copy -Dartifact=org.junit.platform:junit-platform-console-standalone:1.6.2 -DoutputDirectory=. -Dmdep.stripVersion=true
+        run: mvn org.apache.maven.plugins:maven-dependency-plugin:3.8.0:copy -Dartifact=org.junit.platform:junit-platform-console-standalone:1.11.2 -DoutputDirectory=. -Dmdep.stripVersion=true
 
       - name: Run JUnit tests
+        timeout-minutes: 15
         shell: bash
         run: |
           DIR="$(find m2/org/conscrypt/conscrypt-openjdk-uber -maxdepth 1 -mindepth 1 -type d -print)"
           VERSION="${DIR##*/}"
           TESTJAR="$(find testjar -name '*-tests.jar')"
-          java -jar junit-platform-console-standalone.jar -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar:$TESTJAR" -n='${{ matrix.suite_class }}' --scan-classpath --reports-dir=results --fail-if-no-tests
+          java -jar junit-platform-console-standalone.jar execute -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar${{ matrix.separator }}$TESTJAR" -n='org.conscrypt.ConscryptOpenJdkSuite' --scan-classpath --reports-dir=results --fail-if-no-tests
 
       - name: Archive test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.platform }}-${{ matrix.java }}
+          name: test-results-${{ matrix.platform }}-${{ matrix.java }}-${{ matrix.dist }}
           path: results

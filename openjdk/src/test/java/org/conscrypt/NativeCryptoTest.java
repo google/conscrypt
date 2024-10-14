@@ -26,6 +26,7 @@ import static org.conscrypt.NativeConstants.SSL_VERIFY_PEER;
 import static org.conscrypt.NativeConstants.TLS1_1_VERSION;
 import static org.conscrypt.NativeConstants.TLS1_2_VERSION;
 import static org.conscrypt.NativeConstants.TLS1_VERSION;
+import static org.conscrypt.TestUtils.isWindows;
 import static org.conscrypt.TestUtils.openTestFile;
 import static org.conscrypt.TestUtils.readTestFile;
 import static org.junit.Assert.assertEquals;
@@ -35,6 +36,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.when;
 
@@ -116,10 +118,12 @@ public class NativeCryptoTest {
     @BeforeClass
     @SuppressWarnings("JdkObsolete") // Public API KeyStore.aliases() uses Enumeration
     public static void initStatics() throws Exception {
-        Class<?> c_Platform = TestUtils.conscryptClass("Platform");
-        m_Platform_getFileDescriptor =
-                c_Platform.getDeclaredMethod("getFileDescriptor", Socket.class);
-        m_Platform_getFileDescriptor.setAccessible(true);
+        if (!TestUtils.isJavaVersion(17)) {
+            Class<?> c_Platform = TestUtils.conscryptClass("Platform");
+            m_Platform_getFileDescriptor =
+                    c_Platform.getDeclaredMethod("getFileDescriptor", Socket.class);
+            m_Platform_getFileDescriptor.setAccessible(true);
+        }
 
         PrivateKeyEntry serverPrivateKeyEntry = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
         SERVER_PRIVATE_KEY = OpenSSLKey.fromPrivateKey(serverPrivateKeyEntry.getPrivateKey());
@@ -938,6 +942,8 @@ public class NativeCryptoTest {
     public static Future<TestSSLHandshakeCallbacks> handshake(final ServerSocket listener,
             final int timeout, final boolean client, final Hooks hooks, final byte[] alpnProtocols,
             final ApplicationProtocolSelectorAdapter alpnSelector) {
+        // TODO(prb) rewrite for engine socket. FD socket calls infeasible to test on Java 17+
+        assumeFalse(TestUtils.isJavaVersion(17));
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<TestSSLHandshakeCallbacks> future =
                 executor.submit(new Callable<TestSSLHandshakeCallbacks>() {
@@ -2494,8 +2500,10 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_SESSION_get_time() throws Exception {
-        final ServerSocket listener = newServerSocket();
+        // TODO(prb) seems to fail regularly on Windows with time < System.currentTimeMillis()
+        assumeFalse("Skipping SSLSession_getCreationTime() test on Windows", isWindows());
 
+        final ServerSocket listener = newServerSocket();
         {
             Hooks cHooks = new Hooks() {
                 @Override

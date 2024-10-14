@@ -69,6 +69,10 @@ public final class StatsEvent {
             throw new RuntimeException("Stub!");
         }
 
+        public StatsEvent.Builder writeIntArray(int[] values) {
+            throw new RuntimeException("Stub!");
+        }
+
         public StatsEvent.Builder writeLong(long value) {
             throw new RuntimeException("Stub!");
         }

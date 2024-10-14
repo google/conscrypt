@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -355,7 +356,7 @@ public final class TestUtils {
         }
     }
 
-    static SSLSocketFactory setUseEngineSocket(
+    public static SSLSocketFactory setUseEngineSocket(
             SSLSocketFactory conscryptFactory, boolean useEngineSocket) {
         try {
             Class<?> clazz = conscryptClass("Conscrypt");
@@ -368,7 +369,7 @@ public final class TestUtils {
         }
     }
 
-    static SSLServerSocketFactory setUseEngineSocket(
+    public static SSLServerSocketFactory setUseEngineSocket(
             SSLServerSocketFactory conscryptFactory, boolean useEngineSocket) {
         try {
             Class<?> clazz = conscryptClass("Conscrypt");
@@ -513,12 +514,12 @@ public final class TestUtils {
         return msg;
     }
 
-    static SSLContext newClientSslContext(Provider provider) {
+    public static SSLContext newClientSslContext(Provider provider) {
         SSLContext context = newContext(provider);
         return initClientSslContext(context);
     }
 
-    static SSLContext newServerSslContext(Provider provider) {
+    public static SSLContext newServerSslContext(Provider provider) {
         SSLContext context = newContext(provider);
         return initServerSslContext(context);
     }
@@ -861,14 +862,34 @@ public final class TestUtils {
         Assume.assumeTrue(findClass("java.security.spec.XECPrivateKeySpec") != null);
     }
 
-    // Find base method via reflection due to visibility issues when building with Gradle.
     public static boolean isTlsV1Deprecated() {
+        return callPlatformMethod("isTlsV1Deprecated", false);
+    }
+
+    public static boolean isTlsV1Filtered() {
+        return callPlatformMethod("isTlsV1Filtered", true);
+    }
+
+    public static boolean isTlsV1Supported() {
+        return callPlatformMethod("isTlsV1Supported", true);
+    }
+
+    public static boolean isJavaxCertificateSupported() {
+        return callPlatformMethod("isJavaxCertificateSupported", true);
+    }
+
+    // Calls a boolean platform method by reflection.  If the method is not present, e.g.
+    // due to version skew etc then return the default value.
+    public static boolean callPlatformMethod(String methodName, boolean defaultValue) {
         try {
             return (Boolean) conscryptClass("Platform")
-                    .getDeclaredMethod("isTlsV1Deprecated")
+                    .getDeclaredMethod(methodName)
                     .invoke(null);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            return defaultValue;
+        } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
+            throw new IllegalStateException("Reflection failure", e);
         }
     }
+
 }

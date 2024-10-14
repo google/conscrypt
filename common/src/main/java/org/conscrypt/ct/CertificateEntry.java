@@ -61,8 +61,8 @@ public class CertificateEntry {
         } else if (entryType == LogEntryType.X509_ENTRY && issuerKeyHash != null) {
             throw new IllegalArgumentException("unexpected issuerKeyHash for X509 entry.");
         }
-        
-        if (issuerKeyHash != null && issuerKeyHash.length != CTConstants.ISSUER_KEY_HASH_LENGTH) {
+
+        if (issuerKeyHash != null && issuerKeyHash.length != Constants.ISSUER_KEY_HASH_LENGTH) {
             throw new IllegalArgumentException("issuerKeyHash must be 32 bytes long");
         }
 
@@ -83,11 +83,11 @@ public class CertificateEntry {
     public static CertificateEntry createForPrecertificate(OpenSSLX509Certificate leaf,
             OpenSSLX509Certificate issuer) throws CertificateException {
         try {
-            if (!leaf.getNonCriticalExtensionOIDs().contains(CTConstants.X509_SCT_LIST_OID)) {
+            if (!leaf.getNonCriticalExtensionOIDs().contains(Constants.X509_SCT_LIST_OID)) {
                 throw new CertificateException("Certificate does not contain embedded signed timestamps");
             }
 
-            byte[] tbs = leaf.getTBSCertificateWithoutExtension(CTConstants.X509_SCT_LIST_OID);
+            byte[] tbs = leaf.getTBSCertificateWithoutExtension(Constants.X509_SCT_LIST_OID);
 
             byte[] issuerKey = issuer.getPublicKey().getEncoded();
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -124,11 +124,11 @@ public class CertificateEntry {
      * TLS encode the CertificateEntry structure.
      */
     public void encode(OutputStream output) throws SerializationException {
-        Serialization.writeNumber(output, entryType.ordinal(), CTConstants.LOG_ENTRY_TYPE_LENGTH);
+        Serialization.writeNumber(output, entryType.ordinal(), Constants.LOG_ENTRY_TYPE_LENGTH);
         if (entryType == LogEntryType.PRECERT_ENTRY) {
             Serialization.writeFixedBytes(output, issuerKeyHash);
         }
-        Serialization.writeVariableBytes(output, certificate, CTConstants.CERTIFICATE_LENGTH_BYTES);
+        Serialization.writeVariableBytes(output, certificate, Constants.CERTIFICATE_LENGTH_BYTES);
     }
 }
 
