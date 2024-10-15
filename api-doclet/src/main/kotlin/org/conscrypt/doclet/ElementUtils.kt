@@ -17,7 +17,6 @@
 package org.conscrypt.doclet
 
 import com.sun.source.doctree.UnknownBlockTagTree
-import java.util.Locale
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
@@ -90,34 +89,11 @@ fun formatType(typeMirror: TypeMirror): String {
     }
 }
 
-fun TypeElement.signature(): String {
-    val modifiers = modifiers.joinToString(" ")
-    val kind = this.kind.toString().lowercase(Locale.getDefault())
-
-    val superName = superDisplayName(superclass)
-
-    val interfaces = interfaces
-        .joinToString(", ")
-        .prefixIfNotEmpty(" implements ")
-
-    return "$modifiers $kind $simpleName$superName$interfaces"
-}
-
 fun TypeElement.baseFileName(): String =
     if (enclosingElement.isType())
         (enclosingElement as TypeElement).baseFileName() + "." + simpleName
     else
         qualifiedName.toString().replace('.', '/')
 
-fun superDisplayName(mirror: TypeMirror): String {
-    return when (mirror.toString()) {
-        "none", "java.lang.Object" -> ""
-        else -> " extends $mirror "
-    }
-}
-
 private fun String.prefixIfNotEmpty(prefix: String): String
         = if (isNotEmpty()) prefix + this else this
-
-private fun String.suffixIfNotEmpty(prefix: String): String
-        = if (isNotEmpty()) this + prefix else this

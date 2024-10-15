@@ -18,9 +18,12 @@ package org.conscrypt.doclet
 
 import org.conscrypt.doclet.FilterDoclet.Companion.classIndex
 import java.nio.file.Paths
+import java.util.Locale
 import javax.lang.model.element.Element
 import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.Modifier
 import javax.lang.model.element.TypeElement
+import javax.lang.model.type.TypeMirror
 
 
 data class ClassInfo(val element: TypeElement) : Comparable<ClassInfo> {
@@ -35,6 +38,50 @@ data class ClassInfo(val element: TypeElement) : Comparable<ClassInfo> {
         .filter(TypeElement::isType)
         .map(classIndex::get)
         .sorted()
+
+
+    private fun outerClass() = if (isInnerClass) {
+        classIndex.get(element.enclosingElement as TypeElement)
+    } else {
+        null
+    }
+
+    fun innerName(): String = if (isInnerClass) {
+        "${outerClass()?.innerName()}.$simpleName"
+    } else {
+        simpleName
+    }
+
+    private fun signature(): String {
+        val visibleModifiers = element.modifiers
+            .map(Modifier::toString)
+            .toMutableSet()
+
+        val kind = element.kind.toString().lowercase(Locale.getDefault())
+        if (kind == "interface") {
+            visibleModifiers.remove("abstract")
+        }
+
+        val modifierString = visibleModifiers.joinToString(" ")
+
+        val superName = superDisplayName(element.superclass)
+
+        val interfaces = element.interfaces
+            .joinToString(", ")
+            .prefixIfNotEmpty(" implements ")
+
+        return "$modifierString $kind ${innerName()}$superName$interfaces"
+    }
+
+    private fun superDisplayName(mirror: TypeMirror): String {
+        val name = mirror.toString()
+        return when  {
+            name == "none" || name == "java.lang.Object" -> ""
+            name.startsWith("java.lang.Enum") -> ""
+            else -> " extends $mirror "
+        }
+    }
+
 
     override fun compareTo(other: ClassInfo) = qualifiedName.compareTo(other.qualifiedName)
 
@@ -136,7 +183,7 @@ data class ClassInfo(val element: TypeElement) : Comparable<ClassInfo> {
     fun generateHtml() = html {
         div("package-name") { text("Package: $packageName") }
         h1(simpleName)
-        pre(element.signature(), "class-signature")
+        pre(signature(), "class-signature")
 
         compose {
             description() +
@@ -149,6 +196,7 @@ data class ClassInfo(val element: TypeElement) : Comparable<ClassInfo> {
 
     private fun relativePath(from: String, to: String) =
         Paths.get(from).parent.relativize(Paths.get(to)).toString()
-
 }
 
+private fun String.prefixIfNotEmpty(prefix: String): String
+        = if (isNotEmpty()) prefix + this else this
