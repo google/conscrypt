@@ -42,7 +42,7 @@ class FilterDoclet : Doclet {
         lateinit var typeUtils: Types
         lateinit var outputPath: Path
         lateinit var cssPath: Path
-        var baseUrl: String = "https://docs.oracle.com/javase/8/docs/api/"
+        var baseUrl: String = "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/"
         const val CSS_FILENAME = "styles.css"
         var outputDir = "."
         var docTitle = "DOC TITLE"
@@ -103,11 +103,11 @@ class FilterDoclet : Doclet {
     private fun generateClassFile(classInfo: ClassInfo) {
         val classFilePath = outputPath.resolve(classInfo.fileName)
         Files.createDirectories(classFilePath.parent)
-        val simpleName = classInfo.simpleName
+        val name = classInfo.innerName()
 
         html {
             body(
-                title = "$simpleName - conscrypt-openjdk API",
+                title = "$name - Conscrypt API",
                 stylesheet = relativePath(classFilePath, cssPath),
             ) {
                 compose {
