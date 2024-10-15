@@ -52,7 +52,7 @@ public final class Hkdf {
     }
 
     // Visible for testing.
-    int getMacLength() {
+    public int getMacLength() {
         return macLength;
     }
 
