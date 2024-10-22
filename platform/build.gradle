@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath libraries.android_tools
+        classpath(libs.android.tools)
     }
 }
 
@@ -99,7 +99,7 @@ if (androidSdkInstalled) {
         testCompileOnly project(':conscrypt-android-stub'),
                         project(':conscrypt-libcore-stub')
         testImplementation project(path: ":conscrypt-testing", configuration: "shadow"),
-                           libraries.junit
+                           libs.junit
         compileOnly project(':conscrypt-android-stub'),
                     project(':conscrypt-libcore-stub')
 

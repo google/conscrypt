@@ -11,7 +11,7 @@ dependencies {
     // Only compile against this. Other modules will embed the generated code directly.
     compileOnly project(':conscrypt-constants')
 
-    testImplementation libraries.junit
+    testImplementation libs.junit
 }
 
 // Disable the javadoc task.
