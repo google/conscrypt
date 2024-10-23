@@ -4,12 +4,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath libraries.android_tools
+        classpath libs.android.tools
     }
-}
-
-plugins {
-    id 'digital.wup.android-maven-publish' version '3.6.2'
 }
 
 description = 'Conscrypt: Android'

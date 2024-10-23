@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath libraries.android_tools
+        classpath libs.android.tools
     }
 }
 
@@ -61,14 +61,14 @@ if (androidSdkInstalled) {
 
     dependencies {
         depsJarApi project(path: ':conscrypt-android'),
-                   libraries.bouncycastle_provider,
-                   libraries.bouncycastle_apis
+                   libs.bouncycastle.provider,
+                   libs.bouncycastle.apis
 
         depsJarImplementation project(':conscrypt-benchmark-base'),
                               project(path: ":conscrypt-testing", configuration: "shadow"),
                               project(':conscrypt-libcore-stub')
 
-        implementation 'com.google.caliper:caliper:1.0-beta-2'
+        implementation libs.caliper
     }
 
     // This task bundles up everything we're going to send to the device into a single jar.

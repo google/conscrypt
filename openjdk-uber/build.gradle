@@ -10,7 +10,7 @@ ext {
 }
 
 if (buildUberJar) {
-    apply plugin: 'biz.aQute.bnd.builder'
+    apply plugin: libs.plugins.bnd.get().pluginId
 
     configurations {
         uberJar

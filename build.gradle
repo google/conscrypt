@@ -2,8 +2,6 @@ import org.ajoberstar.grgit.Grgit
 import org.gradle.util.VersionNumber
 
 buildscript {
-    ext.android_tools = 'com.android.tools.build:gradle:7.4.0'
-    ext.errorproneVersion = '2.31.0'
     repositories {
         google()
         mavenCentral()
@@ -11,17 +9,16 @@ buildscript {
     dependencies {
         // This must be applied in the root project otherwise each subproject will
         // have it in a different ClassLoader.
-        classpath android_tools
+        classpath libs.android.tools
     }
 }
 
 plugins {
-    // Add dependency for build script so we can access Git from our
-    // build script.
-    id 'org.ajoberstar.grgit' version '5.2.2'
-    id 'net.ltgt.errorprone' version '4.0.0'
-    id "com.google.osdetector" version "1.7.3"
-    id "biz.aQute.bnd.builder" version "6.4.0" apply false
+    alias libs.plugins.bnd apply false
+    alias libs.plugins.errorprone
+    alias libs.plugins.grgit
+    alias libs.plugins.osdetector
+    alias libs.plugins.task.tree
 }
 
 subprojects {
@@ -65,9 +62,8 @@ subprojects {
             }
         }
     }
-    apply plugin: "idea"
     apply plugin: "jacoco"
-    apply plugin: "net.ltgt.errorprone"
+    apply plugin: libs.plugins.errorprone.get().pluginId
 
     group = "org.conscrypt"
     description = 'Conscrypt is an alternate Java Security Provider that uses BoringSSL'
@@ -91,28 +87,6 @@ subprojects {
         boringSslGit = Grgit.open(dir: boringsslHome)
         boringSslVersion = boringSslGit.head().id
 
-        jmhVersion = '1.21'
-        libraries = [
-                android_tools: android_tools,
-                roboelectric: 'org.robolectric:android-all:7.1.0_r7-robolectric-0',
-
-                // Test dependencies.
-                bouncycastle_apis: 'org.bouncycastle:bcpkix-jdk15on:1.63',
-                bouncycastle_provider: 'org.bouncycastle:bcprov-jdk15on:1.63',
-                junit  : 'junit:junit:4.13.2',
-                mockito: 'org.mockito:mockito-core:2.28.2',
-                truth  : 'com.google.truth:truth:1.0',
-
-                // Benchmark dependencies
-                jmh_core: "org.openjdk.jmh:jmh-core:${jmhVersion}",
-                jmh_generator_annprocess: "org.openjdk.jmh:jmh-generator-annprocess:${jmhVersion}",
-                jmh_generator_asm: "org.openjdk.jmh:jmh-generator-asm:${jmhVersion}",
-                jmh_generator_bytecode: "org.openjdk.jmh:jmh-generator-bytecode:${jmhVersion}",
-                jmh_generator_reflection: "org.openjdk.jmh:jmh-generator-reflection:${jmhVersion}",
-                netty_handler: 'io.netty:netty-handler:4.1.24.Final',
-                netty_tcnative: 'io.netty:netty-tcnative-boringssl-static:2.0.26.Final',
-        ]
-
         signJar = { jarPath ->
             if (rootProject.hasProperty('signingKeystore') && rootProject.hasProperty('signingPassword')) {
                 def command = 'jarsigner -keystore ' + rootProject.signingKeystore +
@@ -133,11 +107,21 @@ subprojects {
     }
 
     jacoco {
-        toolVersion = "0.8.4"
+        toolVersion = libs.versions.jacoco
+    }
+
+    configurations {
+        jacocoAnt
+        jacocoAgent
     }
 
     dependencies {
-        errorprone("com.google.errorprone:error_prone_core:$errorproneVersion")
+        jacocoAnt libs.jacoco.ant
+        jacocoAgent libs.jacoco.agent
+    }
+
+    dependencies {
+        errorprone libs.errorprone
     }
 
     tasks.register("generateProperties", WriteProperties) {
@@ -192,12 +176,12 @@ subprojects {
         }
 
         tasks.register("javadocJar", Jar) {
-            classifier = 'javadoc'
+            archiveClassifier = 'javadoc'
             from javadoc
         }
 
         tasks.register("sourcesJar", Jar) {
-            classifier = 'sources'
+            archiveClassifier = 'sources'
             from sourceSets.main.allSource
         }
 

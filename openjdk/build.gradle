@@ -1,12 +1,11 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    alias libs.plugins.bnd
+    alias libs.plugins.shadow
 }
 
 import aQute.bnd.gradle.BundleTaskConvention
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.codehaus.groovy.runtime.InvokerHelper
-
-apply plugin: 'biz.aQute.bnd.builder'
 
 description = 'Conscrypt: OpenJdk'
 
@@ -199,7 +198,7 @@ if (isExecutableOnPath('cpplint')) {
         args = sourceFiles
 
         // Capture stderr from the process
-        errorOutput = new ByteArrayOutputStream();
+        errorOutput = new ByteArrayOutputStream()
 
         // Need to ignore exit value so that doLast will execute.
         ignoreExitValue = true
@@ -207,7 +206,7 @@ if (isExecutableOnPath('cpplint')) {
         doLast {
             // Create the report file.
             def reportDir = file("${buildDir}/cpplint")
-            reportDir.mkdirs();
+            reportDir.mkdirs()
             def reportFile = new File(reportDir, "report.txt")
             def reportStream = new FileOutputStream(reportFile)
 
@@ -218,13 +217,13 @@ if (isExecutableOnPath('cpplint')) {
                 }
             } catch (Exception e) {
                 // The process failed - get the error report from the stderr.
-                String report = errorOutput.toString();
+                String report = errorOutput.toString()
 
                 // Write the report to the console.
                 System.err.println(report)
 
                 // Also write the report file.
-                reportStream.write(report.bytes);
+                reportStream.write(report.bytes)
 
                 // Extension method cpplint.output() can be used to obtain the report
                 ext.output = {
@@ -232,9 +231,9 @@ if (isExecutableOnPath('cpplint')) {
                 }
 
                 // Rethrow the exception to terminate the build.
-                throw e;
+                throw e
             } finally {
-                reportStream.close();
+                reportStream.close()
             }
         }
     }
@@ -272,8 +271,8 @@ dependencies {
 
     testImplementation project(':conscrypt-constants'),
             project(path: ':conscrypt-testing', configuration: 'shadow'),
-            libraries.junit,
-            libraries.mockito
+            libs.junit,
+            libs.mockito
 
     testRuntimeOnly sourceSets["$preferredSourceSet"].output
 
@@ -296,7 +295,7 @@ def addNativeJar(NativeBuildInfo nativeBuild) {
         // Depend on the regular classes task
         dependsOn classes
         manifest = jar.manifest
-        classifier = nativeBuild.mavenClassifier()
+        archiveClassifier = nativeBuild.mavenClassifier()
 
         from sourceSet.output + sourceSets.main.output
 
@@ -341,6 +340,7 @@ check.dependsOn testInterop
 jacocoTestReport {
     additionalSourceDirs.from files("$rootDir/openjdk/src/test/java", "$rootDir/common/src/main/java")
     executionData tasks.withType(Test)
+    dependsOn test
 }
 
 javadoc {
@@ -531,15 +531,14 @@ boolean isExecutableOnPath(executable) {
     FilenameFilter filter = new FilenameFilter() {
         @Override
         boolean accept(File dir, String name) {
-            return executable.equals(name);
+            return executable == name
         }
     }
     for(String folder : System.getenv('PATH').split("" + File.pathSeparatorChar)) {
         File[] files = file(folder).listFiles(filter)
         if (files != null && files.size() > 0) {
-            return true;
+            return true
         }
     }
-    return false;
+    return false
 }
-
