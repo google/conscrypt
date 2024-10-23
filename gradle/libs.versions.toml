@@ -1,0 +1,54 @@
+[versions]
+android-tools = "7.4.2"
+bnd = "6.4.0"
+bouncycastle = "1.67"
+caliper = "1.0-beta-2"
+errorprone = "2.31.0"
+errorprone-plugin = "4.0.0"
+grgit = "5.2.2"
+jacoco = "0.8.12"
+jmh = "1.37"
+jmh-plugin = "0.7.2"
+junit = "4.13.2"
+mockito = "2.28.2"
+netty-handler = "4.1.24.Final"
+netty-tcnative = "2.0.26.Final"
+osdetector = "1.7.3"
+shadow = "7.1.2"
+task-tree = "3.0.0"
+
+[plugins]
+bnd = { id = "biz.aQute.bnd.builder", version.ref = "bnd" }
+errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
+grgit = { id = "org.ajoberstar.grgit", version.ref = "grgit" }
+jmh = { id = "me.champeau.jmh", version.ref = "jmh-plugin" }
+osdetector = { id = "com.google.osdetector", version.ref = "osdetector" }
+shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
+task-tree = { id = "com.dorongold.task-tree", version.ref = "task-tree" }
+
+[libraries]
+# Android tooling
+android-tools = { module = "com.android.tools.build:gradle", version.ref = "android-tools" }
+caliper = { module = "com.google.caliper:caliper", version.ref = "caliper" }
+
+# Bouncycastle
+bouncycastle-apis = { module = "org.bouncycastle:bcpkix-jdk15on", version.ref = "bouncycastle" }
+bouncycastle-provider = { module = "org.bouncycastle:bcprov-jdk15on", version.ref = "bouncycastle" }
+
+# Testing
+errorprone = { module = "com.google.errorprone:error_prone_core", version.ref = "errorprone" }
+jacoco-agent = { module = "org.jacoco:org.jacoco.agent", version.ref = "jacoco" }
+jacoco-ant = { module = "org.jacoco:org.jacoco.ant", version.ref = "jacoco" }
+junit = { module = "junit:junit", version.ref = "junit" }
+mockito = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+
+# JMH Benchmarking
+jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
+jmh-generator-annprocess = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
+jmh-generator-bytecode = { module = "org.openjdk.jmh:jmh-generator-bytecode", version.ref = "jmh" }
+jmh-generator-reflection = { module = "org.openjdk.jmh:jmh-generator-reflection", version.ref = "jmh" }
+
+# Netty
+netty-handler = { module = "io.netty:netty-handler", version.ref = "netty-handler" }
+netty-tcnative = { module = "io.netty:netty-tcnative-boringssl-static", version.ref = "netty-tcnative" }
+

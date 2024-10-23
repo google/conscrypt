@@ -1,5 +1,5 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    alias libs.plugins.shadow
 }
 
 description = 'Conscrypt: Testing'
@@ -20,9 +20,9 @@ dependencies {
                 project(':conscrypt-libcore-stub'),
                 project(':conscrypt-android-stub')
 
-    implementation libraries.bouncycastle_apis,
-            libraries.bouncycastle_provider,
-            libraries.junit
+    implementation libs.bouncycastle.apis,
+            libs.bouncycastle.provider,
+            libs.junit
 }
 
 // No public methods here.

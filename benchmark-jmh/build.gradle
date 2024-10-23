@@ -1,8 +1,6 @@
 plugins {
-    id 'me.champeau.gradle.jmh' version '0.5.3'
+    alias libs.plugins.jmh
 }
-
-apply plugin: 'idea'
 
 description = 'Conscrypt: JMH on OpenJDK Benchmarks'
 
@@ -31,13 +29,13 @@ jmh {
         setBenchmarkParameters(parseParams(jmhParams))
     }
     warmupIterations = "$jmhWarmupIterations".toInteger()
-    iterations = "$jmhIterations".toInteger();
+    iterations = "$jmhIterations".toInteger()
     fork = "$jmhFork".toInteger()
-    jvmArgs = jmhJvmArgs.toString()
+    // jvmArgs = jmhJvmArgs
     if (jmhJvm != null) {
         jvm = jmhJvm
     }
-    duplicateClassesStrategy = 'warn'
+    duplicateClassesStrategy = DuplicatesStrategy.WARN
 }
 
 configurations {
@@ -65,20 +63,21 @@ sourceSets {
 }
 
 dependencies {
-    implementation project(path: ":conscrypt-openjdk", configuration: "runtimeElements"),
+    implementation project(":conscrypt-openjdk"),
+            project(path: ":conscrypt-testing", configuration: "runtimeElements"),
             project(':conscrypt-benchmark-base'),
             // Add the preferred native openjdk configuration for this platform.
-            project(':conscrypt-openjdk').sourceSets["$preferredSourceSet"].output,
-            libraries.junit,
-            libraries.netty_handler,
-            libraries.netty_tcnative
+            //project(':conscrypt-openjdk').sourceSets["$preferredSourceSet"].output,
+            libs.junit,
+            libs.netty.handler,
+            libs.netty.tcnative
 
-    jmhGeneratorAnnprocess libraries.jmh_generator_annprocess
+    jmhGeneratorAnnprocess libs.jmh.generator.annprocess
 
     // Override the default JMH dependencies with the new versions.
-    jmh libraries.jmh_core,
-            libraries.jmh_generator_reflection,
-            libraries.jmh_generator_bytecode
+    jmh libs.jmh.core,
+            libs.jmh.generator.reflection,
+            libs.jmh.generator.bytecode
 }
 
 // Running benchmarks in IntelliJ seems broken without this.
