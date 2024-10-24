@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,35 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.conscrypt.ct;
+package org.conscrypt.metrics;
 
 import org.conscrypt.Internal;
+import org.conscrypt.ct.LogStore;
 
 @Internal
-public interface LogStore {
-    public enum State {
-        UNINITIALIZED,
-        NOT_FOUND,
-        MALFORMED,
-        LOADED,
-        COMPLIANT,
-        NON_COMPLIANT,
-    }
+public interface StatsLog {
+    public void countTlsHandshake(
+            boolean success, String protocol, String cipherSuite, long duration);
 
-    void setPolicy(Policy policy);
-
-    State getState();
-
-    int getMajorVersion();
-
-    int getMinorVersion();
-
-    int getCompatVersion();
-
-    int getMinCompatVersionAvailable();
-
-    long getTimestamp();
-
-    LogInfo getKnownLog(byte[] logId);
+    public void updateCTLogListStatusChanged(LogStore logStore);
 }

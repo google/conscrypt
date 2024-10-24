@@ -16,8 +16,6 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.metrics.Source.SOURCE_GMS;
-
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.os.Binder;
@@ -25,8 +23,16 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.system.Os;
 import android.util.Log;
+
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
+
+import org.conscrypt.ct.LogStore;
+import org.conscrypt.ct.Policy;
+import org.conscrypt.metrics.Source;
+import org.conscrypt.metrics.StatsLog;
+import org.conscrypt.metrics.StatsLogImpl;
+
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -53,6 +59,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
@@ -62,16 +69,12 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509TrustManager;
-import org.conscrypt.ct.LogStore;
-import org.conscrypt.ct.Policy;
-import org.conscrypt.metrics.CipherSuite;
-import org.conscrypt.metrics.ConscryptStatsLog;
-import org.conscrypt.metrics.Protocol;
 
 /**
  * Platform-specific methods for unbundled Android.
  */
-final class Platform {
+@Internal
+final public class Platform {
     private static final String TAG = "Conscrypt";
 
     private static Method m_getCurveName;
@@ -930,24 +933,19 @@ final class Platform {
         return SystemClock.elapsedRealtime();
     }
 
-    static void countTlsHandshake(
-            boolean success, String protocol, String cipherSuite, long durationLong) {
-        // Statsd classes appeared in SDK 30 and aren't available in earlier versions
-
+    public static StatsLog getStatsLog() {
         if (Build.VERSION.SDK_INT >= 30) {
-            Protocol proto = Protocol.forName(protocol);
-            CipherSuite suite = CipherSuite.forName(cipherSuite);
-            int duration = (int) durationLong;
-
-            writeStats(success, proto.getId(), suite.getId(), duration);
+            return StatsLogImpl.getInstance();
         }
+        return null;
     }
 
-    @TargetApi(30)
-    private static void writeStats(
-            boolean success, int protocol, int cipherSuite, int duration) {
-        ConscryptStatsLog.write(ConscryptStatsLog.TLS_HANDSHAKE_REPORTED, success, protocol,
-                cipherSuite, duration, SOURCE_GMS, new int[] {Os.getuid(), Binder.getCallingUid()});
+    public static Source getStatsSource() {
+        return Source.SOURCE_GMS;
+    }
+
+    public static int[] getUids() {
+        return new int[] {Os.getuid(), Binder.getCallingUid()};
     }
 
     public static boolean isJavaxCertificateSupported() {

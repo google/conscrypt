@@ -19,6 +19,11 @@ package org.conscrypt.ct;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import junit.framework.TestCase;
+
+import org.conscrypt.OpenSSLKey;
+import org.conscrypt.metrics.StatsLog;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -28,11 +33,14 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.security.PublicKey;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Base64;
 import junit.framework.TestCase;
 import org.conscrypt.OpenSSLKey;
 
 public class LogStoreImplTest extends TestCase {
+    @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
     public void test_loadLogList() throws Exception {
         // clang-format off
         String content = "" +
@@ -104,14 +112,10 @@ public class LogStoreImplTest extends TestCase {
 "}";
         // clang-format on
 
+        FakeStatsLog metrics = new FakeStatsLog();
         File logList = writeFile(content);
-        LogStore store = new LogStoreImpl(logList.toPath());
-        store.setPolicy(new PolicyImpl() {
-            @Override
-            public boolean isLogStoreCompliant(LogStore store) {
-                return true;
-            }
-        });
+        LogStore store = new LogStoreImpl(logList.toPath(), metrics);
+        store.setPolicy(alwaysCompliantStorePolicy);
 
         assertNull("A null logId should return null", store.getKnownLog(null));
 
@@ -132,6 +136,36 @@ public class LogStoreImplTest extends TestCase {
                         .build();
         byte[] log1Id = Base64.getDecoder().decode("7s3QZNXbGs7FXLedtM0TojKHRny87N7DUUhZRnEftZs=");
         assertEquals("An existing logId should be returned", log1, store.getKnownLog(log1Id));
+        assertEquals("One metric update should be emitted", metrics.states.size(), 1);
+        assertEquals("The metric update for log list state should be compliant",
+                metrics.states.get(0), LogStore.State.COMPLIANT);
+    }
+
+    public void test_loadMalformedLogList() throws Exception {
+        FakeStatsLog metrics = new FakeStatsLog();
+        String content = "}}";
+        File logList = writeFile(content);
+        LogStore store = new LogStoreImpl(logList.toPath(), metrics);
+        store.setPolicy(alwaysCompliantStorePolicy);
+
+        assertEquals(
+                "The log state should be malformed", store.getState(), LogStore.State.MALFORMED);
+        assertEquals("One metric update should be emitted", metrics.states.size(), 1);
+        assertEquals("The metric update for log list state should be malformed",
+                metrics.states.get(0), LogStore.State.MALFORMED);
+    }
+
+    public void test_loadMissingLogList() throws Exception {
+        FakeStatsLog metrics = new FakeStatsLog();
+        File logList = new File("does_not_exist");
+        LogStore store = new LogStoreImpl(logList.toPath(), metrics);
+        store.setPolicy(alwaysCompliantStorePolicy);
+
+        assertEquals(
+                "The log state should be not found", store.getState(), LogStore.State.NOT_FOUND);
+        assertEquals("One metric update should be emitted", metrics.states.size(), 1);
+        assertEquals("The metric update for log list state should be not found",
+                metrics.states.get(0), LogStore.State.NOT_FOUND);
     }
 
     private File writeFile(String content) throws IOException {

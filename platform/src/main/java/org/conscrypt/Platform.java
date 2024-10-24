@@ -18,14 +18,26 @@ package org.conscrypt;
 
 import static android.system.OsConstants.SOL_SOCKET;
 import static android.system.OsConstants.SO_SNDTIMEO;
-import static org.conscrypt.metrics.Source.SOURCE_MAINLINE;
 
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.StructTimeval;
+
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 import dalvik.system.VMRuntime;
+
+import libcore.net.NetworkSecurityPolicy;
+
+import org.conscrypt.ct.LogStore;
+import org.conscrypt.ct.LogStoreImpl;
+import org.conscrypt.ct.Policy;
+import org.conscrypt.ct.PolicyImpl;
+import org.conscrypt.metrics.OptionalMethod;
+import org.conscrypt.metrics.Source;
+import org.conscrypt.metrics.StatsLog;
+import org.conscrypt.metrics.StatsLogImpl;
+
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.System;
@@ -50,6 +62,7 @@ import java.security.spec.InvalidParameterSpecException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+
 import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SNIHostName;
@@ -62,18 +75,11 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
-import libcore.net.NetworkSecurityPolicy;
-import org.conscrypt.ct.LogStore;
-import org.conscrypt.ct.LogStoreImpl;
-import org.conscrypt.ct.Policy;
-import org.conscrypt.ct.PolicyImpl;
-import org.conscrypt.metrics.CipherSuite;
-import org.conscrypt.metrics.ConscryptStatsLog;
-import org.conscrypt.metrics.OptionalMethod;
-import org.conscrypt.metrics.Protocol;
+
 import sun.security.x509.AlgorithmId;
 
-final class Platform {
+@Internal
+final public class Platform {
     private static class NoPreloadHolder { public static final Platform MAPPER = new Platform(); }
 
     /**
@@ -529,15 +535,16 @@ final class Platform {
         return System.currentTimeMillis();
     }
 
-    static void countTlsHandshake(
-            boolean success, String protocol, String cipherSuite, long durationLong) {
-        Protocol proto = Protocol.forName(protocol);
-        CipherSuite suite = CipherSuite.forName(cipherSuite);
-        int duration = (int) durationLong;
+    public static StatsLog getStatsLog() {
+        return StatsLogImpl.getInstance();
+    }
 
-        ConscryptStatsLog.write(ConscryptStatsLog.TLS_HANDSHAKE_REPORTED, success, proto.getId(),
-                suite.getId(), duration, SOURCE_MAINLINE,
-                new int[] {Os.getuid()});
+    public static Source getStatsSource() {
+        return Source.SOURCE_MAINLINE;
+    }
+
+    public static int[] getUids() {
+        return new int[] {Os.getuid()};
     }
 
     public static boolean isJavaxCertificateSupported() {

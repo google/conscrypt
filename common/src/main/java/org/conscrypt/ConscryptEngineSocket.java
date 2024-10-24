@@ -16,14 +16,17 @@
 
 package org.conscrypt;
 
-import static javax.net.ssl.SSLEngineResult.Status.CLOSED;
-import static javax.net.ssl.SSLEngineResult.Status.OK;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_COMPLETED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_STARTED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_NEW;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_READY;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_READY_HANDSHAKE_CUT_THROUGH;
+
+import static javax.net.ssl.SSLEngineResult.Status.CLOSED;
+import static javax.net.ssl.SSLEngineResult.Status.OK;
+
+import org.conscrypt.metrics.StatsLog;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -36,6 +39,7 @@ import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -297,10 +301,12 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
 
                 case STATE_READY_HANDSHAKE_CUT_THROUGH:
                     if (handshakeStartedMillis > 0) {
-                        Platform.countTlsHandshake(true,
-                            engine.getSession().getProtocol(),
-                            engine.getSession().getCipherSuite(),
-                            Platform.getMillisSinceBoot() - handshakeStartedMillis);
+                        StatsLog statsLog = Platform.getStatsLog();
+                        if (statsLog != null) {
+                            statsLog.countTlsHandshake(true, engine.getSession().getProtocol(),
+                                    engine.getSession().getCipherSuite(),
+                                    Platform.getMillisSinceBoot() - handshakeStartedMillis);
+                        }
                         handshakeStartedMillis = 0;
                     }
                     notify = true;
@@ -312,11 +318,13 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
 
                 case STATE_CLOSED:
                     if (handshakeStartedMillis > 0) {
-                        // Handshake was in progress and so must have failed.
-                        Platform.countTlsHandshake(false,
-                            "TLS_PROTO_FAILED",
-                            "TLS_CIPHER_FAILED",
-                            Platform.getMillisSinceBoot() - handshakeStartedMillis);
+                        StatsLog statsLog = Platform.getStatsLog();
+                        if (statsLog != null) {
+                            // Handshake was in progress and so must have failed.
+                            statsLog.countTlsHandshake(false, "TLS_PROTO_FAILED",
+                                    "TLS_CIPHER_FAILED",
+                                    Platform.getMillisSinceBoot() - handshakeStartedMillis);
+                        }
                         handshakeStartedMillis = 0;
                     }
                     notify = true;
